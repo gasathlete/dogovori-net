@@ -96,7 +96,7 @@ const partiesQuestions = (a: string, b: string): Question[] => [
     id: "party_a_name",
     label: `Наименование на ${a}`,
     type: "text",
-    placeholder: "ЕООД «Пример" / Иван Иванов",
+    placeholder: "ЕООД „Пример“ / Иван Иванов",
     required: true,
   },
   {
@@ -110,7 +110,7 @@ const partiesQuestions = (a: string, b: string): Question[] => [
     id: "party_b_name",
     label: `Наименование на ${b}`,
     type: "text",
-    placeholder: "ООД «Контрагент" / Мария Петрова",
+    placeholder: "ООД „Контрагент“ / Мария Петрова",
     required: true,
   },
   {
@@ -138,7 +138,7 @@ export const SECTORS: Sector[] = [
         id: "property",
         label: "Описание на имота (адрес, площ, етаж, кадастрален №)",
         type: "textarea",
-        placeholder: "гр. София, ул. «...", № ..., ет. ..., ап. ..., 85 кв.м., кад. №...",
+        placeholder: "гр. София, ул. „...“, № ..., ет. ..., ап. ..., 85 кв.м., кад. №...",
         required: true,
       },
       {
