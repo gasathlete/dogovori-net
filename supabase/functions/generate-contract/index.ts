@@ -100,16 +100,50 @@ ${qaLines}
       throw new Error("AI грешка");
     }
 
-    const data = await aiResp.json();
-    const content = data.choices?.[0]?.message?.content ?? "{}";
+    const rawText = await aiResp.text();
+    if (!rawText) throw new Error("Празен отговор от AI");
+
+    let data: any;
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      console.error("AI raw (not JSON):", rawText.slice(0, 500));
+      throw new Error("AI върна невалиден JSON отговор");
+    }
+
+    const content: string = data.choices?.[0]?.message?.content ?? "";
+    if (!content || !content.trim()) {
+      console.error("AI empty content. Full data:", JSON.stringify(data).slice(0, 500));
+      throw new Error("AI не върна съдържание (вероятно прекъснат отговор). Опитайте отново.");
+    }
+
+    const extractJson = (s: string): any => {
+      let cleaned = s.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+      const start = cleaned.search(/[\{\[]/);
+      const openCh = start !== -1 ? cleaned[start] : "";
+      const closeCh = openCh === "[" ? "]" : "}";
+      const end = cleaned.lastIndexOf(closeCh);
+      if (start !== -1 && end !== -1) cleaned = cleaned.substring(start, end + 1);
+      try { return JSON.parse(cleaned); } catch {}
+      cleaned = cleaned.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]").replace(/[\x00-\x1F\x7F]/g, "");
+      try { return JSON.parse(cleaned); } catch {}
+      // Repair unbalanced
+      let braces = 0, brackets = 0;
+      for (const c of cleaned) {
+        if (c === "{") braces++; else if (c === "}") braces--;
+        if (c === "[") brackets++; else if (c === "]") brackets--;
+      }
+      while (brackets-- > 0) cleaned += "]";
+      while (braces-- > 0) cleaned += "}";
+      return JSON.parse(cleaned);
+    };
 
     let parsed;
     try {
-      parsed = JSON.parse(content);
-    } catch {
-      // Fallback: strip code fences if any slipped through
-      const cleaned = content.replace(/```json|```/g, "").trim();
-      parsed = JSON.parse(cleaned);
+      parsed = extractJson(content);
+    } catch (err) {
+      console.error("JSON parse failed. Content head:", content.slice(0, 800));
+      throw new Error("AI отговорът не може да бъде анализиран като JSON");
     }
 
     return new Response(JSON.stringify(parsed), {
