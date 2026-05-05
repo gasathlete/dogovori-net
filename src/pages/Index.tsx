@@ -1,16 +1,37 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useNavigate } from "react-router-dom";
+import { Header } from "@/components/Header";
+import { Hero } from "@/components/Hero";
+import { SectorGrid } from "@/components/SectorGrid";
+import { Process } from "@/components/Process";
+import { Footer } from "@/components/Footer";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const Index = () => {
+  const navigate = useNavigate();
+  const startInterview = () => {
+    document.getElementById("sectors")?.scrollIntoView({ behavior: "smooth" });
+  };
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="min-h-screen">
+      <Header />
+      <Hero onStart={startInterview} />
+      <SectorGrid onPick={(id) => navigate(`/wizard/${id}`)} />
+      <Process />
+      <section id="compliance" className="container py-20">
+        <div className="rounded-2xl border border-gold/20 bg-gradient-card p-10 text-center shadow-elegant">
+          <div className="mb-3 text-xs uppercase tracking-[0.2em] text-gold">Съответствие</div>
+          <h3 className="font-serif text-2xl font-bold md:text-3xl">
+            Закон за задълженията и договорите · Търговски закон · ЗУТ
+          </h3>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">
+            Всеки генериран договор включва клаузи за частична недействителност, форсмажор
+            и подсъдност (Софийски градски съд / Арбитраж при БТПП). Препоръчваме
+            окончателен преглед от лицензиран адвокат.
+          </p>
+        </div>
+      </section>
+      <Footer />
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
