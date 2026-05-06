@@ -23,7 +23,7 @@ export function TopDocuments() {
           {TOP_DOCUMENTS.map((doc, i) => (
             <Link
               key={doc.name}
-              to={`/catalog#${doc.categoryId}`}
+              to={`/wizard/${doc.sectorId}`}
               style={{ animationDelay: `${i * 60}ms` }}
               className="group relative overflow-hidden rounded-xl border border-border/60 bg-gradient-card p-5 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-gold/50 hover:shadow-elegant animate-fade-in-up"
             >
