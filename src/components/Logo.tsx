@@ -1,10 +1,17 @@
-import { Scale } from "lucide-react";
+import logoImg from "@/assets/logo-dogovori.png";
 
 export function Logo({ className = "" }: { className?: string }) {
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      <div className="relative flex h-10 w-10 items-center justify-center rounded-md bg-gradient-gold shadow-gold">
-        <Scale className="h-5 w-5 text-navy" strokeWidth={2.2} />
+      <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-md border border-gold/30 bg-navy-light/60 shadow-soft">
+        <img
+          src={logoImg}
+          alt="Dogovori.net лого"
+          width={40}
+          height={40}
+          loading="lazy"
+          className="h-9 w-9 object-contain"
+        />
       </div>
       <div className="flex flex-col leading-tight">
         <span className="font-serif text-xl font-bold tracking-tight text-foreground">
