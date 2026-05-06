@@ -255,7 +255,7 @@ export default function WizardPage() {
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gold">
                 <FileText className="h-3.5 w-3.5" />
-                Live Draft
+                Работен договор
               </div>
               {!result && (
                 <span className="text-xs text-muted-foreground">Актуализация в реално време</span>
