@@ -116,13 +116,18 @@ export default function CatalogPage() {
                     {cat.documents.map((doc) => (
                       <tr
                         key={doc.name}
-                        className="border-b border-border/40 transition-colors last:border-0 hover:bg-gold/[0.02]"
+                        onClick={() => (window.location.href = `/wizard/${cat.sectorId}`)}
+                        className="cursor-pointer border-b border-border/40 transition-colors last:border-0 hover:bg-gold/[0.04]"
                       >
                         <td className="px-5 py-4 align-top">
                           <div className="flex items-start gap-2">
-                            <span className="font-serif text-sm font-bold text-foreground">
+                            <Link
+                              to={`/wizard/${cat.sectorId}`}
+                              className="font-serif text-sm font-bold text-foreground transition-colors hover:text-gold"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               {doc.name}
-                            </span>
+                            </Link>
                             {doc.badge && <Badge label={doc.badge} />}
                           </div>
                         </td>
@@ -130,7 +135,10 @@ export default function CatalogPage() {
                           {doc.purpose}
                         </td>
                         <td className="px-5 py-4 align-top text-sm italic text-gold/90">
-                          {doc.keyClause}
+                          <div className="flex items-center justify-between gap-3">
+                            <span>{doc.keyClause}</span>
+                            <ArrowRight className="h-4 w-4 shrink-0 text-gold opacity-0 transition-opacity group-hover:opacity-100" />
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -140,7 +148,11 @@ export default function CatalogPage() {
                 {/* Mobile cards */}
                 <div className="divide-y divide-border/40 md:hidden">
                   {cat.documents.map((doc) => (
-                    <div key={doc.name} className="p-5">
+                    <Link
+                      key={doc.name}
+                      to={`/wizard/${cat.sectorId}`}
+                      className="block p-5 transition-colors hover:bg-gold/[0.04]"
+                    >
                       <div className="flex items-start gap-2">
                         <h3 className="flex-1 font-serif text-base font-bold text-foreground">
                           {doc.name}
@@ -149,7 +161,10 @@ export default function CatalogPage() {
                       </div>
                       <p className="mt-2 text-sm text-muted-foreground">{doc.purpose}</p>
                       <p className="mt-2 text-xs italic text-gold/90">⚖ {doc.keyClause}</p>
-                    </div>
+                      <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-gold">
+                        Попълни договора <ArrowRight className="h-3 w-3" />
+                      </div>
+                    </Link>
                   ))}
                 </div>
               </div>
