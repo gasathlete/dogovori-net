@@ -4,13 +4,13 @@ import { ArrowRight } from "lucide-react";
 
 export function SectorGrid({ onPick }: { onPick: (id: string) => void }) {
   return (
-    <section id="sectors" className="container py-12 md:py-16">
-      <div className="mb-8 max-w-2xl">
-        <div className="mb-3 text-xs uppercase tracking-[0.2em] text-gold">01 · Сектори</div>
-        <h2 className="font-serif text-3xl font-bold md:text-4xl">
+    <section id="sectors" className="container py-8 sm:py-10 md:py-14">
+      <div className="mb-6 sm:mb-8 max-w-2xl">
+        <div className="mb-2 sm:mb-3 text-xs uppercase tracking-[0.2em] text-gold">01 · Сектори</div>
+        <h2 className="font-serif text-2xl font-bold leading-tight sm:text-3xl md:text-4xl">
           Изберете правен сектор
         </h2>
-        <p className="mt-3 text-muted-foreground">
+        <p className="mt-2 sm:mt-3 text-sm sm:text-base text-muted-foreground">
           Всеки сектор има индивидуален стратегически въпросник, изграден от експертите ни.
         </p>
       </div>
