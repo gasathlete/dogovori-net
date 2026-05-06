@@ -9,9 +9,10 @@ export function Header() {
           <Logo />
         </Link>
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
-          <a href="#sectors" className="transition-colors hover:text-gold">Сектори</a>
-          <a href="#process" className="transition-colors hover:text-gold">Как работи ?</a>
-          <a href="#compliance" className="transition-colors hover:text-gold">Съответствие</a>
+          <Link to="/catalog" className="transition-colors hover:text-gold">Каталог</Link>
+          <Link to="/#sectors" className="transition-colors hover:text-gold">Сектори</Link>
+          <Link to="/#process" className="transition-colors hover:text-gold">Как работи ?</Link>
+          <Link to="/#compliance" className="transition-colors hover:text-gold">Съответствие</Link>
         </nav>
         <div className="flex items-center gap-2">
           <span className="hidden rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-medium text-gold sm:inline-block">
