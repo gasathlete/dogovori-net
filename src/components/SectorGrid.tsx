@@ -34,7 +34,7 @@ export function SectorGrid({ onPick }: { onPick: (id: string) => void }) {
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                 {s.description}
               </p>
-              <div className="mt-5 flex items-center gap-2 text-sm font-medium text-gold opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="mt-5 flex items-center gap-2 text-sm font-medium text-gold opacity-100 transition-opacity md:opacity-60 md:group-hover:opacity-100">
                 НАМЕРИ ДОГОВОР
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </div>
