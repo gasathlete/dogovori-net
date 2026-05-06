@@ -4,17 +4,17 @@ import { ArrowRight, Star } from "lucide-react";
 
 export function TopDocuments() {
   return (
-    <section id="top-documents" className="border-y border-border/60 bg-navy-light/30 py-12 md:py-16">
+    <section id="top-documents" className="border-y border-border/60 bg-navy-light/30 py-8 sm:py-10 md:py-14">
       <div className="container">
-        <div className="mb-12 max-w-2xl">
-          <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gold">
+        <div className="mb-6 sm:mb-8 md:mb-10 max-w-2xl">
+          <div className="mb-2 sm:mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gold">
             <Star className="h-3.5 w-3.5" />
             03 · Топ 5 най-търсени
           </div>
-          <h2 className="font-serif text-3xl font-bold md:text-4xl">
+          <h2 className="font-serif text-2xl font-bold leading-tight sm:text-3xl md:text-4xl">
             Най-използваните договори в България
           </h2>
-          <p className="mt-3 text-muted-foreground">
+          <p className="mt-2 sm:mt-3 text-sm sm:text-base text-muted-foreground">
             Бърз достъп до петте най-често търсени документа – готови за персонализиране.
           </p>
         </div>
@@ -43,7 +43,7 @@ export function TopDocuments() {
           ))}
         </div>
 
-        <div className="mt-10 text-center">
+        <div className="mt-6 sm:mt-8 md:mt-10 text-center">
           <Link
             to="/catalog"
             className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/5 px-5 py-2.5 text-sm font-medium text-gold transition-all hover:bg-gold/10"

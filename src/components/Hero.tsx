@@ -24,21 +24,21 @@ export function Hero({ onStart }: { onStart: () => void }) {
           className="h-[85%] max-h-[720px] w-auto opacity-[0.08] mix-blend-screen md:opacity-[0.10]"
         />
       </div>
-      <div className="container relative py-10 md:py-20">
+      <div className="container relative py-6 sm:py-8 md:py-14 lg:py-16">
         <div className="mx-auto max-w-3xl text-center animate-fade-in-up">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-4 py-1.5 text-[10px] uppercase tracking-[0.18em] text-gold sm:text-xs sm:tracking-[0.2em]">
+          <div className="mb-3 sm:mb-4 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-gold sm:text-xs sm:tracking-[0.2em]">
             <Sparkles className="h-3.5 w-3.5" />
             БЕЗПЛАТЕН ЮРИДИЧЕСКИ ПОМОЩНИК
           </div>
-          <h1 className="font-serif text-3xl font-bold leading-tight sm:text-4xl md:text-6xl">
+          <h1 className="font-serif text-[26px] font-bold leading-[1.15] sm:text-4xl md:text-5xl lg:text-6xl">
             Договори, които{" "}
             <span className="gold-gradient-text">следват и търсят</span>{" "}
              Вашите интереси
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-sm text-muted-foreground sm:text-base md:text-lg">
+          <p className="mx-auto mt-3 sm:mt-4 max-w-2xl text-sm leading-snug text-muted-foreground sm:text-base sm:leading-normal md:text-lg">
             Освен шаблони, сайтът предлага стратегически въпроси, които да напътсват Вашата сделка. Dogovori.net изгражда индивидуални договори, съобразени със ЗЗД, ТЗ и ЗУТ, придружени от пълен правен риск-анализ.
           </p>
-          <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div className="mt-5 sm:mt-6 flex flex-col items-center justify-center gap-2.5 sm:flex-row sm:gap-3">
             <Button
               size="lg"
               onClick={onStart}
@@ -56,7 +56,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
             </Button>
           </div>
 
-          <div className="mt-10 md:mt-14 grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <div className="mt-8 sm:mt-10 md:mt-12 grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-3">
             {[
               { icon: ShieldCheck, label: "Правно съответствие", value: "ЗЗД · ТЗ · ЗУТ" },
               { icon: Sparkles, label: "Оценка на риска", value: "Преди създаване" },
@@ -64,9 +64,9 @@ export function Hero({ onStart }: { onStart: () => void }) {
             ].map((item) => (
               <div
                 key={item.label}
-                className="rounded-lg border border-border/60 bg-card/40 p-5 text-left backdrop-blur-sm"
+                className="rounded-lg border border-border/60 bg-card/40 p-4 sm:p-5 text-left backdrop-blur-sm"
               >
-                <item.icon className="mb-3 h-5 w-5 text-gold" />
+                <item.icon className="mb-2 sm:mb-3 h-5 w-5 text-gold" />
                 <div className="text-xs uppercase tracking-wider text-muted-foreground">
                   {item.label}
                 </div>
