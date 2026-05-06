@@ -11,7 +11,7 @@ export function Logo({ className = "" }: { className?: string }) {
           Dogovori<span className="text-gold">.net</span>
         </span>
         <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-          AI Legal Architect
+          Архитект на Вашите сделки
         </span>
       </div>
     </div>

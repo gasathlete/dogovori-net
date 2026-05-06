@@ -6,12 +6,12 @@ export function Process() {
       icon: ClipboardList,
       n: "01",
       title: "Стратегическо интервю",
-      text: "10–15 целенасочени въпроса с условна логика – AI задълбочава според Вашите отговори.",
+      text: "Пълен договор с номерирани клаузи, форматиран и издържан, структурно и визуално. Експорт PDF/DOCX.",
     },
     {
       icon: Brain,
       n: "02",
-      title: "Risk Analysis",
+      title: "Краен Договор",
       text: "AI идентифицира слаби места и Ви предупреждава за реални правни рискове.",
     },
     {
@@ -27,7 +27,7 @@ export function Process() {
       <div className="container">
         <div className="mb-12 max-w-2xl">
           <div className="mb-3 text-xs uppercase tracking-[0.2em] text-gold">02 · Процес</div>
-          <h2 className="font-serif text-3xl font-bold md:text-4xl">Как работи</h2>
+          <h2 className="font-serif text-3xl font-bold md:text-4xl">Как работи ?</h2>
         </div>
         <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-border/60 bg-border/60 md:grid-cols-3">
           {steps.map((s) => (
