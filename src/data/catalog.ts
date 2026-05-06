@@ -11,6 +11,8 @@ export interface CatalogCategory {
   title: string;
   icon: string; // lucide icon name
   intro: string;
+  /** Sector wizard to use when a document from this category is opened. */
+  sectorId: string;
   documents: CatalogDocument[];
   companions?: string[];
 }
