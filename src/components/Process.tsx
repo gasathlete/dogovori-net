@@ -23,7 +23,7 @@ export function Process() {
   ];
 
   return (
-    <section id="process" className="border-y border-border/60 bg-navy-light/30 py-20">
+    <section id="process" className="border-y border-border/60 bg-navy-light/30 py-12 md:py-16">
       <div className="container">
         <div className="mb-12 max-w-2xl">
           <div className="mb-3 text-xs uppercase tracking-[0.2em] text-gold">02 · Процес</div>

@@ -30,7 +30,7 @@ const Index = () => {
       <SectorGrid onPick={(id) => navigate(`/wizard/${id}`)} />
       <TopDocuments />
       <Process />
-      <section id="compliance" className="container py-20">
+      <section id="compliance" className="container py-12 md:py-16">
         <div className="rounded-2xl border border-gold/20 bg-gradient-card p-10 text-center shadow-elegant">
           <div className="mb-3 text-xs uppercase tracking-[0.2em] text-gold">Съответствие</div>
           <h3 className="font-serif text-2xl font-bold md:text-3xl">

@@ -4,8 +4,8 @@ import { ArrowRight } from "lucide-react";
 
 export function SectorGrid({ onPick }: { onPick: (id: string) => void }) {
   return (
-    <section id="sectors" className="container py-20">
-      <div className="mb-12 max-w-2xl">
+    <section id="sectors" className="container py-12 md:py-16">
+      <div className="mb-8 max-w-2xl">
         <div className="mb-3 text-xs uppercase tracking-[0.2em] text-gold">01 · Сектори</div>
         <h2 className="font-serif text-3xl font-bold md:text-4xl">
           Изберете правен сектор

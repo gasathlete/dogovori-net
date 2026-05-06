@@ -24,7 +24,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
           className="h-[85%] max-h-[720px] w-auto opacity-[0.08] mix-blend-screen md:opacity-[0.10]"
         />
       </div>
-      <div className="container relative py-14 md:py-32">
+      <div className="container relative py-10 md:py-20">
         <div className="mx-auto max-w-3xl text-center animate-fade-in-up">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-4 py-1.5 text-[10px] uppercase tracking-[0.18em] text-gold sm:text-xs sm:tracking-[0.2em]">
             <Sparkles className="h-3.5 w-3.5" />
@@ -38,7 +38,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
           <p className="mx-auto mt-5 max-w-2xl text-sm text-muted-foreground sm:text-base md:text-lg">
             Освен шаблони, сайтът предлага стратегически въпроси, които да напътсват Вашата сделка. Dogovori.net изгражда индивидуални договори, съобразени със ЗЗД, ТЗ и ЗУТ, придружени от пълен правен риск-анализ.
           </p>
-          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button
               size="lg"
               onClick={onStart}
@@ -56,7 +56,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
             </Button>
           </div>
 
-          <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <div className="mt-10 md:mt-14 grid grid-cols-1 gap-6 sm:grid-cols-3">
             {[
               { icon: ShieldCheck, label: "Правно съответствие", value: "ЗЗД · ТЗ · ЗУТ" },
               { icon: Sparkles, label: "Оценка на риска", value: "Преди създаване" },
