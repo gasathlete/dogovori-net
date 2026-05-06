@@ -13,18 +13,18 @@ export function Hero({ onStart }: { onStart: () => void }) {
           backgroundSize: "32px 32px",
         }}
       />
-      <div className="container relative py-20 md:py-32">
+      <div className="container relative py-14 md:py-32">
         <div className="mx-auto max-w-3xl text-center animate-fade-in-up">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-4 py-1.5 text-xs uppercase tracking-[0.2em] text-gold">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-4 py-1.5 text-[10px] uppercase tracking-[0.18em] text-gold sm:text-xs sm:tracking-[0.2em]">
             <Sparkles className="h-3.5 w-3.5" />
             БЕЗПЛАТЕН ЮРИДИЧЕСКИ ПОМОЩНИК
           </div>
-          <h1 className="font-serif text-4xl font-bold leading-tight md:text-6xl">
+          <h1 className="font-serif text-3xl font-bold leading-tight sm:text-4xl md:text-6xl">
             Договори, които{" "}
             <span className="gold-gradient-text">следват и търсят</span>{" "}
              Вашите интереси
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-base text-muted-foreground md:text-lg">
+          <p className="mx-auto mt-5 max-w-2xl text-sm text-muted-foreground sm:text-base md:text-lg">
             Освен шаблони, сайтът предлага стратегически въпроси, които да напътсват Вашата сделка. Dogovori.net изгражда индивидуални договори, съобразени със ЗЗД, ТЗ и ЗУТ, придружени от пълен правен риск-анализ.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">

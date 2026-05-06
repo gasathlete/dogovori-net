@@ -74,13 +74,13 @@ export default function WizardPage() {
         },
       });
       if (error) throw error;
-      if (!data || data.error) throw new Error(data?.error || "Неуспешно генериране");
+      if (!data || data.error) throw new Error(data?.error || "Неуспешно създаване");
       setResult(data as AIResult);
       toast.success("Договорът е готов", { description: "Прегледайте Краен Договор отдясно." });
     } catch (e: any) {
       const msg = String(e?.message || e);
       if (msg.includes("429")) toast.error("Достигнат е лимитът. Опитайте след малко.");
-      else if (msg.includes("402")) toast.error("Изчерпани AI кредити. Заредете акаунта.");
+      else if (msg.includes("402")) toast.error("Изчерпан лимит на системата. Опитайте по-късно.");
       else toast.error("Възникна грешка", { description: msg });
     } finally {
       setGenerating(false);
@@ -130,7 +130,7 @@ export default function WizardPage() {
         </div>
       </div>
 
-      <main className="container py-8">
+      <main className="container py-6 md:py-8">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* LEFT — interview / risk report */}
           <section className="space-y-5">
@@ -171,12 +171,12 @@ export default function WizardPage() {
                       {generating ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Генериране…
+                          Изготвяне…
                         </>
                       ) : (
                         <>
                           <Sparkles className="mr-2 h-4 w-4" />
-                          Анализирай и генерирай
+                          Анализирай и създай
                         </>
                       )}
                     </Button>
@@ -255,7 +255,7 @@ export default function WizardPage() {
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gold">
                 <FileText className="h-3.5 w-3.5" />
-                Live Draft
+                Работен договор
               </div>
               {!result && (
                 <span className="text-xs text-muted-foreground">Актуализация в реално време</span>

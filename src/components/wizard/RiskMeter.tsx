@@ -27,7 +27,7 @@ export function RiskMeter({
         <div className="flex items-center gap-2">
           <m.Icon className={cn("h-4 w-4", m.color)} />
           <span className={cn("text-xs font-semibold uppercase tracking-wider", m.color)}>
-            Risk Meter · {m.label}
+            Оценка на риска · {m.label}
           </span>
         </div>
         {typeof score === "number" && (

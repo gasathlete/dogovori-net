@@ -6,7 +6,7 @@ export function Footer() {
       <div className="container flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
         <Logo />
         <div className="text-xs text-muted-foreground">
-          © {new Date().getFullYear()} Dogovori.net · Генерираните договори не заместват консултация с адвокат.
+          © {new Date().getFullYear()} Dogovori.net · Изготвените договори не заместват консултация с адвокат.
         </div>
       </div>
     </footer>
