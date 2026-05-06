@@ -31,13 +31,13 @@ export function Process() {
         </div>
         <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-border/60 bg-border/60 md:grid-cols-3">
           {steps.map((s) => (
-            <div key={s.n} className="bg-card p-8">
-              <div className="mb-4 flex items-center gap-4">
+            <div key={s.n} className="bg-card p-6 sm:p-8">
+              <div className="mb-3 sm:mb-4 flex items-center gap-4">
                 <span className="font-serif text-3xl font-bold text-gold/40">{s.n}</span>
                 <s.icon className="h-5 w-5 text-gold" />
               </div>
-              <h3 className="font-serif text-xl font-bold">{s.title}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{s.text}</p>
+              <h3 className="font-serif text-lg sm:text-xl font-bold leading-tight">{s.title}</h3>
+              <p className="mt-2 text-sm leading-snug text-muted-foreground">{s.text}</p>
             </div>
           ))}
         </div>
