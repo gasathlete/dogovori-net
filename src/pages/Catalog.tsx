@@ -206,7 +206,7 @@ export default function CatalogPage() {
             Започнете персонализиран договор сега
           </h3>
           <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">
-            Стратегически интервюта и AI риск-анализ – в съответствие със ЗЗД, ТЗ и ЗУТ.
+            Стратегически интервюта и системен риск-анализ – в съответствие със ЗЗД, ТЗ и ЗУТ.
           </p>
           <Link
             to="/#sectors"

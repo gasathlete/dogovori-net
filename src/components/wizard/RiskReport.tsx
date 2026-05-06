@@ -28,7 +28,7 @@ export function RiskReport({
       <div>
         <h3 className="font-serif text-lg font-bold">Идентифицирани слаби места</h3>
         <p className="text-xs text-muted-foreground">
-          Прегледайте преди да подпишете – AI отбелязва типични правни рискове.
+          Прегледайте преди да подпишете – системата отбелязва типични правни рискове.
         </p>
       </div>
 

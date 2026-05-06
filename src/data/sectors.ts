@@ -85,7 +85,7 @@ const commonTail: Question[] = [
   {
     id: "extra_notes",
     label: "Допълнителни специфики (по желание)",
-    help: "Всичко, което желаете AI да включи или вземе предвид при анализа на риска.",
+    help: "Всичко, което желаете системата да включи или вземе предвид при анализа на риска.",
     type: "textarea",
     placeholder: "Напр. отговорност за скрити дефекти, гаранционни задължения, конкурентни ограничения...",
   },
@@ -150,7 +150,7 @@ export const SECTORS: Sector[] = [
       },
       {
         id: "rent",
-        label: "Месечен наем (в лева, без ДДС)",
+        label: "Месечен наем (в €, без ДДС)",
         type: "number",
         placeholder: "1500",
         required: true,
@@ -199,7 +199,7 @@ export const SECTORS: Sector[] = [
       },
       {
         id: "value",
-        label: "Обща стойност на договора (в лева, без ДДС)",
+        label: "Обща стойност на договора (в €, без ДДС)",
         type: "number",
         placeholder: "120000",
         required: true,
@@ -278,7 +278,7 @@ export const SECTORS: Sector[] = [
       },
       {
         id: "freight",
-        label: "Навло (цена за превоз) в EUR/BGN",
+        label: "Навло (цена за превоз) в €",
         type: "number",
         placeholder: "1800",
         required: true,
@@ -324,7 +324,7 @@ export const SECTORS: Sector[] = [
       },
       {
         id: "value",
-        label: "Обща стойност (BGN, без ДДС)",
+        label: "Обща стойност (€, без ДДС)",
         type: "number",
         placeholder: "15000",
         required: true,
@@ -491,7 +491,7 @@ export const SECTORS: Sector[] = [
       },
       {
         id: "min_purchase",
-        label: "Минимални годишни покупки (BGN)",
+        label: "Минимални годишни покупки (€)",
         type: "number",
         placeholder: "200000",
       },
