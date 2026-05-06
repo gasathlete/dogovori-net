@@ -1,5 +1,6 @@
 import { ShieldCheck, Sparkles, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import logoImg from "@/assets/logo-dogovori.png";
 
 export function Hero({ onStart }: { onStart: () => void }) {
   return (
@@ -13,6 +14,16 @@ export function Hero({ onStart }: { onStart: () => void }) {
           backgroundSize: "32px 32px",
         }}
       />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 flex items-center justify-center"
+      >
+        <img
+          src={logoImg}
+          alt=""
+          className="h-[85%] max-h-[720px] w-auto opacity-[0.08] mix-blend-screen md:opacity-[0.10]"
+        />
+      </div>
       <div className="container relative py-14 md:py-32">
         <div className="mx-auto max-w-3xl text-center animate-fade-in-up">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-4 py-1.5 text-[10px] uppercase tracking-[0.18em] text-gold sm:text-xs sm:tracking-[0.2em]">
