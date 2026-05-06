@@ -48,6 +48,7 @@ export const TOP_DOCUMENTS: { name: string; description: string; categoryId: str
 export const CATALOG: CatalogCategory[] = [
   {
     id: "digital",
+    sectorId: "digital",
     number: "01",
     title: "Дигитални услуги и ИТ",
     icon: "Laptop",
@@ -97,6 +98,7 @@ export const CATALOG: CatalogCategory[] = [
   },
   {
     id: "ip",
+    sectorId: "digital",
     number: "02",
     title: "Интелектуална собственост и Конфиденциалност",
     icon: "ShieldCheck",
@@ -134,6 +136,7 @@ export const CATALOG: CatalogCategory[] = [
   },
   {
     id: "naem",
+    sectorId: "real-estate",
     number: "03",
     title: "Наемни отношения",
     icon: "Home",
@@ -172,6 +175,7 @@ export const CATALOG: CatalogCategory[] = [
   },
   {
     id: "kupopr",
+    sectorId: "real-estate",
     number: "04",
     title: "Покупко-продажба и облигационни",
     icon: "Coins",
@@ -214,6 +218,7 @@ export const CATALOG: CatalogCategory[] = [
   },
   {
     id: "uslugi",
+    sectorId: "digital",
     number: "05",
     title: "Услуги и граждански договори",
     icon: "Handshake",
@@ -251,6 +256,7 @@ export const CATALOG: CatalogCategory[] = [
   },
   {
     id: "trudovi",
+    sectorId: "digital",
     number: "06",
     title: "Трудови правоотношения и кадри",
     icon: "Briefcase",
@@ -298,6 +304,7 @@ export const CATALOG: CatalogCategory[] = [
   },
   {
     id: "korp",
+    sectorId: "partnerships",
     number: "07",
     title: "Корпоративно управление",
     icon: "Building2",
@@ -334,6 +341,7 @@ export const CATALOG: CatalogCategory[] = [
   },
   {
     id: "trade",
+    sectorId: "trade",
     number: "08",
     title: "Търговско представителство и Дистрибуция",
     icon: "Truck",
@@ -365,6 +373,7 @@ export const CATALOG: CatalogCategory[] = [
   },
   {
     id: "stroitelstvo",
+    sectorId: "construction",
     number: "09",
     title: "Строителство и Ремонти (СМР)",
     icon: "HardHat",
@@ -401,6 +410,7 @@ export const CATALOG: CatalogCategory[] = [
   },
   {
     id: "tourism",
+    sectorId: "digital",
     number: "10",
     title: "Туризъм и Събития",
     icon: "PartyPopper",
@@ -432,6 +442,7 @@ export const CATALOG: CatalogCategory[] = [
   },
   {
     id: "punomoshtni",
+    sectorId: "digital",
     number: "11",
     title: "Упълномощаване и представителство",
     icon: "FileSignature",
@@ -463,6 +474,7 @@ export const CATALOG: CatalogCategory[] = [
   },
   {
     id: "decl",
+    sectorId: "digital",
     number: "12",
     title: "Декларации, Споразумения и Семейно право",
     icon: "FileCheck",
@@ -515,6 +527,7 @@ export const CATALOG: CatalogCategory[] = [
   },
   {
     id: "auto",
+    sectorId: "real-estate",
     number: "13",
     title: "Автомобили (МПС)",
     icon: "Car",
@@ -541,6 +554,7 @@ export const CATALOG: CatalogCategory[] = [
   },
   {
     id: "schetovodni",
+    sectorId: "digital",
     number: "14",
     title: "Счетоводни и финансови документи",
     icon: "Receipt",
