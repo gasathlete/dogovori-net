@@ -56,7 +56,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
             </Button>
           </div>
 
-          <div className="mt-10 md:mt-14 grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <div className="mt-8 sm:mt-10 md:mt-12 grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-3">
             {[
               { icon: ShieldCheck, label: "Правно съответствие", value: "ЗЗД · ТЗ · ЗУТ" },
               { icon: Sparkles, label: "Оценка на риска", value: "Преди създаване" },
