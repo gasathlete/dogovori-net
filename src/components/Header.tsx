@@ -10,7 +10,7 @@ export function Header() {
         </Link>
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
           <a href="#sectors" className="transition-colors hover:text-gold">Сектори</a>
-          <a href="#process" className="transition-colors hover:text-gold">Как работи</a>
+          <a href="#process" className="transition-colors hover:text-gold">Как работи ?</a>
           <a href="#compliance" className="transition-colors hover:text-gold">Съответствие</a>
         </nav>
         <div className="flex items-center gap-2">

@@ -35,7 +35,7 @@ export function SectorGrid({ onPick }: { onPick: (id: string) => void }) {
                 {s.description}
               </p>
               <div className="mt-5 flex items-center gap-2 text-sm font-medium text-gold opacity-0 transition-opacity group-hover:opacity-100">
-                Започнете интервю
+                НАМЕРИ ДОГОВОР
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </div>
             </button>

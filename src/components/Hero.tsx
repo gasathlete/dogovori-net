@@ -17,16 +17,15 @@ export function Hero({ onStart }: { onStart: () => void }) {
         <div className="mx-auto max-w-3xl text-center animate-fade-in-up">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-4 py-1.5 text-xs uppercase tracking-[0.2em] text-gold">
             <Sparkles className="h-3.5 w-3.5" />
-            Премиум AI Legal Architect
+            БЕЗПЛАТЕН ЮРИДИЧЕСКИ ПОМОЩНИК
           </div>
           <h1 className="font-serif text-4xl font-bold leading-tight md:text-6xl">
             Договори, които{" "}
-            <span className="gold-gradient-text">архитектурно</span>{" "}
-            защитават Вашите интереси
+            <span className="gold-gradient-text">следват и търсят</span>{" "}
+            Вашите интереси
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-base text-muted-foreground md:text-lg">
-            Не шаблони, а стратегически интервюта. Dogovori.net изгражда индивидуални
-            договори, съобразени със ЗЗД, ТЗ и ЗУТ, придружени от пълен правен риск анализ.
+            Освен шаблони, сайтът предлага стратегически въпроси, които да напътсват Вашата сделка. Dogovori.net изгражда индивидуални договори, съобразени със ЗЗД, ТЗ и ЗУТ, придружени от пълен правен риск-анализ.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button
@@ -34,22 +33,12 @@ export function Hero({ onStart }: { onStart: () => void }) {
               onClick={onStart}
               className="bg-gradient-gold text-navy shadow-gold hover:shadow-[0_15px_50px_-10px_hsl(43_55%_54%_/_0.5)] transition-all"
             >
-              Започнете интервю
+              НАМЕРИ ДОГОВОР 
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-gold/40 bg-transparent text-foreground hover:bg-gold/10 hover:text-gold"
-              asChild
-            >
-              <a href="#process">Как работи процесът</a>
-            </Button>
-          </div>
-
-          <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-3">
+...
             {[
               { icon: ShieldCheck, label: "Правно съответствие", value: "ЗЗД · ТЗ · ЗУТ" },
-              { icon: Sparkles, label: "AI Risk Analysis", value: "Преди генериране" },
+              { icon: Sparkles, label: "Оценка на риска", value: "Преди създаване" },
               { icon: FileText, label: "Експорт", value: "PDF + DOCX" },
             ].map((item) => (
               <div
