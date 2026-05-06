@@ -76,7 +76,7 @@ export default function WizardPage() {
       if (error) throw error;
       if (!data || data.error) throw new Error(data?.error || "Неуспешно генериране");
       setResult(data as AIResult);
-      toast.success("Договорът е готов", { description: "Прегледайте Risk Analysis отдясно." });
+      toast.success("Договорът е готов", { description: "Прегледайте Краен Договор отдясно." });
     } catch (e: any) {
       const msg = String(e?.message || e);
       if (msg.includes("429")) toast.error("Достигнат е лимитът. Опитайте след малко.");
