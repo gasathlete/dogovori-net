@@ -43,7 +43,7 @@ export function TopDocuments() {
           ))}
         </div>
 
-        <div className="mt-10 text-center">
+        <div className="mt-6 sm:mt-8 md:mt-10 text-center">
           <Link
             to="/catalog"
             className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/5 px-5 py-2.5 text-sm font-medium text-gold transition-all hover:bg-gold/10"
