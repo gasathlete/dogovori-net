@@ -22,7 +22,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
           <h1 className="font-serif text-4xl font-bold leading-tight md:text-6xl">
             Договори, които{" "}
             <span className="gold-gradient-text">следват и търсят</span>{" "}
-            Вашите интереси
+             Вашите интереси
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-base text-muted-foreground md:text-lg">
             Освен шаблони, сайтът предлага стратегически въпроси, които да напътсват Вашата сделка. Dogovori.net изгражда индивидуални договори, съобразени със ЗЗД, ТЗ и ЗУТ, придружени от пълен правен риск-анализ.
@@ -35,7 +35,17 @@ export function Hero({ onStart }: { onStart: () => void }) {
             >
               НАМЕРИ ДОГОВОР 
             </Button>
-...
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-gold/40 bg-transparent text-foreground hover:bg-gold/10 hover:text-gold"
+              asChild
+            >
+              <a href="#process">Как работи процесът</a>
+            </Button>
+          </div>
+
+          <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-3">
             {[
               { icon: ShieldCheck, label: "Правно съответствие", value: "ЗЗД · ТЗ · ЗУТ" },
               { icon: Sparkles, label: "Оценка на риска", value: "Преди създаване" },
