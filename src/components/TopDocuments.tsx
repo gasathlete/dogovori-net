@@ -4,7 +4,7 @@ import { ArrowRight, Star } from "lucide-react";
 
 export function TopDocuments() {
   return (
-    <section id="top-documents" className="border-y border-border/60 bg-navy-light/30 py-20">
+    <section id="top-documents" className="border-y border-border/60 bg-navy-light/30 py-12 md:py-16">
       <div className="container">
         <div className="mb-12 max-w-2xl">
           <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gold">
