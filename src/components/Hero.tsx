@@ -64,9 +64,9 @@ export function Hero({ onStart }: { onStart: () => void }) {
             ].map((item) => (
               <div
                 key={item.label}
-                className="rounded-lg border border-border/60 bg-card/40 p-5 text-left backdrop-blur-sm"
+                className="rounded-lg border border-border/60 bg-card/40 p-4 sm:p-5 text-left backdrop-blur-sm"
               >
-                <item.icon className="mb-3 h-5 w-5 text-gold" />
+                <item.icon className="mb-2 sm:mb-3 h-5 w-5 text-gold" />
                 <div className="text-xs uppercase tracking-wider text-muted-foreground">
                   {item.label}
                 </div>
