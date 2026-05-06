@@ -130,7 +130,7 @@ export default function WizardPage() {
         </div>
       </div>
 
-      <main className="container py-8">
+      <main className="container py-6 md:py-8">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* LEFT — interview / risk report */}
           <section className="space-y-5">
