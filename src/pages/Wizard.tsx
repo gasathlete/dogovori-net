@@ -81,8 +81,21 @@ export default function WizardPage() {
   const canNext = current ? !current.required || !!answers[current.id]?.trim() : false;
   const isLast = safeIdx === total - 1;
 
+  const GEN_STEPS = [
+    "Проверяваме въведената информация…",
+    "Подбираме приложимите правни клаузи…",
+    "Комплектоваме структурата на договора…",
+    "Съставяме текста и форматираме раздели…",
+    "Извършваме оценка на риска…",
+    "Финализираме документа — почти готово…",
+  ];
+
   const handleGenerate = async () => {
     setGenerating(true);
+    setGenStepIdx(0);
+    const interval = setInterval(() => {
+      setGenStepIdx((i) => (i + 1) % GEN_STEPS.length);
+    }, 5000);
     try {
       const { data, error } = await supabase.functions.invoke("generate-contract", {
         body: {
@@ -104,6 +117,7 @@ export default function WizardPage() {
       else if (msg.includes("402")) toast.error("Изчерпан лимит на системата. Опитайте по-късно.");
       else toast.error("Възникна грешка", { description: msg });
     } finally {
+      clearInterval(interval);
       setGenerating(false);
     }
   };
