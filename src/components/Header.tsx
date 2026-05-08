@@ -86,7 +86,7 @@ export function Header() {
             ))}
             <div className="mt-2 border-t border-border/60 px-3 py-3">
               <span className="inline-block rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-medium text-gold">
-                ЗЗД · ТЗ · ЗУТ
+                ​
               </span>
             </div>
           </div>
