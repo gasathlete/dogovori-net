@@ -114,16 +114,18 @@ export default function CatalogPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {cat.documents.map((doc) => (
+                    {cat.documents.map((doc) => {
+                      const href = `/wizard/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`;
+                      return (
                       <tr
                         key={doc.name}
-                        onClick={() => (window.location.href = `/wizard/${cat.sectorId}`)}
+                        onClick={() => (window.location.href = href)}
                         className="cursor-pointer border-b border-border/40 transition-colors last:border-0 hover:bg-gold/[0.04]"
                       >
                         <td className="px-5 py-4 align-top">
                           <div className="flex items-start gap-2">
                             <Link
-                              to={`/wizard/${cat.sectorId}`}
+                              to={href}
                               className="font-serif text-sm font-bold text-foreground transition-colors hover:text-gold"
                               onClick={(e) => e.stopPropagation()}
                             >
@@ -142,7 +144,8 @@ export default function CatalogPage() {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
 
@@ -151,7 +154,7 @@ export default function CatalogPage() {
                   {cat.documents.map((doc) => (
                     <Link
                       key={doc.name}
-                      to={`/wizard/${cat.sectorId}`}
+                      to={`/wizard/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`}
                       className="block p-5 transition-colors hover:bg-gold/[0.04]"
                     >
                       <div className="flex items-start gap-2">

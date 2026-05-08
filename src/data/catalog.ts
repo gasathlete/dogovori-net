@@ -22,7 +22,7 @@ export const TOP_DOCUMENTS: { name: string; description: string; categoryId: str
     name: "Трудов договор (чл. 67 КТ)",
     description: "Безсрочен трудов договор с пълно описание на длъжността и възнаграждението.",
     categoryId: "trudovi",
-    sectorId: "digital",
+    sectorId: "employment",
   },
   {
     name: "Договор за наем на жилище",
@@ -40,13 +40,13 @@ export const TOP_DOCUMENTS: { name: string; description: string; categoryId: str
     name: "NDA – Споразумение за конфиденциалност",
     description: "Задължително преди преговори, инвеститорски срещи и партньорства.",
     categoryId: "ip",
-    sectorId: "digital",
+    sectorId: "ip",
   },
   {
     name: "Граждански договор (Договор за услуги)",
     description: "Универсална форма за самостоятелна работа извън Кодекса на труда.",
     categoryId: "uslugi",
-    sectorId: "digital",
+    sectorId: "services",
   },
 ];
 
@@ -103,7 +103,7 @@ export const CATALOG: CatalogCategory[] = [
   },
   {
     id: "ip",
-    sectorId: "digital",
+    sectorId: "ip",
     number: "02",
     title: "Интелектуална собственост и Конфиденциалност",
     icon: "ShieldCheck",
