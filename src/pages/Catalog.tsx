@@ -90,6 +90,9 @@ export default function CatalogPage() {
                   setShowAll(false);
                   setOpen(true);
                 }}
+                onInput={() => setOpen(true)}
+                onKeyDown={() => setOpen(true)}
+                onCompositionUpdate={() => setOpen(true)}
                 onFocus={() => setOpen(true)}
                 onBlur={() => setTimeout(() => setOpen(false), 150)}
                 placeholder="Търсете: NDA, наем, ремонт, фактура…"
