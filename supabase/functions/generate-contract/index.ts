@@ -45,7 +45,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { sector, contractName, parties, answers, questions } = await req.json();
+    const { sector, contractName, documentName, parties, answers, questions } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
@@ -55,16 +55,20 @@ Deno.serve(async (req: Request) => {
       .map((q) => `- ${q.label}: ${answers[q.id] ?? "(не е попълнено)"}`)
       .join("\n");
 
+    const docLine = documentName && documentName !== contractName
+      ? `КОНКРЕТЕН ДОКУМЕНТ: ${documentName}\n`
+      : "";
+
     const userPrompt = `СЕКТОР: ${sector}
 ТИП ДОГОВОР: ${contractName}
-СТРАНИ: ${parties.a} ↔ ${parties.b}
+${docLine}СТРАНИ: ${parties.a} ↔ ${parties.b}
 
 ОТГОВОРИ ОТ ИНТЕРВЮТО:
 ${qaLines}
 
 Задача:
 1) Извърши Risk Analysis — посочи конкретни слаби места за ${parties.a} и ${parties.b}.
-2) Генерирай ПЪЛНИЯ договор на български, с всички задължителни клаузи (вкл. частична недействителност и подсъдност).
+2) Генерирай ПЪЛНИЯ договор на български, специфичен за "${documentName || contractName}", с всички задължителни клаузи (вкл. частична недействителност и подсъдност). Заглавието трябва да съответства на конкретния документ.
 Върни СТРОГО валиден JSON по описаната схема.`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
