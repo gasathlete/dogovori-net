@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Loader2, Sparkles, FileDown, FileText } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Sparkles, FileDown, FileText, Save } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -140,6 +140,38 @@ export default function WizardPage() {
       toast.error("Грешка при експорт", { description: String(e?.message ?? e) });
     } finally {
       setExporting(null);
+    }
+  };
+
+  const [saving, setSaving] = useState(false);
+  const handleSaveToProfile = async () => {
+    if (!result) return;
+    if (!user) {
+      toast.error("Влезте в профила си", { description: "Запазването изисква вход." });
+      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+    if (savedDocId) {
+      toast.message("Договорът вече е запазен", { description: "Намерете го в Документи → Любими." });
+      return;
+    }
+    setSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("save-document", {
+        body: {
+          kind: "contract",
+          title: result.contract.title,
+          payload: result.contract,
+          source_id: sector.id,
+        },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message || "Грешка");
+      setSavedDocId(data.saved_document_id);
+      toast.success("Запазено в профила", { description: "Документи → Любими" });
+    } catch (e: any) {
+      toast.error("Грешка при запазване", { description: String(e?.message ?? e) });
+    } finally {
+      setSaving(false);
     }
   };
 
