@@ -40,6 +40,14 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/document/:id"
+              element={
+                <ProtectedRoute>
+                  <Document />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/checkout/return" element={<CheckoutReturn />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
