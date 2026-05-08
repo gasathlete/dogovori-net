@@ -17,11 +17,15 @@ export function ProtectedContent({
   const guest = !user;
 
   const blockEvent = (e: React.SyntheticEvent) => {
-    if (!guest) return;
     e.preventDefault();
-    toast.message("Влезте, за да копирате текста", {
-      description: "Безплатна регистрация на /auth.",
-    });
+    toast.message(
+      guest ? "Влезте, за да свалите договора" : "Текстът е защитен — свалете PDF/DOCX",
+      {
+        description: guest
+          ? "Безплатна регистрация на /auth."
+          : "Прегледът не може да се копира. Използвайте бутона за сваляне.",
+      },
+    );
   };
 
   return (
@@ -31,11 +35,7 @@ export function ProtectedContent({
         onCut={blockEvent}
         onContextMenu={blockEvent}
         onDragStart={blockEvent as any}
-        style={
-          guest
-            ? ({ userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties)
-            : undefined
-        }
+        style={{ userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties}
       >
         {children}
       </div>
