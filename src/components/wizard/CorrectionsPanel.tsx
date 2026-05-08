@@ -48,18 +48,35 @@ export function CorrectionsPanel({
 
   return (
     <div className="rounded-xl border border-gold/30 bg-gradient-card p-6 shadow-soft">
-      <div className="mb-1 flex items-center gap-2">
-        <Wand2 className="h-4 w-4 text-gold" />
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-2 text-left"
+        aria-expanded={open}
+      >
+        <ShieldCheck className="h-4 w-4 text-gold" />
         <h3 className="font-serif text-lg font-bold">Автоматична корекция</h3>
         {!isPro && (
           <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gold">
             <Lock className="h-3 w-3" /> Pro
           </span>
         )}
-      </div>
-      <p className="mb-4 text-xs text-muted-foreground">
-        Изберете кои слаби места и препоръки да бъдат коригирани в договора. AI ще
-        пренапише само избраните части.
+        {open ? (
+          <ChevronUp className={`h-4 w-4 text-muted-foreground ${isPro ? "ml-auto" : "ml-2"}`} />
+        ) : (
+          <ChevronDown className={`h-4 w-4 text-muted-foreground ${isPro ? "ml-auto" : "ml-2"}`} />
+        )}
+      </button>
+      {!open && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          {issues.length + recommendations.length} възможни подобрения. Натиснете, за да изберете кои да бъдат приложени.
+        </p>
+      )}
+      {open && (
+      <>
+      <p className="mt-2 mb-4 text-xs text-muted-foreground">
+        Изберете кои слаби места и препоръки да бъдат коригирани в договора. Системата
+        ще пренапише само избраните части.
       </p>
 
       {applied && applied.length > 0 && (
