@@ -66,8 +66,8 @@ export default function CatalogPage() {
       <Header />
 
       {/* Hero */}
-      <section className="relative overflow-hidden border-b border-border/60">
-        <div className="absolute inset-0 bg-gradient-hero opacity-90" />
+      <section className="relative border-b border-border/60">
+        <div className="absolute inset-0 overflow-hidden bg-gradient-hero opacity-90" />
         <div className="container relative py-16 md:py-20">
           <div className="mx-auto max-w-3xl text-center">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-4 py-1.5 text-xs uppercase tracking-[0.2em] text-gold">
