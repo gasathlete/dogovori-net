@@ -20,6 +20,10 @@ import Privacy from "./pages/legal/Privacy.tsx";
 import Cookies from "./pages/legal/Cookies.tsx";
 import Refund from "./pages/legal/Refund.tsx";
 import SharedDocument from "./pages/SharedDocument.tsx";
+import { CookieBanner } from "@/components/CookieBanner";
+import { initSentry } from "@/lib/sentry";
+
+initSentry();
 
 const queryClient = new QueryClient();
 
@@ -31,6 +35,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <PaymentTestModeBanner />
+          <CookieBanner />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/wizard/:sectorId" element={<Wizard />} />
