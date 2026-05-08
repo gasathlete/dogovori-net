@@ -9,11 +9,21 @@ import {
 } from "docx";
 import { saveAs } from "file-saver";
 
+export interface SignatureInfo {
+  name_a: string;
+  name_b: string;
+  city: string;
+  date: string;
+  image_a?: string; // data URL (PNG)
+  image_b?: string;
+}
+
 export interface GeneratedContract {
   title: string;
   preamble: string;
   clauses: { number: string; title: string; body: string }[];
   closing: string;
+  signature?: SignatureInfo;
 }
 
 const fileBase = (title: string) =>
