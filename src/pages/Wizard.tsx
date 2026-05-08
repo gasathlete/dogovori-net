@@ -547,6 +547,8 @@ export default function WizardPage() {
                       setSavedDocId(undefined);
                       setAppliedNotes(undefined);
                       setSignature({ name_a: "", name_b: "", city: "", date: "" });
+                      setCustomTitle("");
+                      setContactId("");
                     }}
                     className="mt-3 w-full text-xs text-muted-foreground hover:text-gold"
                   >
