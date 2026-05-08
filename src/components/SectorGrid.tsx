@@ -1,8 +1,14 @@
+import { useState } from "react";
 import { SECTORS } from "@/data/sectors";
 import * as Icons from "lucide-react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
+
+const INITIAL_VISIBLE = 9;
 
 export function SectorGrid({ onPick }: { onPick: (id: string) => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? SECTORS : SECTORS.slice(0, INITIAL_VISIBLE);
+  const remaining = SECTORS.length - INITIAL_VISIBLE;
   return (
     <section id="sectors" className="container py-8 sm:py-10 md:py-14">
       <div className="mb-6 sm:mb-8 max-w-2xl">
