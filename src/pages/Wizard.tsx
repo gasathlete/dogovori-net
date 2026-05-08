@@ -333,17 +333,6 @@ export default function WizardPage() {
                     Започни нов договор
                   </Button>
                 </div>
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      setResult(null);
-                      setStepIdx(0);
-                    }}
-                    className="mt-3 w-full text-xs text-muted-foreground hover:text-gold"
-                  >
-                    Започни нов договор
-                  </Button>
-                </div>
               </div>
             )}
           </section>
