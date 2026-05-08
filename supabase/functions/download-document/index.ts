@@ -106,8 +106,10 @@ serve(async (req) => {
       quota.plan === "pro" || (quota.pro_until && new Date(quota.pro_until) > new Date());
     const used = kind === "contract" ? quota.contracts_used : quota.templates_used;
     const limit = 1;
+    const bonus = quota.bonus_contracts ?? 0;
+    const useBonus = !isPro && kind === "contract" && used >= limit && bonus > 0;
 
-    if (!isPro && used >= limit) {
+    if (!isPro && used >= limit && !useBonus) {
       return new Response(
         JSON.stringify({ error: "quota_exceeded", kind, used, limit }),
         { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -137,8 +139,10 @@ serve(async (req) => {
 
     // Increment counter for ALL users so the dashboard reflects real usage.
     // (Pro is unlimited — limit was already checked above.)
-    const patch =
-      kind === "contract"
+    // If we're consuming a single-purchase bonus, decrement bonus_contracts instead.
+    const patch: Record<string, number> = useBonus
+      ? { bonus_contracts: Math.max(0, bonus - 1) }
+      : kind === "contract"
         ? { contracts_used: quota.contracts_used + 1 }
         : { templates_used: quota.templates_used + 1 };
     await admin.from("download_quota").update(patch).eq("user_id", userId);

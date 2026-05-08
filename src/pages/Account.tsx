@@ -502,7 +502,7 @@ function FoldersTab({ folders, reload }: { folders: Folder[]; reload: () => void
 function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean }) {
   const { user } = useAuth();
   const [busy, setBusy] = useState(false);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutPrice, setCheckoutPrice] = useState<string | null>(null);
 
   const portal = async () => {
     setBusy(true);
@@ -517,45 +517,117 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
     window.open(data.url, "_blank");
   };
 
+  const features = [
+    "Неограничено сваляне на договори (PDF и DOCX)",
+    "Неограничено сваляне на бланки и приложения",
+    "AI корекции по препоръка на риск-анализатора",
+    "Дигитален подпис с изображение",
+    "Без воден знак върху документите",
+    "Достъп до всички бъдещи нови договори",
+  ];
+
   return (
-    <div className="rounded-xl border border-gold/30 bg-gradient-card p-8">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="text-xs uppercase tracking-wider text-gold">Текущ план</div>
-          <h3 className="mt-1 font-serif text-2xl font-bold">{isPro ? "Pro" : "Free"}</h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {isPro
-              ? "Имате неограничен брой сваляния."
-              : `Безплатно: 1 договор + 1 бланка. Използвани: ${quota?.contracts_used ?? 0} договор(а), ${quota?.templates_used ?? 0} бланка(и).`}
-          </p>
-          {!isPro && (
-            <p className="mt-3 text-sm">
-              <span className="font-bold text-gold">Pro план — 9.99 EUR / месец</span>
-              <span className="block text-xs text-muted-foreground">Неограничено сваляне на договори и бланки.</span>
+    <div className="space-y-6">
+      <div className="rounded-xl border border-gold/30 bg-gradient-card p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-xs uppercase tracking-wider text-gold">Текущ план</div>
+            <h3 className="mt-1 font-serif text-2xl font-bold">{isPro ? "Pro" : "Free"}</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {isPro
+                ? "Имате неограничен брой сваляния."
+                : `Безплатно: 1 договор + 1 бланка. Използвани: ${quota?.contracts_used ?? 0} договор(а), ${quota?.templates_used ?? 0} бланка(и).`}
             </p>
-          )}
+            {!isPro && ((quota as any)?.bonus_contracts ?? 0) > 0 && (
+              <p className="mt-2 text-sm text-gold">
+                Налични единични тегления: {(quota as any)?.bonus_contracts}
+              </p>
+            )}
+          </div>
+          <Crown className="h-8 w-8 text-gold" />
         </div>
-        <Crown className="h-8 w-8 text-gold" />
-      </div>
-      <div className="mt-6 flex flex-wrap gap-3">
-        {!isPro ? (
-          <Button onClick={() => setCheckoutOpen(true)} className="bg-gradient-gold text-navy hover:shadow-gold">
-            Премини на Pro
-          </Button>
-        ) : (
-          <Button onClick={portal} disabled={busy} variant="outline" className="border-gold/40">
-            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Управление на абонамент
-          </Button>
+        {isPro && (
+          <div className="mt-6">
+            <Button onClick={portal} disabled={busy} variant="outline" className="border-gold/40">
+              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Управление на абонамент
+            </Button>
+          </div>
         )}
       </div>
 
-      <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
+      {!isPro && (
+        <div className="grid gap-4 md:grid-cols-3">
+          {/* Single contract */}
+          <div className="flex flex-col rounded-xl border border-border/60 bg-gradient-card p-6">
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">Единичен договор</div>
+            <div className="mt-2 font-serif text-3xl font-bold">1.90 €</div>
+            <p className="mt-1 text-xs text-muted-foreground">Еднократно — един Pro договор</p>
+            <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
+              <li>• Сваляне на 1 договор (PDF + DOCX)</li>
+              <li>• Без воден знак</li>
+              <li>• Без абонамент</li>
+            </ul>
+            <Button
+              onClick={() => setCheckoutPrice("single_contract")}
+              variant="outline"
+              className="mt-6 border-gold/40"
+            >
+              Купи за 1.90 €
+            </Button>
+          </div>
+
+          {/* Monthly */}
+          <div className="relative flex flex-col rounded-xl border-2 border-gold bg-gradient-card p-6 shadow-gold">
+            <div className="absolute -top-3 left-4 rounded-full bg-gradient-gold px-3 py-0.5 text-xs font-bold text-navy">
+              Най-популярен
+            </div>
+            <div className="text-xs uppercase tracking-wider text-gold">Pro месечно</div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="font-serif text-3xl font-bold">9.90 €</span>
+              <span className="text-sm text-muted-foreground line-through">29.90 €</span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">на месец · отказ по всяко време</p>
+            <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
+              {features.map((f) => (<li key={f}>• {f}</li>))}
+            </ul>
+            <Button
+              onClick={() => setCheckoutPrice("pro_monthly")}
+              className="mt-6 bg-gradient-gold text-navy hover:shadow-gold"
+            >
+              Премини на Pro
+            </Button>
+          </div>
+
+          {/* Yearly */}
+          <div className="flex flex-col rounded-xl border border-border/60 bg-gradient-card p-6">
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">Pro годишно</div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="font-serif text-3xl font-bold">99 €</span>
+              <span className="text-sm text-muted-foreground line-through">118.80 €</span>
+            </div>
+            <p className="mt-1 text-xs text-gold">Спестявате ~17% (≈ 8.25 €/месец)</p>
+            <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
+              {features.map((f) => (<li key={f}>• {f}</li>))}
+              <li>• 2 безплатни месеца спрямо месечния</li>
+            </ul>
+            <Button
+              onClick={() => setCheckoutPrice("pro_yearly")}
+              variant="outline"
+              className="mt-6 border-gold/40"
+            >
+              Купи годишен план
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <Dialog open={!!checkoutPrice} onOpenChange={(o) => !o && setCheckoutPrice(null)}>
         <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto p-0">
           <div className="p-6">
-            {checkoutOpen && user && (
+            {checkoutPrice && user && (
               <StripeEmbeddedCheckout
-                priceId="pro_monthly"
+                priceId={checkoutPrice}
                 customerEmail={user.email}
                 userId={user.id}
                 returnUrl={`${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}`}

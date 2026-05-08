@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { type StripeEnv, verifyWebhook } from "../_shared/stripe.ts";
+import { type StripeEnv, createStripeClient, verifyWebhook } from "../_shared/stripe.ts";
 
 let _supabase: ReturnType<typeof createClient> | null = null;
 function getSupabase() {
@@ -101,6 +101,35 @@ async function handleSubscriptionDeleted(subscription: any, env: StripeEnv) {
   if (userId) await setFreePlan(userId);
 }
 
+async function handleCheckoutCompleted(session: any, env: StripeEnv) {
+  if (session.mode !== "payment") return;
+  const userId = session.metadata?.userId;
+  if (!userId) return;
+  try {
+    const stripe = createStripeClient(env);
+    const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10, expand: ["data.price"] });
+    let bonus = 0;
+    for (const li of items.data) {
+      const price: any = (li as any).price;
+      const lookup = price?.lookup_key || price?.metadata?.lovable_external_id;
+      if (lookup === "single_contract") bonus += li.quantity ?? 1;
+    }
+    if (bonus <= 0) return;
+    const { data: q } = await getSupabase()
+      .from("download_quota")
+      .select("bonus_contracts")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const current = (q as any)?.bonus_contracts ?? 0;
+    await getSupabase()
+      .from("download_quota")
+      .update({ bonus_contracts: current + bonus })
+      .eq("user_id", userId);
+  } catch (e) {
+    console.error("checkout.session.completed handling failed:", e);
+  }
+}
+
 async function handleWebhook(req: Request, env: StripeEnv) {
   const event = await verifyWebhook(req, env);
 
@@ -113,6 +142,9 @@ async function handleWebhook(req: Request, env: StripeEnv) {
       break;
     case "customer.subscription.deleted":
       await handleSubscriptionDeleted(event.data.object, env);
+      break;
+    case "checkout.session.completed":
+      await handleCheckoutCompleted(event.data.object, env);
       break;
     default:
       console.log("Unhandled event:", event.type);
