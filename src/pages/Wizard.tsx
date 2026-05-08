@@ -169,6 +169,51 @@ export default function WizardPage() {
     }
   };
 
+  const handleApplyCorrections = async (sel: CorrectionsSelection) => {
+    if (!result) return;
+    if (!user) {
+      toast.error("Влезте в профила си");
+      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+    if (sel.issues.length === 0 && sel.recommendations.length === 0) {
+      toast.message("Изберете поне една препоръка за корекция");
+      return;
+    }
+    setApplyingCorrections(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("apply-corrections", {
+        body: {
+          contract: result.contract,
+          risk: result.risk,
+          selectedIssues: sel.issues,
+          selectedRecommendations: sel.recommendations,
+          answers,
+        },
+      });
+      if (error || data?.error) {
+        if (data?.error === "pro_required") {
+          toast.error("Нужен е Pro план", {
+            action: { label: "Pro", onClick: () => navigate("/account?tab=subscription") },
+          });
+          return;
+        }
+        throw new Error(data?.error || error?.message || "Грешка");
+      }
+      setResult({
+        risk: data.risk ?? result.risk,
+        contract: data.contract ?? result.contract,
+      });
+      setAppliedNotes(Array.isArray(data.applied) ? data.applied : ["Корекциите са приложени"]);
+      setSavedDocId(undefined); // forces re-save as new version
+      toast.success("Корекциите са приложени", { description: "Прегледайте обновения договор отдясно." });
+    } catch (e: any) {
+      toast.error("Грешка при корекция", { description: String(e?.message ?? e) });
+    } finally {
+      setApplyingCorrections(false);
+    }
+  };
+
   const [saving, setSaving] = useState(false);
   const handleSaveToProfile = async () => {
     if (!result) return;
