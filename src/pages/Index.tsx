@@ -6,6 +6,7 @@ import { SectorGrid } from "@/components/SectorGrid";
 import { Process } from "@/components/Process";
 import { TopDocuments } from "@/components/TopDocuments";
 import { Footer } from "@/components/Footer";
+import { Seo } from "@/components/Seo";
 
 const Index = () => {
   const navigate = useNavigate();
