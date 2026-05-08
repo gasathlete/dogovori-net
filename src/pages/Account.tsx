@@ -35,8 +35,9 @@ type Quota = { contracts_used: number; templates_used: number; plan: "free" | "p
 
 export default function AccountPage() {
   const { user, signOut } = useAuth();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const initialTab = params.get("tab") ?? "dashboard";
+  const activeContact = params.get("contact");
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -63,12 +64,32 @@ export default function AccountPage() {
 
   useEffect(() => { reload(); /* eslint-disable-next-line */ }, [user]);
 
-  const filteredDocs = useMemo(
-    () => activeFolder === "all" ? docs : docs.filter((d) => d.folder_id === activeFolder),
-    [docs, activeFolder],
-  );
+  const filteredDocs = useMemo(() => {
+    let out = docs;
+    if (activeContact) out = out.filter((d) => d.contact_id === activeContact);
+    if (activeFolder !== "all") out = out.filter((d) => d.folder_id === activeFolder);
+    return out;
+  }, [docs, activeFolder, activeContact]);
 
   const isPro = quota?.plan === "pro" || (quota?.pro_until && new Date(quota.pro_until) > new Date());
+
+  const openContactDocs = (id: string) => {
+    setParams({ tab: "documents", contact: id });
+  };
+  const clearContactFilter = () => {
+    const next = new URLSearchParams(params);
+    next.delete("contact");
+    next.set("tab", "documents");
+    setParams(next);
+  };
+  const onTabChange = (v: string) => {
+    const next = new URLSearchParams(params);
+    next.set("tab", v);
+    if (v !== "documents") next.delete("contact");
+    setParams(next);
+  };
+
+  const activeContactName = contacts.find((c) => c.id === activeContact)?.name;
 
   return (
     <div className="min-h-screen">
@@ -87,7 +108,7 @@ export default function AccountPage() {
           </Button>
         </div>
 
-        <Tabs defaultValue={initialTab} className="space-y-6">
+        <Tabs value={initialTab} onValueChange={onTabChange} className="space-y-6">
           <TabsList className="flex w-full flex-wrap justify-start gap-1 bg-card/40 p-1">
             <TabsTrigger value="dashboard"><Sparkles className="mr-1 h-3.5 w-3.5" />Табло</TabsTrigger>
             <TabsTrigger value="contacts"><Users className="mr-1 h-3.5 w-3.5" />Контрагенти</TabsTrigger>
@@ -101,7 +122,7 @@ export default function AccountPage() {
             <Dashboard quota={quota} isPro={!!isPro} docs={docs} />
           </TabsContent>
           <TabsContent value="contacts">
-            <ContactsTab contacts={contacts} reload={reload} />
+            <ContactsTab contacts={contacts} docs={docs} reload={reload} onOpenDocs={openContactDocs} />
           </TabsContent>
           <TabsContent value="documents">
             <DocumentsTab
@@ -110,6 +131,8 @@ export default function AccountPage() {
               contacts={contacts}
               activeFolder={activeFolder}
               setActiveFolder={setActiveFolder}
+              activeContactName={activeContactName}
+              clearContactFilter={clearContactFilter}
               reload={reload}
             />
           </TabsContent>
