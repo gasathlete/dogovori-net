@@ -23,6 +23,13 @@ const staticEntries: Entry[] = [
   { loc: "/refund", changefreq: "yearly", priority: "0.3" },
 ];
 
+const categoryEntries: Entry[] = CATALOG.map((cat) => ({
+  loc: `/kategoria/${cat.id}`,
+  changefreq: "weekly",
+  priority: "0.8",
+  lastmod: today,
+}));
+
 const templateEntries: Entry[] = [];
 const used = new Set<string>();
 for (const cat of CATALOG) {
@@ -42,7 +49,7 @@ for (const cat of CATALOG) {
   }
 }
 
-const all = [...staticEntries, ...templateEntries];
+const all = [...staticEntries, ...categoryEntries, ...templateEntries];
 
 const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

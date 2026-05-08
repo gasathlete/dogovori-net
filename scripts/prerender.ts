@@ -119,6 +119,34 @@ pages.push({
   jsonLd: [],
 });
 
+// Category hub pages
+for (const cat of CATALOG) {
+  const breadcrumbsLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Начало", item: `${SITE}/` },
+      { "@type": "ListItem", position: 2, name: "Каталог", item: `${SITE}/catalog` },
+      { "@type": "ListItem", position: 3, name: cat.title, item: `${SITE}/kategoria/${cat.id}` },
+    ],
+  };
+  const collectionLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: cat.title,
+    description: cat.intro,
+    inLanguage: "bg-BG",
+    url: `${SITE}/kategoria/${cat.id}`,
+  };
+  pages.push({
+    path: `/kategoria/${cat.id}`,
+    title: `${cat.title} — шаблони на договори | Dogovori.net`,
+    description: `${cat.intro} Над ${cat.documents.length} готови шаблона по българското право.`.slice(0, 160),
+    bodyHtml: `<main style="font-family:Georgia,serif;max-width:800px;margin:2rem auto;padding:1rem"><nav><a href="/">Начало</a> › <a href="/catalog">Каталог</a> › ${escapeHtml(cat.title)}</nav><h1>${escapeHtml(cat.title)}</h1><p>${escapeHtml(cat.intro)}</p><ul>${cat.documents.map((d) => `<li><a href="/shablon/${slugify(d.name)}">${escapeHtml(d.name)}</a> — ${escapeHtml(d.purpose)}</li>`).join("")}</ul></main>`,
+    jsonLd: [breadcrumbsLd, collectionLd],
+  });
+}
+
 // Templates
 const used = new Set<string>();
 for (const cat of CATALOG) {
