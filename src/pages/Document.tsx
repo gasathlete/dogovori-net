@@ -121,7 +121,7 @@ export default function DocumentPage() {
         title,
         contact_id: contactId || null,
         folder_id: folderId || null,
-        payload: contract,
+        payload: contract as any,
       })
       .eq("id", doc.id);
     setSaving(false);
