@@ -199,13 +199,15 @@ export default function WizardPage() {
         image_a: isPro ? signature.image_a : undefined,
         image_b: isPro ? signature.image_b : undefined,
       };
-      const contractWithSig: GeneratedContract = { ...result.contract, signature: sigPayload };
+      const finalTitle = (customTitle || result.contract.title).trim() || result.contract.title;
+      const contractWithSig: GeneratedContract = { ...result.contract, title: finalTitle, signature: sigPayload };
       const res = await downloadDocument({
         kind: "contract",
         format,
-        title: result.contract.title,
+        title: finalTitle,
         payload: contractWithSig,
         source_id: sector.id,
+        contact_id: contactId || undefined,
         saved_document_id: savedDocId,
       });
       if (!res.ok) {
@@ -221,7 +223,7 @@ export default function WizardPage() {
       }
       if (res.saved_document_id) setSavedDocId(res.saved_document_id);
       toast.success(format === "pdf" ? "PDF изтеглен" : "DOCX изтеглен", {
-        description: res.free ? "Повторно сваляне (безплатно)" : "Запазен в Документи → Любими",
+        description: res.free ? "Повторно сваляне (безплатно)" : "Запазен в Документи → Всички",
       });
     } catch (e: any) {
       toast.error("Грешка при експорт", { description: String(e?.message ?? e) });
