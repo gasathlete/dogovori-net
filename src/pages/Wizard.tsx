@@ -287,22 +287,24 @@ export default function WizardPage() {
       return;
     }
     if (savedDocId) {
-      toast.message("Договорът вече е запазен", { description: "Намерете го в Документи → Любими." });
+      toast.message("Договорът вече е запазен", { description: "Намерете го в Документи → Всички." });
       return;
     }
     setSaving(true);
     try {
+      const finalTitle = (customTitle || result.contract.title).trim() || result.contract.title;
       const { data, error } = await supabase.functions.invoke("save-document", {
         body: {
           kind: "contract",
-          title: result.contract.title,
-          payload: result.contract,
+          title: finalTitle,
+          payload: { ...result.contract, title: finalTitle },
           source_id: sector.id,
+          contact_id: contactId || undefined,
         },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message || "Грешка");
       setSavedDocId(data.saved_document_id);
-      toast.success("Запазено в профила", { description: "Документи → Любими" });
+      toast.success("Запазено в профила", { description: "Документи → Всички" });
     } catch (e: any) {
       toast.error("Грешка при запазване", { description: String(e?.message ?? e) });
     } finally {
