@@ -448,10 +448,55 @@ export default function WizardPage() {
                 />
 
                 <div className="rounded-xl border border-gold/30 bg-gradient-card p-6 shadow-soft">
-                  <h3 className="mb-1 font-serif text-lg font-bold">Експорт на договора</h3>
+                  <h3 className="mb-1 font-serif text-lg font-bold">Финализиране</h3>
                   <p className="mb-4 text-xs text-muted-foreground">
-                    Сваляне в PDF или редактируем DOCX формат.
+                    Именувайте договора и (по избор) го свържете с контрагент. Запазва се във „Всички" — после може да го преместите в папка от профила си.
                   </p>
+
+                  <div className="mb-4 grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="doc-title" className="text-xs uppercase tracking-wider text-muted-foreground">
+                        Име на договора
+                      </Label>
+                      <Input
+                        id="doc-title"
+                        value={customTitle}
+                        onChange={(e) => { setCustomTitle(e.target.value); setSavedDocId(undefined); }}
+                        placeholder={result.contract.title}
+                        className="bg-card/60"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                        <span className="inline-flex items-center gap-1"><User className="h-3 w-3" /> Контрагент</span>
+                      </Label>
+                      <Select
+                        value={contactId || "none"}
+                        onValueChange={(v) => { setContactId(v === "none" ? "" : v); setSavedDocId(undefined); }}
+                      >
+                        <SelectTrigger className="bg-card/60">
+                          <SelectValue placeholder="— Без контрагент —" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">— Без контрагент —</SelectItem>
+                          {contacts.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {user && contacts.length === 0 && (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/account?tab=contacts&redirect=${encodeURIComponent(wizardHref)}`)}
+                          className="text-[11px] text-gold hover:underline"
+                        >
+                          + Добави контрагент
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <h4 className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">Експорт</h4>
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <Button
                       onClick={() => handleExport("pdf")}
