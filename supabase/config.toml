@@ -3,6 +3,9 @@ project_id = "wkbxojefiovdczkwhved"
 [functions.generate-contract]
 verify_jwt = false
 
+[functions.apply-corrections]
+verify_jwt = false
+
 [functions.download-document]
 verify_jwt = false
 
