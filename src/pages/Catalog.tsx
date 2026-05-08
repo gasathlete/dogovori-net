@@ -66,8 +66,8 @@ export default function CatalogPage() {
       <Header />
 
       {/* Hero */}
-      <section className="relative overflow-hidden border-b border-border/60">
-        <div className="absolute inset-0 bg-gradient-hero opacity-90" />
+      <section className="relative border-b border-border/60">
+        <div className="absolute inset-0 overflow-hidden bg-gradient-hero opacity-90" />
         <div className="container relative py-16 md:py-20">
           <div className="mx-auto max-w-3xl text-center">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-4 py-1.5 text-xs uppercase tracking-[0.2em] text-gold">
@@ -90,13 +90,16 @@ export default function CatalogPage() {
                   setShowAll(false);
                   setOpen(true);
                 }}
+                onInput={() => setOpen(true)}
+                onKeyDown={() => setOpen(true)}
+                onCompositionUpdate={() => setOpen(true)}
                 onFocus={() => setOpen(true)}
                 onBlur={() => setTimeout(() => setOpen(false), 150)}
                 placeholder="Търсете: NDA, наем, ремонт, фактура…"
                 className="h-12 border-gold/30 bg-card/60 pl-11 text-foreground backdrop-blur"
               />
               {open && query.trim() && suggestions.length > 0 && (
-                <div className="absolute left-0 right-0 top-full z-40 mt-2 overflow-hidden rounded-lg border border-gold/30 bg-card/95 text-left shadow-elegant backdrop-blur-xl">
+                <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-lg border border-gold/30 bg-card/95 text-left shadow-elegant backdrop-blur-xl">
                   <ul className="max-h-[60vh] overflow-y-auto">
                     {visibleSuggestions.map((s) => (
                       <li key={`${s.sectorId}-${s.name}`}>
@@ -135,7 +138,7 @@ export default function CatalogPage() {
                 </div>
               )}
               {open && query.trim() && suggestions.length === 0 && (
-                <div className="absolute left-0 right-0 top-full z-40 mt-2 rounded-lg border border-border/60 bg-card/95 px-4 py-3 text-left text-sm text-muted-foreground shadow-elegant backdrop-blur-xl">
+                <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border border-border/60 bg-card/95 px-4 py-3 text-left text-sm text-muted-foreground shadow-elegant backdrop-blur-xl">
                   Няма съвпадения за „{query}"
                 </div>
               )}
