@@ -352,6 +352,7 @@ export function LiveDraft({
   sector,
   answers,
   generated,
+  signature,
 }: {
   sector: Sector;
   answers: Record<string, string>;
@@ -361,9 +362,19 @@ export function LiveDraft({
     clauses: { number: string; title: string; body: string }[];
     closing: string;
   } | null;
+  signature?: {
+    name_a: string;
+    name_b: string;
+    city: string;
+    date: string;
+    image_a?: string;
+    image_b?: string;
+  };
 }) {
   const partyA = answers.party_a_name || `[${sector.parties.a}]`;
   const partyB = answers.party_b_name || `[${sector.parties.b}]`;
+  const sigA = signature?.name_a || partyA;
+  const sigB = signature?.name_b || partyB;
 
   if (generated) {
     return (
@@ -384,14 +395,27 @@ export function LiveDraft({
           ))}
           <div className="my-6 gold-divider" />
           <p className="text-sm italic">{generated.closing}</p>
-          <div className="mt-10 grid grid-cols-2 gap-8 text-center text-xs">
+          {(signature?.city || signature?.date) && (
+            <p className="mt-6 text-sm">гр. {signature?.city || "_____"}, {signature?.date || "_____"}</p>
+          )}
+          <div className="mt-8 grid grid-cols-2 gap-8 text-center text-xs">
             <div>
+              {signature?.image_a ? (
+                <img src={signature.image_a} alt="Подпис А" className="mx-auto h-14 object-contain" />
+              ) : (
+                <div className="h-14" />
+              )}
               <div className="border-t border-foreground/40 pt-2">За {sector.parties.a}</div>
-              <div className="mt-1 font-bold">{partyA}</div>
+              <div className="mt-1 font-bold">{sigA}</div>
             </div>
             <div>
+              {signature?.image_b ? (
+                <img src={signature.image_b} alt="Подпис Б" className="mx-auto h-14 object-contain" />
+              ) : (
+                <div className="h-14" />
+              )}
               <div className="border-t border-foreground/40 pt-2">За {sector.parties.b}</div>
-              <div className="mt-1 font-bold">{partyB}</div>
+              <div className="mt-1 font-bold">{sigB}</div>
             </div>
           </div>
         </article>

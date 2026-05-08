@@ -11,8 +11,10 @@ import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
 import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { type GeneratedContract } from "@/lib/exporters";
+import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
+import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
+import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface AIResult {
@@ -82,6 +84,7 @@ export default function WizardPage() {
         body: {
           sector: sector.title,
           contractName: sector.contractName,
+          documentName: docName,
           parties: sector.parties,
           answers,
           questions: visibleQuestions.map((q) => ({ id: q.id, label: q.label })),
@@ -103,6 +106,17 @@ export default function WizardPage() {
 
   const { user } = useAuth();
   const [savedDocId, setSavedDocId] = useState<string | undefined>(undefined);
+  const [isPro, setIsPro] = useState(false);
+  const [signature, setSignature] = useState<SignatureData>({ name_a: "", name_b: "", city: "", date: "" });
+
+  useEffect(() => {
+    if (!user) { setIsPro(false); return; }
+    supabase.from("download_quota").select("plan, pro_until").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        setIsPro(data.plan === "pro" || (!!data.pro_until && new Date(data.pro_until) > new Date()));
+      });
+  }, [user]);
 
   const handleExport = async (format: "pdf" | "docx") => {
     if (!result) return;
@@ -113,11 +127,20 @@ export default function WizardPage() {
     }
     setExporting(format);
     try {
+      const sigPayload: SignatureInfo = {
+        name_a: signature.name_a || answers.party_a_name || "",
+        name_b: signature.name_b || answers.party_b_name || "",
+        city: signature.city,
+        date: signature.date,
+        image_a: isPro ? signature.image_a : undefined,
+        image_b: isPro ? signature.image_b : undefined,
+      };
+      const contractWithSig: GeneratedContract = { ...result.contract, signature: sigPayload };
       const res = await downloadDocument({
         kind: "contract",
         format,
         title: result.contract.title,
-        payload: result.contract,
+        payload: contractWithSig,
         source_id: sector.id,
         saved_document_id: savedDocId,
       });
@@ -277,6 +300,14 @@ export default function WizardPage() {
                   />
                 </div>
 
+                <SignatureBlock
+                  isPro={isPro}
+                  defaultPartyA={answers.party_a_name}
+                  defaultPartyB={answers.party_b_name}
+                  value={signature}
+                  onChange={setSignature}
+                />
+
                 <div className="rounded-xl border border-gold/30 bg-gradient-card p-6 shadow-soft">
                   <h3 className="mb-1 font-serif text-lg font-bold">Експорт на договора</h3>
                   <p className="mb-4 text-xs text-muted-foreground">
@@ -348,7 +379,7 @@ export default function WizardPage() {
                 <span className="text-xs text-muted-foreground">Актуализация в реално време</span>
               )}
             </div>
-            <LiveDraft sector={sector} answers={answers} generated={result?.contract} />
+            <LiveDraft sector={sector} answers={answers} generated={result?.contract} signature={result ? signature : undefined} />
           </section>
         </div>
       </main>

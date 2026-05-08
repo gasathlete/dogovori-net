@@ -6,14 +6,33 @@ import {
   TextRun,
   HeadingLevel,
   AlignmentType,
+  ImageRun,
 } from "docx";
 import { saveAs } from "file-saver";
+
+const dataUrlToUint8 = (dataUrl: string): Uint8Array => {
+  const base64 = dataUrl.split(",")[1] || "";
+  const bin = atob(base64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+};
+
+export interface SignatureInfo {
+  name_a: string;
+  name_b: string;
+  city: string;
+  date: string;
+  image_a?: string; // data URL (PNG)
+  image_b?: string;
+}
 
 export interface GeneratedContract {
   title: string;
   preamble: string;
   clauses: { number: string; title: string; body: string }[];
   closing: string;
+  signature?: SignatureInfo;
 }
 
 const fileBase = (title: string) =>
@@ -81,15 +100,33 @@ export async function exportPDF(c: GeneratedContract) {
   writeWrapped(c.closing, 11);
   y += 40;
 
-  if (y > ph - M - 60) {
-    doc.addPage();
-    y = M;
+  // Signature footer
+  y += 14;
+  const sig = c.signature;
+  if (sig?.city || sig?.date) {
+    writeWrapped(`гр. ${sig?.city || "_____"}, ${sig?.date || "_____"}`, 10);
+    y += 6;
   }
+  if (y > ph - M - 100) { doc.addPage(); y = M; }
+
   const colW = (pw - M * 2) / 2;
+  const sigImgH = 50;
+  // Embed signature images if provided
+  if (sig?.image_a) {
+    try { doc.addImage(sig.image_a, "PNG", M, y, colW - 30, sigImgH); } catch {}
+  }
+  if (sig?.image_b) {
+    try { doc.addImage(sig.image_b, "PNG", M + colW + 20, y, colW - 30, sigImgH); } catch {}
+  }
+  y += sig?.image_a || sig?.image_b ? sigImgH + 4 : 0;
+
   doc.line(M, y, M + colW - 20, y);
   doc.line(M + colW + 20, y, pw - M, y);
   y += 14;
-  writeWrapped("Подпис на Страна А", 10);
+  writeWrapped(`Страна А: ${sig?.name_a || "______________________"}`, 10);
+  // Right column (party B) – simulate by overprinting on a new line
+  const yB = y - 14;
+  doc.text(`Страна Б: ${sig?.name_b || "______________________"}`, M + colW + 20, yB);
 
   doc.save(`${fileBase(c.title)}.pdf`);
 }
@@ -138,11 +175,38 @@ export async function exportDOCX(c: GeneratedContract) {
   );
   children.push(new Paragraph({ text: "" }));
   children.push(new Paragraph({ text: "" }));
+  const sig = c.signature;
+  if (sig?.city || sig?.date) {
+    children.push(
+      new Paragraph({
+        children: [new TextRun({ text: `гр. ${sig?.city || "_____"}, ${sig?.date || "_____"}`, size: 22 })],
+      })
+    );
+    children.push(new Paragraph({ text: "" }));
+  }
+
+  // Signature images side by side (if any)
+  const sigChildren: any[] = [];
+  if (sig?.image_a) {
+    try {
+      sigChildren.push(new ImageRun({ type: "png", data: dataUrlToUint8(sig.image_a), transformation: { width: 180, height: 70 } } as any));
+    } catch {}
+  }
+  if (sigChildren.length || sig?.image_b) {
+    if (sig?.image_b) {
+      try {
+        sigChildren.push(new TextRun({ text: "        " }));
+        sigChildren.push(new ImageRun({ type: "png", data: dataUrlToUint8(sig.image_b), transformation: { width: 180, height: 70 } } as any));
+      } catch {}
+    }
+    children.push(new Paragraph({ children: sigChildren }));
+  }
+
   children.push(
     new Paragraph({
       children: [
-        new TextRun({ text: "Страна А: __________________________            ", size: 22 }),
-        new TextRun({ text: "Страна Б: __________________________", size: 22 }),
+        new TextRun({ text: `Страна А: ${sig?.name_a || "__________________________"}            `, size: 22 }),
+        new TextRun({ text: `Страна Б: ${sig?.name_b || "__________________________"}`, size: 22 }),
       ],
     })
   );
