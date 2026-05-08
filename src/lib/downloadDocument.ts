@@ -1,0 +1,71 @@
+import { supabase } from "@/integrations/supabase/client";
+import { exportPDF, exportDOCX, type GeneratedContract } from "@/lib/exporters";
+import { exportTemplatePDF, exportTemplateDOCX } from "@/lib/templateExporter";
+import type { CompanionTemplate } from "@/data/companionTemplates";
+
+export type DownloadKind = "contract" | "template";
+export type DownloadFormat = "pdf" | "docx";
+
+interface DownloadParams {
+  kind: DownloadKind;
+  format: DownloadFormat;
+  title: string;
+  payload: GeneratedContract | CompanionTemplate;
+  source_id?: string;
+  contact_id?: string;
+  saved_document_id?: string;
+}
+
+export interface DownloadResult {
+  ok: boolean;
+  saved_document_id?: string;
+  free?: boolean;
+  error?: string;
+  status?: number;
+}
+
+export async function downloadDocument(p: DownloadParams): Promise<DownloadResult> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    return { ok: false, error: "auth_required", status: 401 };
+  }
+
+  const { data, error } = await supabase.functions.invoke("download-document", {
+    body: {
+      kind: p.kind,
+      title: p.title,
+      payload: p.payload,
+      source_id: p.source_id,
+      contact_id: p.contact_id,
+      saved_document_id: p.saved_document_id,
+    },
+  });
+
+  if (error) {
+    // supabase-js wraps non-2xx as FunctionsHttpError. Try to read context.
+    const ctx: any = (error as any).context;
+    let body: any = null;
+    try {
+      if (ctx && typeof ctx.json === "function") body = await ctx.json();
+    } catch {}
+    if (body?.error === "quota_exceeded") return { ok: false, error: "quota_exceeded", status: 402 };
+    return { ok: false, error: String(error.message || error), status: ctx?.status };
+  }
+
+  if (data?.error) {
+    return { ok: false, error: String(data.error) };
+  }
+
+  // Generate the file client-side
+  if (p.kind === "contract") {
+    const c = data.payload as GeneratedContract;
+    if (p.format === "pdf") await exportPDF(c);
+    else await exportDOCX(c);
+  } else {
+    const t = data.payload as CompanionTemplate;
+    if (p.format === "pdf") await exportTemplatePDF(t);
+    else await exportTemplateDOCX(t);
+  }
+
+  return { ok: true, saved_document_id: data.saved_document_id, free: data.free };
+}

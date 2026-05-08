@@ -11,7 +11,9 @@ import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
 import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { exportPDF, exportDOCX, type GeneratedContract } from "@/lib/exporters";
+import { type GeneratedContract } from "@/lib/exporters";
+import { downloadDocument } from "@/lib/downloadDocument";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AIResult {
   risk: {
@@ -87,13 +89,41 @@ export default function WizardPage() {
     }
   };
 
-  const handleExport = async (kind: "pdf" | "docx") => {
+  const { user } = useAuth();
+  const [savedDocId, setSavedDocId] = useState<string | undefined>(undefined);
+
+  const handleExport = async (format: "pdf" | "docx") => {
     if (!result) return;
-    setExporting(kind);
+    if (!user) {
+      toast.error("Влезте в профила си", { description: "Свалянето на договор изисква вход." });
+      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+    setExporting(format);
     try {
-      if (kind === "pdf") await exportPDF(result.contract);
-      else await exportDOCX(result.contract);
-      toast.success(kind === "pdf" ? "PDF изтеглен" : "DOCX изтеглен");
+      const res = await downloadDocument({
+        kind: "contract",
+        format,
+        title: result.contract.title,
+        payload: result.contract,
+        source_id: sector.id,
+        saved_document_id: savedDocId,
+      });
+      if (!res.ok) {
+        if (res.error === "quota_exceeded") {
+          toast.error("Изчерпан безплатен лимит", {
+            description: "Преминете към Pro план, за да теглите още договори.",
+            action: { label: "Pro план", onClick: () => navigate("/account?tab=subscription") },
+          });
+        } else {
+          toast.error("Грешка при експорт", { description: res.error });
+        }
+        return;
+      }
+      if (res.saved_document_id) setSavedDocId(res.saved_document_id);
+      toast.success(format === "pdf" ? "PDF изтеглен" : "DOCX изтеглен", {
+        description: res.free ? "Повторно сваляне (безплатно)" : "Запазен в Документи → Любими",
+      });
     } catch (e: any) {
       toast.error("Грешка при експорт", { description: String(e?.message ?? e) });
     } finally {

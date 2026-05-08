@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ProtectedContent } from "@/components/ProtectedContent";
 import { FileDown, FileText, Loader2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +11,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { COMPANION_TEMPLATES } from "@/data/companionTemplates";
-import { exportTemplateDOCX, exportTemplatePDF } from "@/lib/templateExporter";
+import { downloadDocument } from "@/lib/downloadDocument";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 interface Props {
@@ -21,6 +24,9 @@ export function CompanionChip({ name }: Props) {
   const tpl = COMPANION_TEMPLATES[name];
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<"pdf" | "docx" | null>(null);
+  const [savedId, setSavedId] = useState<string | undefined>(undefined);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   if (!tpl) {
     return (
@@ -30,12 +36,37 @@ export function CompanionChip({ name }: Props) {
     );
   }
 
-  const handle = async (kind: "pdf" | "docx") => {
-    setBusy(kind);
+  const handle = async (format: "pdf" | "docx") => {
+    if (!user) {
+      toast.error("Влезте в профила си", { description: "Свалянето на бланки изисква вход." });
+      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+    setBusy(format);
     try {
-      if (kind === "pdf") await exportTemplatePDF(tpl);
-      else await exportTemplateDOCX(tpl);
-      toast.success(kind === "pdf" ? "PDF изтеглен" : "DOCX изтеглен");
+      const res = await downloadDocument({
+        kind: "template",
+        format,
+        title: tpl.title,
+        payload: tpl,
+        source_id: name,
+        saved_document_id: savedId,
+      });
+      if (!res.ok) {
+        if (res.error === "quota_exceeded") {
+          toast.error("Изчерпан безплатен лимит", {
+            description: "Преминете към Pro план за повече бланки.",
+            action: { label: "Pro план", onClick: () => navigate("/account?tab=subscription") },
+          });
+        } else {
+          toast.error("Грешка при изтегляне", { description: res.error });
+        }
+        return;
+      }
+      if (res.saved_document_id) setSavedId(res.saved_document_id);
+      toast.success(format === "pdf" ? "PDF изтеглен" : "DOCX изтеглен", {
+        description: res.free ? "Повторно сваляне (безплатно)" : "Запазен в Документи",
+      });
     } catch (e: any) {
       toast.error("Грешка при изтегляне", { description: String(e?.message ?? e) });
     } finally {
@@ -62,7 +93,7 @@ export function CompanionChip({ name }: Props) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="max-h-[55vh] overflow-y-auto rounded-md border border-border/60 bg-navy-light/30 p-4 text-sm">
+          <ProtectedContent className="max-h-[55vh] overflow-y-auto rounded-md border border-border/60 bg-navy-light/30 p-4 text-sm">
             {tpl.intro && (
               <p className="mb-3 whitespace-pre-wrap text-muted-foreground">{tpl.intro}</p>
             )}
@@ -79,7 +110,7 @@ export function CompanionChip({ name }: Props) {
                 {tpl.closing}
               </p>
             )}
-          </div>
+          </ProtectedContent>
 
           <DialogFooter className="gap-2 sm:gap-2">
             <Button
