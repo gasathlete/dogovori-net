@@ -348,6 +348,16 @@ export default function WizardPage() {
                   />
                 </div>
 
+                <CorrectionsPanel
+                  isPro={isPro}
+                  issues={result.risk.issues || []}
+                  recommendations={result.risk.recommendations || []}
+                  loading={applyingCorrections}
+                  applied={appliedNotes}
+                  onApply={handleApplyCorrections}
+                  onUpgrade={() => navigate("/account?tab=subscription")}
+                />
+
                 <SignatureBlock
                   isPro={isPro}
                   defaultPartyA={answers.party_a_name}
