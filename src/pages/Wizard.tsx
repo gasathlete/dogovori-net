@@ -145,6 +145,9 @@ export default function WizardPage() {
   const [signature, setSignature] = useState<SignatureData>(
     persisted?.signature ?? { name_a: "", name_b: "", city: "", date: "" }
   );
+  const [customTitle, setCustomTitle] = useState<string>(persisted?.customTitle ?? "");
+  const [contactId, setContactId] = useState<string>(persisted?.contactId ?? "");
+  const [contacts, setContacts] = useState<Array<{ id: string; name: string }>>([]);
 
   // Persist wizard state on every relevant change so navigation to /auth or /account doesn't lose progress.
   useEffect(() => {
@@ -152,10 +155,10 @@ export default function WizardPage() {
     try {
       sessionStorage.setItem(
         storageKey,
-        JSON.stringify({ answers, stepIdx, result, signature, savedDocId, appliedNotes })
+        JSON.stringify({ answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId })
       );
     } catch {}
-  }, [storageKey, answers, stepIdx, result, signature, savedDocId, appliedNotes]);
+  }, [storageKey, answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId]);
 
   // Build a redirect URL that preserves the current wizard route + query.
   const wizardHref = window.location.pathname + window.location.search;
