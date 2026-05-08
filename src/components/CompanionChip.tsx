@@ -10,7 +10,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { COMPANION_TEMPLATES } from "@/data/companionTemplates";
-import { exportTemplateDOCX, exportTemplatePDF } from "@/lib/templateExporter";
+import { downloadDocument } from "@/lib/downloadDocument";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 interface Props {
