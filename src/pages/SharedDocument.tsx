@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { Seo } from "@/components/Seo";
 import { Loader2, ShieldCheck, CheckCircle2, AlertTriangle, PenTool } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
