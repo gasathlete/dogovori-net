@@ -28,11 +28,11 @@ export function Hero({ onStart }: { onStart: () => void }) {
         <div className="mx-auto max-w-3xl text-center animate-fade-in-up">
           <div className="mb-3 sm:mb-4 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-gold sm:text-xs sm:tracking-[0.2em]">
             <Sparkles className="h-3.5 w-3.5" />
-            БЕЗПЛАТЕН ЮРИДИЧЕСКИ ПОМОЩНИК
+            ПРОФЕСИОНАЛЕН ЮРИДИЧЕСКИ ПОМОЩНИК
           </div>
           <h1 className="font-serif text-[26px] font-bold leading-[1.15] sm:text-4xl md:text-5xl lg:text-6xl">
             Договори, които{" "}
-            <span className="gold-gradient-text">следват и търсят</span>{" "}
+            <span className="gold-gradient-text">следват и намират</span>{" "}
              Вашите интереси
           </h1>
           <p className="mx-auto mt-3 sm:mt-4 max-w-2xl text-sm leading-snug text-muted-foreground sm:text-base sm:leading-normal md:text-lg">
@@ -58,7 +58,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
 
           <div className="mt-8 sm:mt-10 md:mt-12 grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-3">
             {[
-              { icon: ShieldCheck, label: "Правно съответствие", value: "​" },
+              { icon: ShieldCheck, label: "Правно съответствие", value: "ЗЗД, ТЗ, ЗУТ" },
               { icon: Sparkles, label: "Оценка на риска", value: "Преди създаване" },
               { icon: FileText, label: "Експорт", value: "PDF + DOCX" },
             ].map((item) => (
