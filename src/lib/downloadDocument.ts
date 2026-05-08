@@ -57,13 +57,17 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
   }
 
   // Generate the file client-side
+  const watermarkOpts = data?.watermark
+    ? { watermark: true as const, userTag: data.user_tag as string | undefined }
+    : undefined;
+
   if (p.kind === "contract") {
     const c = data.payload as GeneratedContract;
-    if (p.format === "pdf") await exportPDF(c);
+    if (p.format === "pdf") await exportPDF(c, watermarkOpts);
     else await exportDOCX(c);
   } else {
     const t = data.payload as CompanionTemplate;
-    if (p.format === "pdf") await exportTemplatePDF(t);
+    if (p.format === "pdf") await exportTemplatePDF(t, watermarkOpts);
     else await exportTemplateDOCX(t);
   }
 
