@@ -126,6 +126,8 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          signature_data_url: string | null
+          signature_name: string | null
           updated_at: string
           vat_number: string | null
         }
@@ -135,6 +137,8 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id: string
+          signature_data_url?: string | null
+          signature_name?: string | null
           updated_at?: string
           vat_number?: string | null
         }
@@ -144,6 +148,8 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          signature_data_url?: string | null
+          signature_name?: string | null
           updated_at?: string
           vat_number?: string | null
         }

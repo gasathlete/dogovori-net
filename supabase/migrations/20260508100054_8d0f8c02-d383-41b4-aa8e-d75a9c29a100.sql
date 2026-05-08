@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS signature_data_url text, ADD COLUMN IF NOT EXISTS signature_name text;
