@@ -18,14 +18,11 @@ export function ProtectedContent({
 
   const blockEvent = (e: React.SyntheticEvent) => {
     e.preventDefault();
-    toast.message(
-      guest ? "Влезте, за да свалите договора" : "Текстът е защитен — свалете PDF/DOCX",
-      {
-        description: guest
-          ? "Безплатна регистрация на /auth."
-          : "Прегледът не може да се копира. Използвайте бутона за сваляне.",
-      },
-    );
+    toast.message("Текстът е защитен — свалете PDF/DOCX", {
+      description: guest
+        ? "Безплатна регистрация на /auth за сваляне."
+        : "Прегледът не може да се копира. Използвайте бутона за сваляне.",
+    });
   };
 
   return (
