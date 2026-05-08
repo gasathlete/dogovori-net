@@ -246,3 +246,103 @@ function Badge({ label }: { label: string }) {
     </span>
   );
 }
+
+const INITIAL_DOCS = 5;
+
+function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const isOpen = expanded || forceExpanded;
+
+  const ordered = useMemo(() => {
+    const rank = (b?: string) => (b === "TOP" ? 0 : b === "NEW" ? 1 : 2);
+    const idx = cat.documents.map((d: any, i: number) => ({ d, i }));
+    idx.sort((a: any, b: any) => rank(a.d.badge) - rank(b.d.badge) || a.i - b.i);
+    return idx.map((x: any) => x.d);
+  }, [cat]);
+
+  const visible = isOpen ? ordered : ordered.slice(0, INITIAL_DOCS);
+  const remaining = ordered.length - INITIAL_DOCS;
+
+  return (
+    <>
+      <div className="overflow-hidden rounded-xl border border-border/60 bg-gradient-card shadow-soft">
+        <table className="hidden w-full md:table">
+          <thead>
+            <tr className="border-b border-border/60 bg-navy-light/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
+              <th className="px-5 py-3 font-medium">Документ</th>
+              <th className="px-5 py-3 font-medium">Цел</th>
+              <th className="px-5 py-3 font-medium">Ключова клауза</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map((doc: any) => {
+              const href = `/wizard/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`;
+              return (
+                <tr
+                  key={doc.name}
+                  onClick={() => (window.location.href = href)}
+                  className="cursor-pointer border-b border-border/40 transition-colors last:border-0 hover:bg-gold/[0.04]"
+                >
+                  <td className="px-5 py-4 align-top">
+                    <div className="flex items-start gap-2">
+                      <Link
+                        to={href}
+                        className="font-serif text-sm font-bold text-foreground transition-colors hover:text-gold"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {doc.name}
+                      </Link>
+                      {doc.badge && <Badge label={doc.badge} />}
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 align-top text-sm text-muted-foreground">{doc.purpose}</td>
+                  <td className="px-5 py-4 align-top text-sm italic text-gold/90">
+                    <div className="flex items-center justify-between gap-3">
+                      <span>{doc.keyClause}</span>
+                      <ArrowRight className="h-4 w-4 shrink-0 text-gold opacity-0 transition-opacity group-hover:opacity-100" />
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        <div className="divide-y divide-border/40 md:hidden">
+          {visible.map((doc: any) => (
+            <Link
+              key={doc.name}
+              to={`/wizard/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`}
+              className="block p-5 transition-colors hover:bg-gold/[0.04]"
+            >
+              <div className="flex items-start gap-2">
+                <h3 className="flex-1 font-serif text-base font-bold text-foreground">{doc.name}</h3>
+                {doc.badge && <Badge label={doc.badge} />}
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">{doc.purpose}</p>
+              <p className="mt-2 text-xs italic text-gold/90">⚖ {doc.keyClause}</p>
+              <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-gold">
+                Попълни договора <ArrowRight className="h-3 w-3" />
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {!forceExpanded && remaining > 0 && (
+        <div className="mt-3 flex justify-center">
+          <button
+            onClick={() => setExpanded((e) => !e)}
+            className="inline-flex items-center gap-2 rounded-lg border border-gold/40 bg-gold/5 px-4 py-2 text-xs font-medium uppercase tracking-wider text-gold transition-all hover:bg-gold/10"
+          >
+            {expanded ? (
+              <>Свий <ChevronUp className="h-3.5 w-3.5" /></>
+            ) : (
+              <>Покажи още {remaining} документа <ChevronDown className="h-3.5 w-3.5" /></>
+            )}
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
