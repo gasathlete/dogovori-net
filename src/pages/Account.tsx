@@ -192,7 +192,9 @@ function Card({ title, value, sub, icon }: { title: string; value: string; sub?:
 }
 
 /* ============================ CONTACTS ============================ */
-function ContactsTab({ contacts, reload }: { contacts: Contact[]; reload: () => void }) {
+function ContactsTab({ contacts, docs, reload, onOpenDocs }: {
+  contacts: Contact[]; docs: SavedDoc[]; reload: () => void; onOpenDocs: (id: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Contact | null>(null);
 
@@ -201,6 +203,8 @@ function ContactsTab({ contacts, reload }: { contacts: Contact[]; reload: () => 
     const { error } = await supabase.from("contacts").delete().eq("id", id);
     if (error) toast.error(error.message); else { toast.success("Изтрит"); reload(); }
   };
+
+  const docsCount = (id: string) => docs.filter((d) => d.contact_id === id).length;
 
   return (
     <div className="space-y-4">
@@ -225,24 +229,37 @@ function ContactsTab({ contacts, reload }: { contacts: Contact[]; reload: () => 
                 <th className="px-4 py-3">Тип</th>
                 <th className="px-4 py-3">ЕГН/ЕИК</th>
                 <th className="px-4 py-3">Контакт</th>
+                <th className="px-4 py-3">Договори</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody>
-              {contacts.map((c) => (
-                <tr key={c.id} className="border-b border-border/40 last:border-0 hover:bg-gold/[0.04]">
-                  <td className="px-4 py-3 font-medium">{c.name}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{c.type === "individual" ? "Физ. лице" : "Юр. лице"}</td>
-                  <td className="px-4 py-3 text-xs">{c.egn || c.eik || "—"}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{c.email || c.phone || "—"}</td>
-                  <td className="px-4 py-3 text-right">
-                    <Button size="sm" variant="ghost" onClick={() => { setEditing(c); setOpen(true); }}>Редактирай</Button>
-                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(c.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+              {contacts.map((c) => {
+                const n = docsCount(c.id);
+                return (
+                  <tr
+                    key={c.id}
+                    onClick={() => onOpenDocs(c.id)}
+                    className="cursor-pointer border-b border-border/40 last:border-0 transition-colors hover:bg-gold/[0.06]"
+                  >
+                    <td className="px-4 py-3 font-medium text-gold/90 hover:text-gold">{c.name}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{c.type === "individual" ? "Физ. лице" : "Юр. лице"}</td>
+                    <td className="px-4 py-3 text-xs">{c.egn || c.eik || "—"}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{c.email || c.phone || "—"}</td>
+                    <td className="px-4 py-3 text-xs">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-gold/30 bg-gold/5 px-2 py-0.5 text-[10px] uppercase tracking-wider text-gold">
+                        <FileText className="h-3 w-3" /> {n}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      <Button size="sm" variant="ghost" onClick={() => { setEditing(c); setOpen(true); }}>Редактирай</Button>
+                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(c.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
