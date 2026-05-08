@@ -506,7 +506,18 @@ export default function WizardPage() {
                 <span className="text-xs text-muted-foreground">Актуализация в реално време</span>
               )}
             </div>
-            <LiveDraft sector={sector} answers={answers} generated={result?.contract} signature={result ? signature : undefined} />
+            <LiveDraft
+              sector={sector}
+              answers={answers}
+              generated={result?.contract}
+              signature={result ? signature : undefined}
+              isPro={isPro}
+              onContractChange={(next) => {
+                if (!result) return;
+                setResult({ ...result, contract: { ...result.contract, ...next } });
+                setSavedDocId(undefined); // invalidate saved version
+              }}
+            />
           </section>
         </div>
       </main>
