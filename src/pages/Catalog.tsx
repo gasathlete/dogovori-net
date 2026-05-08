@@ -64,8 +64,27 @@ export default function CatalogPage() {
 
   const totalDocs = CATALOG.reduce((s, c) => s + c.documents.length, 0);
 
+  const itemListLd = useMemo(() => ({
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Каталог на договори и бланки на български",
+    numberOfItems: allTemplates().length,
+    itemListElement: allTemplates().map((t, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      url: `https://dogovori.net/shablon/${t.slug}`,
+      name: t.doc.name,
+    })),
+  }), []);
+
   return (
     <div className="min-h-screen">
+      <Seo
+        title={`Каталог: ${totalDocs}+ договора и бланки на български | Dogovori.net`}
+        description={`Пълен каталог на ${totalDocs}+ професионални договори и правни бланки на български – трудови, наем, IT, NDA, GDPR. Готови за попълване.`}
+        canonical="/catalog"
+        jsonLd={itemListLd}
+      />
       <Header />
 
       {/* Hero */}
