@@ -17,3 +17,13 @@ verify_jwt = false
 
 [functions.payments-webhook]
 verify_jwt = false
+
+[functions.create-share-link]
+verify_jwt = false
+
+[functions.get-shared-document]
+verify_jwt = false
+
+[functions.sign-shared-document]
+verify_jwt = false
+
