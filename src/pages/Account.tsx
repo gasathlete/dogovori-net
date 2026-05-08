@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
-  Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Sparkles, Loader2, Plus, Trash2, Star, Download, ArrowLeft,
+  Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Sparkles, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X,
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -35,8 +35,9 @@ type Quota = { contracts_used: number; templates_used: number; plan: "free" | "p
 
 export default function AccountPage() {
   const { user, signOut } = useAuth();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const initialTab = params.get("tab") ?? "dashboard";
+  const activeContact = params.get("contact");
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -63,12 +64,32 @@ export default function AccountPage() {
 
   useEffect(() => { reload(); /* eslint-disable-next-line */ }, [user]);
 
-  const filteredDocs = useMemo(
-    () => activeFolder === "all" ? docs : docs.filter((d) => d.folder_id === activeFolder),
-    [docs, activeFolder],
-  );
+  const filteredDocs = useMemo(() => {
+    let out = docs;
+    if (activeContact) out = out.filter((d) => d.contact_id === activeContact);
+    if (activeFolder !== "all") out = out.filter((d) => d.folder_id === activeFolder);
+    return out;
+  }, [docs, activeFolder, activeContact]);
 
   const isPro = quota?.plan === "pro" || (quota?.pro_until && new Date(quota.pro_until) > new Date());
+
+  const openContactDocs = (id: string) => {
+    setParams({ tab: "documents", contact: id });
+  };
+  const clearContactFilter = () => {
+    const next = new URLSearchParams(params);
+    next.delete("contact");
+    next.set("tab", "documents");
+    setParams(next);
+  };
+  const onTabChange = (v: string) => {
+    const next = new URLSearchParams(params);
+    next.set("tab", v);
+    if (v !== "documents") next.delete("contact");
+    setParams(next);
+  };
+
+  const activeContactName = contacts.find((c) => c.id === activeContact)?.name;
 
   return (
     <div className="min-h-screen">
@@ -87,7 +108,7 @@ export default function AccountPage() {
           </Button>
         </div>
 
-        <Tabs defaultValue={initialTab} className="space-y-6">
+        <Tabs value={initialTab} onValueChange={onTabChange} className="space-y-6">
           <TabsList className="flex w-full flex-wrap justify-start gap-1 bg-card/40 p-1">
             <TabsTrigger value="dashboard"><Sparkles className="mr-1 h-3.5 w-3.5" />Табло</TabsTrigger>
             <TabsTrigger value="contacts"><Users className="mr-1 h-3.5 w-3.5" />Контрагенти</TabsTrigger>
@@ -101,7 +122,7 @@ export default function AccountPage() {
             <Dashboard quota={quota} isPro={!!isPro} docs={docs} />
           </TabsContent>
           <TabsContent value="contacts">
-            <ContactsTab contacts={contacts} reload={reload} />
+            <ContactsTab contacts={contacts} docs={docs} reload={reload} onOpenDocs={openContactDocs} />
           </TabsContent>
           <TabsContent value="documents">
             <DocumentsTab
@@ -110,6 +131,8 @@ export default function AccountPage() {
               contacts={contacts}
               activeFolder={activeFolder}
               setActiveFolder={setActiveFolder}
+              activeContactName={activeContactName}
+              clearContactFilter={clearContactFilter}
               reload={reload}
             />
           </TabsContent>
@@ -169,7 +192,9 @@ function Card({ title, value, sub, icon }: { title: string; value: string; sub?:
 }
 
 /* ============================ CONTACTS ============================ */
-function ContactsTab({ contacts, reload }: { contacts: Contact[]; reload: () => void }) {
+function ContactsTab({ contacts, docs, reload, onOpenDocs }: {
+  contacts: Contact[]; docs: SavedDoc[]; reload: () => void; onOpenDocs: (id: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Contact | null>(null);
 
@@ -178,6 +203,8 @@ function ContactsTab({ contacts, reload }: { contacts: Contact[]; reload: () => 
     const { error } = await supabase.from("contacts").delete().eq("id", id);
     if (error) toast.error(error.message); else { toast.success("Изтрит"); reload(); }
   };
+
+  const docsCount = (id: string) => docs.filter((d) => d.contact_id === id).length;
 
   return (
     <div className="space-y-4">
@@ -202,24 +229,37 @@ function ContactsTab({ contacts, reload }: { contacts: Contact[]; reload: () => 
                 <th className="px-4 py-3">Тип</th>
                 <th className="px-4 py-3">ЕГН/ЕИК</th>
                 <th className="px-4 py-3">Контакт</th>
+                <th className="px-4 py-3">Договори</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody>
-              {contacts.map((c) => (
-                <tr key={c.id} className="border-b border-border/40 last:border-0 hover:bg-gold/[0.04]">
-                  <td className="px-4 py-3 font-medium">{c.name}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{c.type === "individual" ? "Физ. лице" : "Юр. лице"}</td>
-                  <td className="px-4 py-3 text-xs">{c.egn || c.eik || "—"}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{c.email || c.phone || "—"}</td>
-                  <td className="px-4 py-3 text-right">
-                    <Button size="sm" variant="ghost" onClick={() => { setEditing(c); setOpen(true); }}>Редактирай</Button>
-                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(c.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+              {contacts.map((c) => {
+                const n = docsCount(c.id);
+                return (
+                  <tr
+                    key={c.id}
+                    onClick={() => onOpenDocs(c.id)}
+                    className="cursor-pointer border-b border-border/40 last:border-0 transition-colors hover:bg-gold/[0.06]"
+                  >
+                    <td className="px-4 py-3 font-medium text-gold/90 hover:text-gold">{c.name}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{c.type === "individual" ? "Физ. лице" : "Юр. лице"}</td>
+                    <td className="px-4 py-3 text-xs">{c.egn || c.eik || "—"}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{c.email || c.phone || "—"}</td>
+                    <td className="px-4 py-3 text-xs">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-gold/30 bg-gold/5 px-2 py-0.5 text-[10px] uppercase tracking-wider text-gold">
+                        <FileText className="h-3 w-3" /> {n}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      <Button size="sm" variant="ghost" onClick={() => { setEditing(c); setOpen(true); }}>Редактирай</Button>
+                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(c.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -301,10 +341,12 @@ function ContactDialog({ editing, onClose }: { editing: Contact | null; onClose:
 
 /* ============================ DOCUMENTS ============================ */
 function DocumentsTab({
-  docs, folders, contacts, activeFolder, setActiveFolder, reload,
+  docs, folders, contacts, activeFolder, setActiveFolder, activeContactName, clearContactFilter, reload,
 }: {
   docs: SavedDoc[]; folders: Folder[]; contacts: Contact[];
-  activeFolder: string | "all"; setActiveFolder: (v: string | "all") => void; reload: () => void;
+  activeFolder: string | "all"; setActiveFolder: (v: string | "all") => void;
+  activeContactName?: string; clearContactFilter: () => void;
+  reload: () => void;
 }) {
   const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name;
   const [busy, setBusy] = useState<string | null>(null);
@@ -346,9 +388,22 @@ function DocumentsTab({
         ))}
       </aside>
       <div>
+        {activeContactName && (
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs text-gold">
+            <Users className="h-3.5 w-3.5" />
+            Договори с: <strong>{activeContactName}</strong>
+            <button
+              onClick={clearContactFilter}
+              className="ml-1 rounded-full p-0.5 hover:bg-gold/20"
+              aria-label="Изчисти филтъра"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
         {docs.length === 0 ? (
           <div className="rounded-xl border border-border/60 bg-gradient-card p-10 text-center text-sm text-muted-foreground">
-            Тази папка е празна.
+            {activeContactName ? "Няма договори за този контрагент." : "Тази папка е празна."}
           </div>
         ) : (
           <div className="grid gap-3">
