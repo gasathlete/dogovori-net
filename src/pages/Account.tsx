@@ -107,6 +107,7 @@ export default function AccountPage() {
             <DocumentsTab
               docs={filteredDocs}
               folders={folders}
+              contacts={contacts}
               activeFolder={activeFolder}
               setActiveFolder={setActiveFolder}
               reload={reload}
