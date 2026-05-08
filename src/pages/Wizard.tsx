@@ -350,6 +350,21 @@ export default function WizardPage() {
                     </Button>
                   )}
                 </div>
+                {generating && (
+                  <div className="mt-4 rounded-lg border border-gold/30 bg-gold/5 p-4 animate-fade-in">
+                    <div className="flex items-center gap-3">
+                      <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-gold" />
+                      <div className="flex-1 min-w-0">
+                        <div key={genStepIdx} className="text-sm font-medium text-foreground animate-fade-in">
+                          {GEN_STEPS[genStepIdx]}
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          Процесът отнема около 30 секунди — благодарим за търпението.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
