@@ -1,50 +1,34 @@
 /// <reference types="npm:@types/react@18.3.1" />
 
 import * as React from 'npm:react@18.3.1'
-
-import {
-  Body,
-  Container,
-  Head,
-  Heading,
-  Html,
-  Preview,
-  Text,
-} from 'npm:@react-email/components@0.0.22'
+import { Heading, Text } from 'npm:@react-email/components@0.0.22'
+import { Layout, h1, text, small, COLORS } from './_layout.tsx'
 
 interface ReauthenticationEmailProps {
   token: string
 }
 
 export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => (
-  <Html lang="bg" dir="ltr">
-    <Head />
-    <Preview>Вашият код за потвърждение</Preview>
-    <Body style={main}>
-      <Container style={container}>
-        <Heading style={h1}>Потвърждение на самоличността</Heading>
-        <Text style={text}>Използвайте кода по-долу, за да потвърдите самоличността си:</Text>
-        <Text style={codeStyle}>{token}</Text>
-        <Text style={footer}>
-          Кодът е валиден за кратко време. Ако не сте поискали това, игнорирайте имейла.
-        </Text>
-      </Container>
-    </Body>
-  </Html>
+  <Layout preview="Вашият код за потвърждение">
+    <Heading style={h1}>Потвърждение на самоличността</Heading>
+    <Text style={text}>Използвайте кода по-долу, за да потвърдите самоличността си:</Text>
+    <Text style={{
+      fontFamily: 'Courier, monospace',
+      fontSize: '30px',
+      letterSpacing: '6px',
+      fontWeight: 'bold' as const,
+      color: COLORS.gold,
+      backgroundColor: '#fafaf6',
+      border: `1px solid ${COLORS.border}`,
+      borderRadius: '8px',
+      padding: '18px 12px',
+      textAlign: 'center' as const,
+      margin: '0 0 24px',
+    }}>{token}</Text>
+    <Text style={small}>
+      Кодът е валиден за кратко време. Ако не сте поискали това, игнорирайте имейла.
+    </Text>
+  </Layout>
 )
 
 export default ReauthenticationEmail
-
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, Helvetica, sans-serif' }
-const container = { padding: '24px 28px', maxWidth: '560px' }
-const h1 = { fontSize: '22px', fontWeight: 'bold' as const, color: '#1a2540', margin: '0 0 20px' }
-const text = { fontSize: '14px', color: '#4a5568', lineHeight: '1.6', margin: '0 0 20px' }
-const codeStyle = {
-  fontFamily: 'Courier, monospace',
-  fontSize: '26px',
-  letterSpacing: '4px',
-  fontWeight: 'bold' as const,
-  color: '#c9a84c',
-  margin: '0 0 30px',
-}
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
