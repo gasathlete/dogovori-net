@@ -51,6 +51,8 @@ export default function WizardPage() {
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState<AIResult | null>(null);
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
+  const [applyingCorrections, setApplyingCorrections] = useState(false);
+  const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(undefined);
 
   // Filter questions based on conditional logic
   const visibleQuestions = useMemo<Question[]>(() => {
