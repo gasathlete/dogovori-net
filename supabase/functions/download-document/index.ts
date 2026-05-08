@@ -56,7 +56,8 @@ serve(async (req) => {
       });
     }
 
-    // Re-download of an existing saved document is free.
+    // Re-download of an existing saved document is free (no quota check),
+    // but we still increment the dashboard counter so usage is reflected.
     if (saved_document_id) {
       const { data: existing } = await admin
         .from("saved_documents")
@@ -69,6 +70,18 @@ serve(async (req) => {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+      const { data: q } = await admin
+        .from("download_quota")
+        .select("contracts_used, templates_used")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (q) {
+        const patch =
+          existing.kind === "contract"
+            ? { contracts_used: q.contracts_used + 1 }
+            : { templates_used: q.templates_used + 1 };
+        await admin.from("download_quota").update(patch).eq("user_id", userId);
       }
       return new Response(
         JSON.stringify({ ok: true, payload: existing.payload, title: existing.title, free: true }),
