@@ -84,6 +84,7 @@ export default function WizardPage() {
         body: {
           sector: sector.title,
           contractName: sector.contractName,
+          documentName: docName,
           parties: sector.parties,
           answers,
           questions: visibleQuestions.map((q) => ({ id: q.id, label: q.label })),
@@ -105,6 +106,17 @@ export default function WizardPage() {
 
   const { user } = useAuth();
   const [savedDocId, setSavedDocId] = useState<string | undefined>(undefined);
+  const [isPro, setIsPro] = useState(false);
+  const [signature, setSignature] = useState<SignatureData>({ name_a: "", name_b: "", city: "", date: "" });
+
+  useEffect(() => {
+    if (!user) { setIsPro(false); return; }
+    supabase.from("download_quota").select("plan, pro_until").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        setIsPro(data.plan === "pro" || (!!data.pro_until && new Date(data.pro_until) > new Date()));
+      });
+  }, [user]);
 
   const handleExport = async (format: "pdf" | "docx") => {
     if (!result) return;
