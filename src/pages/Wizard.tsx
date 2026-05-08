@@ -198,8 +198,8 @@ export default function WizardPage() {
       if (!res.ok) {
         if (res.error === "quota_exceeded") {
           toast.error("Изчерпан безплатен лимит", {
-            description: "Преминете към Pro план, за да теглите още договори.",
-            action: { label: "Pro план", onClick: () => navigate("/account?tab=subscription") },
+            description: "Преминете към Pro план — прогресът е запазен.",
+            action: { label: "Pro план", onClick: () => goSubscription() },
           });
         } else {
           toast.error("Грешка при експорт", { description: res.error });
