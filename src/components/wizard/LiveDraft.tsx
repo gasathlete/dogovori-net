@@ -358,6 +358,8 @@ export function LiveDraft({
   answers,
   generated,
   signature,
+  isPro = false,
+  onContractChange,
 }: {
   sector: Sector;
   answers: Record<string, string>;
@@ -375,31 +377,106 @@ export function LiveDraft({
     image_a?: string;
     image_b?: string;
   };
+  isPro?: boolean;
+  onContractChange?: (next: NonNullable<typeof generated>) => void;
 }) {
   const partyA = answers.party_a_name || `[${sector.parties.a}]`;
   const partyB = answers.party_b_name || `[${sector.parties.b}]`;
   const sigA = signature?.name_a || partyA;
   const sigB = signature?.name_b || partyB;
+  const [editing, setEditing] = useState(false);
 
   if (generated) {
+    const updateClause = (idx: number, patch: Partial<{ title: string; body: string; number: string }>) => {
+      if (!onContractChange) return;
+      const next = {
+        ...generated,
+        clauses: generated.clauses.map((c, i) => (i === idx ? { ...c, ...patch } : c)),
+      };
+      onContractChange(next);
+    };
     return (
       <ProtectedContent>
+        <div className="mb-2 flex items-center justify-end gap-2">
+          {isPro ? (
+            <Button
+              size="sm"
+              variant={editing ? "default" : "outline"}
+              onClick={() => setEditing((v) => !v)}
+              className={editing ? "bg-gradient-gold text-navy" : "border-gold/40 hover:bg-gold/10 hover:text-gold"}
+            >
+              {editing ? <><Check className="mr-1 h-3.5 w-3.5" />Готово</> : <><Pencil className="mr-1 h-3.5 w-3.5" />Редактирай</>}
+            </Button>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-md border border-border/60 px-2 py-1 text-[11px] text-muted-foreground">
+              <Lock className="h-3 w-3" /> Директна редакция — само Pro
+            </span>
+          )}
+        </div>
         <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
-          <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
-            {generated.title}
-          </h1>
+          {editing && isPro ? (
+            <Input
+              value={generated.title}
+              onChange={(e) => onContractChange?.({ ...generated, title: e.target.value })}
+              className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl"
+            />
+          ) : (
+            <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
+              {generated.title}
+            </h1>
+          )}
           <div className="my-4 gold-divider" />
-          <p className="whitespace-pre-line text-sm leading-relaxed">{generated.preamble}</p>
-          {generated.clauses.map((c) => (
-            <section key={c.number} className="mt-6">
-              <h2 className="font-serif text-base font-bold uppercase">
-                {c.number} {c.title}
-              </h2>
-              <p className="mt-2 whitespace-pre-line text-sm leading-relaxed">{c.body}</p>
+          {editing && isPro ? (
+            <Textarea
+              value={generated.preamble}
+              onChange={(e) => onContractChange?.({ ...generated, preamble: e.target.value })}
+              className="min-h-[100px] text-sm leading-relaxed"
+            />
+          ) : (
+            <p className="whitespace-pre-line text-sm leading-relaxed">{generated.preamble}</p>
+          )}
+          {generated.clauses.map((c, i) => (
+            <section key={`${c.number}-${i}`} className="mt-6">
+              {editing && isPro ? (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      value={c.number}
+                      onChange={(e) => updateClause(i, { number: e.target.value })}
+                      className="w-20 font-serif font-bold uppercase"
+                    />
+                    <Input
+                      value={c.title}
+                      onChange={(e) => updateClause(i, { title: e.target.value })}
+                      className="flex-1 font-serif font-bold uppercase"
+                    />
+                  </div>
+                  <Textarea
+                    value={c.body}
+                    onChange={(e) => updateClause(i, { body: e.target.value })}
+                    className="min-h-[120px] text-sm leading-relaxed"
+                  />
+                </div>
+              ) : (
+                <>
+                  <h2 className="font-serif text-base font-bold uppercase">
+                    {c.number} {c.title}
+                  </h2>
+                  <p className="mt-2 whitespace-pre-line text-sm leading-relaxed">{c.body}</p>
+                </>
+              )}
             </section>
           ))}
           <div className="my-6 gold-divider" />
-          <p className="text-sm italic">{generated.closing}</p>
+          {editing && isPro ? (
+            <Textarea
+              value={generated.closing}
+              onChange={(e) => onContractChange?.({ ...generated, closing: e.target.value })}
+              className="min-h-[80px] text-sm italic"
+            />
+          ) : (
+            <p className="text-sm italic">{generated.closing}</p>
+          )}
           {(signature?.city || signature?.date) && (
             <p className="mt-6 text-sm">гр. {signature?.city || "_____"}, {signature?.date || "_____"}</p>
           )}
