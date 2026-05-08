@@ -1,6 +1,9 @@
 import { useMemo, useState, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Loader2, Sparkles, FileDown, FileText, Save } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Sparkles, FileDown, FileText, Save, User } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -142,6 +145,9 @@ export default function WizardPage() {
   const [signature, setSignature] = useState<SignatureData>(
     persisted?.signature ?? { name_a: "", name_b: "", city: "", date: "" }
   );
+  const [customTitle, setCustomTitle] = useState<string>(persisted?.customTitle ?? "");
+  const [contactId, setContactId] = useState<string>(persisted?.contactId ?? "");
+  const [contacts, setContacts] = useState<Array<{ id: string; name: string }>>([]);
 
   // Persist wizard state on every relevant change so navigation to /auth or /account doesn't lose progress.
   useEffect(() => {
@@ -149,10 +155,10 @@ export default function WizardPage() {
     try {
       sessionStorage.setItem(
         storageKey,
-        JSON.stringify({ answers, stepIdx, result, signature, savedDocId, appliedNotes })
+        JSON.stringify({ answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId })
       );
     } catch {}
-  }, [storageKey, answers, stepIdx, result, signature, savedDocId, appliedNotes]);
+  }, [storageKey, answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId]);
 
   // Build a redirect URL that preserves the current wizard route + query.
   const wizardHref = window.location.pathname + window.location.search;
@@ -161,13 +167,20 @@ export default function WizardPage() {
     navigate(`/account?tab=subscription&redirect=${encodeURIComponent(wizardHref)}`);
 
   useEffect(() => {
-    if (!user) { setIsPro(false); return; }
+    if (!user) { setIsPro(false); setContacts([]); return; }
     supabase.from("download_quota").select("plan, pro_until").eq("user_id", user.id).maybeSingle()
       .then(({ data }) => {
         if (!data) return;
         setIsPro(data.plan === "pro" || (!!data.pro_until && new Date(data.pro_until) > new Date()));
       });
+    supabase.from("contacts").select("id, name").order("created_at", { ascending: false })
+      .then(({ data }) => setContacts((data as any) ?? []));
   }, [user]);
+
+  // Auto-seed the editable title once the contract is generated.
+  useEffect(() => {
+    if (result && !customTitle) setCustomTitle(result.contract.title);
+  }, [result, customTitle]);
 
   const handleExport = async (format: "pdf" | "docx") => {
     if (!result) return;
@@ -186,13 +199,15 @@ export default function WizardPage() {
         image_a: isPro ? signature.image_a : undefined,
         image_b: isPro ? signature.image_b : undefined,
       };
-      const contractWithSig: GeneratedContract = { ...result.contract, signature: sigPayload };
+      const finalTitle = (customTitle || result.contract.title).trim() || result.contract.title;
+      const contractWithSig: GeneratedContract = { ...result.contract, title: finalTitle, signature: sigPayload };
       const res = await downloadDocument({
         kind: "contract",
         format,
-        title: result.contract.title,
+        title: finalTitle,
         payload: contractWithSig,
         source_id: sector.id,
+        contact_id: contactId || undefined,
         saved_document_id: savedDocId,
       });
       if (!res.ok) {
@@ -208,7 +223,7 @@ export default function WizardPage() {
       }
       if (res.saved_document_id) setSavedDocId(res.saved_document_id);
       toast.success(format === "pdf" ? "PDF изтеглен" : "DOCX изтеглен", {
-        description: res.free ? "Повторно сваляне (безплатно)" : "Запазен в Документи → Любими",
+        description: res.free ? "Повторно сваляне (безплатно)" : "Запазен в Документи → Всички",
       });
     } catch (e: any) {
       toast.error("Грешка при експорт", { description: String(e?.message ?? e) });
@@ -272,22 +287,24 @@ export default function WizardPage() {
       return;
     }
     if (savedDocId) {
-      toast.message("Договорът вече е запазен", { description: "Намерете го в Документи → Любими." });
+      toast.message("Договорът вече е запазен", { description: "Намерете го в Документи → Всички." });
       return;
     }
     setSaving(true);
     try {
+      const finalTitle = (customTitle || result.contract.title).trim() || result.contract.title;
       const { data, error } = await supabase.functions.invoke("save-document", {
         body: {
           kind: "contract",
-          title: result.contract.title,
-          payload: result.contract,
+          title: finalTitle,
+          payload: { ...result.contract, title: finalTitle },
           source_id: sector.id,
+          contact_id: contactId || undefined,
         },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message || "Грешка");
       setSavedDocId(data.saved_document_id);
-      toast.success("Запазено в профила", { description: "Документи → Любими" });
+      toast.success("Запазено в профила", { description: "Документи → Всички" });
     } catch (e: any) {
       toast.error("Грешка при запазване", { description: String(e?.message ?? e) });
     } finally {
@@ -431,10 +448,55 @@ export default function WizardPage() {
                 />
 
                 <div className="rounded-xl border border-gold/30 bg-gradient-card p-6 shadow-soft">
-                  <h3 className="mb-1 font-serif text-lg font-bold">Експорт на договора</h3>
+                  <h3 className="mb-1 font-serif text-lg font-bold">Финализиране</h3>
                   <p className="mb-4 text-xs text-muted-foreground">
-                    Сваляне в PDF или редактируем DOCX формат.
+                    Именувайте договора и (по избор) го свържете с контрагент. Запазва се във „Всички" — после може да го преместите в папка от профила си.
                   </p>
+
+                  <div className="mb-4 grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="doc-title" className="text-xs uppercase tracking-wider text-muted-foreground">
+                        Име на договора
+                      </Label>
+                      <Input
+                        id="doc-title"
+                        value={customTitle}
+                        onChange={(e) => { setCustomTitle(e.target.value); setSavedDocId(undefined); }}
+                        placeholder={result.contract.title}
+                        className="bg-card/60"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                        <span className="inline-flex items-center gap-1"><User className="h-3 w-3" /> Контрагент</span>
+                      </Label>
+                      <Select
+                        value={contactId || "none"}
+                        onValueChange={(v) => { setContactId(v === "none" ? "" : v); setSavedDocId(undefined); }}
+                      >
+                        <SelectTrigger className="bg-card/60">
+                          <SelectValue placeholder="— Без контрагент —" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">— Без контрагент —</SelectItem>
+                          {contacts.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {user && contacts.length === 0 && (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/account?tab=contacts&redirect=${encodeURIComponent(wizardHref)}`)}
+                          className="text-[11px] text-gold hover:underline"
+                        >
+                          + Добави контрагент
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <h4 className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">Експорт</h4>
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <Button
                       onClick={() => handleExport("pdf")}
@@ -485,6 +547,8 @@ export default function WizardPage() {
                       setSavedDocId(undefined);
                       setAppliedNotes(undefined);
                       setSignature({ name_a: "", name_b: "", city: "", date: "" });
+                      setCustomTitle("");
+                      setContactId("");
                     }}
                     className="mt-3 w-full text-xs text-muted-foreground hover:text-gold"
                   >

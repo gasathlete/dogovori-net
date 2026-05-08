@@ -107,6 +107,7 @@ export default function AccountPage() {
             <DocumentsTab
               docs={filteredDocs}
               folders={folders}
+              contacts={contacts}
               activeFolder={activeFolder}
               setActiveFolder={setActiveFolder}
               reload={reload}
@@ -300,11 +301,12 @@ function ContactDialog({ editing, onClose }: { editing: Contact | null; onClose:
 
 /* ============================ DOCUMENTS ============================ */
 function DocumentsTab({
-  docs, folders, activeFolder, setActiveFolder, reload,
+  docs, folders, contacts, activeFolder, setActiveFolder, reload,
 }: {
-  docs: SavedDoc[]; folders: Folder[];
+  docs: SavedDoc[]; folders: Folder[]; contacts: Contact[];
   activeFolder: string | "all"; setActiveFolder: (v: string | "all") => void; reload: () => void;
 }) {
+  const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name;
   const [busy, setBusy] = useState<string | null>(null);
 
   const redownload = async (d: SavedDoc, format: "pdf" | "docx") => {
@@ -357,6 +359,11 @@ function DocumentsTab({
                     <div className="font-serif text-base font-bold">{d.title}</div>
                     <div className="mt-1 text-xs text-muted-foreground">
                       {d.kind === "contract" ? "Договор" : "Бланка"} · {new Date(d.created_at).toLocaleDateString("bg-BG")}
+                      {contactName(d.contact_id) && (
+                        <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-gold/30 bg-gold/5 px-2 py-0.5 text-[10px] uppercase tracking-wider text-gold">
+                          <Users className="h-3 w-3" /> {contactName(d.contact_id)}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">

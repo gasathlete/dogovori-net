@@ -55,13 +55,6 @@ serve(async (req) => {
       });
     }
 
-    const { data: fav } = await admin
-      .from("folders")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("is_favorites", true)
-      .maybeSingle();
-
     const { data: saved, error: saveErr } = await admin
       .from("saved_documents")
       .insert({
@@ -71,7 +64,7 @@ serve(async (req) => {
         payload,
         source_id: source_id ?? null,
         contact_id: contact_id ?? null,
-        folder_id: fav?.id ?? null,
+        folder_id: null,
       })
       .select()
       .single();
