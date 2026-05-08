@@ -310,6 +310,30 @@ export default function WizardPage() {
                     </Button>
                   </div>
                   <Button
+                    onClick={handleSaveToProfile}
+                    disabled={saving || !!savedDocId}
+                    variant="outline"
+                    className="mt-2 w-full border-gold/40 hover:bg-gold/10 hover:text-gold"
+                  >
+                    {saving ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="mr-2 h-4 w-4" />
+                    )}
+                    {savedDocId ? "Запазено в профила" : "Запази в профила"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setResult(null);
+                      setStepIdx(0);
+                    }}
+                    className="mt-3 w-full text-xs text-muted-foreground hover:text-gold"
+                  >
+                    Започни нов договор
+                  </Button>
+                </div>
+                  <Button
                     variant="ghost"
                     onClick={() => {
                       setResult(null);
