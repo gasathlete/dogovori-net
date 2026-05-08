@@ -267,8 +267,8 @@ export default function WizardPage() {
   const handleSaveToProfile = async () => {
     if (!result) return;
     if (!user) {
-      toast.error("Влезте в профила си", { description: "Запазването изисква вход." });
-      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname)}`);
+      toast.error("Влезте в профила си", { description: "Прогресът е запазен." });
+      goAuth();
       return;
     }
     if (savedDocId) {
