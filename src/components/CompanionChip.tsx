@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ProtectedContent } from "@/components/ProtectedContent";
 import { FileDown, FileText, Loader2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -92,7 +93,7 @@ export function CompanionChip({ name }: Props) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="max-h-[55vh] overflow-y-auto rounded-md border border-border/60 bg-navy-light/30 p-4 text-sm">
+          <ProtectedContent className="max-h-[55vh] overflow-y-auto rounded-md border border-border/60 bg-navy-light/30 p-4 text-sm">
             {tpl.intro && (
               <p className="mb-3 whitespace-pre-wrap text-muted-foreground">{tpl.intro}</p>
             )}
@@ -109,7 +110,7 @@ export function CompanionChip({ name }: Props) {
                 {tpl.closing}
               </p>
             )}
-          </div>
+          </ProtectedContent>
 
           <DialogFooter className="gap-2 sm:gap-2">
             <Button
