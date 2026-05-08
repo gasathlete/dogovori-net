@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Input } from "@/components/ui/input";
 import { CATALOG } from "@/data/catalog";
+import { CompanionChip } from "@/components/CompanionChip";
 
 export default function CatalogPage() {
   const [query, setQuery] = useState("");
