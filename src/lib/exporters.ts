@@ -100,15 +100,33 @@ export async function exportPDF(c: GeneratedContract) {
   writeWrapped(c.closing, 11);
   y += 40;
 
-  if (y > ph - M - 60) {
-    doc.addPage();
-    y = M;
+  // Signature footer
+  y += 14;
+  const sig = c.signature;
+  if (sig?.city || sig?.date) {
+    writeWrapped(`гр. ${sig?.city || "_____"}, ${sig?.date || "_____"}`, 10);
+    y += 6;
   }
+  if (y > ph - M - 100) { doc.addPage(); y = M; }
+
   const colW = (pw - M * 2) / 2;
+  const sigImgH = 50;
+  // Embed signature images if provided
+  if (sig?.image_a) {
+    try { doc.addImage(sig.image_a, "PNG", M, y, colW - 30, sigImgH); } catch {}
+  }
+  if (sig?.image_b) {
+    try { doc.addImage(sig.image_b, "PNG", M + colW + 20, y, colW - 30, sigImgH); } catch {}
+  }
+  y += sig?.image_a || sig?.image_b ? sigImgH + 4 : 0;
+
   doc.line(M, y, M + colW - 20, y);
   doc.line(M + colW + 20, y, pw - M, y);
   y += 14;
-  writeWrapped("Подпис на Страна А", 10);
+  writeWrapped(`Страна А: ${sig?.name_a || "______________________"}`, 10);
+  // Right column (party B) – simulate by overprinting on a new line
+  const yB = y - 14;
+  doc.text(`Страна Б: ${sig?.name_b || "______________________"}`, M + colW + 20, yB);
 
   doc.save(`${fileBase(c.title)}.pdf`);
 }
