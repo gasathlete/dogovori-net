@@ -42,16 +42,43 @@ const fileBase = (title: string) =>
     .replace(/\s+/g, "_")
     .slice(0, 60) || "Dogovor";
 
+// Cache the Cyrillic-capable font in memory to avoid re-fetching on every export.
+let cachedFontB64: string | null = null;
+
+async function loadCyrillicFontB64(): Promise<string> {
+  if (cachedFontB64) return cachedFontB64;
+  const sources = [
+    "https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.0/ttf/DejaVuSans.ttf",
+    "https://unpkg.com/dejavu-fonts-ttf@2.37.0/ttf/DejaVuSans.ttf",
+  ];
+  let lastErr: unknown;
+  for (const url of sources) {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const buffer = await r.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      // Validate: TTF/OTF must start with 0x00010000 or "OTTO" or "true"
+      const sig = bytes[0] << 24 | bytes[1] << 16 | bytes[2] << 8 | bytes[3];
+      if (sig !== 0x00010000 && sig !== 0x4f54544f && sig !== 0x74727565) {
+        throw new Error("Invalid TTF signature");
+      }
+      let binary = "";
+      const CHUNK = 0x8000;
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)) as any);
+      }
+      cachedFontB64 = btoa(binary);
+      return cachedFontB64;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw new Error(`Не успяхме да заредим шрифт за PDF: ${String((lastErr as Error)?.message ?? lastErr)}`);
+}
+
 export async function exportPDF(c: GeneratedContract) {
-  // Fetch a Cyrillic-capable font (DejaVu Sans) so Bulgarian renders properly.
-  const fontUrl =
-    "https://cdn.jsdelivr.net/npm/dejavu-sans@1.0.3/fonts/dejavu-sans.normal.ttf";
-  const buffer = await fetch(fontUrl).then((r) => r.arrayBuffer());
-  // base64
-  let binary = "";
-  const bytes = new Uint8Array(buffer);
-  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-  const b64 = btoa(binary);
+  const b64 = await loadCyrillicFontB64();
 
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   doc.addFileToVFS("DejaVuSans.ttf", b64);
