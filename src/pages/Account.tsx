@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { downloadDocument } from "@/lib/downloadDocument";
+import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
@@ -430,21 +431,23 @@ function FoldersTab({ folders, reload }: { folders: Folder[]; reload: () => void
 
 /* ============================ SUBSCRIPTION ============================ */
 function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean }) {
+  const { user } = useAuth();
   const [busy, setBusy] = useState(false);
-  const upgrade = async () => {
-    setBusy(true);
-    const { data, error } = await supabase.functions.invoke("create-checkout", { body: {} });
-    setBusy(false);
-    if (error || !data?.url) return toast.error("Грешка", { description: error?.message ?? "Няма checkout URL" });
-    window.open(data.url, "_blank");
-  };
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+
   const portal = async () => {
     setBusy(true);
-    const { data, error } = await supabase.functions.invoke("customer-portal", { body: {} });
+    const { data, error } = await supabase.functions.invoke("customer-portal", {
+      body: {
+        environment: (import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string)?.startsWith("pk_test_") ? "sandbox" : "live",
+        returnUrl: window.location.origin + "/account?tab=subscription",
+      },
+    });
     setBusy(false);
     if (error || !data?.url) return toast.error("Грешка", { description: error?.message });
     window.open(data.url, "_blank");
   };
+
   return (
     <div className="rounded-xl border border-gold/30 bg-gradient-card p-8">
       <div className="flex items-start justify-between gap-4">
@@ -456,13 +459,18 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               ? "Имате неограничен брой сваляния."
               : `Безплатно: 1 договор + 1 бланка. Използвани: ${quota?.contracts_used ?? 0} договор(а), ${quota?.templates_used ?? 0} бланка(и).`}
           </p>
+          {!isPro && (
+            <p className="mt-3 text-sm">
+              <span className="font-bold text-gold">Pro план — 9.99 EUR / месец</span>
+              <span className="block text-xs text-muted-foreground">Неограничено сваляне на договори и бланки.</span>
+            </p>
+          )}
         </div>
         <Crown className="h-8 w-8 text-gold" />
       </div>
       <div className="mt-6 flex flex-wrap gap-3">
         {!isPro ? (
-          <Button onClick={upgrade} disabled={busy} className="bg-gradient-gold text-navy hover:shadow-gold">
-            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button onClick={() => setCheckoutOpen(true)} className="bg-gradient-gold text-navy hover:shadow-gold">
             Премини на Pro
           </Button>
         ) : (
@@ -472,6 +480,21 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
           </Button>
         )}
       </div>
+
+      <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto p-0">
+          <div className="p-6">
+            {checkoutOpen && user && (
+              <StripeEmbeddedCheckout
+                priceId="pro_monthly"
+                customerEmail={user.email}
+                userId={user.id}
+                returnUrl={`${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}`}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
