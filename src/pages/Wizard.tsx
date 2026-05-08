@@ -220,8 +220,8 @@ export default function WizardPage() {
   const handleApplyCorrections = async (sel: CorrectionsSelection) => {
     if (!result) return;
     if (!user) {
-      toast.error("Влезте в профила си");
-      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname)}`);
+      toast.error("Влезте в профила си", { description: "Прогресът е запазен." });
+      goAuth();
       return;
     }
     if (sel.issues.length === 0 && sel.recommendations.length === 0) {
