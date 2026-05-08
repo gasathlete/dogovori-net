@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { Seo } from "@/components/Seo";
 import { Loader2, ShieldCheck, CheckCircle2, AlertTriangle, PenTool } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -195,6 +196,7 @@ export default function SharedDocument() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Seo title="Споделен документ — Dogovori.net" description="Защитен преглед на споделен документ." canonical="/share" noindex />
       <header className="sticky top-0 z-30 border-b border-border/60 bg-navy/80 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between gap-3">
           <Logo />

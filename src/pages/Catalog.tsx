@@ -7,6 +7,9 @@ import { Footer } from "@/components/Footer";
 import { Input } from "@/components/ui/input";
 import { CATALOG } from "@/data/catalog";
 import { CompanionChip } from "@/components/CompanionChip";
+import { Seo } from "@/components/Seo";
+import { allTemplates } from "@/lib/templateIndex";
+import { slugify } from "@/lib/slugify";
 
 export default function CatalogPage() {
   const [query, setQuery] = useState("");
@@ -61,8 +64,27 @@ export default function CatalogPage() {
 
   const totalDocs = CATALOG.reduce((s, c) => s + c.documents.length, 0);
 
+  const itemListLd = useMemo(() => ({
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Каталог на договори и бланки на български",
+    numberOfItems: allTemplates().length,
+    itemListElement: allTemplates().map((t, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      url: `https://dogovori.net/shablon/${t.slug}`,
+      name: t.doc.name,
+    })),
+  }), []);
+
   return (
     <div className="min-h-screen">
+      <Seo
+        title={`Каталог: ${totalDocs}+ договора и бланки на български | Dogovori.net`}
+        description={`Пълен каталог на ${totalDocs}+ професионални договори и правни бланки на български – трудови, наем, IT, NDA, GDPR. Готови за попълване.`}
+        canonical="/catalog"
+        jsonLd={itemListLd}
+      />
       <Header />
 
       {/* Hero */}
@@ -276,17 +298,19 @@ function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean
           </thead>
           <tbody>
             {visible.map((doc: any) => {
-              const href = `/wizard/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`;
+              const docSlug = slugify(doc.name);
+              const wizardHref = `/wizard/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`;
+              const shablonHref = `/shablon/${docSlug}`;
               return (
                 <tr
                   key={doc.name}
-                  onClick={() => (window.location.href = href)}
+                  onClick={() => (window.location.href = shablonHref)}
                   className="cursor-pointer border-b border-border/40 transition-colors last:border-0 hover:bg-gold/[0.04]"
                 >
                   <td className="px-5 py-4 align-top">
                     <div className="flex items-start gap-2">
                       <Link
-                        to={href}
+                        to={shablonHref}
                         className="font-serif text-sm font-bold text-foreground transition-colors hover:text-gold"
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -299,7 +323,13 @@ function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean
                   <td className="px-5 py-4 align-top text-sm italic text-gold/90">
                     <div className="flex items-center justify-between gap-3">
                       <span>{doc.keyClause}</span>
-                      <ArrowRight className="h-4 w-4 shrink-0 text-gold opacity-0 transition-opacity group-hover:opacity-100" />
+                      <Link
+                        to={wizardHref}
+                        onClick={(e) => e.stopPropagation()}
+                        className="shrink-0 text-xs font-bold uppercase tracking-wider text-gold hover:underline"
+                      >
+                        Попълни →
+                      </Link>
                     </div>
                   </td>
                 </tr>
@@ -312,7 +342,7 @@ function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean
           {visible.map((doc: any) => (
             <Link
               key={doc.name}
-              to={`/wizard/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`}
+              to={`/shablon/${slugify(doc.name)}`}
               className="block p-5 transition-colors hover:bg-gold/[0.04]"
             >
               <div className="flex items-start gap-2">
@@ -322,7 +352,7 @@ function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean
               <p className="mt-2 text-sm text-muted-foreground">{doc.purpose}</p>
               <p className="mt-2 text-xs italic text-gold/90">⚖ {doc.keyClause}</p>
               <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-gold">
-                Попълни договора <ArrowRight className="h-3 w-3" />
+                Виж шаблона <ArrowRight className="h-3 w-3" />
               </div>
             </Link>
           ))}

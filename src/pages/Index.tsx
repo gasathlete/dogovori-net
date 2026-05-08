@@ -6,6 +6,7 @@ import { SectorGrid } from "@/components/SectorGrid";
 import { Process } from "@/components/Process";
 import { TopDocuments } from "@/components/TopDocuments";
 import { Footer } from "@/components/Footer";
+import { Seo } from "@/components/Seo";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -25,6 +26,11 @@ const Index = () => {
   };
   return (
     <div className="min-h-screen">
+      <Seo
+        title="Договори онлайн на български — Dogovori.net"
+        description="Над 290 професионални договора и правни бланки на български с AI асистент. Електронен подпис, PDF и DOCX експорт. Безплатно за първия документ."
+        canonical="/"
+      />
       <Header />
       <Hero onStart={startInterview} />
       <SectorGrid onPick={(id) => navigate(`/wizard/${id}`)} />
