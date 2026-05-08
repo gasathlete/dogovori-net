@@ -155,7 +155,7 @@ export function CorrectionsPanel({
           {loading ? (
             <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Прилагане…</>
           ) : (
-            <><Wand2 className="mr-2 h-4 w-4" /> Приложи избраните ({total})</>
+            <><ShieldCheck className="mr-2 h-4 w-4" /> Приложи избраните ({total})</>
           )}
         </Button>
       ) : (
@@ -166,6 +166,8 @@ export function CorrectionsPanel({
         >
           <Lock className="mr-2 h-4 w-4" /> Отключи с Pro план
         </Button>
+      )}
+      </>
       )}
     </div>
   );
