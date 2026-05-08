@@ -10,6 +10,8 @@ import { CompanionChip } from "@/components/CompanionChip";
 
 export default function CatalogPage() {
   const [query, setQuery] = useState("");
+  const [showAll, setShowAll] = useState(false);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (window.location.hash) {
@@ -34,6 +36,29 @@ export default function CatalogPage() {
     })).filter((c) => c.documents.length > 0);
   }, [query]);
 
+  const suggestions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [] as { name: string; purpose: string; sectorId: string; catTitle: string }[];
+    const out: { name: string; purpose: string; sectorId: string; catTitle: string; score: number }[] = [];
+    for (const cat of CATALOG) {
+      for (const d of cat.documents) {
+        const name = d.name.toLowerCase();
+        const purpose = d.purpose.toLowerCase();
+        let score = 0;
+        if (name.startsWith(q)) score = 3;
+        else if (name.includes(q)) score = 2;
+        else if (purpose.includes(q)) score = 1;
+        if (score > 0) {
+          out.push({ name: d.name, purpose: d.purpose, sectorId: cat.sectorId, catTitle: cat.title, score });
+        }
+      }
+    }
+    return out.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+  }, [query]);
+
+  const visibleSuggestions = showAll ? suggestions : suggestions.slice(0, 5);
+  const remaining = suggestions.length - visibleSuggestions.length;
+
   const totalDocs = CATALOG.reduce((s, c) => s + c.documents.length, 0);
 
   return (
@@ -57,13 +82,63 @@ export default function CatalogPage() {
               корпоративно управление. Всеки документ съдържа цел и ключова клауза.
             </p>
             <div className="relative mx-auto mt-8 max-w-xl">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setShowAll(false);
+                  setOpen(true);
+                }}
+                onFocus={() => setOpen(true)}
+                onBlur={() => setTimeout(() => setOpen(false), 150)}
                 placeholder="Търсете: NDA, наем, ремонт, фактура…"
                 className="h-12 border-gold/30 bg-card/60 pl-11 text-foreground backdrop-blur"
               />
+              {open && query.trim() && suggestions.length > 0 && (
+                <div className="absolute left-0 right-0 top-full z-40 mt-2 overflow-hidden rounded-lg border border-gold/30 bg-card/95 text-left shadow-elegant backdrop-blur-xl">
+                  <ul className="max-h-[60vh] overflow-y-auto">
+                    {visibleSuggestions.map((s) => (
+                      <li key={`${s.sectorId}-${s.name}`}>
+                        <Link
+                          to={`/wizard/${s.sectorId}?doc=${encodeURIComponent(s.name)}`}
+                          className="block border-b border-border/40 px-4 py-3 transition-colors last:border-0 hover:bg-gold/[0.06]"
+                          onMouseDown={(e) => e.preventDefault()}
+                        >
+                          <div className="font-serif text-sm font-bold text-foreground">{s.name}</div>
+                          <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{s.purpose}</div>
+                          <div className="mt-1 text-[10px] uppercase tracking-wider text-gold/80">{s.catTitle}</div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                  {remaining > 0 && (
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => setShowAll(true)}
+                      className="block w-full border-t border-border/60 bg-navy-light/40 px-4 py-2.5 text-center text-xs font-medium uppercase tracking-wider text-gold transition-colors hover:bg-gold/10"
+                    >
+                      Покажи още (+{remaining})
+                    </button>
+                  )}
+                  {showAll && suggestions.length > 5 && (
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => setShowAll(false)}
+                      className="block w-full border-t border-border/60 bg-navy-light/40 px-4 py-2.5 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground transition-colors hover:text-gold"
+                    >
+                      Свий списъка
+                    </button>
+                  )}
+                </div>
+              )}
+              {open && query.trim() && suggestions.length === 0 && (
+                <div className="absolute left-0 right-0 top-full z-40 mt-2 rounded-lg border border-border/60 bg-card/95 px-4 py-3 text-left text-sm text-muted-foreground shadow-elegant backdrop-blur-xl">
+                  Няма съвпадения за „{query}"
+                </div>
+              )}
             </div>
           </div>
         </div>
