@@ -32,6 +32,7 @@ export function CorrectionsPanel({
   const [recSel, setRecSel] = useState<Record<number, boolean>>(() =>
     Object.fromEntries(recommendations.map((_, i) => [i, true])),
   );
+  const [open, setOpen] = useState(false);
 
   const selectedIssues = useMemo(
     () => issues.filter((_, i) => issueSel[i]),
