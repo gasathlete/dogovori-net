@@ -16,7 +16,38 @@ export interface CatalogCategory {
   companions?: string[];
 }
 
-export const TOP_DOCUMENTS: { name: string;
+export const TOP_DOCUMENTS: { name: string; description: string; categoryId: string; sectorId: string }[] = [
+  {
+    name: "Трудов договор (чл. 67 КТ)",
+    description: "Безсрочен трудов договор с пълно описание на длъжността и възнаграждението.",
+    categoryId: "trudovi",
+    sectorId: "employment",
+  },
+  {
+    name: "Договор за наем на жилище",
+    description: "Защитава наемодателя и наемателя, с депозит и приемо-предавателен протокол.",
+    categoryId: "naem",
+    sectorId: "real-estate",
+  },
+  {
+    name: "Договор за изработка на уебсайт / мобилно приложение",
+    description: "За IT и дигитални услуги – с фази, етапни плащания и прехвърляне на права.",
+    categoryId: "digital",
+    sectorId: "digital",
+  },
+  {
+    name: "NDA – Договор за конфиденциалност",
+    description: "Задължително преди преговори, инвеститорски срещи и партньорства.",
+    categoryId: "ip",
+    sectorId: "ip",
+  },
+  {
+    name: "Граждански договор / Договор за услуги",
+    description: "Универсална форма за самостоятелна работа извън Кодекса на труда.",
+    categoryId: "uslugi",
+    sectorId: "services",
+  },
+];
 
 export const CATALOG: CatalogCategory[] = [
 
