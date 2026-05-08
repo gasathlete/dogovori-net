@@ -49,6 +49,7 @@ export default function WizardPage() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [stepIdx, setStepIdx] = useState(0);
   const [generating, setGenerating] = useState(false);
+  const [genStepIdx, setGenStepIdx] = useState(0);
   const [result, setResult] = useState<AIResult | null>(null);
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
   const [applyingCorrections, setApplyingCorrections] = useState(false);
