@@ -6,8 +6,17 @@ import {
   TextRun,
   HeadingLevel,
   AlignmentType,
+  ImageRun,
 } from "docx";
 import { saveAs } from "file-saver";
+
+const dataUrlToUint8 = (dataUrl: string): Uint8Array => {
+  const base64 = dataUrl.split(",")[1] || "";
+  const bin = atob(base64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+};
 
 export interface SignatureInfo {
   name_a: string;
