@@ -67,6 +67,7 @@ export type Database = {
       }
       download_quota: {
         Row: {
+          bonus_contracts: number
           contracts_used: number
           plan: Database["public"]["Enums"]["user_plan"]
           pro_until: string | null
@@ -75,6 +76,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          bonus_contracts?: number
           contracts_used?: number
           plan?: Database["public"]["Enums"]["user_plan"]
           pro_until?: string | null
@@ -83,6 +85,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          bonus_contracts?: number
           contracts_used?: number
           plan?: Database["public"]["Enums"]["user_plan"]
           pro_until?: string | null
