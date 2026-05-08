@@ -36,7 +36,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "contract-architect-ai"
+const SITE_NAME = "dogovori.net"
 const SENDER_DOMAIN = "notify.dogovori.net"
 const ROOT_DOMAIN = "dogovori.net"
 const FROM_DOMAIN = "notify.dogovori.net" // Domain shown in From address (may be root or sender subdomain)
