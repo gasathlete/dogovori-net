@@ -167,13 +167,20 @@ export default function WizardPage() {
     navigate(`/account?tab=subscription&redirect=${encodeURIComponent(wizardHref)}`);
 
   useEffect(() => {
-    if (!user) { setIsPro(false); return; }
+    if (!user) { setIsPro(false); setContacts([]); return; }
     supabase.from("download_quota").select("plan, pro_until").eq("user_id", user.id).maybeSingle()
       .then(({ data }) => {
         if (!data) return;
         setIsPro(data.plan === "pro" || (!!data.pro_until && new Date(data.pro_until) > new Date()));
       });
+    supabase.from("contacts").select("id, name").order("created_at", { ascending: false })
+      .then(({ data }) => setContacts((data as any) ?? []));
   }, [user]);
+
+  // Auto-seed the editable title once the contract is generated.
+  useEffect(() => {
+    if (result && !customTitle) setCustomTitle(result.contract.title);
+  }, [result, customTitle]);
 
   const handleExport = async (format: "pdf" | "docx") => {
     if (!result) return;
