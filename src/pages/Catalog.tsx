@@ -181,75 +181,7 @@ export default function CatalogPage() {
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-xl border border-border/60 bg-gradient-card shadow-soft">
-                {/* Desktop table */}
-                <table className="hidden w-full md:table">
-                  <thead>
-                    <tr className="border-b border-border/60 bg-navy-light/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
-                      <th className="px-5 py-3 font-medium">Документ</th>
-                      <th className="px-5 py-3 font-medium">Цел</th>
-                      <th className="px-5 py-3 font-medium">Ключова клауза</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cat.documents.map((doc) => {
-                      const href = `/wizard/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`;
-                      return (
-                      <tr
-                        key={doc.name}
-                        onClick={() => (window.location.href = href)}
-                        className="cursor-pointer border-b border-border/40 transition-colors last:border-0 hover:bg-gold/[0.04]"
-                      >
-                        <td className="px-5 py-4 align-top">
-                          <div className="flex items-start gap-2">
-                            <Link
-                              to={href}
-                              className="font-serif text-sm font-bold text-foreground transition-colors hover:text-gold"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {doc.name}
-                            </Link>
-                            {doc.badge && <Badge label={doc.badge} />}
-                          </div>
-                        </td>
-                        <td className="px-5 py-4 align-top text-sm text-muted-foreground">
-                          {doc.purpose}
-                        </td>
-                        <td className="px-5 py-4 align-top text-sm italic text-gold/90">
-                          <div className="flex items-center justify-between gap-3">
-                            <span>{doc.keyClause}</span>
-                            <ArrowRight className="h-4 w-4 shrink-0 text-gold opacity-0 transition-opacity group-hover:opacity-100" />
-                          </div>
-                        </td>
-                      </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-
-                {/* Mobile cards */}
-                <div className="divide-y divide-border/40 md:hidden">
-                  {cat.documents.map((doc) => (
-                    <Link
-                      key={doc.name}
-                      to={`/wizard/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`}
-                      className="block p-5 transition-colors hover:bg-gold/[0.04]"
-                    >
-                      <div className="flex items-start gap-2">
-                        <h3 className="flex-1 font-serif text-base font-bold text-foreground">
-                          {doc.name}
-                        </h3>
-                        {doc.badge && <Badge label={doc.badge} />}
-                      </div>
-                      <p className="mt-2 text-sm text-muted-foreground">{doc.purpose}</p>
-                      <p className="mt-2 text-xs italic text-gold/90">⚖ {doc.keyClause}</p>
-                      <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-gold">
-                        Попълни договора <ArrowRight className="h-3 w-3" />
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
+              <CategoryDocs cat={cat} forceExpanded={!!query.trim()} />
 
               {cat.companions && cat.companions.length > 0 && (
                 <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-border/40 bg-navy-light/20 px-4 py-3 text-xs">
