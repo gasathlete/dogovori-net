@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Loader2, Sparkles, FileDown, FileText, Save } from "lucide-react";
 import { Header } from "@/components/Header";
@@ -46,14 +46,28 @@ export default function WizardPage() {
     };
   }, [baseSector, subWizard]);
 
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [stepIdx, setStepIdx] = useState(0);
+  const storageKey = useMemo(
+    () => (baseSector ? `wizard:${baseSector.id}:${docName ?? "_"}` : null),
+    [baseSector, docName]
+  );
+
+  // Restore persisted state (answers, step, result, signature, etc.)
+  const persisted = useMemo(() => {
+    if (!storageKey) return null;
+    try {
+      const raw = sessionStorage.getItem(storageKey);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }, [storageKey]);
+
+  const [answers, setAnswers] = useState<Record<string, string>>(persisted?.answers ?? {});
+  const [stepIdx, setStepIdx] = useState<number>(persisted?.stepIdx ?? 0);
   const [generating, setGenerating] = useState(false);
   const [genStepIdx, setGenStepIdx] = useState(0);
-  const [result, setResult] = useState<AIResult | null>(null);
+  const [result, setResult] = useState<AIResult | null>(persisted?.result ?? null);
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
   const [applyingCorrections, setApplyingCorrections] = useState(false);
-  const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(undefined);
+  const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(persisted?.appliedNotes);
 
   // Filter questions based on conditional logic
   const visibleQuestions = useMemo<Question[]>(() => {
@@ -123,9 +137,28 @@ export default function WizardPage() {
   };
 
   const { user } = useAuth();
-  const [savedDocId, setSavedDocId] = useState<string | undefined>(undefined);
+  const [savedDocId, setSavedDocId] = useState<string | undefined>(persisted?.savedDocId);
   const [isPro, setIsPro] = useState(false);
-  const [signature, setSignature] = useState<SignatureData>({ name_a: "", name_b: "", city: "", date: "" });
+  const [signature, setSignature] = useState<SignatureData>(
+    persisted?.signature ?? { name_a: "", name_b: "", city: "", date: "" }
+  );
+
+  // Persist wizard state on every relevant change so navigation to /auth or /account doesn't lose progress.
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      sessionStorage.setItem(
+        storageKey,
+        JSON.stringify({ answers, stepIdx, result, signature, savedDocId, appliedNotes })
+      );
+    } catch {}
+  }, [storageKey, answers, stepIdx, result, signature, savedDocId, appliedNotes]);
+
+  // Build a redirect URL that preserves the current wizard route + query.
+  const wizardHref = window.location.pathname + window.location.search;
+  const goAuth = () => navigate(`/auth?redirect=${encodeURIComponent(wizardHref)}`);
+  const goSubscription = () =>
+    navigate(`/account?tab=subscription&redirect=${encodeURIComponent(wizardHref)}`);
 
   useEffect(() => {
     if (!user) { setIsPro(false); return; }
@@ -139,8 +172,8 @@ export default function WizardPage() {
   const handleExport = async (format: "pdf" | "docx") => {
     if (!result) return;
     if (!user) {
-      toast.error("Влезте в профила си", { description: "Свалянето на договор изисква вход." });
-      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname)}`);
+      toast.error("Влезте в профила си", { description: "Прогресът е запазен — ще се възстанови след вход." });
+      goAuth();
       return;
     }
     setExporting(format);
@@ -165,8 +198,8 @@ export default function WizardPage() {
       if (!res.ok) {
         if (res.error === "quota_exceeded") {
           toast.error("Изчерпан безплатен лимит", {
-            description: "Преминете към Pro план, за да теглите още договори.",
-            action: { label: "Pro план", onClick: () => navigate("/account?tab=subscription") },
+            description: "Преминете към Pro план — прогресът е запазен.",
+            action: { label: "Pro план", onClick: () => goSubscription() },
           });
         } else {
           toast.error("Грешка при експорт", { description: res.error });
@@ -187,8 +220,8 @@ export default function WizardPage() {
   const handleApplyCorrections = async (sel: CorrectionsSelection) => {
     if (!result) return;
     if (!user) {
-      toast.error("Влезте в профила си");
-      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname)}`);
+      toast.error("Влезте в профила си", { description: "Прогресът е запазен." });
+      goAuth();
       return;
     }
     if (sel.issues.length === 0 && sel.recommendations.length === 0) {
@@ -209,7 +242,8 @@ export default function WizardPage() {
       if (error || data?.error) {
         if (data?.error === "pro_required") {
           toast.error("Нужен е Pro план", {
-            action: { label: "Pro", onClick: () => navigate("/account?tab=subscription") },
+            description: "Прогресът е запазен.",
+            action: { label: "Pro", onClick: () => goSubscription() },
           });
           return;
         }
@@ -233,8 +267,8 @@ export default function WizardPage() {
   const handleSaveToProfile = async () => {
     if (!result) return;
     if (!user) {
-      toast.error("Влезте в профила си", { description: "Запазването изисква вход." });
-      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname)}`);
+      toast.error("Влезте в профила си", { description: "Прогресът е запазен." });
+      goAuth();
       return;
     }
     if (savedDocId) {
@@ -444,8 +478,13 @@ export default function WizardPage() {
                   <Button
                     variant="ghost"
                     onClick={() => {
+                      if (storageKey) sessionStorage.removeItem(storageKey);
                       setResult(null);
                       setStepIdx(0);
+                      setAnswers({});
+                      setSavedDocId(undefined);
+                      setAppliedNotes(undefined);
+                      setSignature({ name_a: "", name_b: "", city: "", date: "" });
                     }}
                     className="mt-3 w-full text-xs text-muted-foreground hover:text-gold"
                   >
@@ -467,7 +506,18 @@ export default function WizardPage() {
                 <span className="text-xs text-muted-foreground">Актуализация в реално време</span>
               )}
             </div>
-            <LiveDraft sector={sector} answers={answers} generated={result?.contract} signature={result ? signature : undefined} />
+            <LiveDraft
+              sector={sector}
+              answers={answers}
+              generated={result?.contract}
+              signature={result ? signature : undefined}
+              isPro={isPro}
+              onContractChange={(next) => {
+                if (!result) return;
+                setResult({ ...result, contract: { ...result.contract, ...next } });
+                setSavedDocId(undefined); // invalidate saved version
+              }}
+            />
           </section>
         </div>
       </main>
