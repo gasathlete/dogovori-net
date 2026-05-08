@@ -435,7 +435,7 @@ export function LiveDraft({
           ) : (
             <p className="whitespace-pre-line text-sm leading-relaxed">{generated.preamble}</p>
           )}
-          {generated.clauses.map((c, i) => (
+          {(generated.clauses ?? []).map((c, i) => (
             <section key={`${c.number}-${i}`} className="mt-6">
               {editing && isPro ? (
                 <div className="space-y-2">

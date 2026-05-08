@@ -280,13 +280,34 @@ export default function DocumentPage() {
               <FileText className="h-3.5 w-3.5" />
               Договор
             </div>
-            <LiveDraft
-              sector={stubSector}
-              answers={{}}
-              generated={contract}
-              isPro={isPro}
-              onContractChange={(next) => { setContract(next as GeneratedContract); setDirty(true); }}
-            />
+            {doc.kind === "contract" && Array.isArray((contract as any)?.clauses) ? (
+              <LiveDraft
+                sector={stubSector}
+                answers={{}}
+                generated={contract}
+                isPro={isPro}
+                onContractChange={(next) => { setContract(next as GeneratedContract); setDirty(true); }}
+              />
+            ) : (
+              <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
+                <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
+                  {(contract as any)?.title}
+                </h1>
+                <div className="my-4 gold-divider" />
+                {(contract as any)?.intro && (
+                  <p className="whitespace-pre-line text-sm leading-relaxed">{(contract as any).intro}</p>
+                )}
+                {((contract as any)?.sections ?? []).map((s: any, i: number) => (
+                  <section key={i} className="mt-5">
+                    {s.heading && <h2 className="font-serif text-base font-bold">{s.heading}</h2>}
+                    <p className="mt-2 whitespace-pre-line text-sm leading-relaxed">{s.body}</p>
+                  </section>
+                ))}
+                {(contract as any)?.closing && (
+                  <p className="mt-6 whitespace-pre-line text-sm italic">{(contract as any).closing}</p>
+                )}
+              </article>
+            )}
           </section>
         </div>
       </main>
