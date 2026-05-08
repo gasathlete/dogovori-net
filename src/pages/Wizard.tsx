@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Loader2, Sparkles, FileDown, FileText } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { getSector, type Question } from "@/data/sectors";
+import { getSector, getSubWizard, buildQuestions, type Question } from "@/data/sectors";
 import { QuestionField } from "@/components/wizard/QuestionField";
 import { LiveDraft } from "@/components/wizard/LiveDraft";
 import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
@@ -28,8 +28,20 @@ interface AIResult {
 
 export default function WizardPage() {
   const { sectorId } = useParams();
+  const [searchParams] = useSearchParams();
+  const docName = searchParams.get("doc") || undefined;
   const navigate = useNavigate();
-  const sector = sectorId ? getSector(sectorId) : undefined;
+  const baseSector = sectorId ? getSector(sectorId) : undefined;
+  const subWizard = getSubWizard(baseSector, docName);
+  const sector = useMemo(() => {
+    if (!baseSector) return undefined;
+    return {
+      ...baseSector,
+      contractName: subWizard?.contractName || baseSector.contractName,
+      parties: subWizard?.parties || baseSector.parties,
+      questions: buildQuestions(baseSector, subWizard),
+    };
+  }, [baseSector, subWizard]);
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [stepIdx, setStepIdx] = useState(0);

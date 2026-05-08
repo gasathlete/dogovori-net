@@ -1,107 +1,101 @@
-## Цел
+## Партида 1 — обхват
 
-Въвеждаме потребителски профили (Lovable Cloud auth) и обвързваме сваляне на договори/бланки с вход. Профилът е лек CRM по модела на Invoice.pro — контрагенти, папки по клиенти, „Любими". Всеки нов потребител получава **1 безплатен договор** и **1 безплатна бланка**. Добавяме защита срещу копиране/сваляне без вход и Stripe upgrade flow за платен план.
+Разширяване на каталога и sub-wizards за **18 категории** (14 съществуващи + 4 нови приоритетни). Резултат: ~200 документа, всеки със свой sub-wizard.
 
----
+## 1. Каталог (`src/data/catalog.ts`)
 
-## Решения по уточняващите въпроси
+### Доразвиване на 14-те съществуващи категории
 
-1. ✅ Google OAuth + Email/парола от старта.
-2. ✅ Stripe (Lovable built-in payments) за upgrade към Pro план.
-3. ✅ Контрагенти — само български формат (физ. лица: ЕГН/имена/адрес; юр. лица: ЕИК/ДДС №/седалище/МОЛ).
-4. По подразбиране: **повторно сваляне на вече запазен документ е безплатно** (не намалява лимита).
+Всеки нов документ: `name`, `purpose`, `keyClause`, `badge: "NEW"`. Целеви брой документи:
 
----
+- **Дигитални/ИТ**: 8 → 25 (SaaS абонамент, DPA по GDPR, AI/ML услуги, Pen-testing, ESCROW на код, White-label, Affiliate, API партньор, Cloud backup, Domain transfer, и др.)
+- **Интелектуална собственост**: 10 → 22 (Mutual/One-way NDA, прехвърляне на марка, лицензия патент/полезен модел, дизайн, ghostwriting, прехвърляне на домейн)
+- **Наеми**: 10 → 22 (офис, търговски обект, склад, индустриален имот, краткосрочен Airbnb, аренда, паркомясто, пренаемане, анекс)
+- **Покупко-продажба**: 10 → 25 (на изплащане, замяна, дарение, заем за послужване, цесия, поръчителство, залог, ипотека-предговор, запис на заповед)
+- **Услуги/граждански**: 10 → 22 (поръчка, консултантски, превод, фотозаснемане, event, охрана, куриер, превоз, спедиция)
+- **Трудови**: 12 → 25 (срочен, изпитване, дистанционна, надомна, чл.110/111 КТ, стажантски, чл.325 КТ, командировка)
+- **Корпоративно**: 8 → 18 (учредителен акт ЕООД, ОС протокол, ДУК, чл.129 ТЗ, shareholders, ESOP, SAFE, term sheet)
+- **Представителство/Дистрибуция**: 6 → 15
+- **Строителство (СМР)**: 8 → 20 (главен/подизпълнител, проектиране, авторски/строителен надзор, акт обр.19, протокол обр.2)
+- **Туризъм/Събития**: 6 → 15
+- **Упълномощаване**: 6 → 15 (специално за МПС/имот/банка/НАП/КАТ/съд)
+- **Декларации/Семейно**: 12 → 25 (брачен договор, развод, родителски права, бащинство, пътуване дете, чл.264 ДОПК, GDPR)
+- **МПС**: 6 → 12
+- **Счетоводни/финансови**: 8 → 18
 
-## 1. Автентикация
+### 4 нови категории (приоритетни)
 
-- Lovable Cloud: **Email + парола** и **Google** (`lovable.auth.signInWithOAuth("google")`).
-- Страници: `/auth` (Login + Sign up tabs), `/reset-password`.
-- `useAuth()` hook + `<ProtectedRoute>` wrapper.
-- Hydration: `onAuthStateChange` (синхронно) + `getSession()`.
-- Header: „Вход / Регистрация" → аватар-меню (Профил, Документи, Изход).
-- HIBP password protection включена.
+1. **Здравеопазване и медицина** (12 документа) — `HeartPulse`
+2. **Образование** (12 документа) — `GraduationCap`
+3. **E-commerce и платформи** (12 документа) — `ShoppingCart`
+4. **Енергетика и ВЕИ** (10 документа) — `Zap`
 
-## 2. База данни (Lovable Cloud)
+**Очаквано общо след Партида 1: ≈ 225 документа.**
 
-Всички таблици с RLS `user_id = auth.uid()`. Trigger `handle_new_user` създава profile + папка „Любими" + ред в quota.
+## 2. Sub-wizard система
 
-- **profiles** — `display_name`, `company`, `vat_number`, `avatar_url`.
-- **contacts** (контрагенти) — `name`, `type` ('individual'|'legal'), `egn`, `eik`, `vat_number`, `address`, `mol`, `email`, `phone`, `notes`.
-- **folders** — `name`, `color`, `is_favorites`. „Любими" е защитена от изтриване.
-- **saved_documents** — `folder_id`, `contact_id`, `kind` ('contract'|'template'), `title`, `payload jsonb`, `source_id`.
-- **download_quota** — `user_id PK`, `contracts_used int`, `templates_used int`, `plan` ('free'|'pro'), `pro_until timestamptz`.
-- **subscriptions** — `stripe_customer_id`, `stripe_subscription_id`, `status`, `current_period_end`.
+### Промяна в `src/data/sectors.ts`
 
-## 3. Лимити и сваляне
+Добавяме нов интерфейс:
 
-- Free: 1 договор + 1 бланка (общо за акаунта). Pro: неограничено.
-- **Първо сваляне** на нов документ → проверка лимит → инкремент.
-- **Повторно сваляне** от „Документи" → безплатно (засича се по `saved_document_id`).
-- Edge function `download-document`:
-  - Валидира JWT (`getClaims`).
-  - Чете `download_quota` + проверява `plan='pro' OR pro_until > now() OR used < 1`.
-  - Връща `{ token, payload }` (или 402 при изчерпан лимит).
-  - Записва ред в `saved_documents`, инкрементира брояча атомарно.
-- Клиентът държи jsPDF/docx генерацията (по-лек код), но я задейства само след валиден token.
+```ts
+export interface SubWizard {
+  documentName: string;        // точно съвпадение с CatalogDocument.name
+  contractName?: string;       // override
+  parties?: { a: string; b: string };
+  questions: Question[];       // специфични за документа
+}
 
-## 4. Stripe upgrade flow
+export interface Sector {
+  ...existing...
+  subWizards?: SubWizard[];
+}
+```
 
-- `enable_stripe_payments` (Lovable built-in).
-- Tax handling: **option 2** (calculation only) — подходящо за български legal-tech, без MOR.
-- Един продукт: **Pro план** — месечен абонамент (предлагам 19 лв/мес, финална цена от теб).
-- Edge functions: `create-checkout`, `customer-portal`, `stripe-webhook` (slot за upgrade на `download_quota.plan` при `checkout.session.completed` и downgrade при `customer.subscription.deleted`).
-- UI: екран „Изчерпан лимит" → бутон „Премини на Pro" → Stripe Checkout (нов таб) → след връщане polling за статус.
+### 4 нови основни wizards
 
-## 5. Защита на текста
+`employment`, `family`, `power-of-attorney`, `vehicles`, `finance`, `ip`, `services`, `corporate`, `healthcare`, `education`, `ecommerce`, `energy` — общо 12 нови основни wizards (запазваме 6-те съществуващи). Всеки с 6-9 категорийни въпроса + `commonTail`.
 
-За **неавтентикирани** потребители в `LiveDraft` (wizard preview) и `CompanionChip` modal:
-- CSS: `user-select: none`, `-webkit-user-select: none`.
-- JS handlers: `onCopy`/`onCut`/`onContextMenu` → `preventDefault()` + toast „Влезте, за да копирате текста".
-- Полупрозрачен воден знак „dogovori.net · preview" зад съдържанието.
-- За автентикирани — нормална селекция и копиране.
-- Disclaimer: пълна защита срещу copy е невъзможна (DevTools), но мерките спират масовото копиране.
+### Sub-wizards за всеки документ от Партида 1
 
-## 6. UI на профила (`/account`)
+Всеки от ≈225 документа получава SubWizard с 3-6 специфични въпроса. Примери:
 
-Layout със shadcn `Sidebar`:
+- *Срочен трудов договор* → срок (м), основание по чл.68 КТ
+- *Чл. 110 КТ* → основен договор №, доп. часове
+- *Аренда на земеделска земя* → площ (дка), култури, ренти в натура, минимум 5 г.
+- *Пълномощно за МПС* → марка/рег.№/рама, действия (КАТ/продажба), нотариална заверка
+- *Цесия* → вземане, длъжник, уведомление по чл.99 ЗЗД
+- *Запис на заповед* → сума, падеж, "без протест"
+- *PPA* → kWh цена, период, базов товар vs peak
+- *Информирано съгласие — естетична хирургия* → процедура, рискове, фотодокументация
 
-- **Табло** — карти: брояч на лимити (1/1 договори, 1/1 бланки), badge „Free / Pro", CTA „Премини на Pro", последни 5 свалени.
-- **Контрагенти** — таблица CRUD, форма с табове „Физическо / Юридическо лице", валидация на ЕГН/ЕИК.
-- **Папки** — sidebar списък. „Любими" пинната най-горе. Drag-and-drop за местене на документи.
-- **Документи** — grid по папка, филтър по контрагент/тип, действия: Преглед / Свали отново (безплатно) / Премести / Изтрий.
-- **Абонамент** — текущ план, дата на подновяване, бутон „Управление в Stripe Portal".
-- **Настройки** — профил, парола, изход.
+### Ъпгрейд на `src/pages/Wizard.tsx`
 
-## 7. Интеграция с wizard и каталог
+- Чете `?doc=<name>` от URL.
+- Намира `subWizards.find(sw => sw.documentName === doc)`.
+- Ако намери: контракт име/страни се override-ват; въпросите се сливат:
+  `parties block → category questions → sub-wizard questions → commonTail`.
+- Без `?doc` параметър работи както досега (категориен wizard).
 
-- `Wizard.tsx`:
-  - Преди „Анализирай и създай" → ако няма user → redirect `/auth?redirect=/wizard/...`.
-  - „Избери контрагент" dropdown в първите въпроси, попълва автоматично страните.
-  - „Свали PDF/DOCX" викат `download-document` edge function.
-  - След генериране → автоматично записване в „Любими" (toast „Запазен в Документи").
-- `CompanionChip` modal: същата auth + лимит логика за бланки.
-- `Catalog.tsx`: бутон „Запази" на всеки ред (само за logged-in).
+### Ъпгрейд на `src/pages/Catalog.tsx`
 
-## 8. Стъпки на изпълнение
+- Линковете към wizard вече подават `?doc=<encoded name>`.
 
-1. **Migration**: всички таблици + RLS + trigger `handle_new_user`.
-2. **Auth**: `configure_social_auth(["google"])`, HIBP, `/auth`, `/reset-password`, `useAuth`, `ProtectedRoute`, Header user menu.
-3. **Edge function** `download-document` (JWT + quota + token).
-4. **Refactor exporters** → приемат token, гейтват се през edge function.
-5. **Защита selection/copy** за гости в `LiveDraft` + `CompanionChip`.
-6. **/account shell** със Sidebar + табове.
-7. **CRUD**: contacts, folders, saved_documents.
-8. **Wizard integration**: contact picker + auto-save след генериране.
-9. **Stripe**: `enable_stripe_payments`, Pro продукт, checkout/portal/webhook функции, екран „Изчерпан лимит".
-10. **QA**: лимит 1+1, безплатно re-download, RLS изолация, mobile, Stripe test mode.
+### `LiveDraft.tsx`
 
----
+- Ползва `contractName` от sub-wizard, ако има.
+- Без други структурни промени.
 
-## Технически бележки
+## 3. Технически детайли
 
-- Всички български текстове остават на български.
-- Запазваме съществуващия golden/navy design system — никакви нови цветове в компоненти, само semantic tokens.
-- Edge functions използват `verify_jwt = false` + ръчен `getClaims` (Lovable стандарт).
-- Stripe webhook signature verification задължителна.
-- ЕГН/ЕИК валидация: формат + checksum (стандартни български алгоритми).
+- Без промени по: схема на БД, RLS, payments, auth, дизайн система, hero `SectorGrid`.
+- Промени в файлове:
+  - `src/data/catalog.ts` (разширяване)
+  - `src/data/sectors.ts` (нови wizards + sub-wizards) — ще порасне до ≈ 4000 реда статични данни
+  - `src/pages/Wizard.tsx` (sub-wizard merge)
+  - `src/pages/Catalog.tsx` (`?doc=` параметър)
+  - `src/components/wizard/LiveDraft.tsx` (минимална корекция)
+
+## 4. Извън Партида 1 (за Партида 2)
+
+4-те останали нови категории: Земеделие, Спорт/творчески, Логистика/международна търговия, Медии/реклама.
