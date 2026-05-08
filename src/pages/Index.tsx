@@ -21,7 +21,7 @@ const Index = () => {
   }, [location]);
 
   const startInterview = () => {
-    document.getElementById("sectors")?.scrollIntoView({ behavior: "smooth" });
+    navigate("/catalog");
   };
   return (
     <div className="min-h-screen">
