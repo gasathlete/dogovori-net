@@ -102,31 +102,65 @@ async function handleSubscriptionDeleted(subscription: any, env: StripeEnv) {
 }
 
 async function handleCheckoutCompleted(session: any, env: StripeEnv) {
-  if (session.mode !== "payment") return;
   const userId = session.metadata?.userId;
-  if (!userId) return;
-  try {
-    const stripe = createStripeClient(env);
-    const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10, expand: ["data.price"] });
-    let bonus = 0;
-    for (const li of items.data) {
-      const price: any = (li as any).price;
-      const lookup = price?.lookup_key || price?.metadata?.lovable_external_id;
-      if (lookup === "single_contract") bonus += li.quantity ?? 1;
+
+  // 1) Bonus contracts (one-off purchases)
+  if (session.mode === "payment" && userId) {
+    try {
+      const stripe = createStripeClient(env);
+      const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10, expand: ["data.price"] });
+      let bonus = 0;
+      for (const li of items.data) {
+        const price: any = (li as any).price;
+        const lookup = price?.lookup_key || price?.metadata?.lovable_external_id;
+        if (lookup === "single_contract") bonus += li.quantity ?? 1;
+      }
+      if (bonus > 0) {
+        const { data: q } = await getSupabase()
+          .from("download_quota")
+          .select("bonus_contracts")
+          .eq("user_id", userId)
+          .maybeSingle();
+        const current = (q as any)?.bonus_contracts ?? 0;
+        await getSupabase()
+          .from("download_quota")
+          .update({ bonus_contracts: current + bonus })
+          .eq("user_id", userId);
+      }
+    } catch (e) {
+      console.error("checkout.session.completed bonus handling failed:", e);
     }
-    if (bonus <= 0) return;
-    const { data: q } = await getSupabase()
-      .from("download_quota")
-      .select("bonus_contracts")
-      .eq("user_id", userId)
-      .maybeSingle();
-    const current = (q as any)?.bonus_contracts ?? 0;
-    await getSupabase()
-      .from("download_quota")
-      .update({ bonus_contracts: current + bonus })
-      .eq("user_id", userId);
+  }
+
+  // 2) Receipt email — for any successful checkout (subscription or one-off)
+  try {
+    const email = session.customer_email || session.customer_details?.email;
+    if (email && session.id) {
+      const amountTotal = session.amount_total;
+      const currency = (session.currency || "eur").toUpperCase();
+      const formatted = typeof amountTotal === "number"
+        ? `${(amountTotal / 100).toFixed(2)} ${currency}`
+        : undefined;
+      const productName = session.mode === "subscription" ? "Pro абонамент" : "Договор / бланка";
+
+      // Try to look up profile name if we know the user
+      let name: string | undefined;
+      if (userId) {
+        const { data: p } = await getSupabase().from("profiles").select("display_name").eq("id", userId).maybeSingle();
+        name = (p as any)?.display_name ?? undefined;
+      }
+
+      await getSupabase().functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "payment-receipt",
+          recipientEmail: email,
+          idempotencyKey: `receipt-${session.id}`,
+          templateData: { name, productName, amount: formatted },
+        },
+      });
+    }
   } catch (e) {
-    console.error("checkout.session.completed handling failed:", e);
+    console.error("receipt email send failed:", e);
   }
 }
 
