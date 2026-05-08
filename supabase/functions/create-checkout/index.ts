@@ -1,12 +1,9 @@
 import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { resolveOrCreateCustomer } from "../_shared/customer.ts";
+import { buildCors } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
 
@@ -31,6 +28,11 @@ Deno.serve(async (req) => {
     const price = prices.data[0];
     const isRecurring = price.type === "recurring";
 
+    // Resolve a stable Stripe customer per Lovable user — keeps Portal/refunds clean.
+    const customerId = userId
+      ? await resolveOrCreateCustomer(stripe, { userId, email: customerEmail })
+      : undefined;
+
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: price.id, quantity: 1 }],
       mode: isRecurring ? "subscription" : "payment",
@@ -38,8 +40,11 @@ Deno.serve(async (req) => {
       return_url: returnUrl,
       automatic_tax: { enabled: true },
       tax_id_collection: { enabled: true },
-      ...(customerEmail && { customer_email: customerEmail }),
-      ...(isRecurring && { customer_update: { address: "auto", name: "auto" } }),
+      ...(customerId
+        ? { customer: customerId, customer_update: { address: "auto", name: "auto" } }
+        : customerEmail
+          ? { customer_email: customerEmail }
+          : {}),
       ...(userId && {
         metadata: { userId },
         ...(isRecurring && { subscription_data: { metadata: { userId } } }),
