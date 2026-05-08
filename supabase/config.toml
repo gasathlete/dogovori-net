@@ -9,6 +9,8 @@ project_id = "wkbxojefiovdczkwhved"
     verify_jwt = false
   [functions.create-share-link]
     verify_jwt = false
+  [functions.expire-pro-notify]
+    verify_jwt = true
   [functions.customer-portal]
     verify_jwt = false
   [functions.download-document]
