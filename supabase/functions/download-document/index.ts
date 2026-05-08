@@ -106,8 +106,10 @@ serve(async (req) => {
       quota.plan === "pro" || (quota.pro_until && new Date(quota.pro_until) > new Date());
     const used = kind === "contract" ? quota.contracts_used : quota.templates_used;
     const limit = 1;
+    const bonus = quota.bonus_contracts ?? 0;
+    const useBonus = !isPro && kind === "contract" && used >= limit && bonus > 0;
 
-    if (!isPro && used >= limit) {
+    if (!isPro && used >= limit && !useBonus) {
       return new Response(
         JSON.stringify({ error: "quota_exceeded", kind, used, limit }),
         { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
