@@ -301,11 +301,12 @@ function ContactDialog({ editing, onClose }: { editing: Contact | null; onClose:
 
 /* ============================ DOCUMENTS ============================ */
 function DocumentsTab({
-  docs, folders, activeFolder, setActiveFolder, reload,
+  docs, folders, contacts, activeFolder, setActiveFolder, reload,
 }: {
-  docs: SavedDoc[]; folders: Folder[];
+  docs: SavedDoc[]; folders: Folder[]; contacts: Contact[];
   activeFolder: string | "all"; setActiveFolder: (v: string | "all") => void; reload: () => void;
 }) {
+  const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name;
   const [busy, setBusy] = useState<string | null>(null);
 
   const redownload = async (d: SavedDoc, format: "pdf" | "docx") => {
