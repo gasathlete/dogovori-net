@@ -36,6 +36,29 @@ export default function CatalogPage() {
     })).filter((c) => c.documents.length > 0);
   }, [query]);
 
+  const suggestions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [] as { name: string; purpose: string; sectorId: string; catTitle: string }[];
+    const out: { name: string; purpose: string; sectorId: string; catTitle: string; score: number }[] = [];
+    for (const cat of CATALOG) {
+      for (const d of cat.documents) {
+        const name = d.name.toLowerCase();
+        const purpose = d.purpose.toLowerCase();
+        let score = 0;
+        if (name.startsWith(q)) score = 3;
+        else if (name.includes(q)) score = 2;
+        else if (purpose.includes(q)) score = 1;
+        if (score > 0) {
+          out.push({ name: d.name, purpose: d.purpose, sectorId: cat.sectorId, catTitle: cat.title, score });
+        }
+      }
+    }
+    return out.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+  }, [query]);
+
+  const visibleSuggestions = showAll ? suggestions : suggestions.slice(0, 5);
+  const remaining = suggestions.length - visibleSuggestions.length;
+
   const totalDocs = CATALOG.reduce((s, c) => s + c.documents.length, 0);
 
   return (
