@@ -388,9 +388,22 @@ function DocumentsTab({
         ))}
       </aside>
       <div>
+        {activeContactName && (
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs text-gold">
+            <Users className="h-3.5 w-3.5" />
+            Договори с: <strong>{activeContactName}</strong>
+            <button
+              onClick={clearContactFilter}
+              className="ml-1 rounded-full p-0.5 hover:bg-gold/20"
+              aria-label="Изчисти филтъра"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
         {docs.length === 0 ? (
           <div className="rounded-xl border border-border/60 bg-gradient-card p-10 text-center text-sm text-muted-foreground">
-            Тази папка е празна.
+            {activeContactName ? "Няма договори за този контрагент." : "Тази папка е празна."}
           </div>
         ) : (
           <div className="grid gap-3">
