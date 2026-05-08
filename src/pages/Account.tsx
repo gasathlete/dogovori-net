@@ -503,6 +503,11 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   const { user } = useAuth();
   const [busy, setBusy] = useState(false);
   const [checkoutPrice, setCheckoutPrice] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const redirectAfter = searchParams.get("redirect") || "";
+  const returnUrl = `${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}${
+    redirectAfter ? `&redirect=${encodeURIComponent(redirectAfter)}` : ""
+  }`;
 
   const portal = async () => {
     setBusy(true);
