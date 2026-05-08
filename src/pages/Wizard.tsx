@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Loader2, Sparkles, FileDown, FileText, Save } from "lucide-react";
 import { Header } from "@/components/Header";
