@@ -49,6 +49,7 @@ export default function WizardPage() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [stepIdx, setStepIdx] = useState(0);
   const [generating, setGenerating] = useState(false);
+  const [genStepIdx, setGenStepIdx] = useState(0);
   const [result, setResult] = useState<AIResult | null>(null);
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
   const [applyingCorrections, setApplyingCorrections] = useState(false);
@@ -80,8 +81,21 @@ export default function WizardPage() {
   const canNext = current ? !current.required || !!answers[current.id]?.trim() : false;
   const isLast = safeIdx === total - 1;
 
+  const GEN_STEPS = [
+    "Проверяваме въведената информация…",
+    "Подбираме приложимите правни клаузи…",
+    "Комплектоваме структурата на договора…",
+    "Съставяме текста и форматираме раздели…",
+    "Извършваме оценка на риска…",
+    "Финализираме документа — почти готово…",
+  ];
+
   const handleGenerate = async () => {
     setGenerating(true);
+    setGenStepIdx(0);
+    const interval = setInterval(() => {
+      setGenStepIdx((i) => (i + 1) % GEN_STEPS.length);
+    }, 5000);
     try {
       const { data, error } = await supabase.functions.invoke("generate-contract", {
         body: {
@@ -103,6 +117,7 @@ export default function WizardPage() {
       else if (msg.includes("402")) toast.error("Изчерпан лимит на системата. Опитайте по-късно.");
       else toast.error("Възникна грешка", { description: msg });
     } finally {
+      clearInterval(interval);
       setGenerating(false);
     }
   };
@@ -335,6 +350,21 @@ export default function WizardPage() {
                     </Button>
                   )}
                 </div>
+                {generating && (
+                  <div className="mt-4 rounded-lg border border-gold/30 bg-gold/5 p-4 animate-fade-in">
+                    <div className="flex items-center gap-3">
+                      <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-gold" />
+                      <div className="flex-1 min-w-0">
+                        <div key={genStepIdx} className="text-sm font-medium text-foreground animate-fade-in">
+                          {GEN_STEPS[genStepIdx]}
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          Процесът отнема около 30 секунди — благодарим за търпението.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
