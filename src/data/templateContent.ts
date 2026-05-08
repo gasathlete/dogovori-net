@@ -6,7 +6,7 @@ export interface TemplateContent {
   usageCases: string[];
   requirements: string[];
   mistakes: string[];
-  faq: { q: string; a: string }[];
+  faq: { q: string; a: string; law?: string }[];
 }
 
 export const TEMPLATE_CONTENT: Record<string, TemplateContent> = {
