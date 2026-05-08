@@ -4,5 +4,8 @@ Disallow: /account
 Disallow: /document/
 Disallow: /checkout/
 Disallow: /reset-password
+Disallow: /share/
+Disallow: /wizard/
+Disallow: /unsubscribe
 
 Sitemap: https://dogovori.net/sitemap.xml
