@@ -127,11 +127,20 @@ export default function WizardPage() {
     }
     setExporting(format);
     try {
+      const sigPayload: SignatureInfo = {
+        name_a: signature.name_a || answers.party_a_name || "",
+        name_b: signature.name_b || answers.party_b_name || "",
+        city: signature.city,
+        date: signature.date,
+        image_a: isPro ? signature.image_a : undefined,
+        image_b: isPro ? signature.image_b : undefined,
+      };
+      const contractWithSig: GeneratedContract = { ...result.contract, signature: sigPayload };
       const res = await downloadDocument({
         kind: "contract",
         format,
         title: result.contract.title,
-        payload: result.contract,
+        payload: contractWithSig,
         source_id: sector.id,
         saved_document_id: savedDocId,
       });
