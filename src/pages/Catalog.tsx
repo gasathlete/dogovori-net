@@ -10,6 +10,8 @@ import { CompanionChip } from "@/components/CompanionChip";
 
 export default function CatalogPage() {
   const [query, setQuery] = useState("");
+  const [showAll, setShowAll] = useState(false);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (window.location.hash) {
