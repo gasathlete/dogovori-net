@@ -1,5 +1,10 @@
+import { useState } from "react";
 import type { Sector } from "@/data/sectors";
 import { ProtectedContent } from "@/components/ProtectedContent";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Pencil, Check, Lock } from "lucide-react";
 
 type Clause = { roman: string; title: string; body: string };
 
