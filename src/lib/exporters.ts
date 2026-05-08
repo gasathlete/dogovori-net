@@ -175,11 +175,38 @@ export async function exportDOCX(c: GeneratedContract) {
   );
   children.push(new Paragraph({ text: "" }));
   children.push(new Paragraph({ text: "" }));
+  const sig = c.signature;
+  if (sig?.city || sig?.date) {
+    children.push(
+      new Paragraph({
+        children: [new TextRun({ text: `гр. ${sig?.city || "_____"}, ${sig?.date || "_____"}`, size: 22 })],
+      })
+    );
+    children.push(new Paragraph({ text: "" }));
+  }
+
+  // Signature images side by side (if any)
+  const sigChildren: any[] = [];
+  if (sig?.image_a) {
+    try {
+      sigChildren.push(new ImageRun({ type: "png", data: dataUrlToUint8(sig.image_a), transformation: { width: 180, height: 70 } } as any));
+    } catch {}
+  }
+  if (sigChildren.length || sig?.image_b) {
+    if (sig?.image_b) {
+      try {
+        sigChildren.push(new TextRun({ text: "        " }));
+        sigChildren.push(new ImageRun({ type: "png", data: dataUrlToUint8(sig.image_b), transformation: { width: 180, height: 70 } } as any));
+      } catch {}
+    }
+    children.push(new Paragraph({ children: sigChildren }));
+  }
+
   children.push(
     new Paragraph({
       children: [
-        new TextRun({ text: "Страна А: __________________________            ", size: 22 }),
-        new TextRun({ text: "Страна Б: __________________________", size: 22 }),
+        new TextRun({ text: `Страна А: ${sig?.name_a || "__________________________"}            `, size: 22 }),
+        new TextRun({ text: `Страна Б: ${sig?.name_b || "__________________________"}`, size: 22 }),
       ],
     })
   );
