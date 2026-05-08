@@ -15,6 +15,10 @@ import Document from "./pages/Document.tsx";
 import CheckoutReturn from "./pages/CheckoutReturn.tsx";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import NotFound from "./pages/NotFound.tsx";
+import Terms from "./pages/legal/Terms.tsx";
+import Privacy from "./pages/legal/Privacy.tsx";
+import Cookies from "./pages/legal/Cookies.tsx";
+import Refund from "./pages/legal/Refund.tsx";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +53,10 @@ const App = () => (
               }
             />
             <Route path="/checkout/return" element={<CheckoutReturn />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/cookies" element={<Cookies />} />
+            <Route path="/refund" element={<Refund />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

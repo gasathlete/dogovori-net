@@ -49,7 +49,7 @@ export default function AccountPage() {
   const reload = async () => {
     if (!user) return;
     const [c, f, d, q, p] = await Promise.all([
-      supabase.from("contacts").select("*").order("created_at", { ascending: false }),
+      supabase.from("contacts").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("folders").select("*").order("is_favorites", { ascending: false }),
       supabase.from("saved_documents").select("*").order("created_at", { ascending: false }),
       supabase.from("download_quota").select("*").eq("user_id", user.id).maybeSingle(),
@@ -200,7 +200,7 @@ function ContactsTab({ contacts, docs, reload, onOpenDocs }: {
 
   const remove = async (id: string) => {
     if (!confirm("Изтриване на контрагента?")) return;
-    const { error } = await supabase.from("contacts").delete().eq("id", id);
+    const { error } = await supabase.from("contacts").update({ deleted_at: new Date().toISOString() }).eq("id", id);
     if (error) toast.error(error.message); else { toast.success("Изтрит"); reload(); }
   };
 

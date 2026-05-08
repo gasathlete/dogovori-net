@@ -54,11 +54,12 @@ export default function WizardPage() {
     [baseSector, docName]
   );
 
-  // Restore persisted state (answers, step, result, signature, etc.)
+  // Restore persisted state (answers, step, result, signature, etc.).
+  // Use localStorage so progress survives tab close; cleared on completion.
   const persisted = useMemo(() => {
     if (!storageKey) return null;
     try {
-      const raw = sessionStorage.getItem(storageKey);
+      const raw = localStorage.getItem(storageKey) ?? sessionStorage.getItem(storageKey);
       return raw ? JSON.parse(raw) : null;
     } catch { return null; }
   }, [storageKey]);
@@ -125,7 +126,14 @@ export default function WizardPage() {
         },
       });
       if (error) throw error;
-      if (!data || data.error) throw new Error(data?.error || "Неуспешно създаване");
+      if (!data || data.error) {
+        if (data?.requires_login) {
+          toast.error(data.error);
+          setTimeout(() => navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`), 1200);
+          return;
+        }
+        throw new Error(data?.error || "Неуспешно създаване");
+      }
       setResult(data as AIResult);
       toast.success("Договорът е готов", { description: "Прегледайте Краен Договор отдясно." });
     } catch (e: any) {
@@ -153,10 +161,11 @@ export default function WizardPage() {
   useEffect(() => {
     if (!storageKey) return;
     try {
-      sessionStorage.setItem(
+      localStorage.setItem(
         storageKey,
         JSON.stringify({ answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId })
       );
+      sessionStorage.removeItem(storageKey);
     } catch {}
   }, [storageKey, answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId]);
 
@@ -173,7 +182,7 @@ export default function WizardPage() {
         if (!data) return;
         setIsPro(data.plan === "pro" || (!!data.pro_until && new Date(data.pro_until) > new Date()));
       });
-    supabase.from("contacts").select("id, name").order("created_at", { ascending: false })
+    supabase.from("contacts").select("id, name").is("deleted_at", null).order("created_at", { ascending: false })
       .then(({ data }) => setContacts((data as any) ?? []));
   }, [user]);
 
