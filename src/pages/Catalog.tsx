@@ -99,7 +99,7 @@ export default function CatalogPage() {
                 className="h-12 border-gold/30 bg-card/60 pl-11 text-foreground backdrop-blur"
               />
               {open && query.trim() && suggestions.length > 0 && (
-                <div className="absolute left-0 right-0 top-full z-40 mt-2 overflow-hidden rounded-lg border border-gold/30 bg-card/95 text-left shadow-elegant backdrop-blur-xl">
+                <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-lg border border-gold/30 bg-card/95 text-left shadow-elegant backdrop-blur-xl">
                   <ul className="max-h-[60vh] overflow-y-auto">
                     {visibleSuggestions.map((s) => (
                       <li key={`${s.sectorId}-${s.name}`}>
@@ -138,7 +138,7 @@ export default function CatalogPage() {
                 </div>
               )}
               {open && query.trim() && suggestions.length === 0 && (
-                <div className="absolute left-0 right-0 top-full z-40 mt-2 rounded-lg border border-border/60 bg-card/95 px-4 py-3 text-left text-sm text-muted-foreground shadow-elegant backdrop-blur-xl">
+                <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border border-border/60 bg-card/95 px-4 py-3 text-left text-sm text-muted-foreground shadow-elegant backdrop-blur-xl">
                   Няма съвпадения за „{query}"
                 </div>
               )}
