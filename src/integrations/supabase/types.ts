@@ -14,7 +14,228 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      contacts: {
+        Row: {
+          address: string | null
+          created_at: string
+          egn: string | null
+          eik: string | null
+          email: string | null
+          id: string
+          mol: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          type: Database["public"]["Enums"]["contact_type"]
+          updated_at: string
+          user_id: string
+          vat_number: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          egn?: string | null
+          eik?: string | null
+          email?: string | null
+          id?: string
+          mol?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          type?: Database["public"]["Enums"]["contact_type"]
+          updated_at?: string
+          user_id: string
+          vat_number?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          egn?: string | null
+          eik?: string | null
+          email?: string | null
+          id?: string
+          mol?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          type?: Database["public"]["Enums"]["contact_type"]
+          updated_at?: string
+          user_id?: string
+          vat_number?: string | null
+        }
+        Relationships: []
+      }
+      download_quota: {
+        Row: {
+          contracts_used: number
+          plan: Database["public"]["Enums"]["user_plan"]
+          pro_until: string | null
+          templates_used: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contracts_used?: number
+          plan?: Database["public"]["Enums"]["user_plan"]
+          pro_until?: string | null
+          templates_used?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contracts_used?: number
+          plan?: Database["public"]["Enums"]["user_plan"]
+          pro_until?: string | null
+          templates_used?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      folders: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          is_favorites: boolean
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_favorites?: boolean
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_favorites?: boolean
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          company: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          vat_number: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          company?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          company?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Relationships: []
+      }
+      saved_documents: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          folder_id: string | null
+          id: string
+          kind: Database["public"]["Enums"]["document_kind"]
+          payload: Json
+          source_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          folder_id?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["document_kind"]
+          payload: Json
+          source_id?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          folder_id?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["document_kind"]
+          payload?: Json
+          source_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_documents_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_documents_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          id: string
+          status: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +244,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      contact_type: "individual" | "legal"
+      document_kind: "contract" | "template"
+      user_plan: "free" | "pro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +373,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      contact_type: ["individual", "legal"],
+      document_kind: ["contract", "template"],
+      user_plan: ["free", "pro"],
+    },
   },
 } as const
