@@ -1,10 +1,30 @@
 // Edge function: AI generation of risk analysis & contract
 // Uses Lovable AI Gateway (Gemini) — no API key needed by user.
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+const ALLOWED_ORIGINS = [
+  "https://dogovori.net",
+  "https://www.dogovori.net",
+  "https://contract-architect-ai.lovable.app",
+  "https://id-preview--6b2da12e-e1d6-4f97-8549-b632fb66ddd1.lovable.app",
+];
+
+function buildCors(req: Request) {
+  const origin = req.headers.get("origin") ?? "";
+  const allow = ALLOWED_ORIGINS.includes(origin) || /\.lovable(project)?\.(app|com)$/.test(origin)
+    ? origin
+    : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allow,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Vary": "Origin",
+  };
+}
+
+async function hashIp(ip: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(ip + "|dogovori-salt"));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+}
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект и експерт по договорно право. 
 Пишеш единствено на професионален български юридически език, в съответствие със ЗЗД, ТЗ, ЗУТ и приложимото законодателство.
@@ -40,17 +60,55 @@ const SYSTEM_PROMPT = `Ти си водещ български правен ар
 - Анализът на риска трябва да отразява РЕАЛНИ слаби места според дадените отговори (напр. липсващо обезпечение при аванс, твърде нисък размер на неустойката, неясен предмет).`;
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsHeaders = buildCors(req);
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    // Identify caller: prefer authenticated user, fall back to IP-based limit.
+    const authHeader = req.headers.get("Authorization") ?? "";
+    let userId: string | null = null;
+    if (authHeader.startsWith("Bearer ")) {
+      const { data: u } = await admin.auth.getUser(authHeader.replace("Bearer ", ""));
+      userId = u?.user?.id ?? null;
+    }
+
+    const fwd = req.headers.get("x-forwarded-for") ?? "";
+    const ip = fwd.split(",")[0].trim() || req.headers.get("cf-connecting-ip") || "anon";
+    const ipHash = await hashIp(ip);
+
+    // Rate limits: anonymous 1/24h per IP, authenticated 10/24h per user.
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count } = await admin
+      .from("ai_usage")
+      .select("id", { count: "exact", head: true })
+      .eq("function_name", "generate-contract")
+      .gte("created_at", since)
+      .filter(userId ? "user_id" : "ip_hash", "eq", userId ?? ipHash);
+
+    const limit = userId ? 10 : 1;
+    if ((count ?? 0) >= limit) {
+      return new Response(
+        JSON.stringify({
+          error: userId
+            ? "Достигнахте дневния лимит от 10 генерации. Опитайте утре или вземете Pro."
+            : "За да генерирате договор, влезте безплатно с email или Google.",
+          code: "rate_limited",
+          requires_login: !userId,
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const { sector, contractName, documentName, parties, answers, questions } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
-    // Build a readable Q&A summary for the model
     const qaLines = (questions as Array<{ id: string; label: string }>)
       .map((q) => `- ${q.label}: ${answers[q.id] ?? "(не е попълнено)"}`)
       .join("\n");
@@ -73,10 +131,7 @@ ${qaLines}
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-pro",
         messages: [
@@ -89,29 +144,28 @@ ${qaLines}
 
     if (!aiResp.ok) {
       if (aiResp.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Достигнат е лимитът. Моля опитайте след малко." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Достигнат е лимитът. Моля опитайте след малко." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       if (aiResp.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Изчерпани са кредитите за AI. Моля заредете акаунта." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI. Моля заредете акаунта." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       const t = await aiResp.text();
       console.error("AI gateway:", aiResp.status, t);
       throw new Error("AI грешка");
     }
 
+    // Record usage AFTER successful AI call so failed attempts don't burn the quota.
+    await admin.from("ai_usage").insert({
+      user_id: userId,
+      ip_hash: userId ? null : ipHash,
+      function_name: "generate-contract",
+    });
+
     const rawText = await aiResp.text();
     if (!rawText) throw new Error("Празен отговор от AI");
 
     let data: any;
-    try {
-      data = JSON.parse(rawText);
-    } catch {
+    try { data = JSON.parse(rawText); } catch {
       console.error("AI raw (not JSON):", rawText.slice(0, 500));
       throw new Error("AI върна невалиден JSON отговор");
     }
@@ -132,7 +186,6 @@ ${qaLines}
       try { return JSON.parse(cleaned); } catch {}
       cleaned = cleaned.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]").replace(/[\x00-\x1F\x7F]/g, "");
       try { return JSON.parse(cleaned); } catch {}
-      // Repair unbalanced
       let braces = 0, brackets = 0;
       for (const c of cleaned) {
         if (c === "{") braces++; else if (c === "}") braces--;
@@ -144,9 +197,8 @@ ${qaLines}
     };
 
     let parsed;
-    try {
-      parsed = extractJson(content);
-    } catch (err) {
+    try { parsed = extractJson(content); }
+    catch (err) {
       console.error("JSON parse failed. Content head:", content.slice(0, 800));
       throw new Error("AI отговорът не може да бъде анализиран като JSON");
     }
@@ -158,7 +210,7 @@ ${qaLines}
     console.error("generate-contract error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
