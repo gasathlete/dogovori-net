@@ -155,6 +155,12 @@ export default function TemplatePage() {
           </div>
         </header>
 
+        {intro && (
+          <div className="prose prose-invert mb-8 max-w-none text-base leading-relaxed text-foreground/90">
+            <p>{intro}</p>
+          </div>
+        )}
+
         <section className="mb-10 rounded-xl border border-gold/20 bg-gradient-card p-6 shadow-soft">
           <div className="mb-2 text-xs uppercase tracking-[0.2em] text-gold">Ключова клауза</div>
           <p className="font-serif text-lg italic text-foreground">⚖ {doc.keyClause}</p>
