@@ -359,7 +359,7 @@ export default function WizardPage() {
                           {GEN_STEPS[genStepIdx]}
                         </div>
                         <div className="mt-1 text-xs text-muted-foreground">
-                          Процесът отнема около 30 секунди — благодарим за търпението.
+                          Процесът отнема около 60 секунди — благодарим за търпението.
                         </div>
                       </div>
                     </div>
