@@ -379,7 +379,7 @@ export default function WizardPage() {
                 <span className="text-xs text-muted-foreground">Актуализация в реално време</span>
               )}
             </div>
-            <LiveDraft sector={sector} answers={answers} generated={result?.contract} />
+            <LiveDraft sector={sector} answers={answers} generated={result?.contract} signature={result ? signature : undefined} />
           </section>
         </div>
       </main>
