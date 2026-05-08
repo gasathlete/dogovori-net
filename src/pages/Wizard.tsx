@@ -478,8 +478,13 @@ export default function WizardPage() {
                   <Button
                     variant="ghost"
                     onClick={() => {
+                      if (storageKey) sessionStorage.removeItem(storageKey);
                       setResult(null);
                       setStepIdx(0);
+                      setAnswers({});
+                      setSavedDocId(undefined);
+                      setAppliedNotes(undefined);
+                      setSignature({ name_a: "", name_b: "", city: "", date: "" });
                     }}
                     className="mt-3 w-full text-xs text-muted-foreground hover:text-gold"
                   >
