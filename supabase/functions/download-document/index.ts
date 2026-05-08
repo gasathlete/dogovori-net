@@ -130,14 +130,13 @@ serve(async (req) => {
       });
     }
 
-    // Increment counter (skip for pro)
-    if (!isPro) {
-      const patch =
-        kind === "contract"
-          ? { contracts_used: quota.contracts_used + 1 }
-          : { templates_used: quota.templates_used + 1 };
-      await admin.from("download_quota").update(patch).eq("user_id", userId);
-    }
+    // Increment counter for ALL users so the dashboard reflects real usage.
+    // (Pro is unlimited — limit was already checked above.)
+    const patch =
+      kind === "contract"
+        ? { contracts_used: quota.contracts_used + 1 }
+        : { templates_used: quota.templates_used + 1 };
+    await admin.from("download_quota").update(patch).eq("user_id", userId);
 
     return new Response(
       JSON.stringify({ ok: true, payload, title, saved_document_id: saved.id, free: false }),
