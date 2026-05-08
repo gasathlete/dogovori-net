@@ -7,6 +7,9 @@ import { Footer } from "@/components/Footer";
 import { Input } from "@/components/ui/input";
 import { CATALOG } from "@/data/catalog";
 import { CompanionChip } from "@/components/CompanionChip";
+import { Seo } from "@/components/Seo";
+import { allTemplates } from "@/lib/templateIndex";
+import { slugify } from "@/lib/slugify";
 
 export default function CatalogPage() {
   const [query, setQuery] = useState("");
