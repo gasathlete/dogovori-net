@@ -41,8 +41,8 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <span className="hidden rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-medium text-gold lg:inline-block">
-            ЗЗД · ТЗ · ЗУТ
+          <span className="hidden rounded-full bg-gold/10 px-3 py-1 text-xs font-medium text-gold lg:inline-block">
+            ​
           </span>
           {user ? (
             <Link
