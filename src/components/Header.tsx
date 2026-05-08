@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User as UserIcon, LogIn } from "lucide-react";
 import { Logo } from "./Logo";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 const NAV = [
   { to: "/catalog", label: "Каталог" },
@@ -12,6 +13,7 @@ const NAV = [
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-navy/80 backdrop-blur-xl">
@@ -42,6 +44,21 @@ export function Header() {
           <span className="hidden rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-medium text-gold lg:inline-block">
             ЗЗД · ТЗ · ЗУТ
           </span>
+          {user ? (
+            <Link
+              to="/account"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-3 text-xs font-medium text-gold transition-colors hover:bg-gold/20"
+            >
+              <UserIcon className="h-4 w-4" /> Профил
+            </Link>
+          ) : (
+            <Link
+              to="/auth"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-3 text-xs font-medium text-gold transition-colors hover:bg-gold/20"
+            >
+              <LogIn className="h-4 w-4" /> Вход
+            </Link>
+          )}
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
