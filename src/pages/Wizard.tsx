@@ -242,7 +242,8 @@ export default function WizardPage() {
       if (error || data?.error) {
         if (data?.error === "pro_required") {
           toast.error("Нужен е Pro план", {
-            action: { label: "Pro", onClick: () => navigate("/account?tab=subscription") },
+            description: "Прогресът е запазен.",
+            action: { label: "Pro", onClick: () => goSubscription() },
           });
           return;
         }
