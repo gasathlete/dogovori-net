@@ -11,7 +11,9 @@ import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
 import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { exportPDF, exportDOCX, type GeneratedContract } from "@/lib/exporters";
+import { type GeneratedContract } from "@/lib/exporters";
+import { downloadDocument } from "@/lib/downloadDocument";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AIResult {
   risk: {
