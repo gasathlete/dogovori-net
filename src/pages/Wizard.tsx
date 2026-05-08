@@ -300,6 +300,14 @@ export default function WizardPage() {
                   />
                 </div>
 
+                <SignatureBlock
+                  isPro={isPro}
+                  defaultPartyA={answers.party_a_name}
+                  defaultPartyB={answers.party_b_name}
+                  value={signature}
+                  onChange={setSignature}
+                />
+
                 <div className="rounded-xl border border-gold/30 bg-gradient-card p-6 shadow-soft">
                   <h3 className="mb-1 font-serif text-lg font-bold">Експорт на договора</h3>
                   <p className="mb-4 text-xs text-muted-foreground">
