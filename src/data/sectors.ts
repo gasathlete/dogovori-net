@@ -1799,10 +1799,133 @@ export const SECTORS: Sector[] = [
 
 export const getSector = (id: string) => SECTORS.find((s) => s.id === id);
 
-/** Намира sub-wizard за конкретен документ в сектор. */
+/** Намира sub-wizard за конкретен документ в сектор.
+ *  Ако няма дефиниран — генерира универсален умен sub-wizard според името на документа. */
 export function getSubWizard(sector: Sector | undefined, documentName: string | undefined | null): SubWizard | undefined {
   if (!sector || !documentName) return undefined;
-  return sector.subWizards?.find((sw) => sw.documentName === documentName);
+  const explicit = sector.subWizards?.find((sw) => sw.documentName === documentName);
+  if (explicit) return explicit;
+  return buildGenericSubWizard(documentName);
+}
+
+/** Анализира името на документа и връща уместни въпроси по ключови думи. */
+function buildGenericSubWizard(documentName: string): SubWizard {
+  const n = documentName.toLowerCase();
+  const qs: Question[] = [];
+
+  // Тип документ → подходящи имена на страни
+  let parties = { a: "Страна А", b: "Страна Б" };
+  if (/наем|лиз/.test(n)) parties = { a: "Наемодател", b: "Наемател" };
+  else if (/продаж|покуп|кп/.test(n)) parties = { a: "Продавач", b: "Купувач" };
+  else if (/дарен/.test(n)) parties = { a: "Дарител", b: "Надарен" };
+  else if (/заем|кредит/.test(n)) parties = { a: "Заемодател", b: "Заемател" };
+  else if (/труд|работ/.test(n)) parties = { a: "Работодател", b: "Служител" };
+  else if (/изработ|услуг|поръчк|консулт|поддръжк|сервиз/.test(n)) parties = { a: "Възложител", b: "Изпълнител" };
+  else if (/превоз|спедиц|логист|куриер/.test(n)) parties = { a: "Възложител", b: "Превозвач" };
+  else if (/посредни|комисион|брокер|агент/.test(n)) parties = { a: "Доверител", b: "Посредник" };
+  else if (/лиценз|франчайз|право/.test(n)) parties = { a: "Лицензодател", b: "Лицензополучател" };
+  else if (/поверит|nda|конфиденциал/.test(n)) parties = { a: "Разкриваща страна", b: "Получаваща страна" };
+  else if (/съдружие|партньор|асоциац/.test(n)) parties = { a: "Съдружник А", b: "Съдружник Б" };
+  else if (/застрахов/.test(n)) parties = { a: "Застраховател", b: "Застрахован" };
+
+  // Предмет
+  qs.push({
+    id: "subject_summary",
+    label: `Предмет на ${documentName.toLowerCase()}`,
+    help: "Опишете накратко какво се урежда с документа.",
+    type: "textarea",
+    placeholder: "Напр. предоставяне на консултантски услуги по...",
+    required: true,
+  });
+
+  // Цена / стойност (ако е приложимо)
+  if (!/поверит|nda|пълномощн|декларац|протокол|молба|оферта|анекс|допълнителн/.test(n)) {
+    qs.push({
+      id: "value_amount",
+      label: "Стойност / възнаграждение (€)",
+      type: "number",
+      placeholder: "Напр. 1500",
+      required: false,
+    });
+    qs.push({
+      id: "payment_terms",
+      label: "Начин и срок на плащане",
+      type: "select",
+      options: [
+        "Авансово 100%",
+        "Авансово 50% + 50% при предаване",
+        "На етапи (milestones)",
+        "До 7 дни след фактура",
+        "До 30 дни след фактура",
+        "Месечно (ретейнър)",
+      ],
+      required: true,
+    });
+  }
+
+  // Срок
+  qs.push({
+    id: "duration",
+    label: "Срок / период на действие",
+    type: "select",
+    options: ["До 1 месец", "3 месеца", "6 месеца", "1 година", "2 години", "Безсрочно", "До приключване на конкретна задача"],
+    required: true,
+  });
+
+  // Място / локация
+  if (/наем|строит|обект|имот|услуг|превоз|доставк/.test(n)) {
+    qs.push({
+      id: "location",
+      label: "Място на изпълнение / адрес на обекта",
+      type: "text",
+      placeholder: "Напр. гр. София, ул. ...",
+      required: false,
+    });
+  }
+
+  // Поверителност
+  if (/услуг|изработ|консулт|труд|nda|поверит|партньор|съдружие|лиценз|франчайз/.test(n)) {
+    qs.push({
+      id: "confidentiality",
+      label: "Клауза за конфиденциалност",
+      type: "radio",
+      options: ["Да — стандартна (3 години след прекратяване)", "Да — разширена (5 години)", "Не е необходима"],
+      required: true,
+    });
+  }
+
+  // Интелектуална собственост
+  if (/изработ|софтуер|дизайн|съдържание|реклам|медиа|консулт|разработ/.test(n)) {
+    qs.push({
+      id: "ip_rights",
+      label: "Авторски / интелектуални права",
+      type: "radio",
+      options: [
+        "Прехвърлят се изцяло на Възложителя",
+        "Лиценз за ползване (неизключителен)",
+        "Изключителен лиценз с териториално ограничение",
+        "Остават у Изпълнителя",
+      ],
+      required: true,
+    });
+  }
+
+  // Специфични особености
+  qs.push({
+    id: "special_clauses",
+    label: "Специфични условия за този договор",
+    help: "Всичко уникално, което трябва да се отрази в текста.",
+    type: "textarea",
+    placeholder: "Напр. забрана за конкуренция, гаранции, бонуси, специфични задължения...",
+    required: false,
+  });
+
+  return {
+    documentName,
+    contractName: documentName,
+    parties,
+    questions: qs,
+  };
 }
 
 /** Връща обединените въпроси за wizard, базирани на sector + (по избор) sub-wizard. */
