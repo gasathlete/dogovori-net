@@ -23,6 +23,9 @@ export function CompanionChip({ name }: Props) {
   const tpl = COMPANION_TEMPLATES[name];
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<"pdf" | "docx" | null>(null);
+  const [savedId, setSavedId] = useState<string | undefined>(undefined);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   if (!tpl) {
     return (
@@ -32,12 +35,37 @@ export function CompanionChip({ name }: Props) {
     );
   }
 
-  const handle = async (kind: "pdf" | "docx") => {
-    setBusy(kind);
+  const handle = async (format: "pdf" | "docx") => {
+    if (!user) {
+      toast.error("Влезте в профила си", { description: "Свалянето на бланки изисква вход." });
+      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+    setBusy(format);
     try {
-      if (kind === "pdf") await exportTemplatePDF(tpl);
-      else await exportTemplateDOCX(tpl);
-      toast.success(kind === "pdf" ? "PDF изтеглен" : "DOCX изтеглен");
+      const res = await downloadDocument({
+        kind: "template",
+        format,
+        title: tpl.title,
+        payload: tpl,
+        source_id: name,
+        saved_document_id: savedId,
+      });
+      if (!res.ok) {
+        if (res.error === "quota_exceeded") {
+          toast.error("Изчерпан безплатен лимит", {
+            description: "Преминете към Pro план за повече бланки.",
+            action: { label: "Pro план", onClick: () => navigate("/account?tab=subscription") },
+          });
+        } else {
+          toast.error("Грешка при изтегляне", { description: res.error });
+        }
+        return;
+      }
+      if (res.saved_document_id) setSavedId(res.saved_document_id);
+      toast.success(format === "pdf" ? "PDF изтеглен" : "DOCX изтеглен", {
+        description: res.free ? "Повторно сваляне (безплатно)" : "Запазен в Документи",
+      });
     } catch (e: any) {
       toast.error("Грешка при изтегляне", { description: String(e?.message ?? e) });
     } finally {
