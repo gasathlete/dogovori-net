@@ -64,11 +64,11 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
   if (p.kind === "contract") {
     const c = data.payload as GeneratedContract;
     if (p.format === "pdf") await exportPDF(c, watermarkOpts);
-    else await exportDOCX(c);
+    else await exportDOCX(c, watermarkOpts);
   } else {
     const t = data.payload as CompanionTemplate;
     if (p.format === "pdf") await exportTemplatePDF(t, watermarkOpts);
-    else await exportTemplateDOCX(t);
+    else await exportTemplateDOCX(t, watermarkOpts);
   }
 
   return { ok: true, saved_document_id: data.saved_document_id, free: data.free };

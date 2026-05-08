@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
+import { ShareForSignDialog } from "@/components/ShareForSignDialog";
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
@@ -435,6 +436,7 @@ function DocumentsTab({
                     <Button size="sm" variant="outline" disabled={busy === d.id + "docx"} onClick={() => redownload(d, "docx")}>
                       {busy === d.id + "docx" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Download className="mr-1 h-3 w-3" />} DOCX
                     </Button>
+                    {d.kind === "contract" && <ShareForSignDialog documentId={d.id} documentTitle={d.title} />}
                     <Select value={d.folder_id ?? "none"} onValueChange={(v) => move(d.id, v === "none" ? null : v)}>
                       <SelectTrigger className="h-9 w-32 text-xs"><SelectValue placeholder="Папка" /></SelectTrigger>
                       <SelectContent>

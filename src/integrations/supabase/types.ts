@@ -272,6 +272,51 @@ export type Database = {
           },
         ]
       }
+      shared_links: {
+        Row: {
+          created_at: string
+          document_id: string
+          expires_at: string
+          id: string
+          owner_id: string
+          revoked_at: string | null
+          signed_at: string | null
+          signed_signature: string | null
+          signer_ip_hash: string | null
+          signer_name: string | null
+          token: string
+          viewed_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          expires_at: string
+          id?: string
+          owner_id: string
+          revoked_at?: string | null
+          signed_at?: string | null
+          signed_signature?: string | null
+          signer_ip_hash?: string | null
+          signer_name?: string | null
+          token: string
+          viewed_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          expires_at?: string
+          id?: string
+          owner_id?: string
+          revoked_at?: string | null
+          signed_at?: string | null
+          signed_signature?: string | null
+          signer_ip_hash?: string | null
+          signer_name?: string | null
+          token?: string
+          viewed_at?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null

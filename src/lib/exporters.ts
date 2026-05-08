@@ -190,8 +190,38 @@ export async function exportPDF(c: GeneratedContract, opts?: WatermarkOpts) {
   doc.save(`${fileBase(c.title)}.pdf`);
 }
 
-export async function exportDOCX(c: GeneratedContract) {
+export async function exportDOCX(c: GeneratedContract, opts?: WatermarkOpts) {
   const children: Paragraph[] = [];
+
+  if (opts?.watermark) {
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({
+            text: "ПРЕГЛЕД – не за подпис",
+            bold: true,
+            color: "B00000",
+            size: 36,
+          }),
+        ],
+      }),
+    );
+    const stamp = new Date().toISOString().slice(0, 19).replace("T", " ");
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({
+            text: `Dogovori.net · преглед${opts.userTag ? ` · ${opts.userTag}` : ""} · ${stamp}`,
+            color: "8C8C8C",
+            size: 14,
+          }),
+        ],
+      }),
+    );
+    children.push(new Paragraph({ text: "" }));
+  }
 
   children.push(
     new Paragraph({
