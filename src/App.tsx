@@ -20,6 +20,7 @@ import Privacy from "./pages/legal/Privacy.tsx";
 import Cookies from "./pages/legal/Cookies.tsx";
 import Refund from "./pages/legal/Refund.tsx";
 import SharedDocument from "./pages/SharedDocument.tsx";
+import Unsubscribe from "./pages/Unsubscribe.tsx";
 import { CookieBanner } from "@/components/CookieBanner";
 import { initSentry } from "@/lib/sentry";
 
@@ -64,6 +65,7 @@ const App = () => (
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/refund" element={<Refund />} />
             <Route path="/share/:token" element={<SharedDocument />} />
+            <Route path="/unsubscribe" element={<Unsubscribe />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

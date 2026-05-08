@@ -43,6 +43,15 @@ export default function AuthPage() {
     });
     setBusy(false);
     if (error) return toast.error("Грешка при регистрация", { description: error.message });
+    // Send welcome email (fire-and-forget)
+    supabase.functions.invoke('send-transactional-email', {
+      body: {
+        templateName: 'welcome',
+        recipientEmail: email,
+        idempotencyKey: `welcome-${email}`,
+        templateData: { name },
+      },
+    }).catch((e) => console.warn('welcome email failed', e));
     toast.success("Регистрацията е успешна!");
     navigate(redirect);
   };
