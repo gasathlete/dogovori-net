@@ -22,7 +22,7 @@ export function SectorGrid({ onPick }: { onPick: (id: string) => void }) {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {SECTORS.map((s, i) => {
+        {visible.map((s, i) => {
           const Icon = (Icons as any)[s.icon] ?? Icons.FileText;
           return (
             <button
@@ -48,6 +48,21 @@ export function SectorGrid({ onPick }: { onPick: (id: string) => void }) {
           );
         })}
       </div>
+
+      {remaining > 0 && (
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={() => setExpanded((e) => !e)}
+            className="inline-flex items-center gap-2 rounded-lg border border-gold/40 bg-gold/5 px-5 py-2.5 text-sm font-medium text-gold transition-all hover:bg-gold/10 hover:shadow-gold"
+          >
+            {expanded ? (
+              <>Покажи по-малко <ChevronUp className="h-4 w-4" /></>
+            ) : (
+              <>Покажи още {remaining} сектора <ChevronDown className="h-4 w-4" /></>
+            )}
+          </button>
+        </div>
+      )}
     </section>
   );
 }
