@@ -403,42 +403,44 @@ export function LiveDraft({
   const clauses = buildInitialClauses(sector, answers);
 
   return (
-    <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
-      <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
-        {sector.contractName}
-      </h1>
-      <div className="my-4 gold-divider" />
+    <ProtectedContent>
+      <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
+        <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
+          {sector.contractName}
+        </h1>
+        <div className="my-4 gold-divider" />
 
-      <p className="text-sm leading-relaxed">
-        Днес, [ДАТА], в гр. [ГРАД], между:
-      </p>
-      <p className="mt-3 text-sm leading-relaxed">
-        <strong>1. {partyA}</strong>
-        {answers.party_a_type ? ` — ${answers.party_a_type}` : ""}, наричан по-долу „
-        <em>{sector.parties.a}</em>“, и
-      </p>
-      <p className="mt-2 text-sm leading-relaxed">
-        <strong>2. {partyB}</strong>
-        {answers.party_b_type ? ` — ${answers.party_b_type}` : ""}, наричан по-долу „
-        <em>{sector.parties.b}</em>“,
-      </p>
-      <p className="mt-3 text-sm leading-relaxed">
-        се сключи настоящият договор за следното:
-      </p>
+        <p className="text-sm leading-relaxed">
+          Днес, [ДАТА], в гр. [ГРАД], между:
+        </p>
+        <p className="mt-3 text-sm leading-relaxed">
+          <strong>1. {partyA}</strong>
+          {answers.party_a_type ? ` — ${answers.party_a_type}` : ""}, наричан по-долу „
+          <em>{sector.parties.a}</em>“, и
+        </p>
+        <p className="mt-2 text-sm leading-relaxed">
+          <strong>2. {partyB}</strong>
+          {answers.party_b_type ? ` — ${answers.party_b_type}` : ""}, наричан по-долу „
+          <em>{sector.parties.b}</em>“,
+        </p>
+        <p className="mt-3 text-sm leading-relaxed">
+          се сключи настоящият договор за следното:
+        </p>
 
-      {clauses.map((c) => (
-        <section key={c.roman} className="mt-6">
-          <h2 className="font-serif text-base font-bold uppercase">
-            {c.roman} {c.title}
-          </h2>
-          <p className="mt-2 whitespace-pre-line text-sm leading-relaxed">{c.body}</p>
-        </section>
-      ))}
+        {clauses.map((c) => (
+          <section key={c.roman} className="mt-6">
+            <h2 className="font-serif text-base font-bold uppercase">
+              {c.roman} {c.title}
+            </h2>
+            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed">{c.body}</p>
+          </section>
+        ))}
 
-      <div className="mt-8 rounded-md border border-dashed border-foreground/20 bg-foreground/[0.03] p-3 text-xs italic text-foreground/60">
-        Това е работен текст, който се актуализира с Вашите отговори. След завършване на интервюто
-        системата ще създаде окончателния договор с пълни и прецизирани клаузи.
-      </div>
-    </article>
+        <div className="mt-8 rounded-md border border-dashed border-foreground/20 bg-foreground/[0.03] p-3 text-xs italic text-foreground/60">
+          Това е работен текст, който се актуализира с Вашите отговори. След завършване на интервюто
+          системата ще създаде окончателния договор с пълни и прецизирани клаузи.
+        </div>
+      </article>
+    </ProtectedContent>
   );
 }
