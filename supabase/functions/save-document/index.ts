@@ -29,14 +29,15 @@ serve(async (req) => {
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token);
-    if (claimsErr || !claims?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    const { data: userData, error: userErr } = await admin.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      console.error("auth getUser failed:", userErr);
+      return new Response(JSON.stringify({ error: "Unauthorized", detail: userErr?.message }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claims.claims.sub as string;
+    const userId = userData.user.id;
 
     const body = await req.json();
     const { kind, title, payload, source_id, contact_id } = body as {
