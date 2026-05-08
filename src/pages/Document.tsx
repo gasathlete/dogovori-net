@@ -70,7 +70,7 @@ export default function DocumentPage() {
         navigate("/account?tab=documents");
         return;
       }
-      const d = row as SavedDoc;
+      const d = row as unknown as SavedDoc;
       setDoc(d);
       setTitle(d.title);
       setContactId(d.contact_id ?? "");
