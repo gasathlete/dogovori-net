@@ -172,8 +172,8 @@ export default function WizardPage() {
   const handleExport = async (format: "pdf" | "docx") => {
     if (!result) return;
     if (!user) {
-      toast.error("Влезте в профила си", { description: "Свалянето на договор изисква вход." });
-      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname)}`);
+      toast.error("Влезте в профила си", { description: "Прогресът е запазен — ще се възстанови след вход." });
+      goAuth();
       return;
     }
     setExporting(format);
