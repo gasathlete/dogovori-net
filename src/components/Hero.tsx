@@ -58,7 +58,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
 
           <div className="mt-8 sm:mt-10 md:mt-12 grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-3">
             {[
-              { icon: ShieldCheck, label: "Правно съответствие", value: "ЗЗД · ТЗ · ЗУТ" },
+              { icon: ShieldCheck, label: "Правно съответствие", value: "​" },
               { icon: Sparkles, label: "Оценка на риска", value: "Преди създаване" },
               { icon: FileText, label: "Експорт", value: "PDF + DOCX" },
             ].map((item) => (
