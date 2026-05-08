@@ -1,12 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { buildCors, clientIp, hashIp } from "../_shared/cors.ts";
 
 serve(async (req) => {
+  const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -18,11 +15,6 @@ serve(async (req) => {
       });
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -31,13 +23,13 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userErr } = await admin.auth.getUser(token);
     if (userErr || !userData?.user) {
-      console.error("auth getUser failed:", userErr);
       return new Response(JSON.stringify({ error: "Unauthorized", detail: userErr?.message }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     const userId = userData.user.id;
+    const ipHash = await hashIp(clientIp(req));
 
     const body = await req.json();
     const { kind, title, payload, source_id, contact_id, saved_document_id } = body as {
@@ -56,8 +48,28 @@ serve(async (req) => {
       });
     }
 
-    // Re-download of an existing saved document is free (no quota check),
-    // but we still increment the dashboard counter so usage is reflected.
+    // Pro status drives watermark on/off
+    const { data: planRow } = await admin
+      .from("download_quota")
+      .select("plan, pro_until, contracts_used, templates_used, bonus_contracts")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const isPro =
+      !!planRow && (planRow.plan === "pro" || (!!planRow.pro_until && new Date(planRow.pro_until) > new Date()));
+    const watermark = !isPro;
+    const userTag = userId.slice(0, 8);
+
+    const auditInsert = (action: string, target_id?: string, metadata?: Record<string, unknown>) =>
+      admin.from("audit_log").insert({
+        user_id: userId,
+        action,
+        target_type: "document",
+        target_id: target_id ?? null,
+        metadata: metadata ?? null,
+        ip_hash: ipHash,
+      });
+
+    // Re-download of an existing saved document is free (no quota check).
     if (saved_document_id) {
       const { data: existing } = await admin
         .from("saved_documents")
@@ -71,42 +83,37 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const { data: q } = await admin
-        .from("download_quota")
-        .select("contracts_used, templates_used")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (q) {
+      if (planRow) {
         const patch =
           existing.kind === "contract"
-            ? { contracts_used: q.contracts_used + 1 }
-            : { templates_used: q.templates_used + 1 };
+            ? { contracts_used: planRow.contracts_used + 1 }
+            : { templates_used: planRow.templates_used + 1 };
         await admin.from("download_quota").update(patch).eq("user_id", userId);
       }
+      await auditInsert("redownload", existing.id, { kind: existing.kind });
       return new Response(
-        JSON.stringify({ ok: true, payload: existing.payload, title: existing.title, free: true }),
+        JSON.stringify({
+          ok: true,
+          payload: existing.payload,
+          title: existing.title,
+          free: true,
+          watermark,
+          user_tag: userTag,
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Read quota
-    const { data: quota } = await admin
-      .from("download_quota")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (!quota) {
+    if (!planRow) {
       return new Response(JSON.stringify({ error: "Quota row missing" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const isPro =
-      quota.plan === "pro" || (quota.pro_until && new Date(quota.pro_until) > new Date());
-    const used = kind === "contract" ? quota.contracts_used : quota.templates_used;
+    const used = kind === "contract" ? planRow.contracts_used : planRow.templates_used;
     const limit = 1;
-    const bonus = quota.bonus_contracts ?? 0;
+    const bonus = planRow.bonus_contracts ?? 0;
     const useBonus = !isPro && kind === "contract" && used >= limit && bonus > 0;
 
     if (!isPro && used >= limit && !useBonus) {
@@ -116,7 +123,6 @@ serve(async (req) => {
       );
     }
 
-    // Save document (lands in "Всички"; user can move it from Account → Документи)
     const { data: saved, error: saveErr } = await admin
       .from("saved_documents")
       .insert({
@@ -137,18 +143,25 @@ serve(async (req) => {
       });
     }
 
-    // Increment counter for ALL users so the dashboard reflects real usage.
-    // (Pro is unlimited — limit was already checked above.)
-    // If we're consuming a single-purchase bonus, decrement bonus_contracts instead.
     const patch: Record<string, number> = useBonus
       ? { bonus_contracts: Math.max(0, bonus - 1) }
       : kind === "contract"
-        ? { contracts_used: quota.contracts_used + 1 }
-        : { templates_used: quota.templates_used + 1 };
+        ? { contracts_used: planRow.contracts_used + 1 }
+        : { templates_used: planRow.templates_used + 1 };
     await admin.from("download_quota").update(patch).eq("user_id", userId);
 
+    await auditInsert("download", saved.id, { kind, used_bonus: useBonus });
+
     return new Response(
-      JSON.stringify({ ok: true, payload, title, saved_document_id: saved.id, free: false }),
+      JSON.stringify({
+        ok: true,
+        payload,
+        title,
+        saved_document_id: saved.id,
+        free: false,
+        watermark,
+        user_tag: userTag,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {

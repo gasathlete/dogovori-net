@@ -1,30 +1,7 @@
 // Edge function: AI generation of risk analysis & contract
 // Uses Lovable AI Gateway (Gemini) — no API key needed by user.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const ALLOWED_ORIGINS = [
-  "https://dogovori.net",
-  "https://www.dogovori.net",
-  "https://contract-architect-ai.lovable.app",
-  "https://id-preview--6b2da12e-e1d6-4f97-8549-b632fb66ddd1.lovable.app",
-];
-
-function buildCors(req: Request) {
-  const origin = req.headers.get("origin") ?? "";
-  const allow = ALLOWED_ORIGINS.includes(origin) || /\.lovable(project)?\.(app|com)$/.test(origin)
-    ? origin
-    : ALLOWED_ORIGINS[0];
-  return {
-    "Access-Control-Allow-Origin": allow,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-    "Vary": "Origin",
-  };
-}
-
-async function hashIp(ip: string): Promise<string> {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(ip + "|dogovori-salt"));
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
-}
+import { buildCors, hashIp, clientIp } from "../_shared/cors.ts";
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект и експерт по договорно право. 
 Пишеш единствено на професионален български юридически език, в съответствие със ЗЗД, ТЗ, ЗУТ и приложимото законодателство.
@@ -77,9 +54,7 @@ Deno.serve(async (req: Request) => {
       userId = u?.user?.id ?? null;
     }
 
-    const fwd = req.headers.get("x-forwarded-for") ?? "";
-    const ip = fwd.split(",")[0].trim() || req.headers.get("cf-connecting-ip") || "anon";
-    const ipHash = await hashIp(ip);
+    const ipHash = await hashIp(clientIp(req));
 
     // Rate limits: anonymous 1/24h per IP, authenticated 10/24h per user.
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();

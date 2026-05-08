@@ -1,10 +1,6 @@
 // Edge function: Pro-only — apply selected risk recommendations to an existing contract
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { buildCors } from "../_shared/cors.ts";
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш съществуващ договор (в JSON) и списък от ИЗБРАНИ препоръки/слаби места, които трябва да коригираш в текста.
 Запази всички останали клаузи, формат, номерация и стил. Промени САМО това, което е необходимо, за да адресираш избраните препоръки. Където е нужно — добави нови клаузи или алинеи в съответния раздел (или нов раздел "Допълнителни защитни клаузи").
@@ -16,6 +12,8 @@ const SYSTEM_PROMPT = `Ти си водещ български правен ар
   "applied": ["кратко описание какво е променено за всяка избрана препоръка"]
 }
 Никакви markdown ограждания. Всички парични суми са в евро (€).`;
+
+const DAILY_CORRECTION_LIMIT = 50;
 
 function extractJson(s: string): any {
   let cleaned = s.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
@@ -38,6 +36,7 @@ function extractJson(s: string): any {
 }
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -63,6 +62,24 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "pro_required" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Daily rate limit per Pro user (50 corrections / 24h)
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count } = await admin
+      .from("ai_usage")
+      .select("id", { count: "exact", head: true })
+      .eq("function_name", "apply-corrections")
+      .eq("user_id", userId)
+      .gte("created_at", since);
+    if ((count ?? 0) >= DAILY_CORRECTION_LIMIT) {
+      return new Response(
+        JSON.stringify({
+          error: `Достигнахте дневния лимит от ${DAILY_CORRECTION_LIMIT} AI корекции. Опитайте отново след 24 часа.`,
+          code: "rate_limited",
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const { contract, risk, selectedIssues = [], selectedRecommendations = [], answers = {} } = await req.json();
@@ -118,6 +135,12 @@ ${Object.entries(answers).map(([k, v]) => `- ${k}: ${v}`).join("\n")}
       console.error("AI gateway:", aiResp.status, t);
       throw new Error("AI грешка");
     }
+
+    // Log usage AFTER successful AI call
+    await admin.from("ai_usage").insert({
+      user_id: userId,
+      function_name: "apply-corrections",
+    });
 
     const raw = await aiResp.json();
     const content: string = raw.choices?.[0]?.message?.content ?? "";
