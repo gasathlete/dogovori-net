@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Seo } from "@/components/Seo";
 import { getRelatedTemplates, getTemplateBySlug } from "@/lib/templateIndex";
+import { TEMPLATE_CONTENT } from "@/data/templateContent";
 
 export default function TemplatePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -14,20 +15,25 @@ export default function TemplatePage() {
 
   const { doc, category } = entry;
   const related = getRelatedTemplates(entry, 3);
+  const aiContent = TEMPLATE_CONTENT[entry.slug];
 
   const wizardHref = `/wizard/${category.sectorId}?doc=${encodeURIComponent(doc.name)}`;
   const canonical = `/shablon/${entry.slug}`;
   const pageTitle = `${doc.name} — образец на български | Dogovori.net`;
-  const pageDesc = `${doc.purpose} Готов шаблон по българското право (ЗЗД, ТЗ). Попълни и изтегли PDF/DOCX за 2 минути.`;
+  const pageDesc = aiContent?.intro
+    ? aiContent.intro.slice(0, 155)
+    : `${doc.purpose} Готов шаблон по българското право (ЗЗД, ТЗ). Попълни и изтегли PDF/DOCX за 2 минути.`;
 
-  // Standardized SEO sections derived from catalog metadata.
-  const usageCases = [
+  // Use AI-generated rich content when available, fallback to generic content from catalog metadata.
+  const intro = aiContent?.intro;
+
+  const usageCases = aiContent?.usageCases ?? [
     `Когато страните по ${doc.name.toLowerCase()} желаят писмено уреждане на отношенията си.`,
     `При необходимост от доказване пред съд, НАП или други институции.`,
     `Преди започване на работа, доставка или предоставяне на услуга.`,
   ];
 
-  const requirements = [
+  const requirements = aiContent?.requirements ?? [
     "Пълни данни на страните (име/фирма, ЕГН/ЕИК, адрес, представител).",
     "Ясен предмет и обхват на договора.",
     "Цена, срок и начин на плащане.",
@@ -36,14 +42,14 @@ export default function TemplatePage() {
     "Подписи на страните и дата.",
   ];
 
-  const mistakes = [
+  const mistakes = aiContent?.mistakes ?? [
     "Липсващи или неточни идентификационни данни на страните.",
     "Неясен предмет, който води до спорове при изпълнение.",
     "Пропуснат срок или начин на плащане.",
     "Липса на клауза за решаване на спорове и приложимо право.",
   ];
 
-  const faq = [
+  const faq = aiContent?.faq ?? [
     {
       q: `Задължително ли е ${doc.name.toLowerCase()} да бъде в писмена форма?`,
       a: "По принцип ЗЗД допуска и устни договори, но писменият договор е силно препоръчителен за доказване и защита на правата на страните.",
