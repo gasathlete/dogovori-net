@@ -11,6 +11,7 @@ import Catalog from "./pages/Catalog.tsx";
 import Auth from "./pages/Auth.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import Account from "./pages/Account.tsx";
+import Document from "./pages/Document.tsx";
 import CheckoutReturn from "./pages/CheckoutReturn.tsx";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import NotFound from "./pages/NotFound.tsx";
