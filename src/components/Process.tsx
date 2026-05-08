@@ -1,22 +1,28 @@
-import { ClipboardList, Brain, FileCheck2 } from "lucide-react";
+import { ListChecks, ClipboardList, ShieldCheck, FileCheck2 } from "lucide-react";
 
 export function Process() {
   const steps = [
     {
-      icon: ClipboardList,
+      icon: ListChecks,
       n: "01",
-      title: "Стратегическо интервю",
-      text: "Пълен договор с номерирани клаузи, форматиран и издържан, структурно и визуално. Експорт PDF/DOCX.",
+      title: "Изберете договор",
+      text: "Разгледайте каталога и изберете подходящия за Вашия казус договор от над 20 правни сектора.",
     },
     {
-      icon: Brain,
+      icon: ClipboardList,
       n: "02",
-      title: "Анализ на риска",
-      text: "Системата идентифицира слаби места и Ви предупреждава за реални правни рискове.",
+      title: "Стратегическо интервю",
+      text: "Отговорете на индивидуален въпросник, изграден от експертите ни за конкретния тип договор.",
+    },
+    {
+      icon: ShieldCheck,
+      n: "03",
+      title: "Анализ на риска и корекции",
+      text: "Системата идентифицира слаби места и предлага автоматични корекции на проблемните клаузи.",
     },
     {
       icon: FileCheck2,
-      n: "03",
+      n: "04",
       title: "Готов договор",
       text: "Пълен договор с номерирани клаузи, частична недействителност и подсъдност. Експорт PDF/DOCX.",
     },
@@ -29,7 +35,7 @@ export function Process() {
           <div className="mb-2 sm:mb-3 text-xs uppercase tracking-[0.2em] text-gold">02 · Процес</div>
           <h2 className="font-serif text-2xl font-bold leading-tight sm:text-3xl md:text-4xl">Как работи ?</h2>
         </div>
-        <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-border/60 bg-border/60 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-border/60 bg-border/60 md:grid-cols-2 lg:grid-cols-4">
           {steps.map((s) => (
             <div key={s.n} className="bg-card p-6 sm:p-8">
               <div className="mb-3 sm:mb-4 flex items-center gap-4">
