@@ -353,10 +353,14 @@ function DocumentsTab({
         ) : (
           <div className="grid gap-3">
             {docs.map((d) => (
-              <div key={d.id} className="rounded-xl border border-border/60 bg-gradient-card p-4">
+              <Link
+                key={d.id}
+                to={`/document/${d.id}`}
+                className="block rounded-xl border border-border/60 bg-gradient-card p-4 transition-all hover:border-gold/50 hover:shadow-soft"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="font-serif text-base font-bold">{d.title}</div>
+                    <div className="font-serif text-base font-bold transition-colors group-hover:text-gold">{d.title}</div>
                     <div className="mt-1 text-xs text-muted-foreground">
                       {d.kind === "contract" ? "Договор" : "Бланка"} · {new Date(d.created_at).toLocaleDateString("bg-BG")}
                       {contactName(d.contact_id) && (
@@ -366,7 +370,10 @@ function DocumentsTab({
                       )}
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div
+                    className="flex flex-wrap items-center gap-2"
+                    onClick={(e) => e.preventDefault()}
+                  >
                     <Button size="sm" variant="outline" disabled={busy === d.id + "pdf"} onClick={() => redownload(d, "pdf")}>
                       {busy === d.id + "pdf" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Download className="mr-1 h-3 w-3" />} PDF
                     </Button>
@@ -385,7 +392,7 @@ function DocumentsTab({
                     </Button>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
