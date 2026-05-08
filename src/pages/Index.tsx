@@ -5,7 +5,7 @@ import { Hero } from "@/components/Hero";
 import { SectorGrid } from "@/components/SectorGrid";
 import { Process } from "@/components/Process";
 import { TopDocuments } from "@/components/TopDocuments";
-import { Footer } from "@/components/Footer";
+import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 
 const Index = () => {
@@ -49,7 +49,7 @@ const Index = () => {
           </p>
         </div>
       </section>
-      <Footer />
+      <SeoFooter />
     </div>
   );
 };
