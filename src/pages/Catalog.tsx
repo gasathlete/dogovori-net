@@ -177,12 +177,7 @@ export default function CatalogPage() {
                     Придружаващи документи:
                   </span>
                   {cat.companions.map((c) => (
-                    <span
-                      key={c}
-                      className="rounded-full bg-gold/5 px-2.5 py-0.5 text-foreground/80"
-                    >
-                      {c}
-                    </span>
+                    <CompanionChip key={c} name={c} />
                   ))}
                 </div>
               )}
