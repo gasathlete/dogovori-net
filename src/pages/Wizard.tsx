@@ -137,9 +137,28 @@ export default function WizardPage() {
   };
 
   const { user } = useAuth();
-  const [savedDocId, setSavedDocId] = useState<string | undefined>(undefined);
+  const [savedDocId, setSavedDocId] = useState<string | undefined>(persisted?.savedDocId);
   const [isPro, setIsPro] = useState(false);
-  const [signature, setSignature] = useState<SignatureData>({ name_a: "", name_b: "", city: "", date: "" });
+  const [signature, setSignature] = useState<SignatureData>(
+    persisted?.signature ?? { name_a: "", name_b: "", city: "", date: "" }
+  );
+
+  // Persist wizard state on every relevant change so navigation to /auth or /account doesn't lose progress.
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      sessionStorage.setItem(
+        storageKey,
+        JSON.stringify({ answers, stepIdx, result, signature, savedDocId, appliedNotes })
+      );
+    } catch {}
+  }, [storageKey, answers, stepIdx, result, signature, savedDocId, appliedNotes]);
+
+  // Build a redirect URL that preserves the current wizard route + query.
+  const wizardHref = window.location.pathname + window.location.search;
+  const goAuth = () => navigate(`/auth?redirect=${encodeURIComponent(wizardHref)}`);
+  const goSubscription = () =>
+    navigate(`/account?tab=subscription&redirect=${encodeURIComponent(wizardHref)}`);
 
   useEffect(() => {
     if (!user) { setIsPro(false); return; }
