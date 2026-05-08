@@ -46,14 +46,28 @@ export default function WizardPage() {
     };
   }, [baseSector, subWizard]);
 
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [stepIdx, setStepIdx] = useState(0);
+  const storageKey = useMemo(
+    () => (baseSector ? `wizard:${baseSector.id}:${docName ?? "_"}` : null),
+    [baseSector, docName]
+  );
+
+  // Restore persisted state (answers, step, result, signature, etc.)
+  const persisted = useMemo(() => {
+    if (!storageKey) return null;
+    try {
+      const raw = sessionStorage.getItem(storageKey);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }, [storageKey]);
+
+  const [answers, setAnswers] = useState<Record<string, string>>(persisted?.answers ?? {});
+  const [stepIdx, setStepIdx] = useState<number>(persisted?.stepIdx ?? 0);
   const [generating, setGenerating] = useState(false);
   const [genStepIdx, setGenStepIdx] = useState(0);
-  const [result, setResult] = useState<AIResult | null>(null);
+  const [result, setResult] = useState<AIResult | null>(persisted?.result ?? null);
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
   const [applyingCorrections, setApplyingCorrections] = useState(false);
-  const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(undefined);
+  const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(persisted?.appliedNotes);
 
   // Filter questions based on conditional logic
   const visibleQuestions = useMemo<Question[]>(() => {
