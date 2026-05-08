@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import * as Icons from "lucide-react";
 import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
 import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import { SeoFooter } from "@/components/SeoFooter";
 import { Input } from "@/components/ui/input";
 import { CATALOG } from "@/data/catalog";
 import { CompanionChip } from "@/components/CompanionChip";
@@ -77,13 +77,22 @@ export default function CatalogPage() {
     })),
   }), []);
 
+  const breadcrumbsLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Начало", item: "https://dogovori.net/" },
+      { "@type": "ListItem", position: 2, name: "Каталог", item: "https://dogovori.net/catalog" },
+    ],
+  };
+
   return (
     <div className="min-h-screen">
       <Seo
         title={`Каталог: ${totalDocs}+ договора и бланки на български | Dogovori.net`}
         description={`Пълен каталог на ${totalDocs}+ професионални договори и правни бланки на български – трудови, наем, IT, NDA, GDPR. Готови за попълване.`}
         canonical="/catalog"
-        jsonLd={itemListLd}
+        jsonLd={[itemListLd, breadcrumbsLd]}
       />
       <Header />
 
@@ -194,13 +203,19 @@ export default function CatalogPage() {
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-gold/30 bg-gold/5 text-gold">
                   <Icon className="h-6 w-6" strokeWidth={1.6} />
                 </div>
-                <div>
+                <div className="flex-1">
                   <div className="text-xs uppercase tracking-[0.2em] text-gold">
                     {cat.number} · Категория
                   </div>
                   <h2 className="mt-1 font-serif text-2xl font-bold md:text-3xl">{cat.title}</h2>
                   <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{cat.intro}</p>
                 </div>
+                <Link
+                  to={`/kategoria/${cat.id}`}
+                  className="hidden shrink-0 items-center gap-1 self-start rounded-md border border-gold/30 px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-gold transition-colors hover:bg-gold/10 md:inline-flex"
+                >
+                  Виж всички <ArrowRight className="h-3 w-3" />
+                </Link>
               </div>
 
               <CategoryDocs cat={cat} forceExpanded={!!query.trim()} />
@@ -248,7 +263,7 @@ export default function CatalogPage() {
         </div>
       </section>
 
-      <Footer />
+      <SeoFooter />
     </div>
   );
 }

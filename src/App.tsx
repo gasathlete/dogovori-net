@@ -10,6 +10,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index.tsx";
 import Wizard from "./pages/Wizard.tsx";
 import Catalog from "./pages/Catalog.tsx";
+import Category from "./pages/Category.tsx";
 import Auth from "./pages/Auth.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import Account from "./pages/Account.tsx";
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/wizard/:sectorId" element={<Wizard />} />
             <Route path="/catalog" element={<Catalog />} />
+            <Route path="/kategoria/:slug" element={<Category />} />
             <Route path="/shablon/:slug" element={<Template />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />

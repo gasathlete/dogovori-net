@@ -1,87 +1,48 @@
-# Стъпка 3 — Следваща вълна преди официалното пускане
+## План: SEO оптимизация — секции 1, 4, 5
 
-Приоритет 1 (Stripe customer, watermark, rate-limit, audit_log, CORS allowlist) и фиксът за изчезващ договор след плащане вече са в продукция. Следващата вълна добавя реална стойност за платените потребители и подготвя сайта за мащаб.
+### 1. Google Search Console + Bing Webmaster
+**Аз правя:**
+- Добавям `<meta name="google-site-verification" content="...">` slot в `index.html` (placeholder, който да попълниш след регистрация)
+- Същото за `msvalidate.01` (Bing)
+- Уверявам се, че `sitemap.xml` е достъпен на `https://dogovori.net/sitemap.xml`
 
-## Какво ще направим
+**Ти правиш (5 минути):**
+- Регистрираш `dogovori.net` в [Google Search Console](https://search.google.com/search-console)
+- Избираш "URL prefix" метод → копираш HTML meta tag → казваш ми кода → го слагам
+- Submit на sitemap
+- Същото за [Bing Webmaster Tools](https://www.bing.com/webmasters) (по избор)
 
-### 1. DOCX експорт (Pro feature)
-Сега имаме само PDF. Юристи и счетоводители искат редактируем `.docx`, за да го финализират в Word.
-- Нова библиотека `docx` (npm) на клиента — генерира `.docx` от същия `ContractPayload`, който храни PDF-а.
-- Бутон „Изтегли DOCX" в `Account → Договори` и в края на wizard-а — само за Pro / при наличен `bonus_contracts`.
-- Watermark логиката от PDF се пренася и тук (footer „ПРЕГЛЕД – не за подпис" за free).
-- Edge функция `download-document` връща нов flag `format: 'pdf' | 'docx'` и брои и двата формата в quota-та.
+### 4. Локална SEO семантика (BG)
+- **`index.html`**: добавяне на `<meta name="geo.region" content="BG">`, `<meta name="geo.placename" content="Bulgaria">`, `<link rel="alternate" hreflang="bg-BG" href="https://dogovori.net/">`
+- **`Index.tsx`**: добавяне на 2 нови JSON-LD блока:
+  - `Organization` schema (име, лого, URL, contactPoint, sameAs със соц. профили ако има)
+  - `WebSite` schema със `SearchAction` (sitelinks search box в Google) → точката към `/catalog?q={search_term_string}`
+- **`Catalog.tsx`**: добавяне на `BreadcrumbList` JSON-LD (Home → Каталог)
 
-### 2. „Сподели за подпис" — публичен линк с изтичане
-Контрагентът не трябва да създава акаунт, за да види договора.
-- Нова таблица `shared_links(id, document_id, owner_id, token, expires_at, viewed_at, signed_at)`.
-- Edge функция `create-share-link` (Pro only) — генерира 32-байтов token, default 7 дни валидност.
-- Публичен route `/share/:token` — показва договора само за четене + бутон „Подпиши електронно" (рисуване на подпис в canvas, запазва се като base64 в `shared_links.signed_signature`).
-- Email към собственика при отваряне и при подпис (използваме Resend през edge).
-- Audit log запис при всяко отваряне и подпис.
+### 5. Вътрешни линкове
+- **Свързани шаблони на template page** (`Template.tsx`): след FAQ блока — секция "Свързани шаблони" с 4-6 други документа от същата категория, с линкове към техните `/shablon/:slug`
+- **Категорийни hub страници** `/kategoria/:slug`:
+  - Нов route + нова страница `src/pages/Category.tsx`
+  - Slug на категория идва от `cat.title` (вече има slugify)
+  - Показва H1 = името на категорията, кратко описание (50-80 думи AI-генерирано), grid с всички шаблони от категорията (линкове към `/shablon/:slug`)
+  - SEO: title `"{Категория} — шаблони на договори | dogovori.net"`, JSON-LD `CollectionPage` + `BreadcrumbList`
+  - Добавяне към `sitemap.xml` (build-sitemap.ts ще включи и тях — ~10-15 нови URL)
+  - Добавяне към `prerender.ts`
+- **Footer с популярни шаблони**: нов `src/components/SeoFooter.tsx` с 3 колони:
+  - "Топ шаблони" (15 най-търсени, hardcoded list)
+  - "Категории" (всички категории → /kategoria/:slug)
+  - "Информация" (/terms, /privacy, /cookies, /refund)
+  - Включен в layout-а на всяка публична страница (Index, Catalog, Template, Category)
+- **Каталог UI**: при всяка категория — линк "Виж всички →" към `/kategoria/:slug`
 
-### 3. Sentry за грешки + базов GA4
-- Sentry SDK на frontend (`@sentry/react`) и в edge функциите (`@sentry/deno`).
-- DSN се пази като secret `SENTRY_DSN`; ще го поискаме от потребителя.
-- GA4 measurement ID също като secret — лек wrapper в `src/lib/analytics.ts` с `trackEvent('contract_generated', …)`, `'checkout_started'`, `'pro_subscribed'`.
-- Cookie banner вече има секция „Аналитични" → респектираме съгласието.
+### Файлове за промяна/създаване
+**Създаване:** `src/pages/Category.tsx`, `src/components/SeoFooter.tsx`, `src/lib/categorySlugs.ts`, `src/data/categoryDescriptions.ts` (AI-генерирано)
+**Редакция:** `index.html`, `src/App.tsx` (нов route), `src/pages/Index.tsx` (Organization + WebSite JSON-LD + footer), `src/pages/Catalog.tsx` (Breadcrumb JSON-LD + категорийни линкове + footer), `src/pages/Template.tsx` (related templates + footer), `scripts/build-sitemap.ts` (категорийни URL), `scripts/prerender.ts` (същото)
+**Скрипт за еднократно пускане:** `scripts/generate-category-descriptions.ts` (15-20 кратки SEO описания за hub страниците чрез Lovable AI)
 
-### 4. Resend за транзакционни емейли
-- Welcome email след регистрация.
-- Email при успешно плащане (с фактура от Stripe като линк).
-- Email при изтичане на Pro (7 дни преди и в деня на изтичане) — cron edge функция.
-- Изисква `RESEND_API_KEY` (ще го поискаме) + верифициран домейн `dogovori.net`.
+### Какво НЕ е тук
+- Реалната GSC/Bing регистрация (твоя задача — изисква собствен Google акаунт)
+- Backlinks, Google Business Profile (секции 6-7 от предишния план)
+- Performance audit (секция 2)
 
-### 5. Минимален smoke-test пакет
-- Vitest + React Testing Library: 5 критични теста (auth flow, wizard happy path, free→Pro upgrade, download quota, share link).
-- Playwright (опционално в CI): един end-to-end сценарий „регистрация → договор → плащане (test mode) → изтегляне".
-
-## Технически детайли
-
-```text
-Файлове:
-  + src/lib/docxExporter.ts              (генератор)
-  + src/components/ShareForSignDialog.tsx
-  + src/pages/SharedDocument.tsx         (route /share/:token)
-  + src/lib/analytics.ts
-  + src/lib/sentry.ts
-  + supabase/functions/create-share-link/index.ts
-  + supabase/functions/sign-shared-document/index.ts
-  + supabase/functions/send-transactional-email/index.ts
-  + supabase/functions/expire-pro-notify/index.ts   (cron)
-  + tests/*.test.tsx                     (5 smoke теста)
-  ~ supabase/functions/download-document/index.ts   (format: pdf|docx)
-  ~ src/pages/Account.tsx                (DOCX бутон + Share)
-  ~ src/pages/Wizard.tsx                 (DOCX бутон)
-  ~ src/App.tsx                          (route /share/:token, Sentry init)
-
-Миграция:
-  CREATE TABLE shared_links (
-    id uuid pk, document_id uuid, owner_id uuid,
-    token text unique, expires_at timestamptz,
-    viewed_at timestamptz, signed_at timestamptz,
-    signed_signature text, signer_name text, signer_ip_hash text
-  )
-  + RLS: owner вижда своите; публично четене САМО през edge (service role).
-  + INDEX ON (token), (owner_id, created_at DESC).
-
-Secrets за поискване:
-  - RESEND_API_KEY        (за емейли)
-  - SENTRY_DSN            (frontend + edge)
-  - VITE_GA4_MEASUREMENT_ID  (по избор)
-```
-
-## Какво НЕ влиза тук
-
-- Електронен подпис със сертификат (КЕП) — отделна интеграция с Borica/Evrotrust, изисква договор.
-- Multi-tenant (агенции с под-акаунти) — Фаза 3, след първите 100 платени потребителя.
-- AI чат с договора („попитай юриста") — отделен sprint, изисква vector store.
-- Mobile app — PWA първо, native по-късно.
-
-## Ред на изпълнение
-1. DOCX експорт (най-бърза стойност за Pro).
-2. Share-for-sign (най-голям WOW ефект, виралност).
-3. Resend емейли (намалява churn).
-4. Sentry + GA4 (нужни ни данни преди реклама).
-5. Smoke тестове (преди първия публичен release).
-
-Одобри ли плана, започвам с **точка 1 (DOCX експорт)** и продължавам надолу. Ако искаш различен ред или да изключим нещо — кажи.
+Започвам ли?
