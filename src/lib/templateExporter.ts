@@ -105,8 +105,34 @@ export async function exportTemplatePDF(t: CompanionTemplate, opts?: WatermarkOp
   doc.save(`${fileBase(t.title)}.pdf`);
 }
 
-export async function exportTemplateDOCX(t: CompanionTemplate) {
+export async function exportTemplateDOCX(t: CompanionTemplate, opts?: WatermarkOpts) {
   const children: Paragraph[] = [];
+
+  if (opts?.watermark) {
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({ text: "ПРЕГЛЕД – не за подпис", bold: true, color: "B00000", size: 36 }),
+        ],
+      }),
+    );
+    const stamp = new Date().toISOString().slice(0, 19).replace("T", " ");
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({
+            text: `Dogovori.net · преглед${opts.userTag ? ` · ${opts.userTag}` : ""} · ${stamp}`,
+            color: "8C8C8C",
+            size: 14,
+          }),
+        ],
+      }),
+    );
+    children.push(new Paragraph({ text: "" }));
+  }
+
   children.push(
     new Paragraph({
       heading: HeadingLevel.TITLE,
