@@ -21,6 +21,8 @@ import { toast } from "sonner";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { ShareForSignDialog } from "@/components/ShareForSignDialog";
+import { UploadContractDialog } from "@/components/UploadContractDialog";
+import { ShieldAlert, ShieldCheck, AlertTriangle } from "lucide-react";
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
@@ -32,7 +34,14 @@ type SavedDoc = {
   id: string; title: string; kind: "contract" | "template"; folder_id: string | null;
   contact_id: string | null; payload: any; created_at: string;
 };
-type Quota = { contracts_used: number; templates_used: number; plan: "free" | "pro"; pro_until: string | null };
+type Quota = { contracts_used: number; templates_used: number; plan: "free" | "pro"; pro_until: string | null; analyses_used?: number };
+type UploadedContract = {
+  id: string; title: string; source: "pdf" | "docx" | "paste";
+  folder_id: string | null; contact_id: string | null;
+  original_filename: string | null; storage_path: string | null;
+  created_at: string;
+};
+type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_type: string; created_at: string };
 
 export default function AccountPage() {
   const { user, signOut } = useAuth();
@@ -43,24 +52,34 @@ export default function AccountPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [docs, setDocs] = useState<SavedDoc[]>([]);
+  const [uploaded, setUploaded] = useState<UploadedContract[]>([]);
+  const [analysesByContract, setAnalysesByContract] = useState<Record<string, RiskAnalysisLite>>({});
   const [quota, setQuota] = useState<Quota | null>(null);
   const [profile, setProfile] = useState<{ display_name: string | null; company: string | null; vat_number: string | null }>({ display_name: "", company: "", vat_number: "" });
   const [activeFolder, setActiveFolder] = useState<string | "all">("all");
 
   const reload = async () => {
     if (!user) return;
-    const [c, f, d, q, p] = await Promise.all([
+    const [c, f, d, q, p, uc, ra] = await Promise.all([
       supabase.from("contacts").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("folders").select("*").order("is_favorites", { ascending: false }),
       supabase.from("saved_documents").select("*").order("created_at", { ascending: false }),
       supabase.from("download_quota").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("profiles").select("display_name, company, vat_number").eq("id", user.id).maybeSingle(),
+      supabase.from("uploaded_contracts").select("id,title,source,folder_id,contact_id,original_filename,storage_path,created_at").order("created_at", { ascending: false }),
+      supabase.from("risk_analyses").select("uploaded_contract_id,score,contract_type,created_at").order("created_at", { ascending: false }),
     ]);
     setContacts((c.data as any) ?? []);
     setFolders((f.data as any) ?? []);
     setDocs((d.data as any) ?? []);
     setQuota((q.data as any) ?? null);
     if (p.data) setProfile(p.data as any);
+    setUploaded((uc.data as any) ?? []);
+    const map: Record<string, RiskAnalysisLite> = {};
+    for (const r of ((ra.data as any) ?? []) as RiskAnalysisLite[]) {
+      if (!map[r.uploaded_contract_id]) map[r.uploaded_contract_id] = r;
+    }
+    setAnalysesByContract(map);
   };
 
   useEffect(() => { reload(); /* eslint-disable-next-line */ }, [user]);
@@ -135,6 +154,8 @@ export default function AccountPage() {
               activeContactName={activeContactName}
               clearContactFilter={clearContactFilter}
               reload={reload}
+              uploaded={uploaded}
+              analysesByContract={analysesByContract}
             />
           </TabsContent>
           <TabsContent value="folders">
@@ -343,11 +364,14 @@ function ContactDialog({ editing, onClose }: { editing: Contact | null; onClose:
 /* ============================ DOCUMENTS ============================ */
 function DocumentsTab({
   docs, folders, contacts, activeFolder, setActiveFolder, activeContactName, clearContactFilter, reload,
+  uploaded, analysesByContract,
 }: {
   docs: SavedDoc[]; folders: Folder[]; contacts: Contact[];
   activeFolder: string | "all"; setActiveFolder: (v: string | "all") => void;
   activeContactName?: string; clearContactFilter: () => void;
   reload: () => void;
+  uploaded: UploadedContract[];
+  analysesByContract: Record<string, RiskAnalysisLite>;
 }) {
   const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name;
   const [busy, setBusy] = useState<string | null>(null);
@@ -388,71 +412,137 @@ function DocumentsTab({
           </button>
         ))}
       </aside>
-      <div>
-        {activeContactName && (
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs text-gold">
-            <Users className="h-3.5 w-3.5" />
-            Договори с: <strong>{activeContactName}</strong>
-            <button
-              onClick={clearContactFilter}
-              className="ml-1 rounded-full p-0.5 hover:bg-gold/20"
-              aria-label="Изчисти филтъра"
-            >
-              <X className="h-3 w-3" />
-            </button>
+      <div className="space-y-8">
+        {/* ===== Uploaded contracts (own files with AI risk analysis) ===== */}
+        <section>
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h3 className="font-serif text-lg font-bold">Качени договори (AI риск-анализ)</h3>
+              <p className="text-xs text-muted-foreground">Качете свой договор (PDF, DOCX или текст) — Lovable AI ще извърши пълен правен риск-анализ.</p>
+            </div>
+            <UploadContractDialog
+              folders={folders}
+              contacts={contacts}
+              onUploaded={reload}
+            />
           </div>
-        )}
-        {docs.length === 0 ? (
-          <div className="rounded-xl border border-border/60 bg-gradient-card p-10 text-center text-sm text-muted-foreground">
-            {activeContactName ? "Няма договори за този контрагент." : "Тази папка е празна."}
-          </div>
-        ) : (
-          <div className="grid gap-3">
-            {docs.map((d) => (
-              <Link
-                key={d.id}
-                to={`/document/${d.id}`}
-                className="block rounded-xl border border-border/60 bg-gradient-card p-4 transition-all hover:border-gold/50 hover:shadow-soft"
+
+          {uploaded.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gold/30 bg-gradient-card p-8 text-center">
+              <ShieldCheck className="mx-auto h-7 w-7 text-gold" />
+              <p className="mt-2 text-sm text-muted-foreground">
+                Все още нямате качени договори. Натиснете <strong className="text-gold">„Добави договор"</strong> за безплатен AI анализ.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {uploaded.map((u) => {
+                const a = analysesByContract[u.id];
+                const score = a?.score;
+                const sevCls = score == null ? "border-border/40 text-muted-foreground"
+                  : score >= 8 ? "border-emerald-400/40 text-emerald-300 bg-emerald-400/10"
+                  : score >= 5 ? "border-amber-300/40 text-amber-200 bg-amber-300/10"
+                  : "border-red-400/40 text-red-300 bg-red-400/10";
+                const Icon = score == null ? AlertTriangle : score >= 8 ? ShieldCheck : score >= 5 ? AlertTriangle : ShieldAlert;
+                return (
+                  <Link
+                    key={u.id}
+                    to={`/uploaded/${u.id}`}
+                    className="block rounded-xl border border-border/60 bg-gradient-card p-4 transition-all hover:border-gold/50 hover:shadow-soft"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="font-serif text-base font-bold">{u.title}</div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {u.source.toUpperCase()} · качен {new Date(u.created_at).toLocaleDateString("bg-BG")}
+                          {a?.contract_type && <> · {a.contract_type}</>}
+                          {contactName(u.contact_id) && (
+                            <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-gold/30 bg-gold/5 px-2 py-0.5 text-[10px] uppercase tracking-wider text-gold">
+                              <Users className="h-3 w-3" /> {contactName(u.contact_id)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs ${sevCls}`}>
+                        <Icon className="h-3.5 w-3.5" />
+                        {score != null ? <><strong>{score}</strong>/10</> : "Без анализ"}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* ===== Generated documents (existing) ===== */}
+        <section>
+          <h3 className="mb-3 font-serif text-lg font-bold">Генерирани документи</h3>
+          {activeContactName && (
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs text-gold">
+              <Users className="h-3.5 w-3.5" />
+              Договори с: <strong>{activeContactName}</strong>
+              <button
+                onClick={clearContactFilter}
+                className="ml-1 rounded-full p-0.5 hover:bg-gold/20"
+                aria-label="Изчисти филтъра"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-serif text-base font-bold transition-colors group-hover:text-gold">{d.title}</div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {d.kind === "contract" ? "Договор" : "Бланка"} · {new Date(d.created_at).toLocaleDateString("bg-BG")}
-                      {contactName(d.contact_id) && (
-                        <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-gold/30 bg-gold/5 px-2 py-0.5 text-[10px] uppercase tracking-wider text-gold">
-                          <Users className="h-3 w-3" /> {contactName(d.contact_id)}
-                        </span>
-                      )}
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          )}
+          {docs.length === 0 ? (
+            <div className="rounded-xl border border-border/60 bg-gradient-card p-10 text-center text-sm text-muted-foreground">
+              {activeContactName ? "Няма договори за този контрагент." : "Тази папка е празна."}
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {docs.map((d) => (
+                <Link
+                  key={d.id}
+                  to={`/document/${d.id}`}
+                  className="block rounded-xl border border-border/60 bg-gradient-card p-4 transition-all hover:border-gold/50 hover:shadow-soft"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-serif text-base font-bold transition-colors group-hover:text-gold">{d.title}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {d.kind === "contract" ? "Договор" : "Бланка"} · {new Date(d.created_at).toLocaleDateString("bg-BG")}
+                        {contactName(d.contact_id) && (
+                          <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-gold/30 bg-gold/5 px-2 py-0.5 text-[10px] uppercase tracking-wider text-gold">
+                            <Users className="h-3 w-3" /> {contactName(d.contact_id)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div
+                      className="flex flex-wrap items-center gap-2"
+                      onClick={(e) => e.preventDefault()}
+                    >
+                      <Button size="sm" variant="outline" disabled={busy === d.id + "pdf"} onClick={() => redownload(d, "pdf")}>
+                        {busy === d.id + "pdf" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Download className="mr-1 h-3 w-3" />} PDF
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={busy === d.id + "docx"} onClick={() => redownload(d, "docx")}>
+                        {busy === d.id + "docx" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Download className="mr-1 h-3 w-3" />} DOCX
+                      </Button>
+                      {d.kind === "contract" && <ShareForSignDialog documentId={d.id} documentTitle={d.title} />}
+                      <Select value={d.folder_id ?? "none"} onValueChange={(v) => move(d.id, v === "none" ? null : v)}>
+                        <SelectTrigger className="h-9 w-32 text-xs"><SelectValue placeholder="Папка" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">— Без папка —</SelectItem>
+                          {folders.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(d.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                  <div
-                    className="flex flex-wrap items-center gap-2"
-                    onClick={(e) => e.preventDefault()}
-                  >
-                    <Button size="sm" variant="outline" disabled={busy === d.id + "pdf"} onClick={() => redownload(d, "pdf")}>
-                      {busy === d.id + "pdf" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Download className="mr-1 h-3 w-3" />} PDF
-                    </Button>
-                    <Button size="sm" variant="outline" disabled={busy === d.id + "docx"} onClick={() => redownload(d, "docx")}>
-                      {busy === d.id + "docx" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Download className="mr-1 h-3 w-3" />} DOCX
-                    </Button>
-                    {d.kind === "contract" && <ShareForSignDialog documentId={d.id} documentTitle={d.title} />}
-                    <Select value={d.folder_id ?? "none"} onValueChange={(v) => move(d.id, v === "none" ? null : v)}>
-                      <SelectTrigger className="h-9 w-32 text-xs"><SelectValue placeholder="Папка" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">— Без папка —</SelectItem>
-                        {folders.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(d.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );

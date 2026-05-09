@@ -127,6 +127,7 @@ export type Database = {
       }
       download_quota: {
         Row: {
+          analyses_used: number
           bonus_contracts: number
           contracts_used: number
           plan: Database["public"]["Enums"]["user_plan"]
@@ -136,6 +137,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          analyses_used?: number
           bonus_contracts?: number
           contracts_used?: number
           plan?: Database["public"]["Enums"]["user_plan"]
@@ -145,6 +147,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          analyses_used?: number
           bonus_contracts?: number
           contracts_used?: number
           plan?: Database["public"]["Enums"]["user_plan"]
@@ -304,6 +307,56 @@ export type Database = {
           vat_number?: string | null
         }
         Relationships: []
+      }
+      risk_analyses: {
+        Row: {
+          contract_type: string
+          created_at: string
+          id: string
+          issues: Json
+          missing_clauses: Json
+          model: string
+          score: number
+          summary: string
+          text_hash: string
+          uploaded_contract_id: string
+          user_id: string
+        }
+        Insert: {
+          contract_type?: string
+          created_at?: string
+          id?: string
+          issues?: Json
+          missing_clauses?: Json
+          model: string
+          score: number
+          summary?: string
+          text_hash?: string
+          uploaded_contract_id: string
+          user_id: string
+        }
+        Update: {
+          contract_type?: string
+          created_at?: string
+          id?: string
+          issues?: Json
+          missing_clauses?: Json
+          model?: string
+          score?: number
+          summary?: string
+          text_hash?: string
+          uploaded_contract_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risk_analyses_uploaded_contract_id_fkey"
+            columns: ["uploaded_contract_id"]
+            isOneToOne: false
+            referencedRelation: "uploaded_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       saved_documents: {
         Row: {
@@ -475,6 +528,72 @@ export type Database = {
           reason?: string
         }
         Relationships: []
+      }
+      uploaded_contracts: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          extracted_text: string
+          folder_id: string | null
+          id: string
+          mime_type: string | null
+          original_filename: string | null
+          size_bytes: number | null
+          source: string
+          storage_path: string | null
+          text_hash: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          extracted_text?: string
+          folder_id?: string | null
+          id?: string
+          mime_type?: string | null
+          original_filename?: string | null
+          size_bytes?: number | null
+          source: string
+          storage_path?: string | null
+          text_hash?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          extracted_text?: string
+          folder_id?: string | null
+          id?: string
+          mime_type?: string | null
+          original_filename?: string | null
+          size_bytes?: number | null
+          source?: string
+          storage_path?: string | null
+          text_hash?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uploaded_contracts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uploaded_contracts_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
