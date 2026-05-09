@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Download, RefreshCw, ShieldAlert, ShieldCheck, AlertTriangle,
-  Loader2, FileText, Trash2, Sparkles,
+  Loader2, FileText, Trash2, Sparkles, Wand2, Copy,
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -61,6 +62,8 @@ export default function UploadedContractPage() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
+  const [correcting, setCorrecting] = useState(false);
+  const [corrections, setCorrections] = useState<{ corrected_text: string; changes: string[] } | null>(null);
 
   const load = async () => {
     if (!id || !user) return;
@@ -90,6 +93,26 @@ export default function UploadedContractPage() {
     }
     toast.success("Анализът е обновен");
     load();
+  };
+
+  const suggestCorrections = async () => {
+    if (!id) return;
+    setCorrecting(true);
+    const { data, error } = await supabase.functions.invoke("correct-uploaded", {
+      body: { uploadedContractId: id },
+    });
+    setCorrecting(false);
+    if (error || (data as any)?.error) {
+      const msg = (data as any)?.error ?? error?.message ?? "Грешка";
+      if (msg === "pro_required") {
+        toast.error("Тази функция е достъпна само за Pro абонати");
+        navigate("/account?tab=plan");
+      } else {
+        toast.error(msg);
+      }
+      return;
+    }
+    setCorrections(data as any);
   };
 
   const downloadOriginal = async () => {
@@ -170,12 +193,54 @@ export default function UploadedContractPage() {
               {analyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
               {analysis ? "Анализирай отново" : "Стартирай анализ"}
             </Button>
-            
+            {analysis && (
+              <Button onClick={suggestCorrections} disabled={correcting} variant="outline" className="border-gold/40 hover:bg-gold/10 hover:text-gold">
+                {correcting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                Предложи корекции
+              </Button>
+            )}
             <Button variant="ghost" className="text-destructive" onClick={remove}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </div>
+
+        <Dialog open={!!corrections} onOpenChange={(o) => !o && setCorrections(null)}>
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="font-serif">Предложени корекции</DialogTitle>
+            </DialogHeader>
+            {corrections && (
+              <div className="space-y-4">
+                {corrections.changes?.length > 0 && (
+                  <div className="rounded-lg border border-gold/30 bg-gold/5 p-3">
+                    <div className="text-xs uppercase tracking-wider text-gold mb-2">Ключови промени</div>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      {corrections.changes.map((c, i) => <li key={i}>{c}</li>)}
+                    </ul>
+                  </div>
+                )}
+                <div className="rounded-lg bg-white p-4 text-sm leading-relaxed text-gray-900 whitespace-pre-wrap font-serif max-h-[50vh] overflow-y-auto">
+                  {corrections.corrected_text}
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={() => { navigator.clipboard.writeText(corrections.corrected_text); toast.success("Копирано"); }} className="bg-gradient-gold text-navy">
+                    <Copy className="mr-2 h-4 w-4" /> Копирай
+                  </Button>
+                  <Button variant="outline" onClick={() => {
+                    const blob = new Blob([corrections.corrected_text], { type: "text/plain;charset=utf-8" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url; a.download = `${contract?.title || "contract"}-corrected.txt`; a.click();
+                    URL.revokeObjectURL(url);
+                  }}>
+                    <Download className="mr-2 h-4 w-4" /> Свали .txt
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {!analysis ? (
           <div className="mt-8 rounded-xl border border-border/60 bg-gradient-card p-10 text-center">

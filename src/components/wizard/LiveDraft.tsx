@@ -385,6 +385,9 @@ export function LiveDraft({
   const sigA = signature?.name_a || partyA;
   const sigB = signature?.name_b || partyB;
   const [editing, setEditing] = useState(false);
+  const [fontFamily, setFontFamily] = useState<string>("'Libre Baskerville', Georgia, serif");
+  const [fontSize, setFontSize] = useState<number>(14);
+  const editorInputClass = "bg-white text-gray-900 placeholder:text-gray-400 border-gray-300 focus-visible:ring-gold";
 
   if (generated) {
     const updateClause = (idx: number, patch: Partial<{ title: string; body: string; number: string }>) => {
@@ -397,7 +400,35 @@ export function LiveDraft({
     };
     return (
       <ProtectedContent>
-        <div className="mb-2 flex items-center justify-end gap-2">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          {editing && isPro ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-md border border-gold/30 bg-card/60 px-2 py-1.5">
+              <select
+                value={fontFamily}
+                onChange={(e) => setFontFamily(e.target.value)}
+                className="h-8 rounded border border-border/60 bg-background px-2 text-xs"
+                title="Шрифт"
+              >
+                <option value="'Libre Baskerville', Georgia, serif">Libre Baskerville</option>
+                <option value="Georgia, serif">Georgia</option>
+                <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                <option value="Arial, Helvetica, sans-serif">Arial</option>
+                <option value="'Helvetica Neue', Helvetica, sans-serif">Helvetica</option>
+                <option value="'Calibri', sans-serif">Calibri</option>
+                <option value="Verdana, sans-serif">Verdana</option>
+              </select>
+              <select
+                value={fontSize}
+                onChange={(e) => setFontSize(Number(e.target.value))}
+                className="h-8 rounded border border-border/60 bg-background px-2 text-xs"
+                title="Размер"
+              >
+                {[10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24].map((s) => (
+                  <option key={s} value={s}>{s}px</option>
+                ))}
+              </select>
+            </div>
+          ) : <div />}
           {isPro ? (
             <Button
               size="sm"
@@ -413,12 +444,16 @@ export function LiveDraft({
             </span>
           )}
         </div>
-        <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
+        <article
+          className="legal-paper rounded-md p-6 shadow-elegant md:p-8"
+          style={editing && isPro ? { fontFamily, fontSize: `${fontSize}px` } : undefined}
+        >
           {editing && isPro ? (
             <Input
               value={generated.title}
               onChange={(e) => onContractChange?.({ ...generated, title: e.target.value })}
-              className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl"
+              className={`text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl ${editorInputClass}`}
+              style={{ fontFamily, fontSize: `${fontSize + 4}px` }}
             />
           ) : (
             <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
@@ -430,7 +465,8 @@ export function LiveDraft({
             <Textarea
               value={generated.preamble}
               onChange={(e) => onContractChange?.({ ...generated, preamble: e.target.value })}
-              className="min-h-[100px] text-sm leading-relaxed"
+              className={`min-h-[100px] text-sm leading-relaxed ${editorInputClass}`}
+              style={{ fontFamily, fontSize: `${fontSize}px` }}
             />
           ) : (
             <p className="whitespace-pre-line text-sm leading-relaxed">{generated.preamble}</p>
@@ -443,18 +479,21 @@ export function LiveDraft({
                     <Input
                       value={c.number}
                       onChange={(e) => updateClause(i, { number: e.target.value })}
-                      className="w-20 font-serif font-bold uppercase"
+                      className={`w-20 font-serif font-bold uppercase ${editorInputClass}`}
+                      style={{ fontFamily }}
                     />
                     <Input
                       value={c.title}
                       onChange={(e) => updateClause(i, { title: e.target.value })}
-                      className="flex-1 font-serif font-bold uppercase"
+                      className={`flex-1 font-serif font-bold uppercase ${editorInputClass}`}
+                      style={{ fontFamily }}
                     />
                   </div>
                   <Textarea
                     value={c.body}
                     onChange={(e) => updateClause(i, { body: e.target.value })}
-                    className="min-h-[120px] text-sm leading-relaxed"
+                    className={`min-h-[120px] text-sm leading-relaxed ${editorInputClass}`}
+                    style={{ fontFamily, fontSize: `${fontSize}px` }}
                   />
                 </div>
               ) : (
@@ -472,7 +511,8 @@ export function LiveDraft({
             <Textarea
               value={generated.closing}
               onChange={(e) => onContractChange?.({ ...generated, closing: e.target.value })}
-              className="min-h-[80px] text-sm italic"
+              className={`min-h-[80px] text-sm italic ${editorInputClass}`}
+              style={{ fontFamily, fontSize: `${fontSize}px` }}
             />
           ) : (
             <p className="text-sm italic">{generated.closing}</p>

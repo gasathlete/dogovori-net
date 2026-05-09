@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Download, FileDown, FileText, Loader2, Pencil, Save, Trash2, User } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileDown, FileText, Loader2, Pencil, Save, Trash2, User } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +53,7 @@ export default function DocumentPage() {
   const [folderId, setFolderId] = useState<string>("");
   const [contract, setContract] = useState<GeneratedContract | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(true);
 
   useEffect(() => {
     if (!id || !user) return;
@@ -173,9 +174,18 @@ export default function DocumentPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* LEFT — meta + actions */}
-          <section className="space-y-5">
+        <div className={`grid grid-cols-1 gap-6 ${detailsOpen ? "lg:grid-cols-[minmax(0,420px)_1fr]" : "lg:grid-cols-[40px_1fr]"} transition-all`}>
+          {/* LEFT — meta + actions (collapsible) */}
+          {detailsOpen ? (
+            <section className="space-y-5 relative">
+              <button
+                onClick={() => setDetailsOpen(false)}
+                className="absolute -right-3 top-2 z-10 hidden lg:flex h-7 w-7 items-center justify-center rounded-full border border-gold/40 bg-card text-gold hover:bg-gold/10"
+                aria-label="Скрий детайлите"
+                title="Скрий детайлите"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
             <div className="rounded-xl border border-gold/30 bg-gradient-card p-6 shadow-soft">
               <h3 className="mb-4 font-serif text-lg font-bold">Детайли</h3>
               <div className="grid gap-3">
@@ -274,9 +284,21 @@ export default function DocumentPage() {
               <Trash2 className="mr-2 h-3.5 w-3.5" /> Изтрий договора
             </Button>
           </section>
+          ) : (
+            <div className="hidden lg:flex justify-center pt-4">
+              <button
+                onClick={() => setDetailsOpen(true)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-gold/40 bg-card text-gold hover:bg-gold/10"
+                aria-label="Покажи детайлите"
+                title="Покажи детайлите"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
+          )}
 
           {/* RIGHT — Live draft */}
-          <section className="lg:sticky lg:top-32 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">
+          <section>
             <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gold">
               <FileText className="h-3.5 w-3.5" />
               Договор
