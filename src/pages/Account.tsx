@@ -52,24 +52,34 @@ export default function AccountPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [docs, setDocs] = useState<SavedDoc[]>([]);
+  const [uploaded, setUploaded] = useState<UploadedContract[]>([]);
+  const [analysesByContract, setAnalysesByContract] = useState<Record<string, RiskAnalysisLite>>({});
   const [quota, setQuota] = useState<Quota | null>(null);
   const [profile, setProfile] = useState<{ display_name: string | null; company: string | null; vat_number: string | null }>({ display_name: "", company: "", vat_number: "" });
   const [activeFolder, setActiveFolder] = useState<string | "all">("all");
 
   const reload = async () => {
     if (!user) return;
-    const [c, f, d, q, p] = await Promise.all([
+    const [c, f, d, q, p, uc, ra] = await Promise.all([
       supabase.from("contacts").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("folders").select("*").order("is_favorites", { ascending: false }),
       supabase.from("saved_documents").select("*").order("created_at", { ascending: false }),
       supabase.from("download_quota").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("profiles").select("display_name, company, vat_number").eq("id", user.id).maybeSingle(),
+      supabase.from("uploaded_contracts").select("id,title,source,folder_id,contact_id,original_filename,storage_path,created_at").order("created_at", { ascending: false }),
+      supabase.from("risk_analyses").select("uploaded_contract_id,score,contract_type,created_at").order("created_at", { ascending: false }),
     ]);
     setContacts((c.data as any) ?? []);
     setFolders((f.data as any) ?? []);
     setDocs((d.data as any) ?? []);
     setQuota((q.data as any) ?? null);
     if (p.data) setProfile(p.data as any);
+    setUploaded((uc.data as any) ?? []);
+    const map: Record<string, RiskAnalysisLite> = {};
+    for (const r of ((ra.data as any) ?? []) as RiskAnalysisLite[]) {
+      if (!map[r.uploaded_contract_id]) map[r.uploaded_contract_id] = r;
+    }
+    setAnalysesByContract(map);
   };
 
   useEffect(() => { reload(); /* eslint-disable-next-line */ }, [user]);
