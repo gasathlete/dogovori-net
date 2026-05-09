@@ -174,9 +174,18 @@ export default function DocumentPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* LEFT — meta + actions */}
-          <section className="space-y-5">
+        <div className={`grid grid-cols-1 gap-6 ${detailsOpen ? "lg:grid-cols-[minmax(0,420px)_1fr]" : "lg:grid-cols-[40px_1fr]"} transition-all`}>
+          {/* LEFT — meta + actions (collapsible) */}
+          {detailsOpen ? (
+            <section className="space-y-5 relative">
+              <button
+                onClick={() => setDetailsOpen(false)}
+                className="absolute -right-3 top-2 z-10 hidden lg:flex h-7 w-7 items-center justify-center rounded-full border border-gold/40 bg-card text-gold hover:bg-gold/10"
+                aria-label="Скрий детайлите"
+                title="Скрий детайлите"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
             <div className="rounded-xl border border-gold/30 bg-gradient-card p-6 shadow-soft">
               <h3 className="mb-4 font-serif text-lg font-bold">Детайли</h3>
               <div className="grid gap-3">
