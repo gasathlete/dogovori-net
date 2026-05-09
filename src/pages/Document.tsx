@@ -53,6 +53,7 @@ export default function DocumentPage() {
   const [folderId, setFolderId] = useState<string>("");
   const [contract, setContract] = useState<GeneratedContract | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(true);
 
   useEffect(() => {
     if (!id || !user) return;
