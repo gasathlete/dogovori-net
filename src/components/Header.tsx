@@ -41,8 +41,12 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <span className="hidden rounded-full bg-gold/10 text-xs font-medium text-gold lg:inline-block py-0 px-0">
-            ЗЗД, ТЗ, ЗУТ
+          <span className="hidden items-center gap-1.5 rounded-full bg-gold/10 px-3 py-1 text-xs font-medium text-gold lg:inline-flex">
+            <a href="https://share.google/X8NZhOKIRZXTTiFp5" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-gold/70 hover:underline">ЗЗД</a>
+            <span className="opacity-50">,</span>
+            <a href="https://share.google/u9HI8w5kYHvEljVlP" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-gold/70 hover:underline">ТЗ</a>
+            <span className="opacity-50">,</span>
+            <a href="https://share.google/7UGaK77K8jwA57qxB" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-gold/70 hover:underline">ЗУТ</a>
           </span>
           {user ? (
             <Link
@@ -85,8 +89,12 @@ export function Header() {
               </Link>
             ))}
             <div className="mt-2 border-t border-border/60 px-3 py-3">
-              <span className="inline-block rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-medium text-gold">
-                ЗЗД, ТЗ, ЗУТ
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-medium text-gold">
+                <a href="https://share.google/X8NZhOKIRZXTTiFp5" target="_blank" rel="noopener noreferrer" className="hover:underline">ЗЗД</a>
+                <span className="opacity-50">,</span>
+                <a href="https://share.google/u9HI8w5kYHvEljVlP" target="_blank" rel="noopener noreferrer" className="hover:underline">ТЗ</a>
+                <span className="opacity-50">,</span>
+                <a href="https://share.google/7UGaK77K8jwA57qxB" target="_blank" rel="noopener noreferrer" className="hover:underline">ЗУТ</a>
               </span>
             </div>
           </div>
