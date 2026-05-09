@@ -193,12 +193,54 @@ export default function UploadedContractPage() {
               {analyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
               {analysis ? "Анализирай отново" : "Стартирай анализ"}
             </Button>
-            
+            {analysis && (
+              <Button onClick={suggestCorrections} disabled={correcting} variant="outline" className="border-gold/40 hover:bg-gold/10 hover:text-gold">
+                {correcting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                Предложи корекции
+              </Button>
+            )}
             <Button variant="ghost" className="text-destructive" onClick={remove}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </div>
+
+        <Dialog open={!!corrections} onOpenChange={(o) => !o && setCorrections(null)}>
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="font-serif">Предложени корекции</DialogTitle>
+            </DialogHeader>
+            {corrections && (
+              <div className="space-y-4">
+                {corrections.changes?.length > 0 && (
+                  <div className="rounded-lg border border-gold/30 bg-gold/5 p-3">
+                    <div className="text-xs uppercase tracking-wider text-gold mb-2">Ключови промени</div>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      {corrections.changes.map((c, i) => <li key={i}>{c}</li>)}
+                    </ul>
+                  </div>
+                )}
+                <div className="rounded-lg bg-white p-4 text-sm leading-relaxed text-gray-900 whitespace-pre-wrap font-serif max-h-[50vh] overflow-y-auto">
+                  {corrections.corrected_text}
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={() => { navigator.clipboard.writeText(corrections.corrected_text); toast.success("Копирано"); }} className="bg-gradient-gold text-navy">
+                    <Copy className="mr-2 h-4 w-4" /> Копирай
+                  </Button>
+                  <Button variant="outline" onClick={() => {
+                    const blob = new Blob([corrections.corrected_text], { type: "text/plain;charset=utf-8" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url; a.download = `${contract?.title || "contract"}-corrected.txt`; a.click();
+                    URL.revokeObjectURL(url);
+                  }}>
+                    <Download className="mr-2 h-4 w-4" /> Свали .txt
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {!analysis ? (
           <div className="mt-8 rounded-xl border border-border/60 bg-gradient-card p-10 text-center">
