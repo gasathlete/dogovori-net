@@ -111,17 +111,24 @@ serve(async (req) => {
       });
     }
 
-    const used = kind === "contract" ? planRow.contracts_used : planRow.templates_used;
-    const limit = 1;
-    const bonus = planRow.bonus_contracts ?? 0;
-    const useBonus = !isPro && kind === "contract" && used >= limit && bonus > 0;
-
-    if (!isPro && used >= limit && !useBonus) {
+    // Atomic quota consumption — prevents free-tier bypass via concurrent
+    // requests. The RPC locks the row, decides bonus vs. counter, increments,
+    // and returns the outcome in a single transaction.
+    const { data: consumed, error: consumeErr } = await admin.rpc("consume_quota", { _kind: kind });
+    if (consumeErr) {
+      return new Response(JSON.stringify({ error: consumeErr.message }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const quotaResult = consumed as { ok: boolean; reason?: string; used_bonus?: boolean; is_pro: boolean };
+    if (!quotaResult?.ok) {
       return new Response(
-        JSON.stringify({ error: "quota_exceeded", kind, used, limit }),
+        JSON.stringify({ error: "quota_exceeded", kind, limit: 1 }),
         { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+    const useBonus = !!quotaResult.used_bonus;
 
     const { data: saved, error: saveErr } = await admin
       .from("saved_documents")
@@ -137,18 +144,13 @@ serve(async (req) => {
       .select()
       .single();
     if (saveErr) {
+      // Refund the quota we just consumed since the save failed.
+      await admin.rpc("refund_quota", { _user_id: userId, _kind: kind, _used_bonus: useBonus });
       return new Response(JSON.stringify({ error: saveErr.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const patch: Record<string, number> = useBonus
-      ? { bonus_contracts: Math.max(0, bonus - 1) }
-      : kind === "contract"
-        ? { contracts_used: planRow.contracts_used + 1 }
-        : { templates_used: planRow.templates_used + 1 };
-    await admin.from("download_quota").update(patch).eq("user_id", userId);
 
     await auditInsert("download", saved.id, { kind, used_bonus: useBonus });
 

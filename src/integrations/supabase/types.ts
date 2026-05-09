@@ -663,6 +663,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      consume_quota: { Args: { _kind: string }; Returns: Json }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -695,6 +696,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      refund_quota: {
+        Args: { _kind: string; _used_bonus?: boolean; _user_id: string }
+        Returns: undefined
       }
     }
     Enums: {

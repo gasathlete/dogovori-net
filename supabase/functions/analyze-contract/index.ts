@@ -95,15 +95,16 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Quota check — Free: 1 analysis total; Pro: unlimited
-    const { data: quota } = await admin
-      .from("download_quota")
-      .select("plan, pro_until, analyses_used")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    const isPro = quota?.plan === "pro" || (quota?.pro_until && new Date(quota.pro_until) > new Date());
-    if (!isPro && (quota?.analyses_used ?? 0) >= 1) {
+    // Atomic quota consumption — prevents free-tier bypass via concurrent calls.
+    // The RPC checks plan + counter and increments in a single SERIALIZABLE step.
+    const { data: consumed, error: consumeErr } = await admin.rpc("consume_quota", { _kind: "analysis" });
+    if (consumeErr) {
+      console.error("consume_quota error:", consumeErr);
+      throw new Error("Грешка при проверка на квотата");
+    }
+    const quotaResult = consumed as { ok: boolean; reason?: string; is_pro: boolean };
+    const isPro = !!quotaResult?.is_pro;
+    if (!quotaResult?.ok) {
       return new Response(
         JSON.stringify({
           error: "Изчерпали сте безплатния си анализ. Активирайте Pro за неограничени риск-анализи.",
@@ -144,6 +145,8 @@ ${truncated}
     });
 
     if (!aiResp.ok) {
+      // Refund the quota slot since the operation failed.
+      if (!isPro) await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
       if (aiResp.status === 429) {
         return new Response(JSON.stringify({ error: "Достигнат е лимитът. Моля опитайте след малко." }), {
           status: 429,
@@ -203,13 +206,7 @@ ${truncated}
       throw new Error("Грешка при запис на анализа");
     }
 
-    // Increment quota counter (only for free tier)
-    if (!isPro) {
-      await admin
-        .from("download_quota")
-        .update({ analyses_used: (quota?.analyses_used ?? 0) + 1 })
-        .eq("user_id", userId);
-    }
+    // Quota was already consumed atomically before the AI call (see consume_quota above).
 
     await admin.from("ai_usage").insert({
       user_id: userId,

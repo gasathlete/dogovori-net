@@ -30,9 +30,10 @@ function generateToken(): string {
     .join('')
 }
 
-// Auth note: this function uses verify_jwt = true in config.toml, so Supabase's
-// gateway validates the caller's JWT (anon or service_role) before the request
-// reaches this code. No in-function auth check is needed.
+// Auth: although verify_jwt=true, Supabase's gateway accepts the public anon
+// key as a valid JWT. We must verify in-function that the caller is an
+// authenticated end-user (not anon) and that they only send to themselves,
+// or that the caller is the service role (server-to-server).
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -42,6 +43,45 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
+
+  // Authenticate caller. Allow:
+  //  - service_role calls (server-to-server, e.g. other edge functions)
+  //  - authenticated end-users (must have a real user JWT, not the anon key)
+  const authHeader = req.headers.get('Authorization') ?? ''
+  const token = authHeader.replace(/^Bearer\s+/i, '')
+  let callerEmail: string | null = null
+  let isServiceRole = false
+  if (!token) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+  if (token === supabaseServiceKey) {
+    isServiceRole = true
+  } else {
+    try {
+      const authClient = createClient(supabaseUrl!, supabaseAnonKey ?? supabaseServiceKey!, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+      })
+      const { data: claimsData, error: claimsErr } = await authClient.auth.getClaims(token)
+      const claims = claimsData?.claims as any
+      if (claimsErr || !claims || claims.role !== 'authenticated' || !claims.sub) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      callerEmail = (claims.email ?? '').toLowerCase() || null
+    } catch (e) {
+      console.error('JWT verification failed', e)
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+  }
 
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error('Missing required environment variables')
@@ -120,6 +160,27 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
+  }
+
+  // End-user callers may only send to their own verified email address.
+  // Templates with a fixed `to` (e.g. site-owner notifications) are restricted
+  // to service_role callers to prevent abuse.
+  if (!isServiceRole) {
+    if (template.to) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    if (!callerEmail || effectiveRecipient.toLowerCase() !== callerEmail) {
+      return new Response(
+        JSON.stringify({ error: 'recipientEmail must match the authenticated user' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      )
+    }
   }
 
   // Create Supabase client with service role (bypasses RLS)
