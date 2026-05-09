@@ -173,23 +173,24 @@ export default function BlogPost() {
         </article>
 
         {related.length > 0 && (
-          <section className="mx-auto mt-16 max-w-5xl">
-            <h2 className="mb-6 text-xl font-semibold">Свързани статии</h2>
+          <section className="mx-auto mt-20 max-w-5xl">
+            <h2 className="mb-7 font-serif text-2xl font-bold leading-tight md:text-[28px]">Свързани статии</h2>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {related.map((r) => (
                 <Link
                   key={r.slug}
                   to={`/blog/${r.slug}`}
-                  className="group overflow-hidden rounded-xl border border-border/60 bg-card/30 transition-colors hover:border-gold/40"
+                  className="group overflow-hidden rounded-xl surface-elevated transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/45"
                 >
-                  <div className="aspect-[16/9] overflow-hidden bg-navy-light">
-                    <img src={r.image} alt={r.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <div className="relative aspect-[16/9] overflow-hidden bg-navy-light">
+                    <img src={r.image} alt={r.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-card/90 via-transparent to-transparent opacity-60" />
                   </div>
                   <div className="p-4">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gold/80">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/85">
                       {r.category}
                     </span>
-                    <h3 className="mt-2 text-sm font-medium leading-snug transition-colors group-hover:text-gold">
+                    <h3 className="mt-2 font-serif text-sm font-bold leading-snug transition-colors duration-200 group-hover:text-gold">
                       {r.title}
                     </h3>
                   </div>
