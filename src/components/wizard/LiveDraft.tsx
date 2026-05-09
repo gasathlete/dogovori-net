@@ -452,7 +452,8 @@ export function LiveDraft({
             <Input
               value={generated.title}
               onChange={(e) => onContractChange?.({ ...generated, title: e.target.value })}
-              className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl"
+              className={`text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl ${editorInputClass}`}
+              style={{ fontFamily, fontSize: `${fontSize + 4}px` }}
             />
           ) : (
             <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
@@ -464,7 +465,8 @@ export function LiveDraft({
             <Textarea
               value={generated.preamble}
               onChange={(e) => onContractChange?.({ ...generated, preamble: e.target.value })}
-              className="min-h-[100px] text-sm leading-relaxed"
+              className={`min-h-[100px] text-sm leading-relaxed ${editorInputClass}`}
+              style={{ fontFamily, fontSize: `${fontSize}px` }}
             />
           ) : (
             <p className="whitespace-pre-line text-sm leading-relaxed">{generated.preamble}</p>
@@ -477,18 +479,21 @@ export function LiveDraft({
                     <Input
                       value={c.number}
                       onChange={(e) => updateClause(i, { number: e.target.value })}
-                      className="w-20 font-serif font-bold uppercase"
+                      className={`w-20 font-serif font-bold uppercase ${editorInputClass}`}
+                      style={{ fontFamily }}
                     />
                     <Input
                       value={c.title}
                       onChange={(e) => updateClause(i, { title: e.target.value })}
-                      className="flex-1 font-serif font-bold uppercase"
+                      className={`flex-1 font-serif font-bold uppercase ${editorInputClass}`}
+                      style={{ fontFamily }}
                     />
                   </div>
                   <Textarea
                     value={c.body}
                     onChange={(e) => updateClause(i, { body: e.target.value })}
-                    className="min-h-[120px] text-sm leading-relaxed"
+                    className={`min-h-[120px] text-sm leading-relaxed ${editorInputClass}`}
+                    style={{ fontFamily, fontSize: `${fontSize}px` }}
                   />
                 </div>
               ) : (
@@ -506,7 +511,8 @@ export function LiveDraft({
             <Textarea
               value={generated.closing}
               onChange={(e) => onContractChange?.({ ...generated, closing: e.target.value })}
-              className="min-h-[80px] text-sm italic"
+              className={`min-h-[80px] text-sm italic ${editorInputClass}`}
+              style={{ fontFamily, fontSize: `${fontSize}px` }}
             />
           ) : (
             <p className="text-sm italic">{generated.closing}</p>
