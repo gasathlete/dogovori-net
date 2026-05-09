@@ -1,35 +1,45 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
-import Template from "./pages/Template.tsx";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index.tsx";
-import Wizard from "./pages/Wizard.tsx";
-import Catalog from "./pages/Catalog.tsx";
-import Category from "./pages/Category.tsx";
-import Auth from "./pages/Auth.tsx";
-import ResetPassword from "./pages/ResetPassword.tsx";
-import Account from "./pages/Account.tsx";
-import Document from "./pages/Document.tsx";
-import CheckoutReturn from "./pages/CheckoutReturn.tsx";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
-import NotFound from "./pages/NotFound.tsx";
-import Terms from "./pages/legal/Terms.tsx";
-import Privacy from "./pages/legal/Privacy.tsx";
-import Cookies from "./pages/legal/Cookies.tsx";
-import Refund from "./pages/legal/Refund.tsx";
-import SharedDocument from "./pages/SharedDocument.tsx";
-import Unsubscribe from "./pages/Unsubscribe.tsx";
 import { CookieBanner } from "@/components/CookieBanner";
 import { initSentry } from "@/lib/sentry";
+
+// Lazy-load every route except Index (landing page) so the initial bundle stays light.
+// Heavy deps (jspdf, docx, templateContent ~808KB) only load when their route is visited.
+const Template = lazy(() => import("./pages/Template.tsx"));
+const Wizard = lazy(() => import("./pages/Wizard.tsx"));
+const Catalog = lazy(() => import("./pages/Catalog.tsx"));
+const Category = lazy(() => import("./pages/Category.tsx"));
+const Auth = lazy(() => import("./pages/Auth.tsx"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword.tsx"));
+const Account = lazy(() => import("./pages/Account.tsx"));
+const DocumentPage = lazy(() => import("./pages/Document.tsx"));
+const CheckoutReturn = lazy(() => import("./pages/CheckoutReturn.tsx"));
+const NotFound = lazy(() => import("./pages/NotFound.tsx"));
+const Terms = lazy(() => import("./pages/legal/Terms.tsx"));
+const Privacy = lazy(() => import("./pages/legal/Privacy.tsx"));
+const Cookies = lazy(() => import("./pages/legal/Cookies.tsx"));
+const Refund = lazy(() => import("./pages/legal/Refund.tsx"));
+const SharedDocument = lazy(() => import("./pages/SharedDocument.tsx"));
+const Unsubscribe = lazy(() => import("./pages/Unsubscribe.tsx"));
 
 initSentry();
 
 const queryClient = new QueryClient();
+
+const RouteFallback = () => (
+  <div className="flex min-h-screen items-center justify-center bg-background">
+    <div className="h-8 w-8 animate-spin rounded-full border-2 border-gold border-t-transparent" />
+  </div>
+);
 
 const App = () => (
   <HelmetProvider>
@@ -41,40 +51,42 @@ const App = () => (
         <AuthProvider>
           <PaymentTestModeBanner />
           <CookieBanner />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/wizard/:sectorId" element={<Wizard />} />
-            <Route path="/catalog" element={<Catalog />} />
-            <Route path="/kategoria/:slug" element={<Category />} />
-            <Route path="/shablon/:slug" element={<Template />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route
-              path="/account"
-              element={
-                <ProtectedRoute>
-                  <Account />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/document/:id"
-              element={
-                <ProtectedRoute>
-                  <Document />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/checkout/return" element={<CheckoutReturn />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/cookies" element={<Cookies />} />
-            <Route path="/refund" element={<Refund />} />
-            <Route path="/share/:token" element={<SharedDocument />} />
-            <Route path="/unsubscribe" element={<Unsubscribe />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/wizard/:sectorId" element={<Wizard />} />
+              <Route path="/catalog" element={<Catalog />} />
+              <Route path="/kategoria/:slug" element={<Category />} />
+              <Route path="/shablon/:slug" element={<Template />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route
+                path="/account"
+                element={
+                  <ProtectedRoute>
+                    <Account />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/document/:id"
+                element={
+                  <ProtectedRoute>
+                    <DocumentPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/checkout/return" element={<CheckoutReturn />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/cookies" element={<Cookies />} />
+              <Route path="/refund" element={<Refund />} />
+              <Route path="/share/:token" element={<SharedDocument />} />
+              <Route path="/unsubscribe" element={<Unsubscribe />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
