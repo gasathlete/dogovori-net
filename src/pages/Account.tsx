@@ -22,7 +22,8 @@ import { downloadDocument } from "@/lib/downloadDocument";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { ShareForSignDialog } from "@/components/ShareForSignDialog";
 import { UploadContractDialog } from "@/components/UploadContractDialog";
-import { ShieldAlert, ShieldCheck, AlertTriangle } from "lucide-react";
+import { SignedContractsTab } from "@/components/SignedContractsTab";
+import { ShieldAlert, ShieldCheck, AlertTriangle, PenTool } from "lucide-react";
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
@@ -146,6 +147,7 @@ export default function AccountPage() {
             <TabsTrigger value="dashboard"><Sparkles className="mr-1 h-3.5 w-3.5" />Табло</TabsTrigger>
             <TabsTrigger value="contacts"><Users className="mr-1 h-3.5 w-3.5" />Контрагенти</TabsTrigger>
             <TabsTrigger value="documents"><FileText className="mr-1 h-3.5 w-3.5" />Документи</TabsTrigger>
+            <TabsTrigger value="signed"><PenTool className="mr-1 h-3.5 w-3.5" />Подписани</TabsTrigger>
             <TabsTrigger value="folders"><FolderOpen className="mr-1 h-3.5 w-3.5" />Папки</TabsTrigger>
             <TabsTrigger value="subscription"><CreditCard className="mr-1 h-3.5 w-3.5" />Абонамент</TabsTrigger>
             <TabsTrigger value="settings"><SettingsIcon className="mr-1 h-3.5 w-3.5" />Настройки</TabsTrigger>
@@ -173,6 +175,9 @@ export default function AccountPage() {
           </TabsContent>
           <TabsContent value="folders">
             <FoldersTab folders={folders} reload={reload} />
+          </TabsContent>
+          <TabsContent value="signed">
+            <SignedContractsTab userId={user?.id ?? ""} />
           </TabsContent>
           <TabsContent value="subscription">
             <SubscriptionTab quota={quota} isPro={!!isPro} />
