@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { ArrowRight, CheckCircle2, AlertTriangle, FileText, ChevronRight } from "lucide-react";
 import { Header } from "@/components/Header";
@@ -6,10 +6,15 @@ import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { getRelatedTemplates, getTemplateBySlug } from "@/lib/templateIndex";
 import { TEMPLATE_CONTENT } from "@/data/templateContent";
+import { trackEvent } from "@/lib/analytics";
 
 export default function TemplatePage() {
   const { slug } = useParams<{ slug: string }>();
   const entry = useMemo(() => (slug ? getTemplateBySlug(slug) : undefined), [slug]);
+
+  useEffect(() => {
+    if (entry) trackEvent("template_view", { slug: entry.slug, name: entry.doc.name, category: entry.category.title });
+  }, [entry]);
 
   if (!entry) return <Navigate to="/catalog" replace />;
 
