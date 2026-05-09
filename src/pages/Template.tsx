@@ -202,13 +202,14 @@ export default function TemplatePage() {
         </Section>
 
         <Section title="Често задавани въпроси">
-          <div className="space-y-4">
+          <div className="divide-y divide-border/50 overflow-hidden rounded-xl border border-border/50 bg-card/30">
             {faq.map((f, i) => (
-              <details key={i} className="group rounded-lg border border-border/60 bg-navy-light/30 p-4">
-                <summary className="cursor-pointer font-serif text-base font-bold text-foreground">
-                  {f.q}
+              <details key={i} className="group p-5 [&_summary::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer items-start justify-between gap-3 font-serif text-base font-bold text-foreground">
+                  <span>{f.q}</span>
+                  <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-gold transition-transform duration-200 group-open:rotate-90" />
                 </summary>
-                <p className="mt-3 text-sm text-muted-foreground">{f.a}</p>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
               </details>
             ))}
           </div>
@@ -221,27 +222,25 @@ export default function TemplatePage() {
                 <Link
                   key={r.slug}
                   to={`/shablon/${r.slug}`}
-                  className="group rounded-lg border border-border/60 bg-gradient-card p-4 transition-all hover:border-gold/40 hover:shadow-soft"
+                  className="group rounded-xl surface-elevated p-4 transition-colors hover:border-gold/45"
                 >
-                  <h3 className="font-serif text-sm font-bold text-foreground group-hover:text-gold">
+                  <h3 className="font-serif text-sm font-bold leading-snug text-foreground transition-colors group-hover:text-gold">
                     {r.doc.name}
                   </h3>
-                  <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{r.doc.purpose}</p>
+                  <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{r.doc.purpose}</p>
                 </Link>
               ))}
             </div>
           </Section>
         )}
 
-        <section className="mt-12 rounded-2xl border border-gold/20 bg-gradient-card p-8 text-center shadow-elegant">
-          <h2 className="font-serif text-2xl font-bold md:text-3xl">Готов ли сте да създадете {doc.name}?</h2>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">
+        <section className="relative mt-14 overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-10 text-center shadow-elegant md:p-12">
+          <div className="absolute inset-x-0 top-0 hairline-x" />
+          <h2 className="font-serif text-2xl font-bold leading-tight text-balance md:text-[32px]">Готов ли сте да създадете {doc.name}?</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground">
             Попълнете кратък въпросник и получете готов договор в PDF и DOCX формат, съобразен с българското право.
           </p>
-          <Link
-            to={wizardHref}
-            className="mt-6 inline-flex items-center gap-2 rounded-md bg-gradient-gold px-6 py-3 text-sm font-bold uppercase tracking-wider text-navy shadow-gold"
-          >
+          <Link to={wizardHref} className="btn-gold mt-7">
             Започни сега <ArrowRight className="h-4 w-4" />
           </Link>
         </section>
@@ -254,8 +253,8 @@ export default function TemplatePage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mb-10">
-      <h2 className="mb-4 font-serif text-2xl font-bold text-foreground">{title}</h2>
+    <section className="mb-12">
+      <h2 className="mb-5 font-serif text-2xl font-bold leading-tight text-foreground md:text-[28px]">{title}</h2>
       {children}
     </section>
   );
