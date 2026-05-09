@@ -162,6 +162,27 @@ Deno.serve(async (req) => {
     )
   }
 
+  // End-user callers may only send to their own verified email address.
+  // Templates with a fixed `to` (e.g. site-owner notifications) are restricted
+  // to service_role callers to prevent abuse.
+  if (!isServiceRole) {
+    if (template.to) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    if (!callerEmail || effectiveRecipient.toLowerCase() !== callerEmail) {
+      return new Response(
+        JSON.stringify({ error: 'recipientEmail must match the authenticated user' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      )
+    }
+  }
+
   // Create Supabase client with service role (bypasses RLS)
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
