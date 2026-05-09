@@ -198,38 +198,41 @@ export default function CatalogPage() {
       </nav>
 
       {/* Categories */}
-      <main className="container space-y-16 py-16">
+      <main className="container space-y-20 py-16 md:py-20">
         {filtered.map((cat) => {
           const Icon = (Icons as any)[cat.icon] ?? Icons.FileText;
           return (
             <section key={cat.id} id={cat.id} className="scroll-mt-32">
-              <div className="mb-6 flex items-start gap-4">
+              <div className="mb-7 flex items-start gap-5">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-gold/30 bg-gold/5 text-gold">
-                  <Icon className="h-6 w-6" strokeWidth={1.6} />
+                  <Icon className="h-5 w-5" strokeWidth={1.6} />
                 </div>
                 <div className="flex-1">
-                  <div className="text-xs uppercase tracking-[0.2em] text-gold">
-                    {cat.number} · Категория
+                  <div className="eyebrow">
+                    <span className="font-serif text-sm font-normal tracking-normal text-gold/60">{cat.number}</span>
+                    <span className="h-px w-5 bg-gold/40" />
+                    Категория
                   </div>
-                  <h2 className="mt-1 font-serif text-2xl font-bold md:text-3xl">{cat.title}</h2>
-                  <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{cat.intro}</p>
+                  <h2 className="mt-2 font-serif text-2xl font-bold leading-tight md:text-[32px]">{cat.title}</h2>
+                  <p className="mt-2.5 max-w-3xl text-sm leading-relaxed text-muted-foreground">{cat.intro}</p>
                 </div>
                 <Link
                   to={`/kategoria/${cat.id}`}
-                  className="hidden shrink-0 items-center gap-1 self-start rounded-md border border-gold/30 px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-gold transition-colors hover:bg-gold/10 md:inline-flex"
+                  className="hidden shrink-0 items-center gap-1.5 self-start text-[11px] font-semibold uppercase tracking-[0.18em] text-gold transition-opacity hover:opacity-80 md:inline-flex"
                 >
-                  Виж всички <ArrowRight className="h-3 w-3" />
+                  Виж всички <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
 
               <CategoryDocs cat={cat} forceExpanded={!!query.trim()} />
 
               {cat.companions && cat.companions.length > 0 && (
-                <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-border/40 bg-navy-light/20 px-4 py-3 text-xs">
+                <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-border/50 bg-navy-light/20 px-4 py-3 text-xs">
                   <ListChecks className="h-3.5 w-3.5 text-gold" />
-                  <span className="uppercase tracking-wider text-muted-foreground">
-                    Придружаващи документи:
+                  <span className="font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    Придружаващи документи
                   </span>
+                  <span className="text-muted-foreground/50">·</span>
                   {cat.companions.map((c) => (
                     <CompanionChip key={c} name={c} />
                   ))}
@@ -240,7 +243,7 @@ export default function CatalogPage() {
         })}
 
         {filtered.length === 0 && (
-          <div className="rounded-xl border border-border/60 bg-gradient-card p-12 text-center">
+          <div className="rounded-xl surface-elevated p-12 text-center">
             <p className="text-muted-foreground">
               Няма намерени документи за „{query}". Опитайте с друго търсене.
             </p>
@@ -250,18 +253,16 @@ export default function CatalogPage() {
 
       {/* CTA */}
       <section className="container pb-20">
-        <div className="rounded-2xl border border-gold/20 bg-gradient-card p-10 text-center shadow-elegant">
-          <div className="mb-3 text-xs uppercase tracking-[0.2em] text-gold">Готови ли сте?</div>
-          <h3 className="font-serif text-2xl font-bold md:text-3xl">
+        <div className="relative overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-10 text-center shadow-elegant md:p-14">
+          <div className="absolute inset-x-0 top-0 hairline-x" />
+          <div className="eyebrow mb-4 justify-center">Готови ли сте?</div>
+          <h3 className="font-serif text-2xl font-bold leading-tight text-balance md:text-[34px]">
             Започнете персонализиран договор сега
           </h3>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">
-            Стратегически интервюта и системен риск-анализ – в съответствие със ЗЗД, ТЗ и ЗУТ.
+          <p className="mx-auto mt-4 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground md:text-base">
+            Стратегически интервюта и системен риск-анализ — в съответствие със ЗЗД, ТЗ и ЗУТ.
           </p>
-          <Link
-            to="/#sectors"
-            className="mt-6 inline-flex items-center gap-2 rounded-md bg-gradient-gold px-6 py-3 text-sm font-bold uppercase tracking-wider text-navy shadow-gold transition-all hover:shadow-[0_15px_50px_-10px_hsl(43_55%_54%_/_0.5)]"
-          >
+          <Link to="/#sectors" className="btn-gold mt-7">
             Намери договор <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
