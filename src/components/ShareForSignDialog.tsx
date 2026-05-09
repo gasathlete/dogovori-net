@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/clipboard";
 
 interface Props {
   documentId: string;
@@ -51,7 +52,8 @@ export function ShareForSignDialog({ documentId, documentTitle }: Props) {
 
   const copy = async () => {
     if (!link) return;
-    await navigator.clipboard.writeText(link);
+    const ok = await copyToClipboard(link);
+    if (!ok) { toast.error("Копирането не е разрешено"); return; }
     setCopied(true);
     toast.success("Линкът е копиран");
     setTimeout(() => setCopied(false), 1500);
