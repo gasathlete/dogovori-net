@@ -16,12 +16,23 @@ type Entry = { loc: string; changefreq: string; priority: string; lastmod?: stri
 const staticEntries: Entry[] = [
   { loc: "/", changefreq: "weekly", priority: "1.0", lastmod: today },
   { loc: "/catalog", changefreq: "weekly", priority: "0.9", lastmod: today },
+  { loc: "/blog", changefreq: "weekly", priority: "0.9", lastmod: today },
   { loc: "/auth", changefreq: "monthly", priority: "0.5" },
   { loc: "/terms", changefreq: "yearly", priority: "0.3" },
   { loc: "/privacy", changefreq: "yearly", priority: "0.3" },
   { loc: "/cookies", changefreq: "yearly", priority: "0.3" },
   { loc: "/refund", changefreq: "yearly", priority: "0.3" },
 ];
+
+const blogDir = resolve(process.cwd(), "src/content/blog");
+const blogEntries: Entry[] = readdirSync(blogDir)
+  .filter((f) => f.endsWith(".ts"))
+  .map((f) => ({
+    loc: `/blog/${f.replace(/\.ts$/, "")}`,
+    changefreq: "monthly",
+    priority: "0.7",
+    lastmod: today,
+  }));
 
 const categoryEntries: Entry[] = CATALOG.map((cat) => ({
   loc: `/kategoria/${cat.id}`,
