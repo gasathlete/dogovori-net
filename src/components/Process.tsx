@@ -1,4 +1,4 @@
-import { ListChecks, ClipboardList, ShieldCheck, FileCheck2 } from "lucide-react";
+import { ListChecks, ClipboardList, ShieldCheck, FileCheck2, FolderArchive, Send } from "lucide-react";
 
 export function Process() {
   const steps = [
