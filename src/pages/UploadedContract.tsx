@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { ShareForSignDialog } from "@/components/ShareForSignDialog";
+
 
 type Issue = {
   severity: "low" | "medium" | "high";
@@ -170,7 +170,7 @@ export default function UploadedContractPage() {
               {analyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
               {analysis ? "Анализирай отново" : "Стартирай анализ"}
             </Button>
-            <ShareForSignDialog documentId={contract.id} documentTitle={contract.title} />
+            
             <Button variant="ghost" className="text-destructive" onClick={remove}>
               <Trash2 className="h-4 w-4" />
             </Button>
