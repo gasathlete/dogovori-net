@@ -419,6 +419,9 @@ export type Database = {
           expires_at: string
           id: string
           owner_id: string
+          owner_signature: string | null
+          owner_signed_at: string | null
+          owner_signer_name: string | null
           revoked_at: string | null
           signed_at: string | null
           signed_signature: string | null
@@ -433,6 +436,9 @@ export type Database = {
           expires_at: string
           id?: string
           owner_id: string
+          owner_signature?: string | null
+          owner_signed_at?: string | null
+          owner_signer_name?: string | null
           revoked_at?: string | null
           signed_at?: string | null
           signed_signature?: string | null
@@ -447,6 +453,9 @@ export type Database = {
           expires_at?: string
           id?: string
           owner_id?: string
+          owner_signature?: string | null
+          owner_signed_at?: string | null
+          owner_signer_name?: string | null
           revoked_at?: string | null
           signed_at?: string | null
           signed_signature?: string | null
