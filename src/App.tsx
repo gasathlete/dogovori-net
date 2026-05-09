@@ -30,6 +30,8 @@ const Cookies = lazy(() => import("./pages/legal/Cookies.tsx"));
 const Refund = lazy(() => import("./pages/legal/Refund.tsx"));
 const SharedDocument = lazy(() => import("./pages/SharedDocument.tsx"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe.tsx"));
+const Blog = lazy(() => import("./pages/Blog.tsx"));
+const BlogPost = lazy(() => import("./pages/BlogPost.tsx"));
 
 initSentry();
 
@@ -83,6 +85,8 @@ const App = () => (
               <Route path="/refund" element={<Refund />} />
               <Route path="/share/:token" element={<SharedDocument />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
