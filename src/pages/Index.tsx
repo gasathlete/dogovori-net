@@ -36,16 +36,15 @@ const Index = () => {
       <SectorGrid onPick={(id) => navigate(`/wizard/${id}`)} />
       <TopDocuments />
       <Process />
-      <section id="compliance" className="container py-8 sm:py-10 md:py-14">
-        <div className="rounded-2xl border border-gold/20 bg-gradient-card p-6 sm:p-8 md:p-10 text-center shadow-elegant">
-          <div className="mb-2 sm:mb-3 text-xs uppercase tracking-[0.2em] text-gold">Съответствие</div>
-          <h3 className="font-serif text-xl font-bold leading-tight sm:text-2xl md:text-3xl">
+      <section id="compliance" className="container py-14 sm:py-16 md:py-24">
+        <div className="relative overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-8 text-center shadow-elegant md:p-14">
+          <div className="absolute inset-x-0 top-0 hairline-x" />
+          <div className="eyebrow mb-4 justify-center">Съответствие</div>
+          <h3 className="font-serif text-xl font-bold leading-tight text-balance sm:text-2xl md:text-[32px]">
             Закон за задълженията и договорите · Търговски закон · ЗУТ
           </h3>
-          <p className="mx-auto mt-2 sm:mt-3 max-w-2xl text-sm leading-snug text-muted-foreground">
-            Всеки  договор включва клаузи за частична недействителност, форсмажор
-            и подсъдност (Софийски градски съд / Арбитраж при БТПП). В зависимост от казуса, препоръчваме
-            окончателен преглед от лицензиран адвокат.
+          <p className="mx-auto mt-4 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground md:text-base">
+            Всеки договор включва клаузи за частична недействителност, форсмажор и подсъдност (Софийски градски съд / Арбитраж при БТПП). В зависимост от казуса, препоръчваме окончателен преглед от лицензиран адвокат.
           </p>
         </div>
       </section>
