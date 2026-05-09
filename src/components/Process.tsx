@@ -1,4 +1,4 @@
-import { ListChecks, ClipboardList, ShieldCheck, FileCheck2 } from "lucide-react";
+import { ListChecks, ClipboardList, ShieldCheck, FileCheck2, FolderArchive, Send } from "lucide-react";
 
 export function Process() {
   const steps = [
@@ -26,6 +26,18 @@ export function Process() {
       title: "Готов договор",
       text: "Пълен договор с номерирани клаузи, частична недействителност и подсъдност. Експорт PDF/DOCX.",
     },
+    {
+      icon: FolderArchive,
+      n: "05",
+      title: "Съхраняване и подреждане",
+      text: "Организирайте цялата си документация на едно място — с тагове, версии и бърз достъп до всеки договор.",
+    },
+    {
+      icon: Send,
+      n: "06",
+      title: "Подписване и изпращане",
+      text: "Подпишете електронно и изпратете готовия професионален документ директно до отсрещната страна.",
+    },
   ];
 
   return (
@@ -42,7 +54,7 @@ export function Process() {
             ​Функции
           </h2>
         </div>
-        <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-hairline bg-hairline md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-hairline bg-hairline sm:grid-cols-2 md:grid-cols-3">
           {steps.map((s) => (
             <div
               key={s.n}
