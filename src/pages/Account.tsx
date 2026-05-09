@@ -536,13 +536,13 @@ function DocumentsTab({
                       </div>
                     </div>
                     <div
-                      className="flex flex-wrap items-center gap-2"
+                      className="flex flex-wrap items-center gap-1.5"
                       onClick={(e) => e.preventDefault()}
                     >
-                      <Button size="sm" variant="outline" disabled={busy === d.id + "pdf"} onClick={() => redownload(d, "pdf")}>
+                      <Button size="sm" variant="outline" className="h-9" disabled={busy === d.id + "pdf"} onClick={() => redownload(d, "pdf")}>
                         {busy === d.id + "pdf" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Download className="mr-1 h-3 w-3" />} PDF
                       </Button>
-                      <Button size="sm" variant="outline" disabled={busy === d.id + "docx"} onClick={() => redownload(d, "docx")}>
+                      <Button size="sm" variant="outline" className="h-9" disabled={busy === d.id + "docx"} onClick={() => redownload(d, "docx")}>
                         {busy === d.id + "docx" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Download className="mr-1 h-3 w-3" />} DOCX
                       </Button>
                       {d.kind === "contract" && <ShareForSignDialog documentId={d.id} documentTitle={d.title} />}
@@ -553,7 +553,7 @@ function DocumentsTab({
                           {folders.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(d.id)}>
+                      <Button size="sm" variant="ghost" className="h-9 w-9 p-0 text-destructive" onClick={() => remove(d.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
