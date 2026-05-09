@@ -154,6 +154,8 @@ export default function AccountPage() {
               activeContactName={activeContactName}
               clearContactFilter={clearContactFilter}
               reload={reload}
+              uploaded={uploaded}
+              analysesByContract={analysesByContract}
             />
           </TabsContent>
           <TabsContent value="folders">
