@@ -126,49 +126,43 @@ export default function TemplatePage() {
       <Header />
 
       <article className="container max-w-4xl py-12 md:py-16">
-        <nav aria-label="Breadcrumb" className="mb-6 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+        <nav aria-label="Breadcrumb" className="mb-8 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
           <Link to="/" className="hover:text-gold">Начало</Link>
           <ChevronRight className="h-3 w-3" />
           <Link to="/catalog" className="hover:text-gold">Каталог</Link>
           <ChevronRight className="h-3 w-3" />
           <Link to={`/catalog#${category.id}`} className="hover:text-gold">{category.title}</Link>
           <ChevronRight className="h-3 w-3" />
-          <span className="text-foreground">{doc.name}</span>
+          <span className="truncate text-foreground/70">{doc.name}</span>
         </nav>
 
-        <header className="mb-8">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-gold">
+        <header className="mb-10">
+          <div className="eyebrow mb-4">
             <FileText className="h-3 w-3" />
             {category.title}
           </div>
-          <h1 className="font-serif text-3xl font-bold leading-tight md:text-5xl">{doc.name}</h1>
-          <p className="mt-4 text-lg text-muted-foreground">{doc.purpose}</p>
+          <h1 className="font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl">{doc.name}</h1>
+          <p className="mt-5 text-balance text-base leading-relaxed text-muted-foreground md:text-lg">{doc.purpose}</p>
 
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              to={wizardHref}
-              className="inline-flex items-center gap-2 rounded-md bg-gradient-gold px-6 py-3 text-sm font-bold uppercase tracking-wider text-navy shadow-gold transition-all hover:shadow-[0_15px_50px_-10px_hsl(43_55%_54%_/_0.5)]"
-            >
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link to={wizardHref} className="btn-gold">
               Създай за 2 минути <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link
-              to="/catalog"
-              className="inline-flex items-center gap-2 rounded-md border border-gold/30 px-6 py-3 text-sm font-medium text-gold transition-colors hover:bg-gold/10"
-            >
+            <Link to="/catalog" className="btn-ghost-gold normal-case tracking-normal">
               Виж всички шаблони
             </Link>
           </div>
         </header>
 
         {intro && (
-          <div className="prose prose-invert mb-8 max-w-none text-base leading-relaxed text-foreground/90">
-            <p>{intro}</p>
+          <div className="prose prose-invert mb-10 max-w-none text-base leading-[1.8] text-foreground/90">
+            <p className="text-pretty">{intro}</p>
           </div>
         )}
 
-        <section className="mb-10 rounded-xl border border-gold/20 bg-gradient-card p-6 shadow-soft">
-          <div className="mb-2 text-xs uppercase tracking-[0.2em] text-gold">Ключова клауза</div>
-          <p className="font-serif text-lg italic text-foreground">⚖ {doc.keyClause}</p>
+        <section className="mb-12 rounded-xl surface-elevated p-6 md:p-7">
+          <div className="eyebrow mb-3">Ключова клауза</div>
+          <p className="font-serif text-lg italic leading-relaxed text-foreground md:text-xl">⚖ {doc.keyClause}</p>
         </section>
 
         <Section title="Кога се използва този договор">
@@ -208,13 +202,14 @@ export default function TemplatePage() {
         </Section>
 
         <Section title="Често задавани въпроси">
-          <div className="space-y-4">
+          <div className="divide-y divide-border/50 overflow-hidden rounded-xl border border-border/50 bg-card/30">
             {faq.map((f, i) => (
-              <details key={i} className="group rounded-lg border border-border/60 bg-navy-light/30 p-4">
-                <summary className="cursor-pointer font-serif text-base font-bold text-foreground">
-                  {f.q}
+              <details key={i} className="group p-5 [&_summary::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer items-start justify-between gap-3 font-serif text-base font-bold text-foreground">
+                  <span>{f.q}</span>
+                  <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-gold transition-transform duration-200 group-open:rotate-90" />
                 </summary>
-                <p className="mt-3 text-sm text-muted-foreground">{f.a}</p>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
               </details>
             ))}
           </div>
@@ -227,27 +222,25 @@ export default function TemplatePage() {
                 <Link
                   key={r.slug}
                   to={`/shablon/${r.slug}`}
-                  className="group rounded-lg border border-border/60 bg-gradient-card p-4 transition-all hover:border-gold/40 hover:shadow-soft"
+                  className="group rounded-xl surface-elevated p-4 transition-colors hover:border-gold/45"
                 >
-                  <h3 className="font-serif text-sm font-bold text-foreground group-hover:text-gold">
+                  <h3 className="font-serif text-sm font-bold leading-snug text-foreground transition-colors group-hover:text-gold">
                     {r.doc.name}
                   </h3>
-                  <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{r.doc.purpose}</p>
+                  <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{r.doc.purpose}</p>
                 </Link>
               ))}
             </div>
           </Section>
         )}
 
-        <section className="mt-12 rounded-2xl border border-gold/20 bg-gradient-card p-8 text-center shadow-elegant">
-          <h2 className="font-serif text-2xl font-bold md:text-3xl">Готов ли сте да създадете {doc.name}?</h2>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">
+        <section className="relative mt-14 overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-10 text-center shadow-elegant md:p-12">
+          <div className="absolute inset-x-0 top-0 hairline-x" />
+          <h2 className="font-serif text-2xl font-bold leading-tight text-balance md:text-[32px]">Готов ли сте да създадете {doc.name}?</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground">
             Попълнете кратък въпросник и получете готов договор в PDF и DOCX формат, съобразен с българското право.
           </p>
-          <Link
-            to={wizardHref}
-            className="mt-6 inline-flex items-center gap-2 rounded-md bg-gradient-gold px-6 py-3 text-sm font-bold uppercase tracking-wider text-navy shadow-gold"
-          >
+          <Link to={wizardHref} className="btn-gold mt-7">
             Започни сега <ArrowRight className="h-4 w-4" />
           </Link>
         </section>
@@ -260,8 +253,8 @@ export default function TemplatePage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mb-10">
-      <h2 className="mb-4 font-serif text-2xl font-bold text-foreground">{title}</h2>
+    <section className="mb-12">
+      <h2 className="mb-5 font-serif text-2xl font-bold leading-tight text-foreground md:text-[28px]">{title}</h2>
       {children}
     </section>
   );

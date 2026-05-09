@@ -89,14 +89,14 @@ export default function BlogPost() {
         </nav>
 
         <article className="mx-auto max-w-3xl">
-          <header className="mb-8">
+          <header className="mb-10">
             <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold">
               {post.category}
             </span>
-            <h1 className="mt-3 text-3xl font-bold leading-tight tracking-tight md:text-4xl">
+            <h1 className="mt-3 font-serif text-3xl font-bold leading-[1.1] tracking-tight text-balance md:text-[44px] md:leading-[1.05]">
               {post.title}
             </h1>
-            <div className="mt-4 flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="mt-5 flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
               <time dateTime={post.publishedAt}>
                 {new Date(post.publishedAt).toLocaleDateString("bg-BG", {
                   day: "numeric",
@@ -109,7 +109,7 @@ export default function BlogPost() {
             </div>
           </header>
 
-          <figure className="mb-8 overflow-hidden rounded-xl border border-border/60">
+          <figure className="mb-10 overflow-hidden rounded-xl border border-border/50">
             <img
               src={post.image}
               alt={post.title}
@@ -118,25 +118,23 @@ export default function BlogPost() {
             />
           </figure>
 
-          <div className="prose prose-invert max-w-none">
+          <div className="prose prose-invert max-w-none text-pretty">
             <Paragraphs text={post.intro} />
 
             {post.sections.map((s, i) => (
-              <section key={i} className="mt-10">
-                <h2 className="mb-4 text-2xl font-semibold tracking-tight text-foreground">{s.heading}</h2>
+              <section key={i} className="mt-12">
+                <h2 className="mb-5 font-serif text-2xl font-bold leading-tight tracking-tight text-foreground md:text-[28px]">{s.heading}</h2>
                 <Paragraphs text={s.body} />
               </section>
             ))}
 
             {post.takeaways.length > 0 && (
-              <aside className="mt-12 rounded-xl border border-gold/30 bg-gold/5 p-6">
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-gold">
-                  Ключови изводи
-                </h2>
-                <ul className="space-y-2 text-sm text-foreground/90">
+              <aside className="mt-14 overflow-hidden rounded-xl border border-gold/30 bg-gold/[0.04] p-6 md:p-7">
+                <div className="eyebrow mb-4">Ключови изводи</div>
+                <ul className="space-y-2.5 text-sm leading-relaxed text-foreground/90">
                   {post.takeaways.map((t, i) => (
-                    <li key={i} className="flex gap-2">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
+                    <li key={i} className="flex gap-3">
+                      <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-gold" />
                       <span>{t}</span>
                     </li>
                   ))}
@@ -145,14 +143,14 @@ export default function BlogPost() {
             )}
 
             {post.faq.length > 0 && (
-              <section className="mt-12">
-                <h2 className="mb-5 text-2xl font-semibold tracking-tight">Често задавани въпроси</h2>
-                <div className="divide-y divide-border/60 rounded-xl border border-border/60 bg-card/30">
+              <section className="mt-14">
+                <h2 className="mb-6 font-serif text-2xl font-bold leading-tight tracking-tight md:text-[28px]">Често задавани въпроси</h2>
+                <div className="divide-y divide-border/50 overflow-hidden rounded-xl border border-border/50 bg-card/30">
                   {post.faq.map((f, i) => (
                     <details key={i} className="group p-5 [&_summary::-webkit-details-marker]:hidden">
-                      <summary className="flex cursor-pointer items-start justify-between gap-3 text-base font-medium text-foreground">
+                      <summary className="flex cursor-pointer items-start justify-between gap-3 font-serif text-base font-bold text-foreground">
                         <span>{f.q}</span>
-                        <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-gold transition-transform group-open:rotate-90" />
+                        <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-gold transition-transform duration-200 group-open:rotate-90" />
                       </summary>
                       <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
                     </details>
@@ -162,38 +160,37 @@ export default function BlogPost() {
             )}
           </div>
 
-          <div className="mt-12 rounded-xl border border-gold/30 bg-gradient-to-br from-gold/10 to-transparent p-6 text-center md:p-8">
-            <h3 className="text-lg font-semibold md:text-xl">Нужен ви е готов договор?</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
+          <div className="relative mt-14 overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-8 text-center shadow-elegant md:p-10">
+            <div className="absolute inset-x-0 top-0 hairline-x" />
+            <h3 className="font-serif text-xl font-bold leading-tight md:text-2xl">Нужен ви е готов договор?</h3>
+            <p className="mx-auto mt-3 max-w-xl text-balance text-sm leading-relaxed text-muted-foreground">
               Над 290 професионални шаблона на български — попълнете с AI помощник за минути.
             </p>
-            <Link
-              to="/catalog"
-              className="mt-5 inline-flex h-11 items-center rounded-md bg-gold px-6 text-sm font-semibold text-navy transition-opacity hover:opacity-90"
-            >
+            <Link to="/catalog" className="btn-gold mt-6">
               Виж шаблоните
             </Link>
           </div>
         </article>
 
         {related.length > 0 && (
-          <section className="mx-auto mt-16 max-w-5xl">
-            <h2 className="mb-6 text-xl font-semibold">Свързани статии</h2>
+          <section className="mx-auto mt-20 max-w-5xl">
+            <h2 className="mb-7 font-serif text-2xl font-bold leading-tight md:text-[28px]">Свързани статии</h2>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {related.map((r) => (
                 <Link
                   key={r.slug}
                   to={`/blog/${r.slug}`}
-                  className="group overflow-hidden rounded-xl border border-border/60 bg-card/30 transition-colors hover:border-gold/40"
+                  className="group overflow-hidden rounded-xl surface-elevated transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/45"
                 >
-                  <div className="aspect-[16/9] overflow-hidden bg-navy-light">
-                    <img src={r.image} alt={r.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <div className="relative aspect-[16/9] overflow-hidden bg-navy-light">
+                    <img src={r.image} alt={r.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-card/90 via-transparent to-transparent opacity-60" />
                   </div>
                   <div className="p-4">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gold/80">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/85">
                       {r.category}
                     </span>
-                    <h3 className="mt-2 text-sm font-medium leading-snug transition-colors group-hover:text-gold">
+                    <h3 className="mt-2 font-serif text-sm font-bold leading-snug transition-colors duration-200 group-hover:text-gold">
                       {r.title}
                     </h3>
                   </div>
