@@ -52,7 +52,8 @@ export function ShareForSignDialog({ documentId, documentTitle }: Props) {
 
   const copy = async () => {
     if (!link) return;
-    await navigator.clipboard.writeText(link);
+    const ok = await copyToClipboard(link);
+    if (!ok) { toast.error("Копирането не е разрешено"); return; }
     setCopied(true);
     toast.success("Линкът е копиран");
     setTimeout(() => setCopied(false), 1500);
