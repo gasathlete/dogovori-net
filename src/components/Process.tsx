@@ -54,7 +54,7 @@ export function Process() {
             ​Функции
           </h2>
         </div>
-        <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-hairline bg-hairline md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-hairline bg-hairline sm:grid-cols-2 md:grid-cols-3">
           {steps.map((s) => (
             <div
               key={s.n}
