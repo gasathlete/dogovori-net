@@ -47,11 +47,14 @@ export default function CheckoutReturn() {
 
   // Auto-redirect back to wizard once the purchase is reflected.
   useEffect(() => {
-    if (readyAt === "ready" && redirectTo) {
-      const t = setTimeout(() => navigate(redirectTo), 1500);
-      return () => clearTimeout(t);
+    if (readyAt === "ready") {
+      trackEvent("purchase_complete", { sessionId: sessionId ?? undefined });
+      if (redirectTo) {
+        const t = setTimeout(() => navigate(redirectTo), 1500);
+        return () => clearTimeout(t);
+      }
     }
-  }, [readyAt, redirectTo, navigate]);
+  }, [readyAt, redirectTo, navigate, sessionId]);
 
   return (
     <div className="min-h-screen">
