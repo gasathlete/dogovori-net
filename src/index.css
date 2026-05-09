@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    /* Navy & Gold premium legal palette */
+    /* Navy & Gold premium legal palette — refined */
     --background: 220 45% 7%;
     --foreground: 42 35% 92%;
 
@@ -35,7 +35,8 @@
     --warning: 38 90% 55%;
     --danger: 0 75% 58%;
 
-    --border: 220 30% 18%;
+    /* Refined hairline borders for premium feel */
+    --border: 220 30% 20%;
     --input: 220 30% 16%;
     --ring: 43 55% 54%;
 
@@ -47,14 +48,23 @@
     --navy: 220 45% 7%;
     --navy-light: 220 38% 14%;
 
+    /* Elevated surface tokens for premium layering */
+    --surface-1: 220 40% 9%;
+    --surface-2: 220 38% 11%;
+    --surface-3: 220 36% 13%;
+    --hairline: 220 30% 20%;
+    --hairline-strong: 43 50% 50% / 0.35;
+
     --gradient-hero: linear-gradient(135deg, hsl(220 50% 8%) 0%, hsl(220 42% 12%) 50%, hsl(220 38% 16%) 100%);
     --gradient-gold: linear-gradient(135deg, hsl(43 60% 48%) 0%, hsl(43 70% 62%) 100%);
     --gradient-card: linear-gradient(180deg, hsl(220 38% 11%) 0%, hsl(220 42% 9%) 100%);
     --gradient-radial: radial-gradient(ellipse at top, hsl(220 50% 14% / 0.8), transparent 70%);
+    --gradient-fine-noise: radial-gradient(circle at 1px 1px, hsl(43 55% 54% / 0.06) 1px, transparent 0);
 
     --shadow-gold: 0 10px 40px -10px hsl(43 55% 54% / 0.35);
     --shadow-elegant: 0 20px 60px -15px hsl(220 60% 4% / 0.6);
     --shadow-soft: 0 4px 20px -4px hsl(220 60% 4% / 0.4);
+    --shadow-inset-line: inset 0 1px 0 hsl(43 55% 54% / 0.06);
 
     --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -76,19 +86,53 @@
 
   html {
     font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
   }
 
   body {
     @apply bg-background text-foreground;
     background-image: var(--gradient-radial);
     background-attachment: fixed;
-    font-feature-settings: "ss01", "cv11";
+    font-feature-settings: "ss01", "cv11", "kern";
+    -webkit-tap-highlight-color: transparent;
   }
 
   h1, h2, h3, h4, .font-serif {
     font-family: 'Libre Baskerville', Georgia, serif;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
   }
+
+  h1 { letter-spacing: -0.025em; }
+  h2 { letter-spacing: -0.02em; }
+
+  /* Refined selection */
+  ::selection {
+    background: hsl(var(--gold) / 0.28);
+    color: hsl(var(--foreground));
+  }
+
+  /* Premium scrollbar */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: hsl(220 45% 6%); }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(220 25% 22%);
+    border-radius: 999px;
+    border: 2px solid hsl(220 45% 6%);
+  }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(43 35% 38%); }
+
+  /* Elegant focus rings */
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--gold) / 0.55);
+    border-radius: calc(var(--radius) - 2px);
+  }
+
+  /* Image rendering */
+  img { -webkit-user-drag: none; }
 }
 
 @layer components {
@@ -110,4 +154,76 @@
     color: hsl(220 30% 12%);
     font-family: 'Libre Baskerville', Georgia, serif;
   }
+
+  /* Premium surface — subtle gradient + inner highlight line */
+  .surface-elevated {
+    background:
+      linear-gradient(180deg, hsl(var(--surface-2) / 0.85), hsl(var(--surface-1) / 0.75));
+    border: 1px solid hsl(var(--hairline));
+    box-shadow: var(--shadow-inset-line), 0 1px 0 0 hsl(0 0% 0% / 0.2);
+  }
+  .surface-elevated:hover {
+    border-color: hsl(43 50% 50% / 0.4);
+  }
+
+  /* Hairline divider — premium 1px gold tint */
+  .hairline-x {
+    background: linear-gradient(90deg, transparent, hsl(var(--gold) / 0.35), transparent);
+    height: 1px;
+  }
+
+  /* Eyebrow label — used everywhere for section labels */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold sm:text-[11px];
+  }
+
+  /* Fine grid texture (use as background-image utility) */
+  .bg-fine-grid {
+    background-image: var(--gradient-fine-noise);
+    background-size: 32px 32px;
+  }
+
+  /* Premium gold CTA — consistent across the app */
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-navy transition-all duration-200;
+    background: var(--gradient-gold);
+    box-shadow: var(--shadow-gold), inset 0 1px 0 hsl(43 90% 80% / 0.5);
+  }
+  .btn-gold:hover {
+    box-shadow: 0 18px 50px -12px hsl(43 70% 55% / 0.55), inset 0 1px 0 hsl(43 90% 85% / 0.6);
+    transform: translateY(-1px);
+  }
+  .btn-gold:active { transform: translateY(0); }
+
+  .btn-ghost-gold {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border border-gold/35 bg-gold/5 px-6 py-3 text-sm font-medium text-gold transition-colors duration-200 hover:bg-gold/10 hover:border-gold/55;
+  }
+
+  /* Card with subtle corner glow on hover */
+  .card-premium {
+    @apply rounded-xl surface-elevated transition-colors duration-200;
+  }
+
+  /* Decorative corner ticks for cards (aesop-style) */
+  .corner-ticks::before,
+  .corner-ticks::after {
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-color: hsl(var(--gold) / 0.45);
+    border-style: solid;
+    transition: border-color 200ms;
+    pointer-events: none;
+  }
+  .corner-ticks::before { top: 8px; left: 8px; border-width: 1px 0 0 1px; }
+  .corner-ticks::after { bottom: 8px; right: 8px; border-width: 0 1px 1px 0; }
+  .corner-ticks:hover::before,
+  .corner-ticks:hover::after { border-color: hsl(var(--gold) / 0.85); }
+}
+
+@layer utilities {
+  /* Use for long-form prose sections */
+  .text-balance { text-wrap: balance; }
+  .text-pretty { text-wrap: pretty; }
 }
