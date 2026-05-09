@@ -430,8 +430,8 @@ function DocumentsTab({
         <section>
           <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h3 className="font-serif text-lg font-bold">Качени договори (AI риск-анализ)</h3>
-              <p className="text-xs text-muted-foreground">Качете свой договор (PDF, DOCX или текст) — Lovable AI ще извърши пълен правен риск-анализ.</p>
+              <h3 className="font-serif text-lg font-bold">Качени договори (за риск-анализ)</h3>
+              <p className="text-xs text-muted-foreground">Качете свой договор (PDF, DOCX или текст) — Системата ще извърши пълен правен риск-анализ.</p>
             </div>
             <UploadContractDialog
               folders={folders}
