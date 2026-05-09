@@ -1,0 +1,14 @@
+revoke execute on function public.admin_list_users(text,int) from anon, public;
+revoke execute on function public.admin_set_pro(uuid,int) from anon, public;
+revoke execute on function public.admin_revoke_pro(uuid) from anon, public;
+revoke execute on function public.admin_add_bonus_contracts(uuid,int) from anon, public;
+revoke execute on function public.admin_set_role(uuid, public.app_role, boolean) from anon, public;
+revoke execute on function public.is_staff(uuid) from anon, public;
+revoke execute on function public.has_role(uuid, public.app_role) from anon, public;
+grant execute on function public.admin_list_users(text,int) to authenticated;
+grant execute on function public.admin_set_pro(uuid,int) to authenticated;
+grant execute on function public.admin_revoke_pro(uuid) to authenticated;
+grant execute on function public.admin_add_bonus_contracts(uuid,int) to authenticated;
+grant execute on function public.admin_set_role(uuid, public.app_role, boolean) to authenticated;
+grant execute on function public.is_staff(uuid) to authenticated;
+grant execute on function public.has_role(uuid, public.app_role) to authenticated;
