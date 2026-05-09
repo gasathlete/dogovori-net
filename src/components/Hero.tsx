@@ -26,7 +26,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
       <div className="container relative py-12 sm:py-16 md:py-24 lg:py-28">
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-3.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold sm:text-[11px]">
-            <Sparkles className="h-3.5 w-3.5" />
+            <Bird className="h-3.5 w-3.5" />
             Професионален юридически помощник
           </div>
           <h1 className="font-serif text-[28px] font-bold leading-[1.1] text-balance sm:text-4xl md:text-5xl lg:text-[58px] lg:leading-[1.05]">
