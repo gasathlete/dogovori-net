@@ -111,7 +111,7 @@ export function UploadContractDialog({
       if (insertRes.error) throw new Error(insertRes.error.message);
       const newId = insertRes.data!.id as string;
 
-      setPhase("AI риск анализ...");
+      setPhase("Риск анализ...");
       const { data: aData, error: aErr } = await supabase.functions.invoke("analyze-contract", {
         body: { uploadedContractId: newId },
       });
