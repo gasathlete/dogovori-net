@@ -123,9 +123,16 @@ export default function AccountPage() {
             <h1 className="mt-1 font-serif text-3xl font-bold">Моят профил</h1>
             <p className="text-sm text-muted-foreground">{user?.email}</p>
           </div>
-          <Button variant="outline" onClick={signOut} className="border-border/60">
-            <LogOut className="mr-2 h-4 w-4" /> Изход
-          </Button>
+          <div className="flex gap-2">
+            {isStaff && (
+              <Button asChild variant="outline" className="border-gold/60 text-gold hover:bg-gold/10">
+                <Link to="/admin"><ShieldCheck className="mr-2 h-4 w-4" /> Модераторски панел</Link>
+              </Button>
+            )}
+            <Button variant="outline" onClick={signOut} className="border-border/60">
+              <LogOut className="mr-2 h-4 w-4" /> Изход
+            </Button>
+          </div>
         </div>
 
         <Tabs value={initialTab} onValueChange={onTabChange} className="space-y-6">
