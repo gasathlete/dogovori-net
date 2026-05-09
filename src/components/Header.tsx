@@ -26,7 +26,7 @@ export function Header() {
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="hidden border-l border-border/60 pl-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold lg:inline-flex lg:flex-col lg:leading-tight"
+            className="hidden border-l border-border/60 pl-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold sm:inline-flex sm:flex-col sm:leading-tight"
           >
             <span>Powered by</span>
             <span className="font-semibold text-gold/90">IM Development</span>
