@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const NAV = [
   { to: "/catalog", label: "Каталог" },
+  { to: "/blog", label: "Блог" },
   { to: "/#sectors", label: "Сектори" },
   { to: "/#process", label: "Как работи ?" },
   { to: "/#compliance", label: "Съответствие" },
