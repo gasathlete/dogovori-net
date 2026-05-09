@@ -178,18 +178,20 @@ export default function CatalogPage() {
             </div>
           </div>
         </div>
+        <div className="absolute inset-x-0 bottom-0 hairline-x opacity-60" />
       </section>
 
       {/* Sticky category nav */}
-      <nav className="sticky top-16 z-30 border-b border-border/60 bg-navy/90 backdrop-blur-xl">
+      <nav className="sticky top-16 z-30 border-b border-border/60 bg-navy/85 backdrop-blur-xl">
         <div className="container flex gap-2 overflow-x-auto py-3 text-xs">
           {CATALOG.map((cat) => (
             <a
               key={cat.id}
               href={`#${cat.id}`}
-              className="whitespace-nowrap rounded-full border border-border/60 bg-card/40 px-3 py-1.5 text-muted-foreground transition-all hover:border-gold/50 hover:text-gold"
+              className="group whitespace-nowrap rounded-full border border-border/60 bg-card/40 px-3.5 py-1.5 font-medium text-muted-foreground transition-colors duration-200 hover:border-gold/50 hover:bg-gold/5 hover:text-gold"
             >
-              {cat.number} · {cat.title}
+              <span className="mr-1.5 font-serif text-gold/60 group-hover:text-gold/80">{cat.number}</span>
+              {cat.title}
             </a>
           ))}
         </div>
