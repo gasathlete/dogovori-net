@@ -60,7 +60,7 @@ for (const cat of CATALOG) {
   }
 }
 
-const all = [...staticEntries, ...categoryEntries, ...templateEntries];
+const all = [...staticEntries, ...categoryEntries, ...templateEntries, ...blogEntries];
 
 const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
