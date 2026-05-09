@@ -61,6 +61,7 @@ export function SeoFooter() {
               <li><Link to="/privacy" className="hover:text-gold">Поверителност</Link></li>
               <li><Link to="/cookies" className="hover:text-gold">Бисквитки</Link></li>
               <li><Link to="/refund" className="hover:text-gold">Възстановяване</Link></li>
+              <li><Link to="/blog" className="hover:text-gold">Блог</Link></li>
               <li><a href="mailto:contact@dogovori.net" className="hover:text-gold">Контакти</a></li>
             </ul>
           </div>
