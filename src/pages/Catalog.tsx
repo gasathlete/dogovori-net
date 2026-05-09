@@ -97,19 +97,21 @@ export default function CatalogPage() {
       <Header />
 
       {/* Hero */}
-      <section className="relative border-b border-border/60">
-        <div className="absolute inset-0 overflow-hidden bg-gradient-hero opacity-90" />
-        <div className="container relative py-16 md:py-20">
+      <section className="relative overflow-hidden border-b border-border/60">
+        <div className="absolute inset-0 bg-gradient-hero opacity-90" />
+        <div className="absolute inset-0 bg-fine-grid opacity-50" />
+        <div className="absolute inset-x-0 top-0 hairline-x" />
+        <div className="container relative py-16 md:py-24">
           <div className="mx-auto max-w-3xl text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-4 py-1.5 text-xs uppercase tracking-[0.2em] text-gold">
+            <div className="eyebrow mb-5 justify-center">
               <BookOpen className="h-3.5 w-3.5" />
               Каталог на документите
             </div>
-            <h1 className="font-serif text-4xl font-bold leading-tight md:text-5xl">
+            <h1 className="font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl lg:text-[56px]">
               {totalDocs}+ професионални договора и бланки
             </h1>
-            <p className="mx-auto mt-4 max-w-2xl text-base text-muted-foreground">
-              Структуриран каталог по сектори – от трудови и наемни отношения до IT, крипто и
+            <p className="mx-auto mt-5 max-w-2xl text-balance text-base leading-relaxed text-muted-foreground md:text-lg">
+              Структуриран каталог по сектори — от трудови и наемни отношения до IT, крипто и
               корпоративно управление. Всеки документ съдържа цел и ключова клауза.
             </p>
             <div className="relative mx-auto mt-8 max-w-xl">
