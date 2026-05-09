@@ -57,6 +57,12 @@ export default function AccountPage() {
   const [quota, setQuota] = useState<Quota | null>(null);
   const [profile, setProfile] = useState<{ display_name: string | null; company: string | null; vat_number: string | null }>({ display_name: "", company: "", vat_number: "" });
   const [activeFolder, setActiveFolder] = useState<string | "all">("all");
+  const [isStaff, setIsStaff] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setIsStaff(false); return; }
+    supabase.rpc("is_staff", { _user_id: user.id }).then(({ data }) => setIsStaff(Boolean(data)));
+  }, [user]);
 
   const reload = async () => {
     if (!user) return;
