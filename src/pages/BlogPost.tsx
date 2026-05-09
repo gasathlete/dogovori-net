@@ -89,14 +89,14 @@ export default function BlogPost() {
         </nav>
 
         <article className="mx-auto max-w-3xl">
-          <header className="mb-8">
+          <header className="mb-10">
             <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold">
               {post.category}
             </span>
-            <h1 className="mt-3 text-3xl font-bold leading-tight tracking-tight md:text-4xl">
+            <h1 className="mt-3 font-serif text-3xl font-bold leading-[1.1] tracking-tight text-balance md:text-[44px] md:leading-[1.05]">
               {post.title}
             </h1>
-            <div className="mt-4 flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="mt-5 flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
               <time dateTime={post.publishedAt}>
                 {new Date(post.publishedAt).toLocaleDateString("bg-BG", {
                   day: "numeric",
@@ -109,7 +109,7 @@ export default function BlogPost() {
             </div>
           </header>
 
-          <figure className="mb-8 overflow-hidden rounded-xl border border-border/60">
+          <figure className="mb-10 overflow-hidden rounded-xl border border-border/50">
             <img
               src={post.image}
               alt={post.title}
