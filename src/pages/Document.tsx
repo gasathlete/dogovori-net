@@ -298,7 +298,7 @@ export default function DocumentPage() {
           )}
 
           {/* RIGHT — Live draft */}
-          <section className="lg:sticky lg:top-32 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">
+          <section>
             <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gold">
               <FileText className="h-3.5 w-3.5" />
               Договор
