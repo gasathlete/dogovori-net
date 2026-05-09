@@ -3,7 +3,7 @@
 //
 // Usage: bun run scripts/build-sitemap.ts
 
-import { writeFileSync } from "node:fs";
+import { writeFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { CATALOG } from "../src/data/catalog";
 import { slugify } from "../src/lib/slugify";
