@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { exportPDF, exportDOCX, type GeneratedContract } from "@/lib/exporters";
-import { exportTemplatePDF, exportTemplateDOCX } from "@/lib/templateExporter";
+import type { GeneratedContract } from "@/lib/exporters";
 import type { CompanionTemplate } from "@/data/companionTemplates";
 
 export type DownloadKind = "contract" | "template";
@@ -61,12 +60,15 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
     ? { watermark: true as const, userTag: data.user_tag as string | undefined }
     : undefined;
 
+  // Dynamic-import the heavy jspdf/docx modules only when actually exporting.
   if (p.kind === "contract") {
     const c = data.payload as GeneratedContract;
+    const { exportPDF, exportDOCX } = await import("@/lib/exporters");
     if (p.format === "pdf") await exportPDF(c, watermarkOpts);
     else await exportDOCX(c, watermarkOpts);
   } else {
     const t = data.payload as CompanionTemplate;
+    const { exportTemplatePDF, exportTemplateDOCX } = await import("@/lib/templateExporter");
     if (p.format === "pdf") await exportTemplatePDF(t, watermarkOpts);
     else await exportTemplateDOCX(t, watermarkOpts);
   }
