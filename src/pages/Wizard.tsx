@@ -20,6 +20,7 @@ import { SignatureBlock, type SignatureData } from "@/components/wizard/Signatur
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { trackEvent } from "@/lib/analytics";
 
 interface AIResult {
   risk: {
@@ -189,7 +190,14 @@ export default function WizardPage() {
   // Auto-seed the editable title once the contract is generated.
   useEffect(() => {
     if (result && !customTitle) setCustomTitle(result.contract.title);
-  }, [result, customTitle]);
+    if (result) trackEvent("wizard_complete", { sectorId, doc: docName });
+  }, [result, customTitle, sectorId, docName]);
+
+  // Track wizard_start once on mount.
+  useEffect(() => {
+    trackEvent("wizard_start", { sectorId, doc: docName });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleExport = async (format: "pdf" | "docx") => {
     if (!result) return;
