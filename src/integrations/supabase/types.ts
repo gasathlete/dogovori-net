@@ -595,11 +595,65 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      admin_add_bonus_contracts: {
+        Args: { _count: number; _user_id: string }
+        Returns: undefined
+      }
+      admin_list_users: {
+        Args: { _limit?: number; _search?: string }
+        Returns: {
+          analyses_used: number
+          bonus_contracts: number
+          contracts_used: number
+          created_at: string
+          display_name: string
+          email: string
+          is_admin: boolean
+          is_moderator: boolean
+          plan: Database["public"]["Enums"]["user_plan"]
+          pro_until: string
+          user_id: string
+        }[]
+      }
+      admin_revoke_pro: { Args: { _user_id: string }; Returns: undefined }
+      admin_set_pro: {
+        Args: { _months: number; _user_id: string }
+        Returns: undefined
+      }
+      admin_set_role: {
+        Args: {
+          _grant: boolean
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: undefined
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -608,6 +662,14 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -627,6 +689,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "user"
       contact_type: "individual" | "legal"
       document_kind: "contract" | "template"
       user_plan: "free" | "pro"
@@ -757,6 +820,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "user"],
       contact_type: ["individual", "legal"],
       document_kind: ["contract", "template"],
       user_plan: ["free", "pro"],
