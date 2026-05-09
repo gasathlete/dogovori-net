@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Download, FileDown, FileText, Loader2, Pencil, Save, Trash2, User } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileDown, FileText, Loader2, Pencil, Save, Trash2, User } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
