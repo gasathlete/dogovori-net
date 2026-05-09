@@ -400,7 +400,35 @@ export function LiveDraft({
     };
     return (
       <ProtectedContent>
-        <div className="mb-2 flex items-center justify-end gap-2">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          {editing && isPro ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-md border border-gold/30 bg-card/60 px-2 py-1.5">
+              <select
+                value={fontFamily}
+                onChange={(e) => setFontFamily(e.target.value)}
+                className="h-8 rounded border border-border/60 bg-background px-2 text-xs"
+                title="Шрифт"
+              >
+                <option value="'Libre Baskerville', Georgia, serif">Libre Baskerville</option>
+                <option value="Georgia, serif">Georgia</option>
+                <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                <option value="Arial, Helvetica, sans-serif">Arial</option>
+                <option value="'Helvetica Neue', Helvetica, sans-serif">Helvetica</option>
+                <option value="'Calibri', sans-serif">Calibri</option>
+                <option value="Verdana, sans-serif">Verdana</option>
+              </select>
+              <select
+                value={fontSize}
+                onChange={(e) => setFontSize(Number(e.target.value))}
+                className="h-8 rounded border border-border/60 bg-background px-2 text-xs"
+                title="Размер"
+              >
+                {[10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24].map((s) => (
+                  <option key={s} value={s}>{s}px</option>
+                ))}
+              </select>
+            </div>
+          ) : <div />}
           {isPro ? (
             <Button
               size="sm"
@@ -416,7 +444,10 @@ export function LiveDraft({
             </span>
           )}
         </div>
-        <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
+        <article
+          className="legal-paper rounded-md p-6 shadow-elegant md:p-8"
+          style={editing && isPro ? { fontFamily, fontSize: `${fontSize}px` } : undefined}
+        >
           {editing && isPro ? (
             <Input
               value={generated.title}
