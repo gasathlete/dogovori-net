@@ -145,6 +145,8 @@ ${truncated}
     });
 
     if (!aiResp.ok) {
+      // Refund the quota slot since the operation failed.
+      if (!isPro) await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
       if (aiResp.status === 429) {
         return new Response(JSON.stringify({ error: "Достигнат е лимитът. Моля опитайте след малко." }), {
           status: 429,
