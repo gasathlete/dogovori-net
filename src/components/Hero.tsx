@@ -1,6 +1,6 @@
 import { ShieldCheck, Sparkles, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logoImg from "@/assets/logo-dogovori.png";
+import logoImg from "@/assets/logo-dogovori.webp";
 
 export function Hero({ onStart }: { onStart: () => void }) {
   return (
