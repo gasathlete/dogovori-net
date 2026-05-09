@@ -1,6 +1,6 @@
 import { ShieldCheck, Sparkles, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logoImg from "@/assets/logo-dogovori.png";
+import logoImg from "@/assets/logo-dogovori.webp";
 
 export function Hero({ onStart }: { onStart: () => void }) {
   return (
@@ -21,6 +21,10 @@ export function Hero({ onStart }: { onStart: () => void }) {
         <img
           src={logoImg}
           alt=""
+          width={256}
+          height={256}
+          loading="eager"
+          decoding="async"
           className="h-[85%] max-h-[720px] w-auto opacity-[0.08] mix-blend-screen md:opacity-[0.10]"
         />
       </div>
