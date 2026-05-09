@@ -40,6 +40,8 @@ export default {
         success: "hsl(var(--success))",
         warning: "hsl(var(--warning))",
         danger: "hsl(var(--danger))",
+        hairline: "hsl(var(--hairline))",
+        "hairline-strong": "hsl(var(--hairline-strong))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
