@@ -21,6 +21,8 @@ import { toast } from "sonner";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { ShareForSignDialog } from "@/components/ShareForSignDialog";
+import { UploadContractDialog } from "@/components/UploadContractDialog";
+import { ShieldAlert, ShieldCheck, AlertTriangle } from "lucide-react";
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
@@ -32,7 +34,14 @@ type SavedDoc = {
   id: string; title: string; kind: "contract" | "template"; folder_id: string | null;
   contact_id: string | null; payload: any; created_at: string;
 };
-type Quota = { contracts_used: number; templates_used: number; plan: "free" | "pro"; pro_until: string | null };
+type Quota = { contracts_used: number; templates_used: number; plan: "free" | "pro"; pro_until: string | null; analyses_used?: number };
+type UploadedContract = {
+  id: string; title: string; source: "pdf" | "docx" | "paste";
+  folder_id: string | null; contact_id: string | null;
+  original_filename: string | null; storage_path: string | null;
+  created_at: string;
+};
+type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_type: string; created_at: string };
 
 export default function AccountPage() {
   const { user, signOut } = useAuth();
