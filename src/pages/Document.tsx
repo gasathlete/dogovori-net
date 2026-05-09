@@ -284,6 +284,18 @@ export default function DocumentPage() {
               <Trash2 className="mr-2 h-3.5 w-3.5" /> Изтрий договора
             </Button>
           </section>
+          ) : (
+            <div className="hidden lg:flex justify-center pt-4">
+              <button
+                onClick={() => setDetailsOpen(true)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-gold/40 bg-card text-gold hover:bg-gold/10"
+                aria-label="Покажи детайлите"
+                title="Покажи детайлите"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
+          )}
 
           {/* RIGHT — Live draft */}
           <section className="lg:sticky lg:top-32 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">
