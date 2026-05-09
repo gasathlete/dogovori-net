@@ -33,7 +33,7 @@ export default function AuthPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -43,15 +43,19 @@ export default function AuthPage() {
     });
     setBusy(false);
     if (error) return toast.error("Грешка при регистрация", { description: error.message });
-    // Send welcome email (fire-and-forget)
-    supabase.functions.invoke('send-transactional-email', {
-      body: {
-        templateName: 'welcome',
-        recipientEmail: email,
-        idempotencyKey: `welcome-${email}`,
-        templateData: { name },
-      },
-    }).catch((e) => console.warn('welcome email failed', e));
+    // Send welcome email (fire-and-forget). Only when we have an active
+    // session — the edge function requires an authenticated user JWT and
+    // restricts the recipient to the caller's own email.
+    if (data?.session) {
+      supabase.functions.invoke('send-transactional-email', {
+        body: {
+          templateName: 'welcome',
+          recipientEmail: email,
+          idempotencyKey: `welcome-${email}`,
+          templateData: { name },
+        },
+      }).catch((e) => console.warn('welcome email failed', e));
+    }
     toast.success("Регистрацията е успешна!");
     navigate(redirect);
   };
