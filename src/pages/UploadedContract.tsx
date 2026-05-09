@@ -95,6 +95,26 @@ export default function UploadedContractPage() {
     load();
   };
 
+  const suggestCorrections = async () => {
+    if (!id) return;
+    setCorrecting(true);
+    const { data, error } = await supabase.functions.invoke("correct-uploaded", {
+      body: { uploadedContractId: id },
+    });
+    setCorrecting(false);
+    if (error || (data as any)?.error) {
+      const msg = (data as any)?.error ?? error?.message ?? "Грешка";
+      if (msg === "pro_required") {
+        toast.error("Тази функция е достъпна само за Pro абонати");
+        navigate("/account?tab=plan");
+      } else {
+        toast.error(msg);
+      }
+      return;
+    }
+    setCorrections(data as any);
+  };
+
   const downloadOriginal = async () => {
     if (!contract?.storage_path) {
       toast.error("Този договор няма прикачен оригинален файл (бил е въведен като текст).");
