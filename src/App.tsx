@@ -22,6 +22,7 @@ const Auth = lazy(() => import("./pages/Auth.tsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.tsx"));
 const Account = lazy(() => import("./pages/Account.tsx"));
 const DocumentPage = lazy(() => import("./pages/Document.tsx"));
+const UploadedContract = lazy(() => import("./pages/UploadedContract.tsx"));
 const CheckoutReturn = lazy(() => import("./pages/CheckoutReturn.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 const Terms = lazy(() => import("./pages/legal/Terms.tsx"));
@@ -75,6 +76,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <DocumentPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/uploaded/:id"
+                element={
+                  <ProtectedRoute>
+                    <UploadedContract />
                   </ProtectedRoute>
                 }
               />
