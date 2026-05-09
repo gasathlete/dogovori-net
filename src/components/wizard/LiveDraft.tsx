@@ -385,6 +385,9 @@ export function LiveDraft({
   const sigA = signature?.name_a || partyA;
   const sigB = signature?.name_b || partyB;
   const [editing, setEditing] = useState(false);
+  const [fontFamily, setFontFamily] = useState<string>("'Libre Baskerville', Georgia, serif");
+  const [fontSize, setFontSize] = useState<number>(14);
+  const editorInputClass = "bg-white text-gray-900 placeholder:text-gray-400 border-gray-300 focus-visible:ring-gold";
 
   if (generated) {
     const updateClause = (idx: number, patch: Partial<{ title: string; body: string; number: string }>) => {
