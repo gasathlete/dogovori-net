@@ -58,14 +58,18 @@ export default function CategoryPage() {
           <span className="text-foreground">{cat.title}</span>
         </nav>
 
-        <header className="mb-10 flex items-start gap-4">
+        <header className="mb-12 flex items-start gap-5">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-gold/30 bg-gold/5 text-gold">
-            <Icon className="h-7 w-7" strokeWidth={1.6} />
+            <Icon className="h-6 w-6" strokeWidth={1.6} />
           </div>
           <div>
-            <div className="text-xs uppercase tracking-[0.2em] text-gold">{cat.number} · Категория</div>
-            <h1 className="mt-1 font-serif text-3xl font-bold leading-tight md:text-5xl">{cat.title}</h1>
-            <p className="mt-3 max-w-3xl text-base text-muted-foreground">{cat.intro}</p>
+            <div className="eyebrow">
+              <span className="font-serif text-sm font-normal tracking-normal text-gold/60">{cat.number}</span>
+              <span className="h-px w-5 bg-gold/40" />
+              Категория
+            </div>
+            <h1 className="mt-2 font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl">{cat.title}</h1>
+            <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground">{cat.intro}</p>
           </div>
         </header>
 
@@ -76,30 +80,30 @@ export default function CategoryPage() {
               <Link
                 key={doc.name}
                 to={`/shablon/${docSlug}`}
-                className="group rounded-xl border border-border/60 bg-gradient-card p-5 transition-all hover:border-gold/40 hover:shadow-soft"
+                className="group relative overflow-hidden rounded-xl surface-elevated p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-gold/45"
               >
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/0 to-transparent transition-all duration-200 group-hover:via-gold/70" />
                 <div className="mb-2 flex items-start gap-2">
-                  <FileText className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-                  <h2 className="font-serif text-base font-bold text-foreground group-hover:text-gold">
+                  <FileText className="mt-0.5 h-4 w-4 shrink-0 text-gold" strokeWidth={1.6} />
+                  <h2 className="font-serif text-base font-bold leading-snug text-foreground transition-colors group-hover:text-gold">
                     {doc.name}
                   </h2>
                 </div>
-                <p className="text-xs text-muted-foreground">{doc.purpose}</p>
-                <p className="mt-2 text-xs italic text-gold/80">⚖ {doc.keyClause}</p>
+                <p className="text-xs leading-relaxed text-muted-foreground">{doc.purpose}</p>
+                <p className="mt-2 text-xs italic leading-relaxed text-gold/80">⚖ {doc.keyClause}</p>
               </Link>
             );
           })}
         </section>
 
-        <section className="mt-12 rounded-2xl border border-gold/20 bg-gradient-card p-8 text-center shadow-elegant">
-          <h2 className="font-serif text-2xl font-bold md:text-3xl">Готови ли сте?</h2>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">
+        <section className="relative mt-14 overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-10 text-center shadow-elegant md:p-12">
+          <div className="absolute inset-x-0 top-0 hairline-x" />
+          <div className="eyebrow mb-4 justify-center">Готови ли сте?</div>
+          <h2 className="font-serif text-2xl font-bold leading-tight text-balance md:text-[32px]">Започнете персонализиран договор</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground">
             Изберете шаблон и получете готов договор в PDF и DOCX за 2 минути.
           </p>
-          <Link
-            to={`/wizard/${cat.sectorId}`}
-            className="mt-6 inline-flex items-center gap-2 rounded-md bg-gradient-gold px-6 py-3 text-sm font-bold uppercase tracking-wider text-navy shadow-gold"
-          >
+          <Link to={`/wizard/${cat.sectorId}`} className="btn-gold mt-7">
             Започни сега <ArrowRight className="h-4 w-4" />
           </Link>
         </section>
