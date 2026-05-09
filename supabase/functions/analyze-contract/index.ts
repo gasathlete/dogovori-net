@@ -204,13 +204,7 @@ ${truncated}
       throw new Error("Грешка при запис на анализа");
     }
 
-    // Increment quota counter (only for free tier)
-    if (!isPro) {
-      await admin
-        .from("download_quota")
-        .update({ analyses_used: (quota?.analyses_used ?? 0) + 1 })
-        .eq("user_id", userId);
-    }
+    // Quota was already consumed atomically before the AI call (see consume_quota above).
 
     await admin.from("ai_usage").insert({
       user_id: userId,
