@@ -114,7 +114,7 @@ export default function CatalogPage() {
               Структуриран каталог по сектори — от трудови и наемни отношения до IT, крипто и
               корпоративно управление. Всеки документ съдържа цел и ключова клауза.
             </p>
-            <div className="relative mx-auto mt-8 max-w-xl">
+            <div className="relative mx-auto mt-10 max-w-xl">
               <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={query}
@@ -129,7 +129,7 @@ export default function CatalogPage() {
                 onFocus={() => setOpen(true)}
                 onBlur={() => setTimeout(() => setOpen(false), 150)}
                 placeholder="Търсете: NDA, наем, ремонт, фактура…"
-                className="h-12 border-gold/30 bg-card/60 pl-11 text-foreground backdrop-blur"
+                className="h-14 border-gold/30 bg-card/70 pl-11 text-base text-foreground backdrop-blur transition-colors focus-visible:border-gold/60"
               />
               {open && query.trim() && suggestions.length > 0 && (
                 <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-lg border border-gold/30 bg-card/95 text-left shadow-elegant backdrop-blur-xl">
