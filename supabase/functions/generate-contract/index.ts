@@ -55,12 +55,13 @@ Deno.serve(async (req: Request) => {
       .gte("created_at", since)
       .filter(userId ? "user_id" : "ip_hash", "eq", userId ?? ipHash);
 
-    const limit = userId ? 10 : 1;
+    // Tighter free-tier rate limits: anonymous must sign in; free users get 5/24h.
+    const limit = userId ? 5 : 0;
     if ((count ?? 0) >= limit) {
       return new Response(
         JSON.stringify({
           error: userId
-            ? "Достигнахте дневния лимит от 10 генерации. Опитайте утре или вземете Pro."
+            ? "Достигнахте дневния лимит от 5 генерации. Опитайте утре или вземете Pro."
             : "За да генерирате договор, влезте безплатно с email или Google.",
           code: "rate_limited",
           requires_login: !userId,
@@ -74,31 +75,53 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
+    // Skip empty answers in the prompt to save input tokens.
     const qaLines = (questions as Array<{ id: string; label: string }>)
-      .map((q) => `- ${q.label}: ${answers[q.id] ?? "(не е попълнено)"}`)
+      .filter((q) => {
+        const v = answers[q.id];
+        return v !== undefined && v !== null && String(v).trim() !== "";
+      })
+      .map((q) => `- ${q.label}: ${answers[q.id]}`)
       .join("\n");
 
     const docLine = documentName && documentName !== contractName
       ? `КОНКРЕТЕН ДОКУМЕНТ: ${documentName}\n`
       : "";
 
+    // Cache: identical (sector, contractName, documentName, sorted answers) → reuse output for 30 days.
+    const cacheKeyInput = stableStringify({
+      sector, contractName, documentName: documentName || null,
+      parties: { a: parties?.a ?? "", b: parties?.b ?? "" },
+      answers: answers ?? {},
+    });
+    const cacheHash = await sha256Hex(cacheKeyInput);
+    const cacheCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: cachedRow } = await admin
+      .from("template_cache")
+      .select("payload")
+      .eq("hash", cacheHash)
+      .gte("created_at", cacheCutoff)
+      .maybeSingle();
+    if (cachedRow?.payload) {
+      return new Response(JSON.stringify(cachedRow.payload), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const userPrompt = `СЕКТОР: ${sector}
 ТИП ДОГОВОР: ${contractName}
 ${docLine}СТРАНИ: ${parties.a} ↔ ${parties.b}
 
-ОТГОВОРИ ОТ ИНТЕРВЮТО:
+ОТГОВОРИ:
 ${qaLines}
 
-Задача:
-1) Извърши Risk Analysis — посочи конкретни слаби места за ${parties.a} и ${parties.b}.
-2) Генерирай ПЪЛНИЯ договор на български, специфичен за "${documentName || contractName}", с всички задължителни клаузи (вкл. частична недействителност и подсъдност). Заглавието трябва да съответства на конкретния документ.
-Върни СТРОГО валиден JSON по описаната схема.`;
+Задача: Risk Analysis (конкретни слаби места за ${parties.a} и ${parties.b}) + ПЪЛНИЯТ договор на български за "${documentName || contractName}" с всички задължителни клаузи. Върни СТРОГО валиден JSON по схемата.`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-flash-lite",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt },
