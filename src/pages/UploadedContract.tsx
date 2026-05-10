@@ -194,7 +194,79 @@ export default function UploadedContractPage() {
     else { toast.success("Изтрит"); navigate("/account?tab=documents"); }
   };
 
-  const issuesByLevel = useMemo(() => {
+  // SHA-256 of the editor text — kept in sync with extracted_text on save.
+  const hashText = async (s: string) => {
+    const buf = new TextEncoder().encode(s);
+    const h = await crypto.subtle.digest("SHA-256", buf);
+    return Array.from(new Uint8Array(h)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  };
+
+  const saveText = async () => {
+    if (!contract) return;
+    const trimmed = editText.trim();
+    if (trimmed.length < 80) { toast.error("Текстът е твърде кратък (мин. 80 знака)"); return; }
+    setSavingText(true);
+    const text_hash = await hashText(trimmed);
+    const { error } = await supabase
+      .from("uploaded_contracts")
+      .update({ extracted_text: trimmed, text_hash })
+      .eq("id", contract.id);
+    setSavingText(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Текстът е запазен");
+    setContract({ ...contract, extracted_text: trimmed, text_hash });
+    // If we previously created a shareable copy, refresh its payload.
+    if (savedDocId) {
+      await supabase
+        .from("saved_documents")
+        .update({ payload: textToPayload(contract.title, trimmed) })
+        .eq("id", savedDocId);
+    }
+  };
+
+  const saveContact = async (next: string) => {
+    if (!contract) return;
+    setContactId(next);
+    setSavingContact(true);
+    const { error } = await supabase
+      .from("uploaded_contracts")
+      .update({ contact_id: next === "none" ? null : next })
+      .eq("id", contract.id);
+    setSavingContact(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Контрагентът е обновен");
+  };
+
+  const textToPayload = (title: string, text: string) => ({
+    title,
+    clauses: [{ number: "", title: "", body: text }],
+  });
+
+  const prepareForSigning = async () => {
+    if (!contract || !user) return;
+    if ((editText.trim().length || 0) < 80) {
+      toast.error("Запазете текста преди подписване");
+      return;
+    }
+    if (savedDocId) return; // already prepared
+    setCreatingShare(true);
+    const { data, error } = await supabase
+      .from("saved_documents")
+      .insert({
+        user_id: user.id,
+        kind: "contract" as any,
+        title: contract.title,
+        source_id: `uploaded:${contract.id}`,
+        contact_id: contact.contact_id,
+        payload: textToPayload(contract.title, editText.trim()),
+      })
+      .select("id")
+      .single();
+    setCreatingShare(false);
+    if (error || !data) { toast.error(error?.message || "Грешка"); return; }
+    setSavedDocId((data as any).id);
+    toast.success("Готово за подписване");
+  };
     if (!analysis) return { high: 0, medium: 0, low: 0 };
     return analysis.issues.reduce(
       (acc, i) => { acc[i.severity] = (acc[i.severity] ?? 0) + 1; return acc; },
