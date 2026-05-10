@@ -3,6 +3,32 @@
 
 export type ExtractSource = "pdf" | "docx" | "paste";
 
+function ensurePdfJsSafariCompat() {
+  const asyncIterator = Symbol.asyncIterator;
+  const ReadableStreamCtor = globalThis.ReadableStream as
+    | ({ prototype?: Record<PropertyKey, unknown> } & typeof ReadableStream)
+    | undefined;
+
+  if (ReadableStreamCtor?.prototype && !(asyncIterator in ReadableStreamCtor.prototype)) {
+    Object.defineProperty(ReadableStreamCtor.prototype, asyncIterator, {
+      configurable: true,
+      writable: true,
+      value: async function* (this: ReadableStream<Uint8Array>) {
+        const reader = this.getReader();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) return;
+            yield value;
+          }
+        } finally {
+          reader.releaseLock();
+        }
+      },
+    });
+  }
+}
+
 export async function extractTextFromFile(file: File, source: ExtractSource): Promise<string> {
   if (source === "pdf") return extractPdf(file);
   if (source === "docx") return extractDocx(file);
@@ -17,6 +43,8 @@ async function extractDocx(file: File): Promise<string> {
 }
 
 async function extractPdf(file: File): Promise<string> {
+  ensurePdfJsSafariCompat();
+
   // Use legacy build for broader browser compatibility (older iOS Safari etc.)
   const pdfjs: any = await import("pdfjs-dist/legacy/build/pdf.mjs");
   // @ts-ignore - worker URL import
