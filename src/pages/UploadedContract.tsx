@@ -225,11 +225,38 @@ export default function UploadedContractPage() {
                 Предложи корекции
               </Button>
             )}
-            <Button variant="ghost" className="text-destructive" onClick={remove}>
+            <Button
+              variant="ghost"
+              className="text-destructive"
+              onClick={() => setConfirmDelete(true)}
+              aria-label="Изтрий договора"
+            >
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </div>
+
+        <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Изтриване на договора?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Договорът и всички свързани анализи ще бъдат изтрити безвъзвратно.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Отказ</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => { e.preventDefault(); remove(); }}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Изтрий
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <Dialog open={!!corrections} onOpenChange={(o) => !o && setCorrections(null)}>
           <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
