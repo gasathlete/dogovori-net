@@ -2,39 +2,29 @@
 // Uses Lovable AI Gateway (Gemini) — no API key needed by user.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, hashIp, clientIp } from "../_shared/cors.ts";
+import { sha256Hex, stableStringify } from "../_shared/normalize.ts";
 
-const SYSTEM_PROMPT = `Ти си водещ български правен архитект и експерт по договорно право. 
-Пишеш единствено на професионален български юридически език, в съответствие със ЗЗД, ТЗ, ЗУТ и приложимото законодателство.
-Тонът ти е авторитетен, прецизен, без излишни излияния. Използваш правилните понятия: "Възложител", "Изпълнител", "Наемодател", "Наемател", "Продавач", "Купувач", "Страните", "Настоящият Договор" и др.
+const SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ). Използваш правилните понятия (Възложител/Изпълнител, Наемодател/Наемател, Продавач/Купувач, Страните, Настоящият Договор).
 
-Винаги връщай СТРОГО валиден JSON със следната структура (без markdown ограждания):
+Връщай СТРОГО валиден JSON (без markdown ограждания):
 {
   "risk": {
-    "level": "low" | "medium" | "high",
+    "level": "low"|"medium"|"high",
     "score": 0-100,
-    "summary": "кратко обобщение на 1-2 изречения",
-    "issues": [
-      { "severity": "low" | "medium" | "high", "title": "...", "detail": "конкретно правно обяснение и препоръка" }
-    ],
-    "recommendations": ["препоръка 1", "препоръка 2", "..."]
+    "summary": "1-2 изречения",
+    "issues": [{"severity":"low"|"medium"|"high","title":"...","detail":"правно обяснение и препоръка"}],
+    "recommendations": ["..."]
   },
   "contract": {
-    "title": "Заглавие на договора",
-    "preamble": "Днес, [ДАТА], в [ГРАД], между:\\n\\n1. [страна А с пълни данни] ...\\n\\n2. [страна Б с пълни данни] ...\\n\\nсе сключи настоящият договор за следното:",
-    "clauses": [
-      { "number": "I.", "title": "ПРЕДМЕТ НА ДОГОВОРА", "body": "Чл. 1. ...\\nЧл. 2. ..." },
-      { "number": "II.", "title": "ЦЕНА И НАЧИН НА ПЛАЩАНЕ", "body": "..." }
-    ],
-    "closing": "Настоящият договор се състави и подписа в два еднообразни екземпляра — по един за всяка от страните."
+    "title": "...",
+    "preamble": "Днес, [ДАТА], в [ГРАД], между:\\n\\n1. [страна А] ...\\n\\n2. [страна Б] ...\\n\\nсе сключи настоящият договор:",
+    "clauses": [{"number":"I.","title":"ПРЕДМЕТ","body":"Чл. 1. ...\\nЧл. 2. ..."}],
+    "closing": "Настоящият договор се състави в два еднообразни екземпляра — по един за всяка страна."
   }
 }
 
-ЗАДЪЛЖИТЕЛНИ КЛАУЗИ:
-- Предмет, Цена и плащане, Срокове, Права и задължения, Неустойки, Предсрочно прекратяване, Форсмажор (непреодолима сила), Конфиденциалност (където е приложимо), Подсъдност (Софийски градски съд / Арбитраж при БТПП), Частична недействителност (Severability), Заключителни разпоредби.
-- Използвай номерация с римски за раздели и арабска "Чл. N." за членове, "(1), (2)" за алинеи.
-- Когато данните са непълни, използвай ясни плейсхолдъри в квадратни скоби: [ЕИК], [Адрес], [ЕГН], [Дата].
-- Всички парични суми се изписват в евро (€). Когато потребителят е дал стойност без валута, приеми, че е в €. Не използвай "лв.", "BGN" или "USD".
-- Анализът на риска трябва да отразява РЕАЛНИ слаби места според дадените отговори (напр. липсващо обезпечение при аванс, твърде нисък размер на неустойката, неясен предмет).`;
+Задължителни клаузи: Предмет, Цена и плащане, Срокове, Права и задължения, Неустойки, Прекратяване, Форсмажор, Конфиденциалност (ако е приложимо), Подсъдност (СГС/Арбитраж БТПП), Частична недействителност, Заключителни.
+Номерация: римска за раздели, "Чл. N." за членове, "(1),(2)" за алинеи. Парични суми само в евро (€). Липсващи данни → плейсхолдъри в [квадратни скоби].`;
 
 Deno.serve(async (req: Request) => {
   const corsHeaders = buildCors(req);
@@ -65,12 +55,13 @@ Deno.serve(async (req: Request) => {
       .gte("created_at", since)
       .filter(userId ? "user_id" : "ip_hash", "eq", userId ?? ipHash);
 
-    const limit = userId ? 10 : 1;
+    // Tighter free-tier rate limits: anonymous must sign in; free users get 5/24h.
+    const limit = userId ? 5 : 0;
     if ((count ?? 0) >= limit) {
       return new Response(
         JSON.stringify({
           error: userId
-            ? "Достигнахте дневния лимит от 10 генерации. Опитайте утре или вземете Pro."
+            ? "Достигнахте дневния лимит от 5 генерации. Опитайте утре или вземете Pro."
             : "За да генерирате договор, влезте безплатно с email или Google.",
           code: "rate_limited",
           requires_login: !userId,
@@ -84,31 +75,53 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
+    // Skip empty answers in the prompt to save input tokens.
     const qaLines = (questions as Array<{ id: string; label: string }>)
-      .map((q) => `- ${q.label}: ${answers[q.id] ?? "(не е попълнено)"}`)
+      .filter((q) => {
+        const v = answers[q.id];
+        return v !== undefined && v !== null && String(v).trim() !== "";
+      })
+      .map((q) => `- ${q.label}: ${answers[q.id]}`)
       .join("\n");
 
     const docLine = documentName && documentName !== contractName
       ? `КОНКРЕТЕН ДОКУМЕНТ: ${documentName}\n`
       : "";
 
+    // Cache: identical (sector, contractName, documentName, sorted answers) → reuse output for 30 days.
+    const cacheKeyInput = stableStringify({
+      sector, contractName, documentName: documentName || null,
+      parties: { a: parties?.a ?? "", b: parties?.b ?? "" },
+      answers: answers ?? {},
+    });
+    const cacheHash = await sha256Hex(cacheKeyInput);
+    const cacheCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: cachedRow } = await admin
+      .from("template_cache")
+      .select("payload")
+      .eq("hash", cacheHash)
+      .gte("created_at", cacheCutoff)
+      .maybeSingle();
+    if (cachedRow?.payload) {
+      return new Response(JSON.stringify(cachedRow.payload), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const userPrompt = `СЕКТОР: ${sector}
 ТИП ДОГОВОР: ${contractName}
 ${docLine}СТРАНИ: ${parties.a} ↔ ${parties.b}
 
-ОТГОВОРИ ОТ ИНТЕРВЮТО:
+ОТГОВОРИ:
 ${qaLines}
 
-Задача:
-1) Извърши Risk Analysis — посочи конкретни слаби места за ${parties.a} и ${parties.b}.
-2) Генерирай ПЪЛНИЯ договор на български, специфичен за "${documentName || contractName}", с всички задължителни клаузи (вкл. частична недействителност и подсъдност). Заглавието трябва да съответства на конкретния документ.
-Върни СТРОГО валиден JSON по описаната схема.`;
+Задача: Risk Analysis (конкретни слаби места за ${parties.a} и ${parties.b}) + ПЪЛНИЯТ договор на български за "${documentName || contractName}" с всички задължителни клаузи. Върни СТРОГО валиден JSON по схемата.`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-flash-lite",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt },
@@ -177,6 +190,11 @@ ${qaLines}
       console.error("JSON parse failed. Content head:", content.slice(0, 800));
       throw new Error("AI отговорът не може да бъде анализиран като JSON");
     }
+
+    // Persist to cache for future identical requests (best-effort).
+    try {
+      await admin.from("template_cache").upsert({ hash: cacheHash, payload: parsed, created_at: new Date().toISOString() });
+    } catch (e) { console.error("template_cache upsert:", e); }
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
