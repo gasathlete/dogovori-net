@@ -36,9 +36,30 @@ export function UploadContractDialog({
   const [contactId, setContactId] = useState<string>("none");
   const [busy, setBusy] = useState(false);
   const [phase, setPhase] = useState<string>("");
+  const [analyzing, setAnalyzing] = useState(false);
+  const [tip, setTip] = useState<string>("");
 
-  const reset = () => {
-    setFile(null); setPasted(""); setTitle(""); setFolderId("none"); setContactId("none");
+  // Rotating reassuring phrases shown while the AI risk analysis runs.
+  useEffect(() => {
+    if (!analyzing) return;
+    const tips = [
+      "Прочитам договора ред по ред...",
+      "Сверявам клаузите със ЗЗД и ТЗ...",
+      "Търся скрити рискове и неравнопоставени условия...",
+      "Проверявам неустойки, срокове и подсъдност...",
+      "Идентифицирам липсващи съществени клаузи...",
+      "Цитирам дословно проблемните пасажи...",
+      "Изчислявам общ риск-скор на договора...",
+      "Финални проверки за точност...",
+    ];
+    let i = 0;
+    setTip(tips[0]);
+    const id = setInterval(() => {
+      i = (i + 1) % tips.length;
+      setTip(tips[i]);
+    }, 2500);
+    return () => clearInterval(id);
+  }, [analyzing]);
     setBusy(false); setPhase(""); setTab("pdf");
   };
 
