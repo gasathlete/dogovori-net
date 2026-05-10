@@ -190,10 +190,6 @@ ${truncated}
       throw new Error("AI грешка");
     }
 
-    const data = await aiResp.json();
-    const content: string = data.choices?.[0]?.message?.content ?? "";
-    if (!content.trim()) throw new Error("AI не върна съдържание");
-
     const extractJson = (s: string): any => {
       let cleaned = s.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
       const start = cleaned.search(/[\{\[]/);
@@ -204,11 +200,37 @@ ${truncated}
       return JSON.parse(cleaned);
     };
 
-    const parsed = extractJson(content);
+    let data = await aiResp.json();
+    let content: string = data.choices?.[0]?.message?.content ?? "";
+    let parsed: any = null;
+    try { parsed = content.trim() ? extractJson(content) : null; } catch { parsed = null; }
 
+    let issues = Array.isArray(parsed?.issues) ? parsed.issues : [];
+    let missing = Array.isArray(parsed?.missing_clauses) ? parsed.missing_clauses : [];
+
+    // Escalation: lite sometimes under-classifies long contracts. Retry once on flash.
+    const looksWeak = !parsed || (issues.length === 0 && text.length > 5000);
+    if (looksWeak) {
+      const escalated = await callAi("google/gemini-2.5-flash");
+      if (escalated.ok) {
+        const eData = await escalated.json();
+        const eContent: string = eData.choices?.[0]?.message?.content ?? "";
+        try {
+          const eParsed = extractJson(eContent);
+          if (eParsed && (Array.isArray(eParsed.issues) ? eParsed.issues.length > issues.length : true)) {
+            parsed = eParsed;
+            content = eContent;
+            data = eData;
+            model = "google/gemini-2.5-flash";
+            issues = Array.isArray(parsed.issues) ? parsed.issues : [];
+            missing = Array.isArray(parsed.missing_clauses) ? parsed.missing_clauses : [];
+          }
+        } catch { /* keep lite result */ }
+      }
+    }
+
+    if (!parsed) throw new Error("AI не върна валиден отговор");
     const score = Math.max(1, Math.min(10, Number(parsed.score) || 5));
-    const issues = Array.isArray(parsed.issues) ? parsed.issues : [];
-    const missing = Array.isArray(parsed.missing_clauses) ? parsed.missing_clauses : [];
 
     // Persist analysis
     const { data: inserted, error: insErr } = await admin
