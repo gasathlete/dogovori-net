@@ -250,7 +250,12 @@ export function UploadContractDialog({
           </div>
         </div>
 
-        <DialogFooter className="mt-4">
+        <DialogFooter className="mt-4 flex-col sm:flex-col items-stretch gap-2">
+          {analyzing && tip && (
+            <div className="text-xs text-muted-foreground text-center animate-pulse">
+              {tip}
+            </div>
+          )}
           <Button onClick={submit} disabled={busy} className="bg-gradient-gold text-navy">
             {busy ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{phase || "Обработка..."}</> : "Качи и анализирай"}
           </Button>
