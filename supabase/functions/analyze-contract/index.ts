@@ -124,7 +124,7 @@ Deno.serve(async (req: Request) => {
 
     // Atomic quota consumption — prevents free-tier bypass via concurrent calls.
     // The RPC checks plan + counter and increments in a single SERIALIZABLE step.
-    const { data: consumed, error: consumeErr } = await admin.rpc("consume_quota", { _kind: "analysis" });
+    const { data: consumed, error: consumeErr } = await userClient.rpc("consume_quota", { _kind: "analysis" });
     if (consumeErr) {
       console.error("consume_quota error:", consumeErr);
       throw new Error("Грешка при проверка на квотата");
