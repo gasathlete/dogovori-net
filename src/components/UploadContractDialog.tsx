@@ -147,6 +147,15 @@ export function UploadContractDialog({
       if (insertRes.error) throw new Error(insertRes.error.message);
       const newId = insertRes.data!.id as string;
 
+      if (skipAnalysis) {
+        toast.success("Договорът е качен. Можете да го редактирате.");
+        reset();
+        setOpen(false);
+        onUploaded();
+        navigate(`/uploaded/${newId}`);
+        return;
+      }
+
       setPhase("Риск анализ...");
       setAnalyzing(true);
       const { data: aData, error: aErr } = await supabase.functions.invoke("analyze-contract", {
