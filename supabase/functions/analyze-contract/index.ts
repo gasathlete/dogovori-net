@@ -2,6 +2,7 @@
 // Reads uploaded_contracts.extracted_text, calls Lovable AI Gateway, stores result in risk_analyses.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
+import { normalizeText, sha256Hex } from "../_shared/normalize.ts";
 
 const SYSTEM_PROMPT = `Ти си водещ български правен експерт по договорно право (ЗЗД, ТЗ, ЗУТ, ЗЗП, ЗЗЛД).
 Анализираш качен от потребителя договор и връщаш СТРОГО валиден JSON по схемата по-долу. Без markdown ограждания.
@@ -95,24 +96,24 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Cache: if we already analyzed this exact text for this user in the last 30 days,
-    // return that result without consuming quota or calling AI.
-    if (contract.text_hash) {
-      const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: cached } = await admin
-        .from("risk_analyses")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("text_hash", contract.text_hash)
-        .gte("created_at", cutoff)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (cached) {
-        return new Response(JSON.stringify({ analysis: cached, cached: true }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    // Normalized cache: hash the semantically-relevant content so different
+    // formatting (whitespace/case/control chars) reuses the same analysis.
+    const normalizedHash = await sha256Hex(normalizeText(text));
+    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const hashesToCheck = [normalizedHash, contract.text_hash].filter(Boolean) as string[];
+    const { data: cached } = await admin
+      .from("risk_analyses")
+      .select("*")
+      .eq("user_id", userId)
+      .in("text_hash", hashesToCheck)
+      .gte("created_at", cutoff)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (cached) {
+      return new Response(JSON.stringify({ analysis: cached, cached: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Atomic quota consumption — prevents free-tier bypass via concurrent calls.
@@ -137,9 +138,10 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
-    // Truncate very long contracts to keep token use reasonable (~30k chars ≈ 7-8k tokens)
-    const MAX_CHARS = 15000;
-    const truncated = text.length > MAX_CHARS ? text.slice(0, MAX_CHARS) + "\n\n[...текстът е съкратен поради дължина...]" : text;
+    // Truncate very long contracts and collapse repeated whitespace to save tokens.
+    const MAX_CHARS = 10000;
+    const compacted = text.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n");
+    const truncated = compacted.length > MAX_CHARS ? compacted.slice(0, MAX_CHARS) + "\n\n[...текстът е съкратен поради дължина...]" : compacted;
 
     const userPrompt = `Заглавие на документа: ${contract.title}
 
@@ -150,19 +152,23 @@ ${truncated}
 
 Извърши пълен правен риск-анализ. Върни СТРОГО валиден JSON по схемата.`;
 
-    const model = "google/gemini-2.5-flash";
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
+    const callAi = async (modelName: string) => {
+      return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: modelName,
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: userPrompt },
+          ],
+          response_format: { type: "json_object" },
+        }),
+      });
+    };
+
+    let model = "google/gemini-2.5-flash-lite";
+    let aiResp = await callAi(model);
 
     if (!aiResp.ok) {
       // Refund the quota slot since the operation failed.
