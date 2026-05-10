@@ -244,7 +244,7 @@ ${truncated}
         summary: String(parsed.summary ?? "").slice(0, 4000),
         issues,
         missing_clauses: missing,
-        text_hash: contract.text_hash ?? "",
+        text_hash: normalizedHash,
       })
       .select()
       .single();
