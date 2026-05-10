@@ -196,9 +196,9 @@ function Dashboard({ quota, isPro, docs }: { quota: Quota | null; isPro: boolean
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <Card title="План" value={isPro ? "Pro" : "Free"} icon={<Crown className="h-5 w-5 text-gold" />}
-        sub={isPro ? "Неограничено сваляне" : "1 договор + 1 бланка безплатно"} />
-      <Card title="Свалени договори" value={`${quota?.contracts_used ?? 0}${isPro ? "" : " / 1"}`} icon={<FileText className="h-5 w-5 text-gold" />} />
-      <Card title="Свалени бланки" value={`${quota?.templates_used ?? 0}${isPro ? "" : " / 1"}`} icon={<FileText className="h-5 w-5 text-gold" />} />
+        sub={isPro ? `${(quota as any)?.pro_monthly_used ?? 0}/100 операции/мес` : "3+3 безплатни, после 1+1/мес"} />
+      <Card title="Свалени договори" value={`${quota?.contracts_used ?? 0}${isPro ? "" : " / 3"}`} icon={<FileText className="h-5 w-5 text-gold" />} />
+      <Card title="Свалени бланки" value={`${quota?.templates_used ?? 0}${isPro ? "" : " / 3"}`} icon={<FileText className="h-5 w-5 text-gold" />} />
 
       <div className="md:col-span-3 rounded-xl border border-border/60 bg-gradient-card p-6">
         <h3 className="mb-3 font-serif text-lg font-bold">Последни документи</h3>
@@ -751,6 +751,25 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               className="mt-6 border-gold/40"
             >
               Купи годишен план
+            </Button>
+          </div>
+
+          {/* Team */}
+          <div className="flex flex-col rounded-xl border border-gold/40 bg-gradient-card p-6">
+            <div className="text-xs uppercase tracking-wider text-gold">Team — за фирми</div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="font-serif text-3xl font-bold">7.90 €</span>
+              <span className="text-sm text-muted-foreground">/място/мес</span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">мин. 3 места · 100 ops/място/мес</p>
+            <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
+              <li>• Споделени шаблони и документи</li>
+              <li>• Audit log за администратори</li>
+              <li>• SSO + central billing</li>
+              <li>• Branded PDF/DOCX с лого</li>
+            </ul>
+            <Button asChild variant="outline" className="mt-6 border-gold/40">
+              <a href="/team">Създай екип</a>
             </Button>
           </div>
         </div>
