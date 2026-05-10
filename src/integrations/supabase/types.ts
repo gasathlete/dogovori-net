@@ -130,7 +130,12 @@ export type Database = {
           analyses_used: number
           bonus_contracts: number
           contracts_used: number
+          monthly_contracts_used: number
+          monthly_reset_at: string
+          monthly_templates_used: number
           plan: Database["public"]["Enums"]["user_plan"]
+          pro_monthly_used: number
+          pro_period_start: string
           pro_until: string | null
           templates_used: number
           updated_at: string
@@ -140,7 +145,12 @@ export type Database = {
           analyses_used?: number
           bonus_contracts?: number
           contracts_used?: number
+          monthly_contracts_used?: number
+          monthly_reset_at?: string
+          monthly_templates_used?: number
           plan?: Database["public"]["Enums"]["user_plan"]
+          pro_monthly_used?: number
+          pro_period_start?: string
           pro_until?: string | null
           templates_used?: number
           updated_at?: string
@@ -150,7 +160,12 @@ export type Database = {
           analyses_used?: number
           bonus_contracts?: number
           contracts_used?: number
+          monthly_contracts_used?: number
+          monthly_reset_at?: string
+          monthly_templates_used?: number
           plan?: Database["public"]["Enums"]["user_plan"]
+          pro_monthly_used?: number
+          pro_period_start?: string
           pro_until?: string | null
           templates_used?: number
           updated_at?: string
