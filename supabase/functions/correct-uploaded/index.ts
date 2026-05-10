@@ -1,6 +1,7 @@
 // Edge function: Pro-only — generate a corrected version of an uploaded contract
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
+import { extractJson } from "../_shared/json.ts";
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш СУРОВ ТЕКСТ на договор и списък от установени правни проблеми и липсващи клаузи.
 
@@ -19,17 +20,7 @@ const SYSTEM_PROMPT = `Ти си водещ български правен ар
 
 const DAILY_LIMIT = 30;
 
-function extractJson(s: string): any {
-  let cleaned = s.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-  const start = cleaned.search(/[\{\[]/);
-  const openCh = start !== -1 ? cleaned[start] : "";
-  const closeCh = openCh === "[" ? "]" : "}";
-  const end = cleaned.lastIndexOf(closeCh);
-  if (start !== -1 && end !== -1) cleaned = cleaned.substring(start, end + 1);
-  try { return JSON.parse(cleaned); } catch {}
-  cleaned = cleaned.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]").replace(/[\x00-\x1F\x7F]/g, "");
-  return JSON.parse(cleaned);
-}
+
 
 Deno.serve(async (req: Request) => {
   const corsHeaders = buildCors(req);

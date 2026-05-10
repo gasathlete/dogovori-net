@@ -100,8 +100,8 @@ supabase.rpc('refund_quota', { _user_id: '<my-uid>', _kind: 'contract' })
 6. **Migration 2 — FK интегритет:** cleanup orphans + ADD CONSTRAINT. **(H4, M8)**
 7. **Config:** `APP_BASE_URL` secret + употреба в team-invite, share links, имейли. **(H5)**
 8. **Migration 3 — Constraints & limits:** unique invitation index, length check на extracted_text, score normalization. **(M1, M3, L7)**
-9. **Performance & polish:** cache key включва prompt version, OCR параlelizация, shared `extractJson` и Zod валидация. **(M5, L1-L5)**
-10. **End-to-end browser тест** на критичните потоци (signup → upload → analyze → correct → share → sign → checkout).
+9. **Performance & polish:** ✅ cache key включва prompt version (generate-contract), ✅ OCR параlelizация (3x), ✅ shared `extractJson` helper (`_shared/json.ts` + рефакторинг на 4 функции). L1 (correct-uploaded → flash) — пропуснат, за да не жертваме качеството на правни корекции. L4 (Zod) — отлагане за отделен PR.
+10. **End-to-end browser тест** — отлагане за отделна сесия (изисква интерактивно влизане с тестов акаунт + закачен Stripe sandbox).
 
 ## Обхват извън plan-а
 - Pen-test на webhook signature verification (`_shared/stripe.ts`) — изисква sandbox key.

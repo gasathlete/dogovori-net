@@ -3,6 +3,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, hashIp, clientIp } from "../_shared/cors.ts";
 import { sha256Hex, stableStringify } from "../_shared/normalize.ts";
+import { extractJson } from "../_shared/json.ts";
 
 const SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ). Използваш правилните понятия (Възложител/Изпълнител, Наемодател/Наемател, Продавач/Купувач, Страните, Настоящият Договор).
 
@@ -167,25 +168,7 @@ ${qaLines}
       throw new Error("AI не върна съдържание (вероятно прекъснат отговор). Опитайте отново.");
     }
 
-    const extractJson = (s: string): any => {
-      let cleaned = s.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-      const start = cleaned.search(/[\{\[]/);
-      const openCh = start !== -1 ? cleaned[start] : "";
-      const closeCh = openCh === "[" ? "]" : "}";
-      const end = cleaned.lastIndexOf(closeCh);
-      if (start !== -1 && end !== -1) cleaned = cleaned.substring(start, end + 1);
-      try { return JSON.parse(cleaned); } catch {}
-      cleaned = cleaned.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]").replace(/[\x00-\x1F\x7F]/g, "");
-      try { return JSON.parse(cleaned); } catch {}
-      let braces = 0, brackets = 0;
-      for (const c of cleaned) {
-        if (c === "{") braces++; else if (c === "}") braces--;
-        if (c === "[") brackets++; else if (c === "]") brackets--;
-      }
-      while (brackets-- > 0) cleaned += "]";
-      while (braces-- > 0) cleaned += "}";
-      return JSON.parse(cleaned);
-    };
+
 
     let parsed;
     try { parsed = extractJson(content); }
