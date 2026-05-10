@@ -95,6 +95,26 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Cache: if we already analyzed this exact text for this user in the last 30 days,
+    // return that result without consuming quota or calling AI.
+    if (contract.text_hash) {
+      const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: cached } = await admin
+        .from("risk_analyses")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("text_hash", contract.text_hash)
+        .gte("created_at", cutoff)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cached) {
+        return new Response(JSON.stringify({ analysis: cached, cached: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // Atomic quota consumption — prevents free-tier bypass via concurrent calls.
     // The RPC checks plan + counter and increments in a single SERIALIZABLE step.
     const { data: consumed, error: consumeErr } = await admin.rpc("consume_quota", { _kind: "analysis" });
