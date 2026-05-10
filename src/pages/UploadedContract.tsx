@@ -493,6 +493,78 @@ export default function UploadedContractPage() {
           </DialogContent>
         </Dialog>
 
+        {/* DOCUMENT EDITOR + LINKED CONTACT + SIGNING — always visible */}
+        <section className="mt-6 rounded-xl border border-border/60 bg-gradient-card p-5 md:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-serif text-xl font-bold flex items-center gap-2">
+              <FileText className="h-5 w-5 text-gold" /> Документ
+            </h2>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                onClick={saveText}
+                disabled={savingText || editText === contract.extracted_text}
+                className="bg-gradient-gold text-navy"
+              >
+                {savingText ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Запази текста
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-[1fr_260px]">
+            <Textarea
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              rows={18}
+              className="font-mono text-xs leading-relaxed"
+              placeholder="Извлеченият текст на договора..."
+            />
+            <div className="space-y-4">
+              <div>
+                <Label className="flex items-center gap-1.5 text-xs">
+                  <Users className="h-3.5 w-3.5" /> Контрагент
+                </Label>
+                <Select value={contactId} onValueChange={saveContact} disabled={savingContact}>
+                  <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Без контрагент —</SelectItem>
+                    {contacts.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  Свържете договора с контакт от <Link to="/account?tab=contacts" className="text-gold hover:underline">контрагентите</Link>.
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-gold/30 bg-gold/5 p-3">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-gold">
+                  <PenLine className="h-3.5 w-3.5" /> Подписване
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Изпратете линк към насрещната страна за електронен подпис.
+                </p>
+                {savedDocId ? (
+                  <div className="mt-2">
+                    <ShareForSignDialog documentId={savedDocId} documentTitle={contract.title} />
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={prepareForSigning}
+                    disabled={creatingShare}
+                    variant="outline"
+                    className="mt-2 w-full border-gold/40 hover:bg-gold/10 hover:text-gold"
+                  >
+                    {creatingShare ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PenLine className="mr-2 h-4 w-4" />}
+                    Подготви за подпис
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
         {!analysis ? (
           <div className="mt-8 rounded-xl border border-border/60 bg-gradient-card p-10 text-center">
             <Sparkles className="mx-auto h-8 w-8 text-gold" />
