@@ -76,7 +76,7 @@ export function UploadContractDialog({
     if (!title) setTitle(f.name.replace(/\.[^.]+$/, ""));
   };
 
-  const submit = async () => {
+  const submit = async (skipAnalysis = false) => {
     if (!user) return;
     if (!title.trim()) { toast.error("Добавете заглавие"); return; }
 
@@ -146,6 +146,15 @@ export function UploadContractDialog({
 
       if (insertRes.error) throw new Error(insertRes.error.message);
       const newId = insertRes.data!.id as string;
+
+      if (skipAnalysis) {
+        toast.success("Договорът е качен. Можете да го редактирате.");
+        reset();
+        setOpen(false);
+        onUploaded();
+        navigate(`/uploaded/${newId}`);
+        return;
+      }
 
       setPhase("Риск анализ...");
       setAnalyzing(true);
@@ -256,8 +265,16 @@ export function UploadContractDialog({
               {tip}
             </div>
           )}
-          <Button onClick={submit} disabled={busy} className="bg-gradient-gold text-navy">
+          <Button onClick={() => submit(false)} disabled={busy} className="bg-gradient-gold text-navy">
             {busy ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{phase || "Обработка..."}</> : "Качи и анализирай"}
+          </Button>
+          <Button
+            onClick={() => submit(true)}
+            disabled={busy}
+            variant="outline"
+            className="border-gold/40 hover:bg-gold/10 hover:text-gold"
+          >
+            Качи без анализ (само редакция)
           </Button>
         </DialogFooter>
       </DialogContent>
