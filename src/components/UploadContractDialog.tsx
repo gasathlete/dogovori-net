@@ -181,6 +181,7 @@ export function UploadContractDialog({
     } finally {
       setBusy(false);
       setPhase("");
+      setAnalyzing(false);
     }
   };
 
