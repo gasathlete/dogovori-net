@@ -75,6 +75,18 @@ export function UploadContractDialog({
         if (text.length < 80) throw new Error("Не успяхме да извлечем достатъчно текст от файла. Опитайте с друг формат или поставете текста ръчно.");
 
         setPhase("Качване на оригинала...");
+        // Long OCR/extract steps may outlive the access token. Force refresh
+        // before the storage upload so the request carries a valid user JWT
+        // (otherwise storage RLS rejects it as "new row violates row-level security policy").
+        let { data: sess } = await supabase.auth.getSession();
+        if (!sess.session) {
+          const r = await supabase.auth.refreshSession();
+          sess = { session: r.data.session } as any;
+        }
+        if (!sess.session) {
+          throw new Error("Сесията Ви е изтекла. Моля, влезте отново и опитайте пак.");
+        }
+
         const ext = tab === "pdf" ? "pdf" : "docx";
         const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
         const up = await supabase.storage.from("user-contracts").upload(path, file, {
