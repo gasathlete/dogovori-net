@@ -134,11 +134,13 @@ export default function UploadedContractPage() {
 
   const remove = async () => {
     if (!contract) return;
-    if (!confirm("Изтриване на договора и всички анализи?")) return;
+    setDeleting(true);
     if (contract.storage_path) {
       await supabase.storage.from("user-contracts").remove([contract.storage_path]);
     }
     const { error } = await supabase.from("uploaded_contracts").delete().eq("id", contract.id);
+    setDeleting(false);
+    setConfirmDelete(false);
     if (error) toast.error(error.message);
     else { toast.success("Изтрит"); navigate("/account?tab=documents"); }
   };
