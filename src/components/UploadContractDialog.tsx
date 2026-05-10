@@ -265,8 +265,16 @@ export function UploadContractDialog({
               {tip}
             </div>
           )}
-          <Button onClick={submit} disabled={busy} className="bg-gradient-gold text-navy">
+          <Button onClick={() => submit(false)} disabled={busy} className="bg-gradient-gold text-navy">
             {busy ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{phase || "Обработка..."}</> : "Качи и анализирай"}
+          </Button>
+          <Button
+            onClick={() => submit(true)}
+            disabled={busy}
+            variant="outline"
+            className="border-gold/40 hover:bg-gold/10 hover:text-gold"
+          >
+            Качи без анализ (само редакция)
           </Button>
         </DialogFooter>
       </DialogContent>
