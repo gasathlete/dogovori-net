@@ -150,7 +150,7 @@ ${truncated}
 
 Извърши пълен правен риск-анализ. Върни СТРОГО валиден JSON по схемата.`;
 
-    const model = "google/gemini-2.5-pro";
+    const model = "google/gemini-2.5-flash";
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
