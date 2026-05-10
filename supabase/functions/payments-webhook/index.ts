@@ -26,7 +26,34 @@ async function setFreePlan(userId: string) {
     .eq("user_id", userId);
 }
 
+async function syncTeamSubscription(subscription: any, env: StripeEnv) {
+  const teamId = subscription.metadata?.teamId;
+  if (!teamId) return;
+  const item = subscription.items?.data?.[0];
+  const periodStart = item?.current_period_start ?? subscription.current_period_start;
+  const periodEnd = item?.current_period_end ?? subscription.current_period_end;
+  const seatCount = item?.quantity ?? subscription.quantity ?? 3;
+  const isActive = ["active", "trialing"].includes(subscription.status);
+  await getSupabase()
+    .from("teams")
+    .update({
+      stripe_subscription_id: subscription.id,
+      stripe_customer_id: subscription.customer,
+      seat_count: seatCount,
+      status: isActive ? "active" : (subscription.status === "canceled" ? "canceled" : "past_due"),
+      current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : null,
+      current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+      environment: env,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", teamId);
+}
+
 async function handleSubscriptionCreated(subscription: any, env: StripeEnv) {
+  // Team subscriptions: sync the teams table instead of download_quota.
+  if (subscription.metadata?.kind === "team" || subscription.metadata?.teamId) {
+    return syncTeamSubscription(subscription, env);
+  }
   const userId = subscription.metadata?.userId;
   if (!userId) {
     console.error("No userId in subscription metadata");
@@ -60,6 +87,9 @@ async function handleSubscriptionCreated(subscription: any, env: StripeEnv) {
 }
 
 async function handleSubscriptionUpdated(subscription: any, env: StripeEnv) {
+  if (subscription.metadata?.kind === "team" || subscription.metadata?.teamId) {
+    return syncTeamSubscription(subscription, env);
+  }
   const item = subscription.items?.data?.[0];
   const priceId = item?.price?.metadata?.lovable_external_id || item?.price?.id;
   const productId = item?.price?.product;
@@ -91,6 +121,13 @@ async function handleSubscriptionUpdated(subscription: any, env: StripeEnv) {
 }
 
 async function handleSubscriptionDeleted(subscription: any, env: StripeEnv) {
+  if (subscription.metadata?.kind === "team" || subscription.metadata?.teamId) {
+    const teamId = subscription.metadata?.teamId;
+    if (teamId) {
+      await getSupabase().from("teams").update({ status: "canceled" }).eq("id", teamId);
+    }
+    return;
+  }
   await getSupabase()
     .from("subscriptions")
     .update({ status: "canceled", updated_at: new Date().toISOString() })
