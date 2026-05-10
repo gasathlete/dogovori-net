@@ -691,7 +691,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
       </div>
 
       {!isPro && (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {/* Single contract */}
           <div className="flex flex-col rounded-xl border border-border/60 bg-gradient-card p-6">
             <div className="text-xs uppercase tracking-wider text-muted-foreground">Единичен договор</div>
