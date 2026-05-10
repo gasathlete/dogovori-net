@@ -691,11 +691,33 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
       </div>
 
       {!isPro && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Monthly — first on mobile */}
+          <div className="relative order-1 flex flex-col rounded-xl border-2 border-gold bg-gradient-card p-5 shadow-gold sm:p-6 lg:order-2">
+            <div className="absolute -top-3 left-4 rounded-full bg-gradient-gold px-3 py-0.5 text-xs font-bold text-navy">
+              Най-популярен
+            </div>
+            <div className="text-xs uppercase tracking-wider text-gold">Pro месечно</div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="font-serif text-2xl font-bold sm:text-3xl">9.90 €</span>
+              <span className="text-sm text-muted-foreground line-through">29.90 €</span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">на месец · отказ по всяко време</p>
+            <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
+              {features.map((f) => (<li key={f}>• {f}</li>))}
+            </ul>
+            <Button
+              onClick={() => setCheckoutPrice("pro_monthly")}
+              className="mt-6 bg-gradient-gold text-navy hover:shadow-gold"
+            >
+              Премини на Pro
+            </Button>
+          </div>
+
           {/* Single contract */}
-          <div className="flex flex-col rounded-xl border border-border/60 bg-gradient-card p-6">
+          <div className="order-2 flex flex-col rounded-xl border border-border/60 bg-gradient-card p-5 sm:p-6 lg:order-1">
             <div className="text-xs uppercase tracking-wider text-muted-foreground">Единичен договор</div>
-            <div className="mt-2 font-serif text-3xl font-bold">1.90 €</div>
+            <div className="mt-2 font-serif text-2xl font-bold sm:text-3xl">1.90 €</div>
             <p className="mt-1 text-xs text-muted-foreground">Еднократно — един Pro договор</p>
             <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
               <li>• Сваляне на 1 договор (PDF + DOCX)</li>
@@ -711,33 +733,11 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             </Button>
           </div>
 
-          {/* Monthly */}
-          <div className="relative flex flex-col rounded-xl border-2 border-gold bg-gradient-card p-6 shadow-gold">
-            <div className="absolute -top-3 left-4 rounded-full bg-gradient-gold px-3 py-0.5 text-xs font-bold text-navy">
-              Най-популярен
-            </div>
-            <div className="text-xs uppercase tracking-wider text-gold">Pro месечно</div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-serif text-3xl font-bold">9.90 €</span>
-              <span className="text-sm text-muted-foreground line-through">29.90 €</span>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">на месец · отказ по всяко време</p>
-            <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
-              {features.map((f) => (<li key={f}>• {f}</li>))}
-            </ul>
-            <Button
-              onClick={() => setCheckoutPrice("pro_monthly")}
-              className="mt-6 bg-gradient-gold text-navy hover:shadow-gold"
-            >
-              Премини на Pro
-            </Button>
-          </div>
-
           {/* Yearly */}
-          <div className="flex flex-col rounded-xl border border-border/60 bg-gradient-card p-6">
+          <div className="order-3 flex flex-col rounded-xl border border-border/60 bg-gradient-card p-5 sm:p-6">
             <div className="text-xs uppercase tracking-wider text-muted-foreground">Pro годишно</div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-serif text-3xl font-bold">99 €</span>
+              <span className="font-serif text-2xl font-bold sm:text-3xl">99 €</span>
               <span className="text-sm text-muted-foreground line-through">118.80 €</span>
             </div>
             <p className="mt-1 text-xs text-gold">Спестявате ~17% (≈ 8.25 €/месец)</p>
@@ -755,10 +755,10 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
           </div>
 
           {/* Team */}
-          <div className="flex flex-col rounded-xl border border-gold/40 bg-gradient-card p-6">
+          <div className="order-4 flex flex-col rounded-xl border border-gold/40 bg-gradient-card p-5 sm:p-6">
             <div className="text-xs uppercase tracking-wider text-gold">Team — за фирми</div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-serif text-3xl font-bold">7.90 €</span>
+              <span className="font-serif text-2xl font-bold sm:text-3xl">7.90 €</span>
               <span className="text-sm text-muted-foreground">/място/мес</span>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">мин. 3 места · 100 ops/място/мес</p>
