@@ -221,7 +221,7 @@ export default function UploadedContractPage() {
               {analysis ? "Анализирай отново" : "Стартирай анализ"}
             </Button>
             {analysis && (
-              <Button onClick={suggestCorrections} disabled={correcting} variant="outline" className="border-gold/40 hover:bg-gold/10 hover:text-gold">
+              <Button onClick={openPicker} disabled={correcting} variant="outline" className="border-gold/40 hover:bg-gold/10 hover:text-gold">
                 {correcting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
                 Предложи корекции
               </Button>
