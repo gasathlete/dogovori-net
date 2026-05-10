@@ -17,25 +17,30 @@ async function extractDocx(file: File): Promise<string> {
 }
 
 async function extractPdf(file: File): Promise<string> {
-  // pdfjs-dist v5 ships ESM build; we set worker to the bundled module worker.
-  const pdfjs: any = await import("pdfjs-dist");
+  // Use legacy build for broader browser compatibility (older iOS Safari etc.)
+  const pdfjs: any = await import("pdfjs-dist/legacy/build/pdf.mjs");
   // @ts-ignore - worker URL import
-  const workerSrc = (await import("pdfjs-dist/build/pdf.worker.mjs?url")).default;
+  const workerSrc = (await import("pdfjs-dist/legacy/build/pdf.worker.mjs?url")).default;
   pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 
-  const arrayBuffer = await file.arrayBuffer();
-  const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
-  const pdf = await loadingTask.promise;
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
 
-  const parts: string[] = [];
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const text = content.items.map((it: any) => ("str" in it ? it.str : "")).join(" ");
-    parts.push(text);
-    if (parts.join(" ").length > 60000) break; // sanity cap
+    const parts: string[] = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const text = content.items.map((it: any) => ("str" in it ? it.str : "")).join(" ");
+      parts.push(text);
+      if (parts.join(" ").length > 60000) break;
+    }
+    return parts.join("\n\n").replace(/[ \t]+/g, " ").trim();
+  } catch (e) {
+    console.error("PDF extraction failed:", e);
+    throw new Error("Не успяхме да прочетем PDF на това устройство. Опитайте Word (.docx) файл или поставете текста ръчно.");
   }
-  return parts.join("\n\n").replace(/[ \t]+/g, " ").trim();
 }
 
 export async function sha256Hex(s: string): Promise<string> {
