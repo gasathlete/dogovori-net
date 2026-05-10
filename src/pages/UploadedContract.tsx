@@ -267,6 +267,8 @@ export default function UploadedContractPage() {
     setSavedDocId((data as any).id);
     toast.success("Готово за подписване");
   };
+
+  const issuesByLevel = useMemo(() => {
     if (!analysis) return { high: 0, medium: 0, low: 0 };
     return analysis.issues.reduce(
       (acc, i) => { acc[i.severity] = (acc[i.severity] ?? 0) + 1; return acc; },
