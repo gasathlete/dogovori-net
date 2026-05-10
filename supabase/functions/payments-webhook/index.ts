@@ -87,6 +87,9 @@ async function handleSubscriptionCreated(subscription: any, env: StripeEnv) {
 }
 
 async function handleSubscriptionUpdated(subscription: any, env: StripeEnv) {
+  if (subscription.metadata?.kind === "team" || subscription.metadata?.teamId) {
+    return syncTeamSubscription(subscription, env);
+  }
   const item = subscription.items?.data?.[0];
   const priceId = item?.price?.metadata?.lovable_external_id || item?.price?.id;
   const productId = item?.price?.product;
