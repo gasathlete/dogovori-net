@@ -250,8 +250,10 @@ ${truncated}
       });
     };
 
-    // Use Pro model by default — accuracy on legal text matters more than cost/latency.
-    let model = "google/gemini-2.5-pro";
+    // Primary: Flash (3-5x faster than Pro). Verification layer below filters
+    // any hallucinated quotes, so quality stays high while latency drops.
+    // Fallback to Pro if Flash returns unparsable / empty content.
+    let model = "google/gemini-2.5-flash";
     let aiResp = await callAi(model);
 
     if (!aiResp.ok) {
