@@ -382,6 +382,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["document_kind"]
           payload: Json
           source_id: string | null
+          team_id: string | null
           title: string
           updated_at: string
           user_id: string
@@ -394,6 +395,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["document_kind"]
           payload: Json
           source_id?: string | null
+          team_id?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -406,6 +408,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["document_kind"]
           payload?: Json
           source_id?: string | null
+          team_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -423,6 +426,13 @@ export type Database = {
             columns: ["folder_id"]
             isOneToOne: false
             referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_documents_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -553,6 +563,206 @@ export type Database = {
         }
         Relationships: []
       }
+      team_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          target_id: string | null
+          target_type: string | null
+          team_id: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          team_id: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          team_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_audit_log_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          team_id: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          team_id: string
+          token: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          team_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_invitations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          id: string
+          invited_at: string
+          joined_at: string
+          role: Database["public"]["Enums"]["team_role"]
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          invited_at?: string
+          joined_at?: string
+          role?: Database["public"]["Enums"]["team_role"]
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          invited_at?: string
+          joined_at?: string
+          role?: Database["public"]["Enums"]["team_role"]
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_usage: {
+        Row: {
+          ops_used: number
+          period_start: string
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          ops_used?: number
+          period_start?: string
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          ops_used?: number
+          period_start?: string
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_usage_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: true
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          brand_color: string | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          environment: string
+          id: string
+          logo_url: string | null
+          name: string
+          owner_id: string
+          seat_count: number
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          vat_data: Json | null
+        }
+        Insert: {
+          brand_color?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          owner_id: string
+          seat_count?: number
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          vat_data?: Json | null
+        }
+        Update: {
+          brand_color?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          owner_id?: string
+          seat_count?: number
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          vat_data?: Json | null
+        }
+        Relationships: []
+      }
       template_cache: {
         Row: {
           created_at: string
@@ -583,6 +793,7 @@ export type Database = {
           size_bytes: number | null
           source: string
           storage_path: string | null
+          team_id: string | null
           text_hash: string
           title: string
           updated_at: string
@@ -599,6 +810,7 @@ export type Database = {
           size_bytes?: number | null
           source: string
           storage_path?: string | null
+          team_id?: string | null
           text_hash?: string
           title: string
           updated_at?: string
@@ -615,6 +827,7 @@ export type Database = {
           size_bytes?: number | null
           source?: string
           storage_path?: string | null
+          team_id?: string | null
           text_hash?: string
           title?: string
           updated_at?: string
@@ -633,6 +846,13 @@ export type Database = {
             columns: ["folder_id"]
             isOneToOne: false
             referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uploaded_contracts_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -697,6 +917,7 @@ export type Database = {
         Returns: undefined
       }
       consume_quota: { Args: { _kind: string }; Returns: Json }
+      consume_team_quota: { Args: { _team_id: string }; Returns: Json }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -713,6 +934,14 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      is_team_admin: {
+        Args: { _team_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_team_member: {
+        Args: { _team_id: string; _user_id: string }
+        Returns: boolean
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -722,6 +951,7 @@ export type Database = {
         }
         Returns: number
       }
+      my_team_ids: { Args: never; Returns: string[] }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -739,6 +969,7 @@ export type Database = {
       app_role: "admin" | "moderator" | "user"
       contact_type: "individual" | "legal"
       document_kind: "contract" | "template"
+      team_role: "owner" | "admin" | "member"
       user_plan: "free" | "pro"
     }
     CompositeTypes: {
@@ -870,6 +1101,7 @@ export const Constants = {
       app_role: ["admin", "moderator", "user"],
       contact_type: ["individual", "legal"],
       document_kind: ["contract", "template"],
+      team_role: ["owner", "admin", "member"],
       user_plan: ["free", "pro"],
     },
   },
