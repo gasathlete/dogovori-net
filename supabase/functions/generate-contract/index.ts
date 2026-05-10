@@ -191,6 +191,11 @@ ${qaLines}
       throw new Error("AI отговорът не може да бъде анализиран като JSON");
     }
 
+    // Persist to cache for future identical requests (best-effort).
+    try {
+      await admin.from("template_cache").upsert({ hash: cacheHash, payload: parsed, created_at: new Date().toISOString() });
+    } catch (e) { console.error("template_cache upsert:", e); }
+
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
