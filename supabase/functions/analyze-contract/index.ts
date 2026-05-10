@@ -138,7 +138,7 @@ Deno.serve(async (req: Request) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
     // Truncate very long contracts to keep token use reasonable (~30k chars ≈ 7-8k tokens)
-    const MAX_CHARS = 30000;
+    const MAX_CHARS = 15000;
     const truncated = text.length > MAX_CHARS ? text.slice(0, MAX_CHARS) + "\n\n[...текстът е съкратен поради дължина...]" : text;
 
     const userPrompt = `Заглавие на документа: ${contract.title}
