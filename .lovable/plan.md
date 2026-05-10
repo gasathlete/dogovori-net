@@ -1,85 +1,47 @@
-# Качване и риск-анализ на собствени договори
+## Цел
+Намаляване на месечната AI сметка от ~$11 700 на ~$1 200 за същия трафик (1000 потребителя × 10 операции/ден × 30 дни), без видима загуба на качество.
 
-Регистрираните потребители получават бутон **„Добави договор“** в профила си. Качват свой документ (PDF, DOCX или поставен текст), системата прави AI риск-анализ и договорът остава в библиотеката им — с папки, контрагент, повторен анализ, сваляне и споделяне за подпис.
+## Промени
 
-## Потребителски поток
+### 1. `supabase/functions/analyze-contract/index.ts` — смяна на модел
+- `const model = "google/gemini-2.5-pro"` → `"google/gemini-2.5-flash"`
+- Очаквано спестяване: ~90% от разхода за анализ (от $5 625 → ~$560/мес).
+- Качеството на flash е достатъчно за класификация на рискове и извличане на клаузи; сложните правни нюанси са рядкост.
 
-1. В таб **„Документи“** се появява бутон **„Добави договор“** (+ голяма празна-state карта, ако няма качени).
-2. Отваря се диалог с 3 таба: **PDF**, **DOCX**, **Поставен текст**.
-3. Потребителят избира папка + (по избор) контрагент + заглавие.
-4. След качването → автоматичен AI анализ → редирект към **`/document/:id`** в режим „Риск-анализ“.
-5. На страницата:
-   - Score 1–10 + цветова значка
-   - Класификация (тип договор) + кратко резюме
-   - Списък **проблемни клаузи** (цитат + риск + обяснение)
-   - **Липсващи стандартни клаузи**
-   - **Предложения за корекции** (нов текст за copy)
-   - Бутони: *Повторен анализ*, *Свали оригинал*, *Свали риск-доклад (PDF)*, *Сподели за подпис*, *Премести в папка*, *Изтрий*.
+### 2. `supabase/functions/analyze-contract/index.ts` — кеш по `text_hash`
+Преди да се консумира квота и да се вика AI:
+- `SELECT * FROM risk_analyses WHERE user_id = ? AND text_hash = ? ORDER BY created_at DESC LIMIT 1`
+- Ако има резултат от последните 30 дни → връщаме съществуващия анализ, **не** консумираме квота, **не** викаме AI.
+- Това покрива случаите: повторен upload на същия файл, re-analyze бутон, дубли при синхронизация.
 
-## Лимити
+### 3. `supabase/functions/analyze-contract/index.ts` — съкращаване на input
+- `MAX_CHARS`: `30000` → `15000`
+- Повечето български договори се събират в 15k знака (~3-4 страници). Дългите анекси и приложения рядко съдържат рискови клаузи, които flash не би хванал в първите 15k.
+- Спестяване: −50% input токени за всички анализи, които достигат лимита.
 
-- **Free**: 1 безплатен анализ общо (наред с текущите квоти за договори/бланки).
-- **Pro**: неограничено.
-- При лимит → upsell диалог към съществуващия checkout.
+### 4. `supabase/functions/generate-contract/index.ts` — смяна на модел
+- `model: "google/gemini-2.5-pro"` → `"google/gemini-2.5-flash"`
+- Шаблоните са deterministic запълване на placeholders с потребителски данни — flash се справя отлично.
+- Очаквано спестяване: ~90% (от $6 094 → ~$610/мес).
+- `correct-uploaded` и `apply-corrections` остават на **gemini-2.5-pro** — там качеството на правните корекции е критично и обемът е много по-малък.
 
-## Технически план
+## Резултат от симулацията след оптимизациите
 
-### 1. База данни (миграция)
+| Перо | Преди | След |
+|---|---|---|
+| Шаблони (150k/мес) | $6 094 | ~$610 |
+| Анализи (150k/мес) | $5 625 | ~$560 |
+| Кеш hit-rate (~20%) | 0 | −$230 |
+| **AI Общо** | **$11 719** | **~$940** |
+| Cloud (покрит от $25 free) | $2.49 | $2.49 |
+| **Сметка** | **~$11 718** | **~$940** |
 
-- Нов enum `'uploaded'` към `document_kind` (или нова стойност в `kind` колоната на `saved_documents`).
-- Нова таблица **`uploaded_contracts`**:
-  - `id`, `user_id`, `folder_id`, `contact_id`
-  - `title`, `source` (`pdf` | `docx` | `paste`), `original_filename`
-  - `storage_path` (към bucket `user-contracts`), `mime_type`, `size_bytes`
-  - `extracted_text` (text), `text_hash` (за откриване на промени)
-  - `created_at`, `updated_at`
-  - RLS: `user_id = auth.uid()` за всички операции.
-- Нова таблица **`risk_analyses`**:
-  - `id`, `uploaded_contract_id` (FK), `user_id`
-  - `model` (e.g. `google/gemini-2.5-flash`)
-  - `score` (int 1–10), `contract_type`, `summary`
-  - `issues` (jsonb: `[{clause, severity, explanation, suggestion}]`)
-  - `missing_clauses` (jsonb: `[{name, why}]`)
-  - `text_hash` (за да се вижда коя версия е анализирана)
-  - `created_at`
-  - RLS: same.
-- Нов **storage bucket** `user-contracts` (private) + RLS политики: пътищата започват с `auth.uid()/...`.
-- Колона `analyses_used` (int, default 0) в `download_quota` за лимит.
+## Технически детайли
 
-### 2. Edge функции
+- Кеш проверката се прави **след** auth и валидация на договора, **преди** `consume_quota` — така повторен анализ на същия hash е безплатен и не намалява квотата.
+- При cache hit връщаме същия JSON shape `{ analysis: <row> }`, frontend не изисква промени.
+- Не пипаме `risk_analyses` схемата — `text_hash` колоната вече съществува и се попълва.
+- Не пипаме `correct-uploaded` и `apply-corrections` — там обемът е малък и качеството важи.
 
-- **`upload-contract`** (POST):
-  - Приема `{source, title, folderId?, contactId?, file (base64) | text}`.
-  - Качва файла в bucket; за PDF извлича текст (pdf-parse), за DOCX (mammoth), за `paste` директно.
-  - Създава запис в `uploaded_contracts`. Връща `{id}`.
-- **`analyze-contract`** (POST `{uploadedContractId}`):
-  - Проверява квота (free → max 1, ако не е Pro).
-  - Чете `extracted_text`, вика **Lovable AI Gateway** (`google/gemini-2.5-flash`) с structured-output схема (score, type, summary, issues[], missing_clauses[]).
-  - Записва в `risk_analyses` + увеличава `analyses_used`.
-  - Връща пълния анализ.
-- **`download-risk-report`** (POST `{analysisId}`): сглобява PDF (`pdf-lib`) с branding на сайта.
-
-### 3. Frontend
-
-- **`Account.tsx` → таб „Документи“**: бутон „Добави договор“ + секция „Качени договори“ (карти със score badge, тип, дата, контрагент).
-- **`UploadContractDialog.tsx`** (нов): тaбове PDF/DOCX/Текст, drag&drop, валидация (≤ 10 MB, .pdf/.docx), spinner.
-- **`UploadedContractCard.tsx`** (нов): резюме + действия.
-- **`RiskAnalysisView.tsx`** (нов): красива страница за визуализация на анализа (gold/navy дизайн, score circle, color-coded severity).
-- **Маршрут** `/document/uploaded/:id`: зарежда договор + последен анализ; бутон „Анализирай отново“ (видим само ако `text_hash` се различава или винаги при Pro).
-- Навигация от карта в Account → нов маршрут.
-- Reuse `ShareForSignDialog` за качените договори (трябва да поддържа `kind = 'uploaded'`).
-
-### 4. Дизайн
-
-- Същата navy + gold естетика, hairline разделители, score badge с gradient (зелено 8–10, жълто 5–7, червено 1–4).
-- Празно състояние: илюстрация + текст „Качете първия си договор за безплатен AI риск-анализ“.
-
-## Извън обхвата (за по-късно)
-
-- OCR за сканирани PDF и снимки (JPG/PNG)
-- Версии/история на анализи извън `text_hash`
-- Авто-генериране на коригиран DOCX с tracked changes
-
----
-
-След одобрение ще започна с миграцията (за потвърждение от Ваша страна) и след това ще имплементирам edge функциите и UI-а.
+## Без промени в
+- Database schema, RLS, frontend компоненти, quota RPCs, типовете в `src/integrations/supabase/types.ts`.

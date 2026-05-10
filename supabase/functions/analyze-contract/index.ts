@@ -95,6 +95,26 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Cache: if we already analyzed this exact text for this user in the last 30 days,
+    // return that result without consuming quota or calling AI.
+    if (contract.text_hash) {
+      const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: cached } = await admin
+        .from("risk_analyses")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("text_hash", contract.text_hash)
+        .gte("created_at", cutoff)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cached) {
+        return new Response(JSON.stringify({ analysis: cached, cached: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // Atomic quota consumption — prevents free-tier bypass via concurrent calls.
     // The RPC checks plan + counter and increments in a single SERIALIZABLE step.
     const { data: consumed, error: consumeErr } = await admin.rpc("consume_quota", { _kind: "analysis" });
@@ -118,7 +138,7 @@ Deno.serve(async (req: Request) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
     // Truncate very long contracts to keep token use reasonable (~30k chars ≈ 7-8k tokens)
-    const MAX_CHARS = 30000;
+    const MAX_CHARS = 15000;
     const truncated = text.length > MAX_CHARS ? text.slice(0, MAX_CHARS) + "\n\n[...текстът е съкратен поради дължина...]" : text;
 
     const userPrompt = `Заглавие на документа: ${contract.title}
@@ -130,7 +150,7 @@ ${truncated}
 
 Извърши пълен правен риск-анализ. Върни СТРОГО валиден JSON по схемата.`;
 
-    const model = "google/gemini-2.5-pro";
+    const model = "google/gemini-2.5-flash";
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
