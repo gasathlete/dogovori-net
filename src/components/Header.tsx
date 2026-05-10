@@ -52,16 +52,18 @@ export function Header() {
           {user ? (
             <Link
               to="/account"
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-3 text-xs font-medium text-gold transition-colors hover:bg-gold/20"
+              aria-label="Профил"
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-2.5 text-xs font-medium text-gold transition-colors hover:bg-gold/20 sm:px-3"
             >
-              <UserIcon className="h-4 w-4" /> Профил
+              <UserIcon className="h-4 w-4" /> <span className="hidden sm:inline">Профил</span>
             </Link>
           ) : (
             <Link
               to="/auth"
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-3 text-xs font-medium text-gold transition-colors hover:bg-gold/20"
+              aria-label="Вход"
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-2.5 text-xs font-medium text-gold transition-colors hover:bg-gold/20 sm:px-3"
             >
-              <LogIn className="h-4 w-4" /> Вход
+              <LogIn className="h-4 w-4" /> <span className="hidden sm:inline">Вход</span>
             </Link>
           )}
           <button
