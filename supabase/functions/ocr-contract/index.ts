@@ -78,13 +78,31 @@ Deno.serve(async (req: Request) => {
 
     // Run sequentially to respect rate limits & keep memory low.
     const parts: string[] = [];
+    let unreadablePages = 0;
     for (let i = 0; i < pages.length; i++) {
       const t = await ocrPage(pages[i], i);
-      if (t) parts.push(t);
+      const trimmed = t.trim();
+      if (!trimmed) continue;
+      // Drop pages where the model refused or returned only the unreadable marker.
+      if (/\[OCR_UNREADABLE\]/i.test(trimmed) && trimmed.length < 80) {
+        unreadablePages++;
+        continue;
+      }
+      // Heuristic: legal Bulgarian docs are mostly Cyrillic. If a page comes back
+      // dominantly Latin and short, it's almost certainly hallucinated/garbled —
+      // skip it rather than poison the analysis.
+      const letters = (trimmed.match(/\p{L}/gu) ?? []).length;
+      const cyr = (trimmed.match(/[\u0400-\u04FF]/g) ?? []).length;
+      if (letters > 60 && letters < 300 && cyr / Math.max(letters, 1) < 0.4) {
+        unreadablePages++;
+        console.warn(`OCR page ${i} discarded (low Cyrillic ratio).`);
+        continue;
+      }
+      parts.push(trimmed.replace(/\[OCR_UNREADABLE\]/gi, "").trim());
     }
     const text = parts.join("\n\n").replace(/[ \t]+/g, " ").trim();
 
-    return new Response(JSON.stringify({ text, pages: pages.length }), {
+    return new Response(JSON.stringify({ text, pages: pages.length, unreadablePages }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
