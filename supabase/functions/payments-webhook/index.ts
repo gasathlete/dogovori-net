@@ -121,6 +121,13 @@ async function handleSubscriptionUpdated(subscription: any, env: StripeEnv) {
 }
 
 async function handleSubscriptionDeleted(subscription: any, env: StripeEnv) {
+  if (subscription.metadata?.kind === "team" || subscription.metadata?.teamId) {
+    const teamId = subscription.metadata?.teamId;
+    if (teamId) {
+      await getSupabase().from("teams").update({ status: "canceled" }).eq("id", teamId);
+    }
+    return;
+  }
   await getSupabase()
     .from("subscriptions")
     .update({ status: "canceled", updated_at: new Date().toISOString() })
