@@ -42,6 +42,12 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+    // User-scoped client used for RPCs that rely on auth.uid()
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
+    );
 
     // Auth required
     const authHeader = req.headers.get("Authorization") ?? "";
@@ -118,7 +124,7 @@ Deno.serve(async (req: Request) => {
 
     // Atomic quota consumption — prevents free-tier bypass via concurrent calls.
     // The RPC checks plan + counter and increments in a single SERIALIZABLE step.
-    const { data: consumed, error: consumeErr } = await admin.rpc("consume_quota", { _kind: "analysis" });
+    const { data: consumed, error: consumeErr } = await userClient.rpc("consume_quota", { _kind: "analysis" });
     if (consumeErr) {
       console.error("consume_quota error:", consumeErr);
       throw new Error("Грешка при проверка на квотата");
