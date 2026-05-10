@@ -3,6 +3,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, hashIp, clientIp } from "../_shared/cors.ts";
 import { sha256Hex, stableStringify } from "../_shared/normalize.ts";
+import { extractJson } from "../_shared/json.ts";
 
 const SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ). Използваш правилните понятия (Възложител/Изпълнител, Наемодател/Наемател, Продавач/Купувач, Страните, Настоящият Договор).
 
