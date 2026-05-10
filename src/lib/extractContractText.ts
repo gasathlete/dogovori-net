@@ -17,10 +17,10 @@ async function extractDocx(file: File): Promise<string> {
 }
 
 async function extractPdf(file: File): Promise<string> {
-  // pdfjs-dist v5 ships ESM build; we set worker to the bundled module worker.
-  const pdfjs: any = await import("pdfjs-dist");
+  // Use legacy build for broader browser compatibility (older iOS Safari etc.)
+  const pdfjs: any = await import("pdfjs-dist/legacy/build/pdf.mjs");
   // @ts-ignore - worker URL import
-  const workerSrc = (await import("pdfjs-dist/build/pdf.worker.mjs?url")).default;
+  const workerSrc = (await import("pdfjs-dist/legacy/build/pdf.worker.mjs?url")).default;
   pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 
   const arrayBuffer = await file.arrayBuffer();
