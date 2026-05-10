@@ -76,7 +76,7 @@ export function UploadContractDialog({
     if (!title) setTitle(f.name.replace(/\.[^.]+$/, ""));
   };
 
-  const submit = async () => {
+  const submit = async (skipAnalysis = false) => {
     if (!user) return;
     if (!title.trim()) { toast.error("Добавете заглавие"); return; }
 
