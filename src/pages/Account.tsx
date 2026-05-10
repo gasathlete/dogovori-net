@@ -635,13 +635,17 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   };
 
   const features = [
-    "Неограничено сваляне на договори (PDF и DOCX)",
-    "Неограничено сваляне на бланки и приложения",
-    "Достъп до всички бъдещи нови договори и услуги",
+    "До 100 операции на месец (договори + бланки + анализи)",
+    "Сваляне на договори в PDF и DOCX",
+    "Сваляне на бланки и приложения",
     "Дигитален подпис с изображение",
     "Без воден знак върху документите",
     "Достъп до всички бъдещи нови договори",
   ];
+
+  const proMonthlyUsed = (quota as any)?.pro_monthly_used ?? 0;
+  const proMonthlyCap = 100;
+  const proPct = Math.min(100, Math.round((proMonthlyUsed / proMonthlyCap) * 100));
 
   return (
     <div className="space-y-6">
