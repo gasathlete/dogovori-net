@@ -257,7 +257,7 @@ export default function UploadedContractPage() {
         kind: "contract" as any,
         title: contract.title,
         source_id: `uploaded:${contract.id}`,
-        contact_id: contact.contact_id,
+        contact_id: contract.contact_id,
         payload: textToPayload(contract.title, editText.trim()),
       })
       .select("id")
