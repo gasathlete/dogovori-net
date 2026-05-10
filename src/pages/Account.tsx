@@ -656,9 +656,19 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             <h3 className="mt-1 font-serif text-2xl font-bold">{isPro ? "Pro" : "Free"}</h3>
             <p className="mt-2 text-sm text-muted-foreground">
               {isPro
-                ? "Имате неограничен брой сваляния."
-                : `Безплатно: 1 договор + 1 бланка. Използвани: ${quota?.contracts_used ?? 0} договор(а), ${quota?.templates_used ?? 0} бланка(и).`}
+                ? `${proMonthlyUsed} / ${proMonthlyCap} операции този период.`
+                : `Безплатно: 3 договора + 3 бланки общо, след това 1+1 на месец. Използвани: ${quota?.contracts_used ?? 0} договор(а), ${quota?.templates_used ?? 0} бланка(и).`}
             </p>
+            {isPro && (
+              <div className="mt-3">
+                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full bg-gradient-gold transition-all" style={{ width: `${proPct}%` }} />
+                </div>
+                {proPct >= 90 && (
+                  <p className="mt-2 text-xs text-gold">Наближавате месечния лимит. Помислете за Team план за повече капацитет.</p>
+                )}
+              </div>
+            )}
             {!isPro && ((quota as any)?.bonus_contracts ?? 0) > 0 && (
               <p className="mt-2 text-sm text-gold">
                 Налични единични тегления: {(quota as any)?.bonus_contracts}
@@ -668,10 +678,13 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
           <Crown className="h-8 w-8 text-gold" />
         </div>
         {isPro && (
-          <div className="mt-6">
+          <div className="mt-6 flex flex-wrap gap-2">
             <Button onClick={portal} disabled={busy} variant="outline" className="border-gold/40">
               {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Управление на абонамент
+            </Button>
+            <Button asChild variant="outline" className="border-gold/40">
+              <a href="/team">Team план за фирми →</a>
             </Button>
           </div>
         )}
