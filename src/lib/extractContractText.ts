@@ -128,10 +128,11 @@ async function extractPdf(file: File, onProgress?: ExtractProgress): Promise<str
     onProgress?.(`Подготовка на страница ${i}/${maxOcrPages} за OCR...`);
     try {
       const page = await pdf.getPage(i);
-      // Aim for ~1500px on the long edge for legible OCR without huge payloads.
+      // Aim for ~2000px on the long edge — needed for legible OCR of small/noisy
+      // Cyrillic text. Lower-resolution renders cause the model to hallucinate.
       const baseViewport = page.getViewport({ scale: 1 });
-      const targetLong = 1500;
-      const scale = Math.min(2.2, targetLong / Math.max(baseViewport.width, baseViewport.height));
+      const targetLong = 2000;
+      const scale = Math.min(3, targetLong / Math.max(baseViewport.width, baseViewport.height));
       const viewport = page.getViewport({ scale });
 
       const canvas = document.createElement("canvas");
@@ -140,9 +141,14 @@ async function extractPdf(file: File, onProgress?: ExtractProgress): Promise<str
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Canvas 2D context недостъпен");
 
+      // Paint white background — some PDFs have transparent canvas which can
+      // leave the rendered image effectively blank for OCR.
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
       await page.render({ canvasContext: ctx, viewport }).promise;
-      // JPEG ~0.75 — good balance for text legibility vs payload size.
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+      // PNG (lossless) keeps small Cyrillic glyphs sharp.
+      const dataUrl = canvas.toDataURL("image/png");
       images.push(dataUrl);
 
       // Free memory.
