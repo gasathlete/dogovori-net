@@ -95,10 +95,25 @@ async function extractPdf(file: File, onProgress?: ExtractProgress): Promise<str
   }
 
   const cleanText = parts.join("\n\n").replace(/[ \t]+/g, " ").trim();
+
+  // Cyrillic-ratio heuristic: Bulgarian contracts must contain mostly Cyrillic.
+  // Some PDFs have a broken text layer (CID-mapped glyphs) that produces long
+  // garbage strings of Latin letters — long enough to pass length thresholds
+  // but unusable. If <30% of the letters are Cyrillic, treat as garbled.
+  const letters = cleanText.match(/\p{L}/gu) ?? [];
+  const cyrillic = cleanText.match(/[\u0400-\u04FF]/g) ?? [];
+  const cyrillicRatio = letters.length > 0 ? cyrillic.length / letters.length : 0;
+  const looksGarbled = letters.length > 200 && cyrillicRatio < 0.3;
+
   const looksScanned =
     extractionFailed ||
     cleanText.length < MIN_TOTAL_TEXT ||
-    (totalPages > 0 && cleanText.length / totalPages < MIN_TEXT_PER_PAGE);
+    (totalPages > 0 && cleanText.length / totalPages < MIN_TEXT_PER_PAGE) ||
+    looksGarbled;
+
+  if (looksGarbled) {
+    console.warn(`PDF text layer looks garbled (Cyrillic ratio ${(cyrillicRatio * 100).toFixed(1)}%), falling back to OCR.`);
+  }
 
   if (!looksScanned) return cleanText;
 
