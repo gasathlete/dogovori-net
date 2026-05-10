@@ -69,6 +69,8 @@ export default function UploadedContractPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [correcting, setCorrecting] = useState(false);
   const [corrections, setCorrections] = useState<{ corrected_text: string; changes: string[] } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
     if (!id || !user) return;
