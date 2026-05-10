@@ -208,7 +208,7 @@ export default function UploadedContractPage() {
                 Предложи корекции
               </Button>
             )}
-            <Button variant="ghost" className="text-destructive" onClick={remove}>
+            <Button variant="ghost" className="text-destructive" onClick={() => setConfirmDelete(true)}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
