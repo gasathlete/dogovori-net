@@ -538,6 +538,24 @@ export type Database = {
         }
         Relationships: []
       }
+      template_cache: {
+        Row: {
+          created_at: string
+          hash: string
+          payload: Json
+        }
+        Insert: {
+          created_at?: string
+          hash: string
+          payload: Json
+        }
+        Update: {
+          created_at?: string
+          hash?: string
+          payload?: Json
+        }
+        Relationships: []
+      }
       uploaded_contracts: {
         Row: {
           contact_id: string | null
