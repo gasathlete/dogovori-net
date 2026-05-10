@@ -49,8 +49,10 @@ type Contract = {
   original_filename: string | null;
   text_hash: string;
   extracted_text: string;
+  contact_id: string | null;
   created_at: string;
 };
+type Contact = { id: string; name: string };
 
 const scoreColor = (s: number) => {
   if (s >= 8) return "text-emerald-400 border-emerald-400/40 bg-emerald-400/10";
