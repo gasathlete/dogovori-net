@@ -60,7 +60,10 @@ export function UploadContractDialog({
     }, 2500);
     return () => clearInterval(id);
   }, [analyzing]);
-    setBusy(false); setPhase(""); setTab("pdf");
+
+  const reset = () => {
+    setFile(null); setPasted(""); setTitle(""); setFolderId("none"); setContactId("none");
+    setBusy(false); setPhase(""); setTab("pdf"); setAnalyzing(false); setTip("");
   };
 
   const onFileChange = (f: File | null) => {
