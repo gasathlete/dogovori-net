@@ -3,6 +3,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import { normalizeText, sha256Hex } from "../_shared/normalize.ts";
+import { extractJson } from "../_shared/json.ts";
 
 // PROMPT_VERSION — bump to invalidate cached analyses produced by older prompts.
 const PROMPT_VERSION = "v3-injection-hardened";
