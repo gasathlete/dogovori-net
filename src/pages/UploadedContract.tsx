@@ -214,6 +214,28 @@ export default function UploadedContractPage() {
           </div>
         </div>
 
+        <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Изтриване на договора?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Това ще изтрие договора и всички свързани анализи. Действието е необратимо.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Отказ</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => { e.preventDefault(); remove(); }}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Изтрий
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         <Dialog open={!!corrections} onOpenChange={(o) => !o && setCorrections(null)}>
           <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
