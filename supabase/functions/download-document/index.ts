@@ -83,13 +83,9 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (planRow) {
-        const patch =
-          existing.kind === "contract"
-            ? { contracts_used: planRow.contracts_used + 1 }
-            : { templates_used: planRow.templates_used + 1 };
-        await admin.from("download_quota").update(patch).eq("user_id", userId);
-      }
+      // Re-download is genuinely free: do NOT increment usage counters.
+      // (Previously this incremented contracts_used/templates_used, causing
+      // free users to exhaust their lifetime allowance on repeat downloads.)
       await auditInsert("redownload", existing.id, { kind: existing.kind });
       return new Response(
         JSON.stringify({
