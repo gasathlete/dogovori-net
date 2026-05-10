@@ -657,15 +657,6 @@ export default function UploadedContractPage() {
                 )}
               </section>
 
-              {/* RAW TEXT (collapsed) */}
-              <details className="rounded-xl border border-border/60 bg-gradient-card p-6">
-                <summary className="cursor-pointer font-serif text-base font-bold text-gold">
-                  <FileText className="mr-2 inline h-4 w-4" /> Покажи извлечения текст
-                </summary>
-                <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded bg-background/50 p-3 text-xs text-muted-foreground">
-                  {contract.extracted_text}
-                </pre>
-              </details>
             </div>
           </div>
         )}
