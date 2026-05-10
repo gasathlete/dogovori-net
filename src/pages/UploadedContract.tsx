@@ -134,13 +134,32 @@ export default function UploadedContractPage() {
 
   const remove = async () => {
     if (!contract) return;
-    if (!confirm("Изтриване на договора и всички анализи?")) return;
-    if (contract.storage_path) {
-      await supabase.storage.from("user-contracts").remove([contract.storage_path]);
+    setDeleting(true);
+    try {
+      if (contract.storage_path) {
+        const { error: storageError } = await supabase.storage
+          .from("user-contracts")
+          .remove([contract.storage_path]);
+        if (storageError) console.warn("storage remove failed:", storageError);
+      }
+      const { error } = await supabase
+        .from("uploaded_contracts")
+        .delete()
+        .eq("id", contract.id);
+      if (error) {
+        console.error("delete uploaded_contract failed:", error);
+        toast.error("Грешка при изтриване: " + error.message);
+        return;
+      }
+      toast.success("Изтрит");
+      setConfirmDelete(false);
+      navigate("/account?tab=documents");
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Грешка при изтриване: " + (e?.message ?? "неизвестна"));
+    } finally {
+      setDeleting(false);
     }
-    const { error } = await supabase.from("uploaded_contracts").delete().eq("id", contract.id);
-    if (error) toast.error(error.message);
-    else { toast.success("Изтрит"); navigate("/account?tab=documents"); }
   };
 
   const issuesByLevel = useMemo(() => {
