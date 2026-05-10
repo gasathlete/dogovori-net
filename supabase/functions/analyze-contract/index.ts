@@ -290,6 +290,18 @@ ${truncated}
     let parsed: any = null;
     try { parsed = content.trim() ? extractJson(content) : null; } catch { parsed = null; }
 
+    // Fallback to Pro for higher accuracy if Flash returned nothing parsable.
+    if (!parsed) {
+      console.warn("Flash returned unparsable content, falling back to Pro");
+      model = "google/gemini-2.5-pro";
+      const proResp = await callAi(model);
+      if (proResp.ok) {
+        const proData = await proResp.json();
+        const proContent: string = proData.choices?.[0]?.message?.content ?? "";
+        try { parsed = proContent.trim() ? extractJson(proContent) : null; } catch { parsed = null; }
+      }
+    }
+
     if (!parsed) throw new Error("AI не върна валиден отговор");
 
     const rawIssues = Array.isArray(parsed?.issues) ? parsed.issues : [];
