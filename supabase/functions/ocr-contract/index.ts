@@ -54,7 +54,7 @@ Deno.serve(async (req: Request) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
+          model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: OCR_SYSTEM },
             {
@@ -76,19 +76,26 @@ Deno.serve(async (req: Request) => {
       return (j?.choices?.[0]?.message?.content ?? "").trim();
     };
 
-    // Run sequentially to respect rate limits & keep memory low.
+    // Run pages in parallel (with a small concurrency cap) so we stay under the
+    // 150s edge function idle limit even on 6–12 page contracts.
+    const CONCURRENCY = 4;
+    const results: string[] = new Array(pages.length).fill("");
+    let cursor = 0;
+    const workers = Array.from({ length: Math.min(CONCURRENCY, pages.length) }, async () => {
+      while (true) {
+        const i = cursor++;
+        if (i >= pages.length) return;
+        const t = (await ocrPage(pages[i], i)).trim();
+        console.log(`OCR page ${i + 1}: ${t.length} chars`);
+        results[i] = t;
+      }
+    });
+    await Promise.all(workers);
+
     const parts: string[] = [];
     let unreadablePages = 0;
-    for (let i = 0; i < pages.length; i++) {
-      const t = await ocrPage(pages[i], i);
-      const trimmed = t.trim();
-      console.log(`OCR page ${i + 1}: ${trimmed.length} chars`);
-      if (!trimmed) {
-        unreadablePages++;
-        continue;
-      }
-      // Drop pages where the model returned only the unreadable marker.
-      if (/^\s*\[OCR_UNREADABLE\]\s*$/i.test(trimmed)) {
+    for (const trimmed of results) {
+      if (!trimmed || /^\s*\[OCR_UNREADABLE\]\s*$/i.test(trimmed)) {
         unreadablePages++;
         continue;
       }
