@@ -106,11 +106,25 @@ export default function UploadedContractPage() {
     load();
   };
 
+  const openPicker = () => {
+    if (!analysis) return;
+    setIssueSel(Object.fromEntries(analysis.issues.map((_, i) => [i, true])));
+    setMissingSel(Object.fromEntries(analysis.missing_clauses.map((_, i) => [i, true])));
+    setPickerOpen(true);
+  };
+
   const suggestCorrections = async () => {
-    if (!id) return;
+    if (!id || !analysis) return;
+    const selectedIssues = analysis.issues.filter((_, i) => issueSel[i]);
+    const selectedMissing = analysis.missing_clauses.filter((_, i) => missingSel[i]);
+    if (selectedIssues.length === 0 && selectedMissing.length === 0) {
+      toast.error("Изберете поне едно подобрение");
+      return;
+    }
+    setPickerOpen(false);
     setCorrecting(true);
     const { data, error } = await supabase.functions.invoke("correct-uploaded", {
-      body: { uploadedContractId: id },
+      body: { uploadedContractId: id, selectedIssues, selectedMissing },
     });
     setCorrecting(false);
     if (error || (data as any)?.error) {
