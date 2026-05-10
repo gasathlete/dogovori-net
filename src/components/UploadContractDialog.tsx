@@ -148,9 +148,11 @@ export function UploadContractDialog({
       const newId = insertRes.data!.id as string;
 
       setPhase("Риск анализ...");
+      setAnalyzing(true);
       const { data: aData, error: aErr } = await supabase.functions.invoke("analyze-contract", {
         body: { uploadedContractId: newId },
       });
+      setAnalyzing(false);
       if (aErr) {
         // Surface server error if any
         const msg = (aErr as any)?.context?.responseText || aErr.message;
