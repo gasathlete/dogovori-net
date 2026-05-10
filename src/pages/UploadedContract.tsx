@@ -72,6 +72,9 @@ export default function UploadedContractPage() {
   const [corrections, setCorrections] = useState<{ corrected_text: string; changes: string[] } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [issueSel, setIssueSel] = useState<Record<number, boolean>>({});
+  const [missingSel, setMissingSel] = useState<Record<number, boolean>>({});
 
   const load = async () => {
     if (!id || !user) return;
