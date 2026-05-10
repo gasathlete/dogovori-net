@@ -18,9 +18,9 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-navy/80 backdrop-blur-xl">
-      <div className="container flex h-16 items-center justify-between gap-3">
-        <Link to="/" onClick={() => setOpen(false)} className="flex min-w-0 items-center gap-3">
-          <Logo />
+      <div className="container flex h-16 items-center justify-between gap-2">
+        <Link to="/" onClick={() => setOpen(false)} className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <Logo compact />
           <a
             href="https://im-development.imot.bg"
             target="_blank"
@@ -52,16 +52,18 @@ export function Header() {
           {user ? (
             <Link
               to="/account"
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-3 text-xs font-medium text-gold transition-colors hover:bg-gold/20"
+              aria-label="Профил"
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-2.5 text-xs font-medium text-gold transition-colors hover:bg-gold/20 sm:px-3"
             >
-              <UserIcon className="h-4 w-4" /> Профил
+              <UserIcon className="h-4 w-4" /> <span className="hidden sm:inline">Профил</span>
             </Link>
           ) : (
             <Link
               to="/auth"
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-3 text-xs font-medium text-gold transition-colors hover:bg-gold/20"
+              aria-label="Вход"
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-2.5 text-xs font-medium text-gold transition-colors hover:bg-gold/20 sm:px-3"
             >
-              <LogIn className="h-4 w-4" /> Вход
+              <LogIn className="h-4 w-4" /> <span className="hidden sm:inline">Вход</span>
             </Link>
           )}
           <button

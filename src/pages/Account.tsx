@@ -122,35 +122,35 @@ export default function AccountPage() {
     <div className="min-h-screen">
       <Header />
       <main className="container py-6 md:py-10">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <Link to="/" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-gold">
               <ArrowLeft className="h-3 w-3" /> Към началото
             </Link>
-            <h1 className="mt-1 font-serif text-3xl font-bold">Моят профил</h1>
-            <p className="text-sm text-muted-foreground">{user?.email}</p>
+            <h1 className="mt-1 font-serif text-2xl font-bold sm:text-3xl">Моят профил</h1>
+            <p className="truncate text-sm text-muted-foreground">{user?.email}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {isStaff && (
-              <Button asChild variant="outline" className="border-gold/60 text-gold hover:bg-gold/10">
+              <Button asChild variant="outline" size="sm" className="border-gold/60 text-gold hover:bg-gold/10">
                 <Link to="/admin"><ShieldCheck className="mr-2 h-4 w-4" /> Модераторски панел</Link>
               </Button>
             )}
-            <Button variant="outline" onClick={signOut} className="border-border/60">
+            <Button variant="outline" size="sm" onClick={signOut} className="border-border/60">
               <LogOut className="mr-2 h-4 w-4" /> Изход
             </Button>
           </div>
         </div>
 
         <Tabs value={initialTab} onValueChange={onTabChange} className="space-y-6">
-          <TabsList className="flex w-full flex-wrap justify-start gap-1 bg-card/40 p-1">
-            <TabsTrigger value="dashboard"><Sparkles className="mr-1 h-3.5 w-3.5" />Табло</TabsTrigger>
-            <TabsTrigger value="contacts"><Users className="mr-1 h-3.5 w-3.5" />Контрагенти</TabsTrigger>
-            <TabsTrigger value="documents"><FileText className="mr-1 h-3.5 w-3.5" />Документи</TabsTrigger>
-            <TabsTrigger value="signed"><PenTool className="mr-1 h-3.5 w-3.5" />Подписани</TabsTrigger>
-            <TabsTrigger value="folders"><FolderOpen className="mr-1 h-3.5 w-3.5" />Папки</TabsTrigger>
-            <TabsTrigger value="subscription"><CreditCard className="mr-1 h-3.5 w-3.5" />Абонамент</TabsTrigger>
-            <TabsTrigger value="settings"><SettingsIcon className="mr-1 h-3.5 w-3.5" />Настройки</TabsTrigger>
+          <TabsList className="-mx-4 flex w-auto justify-start gap-1 overflow-x-auto bg-card/40 p-1 px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:w-full md:flex-wrap md:overflow-visible md:px-1">
+            <TabsTrigger value="dashboard" className="shrink-0 whitespace-nowrap"><Sparkles className="mr-1 h-3.5 w-3.5" />Табло</TabsTrigger>
+            <TabsTrigger value="contacts" className="shrink-0 whitespace-nowrap"><Users className="mr-1 h-3.5 w-3.5" />Контрагенти</TabsTrigger>
+            <TabsTrigger value="documents" className="shrink-0 whitespace-nowrap"><FileText className="mr-1 h-3.5 w-3.5" />Документи</TabsTrigger>
+            <TabsTrigger value="signed" className="shrink-0 whitespace-nowrap"><PenTool className="mr-1 h-3.5 w-3.5" />Подписани</TabsTrigger>
+            <TabsTrigger value="folders" className="shrink-0 whitespace-nowrap"><FolderOpen className="mr-1 h-3.5 w-3.5" />Папки</TabsTrigger>
+            <TabsTrigger value="subscription" className="shrink-0 whitespace-nowrap"><CreditCard className="mr-1 h-3.5 w-3.5" />Абонамент</TabsTrigger>
+            <TabsTrigger value="settings" className="shrink-0 whitespace-nowrap"><SettingsIcon className="mr-1 h-3.5 w-3.5" />Настройки</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard">
@@ -691,11 +691,33 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
       </div>
 
       {!isPro && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Monthly — first on mobile */}
+          <div className="relative order-1 flex flex-col rounded-xl border-2 border-gold bg-gradient-card p-5 shadow-gold sm:p-6 lg:order-2">
+            <div className="absolute -top-3 left-4 rounded-full bg-gradient-gold px-3 py-0.5 text-xs font-bold text-navy">
+              Най-популярен
+            </div>
+            <div className="text-xs uppercase tracking-wider text-gold">Pro месечно</div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="font-serif text-2xl font-bold sm:text-3xl">9.90 €</span>
+              <span className="text-sm text-muted-foreground line-through">29.90 €</span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">на месец · отказ по всяко време</p>
+            <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
+              {features.map((f) => (<li key={f}>• {f}</li>))}
+            </ul>
+            <Button
+              onClick={() => setCheckoutPrice("pro_monthly")}
+              className="mt-6 bg-gradient-gold text-navy hover:shadow-gold"
+            >
+              Премини на Pro
+            </Button>
+          </div>
+
           {/* Single contract */}
-          <div className="flex flex-col rounded-xl border border-border/60 bg-gradient-card p-6">
+          <div className="order-2 flex flex-col rounded-xl border border-border/60 bg-gradient-card p-5 sm:p-6 lg:order-1">
             <div className="text-xs uppercase tracking-wider text-muted-foreground">Единичен договор</div>
-            <div className="mt-2 font-serif text-3xl font-bold">1.90 €</div>
+            <div className="mt-2 font-serif text-2xl font-bold sm:text-3xl">1.90 €</div>
             <p className="mt-1 text-xs text-muted-foreground">Еднократно — един Pro договор</p>
             <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
               <li>• Сваляне на 1 договор (PDF + DOCX)</li>
@@ -711,33 +733,11 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             </Button>
           </div>
 
-          {/* Monthly */}
-          <div className="relative flex flex-col rounded-xl border-2 border-gold bg-gradient-card p-6 shadow-gold">
-            <div className="absolute -top-3 left-4 rounded-full bg-gradient-gold px-3 py-0.5 text-xs font-bold text-navy">
-              Най-популярен
-            </div>
-            <div className="text-xs uppercase tracking-wider text-gold">Pro месечно</div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-serif text-3xl font-bold">9.90 €</span>
-              <span className="text-sm text-muted-foreground line-through">29.90 €</span>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">на месец · отказ по всяко време</p>
-            <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
-              {features.map((f) => (<li key={f}>• {f}</li>))}
-            </ul>
-            <Button
-              onClick={() => setCheckoutPrice("pro_monthly")}
-              className="mt-6 bg-gradient-gold text-navy hover:shadow-gold"
-            >
-              Премини на Pro
-            </Button>
-          </div>
-
           {/* Yearly */}
-          <div className="flex flex-col rounded-xl border border-border/60 bg-gradient-card p-6">
+          <div className="order-3 flex flex-col rounded-xl border border-border/60 bg-gradient-card p-5 sm:p-6">
             <div className="text-xs uppercase tracking-wider text-muted-foreground">Pro годишно</div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-serif text-3xl font-bold">99 €</span>
+              <span className="font-serif text-2xl font-bold sm:text-3xl">99 €</span>
               <span className="text-sm text-muted-foreground line-through">118.80 €</span>
             </div>
             <p className="mt-1 text-xs text-gold">Спестявате ~17% (≈ 8.25 €/месец)</p>
@@ -755,10 +755,10 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
           </div>
 
           {/* Team */}
-          <div className="flex flex-col rounded-xl border border-gold/40 bg-gradient-card p-6">
+          <div className="order-4 flex flex-col rounded-xl border border-gold/40 bg-gradient-card p-5 sm:p-6">
             <div className="text-xs uppercase tracking-wider text-gold">Team — за фирми</div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-serif text-3xl font-bold">7.90 €</span>
+              <span className="font-serif text-2xl font-bold sm:text-3xl">7.90 €</span>
               <span className="text-sm text-muted-foreground">/място/мес</span>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">мин. 3 места · 100 ops/място/мес</p>
