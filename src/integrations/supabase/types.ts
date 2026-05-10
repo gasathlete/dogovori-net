@@ -365,6 +365,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "risk_analyses_uploaded_contract_fk"
+            columns: ["uploaded_contract_id"]
+            isOneToOne: false
+            referencedRelation: "uploaded_contracts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "risk_analyses_uploaded_contract_id_fkey"
             columns: ["uploaded_contract_id"]
             isOneToOne: false
@@ -415,10 +422,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "saved_documents_contact_fk"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "saved_documents_contact_id_fkey"
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_documents_folder_fk"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
             referencedColumns: ["id"]
           },
           {
@@ -489,7 +510,15 @@ export type Database = {
           token?: string
           viewed_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "shared_links_document_fk"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "saved_documents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscriptions: {
         Row: {
@@ -835,10 +864,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "uploaded_contracts_contact_fk"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "uploaded_contracts_contact_id_fkey"
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uploaded_contracts_folder_fk"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
             referencedColumns: ["id"]
           },
           {
