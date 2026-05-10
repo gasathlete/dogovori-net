@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileUp, FileText, ClipboardPaste, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,10 +36,34 @@ export function UploadContractDialog({
   const [contactId, setContactId] = useState<string>("none");
   const [busy, setBusy] = useState(false);
   const [phase, setPhase] = useState<string>("");
+  const [analyzing, setAnalyzing] = useState(false);
+  const [tip, setTip] = useState<string>("");
+
+  // Rotating reassuring phrases shown while the AI risk analysis runs.
+  useEffect(() => {
+    if (!analyzing) return;
+    const tips = [
+      "Прочитам договора ред по ред...",
+      "Сверявам клаузите със ЗЗД и ТЗ...",
+      "Търся скрити рискове и неравнопоставени условия...",
+      "Проверявам неустойки, срокове и подсъдност...",
+      "Идентифицирам липсващи съществени клаузи...",
+      "Цитирам дословно проблемните пасажи...",
+      "Изчислявам общ риск-скор на договора...",
+      "Финални проверки за точност...",
+    ];
+    let i = 0;
+    setTip(tips[0]);
+    const id = setInterval(() => {
+      i = (i + 1) % tips.length;
+      setTip(tips[i]);
+    }, 2500);
+    return () => clearInterval(id);
+  }, [analyzing]);
 
   const reset = () => {
     setFile(null); setPasted(""); setTitle(""); setFolderId("none"); setContactId("none");
-    setBusy(false); setPhase(""); setTab("pdf");
+    setBusy(false); setPhase(""); setTab("pdf"); setAnalyzing(false); setTip("");
   };
 
   const onFileChange = (f: File | null) => {
@@ -124,9 +148,11 @@ export function UploadContractDialog({
       const newId = insertRes.data!.id as string;
 
       setPhase("Риск анализ...");
+      setAnalyzing(true);
       const { data: aData, error: aErr } = await supabase.functions.invoke("analyze-contract", {
         body: { uploadedContractId: newId },
       });
+      setAnalyzing(false);
       if (aErr) {
         // Surface server error if any
         const msg = (aErr as any)?.context?.responseText || aErr.message;
@@ -155,6 +181,7 @@ export function UploadContractDialog({
     } finally {
       setBusy(false);
       setPhase("");
+      setAnalyzing(false);
     }
   };
 
@@ -223,7 +250,12 @@ export function UploadContractDialog({
           </div>
         </div>
 
-        <DialogFooter className="mt-4">
+        <DialogFooter className="mt-4 flex-col sm:flex-col items-stretch gap-2">
+          {analyzing && tip && (
+            <div className="text-xs text-muted-foreground text-center animate-pulse">
+              {tip}
+            </div>
+          )}
           <Button onClick={submit} disabled={busy} className="bg-gradient-gold text-navy">
             {busy ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{phase || "Обработка..."}</> : "Качи и анализирай"}
           </Button>

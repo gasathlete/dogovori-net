@@ -250,8 +250,10 @@ ${truncated}
       });
     };
 
-    // Use Pro model by default — accuracy on legal text matters more than cost/latency.
-    let model = "google/gemini-2.5-pro";
+    // Primary: Flash (3-5x faster than Pro). Verification layer below filters
+    // any hallucinated quotes, so quality stays high while latency drops.
+    // Fallback to Pro if Flash returns unparsable / empty content.
+    let model = "google/gemini-2.5-flash";
     let aiResp = await callAi(model);
 
     if (!aiResp.ok) {
@@ -287,6 +289,18 @@ ${truncated}
     const content: string = data.choices?.[0]?.message?.content ?? "";
     let parsed: any = null;
     try { parsed = content.trim() ? extractJson(content) : null; } catch { parsed = null; }
+
+    // Fallback to Pro for higher accuracy if Flash returned nothing parsable.
+    if (!parsed) {
+      console.warn("Flash returned unparsable content, falling back to Pro");
+      model = "google/gemini-2.5-pro";
+      const proResp = await callAi(model);
+      if (proResp.ok) {
+        const proData = await proResp.json();
+        const proContent: string = proData.choices?.[0]?.message?.content ?? "";
+        try { parsed = proContent.trim() ? extractJson(proContent) : null; } catch { parsed = null; }
+      }
+    }
 
     if (!parsed) throw new Error("AI не върна валиден отговор");
 
