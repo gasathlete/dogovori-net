@@ -82,15 +82,40 @@ export default function UploadedContractPage() {
   const [issueSel, setIssueSel] = useState<Record<number, boolean>>({});
   const [missingSel, setMissingSel] = useState<Record<number, boolean>>({});
 
+  // Editor + metadata
+  const [editText, setEditText] = useState("");
+  const [contactId, setContactId] = useState<string>("none");
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [savingText, setSavingText] = useState(false);
+  const [savingContact, setSavingContact] = useState(false);
+  const [savedDocId, setSavedDocId] = useState<string | null>(null);
+  const [creatingShare, setCreatingShare] = useState(false);
+
   const load = async () => {
     if (!id || !user) return;
     setLoading(true);
-    const [cRes, aRes] = await Promise.all([
+    const [cRes, aRes, kRes] = await Promise.all([
       supabase.from("uploaded_contracts").select("*").eq("id", id).maybeSingle(),
       supabase.from("risk_analyses").select("*").eq("uploaded_contract_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("contacts").select("id,name").is("deleted_at", null).order("name", { ascending: true }),
     ]);
-    setContract((cRes.data as any) ?? null);
+    const c = (cRes.data as any) ?? null;
+    setContract(c);
     setAnalysis((aRes.data as any) ?? null);
+    setContacts(((kRes.data as any) ?? []) as Contact[]);
+    if (c) {
+      setEditText(c.extracted_text ?? "");
+      setContactId(c.contact_id ?? "none");
+    }
+    // Look up an existing shareable saved_documents copy linked via source_id.
+    const sd = await supabase
+      .from("saved_documents")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("kind", "contract")
+      .eq("source_id", `uploaded:${id}`)
+      .maybeSingle();
+    setSavedDocId((sd.data as any)?.id ?? null);
     setLoading(false);
   };
 
