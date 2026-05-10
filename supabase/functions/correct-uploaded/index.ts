@@ -117,6 +117,8 @@ ${issuesBlock}
 
 ${missingBlock}
 
+${scopeNote}
+
 Задача: пренапиши договора, като отстраниш проблемите и добавиш липсващите клаузи. Връщай само JSON.`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
