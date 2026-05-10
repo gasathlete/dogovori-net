@@ -2,16 +2,20 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Download, RefreshCw, ShieldAlert, ShieldCheck, AlertTriangle,
-  Loader2, FileText, Trash2, Sparkles, Wand2, Copy,
+  Loader2, FileText, Trash2, Sparkles, Wand2, Copy, Save, Users, PenLine,
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ShareForSignDialog } from "@/components/ShareForSignDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -45,8 +49,10 @@ type Contract = {
   original_filename: string | null;
   text_hash: string;
   extracted_text: string;
+  contact_id: string | null;
   created_at: string;
 };
+type Contact = { id: string; name: string };
 
 const scoreColor = (s: number) => {
   if (s >= 8) return "text-emerald-400 border-emerald-400/40 bg-emerald-400/10";
@@ -76,15 +82,40 @@ export default function UploadedContractPage() {
   const [issueSel, setIssueSel] = useState<Record<number, boolean>>({});
   const [missingSel, setMissingSel] = useState<Record<number, boolean>>({});
 
+  // Editor + metadata
+  const [editText, setEditText] = useState("");
+  const [contactId, setContactId] = useState<string>("none");
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [savingText, setSavingText] = useState(false);
+  const [savingContact, setSavingContact] = useState(false);
+  const [savedDocId, setSavedDocId] = useState<string | null>(null);
+  const [creatingShare, setCreatingShare] = useState(false);
+
   const load = async () => {
     if (!id || !user) return;
     setLoading(true);
-    const [cRes, aRes] = await Promise.all([
+    const [cRes, aRes, kRes] = await Promise.all([
       supabase.from("uploaded_contracts").select("*").eq("id", id).maybeSingle(),
       supabase.from("risk_analyses").select("*").eq("uploaded_contract_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("contacts").select("id,name").is("deleted_at", null).order("name", { ascending: true }),
     ]);
-    setContract((cRes.data as any) ?? null);
+    const c = (cRes.data as any) ?? null;
+    setContract(c);
     setAnalysis((aRes.data as any) ?? null);
+    setContacts(((kRes.data as any) ?? []) as Contact[]);
+    if (c) {
+      setEditText(c.extracted_text ?? "");
+      setContactId(c.contact_id ?? "none");
+    }
+    // Look up an existing shareable saved_documents copy linked via source_id.
+    const sd = await supabase
+      .from("saved_documents")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("kind", "contract")
+      .eq("source_id", `uploaded:${id}`)
+      .maybeSingle();
+    setSavedDocId((sd.data as any)?.id ?? null);
     setLoading(false);
   };
 
@@ -161,6 +192,80 @@ export default function UploadedContractPage() {
     setConfirmDelete(false);
     if (error) toast.error(error.message);
     else { toast.success("Изтрит"); navigate("/account?tab=documents"); }
+  };
+
+  // SHA-256 of the editor text — kept in sync with extracted_text on save.
+  const hashText = async (s: string) => {
+    const buf = new TextEncoder().encode(s);
+    const h = await crypto.subtle.digest("SHA-256", buf);
+    return Array.from(new Uint8Array(h)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  };
+
+  const saveText = async () => {
+    if (!contract) return;
+    const trimmed = editText.trim();
+    if (trimmed.length < 80) { toast.error("Текстът е твърде кратък (мин. 80 знака)"); return; }
+    setSavingText(true);
+    const text_hash = await hashText(trimmed);
+    const { error } = await supabase
+      .from("uploaded_contracts")
+      .update({ extracted_text: trimmed, text_hash })
+      .eq("id", contract.id);
+    setSavingText(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Текстът е запазен");
+    setContract({ ...contract, extracted_text: trimmed, text_hash });
+    // If we previously created a shareable copy, refresh its payload.
+    if (savedDocId) {
+      await supabase
+        .from("saved_documents")
+        .update({ payload: textToPayload(contract.title, trimmed) })
+        .eq("id", savedDocId);
+    }
+  };
+
+  const saveContact = async (next: string) => {
+    if (!contract) return;
+    setContactId(next);
+    setSavingContact(true);
+    const { error } = await supabase
+      .from("uploaded_contracts")
+      .update({ contact_id: next === "none" ? null : next })
+      .eq("id", contract.id);
+    setSavingContact(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Контрагентът е обновен");
+  };
+
+  const textToPayload = (title: string, text: string) => ({
+    title,
+    clauses: [{ number: "", title: "", body: text }],
+  });
+
+  const prepareForSigning = async () => {
+    if (!contract || !user) return;
+    if ((editText.trim().length || 0) < 80) {
+      toast.error("Запазете текста преди подписване");
+      return;
+    }
+    if (savedDocId) return; // already prepared
+    setCreatingShare(true);
+    const { data, error } = await supabase
+      .from("saved_documents")
+      .insert({
+        user_id: user.id,
+        kind: "contract" as any,
+        title: contract.title,
+        source_id: `uploaded:${contract.id}`,
+        contact_id: contract.contact_id,
+        payload: textToPayload(contract.title, editText.trim()),
+      })
+      .select("id")
+      .single();
+    setCreatingShare(false);
+    if (error || !data) { toast.error(error?.message || "Грешка"); return; }
+    setSavedDocId((data as any).id);
+    toast.success("Готово за подписване");
   };
 
   const issuesByLevel = useMemo(() => {
@@ -388,6 +493,78 @@ export default function UploadedContractPage() {
           </DialogContent>
         </Dialog>
 
+        {/* DOCUMENT EDITOR + LINKED CONTACT + SIGNING — always visible */}
+        <section className="mt-6 rounded-xl border border-border/60 bg-gradient-card p-5 md:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-serif text-xl font-bold flex items-center gap-2">
+              <FileText className="h-5 w-5 text-gold" /> Документ
+            </h2>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                onClick={saveText}
+                disabled={savingText || editText === contract.extracted_text}
+                className="bg-gradient-gold text-navy"
+              >
+                {savingText ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Запази текста
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-[1fr_260px]">
+            <Textarea
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              rows={18}
+              className="font-mono text-xs leading-relaxed"
+              placeholder="Извлеченият текст на договора..."
+            />
+            <div className="space-y-4">
+              <div>
+                <Label className="flex items-center gap-1.5 text-xs">
+                  <Users className="h-3.5 w-3.5" /> Контрагент
+                </Label>
+                <Select value={contactId} onValueChange={saveContact} disabled={savingContact}>
+                  <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Без контрагент —</SelectItem>
+                    {contacts.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  Свържете договора с контакт от <Link to="/account?tab=contacts" className="text-gold hover:underline">контрагентите</Link>.
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-gold/30 bg-gold/5 p-3">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-gold">
+                  <PenLine className="h-3.5 w-3.5" /> Подписване
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Изпратете линк към насрещната страна за електронен подпис.
+                </p>
+                {savedDocId ? (
+                  <div className="mt-2">
+                    <ShareForSignDialog documentId={savedDocId} documentTitle={contract.title} />
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={prepareForSigning}
+                    disabled={creatingShare}
+                    variant="outline"
+                    className="mt-2 w-full border-gold/40 hover:bg-gold/10 hover:text-gold"
+                  >
+                    {creatingShare ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PenLine className="mr-2 h-4 w-4" />}
+                    Подготви за подпис
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
         {!analysis ? (
           <div className="mt-8 rounded-xl border border-border/60 bg-gradient-card p-10 text-center">
             <Sparkles className="mx-auto h-8 w-8 text-gold" />
@@ -480,15 +657,6 @@ export default function UploadedContractPage() {
                 )}
               </section>
 
-              {/* RAW TEXT (collapsed) */}
-              <details className="rounded-xl border border-border/60 bg-gradient-card p-6">
-                <summary className="cursor-pointer font-serif text-base font-bold text-gold">
-                  <FileText className="mr-2 inline h-4 w-4" /> Покажи извлечения текст
-                </summary>
-                <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded bg-background/50 p-3 text-xs text-muted-foreground">
-                  {contract.extracted_text}
-                </pre>
-              </details>
             </div>
           </div>
         )}
