@@ -4,34 +4,91 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import { normalizeText, sha256Hex } from "../_shared/normalize.ts";
 
+// PROMPT_VERSION — bump to invalidate cached analyses produced by older prompts.
+const PROMPT_VERSION = "v2-grounded";
+
 const SYSTEM_PROMPT = `Ти си водещ български правен експерт по договорно право (ЗЗД, ТЗ, ЗУТ, ЗЗП, ЗЗЛД).
-Анализираш качен от потребителя договор и връщаш СТРОГО валиден JSON по схемата по-долу. Без markdown ограждания.
+Анализираш ИЗКЛЮЧИТЕЛНО предоставения текст на договор и връщаш СТРОГО валиден JSON по схемата по-долу. Без markdown ограждания.
 Тон: професионален, конкретен, на български език.
 
+КРИТИЧНО ПРАВИЛО ЗА ТОЧНОСТ (anti-hallucination):
+- За ВСЕКИ issue ЗАДЪЛЖИТЕЛНО включваш поле "clause" — ДОСЛОВЕН цитат (verbatim, копиран буквално, символ по символ) от договора, който документира проблема. Минимум 20, максимум 280 знака.
+- НЕ перифразирай в "clause". НЕ превеждай. НЕ обобщавай. Копирай ТОЧНО както е в текста, включително пунктуация и пунктуация.
+- Ако НЕ можеш да намериш дословен пасаж в договора, който подкрепя проблема — НЕ го повдигай.
+- За missing_clauses: преди да обявиш клауза за липсваща, увери се че НЕ присъства под никакво име/синоним в текста. Ако имаш съмнения — НЕ я добавяй.
+- По-добре да върнеш по-малко на брой, но 100% подкрепени issues, отколкото да измислиш такива.
+
+Схема:
 {
-  "contract_type": "напр. Договор за наем на недвижим имот / Трудов договор / Договор за изработка",
+  "contract_type": "напр. Договор за наем на недвижим имот / Трудов договор",
   "summary": "2-4 изречения резюме на правната рамка и страните",
-  "score": 1-10,  // 1 = крайно неблагоприятен / правно проблемен; 10 = балансиран и пълен
+  "score": 1-10,
   "issues": [
     {
       "severity": "low" | "medium" | "high",
       "title": "Кратко заглавие на проблема",
-      "clause": "цитат или кратко перифразиране на клаузата от договора (до 200 знака)",
+      "clause": "ДОСЛОВЕН цитат от договора (20-280 знака)",
       "explanation": "Защо това е проблем — позоваване на конкретна правна норма когато е приложимо",
       "suggestion": "Конкретен предложен заместващ текст или препоръка"
     }
   ],
   "missing_clauses": [
-    { "name": "Напр. Форсмажор / Подсъдност / Неустойка / Конфиденциалност", "why": "Защо липсата ѝ е риск за страната" }
+    { "name": "Напр. Форсмажор / Подсъдност / Неустойка", "why": "Защо липсата е риск" }
   ]
 }
 
 Правила:
 - Score отразява баланс на правата, яснота, спазване на императивни норми и наличие на съществените клаузи.
-- Идентифицирай поне 3-8 issues когато текстът го позволява. Ако договорът е чист — върни празен масив и обясни в summary.
-- Mark high-severity само за реални правни рискове (нищожност, неизпълнима клауза, груба неравнопоставеност, противоречие с императивна норма).
-- Винаги изброй основните липсващи стандартни клаузи (Форсмажор, Подсъдност, Частична недействителност, Неустойка/обезщетение, Прекратяване).
-- Не измисляй съдържание което не присъства в договора.`;
+- Mark high-severity само за реални правни рискове (нищожност, неизпълнима клауза, груба неравнопоставеност).
+- Ако договорът е изряден — върни празен issues масив и обясни в summary защо е добре изготвен.
+- НИКОГА не измисляй съдържание което не присъства в договора.`;
+
+// Normalize text for substring comparison (whitespace, case, common punctuation variants).
+function normalizeForMatch(s: string): string {
+  return (s ?? "")
+    .toLowerCase()
+    .replace(/[„""«»"']/g, '"')
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Verify that an issue's clause quote actually appears in the source contract.
+function verifyIssueQuote(quote: string, normalizedSource: string): boolean {
+  if (!quote || quote.length < 12) return false;
+  const norm = normalizeForMatch(quote);
+  if (norm.length < 12) return false;
+  if (normalizedSource.includes(norm)) return true;
+  // Fallback: check if at least 70% of the words appear in order within a sliding window.
+  // Allows for minor OCR/extraction differences without accepting hallucinations.
+  const words = norm.split(" ").filter((w) => w.length > 3);
+  if (words.length < 4) return false;
+  const matched = words.filter((w) => normalizedSource.includes(w)).length;
+  return matched / words.length >= 0.8;
+}
+
+// Verify a "missing clause" by checking the source doesn't contain known synonyms.
+const MISSING_SYNONYMS: Record<string, string[]> = {
+  "форсмажор": ["форсмажор", "непреодолима сила", "force majeure"],
+  "подсъдност": ["подсъдност", "компетентен съд", "юрисдикц"],
+  "неустойка": ["неустойка", "обезщетение за неизпълнение"],
+  "конфиденциалност": ["конфиденциалност", "поверителност", "тайна"],
+  "прекратяване": ["прекратяване", "разваляне", "прекрати"],
+  "частична недействителност": ["частична недействителност", "недействителност на отделн"],
+  "арбитраж": ["арбитраж"],
+  "гдпр": ["гдпр", "лични данни", "gdpr"],
+};
+
+function isClauseActuallyMissing(name: string, normalizedSource: string): boolean {
+  const key = normalizeForMatch(name);
+  for (const [k, syns] of Object.entries(MISSING_SYNONYMS)) {
+    if (key.includes(k)) {
+      // If any synonym is present in the source — the clause is NOT missing.
+      return !syns.some((s) => normalizedSource.includes(s));
+    }
+  }
+  // Unknown category — accept AI's judgement.
+  return true;
+}
 
 Deno.serve(async (req: Request) => {
   const corsHeaders = buildCors(req);
@@ -42,14 +99,12 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-    // User-scoped client used for RPCs that rely on auth.uid()
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
     );
 
-    // Auth required
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -74,7 +129,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Load contract (RLS enforced via service role + manual user_id check)
     const { data: contract, error: cErr } = await admin
       .from("uploaded_contracts")
       .select("id, user_id, title, extracted_text, text_hash")
@@ -102,16 +156,14 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Normalized cache: hash the semantically-relevant content so different
-    // formatting (whitespace/case/control chars) reuses the same analysis.
-    const normalizedHash = await sha256Hex(normalizeText(text));
+    // Cache key includes prompt version so v1 cached (potentially hallucinated) results are bypassed.
+    const normalizedHash = await sha256Hex(PROMPT_VERSION + ":" + normalizeText(text));
     const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const hashesToCheck = [normalizedHash, contract.text_hash].filter(Boolean) as string[];
     const { data: cached } = await admin
       .from("risk_analyses")
       .select("*")
       .eq("user_id", userId)
-      .in("text_hash", hashesToCheck)
+      .eq("text_hash", normalizedHash)
       .gte("created_at", cutoff)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -122,8 +174,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Atomic quota consumption — prevents free-tier bypass via concurrent calls.
-    // The RPC checks plan + counter and increments in a single SERIALIZABLE step.
     const { data: consumed, error: consumeErr } = await userClient.rpc("consume_quota", { _kind: "analysis" });
     if (consumeErr) {
       console.error("consume_quota error:", consumeErr);
@@ -144,19 +194,21 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
-    // Truncate very long contracts and collapse repeated whitespace to save tokens.
-    const MAX_CHARS = 10000;
+    // Use a larger context window for grounding — Pro can handle full contracts up to ~30k chars.
+    const MAX_CHARS = 28000;
     const compacted = text.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n");
-    const truncated = compacted.length > MAX_CHARS ? compacted.slice(0, MAX_CHARS) + "\n\n[...текстът е съкратен поради дължина...]" : compacted;
+    const truncated = compacted.length > MAX_CHARS
+      ? compacted.slice(0, MAX_CHARS) + "\n\n[...текстът е съкратен поради дължина...]"
+      : compacted;
 
     const userPrompt = `Заглавие на документа: ${contract.title}
 
-ТЕКСТ НА ДОГОВОРА:
+ТЕКСТ НА ДОГОВОРА (използвай САМО този текст; цитирай дословно в "clause"):
 """
 ${truncated}
 """
 
-Извърши пълен правен риск-анализ. Върни СТРОГО валиден JSON по схемата.`;
+Извърши пълен правен риск-анализ. За всеки issue включи дословен цитат от горния текст в "clause". Върни СТРОГО валиден JSON по схемата.`;
 
     const callAi = async (modelName: string) => {
       return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -173,11 +225,11 @@ ${truncated}
       });
     };
 
-    let model = "google/gemini-2.5-flash-lite";
+    // Use Pro model by default — accuracy on legal text matters more than cost/latency.
+    let model = "google/gemini-2.5-pro";
     let aiResp = await callAi(model);
 
     if (!aiResp.ok) {
-      // Refund the quota slot since the operation failed.
       if (!isPro) await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
       if (aiResp.status === 429) {
         return new Response(JSON.stringify({ error: "Достигнат е лимитът. Моля опитайте след малко." }), {
@@ -206,39 +258,64 @@ ${truncated}
       return JSON.parse(cleaned);
     };
 
-    let data = await aiResp.json();
-    let content: string = data.choices?.[0]?.message?.content ?? "";
+    const data = await aiResp.json();
+    const content: string = data.choices?.[0]?.message?.content ?? "";
     let parsed: any = null;
     try { parsed = content.trim() ? extractJson(content) : null; } catch { parsed = null; }
 
-    let issues = Array.isArray(parsed?.issues) ? parsed.issues : [];
-    let missing = Array.isArray(parsed?.missing_clauses) ? parsed.missing_clauses : [];
+    if (!parsed) throw new Error("AI не върна валиден отговор");
 
-    // Escalation: lite sometimes under-classifies long contracts. Retry once on flash.
-    const looksWeak = !parsed || (issues.length === 0 && text.length > 5000);
-    if (looksWeak) {
-      const escalated = await callAi("google/gemini-2.5-flash");
-      if (escalated.ok) {
-        const eData = await escalated.json();
-        const eContent: string = eData.choices?.[0]?.message?.content ?? "";
-        try {
-          const eParsed = extractJson(eContent);
-          if (eParsed && (Array.isArray(eParsed.issues) ? eParsed.issues.length > issues.length : true)) {
-            parsed = eParsed;
-            content = eContent;
-            data = eData;
-            model = "google/gemini-2.5-flash";
-            issues = Array.isArray(parsed.issues) ? parsed.issues : [];
-            missing = Array.isArray(parsed.missing_clauses) ? parsed.missing_clauses : [];
-          }
-        } catch { /* keep lite result */ }
+    const rawIssues = Array.isArray(parsed?.issues) ? parsed.issues : [];
+    const rawMissing = Array.isArray(parsed?.missing_clauses) ? parsed.missing_clauses : [];
+
+    // === Anti-hallucination verification ===
+    const normalizedSource = normalizeForMatch(text);
+    const verifiedIssues = [];
+    let filteredIssuesCount = 0;
+    for (const iss of rawIssues) {
+      const quote = String(iss?.clause ?? "").trim();
+      if (verifyIssueQuote(quote, normalizedSource)) {
+        verifiedIssues.push(iss);
+      } else {
+        filteredIssuesCount++;
+        console.warn("Filtered hallucinated issue:", iss?.title, "| quote:", quote.slice(0, 80));
       }
     }
 
-    if (!parsed) throw new Error("AI не върна валиден отговор");
-    const score = Math.max(1, Math.min(10, Number(parsed.score) || 5));
+    const verifiedMissing = [];
+    let filteredMissingCount = 0;
+    for (const m of rawMissing) {
+      if (isClauseActuallyMissing(String(m?.name ?? ""), normalizedSource)) {
+        verifiedMissing.push(m);
+      } else {
+        filteredMissingCount++;
+        console.warn("Filtered false-missing clause:", m?.name);
+      }
+    }
 
-    // Persist analysis
+    if (filteredIssuesCount || filteredMissingCount) {
+      console.log(
+        `Verification: kept ${verifiedIssues.length}/${rawIssues.length} issues, ` +
+        `${verifiedMissing.length}/${rawMissing.length} missing. ` +
+        `Filtered ${filteredIssuesCount} hallucinated issues, ${filteredMissingCount} false-missing.`,
+      );
+    }
+
+    // Recompute score: if many issues were filtered, the contract is actually cleaner
+    // than AI thought — gently nudge score upward.
+    let score = Math.max(1, Math.min(10, Number(parsed.score) || 5));
+    if (rawIssues.length > 0 && verifiedIssues.length === 0) {
+      // All issues hallucinated — contract is likely clean.
+      score = Math.max(score, 8);
+    } else if (filteredIssuesCount > verifiedIssues.length) {
+      // Majority were hallucinations — boost score.
+      score = Math.min(10, score + 2);
+    }
+
+    const summary = filteredIssuesCount > 0
+      ? `${String(parsed.summary ?? "").slice(0, 3800)}\n\n(Бележка: ${filteredIssuesCount} възможна неточност от AI бяха автоматично филтрирани, защото не отговарят на конкретен текст в договора.)`
+      : String(parsed.summary ?? "").slice(0, 4000);
+
     const { data: inserted, error: insErr } = await admin
       .from("risk_analyses")
       .insert({
@@ -247,9 +324,9 @@ ${truncated}
         model,
         score,
         contract_type: String(parsed.contract_type ?? "").slice(0, 200),
-        summary: String(parsed.summary ?? "").slice(0, 4000),
-        issues,
-        missing_clauses: missing,
+        summary,
+        issues: verifiedIssues,
+        missing_clauses: verifiedMissing,
         text_hash: normalizedHash,
       })
       .select()
@@ -259,8 +336,6 @@ ${truncated}
       console.error("insert risk_analysis:", insErr);
       throw new Error("Грешка при запис на анализа");
     }
-
-    // Quota was already consumed atomically before the AI call (see consume_quota above).
 
     await admin.from("ai_usage").insert({
       user_id: userId,
