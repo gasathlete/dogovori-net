@@ -283,15 +283,6 @@ ${truncated}
       throw new Error("AI грешка");
     }
 
-    const extractJson = (s: string): any => {
-      let cleaned = s.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-      const start = cleaned.search(/[\{\[]/);
-      const end = cleaned.lastIndexOf("}");
-      if (start !== -1 && end !== -1) cleaned = cleaned.substring(start, end + 1);
-      try { return JSON.parse(cleaned); } catch {}
-      cleaned = cleaned.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]");
-      return JSON.parse(cleaned);
-    };
 
     const data = await aiResp.json();
     const content: string = data.choices?.[0]?.message?.content ?? "";
