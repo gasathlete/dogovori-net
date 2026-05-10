@@ -173,8 +173,17 @@ async function extractPdf(file: File, onProgress?: ExtractProgress): Promise<str
     throw new Error("OCR грешка: " + (error.message || "неуспешно разпознаване"));
   }
   const ocrText = ((data as any)?.text ?? "").toString().trim();
+  const unreadable = Number((data as any)?.unreadablePages ?? 0);
+  const totalOcr = Number((data as any)?.pages ?? images.length);
   if (ocrText.length < 80) {
-    throw new Error("OCR не успя да извлече достатъчно текст. Опитайте по-ясно сканиране, Word файл или ръчно поставяне.");
+    if (unreadable >= totalOcr) {
+      throw new Error(
+        `OCR не успя да разчете нито една от ${totalOcr} страници — сканът е твърде размазан или с нисък контраст. Опитайте по-ясно сканиране (300+ DPI), Word файл или поставете текста ръчно.`,
+      );
+    }
+    throw new Error(
+      `OCR извлече твърде малко текст (${ocrText.length} знака от ${totalOcr - unreadable}/${totalOcr} страници). Опитайте по-ясно сканиране, Word файл или ръчно поставяне.`,
+    );
   }
   return ocrText;
 }
