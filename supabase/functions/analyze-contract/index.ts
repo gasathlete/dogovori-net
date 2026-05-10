@@ -169,7 +169,32 @@ Deno.serve(async (req: Request) => {
       .limit(1)
       .maybeSingle();
     if (cached) {
-      return new Response(JSON.stringify({ analysis: cached, cached: true }), {
+      // If the cached analysis belongs to a different uploaded_contract_id (e.g. user
+      // re-uploaded the same file), clone it so the frontend can find it via the new id.
+      let analysisRow = cached;
+      if (cached.uploaded_contract_id !== contract.id) {
+        const { data: cloned, error: cloneErr } = await admin
+          .from("risk_analyses")
+          .insert({
+            uploaded_contract_id: contract.id,
+            user_id: userId,
+            model: cached.model,
+            score: cached.score,
+            contract_type: cached.contract_type,
+            summary: cached.summary,
+            issues: cached.issues,
+            missing_clauses: cached.missing_clauses,
+            text_hash: cached.text_hash,
+          })
+          .select()
+          .single();
+        if (cloneErr) {
+          console.error("clone cached analysis:", cloneErr);
+        } else if (cloned) {
+          analysisRow = cloned;
+        }
+      }
+      return new Response(JSON.stringify({ analysis: analysisRow, cached: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
