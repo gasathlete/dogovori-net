@@ -71,7 +71,7 @@ export function UploadContractDialog({
         if (text.length < 80) throw new Error("Текстът е твърде кратък (минимум 80 знака)");
       } else {
         if (!file) throw new Error("Моля, изберете файл");
-        text = await extractTextFromFile(file, tab);
+        text = await extractTextFromFile(file, tab, (p) => setPhase(p));
         if (text.length < 80) throw new Error("Не успяхме да извлечем достатъчно текст от файла. Опитайте с друг формат или поставете текста ръчно.");
 
         setPhase("Качване на оригинала...");
