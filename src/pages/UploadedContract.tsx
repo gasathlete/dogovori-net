@@ -6,7 +6,8 @@ import {
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -71,6 +72,9 @@ export default function UploadedContractPage() {
   const [corrections, setCorrections] = useState<{ corrected_text: string; changes: string[] } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [issueSel, setIssueSel] = useState<Record<number, boolean>>({});
+  const [missingSel, setMissingSel] = useState<Record<number, boolean>>({});
 
   const load = async () => {
     if (!id || !user) return;
@@ -102,11 +106,25 @@ export default function UploadedContractPage() {
     load();
   };
 
+  const openPicker = () => {
+    if (!analysis) return;
+    setIssueSel(Object.fromEntries(analysis.issues.map((_, i) => [i, true])));
+    setMissingSel(Object.fromEntries(analysis.missing_clauses.map((_, i) => [i, true])));
+    setPickerOpen(true);
+  };
+
   const suggestCorrections = async () => {
-    if (!id) return;
+    if (!id || !analysis) return;
+    const selectedIssues = analysis.issues.filter((_, i) => issueSel[i]);
+    const selectedMissing = analysis.missing_clauses.filter((_, i) => missingSel[i]);
+    if (selectedIssues.length === 0 && selectedMissing.length === 0) {
+      toast.error("Изберете поне едно подобрение");
+      return;
+    }
+    setPickerOpen(false);
     setCorrecting(true);
     const { data, error } = await supabase.functions.invoke("correct-uploaded", {
-      body: { uploadedContractId: id },
+      body: { uploadedContractId: id, selectedIssues, selectedMissing },
     });
     setCorrecting(false);
     if (error || (data as any)?.error) {
@@ -203,7 +221,7 @@ export default function UploadedContractPage() {
               {analysis ? "Анализирай отново" : "Стартирай анализ"}
             </Button>
             {analysis && (
-              <Button onClick={suggestCorrections} disabled={correcting} variant="outline" className="border-gold/40 hover:bg-gold/10 hover:text-gold">
+              <Button onClick={openPicker} disabled={correcting} variant="outline" className="border-gold/40 hover:bg-gold/10 hover:text-gold">
                 {correcting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
                 Предложи корекции
               </Button>
@@ -235,6 +253,103 @@ export default function UploadedContractPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="font-serif">Изберете корекции за прилагане</DialogTitle>
+              <DialogDescription>
+                Маркирайте кои проблемни клаузи и липсващи елементи да бъдат включени в редакцията. Ще бъдат пренаписани само избраните части.
+              </DialogDescription>
+            </DialogHeader>
+            {analysis && (
+              <div className="space-y-5">
+                {analysis.issues.length > 0 && (
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Проблемни клаузи ({analysis.issues.length})
+                      </div>
+                      <button
+                        type="button"
+                        className="text-xs text-gold hover:underline"
+                        onClick={() => {
+                          const all = Object.values(issueSel).every(Boolean);
+                          setIssueSel(Object.fromEntries(analysis.issues.map((_, i) => [i, !all])));
+                        }}
+                      >
+                        {Object.values(issueSel).every(Boolean) ? "Премахни всички" : "Избери всички"}
+                      </button>
+                    </div>
+                    <div className="space-y-1.5">
+                      {analysis.issues.map((iss, i) => (
+                        <label key={i} className="flex cursor-pointer items-start gap-2 rounded-md border border-border/40 bg-card/40 p-2 transition-colors hover:border-gold/40">
+                          <Checkbox
+                            checked={!!issueSel[i]}
+                            onCheckedChange={(v) => setIssueSel((p) => ({ ...p, [i]: !!v }))}
+                            className="mt-0.5"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-sm font-medium text-foreground">{iss.title}</span>
+                              <span className={`rounded-full border px-1.5 py-0.5 text-[9px] uppercase tracking-wider ${sevColor(iss.severity)}`}>
+                                {sevLabel(iss.severity)}
+                              </span>
+                            </div>
+                            <div className="line-clamp-2 text-xs text-muted-foreground">{iss.explanation}</div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {analysis.missing_clauses.length > 0 && (
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Липсващи клаузи ({analysis.missing_clauses.length})
+                      </div>
+                      <button
+                        type="button"
+                        className="text-xs text-gold hover:underline"
+                        onClick={() => {
+                          const all = Object.values(missingSel).every(Boolean);
+                          setMissingSel(Object.fromEntries(analysis.missing_clauses.map((_, i) => [i, !all])));
+                        }}
+                      >
+                        {Object.values(missingSel).every(Boolean) ? "Премахни всички" : "Избери всички"}
+                      </button>
+                    </div>
+                    <div className="space-y-1.5">
+                      {analysis.missing_clauses.map((m, i) => (
+                        <label key={i} className="flex cursor-pointer items-start gap-2 rounded-md border border-border/40 bg-card/40 p-2 transition-colors hover:border-gold/40">
+                          <Checkbox
+                            checked={!!missingSel[i]}
+                            onCheckedChange={(v) => setMissingSel((p) => ({ ...p, [i]: !!v }))}
+                            className="mt-0.5"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-medium text-foreground">{m.name}</div>
+                            <div className="line-clamp-2 text-xs text-muted-foreground">{m.why}</div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPickerOpen(false)}>Отказ</Button>
+              <Button onClick={suggestCorrections} disabled={correcting} className="bg-gradient-gold text-navy">
+                {correcting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                Приложи избраните
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
 
         <Dialog open={!!corrections} onOpenChange={(o) => !o && setCorrections(null)}>
           <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">

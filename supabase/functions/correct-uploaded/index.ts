@@ -67,7 +67,7 @@ Deno.serve(async (req: Request) => {
       }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { uploadedContractId } = await req.json();
+    const { uploadedContractId, selectedIssues, selectedMissing } = await req.json();
     if (!uploadedContractId) {
       return new Response(JSON.stringify({ error: "uploadedContractId липсва" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -89,11 +89,22 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
-    const issuesBlock = analysis?.issues?.length
-      ? "ПРОБЛЕМНИ КЛАУЗИ:\n" + (analysis.issues as any[]).map((i, n) => `${n + 1}. [${i.severity}] ${i.title} — ${i.explanation}${i.suggestion ? ` | Препоръка: ${i.suggestion}` : ""}`).join("\n")
+    const issuesSource: any[] = Array.isArray(selectedIssues) && selectedIssues.length
+      ? selectedIssues
+      : (analysis?.issues as any[] | undefined) ?? [];
+    const missingSource: any[] = Array.isArray(selectedMissing) && selectedMissing.length
+      ? selectedMissing
+      : (analysis?.missing_clauses as any[] | undefined) ?? [];
+
+    const issuesBlock = issuesSource.length
+      ? "ПРОБЛЕМНИ КЛАУЗИ ЗА КОРИГИРАНЕ:\n" + issuesSource.map((i, n) => `${n + 1}. [${i.severity}] ${i.title} — ${i.explanation}${i.suggestion ? ` | Препоръка: ${i.suggestion}` : ""}`).join("\n")
       : "";
-    const missingBlock = analysis?.missing_clauses?.length
-      ? "ЛИПСВАЩИ СТАНДАРТНИ КЛАУЗИ:\n" + (analysis.missing_clauses as any[]).map((m, n) => `${n + 1}. ${m.name} — ${m.why}`).join("\n")
+    const missingBlock = missingSource.length
+      ? "ЛИПСВАЩИ КЛАУЗИ ЗА ДОБАВЯНЕ:\n" + missingSource.map((m, n) => `${n + 1}. ${m.name} — ${m.why}`).join("\n")
+      : "";
+
+    const scopeNote = (Array.isArray(selectedIssues) || Array.isArray(selectedMissing))
+      ? "ВАЖНО: Промени САМО изброените по-горе елементи. Не модифицирай несвързани клаузи."
       : "";
 
     const userPrompt = `ОРИГИНАЛЕН ДОГОВОР (текст):
@@ -105,6 +116,8 @@ ${contract.extracted_text.slice(0, 30000)}
 ${issuesBlock}
 
 ${missingBlock}
+
+${scopeNote}
 
 Задача: пренапиши договора, като отстраниш проблемите и добавиш липсващите клаузи. Връщай само JSON.`;
 
