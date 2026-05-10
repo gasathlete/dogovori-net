@@ -7,10 +7,6 @@ import {
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -69,8 +65,6 @@ export default function UploadedContractPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [correcting, setCorrecting] = useState(false);
   const [corrections, setCorrections] = useState<{ corrected_text: string; changes: string[] } | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
     if (!id || !user) return;
@@ -134,32 +128,13 @@ export default function UploadedContractPage() {
 
   const remove = async () => {
     if (!contract) return;
-    setDeleting(true);
-    try {
-      if (contract.storage_path) {
-        const { error: storageError } = await supabase.storage
-          .from("user-contracts")
-          .remove([contract.storage_path]);
-        if (storageError) console.warn("storage remove failed:", storageError);
-      }
-      const { error } = await supabase
-        .from("uploaded_contracts")
-        .delete()
-        .eq("id", contract.id);
-      if (error) {
-        console.error("delete uploaded_contract failed:", error);
-        toast.error("Грешка при изтриване: " + error.message);
-        return;
-      }
-      toast.success("Изтрит");
-      setConfirmDelete(false);
-      navigate("/account?tab=documents");
-    } catch (e: any) {
-      console.error(e);
-      toast.error("Грешка при изтриване: " + (e?.message ?? "неизвестна"));
-    } finally {
-      setDeleting(false);
+    if (!confirm("Изтриване на договора и всички анализи?")) return;
+    if (contract.storage_path) {
+      await supabase.storage.from("user-contracts").remove([contract.storage_path]);
     }
+    const { error } = await supabase.from("uploaded_contracts").delete().eq("id", contract.id);
+    if (error) toast.error(error.message);
+    else { toast.success("Изтрит"); navigate("/account?tab=documents"); }
   };
 
   const issuesByLevel = useMemo(() => {
@@ -225,38 +200,11 @@ export default function UploadedContractPage() {
                 Предложи корекции
               </Button>
             )}
-            <Button
-              variant="ghost"
-              className="text-destructive"
-              onClick={() => setConfirmDelete(true)}
-              aria-label="Изтрий договора"
-            >
+            <Button variant="ghost" className="text-destructive" onClick={remove}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </div>
-
-        <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Изтриване на договора?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Договорът и всички свързани анализи ще бъдат изтрити безвъзвратно.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={deleting}>Отказ</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={(e) => { e.preventDefault(); remove(); }}
-                disabled={deleting}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Изтрий
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
 
         <Dialog open={!!corrections} onOpenChange={(o) => !o && setCorrections(null)}>
           <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
