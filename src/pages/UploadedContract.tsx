@@ -7,6 +7,10 @@ import {
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -65,6 +69,8 @@ export default function UploadedContractPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [correcting, setCorrecting] = useState(false);
   const [corrections, setCorrections] = useState<{ corrected_text: string; changes: string[] } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
     if (!id || !user) return;
@@ -128,11 +134,13 @@ export default function UploadedContractPage() {
 
   const remove = async () => {
     if (!contract) return;
-    if (!confirm("Изтриване на договора и всички анализи?")) return;
+    setDeleting(true);
     if (contract.storage_path) {
       await supabase.storage.from("user-contracts").remove([contract.storage_path]);
     }
     const { error } = await supabase.from("uploaded_contracts").delete().eq("id", contract.id);
+    setDeleting(false);
+    setConfirmDelete(false);
     if (error) toast.error(error.message);
     else { toast.success("Изтрит"); navigate("/account?tab=documents"); }
   };
@@ -200,11 +208,33 @@ export default function UploadedContractPage() {
                 Предложи корекции
               </Button>
             )}
-            <Button variant="ghost" className="text-destructive" onClick={remove}>
+            <Button variant="ghost" className="text-destructive" onClick={() => setConfirmDelete(true)}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </div>
+
+        <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Изтриване на договора?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Това ще изтрие договора и всички свързани анализи. Действието е необратимо.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Отказ</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => { e.preventDefault(); remove(); }}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Изтрий
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <Dialog open={!!corrections} onOpenChange={(o) => !o && setCorrections(null)}>
           <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
