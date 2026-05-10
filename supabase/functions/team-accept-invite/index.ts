@@ -30,6 +30,14 @@ Deno.serve(async (req) => {
     if (invite.accepted_at) throw new Error("Already accepted");
     if (new Date(invite.expires_at) < new Date()) throw new Error("Invitation expired");
 
+    // SECURITY: invitation token must be redeemed by the addressed email only.
+    // Otherwise anyone who obtains the token (forwarded email, screenshot, leaked
+    // link) could join and gain access to all team-shared documents via RLS.
+    const callerEmail = (user.email ?? "").toLowerCase();
+    if (!callerEmail || callerEmail !== String(invite.email).toLowerCase()) {
+      throw new Error("Тази покана е изпратена на друг имейл адрес. Влезте с правилния акаунт.");
+    }
+
     // Verify team has capacity
     const { data: team } = await admin.from("teams").select("seat_count, status").eq("id", invite.team_id).maybeSingle();
     if (!team || team.status !== "active") throw new Error("Team not active");

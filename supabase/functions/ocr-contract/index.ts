@@ -76,21 +76,29 @@ Deno.serve(async (req: Request) => {
       return (j?.choices?.[0]?.message?.content ?? "").trim();
     };
 
-    // Run sequentially to respect rate limits & keep memory low.
+    // Run with bounded concurrency (3 in flight) — ~3× faster than sequential
+    // while still respecting AI gateway rate limits for the OCR endpoint.
+    const CONCURRENCY = 3;
+    const results: string[] = new Array(pages.length).fill("");
+    let nextIdx = 0;
+    const workers = Array.from({ length: Math.min(CONCURRENCY, pages.length) }, async () => {
+      while (true) {
+        const i = nextIdx++;
+        if (i >= pages.length) return;
+        results[i] = await ocrPage(pages[i], i);
+      }
+    });
+    await Promise.all(workers);
+
     const parts: string[] = [];
     let unreadablePages = 0;
-    for (let i = 0; i < pages.length; i++) {
-      const t = await ocrPage(pages[i], i);
-      const trimmed = t.trim();
+    for (let i = 0; i < results.length; i++) {
+      const trimmed = (results[i] ?? "").trim();
       if (!trimmed) continue;
-      // Drop pages where the model refused or returned only the unreadable marker.
       if (/\[OCR_UNREADABLE\]/i.test(trimmed) && trimmed.length < 80) {
         unreadablePages++;
         continue;
       }
-      // Heuristic: legal Bulgarian docs are mostly Cyrillic. If a page comes back
-      // dominantly Latin and short, it's almost certainly hallucinated/garbled —
-      // skip it rather than poison the analysis.
       const letters = (trimmed.match(/\p{L}/gu) ?? []).length;
       const cyr = (trimmed.match(/[\u0400-\u04FF]/g) ?? []).length;
       if (letters > 60 && letters < 300 && cyr / Math.max(letters, 1) < 0.4) {

@@ -89,7 +89,10 @@ Deno.serve(async (req: Request) => {
       : "";
 
     // Cache: identical (sector, contractName, documentName, sorted answers) → reuse output for 30 days.
+    // PROMPT_VERSION included so prompt/system changes invalidate stale cache entries.
+    const PROMPT_VERSION = "v1";
     const cacheKeyInput = stableStringify({
+      v: PROMPT_VERSION,
       sector, contractName, documentName: documentName || null,
       parties: { a: parties?.a ?? "", b: parties?.b ?? "" },
       answers: answers ?? {},

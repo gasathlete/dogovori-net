@@ -43,8 +43,10 @@ Deno.serve(async (req) => {
     // Get team name for email
     const { data: team } = await admin.from("teams").select("name").eq("id", teamId).maybeSingle();
 
-    // Send invitation email (best effort)
-    const inviteUrl = `${new URL(req.url).origin.replace("supabase.co", "lovable.app")}/team/accept?token=${token}`;
+    // Use the configured app base URL (custom domain) — fragile origin-replace
+    // logic broke for non-supabase.co origins (preview, custom domain).
+    const appBase = (Deno.env.get("APP_BASE_URL") || "https://dogovori.net").replace(/\/+$/, "");
+    const inviteUrl = `${appBase}/team/accept?token=${token}`;
     try {
       await admin.functions.invoke("send-transactional-email", {
         body: {

@@ -13,7 +13,10 @@ serve(async (req) => {
       signer_name?: string;
       signature_data_url?: string;
     };
-    if (!token || !signer_name?.trim() || !signature_data_url?.startsWith("data:image/")) {
+    // SECURITY: only allow PNG/JPEG raster signatures. Reject SVG (XSS via inline
+    // <script>/<foreignObject>) and other vector/exotic formats.
+    const SIG_RE = /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/;
+    if (!token || !signer_name?.trim() || !signature_data_url || !SIG_RE.test(signature_data_url)) {
       return new Response(JSON.stringify({ error: "invalid_input" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -21,6 +24,22 @@ serve(async (req) => {
     if (signature_data_url.length > 500_000) {
       return new Response(JSON.stringify({ error: "signature_too_large" }), {
         status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // Verify magic bytes match the declared MIME (defense in depth).
+    try {
+      const b64 = signature_data_url.split(",", 2)[1] ?? "";
+      const head = Uint8Array.from(atob(b64.slice(0, 16)), (c) => c.charCodeAt(0));
+      const isPng = head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47;
+      const isJpg = head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff;
+      if (!isPng && !isJpg) {
+        return new Response(JSON.stringify({ error: "invalid_image_bytes" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } catch {
+      return new Response(JSON.stringify({ error: "invalid_image_bytes" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
