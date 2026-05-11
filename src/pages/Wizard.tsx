@@ -363,6 +363,10 @@ export default function WizardPage() {
       return;
     }
     setDownloadingBlank(true);
+    setBlankStep(0);
+    const stepTimer = setInterval(() => {
+      setBlankStep((s) => (s + 1) % blankSteps.length);
+    }, 1800);
     try {
       const { data, error } = await supabase.functions.invoke("download-blank", {
         body: {
