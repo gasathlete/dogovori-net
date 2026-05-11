@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Bird, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X,
@@ -23,7 +23,7 @@ import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { ShareForSignDialog } from "@/components/ShareForSignDialog";
 import { UploadContractDialog } from "@/components/UploadContractDialog";
 import { SignedContractsTab } from "@/components/SignedContractsTab";
-import { ShieldAlert, ShieldCheck, AlertTriangle, PenTool } from "lucide-react";
+import { ShieldAlert, ShieldCheck, AlertTriangle, PenTool, ChevronRight } from "lucide-react";
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
@@ -143,15 +143,15 @@ export default function AccountPage() {
         </div>
 
         <Tabs value={initialTab} onValueChange={onTabChange} className="space-y-6">
-          <TabsList className="-mx-4 flex w-auto justify-start gap-1 overflow-x-auto bg-card/40 p-1 px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:w-full md:flex-wrap md:overflow-visible md:px-1">
+          <ScrollableTabsList>
             <TabsTrigger value="dashboard" className="shrink-0 whitespace-nowrap"><Bird className="mr-1 h-3.5 w-3.5" />Табло</TabsTrigger>
-            <TabsTrigger value="contacts" className="shrink-0 whitespace-nowrap"><Users className="mr-1 h-3.5 w-3.5" />Контрагенти</TabsTrigger>
-            <TabsTrigger value="documents" className="shrink-0 whitespace-nowrap"><FileText className="mr-1 h-3.5 w-3.5" />Документи</TabsTrigger>
-            <TabsTrigger value="signed" className="shrink-0 whitespace-nowrap"><PenTool className="mr-1 h-3.5 w-3.5" />Подписани</TabsTrigger>
             <TabsTrigger value="folders" className="shrink-0 whitespace-nowrap"><FolderOpen className="mr-1 h-3.5 w-3.5" />Папки</TabsTrigger>
+            <TabsTrigger value="documents" className="shrink-0 whitespace-nowrap"><FileText className="mr-1 h-3.5 w-3.5" />Документи</TabsTrigger>
+            <TabsTrigger value="contacts" className="shrink-0 whitespace-nowrap"><Users className="mr-1 h-3.5 w-3.5" />Контрагенти</TabsTrigger>
+            <TabsTrigger value="signed" className="shrink-0 whitespace-nowrap"><PenTool className="mr-1 h-3.5 w-3.5" />Подписани</TabsTrigger>
             <TabsTrigger value="subscription" className="shrink-0 whitespace-nowrap"><CreditCard className="mr-1 h-3.5 w-3.5" />Абонамент</TabsTrigger>
             <TabsTrigger value="settings" className="shrink-0 whitespace-nowrap"><SettingsIcon className="mr-1 h-3.5 w-3.5" />Настройки</TabsTrigger>
-          </TabsList>
+          </ScrollableTabsList>
 
           <TabsContent value="dashboard">
             <Dashboard quota={quota} isPro={!!isPro} docs={docs} />
@@ -187,6 +187,50 @@ export default function AccountPage() {
           </TabsContent>
         </Tabs>
       </main>
+    </div>
+  );
+}
+
+/* ====================== SCROLLABLE TABS LIST ====================== */
+function ScrollableTabsList({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [showHint, setShowHint] = useState(false);
+  const update = () => {
+    const el = ref.current;
+    if (!el) return;
+    setShowHint(el.scrollWidth - el.clientWidth - el.scrollLeft > 8);
+  };
+  useEffect(() => {
+    update();
+    const el = ref.current;
+    if (!el) return;
+    el.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      el.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+  return (
+    <div className="relative md:static">
+      <TabsList
+        ref={ref as any}
+        onScroll={update}
+        className="-mx-4 flex w-auto justify-start gap-1 overflow-x-auto bg-card/40 p-1 px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:w-full md:flex-wrap md:overflow-visible md:px-1"
+      >
+        {children}
+      </TabsList>
+      {showHint && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1 md:hidden"
+        >
+          <div className="h-full w-10 bg-gradient-to-l from-background via-background/80 to-transparent" />
+          <div className="-ml-7 flex h-7 w-7 items-center justify-center rounded-full border border-gold/40 bg-card/90 text-gold shadow-md animate-pulse">
+            <ChevronRight className="h-4 w-4" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
