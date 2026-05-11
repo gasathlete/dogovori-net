@@ -154,7 +154,7 @@ export default function TemplatePage() {
           <span className="truncate text-foreground/70">{doc.name}</span>
         </nav>
 
-        <header className="mb-10">
+        <header className="mb-10 relative">
           <div className="eyebrow mb-4">
             <FileText className="h-3 w-3" />
             {category.title}
@@ -162,16 +162,19 @@ export default function TemplatePage() {
           <h1 className="font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl">{doc.name}</h1>
           <p className="mt-5 text-balance text-base leading-relaxed text-muted-foreground md:text-lg">{doc.purpose}</p>
 
+          <div className="absolute top-0 right-0">
+            <Link
+              to={`${wizardHref}&blank=1`}
+              className="inline-flex items-center gap-1 rounded-md border border-gold/40 px-2.5 py-1.5 text-xs text-gold transition-colors hover:bg-gold/10"
+            >
+              <Download className="h-3 w-3" />
+              Свали само бланка
+            </Link>
+          </div>
+
           <div className="mt-7 flex flex-wrap gap-3">
             <Link to={wizardHref} className="btn-gold">
               Създай за 2 минути <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              to={`${wizardHref}&blank=1`}
-              className="inline-flex items-center gap-1.5 rounded-md border border-gold/40 px-3 py-2 text-sm text-gold transition-colors hover:bg-gold/10"
-            >
-              <Download className="h-4 w-4" />
-              Свали само бланка
             </Link>
             <Link to="/catalog" className="btn-ghost-gold normal-case tracking-normal">
               Виж всички шаблони
