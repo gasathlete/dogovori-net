@@ -186,6 +186,8 @@ export default function AdminPage() {
             </TableBody>
           </Table>
         </div>
+
+        <AdminPartnersPanel />
       </div>
 
       <Dialog open={!!proDialog} onOpenChange={(o) => !o && setProDialog(null)}>
