@@ -159,7 +159,13 @@ Deno.serve(async (req: Request) => {
     }
 
     // 1) Consume template quota first — fail fast if user has no allowance.
-    const { data: quotaRes, error: quotaErr } = await admin.rpc("consume_quota", { _kind: "template" });
+    // Must be called with a user-scoped client so auth.uid() resolves inside the RPC.
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: quotaRes, error: quotaErr } = await userClient.rpc("consume_quota", { _kind: "template" });
     if (quotaErr) throw new Error(quotaErr.message);
     const quota = quotaRes as { ok: boolean; reason?: string; next_reset?: string; is_pro?: boolean };
     if (!quota?.ok) {
