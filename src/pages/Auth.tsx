@@ -62,8 +62,15 @@ export default function AuthPage() {
 
   const handleGoogle = async () => {
     setBusy(true);
+    // The Lovable managed OAuth flow requires `redirect_uri` to be the bare
+    // origin (it appends its own `/~oauth/callback` path). Passing an arbitrary
+    // path here causes the provider redirect to fail. Stash the desired post-
+    // login destination in sessionStorage and read it after the redirect lands.
+    try {
+      sessionStorage.setItem("post_login_redirect", redirect);
+    } catch { /* storage unavailable — fall back to /account */ }
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + redirect,
+      redirect_uri: window.location.origin,
       extraParams: { prompt: "select_account" },
     });
     if (result.error) {
