@@ -202,7 +202,7 @@ export default function WizardPage() {
         if (!data) return;
         setIsPro(data.plan === "pro" || (!!data.pro_until && new Date(data.pro_until) > new Date()));
       });
-    supabase.from("contacts").select("id, name").is("deleted_at", null).order("created_at", { ascending: false })
+    supabase.from("contacts").select("id, name, type").is("deleted_at", null).order("created_at", { ascending: false })
       .then(({ data }) => setContacts((data as any) ?? []));
   }, [user]);
 
