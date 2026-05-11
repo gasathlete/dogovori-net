@@ -191,6 +191,50 @@ export default function AccountPage() {
   );
 }
 
+/* ====================== SCROLLABLE TABS LIST ====================== */
+function ScrollableTabsList({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [showHint, setShowHint] = useState(false);
+  const update = () => {
+    const el = ref.current;
+    if (!el) return;
+    setShowHint(el.scrollWidth - el.clientWidth - el.scrollLeft > 8);
+  };
+  useEffect(() => {
+    update();
+    const el = ref.current;
+    if (!el) return;
+    el.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      el.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+  return (
+    <div className="relative md:static">
+      <TabsList
+        ref={ref as any}
+        onScroll={update}
+        className="-mx-4 flex w-auto justify-start gap-1 overflow-x-auto bg-card/40 p-1 px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:w-full md:flex-wrap md:overflow-visible md:px-1"
+      >
+        {children}
+      </TabsList>
+      {showHint && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1 md:hidden"
+        >
+          <div className="h-full w-10 bg-gradient-to-l from-background via-background/80 to-transparent" />
+          <div className="-ml-7 flex h-7 w-7 items-center justify-center rounded-full border border-gold/40 bg-card/90 text-gold shadow-md animate-pulse">
+            <ChevronRight className="h-4 w-4" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ============================ DASHBOARD ============================ */
 function Dashboard({ quota, isPro, docs }: { quota: Quota | null; isPro: boolean; docs: SavedDoc[] }) {
   return (
