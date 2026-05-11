@@ -410,6 +410,48 @@ export default function WizardPage() {
     <div className="min-h-screen">
       <Header />
 
+      {downloadingBlank && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-md rounded-2xl border border-gold/30 bg-card p-6 shadow-2xl">
+            <div className="mb-4 flex items-center gap-3">
+              <Loader2 className="h-5 w-5 animate-spin text-gold" />
+              <h3 className="font-serif text-lg text-foreground">Подготвяме бланката…</h3>
+            </div>
+            <ul className="space-y-2.5">
+              {blankSteps.map((s, i) => {
+                const Icon = s.icon;
+                const active = i === blankStep;
+                const done = i < blankStep;
+                return (
+                  <li
+                    key={i}
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all ${
+                      active
+                        ? "bg-gold/10 text-foreground"
+                        : done
+                        ? "text-muted-foreground"
+                        : "text-muted-foreground/60"
+                    }`}
+                  >
+                    {done ? (
+                      <Check className="h-4 w-4 shrink-0 text-emerald-500" />
+                    ) : active ? (
+                      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-gold" />
+                    ) : (
+                      <Icon className="h-4 w-4 shrink-0" />
+                    )}
+                    <span>{s.label}</span>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="mt-4 text-center text-xs text-muted-foreground">
+              Свалянето ще започне автоматично.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Progress strip */}
       <div className="sticky top-16 z-30 border-b border-border/60 bg-navy/90 backdrop-blur-xl">
         <div className="container py-3">
