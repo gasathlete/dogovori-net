@@ -20,12 +20,14 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
   build: {
+    sourcemap: false,
     rollupOptions: {
       output: {
         // Split heavy vendor libs into their own chunks for better caching + parallel download.
+        // NOTE: lucide-react intentionally excluded — letting Rollup tree-shake it per-route
+        // is significantly smaller than bundling every icon into a single vendor chunk.
         manualChunks: {
           "vendor-react": ["react", "react-dom", "react-router-dom"],
-          "vendor-icons": ["lucide-react"],
           "vendor-supabase": ["@supabase/supabase-js"],
           "vendor-query": ["@tanstack/react-query"],
         },
