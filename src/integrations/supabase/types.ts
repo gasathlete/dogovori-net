@@ -503,7 +503,7 @@ export type Database = {
       shared_links: {
         Row: {
           created_at: string
-          document_id: string
+          document_id: string | null
           expires_at: string
           id: string
           owner_id: string
@@ -512,15 +512,17 @@ export type Database = {
           owner_signer_name: string | null
           revoked_at: string | null
           signed_at: string | null
+          signed_pdf_path: string | null
           signed_signature: string | null
           signer_ip_hash: string | null
           signer_name: string | null
           token: string
+          uploaded_contract_id: string | null
           viewed_at: string | null
         }
         Insert: {
           created_at?: string
-          document_id: string
+          document_id?: string | null
           expires_at: string
           id?: string
           owner_id: string
@@ -529,15 +531,17 @@ export type Database = {
           owner_signer_name?: string | null
           revoked_at?: string | null
           signed_at?: string | null
+          signed_pdf_path?: string | null
           signed_signature?: string | null
           signer_ip_hash?: string | null
           signer_name?: string | null
           token: string
+          uploaded_contract_id?: string | null
           viewed_at?: string | null
         }
         Update: {
           created_at?: string
-          document_id?: string
+          document_id?: string | null
           expires_at?: string
           id?: string
           owner_id?: string
@@ -546,10 +550,12 @@ export type Database = {
           owner_signer_name?: string | null
           revoked_at?: string | null
           signed_at?: string | null
+          signed_pdf_path?: string | null
           signed_signature?: string | null
           signer_ip_hash?: string | null
           signer_name?: string | null
           token?: string
+          uploaded_contract_id?: string | null
           viewed_at?: string | null
         }
         Relationships: [
