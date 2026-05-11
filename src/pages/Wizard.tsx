@@ -18,7 +18,7 @@ import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
-import { useEffect } from "react";
+
 import { useAuth } from "@/hooks/useAuth";
 import { trackEvent } from "@/lib/analytics";
 
