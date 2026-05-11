@@ -46,24 +46,22 @@ export function PartnersBoard() {
 
       {partners.length > 0 ? (
         <div
-          className="group relative overflow-hidden rounded-xl border border-hairline bg-card/40 py-6"
+          className="group relative overflow-hidden rounded-2xl border border-hairline bg-gradient-to-b from-card/60 to-card/30 py-10 sm:py-12 md:py-14 shadow-soft"
           style={{
             maskImage:
-              "linear-gradient(to right, transparent, black 8%, black 92%, transparent)",
+              "linear-gradient(to right, transparent, black 6%, black 94%, transparent)",
             WebkitMaskImage:
-              "linear-gradient(to right, transparent, black 8%, black 92%, transparent)",
+              "linear-gradient(to right, transparent, black 6%, black 94%, transparent)",
           }}
         >
-          <div
-            className="flex w-max items-center gap-10 animate-marquee group-hover:[animation-play-state:paused]"
-          >
+          <div className="flex w-max items-center gap-16 sm:gap-20 md:gap-24 animate-marquee group-hover:[animation-play-state:paused]">
             {loop.map((p, i) => {
               const inner = (
                 <img
                   src={p.logo_url}
                   alt={p.name}
                   loading="lazy"
-                  className="h-14 w-auto max-w-[160px] object-contain opacity-80 transition-opacity hover:opacity-100"
+                  className="h-20 sm:h-24 md:h-28 w-auto max-w-[240px] sm:max-w-[280px] md:max-w-[320px] object-contain opacity-90 transition-all duration-300 hover:opacity-100 hover:scale-105"
                 />
               );
               return p.website_url ? (
