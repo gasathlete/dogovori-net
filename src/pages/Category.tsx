@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
+import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import * as Icons from "lucide-react";
 import { ArrowRight, ChevronRight, FileText } from "lucide-react";
 import { Header } from "@/components/Header";
