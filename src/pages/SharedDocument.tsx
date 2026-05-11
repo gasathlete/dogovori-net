@@ -167,7 +167,7 @@ export default function SharedDocument() {
         toast.error("Неуспешен подпис. Моля, опитайте отново.");
       } else {
         toast.success("Документът е подписан");
-        setDoc((d) => d ? { ...d, signed_at: data.signed_at, signer_name: signerName.trim() } : d);
+        setDoc((d) => d ? { ...d, signed_at: data.signed_at, signer_name: signerName.trim(), signed_pdf_url: data.signed_pdf_url ?? d.signed_pdf_url } : d);
       }
     } finally {
       setSigning(false);
