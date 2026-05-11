@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { getSector, getSubWizard, buildQuestions, type Question } from "@/data/sectors";
+import { getSector, getSubWizard, buildQuestions, flattenQuestions, type Question } from "@/data/sectors";
 import { QuestionField } from "@/components/wizard/QuestionField";
 import { LiveDraft } from "@/components/wizard/LiveDraft";
 import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
