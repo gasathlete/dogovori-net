@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import * as Icons from "lucide-react";
 import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
 import { Header } from "@/components/Header";
@@ -326,6 +326,7 @@ function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean
                 <tr
                   key={doc.name}
                   onClick={() => (window.location.href = shablonHref)}
+                  style={{ contentVisibility: "auto", containIntrinsicSize: "80px" } as React.CSSProperties}
                   className="cursor-pointer border-b border-border/40 transition-colors last:border-0 hover:bg-gold/[0.04]"
                 >
                   <td className="px-5 py-4 align-top">
@@ -364,6 +365,7 @@ function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean
             <Link
               key={doc.name}
               to={`/shablon/${slugify(doc.name)}`}
+              style={{ contentVisibility: "auto", containIntrinsicSize: "150px" } as React.CSSProperties}
               className="block p-5 transition-colors hover:bg-gold/[0.04]"
             >
               <div className="flex items-start gap-2">
