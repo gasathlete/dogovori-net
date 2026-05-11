@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Loader2, Bird, FileDown, FileText, Save, User } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Bird, FileDown, FileText, Save, User, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -348,6 +348,54 @@ export default function WizardPage() {
     }
   };
 
+  const [downloadingBlank, setDownloadingBlank] = useState(false);
+  const handleDownloadBlank = async () => {
+    if (!user) {
+      toast.error("Влезте, за да изтеглите бланка", { description: "Прогресът е запазен." });
+      goAuth();
+      return;
+    }
+    setDownloadingBlank(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("download-blank", {
+        body: {
+          sector_id: sector.id,
+          sector_title: sector.title,
+          document_name: docName ?? sector.contractName,
+        },
+      });
+      if (error || data?.error) {
+        if (data?.error === "quota_exceeded") {
+          toast.error("Изчерпан лимит за бланки", {
+            description: "Безплатно: 1 бланка/мес. Преминете към Pro за повече.",
+            action: { label: "Виж опции", onClick: () => goSubscription() },
+          });
+          return;
+        }
+        if (data?.requires_login) {
+          goAuth();
+          return;
+        }
+        throw new Error(data?.error || error?.message || "Грешка");
+      }
+      // Trigger download
+      const a = document.createElement("a");
+      a.href = data.url;
+      a.download = data.filename || "бланка.docx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      toast.success("Бланката е готова", {
+        description: data.cached ? "Изтеглена от хранилището." : "Генерирана и записана за следващия път.",
+      });
+    } catch (e: any) {
+      toast.error("Грешка при сваляне на бланка", { description: String(e?.message ?? e) });
+    } finally {
+      setDownloadingBlank(false);
+    }
+  };
+
+
   return (
     <div className="min-h-screen">
       <Header />
@@ -374,6 +422,29 @@ export default function WizardPage() {
             </div>
           </div>
           <Progress value={progress} className="h-1.5 bg-secondary" />
+        </div>
+      </div>
+
+      {/* Blank-template download — always available, before answering questions */}
+      <div className="border-b border-border/40 bg-card/30">
+        <div className="container flex flex-wrap items-center justify-between gap-3 py-3">
+          <div className="text-xs text-muted-foreground">
+            Нужна Ви е само празна бланка за разпечатване?
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadBlank}
+            disabled={downloadingBlank}
+            className="border-gold/40 text-gold hover:bg-gold/10 hover:text-gold"
+          >
+            {downloadingBlank ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-1.5 h-4 w-4" />
+            )}
+            Изтегли празна бланка (.docx)
+          </Button>
         </div>
       </div>
 
