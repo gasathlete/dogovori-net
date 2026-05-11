@@ -6,6 +6,7 @@ import { SectorGrid } from "@/components/SectorGrid";
 import { Process } from "@/components/Process";
 import { TopDocuments } from "@/components/TopDocuments";
 import { SeoFooter } from "@/components/SeoFooter";
+import { PartnersBoard } from "@/components/PartnersBoard";
 import { Seo } from "@/components/Seo";
 
 const Index = () => {
