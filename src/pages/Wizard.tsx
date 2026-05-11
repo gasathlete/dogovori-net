@@ -74,10 +74,17 @@ export default function WizardPage() {
   const [applyingCorrections, setApplyingCorrections] = useState(false);
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(persisted?.appliedNotes);
 
-  // Filter questions based on conditional logic
+  // Filter top-level questions based on conditional logic. За групите — филтрираме самата група
+  // ако всички ѝ полета се скрият; вътрешното филтриране на полета става в QuestionField.
   const visibleQuestions = useMemo<Question[]>(() => {
     if (!sector) return [];
-    return sector.questions.filter((q) => !q.showIf || q.showIf(answers));
+    return sector.questions.filter((q) => {
+      if (q.showIf && !q.showIf(answers)) return false;
+      if (q.type === "group" && q.fields) {
+        return q.fields.some((f) => !f.showIf || f.showIf(answers));
+      }
+      return true;
+    });
   }, [sector, answers]);
 
   if (!sector) {
@@ -93,11 +100,22 @@ export default function WizardPage() {
     );
   }
 
+  const isAnswered = (q: Question): boolean => {
+    if (q.type === "group" && q.fields) {
+      return q.fields.every((f) => {
+        if (f.showIf && !f.showIf(answers)) return true;
+        if (!f.required) return true;
+        return !!answers[f.id]?.trim();
+      });
+    }
+    return !!answers[q.id]?.trim();
+  };
+
   const total = visibleQuestions.length;
   const safeIdx = Math.min(stepIdx, total - 1);
   const current = visibleQuestions[safeIdx];
-  const progress = result ? 100 : ((safeIdx + (current && answers[current.id] ? 1 : 0)) / total) * 100;
-  const canNext = current ? !current.required || !!answers[current.id]?.trim() : false;
+  const progress = result ? 100 : ((safeIdx + (current && isAnswered(current) ? 1 : 0)) / total) * 100;
+  const canNext = current ? !current.required || isAnswered(current) : false;
   const isLast = safeIdx === total - 1;
 
   const GEN_STEPS = [
