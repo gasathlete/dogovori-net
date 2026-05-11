@@ -175,7 +175,7 @@ export default function WizardPage() {
   );
   const [customTitle, setCustomTitle] = useState<string>(persisted?.customTitle ?? "");
   const [contactId, setContactId] = useState<string>(persisted?.contactId ?? "");
-  const [contacts, setContacts] = useState<Array<{ id: string; name: string }>>([]);
+  const [contacts, setContacts] = useState<Array<{ id: string; name: string; type?: string }>>([]);
 
   // Persist wizard state on every relevant change so navigation to /auth or /account doesn't lose progress.
   useEffect(() => {
