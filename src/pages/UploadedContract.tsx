@@ -108,6 +108,7 @@ export default function UploadedContractPage() {
     setContacts(((kRes.data as any) ?? []) as Contact[]);
     if (c) {
       setEditText(c.extracted_text ?? "");
+      setTitleDraft(c.title ?? "");
       setContactId(c.contact_id ?? "none");
     }
     // Look up an existing shareable saved_documents copy linked via source_id.
