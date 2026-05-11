@@ -125,6 +125,36 @@ export type Database = {
         }
         Relationships: []
       }
+      document_blanks: {
+        Row: {
+          created_at: string
+          document_name: string
+          id: string
+          sector_id: string
+          storage_path: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          document_name: string
+          id?: string
+          sector_id: string
+          storage_path: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          document_name?: string
+          id?: string
+          sector_id?: string
+          storage_path?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       download_quota: {
         Row: {
           analyses_used: number
