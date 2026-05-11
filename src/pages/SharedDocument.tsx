@@ -11,8 +11,13 @@ import { Logo } from "@/components/Logo";
 
 type SharedDoc = {
   title: string;
-  kind: "contract" | "template";
-  payload: any;
+  kind: "contract" | "template" | "uploaded";
+  payload?: any;
+  source?: "pdf" | "docx" | "paste";
+  mime_type?: string | null;
+  original_url?: string | null;
+  signed_pdf_url?: string | null;
+  extracted_text?: string | null;
   signed_at: string | null;
   signer_name: string | null;
   expires_at: string;
