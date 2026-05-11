@@ -7,6 +7,7 @@ import {
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -84,6 +85,8 @@ export default function UploadedContractPage() {
 
   // Editor + metadata
   const [editText, setEditText] = useState("");
+  const [titleDraft, setTitleDraft] = useState("");
+  const [savingTitle, setSavingTitle] = useState(false);
   const [contactId, setContactId] = useState<string>("none");
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [savingText, setSavingText] = useState(false);
@@ -105,6 +108,7 @@ export default function UploadedContractPage() {
     setContacts(((kRes.data as any) ?? []) as Contact[]);
     if (c) {
       setEditText(c.extracted_text ?? "");
+      setTitleDraft(c.title ?? "");
       setContactId(c.contact_id ?? "none");
     }
     // Look up an existing shareable saved_documents copy linked via source_id.
@@ -224,6 +228,28 @@ export default function UploadedContractPage() {
     }
   };
 
+  const saveTitle = async () => {
+    if (!contract) return;
+    const trimmed = titleDraft.trim();
+    if (!trimmed || trimmed === contract.title) {
+      setTitleDraft(contract.title);
+      return;
+    }
+    if (trimmed.length > 200) { toast.error("Името е твърде дълго"); return; }
+    setSavingTitle(true);
+    const { error } = await supabase
+      .from("uploaded_contracts")
+      .update({ title: trimmed })
+      .eq("id", contract.id);
+    setSavingTitle(false);
+    if (error) { toast.error(error.message); setTitleDraft(contract.title); return; }
+    toast.success("Името е обновено");
+    setContract({ ...contract, title: trimmed });
+    if (savedDocId) {
+      await supabase.from("saved_documents").update({ title: trimmed }).eq("id", savedDocId);
+    }
+  };
+
   const saveContact = async (next: string) => {
     if (!contract) return;
     setContactId(next);
@@ -308,9 +334,17 @@ export default function UploadedContractPage() {
         </Link>
 
         <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="font-serif text-3xl font-bold">{contract.title}</h1>
-            <div className="mt-1 text-xs text-muted-foreground">
+          <div className="min-w-0 flex-1">
+            <Input
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              onBlur={saveTitle}
+              onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+              disabled={savingTitle}
+              aria-label="Име на договора"
+              className="h-auto w-full border-transparent bg-transparent px-0 py-0 font-serif text-2xl font-bold leading-tight shadow-none focus-visible:border-gold/40 focus-visible:bg-card/40 focus-visible:px-2 focus-visible:py-1 md:text-3xl break-words whitespace-normal"
+            />
+            <div className="mt-1 break-words text-xs text-muted-foreground">
               Качен на {new Date(contract.created_at).toLocaleDateString("bg-BG")} · {contract.source.toUpperCase()}
               {contract.original_filename && <> · {contract.original_filename}</>}
             </div>

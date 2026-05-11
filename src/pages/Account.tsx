@@ -207,9 +207,14 @@ function Dashboard({ quota, isPro, docs }: { quota: Quota | null; isPro: boolean
         ) : (
           <ul className="divide-y divide-border/40">
             {docs.slice(0, 5).map((d) => (
-              <li key={d.id} className="flex items-center justify-between py-2 text-sm">
-                <span>{d.title}</span>
-                <span className="text-xs text-muted-foreground">{new Date(d.created_at).toLocaleDateString("bg-BG")}</span>
+              <li key={d.id}>
+                <Link
+                  to={`/document/${d.id}`}
+                  className="flex items-center justify-between gap-3 py-2 text-sm transition-colors hover:text-gold"
+                >
+                  <span className="min-w-0 break-words">{d.title}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{new Date(d.created_at).toLocaleDateString("bg-BG")}</span>
+                </Link>
               </li>
             ))}
           </ul>
@@ -471,8 +476,8 @@ function DocumentsTab({
                     className="block rounded-xl border border-border/60 bg-gradient-card p-4 transition-all hover:border-gold/50 hover:shadow-soft"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="font-serif text-base font-bold">{u.title}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-serif text-base font-bold break-words">{u.title}</div>
                         <div className="mt-1 text-xs text-muted-foreground">
                           {u.source.toUpperCase()} · качен {new Date(u.created_at).toLocaleDateString("bg-BG")}
                           {a?.contract_type && <> · {a.contract_type}</>}
@@ -524,8 +529,8 @@ function DocumentsTab({
                   className="block rounded-xl border border-border/60 bg-gradient-card p-4 transition-all hover:border-gold/50 hover:shadow-soft"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="font-serif text-base font-bold transition-colors group-hover:text-gold">{d.title}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-serif text-base font-bold break-words transition-colors group-hover:text-gold">{d.title}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         {d.kind === "contract" ? "Договор" : "Бланка"} · {new Date(d.created_at).toLocaleDateString("bg-BG")}
                         {contactName(d.contact_id) && (
