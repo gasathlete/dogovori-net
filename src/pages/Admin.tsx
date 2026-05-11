@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, Crown, Loader2, Search, ShieldCheck, ShieldOff, Plus } from "lucide-react";
+import { AdminPartnersPanel } from "@/components/AdminPartnersPanel";
 
 type Row = {
   user_id: string;
