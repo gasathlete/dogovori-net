@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
+import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { ArrowRight, CheckCircle2, AlertTriangle, FileText, ChevronRight, Download } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
