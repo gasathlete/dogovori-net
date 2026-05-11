@@ -148,11 +148,30 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const sectorId = String(body?.sector_id ?? "").trim();
-    const documentName = String(body?.document_name ?? "").trim();
-    const sectorTitle = String(body?.sector_title ?? "").trim();
-    if (!sectorId || !documentName) {
-      return new Response(JSON.stringify({ error: "Липсващи параметри" }), {
+    const rawSectorId = String(body?.sector_id ?? "").trim();
+    const rawDocumentName = String(body?.document_name ?? "").trim();
+    const rawSectorTitle = String(body?.sector_title ?? "").trim();
+
+    // Strict input validation to prevent prompt-cache poisoning. The generated
+    // blank is shared globally by (sector_id, document_name), so untrusted
+    // free-form text must never reach the AI prompt or the cache key.
+    // - sector_id: lowercase slug, alphanumerics + dash, ≤ 64 chars.
+    // - document_name / sector_title: printable text, no control chars / line
+    //   breaks, ≤ 200 chars.
+    const SECTOR_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
+    const SAFE_TEXT_RE = /^[^\u0000-\u001F\u007F<>{}`]{1,200}$/;
+    const sectorId = rawSectorId;
+    const documentName = rawDocumentName;
+    const sectorTitle = rawSectorTitle.slice(0, 200);
+
+    if (
+      !sectorId ||
+      !documentName ||
+      !SECTOR_RE.test(sectorId) ||
+      !SAFE_TEXT_RE.test(documentName) ||
+      (sectorTitle && !SAFE_TEXT_RE.test(sectorTitle))
+    ) {
+      return new Response(JSON.stringify({ error: "Невалидни параметри" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
