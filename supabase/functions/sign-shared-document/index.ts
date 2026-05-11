@@ -1,6 +1,63 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { buildCors, clientIp, hashIp } from "../_shared/cors.ts";
+
+async function buildSignedPdf(opts: {
+  originalPdf: Uint8Array | null;
+  title: string;
+  signerName: string;
+  signatureDataUrl: string;
+  signedAtIso: string;
+}): Promise<Uint8Array> {
+  const pdf = opts.originalPdf
+    ? await PDFDocument.load(opts.originalPdf, { ignoreEncryption: true })
+    : await PDFDocument.create();
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+
+  const sigB64 = opts.signatureDataUrl.split(",", 2)[1] ?? "";
+  const sigBytes = Uint8Array.from(atob(sigB64), (c) => c.charCodeAt(0));
+  const isPng = opts.signatureDataUrl.startsWith("data:image/png");
+  const sigImg = isPng ? await pdf.embedPng(sigBytes) : await pdf.embedJpg(sigBytes);
+
+  const page = pdf.addPage([595, 842]); // A4
+  const { width, height } = page.getSize();
+  const margin = 50;
+
+  page.drawText("Electronic signature / Електронен подпис", {
+    x: margin, y: height - margin - 10, size: 14, font: fontBold, color: rgb(0.05, 0.05, 0.1),
+  });
+  page.drawLine({
+    start: { x: margin, y: height - margin - 18 },
+    end: { x: width - margin, y: height - margin - 18 },
+    thickness: 0.7, color: rgb(0.7, 0.6, 0.3),
+  });
+
+  const lines = [
+    `Document / Документ: ${opts.title}`,
+    `Signed by / Подписан от: ${opts.signerName}`,
+    `Signed at / Дата и час: ${new Date(opts.signedAtIso).toISOString()}`,
+  ];
+  let y = height - margin - 50;
+  for (const t of lines) {
+    page.drawText(t.slice(0, 110), { x: margin, y, size: 11, font, color: rgb(0.1, 0.1, 0.15) });
+    y -= 18;
+  }
+
+  const sigW = 240;
+  const sigH = (sigImg.height / sigImg.width) * sigW;
+  page.drawText("Signature / Подпис:", { x: margin, y: y - 20, size: 11, font: fontBold });
+  page.drawImage(sigImg, { x: margin, y: y - 30 - sigH, width: sigW, height: sigH });
+
+  page.drawText(
+    "Този електронен подпис не е квалифициран електронен подпис (КЕП) по смисъла на Регламент (ЕС) 910/2014.",
+    { x: margin, y: 60, size: 8, font, color: rgb(0.4, 0.4, 0.45), maxWidth: width - 2 * margin },
+  );
+
+  return await pdf.save();
+}
+
 
 serve(async (req) => {
   const corsHeaders = buildCors(req);
