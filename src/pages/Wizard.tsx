@@ -349,6 +349,13 @@ export default function WizardPage() {
   };
 
   const [downloadingBlank, setDownloadingBlank] = useState(false);
+  const [blankStep, setBlankStep] = useState(0);
+  const blankSteps = [
+    { icon: ShieldCheck, label: "Проверка на сигурността на IP адреса…" },
+    { icon: Search, label: "Подготовка на правната бланка…" },
+    { icon: FileSearch, label: "Проверка за липсващи клаузи и реквизити…" },
+    { icon: Download, label: "Бланката ще бъде свалена до 10 секунди…" },
+  ];
   const handleDownloadBlank = async () => {
     if (!user) {
       toast.error("Влезте, за да изтеглите бланка", { description: "Прогресът е запазен." });
