@@ -475,9 +475,9 @@ function DocumentsTab({
                     to={`/uploaded/${u.id}`}
                     className="block rounded-xl border border-border/60 bg-gradient-card p-4 transition-all hover:border-gold/50 hover:shadow-soft"
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
-                        <div className="font-serif text-base font-bold [overflow-wrap:anywhere]">{u.title}</div>
+                        <div className="break-words font-serif text-base font-bold">{u.title}</div>
                         <div className="mt-1 text-xs text-muted-foreground">
                           {u.source.toUpperCase()} · качен {new Date(u.created_at).toLocaleDateString("bg-BG")}
                           {a?.contract_type && <> · {a.contract_type}</>}
