@@ -31,11 +31,11 @@ export function Hero({ onStart }: { onStart: () => void }) {
           </div>
           <h1 className="font-serif text-[28px] font-bold leading-[1.1] text-balance sm:text-4xl md:text-5xl lg:text-[58px] lg:leading-[1.05]">
             Договори, които{" "}
-            <span className="gold-gradient-text">следват и намират</span>{" "}
+            <span className="gold-gradient-text">търсят и намират</span>{" "}
             Вашите интереси
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground sm:text-base md:mt-6 md:text-lg md:leading-[1.7]">
-            Освен шаблони и бланки, сайтът предлага стратегически въпроси, които да напътстват Вашата сделка. Dogovori.net изгражда индивидуални договори, съобразени със ЗЗД, ТЗ и ЗУТ, придружени от пълен правен риск-анализ.
+            Освен шаблони и бланки, сайтът предлага стратегически въпроси, които да напътстват Вашата сделка. Dogovori.net изгражда индивидуални договори и документи, съобразени със ЗЗД, ТЗ и ЗУТ, придружени от пълен правен риск-анализ.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <button onClick={onStart} className="btn-gold w-full sm:w-auto">
@@ -50,7 +50,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
             {[
               { icon: ShieldCheck, label: "Правно съответствие", value: "ЗЗД · ТЗ · ЗУТ" },
               { icon: Bird, label: "Оценка на риска", value: "Преди създаване" },
-              { icon: FileText, label: "Експорт", value: "PDF + DOCX" },
+              { icon: FileText, label: "Експорт", value: "Наблюдавайте проблем" },
             ].map((item) => (
               <div
                 key={item.label}
