@@ -49,8 +49,8 @@ export function Hero({ onStart }: { onStart: () => void }) {
           <div className="mt-12 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-hairline bg-hairline sm:mt-14 sm:grid-cols-3 md:mt-16">
             {[
               { icon: ShieldCheck, label: "Правно съответствие", value: "ЗЗД · ТЗ · ЗУТ" },
-              { icon: Bird, label: "Оценка на риска", value: "PDF + DOCX + ЕЛЕКТРОНЕН ПОДПИС" },
-              { icon: FileText, label: "Експорт", value: "PDF + DOCX" },
+              { icon: Bird, label: "Оценка на риска", value: "Набюдавайте проблем" },
+              { icon: FileText, label: "Експорт", value: "PDF + DOCX + ЕЛЕКТРОНЕН ПОДПИС" },
             ].map((item) => (
               <div
                 key={item.label}
