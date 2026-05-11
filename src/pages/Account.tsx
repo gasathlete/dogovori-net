@@ -329,7 +329,7 @@ function ContactsTab({ contacts, docs, reload, onOpenDocs }: {
                 return (
                   <tr
                     key={c.id}
-                    onClick={() => onOpenDocs(c.id)}
+                    onClick={() => navigate(`/contact/${c.id}`)}
                     className="cursor-pointer border-b border-border/40 last:border-0 transition-colors hover:bg-gold/[0.06]"
                   >
                     <td className="px-4 py-3 font-medium text-gold/90 hover:text-gold">{c.name}</td>
