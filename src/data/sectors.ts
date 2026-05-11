@@ -1952,9 +1952,17 @@ const group = (id: string, label: string, fields: Question[], help?: string): Qu
   required: fields.some((f) => f.required),
 });
 
+/** Дали даденият документ е декларация / молба / пълномощно — само 1 страна (декларатор). */
+export function isDeclarationDoc(documentName?: string | null): boolean {
+  if (!documentName) return false;
+  return /деклараци|молба|пълномощ/i.test(documentName);
+}
+
 /** Връща обединените въпроси за wizard, базирани на sector + (по избор) sub-wizard.
- *  Автоматично групира свързани полета в "карти", за да намали броя стъпки до ~6-10. */
+ *  Автоматично групира свързани полета в "карти", за да намали броя стъпки до ~6-10.
+ *  За декларации/молби/пълномощни — кратък поток без втора страна, неустойки и подсъдност. */
 export function buildQuestions(sector: Sector, sub?: SubWizard): Question[] {
+  const declaration = isDeclarationDoc(sub?.documentName);
   const tailLen = commonTail.length;
   const sectorQuestions = sector.questions;
   const head = sectorQuestions.slice(0, sectorQuestions.length - tailLen);
@@ -1967,30 +1975,53 @@ export function buildQuestions(sector: Sector, sub?: SubWizard): Question[] {
 
   const out: Question[] = [];
 
-  // 1) Страни
-  if (partyFields.length > 0) {
-    out.push(group("group_parties", "Страни по договора", partyFields, "Попълнете данните и за двете страни."));
+  // 1) Страни (или само декларатор за декларации)
+  if (declaration) {
+    // Само декларатор — преименуваме labels и оставяме party_a_*, скриваме B.
+    const declarantFields: Question[] = partyFields
+      .filter((f) => f.id.startsWith("party_a_"))
+      .map((f) => {
+        if (f.id === "party_a_name") return { ...f, label: "Наименование / имена на декларатора" };
+        if (f.id === "party_a_type") return { ...f, label: "Деклараторът е:" };
+        if (f.id === "party_a_extra") return { ...f, label: "Допълнителни декларатори (по желание)", help: "Ако декларацията е подписана от повече от един декларатор — добавете ги по един на ред: „Име | Тип“." };
+        return f;
+      });
+    if (declarantFields.length > 0) {
+      out.push(group("group_parties", "Декларатор", declarantFields, "Попълнете данните на лицето, което подава декларацията."));
+    }
+  } else {
+    if (partyFields.length > 0) {
+      out.push(group("group_parties", "Страни по договора", partyFields, "Попълнете данните и за двете страни."));
+    }
   }
 
-  // 2) Категорийни условия (предмет, стойност, срок и пр.)
-  if (sectorSpecifics.length > 0) {
+  // 2) Категорийни условия (за декларации често са неприложими — оставяме ги само за договори)
+  if (!declaration && sectorSpecifics.length > 0) {
     out.push(group("group_terms", "Условия по договора", sectorSpecifics, "Обхват, стойност, срокове и режим на плащане."));
   }
 
-  // 3) Специфични условия от sub-wizard (ако има)
+  // 3) Специфични условия от sub-wizard (винаги — те са същината на декларацията)
   if (subSpecifics.length > 0) {
-    out.push(group("group_specifics", "Специфични условия", subSpecifics, "Особености за този конкретен документ."));
+    out.push(
+      group(
+        "group_specifics",
+        declaration ? "Съдържание на декларацията" : "Специфични условия",
+        subSpecifics,
+        declaration ? "Конкретните факти и обстоятелства, които деклараторът удостоверява." : "Особености за този конкретен документ.",
+      ),
+    );
   }
 
-  // 4) commonTail → 3 групи
-  // tail order: penalty_pct, penalty_cap, termination, notice_days, force_majeure, jurisdiction, extra_notes
+  // 4) commonTail
+  // За декларации: пропускаме неустойки/прекратяване/подсъдност между страни — оставяме само свободни бележки.
   const byId = (id: string) => tail.find((q) => q.id === id);
-  const penalty = [byId("penalty_pct"), byId("penalty_cap"), byId("termination"), byId("notice_days")].filter(Boolean) as Question[];
-  const legal = [byId("force_majeure"), byId("jurisdiction")].filter(Boolean) as Question[];
+  if (!declaration) {
+    const penalty = [byId("penalty_pct"), byId("penalty_cap"), byId("termination"), byId("notice_days")].filter(Boolean) as Question[];
+    const legal = [byId("force_majeure"), byId("jurisdiction")].filter(Boolean) as Question[];
+    if (penalty.length) out.push(group("group_penalty", "Неустойки и прекратяване", penalty));
+    if (legal.length) out.push(group("group_legal", "Форсмажор и подсъдност", legal));
+  }
   const extra = byId("extra_notes");
-
-  if (penalty.length) out.push(group("group_penalty", "Неустойки и прекратяване", penalty));
-  if (legal.length) out.push(group("group_legal", "Форсмажор и подсъдност", legal));
   if (extra) out.push(extra);
 
   return out;
