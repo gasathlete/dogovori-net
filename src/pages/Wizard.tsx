@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Loader2, Bird, FileDown, FileText, Save, User, Download } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Bird, FileDown, FileText, Save, User, Download, ShieldCheck, Search, FileSearch, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -349,6 +349,13 @@ export default function WizardPage() {
   };
 
   const [downloadingBlank, setDownloadingBlank] = useState(false);
+  const [blankStep, setBlankStep] = useState(0);
+  const blankSteps = [
+    { icon: ShieldCheck, label: "Проверка на сигурността на IP адреса…" },
+    { icon: Search, label: "Подготовка на правната бланка…" },
+    { icon: FileSearch, label: "Проверка за липсващи клаузи и реквизити…" },
+    { icon: Download, label: "Бланката ще бъде свалена до 10 секунди…" },
+  ];
   const handleDownloadBlank = async () => {
     if (!user) {
       toast.error("Влезте, за да изтеглите бланка", { description: "Прогресът е запазен." });
@@ -356,6 +363,10 @@ export default function WizardPage() {
       return;
     }
     setDownloadingBlank(true);
+    setBlankStep(0);
+    const stepTimer = setInterval(() => {
+      setBlankStep((s) => (s + 1) % blankSteps.length);
+    }, 1800);
     try {
       const { data, error } = await supabase.functions.invoke("download-blank", {
         body: {
@@ -385,12 +396,11 @@ export default function WizardPage() {
       document.body.appendChild(a);
       a.click();
       a.remove();
-      toast.success("Бланката е готова", {
-        description: data.cached ? "Изтеглена от хранилището." : "Генерирана и записана за следващия път.",
-      });
+      toast.success("Бланката е изтеглена");
     } catch (e: any) {
       toast.error("Грешка при сваляне на бланка", { description: String(e?.message ?? e) });
     } finally {
+      clearInterval(stepTimer);
       setDownloadingBlank(false);
     }
   };
@@ -399,6 +409,48 @@ export default function WizardPage() {
   return (
     <div className="min-h-screen">
       <Header />
+
+      {downloadingBlank && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-md rounded-2xl border border-gold/30 bg-card p-6 shadow-2xl">
+            <div className="mb-4 flex items-center gap-3">
+              <Loader2 className="h-5 w-5 animate-spin text-gold" />
+              <h3 className="font-serif text-lg text-foreground">Подготвяме бланката…</h3>
+            </div>
+            <ul className="space-y-2.5">
+              {blankSteps.map((s, i) => {
+                const Icon = s.icon;
+                const active = i === blankStep;
+                const done = i < blankStep;
+                return (
+                  <li
+                    key={i}
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all ${
+                      active
+                        ? "bg-gold/10 text-foreground"
+                        : done
+                        ? "text-muted-foreground"
+                        : "text-muted-foreground/60"
+                    }`}
+                  >
+                    {done ? (
+                      <Check className="h-4 w-4 shrink-0 text-emerald-500" />
+                    ) : active ? (
+                      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-gold" />
+                    ) : (
+                      <Icon className="h-4 w-4 shrink-0" />
+                    )}
+                    <span>{s.label}</span>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="mt-4 text-center text-xs text-muted-foreground">
+              Свалянето ще започне автоматично.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Progress strip */}
       <div className="sticky top-16 z-30 border-b border-border/60 bg-navy/90 backdrop-blur-xl">
