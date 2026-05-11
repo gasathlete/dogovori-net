@@ -121,6 +121,12 @@ const partiesQuestions = (a: string, b: string): Question[] => [
     required: true,
   },
   {
+    id: "party_a_extra",
+    label: `Допълнителни ${a} (по желание)`,
+    help: `Ако ${a} са повече от един — добавете ги тук (по един на ред: „Име | Тип“).`,
+    type: "textarea",
+  },
+  {
     id: "party_b_name",
     label: `Наименование на ${b}`,
     type: "text",
@@ -133,6 +139,12 @@ const partiesQuestions = (a: string, b: string): Question[] => [
     type: "radio",
     options: ["Юридическо лице", "Физическо лице", "ЕТ / Самоосигуряващо се"],
     required: true,
+  },
+  {
+    id: "party_b_extra",
+    label: `Допълнителни ${b} (по желание)`,
+    help: `Ако ${b} са повече от един — добавете ги тук (по един на ред: „Име | Тип“).`,
+    type: "textarea",
   },
 ];
 
