@@ -348,6 +348,54 @@ export default function WizardPage() {
     }
   };
 
+  const [downloadingBlank, setDownloadingBlank] = useState(false);
+  const handleDownloadBlank = async () => {
+    if (!user) {
+      toast.error("Влезте, за да изтеглите бланка", { description: "Прогресът е запазен." });
+      goAuth();
+      return;
+    }
+    setDownloadingBlank(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("download-blank", {
+        body: {
+          sector_id: sector.id,
+          sector_title: sector.title,
+          document_name: docName ?? sector.contractName,
+        },
+      });
+      if (error || data?.error) {
+        if (data?.error === "quota_exceeded") {
+          toast.error("Изчерпан лимит за бланки", {
+            description: "Безплатно: 1 бланка/мес. Преминете към Pro за повече.",
+            action: { label: "Виж опции", onClick: () => goSubscription() },
+          });
+          return;
+        }
+        if (data?.requires_login) {
+          goAuth();
+          return;
+        }
+        throw new Error(data?.error || error?.message || "Грешка");
+      }
+      // Trigger download
+      const a = document.createElement("a");
+      a.href = data.url;
+      a.download = data.filename || "бланка.docx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      toast.success("Бланката е готова", {
+        description: data.cached ? "Изтеглена от хранилището." : "Генерирана и записана за следващия път.",
+      });
+    } catch (e: any) {
+      toast.error("Грешка при сваляне на бланка", { description: String(e?.message ?? e) });
+    } finally {
+      setDownloadingBlank(false);
+    }
+  };
+
+
   return (
     <div className="min-h-screen">
       <Header />
