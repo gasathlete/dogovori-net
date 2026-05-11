@@ -476,7 +476,7 @@ function DocumentsTab({
                     className="block rounded-xl border border-border/60 bg-gradient-card p-4 transition-all hover:border-gold/50 hover:shadow-soft"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="font-serif text-base font-bold break-words">{u.title}</div>
                         <div className="mt-1 text-xs text-muted-foreground">
                           {u.source.toUpperCase()} · качен {new Date(u.created_at).toLocaleDateString("bg-BG")}
