@@ -400,6 +400,7 @@ export default function WizardPage() {
     } catch (e: any) {
       toast.error("Грешка при сваляне на бланка", { description: String(e?.message ?? e) });
     } finally {
+      clearInterval(stepTimer);
       setDownloadingBlank(false);
     }
   };
