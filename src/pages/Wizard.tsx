@@ -405,6 +405,15 @@ export default function WizardPage() {
     }
   };
 
+  // Auto-trigger blank download when arriving with ?blank=1
+  const autoBlankTriggered = useRef(false);
+  useEffect(() => {
+    if (autoBlankTriggered.current) return;
+    if (searchParams.get("blank") !== "1") return;
+    autoBlankTriggered.current = true;
+    handleDownloadBlank();
+  }, [searchParams]);
+
 
   return (
     <div className="min-h-screen">
