@@ -1930,12 +1930,66 @@ function buildGenericSubWizard(documentName: string): SubWizard {
   };
 }
 
-/** Връща обединените въпроси за wizard, базирани на sector + (по избор) sub-wizard. */
+/** Хелпър за деклариране на групиран въпрос. */
+const group = (id: string, label: string, fields: Question[], help?: string): Question => ({
+  id,
+  label,
+  type: "group",
+  fields,
+  help,
+  required: fields.some((f) => f.required),
+});
+
+/** Връща обединените въпроси за wizard, базирани на sector + (по избор) sub-wizard.
+ *  Автоматично групира свързани полета в "карти", за да намали броя стъпки до ~6-10. */
 export function buildQuestions(sector: Sector, sub?: SubWizard): Question[] {
-  if (!sub) return sector.questions;
-  // Inject sub-wizard questions преди commonTail (последните 7 от sector.questions).
   const tailLen = commonTail.length;
-  const head = sector.questions.slice(0, sector.questions.length - tailLen);
-  const tail = sector.questions.slice(sector.questions.length - tailLen);
-  return [...head, ...sub.questions, ...tail];
+  const sectorQuestions = sector.questions;
+  const head = sectorQuestions.slice(0, sectorQuestions.length - tailLen);
+  const tail = sectorQuestions.slice(sectorQuestions.length - tailLen);
+
+  // head[0..3] са partiesQuestions (4 полета). Останалите head са категорийни специфики.
+  const partyFields = head.slice(0, 4);
+  const sectorSpecifics = head.slice(4);
+  const subSpecifics = sub?.questions ?? [];
+
+  const out: Question[] = [];
+
+  // 1) Страни
+  if (partyFields.length > 0) {
+    out.push(group("group_parties", "Страни по договора", partyFields, "Попълнете данните и за двете страни."));
+  }
+
+  // 2) Категорийни условия (предмет, стойност, срок и пр.)
+  if (sectorSpecifics.length > 0) {
+    out.push(group("group_terms", "Условия по договора", sectorSpecifics, "Обхват, стойност, срокове и режим на плащане."));
+  }
+
+  // 3) Специфични условия от sub-wizard (ако има)
+  if (subSpecifics.length > 0) {
+    out.push(group("group_specifics", "Специфични условия", subSpecifics, "Особености за този конкретен документ."));
+  }
+
+  // 4) commonTail → 3 групи
+  // tail order: penalty_pct, penalty_cap, termination, notice_days, force_majeure, jurisdiction, extra_notes
+  const byId = (id: string) => tail.find((q) => q.id === id);
+  const penalty = [byId("penalty_pct"), byId("penalty_cap"), byId("termination"), byId("notice_days")].filter(Boolean) as Question[];
+  const legal = [byId("force_majeure"), byId("jurisdiction")].filter(Boolean) as Question[];
+  const extra = byId("extra_notes");
+
+  if (penalty.length) out.push(group("group_penalty", "Неустойки и прекратяване", penalty));
+  if (legal.length) out.push(group("group_legal", "Форсмажор и подсъдност", legal));
+  if (extra) out.push(extra);
+
+  return out;
+}
+
+/** Връща плосък списък с подвъпросите (раз-групиран). Полезно за payload към LLM. */
+export function flattenQuestions(qs: Question[]): Question[] {
+  const out: Question[] = [];
+  for (const q of qs) {
+    if (q.type === "group" && q.fields) out.push(...flattenQuestions(q.fields));
+    else out.push(q);
+  }
+  return out;
 }
