@@ -399,6 +399,7 @@ export default function WizardPage() {
                   onChange={(v) => setAnswers((p) => ({ ...p, [current.id]: v }))}
                   answers={answers}
                   onAnswerChange={(id, v) => setAnswers((p) => ({ ...p, [id]: v }))}
+                  contacts={contacts}
                 />
 
                 <div className="mt-8 flex items-center justify-between gap-3">
