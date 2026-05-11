@@ -425,6 +425,29 @@ export default function WizardPage() {
         </div>
       </div>
 
+      {/* Blank-template download — always available, before answering questions */}
+      <div className="border-b border-border/40 bg-card/30">
+        <div className="container flex flex-wrap items-center justify-between gap-3 py-3">
+          <div className="text-xs text-muted-foreground">
+            Нужна Ви е само празна бланка за разпечатване?
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadBlank}
+            disabled={downloadingBlank}
+            className="border-gold/40 text-gold hover:bg-gold/10 hover:text-gold"
+          >
+            {downloadingBlank ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-1.5 h-4 w-4" />
+            )}
+            Изтегли празна бланка (.docx)
+          </Button>
+        </div>
+      </div>
+
       <main className="container py-6 md:py-8">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* LEFT — interview / risk report */}
