@@ -440,7 +440,7 @@ function DocumentsTab({
         <section>
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <h3 className="font-serif text-lg font-bold">Качени договори (за риск-анализ)</h3>
+              <h3 className="font-serif text-lg font-bold">Качени договори</h3>
               <p className="mt-1 text-xs text-muted-foreground">Качете свой договор (PDF, DOCX или текст) — Системата ще извърши пълен правен риск-анализ.</p>
             </div>
             <div className="shrink-0">
@@ -502,7 +502,7 @@ function DocumentsTab({
 
         {/* ===== Generated documents (existing) ===== */}
         <section>
-          <h3 className="mb-3 font-serif text-lg font-bold">Генерирани документи</h3>
+          <h3 className="mb-3 font-serif text-lg font-bold">Създадени документи</h3>
           {activeContactName && (
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs text-gold">
               <Users className="h-3.5 w-3.5" />
