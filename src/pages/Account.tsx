@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Bird, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X,
 } from "lucide-react";
@@ -286,6 +286,7 @@ function ContactsTab({ contacts, docs, reload, onOpenDocs }: {
 }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Contact | null>(null);
+  const navigate = useNavigate();
 
   const remove = async (id: string) => {
     if (!confirm("Изтриване на контрагента?")) return;
@@ -328,7 +329,7 @@ function ContactsTab({ contacts, docs, reload, onOpenDocs }: {
                 return (
                   <tr
                     key={c.id}
-                    onClick={() => onOpenDocs(c.id)}
+                    onClick={() => navigate(`/contact/${c.id}`)}
                     className="cursor-pointer border-b border-border/40 last:border-0 transition-colors hover:bg-gold/[0.06]"
                   >
                     <td className="px-4 py-3 font-medium text-gold/90 hover:text-gold">{c.name}</td>
