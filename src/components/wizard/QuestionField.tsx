@@ -24,13 +24,10 @@ const TYPE_OPTIONS = ["Юридическо лице", "Физическо ли�
 /** Парсва party_X_extra текст във формат „Име | Тип“ на ред. */
 function parseExtras(raw: string): Array<{ name: string; type: string }> {
   if (!raw?.trim()) return [];
-  return raw
-    .split("\n")
-    .map((line) => {
-      const [name = "", type = ""] = line.split("|").map((s) => s.trim());
-      return { name, type };
-    })
-    .filter((r) => r.name || r.type);
+  return raw.split("\n").map((line) => {
+    const [name = "", type = ""] = line.split("|").map((s) => s.trim());
+    return { name, type };
+  });
 }
 
 function serializeExtras(rows: Array<{ name: string; type: string }>): string {
