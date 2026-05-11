@@ -26,7 +26,7 @@ serve(async (req) => {
 
     const { data: link } = await admin
       .from("shared_links")
-      .select("id, document_id, owner_id, expires_at, viewed_at, signed_at, signer_name, revoked_at")
+      .select("id, document_id, uploaded_contract_id, owner_id, expires_at, viewed_at, signed_at, signer_name, revoked_at, signed_pdf_path")
       .eq("token", token)
       .maybeSingle();
 
@@ -46,15 +46,64 @@ serve(async (req) => {
       });
     }
 
-    const { data: doc } = await admin
-      .from("saved_documents")
-      .select("id, title, kind, payload")
-      .eq("id", link.document_id)
-      .maybeSingle();
-    if (!doc) {
-      return new Response(JSON.stringify({ error: "document_missing" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let payloadResp: Record<string, unknown> = {};
+    let kind = "contract";
+    let title = "";
+    let targetId: string | null = null;
+    let targetType = "document";
+
+    if (link.uploaded_contract_id) {
+      const { data: uc } = await admin
+        .from("uploaded_contracts")
+        .select("id, title, source, storage_path, mime_type, extracted_text")
+        .eq("id", link.uploaded_contract_id)
+        .maybeSingle();
+      if (!uc) {
+        return new Response(JSON.stringify({ error: "document_missing" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      title = uc.title;
+      kind = "uploaded";
+      targetId = uc.id;
+      targetType = "uploaded_contract";
+
+      let original_url: string | null = null;
+      if (uc.storage_path) {
+        const { data: signed } = await admin.storage
+          .from("user-contracts")
+          .createSignedUrl(uc.storage_path, 60 * 60);
+        original_url = signed?.signedUrl ?? null;
+      }
+      let signed_pdf_url: string | null = null;
+      if (link.signed_pdf_path) {
+        const { data: s } = await admin.storage
+          .from("user-contracts")
+          .createSignedUrl(link.signed_pdf_path, 60 * 60);
+        signed_pdf_url = s?.signedUrl ?? null;
+      }
+      payloadResp = {
+        source: uc.source,
+        mime_type: uc.mime_type,
+        original_url,
+        signed_pdf_url,
+        extracted_text: uc.source === "paste" ? uc.extracted_text : null,
+      };
+    } else {
+      const { data: doc } = await admin
+        .from("saved_documents")
+        .select("id, title, kind, payload")
+        .eq("id", link.document_id)
+        .maybeSingle();
+      if (!doc) {
+        return new Response(JSON.stringify({ error: "document_missing" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      title = doc.title;
+      kind = doc.kind;
+      targetId = doc.id;
+      payloadResp = { payload: doc.payload };
     }
 
     // Mark first view
@@ -65,8 +114,8 @@ serve(async (req) => {
       await admin.from("audit_log").insert({
         user_id: link.owner_id,
         action: "share_link_viewed",
-        target_type: "document",
-        target_id: link.document_id,
+        target_type: targetType,
+        target_id: targetId,
         ip_hash: await hashIp(clientIp(req)),
       });
     }
@@ -74,9 +123,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         ok: true,
-        title: doc.title,
-        kind: doc.kind,
-        payload: doc.payload,
+        title,
+        kind,
+        ...payloadResp,
         signed_at: link.signed_at,
         signer_name: link.signer_name,
         expires_at: link.expires_at,
