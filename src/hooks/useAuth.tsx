@@ -21,9 +21,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       setLoading(false);
+      // After OAuth provider redirects back to the bare origin, honour the
+      // post-login destination set on the Auth page (catalog, template page,
+      // wizard, etc.). Only run once per sign-in to avoid loops.
+      if (event === "SIGNED_IN" && typeof window !== "undefined") {
+        try {
+          const dest = sessionStorage.getItem("post_login_redirect");
+          if (dest && dest !== window.location.pathname + window.location.search) {
+            sessionStorage.removeItem("post_login_redirect");
+            window.location.replace(dest);
+          }
+        } catch { /* ignore */ }
+      }
     });
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
