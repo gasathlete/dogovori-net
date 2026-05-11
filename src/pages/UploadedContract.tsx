@@ -85,6 +85,8 @@ export default function UploadedContractPage() {
 
   // Editor + metadata
   const [editText, setEditText] = useState("");
+  const [titleDraft, setTitleDraft] = useState("");
+  const [savingTitle, setSavingTitle] = useState(false);
   const [contactId, setContactId] = useState<string>("none");
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [savingText, setSavingText] = useState(false);
