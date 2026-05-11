@@ -1,16 +1,31 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { ArrowRight, CheckCircle2, AlertTriangle, FileText, ChevronRight, Download } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { getRelatedTemplates, getTemplateBySlug } from "@/lib/templateIndex";
-import { TEMPLATE_CONTENT } from "@/data/templateContent";
+import { TEMPLATE_CONTENT_META } from "@/data/templateContentMeta";
+import { loadTemplateContent } from "@/data/templateContent";
+import type { TemplateContent } from "@/data/templateContentTypes";
 import { trackEvent } from "@/lib/analytics";
 
 export default function TemplatePage() {
   const { slug } = useParams<{ slug: string }>();
   const entry = useMemo(() => (slug ? getTemplateBySlug(slug) : undefined), [slug]);
+
+  // Async-load the heavy AI content for this template only.
+  const [aiContent, setAiContent] = useState<TemplateContent | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    if (!entry) return;
+    const p = loadTemplateContent(entry.slug);
+    if (!p) return;
+    p.then((c) => alive && setAiContent(c)).catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [entry?.slug]);
 
   useEffect(() => {
     if (entry) trackEvent("template_view", { slug: entry.slug, name: entry.doc.name, category: entry.category.title });
@@ -20,17 +35,19 @@ export default function TemplatePage() {
 
   const { doc, category } = entry;
   const related = getRelatedTemplates(entry, 3);
-  const aiContent = TEMPLATE_CONTENT[entry.slug];
+
+  // Sync meta (used for <meta description> + JSON-LD) — keeps SEO unchanged.
+  const meta = TEMPLATE_CONTENT_META[entry.slug];
 
   const wizardHref = `/wizard/${category.sectorId}?doc=${encodeURIComponent(doc.name)}`;
   const canonical = `/shablon/${entry.slug}`;
   const pageTitle = `${doc.name} — образец на български | Dogovori.net`;
-  const pageDesc = aiContent?.intro
-    ? aiContent.intro.slice(0, 155)
+  const pageDesc = meta?.introExcerpt
+    ? meta.introExcerpt.slice(0, 155)
     : `${doc.purpose} Готов шаблон по българското право (ЗЗД, ТЗ). Попълни и изтегли PDF/DOCX за 2 минути.`;
 
-  // Use AI-generated rich content when available, fallback to generic content from catalog metadata.
-  const intro = aiContent?.intro;
+  // Use AI-generated rich content when loaded; show generic fallback meanwhile (zero CLS — same DOM).
+  const intro = aiContent?.intro ?? meta?.introExcerpt;
 
   const usageCases = aiContent?.usageCases ?? [
     `Когато страните по ${doc.name.toLowerCase()} желаят писмено уреждане на отношенията си.`,
