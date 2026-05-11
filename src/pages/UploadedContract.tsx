@@ -228,7 +228,26 @@ export default function UploadedContractPage() {
     }
   };
 
-  const saveContact = async (next: string) => {
+  const saveTitle = async () => {
+    if (!contract) return;
+    const trimmed = titleDraft.trim();
+    if (!trimmed || trimmed === contract.title) {
+      setTitleDraft(contract.title);
+      return;
+    }
+    if (trimmed.length > 200) { toast.error("Името е твърде дълго"); return; }
+    setSavingTitle(true);
+    const { error } = await supabase
+      .from("uploaded_contracts")
+      .update({ title: trimmed })
+      .eq("id", contract.id);
+    setSavingTitle(false);
+    if (error) { toast.error(error.message); setTitleDraft(contract.title); return; }
+    toast.success("Името е обновено");
+    setContract({ ...contract, title: trimmed });
+    if (savedDocId) {
+      await supabase.from("saved_documents").update({ title: trimmed }).eq("id", savedDocId);
+    }
     if (!contract) return;
     setContactId(next);
     setSavingContact(true);
