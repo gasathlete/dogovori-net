@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Loader2, Bird, FileDown, FileText, Save, User } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Bird, FileDown, FileText, Save, User, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
