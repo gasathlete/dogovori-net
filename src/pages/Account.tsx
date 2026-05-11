@@ -530,7 +530,7 @@ function DocumentsTab({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <div className="font-serif text-base font-bold break-words transition-colors group-hover:text-gold">{d.title}</div>
+                      <div className="font-serif text-base font-bold [overflow-wrap:anywhere] transition-colors group-hover:text-gold">{d.title}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         {d.kind === "contract" ? "Договор" : "Бланка"} · {new Date(d.created_at).toLocaleDateString("bg-BG")}
                         {contactName(d.contact_id) && (
