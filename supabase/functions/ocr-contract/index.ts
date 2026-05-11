@@ -30,6 +30,22 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Verify the bearer token resolves to a real Supabase user. Without this
+    // check anyone can burn AI OCR credits with an arbitrary "Bearer x" header.
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const { data: userData, error: authErr } = await admin.auth.getUser(
+      auth.replace("Bearer ", ""),
+    );
+    const userId = userData?.user?.id;
+    if (authErr || !userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const body = await req.json().catch(() => ({}));
     const images: string[] = Array.isArray(body?.images) ? body.images : [];
     if (!images.length) {
