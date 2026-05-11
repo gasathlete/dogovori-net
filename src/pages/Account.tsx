@@ -659,7 +659,7 @@ function FoldersTab({
                       {folderDocs.map((d) => (
                         <li key={`d-${d.id}`} className="flex items-center gap-2">
                           <FileText className="h-3.5 w-3.5 text-gold/70" />
-                          <span className="truncate">{d.title}</span>
+                          <Link to={`/document/${d.id}`} className="truncate hover:text-gold">{d.title}</Link>
                           <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground">
                             {d.kind === "contract" ? "договор" : "бланка"}
                           </span>
