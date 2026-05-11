@@ -333,8 +333,8 @@ export default function UploadedContractPage() {
           <ArrowLeft className="h-3 w-3" /> Към моите документи
         </Link>
 
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
+        <div className="mt-3 flex flex-col items-start justify-between gap-3 md:flex-row md:flex-wrap">
+          <div className="w-full min-w-0 md:flex-1">
             <Textarea
               value={titleDraft}
               onChange={(e) => setTitleDraft(e.target.value)}
