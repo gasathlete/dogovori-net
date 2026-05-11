@@ -5,10 +5,10 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
 const NAV = [
+  { to: "/#sectors", label: "Сектори" },
+  { to: "/#process", label: "Функции" },
   { to: "/catalog", label: "Каталог" },
   { to: "/blog", label: "Блог" },
-  { to: "/#sectors", label: "Сектори" },
-  { to: "/#process", label: "​Функции" },
   { to: "/#compliance", label: "Съответствие" },
 ];
 
