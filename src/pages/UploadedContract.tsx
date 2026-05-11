@@ -552,13 +552,23 @@ export default function UploadedContractPage() {
           </div>
 
           <div className="mt-4 grid gap-4 md:grid-cols-[1fr_260px]">
-            <Textarea
-              value={editText}
-              onChange={(e) => setEditText(e.target.value)}
-              rows={18}
-              className="font-mono text-xs leading-relaxed"
-              placeholder="Извлеченият текст на договора..."
-            />
+            <div className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
+              <textarea
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                rows={Math.max(20, editText.split("\n").length + 2)}
+                spellCheck={false}
+                placeholder="Извлеченият текст на договора..."
+                className="block w-full resize-y border-0 bg-transparent p-0 outline-none focus:ring-0"
+                style={{
+                  fontFamily: "'Libre Baskerville', Georgia, serif",
+                  fontSize: "15px",
+                  lineHeight: "1.7",
+                  color: "hsl(220 30% 12%)",
+                  whiteSpace: "pre-wrap",
+                }}
+              />
+            </div>
             <div className="space-y-4">
               <div>
                 <Label className="flex items-center gap-1.5 text-xs">
