@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { TOP_DOCUMENTS } from "@/data/catalog";
-import { ArrowRight, Star } from "lucide-react";
+import { ArrowRight, Bird } from "lucide-react";
 
 export function TopDocuments() {
   return (
@@ -10,7 +10,7 @@ export function TopDocuments() {
           <div className="eyebrow mb-3">
             <span className="font-serif text-base font-normal tracking-normal text-gold/60">03</span>
             <span className="h-px w-6 bg-gold/40" />
-            <Star className="h-3 w-3" />
+            <Bird className="h-3 w-3" />
             Топ 5 най-търсени
           </div>
           <h2 className="font-serif text-2xl font-bold leading-[1.15] text-balance sm:text-3xl md:text-4xl lg:text-[44px]">
