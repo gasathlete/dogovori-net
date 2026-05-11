@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import * as Icons from "lucide-react";
 import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
 import { Header } from "@/components/Header";
