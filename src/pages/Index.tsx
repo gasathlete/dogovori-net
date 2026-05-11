@@ -1,14 +1,18 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { SectorGrid } from "@/components/SectorGrid";
-import { Process } from "@/components/Process";
-import { TopDocuments } from "@/components/TopDocuments";
 import { SeoFooter } from "@/components/SeoFooter";
-import { PartnersBoard } from "@/components/PartnersBoard";
-import { ComplianceSection } from "@/components/ComplianceSection";
 import { Seo } from "@/components/Seo";
+import { LazyOnVisible } from "@/components/LazyOnVisible";
+
+// Below-the-fold sections — code-split + mounted on scroll.
+// SeoFooter stays eager (internal links matter for crawling).
+const TopDocuments = lazy(() => import("@/components/TopDocuments").then((m) => ({ default: m.TopDocuments })));
+const Process = lazy(() => import("@/components/Process").then((m) => ({ default: m.Process })));
+const PartnersBoard = lazy(() => import("@/components/PartnersBoard").then((m) => ({ default: m.PartnersBoard })));
+const ComplianceSection = lazy(() => import("@/components/ComplianceSection").then((m) => ({ default: m.ComplianceSection })));
 
 const Index = () => {
   const navigate = useNavigate();
@@ -36,10 +40,20 @@ const Index = () => {
       <Header />
       <Hero onStart={startInterview} />
       <SectorGrid onPick={(id) => navigate(`/wizard/${id}`)} />
-      <TopDocuments />
-      <Process />
-      <PartnersBoard />
-      <ComplianceSection />
+      <Suspense fallback={null}>
+        <LazyOnVisible minHeight={500}>
+          <TopDocuments />
+        </LazyOnVisible>
+        <LazyOnVisible minHeight={400}>
+          <Process />
+        </LazyOnVisible>
+        <LazyOnVisible minHeight={400}>
+          <PartnersBoard />
+        </LazyOnVisible>
+        <LazyOnVisible minHeight={400}>
+          <ComplianceSection />
+        </LazyOnVisible>
+      </Suspense>
       <SeoFooter />
     </div>
   );
