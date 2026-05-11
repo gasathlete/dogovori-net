@@ -49,7 +49,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
           <div className="mt-12 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-hairline bg-hairline sm:mt-14 sm:grid-cols-3 md:mt-16">
             {[
               { icon: ShieldCheck, label: "Правно съответствие", value: "ЗЗД · ТЗ · ЗУТ" },
-              { icon: Bird, label: "Оценка на риска", value: "Преди създаване" },
+              { icon: Bird, label: "Оценка на риска", value: "PDF + DOCX + ЕЛЕКТРОНЕН ПОДПИС" },
               { icon: FileText, label: "Експорт", value: "PDF + DOCX" },
             ].map((item) => (
               <div
@@ -60,7 +60,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
                 <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                   {item.label}
                 </div>
-                <div className="mt-1.5 font-serif text-base text-foreground sm:text-lg">{item.value}</div>
+                <div className="mt-1.5 font-serif text-base text-foreground sm:text-lg mx-[6px]">{item.value}</div>
               </div>
             ))}
           </div>
