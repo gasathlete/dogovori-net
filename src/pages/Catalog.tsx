@@ -326,6 +326,7 @@ function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean
                 <tr
                   key={doc.name}
                   onClick={() => (window.location.href = shablonHref)}
+                  style={{ contentVisibility: "auto", containIntrinsicSize: "80px" } as React.CSSProperties}
                   className="cursor-pointer border-b border-border/40 transition-colors last:border-0 hover:bg-gold/[0.04]"
                 >
                   <td className="px-5 py-4 align-top">
