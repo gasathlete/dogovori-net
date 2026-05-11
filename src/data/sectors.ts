@@ -1,4 +1,4 @@
-export type FieldType = "text" | "textarea" | "number" | "date" | "select" | "radio";
+export type FieldType = "text" | "textarea" | "number" | "date" | "select" | "radio" | "group";
 
 export interface Question {
   id: string;
@@ -10,6 +10,8 @@ export interface Question {
   required?: boolean;
   /** Conditionally show this question */
   showIf?: (answers: Record<string, string>) => boolean;
+  /** За type === "group": подвъпросите, които се рендерират в една карта. */
+  fields?: Question[];
 }
 
 export interface SubWizard {
