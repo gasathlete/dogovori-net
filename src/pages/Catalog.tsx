@@ -365,6 +365,7 @@ function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean
             <Link
               key={doc.name}
               to={`/shablon/${slugify(doc.name)}`}
+              style={{ contentVisibility: "auto", containIntrinsicSize: "150px" } as React.CSSProperties}
               className="block p-5 transition-colors hover:bg-gold/[0.04]"
             >
               <div className="flex items-start gap-2">
