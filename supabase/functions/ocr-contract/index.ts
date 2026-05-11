@@ -3,6 +3,7 @@
 // extracted text. Used as a fallback when client-side pdfjs.getTextContent() returns
 // nothing (i.e. the PDF has no text layer — typical for scanned bank/notary contracts).
 
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 
 const OCR_SYSTEM = `Ти си високо точен OCR енджин за български правни документи.
@@ -24,6 +25,22 @@ Deno.serve(async (req: Request) => {
   try {
     const auth = req.headers.get("Authorization") ?? "";
     if (!auth.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Verify the bearer token resolves to a real Supabase user. Without this
+    // check anyone can burn AI OCR credits with an arbitrary "Bearer x" header.
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const { data: userData, error: authErr } = await admin.auth.getUser(
+      auth.replace("Bearer ", ""),
+    );
+    const userId = userData?.user?.id;
+    if (authErr || !userId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -109,6 +126,11 @@ Deno.serve(async (req: Request) => {
       parts.push(trimmed.replace(/\[OCR_UNREADABLE\]/gi, "").trim());
     }
     const text = parts.join("\n\n").replace(/[ \t]+/g, " ").trim();
+
+    // Per-user accounting so abuse is visible and rate-limitable downstream.
+    try {
+      await admin.from("ai_usage").insert({ user_id: userId, function_name: "ocr-contract" });
+    } catch (_) { /* non-fatal */ }
 
     return new Response(JSON.stringify({ text, pages: pages.length, unreadablePages }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
