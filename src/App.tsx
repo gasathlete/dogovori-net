@@ -40,7 +40,16 @@ const Contact = lazy(() => import("./pages/Contact.tsx"));
 
 initSentry();
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,
+      gcTime: 5 * 60_000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const RouteFallback = () => (
   <div className="flex min-h-screen items-center justify-center bg-background">
