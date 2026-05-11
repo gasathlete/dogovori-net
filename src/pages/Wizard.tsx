@@ -364,9 +364,15 @@ export default function WizardPage() {
     }
     setDownloadingBlank(true);
     setBlankStep(0);
-    const stepTimer = setInterval(() => {
-      setBlankStep((s) => (s + 1) % blankSteps.length);
-    }, 1800);
+    // Advance steps 0 -> 1 -> 2 at fixed offsets; hold on step 2 ("проверка за липси…")
+    // until the API responds. The final step ("сваляне до 10 сек") appears only when
+    // the response is in hand and the actual download is about to fire.
+    const t1 = setTimeout(() => setBlankStep(1), 2000);
+    const t2 = setTimeout(() => setBlankStep(2), 4500);
+    const clearStepTimers = () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
     try {
       const { data, error } = await supabase.functions.invoke("download-blank", {
         body: {
@@ -389,7 +395,11 @@ export default function WizardPage() {
         }
         throw new Error(data?.error || error?.message || "Грешка");
       }
-      // Trigger download
+      // Move to final step and give the user ~1s to see it before the browser
+      // dialog appears, so the message stays truthful ("до 10 секунди").
+      clearStepTimers();
+      setBlankStep(3);
+      await new Promise((r) => setTimeout(r, 900));
       const a = document.createElement("a");
       a.href = data.url;
       a.download = data.filename || "бланка.docx";
@@ -400,7 +410,7 @@ export default function WizardPage() {
     } catch (e: any) {
       toast.error("Грешка при сваляне на бланка", { description: String(e?.message ?? e) });
     } finally {
-      clearInterval(stepTimer);
+      clearStepTimers();
       setDownloadingBlank(false);
     }
   };
