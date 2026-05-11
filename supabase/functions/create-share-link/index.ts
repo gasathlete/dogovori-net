@@ -34,12 +34,15 @@ serve(async (req) => {
     const userId = userData.user.id;
 
     const body = await req.json().catch(() => ({}));
-    const { document_id, expires_in_days } = body as {
+    const { document_id, uploaded_contract_id, expires_in_days } = body as {
       document_id?: string;
+      uploaded_contract_id?: string;
       expires_in_days?: number;
     };
-    if (!document_id || typeof document_id !== "string") {
-      return new Response(JSON.stringify({ error: "document_id required" }), {
+    const isUploaded = !!uploaded_contract_id && typeof uploaded_contract_id === "string";
+    const isDocument = !!document_id && typeof document_id === "string";
+    if (isUploaded === isDocument) {
+      return new Response(JSON.stringify({ error: "exactly_one_target_required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -60,17 +63,33 @@ serve(async (req) => {
       );
     }
 
-    // Verify document ownership
-    const { data: doc } = await admin
-      .from("saved_documents")
-      .select("id, user_id, title")
-      .eq("id", document_id)
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (!doc) {
-      return new Response(JSON.stringify({ error: "Document not found" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let targetTitle = "";
+    if (isDocument) {
+      const { data: doc } = await admin
+        .from("saved_documents")
+        .select("id, user_id, title")
+        .eq("id", document_id)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!doc) {
+        return new Response(JSON.stringify({ error: "Document not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      targetTitle = doc.title;
+    } else {
+      const { data: uc } = await admin
+        .from("uploaded_contracts")
+        .select("id, user_id, title")
+        .eq("id", uploaded_contract_id)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!uc) {
+        return new Response(JSON.stringify({ error: "Document not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      targetTitle = uc.title;
     }
 
     const linkToken = generateToken();
@@ -79,7 +98,8 @@ serve(async (req) => {
     const { data: link, error: linkErr } = await admin
       .from("shared_links")
       .insert({
-        document_id,
+        document_id: isDocument ? document_id : null,
+        uploaded_contract_id: isUploaded ? uploaded_contract_id : null,
         owner_id: userId,
         token: linkToken,
         expires_at: expiresAt,
@@ -96,8 +116,8 @@ serve(async (req) => {
     await admin.from("audit_log").insert({
       user_id: userId,
       action: "share_link_created",
-      target_type: "document",
-      target_id: document_id,
+      target_type: isUploaded ? "uploaded_contract" : "document",
+      target_id: isUploaded ? uploaded_contract_id! : document_id!,
       metadata: { token_prefix: linkToken.slice(0, 8), expires_at: expiresAt },
       ip_hash: await hashIp(clientIp(req)),
     });

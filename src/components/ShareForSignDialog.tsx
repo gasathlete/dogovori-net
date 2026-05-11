@@ -10,11 +10,12 @@ import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/clipboard";
 
 interface Props {
-  documentId: string;
+  documentId?: string;
+  uploadedContractId?: string;
   documentTitle: string;
 }
 
-export function ShareForSignDialog({ documentId, documentTitle }: Props) {
+export function ShareForSignDialog({ documentId, uploadedContractId, documentTitle }: Props) {
   const [open, setOpen] = useState(false);
   const [days, setDays] = useState("7");
   const [loading, setLoading] = useState(false);
@@ -25,9 +26,10 @@ export function ShareForSignDialog({ documentId, documentTitle }: Props) {
     setLoading(true);
     setLink(null);
     try {
-      const { data, error } = await supabase.functions.invoke("create-share-link", {
-        body: { document_id: documentId, expires_in_days: Number(days) },
-      });
+      const body: Record<string, unknown> = { expires_in_days: Number(days) };
+      if (uploadedContractId) body.uploaded_contract_id = uploadedContractId;
+      else if (documentId) body.document_id = documentId;
+      const { data, error } = await supabase.functions.invoke("create-share-link", { body });
       if (error) {
         const ctx: any = (error as any).context;
         let body: any = null;

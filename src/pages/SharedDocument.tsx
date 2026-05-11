@@ -11,8 +11,13 @@ import { Logo } from "@/components/Logo";
 
 type SharedDoc = {
   title: string;
-  kind: "contract" | "template";
-  payload: any;
+  kind: "contract" | "template" | "uploaded";
+  payload?: any;
+  source?: "pdf" | "docx" | "paste";
+  mime_type?: string | null;
+  original_url?: string | null;
+  signed_pdf_url?: string | null;
+  extracted_text?: string | null;
   signed_at: string | null;
   signer_name: string | null;
   expires_at: string;
@@ -162,7 +167,7 @@ export default function SharedDocument() {
         toast.error("Неуспешен подпис. Моля, опитайте отново.");
       } else {
         toast.success("Документът е подписан");
-        setDoc((d) => d ? { ...d, signed_at: data.signed_at, signer_name: signerName.trim() } : d);
+        setDoc((d) => d ? { ...d, signed_at: data.signed_at, signer_name: signerName.trim(), signed_pdf_url: data.signed_pdf_url ?? d.signed_pdf_url } : d);
       }
     } finally {
       setSigning(false);
@@ -212,7 +217,25 @@ export default function SharedDocument() {
           Споделено за преглед и подпис от собственика. Действията са защитени и логнати.
         </div>
 
-        <ContractView payload={doc.payload} />
+        {doc.kind === "uploaded" ? (
+          <div className="overflow-hidden rounded-xl border border-border/60 bg-card/40">
+            {doc.source === "paste" ? (
+              <pre className="max-h-[70vh] overflow-auto whitespace-pre-wrap p-6 font-sans text-sm leading-relaxed text-foreground/90">
+                {doc.extracted_text}
+              </pre>
+            ) : doc.original_url ? (
+              <iframe
+                src={doc.original_url}
+                title={doc.title}
+                className="h-[75vh] w-full bg-white"
+              />
+            ) : (
+              <div className="p-6 text-sm text-muted-foreground">Оригиналният файл не е наличен.</div>
+            )}
+          </div>
+        ) : (
+          <ContractView payload={doc.payload} />
+        )}
 
         {doc.signed_at ? (
           <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/5 p-6 text-center">
@@ -220,6 +243,16 @@ export default function SharedDocument() {
             <p className="mt-2 font-serif text-base">
               Подписано от {doc.signer_name} на {new Date(doc.signed_at).toLocaleString("bg-BG")}
             </p>
+            {doc.signed_pdf_url && (
+              <a
+                href={doc.signed_pdf_url}
+                target="_blank"
+                rel="noopener"
+                className="mt-3 inline-flex items-center gap-2 text-sm text-gold underline-offset-4 hover:underline"
+              >
+                Изтегли подписания PDF
+              </a>
+            )}
           </div>
         ) : (
           <div className="rounded-xl border border-border/60 bg-card/40 p-6">

@@ -1,6 +1,63 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { buildCors, clientIp, hashIp } from "../_shared/cors.ts";
+
+async function buildSignedPdf(opts: {
+  originalPdf: Uint8Array | null;
+  title: string;
+  signerName: string;
+  signatureDataUrl: string;
+  signedAtIso: string;
+}): Promise<Uint8Array> {
+  const pdf = opts.originalPdf
+    ? await PDFDocument.load(opts.originalPdf, { ignoreEncryption: true })
+    : await PDFDocument.create();
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+
+  const sigB64 = opts.signatureDataUrl.split(",", 2)[1] ?? "";
+  const sigBytes = Uint8Array.from(atob(sigB64), (c) => c.charCodeAt(0));
+  const isPng = opts.signatureDataUrl.startsWith("data:image/png");
+  const sigImg = isPng ? await pdf.embedPng(sigBytes) : await pdf.embedJpg(sigBytes);
+
+  const page = pdf.addPage([595, 842]); // A4
+  const { width, height } = page.getSize();
+  const margin = 50;
+
+  page.drawText("Electronic signature / Електронен подпис", {
+    x: margin, y: height - margin - 10, size: 14, font: fontBold, color: rgb(0.05, 0.05, 0.1),
+  });
+  page.drawLine({
+    start: { x: margin, y: height - margin - 18 },
+    end: { x: width - margin, y: height - margin - 18 },
+    thickness: 0.7, color: rgb(0.7, 0.6, 0.3),
+  });
+
+  const lines = [
+    `Document / Документ: ${opts.title}`,
+    `Signed by / Подписан от: ${opts.signerName}`,
+    `Signed at / Дата и час: ${new Date(opts.signedAtIso).toISOString()}`,
+  ];
+  let y = height - margin - 50;
+  for (const t of lines) {
+    page.drawText(t.slice(0, 110), { x: margin, y, size: 11, font, color: rgb(0.1, 0.1, 0.15) });
+    y -= 18;
+  }
+
+  const sigW = 240;
+  const sigH = (sigImg.height / sigImg.width) * sigW;
+  page.drawText("Signature / Подпис:", { x: margin, y: y - 20, size: 11, font: fontBold });
+  page.drawImage(sigImg, { x: margin, y: y - 30 - sigH, width: sigW, height: sigH });
+
+  page.drawText(
+    "Този електронен подпис не е квалифициран електронен подпис (КЕП) по смисъла на Регламент (ЕС) 910/2014.",
+    { x: margin, y: 60, size: 8, font, color: rgb(0.4, 0.4, 0.45), maxWidth: width - 2 * margin },
+  );
+
+  return await pdf.save();
+}
+
 
 serve(async (req) => {
   const corsHeaders = buildCors(req);
@@ -50,7 +107,7 @@ serve(async (req) => {
 
     const { data: link } = await admin
       .from("shared_links")
-      .select("id, document_id, owner_id, expires_at, signed_at, revoked_at")
+      .select("id, document_id, uploaded_contract_id, owner_id, expires_at, signed_at, revoked_at")
       .eq("token", token)
       .maybeSingle();
 
@@ -72,14 +129,53 @@ serve(async (req) => {
 
     const ipHash = await hashIp(clientIp(req));
     const now = new Date().toISOString();
+    const cleanName = signer_name.trim().slice(0, 120);
+
+    // For uploaded contracts, build a signed PDF (original + signature page) and store it.
+    let signedPdfPath: string | null = null;
+    if (link.uploaded_contract_id) {
+      try {
+        const { data: uc } = await admin
+          .from("uploaded_contracts")
+          .select("id, title, source, storage_path, mime_type")
+          .eq("id", link.uploaded_contract_id)
+          .maybeSingle();
+        if (uc) {
+          let originalPdf: Uint8Array | null = null;
+          if (uc.storage_path && (uc.mime_type === "application/pdf" || uc.source === "pdf")) {
+            const { data: dl } = await admin.storage
+              .from("user-contracts")
+              .download(uc.storage_path);
+            if (dl) originalPdf = new Uint8Array(await dl.arrayBuffer());
+          }
+          const pdfBytes = await buildSignedPdf({
+            originalPdf,
+            title: uc.title,
+            signerName: cleanName,
+            signatureDataUrl: signature_data_url,
+            signedAtIso: now,
+          });
+          signedPdfPath = `${link.owner_id}/signed/${link.id}.pdf`;
+          await admin.storage
+            .from("user-contracts")
+            .upload(signedPdfPath, pdfBytes, {
+              contentType: "application/pdf",
+              upsert: true,
+            });
+        }
+      } catch (err) {
+        console.error("signed pdf build failed", err);
+      }
+    }
 
     const { error: upErr } = await admin
       .from("shared_links")
       .update({
         signed_at: now,
         signed_signature: signature_data_url,
-        signer_name: signer_name.trim().slice(0, 120),
+        signer_name: cleanName,
         signer_ip_hash: ipHash,
+        signed_pdf_path: signedPdfPath,
       })
       .eq("id", link.id);
 
@@ -89,17 +185,25 @@ serve(async (req) => {
       });
     }
 
+    let signed_pdf_url: string | null = null;
+    if (signedPdfPath) {
+      const { data: s } = await admin.storage
+        .from("user-contracts")
+        .createSignedUrl(signedPdfPath, 60 * 60);
+      signed_pdf_url = s?.signedUrl ?? null;
+    }
+
     await admin.from("audit_log").insert({
       user_id: link.owner_id,
       action: "share_link_signed",
-      target_type: "document",
-      target_id: link.document_id,
-      metadata: { signer_name: signer_name.trim().slice(0, 120) },
+      target_type: link.uploaded_contract_id ? "uploaded_contract" : "document",
+      target_id: link.uploaded_contract_id ?? link.document_id,
+      metadata: { signer_name: cleanName },
       ip_hash: ipHash,
     });
 
     return new Response(
-      JSON.stringify({ ok: true, signed_at: now }),
+      JSON.stringify({ ok: true, signed_at: now, signed_pdf_url }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
