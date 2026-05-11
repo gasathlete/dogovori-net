@@ -121,6 +121,12 @@ const partiesQuestions = (a: string, b: string): Question[] => [
     required: true,
   },
   {
+    id: "party_a_extra",
+    label: `Допълнителни ${a} (по желание)`,
+    help: `Ако ${a} са повече от един — добавете ги тук (по един на ред: „Име | Тип“).`,
+    type: "textarea",
+  },
+  {
     id: "party_b_name",
     label: `Наименование на ${b}`,
     type: "text",
@@ -133,6 +139,12 @@ const partiesQuestions = (a: string, b: string): Question[] => [
     type: "radio",
     options: ["Юридическо лице", "Физическо лице", "ЕТ / Самоосигуряващо се"],
     required: true,
+  },
+  {
+    id: "party_b_extra",
+    label: `Допълнителни ${b} (по желание)`,
+    help: `Ако ${b} са повече от един — добавете ги тук (по един на ред: „Име | Тип“).`,
+    type: "textarea",
   },
 ];
 
@@ -1948,9 +1960,9 @@ export function buildQuestions(sector: Sector, sub?: SubWizard): Question[] {
   const head = sectorQuestions.slice(0, sectorQuestions.length - tailLen);
   const tail = sectorQuestions.slice(sectorQuestions.length - tailLen);
 
-  // head[0..3] са partiesQuestions (4 полета). Останалите head са категорийни специфики.
-  const partyFields = head.slice(0, 4);
-  const sectorSpecifics = head.slice(4);
+  // head[0..5] са partiesQuestions (6 полета: name/type/extra за А и Б). Останалите head са категорийни специфики.
+  const partyFields = head.slice(0, 6);
+  const sectorSpecifics = head.slice(6);
   const subSpecifics = sub?.questions ?? [];
 
   const out: Question[] = [];

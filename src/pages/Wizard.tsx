@@ -175,7 +175,7 @@ export default function WizardPage() {
   );
   const [customTitle, setCustomTitle] = useState<string>(persisted?.customTitle ?? "");
   const [contactId, setContactId] = useState<string>(persisted?.contactId ?? "");
-  const [contacts, setContacts] = useState<Array<{ id: string; name: string }>>([]);
+  const [contacts, setContacts] = useState<Array<{ id: string; name: string; type?: string }>>([]);
 
   // Persist wizard state on every relevant change so navigation to /auth or /account doesn't lose progress.
   useEffect(() => {
@@ -202,7 +202,7 @@ export default function WizardPage() {
         if (!data) return;
         setIsPro(data.plan === "pro" || (!!data.pro_until && new Date(data.pro_until) > new Date()));
       });
-    supabase.from("contacts").select("id, name").is("deleted_at", null).order("created_at", { ascending: false })
+    supabase.from("contacts").select("id, name, type").is("deleted_at", null).order("created_at", { ascending: false })
       .then(({ data }) => setContacts((data as any) ?? []));
   }, [user]);
 
@@ -399,6 +399,7 @@ export default function WizardPage() {
                   onChange={(v) => setAnswers((p) => ({ ...p, [current.id]: v }))}
                   answers={answers}
                   onAnswerChange={(id, v) => setAnswers((p) => ({ ...p, [id]: v }))}
+                  contacts={contacts}
                 />
 
                 <div className="mt-8 flex items-center justify-between gap-3">
