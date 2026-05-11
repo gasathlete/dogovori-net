@@ -148,6 +148,13 @@ export default function TemplatePage() {
             <Link to={wizardHref} className="btn-gold">
               Създай за 2 минути <ArrowRight className="h-4 w-4" />
             </Link>
+            <Link
+              to={`${wizardHref}&blank=1`}
+              className="inline-flex items-center gap-1.5 rounded-md border border-gold/40 px-3 py-2 text-sm text-gold transition-colors hover:bg-gold/10"
+            >
+              <Download className="h-4 w-4" />
+              Свали само бланка
+            </Link>
             <Link to="/catalog" className="btn-ghost-gold normal-case tracking-normal">
               Виж всички шаблони
             </Link>
