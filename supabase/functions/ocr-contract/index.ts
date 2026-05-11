@@ -127,6 +127,11 @@ Deno.serve(async (req: Request) => {
     }
     const text = parts.join("\n\n").replace(/[ \t]+/g, " ").trim();
 
+    // Per-user accounting so abuse is visible and rate-limitable downstream.
+    try {
+      await admin.from("ai_usage").insert({ user_id: userId, function_name: "ocr-contract" });
+    } catch (_) { /* non-fatal */ }
+
     return new Response(JSON.stringify({ text, pages: pages.length, unreadablePages }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
