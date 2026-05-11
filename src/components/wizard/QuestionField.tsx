@@ -34,10 +34,8 @@ function parseExtras(raw: string): Array<{ name: string; type: string }> {
 }
 
 function serializeExtras(rows: Array<{ name: string; type: string }>): string {
-  return rows
-    .filter((r) => r.name || r.type)
-    .map((r) => `${r.name} | ${r.type}`)
-    .join("\n");
+  if (rows.length === 0) return "";
+  return rows.map((r) => `${r.name} | ${r.type}`).join("\n");
 }
 
 /** Извлича чистото име на ролята от label „Наименование на Възложителя“ → „Възложителя“. */
