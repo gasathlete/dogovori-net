@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Loader2, Sparkles, FileDown, FileText, Save, User } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Bird, FileDown, FileText, Save, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -403,7 +403,7 @@ export default function WizardPage() {
                         </>
                       ) : (
                         <>
-                          <Sparkles className="mr-2 h-4 w-4" />
+                          <Bird className="mr-2 h-4 w-4" />
                           Анализирай и създай
                         </>
                       )}

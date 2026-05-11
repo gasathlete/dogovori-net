@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Download, RefreshCw, ShieldAlert, ShieldCheck, AlertTriangle,
-  Loader2, FileText, Trash2, Sparkles, Wand2, Copy, Save, Users, PenLine,
+  Loader2, FileText, Trash2, Bird, Wand2, Copy, Save, Users, PenLine,
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -606,10 +606,10 @@ export default function UploadedContractPage() {
 
         {!analysis ? (
           <div className="mt-8 rounded-xl border border-border/60 bg-gradient-card p-10 text-center">
-            <Sparkles className="mx-auto h-8 w-8 text-gold" />
+            <Bird className="mx-auto h-8 w-8 text-gold" />
             <p className="mt-3 text-sm text-muted-foreground">Все още няма анализ за този договор.</p>
             <Button onClick={reanalyze} disabled={analyzing} className="mt-4 bg-gradient-gold text-navy">
-              {analyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+              {analyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bird className="mr-2 h-4 w-4" />}
               Стартирай AI риск-анализ
             </Button>
           </div>

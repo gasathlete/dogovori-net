@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
-  Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Sparkles, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X,
+  Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Bird, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X,
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -144,7 +144,7 @@ export default function AccountPage() {
 
         <Tabs value={initialTab} onValueChange={onTabChange} className="space-y-6">
           <TabsList className="-mx-4 flex w-auto justify-start gap-1 overflow-x-auto bg-card/40 p-1 px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:w-full md:flex-wrap md:overflow-visible md:px-1">
-            <TabsTrigger value="dashboard" className="shrink-0 whitespace-nowrap"><Sparkles className="mr-1 h-3.5 w-3.5" />Табло</TabsTrigger>
+            <TabsTrigger value="dashboard" className="shrink-0 whitespace-nowrap"><Bird className="mr-1 h-3.5 w-3.5" />Табло</TabsTrigger>
             <TabsTrigger value="contacts" className="shrink-0 whitespace-nowrap"><Users className="mr-1 h-3.5 w-3.5" />Контрагенти</TabsTrigger>
             <TabsTrigger value="documents" className="shrink-0 whitespace-nowrap"><FileText className="mr-1 h-3.5 w-3.5" />Документи</TabsTrigger>
             <TabsTrigger value="signed" className="shrink-0 whitespace-nowrap"><PenTool className="mr-1 h-3.5 w-3.5" />Подписани</TabsTrigger>
