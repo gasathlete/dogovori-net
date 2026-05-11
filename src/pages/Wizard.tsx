@@ -134,6 +134,7 @@ export default function WizardPage() {
       setGenStepIdx((i) => (i + 1) % GEN_STEPS.length);
     }, 5000);
     try {
+      const flatQs = flattenQuestions(visibleQuestions);
       const { data, error } = await supabase.functions.invoke("generate-contract", {
         body: {
           sector: sector.title,
@@ -141,7 +142,7 @@ export default function WizardPage() {
           documentName: docName,
           parties: sector.parties,
           answers,
-          questions: visibleQuestions.map((q) => ({ id: q.id, label: q.label })),
+          questions: flatQs.map((q) => ({ id: q.id, label: q.label })),
         },
       });
       if (error) throw error;
