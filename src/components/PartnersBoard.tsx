@@ -33,12 +33,12 @@ export function PartnersBoard() {
   const loop = partners.length > 0 ? [...partners, ...partners] : [];
 
   return (
-    <section id="partners" className="container py-14 sm:py-16 md:py-20">
+    <section id="partners" className="container py-14 sm:py-16 md:py-20 font-semibold">
       {/* Elegant gold divider above section */}
       <div className="mx-auto mb-10 max-w-xs gold-divider" />
 
       <div className="text-center mb-10">
-        <div className="eyebrow mb-4 justify-center">
+        <div className="eyebrow mb-4 justify-center py-[12px] text-base font-serif">
           <Handshake className="h-3.5 w-3.5" />
           Партньори
         </div>
