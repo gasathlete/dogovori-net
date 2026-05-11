@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Loader2, Bird, FileDown, FileText, Save, User, Download, ShieldCheck, Search, FileSearch, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
-import { useEffect } from "react";
+
 import { useAuth } from "@/hooks/useAuth";
 import { trackEvent } from "@/lib/analytics";
 
@@ -404,6 +404,15 @@ export default function WizardPage() {
       setDownloadingBlank(false);
     }
   };
+
+  // Auto-trigger blank download when arriving with ?blank=1
+  const autoBlankTriggered = useRef(false);
+  useEffect(() => {
+    if (autoBlankTriggered.current) return;
+    if (searchParams.get("blank") !== "1") return;
+    autoBlankTriggered.current = true;
+    handleDownloadBlank();
+  }, [searchParams]);
 
 
   return (

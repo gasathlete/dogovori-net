@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
-import { ArrowRight, CheckCircle2, AlertTriangle, FileText, ChevronRight } from "lucide-react";
+import { ArrowRight, CheckCircle2, AlertTriangle, FileText, ChevronRight, Download } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
@@ -147,6 +147,13 @@ export default function TemplatePage() {
           <div className="mt-7 flex flex-wrap gap-3">
             <Link to={wizardHref} className="btn-gold">
               Създай за 2 минути <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              to={`${wizardHref}&blank=1`}
+              className="inline-flex items-center gap-1.5 rounded-md border border-gold/40 px-3 py-2 text-sm text-gold transition-colors hover:bg-gold/10"
+            >
+              <Download className="h-4 w-4" />
+              Свали само бланка
             </Link>
             <Link to="/catalog" className="btn-ghost-gold normal-case tracking-normal">
               Виж всички шаблони
