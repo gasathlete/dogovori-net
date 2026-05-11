@@ -477,7 +477,7 @@ function DocumentsTab({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <div className="font-serif text-base font-bold break-words">{u.title}</div>
+                        <div className="font-serif text-base font-bold [overflow-wrap:anywhere]">{u.title}</div>
                         <div className="mt-1 text-xs text-muted-foreground">
                           {u.source.toUpperCase()} · качен {new Date(u.created_at).toLocaleDateString("bg-BG")}
                           {a?.contract_type && <> · {a.contract_type}</>}
