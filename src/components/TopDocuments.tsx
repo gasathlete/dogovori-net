@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { TOP_DOCUMENTS } from "@/data/catalog";
 import { ArrowRight, Bird } from "lucide-react";
 
