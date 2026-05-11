@@ -107,7 +107,7 @@ serve(async (req) => {
 
     const { data: link } = await admin
       .from("shared_links")
-      .select("id, document_id, owner_id, expires_at, signed_at, revoked_at")
+      .select("id, document_id, uploaded_contract_id, owner_id, expires_at, signed_at, revoked_at")
       .eq("token", token)
       .maybeSingle();
 
@@ -129,14 +129,53 @@ serve(async (req) => {
 
     const ipHash = await hashIp(clientIp(req));
     const now = new Date().toISOString();
+    const cleanName = signer_name.trim().slice(0, 120);
+
+    // For uploaded contracts, build a signed PDF (original + signature page) and store it.
+    let signedPdfPath: string | null = null;
+    if (link.uploaded_contract_id) {
+      try {
+        const { data: uc } = await admin
+          .from("uploaded_contracts")
+          .select("id, title, source, storage_path, mime_type")
+          .eq("id", link.uploaded_contract_id)
+          .maybeSingle();
+        if (uc) {
+          let originalPdf: Uint8Array | null = null;
+          if (uc.storage_path && (uc.mime_type === "application/pdf" || uc.source === "pdf")) {
+            const { data: dl } = await admin.storage
+              .from("user-contracts")
+              .download(uc.storage_path);
+            if (dl) originalPdf = new Uint8Array(await dl.arrayBuffer());
+          }
+          const pdfBytes = await buildSignedPdf({
+            originalPdf,
+            title: uc.title,
+            signerName: cleanName,
+            signatureDataUrl: signature_data_url,
+            signedAtIso: now,
+          });
+          signedPdfPath = `${link.owner_id}/signed/${link.id}.pdf`;
+          await admin.storage
+            .from("user-contracts")
+            .upload(signedPdfPath, pdfBytes, {
+              contentType: "application/pdf",
+              upsert: true,
+            });
+        }
+      } catch (err) {
+        console.error("signed pdf build failed", err);
+      }
+    }
 
     const { error: upErr } = await admin
       .from("shared_links")
       .update({
         signed_at: now,
         signed_signature: signature_data_url,
-        signer_name: signer_name.trim().slice(0, 120),
+        signer_name: cleanName,
         signer_ip_hash: ipHash,
+        signed_pdf_path: signedPdfPath,
       })
       .eq("id", link.id);
 
@@ -146,17 +185,25 @@ serve(async (req) => {
       });
     }
 
+    let signed_pdf_url: string | null = null;
+    if (signedPdfPath) {
+      const { data: s } = await admin.storage
+        .from("user-contracts")
+        .createSignedUrl(signedPdfPath, 60 * 60);
+      signed_pdf_url = s?.signedUrl ?? null;
+    }
+
     await admin.from("audit_log").insert({
       user_id: link.owner_id,
       action: "share_link_signed",
-      target_type: "document",
-      target_id: link.document_id,
-      metadata: { signer_name: signer_name.trim().slice(0, 120) },
+      target_type: link.uploaded_contract_id ? "uploaded_contract" : "document",
+      target_id: link.uploaded_contract_id ?? link.document_id,
+      metadata: { signer_name: cleanName },
       ip_hash: ipHash,
     });
 
     return new Response(
-      JSON.stringify({ ok: true, signed_at: now }),
+      JSON.stringify({ ok: true, signed_at: now, signed_pdf_url }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
