@@ -470,13 +470,12 @@ function DocumentsTab({
                   : "border-red-400/40 text-red-300 bg-red-400/10";
                 const Icon = score == null ? AlertTriangle : score >= 8 ? ShieldCheck : score >= 5 ? AlertTriangle : ShieldAlert;
                 return (
-                  <Link
+                  <div
                     key={u.id}
-                    to={`/uploaded/${u.id}`}
-                    className="block rounded-xl border border-border/60 bg-gradient-card p-4 transition-all hover:border-gold/50 hover:shadow-soft"
+                    className="rounded-xl border border-border/60 bg-gradient-card p-4 transition-all hover:border-gold/50 hover:shadow-soft"
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0 flex-1">
+                      <Link to={`/uploaded/${u.id}`} className="min-w-0 flex-1">
                         <div className="break-words font-serif text-base font-bold">{u.title}</div>
                         <div className="mt-1 text-xs text-muted-foreground">
                           {u.source.toUpperCase()} · качен {new Date(u.created_at).toLocaleDateString("bg-BG")}
@@ -487,13 +486,33 @@ function DocumentsTab({
                             </span>
                           )}
                         </div>
-                      </div>
+                      </Link>
                       <div className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-xs ${sevCls}`}>
                         <Icon className="h-3.5 w-3.5" />
                         {score != null ? <><strong>{score}</strong>/10</> : "Без анализ"}
                       </div>
                     </div>
-                  </Link>
+                    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                      <ShareForSignDialog uploadedContractId={u.id} documentTitle={u.title} />
+                      <Select
+                        value={u.folder_id ?? "none"}
+                        onValueChange={async (v) => {
+                          const { error } = await supabase
+                            .from("uploaded_contracts")
+                            .update({ folder_id: v === "none" ? null : v })
+                            .eq("id", u.id);
+                          if (error) toast.error(error.message);
+                          else { toast.success("Преместен"); reload(); }
+                        }}
+                      >
+                        <SelectTrigger className="h-9 w-32 text-xs"><SelectValue placeholder="Папка" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">— Без папка —</SelectItem>
+                          {folders.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 );
               })}
             </div>
