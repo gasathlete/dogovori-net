@@ -203,7 +203,7 @@ export function UploadContractDialog({
       </DialogTrigger>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle className="font-serif">Качване на собствен договор за AI анализ</DialogTitle>
+          <DialogTitle className="font-serif">Качване на собствен договор</DialogTitle>
         </DialogHeader>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as ExtractSource)}>
