@@ -591,7 +591,7 @@ export default function UploadedContractPage() {
                   <PenLine className="h-3.5 w-3.5" /> Подписване
                 </div>
                 <p className="mt-1 text-[11px] text-muted-foreground">
-                  Изпратете линк към насрещната страна за електронен подпис.
+                  Изпратете линк към насрещната страна за електронен подпис. След като бъде подписан документът отива в "ПОДПИСАНИ" и ще очаква Вашият подпис.
                 </p>
                 {savedDocId ? (
                   <div className="mt-2">
