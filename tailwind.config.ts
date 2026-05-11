@@ -97,6 +97,7 @@ export default {
         "fade-in-up": { "0%": { opacity: "0", transform: "translateY(20px)" }, "100%": { opacity: "1", transform: "translateY(0)" } },
         "shimmer": { "0%": { backgroundPosition: "-1000px 0" }, "100%": { backgroundPosition: "1000px 0" } },
         "glow": { "0%, 100%": { boxShadow: "0 0 20px hsl(var(--gold) / 0.3)" }, "50%": { boxShadow: "0 0 40px hsl(var(--gold) / 0.5)" } },
+        "marquee": { "0%": { transform: "translateX(0)" }, "100%": { transform: "translateX(-50%)" } },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -104,6 +105,7 @@ export default {
         "fade-in": "fade-in 0.5s ease-out",
         "fade-in-up": "fade-in-up 0.6s ease-out",
         "glow": "glow 2.5s ease-in-out infinite",
+        "marquee": "marquee 40s linear infinite",
       },
     },
   },
