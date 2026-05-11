@@ -385,9 +385,7 @@ export default function WizardPage() {
       document.body.appendChild(a);
       a.click();
       a.remove();
-      toast.success("Бланката е готова", {
-        description: data.cached ? "Изтеглена от хранилището." : "Генерирана и записана за следващия път.",
-      });
+      toast.success("Бланката е изтеглена");
     } catch (e: any) {
       toast.error("Грешка при сваляне на бланка", { description: String(e?.message ?? e) });
     } finally {
