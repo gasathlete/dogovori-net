@@ -477,7 +477,7 @@ function DocumentsTab({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <div className="font-serif text-base font-bold break-words">{u.title}</div>
+                        <div className="font-serif text-base font-bold [overflow-wrap:anywhere]">{u.title}</div>
                         <div className="mt-1 text-xs text-muted-foreground">
                           {u.source.toUpperCase()} · качен {new Date(u.created_at).toLocaleDateString("bg-BG")}
                           {a?.contract_type && <> · {a.contract_type}</>}
@@ -488,7 +488,7 @@ function DocumentsTab({
                           )}
                         </div>
                       </div>
-                      <div className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs ${sevCls}`}>
+                      <div className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-xs ${sevCls}`}>
                         <Icon className="h-3.5 w-3.5" />
                         {score != null ? <><strong>{score}</strong>/10</> : "Без анализ"}
                       </div>
@@ -530,7 +530,7 @@ function DocumentsTab({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <div className="font-serif text-base font-bold break-words transition-colors group-hover:text-gold">{d.title}</div>
+                      <div className="font-serif text-base font-bold [overflow-wrap:anywhere] transition-colors group-hover:text-gold">{d.title}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         {d.kind === "contract" ? "Договор" : "Бланка"} · {new Date(d.created_at).toLocaleDateString("bg-BG")}
                         {contactName(d.contact_id) && (

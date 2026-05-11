@@ -335,16 +335,21 @@ export default function UploadedContractPage() {
 
         <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <Input
+            <Textarea
               value={titleDraft}
               onChange={(e) => setTitleDraft(e.target.value)}
               onBlur={saveTitle}
-              onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLTextAreaElement).blur(); } }}
               disabled={savingTitle}
+              rows={1}
               aria-label="Име на договора"
-              className="h-auto w-full border-transparent bg-transparent px-0 py-0 font-serif text-2xl font-bold leading-tight shadow-none focus-visible:border-gold/40 focus-visible:bg-card/40 focus-visible:px-2 focus-visible:py-1 md:text-3xl break-words whitespace-normal"
+              className="block min-h-0 w-full resize-none overflow-hidden border-transparent bg-transparent px-0 py-0 font-serif text-2xl font-bold leading-tight shadow-none [overflow-wrap:anywhere] focus-visible:border-gold/40 focus-visible:bg-card/40 focus-visible:px-2 focus-visible:py-1 md:text-3xl"
+              style={{ height: "auto" }}
+              ref={(el) => {
+                if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; }
+              }}
             />
-            <div className="mt-1 break-words text-xs text-muted-foreground">
+            <div className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">
               Качен на {new Date(contract.created_at).toLocaleDateString("bg-BG")} · {contract.source.toUpperCase()}
               {contract.original_filename && <> · {contract.original_filename}</>}
             </div>
