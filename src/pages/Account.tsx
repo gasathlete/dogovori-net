@@ -528,9 +528,9 @@ function DocumentsTab({
                   to={`/document/${d.id}`}
                   className="block rounded-xl border border-border/60 bg-gradient-card p-4 transition-all hover:border-gold/50 hover:shadow-soft"
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1">
-                      <div className="font-serif text-base font-bold [overflow-wrap:anywhere] transition-colors group-hover:text-gold">{d.title}</div>
+                      <div className="break-words font-serif text-base font-bold transition-colors group-hover:text-gold">{d.title}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         {d.kind === "contract" ? "Договор" : "Бланка"} · {new Date(d.created_at).toLocaleDateString("bg-BG")}
                         {contactName(d.contact_id) && (
