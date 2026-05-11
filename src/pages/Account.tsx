@@ -286,6 +286,7 @@ function ContactsTab({ contacts, docs, reload, onOpenDocs }: {
 }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Contact | null>(null);
+  const navigate = useNavigate();
 
   const remove = async (id: string) => {
     if (!confirm("Изтриване на контрагента?")) return;
