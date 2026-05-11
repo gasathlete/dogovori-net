@@ -17,6 +17,7 @@ export default function CatalogPage() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
     if (window.location.hash) {
       const id = window.location.hash.replace("#", "");
       setTimeout(() => {
