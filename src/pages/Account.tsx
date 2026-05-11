@@ -174,7 +174,7 @@ export default function AccountPage() {
             />
           </TabsContent>
           <TabsContent value="folders">
-            <FoldersTab folders={folders} reload={reload} />
+            <FoldersTab folders={folders} docs={docs} uploaded={uploaded} reload={reload} onOpenTab={(t) => onTabChange(t)} setActiveFolder={setActiveFolder} />
           </TabsContent>
           <TabsContent value="signed">
             <SignedContractsTab userId={user?.id ?? ""} />
