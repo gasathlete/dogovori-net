@@ -3,6 +3,7 @@
 // extracted text. Used as a fallback when client-side pdfjs.getTextContent() returns
 // nothing (i.e. the PDF has no text layer — typical for scanned bank/notary contracts).
 
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 
 const OCR_SYSTEM = `Ти си високо точен OCR енджин за български правни документи.
