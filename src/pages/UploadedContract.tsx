@@ -343,13 +343,13 @@ export default function UploadedContractPage() {
               disabled={savingTitle}
               rows={1}
               aria-label="Име на договора"
-              className="block min-h-0 w-full resize-none overflow-hidden border-transparent bg-transparent px-0 py-0 font-serif text-2xl font-bold leading-tight shadow-none [overflow-wrap:anywhere] focus-visible:border-gold/40 focus-visible:bg-card/40 focus-visible:px-2 focus-visible:py-1 md:text-3xl"
+              className="block min-h-0 w-full resize-none overflow-hidden break-words border-transparent bg-transparent px-0 py-0 font-serif text-2xl font-bold leading-tight shadow-none focus-visible:border-gold/40 focus-visible:bg-card/40 focus-visible:px-2 focus-visible:py-1 md:text-3xl"
               style={{ height: "auto" }}
               ref={(el) => {
                 if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; }
               }}
             />
-            <div className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">
+            <div className="mt-1 break-words text-xs text-muted-foreground">
               Качен на {new Date(contract.created_at).toLocaleDateString("bg-BG")} · {contract.source.toUpperCase()}
               {contract.original_filename && <> · {contract.original_filename}</>}
             </div>
