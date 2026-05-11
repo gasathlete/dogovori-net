@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { getSector, getSubWizard, buildQuestions, type Question } from "@/data/sectors";
+import { getSector, getSubWizard, buildQuestions, flattenQuestions, type Question } from "@/data/sectors";
 import { QuestionField } from "@/components/wizard/QuestionField";
 import { LiveDraft } from "@/components/wizard/LiveDraft";
 import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
@@ -74,10 +74,17 @@ export default function WizardPage() {
   const [applyingCorrections, setApplyingCorrections] = useState(false);
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(persisted?.appliedNotes);
 
-  // Filter questions based on conditional logic
+  // Filter top-level questions based on conditional logic. За групите — филтрираме самата група
+  // ако всички ѝ полета се скрият; вътрешното филтриране на полета става в QuestionField.
   const visibleQuestions = useMemo<Question[]>(() => {
     if (!sector) return [];
-    return sector.questions.filter((q) => !q.showIf || q.showIf(answers));
+    return sector.questions.filter((q) => {
+      if (q.showIf && !q.showIf(answers)) return false;
+      if (q.type === "group" && q.fields) {
+        return q.fields.some((f) => !f.showIf || f.showIf(answers));
+      }
+      return true;
+    });
   }, [sector, answers]);
 
   if (!sector) {
@@ -93,11 +100,22 @@ export default function WizardPage() {
     );
   }
 
+  const isAnswered = (q: Question): boolean => {
+    if (q.type === "group" && q.fields) {
+      return q.fields.every((f) => {
+        if (f.showIf && !f.showIf(answers)) return true;
+        if (!f.required) return true;
+        return !!answers[f.id]?.trim();
+      });
+    }
+    return !!answers[q.id]?.trim();
+  };
+
   const total = visibleQuestions.length;
   const safeIdx = Math.min(stepIdx, total - 1);
   const current = visibleQuestions[safeIdx];
-  const progress = result ? 100 : ((safeIdx + (current && answers[current.id] ? 1 : 0)) / total) * 100;
-  const canNext = current ? !current.required || !!answers[current.id]?.trim() : false;
+  const progress = result ? 100 : ((safeIdx + (current && isAnswered(current) ? 1 : 0)) / total) * 100;
+  const canNext = current ? !current.required || isAnswered(current) : false;
   const isLast = safeIdx === total - 1;
 
   const GEN_STEPS = [
@@ -116,6 +134,7 @@ export default function WizardPage() {
       setGenStepIdx((i) => (i + 1) % GEN_STEPS.length);
     }, 5000);
     try {
+      const flatQs = flattenQuestions(visibleQuestions);
       const { data, error } = await supabase.functions.invoke("generate-contract", {
         body: {
           sector: sector.title,
@@ -123,7 +142,7 @@ export default function WizardPage() {
           documentName: docName,
           parties: sector.parties,
           answers,
-          questions: visibleQuestions.map((q) => ({ id: q.id, label: q.label })),
+          questions: flatQs.map((q) => ({ id: q.id, label: q.label })),
         },
       });
       if (error) throw error;
@@ -378,6 +397,8 @@ export default function WizardPage() {
                   q={current}
                   value={answers[current.id] ?? ""}
                   onChange={(v) => setAnswers((p) => ({ ...p, [current.id]: v }))}
+                  answers={answers}
+                  onAnswerChange={(id, v) => setAnswers((p) => ({ ...p, [id]: v }))}
                 />
 
                 <div className="mt-8 flex items-center justify-between gap-3">
