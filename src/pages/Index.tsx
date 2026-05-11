@@ -49,6 +49,7 @@ const Index = () => {
           </p>
         </div>
       </section>
+      <PartnersBoard />
       <SeoFooter />
     </div>
   );
