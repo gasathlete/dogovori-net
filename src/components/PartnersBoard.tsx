@@ -71,24 +71,24 @@ export function PartnersBoard() {
             <div className="absolute bottom-3 left-3 h-5 w-5 border-l border-b border-gold/30 pointer-events-none" />
             <div className="absolute bottom-3 right-3 h-5 w-5 border-r border-b border-gold/30 pointer-events-none" />
 
-            <div className="py-12 sm:py-14 md:py-16">
+            <div className="py-8 sm:py-10 md:py-12">
               <div
-                className="flex w-max items-center gap-20 sm:gap-24 md:gap-28 animate-marquee group-hover:[animation-play-state:paused]"
+                className="flex w-max items-center gap-14 sm:gap-18 md:gap-22 animate-marquee group-hover:[animation-play-state:paused]"
                 style={{
                   maskImage:
-                    "linear-gradient(to right, transparent, black 5%, black 95%, transparent)",
+                    "linear-gradient(to right, transparent, black 4%, black 96%, transparent)",
                   WebkitMaskImage:
-                    "linear-gradient(to right, transparent, black 5%, black 95%, transparent)",
+                    "linear-gradient(to right, transparent, black 4%, black 96%, transparent)",
                 }}
               >
                 {loop.map((p, i) => {
                   const inner = (
-                    <div className="flex items-center justify-center rounded-lg bg-card/40 border border-hairline/60 px-6 py-4 sm:px-8 sm:py-5 md:px-10 md:py-6 transition-all duration-300 hover:border-gold/25 hover:bg-card/70 hover:shadow-soft group/item">
+                    <div className="flex items-center justify-center rounded-xl bg-card/50 border border-hairline/50 px-5 py-3 sm:px-6 sm:py-4 md:px-8 md:py-5 transition-all duration-300 hover:border-gold/30 hover:bg-card/80 hover:shadow-soft group/item">
                       <img
                         src={p.logo_url}
                         alt={p.name}
                         loading="lazy"
-                        className="h-16 sm:h-20 md:h-24 w-auto max-w-[200px] sm:max-w-[240px] md:max-w-[280px] object-contain opacity-80 transition-all duration-300 group-hover/item:opacity-100 group-hover/item:scale-[1.03]"
+                        className="h-20 sm:h-28 md:h-36 w-auto max-w-[260px] sm:max-w-[320px] md:max-w-[400px] object-contain opacity-80 transition-all duration-300 group-hover/item:opacity-100 group-hover/item:scale-[1.03]"
                       />
                     </div>
                   );
