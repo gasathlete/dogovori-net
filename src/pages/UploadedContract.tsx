@@ -247,7 +247,9 @@ export default function UploadedContractPage() {
     setContract({ ...contract, title: trimmed });
     if (savedDocId) {
       await supabase.from("saved_documents").update({ title: trimmed }).eq("id", savedDocId);
-    }
+  };
+
+  const saveContact = async (next: string) => {
     if (!contract) return;
     setContactId(next);
     setSavingContact(true);
