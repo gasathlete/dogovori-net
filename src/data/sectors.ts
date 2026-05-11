@@ -1960,9 +1960,9 @@ export function buildQuestions(sector: Sector, sub?: SubWizard): Question[] {
   const head = sectorQuestions.slice(0, sectorQuestions.length - tailLen);
   const tail = sectorQuestions.slice(sectorQuestions.length - tailLen);
 
-  // head[0..3] са partiesQuestions (4 полета). Останалите head са категорийни специфики.
-  const partyFields = head.slice(0, 4);
-  const sectorSpecifics = head.slice(4);
+  // head[0..5] са partiesQuestions (6 полета: name/type/extra за А и Б). Останалите head са категорийни специфики.
+  const partyFields = head.slice(0, 6);
+  const sectorSpecifics = head.slice(6);
   const subSpecifics = sub?.questions ?? [];
 
   const out: Question[] = [];
