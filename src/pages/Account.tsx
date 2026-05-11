@@ -502,7 +502,7 @@ function DocumentsTab({
 
         {/* ===== Generated documents (existing) ===== */}
         <section>
-          <h3 className="mb-3 font-serif text-lg font-bold">Генерирани документи</h3>
+          <h3 className="mb-3 font-serif text-lg font-bold">Създадени документи</h3>
           {activeContactName && (
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs text-gold">
               <Users className="h-3.5 w-3.5" />
