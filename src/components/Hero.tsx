@@ -50,7 +50,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
             {[
               { icon: ShieldCheck, label: "Правно съответствие", value: "ЗЗД · ТЗ · ЗУТ" },
               { icon: Bird, label: "Оценка на риска", value: "Преди създаване" },
-              { icon: FileText, label: "Експорт", value: "Наблюдавайте проблем" },
+              { icon: FileText, label: "Експорт", value: "PDF + DOCX" },
             ].map((item) => (
               <div
                 key={item.label}
