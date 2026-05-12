@@ -427,12 +427,21 @@ export default function WizardPage() {
   };
 
   // Auto-trigger blank download when arriving with ?blank=1
+  // и след успех — върни потребителя обратно (към template страницата),
+  // вместо да го оставяш на празния wizard.
   const autoBlankTriggered = useRef(false);
   useEffect(() => {
     if (autoBlankTriggered.current) return;
     if (searchParams.get("blank") !== "1") return;
     autoBlankTriggered.current = true;
-    handleDownloadBlank();
+    (async () => {
+      await handleDownloadBlank();
+      // Малка пауза, за да види потребителят toast-а, и след това навигираме назад.
+      setTimeout(() => {
+        if (window.history.length > 1) navigate(-1);
+        else navigate("/catalog");
+      }, 1500);
+    })();
   }, [searchParams]);
 
 
