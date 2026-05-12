@@ -1,101 +1,56 @@
-## Анализ — къде губим скорост
+# План: Пълен E2E тест (без AI визард) + препоръки
 
-| Файл / място | Размер | Влияние |
-|---|---|---|
-| `src/data/templateContent.ts` | **1.9 MB** | Един обект с ~290 ключа. Импортва се синхронно от `Template.tsx` — една страница тегли всички 290 шаблона |
-| `src/data/sectors.ts` | 143 KB | Импортва се почти навсякъде |
-| `src/data/catalog.ts` | 116 KB | Импортва се от 6+ места |
-| `vendor-icons` chunk в `vite.config.ts` | целият `lucide-react` | `manualChunks` групира всички икони в един chunk и убива tree-shaking |
-| `Index.tsx` секции под fold-а | TopDocuments, PartnersBoard, ComplianceSection | Изпълняват се синхронно при първи paint |
+## Цел
+Преминавам през всички достъпни потоци в приложението с вече логнатия тестов акаунт (`e2e-test-1778563900@dogovori.test`) и без логин (guest), откривам грешки и предлагам подобрения. **Изключвам:** реално AI генериране в визарда (за да не хабя AI квота).
 
-Цел: по-бързо TTI/LCP и по-малък initial bundle, **без визуални/функционални промени и без SEO регресии**.
+## Обхват на теста
 
----
+### A. Guest потоци (без логин)
+1. Начална страница — навигация, CTA-та, hero, sections
+2. Каталог `/catalog` — търсене, филтри по категория, пагинация
+3. Template детайлна страница — бутон "Свали само бланка" → редирект към `/auth`
+4. Опит за визард `/wizard/*` → редирект към `/auth` + проверка `localStorage` за прогрес
+5. Статични страници: блог, privacy, terms, pricing
+6. Хедър/футър линкове, мобилна навигация (393px viewport)
+7. SEO мета (title, description, H1, og теги) на ключовите страници
 
-## SEO защитни мерки (вградени в плана)
+### B. Логнати потоци
+1. Връщане от `/auth` след логин → дали се възстановява guest прогрес
+2. Account дашборд — карти, квоти, план
+3. Контрагенти (CRUD) — създаване, редакция, изтриване
+4. Папки/любими — създаване, преименуване, оцветяване
+5. История на договори — листинг, отваряне на запис
+6. Свали само бланка (логнат) — пълен flow до изтегляне на файл, проверка на `consume_quota`
+7. Шаблон → старт на визард (само попълване на първа стъпка, без AI)
+8. Споделяне на договор / signature линк (ако има готов запис)
+9. Pricing → Stripe checkout (sandbox) — само редирект, без реално плащане
+10. Account settings — email, парола, изтриване
+11. Logout → проверка че сесията се изчиства
 
-1. **Meta tags на `Template.tsx` остават синхронни.** Извличаме `intro` (само първите 155 знака за `<meta description>`) + `title` в малък синхронен index файл `src/data/templateContentMeta.ts` (~30 KB за всичките 290 шаблона). Тежкото съдържание (FAQ, mistakes, usageCases, requirements) се зарежда async.
-2. **`SeoFooter` остава eager** — съдържа вътрешни линкове важни за crawling.
-3. **JSON-LD / structured data** (ако има в `Seo.tsx`) се рендира от синхронния meta файл, не от async chunk-а.
-4. **Skeleton loader** със същата DOM структура като крайния резултат → CLS остава ~0.
-5. **Server-rendered HTML** не се променя (продължаваме с client-side React) — Googlebot изпълнява JS, така че индексирането работи както досега. По-бързият LCP е **плюс** за Core Web Vitals.
+### C. Бекенд и сигурност (read-only проверки)
+1. Edge function логове за грешки през последния час
+2. RLS — бърза проверка че guest не може да чете чужди записи (директен fetch с anon)
+3. `cloud_status` — health check
+4. Console errors в preview — налични вече: `validateDOMNesting <a> in <a>` в `Header.tsx` (ще проверя и предложа фикс)
 
----
+## Какво НЕ тествам
+- Пълно AI генериране на договор (изразходва quota)
+- OCR на файлове (canvas upload не работи надеждно през browser автоматизация)
+- Google OAuth (не работи в sandbox iframe)
+- Реално Stripe плащане (само редирект до checkout)
+- Team invite (нужен е втори акаунт)
+- Admin панел (тест акаунтът няма роля)
 
-## Изпълнение — 6 етапа
+## Деливъри
+1. **Таблица със статус** на всеки тестван поток (✅ работи / ⚠️ забележка / ❌ счупен)
+2. **Списък с открити грешки** с repro стъпки и стак/лог
+3. **Препоръки за подобрения** — UX, performance, security, SEO, accessibility
+4. **Приоритизация** (P0 critical → P3 nice-to-have)
 
-### Етап 1: Split на `templateContent.ts` (най-голяма печалба, ~1.8 MB спестени)
+## Метод
+- Използвам browser tool за интерактивни проверки
+- Чета код само там където browser показва нещо подозрително
+- За backend: `read_query`, `edge_function_logs`, `cloud_status`
+- НЕ правя промени по код в този loop — само доклад. След одобрение на доклада ще предложа отделни задачи за фиксове.
 
-**1a. Генериращ скрипт** `scripts/split-template-content.ts`:
-- Чете текущия `src/data/templateContent.ts`
-- Записва два резултата:
-  - `src/data/templateContentMeta.ts` — само `{ slug: { title, introExcerpt } }` за всички шаблони (синхронен, ~30 KB)
-  - `src/data/templateContent/<slug>.ts` — пълно съдържание per slug (един файл на шаблон, ~5–10 KB)
-  - `src/data/templateContent/index.ts` — map `slug -> () => import("./<slug>")`
-- Скриптът се пуска веднъж, резултатът се commit-ва. Старият файл се изтрива.
-
-**1b. `Template.tsx`** — преработка:
-- Meta (title, description, JSON-LD) от `templateContentMeta` → синхронно, преди render → SEO непокътнато.
-- `aiContent` зареждаме с `useEffect`/`useState` чрез dynamic import.
-- Докато се зарежда: показваме съществуващия fallback (`doc.purpose` + generic списъци). Това вече е fallback в кода → нула CLS.
-
-### Етап 2: Lazy below-the-fold секции на началната страница
-
-- `TopDocuments`, `PartnersBoard`, `ComplianceSection` → `React.lazy` + малка обвивка с `IntersectionObserver` (mount при влизане в 200 px от viewport-а).
-- `SeoFooter` остава eager (SEO).
-- Hero, Header, SectorGrid остават eager (above the fold).
-
-### Етап 3: Премахни `vendor-icons` от `manualChunks`
-
-- В `vite.config.ts` махаме реда `"vendor-icons": ["lucide-react"]`.
-- Vite/Rollup автоматично слагат само използваните икони в съответните route chunks (lucide-react е tree-shakeable per-icon).
-
-### Етап 4: Route prefetch при hover
-
-- Нов компонент `PrefetchLink` (или patch в `NavLink.tsx`): `onMouseEnter` извиква `import()` на съответната lazy route.
-- Прилагаме на основните CTA-та: към `/wizard/...`, `/catalog`, `/shablon/...`.
-- Резултат: при клик route chunk-ът вече е в cache → preceived latency ~0.
-
-### Етап 5: Vite + HTML tweaks
-
-- `vite.config.ts`: `build.sourcemap: false` за prod.
-- `index.html`: `<link rel="preconnect" href="https://wkbxojefiovdczkwhved.supabase.co">` + preload на основния шрифт (ако има локален).
-- `QueryClient` defaults: `staleTime: 60_000`, `refetchOnWindowFocus: false` → по-малко мрежови повиквания.
-
-### Етап 6: Точкови micro-оптимизации
-
-- `Wizard.tsx`: `useMemo` за `flattenQuestions` и `buildQuestions`, ако още не са.
-- `LiveDraft.tsx` (592 реда): `React.memo` + `useMemo` за computed text.
-- `Catalog.tsx` (290+ карти): добавяме `content-visibility: auto` + `contain-intrinsic-size` за карти под fold-а — CSS-only virtualization, нула JS overhead.
-- Всички `<img>` извън hero: `loading="lazy" decoding="async"`.
-
----
-
-## Очаквани резултати
-
-| Метрика | Преди | След |
-|---|---|---|
-| Initial JS landing | ~600–800 KB | ~250–350 KB |
-| Template page first load | 1.9 MB+ | ~80 KB (meta + chunk) |
-| LCP (mobile 4G) | ~3.5–4 s | ~1.8–2.2 s |
-| Wizard navigation (с prefetch) | 200–400 ms | <50 ms |
-| Lighthouse SEO | без промяна | без промяна (или +лек bonus от Web Vitals) |
-
----
-
-## Какво НЕ променяме
-
-- Дизайн, токени, цветове, типография.
-- Backend / edge functions / DB / RLS.
-- Бизнес логика на quota, AI generation, signing, plans.
-- Routing структура и URL-и.
-- Meta tags / canonical / JSON-LD стойности.
-
----
-
-## Verification след всеки етап
-
-- `bun run build` → check chunk sizes в `dist/assets/`.
-- Lighthouse в preview (mobile + desktop).
-- Ръчен test: Template страница, Wizard, Catalog → същият UX.
-- `view-source:` на 3 шаблонни страници → meta description и title са правилни (SEO smoke test).
+Одобри плана за да започна изпълнението.
