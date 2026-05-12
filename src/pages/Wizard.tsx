@@ -178,7 +178,7 @@ export default function WizardPage() {
     }
   };
 
-  const { user } = useAuth();
+  const user = authUser;
   const [savedDocId, setSavedDocId] = useState<string | undefined>(persisted?.savedDocId);
   const [isPro, setIsPro] = useState(false);
   const [signature, setSignature] = useState<SignatureData>(
