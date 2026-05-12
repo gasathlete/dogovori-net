@@ -19,19 +19,20 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-navy/80 backdrop-blur-xl">
       <div className="container flex h-16 items-center justify-between gap-2">
-        <Link to="/" onClick={() => setOpen(false)} className="flex min-w-0 items-center gap-2 sm:gap-3">
-          <Logo compact />
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <Link to="/" onClick={() => setOpen(false)} className="flex min-w-0 items-center">
+            <Logo compact />
+          </Link>
           <a
             href="https://im-development.imot.bg"
             target="_blank"
             rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
             className="hidden border-l border-border/60 pl-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold sm:inline-flex sm:flex-col sm:leading-tight"
           >
             <span>Powered by</span>
             <span className="font-semibold text-gold/90">IM Development</span>
           </a>
-        </Link>
+        </div>
 
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
           {NAV.map((n) => (
