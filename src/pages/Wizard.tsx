@@ -65,6 +65,7 @@ export default function WizardPage() {
     } catch { return null; }
   }, [storageKey]);
 
+  const { user: authUser } = useAuth();
   const [answers, setAnswers] = useState<Record<string, string>>(persisted?.answers ?? {});
   const [stepIdx, setStepIdx] = useState<number>(persisted?.stepIdx ?? 0);
   const [generating, setGenerating] = useState(false);
@@ -128,6 +129,16 @@ export default function WizardPage() {
   ];
 
   const handleGenerate = async () => {
+    // Require login before generating. Wizard state is already persisted to
+    // localStorage on every change, so the user returns to the same step.
+    if (!authUser) {
+      const dest = window.location.pathname + window.location.search;
+      toast.info("Влезте, за да създадете договора", {
+        description: "Прогресът ви е запазен и ще продължи след вход.",
+      });
+      navigate(`/auth?redirect=${encodeURIComponent(dest)}`);
+      return;
+    }
     setGenerating(true);
     setGenStepIdx(0);
     const interval = setInterval(() => {
@@ -167,7 +178,7 @@ export default function WizardPage() {
     }
   };
 
-  const { user } = useAuth();
+  const user = authUser;
   const [savedDocId, setSavedDocId] = useState<string | undefined>(persisted?.savedDocId);
   const [isPro, setIsPro] = useState(false);
   const [signature, setSignature] = useState<SignatureData>(
