@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { translateAuthError } from "@/lib/authErrors";
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ export default function ResetPasswordPage() {
     setBusy(true);
     const { error } = await supabase.auth.updateUser({ password });
     setBusy(false);
-    if (error) return toast.error("Грешка", { description: error.message });
+    if (error) return toast.error("Грешка", { description: translateAuthError(error.message) });
     toast.success("Паролата е обновена");
     navigate("/account");
   };

@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { translateAuthError } from "@/lib/authErrors";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ export default function AuthPage() {
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
-    if (error) return toast.error("Грешка при вход", { description: error.message });
+    if (error) return toast.error("Грешка при вход", { description: translateAuthError(error.message) });
     toast.success("Добре дошли!");
     navigate(redirect);
   };
@@ -42,7 +43,7 @@ export default function AuthPage() {
       },
     });
     setBusy(false);
-    if (error) return toast.error("Грешка при регистрация", { description: error.message });
+    if (error) return toast.error("Грешка при регистрация", { description: translateAuthError(error.message) });
     // Send welcome email (fire-and-forget). Only when we have an active
     // session — the edge function requires an authenticated user JWT and
     // restricts the recipient to the caller's own email.
@@ -87,7 +88,7 @@ export default function AuthPage() {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin + "/reset-password",
     });
-    if (error) return toast.error("Грешка", { description: error.message });
+    if (error) return toast.error("Грешка", { description: translateAuthError(error.message) });
     toast.success("Изпратихме ви линк за нова парола");
   };
 
