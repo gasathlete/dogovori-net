@@ -65,6 +65,7 @@ export default function WizardPage() {
     } catch { return null; }
   }, [storageKey]);
 
+  const { user: authUser } = useAuth();
   const [answers, setAnswers] = useState<Record<string, string>>(persisted?.answers ?? {});
   const [stepIdx, setStepIdx] = useState<number>(persisted?.stepIdx ?? 0);
   const [generating, setGenerating] = useState(false);
