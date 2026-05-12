@@ -23,7 +23,10 @@ import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { ShareForSignDialog } from "@/components/ShareForSignDialog";
 import { UploadContractDialog } from "@/components/UploadContractDialog";
 import { SignedContractsTab } from "@/components/SignedContractsTab";
-import { ShieldAlert, ShieldCheck, AlertTriangle, PenTool, ChevronRight } from "lucide-react";
+import { ShieldAlert, ShieldCheck, AlertTriangle, PenTool, ChevronRight, KeyRound, Mail, Trash } from "lucide-react";
+import { isValidEGN, isValidEIK } from "@/lib/bgValidation";
+import { translateAuthError } from "@/lib/authErrors";
+import { useNavigate as _useNav } from "react-router-dom";
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
@@ -364,6 +367,19 @@ function ContactDialog({ editing, onClose }: { editing: Contact | null; onClose:
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Валидация на ЕГН/ЕИК преди запис
+    if (form.type === "individual" && form.egn) {
+      if (!isValidEGN(String(form.egn).trim())) {
+        toast.error("Невалидно ЕГН", { description: "Моля, проверете 10-те цифри и контролната сума." });
+        return;
+      }
+    }
+    if (form.type === "legal" && form.eik) {
+      if (!isValidEIK(String(form.eik).trim())) {
+        toast.error("Невалиден ЕИК", { description: "ЕИК трябва да е 9 или 13 цифри с валидна контролна сума." });
+        return;
+      }
+    }
     setBusy(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setBusy(false); return; }
