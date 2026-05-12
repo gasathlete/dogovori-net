@@ -937,6 +937,7 @@ function SettingsTab({ profile, setProfile, userId }: {
   profile: { display_name: string | null; company: string | null; vat_number: string | null };
   setProfile: (p: any) => void; userId: string;
 }) {
+  const { user, signOut } = useAuth();
   const [busy, setBusy] = useState(false);
   const save = async () => {
     setBusy(true);
@@ -944,15 +945,137 @@ function SettingsTab({ profile, setProfile, userId }: {
     setBusy(false);
     if (error) toast.error(error.message); else toast.success("Запазено");
   };
+
+  // Смяна на парола
+  const [pwd, setPwd] = useState("");
+  const [pwd2, setPwd2] = useState("");
+  const [pwdBusy, setPwdBusy] = useState(false);
+  const changePassword = async () => {
+    if (pwd.length < 8) { toast.error("Паролата трябва да е поне 8 знака"); return; }
+    if (pwd !== pwd2) { toast.error("Паролите не съвпадат"); return; }
+    setPwdBusy(true);
+    const { error } = await supabase.auth.updateUser({ password: pwd });
+    setPwdBusy(false);
+    if (error) toast.error(translateAuthError(error.message));
+    else { toast.success("Паролата е сменена"); setPwd(""); setPwd2(""); }
+  };
+
+  // Смяна на имейл
+  const [newEmail, setNewEmail] = useState("");
+  const [emailBusy, setEmailBusy] = useState(false);
+  const changeEmail = async () => {
+    if (!/^\S+@\S+\.\S+$/.test(newEmail)) { toast.error("Невалиден имейл"); return; }
+    setEmailBusy(true);
+    const { error } = await supabase.auth.updateUser({ email: newEmail });
+    setEmailBusy(false);
+    if (error) toast.error(translateAuthError(error.message));
+    else {
+      toast.success("Изпратихме потвърждение", {
+        description: "Проверете и стария, и новия имейл за линк за потвърждение.",
+      });
+      setNewEmail("");
+    }
+  };
+
+  // Изтриване на акаунт
+  const [delOpen, setDelOpen] = useState(false);
+  const [delConfirm, setDelConfirm] = useState("");
+  const [delBusy, setDelBusy] = useState(false);
+  const deleteAccount = async () => {
+    if (delConfirm !== "ИЗТРИЙ") { toast.error("Въведете ИЗТРИЙ за потвърждение"); return; }
+    setDelBusy(true);
+    const { error } = await supabase.functions.invoke("delete-account", { body: {} });
+    setDelBusy(false);
+    if (error) {
+      toast.error("Грешка при изтриване", { description: error.message });
+      return;
+    }
+    toast.success("Акаунтът е изтрит");
+    await signOut();
+    window.location.href = "/";
+  };
+
   return (
-    <div className="max-w-lg space-y-3 rounded-xl border border-border/60 bg-gradient-card p-6">
-      <div><Label>Име</Label><Input value={profile.display_name ?? ""} onChange={(e) => setProfile({ ...profile, display_name: e.target.value })} /></div>
-      <div><Label>Фирма</Label><Input value={profile.company ?? ""} onChange={(e) => setProfile({ ...profile, company: e.target.value })} /></div>
-      <div><Label>ДДС №</Label><Input value={profile.vat_number ?? ""} onChange={(e) => setProfile({ ...profile, vat_number: e.target.value })} /></div>
-      <Button onClick={save} disabled={busy} className="bg-gradient-gold text-navy">
-        {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Запази
-      </Button>
+    <div className="space-y-4">
+      {/* Профил */}
+      <div className="max-w-lg space-y-3 rounded-xl border border-border/60 bg-gradient-card p-6">
+        <h3 className="font-serif text-lg font-bold">Профил</h3>
+        <div><Label>Име</Label><Input value={profile.display_name ?? ""} onChange={(e) => setProfile({ ...profile, display_name: e.target.value })} /></div>
+        <div><Label>Фирма</Label><Input value={profile.company ?? ""} onChange={(e) => setProfile({ ...profile, company: e.target.value })} /></div>
+        <div><Label>ДДС №</Label><Input value={profile.vat_number ?? ""} onChange={(e) => setProfile({ ...profile, vat_number: e.target.value })} /></div>
+        <Button onClick={save} disabled={busy} className="bg-gradient-gold text-navy">
+          {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Запази
+        </Button>
+      </div>
+
+      {/* Смяна на парола */}
+      <div className="max-w-lg space-y-3 rounded-xl border border-border/60 bg-gradient-card p-6">
+        <h3 className="flex items-center gap-2 font-serif text-lg font-bold">
+          <KeyRound className="h-4 w-4 text-gold" /> Смяна на парола
+        </h3>
+        <div><Label>Нова парола</Label><Input type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} placeholder="Поне 8 знака" /></div>
+        <div><Label>Повтори паролата</Label><Input type="password" value={pwd2} onChange={(e) => setPwd2(e.target.value)} /></div>
+        <Button onClick={changePassword} disabled={pwdBusy || !pwd} variant="outline" className="border-gold/40">
+          {pwdBusy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Смени паролата
+        </Button>
+      </div>
+
+      {/* Смяна на имейл */}
+      <div className="max-w-lg space-y-3 rounded-xl border border-border/60 bg-gradient-card p-6">
+        <h3 className="flex items-center gap-2 font-serif text-lg font-bold">
+          <Mail className="h-4 w-4 text-gold" /> Имейл адрес
+        </h3>
+        <p className="text-xs text-muted-foreground">Текущ: <strong>{user?.email}</strong></p>
+        <div><Label>Нов имейл</Label><Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="new@example.com" /></div>
+        <Button onClick={changeEmail} disabled={emailBusy || !newEmail} variant="outline" className="border-gold/40">
+          {emailBusy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Промени имейла
+        </Button>
+      </div>
+
+      {/* Изтриване на акаунт */}
+      <div className="max-w-lg space-y-3 rounded-xl border border-destructive/40 bg-destructive/[0.04] p-6">
+        <h3 className="flex items-center gap-2 font-serif text-lg font-bold text-destructive">
+          <Trash className="h-4 w-4" /> Изтриване на акаунт
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          Това действие е необратимо. Ще бъдат изтрити всички ваши данни — контрагенти, папки, документи и анализи (GDPR).
+        </p>
+        <Dialog open={delOpen} onOpenChange={(o) => { setDelOpen(o); if (!o) setDelConfirm(""); }}>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="border-destructive/60 text-destructive hover:bg-destructive/10">
+              <Trash className="mr-2 h-4 w-4" /> Изтрий моя акаунт
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Сигурни ли сте?</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 text-sm">
+              <p className="text-muted-foreground">
+                Това действие <strong className="text-destructive">не може</strong> да бъде отменено. Всички ваши данни ще бъдат изтрити.
+              </p>
+              <div>
+                <Label>Въведете <strong>ИЗТРИЙ</strong> за потвърждение</Label>
+                <Input value={delConfirm} onChange={(e) => setDelConfirm(e.target.value)} placeholder="ИЗТРИЙ" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setDelOpen(false)}>Отказ</Button>
+              <Button
+                onClick={deleteAccount}
+                disabled={delBusy || delConfirm !== "ИЗТРИЙ"}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {delBusy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Изтрий завинаги
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }
