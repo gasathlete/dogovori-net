@@ -26,7 +26,6 @@ import { SignedContractsTab } from "@/components/SignedContractsTab";
 import { ShieldAlert, ShieldCheck, AlertTriangle, PenTool, ChevronRight, KeyRound, Mail, Trash } from "lucide-react";
 import { isValidEGN, isValidEIK } from "@/lib/bgValidation";
 import { translateAuthError } from "@/lib/authErrors";
-import { useNavigate as _useNav } from "react-router-dom";
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
