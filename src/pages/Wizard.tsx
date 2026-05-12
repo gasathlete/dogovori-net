@@ -130,7 +130,7 @@ export default function WizardPage() {
   const handleGenerate = async () => {
     // Require login before generating. Wizard state is already persisted to
     // localStorage on every change, so the user returns to the same step.
-    if (!session) {
+    if (!authUser) {
       const dest = window.location.pathname + window.location.search;
       toast.info("Влезте, за да създадете договора", {
         description: "Прогресът ви е запазен и ще продължи след вход.",
