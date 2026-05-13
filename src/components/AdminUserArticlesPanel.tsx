@@ -59,10 +59,9 @@ export function AdminUserArticlesPanel() {
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [filter]);
 
   const setStatus = async (id: string, status: "approved" | "rejected") => {
-    const patch: Record<string, unknown> = {
-      status, reviewed_at: new Date().toISOString(),
-    };
-    if (status === "approved") patch.published_at = new Date().toISOString();
+    const patch = status === "approved"
+      ? { status, reviewed_at: new Date().toISOString(), published_at: new Date().toISOString() }
+      : { status, reviewed_at: new Date().toISOString() };
     const { error } = await supabase.from("user_articles").update(patch).eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success(status === "approved" ? "Публикувана" : "Отхвърлена");
