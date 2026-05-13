@@ -6,6 +6,7 @@
 import { writeFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { CATALOG } from "../src/data/catalog";
+import { SECTORS } from "../src/data/sectors";
 import { slugify } from "../src/lib/slugify";
 
 const SITE = "https://dogovori.net";
@@ -41,6 +42,13 @@ const categoryEntries: Entry[] = CATALOG.map((cat) => ({
   lastmod: today,
 }));
 
+const sectorEntries: Entry[] = SECTORS.map((s) => ({
+  loc: `/sektor/${s.id}`,
+  changefreq: "weekly",
+  priority: "0.85",
+  lastmod: today,
+}));
+
 const templateEntries: Entry[] = [];
 const used = new Set<string>();
 for (const cat of CATALOG) {
@@ -60,7 +68,7 @@ for (const cat of CATALOG) {
   }
 }
 
-const all = [...staticEntries, ...categoryEntries, ...templateEntries, ...blogEntries];
+const all = [...staticEntries, ...sectorEntries, ...categoryEntries, ...templateEntries, ...blogEntries];
 
 const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

@@ -1,81 +1,45 @@
+## Цел
 
-# Custom Contract Builder ("Изготви договор")
+Всеки от 21-те сектора на началната страница да отваря собствена страница с уникален URL, SEO оптимизация, описание на сектора и връзки към всички шаблони/бланки, групирани по категории.
 
-Нова функционалност за свободно изготвяне на договор без предварителен шаблон — потребителят описва каквото иска, AI попълва празните полета и изгражда пълен договор с правен анализ.
+## URL структура
 
-## 1. Hero (начална страница)
+`/sektor/:id` — например `/sektor/real-estate`, `/sektor/digital`, `/sektor/employment` (използва се вече съществуващото `id` от `SECTORS`).
 
-- Нов CTA бутон **„Изготви договор"** до съществуващия „Намери договор" (`src/components/Hero.tsx`).
-- „Как работи процесът" остава, премества се под двата CTA бутона (вече е там като линк).
-- „Изготви договор" → `/build` (нова страница).
+## Какво ще съдържа всяка страница
 
-## 2. Нова страница `/build` — BuildContract
+1. **Hero блок** с фоновата илюстрация на сектора (от `src/assets/sectors/`), заглавие, подзаглавие и описание.
+2. **Основна информация** — разширено описание (от `sectors.ts` `description` + интрото на свързаните каталожни категории), приложими закони (ЗЗД/ТЗ/КТ/ЗУТ — взети от съществуващите данни), типични страни по договорите.
+3. **Категории и шаблони** — всички `CATALOG` категории с `sectorId === sector.id`, всяка с своите документи като карти-връзки към `/shablon/:slug`.
+4. **CTA** — бутон "Започни договор" → `/wizard/:sectorId`.
+5. **Breadcrumbs**: Начало › Сектори › [Сектор].
 
-Маршрут добавен в `src/App.tsx`. Страница с **двуколонен layout** като Wizard:
-- **Ляво:** компактна форма с полета:
-  - **Име на договора** (text, required)
-  - **Категория** — Select от съществуващите сектори от `src/data/sectors.ts` + опция „Друго" (free text)
-  - **Възложител/и** (textarea, по 1 на ред — име, тип ЮЛ/ФЛ/ЕТ)
-  - **Изпълнител/и** (textarea, по 1 на ред)
-  - **Предмет** (textarea) — *празно → AI предлага*
-  - **Срок** (text) — *празно → AI предлага*
-  - **Цени и плащане** (textarea) — *празно → AI предлага*
-  - **Задължения** (textarea) — *празно → AI предлага*
-  - **Други клаузи / специфики** (textarea) — *празно → AI предлага стандартни*
-- Бутон **„Изгради договор (≤ 2 мин.)"**.
-- **Дясно:** `LiveDraft` — същия компонент като в Wizard, показва документа в реално време след генерация.
+## SEO
 
-## 3. AI поток
+- `<title>`: `{Сектор} — договори, бланки и шаблони | Dogovori.net`
+- Meta description: първите ~155 знака от описанието + брой документи.
+- `<link rel="canonical">` към `/sektor/:id`.
+- JSON-LD: `BreadcrumbList` + `CollectionPage` със списък на всички шаблони (`hasPart`).
+- H1 = името на сектора, семантичен HTML, alt текст на изображението.
+- Препратки към подкатегориите и шаблоните за вътрешен линкинг.
 
-Нова Edge Function `supabase/functions/build-custom-contract/index.ts`:
-- Приема: `{ name, category, partiesA[], partiesB[], subject?, term?, prices?, obligations?, other? }`.
-- System prompt: професионален български правен архитект (същия стил като `generate-contract`), задача — попълни липсващите секции с пазарно-стандартни формулировки за избраната категория, върни СТРОГО JSON `{ risk, contract }` (същата схема като `generate-contract`).
-- Същите rate-limits (5/24h за free, login required), кеширане, и AI gateway модел (`google/gemini-2.5-flash-lite`).
-- Връща същия формат → reuse-ва `LiveDraft`, `RiskMeter`, `RiskReport`, `SignatureBlock`, `CorrectionsPanel`.
+## Файлове за промяна
 
-## 4. Същите функционалности като Wizard
+**Нови:**
+- `src/pages/Sector.tsx` — компонент на страницата.
 
-В резултатния изглед на `/build`:
-- PDF/DOCX експорт (reuse `downloadDocument`).
-- Подпис (reuse `SignatureBlock`).
-- Запис в профила (reuse `saved_documents` с `kind = 'custom'` или 'contract', `source_id = null`).
-- Споделяне за подпис (reuse `ShareForSignDialog`).
-- Корекции (reuse `CorrectionsPanel` + `apply-corrections`).
+**Редакции:**
+- `src/App.tsx` — нов lazy route `/sektor/:id`.
+- `src/pages/Index.tsx` — `SectorGrid onPick` пренасочва към `/sektor/${id}` вместо `/catalog#...`.
+- `src/components/SectorGrid.tsx` — без логически промени; рендеренето остава.
+- `scripts/build-sitemap.ts` — добавя по една entry за всеки сектор (`/sektor/:id`, priority `0.85`, changefreq `weekly`).
 
-## 5. Извличане на бланка → admin кеш
+## Карта сектор → данни
 
-След успешна генерация:
-- Edge Function извлича автоматично „бланка" — replace-ва конкретните данни (имена на страни, суми, дати, специфики) с плейсхолдъри `[…]`.
-- Записва в нова таблица `custom_contract_blanks`:
-  - `id`, `created_at`, `category` (sector_id или free text), `name` (име на договора), `text_hash` (за dedupe), `blank_payload` (JSONB с GeneratedContract без данни), `source_user_id`, `published` (boolean default false), `published_sector_id`, `published_document_name`.
-- RLS: само service_role insert/select; staff може select/update.
-- Dedupe по `text_hash` — ако вече съществува идентична бланка, само increment counter.
+Страницата използва: `SECTORS.find(s => s.id === id)` за метаданни и `CATALOG.filter(c => c.sectorId === id)` за категориите и документите. Изображенията се reusват от съществуващия `SECTOR_IMAGES` мап (ще се извлече в споделен модул `src/lib/sectorImages.ts`, за да го ползват `SectorGrid` и `Sector`).
 
-## 6. Admin панел
+## Не се променя
 
-В `src/pages/Admin.tsx` нов tab **„Бланки от потребители"**:
-- Списък на чакащи бланки (sortable по дата, категория, брой повторения).
-- Preview на бланката (използва `LiveDraft` read-only).
-- Действия: **Публикувай в каталога** (попълва `published_sector_id` + `published_document_name`, копира в `document_blanks` storage), **Отхвърли** (delete), **Редактирай име/категория**.
-
-## 7. Технически детайли
-
-- Reuse 100% от съществуващите wizard компоненти — без дублиране.
-- Анонимизацията на бланката — отделна AI заявка с малък prompt: „Замени конкретни данни с плейсхолдъри". Изпълнява се асинхронно след основната генерация (background, не блокира UX).
-- Quota: всеки build брои като 1 contract download (consume_quota('contract')).
-- Аналитика: `trackEvent('build_contract_started')`, `build_contract_generated`, `build_contract_saved`.
-
-## Files
-
-**New:**
-- `src/pages/BuildContract.tsx`
-- `src/components/build/CustomContractForm.tsx`
-- `supabase/functions/build-custom-contract/index.ts`
-- `supabase/functions/extract-blank/index.ts` (background анонимизация)
-- DB migration: `custom_contract_blanks` таблица + RLS
-
-**Modified:**
-- `src/components/Hero.tsx` — добавя „Изготви договор" CTA
-- `src/App.tsx` — нов маршрут `/build`
-- `src/components/Header.tsx` — добавя линк към „Изготви договор"
-- `src/pages/Admin.tsx` — нов tab „Бланки от потребители"
+- Каталог страница (`/catalog`) и категориите (`/kategoria/:id`) остават.
+- Wizard, шаблоните, блогът — без промяна.
+- Header navigation — линкът "Сектори" продължава да сочи към `/#sectors`.
