@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Crown, Loader2, Search, ShieldCheck, ShieldOff, Plus } from "lucide-react";
 import { AdminPartnersPanel } from "@/components/AdminPartnersPanel";
 import { AdminBlanksPanel } from "@/components/AdminBlanksPanel";
+import { AdminUserArticlesPanel } from "@/components/AdminUserArticlesPanel";
 
 type Row = {
   user_id: string;
@@ -190,6 +191,7 @@ export default function AdminPage() {
 
         <AdminPartnersPanel />
         <AdminBlanksPanel />
+        <AdminUserArticlesPanel />
       </div>
 
       <Dialog open={!!proDialog} onOpenChange={(o) => !o && setProDialog(null)}>
