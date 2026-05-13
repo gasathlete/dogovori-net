@@ -85,6 +85,14 @@ export default function BuildContractPage() {
     trackEvent("build_contract_open");
   }, []);
 
+  // Apply preset category from URL (?category=:id) when navigating in from a sector page.
+  useEffect(() => {
+    if (presetCategory && SECTORS.some((s) => s.id === presetCategory) && presetCategory !== categoryId) {
+      setCategoryId(presetCategory);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presetCategory]);
+
   useEffect(() => {
     if (!user) { setIsPro(false); return; }
     supabase.from("download_quota").select("plan, pro_until").eq("user_id", user.id).maybeSingle()
