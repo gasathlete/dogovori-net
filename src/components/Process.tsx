@@ -1,12 +1,12 @@
-import { ListChecks, ClipboardList, ShieldCheck, FileCheck2, FolderArchive, Send } from "lucide-react";
+import { ListChecks, ClipboardList, ShieldCheck, FileCheck2, FolderArchive, BookOpen } from "lucide-react";
 
 export function Process() {
   const steps = [
     {
       icon: ListChecks,
       n: "01",
-      title: "Готов документ",
-      text: "Разгледайте каталога и изберете подходящия за Вашия казус договор от над 20 правни сектора.",
+      title: "Намери или създай документ",
+      text: "Изберете готов договор от каталога с над 20 правни сектора или създайте напълно нов спрямо Вашия казус.",
     },
     {
       icon: ClipboardList,
@@ -23,8 +23,8 @@ export function Process() {
     {
       icon: FileCheck2,
       n: "04",
-      title: "Готов договор",
-      text: "Получавате професионално изготвен договор, готов за преглед, редакция и сваляне в PDF или DOCX формат.",
+      title: "Готов документ",
+      text: "Експортирайте професионално изготвения договор в PDF или DOCX, или го подпишете директно с електронен подпис.",
     },
     {
       icon: FolderArchive,
@@ -33,10 +33,10 @@ export function Process() {
       text: "Организирайте цялата си документация на едно място — с тагове, версии и бърз достъп до всеки договор в Профил.",
     },
     {
-      icon: Send,
+      icon: BookOpen,
       n: "06",
-      title: "Подписване и изпращане",
-      text: "Подпишете електронно и изпратете готовия професионален документ директно до отсрещната страна.",
+      title: "Блог",
+      text: "Разрастваща се мрежа от статии, засягащи най-актуалните теми за документи, коментари, въпроси и мнения.",
     },
   ];
 
