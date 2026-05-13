@@ -4,6 +4,7 @@ import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { getPostBySlug, getRelatedPosts } from "@/lib/blog";
 import { ChevronRight } from "lucide-react";
+import { BlogRatingAndComments } from "@/components/BlogRatingAndComments";
 
 function Paragraphs({ text }: { text: string }) {
   return (
@@ -159,6 +160,8 @@ export default function BlogPost() {
               </section>
             )}
           </div>
+
+          <BlogRatingAndComments postType="core" postSlug={post.slug} />
 
           <div className="relative mt-14 overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-8 text-center shadow-elegant md:p-10">
             <div className="absolute inset-x-0 top-0 hairline-x" />

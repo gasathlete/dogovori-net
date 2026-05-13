@@ -35,6 +35,8 @@ const SharedDocument = lazy(() => import("./pages/SharedDocument.tsx"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe.tsx"));
 const Blog = lazy(() => import("./pages/Blog.tsx"));
 const BlogPost = lazy(() => import("./pages/BlogPost.tsx"));
+const BlogUserPost = lazy(() => import("./pages/BlogUserPost.tsx"));
+const BlogSubmit = lazy(() => import("./pages/BlogSubmit.tsx"));
 const Team = lazy(() => import("./pages/Team.tsx"));
 const TeamAccept = lazy(() => import("./pages/TeamAccept.tsx"));
 const Contact = lazy(() => import("./pages/Contact.tsx"));
@@ -111,6 +113,8 @@ const App = () => (
               <Route path="/share/:token" element={<SharedDocument />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
               <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/submit" element={<BlogSubmit />} />
+              <Route path="/blog/u/:slug" element={<BlogUserPost />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
               <Route path="/team/accept" element={<TeamAccept />} />
