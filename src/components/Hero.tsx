@@ -46,9 +46,22 @@ export function Hero({ onStart }: { onStart: () => void }) {
             </a>
           </div>
           <div className="mt-3 text-center">
-            <a href="#process" className="text-xs uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                const el = document.getElementById("process");
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  if (window.location.hash !== "#process") {
+                    window.history.replaceState(null, "", "#process");
+                  }
+                }
+              }}
+              className="text-xs uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold"
+            >
               Как работи процесът ↓
-            </a>
+            </button>
           </div>
 
           <div className="mt-12 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-hairline bg-hairline sm:mt-14 sm:grid-cols-3 md:mt-16">
