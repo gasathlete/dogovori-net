@@ -71,6 +71,66 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          post_slug: string
+          post_type: Database["public"]["Enums"]["blog_post_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          post_slug: string
+          post_type: Database["public"]["Enums"]["blog_post_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          post_slug?: string
+          post_type?: Database["public"]["Enums"]["blog_post_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      blog_ratings: {
+        Row: {
+          created_at: string
+          id: string
+          post_slug: string
+          post_type: Database["public"]["Enums"]["blog_post_type"]
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_slug: string
+          post_type: Database["public"]["Enums"]["blog_post_type"]
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_slug?: string
+          post_type?: Database["public"]["Enums"]["blog_post_type"]
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           address: string | null
@@ -1032,6 +1092,78 @@ export type Database = {
           },
         ]
       }
+      user_articles: {
+        Row: {
+          category: string
+          created_at: string
+          faq: Json
+          id: string
+          image_url: string
+          intro: string
+          meta_description: string
+          published_at: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sections: Json
+          slug: string
+          source: Database["public"]["Enums"]["article_source"]
+          status: Database["public"]["Enums"]["article_status"]
+          summary: string
+          takeaways: Json
+          title: string
+          updated_at: string
+          user_id: string
+          word_count: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          faq?: Json
+          id?: string
+          image_url: string
+          intro: string
+          meta_description?: string
+          published_at?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sections?: Json
+          slug: string
+          source?: Database["public"]["Enums"]["article_source"]
+          status?: Database["public"]["Enums"]["article_status"]
+          summary?: string
+          takeaways?: Json
+          title: string
+          updated_at?: string
+          user_id: string
+          word_count?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          faq?: Json
+          id?: string
+          image_url?: string
+          intro?: string
+          meta_description?: string
+          published_at?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sections?: Json
+          slug?: string
+          source?: Database["public"]["Enums"]["article_source"]
+          status?: Database["public"]["Enums"]["article_status"]
+          summary?: string
+          takeaways?: Json
+          title?: string
+          updated_at?: string
+          user_id?: string
+          word_count?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1101,6 +1233,16 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_post_rating: {
+        Args: {
+          _post_slug: string
+          _post_type: Database["public"]["Enums"]["blog_post_type"]
+        }
+        Returns: {
+          avg_rating: number
+          rating_count: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1142,6 +1284,9 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      article_source: "user" | "admin"
+      article_status: "pending" | "approved" | "rejected"
+      blog_post_type: "core" | "user"
       contact_type: "individual" | "legal"
       document_kind: "contract" | "template"
       team_role: "owner" | "admin" | "member"
@@ -1274,6 +1419,9 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      article_source: ["user", "admin"],
+      article_status: ["pending", "approved", "rejected"],
+      blog_post_type: ["core", "user"],
       contact_type: ["individual", "legal"],
       document_kind: ["contract", "template"],
       team_role: ["owner", "admin", "member"],
