@@ -201,6 +201,57 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   }
 }
 
+async function handleInvoicePaymentFailed(invoice: any, env: StripeEnv) {
+  try {
+    const subscriptionId = invoice.subscription || invoice.parent?.subscription_details?.subscription;
+    let userId: string | undefined;
+    let teamId: string | undefined;
+
+    if (subscriptionId) {
+      const stripe = createStripeClient(env);
+      const sub = await stripe.subscriptions.retrieve(subscriptionId);
+      userId = (sub.metadata as any)?.userId;
+      teamId = (sub.metadata as any)?.teamId;
+
+      if (teamId) {
+        await getSupabase().from("teams").update({ status: "past_due", updated_at: new Date().toISOString() }).eq("id", teamId);
+      } else {
+        await getSupabase()
+          .from("subscriptions")
+          .update({ status: "past_due", updated_at: new Date().toISOString() })
+          .eq("stripe_subscription_id", subscriptionId)
+          .eq("environment", env);
+      }
+    }
+
+    const email = invoice.customer_email;
+    if (email) {
+      const amountDue = invoice.amount_due;
+      const currency = (invoice.currency || "eur").toUpperCase();
+      const amount = typeof amountDue === "number" ? `${(amountDue / 100).toFixed(2)} ${currency}` : undefined;
+      const nextAttemptTs = invoice.next_payment_attempt;
+      const nextAttempt = nextAttemptTs ? new Date(nextAttemptTs * 1000).toLocaleDateString("bg-BG") : undefined;
+
+      let name: string | undefined;
+      if (userId) {
+        const { data: p } = await getSupabase().from("profiles").select("display_name").eq("id", userId).maybeSingle();
+        name = (p as any)?.display_name ?? undefined;
+      }
+
+      await getSupabase().functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "payment-failed",
+          recipientEmail: email,
+          idempotencyKey: `payfail-${invoice.id}-${invoice.attempt_count ?? 0}`,
+          templateData: { name, amount, nextAttempt },
+        },
+      });
+    }
+  } catch (e) {
+    console.error("invoice.payment_failed handling error:", e);
+  }
+}
+
 async function handleWebhook(req: Request, env: StripeEnv) {
   const event = await verifyWebhook(req, env);
 
@@ -216,6 +267,9 @@ async function handleWebhook(req: Request, env: StripeEnv) {
       break;
     case "checkout.session.completed":
       await handleCheckoutCompleted(event.data.object, env);
+      break;
+    case "invoice.payment_failed":
+      await handleInvoicePaymentFailed(event.data.object, env);
       break;
     default:
       console.log("Unhandled event:", event.type);
