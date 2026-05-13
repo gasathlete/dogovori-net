@@ -769,7 +769,13 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
       },
     });
     setBusy(false);
-    if (error || !data?.url) return toast.error("Грешка", { description: error?.message });
+    const errMsg = (data as any)?.error || error?.message;
+    if (errMsg?.includes("No subscription")) {
+      return toast.info("Няма активен Stripe абонамент", {
+        description: "Вашият Pro достъп е активиран ръчно от администратор и не се управлява през Stripe.",
+      });
+    }
+    if (errMsg || !data?.url) return toast.error("Грешка", { description: errMsg || "Неуспешно отваряне на портала." });
     window.open(data.url, "_blank");
   };
 
