@@ -33,7 +33,12 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    if (!sub?.stripe_customer_id) throw new Error("No subscription found");
+    if (!sub?.stripe_customer_id) {
+      return new Response(
+        JSON.stringify({ error: "No subscription found", code: "no_subscription" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     const stripe = createStripeClient(environment);
     const portal = await stripe.billingPortal.sessions.create({
