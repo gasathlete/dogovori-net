@@ -146,6 +146,9 @@ export default function AuthPage() {
                   {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Създай профил
                 </Button>
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  С регистрацията си приемате <Link to="/terms" className="text-gold hover:underline">Общите условия</Link> и потвърждавате, че Dogovori.net не носи отговорност за вреди или правни последици от използването на генерираните документи.
+                </p>
               </form>
             </TabsContent>
           </Tabs>
