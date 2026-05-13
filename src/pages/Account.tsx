@@ -754,11 +754,24 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   const { user } = useAuth();
   const [busy, setBusy] = useState(false);
   const [checkoutPrice, setCheckoutPrice] = useState<string | null>(null);
+  const [subStatus, setSubStatus] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const redirectAfter = searchParams.get("redirect") || "";
   const returnUrl = `${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}${
     redirectAfter ? `&redirect=${encodeURIComponent(redirectAfter)}` : ""
   }`;
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("subscriptions")
+      .select("status")
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setSubStatus((data as any)?.status ?? null));
+  }, [user]);
 
   const portal = async () => {
     setBusy(true);
@@ -794,6 +807,21 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
 
   return (
     <div className="space-y-6">
+      {subStatus === "past_due" && (
+        <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-medium text-destructive">Плащането за абонамента не премина</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Картата Ви е отказана или изтекла. Stripe ще опита отново автоматично, но за да избегнете прекъсване — обновете данните за плащане.
+            </p>
+            <Button onClick={portal} disabled={busy} size="sm" variant="outline" className="mt-3 border-destructive/40 text-destructive hover:bg-destructive/10">
+              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Обнови данни за плащане
+            </Button>
+          </div>
+        </div>
+      )}
       <div className="rounded-xl border border-gold/30 bg-gradient-card p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
