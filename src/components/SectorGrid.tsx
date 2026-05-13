@@ -90,11 +90,15 @@ export function SectorGrid({ onPick }: { onPick: (id: string) => void }) {
                     loading="lazy"
                     width={1024}
                     height={768}
-                    className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-[0.18] mix-blend-screen transition-opacity duration-500 group-hover:opacity-30"
+                    className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-[0.38] transition-opacity duration-500 group-hover:opacity-[0.52]"
                   />
                   <div
                     aria-hidden="true"
-                    className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-card/85 via-card/70 to-card/90"
+                    className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-card/70 via-card/55 to-card/80"
+                  />
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,_hsl(220_42%_8%_/_0.55),_transparent_60%)]"
                   />
                 </>
               )}
