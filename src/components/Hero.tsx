@@ -17,7 +17,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
           height={256}
           loading="eager"
           decoding="async"
-          className="h-[80%] max-h-[680px] w-auto opacity-[0.06] mix-blend-screen md:opacity-[0.08]"
+          className="h-[80%] max-h-[680px] w-auto opacity-[0.12] md:opacity-[0.16]"
         />
       </div>
       {/* Top gold hairline */}
