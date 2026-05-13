@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { SectorGrid } from "@/components/SectorGrid";
+import { CATALOG } from "@/data/catalog";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { LazyOnVisible } from "@/components/LazyOnVisible";
