@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Bird, Loader2, FileDown, FileText, Save, Sparkles, Wand2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,8 @@ const splitLines = (s: string) =>
 export default function BuildContractPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const presetCategory = searchParams.get("category") ?? "";
 
   // Restore persisted state
   const persisted = useMemo(() => {
@@ -43,7 +45,11 @@ export default function BuildContractPage() {
   }, []);
 
   const [name, setName] = useState<string>(persisted?.name ?? "");
-  const [categoryId, setCategoryId] = useState<string>(persisted?.categoryId ?? "");
+  const [categoryId, setCategoryId] = useState<string>(
+    presetCategory && SECTORS.some((s) => s.id === presetCategory)
+      ? presetCategory
+      : (persisted?.categoryId ?? ""),
+  );
   const [categoryOther, setCategoryOther] = useState<string>(persisted?.categoryOther ?? "");
   const [partiesA, setPartiesA] = useState<string>(persisted?.partiesA ?? "");
   const [partiesB, setPartiesB] = useState<string>(persisted?.partiesB ?? "");
@@ -78,6 +84,14 @@ export default function BuildContractPage() {
   useEffect(() => {
     trackEvent("build_contract_open");
   }, []);
+
+  // Apply preset category from URL (?category=:id) when navigating in from a sector page.
+  useEffect(() => {
+    if (presetCategory && SECTORS.some((s) => s.id === presetCategory) && presetCategory !== categoryId) {
+      setCategoryId(presetCategory);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presetCategory]);
 
   useEffect(() => {
     if (!user) { setIsPro(false); return; }

@@ -118,8 +118,8 @@ export default function SectorPage() {
               </p>
 
               <div className="mt-7 flex flex-wrap items-center gap-3">
-                <Link to={`/wizard/${sector.id}`} className="btn-gold">
-                  Започни договор <ArrowRight className="h-4 w-4" />
+                <Link to={`/build?category=${sector.id}`} className="btn-gold">
+                  Изготви договор <ArrowRight className="h-4 w-4" />
                 </Link>
                 {totalDocs > 0 && (
                   <a href="#templates" className="btn-ghost-gold">
@@ -261,8 +261,8 @@ export default function SectorPage() {
           <p className="mx-auto mt-3 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground">
             Стратегическо интервю, риск-анализ и готов договор в PDF и DOCX за под 2 минути.
           </p>
-          <Link to={`/wizard/${sector.id}`} className="btn-gold mt-7">
-            Започни сега <ArrowRight className="h-4 w-4" />
+          <Link to={`/build?category=${sector.id}`} className="btn-gold mt-7">
+            Изготви договор <ArrowRight className="h-4 w-4" />
           </Link>
         </section>
       </main>
