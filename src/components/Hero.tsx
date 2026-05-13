@@ -1,4 +1,4 @@
-import { ShieldCheck, Bird, FileText, ArrowRight } from "lucide-react";
+import { ShieldCheck, Bird, FileText, ArrowRight, Search } from "lucide-react";
 import logoImg from "@/assets/logo-dogovori.webp";
 
 export function Hero({ onStart }: { onStart: () => void }) {
@@ -37,12 +37,12 @@ export function Hero({ onStart }: { onStart: () => void }) {
           <p className="mx-auto mt-5 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground sm:text-base md:mt-6 md:text-lg md:leading-[1.7]">
             Освен шаблони и бланки, сайтът предлага стратегически въпроси, които да напътстват Вашата сделка. Dogovori.net изгражда индивидуални договори и документи, съобразени със ЗЗД, ТЗ и ЗУТ, придружени от пълен правен риск-анализ.
           </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-            <button onClick={onStart} className="btn-gold w-full sm:w-auto normal-case tracking-normal">
-              Намери договор
+          <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-5">
+            <button onClick={onStart} className="btn-gold w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4">
+              <Search className="h-[18px] w-[18px]" /> Намери договор
             </button>
-            <a href="/build" className="btn-gold-inverse w-full sm:w-auto normal-case tracking-normal">
-              Изготви договор <ArrowRight className="h-4 w-4" />
+            <a href="/build" className="btn-gold-inverse w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4">
+              <ArrowRight className="h-[18px] w-[18px]" /> Изготви договор
             </a>
           </div>
           <div className="mt-3 text-center">
