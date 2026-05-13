@@ -40,7 +40,10 @@ const Index = () => {
       />
       <Header />
       <Hero onStart={startInterview} />
-      <SectorGrid onPick={(id) => navigate(`/wizard/${id}`)} />
+      <SectorGrid onPick={(id) => {
+        const cat = CATALOG.find((c) => c.sectorId === id);
+        navigate(cat ? `/catalog#${cat.id}` : "/catalog");
+      }} />
       <Suspense fallback={null}>
         <LazyOnVisible minHeight={500}>
           <TopDocuments />
