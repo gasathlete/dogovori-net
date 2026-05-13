@@ -21,34 +21,28 @@ export function CookieBanner() {
     <div
       role="dialog"
       aria-label="Бисквитки"
-      className="fixed bottom-3 left-3 right-3 z-50 mx-auto max-w-2xl rounded-xl border border-gold/30 bg-navy/95 p-4 shadow-gold backdrop-blur-xl sm:p-5"
+      className="fixed bottom-3 left-3 z-50 max-w-sm rounded-lg border border-gold/20 bg-navy/90 p-3 shadow-lg backdrop-blur-md"
     >
-      <div className="flex items-start gap-3">
-        <Cookie className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
-        <div className="flex-1 text-sm">
-          <p className="text-foreground">
-            Използваме само технически бисквитки, нужни за работата на сайта. С Ваше съгласие можем
-            да добавим и анонимизирана статистика, която ни помага да подобряваме услугата.
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Подробности в <Link to="/cookies" className="text-gold underline-offset-4 hover:underline">Политика за бисквитките</Link>.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button size="sm" onClick={accept} className="bg-gradient-gold text-navy">
-              Приемам
-            </Button>
-            <Button size="sm" variant="outline" onClick={decline}>
-              Само необходимите
-            </Button>
-          </div>
-        </div>
+      <div className="flex items-center gap-2">
+        <Cookie className="h-4 w-4 shrink-0 text-gold" />
+        <p className="text-xs text-foreground">
+          Използваме бисквитки. <Link to="/cookies" className="text-gold underline-offset-2 hover:underline">Повече</Link>
+        </p>
         <button
           aria-label="Затвори"
           onClick={decline}
-          className="rounded-md p-1 text-muted-foreground hover:text-foreground"
+          className="ml-1 rounded p-1 text-muted-foreground hover:text-foreground"
         >
-          <X className="h-4 w-4" />
+          <X className="h-3 w-3" />
         </button>
+      </div>
+      <div className="mt-2 flex gap-2">
+        <Button size="sm" onClick={accept} className="h-7 bg-gradient-gold px-2 text-xs text-navy">
+          Приемам
+        </Button>
+        <Button size="sm" variant="outline" onClick={decline} className="h-7 px-2 text-xs">
+          Само необходимите
+        </Button>
       </div>
     </div>
   );
