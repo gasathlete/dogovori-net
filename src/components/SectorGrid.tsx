@@ -3,6 +3,52 @@ import { SECTORS } from "@/data/sectors";
 import * as Icons from "lucide-react";
 import { ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
 
+import realEstateImg from "@/assets/sectors/real-estate.jpg";
+import constructionImg from "@/assets/sectors/construction.jpg";
+import logisticsImg from "@/assets/sectors/logistics.jpg";
+import digitalImg from "@/assets/sectors/digital.jpg";
+import partnershipsImg from "@/assets/sectors/partnerships.jpg";
+import tradeImg from "@/assets/sectors/trade.jpg";
+import servicesImg from "@/assets/sectors/services.jpg";
+import employmentImg from "@/assets/sectors/employment.jpg";
+import corporateImg from "@/assets/sectors/corporate.jpg";
+import familyImg from "@/assets/sectors/family.jpg";
+import poaImg from "@/assets/sectors/power-of-attorney.jpg";
+import vehiclesImg from "@/assets/sectors/vehicles.jpg";
+import financeImg from "@/assets/sectors/finance.jpg";
+import ipImg from "@/assets/sectors/ip.jpg";
+import healthcareImg from "@/assets/sectors/healthcare.jpg";
+import educationImg from "@/assets/sectors/education.jpg";
+import ecommerceImg from "@/assets/sectors/ecommerce.jpg";
+import energyImg from "@/assets/sectors/energy.jpg";
+import agricultureImg from "@/assets/sectors/agriculture.jpg";
+import sportsImg from "@/assets/sectors/sports.jpg";
+import mediaImg from "@/assets/sectors/media.jpg";
+
+const SECTOR_IMAGES: Record<string, string> = {
+  "real-estate": realEstateImg,
+  construction: constructionImg,
+  logistics: logisticsImg,
+  digital: digitalImg,
+  partnerships: partnershipsImg,
+  trade: tradeImg,
+  services: servicesImg,
+  employment: employmentImg,
+  corporate: corporateImg,
+  family: familyImg,
+  "power-of-attorney": poaImg,
+  vehicles: vehiclesImg,
+  finance: financeImg,
+  ip: ipImg,
+  healthcare: healthcareImg,
+  education: educationImg,
+  ecommerce: ecommerceImg,
+  energy: energyImg,
+  agriculture: agricultureImg,
+  sports: sportsImg,
+  media: mediaImg,
+};
+
 const INITIAL_VISIBLE = 9;
 
 export function SectorGrid({ onPick }: { onPick: (id: string) => void }) {
@@ -28,12 +74,30 @@ export function SectorGrid({ onPick }: { onPick: (id: string) => void }) {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-5">
         {visible.map((s) => {
           const Icon = (Icons as any)[s.icon] ?? Icons.FileText;
+          const bg = SECTOR_IMAGES[s.id];
           return (
             <button
               key={s.id}
               onClick={() => onPick(s.id)}
-              className="group relative overflow-hidden rounded-xl surface-elevated p-6 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/45 sm:p-7"
+              className="group relative isolate overflow-hidden rounded-xl surface-elevated p-6 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/45 sm:p-7"
             >
+              {bg && (
+                <>
+                  <img
+                    src={bg}
+                    alt=""
+                    aria-hidden="true"
+                    loading="lazy"
+                    width={1024}
+                    height={768}
+                    className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-[0.18] mix-blend-screen transition-opacity duration-500 group-hover:opacity-30"
+                  />
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-card/85 via-card/70 to-card/90"
+                  />
+                </>
+              )}
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/0 to-transparent transition-all duration-300 group-hover:via-gold/70" />
               <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-lg border border-gold/25 bg-gold/5 text-gold transition-all duration-200 group-hover:border-gold/50 group-hover:bg-gold/10">
                 <Icon className="h-5 w-5" strokeWidth={1.6} />
