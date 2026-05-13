@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { SectorGrid } from "@/components/SectorGrid";
+import { CATALOG } from "@/data/catalog";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { LazyOnVisible } from "@/components/LazyOnVisible";
@@ -39,7 +40,10 @@ const Index = () => {
       />
       <Header />
       <Hero onStart={startInterview} />
-      <SectorGrid onPick={(id) => navigate(`/wizard/${id}`)} />
+      <SectorGrid onPick={(id) => {
+        const cat = CATALOG.find((c) => c.sectorId === id);
+        navigate(cat ? `/catalog#${cat.id}` : "/catalog");
+      }} />
       <Suspense fallback={null}>
         <LazyOnVisible minHeight={500}>
           <TopDocuments />
