@@ -22,9 +22,8 @@ const Index = () => {
   useEffect(() => {
     if (location.hash) {
       const id = location.hash.replace("#", "");
-      setTimeout(() => {
-        document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-      }, 80);
+      // Use polling helper so lazy-mounted sections (Process, Compliance...) are awaited.
+      import("@/lib/scrollToHash").then(({ scrollToHash }) => scrollToHash(id, { updateHash: false }));
     }
   }, [location]);
 
