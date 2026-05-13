@@ -1,5 +1,6 @@
 import { ShieldCheck, Bird, FileText, ArrowRight, Search } from "lucide-react";
 import logoImg from "@/assets/logo-dogovori-hero.png";
+import { scrollToHash } from "@/lib/scrollToHash";
 
 export function Hero({ onStart }: { onStart: () => void }) {
   return (
@@ -50,13 +51,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
               type="button"
               onClick={(e) => {
                 e.preventDefault();
-                const el = document.getElementById("process");
-                if (el) {
-                  el.scrollIntoView({ behavior: "smooth", block: "start" });
-                  if (window.location.hash !== "#process") {
-                    window.history.replaceState(null, "", "#process");
-                  }
-                }
+                scrollToHash("process");
               }}
               className="text-xs uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold"
             >
