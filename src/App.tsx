@@ -19,6 +19,7 @@ const Wizard = lazy(() => import("./pages/Wizard.tsx"));
 const BuildContract = lazy(() => import("./pages/BuildContract.tsx"));
 const Catalog = lazy(() => import("./pages/Catalog.tsx"));
 const Category = lazy(() => import("./pages/Category.tsx"));
+const Sector = lazy(() => import("./pages/Sector.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.tsx"));
 const Account = lazy(() => import("./pages/Account.tsx"));
@@ -77,6 +78,7 @@ const App = () => (
               <Route path="/build" element={<BuildContract />} />
               <Route path="/catalog" element={<Catalog />} />
               <Route path="/kategoria/:slug" element={<Category />} />
+              <Route path="/sektor/:id" element={<Sector />} />
               <Route path="/shablon/:slug" element={<Template />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
