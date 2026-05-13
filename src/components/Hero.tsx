@@ -41,7 +41,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
             <a href="/build" className="btn-gold w-full sm:w-auto">
               Изготви договор <ArrowRight className="h-4 w-4" />
             </a>
-            <button onClick={onStart} className="btn-ghost-gold w-full sm:w-auto normal-case tracking-normal">
+            <button onClick={onStart} className="btn-gold-inverse w-full sm:w-auto normal-case tracking-normal">
               Намери договор
             </button>
           </div>
