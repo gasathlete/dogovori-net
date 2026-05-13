@@ -54,7 +54,7 @@ export default function BlogUserPost() {
         .maybeSingle();
       if (cancelled) return;
       if (error || !data) { setNotFound(true); setLoading(false); return; }
-      const article = data as UserArticle;
+      const article = data as unknown as UserArticle;
       const { data: prof } = await supabase
         .from("profiles").select("display_name").eq("id", article.user_id).maybeSingle();
       article.author_name = prof?.display_name ?? null;
