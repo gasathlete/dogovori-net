@@ -1,4 +1,4 @@
-import logoImg from "@/assets/logo-dogovori.webp";
+import logoImg from "@/assets/logo-dogovori.png";
 
 export function Logo({ className = "", compact = false }: { className?: string; compact?: boolean }) {
   return (
