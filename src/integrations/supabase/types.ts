@@ -125,6 +125,60 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_contract_blanks: {
+        Row: {
+          blank_payload: Json
+          category: string
+          category_sector_id: string | null
+          created_at: string
+          id: string
+          name: string
+          occurrences: number
+          published_document_name: string | null
+          published_sector_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_user_id: string | null
+          status: string
+          text_hash: string
+          updated_at: string
+        }
+        Insert: {
+          blank_payload: Json
+          category: string
+          category_sector_id?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          occurrences?: number
+          published_document_name?: string | null
+          published_sector_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_user_id?: string | null
+          status?: string
+          text_hash: string
+          updated_at?: string
+        }
+        Update: {
+          blank_payload?: Json
+          category?: string
+          category_sector_id?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          occurrences?: number
+          published_document_name?: string | null
+          published_sector_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_user_id?: string | null
+          status?: string
+          text_hash?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       document_blanks: {
         Row: {
           created_at: string

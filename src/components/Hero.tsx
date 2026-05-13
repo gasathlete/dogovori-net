@@ -38,11 +38,16 @@ export function Hero({ onStart }: { onStart: () => void }) {
             Освен шаблони и бланки, сайтът предлага стратегически въпроси, които да напътстват Вашата сделка. Dogovori.net изгражда индивидуални договори и документи, съобразени със ЗЗД, ТЗ и ЗУТ, придружени от пълен правен риск-анализ.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-            <button onClick={onStart} className="btn-gold w-full sm:w-auto">
-              Намери договор <ArrowRight className="h-4 w-4" />
+            <a href="/build" className="btn-gold w-full sm:w-auto">
+              Изготви договор <ArrowRight className="h-4 w-4" />
+            </a>
+            <button onClick={onStart} className="btn-ghost-gold w-full sm:w-auto normal-case tracking-normal">
+              Намери договор
             </button>
-            <a href="#process" className="btn-ghost-gold w-full sm:w-auto normal-case tracking-normal">
-              Как работи процесът
+          </div>
+          <div className="mt-3 text-center">
+            <a href="#process" className="text-xs uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold">
+              Как работи процесът ↓
             </a>
           </div>
 

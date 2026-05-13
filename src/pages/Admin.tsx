@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, Crown, Loader2, Search, ShieldCheck, ShieldOff, Plus } from "lucide-react";
 import { AdminPartnersPanel } from "@/components/AdminPartnersPanel";
+import { AdminBlanksPanel } from "@/components/AdminBlanksPanel";
 
 type Row = {
   user_id: string;
@@ -188,6 +189,7 @@ export default function AdminPage() {
         </div>
 
         <AdminPartnersPanel />
+        <AdminBlanksPanel />
       </div>
 
       <Dialog open={!!proDialog} onOpenChange={(o) => !o && setProDialog(null)}>

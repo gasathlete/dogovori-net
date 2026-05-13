@@ -5,9 +5,9 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
 const NAV = [
-  { to: "/#sectors", label: "Сектори" },
-  { to: "/#process", label: "Функции" },
+  { to: "/build", label: "Изготви договор" },
   { to: "/catalog", label: "Каталог" },
+  { to: "/#sectors", label: "Сектори" },
   { to: "/blog", label: "Блог" },
   { to: "/#compliance", label: "Съответствие" },
 ];

@@ -16,6 +16,7 @@ import { initSentry } from "@/lib/sentry";
 // Heavy deps (jspdf, docx, templateContent ~808KB) only load when their route is visited.
 const Template = lazy(() => import("./pages/Template.tsx"));
 const Wizard = lazy(() => import("./pages/Wizard.tsx"));
+const BuildContract = lazy(() => import("./pages/BuildContract.tsx"));
 const Catalog = lazy(() => import("./pages/Catalog.tsx"));
 const Category = lazy(() => import("./pages/Category.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
@@ -71,6 +72,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/wizard/:sectorId" element={<Wizard />} />
+              <Route path="/build" element={<BuildContract />} />
               <Route path="/catalog" element={<Catalog />} />
               <Route path="/kategoria/:slug" element={<Category />} />
               <Route path="/shablon/:slug" element={<Template />} />
