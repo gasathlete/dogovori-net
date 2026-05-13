@@ -33,13 +33,20 @@ export function trackOutbound(url: string) {
   trackEvent("Outbound Link: Click", { url });
 }
 
-// Legacy compatibility shims (old GA4 API). Safe no-ops.
-export function getConsent(): "granted" {
-  return "granted";
+const CONSENT_KEY = "cookie-consent";
+
+export function getConsent(): "granted" | "denied" | null {
+  if (typeof window === "undefined") return null;
+  const v = localStorage.getItem(CONSENT_KEY);
+  return v === "granted" || v === "denied" ? v : null;
 }
-export function setConsent(_: "granted" | "denied") {
-  /* cookieless — no consent needed */
+
+export function setConsent(value: "granted" | "denied") {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(CONSENT_KEY, value);
+  if (value === "granted") initAnalytics();
 }
+
 export function initAnalytics() {
-  /* loaded via index.html */
+  /* Plausible loads via index.html; nothing extra to init */
 }
