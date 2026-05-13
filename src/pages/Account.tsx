@@ -754,11 +754,24 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   const { user } = useAuth();
   const [busy, setBusy] = useState(false);
   const [checkoutPrice, setCheckoutPrice] = useState<string | null>(null);
+  const [subStatus, setSubStatus] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const redirectAfter = searchParams.get("redirect") || "";
   const returnUrl = `${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}${
     redirectAfter ? `&redirect=${encodeURIComponent(redirectAfter)}` : ""
   }`;
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("subscriptions")
+      .select("status")
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setSubStatus((data as any)?.status ?? null));
+  }, [user]);
 
   const portal = async () => {
     setBusy(true);
