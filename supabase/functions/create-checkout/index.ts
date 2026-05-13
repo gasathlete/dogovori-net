@@ -38,10 +38,8 @@ Deno.serve(async (req) => {
       mode: isRecurring ? "subscription" : "payment",
       ui_mode: "embedded_page",
       return_url: returnUrl,
-      automatic_tax: { enabled: true },
-      tax_id_collection: { enabled: true },
       ...(customerId
-        ? { customer: customerId, customer_update: { address: "auto", name: "auto" } }
+        ? { customer: customerId }
         : customerEmail
           ? { customer_email: customerEmail }
           : {}),
