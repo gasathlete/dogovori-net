@@ -38,9 +38,11 @@ Deno.serve(async (req) => {
       mode: isRecurring ? "subscription" : "payment",
       ui_mode: "embedded_page",
       return_url: returnUrl,
-      // Force card to avoid "No valid payment method types" when the live
-      // Stripe account has no EUR payment methods activated in the dashboard.
-      payment_method_types: ["card"],
+      // Enable wallets (Apple Pay / Google Pay) — they ride on the "card"
+      // payment method which Stripe auto-includes when payment_method_types
+      // is omitted, as long as cards + wallets are activated in the Stripe
+      // dashboard for the account's currency.
+      automatic_payment_methods: { enabled: true },
       ...(customerId
         ? { customer: customerId }
         : customerEmail
