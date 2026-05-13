@@ -1,5 +1,5 @@
 import { ShieldCheck, Bird, FileText, ArrowRight, Search } from "lucide-react";
-import logoImg from "@/assets/logo-dogovori.png";
+import logoImg from "@/assets/logo-dogovori-hero.png";
 
 export function Hero({ onStart }: { onStart: () => void }) {
   return (
