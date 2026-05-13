@@ -38,6 +38,9 @@ Deno.serve(async (req) => {
       mode: isRecurring ? "subscription" : "payment",
       ui_mode: "embedded_page",
       return_url: returnUrl,
+      // Force card to avoid "No valid payment method types" when the live
+      // Stripe account has no EUR payment methods activated in the dashboard.
+      payment_method_types: ["card"],
       ...(customerId
         ? { customer: customerId }
         : customerEmail
