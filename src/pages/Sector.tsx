@@ -25,9 +25,9 @@ export default function SectorPage() {
   const bgImage = SECTOR_IMAGES[sector.id];
   const totalDocs = categories.reduce((s, c) => s + c.documents.length, 0);
   const canonical = `/sektor/${sector.id}`;
-  const title = `${sector.title} — договори, бланки и шаблони | Dogovori.net`;
+  const title = `${sector.title} — договори и бланки на български | Образци`;
   const desc =
-    `${sector.description} ${totalDocs > 0 ? `Над ${totalDocs} готови шаблона.` : ""}`.trim();
+    `${totalDocs}+ готови образци и шаблони на договори за ${sector.title.toLowerCase()} – безплатно на български, PDF/DOCX, по ЗЗД и ТЗ. ${sector.description}`.slice(0, 160);
 
   const breadcrumbsLd = {
     "@context": "https://schema.org",
