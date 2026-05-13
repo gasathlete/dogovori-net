@@ -42,10 +42,10 @@ export default function TemplatePage() {
 
   const wizardHref = `/wizard/${category.sectorId}?doc=${encodeURIComponent(doc.name)}`;
   const canonical = `/shablon/${entry.slug}`;
-  const pageTitle = `${doc.name} — образец на български | Dogovori.net`;
+  const pageTitle = `${doc.name} — образец и бланка на български | PDF, DOCX`;
   const pageDesc = meta?.introExcerpt
-    ? meta.introExcerpt.slice(0, 155)
-    : `${doc.purpose} Готов шаблон по българското право (ЗЗД, ТЗ). Попълни и изтегли PDF/DOCX за 2 минути.`;
+    ? `${meta.introExcerpt.slice(0, 110)} Безплатен образец на ${doc.name.toLowerCase()} – PDF/DOCX, по ЗЗД и ТЗ.`.slice(0, 160)
+    : `Безплатен образец на ${doc.name.toLowerCase()} на български – готов шаблон по ЗЗД, ТЗ и КТ. Попълни и изтегли PDF или DOCX за 2 минути.`.slice(0, 160);
 
   // Use AI-generated rich content when loaded; show generic fallback meanwhile (zero CLS — same DOM).
   const intro = aiContent?.intro ?? meta?.introExcerpt;
@@ -132,6 +132,39 @@ export default function TemplatePage() {
     })),
   };
 
+  const productLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: `${doc.name} — образец`,
+    description: doc.purpose,
+    inLanguage: "bg-BG",
+    category: category.title,
+    brand: { "@type": "Brand", name: "Dogovori.net" },
+    url: `https://dogovori.net${canonical}`,
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "BGN",
+      availability: "https://schema.org/InStock",
+      url: `https://dogovori.net${canonical}`,
+    },
+  };
+
+  const howToLd = {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: `Как да изготвя ${doc.name.toLowerCase()} онлайн`,
+    inLanguage: "bg-BG",
+    totalTime: "PT2M",
+    step: [
+      { "@type": "HowToStep", position: 1, name: "Избор на шаблон", text: `Изберете „${doc.name}“ от каталога на Dogovori.net.` },
+      { "@type": "HowToStep", position: 2, name: "Попълване на въпросник", text: "Отговорете на стратегическия въпросник, изграден от юристи." },
+      { "@type": "HowToStep", position: 3, name: "Анализ на риска", text: "Системата проверява клаузите по ЗЗД, ТЗ и КТ и предлага корекции." },
+      { "@type": "HowToStep", position: 4, name: "Експорт", text: "Изтеглете готовия документ в PDF или DOCX формат." },
+      { "@type": "HowToStep", position: 5, name: "Електронен подпис", text: "Подпишете документа онлайн или го разпечатайте." },
+    ],
+  };
+
   return (
     <div className="min-h-screen">
       <Seo
@@ -139,7 +172,7 @@ export default function TemplatePage() {
         description={pageDesc}
         canonical={canonical}
         type="article"
-        jsonLd={[breadcrumbsLd, articleLd, faqLd]}
+        jsonLd={[breadcrumbsLd, articleLd, productLd, howToLd, faqLd]}
       />
       <Header />
 

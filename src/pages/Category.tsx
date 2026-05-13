@@ -17,8 +17,8 @@ export default function CategoryPage() {
 
   const Icon = (Icons as any)[cat.icon] ?? Icons.FileText;
   const canonical = `/kategoria/${cat.id}`;
-  const title = `${cat.title} — шаблони на договори | Dogovori.net`;
-  const desc = `${cat.intro} Над ${cat.documents.length} готови шаблона по българското право (ЗЗД, ТЗ, КТ).`.slice(0, 160);
+  const title = `${cat.title} — договори, образци и бланки на български`;
+  const desc = `${cat.documents.length}+ готови образци и шаблони за ${cat.title.toLowerCase()} на български. Безплатно изтегляне в PDF/DOCX, по ЗЗД, ТЗ и КТ. ${cat.intro}`.slice(0, 160);
 
   const breadcrumbsLd = {
     "@context": "https://schema.org",
