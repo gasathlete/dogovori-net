@@ -1,35 +1,23 @@
-Ще обогатя SEO мета-данните на български за всички ключови страници на сайта и ще добавя структурирани данни за rich snippets в Google. Sitemap вече покрива всичките 345 URL-а (292 шаблона + категории + сектори + блог), тъй че там няма промени.
+## Цел
 
-**Какво ще направя**
+Всички имейл адреси, показвани на потребителите в сайта (contact, dpo, billing), да сочат към реалния ти имейл `imdevelopmentoffice@gmail.com`, за да получаваш съобщенията директно там.
 
-1. **Шаблони `/shablon/:slug`** (`src/pages/Template.tsx`)
-   - По-богат title формат: `{Име} — образец и бланка на български | PDF, DOCX | Dogovori.net` (под 60 символа където е възможно).
-   - По-богат description: включва ключови думи „образец“, „бланка“, „безплатно изтегляне“, „PDF/DOCX“, „2024/2026“, „по българското право (ЗЗД, ТЗ)“.
-   - Нов **Product JSON-LD** (с `offers` price 0, наличност, рейтинг ако имаме) — отключва Product rich snippets.
-   - Нов **HowTo JSON-LD** (5 стъпки: избор → попълване → анализ → експорт → подпис) — отключва HowTo rich snippets.
-   - Запазвам съществуващите Article, FAQPage, BreadcrumbList.
+## Промени
 
-2. **Категории `/kategoria/:id`** (`src/pages/Category.tsx`)
-   - Title: `{Заглавие} — договори и бланки на български | Dogovori.net`
-   - Description с фрази „образци“, „шаблони“, „безплатно“, „по ЗЗД/ТЗ“ + брой документи в категорията.
+Ще заменя следните адреси във frontend кода:
 
-3. **Сектори `/sektor/:id`** (`src/pages/Sector.tsx`)
-   - Title: `{Сектор} — договори за {сектор} на български | Dogovori.net`
-   - Description с релевантни за сектора ключови думи и брой документи.
+| Файл | Текущ адрес | Нов адрес |
+|---|---|---|
+| `src/components/Footer.tsx` | `contact@dogovori.net` | `imdevelopmentoffice@gmail.com` |
+| `src/components/SeoFooter.tsx` | `contact@dogovori.net` | `imdevelopmentoffice@gmail.com` |
+| `src/pages/legal/Terms.tsx` | `contact@dogovori.net` | `imdevelopmentoffice@gmail.com` |
+| `src/pages/legal/Privacy.tsx` | `dpo@dogovori.net` | `imdevelopmentoffice@gmail.com` |
+| `src/pages/legal/Refund.tsx` | `billing@dogovori.net` | `imdevelopmentoffice@gmail.com` |
 
-4. **Каталог `/catalog`** (`src/pages/Catalog.tsx`)
-   - Подсилен title/description с „290+ договора на български“, „образци, бланки, шаблони“, „безплатно за първия документ“.
+Всички `mailto:` линкове също ще бъдат обновени, така че кликването да отваря имейл клиента с правилния адрес.
 
-5. **Начална страница `/`** (`src/pages/Index.tsx`)
-   - Подсилен title и description с водещи български ключови думи.
+## Бележки
 
-**Какво НЯМА да правя**
-- Sitemap.xml — вече го имате с всички 345 URL-а през `scripts/build-sitemap.ts`. Ще оставя логиката му непроменена.
-- Промени по визуалното съдържание/заглавията в страницата (само meta/JSON-LD).
-
-**Технически детайли**
-- Всички промени минават през `<Seo>` компонента + `jsonLd` prop, без нови зависимости.
-- Product schema получава `offers: { price: "0", priceCurrency: "BGN", availability: "InStock" }` за безплатния първи документ.
-- HowTo schema използва същите стъпки като компонента `Process` (синхронизирани).
-- Заглавията остават под 60 символа, описанията под 160 (`Seo.tsx` вече реже автоматично).
-- Канонични URL-и не се пипат — остават както са сега.
+- Това е чисто текстова промяна в UI — не пипа backend, edge functions или транзакционни имейли (welcome, payment receipt и т.н.), които вече се изпращат от `notify@notify.dogovori.net`.
+- Ако по-късно искаш всеки от тях да сочи към различен адрес (напр. `billing@` към друг имейл), мога лесно да ги разделя.
+- Алтернатива (по-професионално изглеждащо за потребителите): да оставим адресите като `contact@dogovori.net` и да настроиш forwarding в твоя домейн доставчик към Gmail-а ти. Това обаче е извън Lovable — става при регистратора на домейна.
