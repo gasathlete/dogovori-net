@@ -70,7 +70,7 @@ export default function TermsPage() {
       </p>
 
       <h2>9. Контакти</h2>
-      <p>За въпроси: <a href="mailto:contact@dogovori.net">contact@dogovori.net</a></p>
+      <p>За въпроси: <a href="mailto:imdevelopmentoffice@gmail.com">imdevelopmentoffice@gmail.com</a></p>
     </LegalLayout>
   );
 }
