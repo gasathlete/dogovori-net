@@ -308,6 +308,8 @@ export default function TeamPage() {
             </ul>
           </div>
         )}
+          </TabsContent>
+        </Tabs>
       </main>
       <Footer />
 
