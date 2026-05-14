@@ -890,18 +890,18 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             </Button>
           </div>
 
-          {/* Single contract */}
+          {/* 5 операции */}
           <div className="order-2 flex flex-col rounded-xl border border-border/60 bg-gradient-card p-5 sm:p-6 lg:order-1">
-            <div className="text-xs uppercase tracking-wider text-muted-foreground">Единичен договор</div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">5 операции</div>
             <div className="mt-2 font-serif text-2xl font-bold sm:text-3xl">1.90 €</div>
-            <p className="mt-1 text-xs text-muted-foreground">Еднократно — един Pro договор</p>
+            <p className="mt-1 text-xs text-muted-foreground">Еднократно — пакет от 5 операции</p>
             <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
-              <li>• Сваляне на 1 договор (PDF + DOCX)</li>
+              <li>• 5 операции (договор, бланка или анализ)</li>
               <li>• Без воден знак</li>
-              <li>• Без абонамент</li>
+              <li>• Без абонамент · не изтичат</li>
             </ul>
             <Button
-              onClick={() => setCheckoutPrice("single_contract")}
+              onClick={() => setCheckoutPrice("five_operations")}
               variant="outline"
               className="mt-6 border-gold/40"
             >
