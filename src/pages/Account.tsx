@@ -847,7 +847,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             )}
             {!isPro && ((quota as any)?.bonus_contracts ?? 0) > 0 && (
               <p className="mt-2 text-sm text-gold">
-                Налични единични тегления: {(quota as any)?.bonus_contracts}
+                Налични операции: {(quota as any)?.bonus_contracts}
               </p>
             )}
           </div>
