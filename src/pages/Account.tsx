@@ -246,6 +246,12 @@ function Dashboard({ quota, isPro, docs }: { quota: Quota | null; isPro: boolean
     <div className="grid gap-4 md:grid-cols-3">
       <Card title="План" value={isPro ? "Pro" : "Free"} icon={<Crown className="h-5 w-5 text-gold" />}
         sub={isPro ? `${(quota as any)?.pro_monthly_used ?? 0}/100 операции/мес` : "3+3 безплатни, после 1+1/мес"} />
+      <Card
+        title="Закупени операции"
+        value={`${(quota as any)?.bonus_contracts ?? 0}`}
+        icon={<Crown className="h-5 w-5 text-gold" />}
+        sub={((quota as any)?.bonus_contracts ?? 0) > 0 ? "Налични за ползване · не изтичат" : "Купете пакет от 5 операции"}
+      />
       <Card title="Свалени договори" value={`${quota?.contracts_used ?? 0}${isPro ? "" : " / 3"}`} icon={<FileText className="h-5 w-5 text-gold" />} />
       <Card title="Свалени бланки" value={`${quota?.templates_used ?? 0}${isPro ? "" : " / 3"}`} icon={<FileText className="h-5 w-5 text-gold" />} />
 
