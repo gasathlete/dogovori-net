@@ -144,6 +144,7 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          team_id: string | null
           type: Database["public"]["Enums"]["contact_type"]
           updated_at: string
           user_id: string
@@ -161,6 +162,7 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          team_id?: string | null
           type?: Database["public"]["Enums"]["contact_type"]
           updated_at?: string
           user_id: string
@@ -178,6 +180,7 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          team_id?: string | null
           type?: Database["public"]["Enums"]["contact_type"]
           updated_at?: string
           user_id?: string
@@ -933,15 +936,25 @@ export type Database = {
       teams: {
         Row: {
           brand_color: string | null
+          company_address: string | null
+          company_eik: string | null
+          company_email: string | null
+          company_mol: string | null
+          company_phone: string | null
+          company_vat: string | null
+          company_website: string | null
           created_at: string
           current_period_end: string | null
           current_period_start: string | null
           environment: string
           id: string
+          letterhead_enabled: boolean
           logo_url: string | null
           name: string
           owner_id: string
           seat_count: number
+          signature_data_url: string | null
+          signature_name: string | null
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -950,15 +963,25 @@ export type Database = {
         }
         Insert: {
           brand_color?: string | null
+          company_address?: string | null
+          company_eik?: string | null
+          company_email?: string | null
+          company_mol?: string | null
+          company_phone?: string | null
+          company_vat?: string | null
+          company_website?: string | null
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
           environment?: string
           id?: string
+          letterhead_enabled?: boolean
           logo_url?: string | null
           name: string
           owner_id: string
           seat_count?: number
+          signature_data_url?: string | null
+          signature_name?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -967,15 +990,25 @@ export type Database = {
         }
         Update: {
           brand_color?: string | null
+          company_address?: string | null
+          company_eik?: string | null
+          company_email?: string | null
+          company_mol?: string | null
+          company_phone?: string | null
+          company_vat?: string | null
+          company_website?: string | null
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
           environment?: string
           id?: string
+          letterhead_enabled?: boolean
           logo_url?: string | null
           name?: string
           owner_id?: string
           seat_count?: number
+          signature_data_url?: string | null
+          signature_name?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
