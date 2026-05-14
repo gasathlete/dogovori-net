@@ -150,7 +150,8 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
       for (const li of items.data) {
         const price: any = (li as any).price;
         const lookup = price?.lookup_key || price?.metadata?.lovable_external_id;
-        if (lookup === "single_contract") bonus += li.quantity ?? 1;
+        if (lookup === "five_operations") bonus += (li.quantity ?? 1) * 5;
+        else if (lookup === "single_contract") bonus += li.quantity ?? 1;
       }
       if (bonus > 0) {
         const { data: q } = await getSupabase()
