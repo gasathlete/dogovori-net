@@ -11,7 +11,7 @@ export default function PrivacyPage() {
         „Dogovori.net" е администратор на лични данни по смисъла на Регламент (ЕС) 2016/679
         (GDPR) и Закона за защита на личните данни.
       </p>
-      <p>Контакт за въпроси по защита на данните: <a href="mailto:dpo@dogovori.net">dpo@dogovori.net</a></p>
+      <p>Контакт за въпроси по защита на данните: <a href="mailto:imdevelopmentoffice@gmail.com">imdevelopmentoffice@gmail.com</a></p>
 
       <h2>2. Какви данни събираме</h2>
       <ul>

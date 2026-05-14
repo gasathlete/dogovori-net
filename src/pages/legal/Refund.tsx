@@ -30,7 +30,7 @@ export default function RefundPage() {
 
       <h2>Как да поискате възстановяване</h2>
       <p>
-        Изпратете email на <a href="mailto:billing@dogovori.net">billing@dogovori.net</a> с:
+        Изпратете email на <a href="mailto:imdevelopmentoffice@gmail.com">imdevelopmentoffice@gmail.com</a> с:
       </p>
       <ul>
         <li>Email на акаунта.</li>
