@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 type Contact = {
   id: string;
   name: string;
-  type: "individual" | "company";
+  type: "individual" | "legal";
   eik: string | null;
   vat_number: string | null;
   address: string | null;
@@ -24,7 +24,7 @@ type Contact = {
   created_at: string;
 };
 
-const empty: Partial<Contact> = { type: "company", name: "" };
+const empty: Partial<Contact> = { type: "legal", name: "" };
 
 export function TeamContacts({ teamId, isAdmin }: { teamId: string; isAdmin: boolean }) {
   const { user } = useAuth();
@@ -63,7 +63,7 @@ export function TeamContacts({ teamId, isAdmin }: { teamId: string; isAdmin: boo
         vat_number: editing.vat_number || data.data.vat_number || null,
         address: editing.address || data.data.address || null,
         mol: editing.mol || data.data.mol || null,
-        type: "company",
+        type: "legal",
       });
       toast.success("Попълнено");
     } else {
@@ -77,7 +77,7 @@ export function TeamContacts({ teamId, isAdmin }: { teamId: string; isAdmin: boo
     if (!user) return;
     setBusy(true);
     const payload = {
-      name: editing.name, type: editing.type || "company",
+      name: editing.name, type: editing.type || "legal",
       eik: editing.eik || null, vat_number: editing.vat_number || null,
       address: editing.address || null, mol: editing.mol || null,
       email: editing.email || null, phone: editing.phone || null,
@@ -125,7 +125,7 @@ export function TeamContacts({ teamId, isAdmin }: { teamId: string; isAdmin: boo
       if (!name) return null;
       return {
         user_id: user.id, team_id: teamId, name,
-        type: map.eik >= 0 && cols[map.eik] ? "company" : "individual",
+        type: map.eik >= 0 && cols[map.eik] ? "legal" : "individual",
         eik: map.eik >= 0 ? cols[map.eik] || null : null,
         vat_number: map.vat >= 0 ? cols[map.vat] || null : null,
         address: map.address >= 0 ? cols[map.address] || null : null,
@@ -178,7 +178,7 @@ export function TeamContacts({ teamId, isAdmin }: { teamId: string; isAdmin: boo
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <span className="truncate">{c.name}</span>
-                  <span className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] uppercase text-muted-foreground">{c.type === "company" ? "Фирма" : "Лице"}</span>
+                  <span className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] uppercase text-muted-foreground">{c.type === "legal" ? "Фирма" : "Лице"}</span>
                 </div>
                 <div className="mt-0.5 truncate text-xs text-muted-foreground">
                   {[c.eik && `ЕИК ${c.eik}`, c.email, c.phone].filter(Boolean).join(" · ")}
@@ -200,10 +200,10 @@ export function TeamContacts({ teamId, isAdmin }: { teamId: string; isAdmin: boo
           <DialogHeader><DialogTitle>{editing.id ? "Редакция" : "Нов контакт"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
-              <Button variant={editing.type === "company" ? "default" : "outline"} size="sm" onClick={() => setEditing({ ...editing, type: "company" })} className={editing.type === "company" ? "bg-gradient-gold text-navy" : ""}>Фирма</Button>
+              <Button variant={editing.type === "legal" ? "default" : "outline"} size="sm" onClick={() => setEditing({ ...editing, type: "legal" })} className={editing.type === "legal" ? "bg-gradient-gold text-navy" : ""}>Фирма</Button>
               <Button variant={editing.type === "individual" ? "default" : "outline"} size="sm" onClick={() => setEditing({ ...editing, type: "individual" })} className={editing.type === "individual" ? "bg-gradient-gold text-navy" : ""}>Физ. лице</Button>
             </div>
-            {editing.type === "company" && (
+            {editing.type === "legal" && (
               <div>
                 <Label>ЕИК</Label>
                 <div className="flex gap-2">
@@ -213,10 +213,10 @@ export function TeamContacts({ teamId, isAdmin }: { teamId: string; isAdmin: boo
               </div>
             )}
             <div>
-              <Label>Име{editing.type === "company" ? " на фирмата" : ""} *</Label>
+              <Label>Име{editing.type === "legal" ? " на фирмата" : ""} *</Label>
               <Input value={editing.name || ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
             </div>
-            {editing.type === "company" && (
+            {editing.type === "legal" && (
               <>
                 <div className="grid grid-cols-2 gap-2">
                   <div><Label>ДДС №</Label><Input value={editing.vat_number || ""} onChange={(e) => setEditing({ ...editing, vat_number: e.target.value })} /></div>
