@@ -622,14 +622,6 @@ export default function WizardPage() {
 
             {result && (
               <div className="space-y-5 animate-fade-in">
-                <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft">
-                  <RiskReport
-                    level={result.risk.level}
-                    issues={result.risk.issues || []}
-                    recommendations={result.risk.recommendations || []}
-                  />
-                </div>
-
                 <CorrectionsPanel
                   isPro={isPro}
                   issues={result.risk.issues || []}
@@ -639,6 +631,14 @@ export default function WizardPage() {
                   onApply={handleApplyCorrections}
                   onUpgrade={() => navigate("/account?tab=subscription")}
                 />
+
+                <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft">
+                  <RiskReport
+                    level={result.risk.level}
+                    issues={result.risk.issues || []}
+                    recommendations={result.risk.recommendations || []}
+                  />
+                </div>
 
                 <SignatureBlock
                   isPro={isPro}
