@@ -147,10 +147,8 @@ export default function TeamPage() {
             <div className="p-6">
               {checkoutSecret && user && (
                 <StripeEmbeddedCheckout
-                  priceId={createBilling === "monthly" ? "team_seat_monthly" : "team_seat_yearly"}
-                  customerEmail={user.email}
-                  userId={user.id}
-                  returnUrl={`${window.location.origin}/team?checkout=success&session_id={CHECKOUT_SESSION_ID}`}
+                  key={checkoutSecret}
+                  clientSecret={checkoutSecret}
                 />
               )}
             </div>
