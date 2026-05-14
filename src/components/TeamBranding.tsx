@@ -134,7 +134,7 @@ export function TeamBranding({ teamId, isAdmin }: { teamId: string; isAdmin: boo
             <div className="flex items-center gap-3 rounded-lg border border-border/60 px-4 py-3">
               <Switch checked={team.letterhead_enabled} onCheckedChange={(v) => update({ letterhead_enabled: v })} />
               <div>
-                <div className="text-sm font-medium">Letterhead на документи</div>
+                <div className="text-sm font-medium">Бланка на документи</div>
                 <div className="text-xs text-muted-foreground">Лого + фирмени данни в горната част на PDF</div>
               </div>
             </div>
@@ -203,7 +203,7 @@ export function TeamBranding({ teamId, isAdmin }: { teamId: string; isAdmin: boo
         {/* Letterhead preview */}
         {team.letterhead_enabled && (
           <div className="rounded-lg border-2 border-dashed border-border/60 p-4">
-            <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Преглед на letterhead</div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Преглед на бланката</div>
             <div className="flex items-start justify-between gap-4 border-b-2 pb-3" style={{ borderColor: team.brand_color || "#c9a84c" }}>
               {team.logo_url && <img src={team.logo_url} alt="" className="h-14 object-contain" />}
               <div className="text-right text-xs leading-tight">
