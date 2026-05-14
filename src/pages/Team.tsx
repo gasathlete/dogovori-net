@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTeam } from "@/hooks/useTeam";
 import { supabase } from "@/integrations/supabase/client";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
+import { TeamDocuments } from "@/components/TeamDocuments";
 import { getStripeEnvironment } from "@/lib/stripe";
 
 export default function TeamPage() {
@@ -195,6 +196,8 @@ export default function TeamPage() {
             </div>
           )}
         </div>
+
+        <TeamDocuments teamId={team.team_id} isAdmin={isAdmin} />
 
         <div className="rounded-2xl border border-border/60 bg-gradient-card p-6">
           <div className="mb-4 flex items-center justify-between">
