@@ -369,10 +369,12 @@ ${truncated}
     // a high score is incoherent (and a classic prompt-injection symptom).
     const highCount = verifiedIssues.filter((i: any) => i?.severity === "high").length;
     const medCount  = verifiedIssues.filter((i: any) => i?.severity === "medium").length;
-    if (highCount >= 2) score = Math.min(score, 4);
-    else if (highCount === 1) score = Math.min(score, 5);
-    else if (medCount >= 3) score = Math.min(score, 6);
-    else if (medCount >= 1) score = Math.min(score, 7);
+    // Softened caps: only severe high-severity issues drag the score down hard.
+    if (highCount >= 3) score = Math.min(score, 3);
+    else if (highCount === 2) score = Math.min(score, 5);
+    else if (highCount === 1) score = Math.min(score, 6);
+    else if (medCount >= 4) score = Math.min(score, 6);
+    else if (medCount >= 2) score = Math.min(score, 7);
 
     const summary = filteredIssuesCount > 0
       ? `${String(parsed.summary ?? "").slice(0, 3800)}\n\n(Бележка: ${filteredIssuesCount} възможна неточност от AI бяха автоматично филтрирани, защото не отговарят на конкретен текст в договора.)`
