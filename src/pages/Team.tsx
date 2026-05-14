@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTeam } from "@/hooks/useTeam";
 import { supabase } from "@/integrations/supabase/client";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
+import { TeamDocuments } from "@/components/TeamDocuments";
 import { getStripeEnvironment } from "@/lib/stripe";
 
 export default function TeamPage() {
