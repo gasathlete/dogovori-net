@@ -82,9 +82,9 @@ export default function TeamPage() {
           </div>
           <div className="rounded-2xl border border-gold/30 bg-gradient-card p-8 text-center">
             <Users className="mx-auto h-12 w-12 text-gold" />
-            <h1 className="mt-4 font-serif text-3xl font-bold">Team план за фирми</h1>
+            <h1 className="mt-4 font-serif text-3xl font-bold">План Екип за фирми</h1>
             <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-              Споделени шаблони, audit log, SSO, branded документи и общ лимит от 100 операции на място на месец.
+              Споделени шаблони, журнал на действията, достъп с фирмен имейл, брандирани документи и общ лимит от 100 операции на място на месец.
               7.90 €/място/месец, мин. 3 места.
             </p>
             <Button onClick={() => setCreateOpen(true)} className="mt-6 bg-gradient-gold text-navy hover:shadow-gold">
@@ -176,7 +176,7 @@ export default function TeamPage() {
         <div className="rounded-2xl border border-gold/30 bg-gradient-card p-6">
           <div className="flex items-start justify-between">
             <div>
-              <div className="text-xs uppercase tracking-wider text-gold">Team</div>
+              <div className="text-xs uppercase tracking-wider text-gold">Екип</div>
               <h1 className="mt-1 font-serif text-2xl font-bold">{team.team_name}</h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 Вашата роля: <strong>{team.role === "owner" ? "Собственик" : team.role === "admin" ? "Администратор" : "Член"}</strong>
