@@ -13,6 +13,9 @@ import { useTeam } from "@/hooks/useTeam";
 import { supabase } from "@/integrations/supabase/client";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { TeamDocuments } from "@/components/TeamDocuments";
+import { TeamBranding } from "@/components/TeamBranding";
+import { TeamContacts } from "@/components/TeamContacts";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getStripeEnvironment } from "@/lib/stripe";
 
 export default function TeamPage() {
@@ -197,8 +200,27 @@ export default function TeamPage() {
           )}
         </div>
 
-        <TeamDocuments teamId={team.team_id} isAdmin={isAdmin} />
+        <Tabs defaultValue="documents" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="documents">Документи</TabsTrigger>
+            <TabsTrigger value="contacts">Контакти</TabsTrigger>
+            <TabsTrigger value="branding">Брандинг</TabsTrigger>
+            <TabsTrigger value="members">Членове</TabsTrigger>
+          </TabsList>
 
+          <TabsContent value="documents" className="mt-4">
+            <TeamDocuments teamId={team.team_id} isAdmin={isAdmin} />
+          </TabsContent>
+
+          <TabsContent value="contacts" className="mt-4">
+            <TeamContacts teamId={team.team_id} isAdmin={isAdmin} />
+          </TabsContent>
+
+          <TabsContent value="branding" className="mt-4">
+            <TeamBranding teamId={team.team_id} isAdmin={isAdmin} />
+          </TabsContent>
+
+          <TabsContent value="members" className="mt-4 space-y-6">
         <div className="rounded-2xl border border-border/60 bg-gradient-card p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-serif text-xl font-bold">Членове ({members.length}/{team.seat_count})</h2>
