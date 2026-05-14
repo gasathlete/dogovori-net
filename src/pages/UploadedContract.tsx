@@ -56,9 +56,24 @@ type Contract = {
 type Contact = { id: string; name: string };
 
 const scoreColor = (s: number) => {
-  if (s >= 8) return "text-emerald-400 border-emerald-400/40 bg-emerald-400/10";
+  if (s >= 7) return "text-emerald-400 border-emerald-400/40 bg-emerald-400/10";
   if (s >= 5) return "text-amber-300 border-amber-300/40 bg-amber-300/10";
+  if (s >= 3) return "text-orange-400 border-orange-400/40 bg-orange-400/10";
   return "text-red-400 border-red-400/40 bg-red-400/10";
+};
+const scoreLabel = (s: number) => {
+  if (s >= 9) return "Изряден договор";
+  if (s >= 7) return "Добър договор";
+  if (s >= 5) return "Препоръчителни корекции";
+  if (s >= 3) return "Проблемен — преговаряй";
+  return "Опасен — не подписвай";
+};
+const scoreSubtext = (s: number) => {
+  if (s >= 9) return "Балансиран, без съществени рискове.";
+  if (s >= 7) return "Малки несъвършенства, безопасен за подпис.";
+  if (s >= 5) return "Има 1-2 средни рискове или липсват важни клаузи.";
+  if (s >= 3) return "Съществени неравнопоставености или липсва защита.";
+  return "Признаци на престъпна, нищожна или крайно неравнопоставена клауза.";
 };
 const sevColor = (s: Issue["severity"]) =>
   s === "high" ? "border-red-400/40 bg-red-400/10 text-red-300"
