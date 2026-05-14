@@ -56,9 +56,24 @@ type Contract = {
 type Contact = { id: string; name: string };
 
 const scoreColor = (s: number) => {
-  if (s >= 8) return "text-emerald-400 border-emerald-400/40 bg-emerald-400/10";
+  if (s >= 7) return "text-emerald-400 border-emerald-400/40 bg-emerald-400/10";
   if (s >= 5) return "text-amber-300 border-amber-300/40 bg-amber-300/10";
+  if (s >= 3) return "text-orange-400 border-orange-400/40 bg-orange-400/10";
   return "text-red-400 border-red-400/40 bg-red-400/10";
+};
+const scoreLabel = (s: number) => {
+  if (s >= 9) return "Изряден договор";
+  if (s >= 7) return "Добър договор";
+  if (s >= 5) return "Препоръчителни корекции";
+  if (s >= 3) return "Проблемен — преговаряй";
+  return "Опасен — не подписвай";
+};
+const scoreSubtext = (s: number) => {
+  if (s >= 9) return "Балансиран, без съществени рискове.";
+  if (s >= 7) return "Малки несъвършенства, безопасен за подпис.";
+  if (s >= 5) return "Има 1-2 средни рискове или липсват важни клаузи.";
+  if (s >= 3) return "Съществени неравнопоставености или липсва защита.";
+  return "Признаци на престъпна, нищожна или крайно неравнопоставена клауза.";
 };
 const sevColor = (s: Issue["severity"]) =>
   s === "high" ? "border-red-400/40 bg-red-400/10 text-red-300"
@@ -630,14 +645,30 @@ export default function UploadedContractPage() {
               <div className={`rounded-xl border p-6 text-center ${scoreColor(analysis.score)}`}>
                 <div className="text-xs uppercase tracking-wider opacity-80">Risk Score</div>
                 <div className="mt-2 font-serif text-5xl font-bold">{analysis.score}<span className="text-xl opacity-60">/10</span></div>
-                <div className="mt-2 text-xs">
-                  {analysis.score >= 8 ? "Балансиран договор" : analysis.score >= 5 ? "Препоръчителни корекции" : "Сериозни рискове"}
-                </div>
+                <div className="mt-2 text-sm font-semibold">{scoreLabel(analysis.score)}</div>
+                <div className="mt-1 text-xs opacity-80">{scoreSubtext(analysis.score)}</div>
               </div>
+
+              {/* SCALE LEGEND */}
+              <div className="rounded-xl border border-border/60 bg-gradient-card p-4">
+                <div className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">Скала на оценката</div>
+                <ul className="space-y-1.5 text-xs">
+                  <li className="flex items-start gap-2"><span className="mt-0.5 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-emerald-400" /><span><strong className="text-emerald-300">9-10</strong> · Изряден — балансиран, без рискове</span></li>
+                  <li className="flex items-start gap-2"><span className="mt-0.5 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-emerald-400/60" /><span><strong className="text-emerald-300">7-8</strong> · Добър — малки несъвършенства, безопасен</span></li>
+                  <li className="flex items-start gap-2"><span className="mt-0.5 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-amber-300" /><span><strong className="text-amber-200">5-6</strong> · Приемлив — препоръчителни корекции</span></li>
+                  <li className="flex items-start gap-2"><span className="mt-0.5 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-orange-400" /><span><strong className="text-orange-300">3-4</strong> · Проблемен — преговаряй преди подпис</span></li>
+                  <li className="flex items-start gap-2"><span className="mt-0.5 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-red-400" /><span><strong className="text-red-300">1-2</strong> · Опасен — не подписвай без юрист</span></li>
+                </ul>
+              </div>
+
               <div className="rounded-xl border border-border/60 bg-gradient-card p-4 space-y-2 text-sm">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Сигнали по тежест</div>
                 <div className="flex items-center justify-between"><span className="flex items-center gap-2"><ShieldAlert className="h-4 w-4 text-red-400" />Висок</span><strong>{issuesByLevel.high}</strong></div>
                 <div className="flex items-center justify-between"><span className="flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-amber-300" />Среден</span><strong>{issuesByLevel.medium}</strong></div>
                 <div className="flex items-center justify-between"><span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-400" />Нисък</span><strong>{issuesByLevel.low}</strong></div>
+                <div className="mt-2 pt-2 border-t border-border/60 text-[11px] leading-relaxed text-muted-foreground">
+                  <strong className="text-red-300">Висок</strong> се вдига само при престъпна, нищожна или крайно неравнопоставена клауза. <strong className="text-amber-200">Среден</strong> е за съществени, но решими проблеми. <strong className="text-emerald-200">Нисък</strong> е стилова забележка.
+                </div>
               </div>
               <div className="rounded-xl border border-border/60 bg-gradient-card p-4 text-xs text-muted-foreground">
                 <div className="mb-1 uppercase tracking-wider">Анализ от</div>
