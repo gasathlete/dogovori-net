@@ -197,6 +197,8 @@ export default function TeamPage() {
           )}
         </div>
 
+        <TeamDocuments teamId={team.team_id} isAdmin={isAdmin} />
+
         <div className="rounded-2xl border border-border/60 bg-gradient-card p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-serif text-xl font-bold">Членове ({members.length}/{team.seat_count})</h2>
