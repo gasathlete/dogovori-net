@@ -22,7 +22,7 @@ export function Footer() {
             <Link to="/privacy" className="hover:text-gold">Поверителност</Link>
             <Link to="/cookies" className="hover:text-gold">Бисквитки</Link>
             <Link to="/refund" className="hover:text-gold">Възстановяване</Link>
-            <a href="mailto:imdevelopmentoffice@gmail.com" className="hover:text-gold">Контакти</a>
+            <Link to="/contacts" className="hover:text-gold">Контакти</Link>
           </nav>
         </div>
         <div className="border-t border-border/40 pt-6 text-center text-xs text-muted-foreground md:text-left">

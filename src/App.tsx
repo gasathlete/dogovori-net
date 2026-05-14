@@ -33,6 +33,7 @@ const Terms = lazy(() => import("./pages/legal/Terms.tsx"));
 const Privacy = lazy(() => import("./pages/legal/Privacy.tsx"));
 const Cookies = lazy(() => import("./pages/legal/Cookies.tsx"));
 const Refund = lazy(() => import("./pages/legal/Refund.tsx"));
+const Contacts = lazy(() => import("./pages/legal/Contacts.tsx"));
 const SharedDocument = lazy(() => import("./pages/SharedDocument.tsx"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe.tsx"));
 const Blog = lazy(() => import("./pages/Blog.tsx"));
@@ -114,6 +115,7 @@ const App = () => (
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/cookies" element={<Cookies />} />
               <Route path="/refund" element={<Refund />} />
+              <Route path="/contacts" element={<Contacts />} />
               <Route path="/share/:token" element={<SharedDocument />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
               <Route path="/blog" element={<Blog />} />
