@@ -841,7 +841,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
                   <div className="h-full bg-gradient-gold transition-all" style={{ width: `${proPct}%` }} />
                 </div>
                 {proPct >= 90 && (
-                  <p className="mt-2 text-xs text-gold">Наближавате месечния лимит. Помислете за Team план за повече капацитет.</p>
+                  <p className="mt-2 text-xs text-gold">Наближавате месечния лимит. Помислете за план Екип за повече капацитет.</p>
                 )}
               </div>
             )}
@@ -860,7 +860,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               Управление на абонамент
             </Button>
             <Button asChild variant="outline" className="border-gold/40">
-              <a href="/team">Team план за фирми →</a>
+              <a href="/team">План Екип за фирми →</a>
             </Button>
           </div>
         )}
@@ -932,17 +932,17 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
 
           {/* Team */}
           <div className="order-4 flex flex-col rounded-xl border border-gold/40 bg-gradient-card p-5 sm:p-6">
-            <div className="text-xs uppercase tracking-wider text-gold">Team — за фирми</div>
+            <div className="text-xs uppercase tracking-wider text-gold">Екип — за фирми</div>
             <div className="mt-2 flex items-baseline gap-2">
               <span className="font-serif text-2xl font-bold sm:text-3xl">7.90 €</span>
               <span className="text-sm text-muted-foreground">/място/мес</span>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">мин. 3 места · 100 ops/място/мес</p>
+            <p className="mt-1 text-xs text-muted-foreground">мин. 3 места · 100 операции/място/мес</p>
             <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
               <li>• Споделени шаблони и документи</li>
-              <li>• Audit log за администратори</li>
-              <li>• SSO + central billing</li>
-              <li>• Branded PDF/DOCX с лого</li>
+              <li>• Журнал на действията за администратори</li>
+              <li>• Единно фактуриране и достъп с фирмен имейл</li>
+              <li>• Брандирани PDF/DOCX с лого</li>
             </ul>
             <Button asChild variant="outline" className="mt-6 border-gold/40">
               <a href="/team">Създай екип</a>
