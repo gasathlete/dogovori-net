@@ -38,11 +38,9 @@ Deno.serve(async (req) => {
       mode: isRecurring ? "subscription" : "payment",
       ui_mode: "embedded_page",
       return_url: returnUrl,
-      // Enable wallets (Apple Pay / Google Pay) — they ride on the "card"
-      // payment method which Stripe auto-includes when payment_method_types
-      // is omitted, as long as cards + wallets are activated in the Stripe
-      // dashboard for the account's currency.
-      automatic_payment_methods: { enabled: true },
+      // Wallets (Apple Pay / Google Pay) are auto-enabled by Checkout when
+      // payment_method_types is omitted and they're activated in the Stripe
+      // dashboard. (automatic_payment_methods is for PaymentIntents, not Checkout.)
       ...(customerId
         ? { customer: customerId }
         : customerEmail
