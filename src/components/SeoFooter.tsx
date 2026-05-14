@@ -62,7 +62,7 @@ export function SeoFooter() {
               <li><Link to="/cookies" className="hover:text-gold">Бисквитки</Link></li>
               <li><Link to="/refund" className="hover:text-gold">Възстановяване</Link></li>
               <li><Link to="/blog" className="hover:text-gold">Блог</Link></li>
-              <li><a href="mailto:imdevelopmentoffice@gmail.com" className="hover:text-gold">Контакти</a></li>
+              <li><Link to="/contacts" className="hover:text-gold">Контакти</Link></li>
             </ul>
           </div>
         </div>
