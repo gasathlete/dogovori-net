@@ -218,7 +218,9 @@ Deno.serve(async (req: Request) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          // Cost optimization: blanks are deterministic JSON fills — flash-lite
+          // delivers identical quality at ~5x lower cost vs full flash.
+          model: "google/gemini-2.5-flash-lite",
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             { role: "user", content: userPrompt },
