@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import * as Icons from "lucide-react";
 import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
