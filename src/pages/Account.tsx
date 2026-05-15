@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Bird, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X, Sparkles,
+  Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Bird, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X, MessageSquare,
 } from "lucide-react";
-import { AssistantChat } from "@/components/AssistantChat";
-import { AssistantPaywall } from "@/components/AssistantPaywall";
+import { FloatingAssistant } from "@/components/FloatingAssistant";
 import { useTeam } from "@/hooks/useTeam";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -64,6 +63,8 @@ export default function AccountPage() {
   const [profile, setProfile] = useState<{ display_name: string | null; company: string | null; vat_number: string | null }>({ display_name: "", company: "", vat_number: "" });
   const [activeFolder, setActiveFolder] = useState<string | "all">("all");
   const [isStaff, setIsStaff] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const { team: teamForChat } = useTeam();
 
   useEffect(() => {
     if (!user) { setIsStaff(false); return; }
@@ -157,13 +158,12 @@ export default function AccountPage() {
             <TabsTrigger value="folders" className="shrink-0 whitespace-nowrap"><FolderOpen className="mr-1 h-3.5 w-3.5" />Папки</TabsTrigger>
             <TabsTrigger value="contacts" className="shrink-0 whitespace-nowrap"><Users className="mr-1 h-3.5 w-3.5" />Контрагенти</TabsTrigger>
             <TabsTrigger value="signed" className="shrink-0 whitespace-nowrap"><PenTool className="mr-1 h-3.5 w-3.5" />Подписани</TabsTrigger>
-            <TabsTrigger value="assistant" className="shrink-0 whitespace-nowrap"><Sparkles className="mr-1 h-3.5 w-3.5" />AI Асистент</TabsTrigger>
             <TabsTrigger value="subscription" className="shrink-0 whitespace-nowrap"><CreditCard className="mr-1 h-3.5 w-3.5" />Абонамент</TabsTrigger>
             <TabsTrigger value="settings" className="shrink-0 whitespace-nowrap"><SettingsIcon className="mr-1 h-3.5 w-3.5" />Настройки</TabsTrigger>
           </ScrollableTabsList>
 
           <TabsContent value="dashboard">
-            <Dashboard quota={quota} isPro={!!isPro} docs={docs} />
+            <Dashboard quota={quota} isPro={!!isPro} docs={docs} hasChatAccess={!!isPro || (!!teamForChat && teamForChat.status === "active")} onOpenChat={() => setChatOpen(true)} />
           </TabsContent>
           <TabsContent value="contacts">
             <ContactsTab contacts={contacts} docs={docs} reload={reload} onOpenDocs={openContactDocs} />
@@ -188,9 +188,6 @@ export default function AccountPage() {
           <TabsContent value="signed">
             <SignedContractsTab userId={user?.id ?? ""} />
           </TabsContent>
-          <TabsContent value="assistant">
-            <AssistantTab isPro={!!isPro} />
-          </TabsContent>
           <TabsContent value="subscription">
             <SubscriptionTab quota={quota} isPro={!!isPro} />
           </TabsContent>
@@ -199,16 +196,13 @@ export default function AccountPage() {
           </TabsContent>
         </Tabs>
       </main>
+      {(!!isPro || (teamForChat && teamForChat.status === "active")) && (
+        <FloatingAssistant open={chatOpen} onOpenChange={setChatOpen} />
+      )}
     </div>
   );
 }
 
-function AssistantTab({ isPro }: { isPro: boolean }) {
-  const { team, loading } = useTeam();
-  if (loading) return <div className="flex h-40 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-gold" /></div>;
-  const hasAccess = isPro || (team && team.status === "active");
-  return hasAccess ? <AssistantChat /> : <AssistantPaywall />;
-}
 
 /* ====================== SCROLLABLE TABS LIST ====================== */
 function ScrollableTabsList({ children }: { children: React.ReactNode }) {
@@ -255,9 +249,25 @@ function ScrollableTabsList({ children }: { children: React.ReactNode }) {
 }
 
 /* ============================ DASHBOARD ============================ */
-function Dashboard({ quota, isPro, docs }: { quota: Quota | null; isPro: boolean; docs: SavedDoc[] }) {
+function Dashboard({ quota, isPro, docs, hasChatAccess, onOpenChat }: { quota: Quota | null; isPro: boolean; docs: SavedDoc[]; hasChatAccess: boolean; onOpenChat: () => void }) {
   return (
     <div className="grid gap-4 md:grid-cols-3">
+      {hasChatAccess && (
+        <div className="md:col-span-3 flex flex-col gap-3 rounded-xl border border-gold/40 bg-gradient-card p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gold/15">
+              <MessageSquare className="h-5 w-5 text-gold" />
+            </div>
+            <div>
+              <div className="font-serif text-sm font-bold">AI Чат поддръжка 24/7</div>
+              <div className="text-xs text-muted-foreground">Помощ с навигация, шаблони, правни въпроси и техника.</div>
+            </div>
+          </div>
+          <Button onClick={onOpenChat} className="bg-gradient-gold text-navy hover:shadow-gold">
+            <MessageSquare className="mr-2 h-4 w-4" /> Чат поддръжка
+          </Button>
+        </div>
+      )}
       <Card title="План" value={isPro ? "Pro" : "Free"} icon={<Crown className="h-5 w-5 text-gold" />}
         sub={isPro ? `${(quota as any)?.pro_monthly_used ?? 0}/100 операции/мес` : "3+3 безплатни, после 1+1/мес"} />
       <Card
