@@ -70,7 +70,7 @@ export function Header() {
             <Link
               to="/account"
               aria-label="Профил"
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-2.5 text-xs font-medium text-gold transition-colors hover:bg-gold/20 sm:px-3"
+              className="inline-flex h-11 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-3 text-xs font-medium text-gold transition-colors hover:bg-gold/20 sm:h-9 sm:px-3"
             >
               <UserIcon className="h-4 w-4" /> <span className="hidden sm:inline">Профил</span>
             </Link>
@@ -78,7 +78,7 @@ export function Header() {
             <Link
               to="/auth"
               aria-label="Вход"
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-2.5 text-xs font-medium text-gold transition-colors hover:bg-gold/20 sm:px-3"
+              className="inline-flex h-11 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-3 text-xs font-medium text-gold transition-colors hover:bg-gold/20 sm:h-9 sm:px-3"
             >
               <LogIn className="h-4 w-4" /> <span className="hidden sm:inline">Вход</span>
             </Link>
@@ -88,7 +88,7 @@ export function Header() {
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Затвори менюто" : "Отвори менюто"}
             aria-expanded={open}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border/60 bg-card/40 text-foreground transition-colors hover:border-gold/50 hover:text-gold md:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-border/60 bg-card/40 text-foreground transition-colors hover:border-gold/50 hover:text-gold md:hidden"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
