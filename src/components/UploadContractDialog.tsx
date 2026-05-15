@@ -76,6 +76,43 @@ export function UploadContractDialog({
     if (!title) setTitle(f.name.replace(/\.[^.]+$/, ""));
   };
 
+  const ensureFreshUploadSession = async () => {
+    const refreshed = await supabase.auth.refreshSession();
+    const activeSession = refreshed.data.session ?? (await supabase.auth.getSession()).data.session;
+    if (!activeSession) {
+      throw new Error("Сесията Ви е изтекла. Моля, влезте отново и опитайте пак.");
+    }
+    return activeSession;
+  };
+
+  const uploadOriginalFile = async (path: string, sourceFile: File, source: ExtractSource) => {
+    const contentType = sourceFile.type || (source === "pdf"
+      ? "application/pdf"
+      : "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      if (attempt > 0) await ensureFreshUploadSession();
+
+      const upload = await supabase.storage.from("user-contracts").upload(path, sourceFile, {
+        contentType,
+        upsert: false,
+      });
+
+      if (!upload.error) return;
+
+      const message = upload.error.message?.toLowerCase() ?? "";
+      const isRlsError = message.includes("row-level security") || message.includes("permission denied");
+
+      if (attempt === 0 && isRlsError) continue;
+
+      if (isRlsError) {
+        throw new Error("Сесията за качване е изтекла. Опреснете страницата или влезте отново и опитайте пак.");
+      }
+
+      throw new Error("Грешка при качване: " + upload.error.message);
+    }
+  };
+
   const submit = async (skipAnalysis = false) => {
     if (!user) return;
     if (!title.trim()) { toast.error("Добавете заглавие"); return; }
@@ -99,25 +136,11 @@ export function UploadContractDialog({
         if (text.length < 80) throw new Error("Не успяхме да извлечем достатъчно текст от файла. Опитайте с друг формат или поставете текста ръчно.");
 
         setPhase("Качване на оригинала...");
-        // Long OCR/extract steps may outlive the access token. Force refresh
-        // before the storage upload so the request carries a valid user JWT
-        // (otherwise storage RLS rejects it as "new row violates row-level security policy").
-        let { data: sess } = await supabase.auth.getSession();
-        if (!sess.session) {
-          const r = await supabase.auth.refreshSession();
-          sess = { session: r.data.session } as any;
-        }
-        if (!sess.session) {
-          throw new Error("Сесията Ви е изтекла. Моля, влезте отново и опитайте пак.");
-        }
+        await ensureFreshUploadSession();
 
         const ext = tab === "pdf" ? "pdf" : "docx";
         const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
-        const up = await supabase.storage.from("user-contracts").upload(path, file, {
-          contentType: file.type || (tab === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
-          upsert: false,
-        });
-        if (up.error) throw new Error("Грешка при качване: " + up.error.message);
+        await uploadOriginalFile(path, file, tab);
         storagePath = path;
         mime = file.type || null;
         size = file.size;
