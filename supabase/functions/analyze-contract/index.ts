@@ -275,11 +275,19 @@ ${truncated}
       });
     };
 
-    // Primary: Flash (3-5x faster than Pro). Verification layer below filters
-    // any hallucinated quotes, so quality stays high while latency drops.
-    // Fallback to Pro if Flash returns unparsable / empty content.
-    let model = "google/gemini-2.5-flash";
+    // Tiered routing for cost/quality balance:
+    //   - Short contracts (<6000 chars)  -> flash-lite (cheapest, sufficient for simple texts)
+    //   - Medium/long contracts          -> flash (default, good reasoning)
+    //   - Unparsable response            -> pro (fallback below)
+    // Verification layer filters any hallucinated quotes regardless of tier.
+    let model = text.length < 6000 ? "google/gemini-2.5-flash-lite" : "google/gemini-2.5-flash";
     let aiResp = await callAi(model);
+
+    // If flash-lite returns non-OK, retry once with flash before refunding.
+    if (!aiResp.ok && model === "google/gemini-2.5-flash-lite" && aiResp.status >= 500) {
+      model = "google/gemini-2.5-flash";
+      aiResp = await callAi(model);
+    }
 
     if (!aiResp.ok) {
       if (!isPro) await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
