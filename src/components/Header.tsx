@@ -102,7 +102,10 @@ export function Header() {
               <Link
                 key={n.to}
                 to={n.to}
-                onClick={() => setOpen(false)}
+                onClick={(e) => {
+                  setOpen(false);
+                  handleNav(n.to, e);
+                }}
                 className="rounded-md px-3 py-3 text-sm text-muted-foreground transition-colors hover:bg-gold/5 hover:text-gold"
               >
                 {n.label}
