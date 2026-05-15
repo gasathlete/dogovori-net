@@ -133,8 +133,12 @@ export default function CatalogPage() {
                 className="h-14 border-gold/30 bg-card/70 pl-11 text-base text-foreground backdrop-blur transition-colors focus-visible:border-gold/60"
               />
               {open && query.trim() && suggestions.length > 0 && (
-                <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-lg border border-gold/30 bg-card/95 text-left shadow-elegant backdrop-blur-xl">
-                  <ul className="max-h-[60vh] overflow-y-auto">
+                <div
+                  className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-lg border border-gold/30 bg-card/95 text-left shadow-elegant backdrop-blur-xl"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                >
+                  <ul className="max-h-[min(60vh,420px)] overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
                     {visibleSuggestions.map((s) => (
                       <li key={`${s.sectorId}-${s.name}`}>
                         <Link
