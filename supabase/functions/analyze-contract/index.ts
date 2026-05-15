@@ -314,7 +314,29 @@ ${truncated}
     let parsed: any = null;
     try { parsed = content.trim() ? extractJson(content) : null; } catch { parsed = null; }
 
-    // Fallback to Pro for higher accuracy if Flash returned nothing parsable.
+    // Quality safeguard: if flash-lite returned suspiciously empty results
+    // (no issues AND no missing clauses) on a non-trivial contract, escalate
+    // to flash before falling back to pro. Prevents lite model from silently
+    // under-reporting risks on edge cases.
+    if (parsed && model === "google/gemini-2.5-flash-lite") {
+      const noIssues = !Array.isArray(parsed?.issues) || parsed.issues.length === 0;
+      const noMissing = !Array.isArray(parsed?.missing_clauses) || parsed.missing_clauses.length === 0;
+      if (noIssues && noMissing && text.length > 1500) {
+        console.warn("Flash-lite returned empty analysis, escalating to flash");
+        model = "google/gemini-2.5-flash";
+        const flashResp = await callAi(model);
+        if (flashResp.ok) {
+          const fData = await flashResp.json();
+          const fContent: string = fData.choices?.[0]?.message?.content ?? "";
+          try {
+            const reparsed = fContent.trim() ? extractJson(fContent) : null;
+            if (reparsed) parsed = reparsed;
+          } catch { /* keep lite result */ }
+        }
+      }
+    }
+
+    // Fallback to Pro for higher accuracy if everything above failed to parse.
     if (!parsed) {
       console.warn("Flash returned unparsable content, falling back to Pro");
       model = "google/gemini-2.5-pro";
