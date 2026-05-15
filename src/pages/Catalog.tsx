@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import * as Icons from "lucide-react";
 import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
@@ -176,7 +176,7 @@ export default function CatalogPage() {
       {/* Sticky category nav */}
       <nav className="sticky top-16 z-30 border-b border-border/60 bg-navy/85 backdrop-blur-xl">
         <div className="relative">
-          <div className="container flex snap-x snap-mandatory gap-2 overflow-x-auto py-3 text-xs [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <DragScrollRow>
             {CATALOG.map((cat) => (
               <a
                 key={cat.id}
@@ -187,8 +187,8 @@ export default function CatalogPage() {
                 {cat.title}
               </a>
             ))}
-          </div>
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-navy/95 to-transparent md:hidden" />
+          </DragScrollRow>
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-navy/95 to-transparent" />
         </div>
       </nav>
 
@@ -281,6 +281,53 @@ function Badge({ label }: { label: string }) {
     >
       {label}
     </span>
+  );
+}
+
+function DragScrollRow({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const state = useRef({ down: false, moved: false, startX: 0, startScroll: 0 });
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = ref.current;
+    if (!el) return;
+    state.current = { down: true, moved: false, startX: e.clientX, startScroll: el.scrollLeft };
+    el.setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = ref.current;
+    if (!el || !state.current.down) return;
+    const dx = e.clientX - state.current.startX;
+    if (Math.abs(dx) > 4) state.current.moved = true;
+    el.scrollLeft = state.current.startScroll - dx;
+  };
+  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = ref.current;
+    if (!el) return;
+    state.current.down = false;
+    try { el.releasePointerCapture(e.pointerId); } catch {}
+  };
+  // Suppress click after drag so links don't trigger on release.
+  const onClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (state.current.moved) {
+      e.preventDefault();
+      e.stopPropagation();
+      state.current.moved = false;
+    }
+  };
+
+  return (
+    <div
+      ref={ref}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      onClickCapture={onClickCapture}
+      className="container flex gap-2 overflow-x-auto py-3 text-xs select-none cursor-grab active:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
+      {children}
+    </div>
   );
 }
 
