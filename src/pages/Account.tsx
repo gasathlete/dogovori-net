@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Bird, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X,
+  Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Bird, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X, Sparkles,
 } from "lucide-react";
+import { AssistantChat } from "@/components/AssistantChat";
+import { AssistantPaywall } from "@/components/AssistantPaywall";
+import { useTeam } from "@/hooks/useTeam";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -154,6 +157,7 @@ export default function AccountPage() {
             <TabsTrigger value="folders" className="shrink-0 whitespace-nowrap"><FolderOpen className="mr-1 h-3.5 w-3.5" />Папки</TabsTrigger>
             <TabsTrigger value="contacts" className="shrink-0 whitespace-nowrap"><Users className="mr-1 h-3.5 w-3.5" />Контрагенти</TabsTrigger>
             <TabsTrigger value="signed" className="shrink-0 whitespace-nowrap"><PenTool className="mr-1 h-3.5 w-3.5" />Подписани</TabsTrigger>
+            <TabsTrigger value="assistant" className="shrink-0 whitespace-nowrap"><Sparkles className="mr-1 h-3.5 w-3.5" />AI Асистент</TabsTrigger>
             <TabsTrigger value="subscription" className="shrink-0 whitespace-nowrap"><CreditCard className="mr-1 h-3.5 w-3.5" />Абонамент</TabsTrigger>
             <TabsTrigger value="settings" className="shrink-0 whitespace-nowrap"><SettingsIcon className="mr-1 h-3.5 w-3.5" />Настройки</TabsTrigger>
           </ScrollableTabsList>
@@ -184,6 +188,9 @@ export default function AccountPage() {
           <TabsContent value="signed">
             <SignedContractsTab userId={user?.id ?? ""} />
           </TabsContent>
+          <TabsContent value="assistant">
+            <AssistantTab isPro={!!isPro} />
+          </TabsContent>
           <TabsContent value="subscription">
             <SubscriptionTab quota={quota} isPro={!!isPro} />
           </TabsContent>
@@ -194,6 +201,13 @@ export default function AccountPage() {
       </main>
     </div>
   );
+}
+
+function AssistantTab({ isPro }: { isPro: boolean }) {
+  const { team, loading } = useTeam();
+  if (loading) return <div className="flex h-40 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-gold" /></div>;
+  const hasAccess = isPro || (team && team.status === "active");
+  return hasAccess ? <AssistantChat /> : <AssistantPaywall />;
 }
 
 /* ====================== SCROLLABLE TABS LIST ====================== */
