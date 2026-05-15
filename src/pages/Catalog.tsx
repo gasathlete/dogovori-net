@@ -98,7 +98,7 @@ export default function CatalogPage() {
       <Header />
 
       {/* Hero */}
-      <section className="relative overflow-hidden border-b border-border/60">
+      <section className="relative border-b border-border/60 [&>div:not(.container)]:pointer-events-none">
         <div className="absolute inset-0 bg-gradient-hero opacity-90" />
         <div className="absolute inset-0 bg-fine-grid opacity-50" />
         <div className="absolute inset-x-0 top-0 hairline-x" />
@@ -132,19 +132,21 @@ export default function CatalogPage() {
                 placeholder="Търсете: NDA, наем, ремонт, фактура…"
                 className="h-14 border-gold/30 bg-card/70 pl-11 text-base text-foreground backdrop-blur transition-colors focus-visible:border-gold/60"
               />
-              {open && query.trim() && suggestions.length > 0 && (
+              {open && query.trim().length >= 2 && suggestions.length > 0 && (
                 <div
                   className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-lg border border-gold/30 bg-card/95 text-left shadow-elegant backdrop-blur-xl"
                   onMouseDown={(e) => e.preventDefault()}
-                  onTouchStart={(e) => e.stopPropagation()}
                 >
-                  <ul className="max-h-[min(60vh,420px)] overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
-                    {visibleSuggestions.map((s) => (
+                  <ul
+                    className="max-h-[280px] overflow-y-auto overscroll-contain"
+                    style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+                    onWheel={(e) => e.stopPropagation()}
+                  >
+                    {suggestions.map((s) => (
                       <li key={`${s.sectorId}-${s.name}`}>
                         <Link
                           to={`/wizard/${s.sectorId}?doc=${encodeURIComponent(s.name)}`}
                           className="block border-b border-border/40 px-4 py-3 transition-colors last:border-0 hover:bg-gold/[0.06]"
-                          onMouseDown={(e) => e.preventDefault()}
                         >
                           <div className="font-serif text-sm font-bold text-foreground">{s.name}</div>
                           <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{s.purpose}</div>
@@ -153,29 +155,14 @@ export default function CatalogPage() {
                       </li>
                     ))}
                   </ul>
-                  {remaining > 0 && (
-                    <button
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => setShowAll(true)}
-                      className="block w-full border-t border-border/60 bg-navy-light/40 px-4 py-2.5 text-center text-xs font-medium uppercase tracking-wider text-gold transition-colors hover:bg-gold/10"
-                    >
-                      Покажи още (+{remaining})
-                    </button>
-                  )}
-                  {showAll && suggestions.length > 5 && (
-                    <button
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => setShowAll(false)}
-                      className="block w-full border-t border-border/60 bg-navy-light/40 px-4 py-2.5 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground transition-colors hover:text-gold"
-                    >
-                      Свий списъка
-                    </button>
+                  {suggestions.length > 3 && (
+                    <div className="border-t border-border/60 bg-navy-light/40 px-4 py-1.5 text-center text-[10px] uppercase tracking-wider text-muted-foreground">
+                      {suggestions.length} съвпадения · скролни за още
+                    </div>
                   )}
                 </div>
               )}
-              {open && query.trim() && suggestions.length === 0 && (
+              {open && query.trim().length >= 2 && suggestions.length === 0 && (
                 <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border border-border/60 bg-card/95 px-4 py-3 text-left text-sm text-muted-foreground shadow-elegant backdrop-blur-xl">
                   Няма съвпадения за „{query}"
                 </div>
