@@ -1,58 +1,79 @@
-## Цел
-Подготовка на мобилната версия за рекламна кампания: премахване на застъпвания, лош спейсинг и грешни навигационни линкове.
 
-## Установени проблеми (от бърз обход 390×844)
+# AI Чат Асистент за PRO + Team
 
-1. **Навигация — счупени hash-линкове в хедъра**
-   `NAV` сочи към `/#sectors` и `/#compliance`. Тези секции съществуват само на `/` (Index). Когато сме на друга страница (напр. `/catalog`, `/build`), кликът върху "Сектори" / "Съответствие" просто променя URL хеша и не отвежда никъде. Трябва принудителна навигация към `/` + scroll до секцията.
+24/7 чист AI бот (Lovable AI / Gemini), достъпен само за PRO и Team абонати, вграден в `/account` и при работа с документ. Помага с навигация, документи, правни въпроси и техническа поддръжка.
 
-2. **Cookie banner застъпва съдържанието**
-   Banner-ът е `fixed bottom-3 left-3` и на mobile покрива долната половина на hero бутоните + последните карти на каталога. Трябва: на mobile да е full-width в дъното, по-компактен (един ред CTA), със safe-area padding.
+## Backend
 
-3. **Каталог — хоризонтален scroll на категорийни pill-ове**
-   Втората категория ("02 Интелектуална собственост") е орязана и няма визуален индикатор за scroll. Добавяне на fade mask вдясно + по-добър wrap/overflow indicator.
+**Нова edge функция:** `supabase/functions/assistant-chat/index.ts`
+- Streaming чат през AI SDK + Lovable AI Gateway, модел `google/gemini-3-flash-preview`.
+- JWT валидация; проверка че user е PRO (`download_quota.plan='pro'` или активен `pro_until`) или член на активен Team.
+- Връща 402/403 ако не е PRO/Team — клиентът показва upgrade покана.
+- Брои операциите през `consume_quota('analysis')` или `consume_team_quota` (1 операция на изпратено съобщение), за да не се изхарчат кредити безконтролно.
+- Системен промпт на български с цялата контекстна база за Dogovori.net (виж по-долу).
 
-4. **Логото на хедъра изглежда празно на някои страници**
-   На `/build`, `/account` иконата вътре в златния квадрат не се рендира (само цветен правоъгълник). Вероятно lazy load / грешен път в `Logo` при `compact` режим. Трябва да се провери `src/components/Logo.tsx` и да се гарантира eager fallback.
+**База данни (нова миграция):**
+- `assistant_threads` — `id`, `user_id`, `title`, `created_at`, `updated_at`
+- `assistant_messages` — `id`, `thread_id`, `role` (`user|assistant`), `content`, `created_at`
+- RLS: само собственикът чете/пише; cascade delete с user
+- Едно активно (последно) thread per user в `/account`; бутон "Нов разговор"
 
-5. **Sticky header + sticky CTA-та**
-   Проверка дали на дълги страници (Wizard, BuildContract, Account) sticky хедърът + евентуални долни ленти не оставят твърде малко viewport.
+## Системен промпт (4 области)
 
-6. **Tap targets под 44px**
-   Header има `h-9` бутони (36px) — под препоръчителните 44px. На mobile да се уголемят до `min-h-11`.
+Ботът е "Правен асистент Dogovori.net" — ясно дефинирани компетенции:
 
-7. **Hero буфер и spacing на mobile**
-   Подзаглавието в Hero е дълго; на 390px заема много вертикално място преди CTA. Преглед за по-плътен ритъм + балансиран line-height.
+1. **Навигация** — знае структурата: `/catalog`, `/build`, `/sektor/{business|real-estate|employment|it}`, `/shablon/{slug}`, `/account`, `/team`, блог. Връща markdown линкове.
+2. **Помощ с документи** — обяснява клаузи, какво да въведе в полета на wizard-а, как работи risk-анализа, как се подписва електронно, експорт PDF/DOCX.
+3. **Правни въпроси** — общи насоки по ЗЗД, ТЗ, КТ, СК, ЗУТ, GDPR с **задължителен дисклеймър**: "Това не е правен съвет; за конкретен казус — консултирайте адвокат."
+4. **Техническа поддръжка** — quota, плащане, Stripe checkout, грешки при export, споделяне за подпис, team seats.
 
-## Обхват на одита
+Промптът включва: списък шаблони (от `CATALOG`), обяснение на quota системата, текущ потребителски контекст (PRO/Team статус, оставащи операции — подавани при всяко съобщение).
 
-Ще обхвана следните mobile pages при 390×844 (iPhone 12/13/14):
-- `/` (Index — Hero, Sectors, TopDocuments, Process, Compliance, Footer)
-- `/catalog`
-- `/sektor/:id` и `/category/:id`
-- `/wizard/:id` (стъпки + LiveDraft)
-- `/build`
-- `/auth`, `/account`
-- `/blog`, `/blog/:slug`
-- `/terms`, `/privacy`, `/cookies`, `/refund`, `/contacts`
-- `/team`
+## Frontend
 
-За всяка: screenshot → списък с overflow / overlap / clipping / tap target / навигационни линкове.
+**Нов компонент:** `src/components/AssistantChat.tsx`
+- AI Elements (`bun x ai-elements@latest add conversation message prompt-input shimmer`)
+- `useChat` от AI SDK с `DefaultChatTransport` сочещ към edge функцията (с JWT header)
+- Render на `message.parts` + markdown (`react-markdown` вече се използва в проекта)
+- Loading indicator "Мисля..." докато статус е `submitted`
+- Empty state: 4 quick-action чипа ("Намери шаблон", "Обясни клауза", "Проблем с плащане", "Как се подписва")
+- Auto-focus на textarea
+- Запис на assistant съобщение в `onFinish`
 
-## Промени в кода
+**Hook:** `src/hooks/useIsPro.tsx`
+- Връща `{ isPro, isTeam, loading }` — чете `download_quota` + `useTeam()`
 
-- **`src/components/Header.tsx`** — заменя `Link` за hash елементите със `useNavigate` + `scrollToHash`, така че `/#sectors` винаги да отвежда до Index #sectors. Вдига височина на бутоните до `h-11` на mobile.
-- **`src/components/CookieBanner.tsx`** — на mobile: `inset-x-3 bottom-3` (full width), еднороден ред с компактни бутони, `pb-[env(safe-area-inset-bottom)]`.
-- **`src/components/Logo.tsx`** — проверка че `compact` варианта има валиден `src` и `loading="eager"`; fallback на текстов logo ако image fails.
-- **`src/pages/Catalog.tsx`** — добавяне на gradient fade-mask вдясно на категорийната scroll лента + `scroll-snap-x` за по-добра usability.
-- Локални spacing fixes по страница според намереното (padding, gap, line-height на mobile breakpoints).
+**Интеграция:**
+1. `src/pages/Account.tsx` — нов таб "AI Асистент" (или секция най-отгоре) с `<AssistantChat />`. За не-PRO/Team — paywall карта с upgrade CTA.
+2. `src/pages/Document.tsx` — добавя collapsible панел/dialog "Помощ от AI" с `<AssistantChat documentContext={...}>`, който подава id/тип на текущия документ в системния промпт.
+
+**Достъп:** само PRO + Team. Free потребители виждат заключен изглед с обяснение и линк към upgrade.
+
+## Файлове
+
+```
+supabase/functions/assistant-chat/index.ts          (нов)
+supabase/functions/_shared/ai-gateway.ts            (нов helper)
+supabase/migrations/<ts>_assistant_threads.sql      (нов)
+src/components/AssistantChat.tsx                    (нов)
+src/components/AssistantPaywall.tsx                 (нов)
+src/components/ai-elements/*                        (нов чрез ai-elements CLI)
+src/hooks/useIsPro.tsx                              (нов)
+src/pages/Account.tsx                               (редакция — нов таб)
+src/pages/Document.tsx                              (редакция — помощен панел)
+```
 
 ## Технически детайли
 
-- Hash navigation: ползваме съществуващия `scrollToHash` хелпер от `src/lib/scrollToHash.ts` плюс `navigate("/", { state: { scrollTo: id } })`, или директна проверка `if (location.pathname !== "/") navigate("/" + hash)`.
-- Безопасни tokens: всички промени остават в design tokens (gold, navy, muted-foreground); никакви hard-coded цветове.
-- Без промени в business logic, бекенд, edge functions или БД.
+- **AI SDK пакети:** `ai`, `@ai-sdk/openai-compatible`, `@ai-sdk/react`, `zod`, `react-markdown` (вече има)
+- **Streaming:** `toUIMessageStreamResponse({ originalMessages, onFinish })` — assistant message се записва в `assistant_messages` в `onFinish`
+- **Контекст:** при всяко обаждане сървърът добавя в system prompt: PRO статус, оставащи операции, текуща страница (подавана от клиента), ID на документ ако е приложимо
+- **Quota:** 1 съобщение = 1 операция към `pro_monthly_used` (PRO 100/мес) или `team_usage` (seats × 100)
+- **Сигурност:** JWT verify в код, `verify_jwt = false` в config.toml, RLS на новите таблици, никакви API ключове на клиента
+- **Дисклеймър:** UI бадж "AI асистент — общи насоки, не правен съвет"
 
-## Verification
-
-След всеки fix: повторен screenshot на засегнатата страница в 390×844 и в 320×568 (минимален таргет), кратко резюме какво е оправено.
+## Какво НЕ влиза в този план
+- Ескалация към човек/имейл (избрано: чист AI)
+- Floating bubble на всички страници (избрано: само в профила)
+- Достъп за Free (избрано: само PRO/Team — paywall)
+- RAG/vector search върху всички шаблони (системният промпт е достатъчен за v1; може после)
