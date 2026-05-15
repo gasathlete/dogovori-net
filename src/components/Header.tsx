@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Menu, X, User as UserIcon, LogIn } from "lucide-react";
 import { Logo } from "./Logo";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { scrollToHash } from "@/lib/scrollToHash";
 
 const NAV = [
   { to: "/build", label: "Изготви договор" },
@@ -15,6 +16,21 @@ const NAV = [
 export function Header() {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleNav = (to: string, e: React.MouseEvent) => {
+    if (!to.includes("#")) return;
+    e.preventDefault();
+    setOpen(false);
+    const [path, hash] = to.split("#");
+    if (location.pathname === (path || "/")) {
+      scrollToHash(hash);
+    } else {
+      navigate(path || "/");
+      setTimeout(() => scrollToHash(hash), 80);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-navy/80 backdrop-blur-xl">
