@@ -176,7 +176,7 @@ export default function CatalogPage() {
       {/* Sticky category nav */}
       <nav className="sticky top-16 z-30 border-b border-border/60 bg-navy/85 backdrop-blur-xl">
         <div className="relative">
-          <div className="container flex snap-x snap-mandatory gap-2 overflow-x-auto py-3 text-xs [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <DragScrollRow>
             {CATALOG.map((cat) => (
               <a
                 key={cat.id}
@@ -187,8 +187,8 @@ export default function CatalogPage() {
                 {cat.title}
               </a>
             ))}
-          </div>
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-navy/95 to-transparent md:hidden" />
+          </DragScrollRow>
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-navy/95 to-transparent" />
         </div>
       </nav>
 
