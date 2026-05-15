@@ -284,6 +284,53 @@ function Badge({ label }: { label: string }) {
   );
 }
 
+function DragScrollRow({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const state = useRef({ down: false, moved: false, startX: 0, startScroll: 0 });
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = ref.current;
+    if (!el) return;
+    state.current = { down: true, moved: false, startX: e.clientX, startScroll: el.scrollLeft };
+    el.setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = ref.current;
+    if (!el || !state.current.down) return;
+    const dx = e.clientX - state.current.startX;
+    if (Math.abs(dx) > 4) state.current.moved = true;
+    el.scrollLeft = state.current.startScroll - dx;
+  };
+  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = ref.current;
+    if (!el) return;
+    state.current.down = false;
+    try { el.releasePointerCapture(e.pointerId); } catch {}
+  };
+  // Suppress click after drag so links don't trigger on release.
+  const onClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (state.current.moved) {
+      e.preventDefault();
+      e.stopPropagation();
+      state.current.moved = false;
+    }
+  };
+
+  return (
+    <div
+      ref={ref}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      onClickCapture={onClickCapture}
+      className="container flex gap-2 overflow-x-auto py-3 text-xs select-none cursor-grab active:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
+      {children}
+    </div>
+  );
+}
+
 const INITIAL_DOCS = 5;
 
 function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean }) {
