@@ -259,7 +259,7 @@ function Dashboard({ quota, isPro, docs, hasChatAccess, onOpenChat }: { quota: Q
               <MessageSquare className="h-5 w-5 text-gold" />
             </div>
             <div>
-              <div className="font-serif text-sm font-bold">AI Чат поддръжка 24/7</div>
+              <div className="font-serif text-sm font-bold">Чат поддръжка 24/7</div>
               <div className="text-xs text-muted-foreground">Помощ с навигация, шаблони, правни въпроси и техника.</div>
             </div>
           </div>
