@@ -30,7 +30,7 @@ const QUICK_ACTIONS = [
   { label: "Проблем с плащане", text: "Имам въпрос относно моя абонамент и плащането." },
 ];
 
-export function AssistantChat() {
+export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
   const { user, session } = useAuth();
   const location = useLocation();
   const [threads, setThreads] = useState<Thread[]>([]);
@@ -202,9 +202,9 @@ export function AssistantChat() {
   const isEmpty = messages.length === 0 && !streaming;
 
   return (
-    <div className="flex h-[calc(100vh-12rem)] min-h-[500px] gap-3 sm:gap-4">
+    <div className={cn("flex gap-3 sm:gap-4", compact ? "h-full" : "h-[calc(100vh-12rem)] min-h-[500px]")}>
       {/* Threads sidebar */}
-      <aside className="hidden w-56 flex-col rounded-lg border border-border/60 bg-card/40 p-2 md:flex">
+      <aside className={cn("w-56 flex-col rounded-lg border border-border/60 bg-card/40 p-2", compact ? "hidden" : "hidden md:flex")}>
         <Button
           onClick={handleNewThread}
           variant="outline"
@@ -246,7 +246,7 @@ export function AssistantChat() {
       </aside>
 
       {/* Chat panel */}
-      <div className="flex flex-1 flex-col rounded-lg border border-border/60 bg-card/40">
+      <div className={cn("flex flex-1 flex-col bg-card/40", compact ? "min-h-0" : "rounded-lg border border-border/60")}>
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
           <div className="flex items-center gap-2">
