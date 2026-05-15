@@ -22,8 +22,8 @@ export function Logo({ className = "", compact = false }: { className?: string; 
           Архитект на Вашите сделки
         </span>
         {compact && (
-          <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground/70 sm:hidden">
-            Powered by <span className="text-gold/80">IM Development</span>
+          <span className="text-[7px] uppercase tracking-[0.14em] text-muted-foreground/60 sm:hidden">
+            Powered by <span className="text-gold/70">IM Development</span>
           </span>
         )}
       </div>
