@@ -249,9 +249,25 @@ function ScrollableTabsList({ children }: { children: React.ReactNode }) {
 }
 
 /* ============================ DASHBOARD ============================ */
-function Dashboard({ quota, isPro, docs }: { quota: Quota | null; isPro: boolean; docs: SavedDoc[] }) {
+function Dashboard({ quota, isPro, docs, hasChatAccess, onOpenChat }: { quota: Quota | null; isPro: boolean; docs: SavedDoc[]; hasChatAccess: boolean; onOpenChat: () => void }) {
   return (
     <div className="grid gap-4 md:grid-cols-3">
+      {hasChatAccess && (
+        <div className="md:col-span-3 flex flex-col gap-3 rounded-xl border border-gold/40 bg-gradient-card p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gold/15">
+              <MessageSquare className="h-5 w-5 text-gold" />
+            </div>
+            <div>
+              <div className="font-serif text-sm font-bold">AI Чат поддръжка 24/7</div>
+              <div className="text-xs text-muted-foreground">Помощ с навигация, шаблони, правни въпроси и техника.</div>
+            </div>
+          </div>
+          <Button onClick={onOpenChat} className="bg-gradient-gold text-navy hover:shadow-gold">
+            <MessageSquare className="mr-2 h-4 w-4" /> Чат поддръжка
+          </Button>
+        </div>
+      )}
       <Card title="План" value={isPro ? "Pro" : "Free"} icon={<Crown className="h-5 w-5 text-gold" />}
         sub={isPro ? `${(quota as any)?.pro_monthly_used ?? 0}/100 операции/мес` : "3+3 безплатни, после 1+1/мес"} />
       <Card
