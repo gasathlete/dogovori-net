@@ -9,7 +9,8 @@ export function Logo({ className = "", compact = false }: { className?: string; 
           alt="Dogovori.net лого"
           width={40}
           height={40}
-          loading="lazy"
+          loading="eager"
+          decoding="async"
           className="h-9 w-9 object-contain"
         />
       </div>
