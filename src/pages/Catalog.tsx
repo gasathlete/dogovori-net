@@ -98,7 +98,7 @@ export default function CatalogPage() {
       <Header />
 
       {/* Hero */}
-      <section className="relative overflow-hidden border-b border-border/60">
+      <section className="relative border-b border-border/60 [&>div:not(.container)]:pointer-events-none">
         <div className="absolute inset-0 bg-gradient-hero opacity-90" />
         <div className="absolute inset-0 bg-fine-grid opacity-50" />
         <div className="absolute inset-x-0 top-0 hairline-x" />
