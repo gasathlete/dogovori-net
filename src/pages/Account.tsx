@@ -203,6 +203,13 @@ export default function AccountPage() {
   );
 }
 
+function AssistantTab({ isPro }: { isPro: boolean }) {
+  const { team, loading } = useTeam();
+  if (loading) return <div className="flex h-40 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-gold" /></div>;
+  const hasAccess = isPro || (team && team.status === "active");
+  return hasAccess ? <AssistantChat /> : <AssistantPaywall />;
+}
+
 /* ====================== SCROLLABLE TABS LIST ====================== */
 function ScrollableTabsList({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement | null>(null);
