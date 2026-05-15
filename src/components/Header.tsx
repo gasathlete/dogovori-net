@@ -52,7 +52,7 @@ export function Header() {
 
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
           {NAV.map((n) => (
-            <Link key={n.to} to={n.to} className="transition-colors hover:text-gold">
+            <Link key={n.to} to={n.to} onClick={(e) => handleNav(n.to, e)} className="transition-colors hover:text-gold">
               {n.label}
             </Link>
           ))}
