@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Menu, X, User as UserIcon, LogIn } from "lucide-react";
 import { Logo } from "./Logo";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { scrollToHash } from "@/lib/scrollToHash";
 
 const NAV = [
   { to: "/build", label: "Изготви договор" },
@@ -15,6 +16,21 @@ const NAV = [
 export function Header() {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleNav = (to: string, e: React.MouseEvent) => {
+    if (!to.includes("#")) return;
+    e.preventDefault();
+    setOpen(false);
+    const [path, hash] = to.split("#");
+    if (location.pathname === (path || "/")) {
+      scrollToHash(hash);
+    } else {
+      navigate(path || "/");
+      setTimeout(() => scrollToHash(hash), 80);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-navy/80 backdrop-blur-xl">
@@ -36,7 +52,7 @@ export function Header() {
 
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
           {NAV.map((n) => (
-            <Link key={n.to} to={n.to} className="transition-colors hover:text-gold">
+            <Link key={n.to} to={n.to} onClick={(e) => handleNav(n.to, e)} className="transition-colors hover:text-gold">
               {n.label}
             </Link>
           ))}
@@ -54,7 +70,7 @@ export function Header() {
             <Link
               to="/account"
               aria-label="Профил"
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-2.5 text-xs font-medium text-gold transition-colors hover:bg-gold/20 sm:px-3"
+              className="inline-flex h-11 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-3 text-xs font-medium text-gold transition-colors hover:bg-gold/20 sm:h-9 sm:px-3"
             >
               <UserIcon className="h-4 w-4" /> <span className="hidden sm:inline">Профил</span>
             </Link>
@@ -62,7 +78,7 @@ export function Header() {
             <Link
               to="/auth"
               aria-label="Вход"
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-2.5 text-xs font-medium text-gold transition-colors hover:bg-gold/20 sm:px-3"
+              className="inline-flex h-11 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-3 text-xs font-medium text-gold transition-colors hover:bg-gold/20 sm:h-9 sm:px-3"
             >
               <LogIn className="h-4 w-4" /> <span className="hidden sm:inline">Вход</span>
             </Link>
@@ -72,7 +88,7 @@ export function Header() {
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Затвори менюто" : "Отвори менюто"}
             aria-expanded={open}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border/60 bg-card/40 text-foreground transition-colors hover:border-gold/50 hover:text-gold md:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-border/60 bg-card/40 text-foreground transition-colors hover:border-gold/50 hover:text-gold md:hidden"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -86,7 +102,10 @@ export function Header() {
               <Link
                 key={n.to}
                 to={n.to}
-                onClick={() => setOpen(false)}
+                onClick={(e) => {
+                  setOpen(false);
+                  handleNav(n.to, e);
+                }}
                 className="rounded-md px-3 py-3 text-sm text-muted-foreground transition-colors hover:bg-gold/5 hover:text-gold"
               >
                 {n.label}
