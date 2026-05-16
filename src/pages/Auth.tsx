@@ -40,8 +40,10 @@ export default function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
     if (error) return toast.error("Грешка при вход", { description: translateAuthError(error.message) });
+    try {
+      sessionStorage.setItem("post_login_redirect", redirect);
+    } catch { /* storage unavailable */ }
     toast.success("Добре дошли!");
-    navigate(redirect);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
