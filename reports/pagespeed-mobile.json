@@ -1,0 +1,90 @@
+{
+  "baseUrl": "https://dogovori.net",
+  "strategy": "mobile",
+  "ranAt": "2026-05-16T09:19:35.105Z",
+  "thresholds": {
+    "performance": 80,
+    "seo": 95,
+    "accessibility": 90,
+    "best-practices": 90
+  },
+  "reports": [
+    {
+      "url": "https://dogovori.net/",
+      "scores": {
+        "performance": 0,
+        "seo": 0,
+        "accessibility": 0,
+        "best-practices": 0
+      },
+      "metrics": {},
+      "error": "HTTP 429 Too Many Requests"
+    },
+    {
+      "url": "https://dogovori.net/catalog",
+      "scores": {
+        "performance": 0,
+        "seo": 0,
+        "accessibility": 0,
+        "best-practices": 0
+      },
+      "metrics": {},
+      "error": "HTTP 429 Too Many Requests"
+    },
+    {
+      "url": "https://dogovori.net/build",
+      "scores": {
+        "performance": 0,
+        "seo": 0,
+        "accessibility": 0,
+        "best-practices": 0
+      },
+      "metrics": {},
+      "error": "HTTP 429 Too Many Requests"
+    },
+    {
+      "url": "https://dogovori.net/blog",
+      "scores": {
+        "performance": 0,
+        "seo": 0,
+        "accessibility": 0,
+        "best-practices": 0
+      },
+      "metrics": {},
+      "error": "HTTP 429 Too Many Requests"
+    },
+    {
+      "url": "https://dogovori.net/sektor/employment",
+      "scores": {
+        "performance": 0,
+        "seo": 0,
+        "accessibility": 0,
+        "best-practices": 0
+      },
+      "metrics": {},
+      "error": "HTTP 429 Too Many Requests"
+    },
+    {
+      "url": "https://dogovori.net/sektor/real-estate",
+      "scores": {
+        "performance": 0,
+        "seo": 0,
+        "accessibility": 0,
+        "best-practices": 0
+      },
+      "metrics": {},
+      "error": "HTTP 429 Too Many Requests"
+    },
+    {
+      "url": "https://dogovori.net/sektor/digital",
+      "scores": {
+        "performance": 0,
+        "seo": 0,
+        "accessibility": 0,
+        "best-practices": 0
+      },
+      "metrics": {},
+      "error": "HTTP 429 Too Many Requests"
+    }
+  ]
+}
