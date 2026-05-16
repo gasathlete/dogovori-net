@@ -38,6 +38,7 @@ export default function WizardPage() {
   const { sectorId } = useParams();
   const [searchParams] = useSearchParams();
   const docName = searchParams.get("doc") || undefined;
+  const returnTo = searchParams.get("returnTo") || "/catalog";
   const navigate = useNavigate();
   const baseSector = sectorId ? getSector(sectorId) : undefined;
   const subWizard = getSubWizard(baseSector, docName);
@@ -66,7 +67,7 @@ export default function WizardPage() {
     } catch { return null; }
   }, [storageKey]);
 
-  const { user: authUser } = useAuth();
+  const { user: authUser, loading: authLoading } = useAuth();
   const [answers, setAnswers] = useState<Record<string, string>>(persisted?.answers ?? {});
   const [stepIdx, setStepIdx] = useState<number>(persisted?.stepIdx ?? 0);
   const [generating, setGenerating] = useState(false);
@@ -434,6 +435,7 @@ export default function WizardPage() {
   useEffect(() => {
     if (autoBlankTriggered.current) return;
     if (searchParams.get("blank") !== "1") return;
+    if (authLoading) return;
     // Don't auto-trigger if the user isn't logged in — handleDownloadBlank would
     // redirect to /auth and the post-success navigate(-1) below would bounce
     // back to /wizard?blank=1, creating an infinite redirect loop.
@@ -447,11 +449,10 @@ export default function WizardPage() {
     (async () => {
       await handleDownloadBlank();
       setTimeout(() => {
-        if (window.history.length > 1) navigate(-1);
-        else navigate("/catalog");
+        navigate(returnTo, { replace: true });
       }, 1500);
     })();
-  }, [searchParams, authUser]);
+  }, [searchParams, authUser, authLoading, navigate, returnTo]);
 
 
   return (

@@ -36,12 +36,19 @@ export default function AuthPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      sessionStorage.setItem("post_login_redirect", redirect);
+    } catch { /* storage unavailable */ }
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
-    if (error) return toast.error("Грешка при вход", { description: translateAuthError(error.message) });
+    if (error) {
+      try {
+        sessionStorage.removeItem("post_login_redirect");
+      } catch { /* storage unavailable */ }
+      return toast.error("Грешка при вход", { description: translateAuthError(error.message) });
+    }
     toast.success("Добре дошли!");
-    navigate(redirect);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
