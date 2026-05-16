@@ -180,11 +180,27 @@ export default function BuildContractPage() {
           other: other.trim(),
         },
       });
-      if (error) throw error;
+      if (error) {
+        const msg = String((error as any)?.message || error);
+        // Edge functions return non-2xx as an Error from supabase-js. Try to extract context.
+        const ctx: any = (error as any)?.context;
+        let parsed: any = null;
+        try {
+          if (ctx && typeof ctx.json === "function") parsed = await ctx.json();
+        } catch { /* ignore */ }
+        if (parsed?.code === "auth_required" || msg.includes("401")) {
+          toast.error(parsed?.error || "Влезте, за да изградите договора", {
+            description: "Пренасочваме ви към входа…",
+          });
+          setTimeout(goAuth, 900);
+          return;
+        }
+        throw error;
+      }
       if (!data || data.error) {
-        if (data?.requires_login) {
-          toast.error(data.error);
-          setTimeout(goAuth, 1200);
+        if (data?.requires_login || data?.code === "auth_required") {
+          toast.error(data.error || "Влезте с email или Google, за да продължите");
+          setTimeout(goAuth, 900);
           return;
         }
         throw new Error(data?.error || "Неуспешно създаване");
