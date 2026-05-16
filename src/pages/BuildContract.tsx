@@ -19,6 +19,7 @@ import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { Seo } from "@/components/Seo";
 import { trackEvent } from "@/lib/analytics";
+import { AIDisclaimerModal } from "@/components/AIDisclaimerModal";
 
 interface AIResult {
   risk: { level: RiskLevel; score: number; summary: string; issues: RiskIssue[]; recommendations: string[] };
@@ -286,6 +287,7 @@ export default function BuildContractPage() {
         description="Опишете накратко договора — AI попълва липсващите клаузи и създава професионален документ до 2 минути, със ЗЗД/ТЗ съответствие и риск-анализ."
         canonical="https://dogovori.net/build"
       />
+      <AIDisclaimerModal />
       <Header />
 
       {/* Top bar */}

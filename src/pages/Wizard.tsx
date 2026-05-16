@@ -18,6 +18,7 @@ import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
+import { AIDisclaimerModal } from "@/components/AIDisclaimerModal";
 
 import { useAuth } from "@/hooks/useAuth";
 import { trackEvent } from "@/lib/analytics";
@@ -447,6 +448,7 @@ export default function WizardPage() {
 
   return (
     <div className="min-h-screen">
+      <AIDisclaimerModal />
       <Header />
 
       {downloadingBlank && (
