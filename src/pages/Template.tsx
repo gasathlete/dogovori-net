@@ -41,6 +41,7 @@ export default function TemplatePage() {
   const meta = TEMPLATE_CONTENT_META[entry.slug];
 
   const wizardHref = `/wizard/${category.sectorId}?doc=${encodeURIComponent(doc.name)}`;
+  const blankWizardHref = `${wizardHref}&blank=1&returnTo=${encodeURIComponent(`/shablon/${entry.slug}`)}`;
   const canonical = `/shablon/${entry.slug}`;
   const pageTitle = `${doc.name} — образец и бланка на български | PDF, DOCX`;
   const pageDesc = meta?.introExcerpt
@@ -194,7 +195,7 @@ export default function TemplatePage() {
               {category.title}
             </div>
             <Link
-              to={`${wizardHref}&blank=1`}
+              to={blankWizardHref}
               className="inline-flex shrink-0 items-center gap-1 rounded-md border border-gold/40 px-2.5 py-1.5 text-xs text-gold transition-colors hover:bg-gold/10"
             >
               <Download className="h-3 w-3" />
