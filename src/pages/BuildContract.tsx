@@ -335,6 +335,14 @@ export default function BuildContractPage() {
                   <Bird className="h-4 w-4 text-gold" />
                   <h1 className="font-serif text-xl font-bold text-foreground">Изготви договор</h1>
                 </div>
+                {!user && (
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-foreground">
+                    <span>За да изградите договор, влезте безплатно с email или Google.</span>
+                    <Button size="sm" variant="outline" onClick={goAuth} className="h-7 border-gold/50 text-xs">
+                      Вход
+                    </Button>
+                  </div>
+                )}
                 <p className="mb-5 text-xs leading-relaxed text-muted-foreground">
                   Попълнете каквото знаете. <span className="text-gold">Празните полета</span> се попълват от AI с пазарно-стандартни клаузи. Готов договор до 2 минути.
                 </p>
