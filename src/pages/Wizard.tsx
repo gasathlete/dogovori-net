@@ -19,6 +19,10 @@ import { downloadDocument } from "@/lib/downloadDocument";
 import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
 import { AIDisclaimerModal } from "@/components/AIDisclaimerModal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Link } from "react-router-dom";
+import { hasAIDisclaimerLocal, setAIDisclaimerLocal, recordConsents } from "@/lib/consents";
 
 import { useAuth } from "@/hooks/useAuth";
 import { trackEvent } from "@/lib/analytics";
