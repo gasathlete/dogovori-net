@@ -1,5 +1,5 @@
 import { useMemo, useState, useRef, useEffect } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams, Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Loader2, Bird, FileDown, FileText, Save, User, Download, ShieldCheck, Search, FileSearch, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,10 @@ import { downloadDocument } from "@/lib/downloadDocument";
 import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
 import { AIDisclaimerModal } from "@/components/AIDisclaimerModal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+
+import { hasAIDisclaimerLocal, setAIDisclaimerLocal, recordConsents } from "@/lib/consents";
 
 import { useAuth } from "@/hooks/useAuth";
 import { trackEvent } from "@/lib/analytics";
@@ -369,7 +373,12 @@ export default function WizardPage() {
     { icon: FileSearch, label: "Проверка за липсващи клаузи и реквизити…" },
     { icon: Download, label: "Бланката ще бъде свалена до 10 секунди…" },
   ];
-  const handleDownloadBlank = async () => {
+  // Gate the blank download behind the AI disclaimer (if not already accepted).
+  const [disclaimerGateOpen, setDisclaimerGateOpen] = useState(false);
+  const [disclaimerAck, setDisclaimerAck] = useState(false);
+  const pendingBlankAfterAck = useRef(false);
+
+  const runBlankDownload = async () => {
     if (!user) {
       toast.error("Влезте, за да изтеглите бланка", { description: "Прогресът е запазен." });
       goAuth();
@@ -428,6 +437,27 @@ export default function WizardPage() {
     }
   };
 
+  const handleDownloadBlank = async () => {
+    if (!hasAIDisclaimerLocal()) {
+      pendingBlankAfterAck.current = true;
+      setDisclaimerAck(false);
+      setDisclaimerGateOpen(true);
+      return;
+    }
+    await runBlankDownload();
+  };
+
+  const acceptDisclaimerAndContinue = async () => {
+    if (!disclaimerAck) return;
+    setAIDisclaimerLocal();
+    recordConsents([{ consent_type: "ai_disclaimer", granted: true }]).catch(() => undefined);
+    setDisclaimerGateOpen(false);
+    if (pendingBlankAfterAck.current) {
+      pendingBlankAfterAck.current = false;
+      await runBlankDownload();
+    }
+  };
+
   // Auto-trigger blank download when arriving with ?blank=1
   // и след успех — върни потребителя обратно (към template страницата),
   // вместо да го оставяш на празния wizard.
@@ -447,7 +477,14 @@ export default function WizardPage() {
     }
     autoBlankTriggered.current = true;
     (async () => {
-      await handleDownloadBlank();
+      if (!hasAIDisclaimerLocal()) {
+        // Show the gate first; the rest runs after acceptance via acceptDisclaimerAndContinue.
+        pendingBlankAfterAck.current = true;
+        setDisclaimerAck(false);
+        setDisclaimerGateOpen(true);
+        return;
+      }
+      await runBlankDownload();
       setTimeout(() => {
         navigate(returnTo, { replace: true });
       }, 1500);
@@ -458,6 +495,60 @@ export default function WizardPage() {
   return (
     <div className="min-h-screen">
       <AIDisclaimerModal />
+
+      {/* Blocking AI disclaimer gate — shown before starting the blank download
+          when the user hasn't yet acknowledged the AI disclaimer. */}
+      <Dialog
+        open={disclaimerGateOpen}
+        onOpenChange={(o) => {
+          if (!o) {
+            // Closing without acceptance cancels the pending blank download.
+            pendingBlankAfterAck.current = false;
+            setDisclaimerGateOpen(false);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="mb-2 inline-flex w-fit items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-[11px] uppercase tracking-wider text-gold">
+              <Bird className="h-3 w-3" /> Информация за изкуствен интелект
+            </div>
+            <DialogTitle className="font-serif text-xl">Преди да изтеглите бланка</DialogTitle>
+            <DialogDescription className="text-sm leading-relaxed text-foreground/90">
+              Генерираните документи са образци, създадени с моделиран по българското
+              законодателство изкуствен интелект и <strong>не представляват правен съвет</strong>.{" "}
+              <Link to="/terms" className="text-gold underline-offset-2 hover:underline">
+                Условия
+              </Link>
+              .
+            </DialogDescription>
+          </DialogHeader>
+
+          <button
+            type="button"
+            onClick={() => setDisclaimerAck((v) => !v)}
+            className="mt-2 flex w-full items-start gap-2 rounded-md border border-gold/30 bg-card/50 p-3 text-left transition-colors hover:bg-card/70"
+          >
+            <Checkbox
+              checked={disclaimerAck}
+              className="pointer-events-none mt-0.5"
+              tabIndex={-1}
+            />
+            <span className="text-xs leading-relaxed text-foreground">
+              Разбирам и приемам, че документите се генерират от изкуствен интелект и не
+              заместват консултация с адвокат.
+            </span>
+          </button>
+
+          <Button
+            onClick={acceptDisclaimerAndContinue}
+            disabled={!disclaimerAck}
+            className="mt-3 w-full bg-gradient-gold text-navy hover:shadow-gold"
+          >
+            Продължи към сваляне
+          </Button>
+        </DialogContent>
+      </Dialog>
       <Header />
 
       {downloadingBlank && (
