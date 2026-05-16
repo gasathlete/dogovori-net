@@ -11,7 +11,7 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 import Index from "./pages/Index.tsx";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { CookieBanner } from "@/components/CookieBanner";
-import { initSentry } from "@/lib/sentry";
+// Sentry init is deferred to idle time below — keeps it off the critical path.
 
 // Lazy-load every route except Index (landing page) so the initial bundle stays light.
 // Heavy deps (jspdf, docx, templateContent ~808KB) only load when their route is visited.
@@ -47,7 +47,15 @@ const Team = lazy(() => import("./pages/Team.tsx"));
 const TeamAccept = lazy(() => import("./pages/TeamAccept.tsx"));
 const Contact = lazy(() => import("./pages/Contact.tsx"));
 
-initSentry();
+// Defer Sentry boot until the browser is idle so it never competes with hydration / LCP.
+if (typeof window !== "undefined") {
+  const boot = () => import("@/lib/sentry").then((m) => m.initSentry());
+  if ("requestIdleCallback" in window) {
+    (window as any).requestIdleCallback(boot, { timeout: 4000 });
+  } else {
+    setTimeout(boot, 2000);
+  }
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {

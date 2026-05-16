@@ -1,5 +1,5 @@
 import { ShieldCheck, Bird, FileText, ArrowRight, Search } from "lucide-react";
-import logoImg from "@/assets/logo-dogovori-hero.png";
+import logoImg from "@/assets/logo-dogovori-hero.webp";
 import { scrollToHash } from "@/lib/scrollToHash";
 
 export function Hero({ onStart }: { onStart: () => void }) {
