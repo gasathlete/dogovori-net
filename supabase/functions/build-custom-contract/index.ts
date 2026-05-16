@@ -1,7 +1,7 @@
 // AI generation of a custom (free-form) contract from minimal user inputs.
 // Uses Lovable AI Gateway (Gemini). Same response shape as generate-contract:
 // { risk: { level, score, summary, issues, recommendations }, contract: { title, preamble, clauses, closing } }
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
 import { buildCors, hashIp, clientIp } from "../_shared/cors.ts";
 import { sha256Hex, stableStringify } from "../_shared/normalize.ts";
 import { extractJson } from "../_shared/json.ts";

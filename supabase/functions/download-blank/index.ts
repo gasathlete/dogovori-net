@@ -3,7 +3,7 @@
 // - If absent, generates a professional Bulgarian legal blank via Lovable AI Gateway,
 //   packages it as a .docx, uploads to the `document-blanks` bucket and indexes it.
 // - Always consumes the `template` quota for the calling user.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
 import {
   Document,
   Packer,
