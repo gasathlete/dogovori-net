@@ -35,7 +35,7 @@ export async function recordConsents(records: ConsentRecord[]) {
       document_version: CONSENT_VERSIONS[r.consent_type],
       granted: r.granted,
       user_agent: typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 500) : null,
-      metadata: r.metadata ?? null,
+      metadata: (r.metadata ?? null) as any,
     }));
 
     const { error } = await supabase.from("user_consents").insert(rows);
