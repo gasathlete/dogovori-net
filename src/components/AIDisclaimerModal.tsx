@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles } from "lucide-react";
+import { Bird } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { hasAIDisclaimerLocal, setAIDisclaimerLocal, recordConsents } from "@/lib/consents";
 
 /**
@@ -28,6 +27,8 @@ export function AIDisclaimerModal() {
     recordConsents([{ consent_type: "ai_disclaimer", granted: true }]).catch(() => undefined);
   };
 
+  const toggle = () => setAccepted((v) => !v);
+
   return (
     <Dialog open={open} onOpenChange={() => { /* not dismissible without acceptance */ }}>
       <DialogContent
@@ -37,7 +38,7 @@ export function AIDisclaimerModal() {
       >
         <DialogHeader>
           <div className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-[11px] uppercase tracking-wider text-gold">
-            <Sparkles className="h-3 w-3" /> Информация за AI
+            <Bird className="h-3 w-3" /> Информация за изкуствен интелект
           </div>
           <DialogTitle className="font-serif text-2xl">Преди да започнете</DialogTitle>
           <DialogDescription className="text-sm leading-relaxed text-foreground/90">
@@ -64,18 +65,23 @@ export function AIDisclaimerModal() {
           </p>
         </div>
 
-        <div className="mt-4 flex items-start gap-2 rounded-md border border-gold/30 bg-card/50 p-3">
+        <button
+          type="button"
+          onClick={toggle}
+          className="mt-4 flex w-full items-start gap-2 rounded-md border border-gold/30 bg-card/50 p-3 text-left transition-colors hover:bg-card/70"
+        >
           <Checkbox
             id="ai-ack"
             checked={accepted}
             onCheckedChange={(v) => setAccepted(!!v)}
-            className="mt-0.5"
+            className="pointer-events-none mt-0.5"
+            tabIndex={-1}
           />
-          <Label htmlFor="ai-ack" className="cursor-pointer text-xs leading-relaxed text-foreground">
+          <span className="cursor-pointer text-xs leading-relaxed text-foreground">
             Разбирам и приемам, че документите се генерират от изкуствен интелект и не
             заместват консултация с адвокат.
-          </Label>
-        </div>
+          </span>
+        </button>
 
         <Button
           onClick={handleAccept}
