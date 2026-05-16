@@ -28,8 +28,11 @@ export default function AuthPage() {
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [acceptAge, setAcceptAge] = useState(false);
   const [acceptMarketing, setAcceptMarketing] = useState(false);
+  const [tab, setTab] = useState<"login" | "signup">("login");
 
   const signupReady = acceptTerms && acceptPrivacy && acceptAge;
+  // Google OAuth: returning users (login tab) don't need to re-accept; new users (signup tab) must.
+  const googleReady = tab === "login" ? true : signupReady;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
