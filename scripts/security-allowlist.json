@@ -1,3 +1,4 @@
 [
-  "src/integrations/supabase/client.ts"
+  "src/integrations/supabase/client.ts",
+  "scripts/security-scan.ts"
 ]
