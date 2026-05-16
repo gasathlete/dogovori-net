@@ -1,96 +1,76 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bird } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Bird, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { hasAIDisclaimerLocal, setAIDisclaimerLocal, recordConsents } from "@/lib/consents";
 
 /**
- * Shown once per user/browser when entering an AI-generation flow
- * (Wizard, BuildContract). User must acknowledge that the generated
- * documents are AI samples and not legal advice.
+ * Discrete bottom-right toast shown once per user/browser when entering
+ * an AI-generation flow. Checking the box accepts and dismisses immediately.
  */
 export function AIDisclaimerModal() {
   const [open, setOpen] = useState(false);
-  const [accepted, setAccepted] = useState(false);
 
   useEffect(() => {
-    if (!hasAIDisclaimerLocal()) setOpen(true);
+    if (!hasAIDisclaimerLocal()) {
+      // Small delay so it doesn't pop up the instant the page mounts.
+      const t = setTimeout(() => setOpen(true), 400);
+      return () => clearTimeout(t);
+    }
   }, []);
 
-  const handleAccept = async () => {
-    if (!accepted) return;
+  const accept = () => {
     setAIDisclaimerLocal();
     setOpen(false);
-    // Fire and forget — record only if logged in.
     recordConsents([{ consent_type: "ai_disclaimer", granted: true }]).catch(() => undefined);
   };
 
-  const toggle = () => setAccepted((v) => !v);
+  if (!open) return null;
 
   return (
-    <Dialog open={open} onOpenChange={() => { /* not dismissible without acceptance */ }}>
-      <DialogContent
-        className="sm:max-w-lg [&>button]:hidden"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
-      >
-        <DialogHeader>
-          <div className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-[11px] uppercase tracking-wider text-gold">
-            <Bird className="h-3 w-3" /> Информация за изкуствен интелект
-          </div>
-          <DialogTitle className="font-serif text-2xl">Преди да започнете</DialogTitle>
-          <DialogDescription className="text-sm leading-relaxed text-foreground/90">
-            Генерираните документи са образци, създадени с моделиран по българското
-            законодателство изкуствен интелект и <strong>не представляват правен съвет</strong>.
-          </DialogDescription>
-        </DialogHeader>
+    <div
+      role="dialog"
+      aria-label="Информация за изкуствен интелект"
+      className="fixed bottom-4 right-4 z-50 w-[min(360px,calc(100vw-2rem))] animate-in fade-in slide-in-from-bottom-4"
+    >
+      <div className="relative rounded-lg border border-gold/30 bg-card/95 p-4 shadow-soft backdrop-blur-md">
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          aria-label="Затвори"
+          className="absolute right-2 top-2 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
 
-        <div className="space-y-3 text-xs text-muted-foreground">
-          <p>
-            Текстовете се изготвят автоматично въз основа на въведените от Вас данни.
-            Препоръчваме окончателен преглед от практикуващ юрист преди подписване,
-            особено при високи стойности, сложни хипотези или регулирани сектори.
-          </p>
-          <p>
-            Повече за нашия подход и ограничения вижте в{" "}
-            <Link to="/terms" className="text-gold underline-offset-2 hover:underline">
-              Общите условия
-            </Link>{" "}
-            и{" "}
-            <Link to="/privacy" className="text-gold underline-offset-2 hover:underline">
-              Политиката за поверителност
-            </Link>.
-          </p>
+        <div className="mb-2 flex items-center gap-2 text-[10px] uppercase tracking-wider text-gold">
+          <Bird className="h-3 w-3" /> Информация за изкуствен интелект
         </div>
+
+        <p className="pr-4 text-xs leading-relaxed text-foreground/90">
+          Генерираните документи са образци, създадени с моделиран по българското
+          законодателство изкуствен интелект и не представляват правен съвет.{" "}
+          <Link to="/terms" className="text-gold underline-offset-2 hover:underline">
+            Условия
+          </Link>
+          .
+        </p>
 
         <button
           type="button"
-          onClick={toggle}
-          className="mt-4 flex w-full items-start gap-2 rounded-md border border-gold/30 bg-card/50 p-3 text-left transition-colors hover:bg-card/70"
+          onClick={accept}
+          className="mt-3 flex w-full items-center gap-2 rounded-md border border-border/60 bg-background/40 p-2 text-left transition-colors hover:bg-background/70"
         >
           <Checkbox
-            id="ai-ack"
-            checked={accepted}
-            onCheckedChange={(v) => setAccepted(!!v)}
+            checked={false}
             className="pointer-events-none mt-0.5"
             tabIndex={-1}
           />
-          <span className="cursor-pointer text-xs leading-relaxed text-foreground">
-            Разбирам и приемам, че документите се генерират от изкуствен интелект и не
-            заместват консултация с адвокат.
+          <span className="text-[11px] leading-snug text-foreground">
+            Разбирам и приемам.
           </span>
         </button>
-
-        <Button
-          onClick={handleAccept}
-          disabled={!accepted}
-          className="mt-4 w-full bg-gradient-gold text-navy hover:shadow-gold"
-        >
-          Продължи
-        </Button>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }
