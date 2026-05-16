@@ -141,7 +141,7 @@ export default function AuthPage() {
             Влезте, за да теглите договори и да управлявате контрагентите си.
           </p>
 
-          <Tabs defaultValue="login" className="mt-6">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as "login" | "signup")} className="mt-6">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Вход</TabsTrigger>
               <TabsTrigger value="signup">Регистрация</TabsTrigger>
