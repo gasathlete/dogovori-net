@@ -16,6 +16,11 @@ const allowlist: string[] = existsSync(ALLOWLIST_PATH)
   ? JSON.parse(readFileSync(ALLOWLIST_PATH, "utf8"))
   : [];
 
+// CLI: optional list of files to scan (used in CI to scan only changed files).
+// Without args, scan everything (useful for the initial baseline).
+const argFiles = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+const SCAN_ALL = argFiles.length === 0;
+
 const findings: Finding[] = [];
 
 function walk(dir: string, out: string[] = []): string[] {
