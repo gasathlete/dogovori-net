@@ -28,8 +28,11 @@ export default function AuthPage() {
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [acceptAge, setAcceptAge] = useState(false);
   const [acceptMarketing, setAcceptMarketing] = useState(false);
+  const [tab, setTab] = useState<"login" | "signup">("login");
 
   const signupReady = acceptTerms && acceptPrivacy && acceptAge;
+  // Google OAuth: returning users (login tab) don't need to re-accept; new users (signup tab) must.
+  const googleReady = tab === "login" ? true : signupReady;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,17 +95,19 @@ export default function AuthPage() {
   };
 
   const handleGoogle = async () => {
-    if (!signupReady) {
-      toast.error("Преди вход с Google, моля приемете задължителните условия");
+    if (tab === "signup" && !signupReady) {
+      toast.error("Преди регистрация с Google, моля приемете задължителните условия");
       return;
     }
     setBusy(true);
     try {
       sessionStorage.setItem("post_login_redirect", redirect);
-      sessionStorage.setItem(
-        "pending_consents",
-        JSON.stringify({ marketing: acceptMarketing, terms: true, privacy: true, age_18: true, ts: Date.now() }),
-      );
+      if (tab === "signup") {
+        sessionStorage.setItem(
+          "pending_consents",
+          JSON.stringify({ marketing: acceptMarketing, terms: true, privacy: true, age_18: true, ts: Date.now() }),
+        );
+      }
     } catch { /* storage unavailable */ }
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
@@ -136,7 +141,7 @@ export default function AuthPage() {
             Влезте, за да теглите договори и да управлявате контрагентите си.
           </p>
 
-          <Tabs defaultValue="login" className="mt-6">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as "login" | "signup")} className="mt-6">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Вход</TabsTrigger>
               <TabsTrigger value="signup">Регистрация</TabsTrigger>
@@ -258,15 +263,15 @@ export default function AuthPage() {
             type="button"
             variant="outline"
             onClick={handleGoogle}
-            disabled={busy || !signupReady}
+            disabled={busy || !googleReady}
             className="w-full border-gold/40 hover:bg-gold/10 hover:text-gold disabled:opacity-50"
-            title={!signupReady ? "Първо приемете задължителните условия по-горе" : undefined}
+            title={!googleReady ? "Първо приемете задължителните условия по-горе" : undefined}
           >
             Продължи с Google
           </Button>
-          {!signupReady && (
+          {tab === "signup" && !signupReady && (
             <p className="mt-2 text-center text-[10px] text-muted-foreground">
-              За да продължите с Google, първо приемете задължителните условия в раздел „Регистрация".
+              За да се регистрирате с Google, първо приемете задължителните условия по-горе.
             </p>
           )}
 
