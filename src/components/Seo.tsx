@@ -60,6 +60,12 @@ export function Seo({
         </>
       )}
 
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content={fullTitle} />
+      <meta name="twitter:description" content={desc} />
+      <meta name="twitter:image" content={image} />
+      <meta name="twitter:image:alt" content={fullTitle} />
+
       <meta name="geo.region" content="BG" />
       <meta name="geo.placename" content="Bulgaria" />
       <link rel="alternate" hrefLang="bg-BG" href={url} />
