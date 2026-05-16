@@ -102,10 +102,12 @@ export default function AuthPage() {
     setBusy(true);
     try {
       sessionStorage.setItem("post_login_redirect", redirect);
-      sessionStorage.setItem(
-        "pending_consents",
-        JSON.stringify({ marketing: acceptMarketing, terms: true, privacy: true, age_18: true, ts: Date.now() }),
-      );
+      if (tab === "signup") {
+        sessionStorage.setItem(
+          "pending_consents",
+          JSON.stringify({ marketing: acceptMarketing, terms: true, privacy: true, age_18: true, ts: Date.now() }),
+        );
+      }
     } catch { /* storage unavailable */ }
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
