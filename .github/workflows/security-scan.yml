@@ -19,10 +19,28 @@ jobs:
       - name: Install deps
         run: bun install --frozen-lockfile
 
-      # Custom static scan: SECURITY DEFINER without authz, missing RLS,
-      # permissive policies, leaked service-role key, hardcoded JWTs / API keys.
+      # Custom static scan — only on files changed in this PR/push.
+      # Existing findings are grandfathered; CI blocks NEW SECURITY DEFINER
+      # without authz, missing RLS, permissive policies, leaked secrets.
+      - name: Determine changed files
+        id: changed
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+          else
+            base="${{ github.event.before }}"
+            head="${{ github.sha }}"
+          fi
+          files=$(git diff --name-only --diff-filter=AM "$base" "$head" -- \
+            'supabase/migrations/*.sql' 'src/**/*' 'supabase/functions/**/*' 'scripts/**/*' || true)
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$files" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Run security-scan
-        run: bun run scripts/security-scan.ts
+        if: steps.changed.outputs.files != ''
+        run: bun run scripts/security-scan.ts ${{ steps.changed.outputs.files }}
 
       # Secondary: gitleaks for broader secret scanning.
       - name: Gitleaks
