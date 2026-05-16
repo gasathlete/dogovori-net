@@ -4,12 +4,14 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { translateAuthError } from "@/lib/authErrors";
+import { recordConsents } from "@/lib/consents";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -20,6 +22,14 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Signup consent checkboxes
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
+  const [acceptAge, setAcceptAge] = useState(false);
+  const [acceptMarketing, setAcceptMarketing] = useState(false);
+
+  const signupReady = acceptTerms && acceptPrivacy && acceptAge;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +43,10 @@ export default function AuthPage() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!signupReady) {
+      toast.error("Моля, потвърдете задължителните полета");
+      return;
+    }
     setBusy(true);
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -44,10 +58,17 @@ export default function AuthPage() {
     });
     setBusy(false);
     if (error) return toast.error("Грешка при регистрация", { description: translateAuthError(error.message) });
-    // Send welcome email (fire-and-forget). Only when we have an active
-    // session — the edge function requires an authenticated user JWT and
-    // restricts the recipient to the caller's own email.
+
+    // Record consents (works only when session exists; otherwise silently no-op until verified).
     if (data?.session) {
+      recordConsents([
+        { consent_type: "terms", granted: true },
+        { consent_type: "privacy", granted: true },
+        { consent_type: "age_18", granted: true },
+        ...(acceptMarketing ? [{ consent_type: "marketing" as const, granted: true }] : []),
+      ]).catch(() => undefined);
+
+      // Send welcome email — requires JWT.
       supabase.functions.invoke('send-transactional-email', {
         body: {
           templateName: 'welcome',
@@ -56,20 +77,33 @@ export default function AuthPage() {
           templateData: { name },
         },
       }).catch((e) => console.warn('welcome email failed', e));
+    } else {
+      // Email-verification flow: stash consents to record after first sign-in.
+      try {
+        sessionStorage.setItem(
+          "pending_consents",
+          JSON.stringify({ marketing: acceptMarketing, ts: Date.now() }),
+        );
+      } catch { /* storage unavailable */ }
     }
+
     toast.success("Регистрацията е успешна!");
     navigate(redirect);
   };
 
   const handleGoogle = async () => {
+    if (!signupReady) {
+      toast.error("Преди вход с Google, моля приемете задължителните условия");
+      return;
+    }
     setBusy(true);
-    // The Lovable managed OAuth flow requires `redirect_uri` to be the bare
-    // origin (it appends its own `/~oauth/callback` path). Passing an arbitrary
-    // path here causes the provider redirect to fail. Stash the desired post-
-    // login destination in sessionStorage and read it after the redirect lands.
     try {
       sessionStorage.setItem("post_login_redirect", redirect);
-    } catch { /* storage unavailable — fall back to /account */ }
+      sessionStorage.setItem(
+        "pending_consents",
+        JSON.stringify({ marketing: acceptMarketing, terms: true, privacy: true, age_18: true, ts: Date.now() }),
+      );
+    } catch { /* storage unavailable */ }
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
       extraParams: { prompt: "select_account" },
@@ -141,13 +175,74 @@ export default function AuthPage() {
                 <div>
                   <Label htmlFor="spw">Парола</Label>
                   <Input id="spw" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+                  <p className="mt-1 text-[10px] text-muted-foreground">Минимум 8 символа.</p>
                 </div>
-                <Button type="submit" disabled={busy} className="w-full bg-gradient-gold text-navy hover:shadow-gold">
+
+                <div className="space-y-2 rounded-md border border-border/60 bg-card/30 p-3">
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="c-age"
+                      checked={acceptAge}
+                      onCheckedChange={(v) => setAcceptAge(!!v)}
+                      className="mt-0.5"
+                    />
+                    <Label htmlFor="c-age" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+                      Потвърждавам, че съм навършил/а <strong>18 години</strong>. <span className="text-gold">*</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="c-terms"
+                      checked={acceptTerms}
+                      onCheckedChange={(v) => setAcceptTerms(!!v)}
+                      className="mt-0.5"
+                    />
+                    <Label htmlFor="c-terms" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+                      Прочетох и приемам{" "}
+                      <Link to="/terms" target="_blank" className="text-gold hover:underline">
+                        Общите условия
+                      </Link>{" "}
+                      на Dogovori.net. <span className="text-gold">*</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="c-privacy"
+                      checked={acceptPrivacy}
+                      onCheckedChange={(v) => setAcceptPrivacy(!!v)}
+                      className="mt-0.5"
+                    />
+                    <Label htmlFor="c-privacy" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+                      Прочетох и приемам{" "}
+                      <Link to="/privacy" target="_blank" className="text-gold hover:underline">
+                        Политиката за поверителност
+                      </Link>{" "}
+                      и обработката на личните ми данни съгласно GDPR. <span className="text-gold">*</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="c-mkt"
+                      checked={acceptMarketing}
+                      onCheckedChange={(v) => setAcceptMarketing(!!v)}
+                      className="mt-0.5"
+                    />
+                    <Label htmlFor="c-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-muted-foreground">
+                      Желая да получавам новини, оферти и съвети по email (по избор; можете да оттеглите по всяко време).
+                    </Label>
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={busy || !signupReady}
+                  className="w-full bg-gradient-gold text-navy hover:shadow-gold disabled:opacity-50"
+                >
                   {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Създай профил
                 </Button>
-                <p className="text-[11px] leading-relaxed text-muted-foreground">
-                  С регистрацията си приемате <Link to="/terms" className="text-gold hover:underline">Общите условия</Link> и потвърждавате, че Dogovori.net не носи отговорност за вреди или правни последици от използването на генерираните документи.
+                <p className="text-[10px] leading-relaxed text-muted-foreground">
+                  Документите, генерирани от платформата, са образци, създадени с изкуствен интелект, и не представляват правен съвет.
                 </p>
               </form>
             </TabsContent>
@@ -163,11 +258,17 @@ export default function AuthPage() {
             type="button"
             variant="outline"
             onClick={handleGoogle}
-            disabled={busy}
-            className="w-full border-gold/40 hover:bg-gold/10 hover:text-gold"
+            disabled={busy || !signupReady}
+            className="w-full border-gold/40 hover:bg-gold/10 hover:text-gold disabled:opacity-50"
+            title={!signupReady ? "Първо приемете задължителните условия по-горе" : undefined}
           >
             Продължи с Google
           </Button>
+          {!signupReady && (
+            <p className="mt-2 text-center text-[10px] text-muted-foreground">
+              За да продължите с Google, първо приемете задължителните условия в раздел „Регистрация".
+            </p>
+          )}
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
             <Link to="/" className="hover:text-gold">← Към началото</Link>
