@@ -95,8 +95,8 @@ export default function AuthPage() {
   };
 
   const handleGoogle = async () => {
-    if (!signupReady) {
-      toast.error("Преди вход с Google, моля приемете задължителните условия");
+    if (tab === "signup" && !signupReady) {
+      toast.error("Преди регистрация с Google, моля приемете задължителните условия");
       return;
     }
     setBusy(true);
