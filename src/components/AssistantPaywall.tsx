@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Sparkles, Crown, Check } from "lucide-react";
+import { Bird, Crown, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function AssistantPaywall() {
@@ -7,7 +7,7 @@ export function AssistantPaywall() {
     <div className="flex min-h-[400px] items-center justify-center rounded-lg border border-border/60 bg-card/40 p-6">
       <div className="max-w-md text-center">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gold/15">
-          <Sparkles className="h-7 w-7 text-gold" />
+          <Bird className="h-7 w-7 text-gold" />
         </div>
         <h3 className="mb-2 text-lg font-semibold text-foreground">AI Асистент 24/7</h3>
         <p className="mb-5 text-sm text-muted-foreground">
