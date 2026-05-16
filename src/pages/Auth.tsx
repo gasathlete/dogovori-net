@@ -263,15 +263,15 @@ export default function AuthPage() {
             type="button"
             variant="outline"
             onClick={handleGoogle}
-            disabled={busy || !signupReady}
+            disabled={busy || !googleReady}
             className="w-full border-gold/40 hover:bg-gold/10 hover:text-gold disabled:opacity-50"
-            title={!signupReady ? "Първо приемете задължителните условия по-горе" : undefined}
+            title={!googleReady ? "Първо приемете задължителните условия по-горе" : undefined}
           >
             Продължи с Google
           </Button>
-          {!signupReady && (
+          {tab === "signup" && !signupReady && (
             <p className="mt-2 text-center text-[10px] text-muted-foreground">
-              За да продължите с Google, първо приемете задължителните условия в раздел „Регистрация".
+              За да се регистрирате с Google, първо приемете задължителните условия по-горе.
             </p>
           )}
 
