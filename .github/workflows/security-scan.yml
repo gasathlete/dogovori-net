@@ -1,0 +1,33 @@
+name: Security scan
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install deps
+        run: bun install --frozen-lockfile
+
+      # Custom static scan: SECURITY DEFINER without authz, missing RLS,
+      # permissive policies, leaked service-role key, hardcoded JWTs / API keys.
+      - name: Run security-scan
+        run: bun run scripts/security-scan.ts
+
+      # Secondary: gitleaks for broader secret scanning.
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          config-path: .gitleaks.toml
