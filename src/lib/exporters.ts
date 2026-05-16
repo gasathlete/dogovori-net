@@ -136,7 +136,11 @@ export async function exportPDF(c: GeneratedContract, opts?: WatermarkOpts) {
   };
 
   writeWrapped(c.title.toUpperCase(), 16, { align: "center" });
-  y += 12;
+  y += 4;
+  doc.setTextColor(140, 140, 140);
+  writeWrapped("Създадено с изкуствен интелект", 8, { align: "center" });
+  doc.setTextColor(0, 0, 0);
+  y += 8;
   doc.setDrawColor(201, 168, 76);
   doc.setLineWidth(0.8);
   doc.line(M, y, pw - M, y);
@@ -228,6 +232,12 @@ export async function exportDOCX(c: GeneratedContract, opts?: WatermarkOpts) {
       heading: HeadingLevel.TITLE,
       alignment: AlignmentType.CENTER,
       children: [new TextRun({ text: c.title.toUpperCase(), bold: true, size: 32 })],
+    })
+  );
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: "Създадено с изкуствен интелект", color: "8C8C8C", size: 16, italics: true })],
     })
   );
   children.push(new Paragraph({ text: "" }));

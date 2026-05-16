@@ -1,5 +1,6 @@
-// Plausible Analytics wrapper. Cookieless, GDPR-friendly — no consent banner needed.
-// Script tag is added in index.html with data-domain="dogovori.net".
+// Plausible Analytics wrapper. Cookieless, GDPR-friendly.
+// We additionally store granular cookie-category preferences for compliance
+// with CJEU Planet49 (active opt-in per category).
 
 declare global {
   interface Window {
@@ -7,46 +8,102 @@ declare global {
   }
 }
 
-/**
- * Track a custom event in Plausible.
- * Examples:
- *   trackEvent("template_view", { slug: "dogovor-naem" })
- *   trackEvent("wizard_start", { sectorId: "real-estate" })
- *   trackEvent("checkout_start", { amount: 9.99 })
- *   trackEvent("purchase_complete", { amount: 9.99, currency: "BGN" })
- */
 export function trackEvent(name: string, props?: Record<string, unknown>) {
   if (typeof window === "undefined") return;
   try {
-    window.plausible?.(name, props ? { props } : undefined);
+    if (getCategoryConsent("analytics")) {
+      window.plausible?.(name, props ? { props } : undefined);
+    }
   } catch {
-    // Silently swallow — analytics must never break the app.
+    // never break the app
   }
 }
 
-/**
- * Track outbound link clicks (e.g. lex.bg references).
- * Plausible auto-tracks these via the `outbound-links` extension if enabled in script src.
- * This helper exists for manual one-off tracking.
- */
 export function trackOutbound(url: string) {
   trackEvent("Outbound Link: Click", { url });
 }
 
-const CONSENT_KEY = "cookie-consent";
+/* -------------------- Cookie categories (granular consent) -------------------- */
 
-export function getConsent(): "granted" | "denied" | null {
+export type CookieCategory = "necessary" | "analytics" | "marketing";
+
+export interface CookiePrefs {
+  necessary: true; // always on
+  analytics: boolean;
+  marketing: boolean;
+  version: string;
+  decided_at: string;
+}
+
+const PREFS_KEY = "cookie-prefs-v2";
+// Legacy single-value key (kept for backward compatibility)
+const LEGACY_KEY = "cookie-consent";
+
+export const COOKIE_POLICY_VERSION = "2026-05-16";
+
+export function getCookiePrefs(): CookiePrefs | null {
   if (typeof window === "undefined") return null;
-  const v = localStorage.getItem(CONSENT_KEY);
-  return v === "granted" || v === "denied" ? v : null;
+  try {
+    const raw = localStorage.getItem(PREFS_KEY);
+    if (raw) return JSON.parse(raw) as CookiePrefs;
+    // Migrate legacy "granted/denied" → all-in / necessary-only
+    const legacy = localStorage.getItem(LEGACY_KEY);
+    if (legacy === "granted" || legacy === "denied") {
+      const migrated: CookiePrefs = {
+        necessary: true,
+        analytics: legacy === "granted",
+        marketing: false,
+        version: COOKIE_POLICY_VERSION,
+        decided_at: new Date().toISOString(),
+      };
+      localStorage.setItem(PREFS_KEY, JSON.stringify(migrated));
+      return migrated;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function setCookiePrefs(p: Omit<CookiePrefs, "necessary" | "version" | "decided_at">) {
+  if (typeof window === "undefined") return;
+  const full: CookiePrefs = {
+    necessary: true,
+    analytics: p.analytics,
+    marketing: p.marketing,
+    version: COOKIE_POLICY_VERSION,
+    decided_at: new Date().toISOString(),
+  };
+  localStorage.setItem(PREFS_KEY, JSON.stringify(full));
+  // keep legacy key in sync for any old code paths
+  localStorage.setItem(LEGACY_KEY, full.analytics ? "granted" : "denied");
+  if (full.analytics) initAnalytics();
+}
+
+export function getCategoryConsent(c: CookieCategory): boolean {
+  if (c === "necessary") return true;
+  const p = getCookiePrefs();
+  if (!p) return false;
+  return !!p[c];
+}
+
+/* Back-compat exports (other files import these) */
+export function getConsent(): "granted" | "denied" | null {
+  const p = getCookiePrefs();
+  if (!p) return null;
+  return p.analytics ? "granted" : "denied";
 }
 
 export function setConsent(value: "granted" | "denied") {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(CONSENT_KEY, value);
-  if (value === "granted") initAnalytics();
+  setCookiePrefs({ analytics: value === "granted", marketing: false });
 }
 
 export function initAnalytics() {
   /* Plausible loads via index.html; nothing extra to init */
+}
+
+export function revokeCookieConsent() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(PREFS_KEY);
+  localStorage.removeItem(LEGACY_KEY);
 }
