@@ -180,11 +180,27 @@ export default function BuildContractPage() {
           other: other.trim(),
         },
       });
-      if (error) throw error;
+      if (error) {
+        const msg = String((error as any)?.message || error);
+        // Edge functions return non-2xx as an Error from supabase-js. Try to extract context.
+        const ctx: any = (error as any)?.context;
+        let parsed: any = null;
+        try {
+          if (ctx && typeof ctx.json === "function") parsed = await ctx.json();
+        } catch { /* ignore */ }
+        if (parsed?.code === "auth_required" || msg.includes("401")) {
+          toast.error(parsed?.error || "Влезте, за да изградите договора", {
+            description: "Пренасочваме ви към входа…",
+          });
+          setTimeout(goAuth, 900);
+          return;
+        }
+        throw error;
+      }
       if (!data || data.error) {
-        if (data?.requires_login) {
-          toast.error(data.error);
-          setTimeout(goAuth, 1200);
+        if (data?.requires_login || data?.code === "auth_required") {
+          toast.error(data.error || "Влезте с email или Google, за да продължите");
+          setTimeout(goAuth, 900);
           return;
         }
         throw new Error(data?.error || "Неуспешно създаване");
@@ -319,6 +335,14 @@ export default function BuildContractPage() {
                   <Bird className="h-4 w-4 text-gold" />
                   <h1 className="font-serif text-xl font-bold text-foreground">Изготви договор</h1>
                 </div>
+                {!user && (
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-foreground">
+                    <span>За да изградите договор, влезте безплатно с email или Google.</span>
+                    <Button size="sm" variant="outline" onClick={goAuth} className="h-7 border-gold/50 text-xs">
+                      Вход
+                    </Button>
+                  </div>
+                )}
                 <p className="mb-5 text-xs leading-relaxed text-muted-foreground">
                   Попълнете каквото знаете. <span className="text-gold">Празните полета</span> се попълват от AI с пазарно-стандартни клаузи. Готов договор до 2 минути.
                 </p>
