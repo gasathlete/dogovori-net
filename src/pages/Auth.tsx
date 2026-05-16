@@ -42,7 +42,12 @@ export default function AuthPage() {
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
-    if (error) return toast.error("Грешка при вход", { description: translateAuthError(error.message) });
+    if (error) {
+      try {
+        sessionStorage.removeItem("post_login_redirect");
+      } catch { /* storage unavailable */ }
+      return toast.error("Грешка при вход", { description: translateAuthError(error.message) });
+    }
     toast.success("Добре дошли!");
   };
 
