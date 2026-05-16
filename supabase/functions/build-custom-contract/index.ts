@@ -55,28 +55,68 @@ Deno.serve(async (req: Request) => {
 
     const authHeader = req.headers.get("Authorization") ?? "";
     let userId: string | null = null;
-    if (authHeader.startsWith("Bearer ")) {
-      const token = authHeader.replace("Bearer ", "");
+    let authDiag: { kid?: string; alg?: string; method?: string; reason?: string } = {};
+
+    if (!authHeader.startsWith("Bearer ")) {
+      authDiag.reason = "missing_bearer";
+      console.warn("[build-custom-contract] auth fail:", authDiag);
+    } else {
+      const token = authHeader.replace("Bearer ", "").trim();
+
+      // Decode JWT header for diagnostics (kid/alg) — no verification here.
+      try {
+        const headerB64 = token.split(".")[0];
+        const padded = headerB64 + "=".repeat((4 - (headerB64.length % 4)) % 4);
+        const headerJson = JSON.parse(atob(padded.replace(/-/g, "+").replace(/_/g, "/")));
+        authDiag.kid = headerJson.kid;
+        authDiag.alg = headerJson.alg;
+      } catch (e) {
+        authDiag.reason = "header_decode_failed";
+        console.warn("[build-custom-contract] could not decode JWT header:", e);
+      }
+
       // Prefer getClaims() — works with the signing-keys (ES256) auth system.
-      const { data: claimsData } = await admin.auth.getClaims(token);
-      userId = (claimsData?.claims?.sub as string | undefined) ?? null;
+      try {
+        const { data: claimsData, error: claimsErr } = await admin.auth.getClaims(token);
+        if (claimsErr) {
+          authDiag.reason = `getClaims:${claimsErr.message}`;
+        } else if (claimsData?.claims?.sub) {
+          userId = claimsData.claims.sub as string;
+          authDiag.method = "getClaims";
+        }
+      } catch (e) {
+        authDiag.reason = `getClaims_threw:${e instanceof Error ? e.message : String(e)}`;
+      }
+
       // Fallback for legacy HS256 tokens.
       if (!userId) {
-        const { data: u } = await admin.auth.getUser(token);
-        userId = u?.user?.id ?? null;
+        try {
+          const { data: u, error: uErr } = await admin.auth.getUser(token);
+          if (uErr) {
+            authDiag.reason = (authDiag.reason ?? "") + `|getUser:${uErr.message}`;
+          } else if (u?.user?.id) {
+            userId = u.user.id;
+            authDiag.method = "getUser";
+          }
+        } catch (e) {
+          authDiag.reason = (authDiag.reason ?? "") + `|getUser_threw:${e instanceof Error ? e.message : String(e)}`;
+        }
       }
     }
 
     if (!userId) {
+      console.warn("[build-custom-contract] 401 auth_required:", authDiag);
       return new Response(
         JSON.stringify({
           error: "За да изградите договор, влезте безплатно с email или Google.",
           code: "auth_required",
           requires_login: true,
+          diag: authDiag,
         }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+    console.log("[build-custom-contract] auth ok:", { userId, ...authDiag });
 
     const ipHash = await hashIp(clientIp(req));
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
