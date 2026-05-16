@@ -1,0 +1,15 @@
+{
+  "base": "https://dogovori.net",
+  "ranAt": "2026-05-16T09:19:17.543Z",
+  "checked": 21,
+  "errors": 0,
+  "warnings": 1,
+  "issues": [
+    {
+      "level": "warning",
+      "url": "https://dogovori.net/__definitely-not-a-real-page-1778923157362",
+      "rule": "404",
+      "message": "Unknown route returned HTTP 200 (SPA fallback). Consider a hosting-level 404 for crawlers."
+    }
+  ]
+}
