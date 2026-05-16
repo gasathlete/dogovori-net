@@ -138,13 +138,22 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { data: u } = await admin.auth.getUser(authHeader.replace("Bearer ", ""));
-    const userId = u?.user?.id;
+    const token = authHeader.replace("Bearer ", "").trim();
+    let userId: string | undefined;
+    // ES256 (signing-keys) tokens — getClaims validates them.
+    const { data: claimsData, error: claimsErr } = await admin.auth.getClaims(token);
+    userId = claimsData?.claims?.sub as string | undefined;
     if (!userId) {
-      return new Response(JSON.stringify({ error: "Невалиден токен.", requires_login: true }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      // Legacy HS256 fallback.
+      const { data: u, error: uErr } = await admin.auth.getUser(token);
+      userId = u?.user?.id;
+      if (!userId) {
+        console.warn("[download-blank] 401 invalid token:", { claimsErr: claimsErr?.message, uErr: uErr?.message });
+        return new Response(JSON.stringify({ error: "Невалиден токен.", requires_login: true, code: "auth_required" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const body = await req.json().catch(() => ({}));
