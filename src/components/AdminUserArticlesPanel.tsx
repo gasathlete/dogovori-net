@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, FileText, Check, Trash2, Sparkles, X, ExternalLink } from "lucide-react";
+import { Loader2, FileText, Check, Trash2, Bird, X, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const CATEGORIES = [
@@ -112,7 +112,7 @@ export function AdminUserArticlesPanel() {
             </SelectContent>
           </Select>
           <Button onClick={() => setGenOpen(true)}>
-            <Sparkles className="mr-1 h-4 w-4" /> Генерирай статия
+            <Bird className="mr-1 h-4 w-4" /> Генерирай статия
           </Button>
         </div>
       </div>

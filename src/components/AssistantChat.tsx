@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation, Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Send, Loader2, Plus, Sparkles, AlertCircle, MessageSquare, Trash2 } from "lucide-react";
+import { Send, Loader2, Plus, Bird, AlertCircle, MessageSquare, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -251,7 +251,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
         <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gold/15">
-              <Sparkles className="h-4 w-4 text-gold" />
+              <Bird className="h-4 w-4 text-gold" />
             </div>
             <div>
               <h3 className="text-sm font-semibold text-foreground">Правен AI Асистент</h3>
@@ -268,7 +268,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
           {isEmpty ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
               <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gold/10">
-                <Sparkles className="h-6 w-6 text-gold" />
+                <Bird className="h-6 w-6 text-gold" />
               </div>
               <h4 className="mb-1 text-sm font-semibold text-foreground">С какво да помогна?</h4>
               <p className="mb-6 max-w-md text-xs text-muted-foreground">
@@ -351,7 +351,7 @@ function MessageBubble({ role, content, isStreaming }: { role: "user" | "assista
   return (
     <div className="flex gap-2">
       <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gold/15">
-        <Sparkles className="h-3 w-3 text-gold" />
+        <Bird className="h-3 w-3 text-gold" />
       </div>
       <div className="max-w-[85%] flex-1 text-sm text-foreground">
         {isStreaming ? (

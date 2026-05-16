@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Bird, Loader2, FileDown, FileText, Save, Sparkles, Wand2 } from "lucide-react";
+import { ArrowLeft, Bird, Loader2, FileDown, FileText, Save, Bird, Wand2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -316,7 +316,7 @@ export default function BuildContractPage() {
             {!result && (
               <div className="rounded-xl border border-gold/30 bg-gradient-card p-5 shadow-soft">
                 <div className="mb-4 flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-gold" />
+                  <Bird className="h-4 w-4 text-gold" />
                   <h1 className="font-serif text-xl font-bold text-foreground">Изготви договор</h1>
                 </div>
                 <p className="mb-5 text-xs leading-relaxed text-muted-foreground">
