@@ -42,7 +42,10 @@ function add(f: Finding) {
 }
 
 // --- 1. Scan SQL migrations for SECURITY DEFINER + exposed-data patterns
-const migrations = walk(join(ROOT, "supabase/migrations")).filter((f) => f.endsWith(".sql"));
+const allMigrations = walk(join(ROOT, "supabase/migrations")).filter((f) => f.endsWith(".sql"));
+const migrations = SCAN_ALL
+  ? allMigrations
+  : allMigrations.filter((f) => argFiles.some((a) => f.endsWith(a) || a.endsWith(relative(ROOT, f))));
 for (const file of migrations) {
   const text = readFileSync(file, "utf8");
   const lines = text.split("\n");
