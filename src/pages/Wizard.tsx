@@ -434,16 +434,24 @@ export default function WizardPage() {
   useEffect(() => {
     if (autoBlankTriggered.current) return;
     if (searchParams.get("blank") !== "1") return;
+    // Don't auto-trigger if the user isn't logged in — handleDownloadBlank would
+    // redirect to /auth and the post-success navigate(-1) below would bounce
+    // back to /wizard?blank=1, creating an infinite redirect loop.
+    if (!authUser) {
+      autoBlankTriggered.current = true;
+      toast.error("Влезте, за да изтеглите бланка", { description: "Прогресът е запазен." });
+      goAuth();
+      return;
+    }
     autoBlankTriggered.current = true;
     (async () => {
       await handleDownloadBlank();
-      // Малка пауза, за да види потребителят toast-а, и след това навигираме назад.
       setTimeout(() => {
         if (window.history.length > 1) navigate(-1);
         else navigate("/catalog");
       }, 1500);
     })();
-  }, [searchParams]);
+  }, [searchParams, authUser]);
 
 
   return (
