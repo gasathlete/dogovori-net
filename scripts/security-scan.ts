@@ -106,11 +106,14 @@ for (const file of migrations) {
 }
 
 // --- 2. Scan codebase + functions for hardcoded secrets / service-role leaks
-const codeFiles = [
+const allCode = [
   ...walk(join(ROOT, "src")),
   ...walk(join(ROOT, "supabase/functions")),
   ...walk(join(ROOT, "scripts")),
 ].filter((f) => /\.(ts|tsx|js|jsx|mjs)$/.test(f));
+const codeFiles = SCAN_ALL
+  ? allCode
+  : allCode.filter((f) => argFiles.some((a) => f.endsWith(a) || a.endsWith(relative(ROOT, f))));
 
 for (const file of codeFiles) {
   const text = readFileSync(file, "utf8");
