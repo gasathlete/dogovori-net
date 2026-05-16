@@ -6,11 +6,18 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  security-events: write  # required to upload SARIF to Code Scanning
+  pull-requests: read
+
 jobs:
   security-scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # need full history for `git diff` against base
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -38,9 +45,21 @@ jobs:
           echo "$files" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Run security-scan
+      - name: Run security-scan (changed files, with GitHub annotations + SARIF)
         if: steps.changed.outputs.files != ''
-        run: bun run scripts/security-scan.ts ${{ steps.changed.outputs.files }}
+        run: |
+          mkdir -p reports
+          bun run scripts/security-scan.ts \
+            --github \
+            --sarif=reports/security-scan.sarif \
+            ${{ steps.changed.outputs.files }}
+
+      - name: Upload SARIF to GitHub Code Scanning
+        if: always() && hashFiles('reports/security-scan.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/security-scan.sarif
+          category: lovable-security-scan-pr
 
       # Secondary: gitleaks for broader secret scanning.
       - name: Gitleaks
