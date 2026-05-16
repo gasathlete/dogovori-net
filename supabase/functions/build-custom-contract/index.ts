@@ -56,8 +56,15 @@ Deno.serve(async (req: Request) => {
     const authHeader = req.headers.get("Authorization") ?? "";
     let userId: string | null = null;
     if (authHeader.startsWith("Bearer ")) {
-      const { data: u } = await admin.auth.getUser(authHeader.replace("Bearer ", ""));
-      userId = u?.user?.id ?? null;
+      const token = authHeader.replace("Bearer ", "");
+      // Prefer getClaims() — works with the signing-keys (ES256) auth system.
+      const { data: claimsData } = await admin.auth.getClaims(token);
+      userId = (claimsData?.claims?.sub as string | undefined) ?? null;
+      // Fallback for legacy HS256 tokens.
+      if (!userId) {
+        const { data: u } = await admin.auth.getUser(token);
+        userId = u?.user?.id ?? null;
+      }
     }
 
     if (!userId) {
