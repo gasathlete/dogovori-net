@@ -27,7 +27,9 @@ export function Seo({
       ? canonical
       : `${SITE}${canonical}`
     : SITE;
-  const fullTitle = title.length > 60 ? title : title;
+  // Google truncates titles around ~60 chars. Keep the brand-suffixed title if it fits,
+  // otherwise trim to 57 + ellipsis so we control the cut-off rather than the SERP.
+  const fullTitle = title.length > 60 ? `${title.slice(0, 57).trimEnd()}…` : title;
   const desc = description.length > 160 ? description.slice(0, 157) + "…" : description;
   const lds = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 
@@ -49,11 +51,20 @@ export function Seo({
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={desc} />
       <meta property="og:image" content={image} />
+      <meta property="og:image:alt" content={fullTitle} />
+      {image === DEFAULT_IMAGE && (
+        <>
+          <meta property="og:image:width" content="1200" />
+          <meta property="og:image:height" content="630" />
+          <meta property="og:image:type" content="image/jpeg" />
+        </>
+      )}
 
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={desc} />
       <meta name="twitter:image" content={image} />
+      <meta name="twitter:image:alt" content={fullTitle} />
 
       <meta name="geo.region" content="BG" />
       <meta name="geo.placename" content="Bulgaria" />
