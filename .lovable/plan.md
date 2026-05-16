@@ -1,79 +1,107 @@
+# План за правно съответствие на Dogovori.net
 
-# AI Чат Асистент за PRO + Team
+Реализация на 4 етапа. Реквизити на доставчика:
 
-24/7 чист AI бот (Lovable AI / Gemini), достъпен само за PRO и Team абонати, вграден в `/account` и при работа с документ. Помага с навигация, документи, правни въпроси и техническа поддръжка.
+- **„Иванов и Милев Пропърти Девелъпмент" ЕООД**
+- Управител: Даниел Милев
+- ЕИК: 206957326
+- Адрес: гр. София, ж.к. Стрелбище, бул. България №13, ет. 1, магазин 4
+- Контакт: imdevelopmentoffice@gmail.com
 
-## Backend
+---
 
-**Нова edge функция:** `supabase/functions/assistant-chat/index.ts`
-- Streaming чат през AI SDK + Lovable AI Gateway, модел `google/gemini-3-flash-preview`.
-- JWT валидация; проверка че user е PRO (`download_quota.plan='pro'` или активен `pro_until`) или член на активен Team.
-- Връща 402/403 ако не е PRO/Team — клиентът показва upgrade покана.
-- Брои операциите през `consume_quota('analysis')` или `consume_team_quota` (1 операция на изпратено съобщение), за да не се изхарчат кредити безконтролно.
-- Системен промпт на български с цялата контекстна база за Dogovori.net (виж по-долу).
+## Етап 1 — Идентификация на доставчика + чекбоксове за съгласие
 
-**База данни (нова миграция):**
-- `assistant_threads` — `id`, `user_id`, `title`, `created_at`, `updated_at`
-- `assistant_messages` — `id`, `thread_id`, `role` (`user|assistant`), `content`, `created_at`
-- RLS: само собственикът чете/пише; cascade delete с user
-- Едно активно (последно) thread per user в `/account`; бутон "Нов разговор"
+1. **Нова страница `/provider-info`** с пълни реквизити, надзорни органи (КЗП, КЗЛД), линк към ОРС платформата на ЕК.
+2. **Footer** — ред с фирмено наименование + ЕИК на всяка страница.
+3. **`Auth.tsx`** — при регистрация:
+   - Чекбокс „Прочетох и приемам Общите условия" (задължителен, неотметнат)
+   - Чекбокс „Прочетох и приемам Политиката за поверителност" (задължителен, неотметнат)
+   - Чекбокс „Съгласен съм да получавам маркетингови съобщения" (опционален)
+   - Декларация за пълнолетие (≥18 г.)
+   - „Създай профил" disabled докато задължителните не са маркирани
+4. **Google OAuth** — мини консент екран със задължителните чекбокси преди redirect; статусът се пази в `profiles`.
+5. **DB миграция** — таблица `user_consents` (user_id, тип, версия, дата, IP, UA) за доказване по GDPR чл. 7, ал. 1.
 
-## Системен промпт (4 области)
+## Етап 2 — Разширени Общи условия (`Terms.tsx`)
 
-Ботът е "Правен асистент Dogovori.net" — ясно дефинирани компетенции:
+1. Идентификация на Доставчика
+2. Дефиниции
+3. Технически стъпки за сключване на договора (ЗЗП чл. 47)
+4. Език и архивиране
+5. Право на отказ — 14 дни + изключение за дигитално съдържание (ЗЗП чл. 57, т. 13) + стандартен формуляр (Приложение 6)
+6. Изрично съгласие за стартиране на Pro преди 14-дневния срок
+7. Автоматично подновяване — прекратяване, напомняния
+8. Цени и ДДС (OSS за ЕС)
+9. Рекламации (ЗЗП чл. 125, 14-дневен отговор)
+10. Извънсъдебно решаване на спорове — КЗП + ОРС
+11. AI disclaimer
+12. Промяна на ОУ — 30-дневно предизвестие
+13. Версиониране и архив
 
-1. **Навигация** — знае структурата: `/catalog`, `/build`, `/sektor/{business|real-estate|employment|it}`, `/shablon/{slug}`, `/account`, `/team`, блог. Връща markdown линкове.
-2. **Помощ с документи** — обяснява клаузи, какво да въведе в полета на wizard-а, как работи risk-анализа, как се подписва електронно, експорт PDF/DOCX.
-3. **Правни въпроси** — общи насоки по ЗЗД, ТЗ, КТ, СК, ЗУТ, GDPR с **задължителен дисклеймър**: "Това не е правен съвет; за конкретен казус — консултирайте адвокат."
-4. **Техническа поддръжка** — quota, плащане, Stripe checkout, грешки при export, споделяне за подпис, team seats.
+## Етап 3 — Cookie banner + AI disclaimer modal
 
-Промптът включва: списък шаблони (от `CATALOG`), обяснение на quota системата, текущ потребителски контекст (PRO/Team статус, оставащи операции — подавани при всяко съобщение).
+1. **Cookie banner по категории** (надграждане на `CookieBanner.tsx`):
+   - „Необходими" (винаги активни)
+   - „Аналитични" (opt-in)
+   - „Маркетинг" (opt-in)
+   - Бутони: „Приемам всички", „Само необходими", „Настройки"
+   - Запис в localStorage + `user_consents` за логнати потребители
+   - Линк за оттегляне във футъра
+2. **AI disclaimer modal** — еднократно при първо влизане в `/build` или `/wizard`:
+   - Текст: **„Генерираните документи са образци, създадени с моделиран по българското законодателство изкуствен интелект и не представляват правен съвет."**
+   - Чекбокс „Разбирам и приемам"
+   - Запис в `user_consents`
+3. **Етикет „създадено с изкуствен интелект"** върху всеки генериран документ (preview + PDF/DOCX експорт).
 
-## Frontend
+## Етап 4 — Privacy Policy + DPA шаблон
 
-**Нов компонент:** `src/components/AssistantChat.tsx`
-- AI Elements (`bun x ai-elements@latest add conversation message prompt-input shimmer`)
-- `useChat` от AI SDK с `DefaultChatTransport` сочещ към edge функцията (с JWT header)
-- Render на `message.parts` + markdown (`react-markdown` вече се използва в проекта)
-- Loading indicator "Мисля..." докато статус е `submitted`
-- Empty state: 4 quick-action чипа ("Намери шаблон", "Обясни клауза", "Проблем с плащане", "Как се подписва")
-- Auto-focus на textarea
-- Запис на assistant съобщение в `onFinish`
+1. **Пренаписване на `Privacy.tsx`**:
+   - Администратор (пълни реквизити)
+   - Правно основание за всяко обработване (таблица)
+   - Получатели — Supabase (Франкфурт), Stripe (DPF), Google AI (SCC + DPF), Resend
+   - Трансфери извън ЕС — SCC + DPF, линкове
+   - Срокове за съхранение по категория
+   - Автоматизирани решения (AI) — декларация по чл. 22 GDPR
+   - Права на субекта + процес (email, срок 30 дни)
+   - DPO — декларация, че не е задължителен; email за въпроси
+   - Известяване при пробив в 72 часа
+2. **DPA шаблон** на `/dpa` — за Pro/бизнес клиенти (Dogovori.net като процесор).
+3. Раздел „Промени в политиката" — 30-дневно известие.
 
-**Hook:** `src/hooks/useIsPro.tsx`
-- Връща `{ isPro, isTeam, loading }` — чете `download_quota` + `useTeam()`
-
-**Интеграция:**
-1. `src/pages/Account.tsx` — нов таб "AI Асистент" (или секция най-отгоре) с `<AssistantChat />`. За не-PRO/Team — paywall карта с upgrade CTA.
-2. `src/pages/Document.tsx` — добавя collapsible панел/dialog "Помощ от AI" с `<AssistantChat documentContext={...}>`, който подава id/тип на текущия документ в системния промпт.
-
-**Достъп:** само PRO + Team. Free потребители виждат заключен изглед с обяснение и линк към upgrade.
-
-## Файлове
-
-```
-supabase/functions/assistant-chat/index.ts          (нов)
-supabase/functions/_shared/ai-gateway.ts            (нов helper)
-supabase/migrations/<ts>_assistant_threads.sql      (нов)
-src/components/AssistantChat.tsx                    (нов)
-src/components/AssistantPaywall.tsx                 (нов)
-src/components/ai-elements/*                        (нов чрез ai-elements CLI)
-src/hooks/useIsPro.tsx                              (нов)
-src/pages/Account.tsx                               (редакция — нов таб)
-src/pages/Document.tsx                              (редакция — помощен панел)
-```
+---
 
 ## Технически детайли
 
-- **AI SDK пакети:** `ai`, `@ai-sdk/openai-compatible`, `@ai-sdk/react`, `zod`, `react-markdown` (вече има)
-- **Streaming:** `toUIMessageStreamResponse({ originalMessages, onFinish })` — assistant message се записва в `assistant_messages` в `onFinish`
-- **Контекст:** при всяко обаждане сървърът добавя в system prompt: PRO статус, оставащи операции, текуща страница (подавана от клиента), ID на документ ако е приложимо
-- **Quota:** 1 съобщение = 1 операция към `pro_monthly_used` (PRO 100/мес) или `team_usage` (seats × 100)
-- **Сигурност:** JWT verify в код, `verify_jwt = false` в config.toml, RLS на новите таблици, никакви API ключове на клиента
-- **Дисклеймър:** UI бадж "AI асистент — общи насоки, не правен съвет"
+**База данни:**
+```text
+user_consents
+├── id, user_id (FK auth.users)
+├── consent_type (terms | privacy | marketing | ai_disclaimer | cookies)
+├── document_version (напр. "2026-05-16")
+├── granted (bool)
+├── granted_at, revoked_at
+├── ip_address, user_agent
+└── RLS: само собственикът + service_role
+```
 
-## Какво НЕ влиза в този план
-- Ескалация към човек/имейл (избрано: чист AI)
-- Floating bubble на всички страници (избрано: само в профила)
-- Достъп за Free (избрано: само PRO/Team — paywall)
-- RAG/vector search върху всички шаблони (системният промпт е достатъчен за v1; може после)
+**Файлове за промяна:**
+- `src/pages/Auth.tsx` — чекбокси
+- `src/pages/legal/Terms.tsx` — пълно пренаписване
+- `src/pages/legal/Privacy.tsx` — пълно пренаписване
+- `src/pages/legal/Cookies.tsx` — съгласуване с новия banner
+- `src/components/CookieBanner.tsx` — категории
+- `src/components/Footer.tsx` — реквизити на фирмата
+- Нови: `src/pages/legal/ProviderInfo.tsx`, `src/pages/legal/DPA.tsx`, `src/pages/legal/WithdrawalForm.tsx`, `src/components/AIDisclaimerModal.tsx`, `src/lib/consents.ts`
+- `src/App.tsx` — нови routes
+- `src/components/SeoFooter.tsx` — линкове към новите страници
+- `src/components/wizard/LiveDraft.tsx` + `src/lib/exporters.ts` — етикет „създадено с изкуствен интелект"
+
+**Ред на изпълнение:**
+1. Миграция `user_consents` (искам одобрение преди да я пусна)
+2. Етап 1 (footer, provider info, чекбокси)
+3. Етап 2 (Terms)
+4. Етап 3 (cookies + AI modal + етикет)
+5. Етап 4 (Privacy + DPA)
+
+**Забележка:** Текстовете са структурирани шаблони по българското законодателство и GDPR. За продукция препоръчвам финален преглед от практикуващ адвокат.
