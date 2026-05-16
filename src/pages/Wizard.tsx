@@ -373,7 +373,12 @@ export default function WizardPage() {
     { icon: FileSearch, label: "Проверка за липсващи клаузи и реквизити…" },
     { icon: Download, label: "Бланката ще бъде свалена до 10 секунди…" },
   ];
-  const handleDownloadBlank = async () => {
+  // Gate the blank download behind the AI disclaimer (if not already accepted).
+  const [disclaimerGateOpen, setDisclaimerGateOpen] = useState(false);
+  const [disclaimerAck, setDisclaimerAck] = useState(false);
+  const pendingBlankAfterAck = useRef(false);
+
+  const runBlankDownload = async () => {
     if (!user) {
       toast.error("Влезте, за да изтеглите бланка", { description: "Прогресът е запазен." });
       goAuth();
@@ -432,6 +437,27 @@ export default function WizardPage() {
     }
   };
 
+  const handleDownloadBlank = async () => {
+    if (!hasAIDisclaimerLocal()) {
+      pendingBlankAfterAck.current = true;
+      setDisclaimerAck(false);
+      setDisclaimerGateOpen(true);
+      return;
+    }
+    await runBlankDownload();
+  };
+
+  const acceptDisclaimerAndContinue = async () => {
+    if (!disclaimerAck) return;
+    setAIDisclaimerLocal();
+    recordConsents([{ consent_type: "ai_disclaimer", granted: true }]).catch(() => undefined);
+    setDisclaimerGateOpen(false);
+    if (pendingBlankAfterAck.current) {
+      pendingBlankAfterAck.current = false;
+      await runBlankDownload();
+    }
+  };
+
   // Auto-trigger blank download when arriving with ?blank=1
   // и след успех — върни потребителя обратно (към template страницата),
   // вместо да го оставяш на празния wizard.
@@ -451,7 +477,14 @@ export default function WizardPage() {
     }
     autoBlankTriggered.current = true;
     (async () => {
-      await handleDownloadBlank();
+      if (!hasAIDisclaimerLocal()) {
+        // Show the gate first; the rest runs after acceptance via acceptDisclaimerAndContinue.
+        pendingBlankAfterAck.current = true;
+        setDisclaimerAck(false);
+        setDisclaimerGateOpen(true);
+        return;
+      }
+      await runBlankDownload();
       setTimeout(() => {
         navigate(returnTo, { replace: true });
       }, 1500);
