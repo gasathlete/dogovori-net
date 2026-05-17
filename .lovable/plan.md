@@ -1,109 +1,113 @@
-# Performance optimization plan
+# План: разгръщане на страница Екип (`/team`)
 
-Goal: make the app feel **instant** for corporate/dynamic use (repeat visits, multiple tabs, slower 4G/office VPN), while keeping all current content, visuals and functionality identical.
-
-I audited the project. The biggest wins are (in order of impact): oversized public assets, font payload, bundle chunking for heavy libs (jspdf/docx/pdfjs/recharts/radix), eager catalog import on the landing page, missing LCP preload, and no repeat-visit caching layer.
+Целта е страницата да стане завършен self-service контролен панел за корпоративния абонамент — с реални имена, управление на роли, billing достъп, безопасни мутации и мобилен UX.
 
 ---
 
-## 1. Public assets — instant wins
+## 1. Реални данни за членове + управление на роли
 
-- `public/favicon.png` is **857 KB** (!) — re-encode to ~10–30 KB PNG/ICO at proper size.
-- `public/icon-512.png` 207 KB → re-encode (~30–50 KB).
-- `public/apple-touch-icon.png` 28 KB → ~6 KB.
-- `public/og-image.jpg` 102 KB → keep JPG but re-encode at q=80 mozjpeg (~50 KB).
-- Hero logo (`src/assets/logo-dogovori-hero.png`) → ship as AVIF + WebP via `vite-imagetools`, fallback PNG. Add `<link rel="preload" as="image" fetchpriority="high">` for it in `index.html`.
+**Backend (нова edge функция `team-members`):**
+- POST с `{ teamId, action }`, връща за всеки член: `user_id`, `email`, `display_name`, `avatar_url`, `role`, `joined_at`.
+- Използва service role за join към `auth.users` + `profiles` (RLS на `profiles` е own-only, затова не става от клиента).
+- Server-side проверка че извикващият е `is_team_member`.
+- Sub-actions в същата функция (или отделни функции — виж секция 3):
+  - `change-role` — owner може да прави admin↔member; admin не може да променя owner.
+  - `leave` — всеки нечлен-owner може да напусне; owner трябва първо да transfer ownership.
+  - `transfer-ownership` — само owner, изисква второ потвърждение (текстово въвеждане на името на екипа).
 
-Net saving: ~1.1 MB off cold load and ~600 KB off LCP path.
+**Frontend:**
+- Член реда показва avatar (shadcn `Avatar`), име, имейл, бадж за роля, "Вие" маркер.
+- Dropdown меню на всеки ред (само за owner/admin): Промени роля, Премахни.
+- Бутон "Напусни екипа" в header-а (за non-owners).
+- Бутон "Прехвърли собственост" в danger zone в края на табa Members (само owner).
 
-## 2. Fonts — trim + preload
+## 2. Billing таб
 
-Currently loads **10 weights of IBM Plex Sans + 3 of Libre Baskerville** = 13 WOFF2 requests.
+Нов 5-ти таб "Billing" (само за owner/admin).
 
-- Drop weights actually unused in the UI (audit by grepping `font-weight`/`font-*` usage; typically 400/600/700 is enough). Target: 4 IBM Plex weights + 2 Baskerville weights.
-- Add `<link rel="preload" as="font" type="font/woff2" crossorigin>` for the **single** woff2 used for body 400 and headings 700 so the browser fetches them before CSS parses.
-- Ensure `font-display: swap` everywhere (fontsource defaults to swap — verify).
+**Frontend:**
+- Карта "Абонамент": план (Team), брой места × цена, период, дата на подновяване, статус бадж (`active`/`past_due`/`canceled`/`pending`).
+- Бутон "Управление в Stripe" → отваря `customer-portal` сесия в нов tab (вече има функция, нужна е малка адаптация да приема `teamId` и да чете `teams.stripe_customer_id` вместо `subscriptions`).
+- Списък с последните 10 фактури (нова edge `team-billing-data` или разширение на `get-stripe-data` с `scope: 'team'`): дата, сума, статус, линкове към hosted invoice + PDF.
+- Banner при `past_due` (предупредително) и при `canceled` с `current_period_end` в бъдещето (информативно).
+- "Отмени абонамент" → препраща към customer portal (там Stripe има готов UX).
 
-## 3. Vite build — better chunking & compression
+**Backend:**
+- Нова `team-billing-data` функция: верифицира admin, чете `teams.stripe_customer_id` + `stripe_subscription_id`, връща subscription details + invoices list (същия pattern като `get-stripe-data`).
+- `customer-portal` приема `teamId` параметър; ако е подаден, ползва team customer вместо user.
 
-`vite.config.ts` currently splits only react/supabase/query. Add:
+## 3. Безопасни мутации + подобрени покани
 
-- `vendor-radix`: all `@radix-ui/*` (used across many UI primitives).
-- `vendor-pdf`: `jspdf`, `pdfjs-dist`, `mammoth` (only loaded inside `src/lib/exporters.ts` + `templateExporter.ts`; should already be lazy — verify via dynamic `import()`).
-- `vendor-docx`: `docx`, `file-saver`.
-- `vendor-charts`: `recharts` (only used by `chart.tsx`).
-- `vendor-markdown`: `react-markdown`, `remark-gfm`.
-- Enable `build.cssCodeSplit: true` (default true, confirm) and `build.modulePreload.polyfill: false` (saves ~2 KB; all our target browsers support it natively).
-- Add `vite-plugin-compression` to emit precompressed `.br` and `.gz` alongside JS/CSS for hosts that serve them directly.
+**Премахни client-side `.delete()` от `team_members`:**
+- Нова edge функция `team-remove-member`: проверка admin, премахва ред, записва в `team_audit_log`, изпраща имейл (template `team-removal`), не докосва Stripe seats (остават до следващия `team-update-seats`).
+- UI бутонът "Премахни" вика тази функция.
 
-## 4. Eager imports on landing page
+**Покани (`team_invitations`):**
+- Нова `team-cancel-invitation` функция → маркира с `expires_at = now()` или изтрива; admin only.
+- Нова `team-resend-invitation` функция → презаписва `expires_at`, праща нов имейл с нов token.
+- UI: всяка чакаща покана получава два бутона (Изпрати отново / Отмени) с потвърждение.
 
-`src/pages/Index.tsx` imports `CATALOG` from `src/data/catalog.ts` (2,788 lines) eagerly just to render `SectorGrid`. Refactor:
+**Accept preview страница (`/team/accept`):**
+- Преди да извика функцията, прави read-only заявка `team-invitation-info` (нова edge функция с публичен достъп по token, връща team_name, inviter display_name, expires_at).
+- Показва карта: "Поканен сте в екип X от Y. До дата Z." + бутони "Приеми" / "Откажи".
+- "Приеми" вика съществуващата `team-accept-invite`; "Откажи" вика `team-cancel-invitation` като поканеният.
 
-- Split `catalog.ts` into `catalog/sectors.ts` (just sector list — small) + `catalog/templates.ts` (heavy).
-- `SectorGrid` imports only sectors; the full catalog is loaded lazily when `/catalog`, `/sektor/*`, `/kategoria/*` mount.
+## 4. Mobile/UX полиране + audit log
 
-## 5. Verify heavy libs are lazy-only
+**Tabs за mobile:**
+- Под `sm`: `TabsList` става `grid-cols-2` на 2 реда (или horizontal scroll). 5 таба × 2 реда е приемливо.
+- Тестване на 393px.
 
-Grep already shows `jspdf`/`docx`/`pdfjs`/`mammoth`/`recharts` only in `src/lib/exporters.ts`, `templateExporter.ts`, `ui/chart.tsx`. Convert any top-level `import` of these into dynamic `await import(...)` inside the function that actually uses them so they never enter the initial route chunk — verify after split.
+**Skeleton/empty states:**
+- Заменяме единствения spinner с targeted skeletons за header + tabs.
+- Всеки таб получава своя empty state с илюстрация (Lucide icon) + кратък explainer + primary action.
 
-## 6. Hover/intent prefetch for routes
-
-`PrefetchLink` exists but isn't used everywhere. Wire `<Link>`s in `Header`, `Hero`, `SectorGrid`, `TopDocuments` to `PrefetchLink` so the route chunk + its data start downloading on `mouseenter`/`focus`. Adds zero load to first paint, makes subsequent navigation near-instant.
-
-## 7. Repeat-visit caching (PWA / service worker)
-
-Add **`vite-plugin-pwa`** with Workbox in `injectManifest`-lite mode:
-
-- Precache the app shell (hashed JS/CSS, fonts, logo).
-- Runtime cache for `templateContent/*` chunks (StaleWhileRevalidate, 30 days).
-- Runtime cache for Supabase `GET` calls that are non-personalized (blog meta, catalog).
-- Network-first fallback for HTML so updates ship immediately.
-- Auto-update on new deploys with `registerType: 'autoUpdate'` (skipWaiting + clientsClaim).
-
-Result: a second visit to any corporate user loads the shell from disk (<50 ms) and only fetches the delta.
-
-## 8. React/runtime micro-wins
-
-- Move `initSentry()` behind `requestIdleCallback` so it doesn't compete with hydration.
-- Defer `CookieBanner` mount with `requestIdleCallback` (it's render-blocking the first frame for no good reason).
-- Pass `future={{ v7_startTransition: true }}` is already on; also wrap heavy state updates (search, filters) in `useTransition` for INP wins.
-- Add `content-visibility: auto; contain-intrinsic-size: <h>` to long template lists in `Catalog`, `Sector`, `Blog` — saves render/layout cost for off-screen content.
-
-## 9. Network hints
-
-`index.html` already preconnects Supabase + Plausible. Add:
-
-- `preconnect` to Stripe (`https://js.stripe.com`) only on routes that need it (inject in `StripeEmbeddedCheckout`, not globally).
-- `preload` of the main JS entry is automatic; preload the **route chunk** for `/build` and `/catalog` from the landing page once idle (these are the primary CTAs).
-
-## 10. Measurement
-
-Add a `scripts/perf-report.ts` that builds, then prints chunk sizes and gzipped sizes per route — surfaced in CI so future regressions are obvious. (Lightweight; doesn't require Lighthouse infra.)
+**Audit log:**
+- Server-side: `team-members` edge функцията се разширява с `audit-list` action — връща и actor display_name + target display_name (когато `target_type='user'`), за да не показваме UUID-та.
+- Mapping на `action` ключове към четим български текст: `member.invited`, `member.joined`, `member.removed`, `member.role_changed`, `seats.updated`, `branding.updated`, `team.created` и т.н.
+- Pagination: 20 на страница, бутон "Покажи още".
+- Филтър по action type (dropdown).
 
 ---
 
-## What I will NOT touch
+## Технически детайли
 
-- Visual design, typography choices, colors, copy.
-- Backend / Supabase functions, RLS, business logic.
-- Routing structure or feature behavior.
-- Anything currently working in tests.
+```text
+Edge functions (нови):
+- team-members             (POST: list | change-role | leave | transfer-ownership | audit-list)
+- team-remove-member       (POST: { teamId, userId })
+- team-billing-data        (POST: { teamId, environment } → subscription + invoices)
+- team-cancel-invitation   (POST: { invitationId })
+- team-resend-invitation   (POST: { invitationId })
+- team-invitation-info     (POST: { token } — публичен, без auth)
 
-## Order of execution (single PR, grouped commits)
+Edge functions (промени):
+- customer-portal          → приема optional teamId, ползва teams.stripe_customer_id
 
-1. Re-encode `public/` icons + hero logo (vite-imagetools).
-2. `vite.config.ts` chunking + compression plugin.
-3. Split `catalog.ts`; trim font weights; add preloads.
-4. Lazy-verify pdf/docx/recharts imports.
-5. Wire `PrefetchLink` + idle defers for Sentry/CookieBanner.
-6. Add `vite-plugin-pwa` and Workbox runtime caches.
-7. Add perf-report script.
+Frontend (нови/променени файлове):
+- src/pages/Team.tsx              (нов Billing таб, mobile tabs, skeleton)
+- src/pages/TeamAccept.tsx        (preview UI преди приемане)
+- src/components/TeamMembers.tsx  (нов — извлечен от Team.tsx, dropdown actions, avatars)
+- src/components/TeamBilling.tsx  (нов)
+- src/components/TeamAuditLog.tsx (нов — pagination + filter + readable actions)
+- src/components/TeamInvitations.tsx (нов — resend/cancel бутони)
 
-After step 6 I'll run `browser--performance_profile` and a CPU profile on `/`, `/catalog`, `/build` so we have before/after numbers to confirm the wins.
+База данни (без миграции):
+- няма нови таблици/колони — съществуващите team_audit_log + teams.stripe_customer_id са достатъчни.
+```
 
-## Technical notes
+**Поредност на изпълнение:**
+1. `team-members` + `TeamMembers` компонент (най-голяма видима стойност)
+2. Безопасно премахване + покани (resend/cancel/accept preview)
+3. Billing функция + таб
+4. Mobile полиране + audit log преработка
 
-- New deps: `vite-imagetools`, `vite-plugin-compression`, `vite-plugin-pwa`, `workbox-window`. All build-time; no runtime size cost except Workbox SW (~8 KB gz).
-- No breaking changes to `src/integrations/supabase/client.ts` or `types.ts`.
-- PWA can be feature-flagged via env so it's easy to disable if it surprises anyone.
+---
+
+## Какво НЕ влиза в обхвата
+
+- Промяна на pricing модела / Stripe products
+- SSO/SCIM provisioning
+- Granular permissions (read-only role и др.)
+- Множествени едновременни екипи за един потребител
+- Промени в `TeamDocuments`/`TeamContacts`/`TeamBranding` (вече работят)
