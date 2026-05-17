@@ -5,16 +5,20 @@ import { lazy as reactLazy, Suspense, type ComponentType } from "react";
 // triggers a one-time hard reload instead of a permanent blank screen.
 const lazy = <T extends ComponentType<any>>(factory: () => Promise<{ default: T }>) =>
   reactLazy(() =>
-    factory().catch((err) => {
-      const key = "lovable:chunk-reload";
-      if (typeof window !== "undefined" && !sessionStorage.getItem(key)) {
-        sessionStorage.setItem(key, "1");
-        window.location.reload();
-        // Return a never-resolving promise so Suspense stays mounted until reload.
-        return new Promise(() => {}) as Promise<{ default: T }>;
-      }
-      throw err;
-    }),
+    factory()
+      .then((mod) => {
+        if (typeof window !== "undefined") sessionStorage.removeItem("lovable:chunk-reload");
+        return mod;
+      })
+      .catch((err) => {
+        const key = "lovable:chunk-reload";
+        if (typeof window !== "undefined" && !sessionStorage.getItem(key)) {
+          sessionStorage.setItem(key, "1");
+          window.location.reload();
+          return new Promise(() => {}) as Promise<{ default: T }>;
+        }
+        throw err;
+      }),
   );
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
