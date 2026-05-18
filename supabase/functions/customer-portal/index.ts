@@ -53,9 +53,10 @@ Deno.serve(async (req) => {
 
     const stripe = createStripeClient(environment);
     const portal = await stripe.billingPortal.sessions.create({
-      customer: sub.stripe_customer_id,
+      customer: stripeCustomerId,
       ...(returnUrl && { return_url: returnUrl }),
     });
+
 
     return new Response(JSON.stringify({ url: portal.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
