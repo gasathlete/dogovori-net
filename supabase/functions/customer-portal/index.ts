@@ -21,24 +21,35 @@ Deno.serve(async (req) => {
     if (authError || !user) throw new Error("Unauthorized");
 
     const body = await req.json();
-    const { returnUrl, environment } = body as { returnUrl?: string; environment: StripeEnv };
+    const { returnUrl, environment, teamId } = body as { returnUrl?: string; environment: StripeEnv; teamId?: string };
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
 
-    const { data: sub } = await supabase
-      .from("subscriptions")
-      .select("stripe_customer_id")
-      .eq("user_id", user.id)
-      .eq("environment", environment)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    let stripeCustomerId: string | null = null;
 
-    if (!sub?.stripe_customer_id) {
+    if (teamId) {
+      const { data: isAdmin } = await supabase.rpc("is_team_admin", { _user_id: user.id, _team_id: teamId });
+      if (!isAdmin) throw new Error("Not allowed");
+      const { data: team } = await supabase.from("teams").select("stripe_customer_id").eq("id", teamId).maybeSingle();
+      stripeCustomerId = team?.stripe_customer_id ?? null;
+    } else {
+      const { data: sub } = await supabase
+        .from("subscriptions")
+        .select("stripe_customer_id")
+        .eq("user_id", user.id)
+        .eq("environment", environment)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      stripeCustomerId = sub?.stripe_customer_id ?? null;
+    }
+
+    if (!stripeCustomerId) {
       return new Response(
         JSON.stringify({ error: "No subscription found", code: "no_subscription" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
 
     const stripe = createStripeClient(environment);
     const portal = await stripe.billingPortal.sessions.create({
