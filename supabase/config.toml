@@ -37,3 +37,7 @@ verify_jwt = false
 
 [functions.handle-email-suppression]
 verify_jwt = false
+
+[functions.team-invitation-info]
+verify_jwt = false
+
