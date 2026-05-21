@@ -11,6 +11,8 @@ import {
   TextRun,
   HeadingLevel,
   AlignmentType,
+  Header,
+  Footer,
 } from "https://esm.sh/docx@8.5.0";
 import { buildCors } from "../_shared/cors.ts";
 
