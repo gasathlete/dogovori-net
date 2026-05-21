@@ -18,6 +18,7 @@ import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
 import { ArbitrationSelector, type ArbitrationValue } from "@/components/wizard/ArbitrationSelector";
+import { FollowupSuggestions } from "@/components/wizard/FollowupSuggestions";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { getCourtById } from "@/data/arbitrationCourts";
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
@@ -678,6 +679,19 @@ export default function WizardPage() {
                   onAnswerChange={(id, v) => setAnswers((p) => ({ ...p, [id]: v }))}
                   contacts={contacts}
                 />
+
+                {isLast && (
+                  <div className="mt-6">
+                    <FollowupSuggestions
+                      sectorId={sector?.id}
+                      contractType={(sector as { selectedDocument?: string })?.selectedDocument}
+                      answers={answers}
+                      onAnswer={(id, v) => setAnswers((p) => ({ ...p, [id]: v }))}
+                    />
+                  </div>
+                )}
+
+
 
                 <div className="mt-8 flex items-center justify-between gap-3">
                   <Button
