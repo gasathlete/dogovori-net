@@ -755,6 +755,17 @@ export default function WizardPage() {
                   />
                 </div>
 
+                {/* Cash payment disclaimer — shown when any answer mentions cash. */}
+                {Object.values(answers).some((v) =>
+                  typeof v === "string" && /\bбро[йя]\b|\bкеш\b|\bcash\b/i.test(v)
+                ) && (
+                  <LegalDisclaimer variant="warning">
+                    <strong>Плащане в брой:</strong> По чл. 3 от Закона за ограничаване на плащанията в брой (ЗОПБ) плащания на стойност <strong>5 000 € (≈9 779 лв.) или повече</strong> задължително се извършват по банков път. Уверете се, че сумата по договора попада в позволения праг, или преминете към банков превод.
+                  </LegalDisclaimer>
+                )}
+
+                <ArbitrationSelector value={arbitration} onChange={setArbitration} />
+
                 <SignatureBlock
                   isPro={isPro}
                   defaultPartyA={answers.party_a_name}
@@ -762,6 +773,7 @@ export default function WizardPage() {
                   value={signature}
                   onChange={setSignature}
                 />
+
 
                 <div className="rounded-xl border border-gold/30 bg-gradient-card p-6 shadow-soft">
                   <h3 className="mb-1 font-serif text-lg font-bold">Финализиране</h3>
