@@ -108,6 +108,7 @@ const App = () => (
         <AuthProvider>
           <PaymentTestModeBanner />
           <CookieBanner />
+          <AIDisclaimerModal />
           <Suspense fallback={<RouteFallback />}>
             <Routes>
               <Route path="/" element={<Index />} />
