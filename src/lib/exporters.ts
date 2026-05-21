@@ -263,10 +263,14 @@ export async function exportDOCX(c: GeneratedContract, opts?: WatermarkOpts) {
     })
   );
 
+  const header = opts?.watermark ? await buildDocxWatermarkHeader() : undefined;
   const doc = new Document({
     creator: "Dogovori.net",
     title: c.title,
-    sections: [{ children }],
+    sections: [{
+      headers: header ? { default: header } : undefined,
+      children,
+    }],
   });
 
   const blob = await Packer.toBlob(doc);
