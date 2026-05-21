@@ -75,7 +75,7 @@ Deno.serve(async (req: Request) => {
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
           messages: [
-            { role: "system", content: OCR_SYSTEM },
+            { role: "system", content: activeOcrSystem },
             {
               role: "user",
               content: [
