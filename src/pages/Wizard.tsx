@@ -680,6 +680,19 @@ export default function WizardPage() {
                   contacts={contacts}
                 />
 
+                {isLast && (
+                  <div className="mt-6">
+                    <FollowupSuggestions
+                      sectorId={sector?.id}
+                      contractType={(sector as { selectedDocument?: string })?.selectedDocument}
+                      answers={answers}
+                      onAnswer={(id, v) => setAnswers((p) => ({ ...p, [id]: v }))}
+                    />
+                  </div>
+                )}
+
+
+
                 <div className="mt-8 flex items-center justify-between gap-3">
                   <Button
                     variant="ghost"
