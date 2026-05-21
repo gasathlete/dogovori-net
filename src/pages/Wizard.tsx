@@ -155,6 +155,7 @@ export default function WizardPage() {
     }, 5000);
     try {
       const flatQs = flattenQuestions(visibleQuestions);
+      const arbitrationCourt = arbitration.enabled ? getCourtById(arbitration.courtId) : undefined;
       const { data, error } = await supabase.functions.invoke("generate-contract", {
         body: {
           sector: sector.title,
@@ -163,6 +164,12 @@ export default function WizardPage() {
           parties: sector.parties,
           answers,
           questions: flatQs.map((q) => ({ id: q.id, label: q.label })),
+          arbitration: arbitration.enabled ? {
+            enabled: true,
+            courtId: arbitration.courtId,
+            courtName: arbitrationCourt?.name ?? arbitration.customName,
+            courtLink: arbitrationCourt?.website ?? arbitration.customLink,
+          } : { enabled: false },
         },
       });
       if (error) throw error;
