@@ -38,7 +38,7 @@ const SYSTEM_PROMPT = `Ти си "Правен асистент Dogovori.net" �
    ⚠️ ВИНАГИ добавяй накратко: *"Това е обща информация, не правен съвет. За конкретен казус се консултирайте с адвокат."*
 
 4) **ТЕХНИЧЕСКА ПОДДРЪЖКА**:
-   - Quota / лимити: Free план = 3 шаблона + 3 договора lifetime + 1/месец; PRO = 100 операции/месец; Team = места × 100/месец
+   - Quota / лимити: Безплатен план = 6 операции общо + 2/месец (договори, бланки, анализи); Предприемач = 100 операции/месец; Екип = места × 100/месец. Чатът е безплатен.
    - Плащане: Stripe (картови плащания), управление през [/account?tab=billing](/account?tab=billing)
    - Грешки при export, OCR, подпис
    - Team управление, покани, seats
@@ -173,19 +173,7 @@ Deno.serve(async (req) => {
       content: lastUser.content,
     });
 
-    // Quota
-    const quotaResult = teamId
-      ? await admin.rpc("consume_team_quota", { _team_id: teamId })
-      : await admin.rpc("consume_quota", { _kind: "analysis" });
-    const quotaData: any = quotaResult.data;
-    if (!quotaData?.ok) {
-      return new Response(JSON.stringify({
-        error: quotaData?.reason === "team_limit_reached"
-          ? "Достигнат е месечният лимит на екипа."
-          : "Достигнат е месечният лимит за AI операции (100/месец).",
-        code: "quota_exceeded",
-      }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    // Чатът е безплатен — не консумира операция от квотата.
 
     // Compose system with runtime context
     const ctxLines = [

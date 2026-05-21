@@ -40,7 +40,7 @@ type SavedDoc = {
   id: string; title: string; kind: "contract" | "template"; folder_id: string | null;
   contact_id: string | null; payload: any; created_at: string;
 };
-type Quota = { contracts_used: number; templates_used: number; plan: "free" | "pro"; pro_until: string | null; analyses_used?: number };
+type Quota = { contracts_used: number; templates_used: number; plan: "free" | "pro"; pro_until: string | null; analyses_used?: number; total_used?: number; monthly_total_used?: number; bonus_contracts?: number; pro_monthly_used?: number };
 type UploadedContract = {
   id: string; title: string; source: "pdf" | "docx" | "paste";
   folder_id: string | null; contact_id: string | null;
@@ -258,25 +258,29 @@ function Dashboard({ quota, isPro, docs, hasChatAccess, onOpenChat }: { quota: Q
         title="План"
         value={isPro ? "Предприемач" : "Безплатен"}
         icon={<Crown className="h-5 w-5 text-gold" />}
-        sub={isPro ? `${(quota as any)?.pro_monthly_used ?? 0}/100 операции/мес` : "3+3 безплатни, после 1+1/мес"}
+        sub={
+          isPro
+            ? `${(quota as any)?.pro_monthly_used ?? 0}/100 операции/мес`
+            : `${(quota as any)?.total_used ?? 0}/6 общо · ${(quota as any)?.monthly_total_used ?? 0}/2 този месец`
+        }
         onClick={() => navigate("/account?tab=subscription")}
       />
       <Card
         title="Закупени операции"
         value={`${(quota as any)?.bonus_contracts ?? 0}`}
         icon={<Crown className="h-5 w-5 text-gold" />}
-        sub={((quota as any)?.bonus_contracts ?? 0) > 0 ? "Налични за ползване · не изтичат" : "Купете пакет от 5 операции"}
+        sub={((quota as any)?.bonus_contracts ?? 0) > 0 ? "Налични за всеки тип · не изтичат" : "Купете пакет от 5 операции"}
         onClick={() => navigate("/account?tab=subscription&checkout=five_operations")}
       />
       <Card
         title="Свалени договори"
-        value={`${quota?.contracts_used ?? 0}${isPro ? "" : " / 3"}`}
+        value={`${quota?.contracts_used ?? 0}`}
         icon={<FileText className="h-5 w-5 text-gold" />}
         onClick={() => navigate("/downloads/contracts")}
       />
       <Card
         title="Свалени бланки"
-        value={`${quota?.templates_used ?? 0}${isPro ? "" : " / 3"}`}
+        value={`${quota?.templates_used ?? 0}`}
         icon={<FileText className="h-5 w-5 text-gold" />}
         onClick={() => navigate("/downloads/templates")}
       />
@@ -914,7 +918,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             <p className="mt-2 text-sm text-muted-foreground">
               {isPro
                 ? `${proMonthlyUsed} / ${proMonthlyCap} операции този период.`
-                : `Безплатно: 3 договора + 3 бланки общо, след това 1+1 на месец. Използвани: ${quota?.contracts_used ?? 0} договор(а), ${quota?.templates_used ?? 0} бланка(и).`}
+                : `Безплатно: 6 операции общо, след това 2 на месец (договори, бланки или анализи). Използвани: ${(quota as any)?.total_used ?? 0} от 6 общо · ${(quota as any)?.monthly_total_used ?? 0} от 2 този месец.`}
             </p>
             {isPro && (
               <div className="mt-3">
