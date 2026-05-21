@@ -2,6 +2,7 @@
 // the result into the user_articles table as an approved 'admin' article.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
+import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 
 const TEXT_MODEL = "google/gemini-2.5-pro";
 const IMAGE_MODEL = "google/gemini-2.5-flash-image";
@@ -62,14 +63,14 @@ ${t.mandatoryText}
 - Не споменавай dogovori.net в самия текст`;
 }
 
-async function generateText(input: AdminInput, apiKey: string): Promise<ArticleJson | null> {
+async function generateText(input: AdminInput, apiKey: string, system: string): Promise<ArticleJson | null> {
   const res = await fetch(ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
       model: TEXT_MODEL,
       messages: [
-        { role: "system", content: SYSTEM },
+        { role: "system", content: system },
         { role: "user", content: buildArticlePrompt(input) },
       ],
       response_format: { type: "json_object" },
@@ -174,7 +175,8 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const article = await generateText(input, apiKey);
+    const activeSystem = await loadActivePrompt(admin, "admin-generate-article", SYSTEM);
+    const article = await generateText(input, apiKey, activeSystem);
     if (!article || !article.intro || !Array.isArray(article.sections) || article.sections.length < 3) {
       return new Response(JSON.stringify({ error: "ai_text_failed" }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },

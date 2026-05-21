@@ -5,6 +5,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
+import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 
 const OCR_SYSTEM = `Ти си високо точен OCR енджин за български правни документи.
 Получаваш изображение на страница от договор. Върни ИЗКЛЮЧИТЕЛНО извлечения текст,
@@ -63,6 +64,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    const activeOcrSystem = await loadActivePrompt(admin, "ocr-contract", OCR_SYSTEM);
     const ocrPage = async (dataUrl: string, pageIndex: number): Promise<string> => {
       const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -73,7 +75,7 @@ Deno.serve(async (req: Request) => {
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
           messages: [
-            { role: "system", content: OCR_SYSTEM },
+            { role: "system", content: activeOcrSystem },
             {
               role: "user",
               content: [
