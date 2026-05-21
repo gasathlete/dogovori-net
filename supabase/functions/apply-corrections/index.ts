@@ -2,6 +2,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import { extractJson } from "../_shared/json.ts";
+import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш съществуващ договор (в JSON) и списък от ИЗБРАНИ препоръки/слаби места, които трябва да коригираш в текста.
 Запази всички останали клаузи, формат, номерация и стил. Промени САМО това, което е необходимо, за да адресираш избраните препоръки. Където е нужно — добави нови клаузи или алинеи в съответния раздел (или нов раздел "Допълнителни защитни клаузи").
@@ -98,13 +99,14 @@ ${Object.entries(answers).map(([k, v]) => `- ${k}: ${v}`).join("\n")}
 
 Задача: Коригирай договора така, че да адресира САМО избраните препоръки/слаби места. Не променяй несвързани клаузи. Накрая върни нов risk анализ на коригирания договор и списък "applied" с кратко описание на промените.`;
 
+    const activeSystemPrompt = await loadActivePrompt(admin, "apply-corrections", SYSTEM_PROMPT);
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-pro",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: activeSystemPrompt },
           { role: "user", content: userPrompt },
         ],
         response_format: { type: "json_object" },

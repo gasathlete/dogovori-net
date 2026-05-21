@@ -16,17 +16,39 @@ export async function loadActivePrompt(
   if (hit && hit.expires > Date.now()) return hit.content;
 
   try {
-    const { data, error } = await admin
+    const { data: promptRow, error: pErr } = await admin
       .from("ai_prompts")
-      .select("content")
+      .select("id, content")
       .eq("function_name", functionName)
       .eq("is_active", true)
       .order("version", { ascending: false })
       .limit(1)
       .maybeSingle();
+    if (pErr) throw pErr;
 
-    if (error) throw error;
-    const content = data?.content && data.content.trim().length > 0 ? data.content : fallback;
+    let content = "";
+    if (promptRow?.id) {
+      const { data: sections } = await admin
+        .from("ai_prompt_sections")
+        .select("content, order_idx, enabled")
+        .eq("prompt_id", promptRow.id)
+        .eq("enabled", true)
+        .order("order_idx", { ascending: true });
+      if (sections && sections.length > 0) {
+        content = sections.map((s: { content: string }) => s.content).join("\n\n").trim();
+      }
+    }
+    if (!content && promptRow?.content && promptRow.content.trim().length > 0) {
+      content = promptRow.content;
+    }
+    // Safety: if assembled content is dramatically smaller than the hardcoded
+    // fallback, prefer the fallback to avoid quality regression.
+    if (content && fallback && content.length < fallback.length * 0.7) {
+      console.warn(`[prompt-loader] ${functionName} assembled too small (${content.length} < ${fallback.length}), using fallback`);
+      content = fallback;
+    }
+    if (!content) content = fallback;
+
     cache.set(functionName, { content, expires: Date.now() + TTL_MS });
     return content;
   } catch (e) {

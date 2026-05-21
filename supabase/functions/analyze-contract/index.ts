@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import { normalizeText, sha256Hex } from "../_shared/normalize.ts";
 import { extractJson } from "../_shared/json.ts";
+import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 
 // PROMPT_VERSION — bump to invalidate cached analyses produced by older prompts.
 const PROMPT_VERSION = "v4-balanced-scale";
@@ -260,6 +261,8 @@ ${truncated}
 
 Извърши пълен правен риск-анализ. За всеки issue включи дословен цитат от текста между маркерите в "clause". Върни СТРОГО валиден JSON по схемата.`;
 
+    const activeSystemPrompt = await loadActivePrompt(admin, "analyze-contract", SYSTEM_PROMPT);
+
     const callAi = async (modelName: string) => {
       return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -267,7 +270,7 @@ ${truncated}
         body: JSON.stringify({
           model: modelName,
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: activeSystemPrompt },
             { role: "user", content: userPrompt },
           ],
           response_format: { type: "json_object" },

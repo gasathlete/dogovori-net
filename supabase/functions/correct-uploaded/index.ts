@@ -2,6 +2,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import { extractJson } from "../_shared/json.ts";
+import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш СУРОВ ТЕКСТ на договор и списък от установени правни проблеми и липсващи клаузи.
 
@@ -121,13 +122,14 @@ ${scopeNote}
 
 Задача: пренапиши договора, като отстраниш проблемите и добавиш липсващите клаузи. Връщай само JSON.`;
 
+    const activeSystemPrompt = await loadActivePrompt(admin, "correct-uploaded", SYSTEM_PROMPT);
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-pro",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: activeSystemPrompt },
           { role: "user", content: userPrompt },
         ],
         response_format: { type: "json_object" },

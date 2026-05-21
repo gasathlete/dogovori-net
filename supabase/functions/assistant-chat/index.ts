@@ -3,6 +3,7 @@
 // completed assistant messages to assistant_messages.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
+import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 
 const SYSTEM_PROMPT = `Ти си "Правен асистент Dogovori.net" — професионален 24/7 помощник за PRO и Team абонати на платформата dogovori.net.
 
@@ -191,7 +192,8 @@ Deno.serve(async (req) => {
       `Потребителски статус: ${teamId ? "Team член" : "PRO"}.`,
       currentPath ? `Текуща страница: ${currentPath}.` : "",
     ].filter(Boolean).join(" ");
-    const systemFinal = `${SYSTEM_PROMPT}\n\n[КОНТЕКСТ] ${ctxLines}`;
+    const activeSystemPrompt = await loadActivePrompt(admin, "assistant-chat", SYSTEM_PROMPT);
+    const systemFinal = `${activeSystemPrompt}\n\n[КОНТЕКСТ] ${ctxLines}`;
 
     // Call Lovable AI Gateway with streaming
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

@@ -5,6 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
 import { buildCors, hashIp, clientIp } from "../_shared/cors.ts";
 import { sha256Hex, stableStringify } from "../_shared/normalize.ts";
 import { extractJson } from "../_shared/json.ts";
+import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 
 const SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ). Използваш правилните понятия (Възложител/Изпълнител, Наемодател/Наемател, Продавач/Купувач, Страните, Настоящият Договор).
 
@@ -203,13 +204,14 @@ ${other ? `ДРУГИ КЛАУЗИ / СПЕЦИФИКИ:\n${other}\n` : "ДРУ�
 
 Задача: Risk Analysis (конкретни слаби места за двете страни) + ПЪЛНИЯТ договор на български с всички задължителни клаузи. Върни СТРОГО валиден JSON по схемата.`;
 
+    const activeSystemPrompt = await loadActivePrompt(admin, "build-custom-contract", SYSTEM_PROMPT);
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: activeSystemPrompt },
           { role: "user", content: userPrompt },
         ],
         response_format: { type: "json_object" },
