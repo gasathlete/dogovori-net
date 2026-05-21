@@ -121,9 +121,13 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    const arbitrationLine = arbitration?.enabled
+      ? `\nАРБИТРАЖ: enabled=true, court="${arbitration.courtName || arbitration.courtId || ""}"${arbitration.courtLink ? `, link=${arbitration.courtLink}` : ""}`
+      : `\nАРБИТРАЖ: enabled=false (използвай държавна подсъдност)`;
+
     const userPrompt = `СЕКТОР: ${sector}
 ТИП ДОГОВОР: ${contractName}
-${docLine}СТРАНИ: ${parties.a} ↔ ${parties.b}
+${docLine}СТРАНИ: ${parties.a} ↔ ${parties.b}${arbitrationLine}
 
 ОТГОВОРИ:
 ${qaLines}
