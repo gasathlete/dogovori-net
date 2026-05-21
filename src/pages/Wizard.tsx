@@ -387,11 +387,6 @@ export default function WizardPage() {
     { icon: FileSearch, label: "Проверка за липсващи клаузи и реквизити…" },
     { icon: Download, label: "Бланката ще бъде свалена до 10 секунди…" },
   ];
-  // Gate the blank download behind the AI disclaimer (if not already accepted).
-  const [disclaimerGateOpen, setDisclaimerGateOpen] = useState(false);
-  const [disclaimerAck, setDisclaimerAck] = useState(false);
-  const pendingBlankAfterAck = useRef(false);
-
   const runBlankDownload = async () => {
     if (!user) {
       toast.error("Влезте, за да изтеглите бланка", { description: "Прогресът е запазен." });
@@ -400,9 +395,6 @@ export default function WizardPage() {
     }
     setDownloadingBlank(true);
     setBlankStep(0);
-    // Advance steps 0 -> 1 -> 2 at fixed offsets; hold on step 2 ("проверка за липси…")
-    // until the API responds. The final step ("сваляне до 10 сек") appears only when
-    // the response is in hand and the actual download is about to fire.
     const t1 = setTimeout(() => setBlankStep(1), 2000);
     const t2 = setTimeout(() => setBlankStep(2), 4500);
     const clearStepTimers = () => {
@@ -418,71 +410,46 @@ export default function WizardPage() {
         },
       });
       if (error || data?.error) {
-        if (data?.error === "quota_exceeded") {
-          toast.error("Изчерпан лимит за бланки", {
-            description: "Безплатно: 1 бланка/мес. Преминете към Pro за повече.",
-            action: { label: "Виж опции", onClick: () => goSubscription() },
-          });
-          return;
-        }
-        if (data?.requires_login) {
-          goAuth();
-          return;
-        }
-        throw new Error(data?.error || error?.message || "Грешка");
+        clearStepTimers();
+        const msg = (data?.error || error?.message || "Грешка при свалянето").toString();
+        toast.error("Грешка", { description: msg });
+        return;
       }
-      // Move to final step and give the user ~1s to see it before the browser
-      // dialog appears, so the message stays truthful ("до 10 секунди").
       clearStepTimers();
       setBlankStep(3);
-      await new Promise((r) => setTimeout(r, 900));
+      const url: string = data.url;
+      const filename: string = data.filename;
       const a = document.createElement("a");
-      a.href = data.url;
-      a.download = data.filename || "бланка.docx";
+      a.href = url;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       a.remove();
-      toast.success("Бланката е изтеглена");
-    } catch (e: any) {
-      toast.error("Грешка при сваляне на бланка", { description: String(e?.message ?? e) });
-    } finally {
+      toast.success("Бланката е готова");
+    } catch (e) {
       clearStepTimers();
-      setDownloadingBlank(false);
+      toast.error("Грешка", { description: (e as Error).message });
+    } finally {
+      setTimeout(() => setDownloadingBlank(false), 600);
     }
   };
 
   const handleDownloadBlank = async () => {
-    if (!hasAIDisclaimerLocal()) {
-      pendingBlankAfterAck.current = true;
-      setDisclaimerAck(false);
-      setDisclaimerGateOpen(true);
-      return;
+    try {
+      await ensureAIDisclaimerAccepted();
+    } catch {
+      return; // user dismissed disclaimer
     }
+    recordConsents([{ consent_type: "ai_disclaimer", granted: true }]).catch(() => undefined);
     await runBlankDownload();
   };
 
-  const acceptDisclaimerAndContinue = async () => {
-    if (!disclaimerAck) return;
-    setAIDisclaimerLocal();
-    recordConsents([{ consent_type: "ai_disclaimer", granted: true }]).catch(() => undefined);
-    setDisclaimerGateOpen(false);
-    if (pendingBlankAfterAck.current) {
-      pendingBlankAfterAck.current = false;
-      await runBlankDownload();
-    }
-  };
-
   // Auto-trigger blank download when arriving with ?blank=1
-  // и след успех — върни потребителя обратно (към template страницата),
-  // вместо да го оставяш на празния wizard.
   const autoBlankTriggered = useRef(false);
   useEffect(() => {
     if (autoBlankTriggered.current) return;
     if (searchParams.get("blank") !== "1") return;
     if (authLoading) return;
-    // Don't auto-trigger if the user isn't logged in — handleDownloadBlank would
-    // redirect to /auth and the post-success navigate(-1) below would bounce
-    // back to /wizard?blank=1, creating an infinite redirect loop.
     if (!authUser) {
       autoBlankTriggered.current = true;
       toast.error("Влезте, за да изтеглите бланка", { description: "Прогресът е запазен." });
@@ -491,19 +458,19 @@ export default function WizardPage() {
     }
     autoBlankTriggered.current = true;
     (async () => {
-      if (!hasAIDisclaimerLocal()) {
-        // Show the gate first; the rest runs after acceptance via acceptDisclaimerAndContinue.
-        pendingBlankAfterAck.current = true;
-        setDisclaimerAck(false);
-        setDisclaimerGateOpen(true);
+      try {
+        await ensureAIDisclaimerAccepted();
+      } catch {
         return;
       }
+      recordConsents([{ consent_type: "ai_disclaimer", granted: true }]).catch(() => undefined);
       await runBlankDownload();
       setTimeout(() => {
         navigate(returnTo, { replace: true });
       }, 1500);
     })();
   }, [searchParams, authUser, authLoading, navigate, returnTo]);
+
 
 
   return (
