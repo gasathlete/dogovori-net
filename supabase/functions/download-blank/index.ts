@@ -103,13 +103,54 @@ function buildDocx(blank: BlankPayload): Promise<Uint8Array> {
     );
   }
 
+  // Discrete brand watermark on every page (header + footer).
+  const watermarkHeader = new Header({
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({ text: "dogovori.net", bold: true, color: "C9A84C", size: 18 }),
+        ],
+      }),
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({
+            text: "Безплатна бланка · Архитект на Вашите сделки",
+            color: "A0A0A0",
+            size: 14,
+            italics: true,
+          }),
+        ],
+      }),
+    ],
+  });
+  const watermarkFooter = new Footer({
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({
+            text: "dogovori.net · безплатна версия",
+            color: "B0B0B0",
+            size: 14,
+          }),
+        ],
+      }),
+    ],
+  });
+
   const doc = new Document({
     creator: "Dogovori.net",
     title: blank.title,
     styles: {
       default: { document: { run: { font: "Times New Roman", size: 24 } } },
     },
-    sections: [{ children }],
+    sections: [{
+      headers: { default: watermarkHeader },
+      footers: { default: watermarkFooter },
+      children,
+    }],
   });
 
   return Packer.toBuffer(doc).then((b) => new Uint8Array(b));
