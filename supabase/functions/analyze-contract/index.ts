@@ -261,6 +261,8 @@ ${truncated}
 
 Извърши пълен правен риск-анализ. За всеки issue включи дословен цитат от текста между маркерите в "clause". Върни СТРОГО валиден JSON по схемата.`;
 
+    const activeSystemPrompt = await loadActivePrompt(admin, "analyze-contract", SYSTEM_PROMPT);
+
     const callAi = async (modelName: string) => {
       return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -268,7 +270,7 @@ ${truncated}
         body: JSON.stringify({
           model: modelName,
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: activeSystemPrompt },
             { role: "user", content: userPrompt },
           ],
           response_format: { type: "json_object" },
