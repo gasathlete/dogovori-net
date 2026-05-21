@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_prompt_sections: {
+        Row: {
+          content: string
+          created_at: string
+          enabled: boolean
+          id: string
+          order_idx: number
+          prompt_id: string
+          section_key: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          order_idx?: number
+          prompt_id: string
+          section_key: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          order_idx?: number
+          prompt_id?: string
+          section_key?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_prompt_sections_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "ai_prompts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_prompts: {
         Row: {
           content: string
@@ -1504,6 +1548,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      assemble_prompt_content: { Args: { _prompt_id: string }; Returns: string }
       consume_quota: { Args: { _kind: string }; Returns: Json }
       consume_team_quota: { Args: { _team_id: string }; Returns: Json }
       delete_email: {
@@ -1563,6 +1608,7 @@ export type Database = {
         Args: { _kind: string; _used_bonus?: boolean; _user_id: string }
         Returns: undefined
       }
+      unaccent_or_lower: { Args: { _t: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
