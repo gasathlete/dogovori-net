@@ -102,6 +102,10 @@ export function SignatureBlock({ isPro, defaultPartyA, defaultPartyB, value, onC
           : "Въведете имената на страните, града и датата. За дигитален подпис надградете до Pro."}
       </p>
 
+      <LegalDisclaimer variant="warning" storageKey="signature-no-kep" className="mb-4">
+        <strong>Внимание:</strong> Дигитално нарисуваният или сканиран подпис не представлява квалифициран електронен подпис (КЕП) по смисъла на Регламент (ЕС) 910/2014 и ЗЕДЕУУ. Това не гарантира, че договорът ще издържи при оспорване в съда. За пълна правна сила използвайте КЕП от лицензиран доставчик (B-Trust, Evrotrust, InfoNotary) или подпишете на хартия.
+      </LegalDisclaimer>
+
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div>
           <Label className="text-xs">Град</Label>
