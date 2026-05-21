@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 
 export interface SignatureData {
   /** Печатно име отдолу — винаги се попълва */
