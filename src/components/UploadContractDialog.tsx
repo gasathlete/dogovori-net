@@ -230,6 +230,11 @@ export function UploadContractDialog({
           <DialogTitle className="font-serif">Качване на собствен договор</DialogTitle>
         </DialogHeader>
 
+        <LegalDisclaimer variant="warning" storageKey="upload-ocr-accuracy" className="mt-1">
+          <strong>Дисклеймър:</strong> При обработка на PDF/DOCX може автоматично извлечените клаузи, суми и страни да са неточни — особено при сканирани документи. Прегледайте резултата и сравнете с оригинала, преди да го използвате правно.
+        </LegalDisclaimer>
+
+
         <Tabs value={tab} onValueChange={(v) => setTab(v as ExtractSource)}>
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="pdf"><FileText className="mr-1 h-3.5 w-3.5" />PDF</TabsTrigger>
