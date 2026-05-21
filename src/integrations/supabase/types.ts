@@ -14,6 +14,111 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_prompts: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          function_name: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          version: number
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          function_name: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          version: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          function_name?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
+      ai_rules: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          function_name: string
+          id: string
+          rule_text: string
+          severity: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          function_name: string
+          id?: string
+          rule_text: string
+          severity?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          function_name?: string
+          id?: string
+          rule_text?: string
+          severity?: string
+        }
+        Relationships: []
+      }
+      ai_training_examples: {
+        Row: {
+          active: boolean
+          category: string
+          created_at: string
+          created_by: string | null
+          expected_output: string
+          function_name: string
+          id: string
+          input_context: string
+          title: string
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          expected_output: string
+          function_name: string
+          id?: string
+          input_context: string
+          title: string
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          expected_output?: string
+          function_name?: string
+          id?: string
+          input_context?: string
+          title?: string
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: []
+      }
       ai_usage: {
         Row: {
           created_at: string
@@ -241,6 +346,51 @@ export type Database = {
           updated_at?: string
           user_id?: string
           vat_number?: string | null
+        }
+        Relationships: []
+      }
+      contract_question_bank: {
+        Row: {
+          active: boolean
+          contract_type: string | null
+          created_at: string
+          created_by: string | null
+          field_type: string
+          id: string
+          importance: number
+          options: Json | null
+          question_text: string
+          sector_id: string | null
+          trigger_conditions: Json
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          contract_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          field_type?: string
+          id?: string
+          importance?: number
+          options?: Json | null
+          question_text: string
+          sector_id?: string | null
+          trigger_conditions?: Json
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          contract_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          field_type?: string
+          id?: string
+          importance?: number
+          options?: Json | null
+          question_text?: string
+          sector_id?: string | null
+          trigger_conditions?: Json
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1364,6 +1514,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_active_prompt: { Args: { _function_name: string }; Returns: string }
       get_post_rating: {
         Args: {
           _post_slug: string
