@@ -475,62 +475,8 @@ export default function WizardPage() {
 
   return (
     <div className="min-h-screen">
-      <AIDisclaimerModal />
-
-      {/* Blocking AI disclaimer gate — shown before starting the blank download
-          when the user hasn't yet acknowledged the AI disclaimer. */}
-      <Dialog
-        open={disclaimerGateOpen}
-        onOpenChange={(o) => {
-          if (!o) {
-            // Closing without acceptance cancels the pending blank download.
-            pendingBlankAfterAck.current = false;
-            setDisclaimerGateOpen(false);
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="mb-2 inline-flex w-fit items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-[11px] uppercase tracking-wider text-gold">
-              <Bird className="h-3 w-3" /> Информация за изкуствен интелект
-            </div>
-            <DialogTitle className="font-serif text-xl">Преди да изтеглите бланка</DialogTitle>
-            <DialogDescription className="text-sm leading-relaxed text-foreground/90">
-              Генерираните документи са образци, създадени с моделиран по българското
-              законодателство изкуствен интелект и <strong>не представляват правен съвет</strong>.{" "}
-              <Link to="/terms" className="text-gold underline-offset-2 hover:underline">
-                Условия
-              </Link>
-              .
-            </DialogDescription>
-          </DialogHeader>
-
-          <button
-            type="button"
-            onClick={() => setDisclaimerAck((v) => !v)}
-            className="mt-2 flex w-full items-start gap-2 rounded-md border border-gold/30 bg-card/50 p-3 text-left transition-colors hover:bg-card/70"
-          >
-            <Checkbox
-              checked={disclaimerAck}
-              className="pointer-events-none mt-0.5"
-              tabIndex={-1}
-            />
-            <span className="text-xs leading-relaxed text-foreground">
-              Разбирам и приемам, че документите се генерират от изкуствен интелект и не
-              заместват консултация с адвокат.
-            </span>
-          </button>
-
-          <Button
-            onClick={acceptDisclaimerAndContinue}
-            disabled={!disclaimerAck}
-            className="mt-3 w-full bg-gradient-gold text-navy hover:shadow-gold"
-          >
-            Продължи към сваляне
-          </Button>
-        </DialogContent>
-      </Dialog>
       <Header />
+
 
       {downloadingBlank && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm">
