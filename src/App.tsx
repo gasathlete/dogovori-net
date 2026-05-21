@@ -69,6 +69,7 @@ const BlogSubmit = lazy(() => import("./pages/BlogSubmit.tsx"));
 const Team = lazy(() => import("./pages/Team.tsx"));
 const TeamAccept = lazy(() => import("./pages/TeamAccept.tsx"));
 const Contact = lazy(() => import("./pages/Contact.tsx"));
+const Downloads = lazy(() => import("./pages/Downloads.tsx"));
 
 // Defer Sentry boot until the browser is idle so it never competes with hydration / LCP.
 if (typeof window !== "undefined") {
