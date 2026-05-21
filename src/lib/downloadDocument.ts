@@ -30,6 +30,14 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
     return { ok: false, error: "auth_required", status: 401 };
   }
 
+  // Require AI disclaimer acceptance once per session before any download.
+  try {
+    await ensureAIDisclaimerAccepted();
+  } catch {
+    return { ok: false, error: "disclaimer_cancelled", status: 0 };
+  }
+
+
   const { data, error } = await supabase.functions.invoke("download-document", {
     body: {
       kind: p.kind,
