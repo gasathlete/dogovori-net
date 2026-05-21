@@ -1,113 +1,134 @@
-# План: разгръщане на страница Екип (`/team`)
+# План: 11 правни и UX подобрения след консултация с адвокат
 
-Целта е страницата да стане завършен self-service контролен панел за корпоративния абонамент — с реални имена, управление на роли, billing достъп, безопасни мутации и мобилен UX.
+Една обща фаза, разделена на 5 логически блока. КЕП оставяме като отделна Фаза 2 (research-heavy).
 
 ---
 
-## 1. Реални данни за членове + управление на роли
+## Блок A — Дискретни disclaimers (т. 2, 4, 7, 11)
 
-**Backend (нова edge функция `team-members`):**
-- POST с `{ teamId, action }`, връща за всеки член: `user_id`, `email`, `display_name`, `avatar_url`, `role`, `joined_at`.
-- Използва service role за join към `auth.users` + `profiles` (RLS на `profiles` е own-only, затова не става от клиента).
-- Server-side проверка че извикващият е `is_team_member`.
-- Sub-actions в същата функция (или отделни функции — виж секция 3):
-  - `change-role` — owner може да прави admin↔member; admin не може да променя owner.
-  - `leave` — всеки нечлен-owner може да напусне; owner трябва първо да transfer ownership.
-  - `transfer-ownership` — само owner, изисква второ потвърждение (текстово въвеждане на името на екипа).
+Общ компонент `LegalDisclaimer` (`variant: subtle | warning | danger`) — малък банер с икона `Info`/`AlertTriangle`, dismissible с `localStorage` ключ.
 
-**Frontend:**
-- Член реда показва avatar (shadcn `Avatar`), име, имейл, бадж за роля, "Вие" маркер.
-- Dropdown меню на всеки ред (само за owner/admin): Промени роля, Премахни.
-- Бутон "Напусни екипа" в header-а (за non-owners).
-- Бутон "Прехвърли собственост" в danger zone в края на табa Members (само owner).
+- **т.2 — Подпис без КЕП**: В `SignatureBlock.tsx` под полето за рисуване → "Дигиталният подпис без КЕП няма доказателствена сила пред съд. За правно обвързване използвайте КЕП (виж секция КЕП)."
+- **т.4 — Плащане в брой**: В `Wizard` стъпката за цена/плащане, ако стойността > 10 000 EUR или метод = "брой" → "Плащания над 10 000 лв. в брой между лица са ограничени по ЗОПБ. Препоръчваме банков превод."
+- **т.7 — Изтриване на акаунт**: В `Account.tsx` секцията Danger Zone → confirm dialog с пълен списък ("ще бъдат изтрити: договори, бланки, контакти, абонамент, аудит лог, подпис"). Изисква въвеждане на "ИЗТРИЙ" за потвърждение.
+- **т.11 — PDF upload**: В `UploadContractDialog` след OCR → "Извлеченият текст от PDF може да съдържа неточности. Прегледайте внимателно преди подпис."
 
-## 2. Billing таб
+## Блок B — Арбитражна клауза (т. 5)
 
-Нов 5-ти таб "Billing" (само за owner/admin).
+- Нова data структура `src/data/arbitrationCourts.ts` с топ 5 БГ арбитражни съдилища (БТПП, ВАС при БСК, Арбитражен съд при ПАЕБ и др.) + официална клауза-шаблон + линк.
+- В `Wizard` при избор "Арбитраж" вместо обикновен toggle — нов компонент `ArbitrationSelector`:
+  - Tooltip/Popover с дефиниция: какво е арбитраж, кога се ползва, разлики със съдебно производство.
+  - Dropdown за избор на конкретен арбитражен съд.
+  - Auto-fill на специфичната клауза изисквана от съответния съд.
+  - Поле "Линк към съда" (попълва се автоматично).
+- В системния prompt на `generate-contract` → ако `arbitration: true`, използва точната клауза от избрания съд, а не генерична.
 
-**Frontend:**
-- Карта "Абонамент": план (Team), брой места × цена, период, дата на подновяване, статус бадж (`active`/`past_due`/`canceled`/`pending`).
-- Бутон "Управление в Stripe" → отваря `customer-portal` сесия в нов tab (вече има функция, нужна е малка адаптация да приема `teamId` и да чете `teams.stripe_customer_id` вместо `subscriptions`).
-- Списък с последните 10 фактури (нова edge `team-billing-data` или разширение на `get-stripe-data` с `scope: 'team'`): дата, сума, статус, линкове към hosted invoice + PDF.
-- Banner при `past_due` (предупредително) и при `canceled` с `current_period_end` в бъдещето (информативно).
-- "Отмени абонамент" → препраща към customer portal (там Stripe има готов UX).
+## Блок C — Авто-секция "Контакти т.12" (т. 8)
 
-**Backend:**
-- Нова `team-billing-data` функция: верифицира admin, чете `teams.stripe_customer_id` + `stripe_subscription_id`, връща subscription details + invoices list (същия pattern като `get-stripe-data`).
-- `customer-portal` приема `teamId` параметър; ако е подаден, ползва team customer вместо user.
+- В `generate-contract` system prompt: всеки договор задължително завършва с раздел **"XII. КОНТАКТИ ЗА КОРЕСПОНДЕНЦИЯ"** с имена, адрес, имейл, телефон на двете страни.
+- В `templateExporter.ts` и `LiveDraft.tsx`: ако AI пропусне раздела (fallback), добавяме го програмно от данните на страните.
+- Снаждане в съществуващи договори при regenerate — без миграция на стари.
 
-## 3. Безопасни мутации + подобрени покани
+## Блок D — Live preview бланка (т. 10)
 
-**Премахни client-side `.delete()` от `team_members`:**
-- Нова edge функция `team-remove-member`: проверка admin, премахва ред, записва в `team_audit_log`, изпраща имейл (template `team-removal`), не докосва Stripe seats (остават до следващия `team-update-seats`).
-- UI бутонът "Премахни" вика тази функция.
+В `LiveDraft.tsx` и `BuildContract.tsx`:
 
-**Покани (`team_invitations`):**
-- Нова `team-cancel-invitation` функция → маркира с `expires_at = now()` или изтрива; admin only.
-- Нова `team-resend-invitation` функция → презаписва `expires_at`, праща нов имейл с нов token.
-- UI: всяка чакаща покана получава два бутона (Изпрати отново / Отмени) с потвърждение.
+- Текущо при тип "физическо/юридическо" в preview-а пише етикетът.
+- Промяна: ако `type='individual'` → показва `ЕГН: __________`; ако `type='legal'` → `ЕИК/Булстат: __________`, `ДДС №: __________`, `МОЛ: __________`.
+- Същият подход в `SignatureBlock` за полето "Имена/наименование".
 
-**Accept preview страница (`/team/accept`):**
-- Преди да извика функцията, прави read-only заявка `team-invitation-info` (нова edge функция с публичен достъп по token, връща team_name, inviter display_name, expires_at).
-- Показва карта: "Поканен сте в екип X от Y. До дата Z." + бутони "Приеми" / "Откажи".
-- "Приеми" вика съществуващата `team-accept-invite`; "Откажи" вика `team-cancel-invitation` като поканеният.
+## Блок E — Анонимизация в админ панел (т. 6)
 
-## 4. Mobile/UX полиране + audit log
+Решение: **само метаданни** (по избор на потребителя).
 
-**Tabs за mobile:**
-- Под `sm`: `TabsList` става `grid-cols-2` на 2 реда (или horizontal scroll). 5 таба × 2 реда е приемливо.
-- Тестване на 393px.
+- **Migration**: нова view `admin_blanks_safe` и `admin_articles_safe` без `submitted_by`/`user_id` raw — заменени с `user_hash` (SHA-256 на user_id + project salt).
+- В `AdminBlanksPanel.tsx`, `AdminUserArticlesPanel.tsx`, `AdminPartnersPanel.tsx`:
+  - Никога не зареждаме `display_name`, `email`, `signature_name` за модерируеми ресурси.
+  - Показваме: тип, сектор, дата, статус, hash идентификатор (за reference при support).
+  - При преглед на договор/бланка за одобрение — `blank_payload` се pre-processva от нова edge функция `admin-redact-payload`, която маскира всички имена/ЕГН/ЕИК/имейли с `[ИМЕ-A]`, `[ЕГН-1]`, `[EMAIL-1]` и т.н. (regex + AI втора проверка с `gemini-2.5-flash-lite`).
+- Нови общи условия / privacy section: добавяме раздел "Достъп на модератори" в `Privacy.tsx` обясняващ какво виждат админите (= нищо лично).
 
-**Skeleton/empty states:**
-- Заменяме единствения spinner с targeted skeletons за header + tabs.
-- Всеки таб получава своя empty state с илюстрация (Lucide icon) + кратък explainer + primary action.
+## Блок F — AI обучителен панел (т. 1, 3, 9)
 
-**Audit log:**
-- Server-side: `team-members` edge функцията се разширява с `audit-list` action — връща и actor display_name + target display_name (когато `target_type='user'`), за да не показваме UUID-та.
-- Mapping на `action` ключове към четим български текст: `member.invited`, `member.joined`, `member.removed`, `member.role_changed`, `seats.updated`, `branding.updated`, `team.created` и т.н.
-- Pagination: 20 на страница, бутон "Покажи още".
-- Филтър по action type (dropdown).
+Нова страница в админ: `/admin/ai-training` с 3 sub-таба.
+
+### F.1 System Prompts мениджмънт
+- Нова таблица `ai_prompts`: `id, function_name, version, content, is_active, created_by, created_at, notes`.
+- За всяка AI edge функция (`generate-contract`, `analyze-contract`, `assistant-chat`, `apply-corrections`, `build-custom-contract`, `correct-uploaded`, `ocr-contract`, `admin-generate-article`) — извличаме текущия hardcoded prompt в БД като v1.
+- Функциите четат активна версия от `ai_prompts` (с in-memory cache 5 мин).
+- UI: списък функции → preview текущ prompt → редактор (Monaco/textarea с syntax hint) → "Запази нова версия" + "Активирай". История на версии с rollback.
+
+### F.2 Few-shot примери и правила
+- Нова таблица `ai_training_examples`: `id, function_name, category (sector/contract_type), input_context, expected_output, weight, active`.
+- Нова таблица `ai_rules`: `id, function_name, rule_text, severity (must/should), active`.
+- При AI извикване — top-K релевантни примери (по category match) се добавят към prompt-а; всички активни rules също.
+
+### F.3 Динамични уточняващи въпроси (т. 3)
+- Нова таблица `contract_question_bank`: `id, sector_id, contract_type, trigger_conditions (jsonb), question_text, field_type, importance`.
+- В Wizard преди генериране → нова edge функция `suggest-followup-questions` (Lovable AI) преглежда контекста и избира 2-5 най-важни въпроса от банката + може да добави AI-генерирани ad-hoc.
+- В админ панела CRUD за въпросите.
+
+### F.4 Отложено действие (т. 9)
+- Добавяме секция в банката с правила за "deferred effect" договори (предварителни, обещание за продажба, условни сделки).
+- При генериране AI получава rule: "Ако казусът включва бъдещо/условно действие, добави клаузи за: срокове на действие, прекратително условие, гаранции при неизпълнение в периода до влизане в сила, последици от отказ."
 
 ---
 
 ## Технически детайли
 
+### Нови файлове
 ```text
-Edge functions (нови):
-- team-members             (POST: list | change-role | leave | transfer-ownership | audit-list)
-- team-remove-member       (POST: { teamId, userId })
-- team-billing-data        (POST: { teamId, environment } → subscription + invoices)
-- team-cancel-invitation   (POST: { invitationId })
-- team-resend-invitation   (POST: { invitationId })
-- team-invitation-info     (POST: { token } — публичен, без auth)
+Frontend:
+- src/components/LegalDisclaimer.tsx
+- src/components/wizard/ArbitrationSelector.tsx
+- src/data/arbitrationCourts.ts
+- src/pages/admin/AITraining.tsx          (3 sub-tab компонента)
+- src/components/admin/PromptEditor.tsx
+- src/components/admin/TrainingExamples.tsx
+- src/components/admin/QuestionBank.tsx
+- src/lib/anonymize.ts                    (regex маскиране helper)
 
-Edge functions (промени):
-- customer-portal          → приема optional teamId, ползва teams.stripe_customer_id
+Edge functions:
+- admin-redact-payload          (PII масировка преди показване в админ)
+- suggest-followup-questions    (Lovable AI избор от банката)
+- ai-prompt-loader              (shared util, не функция: чете активни prompts)
 
-Frontend (нови/променени файлове):
-- src/pages/Team.tsx              (нов Billing таб, mobile tabs, skeleton)
-- src/pages/TeamAccept.tsx        (preview UI преди приемане)
-- src/components/TeamMembers.tsx  (нов — извлечен от Team.tsx, dropdown actions, avatars)
-- src/components/TeamBilling.tsx  (нов)
-- src/components/TeamAuditLog.tsx (нов — pagination + filter + readable actions)
-- src/components/TeamInvitations.tsx (нов — resend/cancel бутони)
-
-База данни (без миграции):
-- няма нови таблици/колони — съществуващите team_audit_log + teams.stripe_customer_id са достатъчни.
+Migrations:
+- ai_prompts, ai_training_examples, ai_rules, contract_question_bank tables (всички staff-only RLS)
+- admin_blanks_safe, admin_articles_safe views
 ```
 
-**Поредност на изпълнение:**
-1. `team-members` + `TeamMembers` компонент (най-голяма видима стойност)
-2. Безопасно премахване + покани (resend/cancel/accept preview)
-3. Billing функция + таб
-4. Mobile полиране + audit log преработка
+### Едитвани файлове
+```text
+- src/components/wizard/SignatureBlock.tsx     (disclaimer т.2)
+- src/pages/Wizard.tsx                          (disclaimer т.4, ArbitrationSelector)
+- src/pages/Account.tsx                         (delete confirm т.7)
+- src/components/UploadContractDialog.tsx       (PDF disclaimer т.11)
+- src/components/wizard/LiveDraft.tsx           (ЕГН/ЕИК динамично т.10)
+- src/pages/BuildContract.tsx                   (ЕГН/ЕИК динамично т.10)
+- src/components/AdminBlanksPanel.tsx           (анонимизация т.6)
+- src/components/AdminUserArticlesPanel.tsx     (анонимизация т.6)
+- src/pages/legal/Privacy.tsx                   (раздел за достъп на модератори)
+- supabase/functions/generate-contract/index.ts (Контакти т.12, arbitration, prompt loader, few-shot, rules)
+- supabase/functions/analyze-contract/index.ts  (prompt loader)
+- supabase/functions/assistant-chat/index.ts    (prompt loader)
+- supabase/functions/apply-corrections/index.ts (prompt loader)
+- supabase/functions/build-custom-contract/index.ts (prompt loader, динамични въпроси)
+- src/pages/Admin.tsx                           (link към /admin/ai-training)
+```
+
+### Сигурност
+- Всички нови таблици: RLS service_role ALL + `is_staff(auth.uid())` SELECT/INSERT/UPDATE.
+- `admin-redact-payload` верифицира `is_staff()` преди да върне маскирани данни.
+- Hash на user_id: `encode(digest(user_id::text || '<salt>', 'sha256'), 'hex')` — salt от secret `ADMIN_ANON_SALT` (нов).
+
+### Фаза 2 (отделно): КЕП интеграция
+- Research БГ доставчици (B-Trust, Evrotrust, InfoNotary) — REST APIs, цени, sandbox достъп.
+- Връщам в чата с opciite + примерна архитектура; чакам твоя избор преди да градя.
 
 ---
 
-## Какво НЕ влиза в обхвата
-
-- Промяна на pricing модела / Stripe products
-- SSO/SCIM provisioning
-- Granular permissions (read-only role и др.)
-- Множествени едновременни екипи за един потребител
-- Промени в `TeamDocuments`/`TeamContacts`/`TeamBranding` (вече работят)
+## Очаквани въпроси
+- **Изтриване на стари hardcoded prompts**: запазваме като v1 в `ai_prompts`, никога не правим breaking change.
+- **Performance на динамични въпроси**: добавя 1 AI извикване (~500ms) — кешираме по hash(sector+contract_type+answers).
+- **Анонимизация на стари записи**: само напред — старите `submitted_by` остават в БД, но UI ги скрива.
