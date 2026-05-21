@@ -967,7 +967,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               onClick={() => setCheckoutPrice("pro_monthly")}
               className="mt-6 bg-gradient-gold text-navy hover:shadow-gold"
             >
-              Премини на Pro
+              Премини на Предприемач
             </Button>
           </div>
 
