@@ -63,14 +63,14 @@ ${t.mandatoryText}
 - Не споменавай dogovori.net в самия текст`;
 }
 
-async function generateText(input: AdminInput, apiKey: string): Promise<ArticleJson | null> {
+async function generateText(input: AdminInput, apiKey: string, system: string): Promise<ArticleJson | null> {
   const res = await fetch(ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
       model: TEXT_MODEL,
       messages: [
-        { role: "system", content: SYSTEM },
+        { role: "system", content: system },
         { role: "user", content: buildArticlePrompt(input) },
       ],
       response_format: { type: "json_object" },
