@@ -83,31 +83,9 @@ export interface WatermarkOpts {
   userTag?: string;
 }
 
-function applyWatermark(doc: jsPDF, userTag?: string) {
-  const pageCount = (doc as any).internal.getNumberOfPages?.() ?? doc.getNumberOfPages();
-  const pw = doc.internal.pageSize.getWidth();
-  const ph = doc.internal.pageSize.getHeight();
-  const stamp = new Date().toISOString().slice(0, 19).replace("T", " ");
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    // Diagonal preview stamp
-    const gState: any = (doc as any).GState ? new (doc as any).GState({ opacity: 0.18 }) : null;
-    if (gState) (doc as any).setGState(gState);
-    doc.setTextColor(180, 0, 0);
-    doc.setFontSize(72);
-    doc.text("ПРЕГЛЕД – не за подпис", pw / 2, ph / 2, { align: "center", angle: 35 });
-    // Reset and add footer trace
-    if (gState) {
-      const reset: any = new (doc as any).GState({ opacity: 1 });
-      (doc as any).setGState(reset);
-    }
-    doc.setTextColor(140, 140, 140);
-    doc.setFontSize(7);
-    const footer = `Dogovori.net · преглед${userTag ? ` · ${userTag}` : ""} · ${stamp}`;
-    doc.text(footer, pw / 2, ph - 16, { align: "center" });
-    doc.setTextColor(0, 0, 0);
-  }
-}
+// Watermark implementation lives in ./watermark to keep brand styling consistent
+// across contract and template exports.
+
 
 export async function exportPDF(c: GeneratedContract, opts?: WatermarkOpts) {
   const b64 = await loadCyrillicFontB64();
