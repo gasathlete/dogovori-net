@@ -116,9 +116,12 @@ export default function AdminPage() {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="container py-8">
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 mb-6 flex-wrap">
           <Button asChild variant="ghost" size="sm"><Link to="/account"><ArrowLeft className="h-4 w-4 mr-1" /> Профил</Link></Button>
           <h1 className="text-3xl font-bold flex items-center gap-2"><ShieldCheck className="h-7 w-7 text-gold" /> Модераторски панел</h1>
+          <Button asChild variant="outline" size="sm" className="ml-auto border-gold/40">
+            <Link to="/admin/ai-training">🧠 AI обучение</Link>
+          </Button>
         </div>
 
         <div className="flex gap-2 mb-4">

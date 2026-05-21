@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { extractTextFromFile, sha256Hex, type ExtractSource } from "@/lib/extractContractText";
+import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 
 type Folder = { id: string; name: string; is_favorites: boolean };
 type Contact = { id: string; name: string };
@@ -228,6 +229,11 @@ export function UploadContractDialog({
         <DialogHeader>
           <DialogTitle className="font-serif">Качване на собствен договор</DialogTitle>
         </DialogHeader>
+
+        <LegalDisclaimer variant="warning" storageKey="upload-ocr-accuracy" className="mt-1">
+          <strong>Дисклеймър:</strong> При обработка на PDF/DOCX може автоматично извлечените клаузи, суми и страни да са неточни — особено при сканирани документи. Прегледайте резултата и сравнете с оригинала, преди да го използвате правно.
+        </LegalDisclaimer>
+
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as ExtractSource)}>
           <TabsList className="grid w-full grid-cols-3">

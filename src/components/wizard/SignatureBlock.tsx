@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 
 export interface SignatureData {
   /** Печатно име отдолу — винаги се попълва */
@@ -100,6 +101,10 @@ export function SignatureBlock({ isPro, defaultPartyA, defaultPartyB, value, onC
           ? "Pro режим: можете да нарисувате или качите дигитален подпис, който ще се вгради в PDF/DOCX."
           : "Въведете имената на страните, града и датата. За дигитален подпис надградете до Pro."}
       </p>
+
+      <LegalDisclaimer variant="warning" storageKey="signature-no-kep" className="mb-4">
+        <strong>Внимание:</strong> Дигитално нарисуваният или сканиран подпис не представлява квалифициран електронен подпис (КЕП) по смисъла на Регламент (ЕС) 910/2014 и ЗЕДЕУУ. Това не гарантира, че договорът ще издържи при оспорване в съда. За пълна правна сила използвайте КЕП от лицензиран доставчик (B-Trust, Evrotrust, InfoNotary) или подпишете на хартия.
+      </LegalDisclaimer>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div>

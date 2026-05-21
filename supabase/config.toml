@@ -25,6 +25,10 @@ project_id = "wkbxojefiovdczkwhved"
     verify_jwt = true
   [functions.sign-shared-document]
     verify_jwt = false
+  [functions.admin-redact-payload]
+    verify_jwt = false
+  [functions.suggest-followup-questions]
+    verify_jwt = false
 
 [functions.send-transactional-email]
 verify_jwt = true

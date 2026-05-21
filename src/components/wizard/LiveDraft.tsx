@@ -8,6 +8,19 @@ import { Pencil, Check, Lock } from "lucide-react";
 
 type Clause = { roman: string; title: string; body: string };
 
+/**
+ * Точка 10 от правния одит — в живия преглед не пишем „Физическо лице" / „Юридическо лице",
+ * а директно показваме идентификатора: ЕГН за физическо, ЕИК/Булстат за юридическо.
+ */
+function renderPartyIdentifier(type?: string): string {
+  if (!type) return "";
+  const t = type.toLowerCase();
+  if (t.includes("физическо")) return ", ЕГН [........]";
+  if (t.includes("ет") || t.includes("самоосигуряващо")) return ", ЕИК [........], представляван от [МОЛ]";
+  if (t.includes("юридическо")) return ", ЕИК/Булстат [........], представлявано от [МОЛ], ДДС № [........]";
+  return ` — ${type}`;
+}
+
 const CURRENCY = "€";
 
 function buildInitialClauses(sector: Sector, a: Record<string, string>): Clause[] {
@@ -564,12 +577,12 @@ export function LiveDraft({
         </p>
         <p className="mt-3 text-sm leading-relaxed">
           <strong>1. {partyA}</strong>
-          {answers.party_a_type ? ` — ${answers.party_a_type}` : ""}, наричан по-долу „
+          {renderPartyIdentifier(answers.party_a_type)}, наричан по-долу „
           <em>{sector.parties.a}</em>“, и
         </p>
         <p className="mt-2 text-sm leading-relaxed">
           <strong>2. {partyB}</strong>
-          {answers.party_b_type ? ` — ${answers.party_b_type}` : ""}, наричан по-долу „
+          {renderPartyIdentifier(answers.party_b_type)}, наричан по-долу „
           <em>{sector.parties.b}</em>“,
         </p>
         <p className="mt-3 text-sm leading-relaxed">
