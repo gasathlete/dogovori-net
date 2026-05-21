@@ -308,7 +308,7 @@ Deno.serve(async (req: Request) => {
       const blank = extractJson(raw);
 
       const docxBytes = await buildDocx(blank);
-      storagePath = `${safeKey(sectorId)}/${safeKey(documentName)}.docx`;
+      storagePath = `${CACHE_VERSION}/${safeKey(sectorId)}/${safeKey(documentName)}.docx`;
 
       const { error: upErr } = await admin.storage
         .from("document-blanks")
