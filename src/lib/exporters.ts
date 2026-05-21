@@ -176,35 +176,9 @@ export async function exportPDF(c: GeneratedContract, opts?: WatermarkOpts) {
 export async function exportDOCX(c: GeneratedContract, opts?: WatermarkOpts) {
   const children: Paragraph[] = [];
 
-  if (opts?.watermark) {
-    children.push(
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        children: [
-          new TextRun({
-            text: "ПРЕГЛЕД – не за подпис",
-            bold: true,
-            color: "B00000",
-            size: 36,
-          }),
-        ],
-      }),
-    );
-    const stamp = new Date().toISOString().slice(0, 19).replace("T", " ");
-    children.push(
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        children: [
-          new TextRun({
-            text: `Dogovori.net · преглед${opts.userTag ? ` · ${opts.userTag}` : ""} · ${stamp}`,
-            color: "8C8C8C",
-            size: 14,
-          }),
-        ],
-      }),
-    );
-    children.push(new Paragraph({ text: "" }));
-  }
+  // Watermark is rendered as a page header (applied below via section headers),
+  // so it appears discreetly on every page instead of only on the first one.
+
 
   children.push(
     new Paragraph({
