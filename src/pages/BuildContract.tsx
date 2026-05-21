@@ -303,8 +303,8 @@ export default function BuildContractPage() {
         description="Опишете накратко договора — AI попълва липсващите клаузи и създава професионален документ до 2 минути, със ЗЗД/ТЗ съответствие и риск-анализ."
         canonical="https://dogovori.net/build"
       />
-      <AIDisclaimerModal />
       <Header />
+
 
       {/* Top bar */}
       <div className="sticky top-16 z-30 border-b border-border/60 bg-navy/90 backdrop-blur-xl">
