@@ -918,7 +918,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             <p className="mt-2 text-sm text-muted-foreground">
               {isPro
                 ? `${proMonthlyUsed} / ${proMonthlyCap} операции този период.`
-                : `Безплатно: 3 договора + 3 бланки общо, след това 1+1 на месец. Използвани: ${quota?.contracts_used ?? 0} договор(а), ${quota?.templates_used ?? 0} бланка(и).`}
+                : `Безплатно: 6 операции общо, след това 2 на месец (договори, бланки или анализи). Използвани: ${(quota as any)?.total_used ?? 0} от 6 общо · ${(quota as any)?.monthly_total_used ?? 0} от 2 този месец.`}
             </p>
             {isPro && (
               <div className="mt-3">
