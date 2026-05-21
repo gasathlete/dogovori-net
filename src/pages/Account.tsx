@@ -827,11 +827,23 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   const [busy, setBusy] = useState(false);
   const [checkoutPrice, setCheckoutPrice] = useState<string | null>(null);
   const [subStatus, setSubStatus] = useState<string | null>(null);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const redirectAfter = searchParams.get("redirect") || "";
   const returnUrl = `${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}${
     redirectAfter ? `&redirect=${encodeURIComponent(redirectAfter)}` : ""
   }`;
+
+  // Auto-open checkout if requested via ?checkout=...
+  useEffect(() => {
+    const requested = searchParams.get("checkout");
+    if (!requested) return;
+    const allowed = ["pro_monthly", "pro_yearly", "five_operations"];
+    if (allowed.includes(requested)) setCheckoutPrice(requested);
+    const next = new URLSearchParams(searchParams);
+    next.delete("checkout");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!user) return;
