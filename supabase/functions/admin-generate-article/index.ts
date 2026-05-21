@@ -2,6 +2,7 @@
 // the result into the user_articles table as an approved 'admin' article.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
+import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 
 const TEXT_MODEL = "google/gemini-2.5-pro";
 const IMAGE_MODEL = "google/gemini-2.5-flash-image";
