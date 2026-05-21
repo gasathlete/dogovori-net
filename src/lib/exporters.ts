@@ -115,10 +115,6 @@ export async function exportPDF(c: GeneratedContract, opts?: WatermarkOpts) {
   };
 
   writeWrapped(c.title.toUpperCase(), 16, { align: "center" });
-  y += 4;
-  doc.setTextColor(140, 140, 140);
-  writeWrapped("Създадено с изкуствен интелект", 8, { align: "center" });
-  doc.setTextColor(0, 0, 0);
   y += 8;
   doc.setDrawColor(201, 168, 76);
   doc.setLineWidth(0.8);
