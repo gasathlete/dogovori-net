@@ -910,7 +910,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="text-xs uppercase tracking-wider text-gold">Текущ план</div>
-            <h3 className="mt-1 font-serif text-2xl font-bold">{isPro ? "Pro" : "Free"}</h3>
+            <h3 className="mt-1 font-serif text-2xl font-bold">{isPro ? "Предприемач" : "Безплатен"}</h3>
             <p className="mt-2 text-sm text-muted-foreground">
               {isPro
                 ? `${proMonthlyUsed} / ${proMonthlyCap} операции този период.`
