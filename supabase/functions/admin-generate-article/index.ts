@@ -175,7 +175,8 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const article = await generateText(input, apiKey);
+    const activeSystem = await loadActivePrompt(admin, "admin-generate-article", SYSTEM);
+    const article = await generateText(input, apiKey, activeSystem);
     if (!article || !article.intro || !Array.isArray(article.sections) || article.sections.length < 3) {
       return new Response(JSON.stringify({ error: "ai_text_failed" }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
