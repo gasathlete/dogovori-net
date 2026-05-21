@@ -173,19 +173,7 @@ Deno.serve(async (req) => {
       content: lastUser.content,
     });
 
-    // Quota
-    const quotaResult = teamId
-      ? await admin.rpc("consume_team_quota", { _team_id: teamId })
-      : await admin.rpc("consume_quota", { _kind: "analysis" });
-    const quotaData: any = quotaResult.data;
-    if (!quotaData?.ok) {
-      return new Response(JSON.stringify({
-        error: quotaData?.reason === "team_limit_reached"
-          ? "Достигнат е месечният лимит на екипа."
-          : "Достигнат е месечният лимит за AI операции (100/месец).",
-        code: "quota_exceeded",
-      }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    // Чатът е безплатен — не консумира операция от квотата.
 
     // Compose system with runtime context
     const ctxLines = [
