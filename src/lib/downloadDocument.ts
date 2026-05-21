@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { GeneratedContract } from "@/lib/exporters";
 import type { CompanionTemplate } from "@/data/companionTemplates";
+import { ensureAIDisclaimerAccepted } from "@/lib/aiDisclaimerGate";
 
 export type DownloadKind = "contract" | "template";
 export type DownloadFormat = "pdf" | "docx";
@@ -28,6 +29,14 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
   if (!session) {
     return { ok: false, error: "auth_required", status: 401 };
   }
+
+  // Require AI disclaimer acceptance once per session before any download.
+  try {
+    await ensureAIDisclaimerAccepted();
+  } catch {
+    return { ok: false, error: "disclaimer_cancelled", status: 0 };
+  }
+
 
   const { data, error } = await supabase.functions.invoke("download-document", {
     body: {
