@@ -992,7 +992,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
 
           {/* Yearly */}
           <div className="order-3 flex flex-col rounded-xl border border-border/60 bg-gradient-card p-5 sm:p-6">
-            <div className="text-xs uppercase tracking-wider text-muted-foreground">Pro годишно</div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">Предприемач — годишно</div>
             <div className="mt-2 flex items-baseline gap-2">
               <span className="font-serif text-2xl font-bold sm:text-3xl">99 €</span>
               <span className="text-sm text-muted-foreground line-through">118.80 €</span>
