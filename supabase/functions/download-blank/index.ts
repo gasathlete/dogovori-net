@@ -254,7 +254,12 @@ Deno.serve(async (req: Request) => {
       .eq("document_name", documentName)
       .maybeSingle();
 
-    let storagePath = existing?.storage_path as string | undefined;
+    // Cache version prefix. Bumped to invalidate previously cached blanks that
+    // were generated without the brand watermark in header/footer.
+    const CACHE_VERSION = "v2";
+    const existingPath = existing?.storage_path as string | undefined;
+    let storagePath: string | undefined =
+      existingPath && existingPath.startsWith(`${CACHE_VERSION}/`) ? existingPath : undefined;
 
     // 3) If missing, generate via AI Gateway, upload, index.
     if (!storagePath) {
