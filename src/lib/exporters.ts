@@ -9,6 +9,7 @@ import {
   ImageRun,
 } from "docx";
 import { saveAs } from "file-saver";
+import { applyPdfWatermark, buildDocxWatermarkHeader, type WatermarkOpts as _WMOpts } from "./watermark";
 
 const dataUrlToUint8 = (dataUrl: string): Uint8Array => {
   const base64 = dataUrl.split(",")[1] || "";
