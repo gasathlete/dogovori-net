@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { GeneratedContract } from "@/lib/exporters";
 import type { CompanionTemplate } from "@/data/companionTemplates";
+import { ensureAIDisclaimerAccepted } from "@/lib/aiDisclaimerGate";
 
 export type DownloadKind = "contract" | "template";
 export type DownloadFormat = "pdf" | "docx";
