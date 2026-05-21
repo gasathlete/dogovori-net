@@ -2,6 +2,9 @@ import { jsPDF } from "jspdf";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from "docx";
 import { saveAs } from "file-saver";
 import type { CompanionTemplate } from "@/data/companionTemplates";
+import { applyPdfWatermark, buildDocxWatermarkHeader, type WatermarkOpts } from "./watermark";
+
+export type { WatermarkOpts };
 
 const fileBase = (title: string) =>
   title
@@ -10,38 +13,6 @@ const fileBase = (title: string) =>
     .replace(/\s+/g, "_")
     .slice(0, 60) || "Blanka";
 
-export interface WatermarkOpts {
-  watermark: true;
-  userTag?: string;
-}
-
-function applyWatermark(doc: jsPDF, userTag?: string) {
-  const pageCount = (doc as any).internal.getNumberOfPages?.() ?? doc.getNumberOfPages();
-  const pw = doc.internal.pageSize.getWidth();
-  const ph = doc.internal.pageSize.getHeight();
-  const stamp = new Date().toISOString().slice(0, 19).replace("T", " ");
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    const gState: any = (doc as any).GState ? new (doc as any).GState({ opacity: 0.18 }) : null;
-    if (gState) (doc as any).setGState(gState);
-    doc.setTextColor(180, 0, 0);
-    doc.setFontSize(72);
-    doc.text("ПРЕГЛЕД – не за подпис", pw / 2, ph / 2, { align: "center", angle: 35 });
-    if (gState) {
-      const reset: any = new (doc as any).GState({ opacity: 1 });
-      (doc as any).setGState(reset);
-    }
-    doc.setTextColor(140, 140, 140);
-    doc.setFontSize(7);
-    doc.text(
-      `Dogovori.net · преглед${userTag ? ` · ${userTag}` : ""} · ${stamp}`,
-      pw / 2,
-      ph - 16,
-      { align: "center" },
-    );
-    doc.setTextColor(0, 0, 0);
-  }
-}
 
 export async function exportTemplatePDF(t: CompanionTemplate, opts?: WatermarkOpts) {
   const fontUrl =
