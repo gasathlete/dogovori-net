@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { extractTextFromFile, sha256Hex, type ExtractSource } from "@/lib/extractContractText";
+import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 
 type Folder = { id: string; name: string; is_favorites: boolean };
 type Contact = { id: string; name: string };
