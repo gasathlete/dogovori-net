@@ -118,10 +118,14 @@ export async function exportTemplateDOCX(t: CompanionTemplate, opts?: WatermarkO
     }
   }
 
+  const header = opts?.watermark ? await buildDocxWatermarkHeader() : undefined;
   const doc = new Document({
     creator: "Dogovori.net",
     title: t.title,
-    sections: [{ children }],
+    sections: [{
+      headers: header ? { default: header } : undefined,
+      children,
+    }],
   });
   const blob = await Packer.toBlob(doc);
   saveAs(blob, `${fileBase(t.title)}.docx`);
