@@ -251,18 +251,35 @@ function ScrollableTabsList({ children }: { children: React.ReactNode }) {
 
 /* ============================ DASHBOARD ============================ */
 function Dashboard({ quota, isPro, docs, hasChatAccess, onOpenChat }: { quota: Quota | null; isPro: boolean; docs: SavedDoc[]; hasChatAccess: boolean; onOpenChat: () => void }) {
+  const navigate = useNavigate();
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <Card title="План" value={isPro ? "Pro" : "Free"} icon={<Crown className="h-5 w-5 text-gold" />}
-        sub={isPro ? `${(quota as any)?.pro_monthly_used ?? 0}/100 операции/мес` : "3+3 безплатни, после 1+1/мес"} />
+      <Card
+        title="План"
+        value={isPro ? "Предприемач" : "Безплатен"}
+        icon={<Crown className="h-5 w-5 text-gold" />}
+        sub={isPro ? `${(quota as any)?.pro_monthly_used ?? 0}/100 операции/мес` : "3+3 безплатни, после 1+1/мес"}
+        onClick={() => navigate("/account?tab=subscription")}
+      />
       <Card
         title="Закупени операции"
         value={`${(quota as any)?.bonus_contracts ?? 0}`}
         icon={<Crown className="h-5 w-5 text-gold" />}
         sub={((quota as any)?.bonus_contracts ?? 0) > 0 ? "Налични за ползване · не изтичат" : "Купете пакет от 5 операции"}
+        onClick={() => navigate("/account?tab=subscription&checkout=five_operations")}
       />
-      <Card title="Свалени договори" value={`${quota?.contracts_used ?? 0}${isPro ? "" : " / 3"}`} icon={<FileText className="h-5 w-5 text-gold" />} />
-      <Card title="Свалени бланки" value={`${quota?.templates_used ?? 0}${isPro ? "" : " / 3"}`} icon={<FileText className="h-5 w-5 text-gold" />} />
+      <Card
+        title="Свалени договори"
+        value={`${quota?.contracts_used ?? 0}${isPro ? "" : " / 3"}`}
+        icon={<FileText className="h-5 w-5 text-gold" />}
+        onClick={() => navigate("/downloads/contracts")}
+      />
+      <Card
+        title="Свалени бланки"
+        value={`${quota?.templates_used ?? 0}${isPro ? "" : " / 3"}`}
+        icon={<FileText className="h-5 w-5 text-gold" />}
+        onClick={() => navigate("/downloads/templates")}
+      />
 
       <div className="md:col-span-3 rounded-xl border border-border/60 bg-gradient-card p-6">
         <h3 className="mb-3 font-serif text-lg font-bold">Последни документи</h3>
@@ -304,9 +321,29 @@ function Dashboard({ quota, isPro, docs, hasChatAccess, onOpenChat }: { quota: Q
     </div>
   );
 }
-function Card({ title, value, sub, icon }: { title: string; value: string; sub?: string; icon: React.ReactNode }) {
+function Card({ title, value, sub, icon, onClick }: { title: string; value: string; sub?: string; icon: React.ReactNode; onClick?: () => void }) {
+  const interactive = !!onClick;
   return (
-    <div className="rounded-xl border border-border/60 bg-gradient-card p-5">
+    <div
+      onClick={onClick}
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick?.();
+              }
+            }
+          : undefined
+      }
+      className={`rounded-xl border border-border/60 bg-gradient-card p-5 ${
+        interactive
+          ? "cursor-pointer transition-all hover:border-gold/50 hover:shadow-soft focus:outline-none focus:ring-2 focus:ring-gold/40"
+          : ""
+      }`}
+    >
       <div className="flex items-center justify-between">
         <span className="text-xs uppercase tracking-wider text-muted-foreground">{title}</span>
         {icon}
