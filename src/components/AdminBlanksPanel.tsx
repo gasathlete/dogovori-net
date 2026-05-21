@@ -117,18 +117,26 @@ export function AdminBlanksPanel() {
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
         <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
           <DialogHeader><DialogTitle>{preview?.blank_payload?.title}</DialogTitle></DialogHeader>
-          {preview && (
-            <article className="space-y-4 text-sm">
-              <p className="whitespace-pre-line italic text-muted-foreground">{preview.blank_payload.preamble}</p>
-              {preview.blank_payload.clauses?.map((c, i) => (
-                <section key={i}>
-                  <h3 className="font-bold uppercase">{c.number} {c.title}</h3>
-                  <p className="mt-1 whitespace-pre-line">{c.body}</p>
-                </section>
-              ))}
-              <p className="italic">{preview.blank_payload.closing}</p>
-            </article>
-          )}
+          {preview && (() => {
+            const safe = anonymizePayload(preview.blank_payload);
+            return (
+              <>
+                <LegalDisclaimer variant="subtle" className="mb-3">
+                  Личните данни (имена, ЕГН, ЕИК, IBAN, имейли, телефони) са автоматично заместени със заместители — съгласно политиката за GDPR при модераторски преглед.
+                </LegalDisclaimer>
+                <article className="space-y-4 text-sm">
+                  <p className="whitespace-pre-line italic text-muted-foreground">{safe.preamble}</p>
+                  {safe.clauses?.map((c: any, i: number) => (
+                    <section key={i}>
+                      <h3 className="font-bold uppercase">{c.number} {c.title}</h3>
+                      <p className="mt-1 whitespace-pre-line">{c.body}</p>
+                    </section>
+                  ))}
+                  <p className="italic">{safe.closing}</p>
+                </article>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
