@@ -11,6 +11,8 @@ import {
   TextRun,
   HeadingLevel,
   AlignmentType,
+  Header,
+  Footer,
 } from "https://esm.sh/docx@8.5.0";
 import { buildCors } from "../_shared/cors.ts";
 
@@ -101,13 +103,54 @@ function buildDocx(blank: BlankPayload): Promise<Uint8Array> {
     );
   }
 
+  // Discrete brand watermark on every page (header + footer).
+  const watermarkHeader = new Header({
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({ text: "dogovori.net", bold: true, color: "C9A84C", size: 18 }),
+        ],
+      }),
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({
+            text: "Безплатна бланка · Архитект на Вашите сделки",
+            color: "A0A0A0",
+            size: 14,
+            italics: true,
+          }),
+        ],
+      }),
+    ],
+  });
+  const watermarkFooter = new Footer({
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({
+            text: "dogovori.net · безплатна версия",
+            color: "B0B0B0",
+            size: 14,
+          }),
+        ],
+      }),
+    ],
+  });
+
   const doc = new Document({
     creator: "Dogovori.net",
     title: blank.title,
     styles: {
       default: { document: { run: { font: "Times New Roman", size: 24 } } },
     },
-    sections: [{ children }],
+    sections: [{
+      headers: { default: watermarkHeader },
+      footers: { default: watermarkFooter },
+      children,
+    }],
   });
 
   return Packer.toBuffer(doc).then((b) => new Uint8Array(b));
@@ -211,7 +254,12 @@ Deno.serve(async (req: Request) => {
       .eq("document_name", documentName)
       .maybeSingle();
 
-    let storagePath = existing?.storage_path as string | undefined;
+    // Cache version prefix. Bumped to invalidate previously cached blanks that
+    // were generated without the brand watermark in header/footer.
+    const CACHE_VERSION = "v2";
+    const existingPath = existing?.storage_path as string | undefined;
+    let storagePath: string | undefined =
+      existingPath && existingPath.startsWith(`${CACHE_VERSION}/`) ? existingPath : undefined;
 
     // 3) If missing, generate via AI Gateway, upload, index.
     if (!storagePath) {
@@ -260,7 +308,7 @@ Deno.serve(async (req: Request) => {
       const blank = extractJson(raw);
 
       const docxBytes = await buildDocx(blank);
-      storagePath = `${safeKey(sectorId)}/${safeKey(documentName)}.docx`;
+      storagePath = `${CACHE_VERSION}/${safeKey(sectorId)}/${safeKey(documentName)}.docx`;
 
       const { error: upErr } = await admin.storage
         .from("document-blanks")
