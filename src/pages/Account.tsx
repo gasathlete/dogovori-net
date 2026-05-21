@@ -954,7 +954,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             <div className="absolute -top-3 left-4 rounded-full bg-gradient-gold px-3 py-0.5 text-xs font-bold text-navy">
               Най-популярен
             </div>
-            <div className="text-xs uppercase tracking-wider text-gold">Pro месечно</div>
+            <div className="text-xs uppercase tracking-wider text-gold">Предприемач — месечно</div>
             <div className="mt-2 flex items-baseline gap-2">
               <span className="font-serif text-2xl font-bold sm:text-3xl">9.90 €</span>
               <span className="text-sm text-muted-foreground line-through">29.90 €</span>
