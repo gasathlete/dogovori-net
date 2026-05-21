@@ -1126,6 +1126,20 @@ function SettingsTab({ profile, setProfile, userId }: {
               <p className="text-muted-foreground">
                 Това действие <strong className="text-destructive">не може</strong> да бъде отменено. Всички ваши данни ще бъдат изтрити.
               </p>
+              <LegalDisclaimer variant="danger">
+                <strong>Какво ще бъде изтрито:</strong>
+                <ul className="mt-1 list-inside list-disc space-y-0.5">
+                  <li>Профил и настройки (име, фирма, ДДС, аватар, подпис)</li>
+                  <li>Всички запазени договори, шаблони и папки</li>
+                  <li>Качени PDF/DOCX документи и AI анализи на риска</li>
+                  <li>Контрагенти, имейл предпочитания, история на покупки</li>
+                  <li>Споделени линкове за подписване (вкл. вече подписани)</li>
+                  <li>Достъп до екипи, в които сте — ще бъдете премахнат(а)</li>
+                </ul>
+                <p className="mt-2 text-[11px] opacity-80">
+                  Активни Pro абонаменти трябва да бъдат отказани предварително от раздел „Абонамент". Анонимизирани логове от плащания се запазват по закон (ЗСч, ЗДДС — 10 г.).
+                </p>
+              </LegalDisclaimer>
               <div>
                 <Label>Въведете <strong>ИЗТРИЙ</strong> за потвърждение</Label>
                 <Input value={delConfirm} onChange={(e) => setDelConfirm(e.target.value)} placeholder="ИЗТРИЙ" />
