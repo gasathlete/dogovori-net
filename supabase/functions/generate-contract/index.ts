@@ -100,12 +100,13 @@ Deno.serve(async (req: Request) => {
 
     // Cache: identical (sector, contractName, documentName, sorted answers) → reuse output for 30 days.
     // PROMPT_VERSION included so prompt/system changes invalidate stale cache entries.
-    const PROMPT_VERSION = "v1";
+    const PROMPT_VERSION = "v2-arb-xii";
     const cacheKeyInput = stableStringify({
       v: PROMPT_VERSION,
       sector, contractName, documentName: documentName || null,
       parties: { a: parties?.a ?? "", b: parties?.b ?? "" },
       answers: answers ?? {},
+      arbitration: arbitration ?? null,
     });
     const cacheHash = await sha256Hex(cacheKeyInput);
     const cacheCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
