@@ -207,7 +207,7 @@ function RulesTab({ functionName }: { functionName: string }) {
               <SelectItem value="should">SHOULD</SelectItem>
             </SelectContent>
           </Select>
-          <Input placeholder="Правило (напр. „винаги добавяй раздел Контакти")" value={text} onChange={(e) => setText(e.target.value)} />
+          <Input placeholder='Правило (напр. „винаги добавяй раздел Контакти")' value={text} onChange={(e) => setText(e.target.value)} />
           <Button onClick={add}><Plus className="mr-1 h-3 w-3" /> Добави</Button>
         </div>
       </div>
