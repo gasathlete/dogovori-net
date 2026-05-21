@@ -80,7 +80,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { sector, contractName, documentName, parties, answers, questions } = await req.json();
+    const { sector, contractName, documentName, parties, answers, questions, arbitration } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
