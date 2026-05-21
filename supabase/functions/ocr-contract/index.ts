@@ -64,6 +64,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    const activeOcrSystem = await loadActivePrompt(admin, "ocr-contract", OCR_SYSTEM);
     const ocrPage = async (dataUrl: string, pageIndex: number): Promise<string> => {
       const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
