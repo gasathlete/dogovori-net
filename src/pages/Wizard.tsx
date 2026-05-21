@@ -18,6 +18,7 @@ import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
 import { ArbitrationSelector, type ArbitrationValue } from "@/components/wizard/ArbitrationSelector";
+import { FollowupSuggestions } from "@/components/wizard/FollowupSuggestions";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { getCourtById } from "@/data/arbitrationCourts";
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
