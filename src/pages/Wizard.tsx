@@ -22,7 +22,7 @@ import { FollowupSuggestions } from "@/components/wizard/FollowupSuggestions";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { getCourtById } from "@/data/arbitrationCourts";
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
-import { AIDisclaimerModal } from "@/components/AIDisclaimerModal";
+import { ensureAIDisclaimerAccepted } from "@/lib/aiDisclaimerGate";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 
