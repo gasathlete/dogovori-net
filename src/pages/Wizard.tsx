@@ -206,11 +206,11 @@ export default function WizardPage() {
     try {
       localStorage.setItem(
         storageKey,
-        JSON.stringify({ answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId })
+        JSON.stringify({ answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId, arbitration })
       );
       sessionStorage.removeItem(storageKey);
     } catch {}
-  }, [storageKey, answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId]);
+  }, [storageKey, answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId, arbitration]);
 
   // Build a redirect URL that preserves the current wizard route + query.
   const wizardHref = window.location.pathname + window.location.search;
