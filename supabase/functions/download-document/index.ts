@@ -107,10 +107,16 @@ serve(async (req) => {
       });
     }
 
-    // Atomic quota consumption — prevents free-tier bypass via concurrent
-    // requests. The RPC locks the row, decides bonus vs. counter, increments,
-    // and returns the outcome in a single transaction.
-    const { data: consumed, error: consumeErr } = await admin.rpc("consume_quota", { _kind: kind });
+    // Atomic quota consumption — must run via a USER-scoped client so that
+    // auth.uid() resolves inside the SECURITY DEFINER RPC. Using the admin
+    // (service role) client would make auth.uid() NULL and the function would
+    // raise 'unauthenticated'.
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: consumed, error: consumeErr } = await userClient.rpc("consume_quota", { _kind: kind });
     if (consumeErr) {
       return new Response(JSON.stringify({ error: consumeErr.message }), {
         status: 500,
