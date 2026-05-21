@@ -69,6 +69,7 @@ const BlogSubmit = lazy(() => import("./pages/BlogSubmit.tsx"));
 const Team = lazy(() => import("./pages/Team.tsx"));
 const TeamAccept = lazy(() => import("./pages/TeamAccept.tsx"));
 const Contact = lazy(() => import("./pages/Contact.tsx"));
+const Downloads = lazy(() => import("./pages/Downloads.tsx"));
 
 // Defer Sentry boot until the browser is idle so it never competes with hydration / LCP.
 if (typeof window !== "undefined") {
@@ -164,6 +165,8 @@ const App = () => (
               <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
               <Route path="/team/accept" element={<TeamAccept />} />
               <Route path="/contact/:id" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
+              <Route path="/downloads/contracts" element={<ProtectedRoute><Downloads kind="contract" /></ProtectedRoute>} />
+              <Route path="/downloads/templates" element={<ProtectedRoute><Downloads kind="template" /></ProtectedRoute>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
