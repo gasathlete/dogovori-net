@@ -8,6 +8,19 @@ import { Pencil, Check, Lock } from "lucide-react";
 
 type Clause = { roman: string; title: string; body: string };
 
+/**
+ * Точка 10 от правния одит — в живия преглед не пишем „Физическо лице" / „Юридическо лице",
+ * а директно показваме идентификатора: ЕГН за физическо, ЕИК/Булстат за юридическо.
+ */
+function renderPartyIdentifier(type?: string): string {
+  if (!type) return "";
+  const t = type.toLowerCase();
+  if (t.includes("физическо")) return ", ЕГН [........]";
+  if (t.includes("ет") || t.includes("самоосигуряващо")) return ", ЕИК [........], представляван от [МОЛ]";
+  if (t.includes("юридическо")) return ", ЕИК/Булстат [........], представлявано от [МОЛ], ДДС № [........]";
+  return ` — ${type}`;
+}
+
 const CURRENCY = "€";
 
 function buildInitialClauses(sector: Sector, a: Record<string, string>): Clause[] {
