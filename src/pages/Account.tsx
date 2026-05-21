@@ -869,7 +869,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
     const errMsg = (data as any)?.error || error?.message;
     if (errMsg?.includes("No subscription")) {
       return toast.info("Няма активен Stripe абонамент", {
-        description: "Вашият Pro достъп е активиран ръчно от администратор и не се управлява през Stripe.",
+        description: "Вашият Предприемач достъп е активиран ръчно от администратор и не се управлява през платежния портал.",
       });
     }
     if (errMsg || !data?.url) return toast.error("Грешка", { description: errMsg || "Неуспешно отваряне на портала." });
