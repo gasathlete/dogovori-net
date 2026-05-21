@@ -28,6 +28,7 @@ import { SignedContractsTab } from "@/components/SignedContractsTab";
 import { ShieldAlert, ShieldCheck, AlertTriangle, PenTool, ChevronRight, KeyRound, Mail, Trash } from "lucide-react";
 import { isValidEGN, isValidEIK } from "@/lib/bgValidation";
 import { translateAuthError } from "@/lib/authErrors";
+import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
