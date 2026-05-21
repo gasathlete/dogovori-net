@@ -24,14 +24,15 @@ const SYSTEM_PROMPT = `Ти си български правен архитек�
   }
 }
 
-Задължителни клаузи (в този ред): I. Предмет, II. Цена и плащане, III. Срокове, IV. Права и задължения, V. Неустойки, VI. Прекратяване, VII. Форсмажор, VIII. Конфиденциалност (ако е приложимо), IX. Подсъдност (СГС / Арбитражен съд при БТПП — ако е избран), X. Частична недействителност, XI. Заключителни, **XII. Контакти за кореспонденция**.
+Задължителни клаузи (в този ред): I. Предмет, II. Цена и плащане, III. Срокове, IV. Права и задължения, V. Неустойки, VI. Прекратяване, VII. Форсмажор, VIII. Конфиденциалност (ако е приложимо), IX. Подсъдност (държавна или арбитражна — виж по-долу), X. Частична недействителност, XI. Заключителни, **XII. Контакти за кореспонденция**.
 
 Раздел XII „Контакти" е ЗАДЪЛЖИТЕЛЕН във всеки договор и съдържа за всяка страна: пълно име/наименование, ЕГН (за физическо лице) или ЕИК/Булстат + МОЛ (за юридическо лице), адрес за кореспонденция, имейл и телефон. Ако данните липсват — използвай плейсхолдъри [имейл], [адрес], [телефон].
 
 Идентификация в преамбюла: за физическо лице — „ЕГН [........]"; за юридическо лице — „ЕИК/Булстат [........], представлявано от [МОЛ]". Никога не изписвай само „— Физическо лице" или „— Юридическо лице" без идентификатор.
 
-При плащане в брой над 10 000 лв. добавяй забележка, че по чл. 3 ЗОПБ е задължително банков превод.
-Подсъдност: ако сумата по договора е под 25 000 лв. — препоръчвай Арбитражен съд при БТПП като по-бърза алтернатива на държавния съд.
+**Плащане в брой:** ако сумата по договора е над 5 000 € (или левова равностойност), ДОБАВИ изричен текст в раздел II че плащането задължително се извършва по банков път, защото по чл. 3 ЗОПБ плащания над този праг в брой са забранени. Включи и кратка алинея с реквизитите на банковата сметка ([IBAN], [BIC], [Банка]).
+
+**Арбитраж:** ако в данните е подаден arbitration={enabled:true, court:"..."} — формулирай раздел IX като арбитражна клауза с този съд. В противен случай използвай държавна подсъдност (СГС или по местожителство на ответника). Ако някоя от страните е физическо лице-потребител (B2C) — добави бележка че арбитражната клауза не обвързва потребителя по чл. 143 ЗЗП.
 
 Номерация: римска за раздели, "Чл. N." за членове, "(1),(2)" за алинеи. Парични суми в посочената от потребителя валута (по подразбиране евро €). Липсващи данни → плейсхолдъри в [квадратни скоби].`;
 
@@ -79,7 +80,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { sector, contractName, documentName, parties, answers, questions } = await req.json();
+    const { sector, contractName, documentName, parties, answers, questions, arbitration } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
@@ -99,12 +100,13 @@ Deno.serve(async (req: Request) => {
 
     // Cache: identical (sector, contractName, documentName, sorted answers) → reuse output for 30 days.
     // PROMPT_VERSION included so prompt/system changes invalidate stale cache entries.
-    const PROMPT_VERSION = "v1";
+    const PROMPT_VERSION = "v2-arb-xii";
     const cacheKeyInput = stableStringify({
       v: PROMPT_VERSION,
       sector, contractName, documentName: documentName || null,
       parties: { a: parties?.a ?? "", b: parties?.b ?? "" },
       answers: answers ?? {},
+      arbitration: arbitration ?? null,
     });
     const cacheHash = await sha256Hex(cacheKeyInput);
     const cacheCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -120,9 +122,13 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    const arbitrationLine = arbitration?.enabled
+      ? `\nАРБИТРАЖ: enabled=true, court="${arbitration.courtName || arbitration.courtId || ""}"${arbitration.courtLink ? `, link=${arbitration.courtLink}` : ""}`
+      : `\nАРБИТРАЖ: enabled=false (използвай държавна подсъдност)`;
+
     const userPrompt = `СЕКТОР: ${sector}
 ТИП ДОГОВОР: ${contractName}
-${docLine}СТРАНИ: ${parties.a} ↔ ${parties.b}
+${docLine}СТРАНИ: ${parties.a} ↔ ${parties.b}${arbitrationLine}
 
 ОТГОВОРИ:
 ${qaLines}

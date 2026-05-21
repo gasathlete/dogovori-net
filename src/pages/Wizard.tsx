@@ -17,6 +17,9 @@ import { toast } from "sonner";
 import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
+import { ArbitrationSelector, type ArbitrationValue } from "@/components/wizard/ArbitrationSelector";
+import { LegalDisclaimer } from "@/components/LegalDisclaimer";
+import { getCourtById } from "@/data/arbitrationCourts";
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
 import { AIDisclaimerModal } from "@/components/AIDisclaimerModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -152,6 +155,7 @@ export default function WizardPage() {
     }, 5000);
     try {
       const flatQs = flattenQuestions(visibleQuestions);
+      const arbitrationCourt = arbitration.enabled ? getCourtById(arbitration.courtId) : undefined;
       const { data, error } = await supabase.functions.invoke("generate-contract", {
         body: {
           sector: sector.title,
@@ -160,6 +164,12 @@ export default function WizardPage() {
           parties: sector.parties,
           answers,
           questions: flatQs.map((q) => ({ id: q.id, label: q.label })),
+          arbitration: arbitration.enabled ? {
+            enabled: true,
+            courtId: arbitration.courtId,
+            courtName: arbitrationCourt?.name ?? arbitration.customName,
+            courtLink: arbitrationCourt?.website ?? arbitration.customLink,
+          } : { enabled: false },
         },
       });
       if (error) throw error;
@@ -193,6 +203,9 @@ export default function WizardPage() {
   const [customTitle, setCustomTitle] = useState<string>(persisted?.customTitle ?? "");
   const [contactId, setContactId] = useState<string>(persisted?.contactId ?? "");
   const [contacts, setContacts] = useState<Array<{ id: string; name: string; type?: string }>>([]);
+  const [arbitration, setArbitration] = useState<ArbitrationValue>(
+    persisted?.arbitration ?? { enabled: false }
+  );
 
   // Persist wizard state on every relevant change so navigation to /auth or /account doesn't lose progress.
   useEffect(() => {
@@ -200,11 +213,11 @@ export default function WizardPage() {
     try {
       localStorage.setItem(
         storageKey,
-        JSON.stringify({ answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId })
+        JSON.stringify({ answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId, arbitration })
       );
       sessionStorage.removeItem(storageKey);
     } catch {}
-  }, [storageKey, answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId]);
+  }, [storageKey, answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId, arbitration]);
 
   // Build a redirect URL that preserves the current wizard route + query.
   const wizardHref = window.location.pathname + window.location.search;
@@ -742,6 +755,17 @@ export default function WizardPage() {
                   />
                 </div>
 
+                {/* Cash payment disclaimer — shown when any answer mentions cash. */}
+                {Object.values(answers).some((v) =>
+                  typeof v === "string" && /\bбро[йя]\b|\bкеш\b|\bcash\b/i.test(v)
+                ) && (
+                  <LegalDisclaimer variant="warning">
+                    <strong>Плащане в брой:</strong> По чл. 3 от Закона за ограничаване на плащанията в брой (ЗОПБ) плащания на стойност <strong>5 000 € (≈9 779 лв.) или повече</strong> задължително се извършват по банков път. Уверете се, че сумата по договора попада в позволения праг, или преминете към банков превод.
+                  </LegalDisclaimer>
+                )}
+
+                <ArbitrationSelector value={arbitration} onChange={setArbitration} />
+
                 <SignatureBlock
                   isPro={isPro}
                   defaultPartyA={answers.party_a_name}
@@ -749,6 +773,7 @@ export default function WizardPage() {
                   value={signature}
                   onChange={setSignature}
                 />
+
 
                 <div className="rounded-xl border border-gold/30 bg-gradient-card p-6 shadow-soft">
                   <h3 className="mb-1 font-serif text-lg font-bold">Финализиране</h3>
