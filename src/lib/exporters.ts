@@ -183,12 +183,6 @@ export async function exportDOCX(c: GeneratedContract, opts?: WatermarkOpts) {
       children: [new TextRun({ text: c.title.toUpperCase(), bold: true, size: 32 })],
     })
   );
-  children.push(
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [new TextRun({ text: "Създадено с изкуствен интелект", color: "8C8C8C", size: 16, italics: true })],
-    })
-  );
   children.push(new Paragraph({ text: "" }));
 
   for (const line of c.preamble.split("\n")) {
