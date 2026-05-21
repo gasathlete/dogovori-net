@@ -92,29 +92,102 @@ export default function AdminAITraining() {
 
 function PromptsTab({ functionName }: { functionName: string }) {
   const [rows, setRows] = useState<Prompt[]>([]);
-  const [draft, setDraft] = useState("");
+  const [sections, setSections] = useState<PromptSection[]>([]);
+  const [activeVersionId, setActiveVersionId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const loadSectionsFor = async (promptId: string) => {
+    const { data } = await supabase
+      .from("ai_prompt_sections")
+      .select("*")
+      .eq("prompt_id", promptId)
+      .order("order_idx", { ascending: true });
+    setSections(
+      (data ?? []).map((s: any) => ({
+        id: s.id,
+        section_key: s.section_key,
+        title: s.title,
+        content: s.content ?? "",
+        order_idx: s.order_idx,
+        enabled: s.enabled,
+      })),
+    );
+  };
 
   const load = async () => {
-    const { data } = await supabase.from("ai_prompts").select("*").eq("function_name", functionName).order("version", { ascending: false });
-    setRows((data ?? []) as Prompt[]);
-    const active = (data ?? []).find((r: any) => r.is_active);
-    setDraft(active?.content ?? "");
+    const { data } = await supabase
+      .from("ai_prompts")
+      .select("*")
+      .eq("function_name", functionName)
+      .order("version", { ascending: false });
+    const list = (data ?? []) as Prompt[];
+    setRows(list);
+    const active = list.find((r) => r.is_active) ?? list[0];
+    if (active) {
+      setActiveVersionId(active.id);
+      await loadSectionsFor(active.id);
+    } else {
+      setActiveVersionId(null);
+      setSections([]);
+    }
     setNotes("");
   };
-  useEffect(() => { load(); }, [functionName]);
+  useEffect(() => {
+    load();
+  }, [functionName]);
+
+  const loadVersion = async (id: string) => {
+    setActiveVersionId(id);
+    await loadSectionsFor(id);
+    toast.success("Заредени секции от тази версия");
+  };
 
   const saveNewVersion = async () => {
-    if (!draft.trim()) { toast.error("Промптът е празен"); return; }
+    const assembled = assembleSections(sections);
+    if (!assembled.trim()) {
+      toast.error("Промптът е празен");
+      return;
+    }
     setBusy(true);
     const nextVersion = (rows[0]?.version ?? 0) + 1;
     const { data: { user: u } } = await supabase.auth.getUser();
-    const { error } = await supabase.from("ai_prompts").insert({
-      function_name: functionName, version: nextVersion, content: draft, notes: notes || null, is_active: false, created_by: u?.id ?? null,
-    });
+    const { data: inserted, error } = await supabase
+      .from("ai_prompts")
+      .insert({
+        function_name: functionName,
+        version: nextVersion,
+        content: assembled,
+        notes: notes || null,
+        is_active: false,
+        created_by: u?.id ?? null,
+      })
+      .select("id")
+      .single();
+    if (error || !inserted) {
+      setBusy(false);
+      toast.error(error?.message ?? "Грешка");
+      return;
+    }
+    // Записваме и секциите за новата версия
+    const sectionRows = sections
+      .filter((s) => s.section_key.trim().length > 0)
+      .map((s, i) => ({
+        prompt_id: inserted.id,
+        section_key: s.section_key,
+        title: s.title,
+        content: s.content,
+        order_idx: i,
+        enabled: s.enabled,
+      }));
+    if (sectionRows.length > 0) {
+      const { error: sErr } = await supabase.from("ai_prompt_sections").insert(sectionRows);
+      if (sErr) {
+        toast.error("Версията е запазена, но секциите не: " + sErr.message);
+      }
+    }
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
     toast.success(`v${nextVersion} запазена`);
     load();
   };
@@ -124,46 +197,104 @@ function PromptsTab({ functionName }: { functionName: string }) {
     await supabase.from("ai_prompts").update({ is_active: false }).eq("function_name", functionName);
     const { error } = await supabase.from("ai_prompts").update({ is_active: true }).eq("id", id);
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Активирана");
     load();
   };
 
+  const totalChars = sections.filter((s) => s.enabled).reduce((sum, s) => sum + s.content.length + s.title.length + 3, 0);
+
   return (
     <div className="mt-4 space-y-4">
       <div className="rounded-lg border p-4">
-        <div className="mb-2 flex items-center justify-between">
-          <Label>Системен промпт (нова версия)</Label>
-          <span className="text-xs text-muted-foreground">{draft.length} символа</span>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <Label className="text-base font-semibold">Системен промпт — структуриран по секции</Label>
+            <p className="text-xs text-muted-foreground">
+              Всяка секция се редактира поотделно. Системата ги сглобява автоматично при запис.
+            </p>
+          </div>
+          <span className="text-xs text-muted-foreground">~{totalChars} симв.</span>
         </div>
-        <Textarea rows={14} value={draft} onChange={(e) => setDraft(e.target.value)} className="font-mono text-xs" placeholder="Въведете системния промпт..." />
-        <Input className="mt-2" placeholder="Бележки за тази версия (по избор)" value={notes} onChange={(e) => setNotes(e.target.value)} />
-        <Button onClick={saveNewVersion} disabled={busy} className="mt-2 bg-gradient-gold text-navy">
-          {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />} Запази нова версия
-        </Button>
-        <p className="mt-2 text-xs text-muted-foreground">Запазената версия не се активира автоматично — натиснете „Активирай" в списъка отдолу.</p>
+
+        <PromptSectionsEditor sections={sections} onChange={setSections} />
+
+        <Input
+          className="mt-3"
+          placeholder="Бележки за тази версия (по избор)"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+        />
+        <div className="mt-2 flex gap-2">
+          <Button variant="outline" onClick={() => setPreviewOpen(true)}>
+            <Eye className="mr-1 h-4 w-4" /> Преглед на пълния промпт
+          </Button>
+          <Button onClick={saveNewVersion} disabled={busy} className="bg-gradient-gold text-navy">
+            {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
+            Запази нова версия
+          </Button>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Запазената версия не се активира автоматично — натиснете „Активирай" в списъка отдолу.
+        </p>
       </div>
 
       <div className="rounded-lg border">
         <div className="border-b bg-muted/40 px-3 py-2 text-xs font-medium uppercase tracking-wider">Версии</div>
-        {rows.length === 0 && <div className="p-4 text-sm text-muted-foreground">Все още няма запазени промптове. Запазете първа версия отгоре.</div>}
+        {rows.length === 0 && (
+          <div className="p-4 text-sm text-muted-foreground">
+            Все още няма запазени промптове. Запазете първа версия отгоре.
+          </div>
+        )}
         {rows.map((r) => (
           <div key={r.id} className="flex items-start justify-between gap-3 border-b p-3 text-sm last:border-b-0">
             <div className="min-w-0 flex-1">
               <div className="mb-1 flex items-center gap-2">
-                <Badge variant={r.is_active ? "default" : "outline"}>v{r.version}{r.is_active && " · активна"}</Badge>
-                <span className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString("bg-BG")}</span>
+                <Badge variant={r.is_active ? "default" : "outline"}>
+                  v{r.version}
+                  {r.is_active && " · активна"}
+                </Badge>
+                {activeVersionId === r.id && <Badge variant="secondary">в редактора</Badge>}
+                <span className="text-xs text-muted-foreground">
+                  {new Date(r.created_at).toLocaleString("bg-BG")}
+                </span>
               </div>
               {r.notes && <p className="mb-1 text-xs italic text-muted-foreground">{r.notes}</p>}
-              <pre className="max-h-20 overflow-y-auto whitespace-pre-wrap text-[11px] text-muted-foreground">{r.content.slice(0, 300)}{r.content.length > 300 && "..."}</pre>
+              <pre className="max-h-20 overflow-y-auto whitespace-pre-wrap text-[11px] text-muted-foreground">
+                {r.content.slice(0, 300)}
+                {r.content.length > 300 && "..."}
+              </pre>
             </div>
             <div className="flex flex-col gap-1">
-              <Button size="sm" variant="outline" onClick={() => setDraft(r.content)}>Зареди</Button>
-              {!r.is_active && <Button size="sm" onClick={() => activate(r.id)} disabled={busy}>Активирай</Button>}
+              <Button size="sm" variant="outline" onClick={() => loadVersion(r.id)}>
+                Зареди
+              </Button>
+              {!r.is_active && (
+                <Button size="sm" onClick={() => activate(r.id)} disabled={busy}>
+                  Активирай
+                </Button>
+              )}
             </div>
           </div>
         ))}
       </div>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Сглобен промпт (точно както ще се изпрати към AI)</DialogTitle>
+          </DialogHeader>
+          <Textarea
+            readOnly
+            rows={28}
+            value={assembleSections(sections)}
+            className="font-mono text-xs"
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
