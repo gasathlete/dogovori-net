@@ -192,7 +192,8 @@ Deno.serve(async (req) => {
       `Потребителски статус: ${teamId ? "Team член" : "PRO"}.`,
       currentPath ? `Текуща страница: ${currentPath}.` : "",
     ].filter(Boolean).join(" ");
-    const systemFinal = `${SYSTEM_PROMPT}\n\n[КОНТЕКСТ] ${ctxLines}`;
+    const activeSystemPrompt = await loadActivePrompt(admin, "assistant-chat", SYSTEM_PROMPT);
+    const systemFinal = `${activeSystemPrompt}\n\n[КОНТЕКСТ] ${ctxLines}`;
 
     // Call Lovable AI Gateway with streaming
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
