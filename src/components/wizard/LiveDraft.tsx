@@ -564,12 +564,12 @@ export function LiveDraft({
         </p>
         <p className="mt-3 text-sm leading-relaxed">
           <strong>1. {partyA}</strong>
-          {answers.party_a_type ? ` — ${answers.party_a_type}` : ""}, наричан по-долу „
+          {renderPartyIdentifier(answers.party_a_type)}, наричан по-долу „
           <em>{sector.parties.a}</em>“, и
         </p>
         <p className="mt-2 text-sm leading-relaxed">
           <strong>2. {partyB}</strong>
-          {answers.party_b_type ? ` — ${answers.party_b_type}` : ""}, наричан по-долу „
+          {renderPartyIdentifier(answers.party_b_type)}, наричан по-долу „
           <em>{sector.parties.b}</em>“,
         </p>
         <p className="mt-3 text-sm leading-relaxed">
