@@ -169,7 +169,7 @@ export async function exportPDF(c: GeneratedContract, opts?: WatermarkOpts) {
   const yB = y - 14;
   doc.text(`Страна Б: ${sig?.name_b || "______________________"}`, M + colW + 20, yB);
 
-  if (opts?.watermark) applyWatermark(doc, opts.userTag);
+  if (opts?.watermark) await applyPdfWatermark(doc, { userTag: opts.userTag });
   doc.save(`${fileBase(c.title)}.pdf`);
 }
 
