@@ -8,10 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Save, Plus, Trash2, Brain } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Plus, Trash2, Brain, Eye } from "lucide-react";
+import { PromptSectionsEditor, assembleSections, type PromptSection } from "@/components/admin/PromptSectionsEditor";
 
 const AI_FUNCTIONS = [
   { id: "generate-contract", label: "Генериране на договор" },
