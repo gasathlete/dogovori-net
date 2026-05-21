@@ -19,7 +19,7 @@ import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { Seo } from "@/components/Seo";
 import { trackEvent } from "@/lib/analytics";
-import { AIDisclaimerModal } from "@/components/AIDisclaimerModal";
+
 
 interface AIResult {
   risk: { level: RiskLevel; score: number; summary: string; issues: RiskIssue[]; recommendations: string[] };
