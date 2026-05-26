@@ -105,7 +105,13 @@ pages.push({
   path: "/",
   title: "Договори онлайн на български — Dogovori.net",
   description: "Над 290 професионални договора и правни бланки на български с AI асистент. Електронен подпис, PDF и DOCX експорт. Безплатно за първия документ.",
-  bodyHtml: `<main style="font-family:Georgia,serif;max-width:800px;margin:2rem auto;padding:1rem"><h1>Dogovori.net — Договори онлайн на български</h1><p>Над 290 професионални договора и правни бланки на български с AI асистент. Готови шаблони по ЗЗД, ТЗ, КТ. Електронен подпис, PDF и DOCX експорт.</p><p><a href="/catalog">Виж каталога</a></p></main>`,
+  bodyHtml: `<main style="font-family:Georgia,serif;max-width:800px;margin:2rem auto;padding:1rem">
+      <h1>Dogovori.net — Договори онлайн на български</h1>
+      <p>Над 290 професионални договора и правни бланки на български с AI асистент. Готови шаблони по ЗЗД, ТЗ, КТ. Електронен подпис, PDF и DOCX експорт.</p>
+      <h2>Категории</h2>
+      <ul>${CATALOG.map((c) => `<li><a href="/kategoria/${c.id}">${escapeHtml(c.title)}</a> — ${c.documents.length} шаблона</li>`).join("")}</ul>
+      <p><a href="/catalog">Виж пълния каталог</a> · <a href="/karta">Карта на сайта</a> · <a href="/blog">Блог</a></p>
+    </main>`,
   jsonLd: [],
 });
 
@@ -115,8 +121,27 @@ pages.push({
   path: "/catalog",
   title: `Каталог: ${totalDocs}+ договора и бланки на български | Dogovori.net`,
   description: `Пълен каталог на ${totalDocs}+ професионални договори и правни бланки на български – трудови, наем, IT, NDA, GDPR. Готови за попълване.`,
-  bodyHtml: `<main style="font-family:Georgia,serif;max-width:800px;margin:2rem auto;padding:1rem"><h1>Каталог на ${totalDocs}+ договори на български</h1>${CATALOG.map((c) => `<section><h2>${escapeHtml(c.title)}</h2><ul>${c.documents.map((d) => `<li><a href="/shablon/${slugify(d.name)}">${escapeHtml(d.name)}</a> — ${escapeHtml(d.purpose)}</li>`).join("")}</ul></section>`).join("")}</main>`,
+  bodyHtml: `<main style="font-family:Georgia,serif;max-width:800px;margin:2rem auto;padding:1rem"><h1>Каталог на ${totalDocs}+ договори на български</h1>${CATALOG.map((c) => `<section><h2><a href="/kategoria/${c.id}">${escapeHtml(c.title)}</a></h2><ul>${c.documents.map((d) => `<li><a href="/shablon/${slugify(d.name)}">${escapeHtml(d.name)}</a> — ${escapeHtml(d.purpose)}</li>`).join("")}</ul></section>`).join("")}</main>`,
   jsonLd: [],
+});
+
+// HTML sitemap — single page that lists every URL. Massive help for crawl.
+pages.push({
+  path: "/karta",
+  title: `Карта на сайта — всички ${totalDocs}+ шаблона | Dogovori.net`,
+  description: `Пълна карта на сайта: ${totalDocs}+ шаблона на договори и бланки на български, групирани по категория. Бърз достъп до всеки документ.`,
+  bodyHtml: `<main style="font-family:Georgia,serif;max-width:900px;margin:2rem auto;padding:1rem">
+      <h1>Карта на сайта</h1>
+      <p>Всички ${totalDocs} шаблона на договори и бланки, групирани по категория.</p>
+      ${CATALOG.map((c) => `<section><h2><a href="/kategoria/${c.id}">${escapeHtml(c.title)}</a></h2><ul>${c.documents.map((d) => `<li><a href="/shablon/${slugify(d.name)}">${escapeHtml(d.name)}</a></li>`).join("")}</ul></section>`).join("")}
+    </main>`,
+  jsonLd: [{
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Карта на сайта Dogovori.net",
+    url: `${SITE}/karta`,
+    inLanguage: "bg-BG",
+  }],
 });
 
 // Category hub pages
@@ -137,13 +162,46 @@ for (const cat of CATALOG) {
     description: cat.intro,
     inLanguage: "bg-BG",
     url: `${SITE}/kategoria/${cat.id}`,
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: cat.documents.length,
+      itemListElement: cat.documents.slice(0, 30).map((d, idx) => ({
+        "@type": "ListItem",
+        position: idx + 1,
+        url: `${SITE}/shablon/${slugify(d.name)}`,
+        name: d.name,
+      })),
+    },
   };
+  // Related categories — siblings from same sector, excluding self.
+  const related = CATALOG.filter((c) => c.sectorId === cat.sectorId && c.id !== cat.id).slice(0, 6);
   pages.push({
     path: `/kategoria/${cat.id}`,
-    title: `${cat.title} — шаблони на договори | Dogovori.net`,
-    description: `${cat.intro} Над ${cat.documents.length} готови шаблона по българското право.`.slice(0, 160),
-    bodyHtml: `<main style="font-family:Georgia,serif;max-width:800px;margin:2rem auto;padding:1rem"><nav><a href="/">Начало</a> › <a href="/catalog">Каталог</a> › ${escapeHtml(cat.title)}</nav><h1>${escapeHtml(cat.title)}</h1><p>${escapeHtml(cat.intro)}</p><ul>${cat.documents.map((d) => `<li><a href="/shablon/${slugify(d.name)}">${escapeHtml(d.name)}</a> — ${escapeHtml(d.purpose)}</li>`).join("")}</ul></main>`,
-    jsonLd: [breadcrumbsLd, collectionLd],
+    title: `${cat.title} — ${cat.documents.length} шаблона на български | Dogovori.net`,
+    description: `${cat.intro} ${cat.documents.length} готови шаблона по българското право — ЗЗД, ТЗ, КТ. PDF и DOCX експорт.`.slice(0, 160),
+    bodyHtml: `<main style="font-family:Georgia,serif;max-width:900px;margin:2rem auto;padding:1rem;color:#0f1a30">
+      <nav><a href="/">Начало</a> › <a href="/catalog">Каталог</a> › ${escapeHtml(cat.title)}</nav>
+      <h1>${escapeHtml(cat.title)}</h1>
+      <p>${escapeHtml(cat.intro)}</p>
+      <p>В тази категория ще намерите ${cat.documents.length} готови шаблона, съобразени с действащото българско законодателство. Всеки документ е подготвен от юристи и включва задължителните защитни клаузи — частична недействителност, форсмажор и подсъдност.</p>
+      <h2>Шаблони в категорията</h2>
+      <ul>${cat.documents.map((d) => `<li><a href="/shablon/${slugify(d.name)}">${escapeHtml(d.name)}</a> — ${escapeHtml(d.purpose)}</li>`).join("")}</ul>
+      <h2>Често задавани въпроси</h2>
+      <section><h3>Безплатно ли е да изтегля документ?</h3><p>Да, първият документ е безплатен. След това действат месечни лимити или Pro абонамент за неограничено теглене.</p></section>
+      <section><h3>Документите подписват ли се с електронен подпис?</h3><p>Да. Поддържаме подписване в браузъра и експорт към PDF с одиторска следа, признат от ЗЕДЕУУ и eIDAS.</p></section>
+      <section><h3>Заместват ли консултация с адвокат?</h3><p>Не. Шаблоните са професионално подготвени образци, но за сделки с висока стойност препоръчваме окончателен преглед от лицензиран адвокат.</p></section>
+      ${related.length ? `<h2>Свързани категории</h2><ul>${related.map((r) => `<li><a href="/kategoria/${r.id}">${escapeHtml(r.title)}</a></li>`).join("")}</ul>` : ""}
+      <p><a href="/catalog">← Обратно към каталога</a> · <a href="/karta">Карта на сайта</a></p>
+    </main>`,
+    jsonLd: [breadcrumbsLd, collectionLd, {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: [
+        { "@type": "Question", name: "Безплатно ли е да изтегля документ?", acceptedAnswer: { "@type": "Answer", text: "Да, първият документ е безплатен. След това действат месечни лимити или Pro абонамент." } },
+        { "@type": "Question", name: "Документите подписват ли се с електронен подпис?", acceptedAnswer: { "@type": "Answer", text: "Да. Поддържаме подписване в браузъра и експорт към PDF с одиторска следа, признат от ЗЕДЕУУ и eIDAS." } },
+        { "@type": "Question", name: "Заместват ли консултация с адвокат?", acceptedAnswer: { "@type": "Answer", text: "Не. Шаблоните са професионално подготвени образци; за сделки с висока стойност препоръчваме преглед от лицензиран адвокат." } },
+      ],
+    }],
   });
 }
 

@@ -44,19 +44,25 @@ export function SeoFooter() {
           <div>
             <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gold">Категории</h3>
             <ul className="space-y-2 text-xs text-muted-foreground">
-              {CATALOG.slice(0, 10).map((cat) => (
+              {CATALOG.map((cat) => (
                 <li key={cat.id}>
                   <Link to={`/kategoria/${cat.id}`} className="transition-colors hover:text-gold">
                     {cat.title}
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link to="/karta" className="font-medium text-gold/90 transition-colors hover:text-gold">
+                  Карта на сайта →
+                </Link>
+              </li>
             </ul>
           </div>
 
           <div>
             <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gold">Информация</h3>
             <ul className="space-y-2 text-xs text-muted-foreground">
+              <li><Link to="/karta" className="hover:text-gold">Карта на сайта</Link></li>
               <li><Link to="/terms" className="hover:text-gold">Общи условия</Link></li>
               <li><Link to="/privacy" className="hover:text-gold">Поверителност</Link></li>
               <li><Link to="/cookies" className="hover:text-gold">Бисквитки</Link></li>

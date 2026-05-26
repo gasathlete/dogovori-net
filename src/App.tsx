@@ -70,6 +70,7 @@ const Team = lazy(() => import("./pages/Team.tsx"));
 const TeamAccept = lazy(() => import("./pages/TeamAccept.tsx"));
 const Contact = lazy(() => import("./pages/Contact.tsx"));
 const Downloads = lazy(() => import("./pages/Downloads.tsx"));
+const SiteMap = lazy(() => import("./pages/SiteMap.tsx"));
 
 // Defer Sentry boot until the browser is idle so it never competes with hydration / LCP.
 if (typeof window !== "undefined") {
@@ -116,6 +117,7 @@ const App = () => (
               <Route path="/wizard/:sectorId" element={<Wizard />} />
               <Route path="/build" element={<BuildContract />} />
               <Route path="/catalog" element={<Catalog />} />
+              <Route path="/karta" element={<SiteMap />} />
               <Route path="/kategoria/:slug" element={<Category />} />
               <Route path="/sektor/:id" element={<Sector />} />
               <Route path="/shablon/:slug" element={<Template />} />
