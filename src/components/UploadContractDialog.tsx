@@ -187,10 +187,12 @@ export function UploadContractDialog({
       });
       setAnalyzing(false);
       if (aErr) {
-        // Surface server error if any
+        if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(aErr)) {
+          onUploaded(); setOpen(false); navigate(`/uploaded/${newId}`);
+          return;
+        }
         const msg = (aErr as any)?.context?.responseText || aErr.message;
         toast.error("Грешка при анализа", { description: msg });
-        // Still navigate to the document so user can re-try
         onUploaded();
         setOpen(false);
         navigate(`/uploaded/${newId}`);

@@ -148,6 +148,7 @@ export default function UploadedContractPage() {
     });
     setAnalyzing(false);
     if (error || (data as any)?.error) {
+      if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(error)) return;
       const msg = (data as any)?.error ?? error?.message ?? "Грешка";
       toast.error(msg);
       return;
@@ -178,6 +179,7 @@ export default function UploadedContractPage() {
     });
     setCorrecting(false);
     if (error || (data as any)?.error) {
+      if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(error)) return;
       const msg = (data as any)?.error ?? error?.message ?? "Грешка";
       if (msg === "pro_required") {
         toast.error("Тази функция е достъпна само за Pro абонати");
