@@ -690,6 +690,45 @@ export type Database = {
         }
         Relationships: []
       }
+      illegal_content_attempts: {
+        Row: {
+          category: string
+          created_at: string
+          function_name: string
+          id: string
+          ip_hash: string | null
+          matched_term: string | null
+          payload_excerpt: string | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          function_name: string
+          id?: string
+          ip_hash?: string | null
+          matched_term?: string | null
+          payload_excerpt?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          function_name?: string
+          id?: string
+          ip_hash?: string | null
+          matched_term?: string | null
+          payload_excerpt?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       partners: {
         Row: {
           approved_at: string | null
