@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
+import { guardIllegalContent } from "../_shared/illegal-content.ts";
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш съществуващ договор (в JSON) и списък от ИЗБРАНИ препоръки/слаби места, които трябва да коригираш в текста.
 Запази всички останали клаузи, формат, номерация и стил. Промени САМО това, което е необходимо, за да адресираш избраните препоръки. Където е нужно — добави нови клаузи или алинеи в съответния раздел (или нов раздел "Допълнителни защитни клаузи").
@@ -73,6 +74,21 @@ Deno.serve(async (req: Request) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Illegal content guard
+    const guardText = [
+      JSON.stringify(contract).slice(0, 8000),
+      ...selectedIssues.map((i: any) => `${i.title} ${i.detail}`),
+      ...selectedRecommendations.map((r: string) => r),
+      ...Object.values(answers ?? {}).map((v) => String(v ?? "")),
+    ].join("\n");
+    const blocked = await guardIllegalContent({
+      admin, text: guardText, functionName: "apply-corrections",
+      userId,
+      userAgent: req.headers.get("user-agent"),
+      corsHeaders,
+    });
+    if (blocked) return blocked;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");

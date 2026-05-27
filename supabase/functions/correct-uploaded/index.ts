@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
+import { guardIllegalContent } from "../_shared/illegal-content.ts";
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш СУРОВ ТЕКСТ на договор и списък от установени правни проблеми и липсващи клаузи.
 
@@ -86,6 +87,20 @@ Deno.serve(async (req: Request) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
+
+    // Illegal content guard — checks uploaded contract text + selections
+    const guardText = [
+      (contract.extracted_text ?? "").slice(0, 12000),
+      ...(Array.isArray(selectedIssues) ? selectedIssues : []).map((i: any) => `${i.title} ${i.explanation ?? ""}`),
+      ...(Array.isArray(selectedMissing) ? selectedMissing : []).map((m: any) => `${m.name} ${m.why ?? ""}`),
+    ].join("\n");
+    const blocked = await guardIllegalContent({
+      admin, text: guardText, functionName: "correct-uploaded",
+      userId,
+      userAgent: req.headers.get("user-agent"),
+      corsHeaders,
+    });
+    if (blocked) return blocked;
 
     const issuesSource: any[] = Array.isArray(selectedIssues) && selectedIssues.length
       ? selectedIssues

@@ -5,6 +5,7 @@ import { buildCors } from "../_shared/cors.ts";
 import { normalizeText, sha256Hex } from "../_shared/normalize.ts";
 import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
+import { guardIllegalContent } from "../_shared/illegal-content.ts";
 
 // PROMPT_VERSION — bump to invalidate cached analyses produced by older prompts.
 const PROMPT_VERSION = "v4-balanced-scale";
@@ -179,6 +180,17 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Illegal content guard — block before AI call, log + alert admin.
+    const blocked = await guardIllegalContent({
+      admin,
+      text: `${contract.title}\n${text.slice(0, 12000)}`,
+      functionName: "analyze-contract",
+      userId,
+      userAgent: req.headers.get("user-agent"),
+      corsHeaders,
+    });
+    if (blocked) return blocked;
 
     // Cache key includes prompt version so v1 cached (potentially hallucinated) results are bypassed.
     const normalizedHash = await sha256Hex(PROMPT_VERSION + ":" + normalizeText(text));
