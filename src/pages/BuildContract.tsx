@@ -209,6 +209,7 @@ export default function BuildContractPage() {
       trackEvent("build_contract_generated", { category: categoryLabel });
       toast.success("Договорът е готов", { description: "Прегледайте резултата отдясно." });
     } catch (e: any) {
+      if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) return;
       const msg = String(e?.message || e);
       if (msg.includes("429")) toast.error("Достигнат е лимитът. Опитайте след малко.");
       else if (msg.includes("402")) toast.error("Изчерпан лимит на системата. Опитайте по-късно.");

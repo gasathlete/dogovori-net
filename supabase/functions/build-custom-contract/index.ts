@@ -6,6 +6,7 @@ import { buildCors, hashIp, clientIp } from "../_shared/cors.ts";
 import { sha256Hex, stableStringify } from "../_shared/normalize.ts";
 import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
+import { guardIllegalContent } from "../_shared/illegal-content.ts";
 
 const SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ). Използваш правилните понятия (Възложител/Изпълнител, Наемодател/Наемател, Продавач/Купувач, Страните, Настоящият Договор).
 
@@ -157,6 +158,20 @@ Deno.serve(async (req: Request) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
+    // Illegal content guard
+    const guardText = [
+      name, category,
+      ...(partiesA ?? []), ...(partiesB ?? []),
+      subject, term, prices, obligations, other,
+    ].join("\n");
+    const blocked = await guardIllegalContent({
+      admin, text: guardText, functionName: "build-custom-contract",
+      userId, ipHash: null,
+      userAgent: req.headers.get("user-agent"),
+      corsHeaders,
+    });
+    if (blocked) return blocked;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");

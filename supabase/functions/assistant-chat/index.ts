@@ -4,6 +4,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
+import { guardIllegalContent } from "../_shared/illegal-content.ts";
 
 const SYSTEM_PROMPT = `Ти си "Правен асистент Dogovori.net" — професионален 24/7 помощник за PRO и Team абонати на платформата dogovori.net.
 
@@ -108,6 +109,18 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Illegal content guard — only check the latest user message
+    const blockedChat = await guardIllegalContent({
+      admin,
+      text: safeMessages[safeMessages.length - 1].content,
+      functionName: "assistant-chat",
+      userId,
+      userEmail: u?.user?.email ?? null,
+      userAgent: req.headers.get("user-agent"),
+      corsHeaders,
+    });
+    if (blockedChat) return blockedChat;
 
     // PRO / Team gate
     const { data: quota } = await admin

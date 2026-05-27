@@ -182,6 +182,7 @@ export default function WizardPage() {
       setResult(data as AIResult);
       toast.success("Договорът е готов", { description: "Прегледайте Краен Договор отдясно." });
     } catch (e: any) {
+      if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) return;
       const msg = String(e?.message || e);
       if (msg.includes("429")) toast.error("Достигнат е лимитът. Опитайте след малко.");
       else if (msg.includes("402")) toast.error("Изчерпан лимит на системата. Опитайте по-късно.");
@@ -336,6 +337,7 @@ export default function WizardPage() {
       setSavedDocId(undefined); // forces re-save as new version
       toast.success("Корекциите са приложени", { description: "Прегледайте обновения договор отдясно." });
     } catch (e: any) {
+      if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) return;
       toast.error("Грешка при корекция", { description: String(e?.message ?? e) });
     } finally {
       setApplyingCorrections(false);
