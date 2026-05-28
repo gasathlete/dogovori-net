@@ -192,6 +192,8 @@ export default function BuildContractPage() {
   };
   const goSubscription = () => navigate(`/account?tab=subscription`);
 
+  const schema = useMemo(() => getBuildSchema(documentType), [documentType]);
+
   const handleGenerate = async () => {
     const docDef = getDocumentType(documentType);
     if (!name.trim()) { toast.error("Въведете заглавие на документа"); return; }
@@ -199,9 +201,16 @@ export default function BuildContractPage() {
     if (categoryId === "__other__" && !categoryOther.trim()) {
       toast.error("Въведете категория"); return;
     }
-    if (docDef.needsParties && (splitLines(partiesA).length === 0 || splitLines(partiesB).length === 0)) {
-      toast.error("Въведете поне една страна от всяка група");
+    const needsB = !!schema.partyBLabel;
+    if (splitLines(partiesA).length === 0 || (needsB && splitLines(partiesB).length === 0)) {
+      toast.error(needsB ? "Въведете поне една страна от всяка група" : `Въведете ${schema.partyALabel.toLowerCase()}`);
       return;
+    }
+    for (const f of schema.fields) {
+      if (f.required && !(fieldValues[f.key] ?? "").trim()) {
+        toast.error(`Полето „${f.label}" е задължително`);
+        return;
+      }
     }
     if (!user) {
       toast.info("Влезте, за да изградите документа", { description: "Прогресът ви е запазен." });
@@ -214,6 +223,11 @@ export default function BuildContractPage() {
     const interval = setInterval(() => setGenStepIdx((i) => (i + 1) % GEN_STEPS.length), 5000);
     try {
       trackEvent("build_contract_started", { category: categoryLabel, documentType });
+      const customFields = schema.fields.map((f) => ({
+        key: f.key, label: f.label, value: (fieldValues[f.key] ?? "").trim(),
+      }));
+      // Back-compat aliases for legacy server fields
+      const get = (k: string) => (fieldValues[k] ?? "").trim();
       const { data, error } = await supabase.functions.invoke("build-custom-contract", {
         body: {
           name: name.trim(),
@@ -228,11 +242,12 @@ export default function BuildContractPage() {
           } : undefined,
           partiesA: splitLines(partiesA),
           partiesB: splitLines(partiesB),
-          subject: subject.trim(),
-          term: term.trim(),
-          prices: prices.trim(),
-          obligations: obligations.trim(),
-          other: other.trim(),
+          customFields,
+          subject: get("subject"),
+          term: get("term"),
+          prices: get("prices"),
+          obligations: get("obligations"),
+          other: get("other"),
         },
       });
       if (error) {
