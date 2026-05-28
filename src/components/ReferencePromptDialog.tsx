@@ -52,7 +52,9 @@ export function ReferencePromptDialog({
         .insert({
           user_id: user.id,
           title: reference.displayLabel + (parentTitle ? ` (към ${parentTitle})` : ""),
+          source: "appendix_upload",
           storage_path: storagePath,
+          original_filename: file.name,
           mime_type: file.type || "application/octet-stream",
           size_bytes: file.size,
         })

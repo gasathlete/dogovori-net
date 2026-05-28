@@ -28,19 +28,16 @@ export interface CreateLinkParams {
  */
 export async function linkChildToParent(p: CreateLinkParams): Promise<{ id: string; version: number } | { error: string }> {
   // Find existing active link with same parent + ref
-  const parentFilter = p.parent.saved_id
-    ? { col: "parent_saved_id", val: p.parent.saved_id }
-    : { col: "parent_uploaded_id", val: p.parent.uploaded_id! };
-
-  const { data: existing } = await supabase
+  let q = supabase
     .from("document_links")
     .select("id, version")
-    .eq(parentFilter.col, parentFilter.val)
     .eq("ref_type", p.ref_type)
-    .is("superseded_by", null)
-    .filter("ref_number", p.ref_number === null ? "is" : "eq", p.ref_number === null ? null : p.ref_number)
-    .order("version", { ascending: false })
-    .limit(1);
+    .is("superseded_by", null);
+  if (p.parent.saved_id) q = q.eq("parent_saved_id", p.parent.saved_id);
+  else if (p.parent.uploaded_id) q = q.eq("parent_uploaded_id", p.parent.uploaded_id);
+  q = p.ref_number === null ? q.is("ref_number", null) : q.eq("ref_number", p.ref_number);
+
+  const { data: existing } = await q.order("version", { ascending: false }).limit(1);
 
   const nextVersion = ((existing && existing[0]?.version) ?? 0) + 1;
 
