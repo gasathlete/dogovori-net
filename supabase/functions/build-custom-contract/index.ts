@@ -151,6 +151,8 @@ Deno.serve(async (req: Request) => {
       name = "",
       category = "",
       categorySectorId = null,
+      documentType = "contract",
+      parentContext = undefined,
       partiesA = [],
       partiesB = [],
       subject = "",
@@ -166,6 +168,11 @@ Deno.serve(async (req: Request) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
+    const safeDocumentType = ALL_DOCUMENT_TYPE_IDS.includes(documentType as any)
+      ? documentType
+      : "contract";
+    const docSpec = getDocumentTypeSpec(safeDocumentType);
 
     // Illegal content guard
     const guardText = [
@@ -184,10 +191,11 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
-    // Cache key includes everything that affects output.
-    const PROMPT_VERSION = "v1";
+    const PROMPT_VERSION = "v2-doctypes";
     const cacheKeyInput = stableStringify({
       v: PROMPT_VERSION, kind: "custom",
+      documentType: safeDocumentType,
+      parentContext: parentContext ?? null,
       name, category,
       partiesA, partiesB,
       subject, term, prices, obligations, other,
@@ -201,33 +209,36 @@ Deno.serve(async (req: Request) => {
       .gte("created_at", cacheCutoff)
       .maybeSingle();
     if (cachedRow?.payload) {
-      // Skip blank-extraction on cache hit (likely already done).
       return new Response(JSON.stringify(cachedRow.payload), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const partiesAList = (partiesA.length ? partiesA : ["[Страна А]"]).map((p, i) => `  ${i + 1}. ${p}`).join("\n");
-    const partiesBList = (partiesB.length ? partiesB : ["[Страна Б]"]).map((p, i) => `  ${i + 1}. ${p}`).join("\n");
+    const partyALabel = docSpec.partyAName || "Страна А";
+    const partyBLabel = docSpec.partyBName || "Страна Б";
+    const partiesAList = (partiesA.length ? partiesA : [`[${partyALabel}]`]).map((p, i) => `  ${i + 1}. ${p}`).join("\n");
+    const partiesBList = docSpec.partyBName
+      ? (partiesB.length ? partiesB : [`[${partyBLabel}]`]).map((p, i) => `  ${i + 1}. ${p}`).join("\n")
+      : "(едностранен документ — без втора страна)";
 
-    const userPrompt = `КАТЕГОРИЯ: ${category}
-ИМЕ НА ДОГОВОРА: ${name}
+    const parentHeader = parentContext?.parentTitle
+      ? `КОНТЕКСТ: Това е дъщерен документ към основен договор „${parentContext.parentTitle}"${parentContext.refNumber ? `, под номер ${parentContext.refNumber}` : ""}.\n`
+      : "";
 
-ВЪЗЛОЖИТЕЛ/И:
+    const userPrompt = `${parentHeader}ВИД ДОКУМЕНТ: ${docSpec.label}
+КАТЕГОРИЯ: ${category}
+ЗАГЛАВИЕ: ${name}
+
+${partyALabel.toUpperCase()}/И:
 ${partiesAList}
 
-ИЗПЪЛНИТЕЛ/И:
-${partiesBList}
+${docSpec.partyBName ? `${partyBLabel.toUpperCase()}/И:\n${partiesBList}\n` : ""}
+${subject ? `ПРЕДМЕТ:\n${subject}\n` : "ПРЕДМЕТ: (не е посочен — измисли подходящ за вида документ)\n"}
+${term ? `СРОК:\n${term}\n` : ""}${prices ? `ЦЕНИ И ПЛАЩАНЕ:\n${prices}\n` : ""}${obligations ? `ЗАДЪЛЖЕНИЯ:\n${obligations}\n` : ""}${other ? `ДРУГИ КЛАУЗИ / СПЕЦИФИКИ:\n${other}\n` : ""}
+Задача: Risk Analysis (конкретни слаби места) + ПЪЛНИЯТ документ на български. Върни СТРОГО валиден JSON по схемата.`;
 
-${subject ? `ПРЕДМЕТ:\n${subject}\n` : "ПРЕДМЕТ: (не е посочен — измисли подходящ за категорията)\n"}
-${term ? `СРОК:\n${term}\n` : "СРОК: (не е посочен — приложи стандартен за категорията)\n"}
-${prices ? `ЦЕНИ И ПЛАЩАНЕ:\n${prices}\n` : "ЦЕНИ И ПЛАЩАНЕ: (не са посочени — приложи стандартен модел в евро)\n"}
-${obligations ? `ЗАДЪЛЖЕНИЯ:\n${obligations}\n` : "ЗАДЪЛЖЕНИЯ: (не са посочени — измисли пазарно-стандартни)\n"}
-${other ? `ДРУГИ КЛАУЗИ / СПЕЦИФИКИ:\n${other}\n` : "ДРУГИ КЛАУЗИ: (без специфики — приложи стандартни заключителни)\n"}
-
-Задача: Risk Analysis (конкретни слаби места за двете страни) + ПЪЛНИЯТ договор на български с всички задължителни клаузи. Върни СТРОГО валиден JSON по схемата.`;
-
-    const activeSystemPrompt = await loadActivePrompt(admin, "build-custom-contract", SYSTEM_PROMPT);
+    const composedSystem = `${BASE_SYSTEM_PROMPT}\n\n=== СПЕЦИФИКА ЗА ВИД „${docSpec.label.toUpperCase()}" ===\n${docSpec.systemAddendum}`;
+    const activeSystemPrompt = await loadActivePrompt(admin, "build-custom-contract", composedSystem);
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
