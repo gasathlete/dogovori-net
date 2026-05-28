@@ -1,82 +1,105 @@
-
-# Защита срещу незаконни документи
-
 ## Цел
-Да блокираме генерирането на договори/документи с незаконно съдържание (убийство, насилие, трафик, наркотици, измами, експлоатация на деца и т.н.), да покажем строго предупреждение на потребителя, и да изпратим известие на админ за всеки опит.
 
-## Какво се прави
+Изграждащият wizard в `/build` да адаптира полетата си спрямо избрания вид документ. Заглавие и Категория се запазват винаги. Страните остават, но с подходящи етикети (вече има в backend — ще се огледа и в UI). Всички останали полета (предмет/срок/цени/задължения/други) се заменят с per-type схема.
 
-### 1. Списък с забранени теми (нов файл `supabase/functions/_shared/illegal-content.ts`)
-- Български + английски ключови думи и фрази по категории:
-  - Насилие срещу личността (убийство, отвличане, побой, заплаха)
-  - Сексуални престъпления / експлоатация на деца
-  - Трафик на хора / органи
-  - Наркотици и забранени вещества
-  - Оръжия и експлозиви (незаконна търговия)
-  - Измама, пране на пари, корупция, подкуп
-  - Тероризъм
-- Export: `detectIllegalContent(text): { blocked: boolean, category?: string, matchedTerm?: string }`
-- Нормализация (lowercase, премахване на диакритика, кирилица/латиница транслитерация) за да хваща обходи като "у6ийство", "ubiystvo".
+## Решение
 
-### 2. Сървърна защита в edge функциите (където реално се ражда документ/анализ)
-Добавя се проверка **в началото** на всяка от следните функции, върху обединения текст от user input (sector, contractName, documentName, parties, всички answers, prompt, chat message):
+Едностраничен wizard, същият layout — но средната секция („Предмет / Срок / Цени / Задължения / Други") се рендира динамично от схема за избрания вид.
 
-- `supabase/functions/generate-contract/index.ts`
-- `supabase/functions/build-custom-contract/index.ts`
-- `supabase/functions/analyze-contract/index.ts` (върху извлечения текст на качения документ)
-- `supabase/functions/apply-corrections/index.ts`
-- `supabase/functions/correct-uploaded/index.ts`
-- `supabase/functions/assistant-chat/index.ts` (върху user message)
+### 1. Нов файл: `src/lib/documentFieldSchemas.ts`
 
-При detected блок:
-1. **НЕ** се вика AI gateway, **НЕ** се консумира quota.
-2. Записва се ред в нова таблица `illegal_content_attempts` (виж по-долу).
-3. Връща се `403 { error: "blocked_illegal_content", category, message }` със строго предупреждение на български:
-   > „Това искане е блокирано. Платформата не генерира документи с незаконно съдържание (…). Опитът е регистриран. При повторни опити акаунтът може да бъде ограничен. Ако смятате, че това е грешка — свържете се с екипа."
+Една схема на вид документ:
 
-### 3. Нова таблица `illegal_content_attempts` (миграция)
-Полета: `id`, `user_id` (nullable), `ip_hash`, `function_name`, `category`, `matched_term`, `payload_excerpt` (първите ~500 символа, redacted), `user_agent`, `created_at`.
-- RLS: само `service_role` insert; staff (admin/moderator) могат SELECT през `is_staff(auth.uid())`.
-- GRANT за authenticated → SELECT само през политика; service_role full.
-- Index по `user_id`, `created_at desc`.
+```ts
+type FieldKind = "input" | "textarea";
+interface BuildField {
+  key: string;           // напр. "amount_or_item"
+  label: string;         // „Сума или вещ"
+  placeholder?: string;
+  help?: string;         // под етикета
+  hint?: string;         // дясно над полето (напр. „празно → AI предлага")
+  kind: FieldKind;
+  rows?: number;         // за textarea
+  required?: boolean;
+  half?: boolean;        // ако е true → 2 колони (sm:grid-cols-2)
+}
+interface DocumentBuildSchema {
+  partyALabel: string;        // напр. „Възложител" / „Декларатор"
+  partyBLabel?: string;       // празно/липсва → едностранен
+  partyAPlaceholder?: string;
+  partyBPlaceholder?: string;
+  fields: BuildField[];       // в реда, в който се показват
+}
+```
 
-### 4. Admin известие
-- В същата edge функция след insert: пращаме app email през `send-transactional-email` към админ имейла с темплейт `illegal-content-alert` (нов transactional template).
-- Темплейт показва: категория, matched term, function, user (email ако има, иначе ip_hash), excerpt, timestamp, линк към admin панела.
-- Idempotency key: `illegal-${attempt_id}`.
-- Recipient: константа (питам по-долу кой имейл).
-- Не блокира отговора към клиента ако имейлът фейлне.
+Конкретни схеми (примери — пълните се изготвят при имплементация):
 
-### 5. Admin UI (`src/pages/Admin.tsx`)
-- Нов tab/секция „Блокирани опити" — таблица с последните 100 записа от `illegal_content_attempts`, филтър по категория и потребител.
+```text
+contract / agreement   → subject, term+prices (half), obligations, other
+appendix               → parent_ref, subject, specs, term+prices (half)
+annex                  → parent_ref, changed_clauses, effective_date, reason
+protocol               → object, location_date (half), findings, defects, acceptance
+receipt                → amount_or_item, basis, place+date (half)
+power_of_attorney      → scope, term, substitution_right, notarial_required
+declaration            → declared_text, legal_basis, criminal_liability_note
+complaint              → addressee, against, relating, facts, legal_grounds, request, attachments
+claim                  → court, claim_value, legal_basis, circumstances, evidence, petitum, attachments, state_fee
+notary_invitation      → basis, demand, deadline, consequences
+offer                  → subject, specs, price_vat, validity, payment_terms
+invoice                → supplier_details, recipient_details, items, vat_rate, payment_method
+smr                    → object, work_types, technology, term, value, quality_warranty
+kss                    → positions (голям textarea с таблично описание), totals_note
+```
 
-### 6. Клиентско предупреждение
-- В `BuildContract.tsx` / `Wizard.tsx` / `AssistantChat.tsx` / `UploadContractDialog.tsx`: при `error.code === "blocked_illegal_content"` показваме модал/toast с пълния текст на предупреждението (не общо "грешка").
-- Лек pre-check в `assistant-chat` и в wizard стъпката с име на договор/въпроси за да дадем мигновена обратна връзка преди заявката (същата функция компилирана и за фронт-енд? — ще дублираме мини whitelist на фронта, или просто оставяме сървърна проверка и UI само хубаво показва грешката). **Препоръка:** само сървърна проверка + красиво UI за грешката, за да няма две места за поддръжка.
+### 2. Рефакторинг на `src/pages/BuildContract.tsx`
+
+- Заменяме отделните `useState` за `subject/term/prices/obligations/other` с един `Record<string,string>` (`fieldValues`).
+- LocalStorage payload: добавяме `fieldValues` (и пазим обратна съвместимост — ако се срещне стар запис със subject/term/etc., се мапва към съответните ключове).
+- Премахваме hardcoded „Възложител/Изпълнител" текстовете и ги взимаме от `schema.partyALabel/partyBLabel`. `needsParties` остава, но базиран на наличието на `partyBLabel`.
+- Когато потребителят смени `documentType`, fieldValues се запазват по ключ (не се триват) — общи ключове (напр. `subject`) автоматично се пренасят, специфичните ключове за стария вид остават в storage, но не се визуализират.
+- Рендериране: вместо текущия фиксиран блок „Предмет → Срок/Цени → Задължения → Други" итерираме `schema.fields` и групираме съседните `half:true` в `sm:grid-cols-2`.
+- Validation: само `required: true` полетата от схемата + Заглавие + Категория + Страни (при двустранен).
+
+### 3. Payload към edge function
+
+В `supabase.functions.invoke("build-custom-contract")` изпращаме:
+
+```ts
+body: {
+  // ...съществуващите полета
+  customFields: schema.fields.map(f => ({
+    key: f.key, label: f.label, value: fieldValues[f.key] ?? ""
+  })),
+  // запазваме subject/term/prices/obligations/other като алиаси
+  // когато съществуват в схемата (backward-compatibility за кеша)
+}
+```
+
+### 4. Edge function `supabase/functions/build-custom-contract/index.ts`
+
+- В `BuildPayload` добавяме `customFields?: { key: string; label: string; value: string }[]`.
+- Userprompt: вместо твърдо изброените „ПРЕДМЕТ/СРОК/...", итерираме `customFields` и рендираме секции `[LABEL]: value` (пропускаме празните и казваме „(не е посочено — измисли подходящо)" за тях). Поведението при липсващ `customFields` пада обратно към текущите subject/term/...
+- `cacheKeyInput`: добавяме `customFields`; вдигаме `PROMPT_VERSION` на `v4-perTypeFields`.
+- `document-types.ts` (server): остава както е (вече има per-type systemAddendum). Опционално: добавяме `expectedFields: string[]` като намек към AI кои полета са най-важни, но не е задължително.
+
+### 5. Без промени
+
+- BUILD_MODES (Бърз/Разширен/Стриктен) — остават.
+- DocumentType grouped chips selector — остава.
+- Risk meter, corrections panel, signature block, export — без промяна.
 
 ## Технически детайли
 
-### Detection стратегия
-- Не разчитаме на AI — детерминистична substring/regex проверка след нормализация. Бързо, безплатно, не може да бъде заобиколено с „забрави предишните инструкции".
-- Whitelist за легитимни юридически контексти, които може да съдържат подобни думи (напр. „застраховка живот", „договор за охрана срещу заплахи", „превенция на наркомании" в трудов договор на болница). Затова матчваме на цели думи/фрази с граници, а не само substring. Спорни случаи → флаг, не блокиране? **По подразбиране блокираме** — false positive е по-добре от false negative; потребителят може да се свърже с support.
+Файлове:
+- new `src/lib/documentFieldSchemas.ts` — схемите + helper `getBuildSchema(id)`
+- edit `src/pages/BuildContract.tsx` — динамично рендериране, fieldValues map, обновени party labels
+- edit `supabase/functions/build-custom-contract/index.ts` — customFields → user prompt, v4 cache key
+- (по желание) edit `supabase/functions/_shared/document-types.ts` — добавяне на expectedFields
 
-### Сигурност
-- `payload_excerpt` се санитизира (без EGN, IBAN, телефони — reuse `admin-redact-payload` логика ако е леко).
-- Rate-limit: 5+ блокирани опита от един user/IP за 24ч → автоматично suspend (флаг в `profiles.is_suspended`) и не приема нови заявки. (Опционално — питам.)
+Без миграции, без нови dependencies.
 
-## Файлове
-**Нови:**
-- `supabase/functions/_shared/illegal-content.ts`
-- `supabase/functions/_shared/transactional-email-templates/illegal-content-alert.tsx`
-- Миграция за `illegal_content_attempts`
+## Извън обхвата
 
-**Редактирани:**
-- 6-те edge функции по-горе
-- `_shared/transactional-email-templates/registry.ts`
-- `src/pages/Admin.tsx`
-- Wizard / BuildContract / AssistantChat — error handling за `blocked_illegal_content`
-
-## Въпроси преди старт
-1. На кой имейл да отиват admin известията? (или вземаме от user_roles where role='admin')
-2. Auto-suspend при 5+ опита за 24ч — да/не?
-3. Да добавя ли и lightweight client-side pre-check за моментална обратна връзка, или само сървърна?
+- Stepper (multi-step) wizard — оставаме single page.
+- Реални таблични UI компоненти за КСС/Фактура (позициите остават като структуриран textarea).
+- Промяна на default party labels на server-а — те вече са правилни; UI ще се изравни.
