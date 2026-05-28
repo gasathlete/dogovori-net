@@ -276,13 +276,13 @@ ${subject ? `ПРЕДМЕТ:\n${subject}\n` : "ПРЕДМЕТ: (не е посо
 ${term ? `СРОК:\n${term}\n` : ""}${prices ? `ЦЕНИ И ПЛАЩАНЕ:\n${prices}\n` : ""}${obligations ? `ЗАДЪЛЖЕНИЯ:\n${obligations}\n` : ""}${other ? `ДРУГИ КЛАУЗИ / СПЕЦИФИКИ:\n${other}\n` : ""}
 Задача: Risk Analysis (конкретни слаби места) + ПЪЛНИЯТ документ на български. Върни СТРОГО валиден JSON по схемата.`;
 
-    const composedSystem = `${BASE_SYSTEM_PROMPT}\n\n=== СПЕЦИФИКА ЗА ВИД „${docSpec.label.toUpperCase()}" ===\n${docSpec.systemAddendum}`;
+    const composedSystem = `${BASE_SYSTEM_PROMPT}\n\n=== СПЕЦИФИКА ЗА ВИД „${docSpec.label.toUpperCase()}" ===\n${docSpec.systemAddendum}\n\n=== ${modeSpec.label} ===\n${modeSpec.addendum}`;
     const activeSystemPrompt = await loadActivePrompt(admin, "build-custom-contract", composedSystem);
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: modeSpec.model,
         messages: [
           { role: "system", content: activeSystemPrompt },
           { role: "user", content: userPrompt },
