@@ -39,6 +39,15 @@ export default function BuildContractPage() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const presetCategory = searchParams.get("category") ?? "";
+  const presetDocumentType = (searchParams.get("documentType") ?? "") as DocumentTypeId | "";
+  const parentSavedIdParam = searchParams.get("parentSavedId");
+  const parentUploadedIdParam = searchParams.get("parentUploadedId");
+  const parentTitleParam = searchParams.get("parentTitle");
+  const refNumberParam = searchParams.get("refNumber");
+  const refTypeParam = searchParams.get("refType");
+  const prefillPartiesA = searchParams.get("partiesA");
+  const prefillPartiesB = searchParams.get("partiesB");
+  const prefillSubject = searchParams.get("subject");
 
   // Restore persisted state
   const persisted = useMemo(() => {
@@ -48,16 +57,26 @@ export default function BuildContractPage() {
     } catch { return null; }
   }, []);
 
-  const [name, setName] = useState<string>(persisted?.name ?? "");
+  const [documentType, setDocumentType] = useState<DocumentTypeId>(
+    (presetDocumentType as DocumentTypeId) ||
+    (persisted?.documentType as DocumentTypeId) ||
+    "contract",
+  );
+
+  const [name, setName] = useState<string>(
+    presetDocumentType && refNumberParam && parentTitleParam
+      ? `${getDocumentType(presetDocumentType).label} № ${refNumberParam} към „${parentTitleParam}"`
+      : (persisted?.name ?? "")
+  );
   const [categoryId, setCategoryId] = useState<string>(
     presetCategory && SECTORS.some((s) => s.id === presetCategory)
       ? presetCategory
       : (persisted?.categoryId ?? ""),
   );
   const [categoryOther, setCategoryOther] = useState<string>(persisted?.categoryOther ?? "");
-  const [partiesA, setPartiesA] = useState<string>(persisted?.partiesA ?? "");
-  const [partiesB, setPartiesB] = useState<string>(persisted?.partiesB ?? "");
-  const [subject, setSubject] = useState<string>(persisted?.subject ?? "");
+  const [partiesA, setPartiesA] = useState<string>(prefillPartiesA ?? persisted?.partiesA ?? "");
+  const [partiesB, setPartiesB] = useState<string>(prefillPartiesB ?? persisted?.partiesB ?? "");
+  const [subject, setSubject] = useState<string>(prefillSubject ?? persisted?.subject ?? "");
   const [term, setTerm] = useState<string>(persisted?.term ?? "");
   const [prices, setPrices] = useState<string>(persisted?.prices ?? "");
   const [obligations, setObligations] = useState<string>(persisted?.obligations ?? "");
@@ -73,23 +92,25 @@ export default function BuildContractPage() {
   const [savedDocId, setSavedDocId] = useState<string | undefined>(persisted?.savedDocId);
   const [saving, setSaving] = useState(false);
   const [isPro, setIsPro] = useState(false);
+  const [appendixRefreshTick, setAppendixRefreshTick] = useState(0);
 
   // Persist on every change
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        documentType,
         name, categoryId, categoryOther, partiesA, partiesB,
         subject, term, prices, obligations, other,
         result, signature, savedDocId,
       }));
     } catch {}
-  }, [name, categoryId, categoryOther, partiesA, partiesB, subject, term, prices, obligations, other, result, signature, savedDocId]);
+  }, [documentType, name, categoryId, categoryOther, partiesA, partiesB, subject, term, prices, obligations, other, result, signature, savedDocId]);
 
   useEffect(() => {
     trackEvent("build_contract_open");
   }, []);
 
-  // Apply preset category from URL (?category=:id) when navigating in from a sector page.
+  // Apply preset category from URL when navigating in from a sector page.
   useEffect(() => {
     if (presetCategory && SECTORS.some((s) => s.id === presetCategory) && presetCategory !== categoryId) {
       setCategoryId(presetCategory);
