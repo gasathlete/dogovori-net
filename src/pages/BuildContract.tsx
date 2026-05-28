@@ -679,33 +679,33 @@ export default function BuildContractPage() {
                     </div>
                   </Field>
 
-                  {getDocumentType(documentType).needsParties ? (
+                  {schema.partyBLabel ? (
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <Field label="Възложител/и" help="По един на ред" required>
+                      <Field label={schema.partyALabel} help={schema.partyAHelp ?? "По един на ред"} required>
                         <Textarea
                           value={partiesA}
                           onChange={(e) => setPartiesA(e.target.value)}
-                          placeholder={'„Алфа Софт" ЕООД, ЕИК...\nИван Иванов'}
+                          placeholder={schema.partyAPlaceholder ?? '„Алфа Софт" ЕООД, ЕИК...\nИван Иванов'}
                           rows={3}
                           className="bg-input/60 text-sm"
                         />
                       </Field>
-                      <Field label="Изпълнител/и" help="По един на ред" required>
+                      <Field label={schema.partyBLabel} help={schema.partyBHelp ?? "По един на ред"} required>
                         <Textarea
                           value={partiesB}
                           onChange={(e) => setPartiesB(e.target.value)}
-                          placeholder={'„Бета Дизайн" ООД, ЕИК...'}
+                          placeholder={schema.partyBPlaceholder ?? '„Бета Дизайн" ООД, ЕИК...'}
                           rows={3}
                           className="bg-input/60 text-sm"
                         />
                       </Field>
                     </div>
                   ) : (
-                    <Field label="Деклариращ / съставител" help="Имена, адрес, ЕГН (по избор)" required>
+                    <Field label={schema.partyALabel} help={schema.partyAHelp ?? "Имена, адрес, ЕГН (по избор)"} required>
                       <Textarea
                         value={partiesA}
                         onChange={(e) => setPartiesA(e.target.value)}
-                        placeholder={'Иван Петров Иванов, ЕГН ..., адрес ...'}
+                        placeholder={schema.partyAPlaceholder ?? 'Иван Петров Иванов, ЕГН ..., адрес ...'}
                         rows={3}
                         className="bg-input/60 text-sm"
                       />
@@ -715,54 +715,45 @@ export default function BuildContractPage() {
                     </Field>
                   )}
 
-                  <Field label="Предмет" hint="празно → AI предлага">
-                    <Textarea
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      placeholder="Какво се възлага / какво се изпълнява…"
-                      rows={2}
-                      className="bg-input/60 text-sm"
-                    />
-                  </Field>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Срок" hint="празно → AI предлага">
-                      <Input
-                        value={term}
-                        onChange={(e) => setTerm(e.target.value)}
-                        placeholder="напр. 6 месеца от подписване"
-                        className="bg-input/60"
-                      />
-                    </Field>
-                    <Field label="Цени и плащане" hint="празно → AI предлага">
-                      <Input
-                        value={prices}
-                        onChange={(e) => setPrices(e.target.value)}
-                        placeholder="напр. 12 000 € на 3 транша"
-                        className="bg-input/60"
-                      />
-                    </Field>
-                  </div>
-
-                  <Field label="Задължения" hint="празно → AI предлага">
-                    <Textarea
-                      value={obligations}
-                      onChange={(e) => setObligations(e.target.value)}
-                      placeholder="Конкретни задължения на страните…"
-                      rows={2}
-                      className="bg-input/60 text-sm"
-                    />
-                  </Field>
-
-                  <Field label="Други" hint="специфики, гаранции, NDA, IP…">
-                    <Textarea
-                      value={other}
-                      onChange={(e) => setOther(e.target.value)}
-                      placeholder="Всичко уникално, което трябва да се отрази…"
-                      rows={2}
-                      className="bg-input/60 text-sm"
-                    />
-                  </Field>
+                  {/* Dynamic per-type fields */}
+                  {(() => {
+                    const out: JSX.Element[] = [];
+                    const renderOne = (f: BuildField) => {
+                      const v = fieldValues[f.key] ?? "";
+                      const common = {
+                        value: v,
+                        onChange: (e: any) => setField(f.key, e.target.value),
+                        placeholder: f.placeholder,
+                      };
+                      return (
+                        <Field key={f.key} label={f.label} help={f.help} hint={f.hint} required={f.required}>
+                          {f.kind === "textarea" ? (
+                            <Textarea {...common} rows={f.rows ?? 2} className="bg-input/60 text-sm" />
+                          ) : (
+                            <Input {...common} className="bg-input/60" />
+                          )}
+                        </Field>
+                      );
+                    };
+                    let i = 0;
+                    while (i < schema.fields.length) {
+                      const f = schema.fields[i];
+                      const next = schema.fields[i + 1];
+                      if (f.half && next?.half) {
+                        out.push(
+                          <div key={`row-${i}`} className="grid gap-4 sm:grid-cols-2">
+                            {renderOne(f)}
+                            {renderOne(next)}
+                          </div>
+                        );
+                        i += 2;
+                      } else {
+                        out.push(renderOne(f));
+                        i += 1;
+                      }
+                    }
+                    return out;
+                  })()}
 
                   <Button
                     onClick={handleGenerate}
