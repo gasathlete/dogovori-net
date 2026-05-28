@@ -707,18 +707,34 @@ export default function BuildContractPage() {
               {!result && <span className="text-xs text-muted-foreground">Попълнете формата отляво</span>}
             </div>
             {result ? (
-              <LiveDraft
-                sector={syntheticSector}
-                answers={syntheticAnswers}
-                generated={result.contract}
-                signature={signature}
-                isPro={isPro}
-                onContractChange={(next) => {
-                  if (!result) return;
-                  setResult({ ...result, contract: { ...result.contract, ...next } });
-                  setSavedDocId(undefined);
-                }}
-              />
+              <div className="space-y-4">
+                {savedDocId && (
+                  <DetectedReferencesBanner
+                    key={appendixRefreshTick}
+                    text={collectContractText(result.contract)}
+                    parentSavedId={savedDocId}
+                    parentTitle={name || result.contract.title}
+                    parentContext={{
+                      partiesA: splitLines(partiesA),
+                      partiesB: splitLines(partiesB),
+                      subject: subject.trim(),
+                    }}
+                    onChildLinked={() => setAppendixRefreshTick((t) => t + 1)}
+                  />
+                )}
+                <LiveDraft
+                  sector={syntheticSector}
+                  answers={syntheticAnswers}
+                  generated={result.contract}
+                  signature={signature}
+                  isPro={isPro}
+                  onContractChange={(next) => {
+                    if (!result) return;
+                    setResult({ ...result, contract: { ...result.contract, ...next } });
+                    setSavedDocId(undefined);
+                  }}
+                />
+              </div>
             ) : (
               <div className="rounded-md border border-dashed border-foreground/20 bg-card/40 p-8 text-center">
                 <Bird className="mx-auto mb-3 h-8 w-8 text-gold/60" />
