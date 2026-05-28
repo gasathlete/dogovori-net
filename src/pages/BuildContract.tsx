@@ -701,6 +701,15 @@ export default function BuildContractPage() {
             {result && (
               <div className="space-y-5 animate-fade-in">
                 <RiskMeter level={result.risk.level} score={result.risk.score} summary={result.risk.summary} />
+                <CorrectionsPanel
+                  isPro={isPro}
+                  issues={result.risk.issues || []}
+                  recommendations={result.risk.recommendations || []}
+                  loading={applyingCorrections}
+                  applied={appliedNotes}
+                  onApply={handleApplyCorrections}
+                  onUpgrade={() => navigate("/account?tab=subscription")}
+                />
                 <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft">
                   <RiskReport
                     level={result.risk.level}
