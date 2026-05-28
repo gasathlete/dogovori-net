@@ -36,6 +36,8 @@ const BASE_SYSTEM_PROMPT = `Ти си български правен архит
 
 type BuildMode = "fast" | "working" | "strict";
 
+interface CustomField { key: string; label: string; value: string }
+
 interface BuildPayload {
   name: string;
   category: string;
@@ -49,6 +51,7 @@ interface BuildPayload {
   };
   partiesA: string[];
   partiesB: string[];
+  customFields?: CustomField[];  // NEW — per-type wizard fields
   subject?: string;
   term?: string;
   prices?: string;
@@ -189,6 +192,7 @@ Deno.serve(async (req: Request) => {
       parentContext = undefined,
       partiesA = [],
       partiesB = [],
+      customFields = [],
       subject = "",
       term = "",
       prices = "",
@@ -212,11 +216,17 @@ Deno.serve(async (req: Request) => {
       : "contract";
     const docSpec = getDocumentTypeSpec(safeDocumentType);
 
+    const safeCustomFields: CustomField[] = Array.isArray(customFields)
+      ? customFields.filter((f) => f && typeof f.key === "string" && typeof f.label === "string")
+        .map((f) => ({ key: String(f.key), label: String(f.label), value: String(f.value ?? "") }))
+      : [];
+
     // Illegal content guard
     const guardText = [
       name, category,
       ...(partiesA ?? []), ...(partiesB ?? []),
       subject, term, prices, obligations, other,
+      ...safeCustomFields.map((f) => f.value),
     ].join("\n");
     const blocked = await guardIllegalContent({
       admin, text: guardText, functionName: "build-custom-contract",
@@ -229,7 +239,7 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
-    const PROMPT_VERSION = "v3-buildmode";
+    const PROMPT_VERSION = "v4-perTypeFields";
     const cacheKeyInput = stableStringify({
       v: PROMPT_VERSION, kind: "custom",
       documentType: safeDocumentType,
@@ -237,6 +247,7 @@ Deno.serve(async (req: Request) => {
       parentContext: parentContext ?? null,
       name, category,
       partiesA, partiesB,
+      customFields: safeCustomFields,
       subject, term, prices, obligations, other,
     });
     const cacheHash = await sha256Hex(cacheKeyInput);
@@ -264,6 +275,25 @@ Deno.serve(async (req: Request) => {
       ? `КОНТЕКСТ: Това е дъщерен документ към основен договор „${parentContext.parentTitle}"${parentContext.refNumber ? `, под номер ${parentContext.refNumber}` : ""}.\n`
       : "";
 
+    // Prefer per-type customFields when provided; fall back to legacy flat fields.
+    let fieldsSection: string;
+    if (safeCustomFields.length > 0) {
+      fieldsSection = safeCustomFields.map((f) => {
+        const label = f.label.toUpperCase();
+        const val = (f.value ?? "").trim();
+        return val
+          ? `${label}:\n${val}\n`
+          : `${label}: (не е посочено — измисли подходящо за вида документ)\n`;
+      }).join("");
+    } else {
+      fieldsSection =
+        (subject ? `ПРЕДМЕТ:\n${subject}\n` : "ПРЕДМЕТ: (не е посочен — измисли подходящ за вида документ)\n") +
+        (term ? `СРОК:\n${term}\n` : "") +
+        (prices ? `ЦЕНИ И ПЛАЩАНЕ:\n${prices}\n` : "") +
+        (obligations ? `ЗАДЪЛЖЕНИЯ:\n${obligations}\n` : "") +
+        (other ? `ДРУГИ КЛАУЗИ / СПЕЦИФИКИ:\n${other}\n` : "");
+    }
+
     const userPrompt = `${parentHeader}ВИД ДОКУМЕНТ: ${docSpec.label}
 КАТЕГОРИЯ: ${category}
 ЗАГЛАВИЕ: ${name}
@@ -272,8 +302,7 @@ ${partyALabel.toUpperCase()}/И:
 ${partiesAList}
 
 ${docSpec.partyBName ? `${partyBLabel.toUpperCase()}/И:\n${partiesBList}\n` : ""}
-${subject ? `ПРЕДМЕТ:\n${subject}\n` : "ПРЕДМЕТ: (не е посочен — измисли подходящ за вида документ)\n"}
-${term ? `СРОК:\n${term}\n` : ""}${prices ? `ЦЕНИ И ПЛАЩАНЕ:\n${prices}\n` : ""}${obligations ? `ЗАДЪЛЖЕНИЯ:\n${obligations}\n` : ""}${other ? `ДРУГИ КЛАУЗИ / СПЕЦИФИКИ:\n${other}\n` : ""}
+${fieldsSection}
 Задача: Risk Analysis (конкретни слаби места) + ПЪЛНИЯТ документ на български. Върни СТРОГО валиден JSON по схемата.`;
 
     const composedSystem = `${BASE_SYSTEM_PROMPT}\n\n=== СПЕЦИФИКА ЗА ВИД „${docSpec.label.toUpperCase()}" ===\n${docSpec.systemAddendum}\n\n=== ${modeSpec.label} ===\n${modeSpec.addendum}`;

@@ -22,6 +22,7 @@ import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard
 import { DetectedReferencesBanner } from "@/components/DetectedReferencesBanner";
 import { SECTORS, type Sector } from "@/data/sectors";
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, collectContractText, type DocumentTypeId } from "@/lib/documentReferences";
+import { getBuildSchema, getAllFieldKeys, type BuildField } from "@/lib/documentFieldSchemas";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -87,11 +88,20 @@ export default function BuildContractPage() {
   const [categoryOther, setCategoryOther] = useState<string>(persisted?.categoryOther ?? "");
   const [partiesA, setPartiesA] = useState<string>(prefillPartiesA ?? persisted?.partiesA ?? "");
   const [partiesB, setPartiesB] = useState<string>(prefillPartiesB ?? persisted?.partiesB ?? "");
-  const [subject, setSubject] = useState<string>(prefillSubject ?? persisted?.subject ?? "");
-  const [term, setTerm] = useState<string>(persisted?.term ?? "");
-  const [prices, setPrices] = useState<string>(persisted?.prices ?? "");
-  const [obligations, setObligations] = useState<string>(persisted?.obligations ?? "");
-  const [other, setOther] = useState<string>(persisted?.other ?? "");
+  // Dynamic per-document-type field values (key -> value)
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>(() => {
+    const fromPersisted: Record<string, string> = (persisted?.fieldValues && typeof persisted.fieldValues === "object")
+      ? { ...persisted.fieldValues }
+      : {};
+    // Back-compat: migrate old flat keys from persisted state
+    for (const k of ["subject", "term", "prices", "obligations", "other"] as const) {
+      if (persisted?.[k] && !fromPersisted[k]) fromPersisted[k] = persisted[k];
+    }
+    if (prefillSubject) fromPersisted.subject = prefillSubject;
+    return fromPersisted;
+  });
+  const setField = (key: string, value: string) =>
+    setFieldValues((prev) => ({ ...prev, [key]: value }));
 
   const [generating, setGenerating] = useState(false);
   const [genStepIdx, setGenStepIdx] = useState(0);
@@ -113,11 +123,11 @@ export default function BuildContractPage() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         documentType, buildMode,
         name, categoryId, categoryOther, partiesA, partiesB,
-        subject, term, prices, obligations, other,
+        fieldValues,
         result, signature, savedDocId,
       }));
     } catch {}
-  }, [documentType, buildMode, name, categoryId, categoryOther, partiesA, partiesB, subject, term, prices, obligations, other, result, signature, savedDocId]);
+  }, [documentType, buildMode, name, categoryId, categoryOther, partiesA, partiesB, fieldValues, result, signature, savedDocId]);
 
   useEffect(() => {
     trackEvent("build_contract_open");
@@ -182,6 +192,8 @@ export default function BuildContractPage() {
   };
   const goSubscription = () => navigate(`/account?tab=subscription`);
 
+  const schema = useMemo(() => getBuildSchema(documentType), [documentType]);
+
   const handleGenerate = async () => {
     const docDef = getDocumentType(documentType);
     if (!name.trim()) { toast.error("Въведете заглавие на документа"); return; }
@@ -189,9 +201,16 @@ export default function BuildContractPage() {
     if (categoryId === "__other__" && !categoryOther.trim()) {
       toast.error("Въведете категория"); return;
     }
-    if (docDef.needsParties && (splitLines(partiesA).length === 0 || splitLines(partiesB).length === 0)) {
-      toast.error("Въведете поне една страна от всяка група");
+    const needsB = !!schema.partyBLabel;
+    if (splitLines(partiesA).length === 0 || (needsB && splitLines(partiesB).length === 0)) {
+      toast.error(needsB ? "Въведете поне една страна от всяка група" : `Въведете ${schema.partyALabel.toLowerCase()}`);
       return;
+    }
+    for (const f of schema.fields) {
+      if (f.required && !(fieldValues[f.key] ?? "").trim()) {
+        toast.error(`Полето „${f.label}" е задължително`);
+        return;
+      }
     }
     if (!user) {
       toast.info("Влезте, за да изградите документа", { description: "Прогресът ви е запазен." });
@@ -204,6 +223,11 @@ export default function BuildContractPage() {
     const interval = setInterval(() => setGenStepIdx((i) => (i + 1) % GEN_STEPS.length), 5000);
     try {
       trackEvent("build_contract_started", { category: categoryLabel, documentType });
+      const customFields = schema.fields.map((f) => ({
+        key: f.key, label: f.label, value: (fieldValues[f.key] ?? "").trim(),
+      }));
+      // Back-compat aliases for legacy server fields
+      const get = (k: string) => (fieldValues[k] ?? "").trim();
       const { data, error } = await supabase.functions.invoke("build-custom-contract", {
         body: {
           name: name.trim(),
@@ -218,11 +242,12 @@ export default function BuildContractPage() {
           } : undefined,
           partiesA: splitLines(partiesA),
           partiesB: splitLines(partiesB),
-          subject: subject.trim(),
-          term: term.trim(),
-          prices: prices.trim(),
-          obligations: obligations.trim(),
-          other: other.trim(),
+          customFields,
+          subject: get("subject"),
+          term: get("term"),
+          prices: get("prices"),
+          obligations: get("obligations"),
+          other: get("other"),
         },
       });
       if (error) {
@@ -654,33 +679,33 @@ export default function BuildContractPage() {
                     </div>
                   </Field>
 
-                  {getDocumentType(documentType).needsParties ? (
+                  {schema.partyBLabel ? (
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <Field label="Възложител/и" help="По един на ред" required>
+                      <Field label={schema.partyALabel} help={schema.partyAHelp ?? "По един на ред"} required>
                         <Textarea
                           value={partiesA}
                           onChange={(e) => setPartiesA(e.target.value)}
-                          placeholder={'„Алфа Софт" ЕООД, ЕИК...\nИван Иванов'}
+                          placeholder={schema.partyAPlaceholder ?? '„Алфа Софт" ЕООД, ЕИК...\nИван Иванов'}
                           rows={3}
                           className="bg-input/60 text-sm"
                         />
                       </Field>
-                      <Field label="Изпълнител/и" help="По един на ред" required>
+                      <Field label={schema.partyBLabel} help={schema.partyBHelp ?? "По един на ред"} required>
                         <Textarea
                           value={partiesB}
                           onChange={(e) => setPartiesB(e.target.value)}
-                          placeholder={'„Бета Дизайн" ООД, ЕИК...'}
+                          placeholder={schema.partyBPlaceholder ?? '„Бета Дизайн" ООД, ЕИК...'}
                           rows={3}
                           className="bg-input/60 text-sm"
                         />
                       </Field>
                     </div>
                   ) : (
-                    <Field label="Деклариращ / съставител" help="Имена, адрес, ЕГН (по избор)" required>
+                    <Field label={schema.partyALabel} help={schema.partyAHelp ?? "Имена, адрес, ЕГН (по избор)"} required>
                       <Textarea
                         value={partiesA}
                         onChange={(e) => setPartiesA(e.target.value)}
-                        placeholder={'Иван Петров Иванов, ЕГН ..., адрес ...'}
+                        placeholder={schema.partyAPlaceholder ?? 'Иван Петров Иванов, ЕГН ..., адрес ...'}
                         rows={3}
                         className="bg-input/60 text-sm"
                       />
@@ -690,54 +715,45 @@ export default function BuildContractPage() {
                     </Field>
                   )}
 
-                  <Field label="Предмет" hint="празно → AI предлага">
-                    <Textarea
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      placeholder="Какво се възлага / какво се изпълнява…"
-                      rows={2}
-                      className="bg-input/60 text-sm"
-                    />
-                  </Field>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Срок" hint="празно → AI предлага">
-                      <Input
-                        value={term}
-                        onChange={(e) => setTerm(e.target.value)}
-                        placeholder="напр. 6 месеца от подписване"
-                        className="bg-input/60"
-                      />
-                    </Field>
-                    <Field label="Цени и плащане" hint="празно → AI предлага">
-                      <Input
-                        value={prices}
-                        onChange={(e) => setPrices(e.target.value)}
-                        placeholder="напр. 12 000 € на 3 транша"
-                        className="bg-input/60"
-                      />
-                    </Field>
-                  </div>
-
-                  <Field label="Задължения" hint="празно → AI предлага">
-                    <Textarea
-                      value={obligations}
-                      onChange={(e) => setObligations(e.target.value)}
-                      placeholder="Конкретни задължения на страните…"
-                      rows={2}
-                      className="bg-input/60 text-sm"
-                    />
-                  </Field>
-
-                  <Field label="Други" hint="специфики, гаранции, NDA, IP…">
-                    <Textarea
-                      value={other}
-                      onChange={(e) => setOther(e.target.value)}
-                      placeholder="Всичко уникално, което трябва да се отрази…"
-                      rows={2}
-                      className="bg-input/60 text-sm"
-                    />
-                  </Field>
+                  {/* Dynamic per-type fields */}
+                  {(() => {
+                    const out: JSX.Element[] = [];
+                    const renderOne = (f: BuildField) => {
+                      const v = fieldValues[f.key] ?? "";
+                      const common = {
+                        value: v,
+                        onChange: (e: any) => setField(f.key, e.target.value),
+                        placeholder: f.placeholder,
+                      };
+                      return (
+                        <Field key={f.key} label={f.label} help={f.help} hint={f.hint} required={f.required}>
+                          {f.kind === "textarea" ? (
+                            <Textarea {...common} rows={f.rows ?? 2} className="bg-input/60 text-sm" />
+                          ) : (
+                            <Input {...common} className="bg-input/60" />
+                          )}
+                        </Field>
+                      );
+                    };
+                    let i = 0;
+                    while (i < schema.fields.length) {
+                      const f = schema.fields[i];
+                      const next = schema.fields[i + 1];
+                      if (f.half && next?.half) {
+                        out.push(
+                          <div key={`row-${i}`} className="grid gap-4 sm:grid-cols-2">
+                            {renderOne(f)}
+                            {renderOne(next)}
+                          </div>
+                        );
+                        i += 2;
+                      } else {
+                        out.push(renderOne(f));
+                        i += 1;
+                      }
+                    }
+                    return out;
+                  })()}
 
                   <Button
                     onClick={handleGenerate}
@@ -839,7 +855,7 @@ export default function BuildContractPage() {
                       setResult(null);
                       setName(""); setCategoryId(""); setCategoryOther("");
                       setPartiesA(""); setPartiesB("");
-                      setSubject(""); setTerm(""); setPrices(""); setObligations(""); setOther("");
+                      setFieldValues({});
                       setSavedDocId(undefined);
                       setSignature({ name_a: "", name_b: "", city: "", date: "" });
                     }}
@@ -871,7 +887,7 @@ export default function BuildContractPage() {
                     parentContext={{
                       partiesA: splitLines(partiesA),
                       partiesB: splitLines(partiesB),
-                      subject: subject.trim(),
+                      subject: (fieldValues.subject ?? "").trim(),
                     }}
                     onChildLinked={() => setAppendixRefreshTick((t) => t + 1)}
                   />
