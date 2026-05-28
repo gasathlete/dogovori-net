@@ -11,6 +11,7 @@ import { LiveDraft } from "@/components/wizard/LiveDraft";
 import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
 import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
+import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
 import { DetectedReferencesBanner } from "@/components/DetectedReferencesBanner";
 import { SECTORS, type Sector } from "@/data/sectors";
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, collectContractText, type DocumentTypeId } from "@/lib/documentReferences";
