@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Bird, Loader2, FileDown, FileText, Save, Wand2 } from "lucide-react";
+import { ArrowLeft, Bird, Loader2, FileDown, FileText, Save, Wand2, Sparkles, ShieldCheck, FileSignature, Lightbulb } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -401,7 +401,14 @@ export default function BuildContractPage() {
               <span className="text-muted-foreground">/</span>
               <span className="font-medium text-foreground">Изготви документ</span>
             </div>
-            <div className="hidden text-muted-foreground sm:inline">≤ 2 мин · AI-подпомогнат</div>
+            <div className="hidden items-center gap-4 text-muted-foreground sm:flex">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_hsl(142_70%_45%/0.8)]" />
+                AI готовност
+              </span>
+              <span className="opacity-50">·</span>
+              <span>≤ 2 мин · AI-подпомогнат</span>
+            </div>
           </div>
         </div>
       </div>
@@ -411,10 +418,14 @@ export default function BuildContractPage() {
           {/* LEFT — form */}
           <section className="space-y-5">
             {!result && (
-              <div className="rounded-xl border border-gold/30 bg-gradient-card p-5 shadow-soft">
-                <div className="mb-4 flex items-center gap-2">
-                  <Bird className="h-4 w-4 text-gold" />
-                  <h1 className="font-serif text-xl font-bold text-foreground">Изготви документ</h1>
+              <div className="rounded-2xl border border-gold/25 bg-gradient-card p-6 shadow-soft md:p-7">
+                <div className="mb-3 flex items-center gap-3">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold/10 ring-1 ring-gold/30">
+                    <Sparkles className="h-4 w-4 text-gold" />
+                  </span>
+                  <h1 className="font-serif text-3xl font-bold text-foreground md:text-4xl">
+                    Изготви <span className="gold-gradient-text">документ</span>
+                  </h1>
                 </div>
                 {parentTitleParam && (
                   <div className="mb-4 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-foreground">
@@ -430,19 +441,34 @@ export default function BuildContractPage() {
                     </Button>
                   </div>
                 )}
-                <p className="mb-5 text-xs leading-relaxed text-muted-foreground">
-                  Попълнете каквото знаете. <span className="text-gold">Празните полета</span> се попълват от AI с пазарно-стандартни клаузи. Готов договор до 2 минути.
+                <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+                  Попълнете каквото знаете. <span className="text-gold">Празните полета</span> се попълват от AI с пазарно-стандартни клаузи. Готов документ до 2 минути.
                 </p>
 
-                <div className="space-y-4">
-                  <Field label="Вид документ" required>
-                    <div className="space-y-3">
+                <div className="space-y-5">
+                  {/* Document type — grouped chips in a tinted panel */}
+                  <div className="rounded-xl border border-border/60 bg-navy-light/40 p-4 space-y-4">
+                    <div className="flex items-baseline justify-between">
+                      <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        Вид документ <span className="text-gold">*</span>
+                      </label>
+                      <span className="text-[11px] italic text-muted-foreground line-clamp-1">
+                        {getDocumentType(documentType).description}
+                      </span>
+                    </div>
+                    <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
                       {DOCUMENT_TYPE_GROUPS.map((g) => {
                         const items = DOCUMENT_TYPES.filter((d) => d.group === g.id);
                         if (items.length === 0) return null;
+                        const hasActive = items.some((d) => d.id === documentType);
                         return (
-                          <div key={g.id}>
-                            <div className="mb-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                          <div key={g.id} className="space-y-2">
+                            <div
+                              className={
+                                "text-[10px] font-bold uppercase tracking-tighter " +
+                                (hasActive ? "text-gold" : "text-muted-foreground/70")
+                              }
+                            >
                               {g.label}
                             </div>
                             <div className="flex flex-wrap gap-1.5">
@@ -455,10 +481,10 @@ export default function BuildContractPage() {
                                     onClick={() => setDocumentType(d.id)}
                                     title={d.description}
                                     className={
-                                      "rounded-full border px-3 py-1 text-xs transition-colors " +
+                                      "rounded-full px-3 py-1.5 text-xs font-medium transition-all " +
                                       (active
-                                        ? "border-gold bg-gold/15 text-gold shadow-gold"
-                                        : "border-border/60 bg-card/40 text-foreground hover:border-gold/40 hover:text-gold")
+                                        ? "bg-gradient-gold text-navy shadow-gold"
+                                        : "border border-border/70 bg-card/40 text-foreground hover:border-gold/50 hover:text-gold")
                                     }
                                   >
                                     {d.shortLabel}
@@ -469,11 +495,8 @@ export default function BuildContractPage() {
                           </div>
                         );
                       })}
-                      <p className="text-[11px] italic text-muted-foreground">
-                        {getDocumentType(documentType).description}
-                      </p>
                     </div>
-                  </Field>
+                  </div>
 
                   <Field label="Заглавие на документа" required>
                     <Input
@@ -697,51 +720,129 @@ export default function BuildContractPage() {
             )}
           </section>
 
-          {/* RIGHT — Live draft */}
+          {/* RIGHT — Live draft / Guidance pane */}
           <section className="lg:sticky lg:top-32 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gold">
-                <FileText className="h-3.5 w-3.5" />
-                {result ? "Краен договор" : "Работен договор"}
-              </div>
-              {!result && <span className="text-xs text-muted-foreground">Попълнете формата отляво</span>}
-            </div>
             {result ? (
-              <div className="space-y-4">
-                {savedDocId && (
-                  <DetectedReferencesBanner
-                    key={appendixRefreshTick}
-                    text={collectContractText(result.contract)}
-                    parentSavedId={savedDocId}
-                    parentTitle={name || result.contract.title}
-                    parentContext={{
-                      partiesA: splitLines(partiesA),
-                      partiesB: splitLines(partiesB),
-                      subject: subject.trim(),
+              <>
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gold">
+                    <FileText className="h-3.5 w-3.5" />
+                    Краен документ
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  {savedDocId && (
+                    <DetectedReferencesBanner
+                      key={appendixRefreshTick}
+                      text={collectContractText(result.contract)}
+                      parentSavedId={savedDocId}
+                      parentTitle={name || result.contract.title}
+                      parentContext={{
+                        partiesA: splitLines(partiesA),
+                        partiesB: splitLines(partiesB),
+                        subject: subject.trim(),
+                      }}
+                      onChildLinked={() => setAppendixRefreshTick((t) => t + 1)}
+                    />
+                  )}
+                  <LiveDraft
+                    sector={syntheticSector}
+                    answers={syntheticAnswers}
+                    generated={result.contract}
+                    signature={signature}
+                    isPro={isPro}
+                    onContractChange={(next) => {
+                      if (!result) return;
+                      setResult({ ...result, contract: { ...result.contract, ...next } });
+                      setSavedDocId(undefined);
                     }}
-                    onChildLinked={() => setAppendixRefreshTick((t) => t + 1)}
                   />
-                )}
-                <LiveDraft
-                  sector={syntheticSector}
-                  answers={syntheticAnswers}
-                  generated={result.contract}
-                  signature={signature}
-                  isPro={isPro}
-                  onContractChange={(next) => {
-                    if (!result) return;
-                    setResult({ ...result, contract: { ...result.contract, ...next } });
-                    setSavedDocId(undefined);
-                  }}
-                />
-              </div>
+                </div>
+              </>
             ) : (
-              <div className="rounded-md border border-dashed border-foreground/20 bg-card/40 p-8 text-center">
-                <Bird className="mx-auto mb-3 h-8 w-8 text-gold/60" />
-                <p className="text-sm text-muted-foreground">
-                  След като попълните формата и натиснете <span className="text-gold">„Изготви документ"</span>,<br />
-                  тук ще се появи готовият документ.
-                </p>
+              <div className="flex h-[700px] flex-col overflow-hidden rounded-2xl border border-border/60 bg-gradient-card shadow-soft">
+                {/* Preview header */}
+                <div className="flex items-center justify-between border-b border-border/60 bg-navy-light/40 px-6 py-4">
+                  <h3 className="font-serif text-lg font-semibold uppercase tracking-[0.18em] text-gold">
+                    Предварителен изглед
+                  </h3>
+                  <div className="flex gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-border" />
+                    <span className="h-2 w-2 rounded-full bg-border" />
+                    <span className="h-2 w-2 rounded-full bg-border" />
+                  </div>
+                </div>
+
+                {/* Preview body */}
+                <div className="flex-1 space-y-8 overflow-y-auto p-6 md:p-8">
+                  {/* Skeleton document silhouette */}
+                  <div className="space-y-3 opacity-40">
+                    <div className="h-3 w-1/4 rounded bg-foreground/15" />
+                    <div className="mb-5 h-7 w-3/4 rounded bg-foreground/15" />
+                    <div className="space-y-2">
+                      <div className="h-2.5 rounded bg-foreground/10" />
+                      <div className="h-2.5 rounded bg-foreground/10" />
+                      <div className="h-2.5 w-2/3 rounded bg-foreground/10" />
+                    </div>
+                  </div>
+
+                  {/* What you'll get */}
+                  <div className="relative rounded-xl border border-border/60 bg-card/40 px-5 py-6">
+                    <div className="absolute -top-2.5 left-5 rounded bg-navy px-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gold">
+                      Какво ще получите
+                    </div>
+                    <ul className="space-y-4">
+                      <li className="flex items-start gap-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold/10 ring-1 ring-gold/25">
+                          <ShieldCheck className="h-4 w-4 text-gold" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground">Юридически издържана структура</p>
+                          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                            Пълен набор от клаузи съобразно ЗЗД и Търговския закон.
+                          </p>
+                        </div>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold/10 ring-1 ring-gold/25">
+                          <Sparkles className="h-4 w-4 text-gold" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground">AI адаптация</p>
+                          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                            Автоматично генерирани детайли според въведения от Вас предмет.
+                          </p>
+                        </div>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold/10 ring-1 ring-gold/25">
+                          <FileSignature className="h-4 w-4 text-gold" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground">Готов за подписване PDF / DOCX</p>
+                          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                            Професионално форматиран документ, готов за печат или електронен подпис.
+                          </p>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Tip */}
+                  <div className="flex items-start gap-3 rounded-xl border border-gold/20 bg-gold/5 p-4">
+                    <Lightbulb className="h-4 w-4 flex-shrink-0 text-gold" />
+                    <p className="text-xs italic leading-relaxed text-foreground/80">
+                      Съвет: Колкото по-подробно опишете предмета и задълженията, толкова по-прецизен ще бъде финалният резултат.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Preview footer */}
+                <div className="border-t border-border/60 bg-navy-light/40 px-6 py-4 text-center backdrop-blur-sm">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                    Попълнете формата вляво, за да видите проекта тук
+                  </p>
+                </div>
               </div>
             )}
           </section>
