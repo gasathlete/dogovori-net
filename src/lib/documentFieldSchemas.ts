@@ -152,7 +152,7 @@ const SCHEMAS: Record<DocumentTypeId, DocumentBuildSchema> = {
     partyAHelp: "Имена, адрес, ЕГН",
     fields: [
       { key: "declared_text", label: "Декларирано обстоятелство", kind: "textarea", rows: 4, required: true,
-        placeholder: "„Декларирам, че…" — какво точно се декларира" },
+        placeholder: 'напр. „Декларирам, че…" — какво точно се декларира' },
       { key: "legal_basis", label: "Правно основание (ако има)", kind: "input", hint: AI_HINT,
         placeholder: "напр. чл. 313 НК / чл. 22 ЗЗД / по образец" },
       { key: "criminal_liability_note", label: "Известна ми е отговорността по чл. 313 НК?", kind: "input",
@@ -173,7 +173,7 @@ const SCHEMAS: Record<DocumentTypeId, DocumentBuildSchema> = {
         placeholder: "Хронологично — какво се случи…" },
       { key: "legal_grounds", label: "Правни доводи", kind: "textarea", rows: 3, hint: AI_HINT,
         placeholder: "Препратки към закон, нарушени норми…" },
-      { key: "request", label: "Искане („моля да…")", kind: "textarea", rows: 2, required: true,
+      { key: "request", label: 'Искане („моля да…")', kind: "textarea", rows: 2, required: true,
         placeholder: "Какво се иска от органа/съда…" },
       { key: "attachments", label: "Приложения", kind: "textarea", rows: 2,
         placeholder: "1. Копие от акт…\n2. Договор…" },
