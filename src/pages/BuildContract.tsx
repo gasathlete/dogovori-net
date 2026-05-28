@@ -170,17 +170,18 @@ export default function BuildContractPage() {
   const goSubscription = () => navigate(`/account?tab=subscription`);
 
   const handleGenerate = async () => {
-    if (!name.trim()) { toast.error("Въведете име на договора"); return; }
+    const docDef = getDocumentType(documentType);
+    if (!name.trim()) { toast.error("Въведете заглавие на документа"); return; }
     if (!categoryId) { toast.error("Изберете категория"); return; }
     if (categoryId === "__other__" && !categoryOther.trim()) {
       toast.error("Въведете категория"); return;
     }
-    if (splitLines(partiesA).length === 0 || splitLines(partiesB).length === 0) {
+    if (docDef.needsParties && (splitLines(partiesA).length === 0 || splitLines(partiesB).length === 0)) {
       toast.error("Въведете поне една страна от всяка група");
       return;
     }
     if (!user) {
-      toast.info("Влезте, за да изградите договора", { description: "Прогресът ви е запазен." });
+      toast.info("Влезте, за да изградите документа", { description: "Прогресът ви е запазен." });
       goAuth();
       return;
     }
@@ -189,12 +190,18 @@ export default function BuildContractPage() {
     setGenStepIdx(0);
     const interval = setInterval(() => setGenStepIdx((i) => (i + 1) % GEN_STEPS.length), 5000);
     try {
-      trackEvent("build_contract_started", { category: categoryLabel });
+      trackEvent("build_contract_started", { category: categoryLabel, documentType });
       const { data, error } = await supabase.functions.invoke("build-custom-contract", {
         body: {
           name: name.trim(),
           category: categoryLabel,
           categorySectorId: categoryId === "__other__" ? null : categoryId,
+          documentType,
+          parentContext: parentTitleParam ? {
+            parentTitle: parentTitleParam,
+            refNumber: refNumberParam ? Number(refNumberParam) : null,
+            refType: refTypeParam ?? undefined,
+          } : undefined,
           partiesA: splitLines(partiesA),
           partiesB: splitLines(partiesB),
           subject: subject.trim(),
