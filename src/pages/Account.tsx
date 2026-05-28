@@ -715,13 +715,19 @@ function DocumentsTab({
               </button>
             </div>
           )}
-          {docs.length === 0 ? (
+          {topLevelDocs.length === 0 ? (
             <div className="rounded-xl border border-border/60 bg-gradient-card p-10 text-center text-sm text-muted-foreground">
               {activeContactName ? "Няма договори за този контрагент." : "Тази папка е празна."}
             </div>
           ) : (
             <div className="grid gap-3">
-              {docs.map((d) => (
+              {topLevelDocs.map((d) => {
+                const childLinks = childrenOfSaved(d.id);
+                const isBundle = childLinks.length > 0;
+                const bundleTitle = isBundle
+                  ? [d.title, ...childLinks.map((l) => l.ref_label)].join(" + ")
+                  : d.title;
+                return (
                 <Link
                   key={d.id}
                   to={`/document/${d.id}`}
@@ -732,12 +738,39 @@ function DocumentsTab({
                       <div className="break-words font-serif text-base font-bold transition-colors group-hover:text-gold">{d.title}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         {d.kind === "contract" ? "Договор" : "Бланка"} · {new Date(d.created_at).toLocaleDateString("bg-BG")}
+                        {isBundle && (
+                          <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-emerald-300">
+                            Комплект · {childLinks.length + 1} док.
+                          </span>
+                        )}
                         {contactName(d.contact_id) && (
                           <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-gold/30 bg-gold/5 px-2 py-0.5 text-[10px] uppercase tracking-wider text-gold">
                             <Users className="h-3 w-3" /> {contactName(d.contact_id)}
                           </span>
                         )}
                       </div>
+                      {isBundle && (
+                        <div className="mt-2.5 flex flex-wrap gap-1.5" onClick={(e) => e.preventDefault()}>
+                          {childLinks.map((l, idx) => {
+                            const href = childHref(l);
+                            const label = childTitle(l);
+                            const chip = (
+                              <span className="inline-flex items-center gap-1 rounded-md border border-gold/30 bg-gold/5 px-2 py-1 text-[11px] text-foreground hover:border-gold/60 hover:text-gold">
+                                <FileText className="h-3 w-3 text-gold/70" />
+                                <span className="max-w-[180px] truncate">{label}</span>
+                              </span>
+                            );
+                            return href ? (
+                              <Link key={idx} to={href}>{chip}</Link>
+                            ) : (
+                              <span key={idx}>{chip}</span>
+                            );
+                          })}
+                          <span className="text-[11px] italic text-muted-foreground">
+                            прикачват се автоматично към PDF
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div
                       className="flex flex-wrap items-center gap-1.5"
@@ -763,7 +796,7 @@ function DocumentsTab({
                     </div>
                   </div>
                 </Link>
-              ))}
+              );})}
             </div>
           )}
         </section>
