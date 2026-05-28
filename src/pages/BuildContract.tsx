@@ -817,20 +817,18 @@ export default function BuildContractPage() {
                   </div>
                 </div>
                 <div className="space-y-4">
-                  {savedDocId && (
-                    <DetectedReferencesBanner
-                      key={appendixRefreshTick}
-                      text={collectContractText(result.contract)}
-                      parentSavedId={savedDocId}
-                      parentTitle={name || result.contract.title}
-                      parentContext={{
-                        partiesA: splitLines(partiesA),
-                        partiesB: splitLines(partiesB),
-                        subject: subject.trim(),
-                      }}
-                      onChildLinked={() => setAppendixRefreshTick((t) => t + 1)}
-                    />
-                  )}
+                  <DetectedReferencesBanner
+                    key={appendixRefreshTick}
+                    text={collectContractText(result.contract)}
+                    parentSavedId={savedDocId ?? null}
+                    parentTitle={name || result.contract.title}
+                    parentContext={{
+                      partiesA: splitLines(partiesA),
+                      partiesB: splitLines(partiesB),
+                      subject: subject.trim(),
+                    }}
+                    onChildLinked={() => setAppendixRefreshTick((t) => t + 1)}
+                  />
                   <LiveDraft
                     sector={syntheticSector}
                     answers={syntheticAnswers}
