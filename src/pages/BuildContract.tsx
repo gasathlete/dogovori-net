@@ -547,7 +547,7 @@ export default function BuildContractPage() {
                     {generating ? (
                       <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Изготвяне…</>
                     ) : (
-                      <><Wand2 className="mr-2 h-4 w-4" /> Изгради договор (≤ 2 мин.)</>
+                      <><Wand2 className="mr-2 h-4 w-4" /> Изготви документ (≤ 2 мин.)</>
                     )}
                   </Button>
 
