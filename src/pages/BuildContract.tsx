@@ -123,11 +123,11 @@ export default function BuildContractPage() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         documentType, buildMode,
         name, categoryId, categoryOther, partiesA, partiesB,
-        subject, term, prices, obligations, other,
+        fieldValues,
         result, signature, savedDocId,
       }));
     } catch {}
-  }, [documentType, buildMode, name, categoryId, categoryOther, partiesA, partiesB, subject, term, prices, obligations, other, result, signature, savedDocId]);
+  }, [documentType, buildMode, name, categoryId, categoryOther, partiesA, partiesB, fieldValues, result, signature, savedDocId]);
 
   useEffect(() => {
     trackEvent("build_contract_open");
