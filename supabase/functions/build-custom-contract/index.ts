@@ -192,6 +192,7 @@ Deno.serve(async (req: Request) => {
       parentContext = undefined,
       partiesA = [],
       partiesB = [],
+      customFields = [],
       subject = "",
       term = "",
       prices = "",
