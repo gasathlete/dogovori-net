@@ -380,8 +380,8 @@ export default function BuildContractPage() {
   return (
     <div className="min-h-screen">
       <Seo
-        title="Изготви договор с AI — Dogovori.net"
-        description="Опишете накратко договора — AI попълва липсващите клаузи и създава професионален документ до 2 минути, със ЗЗД/ТЗ съответствие и риск-анализ."
+        title="Изготви документ с AI — Dogovori.net"
+        description="Изгответе договор, разписка, пълномощно, декларация, оферта, фактура, протокол, анекс или приложение — AI попълва клаузите за минути, със ЗЗД/ТЗ съответствие."
         canonical="https://dogovori.net/build"
       />
       <Header />
@@ -399,7 +399,7 @@ export default function BuildContractPage() {
                 <ArrowLeft className="h-3.5 w-3.5" /> Начало
               </button>
               <span className="text-muted-foreground">/</span>
-              <span className="font-medium text-foreground">Изготви договор</span>
+              <span className="font-medium text-foreground">Изготви документ</span>
             </div>
             <div className="hidden text-muted-foreground sm:inline">≤ 2 мин · AI-подпомогнат</div>
           </div>
@@ -414,8 +414,14 @@ export default function BuildContractPage() {
               <div className="rounded-xl border border-gold/30 bg-gradient-card p-5 shadow-soft">
                 <div className="mb-4 flex items-center gap-2">
                   <Bird className="h-4 w-4 text-gold" />
-                  <h1 className="font-serif text-xl font-bold text-foreground">Изготви договор</h1>
+                  <h1 className="font-serif text-xl font-bold text-foreground">Изготви документ</h1>
                 </div>
+                {parentTitleParam && (
+                  <div className="mb-4 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-foreground">
+                    Изготвяте дъщерен документ към <span className="font-semibold">„{parentTitleParam}"</span>
+                    {refNumberParam ? ` (№ ${refNumberParam})` : ""}. След запазване ще се прикачи автоматично към основния договор.
+                  </div>
+                )}
                 {!user && (
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-foreground">
                     <span>За да изградите договор, влезте безплатно с email или Google.</span>
