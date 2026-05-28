@@ -481,7 +481,7 @@ export default function BuildContractPage() {
             <div className="hidden items-center gap-4 text-muted-foreground sm:flex">
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_hsl(142_70%_45%/0.8)]" />
-                AI готовност
+                Системата е в готовност
               </span>
               <span className="opacity-50">·</span>
               <span>≤ 2 мин · AI-подпомогнат</span>
