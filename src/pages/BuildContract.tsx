@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Bird, Loader2, FileDown, FileText, Save, Wand2, Sparkles, ShieldCheck, FileSignature, Lightbulb } from "lucide-react";
+import { ArrowLeft, Bird, Loader2, FileDown, FileText, Save, Wand2, Sparkles, ShieldCheck, FileSignature, Lightbulb, Zap, Briefcase, Scale } from "lucide-react";
+
+type BuildMode = "fast" | "working" | "strict";
+const BUILD_MODES: { id: BuildMode; label: string; short: string; description: string; icon: any }[] = [
+  { id: "fast", label: "Бърз", short: "Бърз", description: "По-прости документи без висока прецизност — кратко и ясно.", icon: Zap },
+  { id: "working", label: "Работен", short: "Работен", description: "Балансирана версия с опционално надграждане.", icon: Briefcase },
+  { id: "strict", label: "Стриктен", short: "Стриктен", description: "Подробно, високопрофесионално — съвети и стриктна правна форма.", icon: Scale },
+];
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +70,9 @@ export default function BuildContractPage() {
     (persisted?.documentType as DocumentTypeId) ||
     "contract",
   );
+  const [buildMode, setBuildMode] = useState<BuildMode>(
+    (persisted?.buildMode as BuildMode) || "working",
+  );
 
   const [name, setName] = useState<string>(
     presetDocumentType && refNumberParam && parentTitleParam
@@ -101,13 +111,13 @@ export default function BuildContractPage() {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        documentType,
+        documentType, buildMode,
         name, categoryId, categoryOther, partiesA, partiesB,
         subject, term, prices, obligations, other,
         result, signature, savedDocId,
       }));
     } catch {}
-  }, [documentType, name, categoryId, categoryOther, partiesA, partiesB, subject, term, prices, obligations, other, result, signature, savedDocId]);
+  }, [documentType, buildMode, name, categoryId, categoryOther, partiesA, partiesB, subject, term, prices, obligations, other, result, signature, savedDocId]);
 
   useEffect(() => {
     trackEvent("build_contract_open");
@@ -200,6 +210,7 @@ export default function BuildContractPage() {
           category: categoryLabel,
           categorySectorId: categoryId === "__other__" ? null : categoryId,
           documentType,
+          buildMode,
           parentContext: parentTitleParam ? {
             parentTitle: parentTitleParam,
             refNumber: refNumberParam ? Number(refNumberParam) : null,
@@ -523,6 +534,41 @@ export default function BuildContractPage() {
                 </p>
 
                 <div className="space-y-5">
+                  {/* Build mode — fast / working / strict */}
+                  <div className="rounded-xl border border-border/60 bg-navy-light/40 p-4 space-y-3">
+                    <div className="flex items-baseline justify-between">
+                      <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        Режим на изготвяне <span className="text-gold">*</span>
+                      </label>
+                      <span className="text-[11px] italic text-muted-foreground line-clamp-1">
+                        {BUILD_MODES.find((m) => m.id === buildMode)?.description}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {BUILD_MODES.map((m) => {
+                        const Icon = m.icon;
+                        const active = buildMode === m.id;
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setBuildMode(m.id)}
+                            title={m.description}
+                            className={
+                              "flex flex-col items-center gap-1.5 rounded-lg px-3 py-2.5 text-xs font-medium transition-all " +
+                              (active
+                                ? "bg-gradient-gold text-navy shadow-gold"
+                                : "border border-border/70 bg-card/40 text-foreground hover:border-gold/50 hover:text-gold")
+                            }
+                          >
+                            <Icon className="h-4 w-4" />
+                            {m.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {/* Document type — grouped chips in a tinted panel */}
                   <div className="rounded-xl border border-border/60 bg-navy-light/40 p-4 space-y-4">
                     <div className="flex items-baseline justify-between">

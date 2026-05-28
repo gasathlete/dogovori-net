@@ -34,12 +34,15 @@ const BASE_SYSTEM_PROMPT = `Ти си български правен архит
 
 Номерация: римска за раздели, "Чл. N." за членове, "(1),(2)" за алинеи. Парични суми само в евро (€). Липсващи данни → плейсхолдъри в [квадратни скоби]. При едностранни документи (декларация, разписка, жалба) полето "clauses" може да съдържа само 1–3 секции, а "preamble"/"closing" да са кратки.`;
 
+type BuildMode = "fast" | "working" | "strict";
+
 interface BuildPayload {
   name: string;
   category: string;
   categorySectorId?: string | null;
-  documentType?: string;        // NEW — defaults to "contract"
-  parentContext?: {              // NEW — when building a child document
+  documentType?: string;        // defaults to "contract"
+  buildMode?: BuildMode;        // NEW — fast | working | strict (defaults to "working")
+  parentContext?: {              // when building a child document
     parentTitle?: string;
     refNumber?: number | null;
     refType?: string;
@@ -52,6 +55,36 @@ interface BuildPayload {
   obligations?: string;
   other?: string;
 }
+
+const BUILD_MODE_ADDENDUM: Record<BuildMode, { label: string; addendum: string; model: string }> = {
+  fast: {
+    label: "БЪРЗ РЕЖИМ",
+    model: "google/gemini-2.5-flash-lite",
+    addendum: `Стил: КРАТКО И ЯСНО. Подходящ за прости документи без висока правна сложност.
+- Минимален задължителен набор клаузи (предмет, страни, срок, цена, подпис).
+- Кратки изречения, без излишни препратки към закони.
+- Без обширни приложения и без подробен risk report (1–2 issues максимум).
+- Без напомняния и съвети извън документа.`,
+  },
+  working: {
+    label: "РАБОТЕН РЕЖИМ",
+    model: "google/gemini-2.5-flash",
+    addendum: `Стил: БАЛАНСИРАН — пълен работен документ с пространство за надграждане.
+- Стандартен набор клаузи според вида документ и категорията.
+- Кратко, но прецизно правно формулиране; цитирай ЗЗД/ТЗ при ключови клаузи.
+- Risk report: 3–5 issues с конкретни препоръки за надграждане.
+- Маркирай в issues кои клаузи могат опционално да бъдат разширени до стриктна версия.`,
+  },
+  strict: {
+    label: "СТРИКТЕН РЕЖИМ",
+    model: "google/gemini-2.5-pro",
+    addendum: `Стил: ВИСОКА ПРОФЕСИОНАЛНА ПРЕЦИЗНОСТ — документът трябва да издържи юридическа проверка.
+- Изчерпателен набор клаузи: дефиниции, представителство, поверителност, IP, неустойки, форсмажор, приложимо право и подсъдност, нотификации, цялост на договора.
+- Цитирай конкретни членове от ЗЗД/ТЗ/ЗЗП/ЗАПСП/ЗЗЛД където е уместно.
+- Дълги, точно формулирани клаузи; никакви двусмислици.
+- Risk report: ПОДРОБЕН (поне 5–8 issues), със severity и detail-обяснение защо клаузата е важна и как се подобрява. Включи recommendations с конкретни съвети за висок професионализъм (e-signature, нотариална заверка, регистрация, данъчни импликации, и т.н.).`,
+  },
+};
 
 Deno.serve(async (req: Request) => {
   const corsHeaders = buildCors(req);
@@ -152,6 +185,7 @@ Deno.serve(async (req: Request) => {
       category = "",
       categorySectorId = null,
       documentType = "contract",
+      buildMode = "working",
       parentContext = undefined,
       partiesA = [],
       partiesB = [],
@@ -161,6 +195,10 @@ Deno.serve(async (req: Request) => {
       obligations = "",
       other = "",
     } = body;
+    const safeBuildMode: BuildMode = (["fast", "working", "strict"] as BuildMode[]).includes(buildMode as BuildMode)
+      ? (buildMode as BuildMode)
+      : "working";
+    const modeSpec = BUILD_MODE_ADDENDUM[safeBuildMode];
 
     if (!name.trim() || !category.trim()) {
       return new Response(
@@ -191,10 +229,11 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
-    const PROMPT_VERSION = "v2-doctypes";
+    const PROMPT_VERSION = "v3-buildmode";
     const cacheKeyInput = stableStringify({
       v: PROMPT_VERSION, kind: "custom",
       documentType: safeDocumentType,
+      buildMode: safeBuildMode,
       parentContext: parentContext ?? null,
       name, category,
       partiesA, partiesB,
@@ -237,13 +276,13 @@ ${subject ? `ПРЕДМЕТ:\n${subject}\n` : "ПРЕДМЕТ: (не е посо
 ${term ? `СРОК:\n${term}\n` : ""}${prices ? `ЦЕНИ И ПЛАЩАНЕ:\n${prices}\n` : ""}${obligations ? `ЗАДЪЛЖЕНИЯ:\n${obligations}\n` : ""}${other ? `ДРУГИ КЛАУЗИ / СПЕЦИФИКИ:\n${other}\n` : ""}
 Задача: Risk Analysis (конкретни слаби места) + ПЪЛНИЯТ документ на български. Върни СТРОГО валиден JSON по схемата.`;
 
-    const composedSystem = `${BASE_SYSTEM_PROMPT}\n\n=== СПЕЦИФИКА ЗА ВИД „${docSpec.label.toUpperCase()}" ===\n${docSpec.systemAddendum}`;
+    const composedSystem = `${BASE_SYSTEM_PROMPT}\n\n=== СПЕЦИФИКА ЗА ВИД „${docSpec.label.toUpperCase()}" ===\n${docSpec.systemAddendum}\n\n=== ${modeSpec.label} ===\n${modeSpec.addendum}`;
     const activeSystemPrompt = await loadActivePrompt(admin, "build-custom-contract", composedSystem);
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: modeSpec.model,
         messages: [
           { role: "system", content: activeSystemPrompt },
           { role: "user", content: userPrompt },
