@@ -7,5 +7,7 @@ Disallow: /reset-password
 Disallow: /share/
 Disallow: /wizard/
 Disallow: /unsubscribe
+Disallow: /admin
 
+# Sitemap index — points to per-content-type sitemaps for better crawling.
 Sitemap: https://dogovori.net/sitemap.xml

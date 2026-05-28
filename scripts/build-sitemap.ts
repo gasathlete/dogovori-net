@@ -1,10 +1,13 @@
-// Generates public/sitemap.xml with all SEO-relevant URLs.
-// Runs as a prebuild step (see package.json).
+// Generates split sitemaps + a sitemap index for better crawling on a young
+// domain. Google crawls smaller sitemaps more often, and a sitemap index lets
+// Search Console show coverage per content type.
 //
-// Tiered priorities help Google decide what to crawl first on a young domain
-// with a low crawl budget. The lastmod for each URL is anchored to a per-route
-// "epoch" date (the date that route went live in this repo) — Google ignores
-// sitemaps where every URL has the same lastmod = today.
+// Output:
+//   public/sitemap.xml              — sitemap INDEX (entry point in robots.txt)
+//   public/sitemap-static.xml       — homepage + legal/info pages
+//   public/sitemap-categories.xml   — /kategoria/* + /sektor/*
+//   public/sitemap-templates.xml    — /shablon/*
+//   public/sitemap-blog.xml         — /blog/*
 //
 // Usage: bun run scripts/build-sitemap.ts
 
@@ -19,20 +22,17 @@ const today = new Date().toISOString().split("T")[0];
 
 type Entry = { loc: string; changefreq: string; priority: string; lastmod?: string };
 
-// Use the last git/file modification of catalog.ts as a stable "content updated"
-// date for catalog-derived pages. Falls back to today if stat fails.
 function catalogMtime(): string {
   try {
-    const s = statSync(resolve(process.cwd(), "src/data/catalog.ts"));
-    return s.mtime.toISOString().split("T")[0];
+    return statSync(resolve(process.cwd(), "src/data/catalog.ts")).mtime.toISOString().split("T")[0];
   } catch {
     return today;
   }
 }
 const catalogDate = catalogMtime();
-
 const topNames = new Set(TOP_DOCUMENTS.map((d) => d.name));
 
+// ---------- buckets ----------
 const staticEntries: Entry[] = [
   { loc: "/", changefreq: "daily", priority: "1.0", lastmod: today },
   { loc: "/catalog", changefreq: "weekly", priority: "0.95", lastmod: catalogDate },
@@ -51,10 +51,9 @@ const blogDir = resolve(process.cwd(), "src/content/blog");
 const blogEntries: Entry[] = readdirSync(blogDir)
   .filter((f) => f.endsWith(".ts"))
   .map((f) => {
-    const full = resolve(blogDir, f);
     let lastmod = today;
     try {
-      lastmod = statSync(full).mtime.toISOString().split("T")[0];
+      lastmod = statSync(resolve(blogDir, f)).mtime.toISOString().split("T")[0];
     } catch {}
     return {
       loc: `/blog/${f.replace(/\.ts$/, "")}`,
@@ -64,31 +63,30 @@ const blogEntries: Entry[] = readdirSync(blogDir)
     };
   });
 
-const categoryEntries: Entry[] = CATALOG.map((cat) => ({
-  loc: `/kategoria/${cat.id}`,
-  changefreq: "weekly",
-  priority: "0.9",
-  lastmod: catalogDate,
-}));
-
-const sectorEntries: Entry[] = SECTORS.map((s) => ({
-  loc: `/sektor/${s.id}`,
-  changefreq: "weekly",
-  priority: "0.85",
-  lastmod: catalogDate,
-}));
+const categoryEntries: Entry[] = [
+  ...CATALOG.map<Entry>((cat) => ({
+    loc: `/kategoria/${cat.id}`,
+    changefreq: "weekly",
+    priority: "0.9",
+    lastmod: catalogDate,
+  })),
+  ...SECTORS.map<Entry>((s) => ({
+    loc: `/sektor/${s.id}`,
+    changefreq: "weekly",
+    priority: "0.85",
+    lastmod: catalogDate,
+  })),
+];
 
 const templateEntries: Entry[] = [];
 const used = new Set<string>();
 for (const cat of CATALOG) {
   for (const doc of cat.documents) {
-    let base = slugify(doc.name);
-    if (!base) base = "shablon";
+    let base = slugify(doc.name) || "shablon";
     let slug = base;
     let i = 2;
     while (used.has(slug)) slug = `${base}-${i++}`;
     used.add(slug);
-    // Top documents get a higher priority — they're the ones we want indexed first.
     const isTop = topNames.has(doc.name) || doc.badge === "TOP";
     templateEntries.push({
       loc: `/shablon/${slug}`,
@@ -99,11 +97,11 @@ for (const cat of CATALOG) {
   }
 }
 
-const all = [...staticEntries, ...sectorEntries, ...categoryEntries, ...templateEntries, ...blogEntries];
-
-const xml = `<?xml version="1.0" encoding="UTF-8"?>
+// ---------- writers ----------
+function renderUrlset(entries: Entry[]): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${all
+${entries
   .map(
     (e) =>
       `  <url>\n    <loc>${SITE}${e.loc}</loc>${e.lastmod ? `\n    <lastmod>${e.lastmod}</lastmod>` : ""}\n    <changefreq>${e.changefreq}</changefreq>\n    <priority>${e.priority}</priority>\n  </url>`,
@@ -111,7 +109,35 @@ ${all
   .join("\n")}
 </urlset>
 `;
+}
 
-const out = resolve(process.cwd(), "public", "sitemap.xml");
-writeFileSync(out, xml, "utf8");
-console.log(`✓ sitemap.xml written with ${all.length} URLs → ${out}`);
+function writeSitemap(filename: string, entries: Entry[]) {
+  const out = resolve(process.cwd(), "public", filename);
+  writeFileSync(out, renderUrlset(entries), "utf8");
+  console.log(`✓ ${filename}: ${entries.length} URLs`);
+}
+
+writeSitemap("sitemap-static.xml", staticEntries);
+writeSitemap("sitemap-categories.xml", categoryEntries);
+writeSitemap("sitemap-templates.xml", templateEntries);
+writeSitemap("sitemap-blog.xml", blogEntries);
+
+// Sitemap index
+const children = [
+  { loc: "sitemap-static.xml", lastmod: today },
+  { loc: "sitemap-categories.xml", lastmod: catalogDate },
+  { loc: "sitemap-templates.xml", lastmod: catalogDate },
+  { loc: "sitemap-blog.xml", lastmod: today },
+];
+const indexXml = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${children
+  .map((c) => `  <sitemap>\n    <loc>${SITE}/${c.loc}</loc>\n    <lastmod>${c.lastmod}</lastmod>\n  </sitemap>`)
+  .join("\n")}
+</sitemapindex>
+`;
+writeFileSync(resolve(process.cwd(), "public", "sitemap.xml"), indexXml, "utf8");
+console.log(`✓ sitemap.xml (index): ${children.length} child sitemaps`);
+
+const total = staticEntries.length + categoryEntries.length + templateEntries.length + blogEntries.length;
+console.log(`✓ Total URLs across all sitemaps: ${total}`);
