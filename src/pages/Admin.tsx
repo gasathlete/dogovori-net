@@ -14,6 +14,7 @@ import { ArrowLeft, Crown, Loader2, Search, ShieldCheck, ShieldOff, Plus } from 
 import { AdminPartnersPanel } from "@/components/AdminPartnersPanel";
 import { AdminBlanksPanel } from "@/components/AdminBlanksPanel";
 import { AdminUserArticlesPanel } from "@/components/AdminUserArticlesPanel";
+import { AdminGscPanel } from "@/components/AdminGscPanel";
 
 type Row = {
   user_id: string;
@@ -195,6 +196,7 @@ export default function AdminPage() {
         <AdminPartnersPanel />
         <AdminBlanksPanel />
         <AdminUserArticlesPanel />
+        <AdminGscPanel />
       </div>
 
       <Dialog open={!!proDialog} onOpenChange={(o) => !o && setProDialog(null)}>
