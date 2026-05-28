@@ -17,18 +17,31 @@ const KEY = "c8f3a9e2d14b4f0aa2e7c5d61b9f0a37";
 const KEY_LOCATION = `${SITE}/${KEY}.txt`;
 
 async function main() {
-  let sitemap = "";
+  let indexXml = "";
   try {
-    sitemap = readFileSync(resolve(process.cwd(), "public/sitemap.xml"), "utf8");
+    indexXml = readFileSync(resolve(process.cwd(), "public/sitemap.xml"), "utf8");
   } catch {
     console.warn("indexnow: sitemap.xml not found, skipping");
     return;
   }
-  const urls = Array.from(sitemap.matchAll(/<loc>([^<]+)<\/loc>/g))
-    .map((m) => m[1])
-    .filter((u) => u.startsWith(SITE));
+  // sitemap.xml is now a sitemap INDEX — read each child sitemap from disk
+  // and union their <loc> entries.
+  const childFiles = indexXml.includes("<sitemapindex")
+    ? Array.from(indexXml.matchAll(/<loc>([^<]+)<\/loc>/g)).map((m) => m[1].replace(SITE + "/", ""))
+    : ["sitemap.xml"];
+  const urls: string[] = [];
+  for (const file of childFiles) {
+    try {
+      const xml = readFileSync(resolve(process.cwd(), "public", file), "utf8");
+      for (const m of xml.matchAll(/<loc>([^<]+)<\/loc>/g)) {
+        if (m[1].startsWith(SITE)) urls.push(m[1]);
+      }
+    } catch {
+      console.warn(`indexnow: could not read ${file}`);
+    }
+  }
   if (!urls.length) {
-    console.warn("indexnow: no URLs in sitemap, skipping");
+    console.warn("indexnow: no URLs in sitemaps, skipping");
     return;
   }
   // IndexNow limit: 10,000 URLs per request.
