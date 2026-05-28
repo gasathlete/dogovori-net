@@ -22,6 +22,7 @@ import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard
 import { DetectedReferencesBanner } from "@/components/DetectedReferencesBanner";
 import { SECTORS, type Sector } from "@/data/sectors";
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, collectContractText, type DocumentTypeId } from "@/lib/documentReferences";
+import { getBuildSchema, getAllFieldKeys, type BuildField } from "@/lib/documentFieldSchemas";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
