@@ -534,6 +534,41 @@ export default function BuildContractPage() {
                 </p>
 
                 <div className="space-y-5">
+                  {/* Build mode — fast / working / strict */}
+                  <div className="rounded-xl border border-border/60 bg-navy-light/40 p-4 space-y-3">
+                    <div className="flex items-baseline justify-between">
+                      <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        Режим на изготвяне <span className="text-gold">*</span>
+                      </label>
+                      <span className="text-[11px] italic text-muted-foreground line-clamp-1">
+                        {BUILD_MODES.find((m) => m.id === buildMode)?.description}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {BUILD_MODES.map((m) => {
+                        const Icon = m.icon;
+                        const active = buildMode === m.id;
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setBuildMode(m.id)}
+                            title={m.description}
+                            className={
+                              "flex flex-col items-center gap-1.5 rounded-lg px-3 py-2.5 text-xs font-medium transition-all " +
+                              (active
+                                ? "bg-gradient-gold text-navy shadow-gold"
+                                : "border border-border/70 bg-card/40 text-foreground hover:border-gold/50 hover:text-gold")
+                            }
+                          >
+                            <Icon className="h-4 w-4" />
+                            {m.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {/* Document type — grouped chips in a tinted panel */}
                   <div className="rounded-xl border border-border/60 bg-navy-light/40 p-4 space-y-4">
                     <div className="flex items-baseline justify-between">
