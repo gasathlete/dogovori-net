@@ -89,7 +89,7 @@ export interface WatermarkOpts {
 
 export async function exportPDF(
   c: GeneratedContract,
-  opts?: WatermarkOpts & { returnBytes?: boolean },
+  opts?: { watermark?: boolean; userTag?: string; returnBytes?: boolean },
 ): Promise<Uint8Array | void> {
   const b64 = await loadCyrillicFontB64();
 

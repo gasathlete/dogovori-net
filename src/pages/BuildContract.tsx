@@ -324,7 +324,7 @@ export default function BuildContractPage() {
             if (merged.appended > 0) {
               const { saveAs } = await import("file-saver");
               const cleanTitle = finalTitle.replace(/[^\p{L}\p{N}\s-]/gu, "").trim().replace(/\s+/g, "_").slice(0, 60) || "Document";
-              saveAs(new Blob([merged.bytes], { type: "application/pdf" }), `${cleanTitle}_с_приложения.pdf`);
+              saveAs(new Blob([merged.bytes as BlobPart], { type: "application/pdf" }), `${cleanTitle}_с_приложения.pdf`);
               toast.success(`Прикачени ${merged.appended} приложения`, {
                 description: merged.skipped > 0 ? `${merged.skipped} файла бяха пропуснати (несъвместим формат).` : "Свален е и комбиниран PDF.",
               });
