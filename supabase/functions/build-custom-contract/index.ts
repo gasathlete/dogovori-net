@@ -185,6 +185,7 @@ Deno.serve(async (req: Request) => {
       category = "",
       categorySectorId = null,
       documentType = "contract",
+      buildMode = "working",
       parentContext = undefined,
       partiesA = [],
       partiesB = [],
@@ -194,6 +195,10 @@ Deno.serve(async (req: Request) => {
       obligations = "",
       other = "",
     } = body;
+    const safeBuildMode: BuildMode = (["fast", "working", "strict"] as BuildMode[]).includes(buildMode as BuildMode)
+      ? (buildMode as BuildMode)
+      : "working";
+    const modeSpec = BUILD_MODE_ADDENDUM[safeBuildMode];
 
     if (!name.trim() || !category.trim()) {
       return new Response(
