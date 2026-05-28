@@ -720,51 +720,129 @@ export default function BuildContractPage() {
             )}
           </section>
 
-          {/* RIGHT — Live draft */}
+          {/* RIGHT — Live draft / Guidance pane */}
           <section className="lg:sticky lg:top-32 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gold">
-                <FileText className="h-3.5 w-3.5" />
-                {result ? "Краен договор" : "Работен договор"}
-              </div>
-              {!result && <span className="text-xs text-muted-foreground">Попълнете формата отляво</span>}
-            </div>
             {result ? (
-              <div className="space-y-4">
-                {savedDocId && (
-                  <DetectedReferencesBanner
-                    key={appendixRefreshTick}
-                    text={collectContractText(result.contract)}
-                    parentSavedId={savedDocId}
-                    parentTitle={name || result.contract.title}
-                    parentContext={{
-                      partiesA: splitLines(partiesA),
-                      partiesB: splitLines(partiesB),
-                      subject: subject.trim(),
+              <>
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gold">
+                    <FileText className="h-3.5 w-3.5" />
+                    Краен документ
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  {savedDocId && (
+                    <DetectedReferencesBanner
+                      key={appendixRefreshTick}
+                      text={collectContractText(result.contract)}
+                      parentSavedId={savedDocId}
+                      parentTitle={name || result.contract.title}
+                      parentContext={{
+                        partiesA: splitLines(partiesA),
+                        partiesB: splitLines(partiesB),
+                        subject: subject.trim(),
+                      }}
+                      onChildLinked={() => setAppendixRefreshTick((t) => t + 1)}
+                    />
+                  )}
+                  <LiveDraft
+                    sector={syntheticSector}
+                    answers={syntheticAnswers}
+                    generated={result.contract}
+                    signature={signature}
+                    isPro={isPro}
+                    onContractChange={(next) => {
+                      if (!result) return;
+                      setResult({ ...result, contract: { ...result.contract, ...next } });
+                      setSavedDocId(undefined);
                     }}
-                    onChildLinked={() => setAppendixRefreshTick((t) => t + 1)}
                   />
-                )}
-                <LiveDraft
-                  sector={syntheticSector}
-                  answers={syntheticAnswers}
-                  generated={result.contract}
-                  signature={signature}
-                  isPro={isPro}
-                  onContractChange={(next) => {
-                    if (!result) return;
-                    setResult({ ...result, contract: { ...result.contract, ...next } });
-                    setSavedDocId(undefined);
-                  }}
-                />
-              </div>
+                </div>
+              </>
             ) : (
-              <div className="rounded-md border border-dashed border-foreground/20 bg-card/40 p-8 text-center">
-                <Bird className="mx-auto mb-3 h-8 w-8 text-gold/60" />
-                <p className="text-sm text-muted-foreground">
-                  След като попълните формата и натиснете <span className="text-gold">„Изготви документ"</span>,<br />
-                  тук ще се появи готовият документ.
-                </p>
+              <div className="flex h-[700px] flex-col overflow-hidden rounded-2xl border border-border/60 bg-gradient-card shadow-soft">
+                {/* Preview header */}
+                <div className="flex items-center justify-between border-b border-border/60 bg-navy-light/40 px-6 py-4">
+                  <h3 className="font-serif text-lg font-semibold uppercase tracking-[0.18em] text-gold">
+                    Предварителен изглед
+                  </h3>
+                  <div className="flex gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-border" />
+                    <span className="h-2 w-2 rounded-full bg-border" />
+                    <span className="h-2 w-2 rounded-full bg-border" />
+                  </div>
+                </div>
+
+                {/* Preview body */}
+                <div className="flex-1 space-y-8 overflow-y-auto p-6 md:p-8">
+                  {/* Skeleton document silhouette */}
+                  <div className="space-y-3 opacity-40">
+                    <div className="h-3 w-1/4 rounded bg-foreground/15" />
+                    <div className="mb-5 h-7 w-3/4 rounded bg-foreground/15" />
+                    <div className="space-y-2">
+                      <div className="h-2.5 rounded bg-foreground/10" />
+                      <div className="h-2.5 rounded bg-foreground/10" />
+                      <div className="h-2.5 w-2/3 rounded bg-foreground/10" />
+                    </div>
+                  </div>
+
+                  {/* What you'll get */}
+                  <div className="relative rounded-xl border border-border/60 bg-card/40 px-5 py-6">
+                    <div className="absolute -top-2.5 left-5 rounded bg-navy px-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gold">
+                      Какво ще получите
+                    </div>
+                    <ul className="space-y-4">
+                      <li className="flex items-start gap-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold/10 ring-1 ring-gold/25">
+                          <ShieldCheck className="h-4 w-4 text-gold" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground">Юридически издържана структура</p>
+                          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                            Пълен набор от клаузи съобразно ЗЗД и Търговския закон.
+                          </p>
+                        </div>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold/10 ring-1 ring-gold/25">
+                          <Sparkles className="h-4 w-4 text-gold" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground">AI адаптация</p>
+                          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                            Автоматично генерирани детайли според въведения от Вас предмет.
+                          </p>
+                        </div>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold/10 ring-1 ring-gold/25">
+                          <FileSignature className="h-4 w-4 text-gold" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground">Готов за подписване PDF / DOCX</p>
+                          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                            Професионално форматиран документ, готов за печат или електронен подпис.
+                          </p>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Tip */}
+                  <div className="flex items-start gap-3 rounded-xl border border-gold/20 bg-gold/5 p-4">
+                    <Lightbulb className="h-4 w-4 flex-shrink-0 text-gold" />
+                    <p className="text-xs italic leading-relaxed text-foreground/80">
+                      Съвет: Колкото по-подробно опишете предмета и задълженията, толкова по-прецизен ще бъде финалният резултат.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Preview footer */}
+                <div className="border-t border-border/60 bg-navy-light/40 px-6 py-4 text-center backdrop-blur-sm">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                    Попълнете формата вляво, за да видите проекта тук
+                  </p>
+                </div>
               </div>
             )}
           </section>
