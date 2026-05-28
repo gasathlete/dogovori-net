@@ -11,6 +11,7 @@ import { LiveDraft } from "@/components/wizard/LiveDraft";
 import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
 import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
+import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
 import { DetectedReferencesBanner } from "@/components/DetectedReferencesBanner";
 import { SECTORS, type Sector } from "@/data/sectors";
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, collectContractText, type DocumentTypeId } from "@/lib/documentReferences";
@@ -93,6 +94,8 @@ export default function BuildContractPage() {
   const [saving, setSaving] = useState(false);
   const [isPro, setIsPro] = useState(false);
   const [appendixRefreshTick, setAppendixRefreshTick] = useState(0);
+  const [applyingCorrections, setApplyingCorrections] = useState(false);
+  const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(undefined);
 
   // Persist on every change
   useEffect(() => {
@@ -342,6 +345,53 @@ export default function BuildContractPage() {
       toast.error("Грешка при експорт", { description: String(e?.message ?? e) });
     } finally {
       setExporting(null);
+    }
+  };
+
+  const handleApplyCorrections = async (sel: CorrectionsSelection) => {
+    if (!result) return;
+    if (!user) {
+      toast.error("Влезте в профила си", { description: "Прогресът е запазен." });
+      navigate("/auth");
+      return;
+    }
+    if (sel.issues.length === 0 && sel.recommendations.length === 0) {
+      toast.message("Изберете поне една препоръка за корекция");
+      return;
+    }
+    setApplyingCorrections(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("apply-corrections", {
+        body: {
+          contract: result.contract,
+          risk: result.risk,
+          selectedIssues: sel.issues,
+          selectedRecommendations: sel.recommendations,
+          answers: syntheticAnswers,
+        },
+      });
+      if (error || data?.error) {
+        if (data?.error === "pro_required") {
+          toast.error("Нужен е Pro план", {
+            description: "Прогресът е запазен.",
+            action: { label: "Pro", onClick: () => navigate("/account?tab=subscription") },
+          });
+          return;
+        }
+        throw new Error(data?.error || error?.message || "Грешка");
+      }
+      setResult({
+        risk: data.risk ?? result.risk,
+        contract: data.contract ?? result.contract,
+      });
+      setAppliedNotes(Array.isArray(data.applied) ? data.applied : ["Корекциите са приложени"]);
+      setSavedDocId(undefined);
+      toast.success("Корекциите са приложени", { description: "Прегледайте обновения документ отдясно." });
+    } catch (e: any) {
+      if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) return;
+      toast.error("Грешка при корекция", { description: String(e?.message ?? e) });
+    } finally {
+      setApplyingCorrections(false);
     }
   };
 
@@ -651,6 +701,15 @@ export default function BuildContractPage() {
             {result && (
               <div className="space-y-5 animate-fade-in">
                 <RiskMeter level={result.risk.level} score={result.risk.score} summary={result.risk.summary} />
+                <CorrectionsPanel
+                  isPro={isPro}
+                  issues={result.risk.issues || []}
+                  recommendations={result.risk.recommendations || []}
+                  loading={applyingCorrections}
+                  applied={appliedNotes}
+                  onApply={handleApplyCorrections}
+                  onUpgrade={() => navigate("/account?tab=subscription")}
+                />
                 <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft">
                   <RiskReport
                     level={result.risk.level}
