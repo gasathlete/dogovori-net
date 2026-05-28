@@ -94,6 +94,8 @@ export default function BuildContractPage() {
   const [saving, setSaving] = useState(false);
   const [isPro, setIsPro] = useState(false);
   const [appendixRefreshTick, setAppendixRefreshTick] = useState(0);
+  const [applyingCorrections, setApplyingCorrections] = useState(false);
+  const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(undefined);
 
   // Persist on every change
   useEffect(() => {
