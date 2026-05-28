@@ -418,10 +418,14 @@ export default function BuildContractPage() {
           {/* LEFT — form */}
           <section className="space-y-5">
             {!result && (
-              <div className="rounded-xl border border-gold/30 bg-gradient-card p-5 shadow-soft">
-                <div className="mb-4 flex items-center gap-2">
-                  <Bird className="h-4 w-4 text-gold" />
-                  <h1 className="font-serif text-xl font-bold text-foreground">Изготви документ</h1>
+              <div className="rounded-2xl border border-gold/25 bg-gradient-card p-6 shadow-soft md:p-7">
+                <div className="mb-3 flex items-center gap-3">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold/10 ring-1 ring-gold/30">
+                    <Sparkles className="h-4 w-4 text-gold" />
+                  </span>
+                  <h1 className="font-serif text-3xl font-bold text-foreground md:text-4xl">
+                    Изготви <span className="gold-gradient-text">документ</span>
+                  </h1>
                 </div>
                 {parentTitleParam && (
                   <div className="mb-4 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-foreground">
@@ -437,19 +441,34 @@ export default function BuildContractPage() {
                     </Button>
                   </div>
                 )}
-                <p className="mb-5 text-xs leading-relaxed text-muted-foreground">
-                  Попълнете каквото знаете. <span className="text-gold">Празните полета</span> се попълват от AI с пазарно-стандартни клаузи. Готов договор до 2 минути.
+                <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+                  Попълнете каквото знаете. <span className="text-gold">Празните полета</span> се попълват от AI с пазарно-стандартни клаузи. Готов документ до 2 минути.
                 </p>
 
-                <div className="space-y-4">
-                  <Field label="Вид документ" required>
-                    <div className="space-y-3">
+                <div className="space-y-5">
+                  {/* Document type — grouped chips in a tinted panel */}
+                  <div className="rounded-xl border border-border/60 bg-navy-light/40 p-4 space-y-4">
+                    <div className="flex items-baseline justify-between">
+                      <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        Вид документ <span className="text-gold">*</span>
+                      </label>
+                      <span className="text-[11px] italic text-muted-foreground line-clamp-1">
+                        {getDocumentType(documentType).description}
+                      </span>
+                    </div>
+                    <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
                       {DOCUMENT_TYPE_GROUPS.map((g) => {
                         const items = DOCUMENT_TYPES.filter((d) => d.group === g.id);
                         if (items.length === 0) return null;
+                        const hasActive = items.some((d) => d.id === documentType);
                         return (
-                          <div key={g.id}>
-                            <div className="mb-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                          <div key={g.id} className="space-y-2">
+                            <div
+                              className={
+                                "text-[10px] font-bold uppercase tracking-tighter " +
+                                (hasActive ? "text-gold" : "text-muted-foreground/70")
+                              }
+                            >
                               {g.label}
                             </div>
                             <div className="flex flex-wrap gap-1.5">
@@ -462,10 +481,10 @@ export default function BuildContractPage() {
                                     onClick={() => setDocumentType(d.id)}
                                     title={d.description}
                                     className={
-                                      "rounded-full border px-3 py-1 text-xs transition-colors " +
+                                      "rounded-full px-3 py-1.5 text-xs font-medium transition-all " +
                                       (active
-                                        ? "border-gold bg-gold/15 text-gold shadow-gold"
-                                        : "border-border/60 bg-card/40 text-foreground hover:border-gold/40 hover:text-gold")
+                                        ? "bg-gradient-gold text-navy shadow-gold"
+                                        : "border border-border/70 bg-card/40 text-foreground hover:border-gold/50 hover:text-gold")
                                     }
                                   >
                                     {d.shortLabel}
@@ -476,11 +495,8 @@ export default function BuildContractPage() {
                           </div>
                         );
                       })}
-                      <p className="text-[11px] italic text-muted-foreground">
-                        {getDocumentType(documentType).description}
-                      </p>
                     </div>
-                  </Field>
+                  </div>
 
                   <Field label="Заглавие на документа" required>
                     <Input
