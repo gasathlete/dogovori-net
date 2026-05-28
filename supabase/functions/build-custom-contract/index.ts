@@ -36,6 +36,8 @@ const BASE_SYSTEM_PROMPT = `Ти си български правен архит
 
 type BuildMode = "fast" | "working" | "strict";
 
+interface CustomField { key: string; label: string; value: string }
+
 interface BuildPayload {
   name: string;
   category: string;
@@ -49,6 +51,7 @@ interface BuildPayload {
   };
   partiesA: string[];
   partiesB: string[];
+  customFields?: CustomField[];  // NEW — per-type wizard fields
   subject?: string;
   term?: string;
   prices?: string;
