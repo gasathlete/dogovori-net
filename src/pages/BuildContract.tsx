@@ -251,6 +251,29 @@ export default function BuildContractPage() {
     }
   };
 
+  // After save, link the new child to the parent we came from (if any).
+  useEffect(() => {
+    if (!user || !savedDocId) return;
+    if (!parentSavedIdParam && !parentUploadedIdParam) return;
+    if (!refTypeParam) return;
+    (async () => {
+      const { linkChildToParent } = await import("@/lib/documentLinks");
+      const refNumber = refNumberParam ? Number(refNumberParam) : null;
+      const refLabel = `${getDocumentType(documentType).label}${refNumber ? ` № ${refNumber}` : ""}`;
+      await linkChildToParent({
+        user_id: user.id,
+        parent: {
+          saved_id: parentSavedIdParam ?? undefined,
+          uploaded_id: parentUploadedIdParam ?? undefined,
+        },
+        child: { saved_id: savedDocId },
+        ref_type: refTypeParam as any,
+        ref_number: refNumber,
+        ref_label: refLabel,
+      });
+    })().catch((e) => console.error("auto-link parent:", e));
+  }, [user, savedDocId, parentSavedIdParam, parentUploadedIdParam, refTypeParam, refNumberParam, documentType]);
+
   const handleExport = async (format: "pdf" | "docx") => {
     if (!result) return;
     if (!user) { goAuth(); return; }
@@ -277,7 +300,7 @@ export default function BuildContractPage() {
       if (!res.ok) {
         if (res.error === "quota_exceeded") {
           toast.error("Изчерпан безплатен лимит", {
-            description: "Купете единичен договор за 1.90€ или преминете към Pro.",
+            description: "Купете единичен документ за 1.90€ или преминете към Pro.",
             action: { label: "Виж опции", onClick: goSubscription },
           });
         } else {
@@ -286,6 +309,32 @@ export default function BuildContractPage() {
         return;
       }
       if (res.saved_document_id) setSavedDocId(res.saved_document_id);
+
+      // PDF + linked appendices → produce a merged "with appendices" PDF.
+      if (format === "pdf" && (savedDocId || res.saved_document_id)) {
+        try {
+          const { exportPDF } = await import("@/lib/exporters");
+          const parentBytes = (await exportPDF(contractWithSig, { returnBytes: true })) as Uint8Array | undefined;
+          if (parentBytes) {
+            const merged = await mergeParentWithAppendices(
+              parentBytes,
+              (res.saved_document_id ?? savedDocId) ?? null,
+              null,
+            );
+            if (merged.appended > 0) {
+              const { saveAs } = await import("file-saver");
+              const cleanTitle = finalTitle.replace(/[^\p{L}\p{N}\s-]/gu, "").trim().replace(/\s+/g, "_").slice(0, 60) || "Document";
+              saveAs(new Blob([merged.bytes], { type: "application/pdf" }), `${cleanTitle}_с_приложения.pdf`);
+              toast.success(`Прикачени ${merged.appended} приложения`, {
+                description: merged.skipped > 0 ? `${merged.skipped} файла бяха пропуснати (несъвместим формат).` : "Свален е и комбиниран PDF.",
+              });
+            }
+          }
+        } catch (e) {
+          console.error("appendix merge failed:", e);
+        }
+      }
+
       toast.success(format === "pdf" ? "PDF изтеглен" : "DOCX изтеглен", {
         description: res.free ? "Повторно сваляне (безплатно)" : "Запазен в Документи → Всички",
       });
@@ -300,7 +349,7 @@ export default function BuildContractPage() {
     if (!result) return;
     if (!user) { goAuth(); return; }
     if (savedDocId) {
-      toast.message("Договорът вече е запазен", { description: "Намерете го в Документи → Всички." });
+      toast.message("Документът вече е запазен", { description: "Намерете го в Документи → Всички." });
       return;
     }
     setSaving(true);
