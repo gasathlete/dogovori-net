@@ -5,7 +5,7 @@ import { ArrowLeft, Bird, Loader2, FileDown, FileText, Save, Wand2, Sparkles, Sh
 type BuildMode = "fast" | "working" | "strict";
 const BUILD_MODES: { id: BuildMode; label: string; short: string; description: string; icon: any }[] = [
   { id: "fast", label: "Бърз", short: "Бърз", description: "По-прости документи без висока прецизност — кратко и ясно.", icon: Zap },
-  { id: "working", label: "Работен", short: "Работен", description: "Балансирана версия с опционално надграждане.", icon: Briefcase },
+  { id: "working", label: "Разширен", short: "Разширен", description: "Балансирана версия с опционално надграждане.", icon: Briefcase },
   { id: "strict", label: "Стриктен", short: "Стриктен", description: "Подробно, високопрофесионално — съвети и стриктна правна форма.", icon: Scale },
 ];
 import { Header } from "@/components/Header";
