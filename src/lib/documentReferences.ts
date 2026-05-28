@@ -71,14 +71,18 @@ export interface DetectedReference {
   contextSentence?: string;
 }
 
+// JS \b doesn't recognize Cyrillic letters as word characters even with /u,
+// so we use explicit lookarounds that include the Cyrillic range.
+const LB = "(?<![A-Za-z\\u0400-\\u04FF])";
+const LA = "(?![A-Za-z\\u0400-\\u04FF])";
 const PATTERNS: { type: RefType; documentTypeId: DocumentTypeId; regex: RegExp; labelPrefix: string }[] = [
-  { type: "appendix",      documentTypeId: "appendix", labelPrefix: "Приложение",   regex: /\bПриложени[ея]\s*(?:№|N|номер)?\s*(\d{1,3})\b/giu },
-  { type: "annex",         documentTypeId: "annex",    labelPrefix: "Анекс",        regex: /\bАнекс\s*(?:№|N|номер)?\s*(\d{1,3})\b/giu },
-  { type: "offer",         documentTypeId: "offer",    labelPrefix: "Оферта",       regex: /\bОферт[аи]\s*(?:№|N|номер)?\s*(\d{1,3})\b/giu },
-  { type: "protocol",      documentTypeId: "protocol", labelPrefix: "Протокол",     regex: /\bПротокол\s*(?:№|N|номер)?\s*(\d{1,3})\b/giu },
-  { type: "specification", documentTypeId: "appendix", labelPrefix: "Спецификация", regex: /\bСпецификаци[яи]\s*(?:№|N|номер)?\s*(\d{1,3})\b/giu },
-  { type: "kss",           documentTypeId: "kss",      labelPrefix: "КСС",          regex: /\bКСС\s*(?:№|N|номер)?\s*(\d{1,3})?\b/gu },
-  { type: "smr",           documentTypeId: "smr",      labelPrefix: "СМР",          regex: /\bСМР\s*(?:№|N|номер)?\s*(\d{1,3})?\b/gu },
+  { type: "appendix",      documentTypeId: "appendix", labelPrefix: "Приложение",   regex: new RegExp(`${LB}Приложени[ея]\\s*(?:№|N|номер)?\\s*(\\d{1,3})${LA}`, "giu") },
+  { type: "annex",         documentTypeId: "annex",    labelPrefix: "Анекс",        regex: new RegExp(`${LB}Анекс\\s*(?:№|N|номер)?\\s*(\\d{1,3})${LA}`, "giu") },
+  { type: "offer",         documentTypeId: "offer",    labelPrefix: "Оферта",       regex: new RegExp(`${LB}Оферт[аи]\\s*(?:№|N|номер)?\\s*(\\d{1,3})${LA}`, "giu") },
+  { type: "protocol",      documentTypeId: "protocol", labelPrefix: "Протокол",     regex: new RegExp(`${LB}Протокол\\s*(?:№|N|номер)?\\s*(\\d{1,3})${LA}`, "giu") },
+  { type: "specification", documentTypeId: "appendix", labelPrefix: "Спецификация", regex: new RegExp(`${LB}Спецификаци[яи]\\s*(?:№|N|номер)?\\s*(\\d{1,3})${LA}`, "giu") },
+  { type: "kss",           documentTypeId: "kss",      labelPrefix: "КСС",          regex: new RegExp(`${LB}КСС(?:\\s*(?:№|N|номер)?\\s*(\\d{1,3}))?${LA}`, "gu") },
+  { type: "smr",           documentTypeId: "smr",      labelPrefix: "СМР",          regex: new RegExp(`${LB}СМР(?:\\s*(?:№|N|номер)?\\s*(\\d{1,3}))?${LA}`, "gu") },
 ];
 
 function sentenceAround(full: string, idx: number): string {
