@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { scrollToHash } from "@/lib/scrollToHash";
 
 const NAV = [
-  { to: "/build", label: "Изготви договор" },
+  { to: "/build", label: "Изготви документ" },
   { to: "/catalog", label: "Каталог" },
   { to: "/#sectors", label: "Сектори" },
   { to: "/blog", label: "Блог" },

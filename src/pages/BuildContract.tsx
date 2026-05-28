@@ -11,12 +11,15 @@ import { LiveDraft } from "@/components/wizard/LiveDraft";
 import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
 import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
+import { DetectedReferencesBanner } from "@/components/DetectedReferencesBanner";
 import { SECTORS, type Sector } from "@/data/sectors";
+import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, type DocumentTypeId } from "@/lib/documentReferences";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
+import { mergeParentWithAppendices } from "@/lib/appendixMerger";
 import { Seo } from "@/components/Seo";
 import { trackEvent } from "@/lib/analytics";
 
@@ -36,6 +39,15 @@ export default function BuildContractPage() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const presetCategory = searchParams.get("category") ?? "";
+  const presetDocumentType = (searchParams.get("documentType") ?? "") as DocumentTypeId | "";
+  const parentSavedIdParam = searchParams.get("parentSavedId");
+  const parentUploadedIdParam = searchParams.get("parentUploadedId");
+  const parentTitleParam = searchParams.get("parentTitle");
+  const refNumberParam = searchParams.get("refNumber");
+  const refTypeParam = searchParams.get("refType");
+  const prefillPartiesA = searchParams.get("partiesA");
+  const prefillPartiesB = searchParams.get("partiesB");
+  const prefillSubject = searchParams.get("subject");
 
   // Restore persisted state
   const persisted = useMemo(() => {
@@ -45,16 +57,26 @@ export default function BuildContractPage() {
     } catch { return null; }
   }, []);
 
-  const [name, setName] = useState<string>(persisted?.name ?? "");
+  const [documentType, setDocumentType] = useState<DocumentTypeId>(
+    (presetDocumentType as DocumentTypeId) ||
+    (persisted?.documentType as DocumentTypeId) ||
+    "contract",
+  );
+
+  const [name, setName] = useState<string>(
+    presetDocumentType && refNumberParam && parentTitleParam
+      ? `${getDocumentType(presetDocumentType).label} № ${refNumberParam} към „${parentTitleParam}"`
+      : (persisted?.name ?? "")
+  );
   const [categoryId, setCategoryId] = useState<string>(
     presetCategory && SECTORS.some((s) => s.id === presetCategory)
       ? presetCategory
       : (persisted?.categoryId ?? ""),
   );
   const [categoryOther, setCategoryOther] = useState<string>(persisted?.categoryOther ?? "");
-  const [partiesA, setPartiesA] = useState<string>(persisted?.partiesA ?? "");
-  const [partiesB, setPartiesB] = useState<string>(persisted?.partiesB ?? "");
-  const [subject, setSubject] = useState<string>(persisted?.subject ?? "");
+  const [partiesA, setPartiesA] = useState<string>(prefillPartiesA ?? persisted?.partiesA ?? "");
+  const [partiesB, setPartiesB] = useState<string>(prefillPartiesB ?? persisted?.partiesB ?? "");
+  const [subject, setSubject] = useState<string>(prefillSubject ?? persisted?.subject ?? "");
   const [term, setTerm] = useState<string>(persisted?.term ?? "");
   const [prices, setPrices] = useState<string>(persisted?.prices ?? "");
   const [obligations, setObligations] = useState<string>(persisted?.obligations ?? "");
@@ -70,23 +92,25 @@ export default function BuildContractPage() {
   const [savedDocId, setSavedDocId] = useState<string | undefined>(persisted?.savedDocId);
   const [saving, setSaving] = useState(false);
   const [isPro, setIsPro] = useState(false);
+  const [appendixRefreshTick, setAppendixRefreshTick] = useState(0);
 
   // Persist on every change
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        documentType,
         name, categoryId, categoryOther, partiesA, partiesB,
         subject, term, prices, obligations, other,
         result, signature, savedDocId,
       }));
     } catch {}
-  }, [name, categoryId, categoryOther, partiesA, partiesB, subject, term, prices, obligations, other, result, signature, savedDocId]);
+  }, [documentType, name, categoryId, categoryOther, partiesA, partiesB, subject, term, prices, obligations, other, result, signature, savedDocId]);
 
   useEffect(() => {
     trackEvent("build_contract_open");
   }, []);
 
-  // Apply preset category from URL (?category=:id) when navigating in from a sector page.
+  // Apply preset category from URL when navigating in from a sector page.
   useEffect(() => {
     if (presetCategory && SECTORS.some((s) => s.id === presetCategory) && presetCategory !== categoryId) {
       setCategoryId(presetCategory);
@@ -146,17 +170,18 @@ export default function BuildContractPage() {
   const goSubscription = () => navigate(`/account?tab=subscription`);
 
   const handleGenerate = async () => {
-    if (!name.trim()) { toast.error("Въведете име на договора"); return; }
+    const docDef = getDocumentType(documentType);
+    if (!name.trim()) { toast.error("Въведете заглавие на документа"); return; }
     if (!categoryId) { toast.error("Изберете категория"); return; }
     if (categoryId === "__other__" && !categoryOther.trim()) {
       toast.error("Въведете категория"); return;
     }
-    if (splitLines(partiesA).length === 0 || splitLines(partiesB).length === 0) {
+    if (docDef.needsParties && (splitLines(partiesA).length === 0 || splitLines(partiesB).length === 0)) {
       toast.error("Въведете поне една страна от всяка група");
       return;
     }
     if (!user) {
-      toast.info("Влезте, за да изградите договора", { description: "Прогресът ви е запазен." });
+      toast.info("Влезте, за да изградите документа", { description: "Прогресът ви е запазен." });
       goAuth();
       return;
     }
@@ -165,12 +190,18 @@ export default function BuildContractPage() {
     setGenStepIdx(0);
     const interval = setInterval(() => setGenStepIdx((i) => (i + 1) % GEN_STEPS.length), 5000);
     try {
-      trackEvent("build_contract_started", { category: categoryLabel });
+      trackEvent("build_contract_started", { category: categoryLabel, documentType });
       const { data, error } = await supabase.functions.invoke("build-custom-contract", {
         body: {
           name: name.trim(),
           category: categoryLabel,
           categorySectorId: categoryId === "__other__" ? null : categoryId,
+          documentType,
+          parentContext: parentTitleParam ? {
+            parentTitle: parentTitleParam,
+            refNumber: refNumberParam ? Number(refNumberParam) : null,
+            refType: refTypeParam ?? undefined,
+          } : undefined,
           partiesA: splitLines(partiesA),
           partiesB: splitLines(partiesB),
           subject: subject.trim(),
@@ -220,6 +251,29 @@ export default function BuildContractPage() {
     }
   };
 
+  // After save, link the new child to the parent we came from (if any).
+  useEffect(() => {
+    if (!user || !savedDocId) return;
+    if (!parentSavedIdParam && !parentUploadedIdParam) return;
+    if (!refTypeParam) return;
+    (async () => {
+      const { linkChildToParent } = await import("@/lib/documentLinks");
+      const refNumber = refNumberParam ? Number(refNumberParam) : null;
+      const refLabel = `${getDocumentType(documentType).label}${refNumber ? ` № ${refNumber}` : ""}`;
+      await linkChildToParent({
+        user_id: user.id,
+        parent: {
+          saved_id: parentSavedIdParam ?? undefined,
+          uploaded_id: parentUploadedIdParam ?? undefined,
+        },
+        child: { saved_id: savedDocId },
+        ref_type: refTypeParam as any,
+        ref_number: refNumber,
+        ref_label: refLabel,
+      });
+    })().catch((e) => console.error("auto-link parent:", e));
+  }, [user, savedDocId, parentSavedIdParam, parentUploadedIdParam, refTypeParam, refNumberParam, documentType]);
+
   const handleExport = async (format: "pdf" | "docx") => {
     if (!result) return;
     if (!user) { goAuth(); return; }
@@ -246,7 +300,7 @@ export default function BuildContractPage() {
       if (!res.ok) {
         if (res.error === "quota_exceeded") {
           toast.error("Изчерпан безплатен лимит", {
-            description: "Купете единичен договор за 1.90€ или преминете към Pro.",
+            description: "Купете единичен документ за 1.90€ или преминете към Pro.",
             action: { label: "Виж опции", onClick: goSubscription },
           });
         } else {
@@ -255,6 +309,32 @@ export default function BuildContractPage() {
         return;
       }
       if (res.saved_document_id) setSavedDocId(res.saved_document_id);
+
+      // PDF + linked appendices → produce a merged "with appendices" PDF.
+      if (format === "pdf" && (savedDocId || res.saved_document_id)) {
+        try {
+          const { exportPDF } = await import("@/lib/exporters");
+          const parentBytes = (await exportPDF(contractWithSig, { returnBytes: true })) as Uint8Array | undefined;
+          if (parentBytes) {
+            const merged = await mergeParentWithAppendices(
+              parentBytes,
+              (res.saved_document_id ?? savedDocId) ?? null,
+              null,
+            );
+            if (merged.appended > 0) {
+              const { saveAs } = await import("file-saver");
+              const cleanTitle = finalTitle.replace(/[^\p{L}\p{N}\s-]/gu, "").trim().replace(/\s+/g, "_").slice(0, 60) || "Document";
+              saveAs(new Blob([merged.bytes as BlobPart], { type: "application/pdf" }), `${cleanTitle}_с_приложения.pdf`);
+              toast.success(`Прикачени ${merged.appended} приложения`, {
+                description: merged.skipped > 0 ? `${merged.skipped} файла бяха пропуснати (несъвместим формат).` : "Свален е и комбиниран PDF.",
+              });
+            }
+          }
+        } catch (e) {
+          console.error("appendix merge failed:", e);
+        }
+      }
+
       toast.success(format === "pdf" ? "PDF изтеглен" : "DOCX изтеглен", {
         description: res.free ? "Повторно сваляне (безплатно)" : "Запазен в Документи → Всички",
       });
@@ -269,7 +349,7 @@ export default function BuildContractPage() {
     if (!result) return;
     if (!user) { goAuth(); return; }
     if (savedDocId) {
-      toast.message("Договорът вече е запазен", { description: "Намерете го в Документи → Всички." });
+      toast.message("Документът вече е запазен", { description: "Намерете го в Документи → Всички." });
       return;
     }
     setSaving(true);
@@ -300,8 +380,8 @@ export default function BuildContractPage() {
   return (
     <div className="min-h-screen">
       <Seo
-        title="Изготви договор с AI — Dogovori.net"
-        description="Опишете накратко договора — AI попълва липсващите клаузи и създава професионален документ до 2 минути, със ЗЗД/ТЗ съответствие и риск-анализ."
+        title="Изготви документ с AI — Dogovori.net"
+        description="Изгответе договор, разписка, пълномощно, декларация, оферта, фактура, протокол, анекс или приложение — AI попълва клаузите за минути, със ЗЗД/ТЗ съответствие."
         canonical="https://dogovori.net/build"
       />
       <Header />
@@ -319,7 +399,7 @@ export default function BuildContractPage() {
                 <ArrowLeft className="h-3.5 w-3.5" /> Начало
               </button>
               <span className="text-muted-foreground">/</span>
-              <span className="font-medium text-foreground">Изготви договор</span>
+              <span className="font-medium text-foreground">Изготви документ</span>
             </div>
             <div className="hidden text-muted-foreground sm:inline">≤ 2 мин · AI-подпомогнат</div>
           </div>
@@ -334,8 +414,14 @@ export default function BuildContractPage() {
               <div className="rounded-xl border border-gold/30 bg-gradient-card p-5 shadow-soft">
                 <div className="mb-4 flex items-center gap-2">
                   <Bird className="h-4 w-4 text-gold" />
-                  <h1 className="font-serif text-xl font-bold text-foreground">Изготви договор</h1>
+                  <h1 className="font-serif text-xl font-bold text-foreground">Изготви документ</h1>
                 </div>
+                {parentTitleParam && (
+                  <div className="mb-4 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-foreground">
+                    Изготвяте дъщерен документ към <span className="font-semibold">„{parentTitleParam}"</span>
+                    {refNumberParam ? ` (№ ${refNumberParam})` : ""}. След запазване ще се прикачи автоматично към основния договор.
+                  </div>
+                )}
                 {!user && (
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-foreground">
                     <span>За да изградите договор, влезте безплатно с email или Google.</span>

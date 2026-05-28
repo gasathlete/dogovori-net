@@ -1,16 +1,19 @@
-// AI generation of a custom (free-form) contract from minimal user inputs.
-// Uses Lovable AI Gateway (Gemini). Same response shape as generate-contract:
-// { risk: { level, score, summary, issues, recommendations }, contract: { title, preamble, clauses, closing } }
+// AI generation of a custom (free-form) document from minimal user inputs.
+// Supports multiple document types (contract, appendix, annex, receipt,
+// power_of_attorney, declaration, complaint, claim, notary_invitation,
+// offer, invoice, protocol, agreement, smr, kss).
+// Uses Lovable AI Gateway (Gemini).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
 import { buildCors, hashIp, clientIp } from "../_shared/cors.ts";
 import { sha256Hex, stableStringify } from "../_shared/normalize.ts";
 import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
+import { getDocumentTypeSpec, ALL_DOCUMENT_TYPE_IDS } from "../_shared/document-types.ts";
 
-const SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ). Използваш правилните понятия (Възложител/Изпълнител, Наемодател/Наемател, Продавач/Купувач, Страните, Настоящият Договор).
+const BASE_SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ, ГПК, ЗАНН, ЗАПСП, ЗННД).
 
-Потребителят е дал свободно описание на договора. Може да е оставил някои секции празни — за тях измисли пазарно-стандартни клаузи, подходящи за категорията. Никога не питай — попълвай разумно и пълно.
+Потребителят е дал свободно описание на документа. Може да е оставил някои секции празни — за тях измисли пазарно-стандартни клаузи, подходящи за вида документ и категорията. Никога не питай — попълвай разумно и пълно.
 
 Връщай СТРОГО валиден JSON (без markdown ограждания):
 {
@@ -23,21 +26,26 @@ const SYSTEM_PROMPT = `Ти си български правен архитек�
   },
   "contract": {
     "title": "...",
-    "preamble": "Днес, [ДАТА], в [ГРАД], между:\\n\\n1. [страна А] ...\\n\\n2. [страна Б] ...\\n\\nсе сключи настоящият договор:",
-    "clauses": [{"number":"I.","title":"ПРЕДМЕТ","body":"Чл. 1. ...\\nЧл. 2. ..."}],
-    "closing": "Настоящият договор се състави в два еднообразни екземпляра — по един за всяка страна."
+    "preamble": "...",
+    "clauses": [{"number":"I.","title":"...","body":"Чл. 1. ...\\nЧл. 2. ..."}],
+    "closing": "..."
   }
 }
 
-Задължителни клаузи: Предмет, Цена и плащане, Срокове, Права и задължения, Неустойки, Прекратяване, Форсмажор, Конфиденциалност (ако е приложимо), Подсъдност (СГС/Арбитраж БТПП), Частична недействителност, Заключителни.
-Номерация: римска за раздели, "Чл. N." за членове, "(1),(2)" за алинеи. Парични суми само в евро (€). Липсващи данни → плейсхолдъри в [квадратни скоби].`;
+Номерация: римска за раздели, "Чл. N." за членове, "(1),(2)" за алинеи. Парични суми само в евро (€). Липсващи данни → плейсхолдъри в [квадратни скоби]. При едностранни документи (декларация, разписка, жалба) полето "clauses" може да съдържа само 1–3 секции, а "preamble"/"closing" да са кратки.`;
 
 interface BuildPayload {
   name: string;
-  category: string; // human-readable
+  category: string;
   categorySectorId?: string | null;
-  partiesA: string[]; // list of "Възложители"
-  partiesB: string[]; // list of "Изпълнители"
+  documentType?: string;        // NEW — defaults to "contract"
+  parentContext?: {              // NEW — when building a child document
+    parentTitle?: string;
+    refNumber?: number | null;
+    refType?: string;
+  };
+  partiesA: string[];
+  partiesB: string[];
   subject?: string;
   term?: string;
   prices?: string;
@@ -143,6 +151,8 @@ Deno.serve(async (req: Request) => {
       name = "",
       category = "",
       categorySectorId = null,
+      documentType = "contract",
+      parentContext = undefined,
       partiesA = [],
       partiesB = [],
       subject = "",
@@ -158,6 +168,11 @@ Deno.serve(async (req: Request) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
+    const safeDocumentType = ALL_DOCUMENT_TYPE_IDS.includes(documentType as any)
+      ? documentType
+      : "contract";
+    const docSpec = getDocumentTypeSpec(safeDocumentType);
 
     // Illegal content guard
     const guardText = [
@@ -176,10 +191,11 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
-    // Cache key includes everything that affects output.
-    const PROMPT_VERSION = "v1";
+    const PROMPT_VERSION = "v2-doctypes";
     const cacheKeyInput = stableStringify({
       v: PROMPT_VERSION, kind: "custom",
+      documentType: safeDocumentType,
+      parentContext: parentContext ?? null,
       name, category,
       partiesA, partiesB,
       subject, term, prices, obligations, other,
@@ -193,33 +209,36 @@ Deno.serve(async (req: Request) => {
       .gte("created_at", cacheCutoff)
       .maybeSingle();
     if (cachedRow?.payload) {
-      // Skip blank-extraction on cache hit (likely already done).
       return new Response(JSON.stringify(cachedRow.payload), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const partiesAList = (partiesA.length ? partiesA : ["[Страна А]"]).map((p, i) => `  ${i + 1}. ${p}`).join("\n");
-    const partiesBList = (partiesB.length ? partiesB : ["[Страна Б]"]).map((p, i) => `  ${i + 1}. ${p}`).join("\n");
+    const partyALabel = docSpec.partyAName || "Страна А";
+    const partyBLabel = docSpec.partyBName || "Страна Б";
+    const partiesAList = (partiesA.length ? partiesA : [`[${partyALabel}]`]).map((p, i) => `  ${i + 1}. ${p}`).join("\n");
+    const partiesBList = docSpec.partyBName
+      ? (partiesB.length ? partiesB : [`[${partyBLabel}]`]).map((p, i) => `  ${i + 1}. ${p}`).join("\n")
+      : "(едностранен документ — без втора страна)";
 
-    const userPrompt = `КАТЕГОРИЯ: ${category}
-ИМЕ НА ДОГОВОРА: ${name}
+    const parentHeader = parentContext?.parentTitle
+      ? `КОНТЕКСТ: Това е дъщерен документ към основен договор „${parentContext.parentTitle}"${parentContext.refNumber ? `, под номер ${parentContext.refNumber}` : ""}.\n`
+      : "";
 
-ВЪЗЛОЖИТЕЛ/И:
+    const userPrompt = `${parentHeader}ВИД ДОКУМЕНТ: ${docSpec.label}
+КАТЕГОРИЯ: ${category}
+ЗАГЛАВИЕ: ${name}
+
+${partyALabel.toUpperCase()}/И:
 ${partiesAList}
 
-ИЗПЪЛНИТЕЛ/И:
-${partiesBList}
+${docSpec.partyBName ? `${partyBLabel.toUpperCase()}/И:\n${partiesBList}\n` : ""}
+${subject ? `ПРЕДМЕТ:\n${subject}\n` : "ПРЕДМЕТ: (не е посочен — измисли подходящ за вида документ)\n"}
+${term ? `СРОК:\n${term}\n` : ""}${prices ? `ЦЕНИ И ПЛАЩАНЕ:\n${prices}\n` : ""}${obligations ? `ЗАДЪЛЖЕНИЯ:\n${obligations}\n` : ""}${other ? `ДРУГИ КЛАУЗИ / СПЕЦИФИКИ:\n${other}\n` : ""}
+Задача: Risk Analysis (конкретни слаби места) + ПЪЛНИЯТ документ на български. Върни СТРОГО валиден JSON по схемата.`;
 
-${subject ? `ПРЕДМЕТ:\n${subject}\n` : "ПРЕДМЕТ: (не е посочен — измисли подходящ за категорията)\n"}
-${term ? `СРОК:\n${term}\n` : "СРОК: (не е посочен — приложи стандартен за категорията)\n"}
-${prices ? `ЦЕНИ И ПЛАЩАНЕ:\n${prices}\n` : "ЦЕНИ И ПЛАЩАНЕ: (не са посочени — приложи стандартен модел в евро)\n"}
-${obligations ? `ЗАДЪЛЖЕНИЯ:\n${obligations}\n` : "ЗАДЪЛЖЕНИЯ: (не са посочени — измисли пазарно-стандартни)\n"}
-${other ? `ДРУГИ КЛАУЗИ / СПЕЦИФИКИ:\n${other}\n` : "ДРУГИ КЛАУЗИ: (без специфики — приложи стандартни заключителни)\n"}
-
-Задача: Risk Analysis (конкретни слаби места за двете страни) + ПЪЛНИЯТ договор на български с всички задължителни клаузи. Върни СТРОГО валиден JSON по схемата.`;
-
-    const activeSystemPrompt = await loadActivePrompt(admin, "build-custom-contract", SYSTEM_PROMPT);
+    const composedSystem = `${BASE_SYSTEM_PROMPT}\n\n=== СПЕЦИФИКА ЗА ВИД „${docSpec.label.toUpperCase()}" ===\n${docSpec.systemAddendum}`;
+    const activeSystemPrompt = await loadActivePrompt(admin, "build-custom-contract", composedSystem);
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
