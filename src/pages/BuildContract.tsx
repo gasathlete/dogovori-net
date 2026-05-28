@@ -348,6 +348,53 @@ export default function BuildContractPage() {
     }
   };
 
+  const handleApplyCorrections = async (sel: CorrectionsSelection) => {
+    if (!result) return;
+    if (!user) {
+      toast.error("Влезте в профила си", { description: "Прогресът е запазен." });
+      navigate("/auth");
+      return;
+    }
+    if (sel.issues.length === 0 && sel.recommendations.length === 0) {
+      toast.message("Изберете поне една препоръка за корекция");
+      return;
+    }
+    setApplyingCorrections(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("apply-corrections", {
+        body: {
+          contract: result.contract,
+          risk: result.risk,
+          selectedIssues: sel.issues,
+          selectedRecommendations: sel.recommendations,
+          answers: syntheticAnswers,
+        },
+      });
+      if (error || data?.error) {
+        if (data?.error === "pro_required") {
+          toast.error("Нужен е Pro план", {
+            description: "Прогресът е запазен.",
+            action: { label: "Pro", onClick: () => navigate("/account?tab=subscription") },
+          });
+          return;
+        }
+        throw new Error(data?.error || error?.message || "Грешка");
+      }
+      setResult({
+        risk: data.risk ?? result.risk,
+        contract: data.contract ?? result.contract,
+      });
+      setAppliedNotes(Array.isArray(data.applied) ? data.applied : ["Корекциите са приложени"]);
+      setSavedDocId(undefined);
+      toast.success("Корекциите са приложени", { description: "Прегледайте обновения документ отдясно." });
+    } catch (e: any) {
+      if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) return;
+      toast.error("Грешка при корекция", { description: String(e?.message ?? e) });
+    } finally {
+      setApplyingCorrections(false);
+    }
+  };
+
   const handleSaveToProfile = async () => {
     if (!result) return;
     if (!user) { goAuth(); return; }
