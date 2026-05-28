@@ -724,9 +724,6 @@ function DocumentsTab({
               {topLevelDocs.map((d) => {
                 const childLinks = childrenOfSaved(d.id);
                 const isBundle = childLinks.length > 0;
-                const bundleTitle = isBundle
-                  ? [d.title, ...childLinks.map((l) => l.ref_label)].join(" + ")
-                  : d.title;
                 return (
                 <Link
                   key={d.id}
