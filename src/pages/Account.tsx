@@ -535,6 +535,50 @@ function DocumentsTab({
   const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name;
   const [busy, setBusy] = useState<string | null>(null);
 
+  // Bundle children: map parent_saved_id → [{ref_label, child_saved_id, child_uploaded_id}]
+  type LinkRow = {
+    parent_saved_id: string | null;
+    parent_uploaded_id: string | null;
+    child_saved_id: string | null;
+    child_uploaded_id: string | null;
+    ref_label: string;
+    ref_type: string;
+    version: number;
+  };
+  const [links, setLinks] = useState<LinkRow[]>([]);
+  useEffect(() => {
+    supabase
+      .from("document_links")
+      .select("parent_saved_id,parent_uploaded_id,child_saved_id,child_uploaded_id,ref_label,ref_type,version")
+      .is("superseded_by", null)
+      .then(({ data }) => setLinks(((data as any) ?? []) as LinkRow[]));
+  }, [docs, uploaded]);
+
+  const childrenOfSaved = (parentId: string) =>
+    links.filter((l) => l.parent_saved_id === parentId);
+  const childTitle = (l: LinkRow): string => {
+    if (l.child_saved_id) {
+      const d = docs.find((x) => x.id === l.child_saved_id);
+      if (d) return d.title;
+    }
+    if (l.child_uploaded_id) {
+      const u = uploaded.find((x) => x.id === l.child_uploaded_id);
+      if (u) return u.title;
+    }
+    return l.ref_label;
+  };
+  const childHref = (l: LinkRow): string | null => {
+    if (l.child_saved_id) return `/document/${l.child_saved_id}`;
+    if (l.child_uploaded_id) return `/uploaded/${l.child_uploaded_id}`;
+    return null;
+  };
+
+  // Hide children from the top-level list (they belong to a bundle).
+  const childSavedIds = new Set(
+    links.filter((l) => l.child_saved_id).map((l) => l.child_saved_id as string)
+  );
+  const topLevelDocs = docs.filter((d) => !childSavedIds.has(d.id));
+
   const redownload = async (d: SavedDoc, format: "pdf" | "docx") => {
     setBusy(d.id + format);
     const res = await downloadDocument({
