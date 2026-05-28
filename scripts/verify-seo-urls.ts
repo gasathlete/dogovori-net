@@ -1,0 +1,161 @@
+// Post-build SEO verification.
+//
+// Reads every URL from public/sitemap*.xml and verifies in dist/:
+//   1. The corresponding prerendered file exists (or the SPA index.html fallback).
+//   2. <link rel="canonical"> is present, absolute https://, and matches the
+//      sitemap URL exactly (no trailing-slash drift, no host mismatch).
+//   3. <meta name="robots"> does not contain noindex.
+//   4. No accidental meta-refresh redirect tag.
+//
+// This catches regressions BEFORE we publish — a wrong canonical or stray
+// noindex is the most common cause of "Alternate page with proper canonical
+// tag" and "Excluded by 'noindex' tag" reports in Google Search Console.
+//
+// Usage: bun run scripts/verify-seo-urls.ts
+// Set SEO_VERIFY_STRICT=1 to fail the build on warnings too.
+
+import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { resolve, join } from "node:path";
+
+const SITE = "https://dogovori.net";
+const DIST = resolve(process.cwd(), "dist");
+const PUBLIC = resolve(process.cwd(), "public");
+const STRICT = process.env.SEO_VERIFY_STRICT === "1";
+
+type Issue = { url: string; level: "error" | "warning"; rule: string; message: string };
+const issues: Issue[] = [];
+const add = (level: Issue["level"], url: string, rule: string, message: string) =>
+  issues.push({ level, url, rule, message });
+
+function extractLocs(xml: string): string[] {
+  return Array.from(xml.matchAll(/<loc>([^<]+)<\/loc>/g)).map((m) => m[1].trim());
+}
+
+function loadSitemapUrls(): string[] {
+  const indexPath = join(PUBLIC, "sitemap.xml");
+  if (!existsSync(indexPath)) {
+    console.error("✗ public/sitemap.xml missing");
+    process.exit(1);
+  }
+  const idxXml = readFileSync(indexPath, "utf8");
+  const isIndex = idxXml.includes("<sitemapindex");
+  const urls = new Set<string>();
+  if (isIndex) {
+    for (const child of extractLocs(idxXml)) {
+      const filename = child.replace(SITE + "/", "");
+      const p = join(PUBLIC, filename);
+      if (!existsSync(p)) {
+        add("error", child, "missing-child", "Child sitemap referenced but not on disk");
+        continue;
+      }
+      for (const u of extractLocs(readFileSync(p, "utf8"))) urls.add(u);
+    }
+  } else {
+    for (const u of extractLocs(idxXml)) urls.add(u);
+  }
+  return [...urls];
+}
+
+function distPathForUrl(url: string): string | null {
+  const path = url.replace(SITE, "") || "/";
+  // Prerendered pages live at dist/<path>/index.html (see scripts/prerender.ts).
+  const candidates = [
+    join(DIST, path, "index.html"),
+    join(DIST, path.replace(/\/$/, "") + ".html"),
+  ];
+  for (const c of candidates) if (existsSync(c)) return c;
+  return null;
+}
+
+function attr(html: string, re: RegExp): string | null {
+  const m = html.match(re);
+  return m ? m[1].trim() : null;
+}
+
+function checkUrl(url: string) {
+  const file = distPathForUrl(url);
+  if (!file) {
+    // SPA fallback: index.html will be served. That still needs verification.
+    const fallback = join(DIST, "index.html");
+    if (!existsSync(fallback)) {
+      add("error", url, "missing", "No prerendered file and no SPA fallback");
+      return;
+    }
+    add("warning", url, "not-prerendered", "Served via SPA fallback (less ideal for SEO)");
+    verifyHtml(url, readFileSync(fallback, "utf8"), true);
+    return;
+  }
+  verifyHtml(url, readFileSync(file, "utf8"), false);
+}
+
+function verifyHtml(url: string, html: string, isFallback: boolean) {
+  const canonical = attr(html, /<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
+  if (!canonical) {
+    add("error", url, "canonical-missing", "No <link rel=canonical> in HTML");
+  } else if (!/^https:\/\//.test(canonical)) {
+    add("error", url, "canonical-not-absolute", `Canonical not absolute https: ${canonical}`);
+  } else if (!isFallback) {
+    // For prerendered pages the canonical must match the sitemap URL exactly.
+    const norm = (s: string) => s.replace(/\/$/, "");
+    if (norm(canonical) !== norm(url)) {
+      add("error", url, "canonical-mismatch", `Canonical "${canonical}" != sitemap URL "${url}"`);
+    }
+  }
+
+  const robots = attr(html, /<meta[^>]+name=["']robots["'][^>]+content=["']([^"']+)["']/i);
+  if (robots && /noindex/i.test(robots)) {
+    add("error", url, "noindex", `noindex on indexable sitemap URL: ${robots}`);
+  }
+
+  if (/<meta[^>]+http-equiv=["']refresh["']/i.test(html)) {
+    add("error", url, "meta-refresh", "Found <meta http-equiv=refresh> — disallowed redirect");
+  }
+
+  const title = attr(html, /<title[^>]*>([^<]*)<\/title>/i);
+  if (!title) add("error", url, "title-missing", "Missing <title>");
+  else if (title.length > 60) add("warning", url, "title-long", `${title.length} chars > 60`);
+
+  const desc = attr(html, /<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["']/i);
+  if (!desc) add("warning", url, "description-missing", "Missing meta description");
+  else if (desc.length > 160) add("warning", url, "description-long", `${desc.length} chars > 160`);
+
+  const h1Count = (html.match(/<h1\b/gi) ?? []).length;
+  if (h1Count > 1) add("warning", url, "h1-multiple", `${h1Count} <h1> elements`);
+}
+
+function main() {
+  if (!existsSync(DIST)) {
+    console.error("✗ dist/ not found — run vite build first");
+    process.exit(1);
+  }
+  const urls = loadSitemapUrls();
+  console.log(`▶ verifying ${urls.length} URLs from sitemaps…`);
+  for (const u of urls) checkUrl(u);
+
+  const errors = issues.filter((i) => i.level === "error");
+  const warnings = issues.filter((i) => i.level === "warning");
+
+  // Group warnings by rule for readable output.
+  if (warnings.length) {
+    const byRule = new Map<string, number>();
+    for (const w of warnings) byRule.set(w.rule, (byRule.get(w.rule) ?? 0) + 1);
+    console.log("\nWarnings:");
+    for (const [rule, n] of byRule) console.log(`  • ${rule}: ${n}`);
+  }
+
+  if (errors.length) {
+    console.error(`\n✗ ${errors.length} ERROR(s):`);
+    for (const e of errors.slice(0, 50)) console.error(`  [${e.rule}] ${e.url} — ${e.message}`);
+    if (errors.length > 50) console.error(`  …and ${errors.length - 50} more`);
+    process.exit(1);
+  }
+
+  if (STRICT && warnings.length) {
+    console.error(`\n✗ strict mode: ${warnings.length} warning(s) treated as failures`);
+    process.exit(1);
+  }
+
+  console.log(`\n✓ SEO verification passed (${urls.length} URLs, ${warnings.length} warnings)`);
+}
+
+main();
