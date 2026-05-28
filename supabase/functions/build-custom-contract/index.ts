@@ -229,10 +229,11 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
-    const PROMPT_VERSION = "v2-doctypes";
+    const PROMPT_VERSION = "v3-buildmode";
     const cacheKeyInput = stableStringify({
       v: PROMPT_VERSION, kind: "custom",
       documentType: safeDocumentType,
+      buildMode: safeBuildMode,
       parentContext: parentContext ?? null,
       name, category,
       partiesA, partiesB,
