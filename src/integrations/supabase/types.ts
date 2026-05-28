@@ -522,6 +522,90 @@ export type Database = {
         }
         Relationships: []
       }
+      document_links: {
+        Row: {
+          child_saved_id: string | null
+          child_uploaded_id: string | null
+          created_at: string
+          id: string
+          parent_saved_id: string | null
+          parent_uploaded_id: string | null
+          ref_label: string
+          ref_number: number | null
+          ref_type: string
+          superseded_by: string | null
+          team_id: string | null
+          user_id: string
+          version: number
+        }
+        Insert: {
+          child_saved_id?: string | null
+          child_uploaded_id?: string | null
+          created_at?: string
+          id?: string
+          parent_saved_id?: string | null
+          parent_uploaded_id?: string | null
+          ref_label: string
+          ref_number?: number | null
+          ref_type: string
+          superseded_by?: string | null
+          team_id?: string | null
+          user_id: string
+          version?: number
+        }
+        Update: {
+          child_saved_id?: string | null
+          child_uploaded_id?: string | null
+          created_at?: string
+          id?: string
+          parent_saved_id?: string | null
+          parent_uploaded_id?: string | null
+          ref_label?: string
+          ref_number?: number | null
+          ref_type?: string
+          superseded_by?: string | null
+          team_id?: string | null
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_links_child_saved_id_fkey"
+            columns: ["child_saved_id"]
+            isOneToOne: false
+            referencedRelation: "saved_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_links_child_uploaded_id_fkey"
+            columns: ["child_uploaded_id"]
+            isOneToOne: false
+            referencedRelation: "uploaded_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_links_parent_saved_id_fkey"
+            columns: ["parent_saved_id"]
+            isOneToOne: false
+            referencedRelation: "saved_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_links_parent_uploaded_id_fkey"
+            columns: ["parent_uploaded_id"]
+            isOneToOne: false
+            referencedRelation: "uploaded_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_links_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "document_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       download_quota: {
         Row: {
           analyses_used: number
