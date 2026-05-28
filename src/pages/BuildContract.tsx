@@ -855,7 +855,7 @@ export default function BuildContractPage() {
                       setResult(null);
                       setName(""); setCategoryId(""); setCategoryOther("");
                       setPartiesA(""); setPartiesB("");
-                      setSubject(""); setTerm(""); setPrices(""); setObligations(""); setOther("");
+                      setFieldValues({});
                       setSavedDocId(undefined);
                       setSignature({ name_a: "", name_b: "", city: "", date: "" });
                     }}
@@ -887,7 +887,7 @@ export default function BuildContractPage() {
                     parentContext={{
                       partiesA: splitLines(partiesA),
                       partiesB: splitLines(partiesB),
-                      subject: subject.trim(),
+                      subject: (fieldValues.subject ?? "").trim(),
                     }}
                     onChildLinked={() => setAppendixRefreshTick((t) => t + 1)}
                   />
