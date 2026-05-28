@@ -547,7 +547,7 @@ export default function BuildContractPage() {
                     {generating ? (
                       <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Изготвяне…</>
                     ) : (
-                      <><Wand2 className="mr-2 h-4 w-4" /> Изгради договор (≤ 2 мин.)</>
+                      <><Wand2 className="mr-2 h-4 w-4" /> Изготви документ (≤ 2 мин.)</>
                     )}
                   </Button>
 
@@ -668,7 +668,7 @@ export default function BuildContractPage() {
               <div className="rounded-md border border-dashed border-foreground/20 bg-card/40 p-8 text-center">
                 <Bird className="mx-auto mb-3 h-8 w-8 text-gold/60" />
                 <p className="text-sm text-muted-foreground">
-                  След като попълните формата и натиснете <span className="text-gold">„Изгради договор"</span>,<br />
+                  След като попълните формата и натиснете <span className="text-gold">„Изготви документ"</span>,<br />
                   тук ще се появи готовият документ.
                 </p>
               </div>
