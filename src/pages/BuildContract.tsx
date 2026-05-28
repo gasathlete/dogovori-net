@@ -88,11 +88,20 @@ export default function BuildContractPage() {
   const [categoryOther, setCategoryOther] = useState<string>(persisted?.categoryOther ?? "");
   const [partiesA, setPartiesA] = useState<string>(prefillPartiesA ?? persisted?.partiesA ?? "");
   const [partiesB, setPartiesB] = useState<string>(prefillPartiesB ?? persisted?.partiesB ?? "");
-  const [subject, setSubject] = useState<string>(prefillSubject ?? persisted?.subject ?? "");
-  const [term, setTerm] = useState<string>(persisted?.term ?? "");
-  const [prices, setPrices] = useState<string>(persisted?.prices ?? "");
-  const [obligations, setObligations] = useState<string>(persisted?.obligations ?? "");
-  const [other, setOther] = useState<string>(persisted?.other ?? "");
+  // Dynamic per-document-type field values (key -> value)
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>(() => {
+    const fromPersisted: Record<string, string> = (persisted?.fieldValues && typeof persisted.fieldValues === "object")
+      ? { ...persisted.fieldValues }
+      : {};
+    // Back-compat: migrate old flat keys from persisted state
+    for (const k of ["subject", "term", "prices", "obligations", "other"] as const) {
+      if (persisted?.[k] && !fromPersisted[k]) fromPersisted[k] = persisted[k];
+    }
+    if (prefillSubject) fromPersisted.subject = prefillSubject;
+    return fromPersisted;
+  });
+  const setField = (key: string, value: string) =>
+    setFieldValues((prev) => ({ ...prev, [key]: value }));
 
   const [generating, setGenerating] = useState(false);
   const [genStepIdx, setGenStepIdx] = useState(0);
