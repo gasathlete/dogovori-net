@@ -216,11 +216,17 @@ Deno.serve(async (req: Request) => {
       : "contract";
     const docSpec = getDocumentTypeSpec(safeDocumentType);
 
+    const safeCustomFields: CustomField[] = Array.isArray(customFields)
+      ? customFields.filter((f) => f && typeof f.key === "string" && typeof f.label === "string")
+        .map((f) => ({ key: String(f.key), label: String(f.label), value: String(f.value ?? "") }))
+      : [];
+
     // Illegal content guard
     const guardText = [
       name, category,
       ...(partiesA ?? []), ...(partiesB ?? []),
       subject, term, prices, obligations, other,
+      ...safeCustomFields.map((f) => f.value),
     ].join("\n");
     const blocked = await guardIllegalContent({
       admin, text: guardText, functionName: "build-custom-contract",
@@ -233,7 +239,7 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
-    const PROMPT_VERSION = "v3-buildmode";
+    const PROMPT_VERSION = "v4-perTypeFields";
     const cacheKeyInput = stableStringify({
       v: PROMPT_VERSION, kind: "custom",
       documentType: safeDocumentType,
@@ -241,6 +247,7 @@ Deno.serve(async (req: Request) => {
       parentContext: parentContext ?? null,
       name, category,
       partiesA, partiesB,
+      customFields: safeCustomFields,
       subject, term, prices, obligations, other,
     });
     const cacheHash = await sha256Hex(cacheKeyInput);
