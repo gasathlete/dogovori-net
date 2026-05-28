@@ -13,7 +13,7 @@ import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
 import { DetectedReferencesBanner } from "@/components/DetectedReferencesBanner";
 import { SECTORS, type Sector } from "@/data/sectors";
-import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, type DocumentTypeId } from "@/lib/documentReferences";
+import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, collectContractText, type DocumentTypeId } from "@/lib/documentReferences";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -435,11 +435,51 @@ export default function BuildContractPage() {
                 </p>
 
                 <div className="space-y-4">
-                  <Field label="Име на договора" required>
+                  <Field label="Вид документ" required>
+                    <div className="space-y-3">
+                      {DOCUMENT_TYPE_GROUPS.map((g) => {
+                        const items = DOCUMENT_TYPES.filter((d) => d.group === g.id);
+                        if (items.length === 0) return null;
+                        return (
+                          <div key={g.id}>
+                            <div className="mb-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                              {g.label}
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {items.map((d) => {
+                                const active = documentType === d.id;
+                                return (
+                                  <button
+                                    key={d.id}
+                                    type="button"
+                                    onClick={() => setDocumentType(d.id)}
+                                    title={d.description}
+                                    className={
+                                      "rounded-full border px-3 py-1 text-xs transition-colors " +
+                                      (active
+                                        ? "border-gold bg-gold/15 text-gold shadow-gold"
+                                        : "border-border/60 bg-card/40 text-foreground hover:border-gold/40 hover:text-gold")
+                                    }
+                                  >
+                                    {d.shortLabel}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <p className="text-[11px] italic text-muted-foreground">
+                        {getDocumentType(documentType).description}
+                      </p>
+                    </div>
+                  </Field>
+
+                  <Field label="Заглавие на документа" required>
                     <Input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="напр. Договор за разработка на мобилно приложение"
+                      placeholder={`напр. ${getDocumentType(documentType).label} за…`}
                       className="bg-input/60 text-base"
                     />
                   </Field>
@@ -468,26 +508,41 @@ export default function BuildContractPage() {
                     </div>
                   </Field>
 
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Възложител/и" help="По един на ред" required>
+                  {getDocumentType(documentType).needsParties ? (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Възложител/и" help="По един на ред" required>
+                        <Textarea
+                          value={partiesA}
+                          onChange={(e) => setPartiesA(e.target.value)}
+                          placeholder={'„Алфа Софт" ЕООД, ЕИК...\nИван Иванов'}
+                          rows={3}
+                          className="bg-input/60 text-sm"
+                        />
+                      </Field>
+                      <Field label="Изпълнител/и" help="По един на ред" required>
+                        <Textarea
+                          value={partiesB}
+                          onChange={(e) => setPartiesB(e.target.value)}
+                          placeholder={'„Бета Дизайн" ООД, ЕИК...'}
+                          rows={3}
+                          className="bg-input/60 text-sm"
+                        />
+                      </Field>
+                    </div>
+                  ) : (
+                    <Field label="Деклариращ / съставител" help="Имена, адрес, ЕГН (по избор)" required>
                       <Textarea
                         value={partiesA}
                         onChange={(e) => setPartiesA(e.target.value)}
-                        placeholder={'„Алфа Софт" ЕООД, ЕИК...\nИван Иванов'}
+                        placeholder={'Иван Петров Иванов, ЕГН ..., адрес ...'}
                         rows={3}
                         className="bg-input/60 text-sm"
                       />
+                      <p className="mt-1 text-[11px] italic text-muted-foreground">
+                        „{getDocumentType(documentType).label}" е едностранен документ — насрещна страна не се изисква.
+                      </p>
                     </Field>
-                    <Field label="Изпълнител/и" help="По един на ред" required>
-                      <Textarea
-                        value={partiesB}
-                        onChange={(e) => setPartiesB(e.target.value)}
-                        placeholder={'„Бета Дизайн" ООД, ЕИК...'}
-                        rows={3}
-                        className="bg-input/60 text-sm"
-                      />
-                    </Field>
-                  </div>
+                  )}
 
                   <Field label="Предмет" hint="празно → AI предлага">
                     <Textarea
@@ -652,18 +707,34 @@ export default function BuildContractPage() {
               {!result && <span className="text-xs text-muted-foreground">Попълнете формата отляво</span>}
             </div>
             {result ? (
-              <LiveDraft
-                sector={syntheticSector}
-                answers={syntheticAnswers}
-                generated={result.contract}
-                signature={signature}
-                isPro={isPro}
-                onContractChange={(next) => {
-                  if (!result) return;
-                  setResult({ ...result, contract: { ...result.contract, ...next } });
-                  setSavedDocId(undefined);
-                }}
-              />
+              <div className="space-y-4">
+                {savedDocId && (
+                  <DetectedReferencesBanner
+                    key={appendixRefreshTick}
+                    text={collectContractText(result.contract)}
+                    parentSavedId={savedDocId}
+                    parentTitle={name || result.contract.title}
+                    parentContext={{
+                      partiesA: splitLines(partiesA),
+                      partiesB: splitLines(partiesB),
+                      subject: subject.trim(),
+                    }}
+                    onChildLinked={() => setAppendixRefreshTick((t) => t + 1)}
+                  />
+                )}
+                <LiveDraft
+                  sector={syntheticSector}
+                  answers={syntheticAnswers}
+                  generated={result.contract}
+                  signature={signature}
+                  isPro={isPro}
+                  onContractChange={(next) => {
+                    if (!result) return;
+                    setResult({ ...result, contract: { ...result.contract, ...next } });
+                    setSavedDocId(undefined);
+                  }}
+                />
+              </div>
             ) : (
               <div className="rounded-md border border-dashed border-foreground/20 bg-card/40 p-8 text-center">
                 <Bird className="mx-auto mb-3 h-8 w-8 text-gold/60" />
