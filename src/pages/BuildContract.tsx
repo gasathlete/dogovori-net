@@ -435,11 +435,51 @@ export default function BuildContractPage() {
                 </p>
 
                 <div className="space-y-4">
-                  <Field label="Име на договора" required>
+                  <Field label="Вид документ" required>
+                    <div className="space-y-3">
+                      {DOCUMENT_TYPE_GROUPS.map((g) => {
+                        const items = DOCUMENT_TYPES.filter((d) => d.group === g.id);
+                        if (items.length === 0) return null;
+                        return (
+                          <div key={g.id}>
+                            <div className="mb-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                              {g.label}
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {items.map((d) => {
+                                const active = documentType === d.id;
+                                return (
+                                  <button
+                                    key={d.id}
+                                    type="button"
+                                    onClick={() => setDocumentType(d.id)}
+                                    title={d.description}
+                                    className={
+                                      "rounded-full border px-3 py-1 text-xs transition-colors " +
+                                      (active
+                                        ? "border-gold bg-gold/15 text-gold shadow-gold"
+                                        : "border-border/60 bg-card/40 text-foreground hover:border-gold/40 hover:text-gold")
+                                    }
+                                  >
+                                    {d.shortLabel}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <p className="text-[11px] italic text-muted-foreground">
+                        {getDocumentType(documentType).description}
+                      </p>
+                    </div>
+                  </Field>
+
+                  <Field label="Заглавие на документа" required>
                     <Input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="напр. Договор за разработка на мобилно приложение"
+                      placeholder={`напр. ${getDocumentType(documentType).label} за…`}
                       className="bg-input/60 text-base"
                     />
                   </Field>
@@ -468,26 +508,41 @@ export default function BuildContractPage() {
                     </div>
                   </Field>
 
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Възложител/и" help="По един на ред" required>
+                  {getDocumentType(documentType).needsParties ? (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Възложител/и" help="По един на ред" required>
+                        <Textarea
+                          value={partiesA}
+                          onChange={(e) => setPartiesA(e.target.value)}
+                          placeholder={'„Алфа Софт" ЕООД, ЕИК...\nИван Иванов'}
+                          rows={3}
+                          className="bg-input/60 text-sm"
+                        />
+                      </Field>
+                      <Field label="Изпълнител/и" help="По един на ред" required>
+                        <Textarea
+                          value={partiesB}
+                          onChange={(e) => setPartiesB(e.target.value)}
+                          placeholder={'„Бета Дизайн" ООД, ЕИК...'}
+                          rows={3}
+                          className="bg-input/60 text-sm"
+                        />
+                      </Field>
+                    </div>
+                  ) : (
+                    <Field label="Деклариращ / съставител" help="Имена, адрес, ЕГН (по избор)" required>
                       <Textarea
                         value={partiesA}
                         onChange={(e) => setPartiesA(e.target.value)}
-                        placeholder={'„Алфа Софт" ЕООД, ЕИК...\nИван Иванов'}
+                        placeholder={'Иван Петров Иванов, ЕГН ..., адрес ...'}
                         rows={3}
                         className="bg-input/60 text-sm"
                       />
+                      <p className="mt-1 text-[11px] italic text-muted-foreground">
+                        „{getDocumentType(documentType).label}" е едностранен документ — насрещна страна не се изисква.
+                      </p>
                     </Field>
-                    <Field label="Изпълнител/и" help="По един на ред" required>
-                      <Textarea
-                        value={partiesB}
-                        onChange={(e) => setPartiesB(e.target.value)}
-                        placeholder={'„Бета Дизайн" ООД, ЕИК...'}
-                        rows={3}
-                        className="bg-input/60 text-sm"
-                      />
-                    </Field>
-                  </div>
+                  )}
 
                   <Field label="Предмет" hint="празно → AI предлага">
                     <Textarea
