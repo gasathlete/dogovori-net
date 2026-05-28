@@ -210,6 +210,7 @@ export default function BuildContractPage() {
           category: categoryLabel,
           categorySectorId: categoryId === "__other__" ? null : categoryId,
           documentType,
+          buildMode,
           parentContext: parentTitleParam ? {
             parentTitle: parentTitleParam,
             refNumber: refNumberParam ? Number(refNumberParam) : null,
