@@ -535,6 +535,50 @@ function DocumentsTab({
   const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name;
   const [busy, setBusy] = useState<string | null>(null);
 
+  // Bundle children: map parent_saved_id → [{ref_label, child_saved_id, child_uploaded_id}]
+  type LinkRow = {
+    parent_saved_id: string | null;
+    parent_uploaded_id: string | null;
+    child_saved_id: string | null;
+    child_uploaded_id: string | null;
+    ref_label: string;
+    ref_type: string;
+    version: number;
+  };
+  const [links, setLinks] = useState<LinkRow[]>([]);
+  useEffect(() => {
+    supabase
+      .from("document_links")
+      .select("parent_saved_id,parent_uploaded_id,child_saved_id,child_uploaded_id,ref_label,ref_type,version")
+      .is("superseded_by", null)
+      .then(({ data }) => setLinks(((data as any) ?? []) as LinkRow[]));
+  }, [docs, uploaded]);
+
+  const childrenOfSaved = (parentId: string) =>
+    links.filter((l) => l.parent_saved_id === parentId);
+  const childTitle = (l: LinkRow): string => {
+    if (l.child_saved_id) {
+      const d = docs.find((x) => x.id === l.child_saved_id);
+      if (d) return d.title;
+    }
+    if (l.child_uploaded_id) {
+      const u = uploaded.find((x) => x.id === l.child_uploaded_id);
+      if (u) return u.title;
+    }
+    return l.ref_label;
+  };
+  const childHref = (l: LinkRow): string | null => {
+    if (l.child_saved_id) return `/document/${l.child_saved_id}`;
+    if (l.child_uploaded_id) return `/uploaded/${l.child_uploaded_id}`;
+    return null;
+  };
+
+  // Hide children from the top-level list (they belong to a bundle).
+  const childSavedIds = new Set(
+    links.filter((l) => l.child_saved_id).map((l) => l.child_saved_id as string)
+  );
+  const topLevelDocs = docs.filter((d) => !childSavedIds.has(d.id));
+
   const redownload = async (d: SavedDoc, format: "pdf" | "docx") => {
     setBusy(d.id + format);
     const res = await downloadDocument({
@@ -671,13 +715,16 @@ function DocumentsTab({
               </button>
             </div>
           )}
-          {docs.length === 0 ? (
+          {topLevelDocs.length === 0 ? (
             <div className="rounded-xl border border-border/60 bg-gradient-card p-10 text-center text-sm text-muted-foreground">
               {activeContactName ? "Няма договори за този контрагент." : "Тази папка е празна."}
             </div>
           ) : (
             <div className="grid gap-3">
-              {docs.map((d) => (
+              {topLevelDocs.map((d) => {
+                const childLinks = childrenOfSaved(d.id);
+                const isBundle = childLinks.length > 0;
+                return (
                 <Link
                   key={d.id}
                   to={`/document/${d.id}`}
@@ -688,12 +735,39 @@ function DocumentsTab({
                       <div className="break-words font-serif text-base font-bold transition-colors group-hover:text-gold">{d.title}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         {d.kind === "contract" ? "Договор" : "Бланка"} · {new Date(d.created_at).toLocaleDateString("bg-BG")}
+                        {isBundle && (
+                          <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-emerald-300">
+                            Комплект · {childLinks.length + 1} док.
+                          </span>
+                        )}
                         {contactName(d.contact_id) && (
                           <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-gold/30 bg-gold/5 px-2 py-0.5 text-[10px] uppercase tracking-wider text-gold">
                             <Users className="h-3 w-3" /> {contactName(d.contact_id)}
                           </span>
                         )}
                       </div>
+                      {isBundle && (
+                        <div className="mt-2.5 flex flex-wrap gap-1.5" onClick={(e) => e.preventDefault()}>
+                          {childLinks.map((l, idx) => {
+                            const href = childHref(l);
+                            const label = childTitle(l);
+                            const chip = (
+                              <span className="inline-flex items-center gap-1 rounded-md border border-gold/30 bg-gold/5 px-2 py-1 text-[11px] text-foreground hover:border-gold/60 hover:text-gold">
+                                <FileText className="h-3 w-3 text-gold/70" />
+                                <span className="max-w-[180px] truncate">{label}</span>
+                              </span>
+                            );
+                            return href ? (
+                              <Link key={idx} to={href}>{chip}</Link>
+                            ) : (
+                              <span key={idx}>{chip}</span>
+                            );
+                          })}
+                          <span className="text-[11px] italic text-muted-foreground">
+                            прикачват се автоматично към PDF
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div
                       className="flex flex-wrap items-center gap-1.5"
@@ -719,7 +793,7 @@ function DocumentsTab({
                     </div>
                   </div>
                 </Link>
-              ))}
+              );})}
             </div>
           )}
         </section>

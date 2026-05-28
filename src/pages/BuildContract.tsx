@@ -254,6 +254,33 @@ export default function BuildContractPage() {
     }
   };
 
+  // Auto-save the parent right after generation so children can be linked immediately.
+  // This unlocks the "create appendix/КСС" flow without waiting for an explicit Save click.
+  useEffect(() => {
+    if (!result || !user || savedDocId || saving) return;
+    (async () => {
+      try {
+        const finalTitle = (name || result.contract.title).trim() || result.contract.title;
+        const { data, error } = await supabase
+          .from("saved_documents")
+          .insert({
+            user_id: user.id,
+            kind: "contract",
+            title: finalTitle,
+            payload: { ...result.contract, title: finalTitle } as any,
+            source_id: categoryId === "__other__" ? "custom" : categoryId,
+          })
+          .select("id")
+          .single();
+        if (error) throw error;
+        setSavedDocId(data.id);
+      } catch (e) {
+        console.error("auto-save parent failed:", e);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result, user]);
+
   // After save, link the new child to the parent we came from (if any).
   useEffect(() => {
     if (!user || !savedDocId) return;
@@ -790,20 +817,18 @@ export default function BuildContractPage() {
                   </div>
                 </div>
                 <div className="space-y-4">
-                  {savedDocId && (
-                    <DetectedReferencesBanner
-                      key={appendixRefreshTick}
-                      text={collectContractText(result.contract)}
-                      parentSavedId={savedDocId}
-                      parentTitle={name || result.contract.title}
-                      parentContext={{
-                        partiesA: splitLines(partiesA),
-                        partiesB: splitLines(partiesB),
-                        subject: subject.trim(),
-                      }}
-                      onChildLinked={() => setAppendixRefreshTick((t) => t + 1)}
-                    />
-                  )}
+                  <DetectedReferencesBanner
+                    key={appendixRefreshTick}
+                    text={collectContractText(result.contract)}
+                    parentSavedId={savedDocId ?? null}
+                    parentTitle={name || result.contract.title}
+                    parentContext={{
+                      partiesA: splitLines(partiesA),
+                      partiesB: splitLines(partiesB),
+                      subject: subject.trim(),
+                    }}
+                    onChildLinked={() => setAppendixRefreshTick((t) => t + 1)}
+                  />
                   <LiveDraft
                     sector={syntheticSector}
                     answers={syntheticAnswers}
