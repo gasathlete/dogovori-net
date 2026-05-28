@@ -11,12 +11,15 @@ import { LiveDraft } from "@/components/wizard/LiveDraft";
 import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
 import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
+import { DetectedReferencesBanner } from "@/components/DetectedReferencesBanner";
 import { SECTORS, type Sector } from "@/data/sectors";
+import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, type DocumentTypeId } from "@/lib/documentReferences";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
+import { mergeParentWithAppendices } from "@/lib/appendixMerger";
 import { Seo } from "@/components/Seo";
 import { trackEvent } from "@/lib/analytics";
 
