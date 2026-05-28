@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Bird, Loader2, FileDown, FileText, Save, Wand2 } from "lucide-react";
+import { ArrowLeft, Bird, Loader2, FileDown, FileText, Save, Wand2, Sparkles, ShieldCheck, FileSignature, Lightbulb } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
