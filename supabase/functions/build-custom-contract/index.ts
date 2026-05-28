@@ -1,16 +1,19 @@
-// AI generation of a custom (free-form) contract from minimal user inputs.
-// Uses Lovable AI Gateway (Gemini). Same response shape as generate-contract:
-// { risk: { level, score, summary, issues, recommendations }, contract: { title, preamble, clauses, closing } }
+// AI generation of a custom (free-form) document from minimal user inputs.
+// Supports multiple document types (contract, appendix, annex, receipt,
+// power_of_attorney, declaration, complaint, claim, notary_invitation,
+// offer, invoice, protocol, agreement, smr, kss).
+// Uses Lovable AI Gateway (Gemini).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
 import { buildCors, hashIp, clientIp } from "../_shared/cors.ts";
 import { sha256Hex, stableStringify } from "../_shared/normalize.ts";
 import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
+import { getDocumentTypeSpec, ALL_DOCUMENT_TYPE_IDS } from "../_shared/document-types.ts";
 
-const SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ). Използваш правилните понятия (Възложител/Изпълнител, Наемодател/Наемател, Продавач/Купувач, Страните, Настоящият Договор).
+const BASE_SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ, ГПК, ЗАНН, ЗАПСП, ЗННД).
 
-Потребителят е дал свободно описание на договора. Може да е оставил някои секции празни — за тях измисли пазарно-стандартни клаузи, подходящи за категорията. Никога не питай — попълвай разумно и пълно.
+Потребителят е дал свободно описание на документа. Може да е оставил някои секции празни — за тях измисли пазарно-стандартни клаузи, подходящи за вида документ и категорията. Никога не питай — попълвай разумно и пълно.
 
 Връщай СТРОГО валиден JSON (без markdown ограждания):
 {
@@ -23,21 +26,26 @@ const SYSTEM_PROMPT = `Ти си български правен архитек�
   },
   "contract": {
     "title": "...",
-    "preamble": "Днес, [ДАТА], в [ГРАД], между:\\n\\n1. [страна А] ...\\n\\n2. [страна Б] ...\\n\\nсе сключи настоящият договор:",
-    "clauses": [{"number":"I.","title":"ПРЕДМЕТ","body":"Чл. 1. ...\\nЧл. 2. ..."}],
-    "closing": "Настоящият договор се състави в два еднообразни екземпляра — по един за всяка страна."
+    "preamble": "...",
+    "clauses": [{"number":"I.","title":"...","body":"Чл. 1. ...\\nЧл. 2. ..."}],
+    "closing": "..."
   }
 }
 
-Задължителни клаузи: Предмет, Цена и плащане, Срокове, Права и задължения, Неустойки, Прекратяване, Форсмажор, Конфиденциалност (ако е приложимо), Подсъдност (СГС/Арбитраж БТПП), Частична недействителност, Заключителни.
-Номерация: римска за раздели, "Чл. N." за членове, "(1),(2)" за алинеи. Парични суми само в евро (€). Липсващи данни → плейсхолдъри в [квадратни скоби].`;
+Номерация: римска за раздели, "Чл. N." за членове, "(1),(2)" за алинеи. Парични суми само в евро (€). Липсващи данни → плейсхолдъри в [квадратни скоби]. При едностранни документи (декларация, разписка, жалба) полето "clauses" може да съдържа само 1–3 секции, а "preamble"/"closing" да са кратки.`;
 
 interface BuildPayload {
   name: string;
-  category: string; // human-readable
+  category: string;
   categorySectorId?: string | null;
-  partiesA: string[]; // list of "Възложители"
-  partiesB: string[]; // list of "Изпълнители"
+  documentType?: string;        // NEW — defaults to "contract"
+  parentContext?: {              // NEW — when building a child document
+    parentTitle?: string;
+    refNumber?: number | null;
+    refType?: string;
+  };
+  partiesA: string[];
+  partiesB: string[];
   subject?: string;
   term?: string;
   prices?: string;
