@@ -87,7 +87,10 @@ export interface WatermarkOpts {
 // across contract and template exports.
 
 
-export async function exportPDF(c: GeneratedContract, opts?: WatermarkOpts) {
+export async function exportPDF(
+  c: GeneratedContract,
+  opts?: WatermarkOpts & { returnBytes?: boolean },
+): Promise<Uint8Array | void> {
   const b64 = await loadCyrillicFontB64();
 
   const doc = new jsPDF({ unit: "pt", format: "a4" });
@@ -148,7 +151,6 @@ export async function exportPDF(c: GeneratedContract, opts?: WatermarkOpts) {
 
   const colW = (pw - M * 2) / 2;
   const sigImgH = 50;
-  // Embed signature images if provided
   if (sig?.image_a) {
     try { doc.addImage(sig.image_a, "PNG", M, y, colW - 30, sigImgH); } catch {}
   }
@@ -161,11 +163,14 @@ export async function exportPDF(c: GeneratedContract, opts?: WatermarkOpts) {
   doc.line(M + colW + 20, y, pw - M, y);
   y += 14;
   writeWrapped(`Страна А: ${sig?.name_a || "______________________"}`, 10);
-  // Right column (party B) – simulate by overprinting on a new line
   const yB = y - 14;
   doc.text(`Страна Б: ${sig?.name_b || "______________________"}`, M + colW + 20, yB);
 
   if (opts?.watermark) await applyPdfWatermark(doc, { userTag: opts.userTag });
+  if (opts?.returnBytes) {
+    const ab = doc.output("arraybuffer");
+    return new Uint8Array(ab);
+  }
   doc.save(`${fileBase(c.title)}.pdf`);
 }
 
