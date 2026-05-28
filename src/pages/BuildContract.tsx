@@ -70,6 +70,9 @@ export default function BuildContractPage() {
     (persisted?.documentType as DocumentTypeId) ||
     "contract",
   );
+  const [buildMode, setBuildMode] = useState<BuildMode>(
+    (persisted?.buildMode as BuildMode) || "working",
+  );
 
   const [name, setName] = useState<string>(
     presetDocumentType && refNumberParam && parentTitleParam
