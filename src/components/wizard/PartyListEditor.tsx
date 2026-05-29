@@ -5,7 +5,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, UserPlus } from "lucide-react";
 
 export type PartyType = "ФЛ" | "ЮЛ" | "ЕТ";
-const TYPES: PartyType[] = ["ФЛ", "ЮЛ", "ЕТ"];
+const TYPES: { id: PartyType; label: string; full: string }[] = [
+  { id: "ФЛ", label: "ФЛ", full: "Физическо лице" },
+  { id: "ЮЛ", label: "ЮЛ", full: "Юридическо лице" },
+  { id: "ЕТ", label: "ЕТ", full: "ЕТ / Самоосигуряващо" },
+];
 
 export type PartyRow = { name: string; type: PartyType };
 
@@ -19,7 +23,6 @@ interface Props {
   addLabel?: string;
 }
 
-/** Сериализира редовете към текст — по един на ред, във формат „Име — Тип“. */
 export function serializeParties(rows: PartyRow[]): string {
   return rows
     .filter((r) => r.name.trim())
@@ -27,7 +30,6 @@ export function serializeParties(rows: PartyRow[]): string {
     .join("\n");
 }
 
-/** Парсва редове от текст. Приема и стария формат (само име). */
 export function parseParties(raw: string): PartyRow[] {
   if (!raw?.trim()) return [];
   return raw
@@ -49,68 +51,79 @@ export function PartyListEditor({ rows, onChange, contacts = [], placeholder, ad
   const add = () => onChange([...list, { name: "", type: "ЮЛ" }]);
   const remove = (idx: number) => onChange(list.filter((_, i) => i !== idx));
 
-  const pickContact = (idx: number, contactId: string) => {
+  const pickContact = (contactId: string) => {
     const c = contacts.find((x) => x.id === contactId);
     if (!c) return;
     const mapped: PartyType = c.type === "individual" ? "ФЛ" : "ЮЛ";
-    update(idx, { name: c.name, type: mapped });
+    // Fill the first empty row if any; otherwise append.
+    const emptyIdx = list.findIndex((r) => !r.name.trim());
+    if (emptyIdx >= 0) update(emptyIdx, { name: c.name, type: mapped });
+    else onChange([...list, { name: c.name, type: mapped }]);
   };
 
   return (
     <div className="space-y-2">
       {list.map((row, idx) => (
-        <div
-          key={idx}
-          className="grid grid-cols-1 gap-2 rounded-lg border border-border/50 bg-card/30 p-2.5 sm:grid-cols-[1fr_120px_auto]"
-        >
+        <div key={idx} className="space-y-1.5 rounded-lg border border-border/50 bg-card/30 p-2.5">
           <Input
             value={row.name}
             onChange={(e) => update(idx, { name: e.target.value })}
             placeholder={placeholder ?? "Име / Фирма, ЕИК…"}
-            className="bg-input/60 text-sm"
+            className="h-9 bg-input/60 text-sm"
           />
-          <Select value={row.type} onValueChange={(v) => update(idx, { type: v as PartyType })}>
-            <SelectTrigger className="h-10 bg-input/60 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {TYPES.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t === "ФЛ" ? "Физическо лице (ФЛ)" : t === "ЮЛ" ? "Юридическо лице (ЮЛ)" : "ЕТ / Самоосигуряващо (ЕТ)"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => remove(idx)}
-            disabled={list.length <= 1}
-            className="h-10 w-10 text-muted-foreground hover:text-destructive disabled:opacity-30"
-            aria-label="Премахни"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center justify-between gap-2">
+            <div className="inline-flex gap-1 rounded-md border border-border/60 bg-card/40 p-0.5">
+              {TYPES.map((t) => {
+                const active = row.type === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => update(idx, { type: t.id })}
+                    title={t.full}
+                    className={
+                      "rounded px-2.5 py-1 text-[11px] font-semibold transition-colors " +
+                      (active
+                        ? "bg-gold text-navy shadow-sm"
+                        : "text-muted-foreground hover:text-foreground")
+                    }
+                  >
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => remove(idx)}
+              disabled={list.length <= 1}
+              className="h-8 w-8 text-muted-foreground hover:text-destructive disabled:opacity-30"
+              aria-label="Премахни"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
       ))}
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1.5">
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={add}
-          className="border-dashed border-gold/40 text-gold hover:bg-gold/10 hover:text-gold"
+          className="h-8 border-dashed border-gold/40 text-xs text-gold hover:bg-gold/10 hover:text-gold"
         >
-          <Plus className="mr-1.5 h-3.5 w-3.5" />
+          <Plus className="mr-1 h-3.5 w-3.5" />
           {addLabel}
         </Button>
         {contacts.length > 0 && (
-          <Select onValueChange={(v) => pickContact(list.length - 1, v)}>
-            <SelectTrigger className="h-9 w-auto min-w-[210px] bg-input/60 text-xs">
-              <UserPlus className="mr-1.5 h-3.5 w-3.5 text-gold" />
-              <SelectValue placeholder="Избери от контрагенти" />
+          <Select onValueChange={pickContact}>
+            <SelectTrigger className="h-8 w-auto gap-1 bg-input/60 px-2 text-xs">
+              <UserPlus className="h-3.5 w-3.5 text-gold" />
+              <SelectValue placeholder="От контрагенти" />
             </SelectTrigger>
             <SelectContent>
               {contacts.map((c) => (

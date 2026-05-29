@@ -702,7 +702,7 @@ export default function BuildContractPage() {
 
                   {schema.partyBLabel ? (
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <Field label={schema.partyALabel} help={schema.partyAHelp ?? "Изберете тип и име; може и от контрагенти"} required>
+                      <Field label={schema.partyALabel} help="Изберете тип и име; може и от контрагенти" required>
                         <PartyListEditor
                           rows={parseParties(partiesA)}
                           onChange={(rows) => setPartiesA(serializeParties(rows))}
@@ -710,7 +710,7 @@ export default function BuildContractPage() {
                           placeholder={schema.partyAPlaceholder ?? '„Алфа Софт" ЕООД, ЕИК…'}
                         />
                       </Field>
-                      <Field label={schema.partyBLabel} help={schema.partyBHelp ?? "Изберете тип и име; може и от контрагенти"} required>
+                      <Field label={schema.partyBLabel} help="Изберете тип и име; може и от контрагенти" required>
                         <PartyListEditor
                           rows={parseParties(partiesB)}
                           onChange={(rows) => setPartiesB(serializeParties(rows))}
@@ -720,7 +720,7 @@ export default function BuildContractPage() {
                       </Field>
                     </div>
                   ) : (
-                    <Field label={schema.partyALabel} help={schema.partyAHelp ?? "Изберете тип и име; може и от контрагенти"} required>
+                    <Field label={schema.partyALabel} help="Изберете тип и име; може и от контрагенти" required>
                       <PartyListEditor
                         rows={parseParties(partiesA)}
                         onChange={(rows) => setPartiesA(serializeParties(rows))}
