@@ -220,9 +220,31 @@ export default function TemplatePage() {
 
         {intro && (
           <div className="prose prose-invert mb-10 max-w-none text-base leading-[1.8] text-foreground/90">
-            <p className="text-pretty">{intro}</p>
+            <p className="text-pretty">
+              {autoLinkParagraph(intro, createAutoLinkState(3), entry.slug, 3)}
+            </p>
           </div>
         )}
+
+        {(() => {
+          const rel = RELATED_TEMPLATES[entry.slug];
+          if (!rel?.templates?.length) return null;
+          return (
+            <section className="mb-10 rounded-xl border border-gold/20 bg-gold/[0.03] p-6 md:p-7">
+              <div className="eyebrow mb-3">Може да Ви потрябва още</div>
+              <ul className="space-y-2 text-sm">
+                {rel.templates.map((t) => (
+                  <li key={t.slug} className="flex gap-2">
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-gold" />
+                    <Link to={`/shablon/${t.slug}`} className="text-foreground/90 transition-colors hover:text-gold">
+                      {t.anchor}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })()}
 
         <section className="mb-12 rounded-xl surface-elevated p-6 md:p-7">
           <div className="eyebrow mb-3">Ключова клауза</div>
