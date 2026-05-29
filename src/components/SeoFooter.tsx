@@ -1,6 +1,7 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { allTemplates } from "@/lib/templateIndex";
 import { Logo } from "./Logo";
+
 
 // Top 8 categories inlined to avoid pulling the full CATALOG (166KB) into the
 // initial bundle on every page that renders the footer (Index, Catalog, ...).
@@ -58,11 +59,25 @@ const ANCHOR_BLOCKS: AnchorBlock[] = [
 ];
 
 export function SeoFooter() {
-  const byName = new Map(allTemplates().map((t) => [t.doc.name, t.slug]));
+  // Lazy-load the catalog index (~166KB) off the critical path. The footer
+  // sits below the fold on every page; resolving anchors after first paint
+  // keeps initial JS small without hurting SEO (Googlebot executes JS).
+  const [byName, setByName] = useState<Map<string, string>>(() => new Map());
+  useEffect(() => {
+    let cancelled = false;
+    import("@/lib/templateIndex").then((m) => {
+      if (cancelled) return;
+      setByName(new Map(m.allTemplates().map((t) => [t.doc.name, t.slug])));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const resolveBlock = (block: AnchorBlock) =>
     block.links
       .map((l) => ({ anchor: l.anchor, slug: byName.get(l.docName) }))
       .filter((l): l is { anchor: string; slug: string } => Boolean(l.slug));
+
 
   return (
     <footer className="border-t border-border/60 bg-navy-light/40 pt-12">
