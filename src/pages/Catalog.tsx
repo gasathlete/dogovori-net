@@ -236,7 +236,7 @@ export default function CatalogPage() {
               Вид документ
             </div>
 
-            <Popover>
+            <Popover open={docTypeOpen} onOpenChange={setDocTypeOpen}>
               <PopoverTrigger asChild>
                 <button
                   type="button"
