@@ -75,6 +75,7 @@ export default function BuildContractPage() {
     (persisted?.documentType as DocumentTypeId) ||
     "contract",
   );
+  const [docTypeOpen, setDocTypeOpen] = useState(false);
   const [buildMode, setBuildMode] = useState<BuildMode>(
     (persisted?.buildMode as BuildMode) || "working",
   );
@@ -628,7 +629,7 @@ export default function BuildContractPage() {
                     <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                       Вид документ <span className="text-gold">*</span>
                     </label>
-                    <Popover>
+                    <Popover open={docTypeOpen} onOpenChange={setDocTypeOpen}>
                       <PopoverTrigger asChild>
                         <button
                           type="button"
@@ -660,7 +661,7 @@ export default function BuildContractPage() {
                                   <button
                                     key={d.id}
                                     type="button"
-                                    onClick={() => setDocumentType(d.id)}
+                                    onClick={() => { setDocumentType(d.id); setDocTypeOpen(false); }}
                                     title={d.description}
                                     className={
                                       "flex w-full items-start gap-2 rounded-sm px-2.5 py-1.5 text-left text-sm transition-colors " +
