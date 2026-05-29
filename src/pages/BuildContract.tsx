@@ -702,37 +702,35 @@ export default function BuildContractPage() {
 
                   {schema.partyBLabel ? (
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <Field label={schema.partyALabel} help={schema.partyAHelp ?? "По един на ред"} required>
-                        <Textarea
-                          value={partiesA}
-                          onChange={(e) => setPartiesA(e.target.value)}
-                          placeholder={schema.partyAPlaceholder ?? '„Алфа Софт" ЕООД, ЕИК...\nИван Иванов'}
-                          rows={3}
-                          className="bg-input/60 text-sm"
+                      <Field label={schema.partyALabel} help={schema.partyAHelp ?? "Изберете тип и име; може и от контрагенти"} required>
+                        <PartyListEditor
+                          rows={parseParties(partiesA)}
+                          onChange={(rows) => setPartiesA(serializeParties(rows))}
+                          contacts={contacts}
+                          placeholder={schema.partyAPlaceholder ?? '„Алфа Софт" ЕООД, ЕИК…'}
                         />
                       </Field>
-                      <Field label={schema.partyBLabel} help={schema.partyBHelp ?? "По един на ред"} required>
-                        <Textarea
-                          value={partiesB}
-                          onChange={(e) => setPartiesB(e.target.value)}
-                          placeholder={schema.partyBPlaceholder ?? '„Бета Дизайн" ООД, ЕИК...'}
-                          rows={3}
-                          className="bg-input/60 text-sm"
+                      <Field label={schema.partyBLabel} help={schema.partyBHelp ?? "Изберете тип и име; може и от контрагенти"} required>
+                        <PartyListEditor
+                          rows={parseParties(partiesB)}
+                          onChange={(rows) => setPartiesB(serializeParties(rows))}
+                          contacts={contacts}
+                          placeholder={schema.partyBPlaceholder ?? '„Бета Дизайн" ООД, ЕИК…'}
                         />
                       </Field>
                     </div>
                   ) : (
-                    <Field label={schema.partyALabel} help={schema.partyAHelp ?? "Имена, адрес, ЕГН (по избор)"} required>
-                      <Textarea
-                        value={partiesA}
-                        onChange={(e) => setPartiesA(e.target.value)}
-                        placeholder={schema.partyAPlaceholder ?? 'Иван Петров Иванов, ЕГН ..., адрес ...'}
-                        rows={3}
-                        className="bg-input/60 text-sm"
+                    <Field label={schema.partyALabel} help={schema.partyAHelp ?? "Изберете тип и име; може и от контрагенти"} required>
+                      <PartyListEditor
+                        rows={parseParties(partiesA)}
+                        onChange={(rows) => setPartiesA(serializeParties(rows))}
+                        contacts={contacts}
+                        placeholder={schema.partyAPlaceholder ?? 'Иван Петров Иванов, ЕГН …'}
                       />
                       <p className="mt-1 text-[11px] italic text-muted-foreground">
                         „{getDocumentType(documentType).label}" е едностранен документ — насрещна страна не се изисква.
                       </p>
+
                     </Field>
                   )}
 
