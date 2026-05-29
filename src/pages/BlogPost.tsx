@@ -5,13 +5,14 @@ import { Seo } from "@/components/Seo";
 import { getPostBySlug, getRelatedPosts } from "@/lib/blog";
 import { ChevronRight } from "lucide-react";
 import { BlogRatingAndComments } from "@/components/BlogRatingAndComments";
+import { autoLinkParagraph, createAutoLinkState, type AutoLinkState } from "@/lib/autoLinkBlog";
 
-function Paragraphs({ text }: { text: string }) {
+function Paragraphs({ text, linkState }: { text: string; linkState: AutoLinkState }) {
   return (
     <>
       {text.split(/\n\n+/).map((p, i) => (
         <p key={i} className="mb-4 leading-[1.8] text-foreground/90">
-          {p}
+          {autoLinkParagraph(p, linkState)}
         </p>
       ))}
     </>
