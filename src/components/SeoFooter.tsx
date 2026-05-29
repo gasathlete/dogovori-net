@@ -1,13 +1,61 @@
 import { Link } from "react-router-dom";
-import { CATALOG, TOP_DOCUMENTS } from "@/data/catalog";
-import { slugify } from "@/lib/slugify";
+import { CATALOG } from "@/data/catalog";
+import { allTemplates } from "@/lib/templateIndex";
 import { Logo } from "./Logo";
 
+// SEO footer — designed to inject ~30+ long descriptive Bulgarian anchors
+// pointing at the top templates from EVERY page on the site. Anchor text is
+// one of the strongest internal ranking signals; long phrases beat short
+// names ("Изтегли образец на трудов договор 2026" >> "Трудов договор").
+
+interface AnchorBlock {
+  title: string;
+  links: { anchor: string; docName: string }[];
+}
+
+const ANCHOR_BLOCKS: AnchorBlock[] = [
+  {
+    title: "Трудови и граждански",
+    links: [
+      { anchor: "Трудов договор по чл. 67 КТ — образец 2026", docName: "Трудов договор (чл. 67 КТ)" },
+      { anchor: "Граждански договор за услуги — попълни онлайн", docName: "Граждански договор / Договор за услуги" },
+    ],
+  },
+  {
+    title: "Имоти и наем",
+    links: [
+      { anchor: "Безплатен договор за наем на апартамент", docName: "Договор за наем на жилище" },
+      { anchor: "Договор за наем на офис помещение", docName: "Договор за наем на офис" },
+      { anchor: "Договор за краткосрочен наем (Airbnb тип)", docName: "Договор за краткосрочен наем (Airbnb тип)" },
+      { anchor: "Приемо-предавателен протокол при наем", docName: "Приемо-предавателен протокол" },
+      { anchor: "Предизвестие за прекратяване на наем", docName: "Предизвестие за прекратяване на наем" },
+      { anchor: "Двуезичен договор за наем (BG/EN) за чужденци", docName: "Двуезичен договор за наем (BG/EN) за чужденци" },
+    ],
+  },
+  {
+    title: "IT, бизнес и IP",
+    links: [
+      { anchor: "NDA — споразумение за поверителност", docName: "NDA – Договор за конфиденциалност" },
+      { anchor: "Договор за изработка на уебсайт или приложение", docName: "Договор за изработка на уебсайт / мобилно приложение" },
+      { anchor: "SaaS абонаментен договор на български", docName: "SaaS абонаментен договор" },
+      { anchor: "SLA договор за поддръжка на софтуер", docName: "Договор за поддръжка на софтуер/хардуер (SLA)" },
+      { anchor: "Декларация за съгласие по GDPR", docName: "Декларация за съгласие по GDPR" },
+      { anchor: "Лицензионен договор за софтуер (EULA)", docName: "Лицензионен договор за софтуер (EULA)" },
+    ],
+  },
+];
+
 export function SeoFooter() {
+  const byName = new Map(allTemplates().map((t) => [t.doc.name, t.slug]));
+  const resolveBlock = (block: AnchorBlock) =>
+    block.links
+      .map((l) => ({ anchor: l.anchor, slug: byName.get(l.docName) }))
+      .filter((l): l is { anchor: string; slug: string } => Boolean(l.slug));
+
   return (
     <footer className="border-t border-border/60 bg-navy-light/40 pt-12">
       <div className="container">
-        <div className="grid gap-10 md:grid-cols-4">
+        <div className="grid gap-10 md:grid-cols-5">
           <div className="md:col-span-1">
             <Logo />
             <p className="mt-3 max-w-xs text-xs leading-relaxed text-muted-foreground">
@@ -23,28 +71,31 @@ export function SeoFooter() {
             </a>
           </div>
 
-          <div>
-            <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gold">Топ шаблони</h3>
-            <ul className="space-y-2 text-xs text-muted-foreground">
-              {TOP_DOCUMENTS.slice(0, 8).map((d) => (
-                <li key={d.name}>
-                  <Link to={`/shablon/${slugify(d.name)}`} className="transition-colors hover:text-gold">
-                    {d.name}
-                  </Link>
-                </li>
-              ))}
-              <li>
-                <Link to="/catalog" className="font-medium text-gold/90 transition-colors hover:text-gold">
-                  Виж всички →
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {ANCHOR_BLOCKS.map((block) => {
+            const links = resolveBlock(block);
+            if (links.length === 0) return null;
+            return (
+              <div key={block.title}>
+                <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gold">
+                  {block.title}
+                </h3>
+                <ul className="space-y-2 text-xs text-muted-foreground">
+                  {links.map((l) => (
+                    <li key={l.slug}>
+                      <Link to={`/shablon/${l.slug}`} className="transition-colors hover:text-gold">
+                        {l.anchor}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
 
           <div>
             <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gold">Категории</h3>
             <ul className="space-y-2 text-xs text-muted-foreground">
-              {CATALOG.map((cat) => (
+              {CATALOG.slice(0, 8).map((cat) => (
                 <li key={cat.id}>
                   <Link to={`/kategoria/${cat.id}`} className="transition-colors hover:text-gold">
                     {cat.title}
@@ -58,23 +109,18 @@ export function SeoFooter() {
               </li>
             </ul>
           </div>
-
-          <div>
-            <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gold">Информация</h3>
-            <ul className="space-y-2 text-xs text-muted-foreground">
-              <li><Link to="/karta" className="hover:text-gold">Карта на сайта</Link></li>
-              <li><Link to="/terms" className="hover:text-gold">Общи условия</Link></li>
-              <li><Link to="/privacy" className="hover:text-gold">Поверителност</Link></li>
-              <li><Link to="/cookies" className="hover:text-gold">Бисквитки</Link></li>
-              <li><Link to="/refund" className="hover:text-gold">Възстановяване</Link></li>
-              <li><Link to="/blog" className="hover:text-gold">Блог</Link></li>
-              <li><Link to="/contacts" className="hover:text-gold">Контакти</Link></li>
-            </ul>
-          </div>
         </div>
 
-        <div className="mt-10 border-t border-border/40 py-6 text-center text-xs text-muted-foreground md:text-left">
-          © {new Date().getFullYear()} Dogovori.net · Изготвените договори не заместват консултация с адвокат.
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-border/40 py-6 text-xs text-muted-foreground">
+          <div>© {new Date().getFullYear()} Dogovori.net · Изготвените договори не заместват консултация с адвокат.</div>
+          <nav className="flex flex-wrap gap-x-4 gap-y-1">
+            <Link to="/terms" className="hover:text-gold">Общи условия</Link>
+            <Link to="/privacy" className="hover:text-gold">Поверителност</Link>
+            <Link to="/cookies" className="hover:text-gold">Бисквитки</Link>
+            <Link to="/refund" className="hover:text-gold">Възстановяване</Link>
+            <Link to="/blog" className="hover:text-gold">Блог</Link>
+            <Link to="/contacts" className="hover:text-gold">Контакти</Link>
+          </nav>
         </div>
       </div>
     </footer>
