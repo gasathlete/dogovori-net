@@ -5,6 +5,7 @@ import { ArrowRight, CheckCircle2, AlertTriangle, FileText, ChevronRight, Downlo
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
+import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { getRelatedTemplates, getTemplateBySlug } from "@/lib/templateIndex";
 import { TEMPLATE_CONTENT_META } from "@/data/templateContentMeta";
 import { loadTemplateContent } from "@/data/templateContent";
