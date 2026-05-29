@@ -115,8 +115,10 @@ export default function BuildContractPage() {
   );
   const [savedDocId, setSavedDocId] = useState<string | undefined>(persisted?.savedDocId);
   const [saving, setSaving] = useState(false);
-  const [isPro, setIsPro] = useState(false);
+  const { isPro, isTeam } = useIsPro();
+  const canStrict = isPro || isTeam;
   const [appendixRefreshTick, setAppendixRefreshTick] = useState(0);
+  const [contacts, setContacts] = useState<Array<{ id: string; name: string; type?: string }>>([]);
   const [applyingCorrections, setApplyingCorrections] = useState(false);
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(undefined);
 
