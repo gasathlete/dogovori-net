@@ -565,7 +565,7 @@ export default function BuildContractPage() {
                   Попълнете каквото знаете. <span className="text-gold">Празните полета</span> се попълват от AI с пазарно-стандартни клаузи. Готов документ до 2 минути.
                 </p>
 
-                <div className="space-y-5">
+                <div className="space-y-3">
                   {/* Build mode — fast / working / strict */}
                   <div className="rounded-xl border border-border/60 bg-navy-light/40 p-4 space-y-3">
                     <div className="flex items-baseline justify-between">
