@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Bird, Loader2, FileDown, FileText, Save, Wand2, Sparkles, ShieldCheck, FileSignature, Lightbulb, Zap, Briefcase, Scale } from "lucide-react";
+import { ArrowLeft, Bird, Loader2, FileDown, FileText, Save, Wand2, Sparkles, ShieldCheck, FileSignature, Lightbulb, Zap, Briefcase, Scale, ChevronDown, Check } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type BuildMode = "fast" | "working" | "strict";
 const BUILD_MODES: { id: BuildMode; label: string; short: string; description: string; icon: any }[] = [
@@ -622,32 +623,37 @@ export default function BuildContractPage() {
                   </div>
 
 
-                  {/* Document type — grouped chips in a tinted panel */}
-                  <div className="rounded-xl border border-border/60 bg-navy-light/40 p-4 space-y-4">
-                    <div className="flex items-baseline justify-between">
-                      <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        Вид документ <span className="text-gold">*</span>
-                      </label>
-                      <span className="text-[11px] italic text-muted-foreground line-clamp-1">
-                        {getDocumentType(documentType).description}
-                      </span>
-                    </div>
-                    <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
-                      {DOCUMENT_TYPE_GROUPS.map((g) => {
-                        const items = DOCUMENT_TYPES.filter((d) => d.group === g.id);
-                        if (items.length === 0) return null;
-                        const hasActive = items.some((d) => d.id === documentType);
-                        return (
-                          <div key={g.id} className="space-y-2">
-                            <div
-                              className={
-                                "text-[10px] font-bold uppercase tracking-tighter " +
-                                (hasActive ? "text-gold" : "text-muted-foreground/70")
-                              }
-                            >
-                              {g.label}
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
+                  {/* Document type — compact dropdown */}
+                  <div>
+                    <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Вид документ <span className="text-gold">*</span>
+                    </label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="flex w-full items-center justify-between gap-3 rounded-md border border-border/70 bg-input/60 px-3 py-2 text-left text-sm transition-colors hover:border-gold/50"
+                        >
+                          <span className="flex min-w-0 flex-col">
+                            <span className="truncate font-medium">
+                              {getDocumentType(documentType).label}
+                            </span>
+                            <span className="truncate text-[11px] italic text-muted-foreground">
+                              {getDocumentType(documentType).description}
+                            </span>
+                          </span>
+                          <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="start" className="w-[min(440px,calc(100vw-2rem))] max-h-[70vh] overflow-y-auto p-2">
+                        {DOCUMENT_TYPE_GROUPS.map((g) => {
+                          const items = DOCUMENT_TYPES.filter((d) => d.group === g.id);
+                          if (items.length === 0) return null;
+                          return (
+                            <div key={g.id} className="mb-1.5 last:mb-0">
+                              <div className="px-2 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
+                                {g.label}
+                              </div>
                               {items.map((d) => {
                                 const active = documentType === d.id;
                                 return (
@@ -657,22 +663,25 @@ export default function BuildContractPage() {
                                     onClick={() => setDocumentType(d.id)}
                                     title={d.description}
                                     className={
-                                      "rounded-full px-3 py-1.5 text-xs font-medium transition-all " +
-                                      (active
-                                        ? "bg-gradient-gold text-navy shadow-gold"
-                                        : "border border-border/70 bg-card/40 text-foreground hover:border-gold/50 hover:text-gold")
+                                      "flex w-full items-start gap-2 rounded-sm px-2.5 py-1.5 text-left text-sm transition-colors " +
+                                      (active ? "bg-gold/10 text-gold" : "hover:bg-muted/60")
                                     }
                                   >
-                                    {d.shortLabel}
+                                    <Check className={"mt-0.5 h-3.5 w-3.5 shrink-0 " + (active ? "opacity-100" : "opacity-0")} />
+                                    <span className="flex min-w-0 flex-col">
+                                      <span className="truncate font-medium">{d.shortLabel}</span>
+                                      <span className="truncate text-[11px] text-muted-foreground">{d.description}</span>
+                                    </span>
                                   </button>
                                 );
                               })}
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                          );
+                        })}
+                      </PopoverContent>
+                    </Popover>
                   </div>
+
 
                   <Field label="Заглавие на документа" required>
                     <Input

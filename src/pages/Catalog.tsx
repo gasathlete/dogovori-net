@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { useSearchParams } from "react-router-dom";
 import * as Icons from "lucide-react";
-import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp, X, Filter } from "lucide-react";
+import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp, X, Filter, Check } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Input } from "@/components/ui/input";
@@ -224,84 +225,99 @@ export default function CatalogPage() {
         <div className="absolute inset-x-0 bottom-0 hairline-x opacity-60" />
       </section>
 
-      {/* Вид документ — type filter, grouped by 6 DOCUMENT_TYPE_GROUPS */}
+      {/* Вид документ — compact dropdown filter */}
       <section className="border-b border-border/60 bg-navy-light/20">
-        <div className="container py-8 md:py-10">
-          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <div className="eyebrow mb-2">
-                <Filter className="h-3.5 w-3.5" />
-                Вид документ
-              </div>
-              <h2 className="font-serif text-xl font-bold leading-tight md:text-2xl">
-                Филтрирай по тип
-              </h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Изберете един тип, за да видите само бланки от него във всички категории по-долу.
-              </p>
+        <div className="container py-4 md:py-5">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              <Filter className="h-3.5 w-3.5 text-gold/80" />
+              Вид документ
             </div>
-            {activeVid && (
-              <button
-                onClick={() => setVid(null)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold transition-colors hover:bg-gold/20"
-              >
-                <X className="h-3 w-3" /> Изчисти филтър ({filteredCount} от {totalDocs})
-              </button>
-            )}
-          </div>
 
-          <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
-            {DOCUMENT_TYPE_GROUPS.map((g) => {
-              const items = DOCUMENT_TYPES.filter((d) => d.group === g.id);
-              if (items.length === 0) return null;
-              const hasActive = items.some((d) => d.id === activeVid);
-              return (
-                <div key={g.id} className="space-y-2">
-                  <div
-                    className={
-                      "text-[10px] font-bold uppercase tracking-tighter " +
-                      (hasActive ? "text-gold" : "text-muted-foreground/70")
-                    }
-                  >
-                    {g.label}
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {items.map((d) => {
-                      const active = activeVid === d.id;
-                      const count = countsByVid.get(d.id) ?? 0;
-                      return (
-                        <button
-                          key={d.id}
-                          type="button"
-                          onClick={() => setVid(active ? null : d.id)}
-                          disabled={count === 0}
-                          title={`${d.description} (${count})`}
-                          className={
-                            "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40 " +
-                            (active
-                              ? "bg-gradient-gold text-navy shadow-gold"
-                              : "border border-border/70 bg-card/40 text-foreground hover:border-gold/50 hover:text-gold")
-                          }
-                        >
-                          {d.shortLabel}
-                          <span
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className={
+                    "inline-flex min-w-[200px] items-center justify-between gap-3 rounded-md border px-3 py-1.5 text-sm transition-colors " +
+                    (activeVid
+                      ? "border-gold/60 bg-gold/10 text-gold hover:bg-gold/15"
+                      : "border-border/70 bg-card/40 text-foreground hover:border-gold/40")
+                  }
+                >
+                  <span className="truncate">
+                    {activeVid ? getDocumentType(activeVid).label : "Всички видове"}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-[min(420px,calc(100vw-2rem))] max-h-[70vh] overflow-y-auto p-2">
+                <button
+                  type="button"
+                  onClick={() => setVid(null)}
+                  className={
+                    "flex w-full items-center justify-between gap-2 rounded-sm px-2.5 py-1.5 text-left text-sm transition-colors " +
+                    (!activeVid ? "bg-gold/10 text-gold" : "hover:bg-muted/60")
+                  }
+                >
+                  <span className="font-medium">Всички видове</span>
+                  <span className="text-[11px] text-muted-foreground">{totalDocs}</span>
+                </button>
+                <div className="my-1 h-px bg-border/60" />
+                {DOCUMENT_TYPE_GROUPS.map((g) => {
+                  const items = DOCUMENT_TYPES.filter((d) => d.group === g.id);
+                  if (items.length === 0) return null;
+                  return (
+                    <div key={g.id} className="mb-1.5 last:mb-0">
+                      <div className="px-2 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
+                        {g.label}
+                      </div>
+                      {items.map((d) => {
+                        const active = activeVid === d.id;
+                        const count = countsByVid.get(d.id) ?? 0;
+                        return (
+                          <button
+                            key={d.id}
+                            type="button"
+                            onClick={() => setVid(active ? null : d.id)}
+                            disabled={count === 0}
+                            title={d.description}
                             className={
-                              "rounded-full px-1.5 py-0.5 text-[10px] font-bold " +
-                              (active ? "bg-navy/20 text-navy" : "bg-navy-light/60 text-muted-foreground")
+                              "flex w-full items-center justify-between gap-2 rounded-sm px-2.5 py-1.5 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 " +
+                              (active ? "bg-gold/10 text-gold" : "hover:bg-muted/60")
                             }
                           >
-                            {count}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+                            <span className="flex items-center gap-2 truncate">
+                              {active && <Check className="h-3.5 w-3.5 shrink-0" />}
+                              <span className={active ? "" : "pl-[22px]"}>{d.shortLabel}</span>
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">{count}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </PopoverContent>
+            </Popover>
+
+            {activeVid && (
+              <>
+                <span className="text-xs text-muted-foreground">
+                  {filteredCount} от {totalDocs}
+                </span>
+                <button
+                  onClick={() => setVid(null)}
+                  className="inline-flex items-center gap-1 rounded-md border border-border/60 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:border-gold/40 hover:text-gold"
+                >
+                  <X className="h-3 w-3" /> Изчисти
+                </button>
+              </>
+            )}
           </div>
         </div>
       </section>
+
 
 
       {/* Sticky category nav */}
