@@ -5,13 +5,14 @@ import { Seo } from "@/components/Seo";
 import { getPostBySlug, getRelatedPosts } from "@/lib/blog";
 import { ChevronRight } from "lucide-react";
 import { BlogRatingAndComments } from "@/components/BlogRatingAndComments";
+import { autoLinkParagraph, createAutoLinkState, type AutoLinkState } from "@/lib/autoLinkBlog";
 
-function Paragraphs({ text }: { text: string }) {
+function Paragraphs({ text, linkState }: { text: string; linkState: AutoLinkState }) {
   return (
     <>
       {text.split(/\n\n+/).map((p, i) => (
         <p key={i} className="mb-4 leading-[1.8] text-foreground/90">
-          {p}
+          {autoLinkParagraph(p, linkState)}
         </p>
       ))}
     </>
@@ -120,14 +121,17 @@ export default function BlogPost() {
           </figure>
 
           <div className="prose prose-invert max-w-none text-pretty">
-            <Paragraphs text={post.intro} />
-
-            {post.sections.map((s, i) => (
-              <section key={i} className="mt-12">
-                <h2 className="mb-5 font-serif text-2xl font-bold leading-tight tracking-tight text-foreground md:text-[28px]">{s.heading}</h2>
-                <Paragraphs text={s.body} />
-              </section>
-            ))}
+            {(() => {
+              const linkState = createAutoLinkState(8);
+              return (
+                <>
+                  <Paragraphs text={post.intro} linkState={linkState} />
+                  {post.sections.map((s, i) => (
+                    <section key={i} className="mt-12">
+                      <h2 className="mb-5 font-serif text-2xl font-bold leading-tight tracking-tight text-foreground md:text-[28px]">{s.heading}</h2>
+                      <Paragraphs text={s.body} linkState={linkState} />
+                    </section>
+                  ))}
 
             {post.takeaways.length > 0 && (
               <aside className="mt-14 overflow-hidden rounded-xl border border-gold/30 bg-gold/[0.04] p-6 md:p-7">
@@ -159,6 +163,9 @@ export default function BlogPost() {
                 </div>
               </section>
             )}
+                </>
+              );
+            })()}
           </div>
 
           <BlogRatingAndComments postType="core" postSlug={post.slug} />

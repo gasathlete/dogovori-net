@@ -10,6 +10,9 @@ import { TEMPLATE_CONTENT_META } from "@/data/templateContentMeta";
 import { loadTemplateContent } from "@/data/templateContent";
 import type { TemplateContent } from "@/data/templateContentTypes";
 import { trackEvent } from "@/lib/analytics";
+import { autoLinkParagraph, createAutoLinkState } from "@/lib/autoLinkBlog";
+import { RELATED_TEMPLATES } from "@/data/relatedTemplates";
+import { getPostBySlug } from "@/lib/blog";
 
 export default function TemplatePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -217,9 +220,31 @@ export default function TemplatePage() {
 
         {intro && (
           <div className="prose prose-invert mb-10 max-w-none text-base leading-[1.8] text-foreground/90">
-            <p className="text-pretty">{intro}</p>
+            <p className="text-pretty">
+              {autoLinkParagraph(intro, createAutoLinkState(3), entry.slug, 3)}
+            </p>
           </div>
         )}
+
+        {(() => {
+          const rel = RELATED_TEMPLATES[entry.slug];
+          if (!rel?.templates?.length) return null;
+          return (
+            <section className="mb-10 rounded-xl border border-gold/20 bg-gold/[0.03] p-6 md:p-7">
+              <div className="eyebrow mb-3">Може да Ви потрябва още</div>
+              <ul className="space-y-2 text-sm">
+                {rel.templates.map((t) => (
+                  <li key={t.slug} className="flex gap-2">
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-gold" />
+                    <Link to={`/shablon/${t.slug}`} className="text-foreground/90 transition-colors hover:text-gold">
+                      {t.anchor}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })()}
 
         <section className="mb-12 rounded-xl surface-elevated p-6 md:p-7">
           <div className="eyebrow mb-3">Ключова клауза</div>
@@ -294,6 +319,29 @@ export default function TemplatePage() {
             </div>
           </Section>
         )}
+
+        {(() => {
+          const rel = RELATED_TEMPLATES[entry.slug];
+          const posts = (rel?.blogPosts ?? [])
+            .map((s) => getPostBySlug(s))
+            .filter((p): p is NonNullable<ReturnType<typeof getPostBySlug>> => Boolean(p));
+          if (posts.length === 0) return null;
+          return (
+            <Section title="Прочетете повече">
+              <ul className="space-y-2 text-sm">
+                {posts.map((p) => (
+                  <li key={p.slug} className="flex gap-2">
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-gold" />
+                    <Link to={`/blog/${p.slug}`} className="text-foreground/90 transition-colors hover:text-gold">
+                      {p.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          );
+        })()}
+
 
         <section className="relative mt-14 overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-10 text-center shadow-elegant md:p-12">
           <div className="absolute inset-x-0 top-0 hairline-x" />

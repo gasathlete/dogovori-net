@@ -1,105 +1,98 @@
 ## Цел
 
-Изграждащият wizard в `/build` да адаптира полетата си спрямо избрания вид документ. Заглавие и Категория се запазват винаги. Страните остават, но с подходящи етикети (вече има в backend — ще се огледа и в UI). Всички останали полета (предмет/срок/цени/задължения/други) се заменят с per-type схема.
+Да усилим SEO ранкинга на топ шаблоните и категориите чрез **вътрешни линкове на кирилица** в естествен контекст. URL-ите остават латиница (както са сега), но **видимият текст на линка** е точната БГ заявка, която потребителите търсят в Google.
 
-## Решение
+Защо: anchor text е един от най-силните ранкинг сигнали. Google използва текста на линка като описание на целевата страница. „Договор за наем на жилище" сочейки към `/shablon/dogovor-za-naem-na-zhilishte` е 10× по-силно от „виж тук" или името на категорията.
 
-Едностраничен wizard, същият layout — но средната секция („Предмет / Срок / Цени / Задължения / Други") се рендира динамично от схема за избрания вид.
+## Текущо състояние (накратко)
 
-### 1. Нов файл: `src/lib/documentFieldSchemas.ts`
+- `SeoFooter` — има блок с линкове, но повечето сочат към категории, не към конкретни шаблони
+- `SiteMap` (`/karta`) — пълен списък, anchor = име на шаблона (вече БГ — добре)
+- `SectorGrid`, `TopDocuments`, `Process` — линкове към секции/категории, anchor е заглавието
+- Шаблон страниците (`/shablon/:slug`) — имат „Свързани шаблони", но **липсва inline линкване в описанието** на шаблона
+- Блог постовете — съдържат много споменавания на типове договори, но **рядко линкват** към съответния `/shablon/`
 
-Една схема на вид документ:
+Основна дупка: блогът и шаблон описанията не пренасочват към продуктовите страници.
 
-```ts
-type FieldKind = "input" | "textarea";
-interface BuildField {
-  key: string;           // напр. "amount_or_item"
-  label: string;         // „Сума или вещ"
-  placeholder?: string;
-  help?: string;         // под етикета
-  hint?: string;         // дясно над полето (напр. „празно → AI предлага")
-  kind: FieldKind;
-  rows?: number;         // за textarea
-  required?: boolean;
-  half?: boolean;        // ако е true → 2 колони (sm:grid-cols-2)
-}
-interface DocumentBuildSchema {
-  partyALabel: string;        // напр. „Възложител" / „Декларатор"
-  partyBLabel?: string;       // празно/липсва → едностранен
-  partyAPlaceholder?: string;
-  partyBPlaceholder?: string;
-  fields: BuildField[];       // в реда, в който се показват
-}
-```
+## Какво ще направим
 
-Конкретни схеми (примери — пълните се изготвят при имплементация):
+### 1. Автоматично inline линкване в блог постовете
 
-```text
-contract / agreement   → subject, term+prices (half), obligations, other
-appendix               → parent_ref, subject, specs, term+prices (half)
-annex                  → parent_ref, changed_clauses, effective_date, reason
-protocol               → object, location_date (half), findings, defects, acceptance
-receipt                → amount_or_item, basis, place+date (half)
-power_of_attorney      → scope, term, substitution_right, notarial_required
-declaration            → declared_text, legal_basis, criminal_liability_note
-complaint              → addressee, against, relating, facts, legal_grounds, request, attachments
-claim                  → court, claim_value, legal_basis, circumstances, evidence, petitum, attachments, state_fee
-notary_invitation      → basis, demand, deadline, consequences
-offer                  → subject, specs, price_vat, validity, payment_terms
-invoice                → supplier_details, recipient_details, items, vat_rate, payment_method
-smr                    → object, work_types, technology, term, value, quality_warranty
-kss                    → positions (голям textarea с таблично описание), totals_note
-```
+Нов модул `src/lib/autoLinkBlog.ts`:
+- Поддържа речник `{ фраза → /shablon/slug }` за топ 60-80 шаблона (генериран автоматично от `templateIndex` + ръчни синоними)
+- Функция `autoLink(html: string, currentSlug?: string)` сканира текст и обвива **първото срещане** на всяка ключова фраза в `<Link>` към съответния шаблон
+- Правила: max 3-5 линка на 1000 думи, прескача линкове в заглавия/code/съществуващи `<a>`, не линква към текущата страница
+- Прилага се в `BlogPost.tsx` върху `sections[].body`
 
-### 2. Рефакторинг на `src/pages/BuildContract.tsx`
+Речникът ще съдържа основните вариации:
+- „договор за наем", „наемен договор", „договор за наем на жилище"
+- „трудов договор", „договор за работа"  
+- „NDA", „споразумение за поверителност", „договор за конфиденциалност"
+- „договор за заем", „заемен договор"
+- „пълномощно", „нотариално пълномощно"
+- и още ~50 топ заявки
 
-- Заменяме отделните `useState` за `subject/term/prices/obligations/other` с един `Record<string,string>` (`fieldValues`).
-- LocalStorage payload: добавяме `fieldValues` (и пазим обратна съвместимост — ако се срещне стар запис със subject/term/etc., се мапва към съответните ключове).
-- Премахваме hardcoded „Възложител/Изпълнител" текстовете и ги взимаме от `schema.partyALabel/partyBLabel`. `needsParties` остава, но базиран на наличието на `partyBLabel`.
-- Когато потребителят смени `documentType`, fieldValues се запазват по ключ (не се триват) — общи ключове (напр. `subject`) автоматично се пренасят, специфичните ключове за стария вид остават в storage, но не се визуализират.
-- Рендериране: вместо текущия фиксиран блок „Предмет → Срок/Цени → Задължения → Други" итерираме `schema.fields` и групираме съседните `half:true` в `sm:grid-cols-2`.
-- Validation: само `required: true` полетата от схемата + Заглавие + Категория + Страни (при двустранен).
+### 2. Подсилен `SeoFooter` — БГ контекстни блокове
 
-### 3. Payload към edge function
+Преструктуриране на `SeoFooter.tsx`:
+- 4 колони с **дълги БГ anchor-и** към топ шаблоните (не само имена, а пълни заявки):
+  - „Изтегли образец на трудов договор 2026" → `/shablon/trudov-dogovor`
+  - „Безплатен договор за наем на апартамент" → `/shablon/dogovor-za-naem-na-zhilishte`
+  - „Споразумение за поверителност (NDA) — образец" → `/shablon/nda`
+- По 8-10 линка на колона = ~32-40 нови вътрешни линка от **всяка страница на сайта**
+- Групирани тематично: Трудови / Имоти / Бизнес / Граждански
 
-В `supabase.functions.invoke("build-custom-contract")` изпращаме:
+### 3. Контекстни „Често търсени" блокове на категория страниците
 
-```ts
-body: {
-  // ...съществуващите полета
-  customFields: schema.fields.map(f => ({
-    key: f.key, label: f.label, value: fieldValues[f.key] ?? ""
-  })),
-  // запазваме subject/term/prices/obligations/other като алиаси
-  // когато съществуват в схемата (backward-compatibility за кеша)
-}
-```
+В `Category.tsx` добавяме под списъка със шаблони секция „Често търсени в [категория]":
+- 6-8 линка с дълги БГ описателни anchor-и
+- Хардкоднати ръчно за топ 8 категории, fallback (имена на шаблони) за останалите
 
-### 4. Edge function `supabase/functions/build-custom-contract/index.ts`
+### 4. Inline линкване в шаблон описанията
 
-- В `BuildPayload` добавяме `customFields?: { key: string; label: string; value: string }[]`.
-- Userprompt: вместо твърдо изброените „ПРЕДМЕТ/СРОК/...", итерираме `customFields` и рендираме секции `[LABEL]: value` (пропускаме празните и казваме „(не е посочено — измисли подходящо)" за тях). Поведението при липсващ `customFields` пада обратно към текущите subject/term/...
-- `cacheKeyInput`: добавяме `customFields`; вдигаме `PROMPT_VERSION` на `v4-perTypeFields`.
-- `document-types.ts` (server): остава както е (вече има per-type systemAddendum). Опционално: добавяме `expectedFields: string[]` като намек към AI кои полета са най-важни, но не е задължително.
+В `Template.tsx`:
+- Описанието/въведението на шаблона минава през същия `autoLink()` (без да линква към себе си)
+- Линкове към **свързани, не конкуриращи** шаблони — напр. от „Договор за наем" → „Предавателно-приемателен протокол", „Договор за депозит"
+- Добавя нова секция „Може да Ви потрябва още" с 3-5 БГ контекстни линка (ръчно мапнати в нов файл `src/data/relatedTemplates.ts`)
 
-### 5. Без промени
+### 5. Хоризонтално линкване блог ↔ шаблон
 
-- BUILD_MODES (Бърз/Разширен/Стриктен) — остават.
-- DocumentType grouped chips selector — остава.
-- Risk meter, corrections panel, signature block, export — без промяна.
+- Във всеки шаблон (`Template.tsx`) — нова секция „Прочетете повече" с 2-3 линка към релевантни блог статии (мапване в същия `relatedTemplates.ts`)
+- В блог постовете (вече покрито от точка 1 автоматично) — реверсът
+
+### 6. Breadcrumb с БГ anchor (вече има, но проверка)
+
+Уверяваме се че breadcrumb-овете на всички страници са на БГ и линкват към родителските категории — това вече се ползва от Google за SERP rich results.
 
 ## Технически детайли
 
-Файлове:
-- new `src/lib/documentFieldSchemas.ts` — схемите + helper `getBuildSchema(id)`
-- edit `src/pages/BuildContract.tsx` — динамично рендериране, fieldValues map, обновени party labels
-- edit `supabase/functions/build-custom-contract/index.ts` — customFields → user prompt, v4 cache key
-- (по желание) edit `supabase/functions/_shared/document-types.ts` — добавяне на expectedFields
+**Файлове за създаване:**
+- `src/lib/autoLinkBlog.ts` — auto-link engine + речник
+- `src/data/anchorDictionary.ts` — `{ phrase: string, slug: string, priority: number }[]` (~80 записа)
+- `src/data/relatedTemplates.ts` — ръчно куриран map `slug → { templates: slug[], blogPosts: slug[] }`
+- `src/data/categoryHotLinks.ts` — топ заявки по категория
 
-Без миграции, без нови dependencies.
+**Файлове за редакция:**
+- `src/components/SeoFooter.tsx` — нова структура с дълги БГ anchor-и
+- `src/pages/BlogPost.tsx` — рендване на body през `autoLink()`
+- `src/pages/Template.tsx` — auto-link на описанието + нова секция „Може да Ви потрябва"
+- `src/pages/Category.tsx` — секция „Често търсени"
 
-## Извън обхвата
+**Без промени по:**
+- URL структура (остава латиница)
+- Sitemap (същите URL-и)
+- Маршрутизация
+- Backend / Supabase
 
-- Stepper (multi-step) wizard — оставаме single page.
-- Реални таблични UI компоненти за КСС/Фактура (позициите остават като структуриран textarea).
-- Промяна на default party labels на server-а — те вече са правилни; UI ще се изравни.
+## Очакван ефект (реалистично)
+
+- 30-50 нови вътрешни линка от всяка страница към топ шаблоните → ускорено crawl-ване на „Discovered – currently not indexed" URL-и
+- Топ 20 шаблона ще получат ~200-500 вътрешни линка всеки (от блога + footer + категории)
+- Anchor text сигнал ще помогне за ранкинг по дълги БГ заявки („изтегли договор за наем на апартамент") за 2-4 месеца
+- Времеви хоризонт: първите ефекти 4-6 седмици след re-crawl
+
+## Извън скоупа (предлагам отделно)
+
+- Backlink building (външни линкове) — отделен план
+- Промяна на title/H1/meta description на шаблоните — отделен SEO одит
+- Schema.org FAQ на шаблон страниците — отделна задача
