@@ -19,6 +19,7 @@ export default function CatalogPage() {
   const [query, setQuery] = useState("");
   const [showAll, setShowAll] = useState(false);
   const [open, setOpen] = useState(false);
+  const [docTypeOpen, setDocTypeOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeVid = (searchParams.get("vid") as DocumentTypeId | null) ?? null;
 
@@ -27,6 +28,7 @@ export default function CatalogPage() {
     if (vid) next.set("vid", vid);
     else next.delete("vid");
     setSearchParams(next, { replace: true });
+    setDocTypeOpen(false);
   };
 
   useEffect(() => {
