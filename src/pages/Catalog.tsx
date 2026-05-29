@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
+import { useSearchParams } from "react-router-dom";
 import * as Icons from "lucide-react";
-import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp, X, Filter } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,8 @@ import { CompanionChip } from "@/components/CompanionChip";
 import { Seo } from "@/components/Seo";
 import { allTemplates } from "@/lib/templateIndex";
 import { slugify } from "@/lib/slugify";
+import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, type DocumentTypeId } from "@/lib/documentReferences";
+import { inferDocumentType } from "@/lib/documentTypeInference";
 
 export default function CatalogPage() {
   const [query, setQuery] = useState("");
