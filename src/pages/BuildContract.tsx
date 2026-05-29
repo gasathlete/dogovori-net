@@ -562,7 +562,7 @@ export default function BuildContractPage() {
                   </div>
                 )}
                 <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-                  Попълнете каквото знаете. <span className="text-gold">Празните полета</span> се попълват от AI с пазарно-стандартни клаузи. Готов документ до 2 минути.
+                  Попълнете каквото знаете. <span className="text-gold">Празните полета</span> се попълват от Нашата Система&nbsp; с пазарно-стандартни клаузи. Готов документ до 2 минути.
                 </p>
 
                 <div className="space-y-3">
