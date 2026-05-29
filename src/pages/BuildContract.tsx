@@ -25,12 +25,15 @@ import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, collectContractT
 import { getBuildSchema, getAllFieldKeys, type BuildField } from "@/lib/documentFieldSchemas";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsPro } from "@/hooks/useIsPro";
 import { toast } from "sonner";
 import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { mergeParentWithAppendices } from "@/lib/appendixMerger";
 import { Seo } from "@/components/Seo";
 import { trackEvent } from "@/lib/analytics";
+import { PartyListEditor, parseParties, serializeParties, type PartyRow } from "@/components/wizard/PartyListEditor";
+import { Lock } from "lucide-react";
 
 
 interface AIResult {
