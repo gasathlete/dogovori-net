@@ -580,21 +580,35 @@ export default function BuildContractPage() {
                       {BUILD_MODES.map((m) => {
                         const Icon = m.icon;
                         const active = buildMode === m.id;
+                        const locked = m.id === "strict" && !canStrict;
                         return (
                           <button
                             key={m.id}
                             type="button"
-                            onClick={() => setBuildMode(m.id)}
-                            title={m.description}
+                            onClick={() => {
+                              if (locked) {
+                                toast.message("Стриктен режим е за Pro и Team", {
+                                  description: "Преминете към Pro или Team план, за да го отключите.",
+                                  action: { label: "Виж планове", onClick: goSubscription },
+                                });
+                                return;
+                              }
+                              setBuildMode(m.id);
+                            }}
+                            title={locked ? "Достъпно за Pro / Team" : m.description}
                             className={
-                              "flex flex-col items-center gap-1.5 rounded-lg px-3 py-2.5 text-xs font-medium transition-all " +
+                              "relative flex flex-col items-center gap-1.5 rounded-lg px-3 py-2.5 text-xs font-medium transition-all " +
                               (active
                                 ? "bg-gradient-gold text-navy shadow-gold"
+                                : locked
+                                ? "border border-border/70 bg-card/20 text-muted-foreground hover:border-gold/40"
                                 : "border border-border/70 bg-card/40 text-foreground hover:border-gold/50 hover:text-gold")
                             }
                           >
+                            {locked && <Lock className="absolute right-1.5 top-1.5 h-3 w-3 text-gold/80" />}
                             <Icon className="h-4 w-4" />
                             {m.label}
+                            {locked && <span className="text-[9px] uppercase tracking-wider text-gold/80">Pro / Team</span>}
                           </button>
                         );
                       })}
