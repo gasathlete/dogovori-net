@@ -1,0 +1,1202 @@
+[
+  {
+    "name": "Договор за дистрибуция с изключителни права за конкретен регион",
+    "purpose": "Урежда правоотношенията между производител и дистрибутор за продажба и разпространение на стоки.",
+    "keyClause": "Определя изключителните права на дистрибутора за продажба на стоките на производителя в дефиниран географски регион.",
+    "documentType": "contract",
+    "categoryId": "uslugi",
+    "slug": "dogovor-za-distributsiya-s-izklyuchitelni-prava-za-konkreten-region"
+  },
+  {
+    "name": "Договор за изработка (ишлеме) на софтуер по поръчка с конфиденциални клаузи",
+    "purpose": "Регламентира изработването на специфична софтуерна система по задание на поръчителя.",
+    "keyClause": "Клаузите за конфиденциалност гарантират опазването на търговски тайни и информация, свързана с разработката.",
+    "documentType": "contract",
+    "categoryId": "uslugi",
+    "slug": "dogovor-za-izrabotka-ishleme-na-softuer-po-porachka-s-konfidentsialni-klauzi"
+  },
+  {
+    "name": "Договор за наем на селскостопанска техника и инвентар с клауза за поддръжка",
+    "purpose": "Определя условията за временно ползване на селскостопански машини срещу заплащане.",
+    "keyClause": "Подробна клауза за отговорността на наемодателя и наемателя относно техническата поддръжка и ремонт на оборудването.",
+    "documentType": "contract",
+    "categoryId": "uslugi",
+    "slug": "dogovor-za-naem-na-selskostopanska-tehnika-i-inventar-s-klauza-za-poddrazhka"
+  },
+  {
+    "name": "Договор за търговско посредничество за сделка с недвижим имот",
+    "purpose": "Урежда отношенията, при които посредник съдейства за сключване на сделка с недвижим имот.",
+    "keyClause": "Размерът и условията за заплащане на комисионното възнаграждение на посредника при успешно сключване на сделка.",
+    "documentType": "contract",
+    "categoryId": "uslugi",
+    "slug": "dogovor-za-targovsko-posrednichestvo-za-sdelka-s-nedvizhim-imot"
+  },
+  {
+    "name": "Договор за спедиция на международна товарна пратка по шосе",
+    "purpose": "Регулира отношенията по организиране и извършване на превоз на стоки до конкретна дестинация.",
+    "keyClause": "Отговорността на спедитора за избора на превозвач и застраховане на пратката през целия маршрут.",
+    "documentType": "contract",
+    "categoryId": "uslugi",
+    "slug": "dogovor-za-speditsiya-na-mezhdunarodna-tovarna-pratka-po-shose"
+  },
+  {
+    "name": "Договор за поръчка за правни услуги и процесуално представителство в съд",
+    "purpose": "Възлагане на адвокат да извършва правни консултации и представителство по дадено дело.",
+    "keyClause": "Обхватът на възложените услуги, размера на адвокатския хонорар и начина на неговото заплащане.",
+    "documentType": "contract",
+    "categoryId": "uslugi",
+    "slug": "dogovor-za-porachka-za-pravni-uslugi-i-protsesualno-predstavitelstvo-v-sad"
+  },
+  {
+    "name": "Договор за аренда на земеделска земя с клауза за предсрочно прекратяване",
+    "purpose": "Определя условията, при които земеделска земя се предоставя за временно ползване и обработване.",
+    "keyClause": "Подробна клауза, описваща условията и процедурата за предсрочно прекратяване на арендния договор от страните.",
+    "documentType": "contract",
+    "categoryId": "uslugi",
+    "slug": "dogovor-za-arenda-na-zemedelska-zemya-s-klauza-za-predsrochno-prekratyavane"
+  },
+  {
+    "name": "Договор за доставка на специфични суровини с фиксиран график",
+    "purpose": "Урежда доставката на определени видове суровини или материали в точно определени срокове.",
+    "keyClause": "Ясно дефиниран график за доставка с конкретни дати и количества, както и неустойки при забава.",
+    "documentType": "contract",
+    "categoryId": "uslugi",
+    "slug": "dogovor-za-dostavka-na-spetsifichni-surovini-s-fiksiran-grafik"
+  },
+  {
+    "name": "Договор за мандат за управление на дружество с ограничени правомощия",
+    "purpose": "Определя правата и задълженията на управителя на търговско дружество.",
+    "keyClause": "Подробно описание на ограничените правомощия на управителя и случаите, изискващи изрично одобрение.",
+    "documentType": "contract",
+    "categoryId": "uslugi",
+    "slug": "dogovor-za-mandat-za-upravlenie-na-druzhestvo-s-ogranicheni-pravomoshtiya"
+  },
+  {
+    "name": "Договор за комисионна продажба на стоки с фиксиран процент възнаграждение",
+    "purpose": "Урежда продажбата на стоки от комисионер от свое име, но за сметка на комитента.",
+    "keyClause": "Точният размер на комисионното възнаграждение, изчислен като процент от постигнатата продажна цена.",
+    "documentType": "contract",
+    "categoryId": "uslugi",
+    "slug": "dogovor-za-komisionna-prodazhba-na-stoki-s-fiksiran-protsent-vaznagrazhdenie"
+  },
+  {
+    "name": "Акционерно споразумение за управление и разпределение на печалби в дружество",
+    "purpose": "Определя правата и задълженията на акционерите, начина на управление на дружеството и разпределението на дивиденти.",
+    "keyClause": "Най-важната клауза касае механизма за вземане на решения от акционерите и правилата за прехвърляне на акции.",
+    "documentType": "agreement",
+    "categoryId": "korp",
+    "slug": "aktsionerno-sporazumenie-za-upravlenie-i-razpredelenie-na-pechalbi-v-druzhestvo"
+  },
+  {
+    "name": "Споразумение за поверителност и неразкриване на търговска тайна между съдружници",
+    "purpose": "Защитава чувствителна информация, търговски тайни и интелектуална собственост, като забранява тяхното разкриване от съдружници.",
+    "keyClause": "Ключова е клаузата, която дефинира обхвата на поверителната информация и периода, за който е валидна забраната за разкриване.",
+    "documentType": "agreement",
+    "categoryId": "korp",
+    "slug": "sporazumenie-za-poveritelnost-i-nerazkrivane-na-targovska-tayna-mezhdu-sadruzhni"
+  },
+  {
+    "name": "Споразумение за прекратяване на трудов договор по взаимно съгласие",
+    "purpose": "Формализира условията за прекратяване на трудово правоотношение между работодател и служител без предизвестие.",
+    "keyClause": "Съществена е клаузата, определяща размера и условията за изплащане на обезщетения при прекратяването.",
+    "documentType": "agreement",
+    "categoryId": "korp",
+    "slug": "sporazumenie-za-prekratyavane-na-trudov-dogovor-po-vzaimno-saglasie"
+  },
+  {
+    "name": "Медиационно споразумение за разрешаване на търговски спор",
+    "purpose": "Достигане до извънсъдебно споразумение между спорещи страни с помощта на неутрален медиатор.",
+    "keyClause": "Важна е клаузата, която ясно описва постигнатото решение и задълженията на всяка страна по изпълнението му.",
+    "documentType": "agreement",
+    "categoryId": "korp",
+    "slug": "mediatsionno-sporazumenie-za-razreshavane-na-targovski-spor"
+  },
+  {
+    "name": "Ликвидационно споразумение за разпределение на активи при закриване на фирма",
+    "purpose": "Регламентира процедурата по разпределение на остатъчните активи на дружество след неговата ликвидация.",
+    "keyClause": "Основна е клаузата, която детайлизира реда и пропорциите за разпределение на активите между съдружниците/акционерите.",
+    "documentType": "agreement",
+    "categoryId": "korp",
+    "slug": "likvidatsionno-sporazumenie-za-razpredelenie-na-aktivi-pri-zakrivane-na-firma"
+  },
+  {
+    "name": "Споразумение за съвместна дейност и разпределение на печалби по проект",
+    "purpose": "Определя правата, задълженията и дяловете на страните при реализация на общ бизнес проект.",
+    "keyClause": "Ключова е клаузата, която урежда финансовите ангажименти на всяка страна и начина на разпределение на печалбите/загубите.",
+    "documentType": "agreement",
+    "categoryId": "korp",
+    "slug": "sporazumenie-za-savmestna-deynost-i-razpredelenie-na-pechalbi-po-proekt"
+  },
+  {
+    "name": "Споразумение за неконкуриране след прекратяване на търговско правоотношение",
+    "purpose": "Забранява на едната страна да извършва конкурентна дейност за определен период и територия след раздяла.",
+    "keyClause": "Най-важна е клаузата, която ясно дефинира обхвата на конкурентната дейност, териториалното ограничение и срока на забраната.",
+    "documentType": "agreement",
+    "categoryId": "korp",
+    "slug": "sporazumenie-za-nekonkurirane-sled-prekratyavane-na-targovsko-pravootnoshenie"
+  },
+  {
+    "name": "Споразумение за консолидация и преструктуриране на множество дългове",
+    "purpose": "Обединява няколко отделни задължения в едно общо, често с променени условия за погасяване.",
+    "keyClause": "Съществена е клаузата, която определя новите условия за погасяване на консолидирания дълг, включително лихви и срокове.",
+    "documentType": "agreement",
+    "categoryId": "korp",
+    "slug": "sporazumenie-za-konsolidatsiya-i-prestrukturirane-na-mnozhestvo-dalgove"
+  },
+  {
+    "name": "Споразумение за обезщетение и регрес при претърпяна вреда от трето лице",
+    "purpose": "Урежда правото на една страна да бъде обезщетена от друга за вреди, причинени от трета страна.",
+    "keyClause": "Ключова е клаузата, която ясно дефинира обстоятелствата за възникване на правото на обезщетение и неговия размер.",
+    "documentType": "agreement",
+    "categoryId": "korp",
+    "slug": "sporazumenie-za-obezshtetenie-i-regres-pri-pretarpyana-vreda-ot-treto-litse"
+  },
+  {
+    "name": "Споразумение за разсрочване на парично задължение и установяване на погасителен план",
+    "purpose": "Предоставя възможност на длъжник да погаси дадено задължение на части, съгласно установен план.",
+    "keyClause": "Най-важна е клаузата, която подробно описва погасителния план – броя и размера на вноските, техните падежи и евентуални лихви.",
+    "documentType": "agreement",
+    "categoryId": "korp",
+    "slug": "sporazumenie-za-razsrochvane-na-parichno-zadalzhenie-i-ustanovyavane-na-pogasite"
+  },
+  {
+    "name": "Приложение към договор за изработка – Техническо задание за софтуерна разработка",
+    "purpose": "Определя детайлно изискванията, функционалностите и обхвата на софтуерната разработка, предмет на основния договор.",
+    "keyClause": "Ключова клауза е ясното дефиниране на всички функции, потребителски истории и нефункционални изисквания към системата.",
+    "documentType": "appendix",
+    "categoryId": "uslugi",
+    "slug": "prilozhenie-kam-dogovor-za-izrabotka-tehnichesko-zadanie-za-softuerna-razrabotka"
+  },
+  {
+    "name": "Приложение към договор за доставка – Ценова листа на продукти/услуги",
+    "purpose": "Съдържа актуални цени, на които доставчикът предлага своите продукти или услуги към датата на сключване на договора.",
+    "keyClause": "Особено важен е секцията за валидност на цените и условията за тяхната промяна, както и валутата.",
+    "documentType": "appendix",
+    "categoryId": "uslugi",
+    "slug": "prilozhenie-kam-dogovor-za-dostavka-tsenova-lista-na-produkti-uslugi"
+  },
+  {
+    "name": "Приложение към договор за покупко-продажба – Спецификация на стока/оборудване",
+    "purpose": "Подробно описва качествените и количествени характеристики на продаваната стока или оборудване.",
+    "keyClause": "Най-важно е точното посочване на марка, модел, технически параметри, серийни номера и други идентификатори.",
+    "documentType": "appendix",
+    "categoryId": "uslugi",
+    "slug": "prilozhenie-kam-dogovor-za-pokupko-prodazhba-spetsifikatsiya-na-stoka-oborudvane"
+  },
+  {
+    "name": "Приложение към договор за подизпълнение – Списък на ангажирания персонал",
+    "purpose": "Изброява и идентифицира служителите, които ще изпълняват възложените дейности по договора.",
+    "keyClause": "Основна е клаузата, която определя квалификацията и ролята на всеки член от персонала, и отговорностите му.",
+    "documentType": "appendix",
+    "categoryId": "uslugi",
+    "slug": "prilozhenie-kam-dogovor-za-podizpalnenie-spisak-na-angazhiraniya-personal"
+  },
+  {
+    "name": "Приложение към договор за IT услуги – Service Level Agreement (SLA) параметри",
+    "purpose": "Дефинира стандартите за качество на предоставяните IT услуги, включително наличност, време за реакция и отстраняване на проблеми.",
+    "keyClause": "Ключова е клаузата за наказателни неустойки при неспазване на договорените нива на обслужване и методите за измерване.",
+    "documentType": "appendix",
+    "categoryId": "uslugi",
+    "slug": "prilozhenie-kam-dogovor-za-it-uslugi-service-level-agreement-sla-parametri"
+  },
+  {
+    "name": "Приложение към договор за продажба – Гаранционни условия и сервизно обслужване",
+    "purpose": "Установява обхвата на гаранцията, продължителността й, условията за сервизно обслужване и замяна на дефектни стоки.",
+    "keyClause": "Най-важно е ясното разграничаване между гаранционни и извънгаранционни повреди и процедурите за предявяване на претенции.",
+    "documentType": "appendix",
+    "categoryId": "uslugi",
+    "slug": "prilozhenie-kam-dogovor-za-prodazhba-garantsionni-usloviya-i-servizno-obsluzhvan"
+  },
+  {
+    "name": "Приложение към договор за строителство – Описание на вложените материали",
+    "purpose": "Конкретизира типа, количеството и качеството на строителните материали, които ще бъдат използвани в проекта.",
+    "keyClause": "Важна е клаузата за съответствие на материалите с българските и европейски стандарти, както и изискванията за сертификация.",
+    "documentType": "appendix",
+    "categoryId": "uslugi",
+    "slug": "prilozhenie-kam-dogovor-za-stroitelstvo-opisanie-na-vlozhenite-materiali"
+  },
+  {
+    "name": "Приложение към договор за услуги – Обхват и детайлно описание на услугите",
+    "purpose": "Уточнява всички конкретни дейности, включени в предоставяните услуги, и изключва онези, които не са.",
+    "keyClause": "Ключова е клаузата, описваща стъпките, резултатите и критериите за приемане на всяка отделна услуга.",
+    "documentType": "appendix",
+    "categoryId": "uslugi",
+    "slug": "prilozhenie-kam-dogovor-za-uslugi-obhvat-i-detaylno-opisanie-na-uslugite"
+  },
+  {
+    "name": "Приложение към договор за консултантски услуги – Схема на работа и етапи на проекта",
+    "purpose": "Визуализира и описва последователността на дейностите, фазите на проекта и взаимозависимостите между тях.",
+    "keyClause": "Основната клауза е тази, която дефинира подлежащите на приемане етапи и изискваните резултати за всеки етап от проекта.",
+    "documentType": "appendix",
+    "categoryId": "uslugi",
+    "slug": "prilozhenie-kam-dogovor-za-konsultantski-uslugi-shema-na-rabota-i-etapi-na-proek"
+  },
+  {
+    "name": "Приложение към рамков договор за доставки – График на доставки и обеми",
+    "purpose": "Планира времевите интервали и количествата на бъдещите доставки, съгласно общите условия на рамковия договор.",
+    "keyClause": "Най-важно е точното посочване на датите или периодите за доставка, както и минималните/максималните обеми.",
+    "documentType": "appendix",
+    "categoryId": "uslugi",
+    "slug": "prilozhenie-kam-ramkov-dogovor-za-dostavki-grafik-na-dostavki-i-obemi"
+  },
+  {
+    "name": "Допълнително споразумение за промяна на длъжност по трудов договор",
+    "purpose": "Използва се за официално изменение на първоначално определената трудова длъжност на служител.",
+    "keyClause": "Определя новата длъжност, дата на влизане в сила и всички свързани промени в права и задължения.",
+    "documentType": "annex",
+    "categoryId": "trudovi",
+    "slug": "dopalnitelno-sporazumenie-za-promyana-na-dlazhnost-po-trudov-dogovor"
+  },
+  {
+    "name": "Допълнително споразумение за изменение на възнаграждение по трудов договор",
+    "purpose": "Прилага се за коригиране размера на основната работна заплата и/или други допълнителни плащания.",
+    "keyClause": "Указва новия размер на възнаграждението, компоненти, както и датата на прилагането му.",
+    "documentType": "annex",
+    "categoryId": "trudovi",
+    "slug": "dopalnitelno-sporazumenie-za-izmenenie-na-vaznagrazhdenie-po-trudov-dogovor"
+  },
+  {
+    "name": "Анекс към договор за услуга за удължаване на срока на действие",
+    "purpose": "Служи за продължаване на периода, за който е сключен даден договор за предоставяне на услуги.",
+    "keyClause": "Изрично посочва новия краен срок на договора или периода на удължаване.",
+    "documentType": "annex",
+    "categoryId": "trudovi",
+    "slug": "aneks-kam-dogovor-za-usluga-za-udalzhavane-na-sroka-na-deystvie"
+  },
+  {
+    "name": "Допълнително споразумение за промяна на обем на работа по граждански договор",
+    "purpose": "Регламентира изменението в количеството или съдържанието на работата, която следва да бъде извършена.",
+    "keyClause": "Описва детайлно новия обем на възложената работа и евентуални свързани корекции на възнаграждението.",
+    "documentType": "annex",
+    "categoryId": "trudovi",
+    "slug": "dopalnitelno-sporazumenie-za-promyana-na-obem-na-rabota-po-grazhdanski-dogovor"
+  },
+  {
+    "name": "Анекс към договор за софтуерно разработване за добавяне на нови услуги",
+    "purpose": "Използва се за включване на нови или допълнителни дейности и функционалности към първоначален проект.",
+    "keyClause": "Дефинира ясно новите услуги, срокове за изпълнение и допълнителното възнаграждение, ако има такова.",
+    "documentType": "annex",
+    "categoryId": "trudovi",
+    "slug": "aneks-kam-dogovor-za-softuerno-razrabotvane-za-dobavyane-na-novi-uslugi"
+  },
+  {
+    "name": "Допълнително споразумение за промяна на цената по търговски договор",
+    "purpose": "Служи за преизчисляване на стойността на стоки или услуги, предмет на съществуващ търговски договор.",
+    "keyClause": "Фиксира новата цена, начина на плащане и датата, от която ще се прилага това изменение.",
+    "documentType": "annex",
+    "categoryId": "trudovi",
+    "slug": "dopalnitelno-sporazumenie-za-promyana-na-tsenata-po-targovski-dogovor"
+  },
+  {
+    "name": "Анекс към договор за наем за промяна на адреса за кореспонденция",
+    "purpose": "Оформя официално изменение на адреса, на който страните получават писмени съобщения.",
+    "keyClause": "Упоменава изрично новия актуален адрес за кореспонденция и датата на промяна.",
+    "documentType": "annex",
+    "categoryId": "trudovi",
+    "slug": "aneks-kam-dogovor-za-naem-za-promyana-na-adresa-za-korespondentsiya"
+  },
+  {
+    "name": "Допълнително споразумение за преминаване от срочен в безсрочен трудов договор",
+    "purpose": "Използва се за трансформиране на трудово правоотношение от срочно в постоянно.",
+    "keyClause": "Констатира, че договорът се превръща в безсрочен, считано от определена дата, без други промени.",
+    "documentType": "annex",
+    "categoryId": "trudovi",
+    "slug": "dopalnitelno-sporazumenie-za-preminavane-ot-srochen-v-bezsrochen-trudov-dogovor"
+  },
+  {
+    "name": "Анекс към трудов договор за промяна на работното време/петдневна работна седмица",
+    "purpose": "Регулира изменението в продължителността или разпределението на работното време през седмицата.",
+    "keyClause": "Дефинира новото работно време, начало и край, и дните от седмицата, съгласно Кодекса на труда.",
+    "documentType": "annex",
+    "categoryId": "trudovi",
+    "slug": "aneks-kam-trudov-dogovor-za-promyana-na-rabotnoto-vreme-petdnevna-rabotna-sedmit"
+  },
+  {
+    "name": "Допълнително споразумение за изменение на условията за прекратяване на договор",
+    "purpose": "Изменя клаузите, свързани с условията и процедурите за предсрочно прекратяване на договор.",
+    "keyClause": "Ясно формулира новите условия, срокове на предизвестие или неустойки при прекратяване.",
+    "documentType": "annex",
+    "categoryId": "trudovi",
+    "slug": "dopalnitelno-sporazumenie-za-izmenenie-na-usloviyata-za-prekratyavane-na-dogovor"
+  },
+  {
+    "name": "Приемо-предавателен протокол за предаване на ключове",
+    "purpose": "Използва се за официално документиране на предаването и приемането на ключове между две страни.",
+    "keyClause": "Ключовете се предават в изправност и пълна окомплектовка, както е описано в протокола.",
+    "documentType": "protocol",
+    "categoryId": "stroitelstvo",
+    "slug": "priemo-predavatelen-protokol-za-predavane-na-klyuchove"
+  },
+  {
+    "name": "Приемо-предавателен протокол за предаване на стоки/продукция",
+    "purpose": "Служи за документиране на предаването и приемането на определено количество стоки между доставчик и получател.",
+    "keyClause": "Описва се вида, количеството и състоянието на стоките към момента на предаване и приемане.",
+    "documentType": "protocol",
+    "categoryId": "stroitelstvo",
+    "slug": "priemo-predavatelen-protokol-za-predavane-na-stoki-produktsiya"
+  },
+  {
+    "name": "Констативен протокол за установяване на щети по имущество",
+    "purpose": "Описва подробно установените щети по дадено имущество след настъпване на събитие, причинило вредите.",
+    "keyClause": "Протоколът съдържа детайлно описание на щетите, местоположението им и евентуални причини.",
+    "documentType": "protocol",
+    "categoryId": "stroitelstvo",
+    "slug": "konstativen-protokol-za-ustanovyavane-na-shteti-po-imushtestvo"
+  },
+  {
+    "name": "Протокол за бракуване на дълготрайни материални активи",
+    "purpose": "Използва се за официално документиране на решението за бракуване на материални активи поради непригодност.",
+    "keyClause": "Посочва се причината за бракуване, инвентарният номер на актива и решението на комисията.",
+    "documentType": "protocol",
+    "categoryId": "stroitelstvo",
+    "slug": "protokol-za-brakuvane-na-dalgotrayni-materialni-aktivi"
+  },
+  {
+    "name": "Протокол за извършено лабораторно изпитване на продукт",
+    "purpose": "Представя резултатите от проведено лабораторно изпитване на продукт или материал съгласно определени норми.",
+    "keyClause": "Включва методиката на изпитване, измерените параметри и заключение за съответствие.",
+    "documentType": "protocol",
+    "categoryId": "stroitelstvo",
+    "slug": "protokol-za-izvarsheno-laboratorno-izpitvane-na-produkt"
+  },
+  {
+    "name": "Протокол за извършена годишна инвентаризация на склад",
+    "purpose": "Документира резултатите от извършена инвентаризация на наличностите в склад към определена дата.",
+    "keyClause": "Описват се инвентаризираните активи, установените разлики и предложения за осчетоводяване.",
+    "documentType": "protocol",
+    "categoryId": "stroitelstvo",
+    "slug": "protokol-za-izvarshena-godishna-inventarizatsiya-na-sklad"
+  },
+  {
+    "name": "Протокол за разпит на свидетел при пътнотранспортно произшествие",
+    "purpose": "Служи за записване на показанията на свидетел относно обстоятелствата около пътно транспортно произшествие.",
+    "keyClause": "Съдържа личните данни на свидетеля и неговото подробно описание на събитието.",
+    "documentType": "protocol",
+    "categoryId": "stroitelstvo",
+    "slug": "protokol-za-razpit-na-svidetel-pri-patnotransportno-proizshestvie"
+  },
+  {
+    "name": "Приемо-предавателен протокол за приемане на извършена услуга",
+    "purpose": "Удостоверява, че изпълнителят е извършил услугата съгласно договора и тя е приета от възложителя.",
+    "keyClause": "Ясно се посочва обема и качеството на извършената услуга и липсата на възражения.",
+    "documentType": "protocol",
+    "categoryId": "stroitelstvo",
+    "slug": "priemo-predavatelen-protokol-za-priemane-na-izvarshena-usluga"
+  },
+  {
+    "name": "Протокол за временно спиране или прекъсване на строителни работи",
+    "purpose": "Документира обстоятелствата и причините за временно спиране или прекъсване на строителни дейности.",
+    "keyClause": "Описва се причината за прекъсването, датата на спиране и предприетите мерки за обезопасяване.",
+    "documentType": "protocol",
+    "categoryId": "stroitelstvo",
+    "slug": "protokol-za-vremenno-spirane-ili-prekasvane-na-stroitelni-raboti"
+  },
+  {
+    "name": "Протокол за съгласуване на технически проект или документация",
+    "purpose": "Фиксира процеса на съгласуване на технически проект или документация между заинтересовани страни.",
+    "keyClause": "Включва становищата на всички страни и окончателното решение за одобрение/отхвърляне на проекта.",
+    "documentType": "protocol",
+    "categoryId": "stroitelstvo",
+    "slug": "protokol-za-saglasuvane-na-tehnicheski-proekt-ili-dokumentatsiya"
+  },
+  {
+    "name": "Разписка за получена парична сума по граждански договор за извършена услуга",
+    "purpose": "Тази разписка удостоверява получаването на конкретна парична сума като възнаграждение за изпълнена услуга.",
+    "keyClause": "Най-важната клауза е конкретното посочване на сумата, основанието за плащане и датата на получаване.",
+    "documentType": "receipt",
+    "categoryId": "decl",
+    "slug": "razpiska-za-poluchena-parichna-suma-po-grazhdanski-dogovor-za-izvarshena-usluga"
+  },
+  {
+    "name": "Разписка за получен задатък по предварителен договор за покупко-продажба на недвижим имот",
+    "purpose": "Служи за доказване на получаване на капаро (задатък) във връзка с бъдеща сделка за имот.",
+    "keyClause": "Ключова е клаузата, описваща размера на задатъка, имота и договора, по който е внесен.",
+    "documentType": "receipt",
+    "categoryId": "decl",
+    "slug": "razpiska-za-poluchen-zadatak-po-predvaritelen-dogovor-za-pokupko-prodazhba-na-ne"
+  },
+  {
+    "name": "Разписка за получена сума по договор за заем между физически лица",
+    "purpose": "Доказва, че заемодателят е предал определена сума пари на заемателя, който я е получил.",
+    "keyClause": "Важно е да се посочи точната сума на заема, датата на предаване и срокът за връщане.",
+    "documentType": "receipt",
+    "categoryId": "decl",
+    "slug": "razpiska-za-poluchena-suma-po-dogovor-za-zaem-mezhdu-fizicheski-litsa"
+  },
+  {
+    "name": "Разписка за върната надвнесена сума на клиент вследствие на рекламация",
+    "purpose": "Удостоверява, че търговецът е възстановил пари на клиент, поради уважена рекламация или грешка.",
+    "keyClause": "Съществено е вписването на причината за връщането на сумата и идентификационните данни на клиента.",
+    "documentType": "receipt",
+    "categoryId": "decl",
+    "slug": "razpiska-za-varnata-nadvnesena-suma-na-klient-vsledstvie-na-reklamatsiya"
+  },
+  {
+    "name": "Разписка за получена стока/материални ценности от склада на дружеството",
+    "purpose": "Тази разписка се използва за удостоверяване на получаването на стоки или материали от отговорно лице.",
+    "keyClause": "Ключови елементи са описанието на стоката, количеството, единичната цена и стойността.",
+    "documentType": "receipt",
+    "categoryId": "decl",
+    "slug": "razpiska-za-poluchena-stoka-materialni-tsennosti-ot-sklada-na-druzhestvoto"
+  },
+  {
+    "name": "Разписка за получени оригинални документи за административни или юридически цели",
+    "purpose": "Служи за фиксация на предаването и получаването на важни оригинални документи между страни.",
+    "keyClause": "Най-важно е изброяването на всеки документ поотделно, номера му и издателя.",
+    "documentType": "receipt",
+    "categoryId": "decl",
+    "slug": "razpiska-za-polucheni-originalni-dokumenti-za-administrativni-ili-yuridicheski-t"
+  },
+  {
+    "name": "Разписка за получен гаранционен депозит при сключване на договор за наем",
+    "purpose": "Удостоверява плащането и получаването на депозит, който обезпечава изпълнението на наемните отношения.",
+    "keyClause": "Съществено е посочването на размера на депозита, наемния договор и условията за неговото връщане.",
+    "documentType": "receipt",
+    "categoryId": "decl",
+    "slug": "razpiska-za-poluchen-garantsionen-depozit-pri-sklyuchvane-na-dogovor-za-naem"
+  },
+  {
+    "name": "Разписка за получено имущество за ползване по договор за наем",
+    "purpose": "Доказва, че наемателят е приел конкретно имущество в изправно състояние от наемодателя.",
+    "keyClause": "Важно е детайлното описание на полученото имущество и неговото състояние при предаване.",
+    "documentType": "receipt",
+    "categoryId": "decl",
+    "slug": "razpiska-za-polucheno-imushtestvo-za-polzvane-po-dogovor-za-naem"
+  },
+  {
+    "name": "Разписка за получено допълнително възнаграждение (бонус) по трудов договор",
+    "purpose": "Удостоверява изплащането на извънредно или допълнително възнаграждение на служител.",
+    "keyClause": "Ключова е клаузата, посочваща размера на бонуса, периода и основанието за неговото изплащане.",
+    "documentType": "receipt",
+    "categoryId": "decl",
+    "slug": "razpiska-za-polucheno-dopalnitelno-vaznagrazhdenie-bonus-po-trudov-dogovor"
+  },
+  {
+    "name": "Разписка за получена финансова помощ за бедстващо лице или семейство",
+    "purpose": "Служи за доказване на предоставяне на финансова помощ на физическо лице или семейство в нужда.",
+    "keyClause": "Най-важно е уточняване на сумата, получателя, предоставилия помощта и основанието за това.",
+    "documentType": "receipt",
+    "categoryId": "decl",
+    "slug": "razpiska-za-poluchena-finansova-pomosht-za-bedstvashto-litse-ili-semeystvo"
+  },
+  {
+    "name": "Пълномощно за получаване на документи от Национална агенция за приходите (НАП)",
+    "purpose": "Използва се за упълномощаване на лице да подава или получава документи, декларации и справки в НАП от името на упълномощителя.",
+    "keyClause": "Основната клауза е детайлното описание на конкретните документи и действия, за които се дава правомощие.",
+    "documentType": "power_of_attorney",
+    "categoryId": "punomoshtni",
+    "slug": "palnomoshtno-za-poluchavane-na-dokumenti-ot-natsionalna-agentsiya-za-prihodite-n"
+  },
+  {
+    "name": "Пълномощно за управление на моторно превозно средство (МПС) в страната и чужбина",
+    "purpose": "Овластява друго лице да управлява собственото МПС на упълномощителя, включително зад граница, при спазване на законовите изисквания.",
+    "keyClause": "Важна клауза е ясното упоменаване на регистрационния номер и марката на автомобила, както и срока на действие на пълномощното.",
+    "documentType": "power_of_attorney",
+    "categoryId": "punomoshtni",
+    "slug": "palnomoshtno-za-upravlenie-na-motorno-prevozno-sredstvo-mps-v-stranata-i-chuzhbi"
+  },
+  {
+    "name": "Нотариално пълномощно за продажба на моторно превозно средство (МПС)",
+    "purpose": "Упълномощава лице да извърши продажба на автомобил от името на собственика, подписвайки всички необходими документи.",
+    "keyClause": "Особено важна е клаузата, даваща право за подписване на договор за покупко-продажба и получаване на продажната цена.",
+    "documentType": "power_of_attorney",
+    "categoryId": "punomoshtni",
+    "slug": "notarialno-palnomoshtno-za-prodazhba-na-motorno-prevozno-sredstvo-mps"
+  },
+  {
+    "name": "Генерално пълномощно за широк кръг от гражданскоправни сделки и действия",
+    "purpose": "Предоставя широки правомощия на упълномощено лице да извършва почти всички гражданскоправни действия от името на упълномощителя.",
+    "keyClause": "Съществена е изчерпателната, но нелимитираща формулировка на пълния обхват от действия и сделки, които могат да бъдат извършвани.",
+    "documentType": "power_of_attorney",
+    "categoryId": "punomoshtni",
+    "slug": "generalno-palnomoshtno-za-shirok-krag-ot-grazhdanskopravni-sdelki-i-deystviya"
+  },
+  {
+    "name": "Пълномощно за извършване на банкови операции и разпореждане със сметки",
+    "purpose": "Дава право на упълномощено лице да извършва банкови преводи, тегления, внасяния и други операции по банкови сметки.",
+    "keyClause": "Ключова е клаузата, която точно определя номерата на сметките и типа операции, за които се дава пълномощие, както и лимити.",
+    "documentType": "power_of_attorney",
+    "categoryId": "punomoshtni",
+    "slug": "palnomoshtno-za-izvarshvane-na-bankovi-operatsii-i-razporezhdane-sas-smetki"
+  },
+  {
+    "name": "Пълномощно за представителство пред съдебни институции и органи на властта",
+    "purpose": "Овластява адвокат или друго лице да представлява упълномощителя пред съда и други държавни и общински органи.",
+    "keyClause": "Най-важна е клаузата, която изрично посочва конкретния съдебен процес или дело, за което се отнася представителството.",
+    "documentType": "power_of_attorney",
+    "categoryId": "punomoshtni",
+    "slug": "palnomoshtno-za-predstavitelstvo-pred-sadebni-institutsii-i-organi-na-vlastta"
+  },
+  {
+    "name": "Пълномощно за извършване на регистрационни действия в КАТ (Пътна полиция)",
+    "purpose": "Позволява на упълномощено лице да регистрира, пререгистрира или отписва МПС в КАТ от името на собственика.",
+    "keyClause": "Основна клауза е точното описание на МПС (марка, модел, VIN) и вида на регистрационните действия, за които се дава пълномощие.",
+    "documentType": "power_of_attorney",
+    "categoryId": "punomoshtni",
+    "slug": "palnomoshtno-za-izvarshvane-na-registratsionni-deystviya-v-kat-patna-politsiya"
+  },
+  {
+    "name": "Пълномощно за участие и гласуване в общо събрание на търговско дружество/сдружение",
+    "purpose": "Упълномощава лице да присъства и гласува на общо събрание от името на акционер/съдружник или член на сдружението.",
+    "keyClause": "Ключова е клаузата, указваща името на дружеството/сдружението и датата или периода за провеждане на общото събрание.",
+    "documentType": "power_of_attorney",
+    "categoryId": "punomoshtni",
+    "slug": "palnomoshtno-za-uchastie-i-glasuvane-v-obshto-sabranie-na-targovsko-druzhestvo-s"
+  },
+  {
+    "name": "Пълномощно за откриване и водене на наследствени дела и приемане на наследство",
+    "purpose": "Използва се за упълномощаване на лице да извършва действия, свързани с приемане/отказ от наследство и обявяване на завещания.",
+    "keyClause": "Най-важен реквизит е изричното посочване на наследствените права и задължения, за които се предоставят правомощия.",
+    "documentType": "power_of_attorney",
+    "categoryId": "punomoshtni",
+    "slug": "palnomoshtno-za-otkrivane-i-vodene-na-nasledstveni-dela-i-priemane-na-nasledstvo"
+  },
+  {
+    "name": "Пълномощно за регистрация на търговско дружество или едноличен търговец в АВ",
+    "purpose": "Овластява лице да подава документи до Агенция по вписванията за първоначална регистрация на фирма или ЕТ.",
+    "keyClause": "Ключовата клауза е ясното и точно наименование на търговското дружество или ЕТ, което предстои да бъде регистрирано.",
+    "documentType": "power_of_attorney",
+    "categoryId": "punomoshtni",
+    "slug": "palnomoshtno-za-registratsiya-na-targovsko-druzhestvo-ili-ednolichen-targovets-v"
+  },
+  {
+    "name": "Декларация за гражданство и гражданско състояние на български гражданин",
+    "purpose": "Обобщен документ, удостоверяващ националност и семейно положение за официални процедури.",
+    "keyClause": "Декларирам, че съм български гражданин и семейният ми статус е [неженен/а, женен/а, разведен/а, вдовец/вдовица].",
+    "documentType": "declaration",
+    "categoryId": "decl",
+    "slug": "deklaratsiya-za-grazhdanstvo-i-grazhdansko-sastoyanie-na-balgarski-grazhdanin"
+  },
+  {
+    "name": "Декларация за липса на публични задължения по смисъла на ДОПК",
+    "purpose": "Удостоверява, че деклариращото лице или фирма няма текущи задължения към държавата.",
+    "keyClause": "Декларирам, че нямам просрочени публични задължения към държавата и общините.",
+    "documentType": "declaration",
+    "categoryId": "decl",
+    "slug": "deklaratsiya-za-lipsa-na-publichni-zadalzheniya-po-smisala-na-dopk"
+  },
+  {
+    "name": "Декларация за съгласие за пътуване на непълнолетно дете в чужбина без родител",
+    "purpose": "Изрично съгласие от родител/и за пътуване на дете извън България с друго лице.",
+    "keyClause": "Давам съгласието си непълнолетното ми дете [име на детето] да пътува самостоятелно извън Република България.",
+    "documentType": "declaration",
+    "categoryId": "decl",
+    "slug": "deklaratsiya-za-saglasie-za-patuvane-na-nepalnoletno-dete-v-chuzhbina-bez-rodite"
+  },
+  {
+    "name": "Декларация за приемане на наследство по опис след откриване на наследствено право",
+    "purpose": "Използва се от наследник за приемане на наследство с ограничения до размера на активите.",
+    "keyClause": "Приемам наследството на [име на наследодателя] по опис, съставен по реда на ГПК.",
+    "documentType": "declaration",
+    "categoryId": "decl",
+    "slug": "deklaratsiya-za-priemane-na-nasledstvo-po-opis-sled-otkrivane-na-nasledstveno-pr"
+  },
+  {
+    "name": "Декларация по чл. 92 от Закона за данъците върху доходите на физическите лица (ЗДДФЛ)",
+    "purpose": "Годишна декларация за доходи, придобити от физически лица, и дължим данък.",
+    "keyClause": "Декларирам всички придобити от мен доходи през данъчната година и дължимия данък.",
+    "documentType": "declaration",
+    "categoryId": "decl",
+    "slug": "deklaratsiya-po-chl-92-ot-zakona-za-danatsite-varhu-dohodite-na-fizicheskite-lit"
+  },
+  {
+    "name": "Декларация по Закона за мерките срещу изпирането на пари (ЗМИП) за произход на средства",
+    "purpose": "Декларира произхода на средства при значителни финансови операции или откриване на сметка.",
+    "keyClause": "Декларирам, че посочените средства са придобити законно от [източник на средствата].",
+    "documentType": "declaration",
+    "categoryId": "decl",
+    "slug": "deklaratsiya-po-zakona-za-merkite-sreshtu-izpiraneto-na-pari-zmip-za-proizhod-na"
+  },
+  {
+    "name": "Декларация за действителен собственик на юридическо лице или друго правно образувание",
+    "purpose": "Разкрива крайния физически собственик/контролиращото лице на фирма или организация.",
+    "keyClause": "Декларирам, че действителен собственик на [име на дружеството] е [име на действителния собственик].",
+    "documentType": "declaration",
+    "categoryId": "decl",
+    "slug": "deklaratsiya-za-deystvitelen-sobstvenik-na-yuridichesko-litse-ili-drugo-pravno-o"
+  },
+  {
+    "name": "Декларация за съгласие за обработка на лични данни на служител по КЗЛД и ОРЗД",
+    "purpose": "Дава право на работодателя да обработва лични данни на служителя за трудови цели.",
+    "keyClause": "Давам съгласието си личните ми данни да бъдат обработвани за нуждите на трудовото правоотношение.",
+    "documentType": "declaration",
+    "categoryId": "decl",
+    "slug": "deklaratsiya-za-saglasie-za-obrabotka-na-lichni-danni-na-sluzhitel-po-kzld-i-orz"
+  },
+  {
+    "name": "Декларация за съблюдаване на политика за поверителност и защита на информацията",
+    "purpose": "Ангажимент на лицето да пази конфиденциалността на фирмена или лична информация.",
+    "keyClause": "Декларирам, че съм запознат/а и ще спазвам политиката за поверителност на [име на организацията].",
+    "documentType": "declaration",
+    "categoryId": "decl",
+    "slug": "deklaratsiya-za-sablyudavane-na-politika-za-poveritelnost-i-zashtita-na-informat"
+  },
+  {
+    "name": "Декларация за съгласие за издаване на европейска здравна осигурителна карта (ЕЗОК)",
+    "purpose": "Упълномощаване за издаване на ЕЗОК за ползване на спешна медицинска помощ в ЕС.",
+    "keyClause": "Давам съгласието си за издаване на Европейска здравноосигурителна карта на мое име.",
+    "documentType": "declaration",
+    "categoryId": "decl",
+    "slug": "deklaratsiya-za-saglasie-za-izdavane-na-evropeyska-zdravna-osiguritelna-karta-ez"
+  },
+  {
+    "name": "Жалба до Комисия за защита на потребителите (КЗП) относно некачествена стока/услуга",
+    "purpose": "Използва се за подаване на оплакване срещу търговец за неподходящи или дефектни стоки или некачествени услуги.",
+    "keyClause": "Важно е да се опише точно дефектът, датата на покупка/получаване и предприетите до момента действия.",
+    "documentType": "complaint",
+    "categoryId": "decl",
+    "slug": "zhalba-do-komisiya-za-zashtita-na-potrebitelite-kzp-otnosno-nekachestvena-stoka-"
+  },
+  {
+    "name": "Жалба до Комисия за защита от дискриминация (КЗД) по повод дискриминационно отношение",
+    "purpose": "Предназначена е за лица, които са били обект на дискриминация на някое от защитените основания, например пол, раса, етнос.",
+    "keyClause": "Основна клауза е ясното упоменаване на основанието за дискриминация и конкретния инцидент или поведение.",
+    "documentType": "complaint",
+    "categoryId": "decl",
+    "slug": "zhalba-do-komisiya-za-zashtita-ot-diskriminatsiya-kzd-po-povod-diskriminatsionno"
+  },
+  {
+    "name": "Жалба до Комисия за защита на личните данни (КЗЛД) при нарушение на GDPR",
+    "purpose": "Служи за уведомяване на Комисията за неправомерно събиране, обработване или разкриване на лични данни.",
+    "keyClause": "Трябва да се посочат конкретните лични данни, които са били обект на нарушение, и субектът, извършил нарушението.",
+    "documentType": "complaint",
+    "categoryId": "decl",
+    "slug": "zhalba-do-komisiya-za-zashtita-na-lichnite-danni-kzld-pri-narushenie-na-gdpr"
+  },
+  {
+    "name": "Жалба до Изпълнителна агенция 'Главна инспекция по труда' относно неизплатени трудови възнаграждения",
+    "purpose": "Подава се в случаи на нарушени трудови права, като например неизплащане на заплати или обезщетения, или лоши условия на труд.",
+    "keyClause": "Ключова е информацията за работодателя, периода, за който не е изплатено възнаграждение, и размера на дължимите суми.",
+    "documentType": "complaint",
+    "categoryId": "decl",
+    "slug": "zhalba-do-izpalnitelna-agentsiya-glavna-inspektsiya-po-truda-otnosno-neizplateni"
+  },
+  {
+    "name": "Жалба до Национална агенция за приходите (НАП) по повод данъчна ревизия/акт",
+    "purpose": "Използва се за оспорване на констатации от данъчна ревизия или ревизионен акт, издаден от приходната администрация.",
+    "keyClause": "Важно е да се посочат мотивите за оспорване на акта или констатациите, подкрепени с доказателства.",
+    "documentType": "complaint",
+    "categoryId": "decl",
+    "slug": "zhalba-do-natsionalna-agentsiya-za-prihodite-nap-po-povod-danachna-reviziya-akt"
+  },
+  {
+    "name": "Жалба до Национална здравноосигурителна каса (НЗОК) за отказ на медицинска помощ/услуга",
+    "purpose": "Предназначена е за пациенти, на които е отказана полагаща им се по право медицинска помощ или са получили неадекватна такава.",
+    "keyClause": "Необходимо е да се опише случаят, датата на отказа/събитието и институцията, отказала/предоставила услугата.",
+    "documentType": "complaint",
+    "categoryId": "decl",
+    "slug": "zhalba-do-natsionalna-zdravnoosiguritelna-kasa-nzok-za-otkaz-na-meditsinska-pomo"
+  },
+  {
+    "name": "Жалба до общинска администрация относно нередности по Закона за устройство на територията",
+    "purpose": "Подава се от граждани при установяване на нарушения, свързани с благоустрояване, незаконно строителство или проблеми с инфраструктурата.",
+    "keyClause": "Трябва да се посочи точен адрес или местоположение на нередността и конкретното нарушение на нормативната уредба.",
+    "documentType": "complaint",
+    "categoryId": "decl",
+    "slug": "zhalba-do-obshtinska-administratsiya-otnosno-nerednosti-po-zakona-za-ustroystvo-"
+  },
+  {
+    "name": "Жалба срещу електронен фиш/наказателно постановление от КАТ",
+    "purpose": "Служи за оспорване на наложена глоба от контролни органи на МВР (КАТ) за нарушения на Закона за движението по пътищата.",
+    "keyClause": "Ключова е обосновката за несъгласие с наложената санкция и евентуални доказателства в подкрепа на жалбата.",
+    "documentType": "complaint",
+    "categoryId": "decl",
+    "slug": "zhalba-sreshtu-elektronen-fish-nakazatelno-postanovlenie-ot-kat"
+  },
+  {
+    "name": "Жалба до банков омбудсман по повод спор с банка",
+    "purpose": "Използва се за уреждане на спорове между потребители и кредитни институции извънсъдебно, често по отношение на такси или условия.",
+    "keyClause": "Необходимо е да се опише точно спорът с банката, датата на възникването му и номера на банковия продукт.",
+    "documentType": "complaint",
+    "categoryId": "decl",
+    "slug": "zhalba-do-bankov-ombudsman-po-povod-spor-s-banka"
+  },
+  {
+    "name": "Жалба до Прокуратура на Република България за извършено престъпление",
+    "purpose": "Подава се от гражданин или организация при наличие на данни за извършено престъпление от общ характер.",
+    "keyClause": "Важно е да се опише детайлно събитието, участниците, датата, мястото и предполагаемите последици от престъплението.",
+    "documentType": "complaint",
+    "categoryId": "decl",
+    "slug": "zhalba-do-prokuratura-na-republika-balgariya-za-izvarsheno-prestaplenie"
+  },
+  {
+    "name": "Искова молба за парично вземане по договор за заем",
+    "purpose": "Използва се за предявяване на съдебен иск за събиране на неизплатена сума по сключен договор за заем.",
+    "keyClause": "Основна клауза е ясното дефиниране на размера на главницата, лихвите и датата на настъпване на падежа.",
+    "documentType": "claim",
+    "categoryId": "decl",
+    "slug": "iskova-molba-za-parichno-vzemane-po-dogovor-za-zaem"
+  },
+  {
+    "name": "Искова молба за установяване на неоснователно обогатяване",
+    "purpose": "Служи за претендиране на възстановяване на имущество или парична сума, получени без правно основание.",
+    "keyClause": "Ключова клауза е доказването на обедняването на ищеца и обогатяването на ответника без основание.",
+    "documentType": "claim",
+    "categoryId": "decl",
+    "slug": "iskova-molba-za-ustanovyavane-na-neosnovatelno-obogatyavane"
+  },
+  {
+    "name": "Искова молба за прекратяване на граждански брак по взаимно съгласие",
+    "purpose": "Представлява съвместно искане на съпрузите пред съда за развод въз основа на тяхното съгласие.",
+    "keyClause": "Най-важният реквизит е приложеното споразумение между съпрузите относно всички последици от развода.",
+    "documentType": "claim",
+    "categoryId": "decl",
+    "slug": "iskova-molba-za-prekratyavane-na-grazhdanski-brak-po-vzaimno-saglasie"
+  },
+  {
+    "name": "Искова молба за присъждане на месечна издръжка за дете",
+    "purpose": "Подава се от родител или настойник за определяне и присъждане на издръжка за непълнолетно дете.",
+    "keyClause": "Съществена клауза е посочването на нуждите на детето и възможностите на задължения родител.",
+    "documentType": "claim",
+    "categoryId": "decl",
+    "slug": "iskova-molba-za-prisazhdane-na-mesechna-izdrazhka-za-dete"
+  },
+  {
+    "name": "Искова молба за делба на наследствено имущество",
+    "purpose": "Инициира съдебно производство за разпределяне на имуществото между сънаследниците след откриване на наследство.",
+    "keyClause": "Ключов елемент е точното изброяване на наследниците и имотите, предмет на делбата.",
+    "documentType": "claim",
+    "categoryId": "decl",
+    "slug": "iskova-molba-za-delba-na-nasledstveno-imushtestvo"
+  },
+  {
+    "name": "Искова молба за установителен иск за собственост на недвижим имот",
+    "purpose": "Използва се за установяване на правото на собственост върху конкретен недвижим имот спрямо трети лица.",
+    "keyClause": "Най-важната клауза е подробно описание на имота и основанието за придобиване на собствеността.",
+    "documentType": "claim",
+    "categoryId": "decl",
+    "slug": "iskova-molba-za-ustanovitelen-isk-za-sobstvenost-na-nedvizhim-imot"
+  },
+  {
+    "name": "Искова молба за обезщетение за непозволено увреждане",
+    "purpose": "Подава се при претенции за обезщетение за имуществени и неимуществени вреди, причинени от чуждо неправомерно действие.",
+    "keyClause": "Важна клауза е доказването на противоправното деяние, вредата и причинната връзка между тях.",
+    "documentType": "claim",
+    "categoryId": "decl",
+    "slug": "iskova-molba-za-obezshtetenie-za-nepozvoleno-uvrezhdane"
+  },
+  {
+    "name": "Искова молба за признаване незаконността на уволнение и възстановяване на работа",
+    "purpose": "Служи за оспорване на законосъобразността на прекратяване на трудово правоотношение и възстановяване на предишната работа.",
+    "keyClause": "Ключов елемент е подробно излагане на фактите и обстоятелствата, обосноваващи незаконното уволнение.",
+    "documentType": "claim",
+    "categoryId": "decl",
+    "slug": "iskova-molba-za-priznavane-nezakonnostta-na-uvolnenie-i-vazstanovyavane-na-rabot"
+  },
+  {
+    "name": "Искова молба за отмяна на наложено дисциплинарно наказание",
+    "purpose": "Представлява съдебно оспорване на заповед за наложено дисциплинарно наказание от работодател.",
+    "keyClause": "Съществена клауза е доказване на нарушенията на процедурата по налагане или липсата на извършено нарушение.",
+    "documentType": "claim",
+    "categoryId": "decl",
+    "slug": "iskova-molba-za-otmyana-na-nalozheno-distsiplinarno-nakazanie"
+  },
+  {
+    "name": "Искова молба за обезщетение за вреди от пътнотранспортно произшествие",
+    "purpose": "Прилага се за предявяване на претенции за имуществени и неимуществени вреди, понесени вследствие на ПТП.",
+    "keyClause": "Важен реквизит е подробно описание на произшествието, причинените вреди и отговорността на виновния водач/застраховател.",
+    "documentType": "claim",
+    "categoryId": "decl",
+    "slug": "iskova-molba-za-obezshtetenie-za-vredi-ot-patnotransportno-proizshestvie"
+  },
+  {
+    "name": "Нотариална покана за доброволно изпълнение на парично задължение по договор за заем",
+    "purpose": "Използва се за официално поканане на длъжник да погаси заем в определен срок преди предприемане на съдебни действия.",
+    "keyClause": "Основната клауза е ясното упоменаване на размера на дълга, срока за плащане и последиците при неизпълнение.",
+    "documentType": "notary_invitation",
+    "categoryId": "decl",
+    "slug": "notarialna-pokana-za-dobrovolno-izpalnenie-na-parichno-zadalzhenie-po-dogovor-za"
+  },
+  {
+    "name": "Нотариална покана за изпълнение на задължение по предварителен договор за покупко-продажба на недвижим имот",
+    "purpose": "Служи за приканване на страна по предварителен договор да сключи окончателен договор в нотариална форма.",
+    "keyClause": "Ключовият реквизит е посочването на конкретната дата и час за сключване на окончателния договор при нотариус.",
+    "documentType": "notary_invitation",
+    "categoryId": "decl",
+    "slug": "notarialna-pokana-za-izpalnenie-na-zadalzhenie-po-predvaritelen-dogovor-za-pokup"
+  },
+  {
+    "name": "Нотариална покана за прекратяване на договор за наем и освобождаване на нает имот",
+    "purpose": "Цели да уведоми наемател за прекратяване на наемното отношение и да изиска освобождаване на имота в срок.",
+    "keyClause": "Важна е клаузата, определяща краен срок за опразване на имота и връщане на владението.",
+    "documentType": "notary_invitation",
+    "categoryId": "decl",
+    "slug": "notarialna-pokana-za-prekratyavane-na-dogovor-za-naem-i-osvobozhdavane-na-naet-i"
+  },
+  {
+    "name": "Нотариална покана за връщане на дадена стока по стоков заем или друга форма на временно ползване",
+    "purpose": "Използва се, за да се покани ползвател да върне предоставена стока, чийто срок на ползване е изтекъл.",
+    "keyClause": "Акцентът е върху точното описание на стоката, срока за връщането ѝ и последиците от забава.",
+    "documentType": "notary_invitation",
+    "categoryId": "decl",
+    "slug": "notarialna-pokana-za-vrashtane-na-dadena-stoka-po-stokov-zaem-ili-druga-forma-na"
+  },
+  {
+    "name": "Нотариална покана за упражняване на право на изкупуване по Закона за собствеността (съсобственост)",
+    "purpose": "Предназначена е за съсобственик, за да бъде уведомен за намерение за продажба и да му се предложи дяла.",
+    "keyClause": "Най-важна е клаузата, посочваща продажната цена и срока, в който правоимащият може да изкупи дяла.",
+    "documentType": "notary_invitation",
+    "categoryId": "decl",
+    "slug": "notarialna-pokana-za-uprazhnyavane-na-pravo-na-izkupuvane-po-zakona-za-sobstveno"
+  },
+  {
+    "name": "Нотариална покана за приемане на наследство по опис или отказ от наследство",
+    "purpose": "Служи за приканване на наследник да заяви дали приема или се отказва от наследство в определен срок.",
+    "keyClause": "Ключова е клаузата, която определя крайния срок за заявление пред районен съд за приемане или отказ.",
+    "documentType": "notary_invitation",
+    "categoryId": "decl",
+    "slug": "notarialna-pokana-za-priemane-na-nasledstvo-po-opis-ili-otkaz-ot-nasledstvo"
+  },
+  {
+    "name": "Нотариална покана за предоставяне на обезщетение по договор за гаранция или застраховка",
+    "purpose": "Използва се за официално искане към гарант или застраховател за изплащане на дължимо обезщетение.",
+    "keyClause": "Важно е да се посочи основанието за претенцията, размера на обезщетението и срок за реакция.",
+    "documentType": "notary_invitation",
+    "categoryId": "decl",
+    "slug": "notarialna-pokana-za-predostavyane-na-obezshtetenie-po-dogovor-za-garantsiya-ili"
+  },
+  {
+    "name": "Нотариална покана за възстановяване на задатък при неизпълнение на предварителен договор",
+    "purpose": "Цел на поканата е да се изиска връщането на даден задатък, поради разваляне на предварителен договор.",
+    "keyClause": "Особено значение има клаузата, която посочва размера на задатъка и основанието за неговото връщане.",
+    "documentType": "notary_invitation",
+    "categoryId": "decl",
+    "slug": "notarialna-pokana-za-vazstanovyavane-na-zadatak-pri-neizpalnenie-na-predvaritele"
+  },
+  {
+    "name": "Нотариална покана за представяне на документи относно права върху недвижим имот",
+    "purpose": "Приканва лице да представи конкретни документи, удостоверяващи права върху имот, свързани със сделка.",
+    "keyClause": "Основната клауза е ясното изброяване на необходимите документи и срока за тяхното предоставяне.",
+    "documentType": "notary_invitation",
+    "categoryId": "decl",
+    "slug": "notarialna-pokana-za-predstavyane-na-dokumenti-otnosno-prava-varhu-nedvizhim-imo"
+  },
+  {
+    "name": "Нотариална покана за изпълнение на парично задължение по издадена запис на заповед",
+    "purpose": "Изпраща се с цел да се покани длъжник по запис на заповед да извърши плащането в указания срок.",
+    "keyClause": "Ключов елемент е точното идентифициране на записа на заповед и сумата, която следва да бъде платена.",
+    "documentType": "notary_invitation",
+    "categoryId": "decl",
+    "slug": "notarialna-pokana-za-izpalnenie-na-parichno-zadalzhenie-po-izdadena-zapis-na-zap"
+  },
+  {
+    "name": "Оферта за извършване на строително-монтажни работи (СМР) за обект „Жилищна сграда Х“",
+    "purpose": "Документ, чрез който изпълнител предлага конкретни строително-монтажни работи, включително цени, срокове и условия.",
+    "keyClause": "Ключова клауза е ясното дефиниране на обхвата на дейностите, ценовата листа и графика за изпълнение.",
+    "documentType": "offer",
+    "categoryId": "trade",
+    "slug": "oferta-za-izvarshvane-na-stroitelno-montazhni-raboti-smr-za-obekt-zhilishtna-sgr"
+  },
+  {
+    "name": "Търговска оферта за доставка на промишлени стоки и материали за производствена дейност",
+    "purpose": "Предложение за продажба на стоки с подробно описание на артикулите, количествата, цените и условията за доставка.",
+    "keyClause": "Най-важна е клаузата за единичните цени на продуктите, общото количество и срока за доставка на стоките.",
+    "documentType": "offer",
+    "categoryId": "trade",
+    "slug": "targovska-oferta-za-dostavka-na-promishleni-stoki-i-materiali-za-proizvodstvena-"
+  },
+  {
+    "name": "Оферта за предоставяне на консултантски услуги в областта на управлението на човешки ресурси",
+    "purpose": "Обобщава предложението за експертна помощ и съвети, включително обхват на услугите, такси и резултати.",
+    "keyClause": "Съществена е клаузата, която описва обхвата на консултантските услуги и очакваните крайни резултати.",
+    "documentType": "offer",
+    "categoryId": "trade",
+    "slug": "oferta-za-predostavyane-na-konsultantski-uslugi-v-oblastta-na-upravlenieto-na-ch"
+  },
+  {
+    "name": "Оферта за разработка и внедряване на специализиран софтуерен продукт за автоматизация на процеси",
+    "purpose": "Представя предложение за създаване на софтуер, с детайли за функционалности, етапи, цена и срокове.",
+    "keyClause": "Критична е клаузата, която дефинира функционалните изисквания към софтуера и етапите на разработка.",
+    "documentType": "offer",
+    "categoryId": "trade",
+    "slug": "oferta-za-razrabotka-i-vnedryavane-na-spetsializiran-softueren-produkt-za-avtoma"
+  },
+  {
+    "name": "Оферта за провеждане на специализирано корпоративно обучение по дигитален маркетинг",
+    "purpose": "Предложение за образователна програма, което включва теми, формат, лектори, продължителност и цена.",
+    "keyClause": "Важна е клаузата, описваща учебната програма, обхвата на курсовете и квалификацията на обучителите.",
+    "documentType": "offer",
+    "categoryId": "trade",
+    "slug": "oferta-za-provezhdane-na-spetsializirano-korporativno-obuchenie-po-digitalen-mar"
+  },
+  {
+    "name": "Оферта за наем на тежка строителна механизация и оборудване за срок от 6 месеца",
+    "purpose": "Документ, описващ условията за отдаване под наем на машини, включително цени, период и отговорности.",
+    "keyClause": "Ключова е клаузата за наемната цена, срока на наема и условията за поддръжка и връщане на оборудването.",
+    "documentType": "offer",
+    "categoryId": "trade",
+    "slug": "oferta-za-naem-na-tezhka-stroitelna-mehanizatsiya-i-oborudvane-za-srok-ot-6-mese"
+  },
+  {
+    "name": "Оферта за предоставяне на международни транспортни услуги за превоз на стоки",
+    "purpose": "Предложение за логистични услуги, което съдържа информация за маршрут, вид транспорт, цена и срок за доставка.",
+    "keyClause": "Най-важна е клаузата, дефинираща оптималния маршрут, транспортните тарифи и гаранциите за доставка.",
+    "documentType": "offer",
+    "categoryId": "trade",
+    "slug": "oferta-za-predostavyane-na-mezhdunarodni-transportni-uslugi-za-prevoz-na-stoki"
+  },
+  {
+    "name": "Оферта за охрана на търговски обект и обекти със специален режим на достъп",
+    "purpose": "Предлага услуги за физическа и/или техническа охрана, с обхват на дейностите, персонал и ценова структура.",
+    "keyClause": "Съществена е клаузата, която уточнява видовете охранителни дейности и плана за реакция при инциденти.",
+    "documentType": "offer",
+    "categoryId": "trade",
+    "slug": "oferta-za-ohrana-na-targovski-obekt-i-obekti-sas-spetsialen-rezhim-na-dostap"
+  },
+  {
+    "name": "Оферта за комплексна маркетингова стратегия и рекламна кампания за нов продукт",
+    "purpose": "Предложение за разработване и изпълнение на маркетингови активности, включително цели, канали и бюджет.",
+    "keyClause": "Критична е клаузата за обхвата на маркетинговата кампания, целевата аудитория и очакваните резултати.",
+    "documentType": "offer",
+    "categoryId": "trade",
+    "slug": "oferta-za-kompleksna-marketingova-strategiya-i-reklamna-kampaniya-za-nov-produkt"
+  },
+  {
+    "name": "Оферта по Закона за обществените поръчки (ЗОП) за доставка на офис консумативи",
+    "purpose": "Формално предложение, представяно в процедура по ЗОП, съобразено с изискванията на възложителя.",
+    "keyClause": "Най-важна е клаузата за съответствие с техническата спецификация и финансовото предложение по ЗОП.",
+    "documentType": "offer",
+    "categoryId": "trade",
+    "slug": "oferta-po-zakona-za-obshtestvenite-porachki-zop-za-dostavka-na-ofis-konsumativi"
+  },
+  {
+    "name": "Фактура за извършени стандартни услуги към местно юридическо лице",
+    "purpose": "Служи за документиране на извършени услуги и изчисляване на дължимия ДДС съгласно Закона за ДДС.",
+    "keyClause": "Задължително съдържа описание на услугите, количество, единична цена и обща стойност без и с ДДС.",
+    "documentType": "invoice",
+    "categoryId": "schetovodni",
+    "slug": "faktura-za-izvarsheni-standartni-uslugi-kam-mestno-yuridichesko-litse"
+  },
+  {
+    "name": "Проформа фактура за авансово плащане на стоки с бъдеща доставка",
+    "purpose": "Издава се предварително за предстоящо плащане, често за резервация или аванс преди финализиране на сделката.",
+    "keyClause": "Основният реквизит е изричното посочване, че документът е 'проформа' и не представлява данъчен документ.",
+    "documentType": "invoice",
+    "categoryId": "schetovodni",
+    "slug": "proforma-faktura-za-avansovo-plashtane-na-stoki-s-badeshta-dostavka"
+  },
+  {
+    "name": "Кредитно известие към фактура за доставени стоки с установени дефекти",
+    "purpose": "Отразява намаление на задължението по вече издадена фактура поради върнати стоки или коригирани цени.",
+    "keyClause": "Винаги реферира към оригиналната фактура, чиято стойност се намалява, и причината за корекцията.",
+    "documentType": "invoice",
+    "categoryId": "schetovodni",
+    "slug": "kreditno-izvestie-kam-faktura-za-dostaveni-stoki-s-ustanoveni-defekti"
+  },
+  {
+    "name": "Дебитно известие за начисляване на лихви за забава по договор",
+    "purpose": "Издава се при увеличаване на задължението на получателя спрямо първоначално издаден документ или договор.",
+    "keyClause": "Съдържа основанието за увеличението (напр. лихви), сумата и връзка с основното правоотношение.",
+    "documentType": "invoice",
+    "categoryId": "schetovodni",
+    "slug": "debitno-izvestie-za-nachislyavane-na-lihvi-za-zabava-po-dogovor"
+  },
+  {
+    "name": "Фактура за вътреобщностна доставка (ВОД) на стоки за членка на ЕС",
+    "purpose": "Документира облагаема доставка на стоки между регистрирани по ДДС лица в различни страни членки на ЕС.",
+    "keyClause": "Изисква се валиден ДДС номер на получателя и изрично посочване на 'обратно начисляване' (reverse charge).",
+    "documentType": "invoice",
+    "categoryId": "schetovodni",
+    "slug": "faktura-za-vatreobshtnostna-dostavka-vod-na-stoki-za-chlenka-na-es"
+  },
+  {
+    "name": "Фактура за авансово плащане по Договор за СМР с включен ДДС",
+    "purpose": "Издава се при получаване на предварително плащане за бъдещи строително-монтажни работи.",
+    "keyClause": "Ключово е посочването на платената сума като аванс и договора, по който се прави плащането.",
+    "documentType": "invoice",
+    "categoryId": "schetovodni",
+    "slug": "faktura-za-avansovo-plashtane-po-dogovor-za-smr-s-vklyuchen-dds"
+  },
+  {
+    "name": "Фактура за износ на стоки към трета страна извън Европейския съюз",
+    "purpose": "Използва се за документиране на доставка на стоки, освободена от ДДС, извън ЕС.",
+    "keyClause": "Изисква се посочване на митническия документ за износ и съответната разпоредба за освободена доставка.",
+    "documentType": "invoice",
+    "categoryId": "schetovodni",
+    "slug": "faktura-za-iznos-na-stoki-kam-treta-strana-izvan-evropeyskiya-sayuz"
+  },
+  {
+    "name": "Опростена фактура за малки стойности съгласно Закона за ДДС",
+    "purpose": "Използва се за документиране на доставки с ниска стойност, при които не се изискват всички реквизити.",
+    "keyClause": "Съдържа по-малко задължителни реквизити от стандартната фактура, но е ограничена до определен праг.",
+    "documentType": "invoice",
+    "categoryId": "schetovodni",
+    "slug": "oprostena-faktura-za-malki-stoynosti-saglasno-zakona-za-dds"
+  },
+  {
+    "name": "Фактура за освободена доставка по член 45 от ЗДДС (медицински услуги)",
+    "purpose": "Документира доставки, които са конкретно изброени в ЗДДС като освободени от облагане с данък.",
+    "keyClause": "Трябва изрично да се посочи правното основание за освобождаването от ДДС (напр. чл. 45 от ЗДДС).",
+    "documentType": "invoice",
+    "categoryId": "schetovodni",
+    "slug": "faktura-za-osvobodena-dostavka-po-chlen-45-ot-zdds-meditsinski-uslugi"
+  },
+  {
+    "name": "Фактура за самоначисляване (Self-Billing Invoice) при договорени условия",
+    "purpose": "Издава се от получателя на доставката от името и за сметка на доставчика при предвидени условия.",
+    "keyClause": "Изисква се предварително писмено съгласие между страните и съответствие с изискванията на ЗДДС.",
+    "documentType": "invoice",
+    "categoryId": "schetovodni",
+    "slug": "faktura-za-samonachislyavane-self-billing-invoice-pri-dogovoreni-usloviya"
+  },
+  {
+    "name": "Акт образец 12 за установяване на нарушения при изпълнение на строителни и монтажни работи (СМР)",
+    "purpose": "Този акт се използва за документално фиксиране на констатирани нарушения по време на строителния процес.",
+    "keyClause": "Най-важната клауза е детайлното описание на нарушението, дата на констатиране и срок за отстраняване.",
+    "documentType": "smr",
+    "categoryId": "stroitelstvo",
+    "slug": "akt-obrazets-12-za-ustanovyavane-na-narusheniya-pri-izpalnenie-na-stroitelni-i-m"
+  },
+  {
+    "name": "Акт образец 14 за приемане на конструкцията на строеж от строящия се обект",
+    "purpose": "Чрез този акт възложителят приема завършената конструкция на обекта, удостоверявайки нейната годност.",
+    "keyClause": "Ключова клауза е потвърждението за съответствие на конструкцията с одобрените проекти и нормативи.",
+    "documentType": "smr",
+    "categoryId": "stroitelstvo",
+    "slug": "akt-obrazets-14-za-priemane-na-konstruktsiyata-na-stroezh-ot-stroyashtiya-se-obe"
+  },
+  {
+    "name": "Акт образец 15 за установяване годността за приемане на строежа от възложителя",
+    "purpose": "Този акт служи за установяване на завършеността и готовността на строежа за предаване и приемане от възложителя.",
+    "keyClause": "Основната клауза е изявлението за пълно съответствие на изпълненото строителство с проекта и нормативната уредба.",
+    "documentType": "smr",
+    "categoryId": "stroitelstvo",
+    "slug": "akt-obrazets-15-za-ustanovyavane-godnostta-za-priemane-na-stroezha-ot-vazlozhite"
+  },
+  {
+    "name": "Акт образец 16 за установяване годността за ползване на строеж (разрешение за въвеждане в експлоатация)",
+    "purpose": "Издаването на този акт удостоверява, че строежът е годен за ползване и може да бъде въведен в експлоатация.",
+    "keyClause": "Най-важната клауза е констатацията за изпълнение на всички изисквания за безопасност и законосъобразност.",
+    "documentType": "smr",
+    "categoryId": "stroitelstvo",
+    "slug": "akt-obrazets-16-za-ustanovyavane-godnostta-za-polzvane-na-stroezh-razreshenie-za"
+  },
+  {
+    "name": "Констативен акт по чл.176 от ЗУТ за нарушения при строителство или монтажни работи (СМР)",
+    "purpose": "Този акт се съставя при констатирани нарушения на Закона за устройство на територията по време на СМР.",
+    "keyClause": "Ключова клауза е ясното упоменаване на нарушените разпоредби на ЗУТ и произтичащите от това последствия.",
+    "documentType": "smr",
+    "categoryId": "stroitelstvo",
+    "slug": "konstativen-akt-po-chl-176-ot-zut-za-narusheniya-pri-stroitelstvo-ili-montazhni-"
+  },
+  {
+    "name": "Протокол за скрити работи при изпълнение на строително-монтажни работи (СМР)",
+    "purpose": "Този протокол документира изпълнението на строително-монтажни работи, които ще бъдат скрити от последващи дейности.",
+    "keyClause": "Основната клауза е подробно описание на извършените скрити работи и материалите, използвани за тях.",
+    "documentType": "smr",
+    "categoryId": "stroitelstvo",
+    "slug": "protokol-za-skriti-raboti-pri-izpalnenie-na-stroitelno-montazhni-raboti-smr"
+  },
+  {
+    "name": "Протокол за нивелация при изпълнение на земни и изкопни строително-монтажни работи (СМР)",
+    "purpose": "Протоколът удостоверява коректното изпълнение на нивелационните дейности и съответствието им с проекта.",
+    "keyClause": "Най-важната клауза е отразяването на всички нивелационни точки и установените височини спрямо проектните данни.",
+    "documentType": "smr",
+    "categoryId": "stroitelstvo",
+    "slug": "protokol-za-nivelatsiya-pri-izpalnenie-na-zemni-i-izkopni-stroitelno-montazhni-r"
+  },
+  {
+    "name": "Заповедна книга за строително-монтажни работи (СМР)",
+    "purpose": "Книгата служи за документиране на всички заповеди, указания и предписания, свързани с изпълнението на СМР.",
+    "keyClause": "Ключова клауза е датирането и подписването на всяка заповед, както и указания за изпълнението ѝ.",
+    "documentType": "smr",
+    "categoryId": "stroitelstvo",
+    "slug": "zapovedna-kniga-za-stroitelno-montazhni-raboti-smr"
+  },
+  {
+    "name": "Акт за временно спиране на строително-монтажни работи (СМР) на строителен обект",
+    "purpose": "Този акт се съставя за официално документиране на временното спиране на строително-монтажни работи.",
+    "keyClause": "Основната клауза е ясното посочване на причините за спирането и очаквания период на преустановяване на дейността.",
+    "documentType": "smr",
+    "categoryId": "stroitelstvo",
+    "slug": "akt-za-vremenno-spirane-na-stroitelno-montazhni-raboti-smr-na-stroitelen-obekt"
+  },
+  {
+    "name": "Акт за възобновяване на строително-монтажни работи (СМР) след период на спиране",
+    "purpose": "Чрез този акт се документира официалното възобновяване на строително-монтажните работи след тяхното спиране.",
+    "keyClause": "Най-важната клауза е потвърждението, че причините за спирането са отстранени и дейността може да продължи безопасно.",
+    "documentType": "smr",
+    "categoryId": "stroitelstvo",
+    "slug": "akt-za-vazobnovyavane-na-stroitelno-montazhni-raboti-smr-sled-period-na-spirane"
+  },
+  {
+    "name": "Количествено-стойностна сметка (КСС) за груб строеж на еднофамилна жилищна сграда",
+    "purpose": "Използва се за детайлно бюджетиране на разходите за материали и труд, свързани с изграждането на носещата конструкция на еднофамилна къща.",
+    "keyClause": "Най-важната клауза е прецизното остойностяване на всички видове строително-монтажни работи, включително земни работи, основи, конструкция и покрив.",
+    "documentType": "kss",
+    "categoryId": "stroitelstvo",
+    "slug": "kolichestveno-stoynostna-smetka-kss-za-grub-stroezh-na-ednofamilna-zhilishtna-sg"
+  },
+  {
+    "name": "Количествено-стойностна сметка (КСС) за цялостен вътрешен ремонт на апартамент",
+    "purpose": "Определя прогнозните разходи за демонтаж, довършителни работи, подмяна на покрития и инсталации в съществуващ апартамент.",
+    "keyClause": "Ключово е детайлното включване на всички етапи от ремонта – от къртене до фини шпакловки и боядисване, както и подмяна на дограми и врати.",
+    "documentType": "kss",
+    "categoryId": "stroitelstvo",
+    "slug": "kolichestveno-stoynostna-smetka-kss-za-tsyalosten-vatreshen-remont-na-apartament"
+  },
+  {
+    "name": "Количествено-стойностна сметка (КСС) за фасадна топлоизолационна система на съществуваща сграда",
+    "purpose": "Предназначена е за изчисляване на разходите за материали и труд при полагане на външна топлоизолация, мазилки и довършителни работи по фасадата.",
+    "keyClause": "Важно е да се обхване целият процес по саниране на фасадата, включително скеле, лепене на изолация, дюбелиране, шпакловки, мрежи и крайно покритие.",
+    "documentType": "kss",
+    "categoryId": "stroitelstvo",
+    "slug": "kolichestveno-stoynostna-smetka-kss-za-fasadna-toploizolatsionna-sistema-na-sash"
+  },
+  {
+    "name": "Количествено-стойностна сметка (КСС) за ремонт и хидроизолация на плосък покрив",
+    "purpose": "Използва се за планиране и калкулиране на разходите за материали и труд при възстановяване на хидроизолационната функция на покривна конструкция.",
+    "keyClause": "Съществено е включването на всички слоеве на покривната система – от почистване на основата до полагане на топлоизолация, пароизолация и многопластова хидроизолация.",
+    "documentType": "kss",
+    "categoryId": "stroitelstvo",
+    "slug": "kolichestveno-stoynostna-smetka-kss-za-remont-i-hidroizolatsiya-na-plosak-pokriv"
+  },
+  {
+    "name": "Количествено-стойностна сметка (КСС) за изграждане на нова ВиК инсталация в сграда",
+    "purpose": "Служи за бюджетиране на материали, труд и присъединяване при изграждане на водопроводна и канализационна система от основи до крайни точки.",
+    "keyClause": "Основен елемент е прецизното остойностяване на всички тръбни разводки, фасонни части, санитарни прибори и изпитания на системата.",
+    "documentType": "kss",
+    "categoryId": "stroitelstvo",
+    "slug": "kolichestveno-stoynostna-smetka-kss-za-izgrazhdane-na-nova-vik-instalatsiya-v-sg"
+  },
+  {
+    "name": "Количествено-стойностна сметка (КСС) за подмяна на цялостна електроинсталация в жилищна сграда",
+    "purpose": "Използва се за определяне на разходите за демонтаж на стара, доставка и монтаж на нова електрическа инсталация, включително табла и апаратура.",
+    "keyClause": "Ключов елемент е детайлното описване и остойностяване на всички електрически вериги, проводници, ключове, контакти и предпазни устройства.",
+    "documentType": "kss",
+    "categoryId": "stroitelstvo",
+    "slug": "kolichestveno-stoynostna-smetka-kss-za-podmyana-na-tsyalostna-elektroinstalatsiy"
+  },
+  {
+    "name": "Количествено-стойностна сметка (КСС) за енергийно саниране на обществена административна сграда",
+    "purpose": "Предназначена е за цялостно бюджетиране на мерки за повишаване на енергийната ефективност на публична сграда, включително дограма и отопление.",
+    "keyClause": "Най-важно е интегрираното остойностяване на всички енергоспестяващи мерки – фасадна изолация, подмяна на дограма, ремонт на покрив и модернизация на ОВК системи.",
+    "documentType": "kss",
+    "categoryId": "stroitelstvo",
+    "slug": "kolichestveno-stoynostna-smetka-kss-za-energiyno-sanirane-na-obshtestvena-admini"
+  },
+  {
+    "name": "Количествено-стойностна сметка (КСС) за капитален ремонт на пътна отсечка и тротоари",
+    "purpose": "Служи за планиране и изчисляване на разходите за цялостна реконструкция на пътна настилка, бордюри, водоотводняване и пешеходни зони.",
+    "keyClause": "Съществено е детайлното включване на земни работи, различни пластове на пътната конструкция, бордюри, асфалтови настилки, маркировка и пътни знаци.",
+    "documentType": "kss",
+    "categoryId": "stroitelstvo",
+    "slug": "kolichestveno-stoynostna-smetka-kss-za-kapitalen-remont-na-patna-otsechka-i-trot"
+  },
+  {
+    "name": "Количествено-стойностна сметка (КСС) за ландшафтно оформление и озеленяване на дворно пространство",
+    "purpose": "Предназначена е за бюджетиране на всички дейности, свързани с облагородяване на зелени площи, включително настилки, растителност и поливни системи.",
+    "keyClause": "Ключово е остойностяването на земни работи, засаждане на дървета и храсти, цветни лехи, полагане на тревни площи, изграждане на алеи и монтиране на напоителна система.",
+    "documentType": "kss",
+    "categoryId": "stroitelstvo",
+    "slug": "kolichestveno-stoynostna-smetka-kss-za-landshaftno-oformlenie-i-ozelenyavane-na-"
+  },
+  {
+    "name": "Количествено-стойностна сметка (КСС) за изграждане на оградна конструкция от стоманобетон и метал",
+    "purpose": "Използва се за определяне на разходите за материали и труд, необходими за изграждане на устойчива ограда с фундамент, стълбове и преградни елементи.",
+    "keyClause": "Важно е да се обхване целият процес от изкопни работи и бетонов фундамент, през монтаж на стълбове, до полагане на оградни пана или други преградни елементи.",
+    "documentType": "kss",
+    "categoryId": "stroitelstvo",
+    "slug": "kolichestveno-stoynostna-smetka-kss-za-izgrazhdane-na-ogradna-konstruktsiya-ot-s"
+  }
+]
