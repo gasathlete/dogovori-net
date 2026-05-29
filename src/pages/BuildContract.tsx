@@ -75,6 +75,7 @@ export default function BuildContractPage() {
     (persisted?.documentType as DocumentTypeId) ||
     "contract",
   );
+  const [docTypeOpen, setDocTypeOpen] = useState(false);
   const [buildMode, setBuildMode] = useState<BuildMode>(
     (persisted?.buildMode as BuildMode) || "working",
   );
