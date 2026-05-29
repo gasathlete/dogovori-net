@@ -116,7 +116,7 @@ export default function BlogPost() {
               src={post.image}
               alt={post.title}
               className="aspect-[16/9] w-full object-cover"
-              fetchPriority="high"
+              {...({ fetchpriority: "high" } as any)}
             />
           </figure>
 
