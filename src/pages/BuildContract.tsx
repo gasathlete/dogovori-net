@@ -25,12 +25,15 @@ import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, collectContractT
 import { getBuildSchema, getAllFieldKeys, type BuildField } from "@/lib/documentFieldSchemas";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsPro } from "@/hooks/useIsPro";
 import { toast } from "sonner";
 import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { mergeParentWithAppendices } from "@/lib/appendixMerger";
 import { Seo } from "@/components/Seo";
 import { trackEvent } from "@/lib/analytics";
+import { PartyListEditor, parseParties, serializeParties, type PartyRow } from "@/components/wizard/PartyListEditor";
+import { Lock } from "lucide-react";
 
 
 interface AIResult {
@@ -112,8 +115,10 @@ export default function BuildContractPage() {
   );
   const [savedDocId, setSavedDocId] = useState<string | undefined>(persisted?.savedDocId);
   const [saving, setSaving] = useState(false);
-  const [isPro, setIsPro] = useState(false);
+  const { isPro, isTeam } = useIsPro();
+  const canStrict = isPro || isTeam;
   const [appendixRefreshTick, setAppendixRefreshTick] = useState(0);
+  const [contacts, setContacts] = useState<Array<{ id: string; name: string; type?: string }>>([]);
   const [applyingCorrections, setApplyingCorrections] = useState(false);
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(undefined);
 
@@ -142,13 +147,15 @@ export default function BuildContractPage() {
   }, [presetCategory]);
 
   useEffect(() => {
-    if (!user) { setIsPro(false); return; }
-    supabase.from("download_quota").select("plan, pro_until").eq("user_id", user.id).maybeSingle()
-      .then(({ data }) => {
-        if (!data) return;
-        setIsPro(data.plan === "pro" || (!!data.pro_until && new Date(data.pro_until) > new Date()));
-      });
+    if (!user) { setContacts([]); return; }
+    supabase.from("contacts").select("id, name, type").is("deleted_at", null).order("created_at", { ascending: false })
+      .then(({ data }) => setContacts((data as any) ?? []));
   }, [user]);
+
+  // Force non-Pro/Team users out of Strict mode.
+  useEffect(() => {
+    if (!canStrict && buildMode === "strict") setBuildMode("working");
+  }, [canStrict, buildMode]);
 
   const categoryLabel = useMemo(() => {
     if (categoryId === "__other__") return categoryOther.trim();
@@ -573,21 +580,35 @@ export default function BuildContractPage() {
                       {BUILD_MODES.map((m) => {
                         const Icon = m.icon;
                         const active = buildMode === m.id;
+                        const locked = m.id === "strict" && !canStrict;
                         return (
                           <button
                             key={m.id}
                             type="button"
-                            onClick={() => setBuildMode(m.id)}
-                            title={m.description}
+                            onClick={() => {
+                              if (locked) {
+                                toast.message("Стриктен режим е за Pro и Team", {
+                                  description: "Преминете към Pro или Team план, за да го отключите.",
+                                  action: { label: "Виж планове", onClick: goSubscription },
+                                });
+                                return;
+                              }
+                              setBuildMode(m.id);
+                            }}
+                            title={locked ? "Достъпно за Pro / Team" : m.description}
                             className={
-                              "flex flex-col items-center gap-1.5 rounded-lg px-3 py-2.5 text-xs font-medium transition-all " +
+                              "relative flex flex-col items-center gap-1.5 rounded-lg px-3 py-2.5 text-xs font-medium transition-all " +
                               (active
                                 ? "bg-gradient-gold text-navy shadow-gold"
+                                : locked
+                                ? "border border-border/70 bg-card/20 text-muted-foreground hover:border-gold/40"
                                 : "border border-border/70 bg-card/40 text-foreground hover:border-gold/50 hover:text-gold")
                             }
                           >
+                            {locked && <Lock className="absolute right-1.5 top-1.5 h-3 w-3 text-gold/80" />}
                             <Icon className="h-4 w-4" />
                             {m.label}
+                            {locked && <span className="text-[9px] uppercase tracking-wider text-gold/80">Pro / Team</span>}
                           </button>
                         );
                       })}
@@ -681,37 +702,35 @@ export default function BuildContractPage() {
 
                   {schema.partyBLabel ? (
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <Field label={schema.partyALabel} help={schema.partyAHelp ?? "По един на ред"} required>
-                        <Textarea
-                          value={partiesA}
-                          onChange={(e) => setPartiesA(e.target.value)}
-                          placeholder={schema.partyAPlaceholder ?? '„Алфа Софт" ЕООД, ЕИК...\nИван Иванов'}
-                          rows={3}
-                          className="bg-input/60 text-sm"
+                      <Field label={schema.partyALabel} help={schema.partyAHelp ?? "Изберете тип и име; може и от контрагенти"} required>
+                        <PartyListEditor
+                          rows={parseParties(partiesA)}
+                          onChange={(rows) => setPartiesA(serializeParties(rows))}
+                          contacts={contacts}
+                          placeholder={schema.partyAPlaceholder ?? '„Алфа Софт" ЕООД, ЕИК…'}
                         />
                       </Field>
-                      <Field label={schema.partyBLabel} help={schema.partyBHelp ?? "По един на ред"} required>
-                        <Textarea
-                          value={partiesB}
-                          onChange={(e) => setPartiesB(e.target.value)}
-                          placeholder={schema.partyBPlaceholder ?? '„Бета Дизайн" ООД, ЕИК...'}
-                          rows={3}
-                          className="bg-input/60 text-sm"
+                      <Field label={schema.partyBLabel} help={schema.partyBHelp ?? "Изберете тип и име; може и от контрагенти"} required>
+                        <PartyListEditor
+                          rows={parseParties(partiesB)}
+                          onChange={(rows) => setPartiesB(serializeParties(rows))}
+                          contacts={contacts}
+                          placeholder={schema.partyBPlaceholder ?? '„Бета Дизайн" ООД, ЕИК…'}
                         />
                       </Field>
                     </div>
                   ) : (
-                    <Field label={schema.partyALabel} help={schema.partyAHelp ?? "Имена, адрес, ЕГН (по избор)"} required>
-                      <Textarea
-                        value={partiesA}
-                        onChange={(e) => setPartiesA(e.target.value)}
-                        placeholder={schema.partyAPlaceholder ?? 'Иван Петров Иванов, ЕГН ..., адрес ...'}
-                        rows={3}
-                        className="bg-input/60 text-sm"
+                    <Field label={schema.partyALabel} help={schema.partyAHelp ?? "Изберете тип и име; може и от контрагенти"} required>
+                      <PartyListEditor
+                        rows={parseParties(partiesA)}
+                        onChange={(rows) => setPartiesA(serializeParties(rows))}
+                        contacts={contacts}
+                        placeholder={schema.partyAPlaceholder ?? 'Иван Петров Иванов, ЕГН …'}
                       />
                       <p className="mt-1 text-[11px] italic text-muted-foreground">
                         „{getDocumentType(documentType).label}" е едностранен документ — насрещна страна не се изисква.
                       </p>
+
                     </Field>
                   )}
 
