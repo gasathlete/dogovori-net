@@ -1,5 +1,6 @@
 // Edge function: справка на фирма по ЕИК през публичния OpenData портал на ТР
 // Връща базови данни за фирмата (наименование, адрес, МОЛ) ако се намерят.
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 interface CompanyInfo {
@@ -14,6 +15,27 @@ interface CompanyInfo {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // Require an authenticated user — prevents abuse as a free scraping proxy.
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!authHeader.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+  );
+  const { data: userData, error: userErr } = await supabase.auth.getUser(
+    authHeader.slice("Bearer ".length),
+  );
+  if (userErr || !userData?.user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const { eik } = await req.json().catch(() => ({}));
     if (!eik || typeof eik !== "string" || !/^\d{9}(\d{4})?$/.test(eik)) {

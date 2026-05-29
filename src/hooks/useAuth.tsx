@@ -30,9 +30,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === "SIGNED_IN" && typeof window !== "undefined") {
         try {
           const dest = sessionStorage.getItem("post_login_redirect");
-          if (dest && dest !== window.location.pathname + window.location.search) {
+          // Only allow same-origin relative paths to prevent open-redirect attacks.
+          const safeDest = dest && /^\/[^/\\]/.test(dest) ? dest : null;
+          if (safeDest && safeDest !== window.location.pathname + window.location.search) {
             sessionStorage.removeItem("post_login_redirect");
-            window.location.replace(dest);
+            window.location.replace(safeDest);
+          } else if (dest && !safeDest) {
+            sessionStorage.removeItem("post_login_redirect");
           }
         } catch { /* ignore */ }
       }

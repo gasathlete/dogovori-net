@@ -1,0 +1,1 @@
+ALTER FUNCTION public.unaccent_or_lower(text) SET search_path = public;

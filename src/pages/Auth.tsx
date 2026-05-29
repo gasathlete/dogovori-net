@@ -16,7 +16,10 @@ import { recordConsents } from "@/lib/consents";
 export default function AuthPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const redirect = params.get("redirect") || "/account";
+  // Only allow same-origin relative paths to prevent open-redirect attacks.
+  // Must start with "/" followed by a non-"/" char (rejects "//evil.com" and "/\evil.com").
+  const rawRedirect = params.get("redirect") || "/account";
+  const redirect = /^\/[^/\\]/.test(rawRedirect) ? rawRedirect : "/account";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
