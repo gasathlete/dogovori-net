@@ -157,7 +157,6 @@ Deno.serve(async (req: Request) => {
           error: "За да изградите договор, влезте безплатно с email или Google.",
           code: "auth_required",
           requires_login: true,
-          diag: authDiag,
         }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
