@@ -2790,3 +2790,12 @@ export const CATALOG: CatalogCategory[] = [
 export function getCategory(id: string) {
   return CATALOG.find((c) => c.id === id);
 }
+
+// Merge programmatically-generated templates into the static CATALOG.
+// Keeps the static section human-editable while new bulk additions live in
+// src/data/newTemplates.ts.
+import { NEW_TEMPLATES } from "./newTemplates";
+for (const { categoryId, doc } of NEW_TEMPLATES) {
+  const cat = CATALOG.find((c) => c.id === categoryId);
+  if (cat) cat.documents.push(doc);
+}
