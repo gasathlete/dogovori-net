@@ -84,10 +84,30 @@ export default function CatalogPage() {
 
   const totalDocs = CATALOG.reduce((s, c) => s + c.documents.length, 0);
 
+  const countsByVid = useMemo(() => {
+    const m = new Map<DocumentTypeId, number>();
+    for (const cat of CATALOG) {
+      for (const d of cat.documents) {
+        const t = d.documentType ?? inferDocumentType(d.name);
+        m.set(t, (m.get(t) ?? 0) + 1);
+      }
+    }
+    return m;
+  }, []);
+
+  const filteredCount = useMemo(
+    () => filtered.reduce((s, c) => s + c.documents.length, 0),
+    [filtered],
+  );
+
+  const activeVidDef = activeVid ? getDocumentType(activeVid) : null;
+
   const itemListLd = useMemo(() => ({
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: "Каталог на договори и бланки на български",
+    name: activeVidDef
+      ? `${activeVidDef.label} — каталог на български`
+      : "Каталог на договори и бланки на български",
     numberOfItems: allTemplates().length,
     itemListElement: allTemplates().map((t, i) => ({
       "@type": "ListItem",
@@ -95,7 +115,7 @@ export default function CatalogPage() {
       url: `https://dogovori.net/shablon/${t.slug}`,
       name: t.doc.name,
     })),
-  }), []);
+  }), [activeVidDef]);
 
   const breadcrumbsLd = {
     "@context": "https://schema.org",
@@ -103,15 +123,26 @@ export default function CatalogPage() {
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Начало", item: "https://dogovori.net/" },
       { "@type": "ListItem", position: 2, name: "Каталог", item: "https://dogovori.net/catalog" },
+      ...(activeVidDef
+        ? [{ "@type": "ListItem", position: 3, name: activeVidDef.label, item: `https://dogovori.net/catalog?vid=${activeVid}` }]
+        : []),
     ],
   };
+
+  const seoTitle = activeVidDef
+    ? `${activeVidDef.label} — ${filteredCount} бланки на български | Dogovori.net`
+    : `Каталог: ${totalDocs}+ договора и бланки на български | Dogovori.net`;
+  const seoDesc = activeVidDef
+    ? `${filteredCount} професионални образци на „${activeVidDef.label}" – ${activeVidDef.description}. Готови за попълване, PDF/DOCX.`.slice(0, 160)
+    : `Пълен каталог на ${totalDocs}+ професионални договори и правни бланки на български – трудови, наем, IT, NDA, GDPR. Готови за попълване.`;
+  const seoCanonical = activeVid ? `/catalog?vid=${activeVid}` : "/catalog";
 
   return (
     <div className="min-h-screen">
       <Seo
-        title={`Каталог: ${totalDocs}+ договора и бланки на български | Dogovori.net`}
-        description={`Пълен каталог на ${totalDocs}+ професионални договори и правни бланки на български – трудови, наем, IT, NDA, GDPR. Готови за попълване.`}
-        canonical="/catalog"
+        title={seoTitle}
+        description={seoDesc}
+        canonical={seoCanonical}
         jsonLd={[itemListLd, breadcrumbsLd]}
       />
       <Header />
