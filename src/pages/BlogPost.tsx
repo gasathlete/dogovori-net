@@ -163,6 +163,9 @@ export default function BlogPost() {
                 </div>
               </section>
             )}
+                </>
+              );
+            })()}
           </div>
 
           <BlogRatingAndComments postType="core" postSlug={post.slug} />
