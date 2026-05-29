@@ -629,7 +629,7 @@ export default function BuildContractPage() {
                     <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                       Вид документ <span className="text-gold">*</span>
                     </label>
-                    <Popover>
+                    <Popover open={docTypeOpen} onOpenChange={setDocTypeOpen}>
                       <PopoverTrigger asChild>
                         <button
                           type="button"
