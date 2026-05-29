@@ -8,7 +8,12 @@ import { resolve } from "node:path";
 
 const DIST = resolve(process.cwd(), "dist");
 const required = [
-  { path: "sitemap.xml", minBytes: 500, mustContain: "<urlset" },
+  {
+    path: "sitemap.xml",
+    minBytes: 500,
+    validate: (content: string) => content.includes("<urlset") || content.includes("<sitemapindex"),
+    errorMessage: 'missing either "<urlset" or "<sitemapindex"',
+  },
   { path: "robots.txt", minBytes: 20, mustContain: "Sitemap:" },
   { path: "index.html", minBytes: 500, mustContain: "<html" },
 ];
@@ -27,10 +32,18 @@ for (const f of required) {
     failed = true;
     continue;
   }
-  if (f.mustContain) {
+  if ("mustContain" in f && f.mustContain) {
     const content = readFileSync(full, "utf8");
     if (!content.includes(f.mustContain)) {
       console.error(`✗ INVALID: dist/${f.path} missing "${f.mustContain}"`);
+      failed = true;
+      continue;
+    }
+  }
+  if ("validate" in f && f.validate) {
+    const content = readFileSync(full, "utf8");
+    if (!f.validate(content)) {
+      console.error(`✗ INVALID: dist/${f.path} ${f.errorMessage}`);
       failed = true;
       continue;
     }
