@@ -99,6 +99,33 @@ export default function CategoryPage() {
           })}
         </section>
 
+        {(() => {
+          const hot = CATEGORY_HOT_LINKS[cat.id];
+          if (!hot?.length) return null;
+          const byName = new Map(allTemplates().map((t) => [t.doc.name, t.slug]));
+          const resolved = hot
+            .map((h) => ({ anchor: h.anchor, slug: byName.get(h.docName) }))
+            .filter((h): h is { anchor: string; slug: string } => Boolean(h.slug));
+          if (resolved.length === 0) return null;
+          return (
+            <section className="mt-12 rounded-xl border border-gold/20 bg-gold/[0.03] p-6 md:p-7">
+              <h2 className="mb-4 font-serif text-lg font-bold md:text-xl">
+                Често търсени в {cat.title.toLowerCase()}
+              </h2>
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {resolved.map((h) => (
+                  <li key={h.slug} className="flex gap-2 text-sm">
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-gold" />
+                    <Link to={`/shablon/${h.slug}`} className="text-foreground/90 transition-colors hover:text-gold">
+                      {h.anchor}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })()}
+
         <section className="relative mt-14 overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-10 text-center shadow-elegant md:p-12">
           <div className="absolute inset-x-0 top-0 hairline-x" />
           <div className="eyebrow mb-4 justify-center">Готови ли сте?</div>
