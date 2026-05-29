@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Bird, Loader2, FileDown, FileText, Save, Wand2, Sparkles, ShieldCheck, FileSignature, Lightbulb, Zap, Briefcase, Scale } from "lucide-react";
+import { ArrowLeft, Bird, Loader2, FileDown, FileText, Save, Wand2, Sparkles, ShieldCheck, FileSignature, Lightbulb, Zap, Briefcase, Scale, ChevronDown, Check } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type BuildMode = "fast" | "working" | "strict";
 const BUILD_MODES: { id: BuildMode; label: string; short: string; description: string; icon: any }[] = [
