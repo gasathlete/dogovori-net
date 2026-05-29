@@ -46,7 +46,15 @@ const staticEntries: Entry[] = [
   { loc: "/privacy", changefreq: "yearly", priority: "0.3" },
   { loc: "/cookies", changefreq: "yearly", priority: "0.3" },
   { loc: "/refund", changefreq: "yearly", priority: "0.3" },
+  // /catalog?vid=<type> — one entry per document type for SEO landing.
+  ...DOCUMENT_TYPES.map<Entry>((d) => ({
+    loc: `/catalog?vid=${d.id}`,
+    changefreq: "weekly",
+    priority: "0.8",
+    lastmod: catalogDate,
+  })),
 ];
+
 
 const blogDir = resolve(process.cwd(), "src/content/blog");
 const blogEntries: Entry[] = readdirSync(blogDir)
