@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SECTORS } from "@/data/sectors";
+import { SECTOR_META as SECTORS } from "@/data/sectorsMeta";
 import * as Icons from "lucide-react";
 import { ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
 import { SECTOR_IMAGES } from "@/lib/sectorImages";

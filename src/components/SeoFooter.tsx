@@ -1,7 +1,19 @@
 import { Link } from "react-router-dom";
-import { CATALOG } from "@/data/catalog";
 import { allTemplates } from "@/lib/templateIndex";
 import { Logo } from "./Logo";
+
+// Top 8 categories inlined to avoid pulling the full CATALOG (166KB) into the
+// initial bundle on every page that renders the footer (Index, Catalog, ...).
+const FOOTER_CATEGORIES: { id: string; title: string }[] = [
+  { id: "digital", title: "Дигитални услуги и ИТ" },
+  { id: "ip", title: "Интелектуална собственост и Конфиденциалност" },
+  { id: "naem", title: "Наемни отношения" },
+  { id: "imoti-prodazhba", title: "Сделки с имоти и брокерски услуги" },
+  { id: "kupopr", title: "Покупко-продажба и облигационни" },
+  { id: "uslugi", title: "Услуги и граждански договори" },
+  { id: "trudovi", title: "Трудови правоотношения и кадри" },
+  { id: "korp", title: "Корпоративно управление" },
+];
 
 // SEO footer — designed to inject ~30+ long descriptive Bulgarian anchors
 // pointing at the top templates from EVERY page on the site. Anchor text is
@@ -95,7 +107,7 @@ export function SeoFooter() {
           <div>
             <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gold">Категории</h3>
             <ul className="space-y-2 text-xs text-muted-foreground">
-              {CATALOG.slice(0, 8).map((cat) => (
+              {FOOTER_CATEGORIES.map((cat) => (
                 <li key={cat.id}>
                   <Link to={`/kategoria/${cat.id}`} className="transition-colors hover:text-gold">
                     {cat.title}

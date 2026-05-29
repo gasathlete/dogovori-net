@@ -79,8 +79,8 @@
       }
     </script>
 
-    <!-- Privacy-friendly analytics by Plausible -->
-    <script async src="https://plausible.io/js/pa-z5GPPMfsUGwp_xLchEXZa.js"></script>
+    <!-- Privacy-friendly analytics by Plausible — defer so it never competes with hydration/LCP -->
+    <script defer src="https://plausible.io/js/pa-z5GPPMfsUGwp_xLchEXZa.js"></script>
     <script>
       window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
       plausible.init()
