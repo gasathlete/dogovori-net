@@ -147,13 +147,15 @@ export default function BuildContractPage() {
   }, [presetCategory]);
 
   useEffect(() => {
-    if (!user) { setIsPro(false); return; }
-    supabase.from("download_quota").select("plan, pro_until").eq("user_id", user.id).maybeSingle()
-      .then(({ data }) => {
-        if (!data) return;
-        setIsPro(data.plan === "pro" || (!!data.pro_until && new Date(data.pro_until) > new Date()));
-      });
+    if (!user) { setContacts([]); return; }
+    supabase.from("contacts").select("id, name, type").is("deleted_at", null).order("created_at", { ascending: false })
+      .then(({ data }) => setContacts((data as any) ?? []));
   }, [user]);
+
+  // Force non-Pro/Team users out of Strict mode.
+  useEffect(() => {
+    if (!canStrict && buildMode === "strict") setBuildMode("working");
+  }, [canStrict, buildMode]);
 
   const categoryLabel = useMemo(() => {
     if (categoryId === "__other__") return categoryOther.trim();
