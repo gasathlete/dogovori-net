@@ -1,62 +1,56 @@
-# Pre-Launch одит и оптимизация
+# План: финализиране преди пускане
 
-Сайтът вече има солидна архитектура (lazy routes, manualChunks, отложен Sentry, self-hosted fonts, preconnect, prerender при build). Планът покрива конкретни оптимизации + системни проверки преди старт.
+Продължаваме от Phase 1 нататък. Тестване — накрая, наведнъж.
 
-## Фаза 1 — Оптимизация на скоростта
+## Phase 1.5 — Допълнителни speed оптимизации
+- `Account.tsx`: консолидиране на ~10 паралелни Supabase заявки в 1–2 RPC функции (нова `get_account_overview` SQL функция, която връща profile + subscription + usage + team в един round-trip).
+- Lazy-load на тежките data модули (`templateContent/index.ts` 3MB, `templateDrafts/index.ts` 1MB) — динамичен `import()` само при отваряне на Wizard/Template, не в bundle-а на началната страница.
+- `catalog.ts` (166KB) и `templateContentMeta.ts` (191KB): сплит на metadata vs пълно съдържание, ленив достъп при нужда.
+- Route-level code splitting проверка (`React.lazy` за всички страници извън Index).
+- `fetchpriority="high"` + `<link rel="preload">` за LCP изображението на Hero.
+- `modulepreload` за критичните chunks.
 
-**Bundle / зареждане**
-- `catalog.ts` (166KB) и `templateContentMeta.ts` (191KB) се импортират статично от 8+ места. Изваждам ги в отделен async chunk и/или ги разделям на по-малки части по сектор/категория, така че Index/Hero да не носят пълния каталог.
-- Проверявам първоначалния chunk на `/` (Hero, Header, SectorGrid) с `vite build --report` и режа всичко излишно (lucide иконки да са по една, без barrel re-exports).
-- Добавям `fetchpriority="high"` и `<link rel="preload" as="image">` за LCP изображението на Hero (ако има).
-- Plausible script: `async` → `defer` (по-добро за parse), валидирам че не блокира.
-- Оптимизирам `public/icon-512.png` (223KB → ~30KB чрез squoosh/sharp) и `og-image.jpg` (66KB → WebP, ~25KB).
-- Включвам Brotli/gzip проверка след build; добавям `<link rel="modulepreload">` за критичните route chunks (catalog, template).
+## Phase 2 — Качество и a11y
+- Скан за всички останали `DialogContent` без `DialogTitle` warnings.
+- Mobile audit @ 393px (текущ viewport): touch targets ≥44px, overflow, sticky елементи.
+- Empty states, loading states, error states на всички ключови екрани.
+- Проверка за 404 / counter линкове, dead routes.
 
-**React / Data layer**
-- `Account.tsx` пуска ~10 паралелни Supabase queries при mount. Групирам в 1–2 RPC функции (`get_account_overview`) и/или комбинирам с React Query `useQueries`, за да намаля round-trips.
-- Преглеждам `useEffect` хуковете в Wizard/Template за ненужни re-fetch-ове; където е възможно — `useMemo`/`useCallback`.
-- Виртуализация на дълги списъци (Catalog, SiteMap, Downloads) при >100 елемента.
+## Phase 3 — SEO
+- `seo_chat--trigger_scan` (изисква одобрение).
+- Валидация sitemap: ~200 нови sector blocks включени, lastmod актуален.
+- Canonical, hreflang (bg), OG/Twitter на динамични страници (Sector, Template, Build).
+- JSON-LD: `BreadcrumbList` на категории/sector страници, `Article` за блог (ако има), `HowTo` за wizard страници, `Organization` глобално.
+- robots.txt + sitemap.xml validation.
 
-**Backend / DB**
-- Пускам `supabase--linter` + `supabase--db_health` за индекси, slow queries, RLS warnings.
-- Проверявам че всички `*_at` колони и често филтрирани полета (`user_id`, `team_id`, `folder_id`, `deleted_at`) имат индекси.
-- Преглед на edge function cold-start логове (create-checkout, AI генерации).
+## Phase 4 — Security
+- `security--run_security_scan` (Supabase backend).
+- Edge functions: input validation, rate limiting, auth checks на всеки endpoint (`create-checkout`, `webhook`, и т.н.).
+- Stripe: live vs test keys, webhook signature verification.
+- GDPR/consent: audit trail за `consents` записи, disclaimer показвания.
+- RLS policies smoke test (роли: anon, authenticated, owner, team member).
 
-## Фаза 2 — Качество и UX
+## Phase 5 — Стабилност
+- Sentry / error tracking конфигурация (ако липсва — добавяме).
+- React Error Boundaries около всеки route + критични компоненти (Wizard, Stripe checkout).
+- Build verification: `bun run build` + bundle size report.
+- Type check: 0 грешки.
+- Console clean: 0 warnings/errors в production build.
 
-- Поправка на console warnings: `DialogContent requires a DialogTitle` (AIDisclaimerModal или CookieBanner) — добавям `VisuallyHidden` Title + Description.
-- Преглед на всички dialogs/sheets за accessibility (aria-describedby, focus trap).
-- Mobile audit на 393px (текущ viewport): Header burger menu, Wizard стъпки, Popover dropdowns (новите doc-type), формуляри.
-- Проверка на всички CTAs и празни състояния (empty states) — без счупени линкове.
-- Грешки 404 в console (`/ac`, `/sitemap`) → редирект или премахване на грешни линкове.
+## Тестване (накрая)
+End-to-end критични user flows в браузъра:
+1. Anon → Catalog → Sector → Template preview.
+2. Signup (email + Google OAuth) → email verify.
+3. Login → Create document (Wizard) → Download PDF/DOCX.
+4. Stripe checkout (Pro plan, test mode) → subscription активна.
+5. Team invite → приемане → споделен достъп.
+6. Disclaimer/consent flow във Wizard и Template.
+7. Mobile flow целия път @ 393px.
 
-## Фаза 3 — SEO и съдържание
+## Технически детайли
+- RPC функцията `get_account_overview` — SECURITY DEFINER, връща JSON; миграция + GRANT EXECUTE TO authenticated.
+- Lazy data модули: `const mod = await import('@/data/templateContent')` в Wizard/Template loader, с Suspense fallback.
+- Sentry: само ако потребителят одобри допълнителен пакет (`@sentry/react`); алтернатива — лек custom error logger към Supabase table `error_logs`.
+- Всички промени пазят съществуващото поведение; refactor-само-където-носи-стойност принцип.
 
-- Пускам `seo_chat--trigger_scan` за пълен преглед.
-- Валидирам sitemap.xml + sitemap-templates.xml са пълни и валидни след новите ~200 бланки.
-- Проверявам canonical/hreflang/OG на всички динамични страници (Template, Category, Sector, BlogPost).
-- JSON-LD структуриран `BreadcrumbList` + `Article`/`HowTo` където е уместно.
-- robots.txt с правилен `Sitemap:` директив.
-
-## Фаза 4 — Сигурност и съответствие
-
-- `security--run_security_scan` + `supabase--linter` за RLS дупки.
-- Преглед на всички edge functions за input валидация и rate limiting (create-checkout, AI endpoints).
-- Stripe: проверка че production keys ще се ползват автоматично; webhook secret конфигуриран.
-- GDPR/правни: всички dialogs за съгласие имат audit trail; cookie banner работи преди всеки tracker.
-- Валидация на disclaimer'ите (вече оптимизирани) — последен преглед.
-
-## Фаза 5 — Стабилност и наблюдаемост
-
-- Sentry: проверявам че `initSentry` се изпълнява и че sample rate е разумен (10–20% за production).
-- Error boundaries около всеки route + fallback UI.
-- `verify-build.ts` + `verify-seo-urls.ts` минават без warnings.
-- Тест на критичните потоци: signup → Google OAuth → create template → download PDF/DOCX → Stripe checkout → team invite.
-
-## Резултат
-
-Конкретен списък с приложени fix-ове + before/after метрики (bundle sizes, Lighthouse score, брой DB queries на ключови страници). След това сме готови да градим маркетинговия prompt върху стабилна база.
-
----
-
-**Започвам с Фаза 1 (най-голям impact върху user-perceived speed). Одобряваш ли плана, или искаш да преподредим приоритетите?**
+Започвам веднага щом одобриш плана.
