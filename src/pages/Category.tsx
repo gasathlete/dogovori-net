@@ -8,6 +8,8 @@ import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { CATALOG } from "@/data/catalog";
 import { slugify } from "@/lib/slugify";
+import { CATEGORY_HOT_LINKS } from "@/data/categoryHotLinks";
+import { allTemplates } from "@/lib/templateIndex";
 
 export default function CategoryPage() {
   const { slug } = useParams<{ slug: string }>();
