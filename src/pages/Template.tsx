@@ -8,6 +8,7 @@ import { Seo } from "@/components/Seo";
 import { getRelatedTemplates, getTemplateBySlug } from "@/lib/templateIndex";
 import { TEMPLATE_CONTENT_META } from "@/data/templateContentMeta";
 import { loadTemplateContent } from "@/data/templateContent";
+import { loadTemplateDraft } from "@/data/templateDrafts";
 import type { TemplateContent } from "@/data/templateContentTypes";
 import { trackEvent } from "@/lib/analytics";
 import { autoLinkParagraph, createAutoLinkState } from "@/lib/autoLinkBlog";
@@ -20,12 +21,14 @@ export default function TemplatePage() {
 
   // Async-load the heavy AI content for this template only.
   const [aiContent, setAiContent] = useState<TemplateContent | undefined>(undefined);
+  const [draftText, setDraftText] = useState<string | undefined>(undefined);
   useEffect(() => {
     let alive = true;
     if (!entry) return;
     const p = loadTemplateContent(entry.slug);
-    if (!p) return;
-    p.then((c) => alive && setAiContent(c)).catch(() => {});
+    if (p) p.then((c) => alive && setAiContent(c)).catch(() => {});
+    const d = loadTemplateDraft(entry.slug);
+    if (d) d.then((t) => alive && setDraftText(t)).catch(() => {});
     return () => {
       alive = false;
     };
@@ -250,6 +253,27 @@ export default function TemplatePage() {
           <div className="eyebrow mb-3">Ключова клауза</div>
           <p className="font-serif text-lg italic leading-relaxed text-foreground md:text-xl">⚖ {doc.keyClause}</p>
         </section>
+
+        {draftText && (
+          <Section title="Готов образец">
+            <p className="mb-4 text-sm text-muted-foreground">
+              По-долу е пълният текст на бланката. Полетата в <code className="rounded bg-muted/40 px-1 font-mono text-xs">[квадратни скоби]</code> се попълват според Вашата ситуация. Можете да копирате текста или да го свалите като PDF/DOCX през бутона по-горе.
+            </p>
+            <div className="rounded-xl border border-gold/20 bg-card/40 p-5 md:p-7">
+              <pre className="whitespace-pre-wrap font-serif text-[15px] leading-[1.75] text-foreground/95">
+                {draftText}
+              </pre>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link to={wizardHref} className="btn-gold">
+                Попълни автоматично <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link to={blankWizardHref} className="btn-ghost-gold normal-case tracking-normal">
+                <Download className="h-4 w-4" /> Свали PDF/DOCX
+              </Link>
+            </div>
+          </Section>
+        )}
 
         <Section title="Кога се използва този договор">
           <ul className="space-y-2">
