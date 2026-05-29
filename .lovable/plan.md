@@ -1,112 +1,62 @@
-## 1. „Вид документ" филтър над категориите (Catalog.tsx)
+# Pre-Launch одит и оптимизация
 
-Нова секция между Hero и sticky nav-а с категории, групирана по 6-те групи от `DOCUMENT_TYPE_GROUPS` (`documentReferences.ts`). Всяка група показва чипове за типовете в нея (Договор, Споразумение, Приложение, Анекс, Протокол, Разписка, Пълномощно, Декларация, Жалба, Искова молба, Нот. покана, Оферта, Фактура, СМР, КСС).
+Сайтът вече има солидна архитектура (lazy routes, manualChunks, отложен Sentry, self-hosted fonts, preconnect, prerender при build). Планът покрива конкретни оптимизации + системни проверки преди старт.
 
-Поведение: Filter mode (без нова страница).
-- Активен чип филтрира `CATALOG` така, че да показва само документи с `documentType === selected`.
-- Изключителен избор (един активен тип) + бутон „Всички".
-- URL state: `/catalog?vid=<typeId>` за shareable линкове и SEO.
-- При активен филтър категориите, които остават с 0 документа, се скриват, а sticky nav-ът се актуализира.
+## Фаза 1 — Оптимизация на скоростта
 
-```text
-┌─────────────────────────────────────────────────┐
-│  ВИД ДОКУМЕНТ                                   │
-│                                                 │
-│  Договори и споразумения                        │
-│  [Договор] [Споразумение]                       │
-│                                                 │
-│  Приложения, анекси, протоколи                  │
-│  [Приложение] [Анекс] [Протокол]                │
-│                                                 │
-│  Лични документи                                │
-│  [Разписка] [Пълномощно] [Декларация]           │
-│                                                 │
-│  Жалби, искови молби, нотариални покани         │
-│  [Жалба] [Искова молба] [Нот. покана]           │
-│                                                 │
-│  Търговски                                      │
-│  [Оферта] [Фактура]                             │
-│                                                 │
-│  Строителство                                   │
-│  [СМР] [КСС]                                    │
-└─────────────────────────────────────────────────┘
-```
+**Bundle / зареждане**
+- `catalog.ts` (166KB) и `templateContentMeta.ts` (191KB) се импортират статично от 8+ места. Изваждам ги в отделен async chunk и/или ги разделям на по-малки части по сектор/категория, така че Index/Hero да не носят пълния каталог.
+- Проверявам първоначалния chunk на `/` (Hero, Header, SectorGrid) с `vite build --report` и режа всичко излишно (lucide иконки да са по една, без barrel re-exports).
+- Добавям `fetchpriority="high"` и `<link rel="preload" as="image">` за LCP изображението на Hero (ако има).
+- Plausible script: `async` → `defer` (по-добро за parse), валидирам че не блокира.
+- Оптимизирам `public/icon-512.png` (223KB → ~30KB чрез squoosh/sharp) и `og-image.jpg` (66KB → WebP, ~25KB).
+- Включвам Brotli/gzip проверка след build; добавям `<link rel="modulepreload">` за критичните route chunks (catalog, template).
 
-## 2. Тагване на бланките с `documentType`
+**React / Data layer**
+- `Account.tsx` пуска ~10 паралелни Supabase queries при mount. Групирам в 1–2 RPC функции (`get_account_overview`) и/или комбинирам с React Query `useQueries`, за да намаля round-trips.
+- Преглеждам `useEffect` хуковете в Wizard/Template за ненужни re-fetch-ове; където е възможно — `useMemo`/`useCallback`.
+- Виртуализация на дълги списъци (Catalog, SiteMap, Downloads) при >100 елемента.
 
-- Разширяване на `CatalogDocument` (в `src/data/catalog.ts`) с задължително поле `documentType: DocumentTypeId`.
-- Скрипт `scripts/backfill-document-types.ts` (еднократен, ръчно изпълнен) задава тип на 282-те съществуващи документа чрез ключови думи в името („Договор" → contract, „Декларация" → declaration, „Протокол" → protocol, „Анекс" → annex, „Приложение" → appendix, „Фактура" → invoice, „Оферта" → offer, „Жалба" → complaint, „Искова молба" → claim, „Пълномощно" → power_of_attorney, „Разписка" → receipt, „Нотариална покана" → notary_invitation, „КСС" → kss, „СМР" → smr, fallback → contract).
+**Backend / DB**
+- Пускам `supabase--linter` + `supabase--db_health` за индекси, slow queries, RLS warnings.
+- Проверявам че всички `*_at` колони и често филтрирани полета (`user_id`, `team_id`, `folder_id`, `deleted_at`) имат индекси.
+- Преглед на edge function cold-start логове (create-checkout, AI генерации).
 
-## 3. 150 нови професионални бланки (10 × 15 типа)
+## Фаза 2 — Качество и UX
 
-За всеки от 15-те типа документ — 10 нови, разпределени в най-подходящата категория (или в новосъздадени за лични/правни типове ако липсват). Включват:
-- запис в `CATALOG` (name, purpose, keyClause, documentType, badge?)
-- автоматично попадат в `/shablon/:slug` (вече работи през `templateIndex.ts`)
-- мета запис в `TEMPLATE_CONTENT_META` (introExcerpt за meta description)
-- файл в `src/data/templateContent/<slug>.ts` с пълно AI-генерирано съдържание (intro/usageCases/requirements/mistakes/faq) — генериран чрез скрипт `scripts/generate-template-content.ts` (вече съществува, ще му подадем новите slug-ове)
-- **готов draft текст**: нов файл `src/data/templateDrafts/<slug>.ts` с пълен примерен текст на бланката (заглавие, преамбюл, страни, клаузи, подписи), готов за директно сваляне.
+- Поправка на console warnings: `DialogContent requires a DialogTitle` (AIDisclaimerModal или CookieBanner) — добавям `VisuallyHidden` Title + Description.
+- Преглед на всички dialogs/sheets за accessibility (aria-describedby, focus trap).
+- Mobile audit на 393px (текущ viewport): Header burger menu, Wizard стъпки, Popover dropdowns (новите doc-type), формуляри.
+- Проверка на всички CTAs и празни състояния (empty states) — без счупени линкове.
+- Грешки 404 в console (`/ac`, `/sitemap`) → редирект или премахване на грешни линкове.
 
-Примерно разпределение (по 10 на тип):
+## Фаза 3 — SEO и съдържание
 
-| Тип | Категория | Примери |
-|---|---|---|
-| contract | разни | Договор за заем, спонсорство, влог, ремонт, посредничество… |
-| agreement | разни | Споразумение за прекратяване, разсрочване, медиация… |
-| appendix | trudovi/digital | Приложение „Техническо задание", „Ценоразпис", „SLA"… |
-| annex | trudovi/naem | Анекс за заплата, срок, наемна цена, длъжност… |
-| protocol | разни | Приемо-предавателен, констативен, инвентаризация… |
-| receipt | lichni (нова) | Разписка за получена сума, ключове, документи… |
-| power_of_attorney | punomoshtni | Общо, за МПС, за банка, за НАП, нотариално… |
-| declaration | decl | По чл. 264 ДОПК, ГДПР, конфликт на интереси… |
-| complaint | legal (нова) | До КЗП, КЗЛД, инспекция по труда, омбудсман… |
-| claim | legal | Заповедно производство, парично вземане, делба… |
-| notary_invitation | legal | За прекратяване, за плащане, за освобождаване… |
-| offer | trade | Търговска, за СМР, проформа, рамкова… |
-| invoice | schetovodni | Данъчна, проформа, кредитно/дебитно известие… |
-| smr | stroitelstvo | Акт 19, акт 12, протокол за СМР… |
-| kss | stroitelstvo | КСС за ремонт, ново строителство, инсталации… |
+- Пускам `seo_chat--trigger_scan` за пълен преглед.
+- Валидирам sitemap.xml + sitemap-templates.xml са пълни и валидни след новите ~200 бланки.
+- Проверявам canonical/hreflang/OG на всички динамични страници (Template, Category, Sector, BlogPost).
+- JSON-LD структуриран `BreadcrumbList` + `Article`/`HowTo` където е уместно.
+- robots.txt с правилен `Sitemap:` директив.
 
-Категориите `lichni` и `legal` ще бъдат добавени в `CATALOG`, ако не съществуват в подходяща форма (текущо има `decl` и `punomoshtni` — ще се преоформят/допълнят, не дублират).
+## Фаза 4 — Сигурност и съответствие
 
-## 4. Template page — рендер на draft текста
+- `security--run_security_scan` + `supabase--linter` за RLS дупки.
+- Преглед на всички edge functions за input валидация и rate limiting (create-checkout, AI endpoints).
+- Stripe: проверка че production keys ще се ползват автоматично; webhook secret конфигуриран.
+- GDPR/правни: всички dialogs за съгласие имат audit trail; cookie banner работи преди всеки tracker.
+- Валидация на disclaimer'ите (вече оптимизирани) — последен преглед.
 
-В `src/pages/Template.tsx`:
-- Lazy-load на `templateDrafts/<slug>.ts` паралелно с `aiContent`.
-- Нова секция „Готов образец" над FAQ с предварителния текст в monospace/serif рамка.
-- Бутон „Свали PDF / DOCX" с draft-а (използва съществуващия `downloadDocument` flow с `kind: "template"`).
+## Фаза 5 — Стабилност и наблюдаемост
 
-## 5. SEO + Sitemap
+- Sentry: проверявам че `initSentry` се изпълнява и че sample rate е разумен (10–20% за production).
+- Error boundaries около всеки route + fallback UI.
+- `verify-build.ts` + `verify-seo-urls.ts` минават без warnings.
+- Тест на критичните потоци: signup → Google OAuth → create template → download PDF/DOCX → Stripe checkout → team invite.
 
-- `scripts/build-sitemap.ts`: 150-те нови `/shablon/<slug>` влизат автоматично в `sitemap-templates.xml` (минават през `allTemplates()`). Без промяна на скрипта.
-- Нов `/catalog?vid=<type>` — добавя се в `sitemap-static.xml` като 15 нови URL-а с `priority 0.8`.
-- `Catalog.tsx` чете `?vid=` и поставя:
-  - динамичен `<title>` / `description` (напр. „Договори — каталог на български | Dogovori.net")
-  - канонически URL към `/catalog?vid=<type>`
-  - JSON-LD `ItemList` ограничен до филтрираните документи
-- `TEMPLATE_CONTENT_META` се обогатява с 150-те нови записа (генератор скрипт).
-- Преглед на финдингите от SEO scanner (`list_findings`) след промените.
+## Резултат
 
-## Технически детайли
+Конкретен списък с приложени fix-ове + before/after метрики (bundle sizes, Lighthouse score, брой DB queries на ключови страници). След това сме готови да градим маркетинговия prompt върху стабилна база.
 
-**Засегнати файлове:**
-- `src/data/catalog.ts` — нов `documentType` field + 150 нови записа + евентуално 2 нови категории
-- `src/pages/Catalog.tsx` — нова филтър-секция, URL state, динамично SEO
-- `src/pages/Template.tsx` — рендер на draft текст
-- `src/data/templateContentTypes.ts` — без промени
-- `src/data/templateContent/<slug>.ts` × 150 — AI-генерирани файлове
-- `src/data/templateDrafts/<slug>.ts` × 150 — draft текстове (нова папка)
-- `src/data/templateContentMeta.ts` — +150 записа
-- `src/lib/templateDrafts.ts` — нов loader (като `templateContent/index.ts`)
-- `scripts/backfill-document-types.ts` — еднократен tagger
-- `scripts/generate-template-drafts.ts` — нов AI генератор за draft текстовете (използва Lovable AI Gateway, модел `google/gemini-2.5-pro`)
+---
 
-**Скриптове за изпълнение:**
-1. backfill на `documentType` за 282 съществуващи документа
-2. добавяне на 150-те нови записа в CATALOG
-3. `generate-template-content.ts` за новите slug-ове (intro/faq/…)
-4. `generate-template-drafts.ts` за draft текстовете
-5. ръчен преглед на 10-20 случайни draft-а за качество
-
-**Очаквана продължителност на генериране:** ~30-45 мин AI извиквания (150 × 2 файла).
-
-**Не са нужни** database миграции, нови secrets или backend промени — всичко е статично съдържание.
+**Започвам с Фаза 1 (най-голям impact върху user-perceived speed). Одобряваш ли плана, или искаш да преподредим приоритетите?**
