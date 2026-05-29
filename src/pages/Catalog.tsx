@@ -18,6 +18,15 @@ export default function CatalogPage() {
   const [query, setQuery] = useState("");
   const [showAll, setShowAll] = useState(false);
   const [open, setOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeVid = (searchParams.get("vid") as DocumentTypeId | null) ?? null;
+
+  const setVid = (vid: DocumentTypeId | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (vid) next.set("vid", vid);
+    else next.delete("vid");
+    setSearchParams(next, { replace: true });
+  };
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -29,19 +38,26 @@ export default function CatalogPage() {
     }
   }, []);
 
+  const docMatchesVid = (name: string, explicit?: DocumentTypeId) => {
+    if (!activeVid) return true;
+    return (explicit ?? inferDocumentType(name)) === activeVid;
+  };
+
   const filtered = useMemo(() => {
-    if (!query.trim()) return CATALOG;
-    const q = query.toLowerCase();
+    const q = query.trim().toLowerCase();
     return CATALOG.map((cat) => ({
       ...cat,
-      documents: cat.documents.filter(
-        (d) =>
+      documents: cat.documents.filter((d) => {
+        if (!docMatchesVid(d.name, d.documentType)) return false;
+        if (!q) return true;
+        return (
           d.name.toLowerCase().includes(q) ||
           d.purpose.toLowerCase().includes(q) ||
-          d.keyClause.toLowerCase().includes(q),
-      ),
+          d.keyClause.toLowerCase().includes(q)
+        );
+      }),
     })).filter((c) => c.documents.length > 0);
-  }, [query]);
+  }, [query, activeVid]);
 
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
