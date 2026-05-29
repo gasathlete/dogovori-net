@@ -1,56 +1,93 @@
-# План: финализиране преди пускане
+# Маркетингова стратегия за dogovori.net
 
-Продължаваме от Phase 1 нататък. Тестване — накрая, наведнъж.
+## 1. Позициониране
 
-## Phase 1.5 — Допълнителни speed оптимизации
-- `Account.tsx`: консолидиране на ~10 паралелни Supabase заявки в 1–2 RPC функции (нова `get_account_overview` SQL функция, която връща profile + subscription + usage + team в един round-trip).
-- Lazy-load на тежките data модули (`templateContent/index.ts` 3MB, `templateDrafts/index.ts` 1MB) — динамичен `import()` само при отваряне на Wizard/Template, не в bundle-а на началната страница.
-- `catalog.ts` (166KB) и `templateContentMeta.ts` (191KB): сплит на metadata vs пълно съдържание, ленив достъп при нужда.
-- Route-level code splitting проверка (`React.lazy` за всички страници извън Index).
-- `fetchpriority="high"` + `<link rel="preload">` за LCP изображението на Hero.
-- `modulepreload` за критичните chunks.
+**Едно изречение:** „Професионални български договори за минути — без юрист, без грешки, на цената на едно кафе."
 
-## Phase 2 — Качество и a11y
-- Скан за всички останали `DialogContent` без `DialogTitle` warnings.
-- Mobile audit @ 393px (текущ viewport): touch targets ≥44px, overflow, sticky елементи.
-- Empty states, loading states, error states на всички ключови екрани.
-- Проверка за 404 / counter линкове, dead routes.
+**Уникална стойност (USP):**
+- 571+ готови шаблона, съобразени с българското законодателство (КТ, ЗЗД, ТЗ)
+- Персонализация за минути вместо часове при юрист
+- Цена от ~6 € за документ срещу 50–300 € при адвокат
+- Pro план 19 €/мес. неограничено; Team от 23.70 €/мес. за 3 места
 
-## Phase 3 — SEO
-- `seo_chat--trigger_scan` (изисква одобрение).
-- Валидация sitemap: ~200 нови sector blocks включени, lastmod актуален.
-- Canonical, hreflang (bg), OG/Twitter на динамични страници (Sector, Template, Build).
-- JSON-LD: `BreadcrumbList` на категории/sector страници, `Article` за блог (ако има), `HowTo` за wizard страници, `Organization` глобално.
-- robots.txt + sitemap.xml validation.
+**3 ключови болки, които решаваме:**
+1. Време — „Имам нужда от договор СЕГА, не след седмица"
+2. Цена — „Не мога да си позволя адвокат за всеки документ"
+3. Несигурност — „Не знам кой шаблон от интернет е валиден и актуален"
 
-## Phase 4 — Security
-- `security--run_security_scan` (Supabase backend).
-- Edge functions: input validation, rate limiting, auth checks на всеки endpoint (`create-checkout`, `webhook`, и т.н.).
-- Stripe: live vs test keys, webhook signature verification.
-- GDPR/consent: audit trail за `consents` записи, disclaimer показвания.
-- RLS policies smoke test (роли: anon, authenticated, owner, team member).
+---
 
-## Phase 5 — Стабилност
-- Sentry / error tracking конфигурация (ако липсва — добавяме).
-- React Error Boundaries около всеки route + критични компоненти (Wizard, Stripe checkout).
-- Build verification: `bun run build` + bundle size report.
-- Type check: 0 грешки.
-- Console clean: 0 warnings/errors в production build.
+## 2. Сегментация на аудитории
 
-## Тестване (накрая)
-End-to-end критични user flows в браузъра:
-1. Anon → Catalog → Sector → Template preview.
-2. Signup (email + Google OAuth) → email verify.
-3. Login → Create document (Wizard) → Download PDF/DOCX.
-4. Stripe checkout (Pro plan, test mode) → subscription активна.
-5. Team invite → приемане → споделен достъп.
-6. Disclaimer/consent flow във Wizard и Template.
-7. Mobile flow целия път @ 393px.
+| Сегмент | Кой е | Топ нужди | Канал |
+|---|---|---|---|
+| **B2C — Наематели/Наемодатели** | Физически лица | Договор за наем, протоколи | Google Search, FB/IG |
+| **B2C — Работодатели/Служители** | МСП собственици, HR | Трудов договор, допълнителни споразумения, прекратяване | Google Search, LinkedIn |
+| **B2C — Продавачи/Купувачи** | Физически лица | Покупко-продажба МПС, движими вещи | Google Search, FB Marketplace ретаргетинг |
+| **B2B — МСП/Стартъпи** | Фирми без юрист | NDA, граждански договори, фактури, общи условия | Google Search, LinkedIn, партньорства |
+| **B2B — Професионалисти** | Адвокати, счетоводители, нотариуси | Team план, бяла марка, ускоряване на работата | LinkedIn, директни партньорства, имейл |
 
-## Технически детайли
-- RPC функцията `get_account_overview` — SECURITY DEFINER, връща JSON; миграция + GRANT EXECUTE TO authenticated.
-- Lazy data модули: `const mod = await import('@/data/templateContent')` в Wizard/Template loader, с Suspense fallback.
-- Sentry: само ако потребителят одобри допълнителен пакет (`@sentry/react`); алтернатива — лек custom error logger към Supabase table `error_logs`.
-- Всички промени пазят съществуващото поведение; refactor-само-където-носи-стойност принцип.
+---
 
-Започвам веднага щом одобриш плана.
+## 3. Канали и тактики (приоритети по ROI)
+
+### Приоритет 1 — SEO (вече подготвено)
+- 571 шаблона × индексирани страници = огромен long-tail трафик
+- Блог хъб с 30–50 статии за топ търсения (виж раздел 5)
+- Сектор-страници (вече имате) като content hubs
+
+### Приоритет 2 — Google Ads (бърз ROI)
+- **Search кампании** по high-intent ключове: „договор за наем образец", „трудов договор бланка", „NDA на български"
+- **Performance Max** за каталога
+- Бюджет за старт: 500–1000 €/мес., CPA таргет: 3–5 €
+
+### Приоритет 3 — Meta Ads (Facebook/Instagram)
+- Lookalike на платилите потребители
+- Retargeting на посетители на каталога без покупка
+- Видео reels: „Как да си направиш трудов договор за 2 минути"
+
+### Приоритет 4 — B2B Партньорства
+- Affiliate с счетоводни кантори (комисионна 20–30%)
+- Co-marketing с банки/застрахователи (договори за кредит, застраховки)
+- Team план за адвокатски кантори с reseller отстъпка
+
+### Приоритет 5 — Email маркетинг
+- Lead magnet: „10 безплатни шаблона за стартиращ бизнес" → email
+- Drip кампания 7 дни → upsell към Pro
+- Win-back на изтекли абонаменти
+
+---
+
+## 4. AI Промпт за генериране на рекламни текстове
+
+Това е централният артефакт, който ще създам в следваща стъпка. Той ще:
+
+- Приема параметри: **канал** (Google Search / FB / IG / LinkedIn / Email), **аудитория** (5-те сегмента), **документ/категория**, **формат** (заглавие, описание, CTA, дълъг копи)
+- Връща структурирани изходи с **варианти A/B** и **дължинни ограничения** според канала (Google: 30/90 символа; Meta: primary text/headline/description; LinkedIn: 150/600)
+- Налага brand voice: професионален, ясен, без юридически жаргон, спокойна увереност
+- Включва задължителни елементи: **цена в EUR** (Pro 19 €, единичен ~6 €), **trust сигнали** (571+ шаблона, БГ право), **CTA глаголи** на български
+- Спазва Google Ads & Meta policy за легални услуги (без обещания тип „гарантирано печелите дело")
+
+## 5. Топ 30 SEO теми за блога (примерни)
+
+Кратък списък за content календар (3 мес.):
+
+1. Договор за наем на жилище — пълно ръководство 2026
+2. Трудов договор по чл. 67 КТ — какво трябва да знаете
+3. NDA на български — кога и как
+4. Граждански договор vs трудов договор — разлики
+5. Прекратяване на трудов договор — всички основания
+6. Договор за покупко-продажба на автомобил — стъпки
+7. Общи условия за онлайн магазин — задължителни елементи
+8. … (още 23 теми по сектори от каталога)
+
+---
+
+## Какво ще доставя при одобрение
+
+1. **`MARKETING_STRATEGY.md`** в `/mnt/documents/` — пълен документ със стратегия, аудитории, канали, бюджети, KPI
+2. **`AI_AD_COPY_PROMPT.md`** в `/mnt/documents/` — production-ready промпт с примери, темплейти, ограничения
+3. **`CONTENT_CALENDAR.md`** в `/mnt/documents/` — 30 SEO теми + 20 ad angles + 7-day email drip
+4. **Готови примерни рекламни тексткове** — 5 Google Ads групи + 5 Meta ads (по 1 за всеки сегмент), за да тествате веднага
+
+**Без промени в кода на сайта** — това е чисто маркетингов deliverable.
