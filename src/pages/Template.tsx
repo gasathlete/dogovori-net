@@ -10,6 +10,9 @@ import { TEMPLATE_CONTENT_META } from "@/data/templateContentMeta";
 import { loadTemplateContent } from "@/data/templateContent";
 import type { TemplateContent } from "@/data/templateContentTypes";
 import { trackEvent } from "@/lib/analytics";
+import { autoLinkParagraph, createAutoLinkState } from "@/lib/autoLinkBlog";
+import { RELATED_TEMPLATES } from "@/data/relatedTemplates";
+import { getPostBySlug } from "@/lib/blog";
 
 export default function TemplatePage() {
   const { slug } = useParams<{ slug: string }>();
