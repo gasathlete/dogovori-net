@@ -15,6 +15,7 @@ import { writeFileSync, readdirSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { CATALOG, TOP_DOCUMENTS } from "../src/data/catalog";
 import { SECTORS } from "../src/data/sectors";
+import { DOCUMENT_TYPES } from "../src/lib/documentReferences";
 import { slugify } from "../src/lib/slugify";
 
 const SITE = "https://dogovori.net";
@@ -45,7 +46,15 @@ const staticEntries: Entry[] = [
   { loc: "/privacy", changefreq: "yearly", priority: "0.3" },
   { loc: "/cookies", changefreq: "yearly", priority: "0.3" },
   { loc: "/refund", changefreq: "yearly", priority: "0.3" },
+  // /catalog?vid=<type> — one entry per document type for SEO landing.
+  ...DOCUMENT_TYPES.map<Entry>((d) => ({
+    loc: `/catalog?vid=${d.id}`,
+    changefreq: "weekly",
+    priority: "0.8",
+    lastmod: catalogDate,
+  })),
 ];
+
 
 const blogDir = resolve(process.cwd(), "src/content/blog");
 const blogEntries: Entry[] = readdirSync(blogDir)

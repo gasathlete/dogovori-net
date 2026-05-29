@@ -1,8 +1,12 @@
+import type { DocumentTypeId } from "@/lib/documentReferences";
+
 export interface CatalogDocument {
   name: string;
   purpose: string;
   keyClause: string;
   badge?: "NEW" | "TOP" | "ПРО";
+  /** Optional override; when missing, inferred from name via inferDocumentType. */
+  documentType?: DocumentTypeId;
 }
 
 export interface CatalogCategory {

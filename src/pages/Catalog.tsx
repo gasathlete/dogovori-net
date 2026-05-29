@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
+import { useSearchParams } from "react-router-dom";
 import * as Icons from "lucide-react";
-import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp, X, Filter } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Input } from "@/components/ui/input";
@@ -10,11 +11,22 @@ import { CompanionChip } from "@/components/CompanionChip";
 import { Seo } from "@/components/Seo";
 import { allTemplates } from "@/lib/templateIndex";
 import { slugify } from "@/lib/slugify";
+import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, type DocumentTypeId } from "@/lib/documentReferences";
+import { inferDocumentType } from "@/lib/documentTypeInference";
 
 export default function CatalogPage() {
   const [query, setQuery] = useState("");
   const [showAll, setShowAll] = useState(false);
   const [open, setOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeVid = (searchParams.get("vid") as DocumentTypeId | null) ?? null;
+
+  const setVid = (vid: DocumentTypeId | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (vid) next.set("vid", vid);
+    else next.delete("vid");
+    setSearchParams(next, { replace: true });
+  };
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -26,19 +38,26 @@ export default function CatalogPage() {
     }
   }, []);
 
+  const docMatchesVid = (name: string, explicit?: DocumentTypeId) => {
+    if (!activeVid) return true;
+    return (explicit ?? inferDocumentType(name)) === activeVid;
+  };
+
   const filtered = useMemo(() => {
-    if (!query.trim()) return CATALOG;
-    const q = query.toLowerCase();
+    const q = query.trim().toLowerCase();
     return CATALOG.map((cat) => ({
       ...cat,
-      documents: cat.documents.filter(
-        (d) =>
+      documents: cat.documents.filter((d) => {
+        if (!docMatchesVid(d.name, d.documentType)) return false;
+        if (!q) return true;
+        return (
           d.name.toLowerCase().includes(q) ||
           d.purpose.toLowerCase().includes(q) ||
-          d.keyClause.toLowerCase().includes(q),
-      ),
+          d.keyClause.toLowerCase().includes(q)
+        );
+      }),
     })).filter((c) => c.documents.length > 0);
-  }, [query]);
+  }, [query, activeVid]);
 
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -65,10 +84,30 @@ export default function CatalogPage() {
 
   const totalDocs = CATALOG.reduce((s, c) => s + c.documents.length, 0);
 
+  const countsByVid = useMemo(() => {
+    const m = new Map<DocumentTypeId, number>();
+    for (const cat of CATALOG) {
+      for (const d of cat.documents) {
+        const t = d.documentType ?? inferDocumentType(d.name);
+        m.set(t, (m.get(t) ?? 0) + 1);
+      }
+    }
+    return m;
+  }, []);
+
+  const filteredCount = useMemo(
+    () => filtered.reduce((s, c) => s + c.documents.length, 0),
+    [filtered],
+  );
+
+  const activeVidDef = activeVid ? getDocumentType(activeVid) : null;
+
   const itemListLd = useMemo(() => ({
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: "Каталог на договори и бланки на български",
+    name: activeVidDef
+      ? `${activeVidDef.label} — каталог на български`
+      : "Каталог на договори и бланки на български",
     numberOfItems: allTemplates().length,
     itemListElement: allTemplates().map((t, i) => ({
       "@type": "ListItem",
@@ -76,7 +115,7 @@ export default function CatalogPage() {
       url: `https://dogovori.net/shablon/${t.slug}`,
       name: t.doc.name,
     })),
-  }), []);
+  }), [activeVidDef]);
 
   const breadcrumbsLd = {
     "@context": "https://schema.org",
@@ -84,15 +123,26 @@ export default function CatalogPage() {
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Начало", item: "https://dogovori.net/" },
       { "@type": "ListItem", position: 2, name: "Каталог", item: "https://dogovori.net/catalog" },
+      ...(activeVidDef
+        ? [{ "@type": "ListItem", position: 3, name: activeVidDef.label, item: `https://dogovori.net/catalog?vid=${activeVid}` }]
+        : []),
     ],
   };
+
+  const seoTitle = activeVidDef
+    ? `${activeVidDef.label} — ${filteredCount} бланки на български | Dogovori.net`
+    : `Каталог: ${totalDocs}+ договора и бланки на български | Dogovori.net`;
+  const seoDesc = activeVidDef
+    ? `${filteredCount} професионални образци на „${activeVidDef.label}" – ${activeVidDef.description}. Готови за попълване, PDF/DOCX.`.slice(0, 160)
+    : `Пълен каталог на ${totalDocs}+ професионални договори и правни бланки на български – трудови, наем, IT, NDA, GDPR. Готови за попълване.`;
+  const seoCanonical = activeVid ? `/catalog?vid=${activeVid}` : "/catalog";
 
   return (
     <div className="min-h-screen">
       <Seo
-        title={`Каталог: ${totalDocs}+ договора и бланки на български | Dogovori.net`}
-        description={`Пълен каталог на ${totalDocs}+ професионални договори и правни бланки на български – трудови, наем, IT, NDA, GDPR. Готови за попълване.`}
-        canonical="/catalog"
+        title={seoTitle}
+        description={seoDesc}
+        canonical={seoCanonical}
         jsonLd={[itemListLd, breadcrumbsLd]}
       />
       <Header />
@@ -173,6 +223,86 @@ export default function CatalogPage() {
         </div>
         <div className="absolute inset-x-0 bottom-0 hairline-x opacity-60" />
       </section>
+
+      {/* Вид документ — type filter, grouped by 6 DOCUMENT_TYPE_GROUPS */}
+      <section className="border-b border-border/60 bg-navy-light/20">
+        <div className="container py-8 md:py-10">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <div className="eyebrow mb-2">
+                <Filter className="h-3.5 w-3.5" />
+                Вид документ
+              </div>
+              <h2 className="font-serif text-xl font-bold leading-tight md:text-2xl">
+                Филтрирай по тип
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Изберете един тип, за да видите само бланки от него във всички категории по-долу.
+              </p>
+            </div>
+            {activeVid && (
+              <button
+                onClick={() => setVid(null)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold transition-colors hover:bg-gold/20"
+              >
+                <X className="h-3 w-3" /> Изчисти филтър ({filteredCount} от {totalDocs})
+              </button>
+            )}
+          </div>
+
+          <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+            {DOCUMENT_TYPE_GROUPS.map((g) => {
+              const items = DOCUMENT_TYPES.filter((d) => d.group === g.id);
+              if (items.length === 0) return null;
+              const hasActive = items.some((d) => d.id === activeVid);
+              return (
+                <div key={g.id} className="space-y-2">
+                  <div
+                    className={
+                      "text-[10px] font-bold uppercase tracking-tighter " +
+                      (hasActive ? "text-gold" : "text-muted-foreground/70")
+                    }
+                  >
+                    {g.label}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {items.map((d) => {
+                      const active = activeVid === d.id;
+                      const count = countsByVid.get(d.id) ?? 0;
+                      return (
+                        <button
+                          key={d.id}
+                          type="button"
+                          onClick={() => setVid(active ? null : d.id)}
+                          disabled={count === 0}
+                          title={`${d.description} (${count})`}
+                          className={
+                            "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40 " +
+                            (active
+                              ? "bg-gradient-gold text-navy shadow-gold"
+                              : "border border-border/70 bg-card/40 text-foreground hover:border-gold/50 hover:text-gold")
+                          }
+                        >
+                          {d.shortLabel}
+                          <span
+                            className={
+                              "rounded-full px-1.5 py-0.5 text-[10px] font-bold " +
+                              (active ? "bg-navy/20 text-navy" : "bg-navy-light/60 text-muted-foreground")
+                            }
+                          >
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
 
       {/* Sticky category nav */}
       <nav className="sticky top-16 z-30 border-b border-border/60 bg-navy/85 backdrop-blur-xl">
