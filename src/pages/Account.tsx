@@ -1118,7 +1118,10 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
       )}
 
       <Dialog open={!!checkoutPrice} onOpenChange={(o) => !o && setCheckoutPrice(null)}>
-        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto p-0">
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto p-0" aria-describedby={undefined}>
+          <DialogHeader className="sr-only">
+            <DialogTitle>Завършване на плащането</DialogTitle>
+          </DialogHeader>
           <div className="p-6">
             {checkoutPrice && user && (
               <StripeEmbeddedCheckout
