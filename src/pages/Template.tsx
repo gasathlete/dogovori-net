@@ -320,6 +320,29 @@ export default function TemplatePage() {
           </Section>
         )}
 
+        {(() => {
+          const rel = RELATED_TEMPLATES[entry.slug];
+          const posts = (rel?.blogPosts ?? [])
+            .map((s) => getPostBySlug(s))
+            .filter((p): p is NonNullable<ReturnType<typeof getPostBySlug>> => Boolean(p));
+          if (posts.length === 0) return null;
+          return (
+            <Section title="Прочетете повече">
+              <ul className="space-y-2 text-sm">
+                {posts.map((p) => (
+                  <li key={p.slug} className="flex gap-2">
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-gold" />
+                    <Link to={`/blog/${p.slug}`} className="text-foreground/90 transition-colors hover:text-gold">
+                      {p.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          );
+        })()}
+
+
         <section className="relative mt-14 overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-10 text-center shadow-elegant md:p-12">
           <div className="absolute inset-x-0 top-0 hairline-x" />
           <h2 className="font-serif text-2xl font-bold leading-tight text-balance md:text-[32px]">Готов ли сте да създадете {doc.name}?</h2>
