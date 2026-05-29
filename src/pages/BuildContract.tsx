@@ -661,7 +661,7 @@ export default function BuildContractPage() {
                                   <button
                                     key={d.id}
                                     type="button"
-                                    onClick={() => setDocumentType(d.id)}
+                                    onClick={() => { setDocumentType(d.id); setDocTypeOpen(false); }}
                                     title={d.description}
                                     className={
                                       "flex w-full items-start gap-2 rounded-sm px-2.5 py-1.5 text-left text-sm transition-colors " +
