@@ -118,6 +118,7 @@ export default function CatalogPage() {
             <div className="relative mx-auto mt-10 max-w-xl">
               <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
+                aria-label="Търсене в каталога с договори и бланки"
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value);

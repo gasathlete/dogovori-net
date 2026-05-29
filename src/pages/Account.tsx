@@ -29,6 +29,7 @@ import { ShieldAlert, ShieldCheck, AlertTriangle, PenTool, ChevronRight, KeyRoun
 import { isValidEGN, isValidEIK } from "@/lib/bgValidation";
 import { translateAuthError } from "@/lib/authErrors";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
+import { Seo } from "@/components/Seo";
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
@@ -127,6 +128,12 @@ export default function AccountPage() {
 
   return (
     <div className="min-h-screen">
+      <Seo
+        title="Моят профил — Dogovori.net"
+        description="Управлявайте профила, абонамента, документите и екипа си в Dogovori.net."
+        canonical="/account"
+        noindex
+      />
       <Header />
       <main className="container py-6 md:py-10">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

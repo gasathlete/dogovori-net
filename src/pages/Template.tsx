@@ -46,7 +46,7 @@ export default function TemplatePage() {
   const wizardHref = `/wizard/${category.sectorId}?doc=${encodeURIComponent(doc.name)}`;
   const blankWizardHref = `${wizardHref}&blank=1&returnTo=${encodeURIComponent(`/shablon/${entry.slug}`)}`;
   const canonical = `/shablon/${entry.slug}`;
-  const pageTitle = `${doc.name} — образец и бланка на български | PDF, DOCX`;
+  const pageTitle = `${doc.name} — образец на български`;
   const pageDesc = meta?.introExcerpt
     ? `${meta.introExcerpt.slice(0, 110)} Безплатен образец на ${doc.name.toLowerCase()} – PDF/DOCX, по ЗЗД и ТЗ.`.slice(0, 160)
     : `Безплатен образец на ${doc.name.toLowerCase()} на български – готов шаблон по ЗЗД, ТЗ и КТ. Попълни и изтегли PDF или DOCX за 2 минути.`.slice(0, 160);

@@ -25,7 +25,7 @@ export default function SectorPage() {
   const bgImage = SECTOR_IMAGES[sector.id];
   const totalDocs = categories.reduce((s, c) => s + c.documents.length, 0);
   const canonical = `/sektor/${sector.id}`;
-  const title = `${sector.title} — договори и бланки на български | Образци`;
+  const title = `${sector.title} — договори и бланки на български`;
   const desc =
     `${totalDocs}+ готови образци и шаблони на договори за ${sector.title.toLowerCase()} – безплатно на български, PDF/DOCX, по ЗЗД и ТЗ. ${sector.description}`.slice(0, 160);
 
