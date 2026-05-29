@@ -17,7 +17,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
           width={256}
           height={256}
           loading="eager"
-          fetchPriority="high"
+          {...({ fetchpriority: "high" } as any)}
           decoding="async"
           className="h-[80%] max-h-[680px] w-auto opacity-[0.12] md:opacity-[0.16]"
         />
