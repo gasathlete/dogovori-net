@@ -69,16 +69,6 @@ export async function hasConsent(type: ConsentType): Promise<boolean> {
   }
 }
 
-/* Local-only persistence for AI disclaimer & cookie preferences,
- * so anonymous visitors aren't nagged on every visit. */
-const AI_DISCLAIMER_KEY = `ai-disclaimer-v${CONSENT_VERSIONS.ai_disclaimer}`;
-
-export function hasAIDisclaimerLocal(): boolean {
-  if (typeof window === "undefined") return false;
-  return localStorage.getItem(AI_DISCLAIMER_KEY) === "accepted";
-}
-
-export function setAIDisclaimerLocal() {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(AI_DISCLAIMER_KEY, "accepted");
-}
+/* Note: anonymous AI-disclaimer persistence is handled by
+ * lib/aiDisclaimerGate via sessionStorage. Authenticated acceptance
+ * is recorded server-side via recordConsents() above. */

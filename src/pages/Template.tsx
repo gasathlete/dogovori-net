@@ -5,6 +5,7 @@ import { ArrowRight, CheckCircle2, AlertTriangle, FileText, ChevronRight, Downlo
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
+import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { getRelatedTemplates, getTemplateBySlug } from "@/lib/templateIndex";
 import { TEMPLATE_CONTENT_META } from "@/data/templateContentMeta";
 import { loadTemplateContent } from "@/data/templateContent";
@@ -259,6 +260,9 @@ export default function TemplatePage() {
             <p className="mb-4 text-sm text-muted-foreground">
               По-долу е пълният текст на бланката. Полетата в <code className="rounded bg-muted/40 px-1 font-mono text-xs">[квадратни скоби]</code> се попълват според Вашата ситуация. Можете да копирате текста или да го свалите като PDF/DOCX през бутона по-горе.
             </p>
+            <LegalDisclaimer variant="subtle" className="mb-4">
+              Бланката е <strong>примерен образец</strong>, генериран с моделиран по българското законодателство ИИ, и <strong>не представлява правен съвет</strong>. Прегледайте текста и при значими сделки се консултирайте с адвокат или нотариус.
+            </LegalDisclaimer>
             <div className="rounded-xl border border-gold/20 bg-card/40 p-5 md:p-7">
               <pre className="whitespace-pre-wrap font-serif text-[15px] leading-[1.75] text-foreground/95">
                 {draftText}
