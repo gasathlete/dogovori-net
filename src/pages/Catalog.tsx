@@ -224,6 +224,86 @@ export default function CatalogPage() {
         <div className="absolute inset-x-0 bottom-0 hairline-x opacity-60" />
       </section>
 
+      {/* Вид документ — type filter, grouped by 6 DOCUMENT_TYPE_GROUPS */}
+      <section className="border-b border-border/60 bg-navy-light/20">
+        <div className="container py-8 md:py-10">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <div className="eyebrow mb-2">
+                <Filter className="h-3.5 w-3.5" />
+                Вид документ
+              </div>
+              <h2 className="font-serif text-xl font-bold leading-tight md:text-2xl">
+                Филтрирай по тип
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Изберете един тип, за да видите само бланки от него във всички категории по-долу.
+              </p>
+            </div>
+            {activeVid && (
+              <button
+                onClick={() => setVid(null)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold transition-colors hover:bg-gold/20"
+              >
+                <X className="h-3 w-3" /> Изчисти филтър ({filteredCount} от {totalDocs})
+              </button>
+            )}
+          </div>
+
+          <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+            {DOCUMENT_TYPE_GROUPS.map((g) => {
+              const items = DOCUMENT_TYPES.filter((d) => d.group === g.id);
+              if (items.length === 0) return null;
+              const hasActive = items.some((d) => d.id === activeVid);
+              return (
+                <div key={g.id} className="space-y-2">
+                  <div
+                    className={
+                      "text-[10px] font-bold uppercase tracking-tighter " +
+                      (hasActive ? "text-gold" : "text-muted-foreground/70")
+                    }
+                  >
+                    {g.label}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {items.map((d) => {
+                      const active = activeVid === d.id;
+                      const count = countsByVid.get(d.id) ?? 0;
+                      return (
+                        <button
+                          key={d.id}
+                          type="button"
+                          onClick={() => setVid(active ? null : d.id)}
+                          disabled={count === 0}
+                          title={`${d.description} (${count})`}
+                          className={
+                            "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40 " +
+                            (active
+                              ? "bg-gradient-gold text-navy shadow-gold"
+                              : "border border-border/70 bg-card/40 text-foreground hover:border-gold/50 hover:text-gold")
+                          }
+                        >
+                          {d.shortLabel}
+                          <span
+                            className={
+                              "rounded-full px-1.5 py-0.5 text-[10px] font-bold " +
+                              (active ? "bg-navy/20 text-navy" : "bg-navy-light/60 text-muted-foreground")
+                            }
+                          >
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+
       {/* Sticky category nav */}
       <nav className="sticky top-16 z-30 border-b border-border/60 bg-navy/85 backdrop-blur-xl">
         <div className="relative">
