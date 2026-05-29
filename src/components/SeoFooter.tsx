@@ -1,6 +1,7 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { allTemplates } from "@/lib/templateIndex";
 import { Logo } from "./Logo";
+
 
 // Top 8 categories inlined to avoid pulling the full CATALOG (166KB) into the
 // initial bundle on every page that renders the footer (Index, Catalog, ...).
