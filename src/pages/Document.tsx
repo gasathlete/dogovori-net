@@ -314,9 +314,9 @@ export default function DocumentPage() {
             ) : (
               <ProtectedContent>
                 <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
-                  <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
+                  <h2 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
                     {(contract as any)?.title}
-                  </h1>
+                  </h2>
                   <div className="my-4 gold-divider" />
                   {(contract as any)?.intro && (
                     <p className="whitespace-pre-line text-sm leading-relaxed">{(contract as any).intro}</p>

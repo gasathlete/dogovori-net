@@ -42,9 +42,9 @@ export function PartnersBoard() {
           <Handshake className="h-3.5 w-3.5" />
           Партньори
         </div>
-        <h3 className="font-serif text-xl font-bold leading-tight text-balance sm:text-2xl md:text-3xl">
+        <h2 className="font-serif text-xl font-bold leading-tight text-balance sm:text-2xl md:text-3xl">
           Партньорите, които ни се довериха през последния месец
-        </h3>
+        </h2>
         <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground">
           Фирми и професионалисти, които използват Dogovori.net в ежедневието си.
         </p>

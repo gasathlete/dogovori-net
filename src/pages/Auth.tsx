@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { translateAuthError } from "@/lib/authErrors";
 import { recordConsents } from "@/lib/consents";
+import { Seo } from "@/components/Seo";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -143,6 +144,12 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen">
+      <Seo
+        title="Вход и регистрация — Dogovori.net"
+        description="Влезте или си създайте безплатен профил в Dogovori.net, за да съставяте договори, да съхранявате документи и да управлявате абонамента си."
+        canonical="/auth"
+        noindex
+      />
       <Header />
       <main className="container max-w-md py-12 md:py-20">
         <div className="rounded-2xl border border-border/60 bg-gradient-card p-8 shadow-soft">

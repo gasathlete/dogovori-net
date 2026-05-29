@@ -51,7 +51,7 @@ export function Process() {
             Процес
           </div>
           <h2 className="font-serif text-2xl font-bold leading-[1.15] text-balance sm:text-3xl md:text-4xl lg:text-[44px]">
-            ​Функции
+            Функции
           </h2>
         </div>
         <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-hairline bg-hairline sm:grid-cols-2 md:grid-cols-3">
