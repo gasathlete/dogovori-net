@@ -4,6 +4,8 @@ import { Logo } from "./Logo";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { scrollToHash } from "@/lib/scrollToHash";
+import { useScrolled } from "@/hooks/useScrolled";
+import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/build", label: "Изготви документ" },
@@ -18,6 +20,7 @@ export function Header() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const scrolled = useScrolled(8);
 
   const handleNav = (to: string, e: React.MouseEvent) => {
     if (!to.includes("#")) return;
@@ -32,22 +35,23 @@ export function Header() {
     }
   };
 
+  const isActive = (to: string) => {
+    if (to.includes("#")) return false;
+    return location.pathname === to || location.pathname.startsWith(to + "/");
+  };
+
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-navy/80 backdrop-blur-xl">
+    <header
+      className={cn(
+        "sticky top-0 z-40 border-b backdrop-blur-xl transition-all duration-300",
+        scrolled ? "border-gold/15 bg-navy/95 shadow-soft" : "border-border/60 bg-navy/80"
+      )}
+    >
       <div className="container flex h-16 items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <Link to="/" onClick={() => setOpen(false)} className="flex min-w-0 items-center">
             <Logo compact />
           </Link>
-          <a
-            href="https://im-development.imot.bg"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden border-l border-border/60 pl-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold sm:inline-flex sm:flex-col sm:leading-tight"
-          >
-            <span>Powered by</span>
-            <span className="font-semibold text-gold/90">IM Development</span>
-          </a>
         </div>
 
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
