@@ -152,8 +152,14 @@ export default function AuthPage() {
       />
       <Header />
       <main className="container max-w-md py-12 md:py-20">
-        <div className="rounded-2xl border border-border/60 bg-gradient-card p-8 shadow-soft">
-          <h1 className="font-serif text-3xl font-bold">Профил</h1>
+        <div className="rounded-2xl border border-gold/20 bg-gradient-card p-8 shadow-elegant anim-rise">
+          <div className="eyebrow mb-3">
+            <span className="h-1 w-1 rounded-full bg-gold" />
+            dogovori.net
+          </div>
+          <h1 className="font-serif text-3xl font-bold text-balance">
+            {tab === "login" ? "Добре дошли отново" : "Създайте профил"}
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Влезте, за да теглите договори и да управлявате контрагентите си.
           </p>
