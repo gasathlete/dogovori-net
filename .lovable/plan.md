@@ -1,92 +1,40 @@
+# Pre-launch QA — Batch 2
 
-# Pre-launch одит и фиксове на dogovori.net
+Продължаваме с останалите задачи от пълния одит.
 
-Стекът е React + Vite + Lovable Cloud (не WordPress), затова PHP/htaccess/SMTP частта от чеклиста се транслира в съответните React/Edge-функции/Supabase еквиваленти.
+## 1. Responsive QA (393px + 1280px)
+- Browser tool обход на ключови маршрути: `/`, `/catalog`, `/template/:slug`, `/build`, `/auth`, `/account`, `/checkout`, `/blog`, `/blog/:slug`.
+- Screenshot на двата viewport-а, fix на overflow / clipping / touch target < 44px.
 
-## 1. UX и Responsive QA (393px + 1280px)
+## 2. BG localization sweep
+- `rg` за hardcoded английски стрингове в `src/` (UI копи, toast-ове, error states, email шаблони, edge функции с user-facing текст).
+- Fix всичко user-facing на български. App UI остава English ↔ изключение: продуктът е BG.
+- Проверка за остатъци от "BGN/лв/lev" (паметта казва само EUR).
 
-Преминаване през всички ключови страници в двата viewport-а с browser tool:
-- `/` (Hero, TopDocuments, Process, Sectors, Footer)
-- `/catalog` + един sector (`/sektor/employment`)
-- `/template/:slug` (примерна страница)
-- `/build` (Wizard стъпки 1–3, корекции, риск)
-- `/auth` (login + register + Google)
-- `/account`, `/downloads`, `/team` (logged-in)
-- `/checkout` flow до return page (Stripe sandbox)
-- `/blog`, `/blog/:slug`, статични legal страници, `/404`
+## 3. Anti-spam за публични форми
+- Идентифициране на публичните форми (contact, newsletter, signup).
+- Honeypot поле + проста rate-limit проверка в edge функции (IP-based, 5/min).
+- Cloud captcha само ако вече има инфраструктура — иначе honeypot е достатъчен за launch.
 
-За всеки намерен проблем (overflow, скрит CTA, счупен tap target, нечетлив контраст, CLS) — директен фикс в съответния компонент.
+## 4. Stripe sandbox end-to-end
+- `supabase--curl_edge_functions` на `create-checkout` с тестов price.
+- Проверка на `payments-webhook` логове за `customer.subscription.created` / `checkout.session.completed`.
+- `consume_quota` / `consume_team_quota` smoke test през read_query.
+- `/checkout/return` рендира коректно session_id.
 
-## 2. Производителност и скорост
+## 5. Email queue верификация
+- `supabase--read_query` на `email_send_log` за последни 50 записа — status разпределение.
+- `process-email-queue` logs за грешки.
+- Trigger тестов signal (signup → welcome) и проверка че попада в queue + изпраща се.
 
-- Lighthouse през `browser--performance_profile` на `/`, `/catalog`, `/build`, `/template/:slug` (mobile)
-- Анализ на bundle: преглед на `vite.config.ts` manualChunks, проверка дали Wizard/exporters/Stripe наистина са lazy
-- LCP: preload на hero изображението с `fetchpriority="high"`, `<link rel="preconnect">` за Supabase + Stripe
-- Премахване на render-blocking shrift-ове (font-display: swap, preload само критичните)
-- Проверка на route-level code splitting и `LazyOnVisible` използване
-- INP: debounce на търсачката в `/catalog`, проверка за дълги задачи в Wizard
+## 6. Performance baseline
+- Bundle size check (`du -sh dist/assets/*` след build).
+- Lazy-load на тежки routes (Wizard, Template) ако още не са.
+- Lighthouse-style ръчна проверка: LCP element, CLS на hero, font-display.
 
-## 3. Оптимизация на изображения (AVIF/WebP)
+## Извън scope
+- Промени в бизнес логика, нови features, design redirection.
+- Live Stripe тестове (само sandbox).
 
-- Инвентар на `src/assets/**` и `public/**` за `.png/.jpg`
-- Инсталиране и конфигуриране на `vite-imagetools` за build-time конверсия към AVIF + WebP с fallback
-- Преобразуване на статични `public/` асети чрез `sharp` (committed)
-- Заместване на `<img>` с `<picture><source type="image/avif"><source type="image/webp"><img></picture>` за hero, sector grid, top documents, partner logos
-- Добавяне на `width`, `height`, `loading="lazy"` (без hero), `decoding="async"` навсякъде за нулев CLS
-
-## 4. Плащания end-to-end (Stripe)
-
-- Sandbox checkout flow: Pro месечен, Team (3 seats), one-off doc
-- Проверка на `create-checkout`, `payments-webhook`, `customer-portal` edge functions + логове
-- Verify `consume_quota` / `consume_team_quota` се извикват коректно
-- Return page → отключване на download/квота
-- `PaymentTestModeBanner` се показва само в sandbox
-
-## 5. Имейли (auth + transactional)
-
-- Проверка на email queue (`process-email-queue`, `email_send_log`)
-- Тест сигнали: signup welcome, password reset, payment receipt, pro-expiring, team invitation, illegal-content alert
-- Проверка че `auth-email-hook` ползва `enqueue_email` (не директно изпращане)
-- Проверка че няма счупени template-и след валутната смяна към EUR
-
-## 6. Сигурност
-
-- `security--run_security_scan` + преглед на findings
-- `supabase--linter` за DB warnings
-- RLS проверка на всички таблици (особено `user_roles`, `download_quota`, `teams`)
-- Anti-spam: rate limiting / honeypot на публични форми (PartnerSubmitDialog, share-for-sign, blog ratings, user articles)
-- Edge functions: всички публични с `verify_jwt = false` имат собствена валидация на вход (zod), CORS allowlist
-- Admin panel: проверка че всички admin routes са зад `has_role('admin')` + `ProtectedRoute`
-- HIBP leaked password protection: enable през `configure_auth`
-- Проверка за hardcoded keys в кода
-
-## 7. SEO
-
-- `seo_chat--trigger_scan` + фиксване на findings
-- Verify sitemap.xml, robots.txt, canonical, JSON-LD (Article, Product, FAQ where applicable)
-- Open Graph + Twitter cards на ключови страници
-- Уникални title (<60) / description (<160) per route чрез `<Seo>` компонент
-- Проверка на `hreflang` (ако има EN/BG — иначе пропускане)
-- Premium PageSpeed scores: цел ≥80 mobile perf, ≥95 SEO
-
-## 8. Български език и копирайтинг
-
-- Grep за hardcoded английски стрингове в UI компоненти
-- Проверка на системни съобщения: toast-ове, грешки от Supabase (auth errors), Stripe error messages в Bulgarian
-- Имейл темплейти на BG
-- Празни/error states, 404, форма validation messages
-- Проверка за остатъци от "лв"/BGN (по memory правилото — само EUR)
-
-## 9. Финален smoke test
-
-Минаване през критичния flow от user perspective: landing → catalog → template → wizard → download (free quota) → upgrade to Pro → checkout → return → отключен download.
-
----
-
-## Out of scope
-- Промени в бизнес логика, ценообразуване, нови фичи
-- Backend архитектурни промени
-- Промяна на дизайн direction (текущият premium look се запазва)
-
-## Подход
-Изпълнение на партиди по секции (1→9), след всяка партида кратък статус. При намерен blocker — спирам и питам преди да продължа. Очаквана продължителност: няколко итерации, всяка с конкретни фиксове и QA доказателства (screenshots / logs).
+## Ред на изпълнение
+Batch-ите ще се изпълняват последователно, със спиране при blocker findings. Очаквам 2-3 итерации с конкретни фиксове + QA evidence (screenshots/log изводи).
