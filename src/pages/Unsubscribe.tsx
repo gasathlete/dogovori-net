@@ -52,6 +52,7 @@ export default function Unsubscribe() {
         canonical="/unsubscribe"
         noindex
       />
+      <Card className="w-full max-w-md border-gold/20">
         <CardHeader>
           <CardTitle className="text-center">Отписване от имейли</CardTitle>
         </CardHeader>
