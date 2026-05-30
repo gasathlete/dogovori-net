@@ -387,10 +387,25 @@ export default function CatalogPage() {
         })}
 
         {filtered.length === 0 && (
-          <div className="rounded-xl surface-elevated p-12 text-center">
-            <p className="text-muted-foreground">
-              Няма намерени документи за „{query}". Опитайте с друго търсене.
+          <div className="rounded-2xl border border-gold/25 bg-gradient-card p-12 text-center shadow-soft">
+            <div className="eyebrow mb-3 justify-center">
+              <Search className="h-3.5 w-3.5" />
+              Няма резултати
+            </div>
+            <h3 className="font-serif text-2xl font-bold text-balance">
+              Не намерихме документи за „{query}"
+            </h3>
+            <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
+              Опитайте с по-кратка ключова дума или изчистете филтрите.
             </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <button
+                onClick={() => { setQuery(""); setVid(null); }}
+                className="btn-gold btn-sheen"
+              >
+                Изчисти филтри
+              </button>
+            </div>
           </div>
         )}
       </main>
