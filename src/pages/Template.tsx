@@ -377,7 +377,7 @@ export default function TemplatePage() {
           <p className="mx-auto mt-4 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground">
             Попълнете кратък въпросник и получете готов договор в PDF и DOCX формат, съобразен с българското право.
           </p>
-          <Link to={wizardHref} className="btn-gold mt-7">
+          <Link to={wizardHref} className="btn-gold btn-sheen mt-7">
             Започни сега <ArrowRight className="h-4 w-4" />
           </Link>
         </section>
