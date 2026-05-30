@@ -17,18 +17,19 @@ export function Footer() {
               Powered by <span className="font-semibold text-gold/90">IM Development</span>
             </a>
           </div>
-          <nav className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
-            <Link to="/provider-info" className="hover:text-gold">За доставчика</Link>
-            <Link to="/terms" className="hover:text-gold">Общи условия</Link>
-            <Link to="/privacy" className="hover:text-gold">Поверителност</Link>
-            <Link to="/cookies" className="hover:text-gold">Бисквитки</Link>
-            <Link to="/refund" className="hover:text-gold">Възстановяване</Link>
-            <Link to="/withdrawal-form" className="hover:text-gold">Право на отказ</Link>
-            <Link to="/dpa" className="hover:text-gold">DPA</Link>
-            <Link to="/contacts" className="hover:text-gold">Контакти</Link>
+          <nav className="grid w-full grid-cols-2 gap-x-5 gap-y-2 text-xs text-muted-foreground sm:flex sm:w-auto sm:flex-wrap md:justify-end">
+            <Link to="/provider-info" className="transition-colors hover:text-gold">За доставчика</Link>
+            <Link to="/terms" className="transition-colors hover:text-gold">Общи условия</Link>
+            <Link to="/privacy" className="transition-colors hover:text-gold">Поверителност</Link>
+            <Link to="/cookies" className="transition-colors hover:text-gold">Бисквитки</Link>
+            <Link to="/refund" className="transition-colors hover:text-gold">Възстановяване</Link>
+            <Link to="/withdrawal-form" className="transition-colors hover:text-gold">Право на отказ</Link>
+            <Link to="/dpa" className="transition-colors hover:text-gold">DPA</Link>
+            <Link to="/contacts" className="transition-colors hover:text-gold">Контакти</Link>
           </nav>
         </div>
-        <div className="border-t border-border/40 pt-6 text-center text-[11px] leading-relaxed text-muted-foreground md:text-left">
+        <div className="section-divider" />
+        <div className="border-t-0 pt-0 text-center text-[11px] leading-relaxed text-muted-foreground md:text-left">
           <p>
             <strong>„Иванов и Милев Пропърти Девелъпмент" ЕООД</strong> · ЕИК 206957326 ·
             гр. София, ж.к. Стрелбище, бул. България №13, ет. 1, магазин 4 ·

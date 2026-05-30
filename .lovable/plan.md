@@ -1,93 +1,85 @@
-# Маркетингова стратегия за dogovori.net
+## Финални high-end визуални подобрения
 
-## 1. Позициониране
+Целта: премахваме всичко, което изглежда "template-ish" и добавяме детайли, които правят сайта да изглежда като продукт на €19/мес, а не като MVP. Само frontend/presentation — без логика, без бекенд.
 
-**Едно изречение:** „Професионални български договори за минути — без юрист, без грешки, на цената на едно кафе."
+### 1. Hero (above-the-fold)
+- По-сдържан, по-кинематографичен fade-in за заглавие/CTA (stagger 60ms), с `prefers-reduced-motion` guard.
+- Анимиран gold shimmer върху "търсят и намират" (бавен, веднъж при mount, не loop).
+- 3-те trust card-а под CTA — добавяме hover състояние (gold corner ticks се появяват), микро lift `-translate-y-0.5`.
+- Фиксираме типография: `text-pretty` на параграфа, `text-balance` на h1, по-стегнат line-height на мобилно.
+- Премахваме повтарящия се "tracking-[0.22em]" вариант от бадж — uniform с останалите eyebrow-и.
 
-**Уникална стойност (USP):**
-- 571+ готови шаблона, съобразени с българското законодателство (КТ, ЗЗД, ТЗ)
-- Персонализация за минути вместо часове при юрист
-- Цена от ~6 € за документ срещу 50–300 € при адвокат
-- Pro план 19 €/мес. неограничено; Team от 23.70 €/мес. за 3 места
+### 2. Header
+- Скролна-state: при scroll > 8px бордерът става по-плътен и фонът става `bg-navy/95` (по-luxe sticky feel).
+- Активна навигационна точка с малък gold dot (за текуща секция/route).
+- Mobile меню: slide-down с `animate-accordion-down` вместо instant.
+- "Powered by IM Development" — преместваме само в footer, header става по-чист (currently 2 пъти присъства).
 
-**3 ключови болки, които решаваме:**
-1. Време — „Имам нужда от договор СЕГА, не след седмица"
-2. Цена — „Не мога да си позволя адвокат за всеки документ"
-3. Несигурност — „Не знам кой шаблон от интернет е валиден и актуален"
+### 3. Глобална полировка
+- **Skeleton loaders** за lazy секциите (TopDocuments, Process, Compliance) — вместо `fallback={null}` слагаме shimmer плейсхолдъри (предотвратява CLS и изглежда премиум).
+- **Scroll reveal** observer hook (`useInView`) — секциите fade-in-up при влизане във viewport (само веднъж, с reduced-motion guard).
+- **Section dividers**: добавяме `hairline-x` между всички секции на Index — visual rhythm.
+- **Focus rings**: текущият `box-shadow` focus е добър, но добавяме `:focus-visible` на всички custom `<button>`-и (Hero CTA-та го нямат експлицитно).
+- **Selection color**: вече добра, no-op.
 
----
+### 4. Buttons & micro-interactions
+- `btn-gold` hover — добавяме много фин gold sheen sweep (CSS-only, 800ms, веднъж при hover).
+- Всички линкове в navigation/footer — `story-link` underline animation за по-tactile feel.
+- Loading state на primary CTA-та (spinner вместо текст при async actions, където има такива).
 
-## 2. Сегментация на аудитории
+### 5. Image quality & assets
+- Hero logo watermark: завъртаме на `rotate-[-4deg]` за по-малко "stock" усещане + lower opacity `0.08` (по-фин).
+- Всички `<img>` без `decoding="async"` → добавяме (perf nit).
+- OG image проверка: ако липсва или е default, генерираме нов 1200×630 с лого + slogan.
 
-| Сегмент | Кой е | Топ нужди | Канал |
-|---|---|---|---|
-| **B2C — Наематели/Наемодатели** | Физически лица | Договор за наем, протоколи | Google Search, FB/IG |
-| **B2C — Работодатели/Служители** | МСП собственици, HR | Трудов договор, допълнителни споразумения, прекратяване | Google Search, LinkedIn |
-| **B2C — Продавачи/Купувачи** | Физически лица | Покупко-продажба МПС, движими вещи | Google Search, FB Marketplace ретаргетинг |
-| **B2B — МСП/Стартъпи** | Фирми без юрист | NDA, граждански договори, фактури, общи условия | Google Search, LinkedIn, партньорства |
-| **B2B — Професионалисти** | Адвокати, счетоводители, нотариуси | Team план, бяла марка, ускоряване на работата | LinkedIn, директни партньорства, имейл |
+### 6. Footer
+- Добавяме една по-светла gold separator hairline над copyright блока.
+- "За доставчика | Общи условия..." → grid с 2 колони на мобилно (currently wrap става грозно при 393px).
+- Социални икони (ако има налични профили) — иначе пропускаме.
 
----
+### 7. Dark mode consistency check
+- Проверка че никъде няма hardcoded `text-white`, `bg-black`, `text-gray-XXX` — всички през tokens.
+- `text-muted-foreground/50` (low contrast) → `text-muted-foreground` където пада под WCAG AA.
 
-## 3. Канали и тактики (приоритети по ROI)
+### 8. Page transitions
+- React Router page transition: лек `animate-fade-in` (200ms) на `<Outlet>`/route container в App.tsx — спира "blank flash" между страниците.
 
-### Приоритет 1 — SEO (вече подготвено)
-- 571 шаблона × индексирани страници = огромен long-tail трафик
-- Блог хъб с 30–50 статии за топ търсения (виж раздел 5)
-- Сектор-страници (вече имате) като content hubs
+### 9. 404 / Loading / Empty states
+- Бърз преглед на `NotFound.tsx`, login error states, празни catalog резултати — да получат същия премиум tone (eyebrow + serif heading + gold CTA).
 
-### Приоритет 2 — Google Ads (бърз ROI)
-- **Search кампании** по high-intent ключове: „договор за наем образец", „трудов договор бланка", „NDA на български"
-- **Performance Max** за каталога
-- Бюджет за старт: 500–1000 €/мес., CPA таргет: 3–5 €
-
-### Приоритет 3 — Meta Ads (Facebook/Instagram)
-- Lookalike на платилите потребители
-- Retargeting на посетители на каталога без покупка
-- Видео reels: „Как да си направиш трудов договор за 2 минути"
-
-### Приоритет 4 — B2B Партньорства
-- Affiliate с счетоводни кантори (комисионна 20–30%)
-- Co-marketing с банки/застрахователи (договори за кредит, застраховки)
-- Team план за адвокатски кантори с reseller отстъпка
-
-### Приоритет 5 — Email маркетинг
-- Lead magnet: „10 безплатни шаблона за стартиращ бизнес" → email
-- Drip кампания 7 дни → upsell към Pro
-- Win-back на изтекли абонаменти
+### 10. Final QA pass
+- Lighthouse score check (mobile + desktop).
+- Mobile viewport 360-414px проверка на всички ключови страници.
+- Reduced-motion preference тест.
+- Tab keyboard navigation през Hero → Sectors → CTA.
 
 ---
 
-## 4. AI Промпт за генериране на рекламни текстове
+### Технически детайли
 
-Това е централният артефакт, който ще създам в следваща стъпка. Той ще:
+Файлове, които ще се пипат:
+- `src/components/Hero.tsx` — анимации, shimmer, hover на trust cards
+- `src/components/Header.tsx` — scroll state, active link, mobile slide
+- `src/components/Footer.tsx` — separator, mobile grid
+- `src/pages/Index.tsx` — skeleton fallbacks, section dividers
+- `src/index.css` — нови utilities (`btn-gold` sheen, `section-divider`, reveal animation)
+- `src/hooks/useInView.tsx` — нов hook за scroll reveal
+- `src/hooks/useScrolled.tsx` — нов hook за header state
+- `src/components/skeletons/*.tsx` — 3-4 малки skeleton компонента
+- `src/pages/NotFound.tsx` — premium re-style
+- `src/App.tsx` — route transition wrapper
 
-- Приема параметри: **канал** (Google Search / FB / IG / LinkedIn / Email), **аудитория** (5-те сегмента), **документ/категория**, **формат** (заглавие, описание, CTA, дълъг копи)
-- Връща структурирани изходи с **варианти A/B** и **дължинни ограничения** според канала (Google: 30/90 символа; Meta: primary text/headline/description; LinkedIn: 150/600)
-- Налага brand voice: професионален, ясен, без юридически жаргон, спокойна увереност
-- Включва задължителни елементи: **цена в EUR** (Pro 19 €, единичен ~6 €), **trust сигнали** (571+ шаблона, БГ право), **CTA глаголи** на български
-- Спазва Google Ads & Meta policy за легални услуги (без обещания тип „гарантирано печелите дело")
+Без промени в:
+- бекенд / edge functions
+- auth flow
+- pricing / Stripe
+- database
 
-## 5. Топ 30 SEO теми за блога (примерни)
-
-Кратък списък за content календар (3 мес.):
-
-1. Договор за наем на жилище — пълно ръководство 2026
-2. Трудов договор по чл. 67 КТ — какво трябва да знаете
-3. NDA на български — кога и как
-4. Граждански договор vs трудов договор — разлики
-5. Прекратяване на трудов договор — всички основания
-6. Договор за покупко-продажба на автомобил — стъпки
-7. Общи условия за онлайн магазин — задължителни елементи
-8. … (още 23 теми по сектори от каталога)
+### Извън scope (отделни задачи, ако ги искаш)
+- Брандиране на Google OAuth consent screen (вече обсъдено — отделна задача).
+- Нов hero illustration / video.
+- Локализация (en).
 
 ---
 
-## Какво ще доставя при одобрение
-
-1. **`MARKETING_STRATEGY.md`** в `/mnt/documents/` — пълен документ със стратегия, аудитории, канали, бюджети, KPI
-2. **`AI_AD_COPY_PROMPT.md`** в `/mnt/documents/` — production-ready промпт с примери, темплейти, ограничения
-3. **`CONTENT_CALENDAR.md`** в `/mnt/documents/` — 30 SEO теми + 20 ad angles + 7-day email drip
-4. **Готови примерни рекламни тексткове** — 5 Google Ads групи + 5 Meta ads (по 1 за всеки сегмент), за да тествате веднага
-
-**Без промени в кода на сайта** — това е чисто маркетингов deliverable.
+Ако одобриш, ще го направя на 2 batch-а: (A) Hero + Header + Footer + tokens, после (B) skeletons + scroll reveal + 404 + route transitions.

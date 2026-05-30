@@ -6,6 +6,8 @@ import { SectorGrid } from "@/components/SectorGrid";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { LazyOnVisible } from "@/components/LazyOnVisible";
+import { SectionSkeleton } from "@/components/SectionSkeleton";
+import { Reveal } from "@/components/Reveal";
 
 // Below-the-fold sections — code-split + mounted on scroll.
 // SeoFooter stays eager (internal links matter for crawling).
@@ -14,6 +16,12 @@ const Process = lazy(() => import("@/components/Process").then((m) => ({ default
 const PartnersBoard = lazy(() => import("@/components/PartnersBoard").then((m) => ({ default: m.PartnersBoard })));
 const ComplianceSection = lazy(() => import("@/components/ComplianceSection").then((m) => ({ default: m.ComplianceSection })));
 
+const Divider = () => (
+  <div aria-hidden="true" className="container">
+    <div className="section-divider" />
+  </div>
+);
+
 const Index = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -21,7 +29,6 @@ const Index = () => {
   useEffect(() => {
     if (location.hash) {
       const id = location.hash.replace("#", "");
-      // Use polling helper so lazy-mounted sections (Process, Compliance...) are awaited.
       import("@/lib/scrollToHash").then(({ scrollToHash }) => scrollToHash(id, { updateHash: false }));
     }
   }, [location]);
@@ -37,23 +44,39 @@ const Index = () => {
         canonical="/"
       />
       <Header />
-      <Hero onStart={startInterview} />
-      <SectorGrid onPick={(id) => navigate(`/sektor/${id}`)} />
-      <Suspense fallback={null}>
-        <LazyOnVisible minHeight={500}>
-          <TopDocuments />
-        </LazyOnVisible>
-        <LazyOnVisible minHeight={400}>
-          <Process />
-        </LazyOnVisible>
-        <LazyOnVisible minHeight={400}>
-          <PartnersBoard />
-        </LazyOnVisible>
-        <LazyOnVisible minHeight={400}>
-          <ComplianceSection />
-        </LazyOnVisible>
-      </Suspense>
-      <SeoFooter />
+      <main className="route-fade">
+        <Hero onStart={startInterview} />
+        <Reveal>
+          <SectorGrid onPick={(id) => navigate(`/sektor/${id}`)} />
+        </Reveal>
+        <Divider />
+        <Suspense fallback={<SectionSkeleton />}>
+          <LazyOnVisible minHeight={500}>
+            <Reveal>
+              <TopDocuments />
+            </Reveal>
+          </LazyOnVisible>
+          <Divider />
+          <LazyOnVisible minHeight={400}>
+            <Reveal>
+              <Process />
+            </Reveal>
+          </LazyOnVisible>
+          <Divider />
+          <LazyOnVisible minHeight={400}>
+            <Reveal>
+              <PartnersBoard />
+            </Reveal>
+          </LazyOnVisible>
+          <Divider />
+          <LazyOnVisible minHeight={400}>
+            <Reveal>
+              <ComplianceSection />
+            </Reveal>
+          </LazyOnVisible>
+        </Suspense>
+        <SeoFooter />
+      </main>
     </div>
   );
 };
