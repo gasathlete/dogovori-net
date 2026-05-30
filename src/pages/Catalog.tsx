@@ -157,14 +157,14 @@ export default function CatalogPage() {
         <div className="absolute inset-x-0 top-0 hairline-x" />
         <div className="container relative py-16 md:py-24">
           <div className="mx-auto max-w-3xl text-center">
-            <div className="eyebrow mb-5 justify-center">
+            <div className="eyebrow mb-5 justify-center anim-rise" style={{ animationDelay: "0ms" }}>
               <BookOpen className="h-3.5 w-3.5" />
               Каталог на документите
             </div>
-            <h1 className="font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl lg:text-[56px]">
+            <h1 className="font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl lg:text-[56px] anim-rise" style={{ animationDelay: "80ms" }}>
               {totalDocs}+ професионални договора и бланки
             </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-balance text-base leading-relaxed text-muted-foreground md:text-lg">
+            <p className="mx-auto mt-5 max-w-2xl text-balance text-base leading-relaxed text-muted-foreground md:text-lg anim-rise" style={{ animationDelay: "160ms" }}>
               Структуриран каталог по сектори — от трудови и наемни отношения до IT, крипто и
               корпоративно управление. Всеки документ съдържа цел и ключова клауза.
             </p>
