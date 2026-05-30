@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
+import { Seo } from "@/components/Seo";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -58,6 +59,12 @@ export default function CheckoutReturn() {
 
   return (
     <div className="min-h-screen">
+      <Seo
+        title="Покупката е завършена — Dogovori.net"
+        description="Благодарим за плащането. Активираме Вашата покупка в Dogovori.net и Ви връщаме автоматично към документа, върху който работехте."
+        canonical="/checkout/return"
+        noindex
+      />
       <Header />
       <main className="container max-w-md py-20 text-center">
         <div className="rounded-2xl border border-gold/30 bg-gradient-card p-10">

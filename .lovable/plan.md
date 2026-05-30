@@ -1,52 +1,92 @@
-## Финална полировка – Catalog / Template / Auth
 
-Прилагаме същия премиум tone от Index върху останалите ключови публични страници. Само frontend, без бизнес логика.
+# Pre-launch одит и фиксове на dogovori.net
 
-### 1. Catalog (`src/pages/Catalog.tsx`)
-- Hero/заглавна зона: eyebrow + serif heading с `text-balance`, staggered fade-in (`anim-rise`).
-- Search/filter bar: фин border, focus-visible gold ring, sticky при scroll с по-плътен фон (`useScrolled`).
-- Резултатни карти: hover lift `-translate-y-0.5`, gold corner ticks при hover, `decoding="async"` на иконки/изображения.
-- Празно състояние ("няма резултати"): premium re-style – eyebrow + serif heading + gold CTA "Изчисти филтри".
-- Skeleton grid докато се зареждат темплейтите (вместо blank).
-- `Reveal` wrapper на секциите под fold.
-- Section divider (`hairline-x`) между filter bar и резултатите.
+Стекът е React + Vite + Lovable Cloud (не WordPress), затова PHP/htaccess/SMTP частта от чеклиста се транслира в съответните React/Edge-функции/Supabase еквиваленти.
 
-### 2. Template (`src/pages/Template.tsx`)
-- Header блок с име на шаблона: eyebrow tracking, `text-balance` h1, мета (категория, време за попълване) с по-добра типография.
-- Primary CTA "Започни" → `btn-gold btn-sheen` (hover sweep).
-- Related templates секция: hover ticks, story-link на линкове.
-- Sticky sidebar (ако има): subtle border + scroll state.
-- FAQ/съдържание: `prose` тунинг, по-добър rhythm, `Reveal` на блокове.
-- Loading state: skeleton (heading + paragraph + CTA placeholder).
+## 1. UX и Responsive QA (393px + 1280px)
 
-### 3. Auth (`src/pages/Auth.tsx`)
-- Card layout: по-фин border (`border-gold/20`), субтилен gold glow shadow, centered с увеличен top spacing.
-- Brand block над формата: малко лого + eyebrow "dogovori.net" + serif "Вход / Регистрация".
-- Tabs (Sign in / Sign up): premium pill style, активен с gold underline.
-- Google бутон: по-високо в йерархията, иконка ляво, "Продължи с Google" – `btn-sheen` hover.
-- Divider "или с имейл" с hairline + gold dot center.
-- Inputs: focus-visible gold ring, по-добър placeholder контраст.
-- Error states: subtle danger card вместо raw text.
-- Loading: spinner в primary CTA при async submit.
-- Reduced-motion guards навсякъде.
+Преминаване през всички ключови страници в двата viewport-а с browser tool:
+- `/` (Hero, TopDocuments, Process, Sectors, Footer)
+- `/catalog` + един sector (`/sektor/employment`)
+- `/template/:slug` (примерна страница)
+- `/build` (Wizard стъпки 1–3, корекции, риск)
+- `/auth` (login + register + Google)
+- `/account`, `/downloads`, `/team` (logged-in)
+- `/checkout` flow до return page (Stripe sandbox)
+- `/blog`, `/blog/:slug`, статични legal страници, `/404`
 
-### 4. Глобални micro-fixes
-- Проверка на `text-muted-foreground/50` и hardcoded цветове по тези 3 файла → tokens.
-- `NotFound.tsx`: вече в плана, prem re-style (eyebrow + serif + gold CTA "Към началото").
-- App.tsx: `route-fade` обвивка на `<Outlet>` за плавен преход между страници.
+За всеки намерен проблем (overflow, скрит CTA, счупен tap target, нечетлив контраст, CLS) — директен фикс в съответния компонент.
 
-### Файлове, които ще се пипат
-- `src/pages/Catalog.tsx`
-- `src/pages/Template.tsx`
-- `src/pages/Auth.tsx`
-- `src/pages/NotFound.tsx`
-- `src/App.tsx` (route transition wrapper)
-- `src/index.css` (ако трябва нов utility – само добавки)
+## 2. Производителност и скорост
 
-### Извън scope
-- Wizard, Account, Admin, Team – ако искаш да продължим и там, отделен batch.
-- Бекенд / auth flow / payments – без промени.
-- Копи и текстове – запазват се както са.
+- Lighthouse през `browser--performance_profile` на `/`, `/catalog`, `/build`, `/template/:slug` (mobile)
+- Анализ на bundle: преглед на `vite.config.ts` manualChunks, проверка дали Wizard/exporters/Stripe наистина са lazy
+- LCP: preload на hero изображението с `fetchpriority="high"`, `<link rel="preconnect">` за Supabase + Stripe
+- Премахване на render-blocking shrift-ове (font-display: swap, preload само критичните)
+- Проверка на route-level code splitting и `LazyOnVisible` използване
+- INP: debounce на търсачката в `/catalog`, проверка за дълги задачи в Wizard
 
-### Подход
-Един batch, всичко наведнъж. След това бърз QA на mobile (393px) + tab navigation + reduced-motion.
+## 3. Оптимизация на изображения (AVIF/WebP)
+
+- Инвентар на `src/assets/**` и `public/**` за `.png/.jpg`
+- Инсталиране и конфигуриране на `vite-imagetools` за build-time конверсия към AVIF + WebP с fallback
+- Преобразуване на статични `public/` асети чрез `sharp` (committed)
+- Заместване на `<img>` с `<picture><source type="image/avif"><source type="image/webp"><img></picture>` за hero, sector grid, top documents, partner logos
+- Добавяне на `width`, `height`, `loading="lazy"` (без hero), `decoding="async"` навсякъде за нулев CLS
+
+## 4. Плащания end-to-end (Stripe)
+
+- Sandbox checkout flow: Pro месечен, Team (3 seats), one-off doc
+- Проверка на `create-checkout`, `payments-webhook`, `customer-portal` edge functions + логове
+- Verify `consume_quota` / `consume_team_quota` се извикват коректно
+- Return page → отключване на download/квота
+- `PaymentTestModeBanner` се показва само в sandbox
+
+## 5. Имейли (auth + transactional)
+
+- Проверка на email queue (`process-email-queue`, `email_send_log`)
+- Тест сигнали: signup welcome, password reset, payment receipt, pro-expiring, team invitation, illegal-content alert
+- Проверка че `auth-email-hook` ползва `enqueue_email` (не директно изпращане)
+- Проверка че няма счупени template-и след валутната смяна към EUR
+
+## 6. Сигурност
+
+- `security--run_security_scan` + преглед на findings
+- `supabase--linter` за DB warnings
+- RLS проверка на всички таблици (особено `user_roles`, `download_quota`, `teams`)
+- Anti-spam: rate limiting / honeypot на публични форми (PartnerSubmitDialog, share-for-sign, blog ratings, user articles)
+- Edge functions: всички публични с `verify_jwt = false` имат собствена валидация на вход (zod), CORS allowlist
+- Admin panel: проверка че всички admin routes са зад `has_role('admin')` + `ProtectedRoute`
+- HIBP leaked password protection: enable през `configure_auth`
+- Проверка за hardcoded keys в кода
+
+## 7. SEO
+
+- `seo_chat--trigger_scan` + фиксване на findings
+- Verify sitemap.xml, robots.txt, canonical, JSON-LD (Article, Product, FAQ where applicable)
+- Open Graph + Twitter cards на ключови страници
+- Уникални title (<60) / description (<160) per route чрез `<Seo>` компонент
+- Проверка на `hreflang` (ако има EN/BG — иначе пропускане)
+- Premium PageSpeed scores: цел ≥80 mobile perf, ≥95 SEO
+
+## 8. Български език и копирайтинг
+
+- Grep за hardcoded английски стрингове в UI компоненти
+- Проверка на системни съобщения: toast-ове, грешки от Supabase (auth errors), Stripe error messages в Bulgarian
+- Имейл темплейти на BG
+- Празни/error states, 404, форма validation messages
+- Проверка за остатъци от "лв"/BGN (по memory правилото — само EUR)
+
+## 9. Финален smoke test
+
+Минаване през критичния flow от user perspective: landing → catalog → template → wizard → download (free quota) → upgrade to Pro → checkout → return → отключен download.
+
+---
+
+## Out of scope
+- Промени в бизнес логика, ценообразуване, нови фичи
+- Backend архитектурни промени
+- Промяна на дизайн direction (текущият premium look се запазва)
+
+## Подход
+Изпълнение на партиди по секции (1→9), след всяка партида кратък статус. При намерен blocker — спирам и питам преди да продължа. Очаквана продължителност: няколко итерации, всяка с конкретни фиксове и QA доказателства (screenshots / logs).

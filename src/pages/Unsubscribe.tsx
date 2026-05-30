@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Seo } from "@/components/Seo";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -45,6 +46,12 @@ export default function Unsubscribe() {
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-12 bg-background">
+      <Seo
+        title="Отписване от имейли — Dogovori.net"
+        description="Потвърдете отписването си от имейл известията на Dogovori.net. Един клик и повече няма да получавате нашите съобщения."
+        canonical="/unsubscribe"
+        noindex
+      />
       <Card className="w-full max-w-md border-gold/20">
         <CardHeader>
           <CardTitle className="text-center">Отписване от имейли</CardTitle>

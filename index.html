@@ -9,10 +9,15 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
 
-    <!-- Speed up the first Supabase + analytics calls -->
+    <!-- Speed up the first Supabase + analytics + payments calls -->
     <link rel="preconnect" href="https://wkbxojefiovdczkwhved.supabase.co" crossorigin />
     <link rel="dns-prefetch" href="https://wkbxojefiovdczkwhved.supabase.co" />
     <link rel="preconnect" href="https://plausible.io" crossorigin />
+    <link rel="preconnect" href="https://js.stripe.com" crossorigin />
+    <link rel="dns-prefetch" href="https://js.stripe.com" />
+
+    <!-- Preload LCP hero logo -->
+    <link rel="preload" as="image" href="/src/assets/logo-dogovori-hero.webp" fetchpriority="high" />
 
     <!-- Fonts are self-hosted via @fontsource (bundled by Vite, served from our own origin). -->
     <!-- See src/fonts.ts -->

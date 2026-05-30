@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { Seo } from "@/components/Seo";
 import { ArrowLeft, Search } from "lucide-react";
 
 const NotFound = () => {
@@ -14,6 +15,12 @@ const NotFound = () => {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <Seo
+        title="Страницата не е намерена (404) — Dogovori.net"
+        description="Търсената страница в Dogovori.net не съществува или е преместена. Върнете се към началото или разгледайте каталога с над 400 договора и бланки."
+        canonical={location.pathname}
+        noindex
+      />
       <Header />
       <main className="container flex flex-1 items-center justify-center py-16">
         <div className="max-w-lg text-center">

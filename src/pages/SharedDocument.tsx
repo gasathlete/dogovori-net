@@ -201,7 +201,7 @@ export default function SharedDocument() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Seo title="Споделен документ — Dogovori.net" description="Защитен преглед на споделен документ." canonical="/share" noindex />
+      <Seo title="Споделен документ — Dogovori.net" description="Защитен преглед на споделен документ от Dogovori.net — отворете го по получената връзка, прегледайте съдържанието и при нужда го подпишете електронно." canonical="/share" noindex />
       <header className="sticky top-0 z-30 border-b border-border/60 bg-navy/80 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between gap-3">
           <Logo />
