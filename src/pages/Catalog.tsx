@@ -421,7 +421,7 @@ export default function CatalogPage() {
           <p className="mx-auto mt-4 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground md:text-base">
             Стратегически интервюта и системен риск-анализ — в съответствие със ЗЗД, ТЗ и ЗУТ.
           </p>
-          <Link to="/#sectors" className="btn-gold mt-7">
+          <Link to="/#sectors" className="btn-gold btn-sheen mt-7">
             Намери договор <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
