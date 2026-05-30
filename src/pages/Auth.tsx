@@ -152,8 +152,14 @@ export default function AuthPage() {
       />
       <Header />
       <main className="container max-w-md py-12 md:py-20">
-        <div className="rounded-2xl border border-border/60 bg-gradient-card p-8 shadow-soft">
-          <h1 className="font-serif text-3xl font-bold">Профил</h1>
+        <div className="rounded-2xl border border-gold/20 bg-gradient-card p-8 shadow-elegant anim-rise">
+          <div className="eyebrow mb-3">
+            <span className="h-1 w-1 rounded-full bg-gold" />
+            dogovori.net
+          </div>
+          <h1 className="font-serif text-3xl font-bold text-balance">
+            {tab === "login" ? "Добре дошли отново" : "Създайте профил"}
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Влезте, за да теглите договори и да управлявате контрагентите си.
           </p>
@@ -174,7 +180,7 @@ export default function AuthPage() {
                   <Label htmlFor="lpw">Парола</Label>
                   <Input id="lpw" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
                 </div>
-                <Button type="submit" disabled={busy} className="w-full bg-gradient-gold text-navy hover:shadow-gold">
+                <Button type="submit" disabled={busy} className="btn-sheen w-full bg-gradient-gold text-navy hover:shadow-gold">
                   {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Влез
                 </Button>
@@ -258,7 +264,7 @@ export default function AuthPage() {
                 <Button
                   type="submit"
                   disabled={busy || !signupReady}
-                  className="w-full bg-gradient-gold text-navy hover:shadow-gold disabled:opacity-50"
+                  className="btn-sheen w-full bg-gradient-gold text-navy hover:shadow-gold disabled:opacity-50"
                 >
                   {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Създай профил
@@ -270,10 +276,12 @@ export default function AuthPage() {
             </TabsContent>
           </Tabs>
 
-          <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-            <div className="h-px flex-1 bg-border" />
+          <div className="my-5 flex items-center gap-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent to-gold/30" />
+            <span className="h-1 w-1 rounded-full bg-gold/60" />
             или
-            <div className="h-px flex-1 bg-border" />
+            <span className="h-1 w-1 rounded-full bg-gold/60" />
+            <div className="h-px flex-1 bg-gradient-to-l from-transparent to-gold/30" />
           </div>
 
           <Button
@@ -281,7 +289,7 @@ export default function AuthPage() {
             variant="outline"
             onClick={handleGoogle}
             disabled={busy || !googleReady}
-            className="w-full border-gold/40 hover:bg-gold/10 hover:text-gold disabled:opacity-50"
+            className="btn-sheen w-full border-gold/40 hover:bg-gold/10 hover:text-gold disabled:opacity-50"
             title={!googleReady ? "Първо приемете задължителните условия по-горе" : undefined}
           >
             Продължи с Google

@@ -1,85 +1,52 @@
-## Финални high-end визуални подобрения
+## Финална полировка – Catalog / Template / Auth
 
-Целта: премахваме всичко, което изглежда "template-ish" и добавяме детайли, които правят сайта да изглежда като продукт на €19/мес, а не като MVP. Само frontend/presentation — без логика, без бекенд.
+Прилагаме същия премиум tone от Index върху останалите ключови публични страници. Само frontend, без бизнес логика.
 
-### 1. Hero (above-the-fold)
-- По-сдържан, по-кинематографичен fade-in за заглавие/CTA (stagger 60ms), с `prefers-reduced-motion` guard.
-- Анимиран gold shimmer върху "търсят и намират" (бавен, веднъж при mount, не loop).
-- 3-те trust card-а под CTA — добавяме hover състояние (gold corner ticks се появяват), микро lift `-translate-y-0.5`.
-- Фиксираме типография: `text-pretty` на параграфа, `text-balance` на h1, по-стегнат line-height на мобилно.
-- Премахваме повтарящия се "tracking-[0.22em]" вариант от бадж — uniform с останалите eyebrow-и.
+### 1. Catalog (`src/pages/Catalog.tsx`)
+- Hero/заглавна зона: eyebrow + serif heading с `text-balance`, staggered fade-in (`anim-rise`).
+- Search/filter bar: фин border, focus-visible gold ring, sticky при scroll с по-плътен фон (`useScrolled`).
+- Резултатни карти: hover lift `-translate-y-0.5`, gold corner ticks при hover, `decoding="async"` на иконки/изображения.
+- Празно състояние ("няма резултати"): premium re-style – eyebrow + serif heading + gold CTA "Изчисти филтри".
+- Skeleton grid докато се зареждат темплейтите (вместо blank).
+- `Reveal` wrapper на секциите под fold.
+- Section divider (`hairline-x`) между filter bar и резултатите.
 
-### 2. Header
-- Скролна-state: при scroll > 8px бордерът става по-плътен и фонът става `bg-navy/95` (по-luxe sticky feel).
-- Активна навигационна точка с малък gold dot (за текуща секция/route).
-- Mobile меню: slide-down с `animate-accordion-down` вместо instant.
-- "Powered by IM Development" — преместваме само в footer, header става по-чист (currently 2 пъти присъства).
+### 2. Template (`src/pages/Template.tsx`)
+- Header блок с име на шаблона: eyebrow tracking, `text-balance` h1, мета (категория, време за попълване) с по-добра типография.
+- Primary CTA "Започни" → `btn-gold btn-sheen` (hover sweep).
+- Related templates секция: hover ticks, story-link на линкове.
+- Sticky sidebar (ако има): subtle border + scroll state.
+- FAQ/съдържание: `prose` тунинг, по-добър rhythm, `Reveal` на блокове.
+- Loading state: skeleton (heading + paragraph + CTA placeholder).
 
-### 3. Глобална полировка
-- **Skeleton loaders** за lazy секциите (TopDocuments, Process, Compliance) — вместо `fallback={null}` слагаме shimmer плейсхолдъри (предотвратява CLS и изглежда премиум).
-- **Scroll reveal** observer hook (`useInView`) — секциите fade-in-up при влизане във viewport (само веднъж, с reduced-motion guard).
-- **Section dividers**: добавяме `hairline-x` между всички секции на Index — visual rhythm.
-- **Focus rings**: текущият `box-shadow` focus е добър, но добавяме `:focus-visible` на всички custom `<button>`-и (Hero CTA-та го нямат експлицитно).
-- **Selection color**: вече добра, no-op.
+### 3. Auth (`src/pages/Auth.tsx`)
+- Card layout: по-фин border (`border-gold/20`), субтилен gold glow shadow, centered с увеличен top spacing.
+- Brand block над формата: малко лого + eyebrow "dogovori.net" + serif "Вход / Регистрация".
+- Tabs (Sign in / Sign up): premium pill style, активен с gold underline.
+- Google бутон: по-високо в йерархията, иконка ляво, "Продължи с Google" – `btn-sheen` hover.
+- Divider "или с имейл" с hairline + gold dot center.
+- Inputs: focus-visible gold ring, по-добър placeholder контраст.
+- Error states: subtle danger card вместо raw text.
+- Loading: spinner в primary CTA при async submit.
+- Reduced-motion guards навсякъде.
 
-### 4. Buttons & micro-interactions
-- `btn-gold` hover — добавяме много фин gold sheen sweep (CSS-only, 800ms, веднъж при hover).
-- Всички линкове в navigation/footer — `story-link` underline animation за по-tactile feel.
-- Loading state на primary CTA-та (spinner вместо текст при async actions, където има такива).
+### 4. Глобални micro-fixes
+- Проверка на `text-muted-foreground/50` и hardcoded цветове по тези 3 файла → tokens.
+- `NotFound.tsx`: вече в плана, prem re-style (eyebrow + serif + gold CTA "Към началото").
+- App.tsx: `route-fade` обвивка на `<Outlet>` за плавен преход между страници.
 
-### 5. Image quality & assets
-- Hero logo watermark: завъртаме на `rotate-[-4deg]` за по-малко "stock" усещане + lower opacity `0.08` (по-фин).
-- Всички `<img>` без `decoding="async"` → добавяме (perf nit).
-- OG image проверка: ако липсва или е default, генерираме нов 1200×630 с лого + slogan.
+### Файлове, които ще се пипат
+- `src/pages/Catalog.tsx`
+- `src/pages/Template.tsx`
+- `src/pages/Auth.tsx`
+- `src/pages/NotFound.tsx`
+- `src/App.tsx` (route transition wrapper)
+- `src/index.css` (ако трябва нов utility – само добавки)
 
-### 6. Footer
-- Добавяме една по-светла gold separator hairline над copyright блока.
-- "За доставчика | Общи условия..." → grid с 2 колони на мобилно (currently wrap става грозно при 393px).
-- Социални икони (ако има налични профили) — иначе пропускаме.
+### Извън scope
+- Wizard, Account, Admin, Team – ако искаш да продължим и там, отделен batch.
+- Бекенд / auth flow / payments – без промени.
+- Копи и текстове – запазват се както са.
 
-### 7. Dark mode consistency check
-- Проверка че никъде няма hardcoded `text-white`, `bg-black`, `text-gray-XXX` — всички през tokens.
-- `text-muted-foreground/50` (low contrast) → `text-muted-foreground` където пада под WCAG AA.
-
-### 8. Page transitions
-- React Router page transition: лек `animate-fade-in` (200ms) на `<Outlet>`/route container в App.tsx — спира "blank flash" между страниците.
-
-### 9. 404 / Loading / Empty states
-- Бърз преглед на `NotFound.tsx`, login error states, празни catalog резултати — да получат същия премиум tone (eyebrow + serif heading + gold CTA).
-
-### 10. Final QA pass
-- Lighthouse score check (mobile + desktop).
-- Mobile viewport 360-414px проверка на всички ключови страници.
-- Reduced-motion preference тест.
-- Tab keyboard navigation през Hero → Sectors → CTA.
-
----
-
-### Технически детайли
-
-Файлове, които ще се пипат:
-- `src/components/Hero.tsx` — анимации, shimmer, hover на trust cards
-- `src/components/Header.tsx` — scroll state, active link, mobile slide
-- `src/components/Footer.tsx` — separator, mobile grid
-- `src/pages/Index.tsx` — skeleton fallbacks, section dividers
-- `src/index.css` — нови utilities (`btn-gold` sheen, `section-divider`, reveal animation)
-- `src/hooks/useInView.tsx` — нов hook за scroll reveal
-- `src/hooks/useScrolled.tsx` — нов hook за header state
-- `src/components/skeletons/*.tsx` — 3-4 малки skeleton компонента
-- `src/pages/NotFound.tsx` — premium re-style
-- `src/App.tsx` — route transition wrapper
-
-Без промени в:
-- бекенд / edge functions
-- auth flow
-- pricing / Stripe
-- database
-
-### Извън scope (отделни задачи, ако ги искаш)
-- Брандиране на Google OAuth consent screen (вече обсъдено — отделна задача).
-- Нов hero illustration / video.
-- Локализация (en).
-
----
-
-Ако одобриш, ще го направя на 2 batch-а: (A) Hero + Header + Footer + tokens, после (B) skeletons + scroll reveal + 404 + route transitions.
+### Подход
+Един batch, всичко наведнъж. След това бърз QA на mobile (393px) + tab navigation + reduced-motion.

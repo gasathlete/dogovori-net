@@ -157,14 +157,14 @@ export default function CatalogPage() {
         <div className="absolute inset-x-0 top-0 hairline-x" />
         <div className="container relative py-16 md:py-24">
           <div className="mx-auto max-w-3xl text-center">
-            <div className="eyebrow mb-5 justify-center">
+            <div className="eyebrow mb-5 justify-center anim-rise" style={{ animationDelay: "0ms" }}>
               <BookOpen className="h-3.5 w-3.5" />
               Каталог на документите
             </div>
-            <h1 className="font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl lg:text-[56px]">
+            <h1 className="font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl lg:text-[56px] anim-rise" style={{ animationDelay: "80ms" }}>
               {totalDocs}+ професионални договора и бланки
             </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-balance text-base leading-relaxed text-muted-foreground md:text-lg">
+            <p className="mx-auto mt-5 max-w-2xl text-balance text-base leading-relaxed text-muted-foreground md:text-lg anim-rise" style={{ animationDelay: "160ms" }}>
               Структуриран каталог по сектори — от трудови и наемни отношения до IT, крипто и
               корпоративно управление. Всеки документ съдържа цел и ключова клауза.
             </p>
@@ -387,10 +387,25 @@ export default function CatalogPage() {
         })}
 
         {filtered.length === 0 && (
-          <div className="rounded-xl surface-elevated p-12 text-center">
-            <p className="text-muted-foreground">
-              Няма намерени документи за „{query}". Опитайте с друго търсене.
+          <div className="rounded-2xl border border-gold/25 bg-gradient-card p-12 text-center shadow-soft">
+            <div className="eyebrow mb-3 justify-center">
+              <Search className="h-3.5 w-3.5" />
+              Няма резултати
+            </div>
+            <h3 className="font-serif text-2xl font-bold text-balance">
+              Не намерихме документи за „{query}"
+            </h3>
+            <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
+              Опитайте с по-кратка ключова дума или изчистете филтрите.
             </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <button
+                onClick={() => { setQuery(""); setVid(null); }}
+                className="btn-gold btn-sheen"
+              >
+                Изчисти филтри
+              </button>
+            </div>
           </div>
         )}
       </main>
@@ -406,7 +421,7 @@ export default function CatalogPage() {
           <p className="mx-auto mt-4 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground md:text-base">
             Стратегически интервюта и системен риск-анализ — в съответствие със ЗЗД, ТЗ и ЗУТ.
           </p>
-          <Link to="/#sectors" className="btn-gold mt-7">
+          <Link to="/#sectors" className="btn-gold btn-sheen mt-7">
             Намери договор <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

@@ -21,7 +21,7 @@ const lazy = <T extends ComponentType<any>>(factory: () => Promise<{ default: T 
       }),
   );
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -99,6 +99,53 @@ const RouteFallback = () => (
   </div>
 );
 
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  return (
+    <div key={location.pathname} className="route-fade">
+      <Routes location={location}>
+        <Route path="/" element={<Index />} />
+        <Route path="/wizard/:sectorId" element={<Wizard />} />
+        <Route path="/build" element={<BuildContract />} />
+        <Route path="/catalog" element={<Catalog />} />
+        <Route path="/karta" element={<SiteMap />} />
+        <Route path="/kategoria/:slug" element={<Category />} />
+        <Route path="/sektor/:id" element={<Sector />} />
+        <Route path="/shablon/:slug" element={<Template />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
+        <Route path="/document/:id" element={<ProtectedRoute><DocumentPage /></ProtectedRoute>} />
+        <Route path="/uploaded/:id" element={<ProtectedRoute><UploadedContract /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+        <Route path="/admin/ai-training" element={<ProtectedRoute><AdminAITraining /></ProtectedRoute>} />
+        <Route path="/checkout/return" element={<CheckoutReturn />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/cookies" element={<Cookies />} />
+        <Route path="/refund" element={<Refund />} />
+        <Route path="/contacts" element={<Contacts />} />
+        <Route path="/provider-info" element={<ProviderInfo />} />
+        <Route path="/withdrawal-form" element={<WithdrawalForm />} />
+        <Route path="/dpa" element={<DPA />} />
+        <Route path="/share/:token" element={<SharedDocument />} />
+        <Route path="/unsubscribe" element={<Unsubscribe />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/blog/submit" element={<BlogSubmit />} />
+        <Route path="/blog/u/:slug" element={<BlogUserPost />} />
+        <Route path="/blog/:slug" element={<BlogPost />} />
+        <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
+        <Route path="/team/accept" element={<TeamAccept />} />
+        <Route path="/contact/:id" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
+        <Route path="/downloads/contracts" element={<ProtectedRoute><Downloads kind="contract" /></ProtectedRoute>} />
+        <Route path="/downloads/templates" element={<ProtectedRoute><Downloads kind="template" /></ProtectedRoute>} />
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </div>
+  );
+};
+
 const App = () => (
   <HelmetProvider>
   <QueryClientProvider client={queryClient}>
@@ -112,66 +159,7 @@ const App = () => (
           <CookieBanner />
           <AIDisclaimerModal />
           <Suspense fallback={<RouteFallback />}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/wizard/:sectorId" element={<Wizard />} />
-              <Route path="/build" element={<BuildContract />} />
-              <Route path="/catalog" element={<Catalog />} />
-              <Route path="/karta" element={<SiteMap />} />
-              <Route path="/kategoria/:slug" element={<Category />} />
-              <Route path="/sektor/:id" element={<Sector />} />
-              <Route path="/shablon/:slug" element={<Template />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route
-                path="/account"
-                element={
-                  <ProtectedRoute>
-                    <Account />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/document/:id"
-                element={
-                  <ProtectedRoute>
-                    <DocumentPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/uploaded/:id"
-                element={
-                  <ProtectedRoute>
-                    <UploadedContract />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-              <Route path="/admin/ai-training" element={<ProtectedRoute><AdminAITraining /></ProtectedRoute>} />
-              <Route path="/checkout/return" element={<CheckoutReturn />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/cookies" element={<Cookies />} />
-              <Route path="/refund" element={<Refund />} />
-              <Route path="/contacts" element={<Contacts />} />
-              <Route path="/provider-info" element={<ProviderInfo />} />
-              <Route path="/withdrawal-form" element={<WithdrawalForm />} />
-              <Route path="/dpa" element={<DPA />} />
-              <Route path="/share/:token" element={<SharedDocument />} />
-              <Route path="/unsubscribe" element={<Unsubscribe />} />
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/blog/submit" element={<BlogSubmit />} />
-              <Route path="/blog/u/:slug" element={<BlogUserPost />} />
-              <Route path="/blog/:slug" element={<BlogPost />} />
-              <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
-              <Route path="/team/accept" element={<TeamAccept />} />
-              <Route path="/contact/:id" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
-              <Route path="/downloads/contracts" element={<ProtectedRoute><Downloads kind="contract" /></ProtectedRoute>} />
-              <Route path="/downloads/templates" element={<ProtectedRoute><Downloads kind="template" /></ProtectedRoute>} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AnimatedRoutes />
           </Suspense>
         </AuthProvider>
       </BrowserRouter>

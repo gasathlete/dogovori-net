@@ -196,7 +196,7 @@ export default function TemplatePage() {
         </nav>
 
         <header className="mb-10">
-          <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="mb-4 flex items-start justify-between gap-3 anim-rise" style={{ animationDelay: "0ms" }}>
             <div className="eyebrow">
               <FileText className="h-3 w-3" />
               {category.title}
@@ -209,11 +209,11 @@ export default function TemplatePage() {
               Свали само бланка
             </Link>
           </div>
-          <h1 className="font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl">{doc.name}</h1>
-          <p className="mt-5 text-balance text-base leading-relaxed text-muted-foreground md:text-lg">{doc.purpose}</p>
+          <h1 className="font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl anim-rise" style={{ animationDelay: "80ms" }}>{doc.name}</h1>
+          <p className="mt-5 text-balance text-base leading-relaxed text-muted-foreground md:text-lg anim-rise" style={{ animationDelay: "160ms" }}>{doc.purpose}</p>
 
-          <div className="mt-7 flex flex-wrap gap-3">
-            <Link to={wizardHref} className="btn-gold">
+          <div className="mt-7 flex flex-wrap gap-3 anim-rise" style={{ animationDelay: "240ms" }}>
+            <Link to={wizardHref} className="btn-gold btn-sheen">
               Създай за 2 минути <ArrowRight className="h-4 w-4" />
             </Link>
             <Link to="/catalog" className="btn-ghost-gold normal-case tracking-normal">
@@ -269,7 +269,7 @@ export default function TemplatePage() {
               </pre>
             </div>
             <div className="mt-4 flex flex-wrap gap-3">
-              <Link to={wizardHref} className="btn-gold">
+              <Link to={wizardHref} className="btn-gold btn-sheen">
                 Попълни автоматично <ArrowRight className="h-4 w-4" />
               </Link>
               <Link to={blankWizardHref} className="btn-ghost-gold normal-case tracking-normal">
@@ -377,7 +377,7 @@ export default function TemplatePage() {
           <p className="mx-auto mt-4 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground">
             Попълнете кратък въпросник и получете готов договор в PDF и DOCX формат, съобразен с българското право.
           </p>
-          <Link to={wizardHref} className="btn-gold mt-7">
+          <Link to={wizardHref} className="btn-gold btn-sheen mt-7">
             Започни сега <ArrowRight className="h-4 w-4" />
           </Link>
         </section>
