@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Seo } from "@/components/Seo";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -26,6 +27,12 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="min-h-screen">
+      <Seo
+        title="Нова парола — Dogovori.net"
+        description="Задайте нова парола за Вашия акаунт в Dogovori.net и продължете към профила си с пълен достъп до договорите и шаблоните."
+        canonical="/reset-password"
+        noindex
+      />
       <Header />
       <main className="container max-w-md py-20">
         <div className="rounded-2xl border border-border/60 bg-gradient-card p-8 shadow-soft">
