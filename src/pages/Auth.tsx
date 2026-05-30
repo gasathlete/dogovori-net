@@ -180,7 +180,7 @@ export default function AuthPage() {
                   <Label htmlFor="lpw">Парола</Label>
                   <Input id="lpw" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
                 </div>
-                <Button type="submit" disabled={busy} className="w-full bg-gradient-gold text-navy hover:shadow-gold">
+                <Button type="submit" disabled={busy} className="btn-sheen w-full bg-gradient-gold text-navy hover:shadow-gold">
                   {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Влез
                 </Button>
