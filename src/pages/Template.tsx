@@ -269,7 +269,7 @@ export default function TemplatePage() {
               </pre>
             </div>
             <div className="mt-4 flex flex-wrap gap-3">
-              <Link to={wizardHref} className="btn-gold">
+              <Link to={wizardHref} className="btn-gold btn-sheen">
                 Попълни автоматично <ArrowRight className="h-4 w-4" />
               </Link>
               <Link to={blankWizardHref} className="btn-ghost-gold normal-case tracking-normal">
