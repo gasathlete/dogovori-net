@@ -264,7 +264,7 @@ export default function AuthPage() {
                 <Button
                   type="submit"
                   disabled={busy || !signupReady}
-                  className="w-full bg-gradient-gold text-navy hover:shadow-gold disabled:opacity-50"
+                  className="btn-sheen w-full bg-gradient-gold text-navy hover:shadow-gold disabled:opacity-50"
                 >
                   {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Създай профил
