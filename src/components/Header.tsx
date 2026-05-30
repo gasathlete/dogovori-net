@@ -56,8 +56,22 @@ export function Header() {
 
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
           {NAV.map((n) => (
-            <Link key={n.to} to={n.to} onClick={(e) => handleNav(n.to, e)} className="transition-colors hover:text-gold">
+            <Link
+              key={n.to}
+              to={n.to}
+              onClick={(e) => handleNav(n.to, e)}
+              className={cn(
+                "relative transition-colors hover:text-gold",
+                isActive(n.to) && "text-gold"
+              )}
+            >
               {n.label}
+              {isActive(n.to) && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -bottom-1.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-gold"
+                />
+              )}
             </Link>
           ))}
         </nav>
@@ -100,7 +114,7 @@ export function Header() {
       </div>
 
       {open && (
-        <nav className="border-t border-border/60 bg-navy/95 backdrop-blur-xl md:hidden">
+        <nav className="origin-top animate-accordion-down overflow-hidden border-t border-border/60 bg-navy/95 backdrop-blur-xl md:hidden">
           <div className="container flex flex-col py-2">
             {NAV.map((n) => (
               <Link
