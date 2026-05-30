@@ -276,10 +276,12 @@ export default function AuthPage() {
             </TabsContent>
           </Tabs>
 
-          <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-            <div className="h-px flex-1 bg-border" />
+          <div className="my-5 flex items-center gap-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent to-gold/30" />
+            <span className="h-1 w-1 rounded-full bg-gold/60" />
             или
-            <div className="h-px flex-1 bg-border" />
+            <span className="h-1 w-1 rounded-full bg-gold/60" />
+            <div className="h-px flex-1 bg-gradient-to-l from-transparent to-gold/30" />
           </div>
 
           <Button
@@ -287,7 +289,7 @@ export default function AuthPage() {
             variant="outline"
             onClick={handleGoogle}
             disabled={busy || !googleReady}
-            className="w-full border-gold/40 hover:bg-gold/10 hover:text-gold disabled:opacity-50"
+            className="btn-sheen w-full border-gold/40 hover:bg-gold/10 hover:text-gold disabled:opacity-50"
             title={!googleReady ? "Първо приемете задължителните условия по-горе" : undefined}
           >
             Продължи с Google
