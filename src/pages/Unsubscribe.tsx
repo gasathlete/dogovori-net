@@ -46,7 +46,12 @@ export default function Unsubscribe() {
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-12 bg-background">
-      <Card className="w-full max-w-md border-gold/20">
+      <Seo
+        title="Отписване от имейли — Dogovori.net"
+        description="Потвърдете отписването си от имейл известията на Dogovori.net. Един клик и повече няма да получавате нашите съобщения."
+        canonical="/unsubscribe"
+        noindex
+      />
         <CardHeader>
           <CardTitle className="text-center">Отписване от имейли</CardTitle>
         </CardHeader>
