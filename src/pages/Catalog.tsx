@@ -22,6 +22,7 @@ export default function CatalogPage() {
   const [docTypeOpen, setDocTypeOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeVid = (searchParams.get("vid") as DocumentTypeId | null) ?? null;
+  const bilingualOnly = searchParams.get("bilingual") === "1";
 
   const setVid = (vid: DocumentTypeId | null) => {
     const next = new URLSearchParams(searchParams);
@@ -29,6 +30,13 @@ export default function CatalogPage() {
     else next.delete("vid");
     setSearchParams(next, { replace: true });
     setDocTypeOpen(false);
+  };
+
+  const setBilingual = (on: boolean) => {
+    const next = new URLSearchParams(searchParams);
+    if (on) next.set("bilingual", "1");
+    else next.delete("bilingual");
+    setSearchParams(next, { replace: true });
   };
 
   useEffect(() => {
@@ -51,6 +59,7 @@ export default function CatalogPage() {
     return CATALOG.map((cat) => ({
       ...cat,
       documents: cat.documents.filter((d) => {
+        if (bilingualOnly && !d.bilingual) return false;
         if (!docMatchesVid(d.name, d.documentType)) return false;
         if (!q) return true;
         return (
@@ -60,7 +69,7 @@ export default function CatalogPage() {
         );
       }),
     })).filter((c) => c.documents.length > 0);
-  }, [query, activeVid]);
+  }, [query, activeVid, bilingualOnly]);
 
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
