@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import type { Sector } from "@/data/sectors";
 import { ProtectedContent } from "@/components/ProtectedContent";
@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Pencil, Check, Lock, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { loadTemplateDraft, fillTemplateDraft } from "@/lib/templateDraftResolver";
+
 
 /**
  * Скрива долната част на дълъг превю-документ зад градиент.
