@@ -15,7 +15,6 @@ import { trackEvent } from "@/lib/analytics";
 import { autoLinkParagraph, createAutoLinkState } from "@/lib/autoLinkBlog";
 import { RELATED_TEMPLATES } from "@/data/relatedTemplates";
 import { getPostBySlug } from "@/lib/blog";
-import { resolveBuildSectorId } from "@/lib/bilingualBuildRouting";
 
 export default function TemplatePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -27,8 +26,6 @@ export default function TemplatePage() {
   useEffect(() => {
     let alive = true;
     if (!entry) return;
-    setAiContent(undefined);
-    setDraftText(undefined);
     const p = loadTemplateContent(entry.slug);
     if (p) p.then((c) => alive && setAiContent(c)).catch(() => {});
     const d = loadTemplateDraft(entry.slug);
@@ -50,12 +47,8 @@ export default function TemplatePage() {
   // Sync meta (used for <meta description> + JSON-LD) — keeps SEO unchanged.
   const meta = TEMPLATE_CONTENT_META[entry.slug];
 
-  const wizardHref = doc.bilingual
-    ? `/build?category=${encodeURIComponent(resolveBuildSectorId({ bilingual: true, docName: doc.name, sectorId: category.sectorId, documentType: doc.documentType }))}&bilingual=1&name=${encodeURIComponent(doc.name)}${doc.documentType ? `&documentType=${doc.documentType}` : ""}`
-    : `/wizard/${category.sectorId}?doc=${encodeURIComponent(doc.name)}`;
-  const blankWizardHref = doc.bilingual
-    ? wizardHref
-    : `${wizardHref}&blank=1&returnTo=${encodeURIComponent(`/shablon/${entry.slug}`)}`;
+  const wizardHref = `/wizard/${category.sectorId}?doc=${encodeURIComponent(doc.name)}`;
+  const blankWizardHref = `${wizardHref}&blank=1&returnTo=${encodeURIComponent(`/shablon/${entry.slug}`)}`;
   const canonical = `/shablon/${entry.slug}`;
   const pageTitle = `${doc.name} — образец на български`;
   const pageDesc = meta?.introExcerpt
@@ -261,7 +254,7 @@ export default function TemplatePage() {
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-gold" /> Съобразен със ЗЗД/ТЗ/КТ</li>
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-gold" /> PDF и DOCX експорт</li>
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-gold" /> Готов за 2 минути</li>
-            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-gold" /> Добавен в лична, защитена база данни</li>
+            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-gold" /> Безплатен първи документ</li>
           </ul>
         </header>
 

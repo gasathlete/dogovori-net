@@ -7,8 +7,6 @@ export interface CatalogDocument {
   badge?: "NEW" | "TOP" | "ПРО";
   /** Optional override; when missing, inferred from name via inferDocumentType. */
   documentType?: DocumentTypeId;
-  /** When true, the document is generated in two languages (BG + EN). */
-  bilingual?: boolean;
 }
 
 export interface CatalogCategory {
@@ -2785,38 +2783,6 @@ export const CATALOG: CatalogCategory[] = [
       }
     ],
     companions: ["Креативен brief","Медиен план","Storyboard","Отчет с KPI"],
-  },
-
-  {
-    id: "bilingual",
-    sectorId: "services",
-    number: "24",
-    title: "Двуезични документи (BG/EN)",
-    icon: "Languages",
-    intro: "Двуезични договори и бланки за работа с чуждестранни партньори, инвеститори и служители — пълен текст на български и английски с еднаква правна сила.",
-    documents: [
-      { name: "Двуезичен трудов договор (BG/EN)", purpose: "Безсрочен/срочен трудов договор по чл. 67/68 КТ с паралелен английски текст за чуждестранен служител или работодател.", keyClause: "Длъжност, възнаграждение и приложимо право — българско, с английски превод (BG version prevails).", documentType: "contract", bilingual: true, badge: "TOP" },
-      { name: "Двуезичен граждански договор / Service Agreement", purpose: "Граждански договор за услуги извън КТ, с паралелен английски текст.", keyClause: "Срок, цена и независим статус на изпълнителя (independent contractor).", documentType: "contract", bilingual: true },
-      { name: "Двуезичен NDA — Non-Disclosure Agreement", purpose: "Двустранно споразумение за конфиденциалност преди преговори с чужди партньори и инвеститори.", keyClause: "Дефиниция на конфиденциална информация, срок 5 г. и неустойка.", documentType: "agreement", bilingual: true, badge: "TOP" },
-      { name: "Двуезичен договор за наем на жилище (BG/EN)", purpose: "Наем на апартамент/къща с чуждестранен наемател — експати, дипломати, командировани.", keyClause: "Депозит, срок и приемо-предавателен протокол — двуезично.", documentType: "contract", bilingual: true },
-      { name: "Двуезичен договор за наем на офис (Commercial Lease)", purpose: "Наем на офис или търговски обект от чуждестранна компания.", keyClause: "Индексация на наема, експлоатационни разходи и достъп.", documentType: "contract", bilingual: true },
-      { name: "Двуезичен договор за изработка (Works / Service Agreement)", purpose: "Работа по поръчка/услуга с международен възложител — IT, дизайн, консултации.", keyClause: "Етапи, приемане и прехвърляне на права след пълно плащане.", documentType: "contract", bilingual: true },
-      { name: "Двуезичен консултантски договор (Consulting Agreement)", purpose: "Консултантски услуги за чуждестранен клиент или от чуждестранен консултант.", keyClause: "Почасова/месечна такса, deliverables и поверителност.", documentType: "contract", bilingual: true },
-      { name: "Двуезичен SaaS / Software License Agreement", purpose: "Лицензионен договор за SaaS или софтуер с международни клиенти.", keyClause: "Обхват на лиценза, SLA и ограничение на отговорността.", documentType: "agreement", bilingual: true, badge: "NEW" },
-      { name: "Двуезичен Master Services Agreement + SOW", purpose: "Рамков договор за разработка на софтуер с международен възложител и работни задания (SOW).", keyClause: "IP assignment, source code escrow и приемане по етапи.", documentType: "agreement", bilingual: true },
-      { name: "Двуезичен дистрибуторски договор (Distribution Agreement)", purpose: "Изключителна/неизключителна дистрибуция на стоки в България от чуждестранен производител.", keyClause: "Територия, минимални обеми и право на прекратяване.", documentType: "contract", bilingual: true },
-      { name: "Двуезичен агентски договор (Commercial Agency)", purpose: "Търговско представителство по чл. 32 и сл. от ТЗ с английски превод.", keyClause: "Комисиона, индемнификация при прекратяване и non-compete.", documentType: "contract", bilingual: true },
-      { name: "Двуезичен договор за международна продажба на стоки (CISG)", purpose: "Покупко-продажба на стоки за износ/внос по Виенската конвенция (CISG).", keyClause: "Incoterms 2020, прехвърляне на риска и рекламации.", documentType: "contract", bilingual: true },
-      { name: "Двуезичен договор за заем (Loan Agreement)", purpose: "Заем от/към чуждестранно физическо или юридическо лице.", keyClause: "Главница, лихва, погасителен план и обезпечение.", documentType: "contract", bilingual: true },
-      { name: "Двуезичен Term Sheet за инвестиция", purpose: "Необвързващи условия за инвестиционен рунд (Seed/Series A).", keyClause: "Валуация, liquidation preference и anti-dilution.", documentType: "agreement", bilingual: true, badge: "NEW" },
-      { name: "Двуезичен SPA — Share Purchase Agreement", purpose: "Прехвърляне на дялове/акции в българско дружество към чуждестранен купувач.", keyClause: "Покупна цена, reps & warranties и indemnification.", documentType: "contract", bilingual: true },
-      { name: "Двуезичен SHA — Shareholders' Agreement", purpose: "Споразумение между съдружници/акционери с участие на чуждестранни лица.", keyClause: "Управление, tag-along/drag-along и право на първи отказ.", documentType: "agreement", bilingual: true },
-      { name: "Двуезичен Employment Offer Letter", purpose: "Оферта за работа към чуждестранен кандидат преди подписване на трудов договор.", keyClause: "Стартова дата, възнаграждение, бонуси и условия.", documentType: "agreement", bilingual: true },
-      { name: "Двуезична Pro Forma Invoice (BG/EN)", purpose: "Проформа фактура за авансово плащане от чуждестранен клиент.", keyClause: "Описание на стоки/услуги, цени в EUR и условия за плащане.", documentType: "invoice", bilingual: true },
-      { name: "Двуезично пълномощно (Power of Attorney)", purpose: "Пълномощно за представителство пред български институции, издадено от чуждестранно лице.", keyClause: "Обхват на правата, срок и нотариална заверка/апостил.", documentType: "power_of_attorney", bilingual: true },
-      { name: "Двуезична Data Processing Agreement (DPA, GDPR)", purpose: "Споразумение за обработка на лични данни между администратор и обработващ съгласно чл. 28 GDPR.", keyClause: "Цели, мерки за сигурност, sub-processors и SCC за трансфери извън ЕС.", documentType: "agreement", bilingual: true, badge: "TOP" },
-    ],
-    companions: ["NDA","DPA (GDPR)","Power of Attorney","Pro Forma Invoice"],
   },
 
 ];

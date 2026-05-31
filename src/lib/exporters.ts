@@ -7,11 +7,6 @@ import {
   HeadingLevel,
   AlignmentType,
   ImageRun,
-  Table,
-  TableRow,
-  TableCell,
-  WidthType,
-  BorderStyle,
 } from "docx";
 import { saveAs } from "file-saver";
 import { applyPdfWatermark, buildDocxWatermarkHeader, type WatermarkOpts as _WMOpts } from "./watermark";
@@ -33,25 +28,12 @@ export interface SignatureInfo {
   image_b?: string;
 }
 
-export interface BilingualClause {
-  number: string;
-  title: string;
-  body: string;
-  title_en?: string;
-  body_en?: string;
-}
-
 export interface GeneratedContract {
   title: string;
   preamble: string;
-  clauses: BilingualClause[];
+  clauses: { number: string; title: string; body: string }[];
   closing: string;
   signature?: SignatureInfo;
-  // Bilingual (BG + EN, two-column) support
-  bilingual?: boolean;
-  title_en?: string;
-  preamble_en?: string;
-  closing_en?: string;
 }
 
 const fileBase = (title: string) =>
@@ -121,14 +103,13 @@ export async function exportPDF(
   const ph = doc.internal.pageSize.getHeight();
   let y = M;
 
-  const writeWrappedInBox = (
+  const writeWrapped = (
     text: string,
     size: number,
-    box: { x: number; maxWidth: number },
     opts: { bold?: boolean; align?: "left" | "center" | "justify" } = {},
   ) => {
     doc.setFontSize(size);
-    const { x, maxWidth } = box;
+    const maxWidth = pw - M * 2;
     const paragraphs = text.split("\n");
     for (let p = 0; p < paragraphs.length; p++) {
       const para = paragraphs[p];
@@ -141,152 +122,52 @@ export async function exportPDF(
         }
         const isLast = i === lines.length - 1;
         if (opts.align === "center") {
-          doc.text(line, x + maxWidth / 2, y, { align: "center" });
+          doc.text(line, pw / 2, y, { align: "center" });
         } else if (opts.align === "justify" && !isLast) {
           const words = line.split(/\s+/).filter(Boolean);
           if (words.length > 1) {
+            const spaceW = doc.getTextWidth(" ");
             const wordsW = words.reduce((s, w) => s + doc.getTextWidth(w), 0);
             const gap = (maxWidth - wordsW) / (words.length - 1);
-            let cx = x;
+            let x = M;
             for (let w = 0; w < words.length; w++) {
-              doc.text(words[w], cx, y);
-              cx += doc.getTextWidth(words[w]) + gap;
+              doc.text(words[w], x, y);
+              x += doc.getTextWidth(words[w]) + gap;
             }
+            void spaceW;
           } else {
-            doc.text(line, x, y);
+            doc.text(line, M, y);
           }
         } else {
-          doc.text(line, x, y);
+          doc.text(line, M, y);
         }
         y += size * 1.4;
       }
     }
   };
 
-  const writeWrapped = (
-    text: string,
-    size: number,
-    opts: { bold?: boolean; align?: "left" | "center" | "justify" } = {},
-  ) => writeWrappedInBox(text, size, { x: M, maxWidth: pw - M * 2 }, opts);
+  writeWrapped(c.title.toUpperCase(), 16, { align: "center" });
+  y += 8;
+  doc.setDrawColor(201, 168, 76);
+  doc.setLineWidth(0.8);
+  doc.line(M, y, pw - M, y);
+  y += 18;
 
-  // Measure how many y-units a block of text will consume, without drawing.
-  const measureBlock = (text: string, size: number, maxWidth: number) => {
-    doc.setFontSize(size);
-    const paragraphs = text.split("\n");
-    let h = 0;
-    for (const para of paragraphs) {
-      const lines: string[] = doc.splitTextToSize(para, maxWidth);
-      h += Math.max(1, lines.length) * size * 1.4;
-    }
-    return h;
-  };
+  writeWrapped(c.preamble, 11, { align: "justify" });
+  y += 10;
 
-  // Render a single "row" of two columns side by side (BG left, EN right).
-  // Both blocks may include a heading line + body. The row advances `y` by
-  // the height of the taller column so the next row starts cleanly.
-  const renderTwoColRow = (
-    bg: { heading?: string; body: string },
-    en: { heading?: string; body: string },
-    headingSize: number,
-    bodySize: number,
-  ) => {
-    const gutter = 18;
-    const colW = (pw - M * 2 - gutter) / 2;
-    const leftX = M;
-    const rightX = M + colW + gutter;
-
-    const headingH = (txt: string) => (txt ? measureBlock(txt, headingSize, colW) + 4 : 0);
-    const totalH = Math.max(
-      headingH(bg.heading || "") + measureBlock(bg.body, bodySize, colW),
-      headingH(en.heading || "") + measureBlock(en.body, bodySize, colW),
-    );
-    if (y + totalH > ph - M) { doc.addPage(); y = M; }
-    const startY = y;
-
-    // Left (BG)
-    if (bg.heading) { writeWrappedInBox(bg.heading.toUpperCase(), headingSize, { x: leftX, maxWidth: colW }); y += 2; }
-    writeWrappedInBox(bg.body, bodySize, { x: leftX, maxWidth: colW }, { align: "justify" });
-    const leftEndY = y;
-
-    // Right (EN)
-    y = startY;
-    if (en.heading) { writeWrappedInBox(en.heading.toUpperCase(), headingSize, { x: rightX, maxWidth: colW }); y += 2; }
-    writeWrappedInBox(en.body, bodySize, { x: rightX, maxWidth: colW }, { align: "justify" });
-    const rightEndY = y;
-
-    y = Math.max(leftEndY, rightEndY) + 6;
-  };
-
-  const isBilingual = Boolean(c.bilingual && (c.title_en || c.preamble_en || c.clauses.some((cl) => cl.title_en || cl.body_en)));
-
-  if (isBilingual) {
-    // Title row
-    renderTwoColRow(
-      { body: c.title },
-      { body: c.title_en || c.title },
-      14,
-      14,
-    );
-    doc.setDrawColor(201, 168, 76);
-    doc.setLineWidth(0.8);
-    doc.line(M, y, pw - M, y);
-    y += 14;
-
-    // Preamble row
-    renderTwoColRow(
-      { body: c.preamble },
-      { body: c.preamble_en || "" },
-      11,
-      11,
-    );
-    y += 6;
-
-    // Clauses
-    for (const cl of c.clauses) {
-      renderTwoColRow(
-        { heading: `${cl.number} ${cl.title}`, body: cl.body },
-        { heading: `${cl.number} ${cl.title_en || cl.title}`, body: cl.body_en || "" },
-        12,
-        11,
-      );
-    }
-
+  for (const cl of c.clauses) {
     y += 8;
-    doc.line(M, y, pw - M, y);
-    y += 14;
-
-    // Closing row
-    renderTwoColRow(
-      { body: c.closing },
-      { body: c.closing_en || "" },
-      11,
-      11,
-    );
-    y += 30;
-  } else {
-    writeWrapped(c.title.toUpperCase(), 16, { align: "center" });
-    y += 8;
-    doc.setDrawColor(201, 168, 76);
-    doc.setLineWidth(0.8);
-    doc.line(M, y, pw - M, y);
-    y += 18;
-
-    writeWrapped(c.preamble, 11, { align: "justify" });
-    y += 10;
-
-    for (const cl of c.clauses) {
-      y += 8;
-      writeWrapped(`${cl.number} ${cl.title.toUpperCase()}`, 12);
-      y += 4;
-      writeWrapped(cl.body, 11, { align: "justify" });
-    }
-
-    y += 14;
-    doc.line(M, y, pw - M, y);
-    y += 14;
-    writeWrapped(c.closing, 11, { align: "justify" });
-    y += 40;
+    writeWrapped(`${cl.number} ${cl.title.toUpperCase()}`, 12);
+    y += 4;
+    writeWrapped(cl.body, 11, { align: "justify" });
   }
+
+  y += 14;
+  doc.line(M, y, pw - M, y);
+  y += 14;
+  writeWrapped(c.closing, 11, { align: "justify" });
+  y += 40;
 
   // Signature footer
   y += 14;
@@ -323,148 +204,57 @@ export async function exportPDF(
 }
 
 export async function exportDOCX(c: GeneratedContract, opts?: WatermarkOpts) {
-  const children: (Paragraph | Table)[] = [];
+  const children: Paragraph[] = [];
 
   // Watermark is rendered as a page header (applied below via section headers),
   // so it appears discreetly on every page instead of only on the first one.
 
-  const isBilingual = Boolean(
-    c.bilingual && (c.title_en || c.preamble_en || c.clauses.some((cl) => cl.title_en || cl.body_en)),
+
+  children.push(
+    new Paragraph({
+      heading: HeadingLevel.TITLE,
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: c.title.toUpperCase(), bold: true, size: 32 })],
+    })
   );
+  children.push(new Paragraph({ text: "" }));
 
-  // A4 portrait content width ≈ 9026 DXA with default 1" margins.
-  // Two columns with a small gutter inside the cell margins.
-  const TABLE_W = 9026;
-  const COL_W = Math.floor(TABLE_W / 2);
-  const noBorder = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
-  const cellBorders = { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder };
+  for (const line of c.preamble.split("\n")) {
+    children.push(new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
+      children: [new TextRun({ text: line, size: 22 })],
+    }));
+  }
 
-  const paragraphsFromText = (text: string, runOpts: { bold?: boolean; italics?: boolean; size?: number; align?: typeof AlignmentType[keyof typeof AlignmentType] } = {}) => {
-    const lines = (text ?? "").split("\n");
-    return lines.map((line) =>
-      new Paragraph({
-        alignment: runOpts.align ?? AlignmentType.JUSTIFIED,
-        children: [new TextRun({ text: line, size: runOpts.size ?? 22, bold: runOpts.bold, italics: runOpts.italics })],
-      }),
-    );
-  };
-
-  const twoColRow = (bg: Paragraph[], en: Paragraph[]) =>
-    new Table({
-      width: { size: TABLE_W, type: WidthType.DXA },
-      columnWidths: [COL_W, COL_W],
-      rows: [
-        new TableRow({
-          children: [
-            new TableCell({
-              width: { size: COL_W, type: WidthType.DXA },
-              borders: cellBorders,
-              margins: { top: 60, bottom: 60, left: 80, right: 160 },
-              children: bg.length ? bg : [new Paragraph({ text: "" })],
-            }),
-            new TableCell({
-              width: { size: COL_W, type: WidthType.DXA },
-              borders: cellBorders,
-              margins: { top: 60, bottom: 60, left: 160, right: 80 },
-              children: en.length ? en : [new Paragraph({ text: "" })],
-            }),
-          ],
-        }),
-      ],
-    });
-
-  if (isBilingual) {
-    // Title
-    children.push(
-      twoColRow(
-        [new Paragraph({
-          alignment: AlignmentType.CENTER,
-          children: [new TextRun({ text: c.title.toUpperCase(), bold: true, size: 28 })],
-        })],
-        [new Paragraph({
-          alignment: AlignmentType.CENTER,
-          children: [new TextRun({ text: (c.title_en || c.title).toUpperCase(), bold: true, size: 28 })],
-        })],
-      ),
-    );
+  for (const cl of c.clauses) {
     children.push(new Paragraph({ text: "" }));
-
-    // Preamble
-    children.push(twoColRow(paragraphsFromText(c.preamble), paragraphsFromText(c.preamble_en || "")));
-    children.push(new Paragraph({ text: "" }));
-
-    // Clauses
-    for (const cl of c.clauses) {
-      const bgHead = new Paragraph({
-        children: [new TextRun({ text: `${cl.number} ${cl.title.toUpperCase()}`, bold: true, size: 24 })],
-      });
-      const enHead = new Paragraph({
-        children: [new TextRun({ text: `${cl.number} ${(cl.title_en || cl.title).toUpperCase()}`, bold: true, size: 24 })],
-      });
-      children.push(
-        twoColRow(
-          [bgHead, ...paragraphsFromText(cl.body)],
-          [enHead, ...paragraphsFromText(cl.body_en || "")],
-        ),
-      );
-      children.push(new Paragraph({ text: "" }));
-    }
-
-    // Closing
-    children.push(
-      twoColRow(
-        paragraphsFromText(c.closing, { italics: true }),
-        paragraphsFromText(c.closing_en || "", { italics: true }),
-      ),
-    );
-    children.push(new Paragraph({ text: "" }));
-  } else {
     children.push(
       new Paragraph({
-        heading: HeadingLevel.TITLE,
-        alignment: AlignmentType.CENTER,
-        children: [new TextRun({ text: c.title.toUpperCase(), bold: true, size: 32 })],
+        heading: HeadingLevel.HEADING_2,
+        children: [
+          new TextRun({
+            text: `${cl.number} ${cl.title.toUpperCase()}`,
+            bold: true,
+            size: 26,
+          }),
+        ],
       })
     );
-    children.push(new Paragraph({ text: "" }));
-
-    for (const line of c.preamble.split("\n")) {
+    for (const line of cl.body.split("\n")) {
       children.push(new Paragraph({
         alignment: AlignmentType.JUSTIFIED,
         children: [new TextRun({ text: line, size: 22 })],
       }));
     }
-
-    for (const cl of c.clauses) {
-      children.push(new Paragraph({ text: "" }));
-      children.push(
-        new Paragraph({
-          heading: HeadingLevel.HEADING_2,
-          children: [
-            new TextRun({
-              text: `${cl.number} ${cl.title.toUpperCase()}`,
-              bold: true,
-              size: 26,
-            }),
-          ],
-        })
-      );
-      for (const line of cl.body.split("\n")) {
-        children.push(new Paragraph({
-          alignment: AlignmentType.JUSTIFIED,
-          children: [new TextRun({ text: line, size: 22 })],
-        }));
-      }
-    }
-
-    children.push(new Paragraph({ text: "" }));
-    children.push(
-      new Paragraph({
-        alignment: AlignmentType.JUSTIFIED,
-        children: [new TextRun({ text: c.closing, italics: true, size: 22 })],
-      })
-    );
   }
+
+  children.push(new Paragraph({ text: "" }));
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
+      children: [new TextRun({ text: c.closing, italics: true, size: 22 })],
+    })
+  );
   children.push(new Paragraph({ text: "" }));
   children.push(new Paragraph({ text: "" }));
   const sig = c.signature;
