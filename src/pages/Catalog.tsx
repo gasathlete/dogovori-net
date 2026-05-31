@@ -14,6 +14,7 @@ import { allTemplates } from "@/lib/templateIndex";
 import { slugify } from "@/lib/slugify";
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, type DocumentTypeId } from "@/lib/documentReferences";
 import { inferDocumentType } from "@/lib/documentTypeInference";
+import { resolveBuildSectorId } from "@/lib/bilingualBuildRouting";
 
 export default function CatalogPage() {
   const [query, setQuery] = useState("");
@@ -208,7 +209,7 @@ export default function CatalogPage() {
                   >
                     {suggestions.map((s) => {
                       const href = s.bilingual
-                        ? `/build?category=${encodeURIComponent(s.sectorId)}&bilingual=1&name=${encodeURIComponent(s.name)}${s.documentType ? `&documentType=${s.documentType}` : ""}`
+                        ? `/build?category=${encodeURIComponent(resolveBuildSectorId({ bilingual: true, docName: s.name, sectorId: s.sectorId, documentType: s.documentType }))}&bilingual=1&name=${encodeURIComponent(s.name)}${s.documentType ? `&documentType=${s.documentType}` : ""}`
                         : `/wizard/${s.sectorId}?doc=${encodeURIComponent(s.name)}`;
                       return (
                         <li key={`${s.sectorId}-${s.name}`}>
@@ -565,7 +566,7 @@ function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean
             {visible.map((doc: any) => {
               const docSlug = slugify(doc.name);
               const wizardHref = doc.bilingual
-                ? `/build?category=${encodeURIComponent(cat.sectorId)}&bilingual=1&name=${encodeURIComponent(doc.name)}${doc.documentType ? `&documentType=${doc.documentType}` : ""}`
+                ? `/build?category=${encodeURIComponent(resolveBuildSectorId({ bilingual: true, docName: doc.name, sectorId: cat.sectorId, documentType: doc.documentType }))}&bilingual=1&name=${encodeURIComponent(doc.name)}${doc.documentType ? `&documentType=${doc.documentType}` : ""}`
                 : `/wizard/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`;
               const shablonHref = `/shablon/${docSlug}`;
               return (
