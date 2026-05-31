@@ -33,17 +33,36 @@ export async function exportTemplatePDF(t: CompanionTemplate, opts?: WatermarkOp
   const ph = doc.internal.pageSize.getHeight();
   let y = M;
 
-  const write = (text: string, size: number, align: "left" | "center" = "left") => {
+  const write = (text: string, size: number, align: "left" | "center" | "justify" = "left") => {
     doc.setFontSize(size);
+    const maxWidth = pw - M * 2;
     for (const para of text.split("\n")) {
-      const lines = doc.splitTextToSize(para, pw - M * 2);
-      for (const line of lines) {
+      const lines: string[] = doc.splitTextToSize(para, maxWidth);
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
         if (y > ph - M) {
           doc.addPage();
           y = M;
         }
-        const x = align === "center" ? pw / 2 : M;
-        doc.text(line, x, y, { align });
+        const isLast = i === lines.length - 1;
+        if (align === "center") {
+          doc.text(line, pw / 2, y, { align: "center" });
+        } else if (align === "justify" && !isLast) {
+          const words = line.split(/\s+/).filter(Boolean);
+          if (words.length > 1) {
+            const wordsW = words.reduce((s, w) => s + doc.getTextWidth(w), 0);
+            const gap = (maxWidth - wordsW) / (words.length - 1);
+            let x = M;
+            for (let w = 0; w < words.length; w++) {
+              doc.text(words[w], x, y);
+              x += doc.getTextWidth(words[w]) + gap;
+            }
+          } else {
+            doc.text(line, M, y);
+          }
+        } else {
+          doc.text(line, M, y);
+        }
         y += size * 1.4;
       }
     }
@@ -57,19 +76,19 @@ export async function exportTemplatePDF(t: CompanionTemplate, opts?: WatermarkOp
   y += 14;
 
   if (t.intro) {
-    write(t.intro, 11);
+    write(t.intro, 11, "justify");
     y += 8;
   }
   for (const s of t.sections) {
     y += 6;
     if (s.heading) write(s.heading, 12);
-    write(s.body, 11);
+    write(s.body, 11, "justify");
   }
   if (t.closing) {
     y += 16;
     doc.line(M, y, pw - M, y);
     y += 12;
-    write(t.closing, 11);
+    write(t.closing, 11, "justify");
   }
 
   if (opts?.watermark) await applyPdfWatermark(doc, { userTag: opts.userTag });
@@ -91,7 +110,10 @@ export async function exportTemplateDOCX(t: CompanionTemplate, opts?: WatermarkO
 
   if (t.intro) {
     for (const line of t.intro.split("\n")) {
-      children.push(new Paragraph({ children: [new TextRun({ text: line, size: 22 })] }));
+      children.push(new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        children: [new TextRun({ text: line, size: 22 })],
+      }));
     }
     children.push(new Paragraph({ text: "" }));
   }
@@ -106,7 +128,10 @@ export async function exportTemplateDOCX(t: CompanionTemplate, opts?: WatermarkO
       );
     }
     for (const line of s.body.split("\n")) {
-      children.push(new Paragraph({ children: [new TextRun({ text: line, size: 22 })] }));
+      children.push(new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        children: [new TextRun({ text: line, size: 22 })],
+      }));
     }
     children.push(new Paragraph({ text: "" }));
   }
@@ -114,7 +139,10 @@ export async function exportTemplateDOCX(t: CompanionTemplate, opts?: WatermarkO
   if (t.closing) {
     children.push(new Paragraph({ text: "" }));
     for (const line of t.closing.split("\n")) {
-      children.push(new Paragraph({ children: [new TextRun({ text: line, size: 22 })] }));
+      children.push(new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        children: [new TextRun({ text: line, size: 22 })],
+      }));
     }
   }
 
