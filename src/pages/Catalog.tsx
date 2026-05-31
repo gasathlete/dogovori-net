@@ -208,9 +208,7 @@ export default function CatalogPage() {
                     onWheel={(e) => e.stopPropagation()}
                   >
                     {suggestions.map((s) => {
-                      const href = s.bilingual
-                        ? `/build?category=${encodeURIComponent(resolveBuildSectorId({ bilingual: true, docName: s.name, sectorId: s.sectorId, documentType: s.documentType }))}&bilingual=1&name=${encodeURIComponent(s.name)}${s.documentType ? `&documentType=${s.documentType}` : ""}`
-                        : `/wizard/${s.sectorId}?doc=${encodeURIComponent(s.name)}`;
+                      const href = `/shablon/${slugify(s.name)}`;
                       return (
                         <li key={`${s.sectorId}-${s.name}`}>
                           <Link
