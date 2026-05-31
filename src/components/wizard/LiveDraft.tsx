@@ -9,9 +9,9 @@ import { Pencil, Check, Lock, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 /**
- * Скрива долната половина на дълъг превю-документ зад градиент за гости.
+ * Скрива долната част на дълъг превю-документ зад градиент.
+ * Започва фейд около 30% от височината с по-силен fade за четливост.
  * Цел: задържа интереса и пречи на screenshot/copy извличане на пълния текст.
- * За автентикирани потребители връща децата без промяна.
  */
 function PreviewFadeGate({ children, active }: { children: ReactNode; active: boolean }) {
   if (!active) return <>{children}</>;
@@ -20,11 +20,11 @@ function PreviewFadeGate({ children, active }: { children: ReactNode; active: bo
       {children}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 top-1/2 rounded-b-md"
+        className="pointer-events-none absolute inset-x-0 bottom-0 top-[30%] rounded-b-md"
         style={{
           background:
-            "linear-gradient(to bottom, hsl(var(--card) / 0) 0%, hsl(var(--card) / 0.55) 35%, hsl(var(--card) / 0.92) 70%, hsl(var(--card)) 100%)",
-          backdropFilter: "blur(0.5px)",
+            "linear-gradient(to bottom, hsl(var(--card) / 0) 0%, hsl(var(--card) / 0.4) 20%, hsl(var(--card) / 0.75) 50%, hsl(var(--card) / 0.95) 80%, hsl(var(--card)) 100%)",
+          backdropFilter: "blur(1px)",
         }}
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center pb-6 pt-24">
