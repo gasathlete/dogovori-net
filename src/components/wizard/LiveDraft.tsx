@@ -615,10 +615,26 @@ function buildInitialClauses(
         ...baseClosing,
       ];
     }
+    case "employment":
+      return buildEmploymentClauses(a);
+    case "power-of-attorney":
+      return buildPOAClauses(a);
+    case "finance": {
+      const dn = (docName || "").toLowerCase();
+      if (/заем|кредит|loan/.test(dn)) return buildLoanClauses(a);
+      return buildGenericClauses(sector, a, docName);
+    }
+    case "family": {
+      const dn = (docName || "").toLowerCase();
+      if (/покан|нотариална|deklaratsiya|декларац/.test(dn))
+        return buildFamilyNoticeClauses(a, docName);
+      return buildGenericClauses(sector, a, docName);
+    }
     default:
-      return [];
+      return buildGenericClauses(sector, a, docName);
   }
 }
+
 
 export function LiveDraft({
   sector,
