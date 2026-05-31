@@ -834,13 +834,17 @@ export function LiveDraft({
   }
 
   // Pre-filled boilerplate draft (per sector) — updates with answers
-  const clauses = buildInitialClauses(sector, answers);
+  const clauses = buildInitialClauses(sector, answers, docName);
+  const documentTitle = docName || sector.contractName;
+  const answeredCount = Object.values(answers).filter(
+    (v) => typeof v === "string" && v.trim().length > 0,
+  ).length;
 
   return (
     <ProtectedContent>
       <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
         <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
-          {sector.contractName}
+          {documentTitle}
         </h1>
         <div className="my-4 gold-divider" />
 
@@ -850,15 +854,15 @@ export function LiveDraft({
         <p className="mt-3 text-sm leading-relaxed">
           <strong>1. {partyA}</strong>
           {renderPartyIdentifier(answers.party_a_type)}, наричан по-долу „
-          <em>{sector.parties.a}</em>“, и
+          <em>{sector.parties.a}</em>", и
         </p>
         <p className="mt-2 text-sm leading-relaxed">
           <strong>2. {partyB}</strong>
           {renderPartyIdentifier(answers.party_b_type)}, наричан по-долу „
-          <em>{sector.parties.b}</em>“,
+          <em>{sector.parties.b}</em>",
         </p>
         <p className="mt-3 text-sm leading-relaxed">
-          се сключи настоящият договор за следното:
+          се сключи настоящият документ за следното:
         </p>
 
         {clauses.map((c) => (
@@ -870,11 +874,20 @@ export function LiveDraft({
           </section>
         ))}
 
-        <div className="mt-8 rounded-md border border-dashed border-foreground/20 bg-foreground/[0.03] p-3 text-xs italic text-foreground/60">
-          Това е работен текст, който се актуализира с Вашите отговори. След завършване на интервюто
-          системата ще създаде окончателния договор с пълни и прецизирани клаузи.
+        <div className="mt-8 rounded-md border border-dashed border-gold/30 bg-gold/[0.04] p-4 text-xs leading-relaxed text-foreground/75">
+          <p className="font-semibold text-foreground/90">
+            Това е примерен скелет на „{documentTitle}", който се актуализира на живо с Вашите отговори.
+          </p>
+          <p className="mt-1.5">
+            Финалният документ — с прецизни клаузи по ЗЗД/ТЗ/КТ, оценка на риска и препоръки от ИИ — се
+            генерира след завършване на въпросника. Отнема ~2 минути.
+            {answeredCount > 0 && (
+              <span className="ml-1 text-gold">Попълнени са {answeredCount} отговора.</span>
+            )}
+          </p>
         </div>
       </article>
     </ProtectedContent>
+
   );
 }
