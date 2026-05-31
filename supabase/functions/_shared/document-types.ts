@@ -101,3 +101,30 @@ export function getDocumentTypeSpec(id: string | undefined | null): DocumentType
 }
 
 export const ALL_DOCUMENT_TYPE_IDS = Object.keys(T) as DocumentTypeId[];
+
+// Infer document type from a document name (Bulgarian). Order matters — specific first.
+// Keep in sync with src/lib/documentTypeInference.ts.
+const INFER_RULES: { type: DocumentTypeId; re: RegExp }[] = [
+  { type: "kss",               re: /\bКСС\b|количествено[-\s]стойностна/i },
+  { type: "smr",               re: /\bСМР\b|строително[-\s]монтажни|акт\s*обр?\.?\s*1[259]\b/i },
+  { type: "notary_invitation", re: /нотариална\s+покана/i },
+  { type: "claim",             re: /искова\s+молба|заповед(но|за\s+изпълнение)/i },
+  { type: "complaint",         re: /^жалба|\bжалба\b/i },
+  { type: "power_of_attorney", re: /пълномощно/i },
+  { type: "declaration",       re: /деклараци[яи]/i },
+  { type: "receipt",           re: /^разписка|\bразписка\b/i },
+  { type: "invoice",           re: /фактура|кредитно\s+известие|дебитно\s+известие/i },
+  { type: "offer",             re: /^оферта|\bоферта\b|проформа/i },
+  { type: "protocol",          re: /протокол|приемо[-\s]предавателен/i },
+  { type: "annex",             re: /^анекс|\bанекс\b/i },
+  { type: "appendix",          re: /^приложение|спецификация|техническо\s+задание|ценоразпис|sla/i },
+  { type: "agreement",         re: /споразумение|memorandum|меморандум/i },
+  { type: "contract",          re: /договор|EULA|лицензионен/i },
+];
+
+export function inferDocumentType(name: string | null | undefined): DocumentTypeId {
+  const s = String(name ?? "");
+  for (const r of INFER_RULES) if (r.re.test(s)) return r.type;
+  return "contract";
+}
+

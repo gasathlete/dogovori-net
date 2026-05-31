@@ -15,15 +15,18 @@ import {
   Footer,
 } from "https://esm.sh/docx@8.5.0";
 import { buildCors } from "../_shared/cors.ts";
+import { getDocumentTypeSpec, inferDocumentType } from "../_shared/document-types.ts";
 
-const SYSTEM_PROMPT = `Ти си български правен архитект. Генерираш ПРАЗНИ БЛАНКИ (шаблони) на документи на български юридически език (ЗЗД, ТЗ, ЗУТ).
+
+const SYSTEM_PROMPT = `Ти си български правен архитект с 20+ години практика. Генерираш ПРАЗНИ БЛАНКИ (шаблони) на български юридически език (ЗЗД, ТЗ, ЗУТ, ГПК, КТ, ЗННД).
 
 Бланката трябва да:
-- съдържа всички задължителни клаузи и реквизити;
-- използва [квадратни скоби] за всички места, които ползвателят трябва да попълни (имена, ЕИК/ЕГН, адреси, суми, срокове, дати);
-- не съдържа конкретни данни — само празни полета;
+- съдържа всички задължителни клаузи и реквизити според вида на конкретния документ;
+- използва [квадратни скоби] за всички места, които ползвателят трябва да попълни (имена, ЕИК/ЕГН, адреси, суми в евро, срокове, дати);
+- НЕ съдържа конкретни данни — само празни полета;
 - е готова за разпечатване и нотариална/правна употреба;
-- спазва точната терминология за съответния документ (Възложител/Изпълнител, Наемодател/Наемател, Декларатор и т.н.).
+- спазва точната терминология и структура за СЪОТВЕТНИЯ ВИД документ — разписка ≠ договор ≠ декларация ≠ пълномощно ≠ жалба ≠ искова молба ≠ нотариална покана ≠ оферта ≠ фактура ≠ протокол ≠ анекс ≠ приложение ≠ КСС/СМР;
+- използва коректна номерация: римска за раздели (за договори/споразумения), "Чл. N." за членове, "(1),(2)" за алинеи; за по-кратки документи (разписка, декларация, пълномощно) — без излишна правна структура.
 
 Връщай СТРОГО валиден JSON (без markdown), точно тази структура:
 {
@@ -33,10 +36,8 @@ const SYSTEM_PROMPT = `Ти си български правен архитек�
     { "number": "I.", "title": "ПРЕДМЕТ", "body": "Чл. 1. ...\\nЧл. 2. ..." }
   ],
   "closing": "Заключителен текст + подписи"
-}
+}`;
 
-За декларации: само 1 декларатор, без втора страна, без неустойки/подсъдност.
-За договори: пълен комплект от клаузи (Предмет, Цена, Срокове, Права/задължения, Неустойки, Прекратяване, Форсмажор, Подсъдност, Заключителни).`;
 
 interface BlankPayload {
   title: string;
@@ -254,9 +255,10 @@ Deno.serve(async (req: Request) => {
       .eq("document_name", documentName)
       .maybeSingle();
 
-    // Cache version prefix. Bumped to invalidate previously cached blanks that
-    // were generated without the brand watermark in header/footer.
-    const CACHE_VERSION = "v2";
+    // Cache version prefix. Bumped to v3 — initial blanks now use a
+    // higher-quality model (gemini-2.5-pro) and document-type-aware structure
+    // (разписка ≠ договор ≠ декларация ≠ пълномощно etc).
+    const CACHE_VERSION = "v3";
     const existingPath = existing?.storage_path as string | undefined;
     let storagePath: string | undefined =
       existingPath && existingPath.startsWith(`${CACHE_VERSION}/`) ? existingPath : undefined;
@@ -266,7 +268,11 @@ Deno.serve(async (req: Request) => {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
-      const userPrompt = `Сектор: ${sectorTitle || sectorId}\nДокумент: ${documentName}\n\nГенерирай професионална българска правна БЛАНКА (празен шаблон) за този документ.`;
+      // Match the document type so the AI doesn't render every blank as a contract.
+      const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName));
+      const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Специфика за този вид документ (${docTypeSpec.label}) ---\n${docTypeSpec.systemAddendum}`;
+
+      const userPrompt = `Сектор: ${sectorTitle || sectorId}\nВид документ: ${docTypeSpec.label}\nКонкретен документ: ${documentName}\n\nГенерирай професионална българска правна БЛАНКА (празен шаблон) за този КОНКРЕТЕН ВИД документ. Спазвай структурата за „${docTypeSpec.label}" — не я смесвай с друг вид документ.`;
 
       const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -275,11 +281,12 @@ Deno.serve(async (req: Request) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          // Cost optimization: blanks are deterministic JSON fills — flash-lite
-          // delivers identical quality at ~5x lower cost vs full flash.
-          model: "google/gemini-2.5-flash-lite",
+          // First-time blank generation is cached forever per (sector, document) —
+          // worth investing in higher quality. gemini-2.5-pro produces more
+          // legally precise wording and respects per-document-type structure.
+          model: "google/gemini-2.5-pro",
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
           ],
           response_format: { type: "json_object" },
@@ -287,6 +294,7 @@ Deno.serve(async (req: Request) => {
       });
 
       if (aiRes.status === 429) {
+
         return new Response(JSON.stringify({ error: "AI лимитът е достигнат. Опитайте след малко." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

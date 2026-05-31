@@ -6,6 +6,8 @@ import { sha256Hex, stableStringify } from "../_shared/normalize.ts";
 import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
+import { getDocumentTypeSpec, inferDocumentType } from "../_shared/document-types.ts";
+
 
 const SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ). Използваш правилните понятия (Възложител/Изпълнител, Наемодател/Наемател, Продавач/Купувач, Страните, Настоящият Договор).
 
@@ -26,7 +28,7 @@ const SYSTEM_PROMPT = `Ти си български правен архитек�
   }
 }
 
-Задължителни клаузи (в този ред): I. Предмет, II. Цена и плащане, III. Срокове, IV. Права и задължения, V. Неустойки, VI. Прекратяване, VII. Форсмажор, VIII. Конфиденциалност (ако е приложимо), IX. Подсъдност (държавна или арбитражна — виж по-долу), X. Частична недействителност, XI. Заключителни, **XII. Контакти за кореспонденция**.
+Задължителни клаузи **САМО ЗА ДОГОВОРИ И СПОРАЗУМЕНИЯ** (в този ред): I. Предмет, II. Цена и плащане, III. Срокове, IV. Права и задължения, V. Неустойки, VI. Прекратяване, VII. Форсмажор, VIII. Конфиденциалност (ако е приложимо), IX. Подсъдност (държавна или арбитражна — виж по-долу), X. Частична недействителност, XI. Заключителни, **XII. Контакти за кореспонденция**. За документи от друг вид (Разписка, Декларация, Пълномощно, Жалба, Искова молба, Нотариална покана, Оферта, Фактура, Протокол, Анекс, Приложение, СМР, КСС) НЕ налагай тази структура — следвай специфичната структура, описана в потребителския промпт за съответния вид.
 
 Раздел XII „Контакти" е ЗАДЪЛЖИТЕЛЕН във всеки договор и съдържа за всяка страна: пълно име/наименование, ЕГН (за физическо лице) или ЕИК/Булстат + МОЛ (за юридическо лице), адрес за кореспонденция, имейл и телефон. Ако данните липсват — използвай плейсхолдъри [имейл], [адрес], [телефон].
 
@@ -114,12 +116,17 @@ Deno.serve(async (req: Request) => {
       ? `КОНКРЕТЕН ДОКУМЕНТ: ${documentName}\n`
       : "";
 
+    // Detect the document type from the name so we don't render every output
+    // as a "договор" (e.g. Разписка, Декларация, Пълномощно, Жалба, Искова молба).
+    const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName || contractName));
+
     // Cache: identical (sector, contractName, documentName, sorted answers) → reuse output for 30 days.
     // PROMPT_VERSION included so prompt/system changes invalidate stale cache entries.
-    const PROMPT_VERSION = "v2-arb-xii";
+    const PROMPT_VERSION = "v3-doc-type";
     const cacheKeyInput = stableStringify({
       v: PROMPT_VERSION,
       sector, contractName, documentName: documentName || null,
+      docType: docTypeSpec.id,
       parties: { a: parties?.a ?? "", b: parties?.b ?? "" },
       answers: answers ?? {},
       arbitration: arbitration ?? null,
@@ -143,13 +150,17 @@ Deno.serve(async (req: Request) => {
       : `\nАРБИТРАЖ: enabled=false (използвай държавна подсъдност)`;
 
     const userPrompt = `СЕКТОР: ${sector}
-ТИП ДОГОВОР: ${contractName}
+ТИП ДОКУМЕНТ: ${docTypeSpec.label}
+НАИМЕНОВАНИЕ: ${contractName}
 ${docLine}СТРАНИ: ${parties.a} ↔ ${parties.b}${arbitrationLine}
 
 ОТГОВОРИ:
 ${qaLines}
 
-Задача: Risk Analysis (конкретни слаби места за ${parties.a} и ${parties.b}) + ПЪЛНИЯТ договор на български за "${documentName || contractName}" с всички задължителни клаузи. Върни СТРОГО валиден JSON по схемата.`;
+ВАЖНО: Изготви документ от вид „${docTypeSpec.label}" (не разглеждай автоматично като двустранен договор). Спазвай специфичната структура за този вид документ:
+${docTypeSpec.systemAddendum}
+
+Задача: Risk Analysis (конкретни слаби места за ${parties.a}${parties.b ? ` и ${parties.b}` : ""}) + ПЪЛНИЯТ документ на български за "${documentName || contractName}" според структурата за „${docTypeSpec.label}". Върни СТРОГО валиден JSON по схемата.`;
 
     const activeSystemPrompt = await loadActivePrompt(admin, "generate-contract", SYSTEM_PROMPT);
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -164,6 +175,7 @@ ${qaLines}
         response_format: { type: "json_object" },
       }),
     });
+
 
     if (!aiResp.ok) {
       if (aiResp.status === 429) {
