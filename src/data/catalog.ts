@@ -7,6 +7,8 @@ export interface CatalogDocument {
   badge?: "NEW" | "TOP" | "ПРО";
   /** Optional override; when missing, inferred from name via inferDocumentType. */
   documentType?: DocumentTypeId;
+  /** When true, the document is generated in two languages (BG + EN). */
+  bilingual?: boolean;
 }
 
 export interface CatalogCategory {
