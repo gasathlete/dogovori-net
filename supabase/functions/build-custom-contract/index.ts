@@ -61,15 +61,41 @@ interface BuildPayload {
   other?: string;
 }
 
-const BILINGUAL_ADDENDUM = `\n\n=== ДВУЕЗИЧЕН РЕЖИМ (BG + EN) ===
-Документът трябва да бъде ДВУЕЗИЧЕН — паралелно на български и официален английски правен език.
-- "title": формат "Български заглавие / English Title".
-- "preamble": първо параграф на български, после празен ред и същият параграф на английски (маркиран с "EN: ...").
-- Всяка клауза в "clauses[].title" и "clauses[].body" се изписва двуезично: български оригинал, нов ред, английски превод със същата номерация ("Чл. 1 / Art. 1", "(1) / (1)").
-- "closing": подписи и реквизити двуезично ("ВЪЗЛОЖИТЕЛ / CLIENT", "ИЗПЪЛНИТЕЛ / CONTRACTOR" и т.н.).
-- Английският текст трябва да бъде юридически точен превод, не машинен — използвай стандартна международна терминология (Party, Term, Consideration, Governing Law, Jurisdiction, Confidentiality, Indemnification и т.н.).
-- В последна клауза задължително добави: "В случай на разминаване между двата текста, българската версия има предимство. / In case of discrepancy between the two versions, the Bulgarian text shall prevail."
-- Парични суми остават в евро (€) в двата текста.`;
+const BILINGUAL_ADDENDUM = `\n\n=== ДВУЕЗИЧЕН РЕЖИМ (BG + EN, ДВЕ КОЛОНИ) ===
+Документът ще бъде представен в ДВЕ ПАРАЛЕЛНИ КОЛОНИ — българският оригинал отляво и официалният английски превод отдясно. ЗА ТАЗИ ЦЕЛ ВЪРНИ САМО БЪЛГАРСКИЯ ТЕКСТ В ОРИГИНАЛНИТЕ ПОЛЕТА (title, preamble, clauses[].title, clauses[].body, closing) И ДОБАВИ ПАРАЛЕЛНИ АНГЛИЙСКИ ПОЛЕТА:
+
+{
+  "contract": {
+    "bilingual": true,
+    "title": "Български заглавие",
+    "title_en": "English Title",
+    "preamble": "Български преамбюл...",
+    "preamble_en": "English preamble...",
+    "clauses": [
+      {
+        "number": "I.",
+        "title": "Български заглавие на раздел",
+        "title_en": "English section title",
+        "body": "Чл. 1. ...\\nЧл. 2. ...",
+        "body_en": "Art. 1. ...\\nArt. 2. ..."
+      }
+    ],
+    "closing": "Български заключителни клаузи и подписи...",
+    "closing_en": "English closing clauses and signatures..."
+  }
+}
+
+ПРАВИЛА:
+- НЕ слагай английски текст в българските полета и обратно. Двата текста са СТРОГО разделени.
+- Номерацията на членовете и алинеите трябва да съвпада в двете версии ("Чл. 1." ↔ "Art. 1.", "(1)" ↔ "(1)").
+- Английският превод трябва да бъде юридически точен, не машинен — използвай стандартна международна терминология (Party, Term, Consideration, Governing Law, Jurisdiction, Confidentiality, Indemnification, Force Majeure и т.н.).
+- В последна клауза задължително добави клауза за предимство:
+  body: "В случай на разминаване между българския и английския текст, българската версия има предимство."
+  body_en: "In case of discrepancy between the Bulgarian and English texts, the Bulgarian version shall prevail."
+- В closing включи реквизити двуезично, всеки в своето поле (BG в closing, EN в closing_en) — напр. "ВЪЗЛОЖИТЕЛ: ..." / "CLIENT: ...".
+- Парични суми остават в евро (€) в двата текста.
+- Брой клаузи и техният ред трябва да бъдат еднакви — за всяка БГ клауза задължително има съответстваща EN клауза.`;
+
 
 const BUILD_MODE_ADDENDUM: Record<BuildMode, { label: string; addendum: string; model: string }> = {
   fast: {
