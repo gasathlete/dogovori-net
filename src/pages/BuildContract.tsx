@@ -123,6 +123,10 @@ export default function BuildContractPage() {
   const [saving, setSaving] = useState(false);
   const { isPro, isTeam } = useIsPro();
   const canStrict = isPro || isTeam;
+  const canBilingual = isPro || isTeam;
+  const [bilingual, setBilingual] = useState<boolean>(
+    presetBilingual || Boolean(persisted?.bilingual),
+  );
   const [appendixRefreshTick, setAppendixRefreshTick] = useState(0);
   const [contacts, setContacts] = useState<Array<{ id: string; name: string; type?: string }>>([]);
   const [applyingCorrections, setApplyingCorrections] = useState(false);
@@ -132,13 +136,18 @@ export default function BuildContractPage() {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        documentType, buildMode,
+        documentType, buildMode, bilingual,
         name, categoryId, categoryOther, partiesA, partiesB,
         fieldValues,
         result, signature, savedDocId,
       }));
     } catch {}
-  }, [documentType, buildMode, name, categoryId, categoryOther, partiesA, partiesB, fieldValues, result, signature, savedDocId]);
+  }, [documentType, buildMode, bilingual, name, categoryId, categoryOther, partiesA, partiesB, fieldValues, result, signature, savedDocId]);
+
+  // Force non-Pro/Team users out of bilingual mode.
+  useEffect(() => {
+    if (!canBilingual && bilingual) setBilingual(false);
+  }, [canBilingual, bilingual]);
 
   useEffect(() => {
     trackEvent("build_contract_open");
