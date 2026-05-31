@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Bird, Loader2, FileDown, FileText, Save, Wand2, Sparkles, ShieldCheck, FileSignature, Lightbulb, Zap, Briefcase, Scale, ChevronDown, Check } from "lucide-react";
+import { ArrowLeft, Bird, Loader2, FileDown, FileText, Save, Wand2, Sparkles, ShieldCheck, FileSignature, Lightbulb, Zap, Briefcase, Scale, ChevronDown, Check, Languages } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type BuildMode = "fast" | "working" | "strict";
@@ -53,6 +53,8 @@ export default function BuildContractPage() {
   const [searchParams] = useSearchParams();
   const presetCategory = searchParams.get("category") ?? "";
   const presetDocumentType = (searchParams.get("documentType") ?? "") as DocumentTypeId | "";
+  const presetName = searchParams.get("name") ?? "";
+  const presetBilingual = searchParams.get("bilingual") === "1";
   const parentSavedIdParam = searchParams.get("parentSavedId");
   const parentUploadedIdParam = searchParams.get("parentUploadedId");
   const parentTitleParam = searchParams.get("parentTitle");
@@ -81,9 +83,11 @@ export default function BuildContractPage() {
   );
 
   const [name, setName] = useState<string>(
-    presetDocumentType && refNumberParam && parentTitleParam
-      ? `${getDocumentType(presetDocumentType).label} № ${refNumberParam} към „${parentTitleParam}"`
-      : (persisted?.name ?? "")
+    presetName
+      ? presetName
+      : presetDocumentType && refNumberParam && parentTitleParam
+        ? `${getDocumentType(presetDocumentType).label} № ${refNumberParam} към „${parentTitleParam}"`
+        : (persisted?.name ?? "")
   );
   const [categoryId, setCategoryId] = useState<string>(
     presetCategory && SECTORS.some((s) => s.id === presetCategory)
@@ -119,6 +123,10 @@ export default function BuildContractPage() {
   const [saving, setSaving] = useState(false);
   const { isPro, isTeam } = useIsPro();
   const canStrict = isPro || isTeam;
+  const canBilingual = isPro || isTeam;
+  const [bilingual, setBilingual] = useState<boolean>(
+    presetBilingual || Boolean(persisted?.bilingual),
+  );
   const [appendixRefreshTick, setAppendixRefreshTick] = useState(0);
   const [contacts, setContacts] = useState<Array<{ id: string; name: string; type?: string }>>([]);
   const [applyingCorrections, setApplyingCorrections] = useState(false);
@@ -128,13 +136,18 @@ export default function BuildContractPage() {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        documentType, buildMode,
+        documentType, buildMode, bilingual,
         name, categoryId, categoryOther, partiesA, partiesB,
         fieldValues,
         result, signature, savedDocId,
       }));
     } catch {}
-  }, [documentType, buildMode, name, categoryId, categoryOther, partiesA, partiesB, fieldValues, result, signature, savedDocId]);
+  }, [documentType, buildMode, bilingual, name, categoryId, categoryOther, partiesA, partiesB, fieldValues, result, signature, savedDocId]);
+
+  // Force non-Pro/Team users out of bilingual mode.
+  useEffect(() => {
+    if (!canBilingual && bilingual) setBilingual(false);
+  }, [canBilingual, bilingual]);
 
   useEffect(() => {
     trackEvent("build_contract_open");
@@ -244,6 +257,7 @@ export default function BuildContractPage() {
           categorySectorId: categoryId === "__other__" ? null : categoryId,
           documentType,
           buildMode,
+          bilingual: canBilingual && bilingual,
           parentContext: parentTitleParam ? {
             parentTitle: parentTitleParam,
             refNumber: refNumberParam ? Number(refNumberParam) : null,
@@ -622,6 +636,59 @@ export default function BuildContractPage() {
                       })}
                     </div>
                   </div>
+
+                  {/* Bilingual toggle — Pro / Team only */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!canBilingual) {
+                        toast.message("Двуезичен документ е за Pro и Team", {
+                          description: "Преминете към Pro или Team план, за да генерирате документи на български и английски.",
+                          action: { label: "Виж планове", onClick: goSubscription },
+                        });
+                        return;
+                      }
+                      setBilingual((v) => !v);
+                    }}
+                    aria-pressed={bilingual}
+                    className={
+                      "flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors " +
+                      (bilingual && canBilingual
+                        ? "border-gold/60 bg-gold/10"
+                        : "border-border/60 bg-navy-light/40 hover:border-gold/40")
+                    }
+                  >
+                    <span className="flex items-center gap-3">
+                      <span className={
+                        "flex h-9 w-9 items-center justify-center rounded-lg " +
+                        (bilingual && canBilingual ? "bg-gold/20 text-gold" : "bg-card/40 text-muted-foreground")
+                      }>
+                        <Languages className="h-4 w-4" />
+                      </span>
+                      <span className="flex flex-col">
+                        <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                          Двуезичен документ (BG + EN)
+                          {!canBilingual && <Lock className="h-3 w-3 text-gold/80" />}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {canBilingual
+                            ? "Всяка клауза се изготвя паралелно на български и английски."
+                            : "Достъпно за Предприемач и Екип."}
+                        </span>
+                      </span>
+                    </span>
+                    <span className={
+                      "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors " +
+                      (bilingual && canBilingual ? "bg-gold" : "bg-border/60")
+                    }>
+                      <span className={
+                        "inline-block h-4 w-4 transform rounded-full bg-navy transition-transform " +
+                        (bilingual && canBilingual ? "translate-x-[18px]" : "translate-x-[2px]")
+                      } />
+                    </span>
+                  </button>
+
+
 
 
                   {/* Document type — compact dropdown */}

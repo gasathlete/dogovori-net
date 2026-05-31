@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { useSearchParams } from "react-router-dom";
 import * as Icons from "lucide-react";
-import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp, X, Filter, Check } from "lucide-react";
+import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp, X, Filter, Check, Languages } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
@@ -22,6 +22,7 @@ export default function CatalogPage() {
   const [docTypeOpen, setDocTypeOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeVid = (searchParams.get("vid") as DocumentTypeId | null) ?? null;
+  const bilingualOnly = searchParams.get("bilingual") === "1";
 
   const setVid = (vid: DocumentTypeId | null) => {
     const next = new URLSearchParams(searchParams);
@@ -29,6 +30,13 @@ export default function CatalogPage() {
     else next.delete("vid");
     setSearchParams(next, { replace: true });
     setDocTypeOpen(false);
+  };
+
+  const setBilingual = (on: boolean) => {
+    const next = new URLSearchParams(searchParams);
+    if (on) next.set("bilingual", "1");
+    else next.delete("bilingual");
+    setSearchParams(next, { replace: true });
   };
 
   useEffect(() => {
@@ -51,6 +59,7 @@ export default function CatalogPage() {
     return CATALOG.map((cat) => ({
       ...cat,
       documents: cat.documents.filter((d) => {
+        if (bilingualOnly && !d.bilingual) return false;
         if (!docMatchesVid(d.name, d.documentType)) return false;
         if (!q) return true;
         return (
@@ -60,7 +69,7 @@ export default function CatalogPage() {
         );
       }),
     })).filter((c) => c.documents.length > 0);
-  }, [query, activeVid]);
+  }, [query, activeVid, bilingualOnly]);
 
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -316,6 +325,25 @@ export default function CatalogPage() {
                 </button>
               </>
             )}
+
+            <span className="mx-1 hidden h-5 w-px bg-border/60 md:inline-block" aria-hidden />
+
+            <button
+              type="button"
+              onClick={() => setBilingual(!bilingualOnly)}
+              aria-pressed={bilingualOnly}
+              title="Покажи само двуезични документи (BG/EN)"
+              className={
+                "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors " +
+                (bilingualOnly
+                  ? "border-gold/60 bg-gold/10 text-gold hover:bg-gold/15"
+                  : "border-border/70 bg-card/40 text-foreground hover:border-gold/40 hover:text-gold")
+              }
+            >
+              <Languages className="h-3.5 w-3.5" />
+              Двуезичен документ
+              {bilingualOnly && <Check className="h-3.5 w-3.5" />}
+            </button>
           </div>
         </div>
       </section>
@@ -525,7 +553,9 @@ function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean
           <tbody>
             {visible.map((doc: any) => {
               const docSlug = slugify(doc.name);
-              const wizardHref = `/wizard/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`;
+              const wizardHref = doc.bilingual
+                ? `/build?category=${encodeURIComponent(cat.sectorId)}&bilingual=1&name=${encodeURIComponent(doc.name)}${doc.documentType ? `&documentType=${doc.documentType}` : ""}`
+                : `/wizard/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`;
               const shablonHref = `/shablon/${docSlug}`;
               return (
                 <tr
