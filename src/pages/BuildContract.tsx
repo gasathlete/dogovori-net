@@ -83,9 +83,11 @@ export default function BuildContractPage() {
   );
 
   const [name, setName] = useState<string>(
-    presetDocumentType && refNumberParam && parentTitleParam
-      ? `${getDocumentType(presetDocumentType).label} № ${refNumberParam} към „${parentTitleParam}"`
-      : (persisted?.name ?? "")
+    presetName
+      ? presetName
+      : presetDocumentType && refNumberParam && parentTitleParam
+        ? `${getDocumentType(presetDocumentType).label} № ${refNumberParam} към „${parentTitleParam}"`
+        : (persisted?.name ?? "")
   );
   const [categoryId, setCategoryId] = useState<string>(
     presetCategory && SECTORS.some((s) => s.id === presetCategory)
