@@ -292,6 +292,34 @@ export default function TemplatePage() {
           <p className="font-serif text-lg italic leading-relaxed text-foreground md:text-xl">⚖ {doc.keyClause}</p>
         </section>
 
+        {!draftText && (
+          <Section title="Какво включва документът">
+            <p className="mb-4 text-sm text-muted-foreground">
+              След попълване на кратък въпросник ИИ генерира пълен документ, който типично съдържа следните раздели:
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                { t: "I. Страни по документа", d: "Пълни данни на физическите/юридическите лица, ЕГН/ЕИК, представители." },
+                { t: "II. Предмет", d: `Конкретно описание на ${doc.name.toLowerCase()} и обхвата му.` },
+                { t: "III. Цена/възнаграждение", d: "Стойност в €, начин и срок на плащане, ДДС режим." },
+                { t: "IV. Срок и действие", d: "Начало, продължителност, условия за продължаване." },
+                { t: "V. Права и задължения", d: "Задължения на двете страни, форсмажор, конфиденциалност." },
+                { t: "VI. Прекратяване и неустойки", d: "Основания за прекратяване, размер на неустойки, обезщетения." },
+              ].map((s) => (
+                <div key={s.t} className="rounded-lg border border-border/50 bg-card/30 p-4">
+                  <h3 className="font-serif text-sm font-bold text-foreground">{s.t}</h3>
+                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{s.d}</p>
+                </div>
+              ))}
+            </div>
+            <Link to={wizardHref} className="btn-gold btn-sheen mt-6">
+              Изготви документа сега <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Section>
+        )}
+
+
+
         {draftText && (
           <Section title="Готов образец">
             <p className="mb-4 text-sm text-muted-foreground">
