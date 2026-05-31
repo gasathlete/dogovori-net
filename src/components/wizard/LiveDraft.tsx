@@ -642,6 +642,7 @@ export function LiveDraft({
   generated,
   signature,
   isPro = false,
+  docName,
   onContractChange,
 }: {
   sector: Sector;
@@ -661,6 +662,7 @@ export function LiveDraft({
     image_b?: string;
   };
   isPro?: boolean;
+  docName?: string;
   onContractChange?: (next: NonNullable<typeof generated>) => void;
 }) {
   const partyA = answers.party_a_name || `[${sector.parties.a}]`;
