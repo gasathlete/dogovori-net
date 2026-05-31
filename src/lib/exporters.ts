@@ -103,17 +103,46 @@ export async function exportPDF(
   const ph = doc.internal.pageSize.getHeight();
   let y = M;
 
-  const writeWrapped = (text: string, size: number, opts: { bold?: boolean; align?: "left" | "center" } = {}) => {
+  const writeWrapped = (
+    text: string,
+    size: number,
+    opts: { bold?: boolean; align?: "left" | "center" | "justify" } = {},
+  ) => {
     doc.setFontSize(size);
-    const lines = doc.splitTextToSize(text, pw - M * 2);
-    for (const line of lines) {
-      if (y > ph - M) {
-        doc.addPage();
-        y = M;
+    const maxWidth = pw - M * 2;
+    const paragraphs = text.split("\n");
+    for (let p = 0; p < paragraphs.length; p++) {
+      const para = paragraphs[p];
+      const lines: string[] = doc.splitTextToSize(para, maxWidth);
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (y > ph - M) {
+          doc.addPage();
+          y = M;
+        }
+        const isLast = i === lines.length - 1;
+        if (opts.align === "center") {
+          doc.text(line, pw / 2, y, { align: "center" });
+        } else if (opts.align === "justify" && !isLast) {
+          const words = line.split(/\s+/).filter(Boolean);
+          if (words.length > 1) {
+            const spaceW = doc.getTextWidth(" ");
+            const wordsW = words.reduce((s, w) => s + doc.getTextWidth(w), 0);
+            const gap = (maxWidth - wordsW) / (words.length - 1);
+            let x = M;
+            for (let w = 0; w < words.length; w++) {
+              doc.text(words[w], x, y);
+              x += doc.getTextWidth(words[w]) + gap;
+            }
+            void spaceW;
+          } else {
+            doc.text(line, M, y);
+          }
+        } else {
+          doc.text(line, M, y);
+        }
+        y += size * 1.4;
       }
-      const x = opts.align === "center" ? pw / 2 : M;
-      doc.text(line, x, y, { align: opts.align ?? "left" });
-      y += size * 1.4;
     }
   };
 
