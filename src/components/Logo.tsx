@@ -21,11 +21,9 @@ export function Logo({ className = "", compact = false }: { className?: string; 
         <span className={`${compact ? "hidden sm:block" : ""} text-[10px] uppercase tracking-[0.2em] text-muted-foreground`}>
           Архитект на Вашите сделки
         </span>
-        {compact && (
-          <span className="text-[7px] uppercase tracking-[0.14em] text-muted-foreground/60 sm:hidden">
-            Powered by <span className="text-gold/70">IM Development</span>
-          </span>
-        )}
+        <span className="text-[8px] uppercase tracking-[0.14em] text-muted-foreground/60">
+          Powered by <span className="text-gold/70">IM Development</span>
+        </span>
       </div>
     </div>
   );
