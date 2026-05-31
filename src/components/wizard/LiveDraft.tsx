@@ -28,14 +28,12 @@ function PreviewFadeGate({ children, active }: { children: ReactNode; active: bo
         }}
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center pb-6 pt-24">
-        <Link
-          to="/auth"
-          className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-navy shadow-elegant transition hover:scale-[1.02]"
-        >
+        <div className="inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-navy shadow-elegant">
           <Sparkles className="h-4 w-4" />
-          Регистрирайте се безплатно, за да видите целия документ
-        </Link>
+          Завършете въпросника, за да генерирате пълния документ
+        </div>
       </div>
+
     </div>
   );
 }
