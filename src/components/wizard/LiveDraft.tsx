@@ -869,7 +869,9 @@ export function LiveDraft({
             </div>
           </div>
         </article>
+        </PreviewFadeGate>
       </ProtectedContent>
+
     );
   }
 
