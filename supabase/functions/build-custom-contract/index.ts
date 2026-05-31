@@ -34,7 +34,6 @@ const BASE_SYSTEM_PROMPT = `Ти си български правен архит
 
 Номерация: римска за раздели, "Чл. N." за членове, "(1),(2)" за алинеи. Парични суми само в евро (€). Липсващи данни → плейсхолдъри в [квадратни скоби]. При едностранни документи (декларация, разписка, жалба) полето "clauses" може да съдържа само 1–3 секции, а "preamble"/"closing" да са кратки.`;
 
-
 type BuildMode = "fast" | "working" | "strict";
 
 interface CustomField { key: string; label: string; value: string }
@@ -45,7 +44,6 @@ interface BuildPayload {
   categorySectorId?: string | null;
   documentType?: string;        // defaults to "contract"
   buildMode?: BuildMode;        // NEW — fast | working | strict (defaults to "working")
-  bilingual?: boolean;          // NEW — when true, generate parallel BG + EN text
   parentContext?: {              // when building a child document
     parentTitle?: string;
     refNumber?: number | null;
@@ -60,42 +58,6 @@ interface BuildPayload {
   obligations?: string;
   other?: string;
 }
-
-const BILINGUAL_ADDENDUM = `\n\n=== ДВУЕЗИЧЕН РЕЖИМ (BG + EN, ДВЕ КОЛОНИ) ===
-Документът ще бъде представен в ДВЕ ПАРАЛЕЛНИ КОЛОНИ — българският оригинал отляво и официалният английски превод отдясно. ЗА ТАЗИ ЦЕЛ ВЪРНИ САМО БЪЛГАРСКИЯ ТЕКСТ В ОРИГИНАЛНИТЕ ПОЛЕТА (title, preamble, clauses[].title, clauses[].body, closing) И ДОБАВИ ПАРАЛЕЛНИ АНГЛИЙСКИ ПОЛЕТА:
-
-{
-  "contract": {
-    "bilingual": true,
-    "title": "Български заглавие",
-    "title_en": "English Title",
-    "preamble": "Български преамбюл...",
-    "preamble_en": "English preamble...",
-    "clauses": [
-      {
-        "number": "I.",
-        "title": "Български заглавие на раздел",
-        "title_en": "English section title",
-        "body": "Чл. 1. ...\\nЧл. 2. ...",
-        "body_en": "Art. 1. ...\\nArt. 2. ..."
-      }
-    ],
-    "closing": "Български заключителни клаузи и подписи...",
-    "closing_en": "English closing clauses and signatures..."
-  }
-}
-
-ПРАВИЛА:
-- НЕ слагай английски текст в българските полета и обратно. Двата текста са СТРОГО разделени.
-- Номерацията на членовете и алинеите трябва да съвпада в двете версии ("Чл. 1." ↔ "Art. 1.", "(1)" ↔ "(1)").
-- Английският превод трябва да бъде юридически точен, не машинен — използвай стандартна международна терминология (Party, Term, Consideration, Governing Law, Jurisdiction, Confidentiality, Indemnification, Force Majeure и т.н.).
-- В последна клауза задължително добави клауза за предимство:
-  body: "В случай на разминаване между българския и английския текст, българската версия има предимство."
-  body_en: "In case of discrepancy between the Bulgarian and English texts, the Bulgarian version shall prevail."
-- В closing включи реквизити двуезично, всеки в своето поле (BG в closing, EN в closing_en) — напр. "ВЪЗЛОЖИТЕЛ: ..." / "CLIENT: ...".
-- Парични суми остават в евро (€) в двата текста.
-- Брой клаузи и техният ред трябва да бъдат еднакви — за всяка БГ клауза задължително има съответстваща EN клауза.`;
-
 
 const BUILD_MODE_ADDENDUM: Record<BuildMode, { label: string; addendum: string; model: string }> = {
   fast: {
@@ -226,7 +188,6 @@ Deno.serve(async (req: Request) => {
       categorySectorId = null,
       documentType = "contract",
       buildMode = "working",
-      bilingual = false,
       parentContext = undefined,
       partiesA = [],
       partiesB = [],
@@ -241,7 +202,6 @@ Deno.serve(async (req: Request) => {
       ? (buildMode as BuildMode)
       : "working";
     const modeSpec = BUILD_MODE_ADDENDUM[safeBuildMode];
-    const safeBilingual = Boolean(bilingual);
 
     if (!name.trim() || !category.trim()) {
       return new Response(
@@ -278,12 +238,11 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
-    const PROMPT_VERSION = "v6-bilingual-cols";
+    const PROMPT_VERSION = "v4-perTypeFields";
     const cacheKeyInput = stableStringify({
       v: PROMPT_VERSION, kind: "custom",
       documentType: safeDocumentType,
       buildMode: safeBuildMode,
-      bilingual: safeBilingual,
       parentContext: parentContext ?? null,
       name, category,
       partiesA, partiesB,
@@ -343,9 +302,9 @@ ${partiesAList}
 
 ${docSpec.partyBName ? `${partyBLabel.toUpperCase()}/И:\n${partiesBList}\n` : ""}
 ${fieldsSection}
-Задача: Risk Analysis (конкретни слаби места) + ПЪЛНИЯТ документ${safeBilingual ? " на български И английски (двуезично, паралелно)" : " на български"}. Върни СТРОГО валиден JSON по схемата.`;
+Задача: Risk Analysis (конкретни слаби места) + ПЪЛНИЯТ документ на български. Върни СТРОГО валиден JSON по схемата.`;
 
-    const composedSystem = `${BASE_SYSTEM_PROMPT}\n\n=== СПЕЦИФИКА ЗА ВИД „${docSpec.label.toUpperCase()}" ===\n${docSpec.systemAddendum}\n\n=== ${modeSpec.label} ===\n${modeSpec.addendum}${safeBilingual ? BILINGUAL_ADDENDUM : ""}`;
+    const composedSystem = `${BASE_SYSTEM_PROMPT}\n\n=== СПЕЦИФИКА ЗА ВИД „${docSpec.label.toUpperCase()}" ===\n${docSpec.systemAddendum}\n\n=== ${modeSpec.label} ===\n${modeSpec.addendum}`;
     const activeSystemPrompt = await loadActivePrompt(admin, "build-custom-contract", composedSystem);
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -397,12 +356,6 @@ ${fieldsSection}
     catch {
       console.error("JSON parse failed. Content head:", content.slice(0, 800));
       throw new Error("AI отговорът не може да бъде анализиран като JSON");
-    }
-
-    // Ensure bilingual flag is set when requested, so the renderer/exporters
-    // know to use the two-column layout even if the AI forgets to include it.
-    if (safeBilingual && parsed?.contract) {
-      parsed.contract.bilingual = true;
     }
 
     // Cache successful result.

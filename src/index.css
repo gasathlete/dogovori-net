@@ -154,12 +154,6 @@
     color: hsl(220 30% 12%);
     font-family: 'Libre Baskerville', Georgia, serif;
   }
-  .legal-paper-strong {
-    color: hsl(220 35% 10%);
-  }
-  .legal-paper-divider {
-    border-color: hsl(220 20% 35% / 0.45);
-  }
 
   /* Premium surface — subtle gradient + inner highlight line */
   .surface-elevated {

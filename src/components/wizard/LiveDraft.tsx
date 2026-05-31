@@ -689,12 +689,8 @@ export function LiveDraft({
   generated?: {
     title: string;
     preamble: string;
-    clauses: { number: string; title: string; body: string; title_en?: string; body_en?: string }[];
+    clauses: { number: string; title: string; body: string }[];
     closing: string;
-    bilingual?: boolean;
-    title_en?: string;
-    preamble_en?: string;
-    closing_en?: string;
   } | null;
   signature?: {
     name_a: string;
@@ -795,11 +791,6 @@ export function LiveDraft({
               className={`text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl ${editorInputClass}`}
               style={{ fontFamily, fontSize: `${fontSize + 4}px` }}
             />
-          ) : generated.bilingual ? (
-            <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
-              <span className="block">{generated.title}</span>
-              <span className="legal-paper-strong mt-1 block">{generated.title_en || generated.title}</span>
-            </h1>
           ) : (
             <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
               {generated.title}
@@ -813,13 +804,6 @@ export function LiveDraft({
               className={`min-h-[100px] text-sm leading-relaxed ${editorInputClass}`}
               style={{ fontFamily, fontSize: `${fontSize}px` }}
             />
-          ) : generated.bilingual ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
-              <p className="whitespace-pre-line text-sm leading-relaxed">{generated.preamble}</p>
-              <p className="legal-paper-strong whitespace-pre-line text-sm leading-relaxed md:border-l md:pl-6 md:legal-paper-divider">
-                {generated.preamble_en}
-              </p>
-            </div>
           ) : (
             <p className="whitespace-pre-line text-sm leading-relaxed">{generated.preamble}</p>
           )}
@@ -848,21 +832,6 @@ export function LiveDraft({
                     style={{ fontFamily, fontSize: `${fontSize}px` }}
                   />
                 </div>
-              ) : generated.bilingual ? (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
-                  <div>
-                    <h2 className="font-serif text-base font-bold uppercase">
-                      {c.number} {c.title}
-                    </h2>
-                    <p className="mt-2 whitespace-pre-line text-sm leading-relaxed">{c.body}</p>
-                  </div>
-                  <div className="md:border-l md:pl-6 md:legal-paper-divider">
-                    <h2 className="legal-paper-strong font-serif text-base font-bold uppercase">
-                      {c.number} {c.title_en || c.title}
-                    </h2>
-                    <p className="legal-paper-strong mt-2 whitespace-pre-line text-sm leading-relaxed">{c.body_en}</p>
-                  </div>
-                </div>
               ) : (
                 <>
                   <h2 className="font-serif text-base font-bold uppercase">
@@ -881,13 +850,6 @@ export function LiveDraft({
               className={`min-h-[80px] text-sm italic ${editorInputClass}`}
               style={{ fontFamily, fontSize: `${fontSize}px` }}
             />
-          ) : generated.bilingual ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
-              <p className="whitespace-pre-line text-sm italic">{generated.closing}</p>
-              <p className="legal-paper-strong whitespace-pre-line text-sm italic md:border-l md:pl-6 md:legal-paper-divider">
-                {generated.closing_en}
-              </p>
-            </div>
           ) : (
             <p className="text-sm italic">{generated.closing}</p>
           )}
