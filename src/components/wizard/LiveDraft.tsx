@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import type { Sector } from "@/data/sectors";
 import { ProtectedContent } from "@/components/ProtectedContent";
@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Pencil, Check, Lock, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { loadTemplateDraft, fillTemplateDraft } from "@/lib/templateDraftResolver";
+
 
 /**
  * Скрива долната част на дълъг превю-документ зад градиент.
@@ -891,6 +893,100 @@ export function LiveDraft({
   return (
     <ProtectedContent>
       <PreviewFadeGate active={fadeActive}>
+        <TemplateDraftOrSkeleton
+          docName={docName}
+          answers={answers}
+          signature={signature}
+          documentTitle={documentTitle}
+          sector={sector}
+          partyA={partyA}
+          partyB={partyB}
+          clauses={clauses}
+          answeredCount={answeredCount}
+        />
+      </PreviewFadeGate>
+    </ProtectedContent>
+  );
+}
+
+/**
+ * Tries to resolve a pre-written template "бланка" for `docName` and renders
+ * it with placeholders progressively filled from `answers`. Falls back to
+ * the sector-generic skeleton when no matching template exists.
+ */
+function TemplateDraftOrSkeleton({
+  docName,
+  answers,
+  signature,
+  documentTitle,
+  sector,
+  partyA,
+  partyB,
+  clauses,
+  answeredCount,
+}: {
+  docName?: string;
+  answers: Record<string, string>;
+  signature?: { name_a: string; name_b: string; city: string; date: string };
+  documentTitle: string;
+  sector: Sector;
+  partyA: string;
+  partyB: string;
+  clauses: Clause[];
+  answeredCount: number;
+}) {
+  const [draftRaw, setDraftRaw] = useState<string | null>(null);
+  const [resolved, setResolved] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setResolved(false);
+    setDraftRaw(null);
+    loadTemplateDraft(docName).then((text) => {
+      if (cancelled) return;
+      setDraftRaw(text);
+      setResolved(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [docName]);
+
+  if (resolved && draftRaw) {
+    const filled = fillTemplateDraft(draftRaw, { answers, signature });
+    // Split on blank lines → paragraphs; keep single newlines inside paragraphs.
+    const paragraphs = filled.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+    const [headerParagraph, ...rest] = paragraphs;
+    return (
+      <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
+        <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
+          {headerParagraph || documentTitle}
+        </h1>
+        <div className="my-4 gold-divider" />
+        {rest.map((p, i) => (
+          <p key={i} className="mt-3 whitespace-pre-line text-sm leading-relaxed">
+            {p}
+          </p>
+        ))}
+        <div className="mt-8 rounded-md border border-dashed border-gold/30 bg-gold/[0.04] p-4 text-xs leading-relaxed text-foreground/75">
+          <p className="font-semibold text-foreground/90">
+            Това е оригиналната бланка на „{documentTitle}", която се попълва на живо с Вашите отговори.
+          </p>
+          <p className="mt-1.5">
+            Финалният документ — с прецизни клаузи, оценка на риска и препоръки от ИИ — се
+            генерира след завършване на въпросника.
+            {answeredCount > 0 && (
+              <span className="ml-1 text-gold">Попълнени са {answeredCount} отговора.</span>
+            )}
+          </p>
+        </div>
+      </article>
+    );
+  }
+
+  // Fallback: sector-generic skeleton (запазено поведение)
+  return (
+
       <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
         <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
           {documentTitle}
@@ -936,9 +1032,6 @@ export function LiveDraft({
           </p>
         </div>
       </article>
-      </PreviewFadeGate>
-    </ProtectedContent>
-
-
   );
 }
+

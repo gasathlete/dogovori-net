@@ -162,3 +162,6 @@ export function loadTemplateDraft(slug: string): Promise<string> | undefined {
 export function hasTemplateDraft(slug: string): boolean {
   return slug in loaders;
 }
+
+export const TEMPLATE_DRAFT_SLUGS: string[] = Object.keys(loaders);
+
