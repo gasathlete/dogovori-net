@@ -553,7 +553,9 @@ function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean
           <tbody>
             {visible.map((doc: any) => {
               const docSlug = slugify(doc.name);
-              const wizardHref = `/wizard/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`;
+              const wizardHref = doc.bilingual
+                ? `/build?category=${encodeURIComponent(cat.sectorId)}&bilingual=1&name=${encodeURIComponent(doc.name)}${doc.documentType ? `&documentType=${doc.documentType}` : ""}`
+                : `/wizard/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`;
               const shablonHref = `/shablon/${docSlug}`;
               return (
                 <tr
