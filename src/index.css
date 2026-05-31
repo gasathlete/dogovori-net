@@ -288,14 +288,14 @@
     .shimmer-bar::after { animation: none; }
   }
 
-  /* Subtle gold text shimmer for hero accents (single pass) */
+  /* Subtle gold text shimmer for hero accents — settles to solid gold */
   .gold-shimmer {
     background: linear-gradient(
       100deg,
       hsl(var(--gold)) 0%,
-      hsl(var(--gold-light)) 30%,
+      hsl(var(--gold)) 38%,
       hsl(43 95% 88%) 50%,
-      hsl(var(--gold-light)) 70%,
+      hsl(var(--gold)) 62%,
       hsl(var(--gold)) 100%
     );
     background-size: 200% 100%;
@@ -309,7 +309,11 @@
     to { background-position: 0% 0; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .gold-shimmer { animation: none; }
+    .gold-shimmer {
+      animation: none;
+      background: none;
+      color: hsl(var(--gold));
+    }
   }
 
   /* Staggered entrance */
