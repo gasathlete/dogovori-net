@@ -220,7 +220,10 @@ export async function exportDOCX(c: GeneratedContract, opts?: WatermarkOpts) {
   children.push(new Paragraph({ text: "" }));
 
   for (const line of c.preamble.split("\n")) {
-    children.push(new Paragraph({ children: [new TextRun({ text: line, size: 22 })] }));
+    children.push(new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
+      children: [new TextRun({ text: line, size: 22 })],
+    }));
   }
 
   for (const cl of c.clauses) {
@@ -238,7 +241,10 @@ export async function exportDOCX(c: GeneratedContract, opts?: WatermarkOpts) {
       })
     );
     for (const line of cl.body.split("\n")) {
-      children.push(new Paragraph({ children: [new TextRun({ text: line, size: 22 })] }));
+      children.push(new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        children: [new TextRun({ text: line, size: 22 })],
+      }));
     }
   }
 
