@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+
 import type { Sector } from "@/data/sectors";
 import { ProtectedContent } from "@/components/ProtectedContent";
 import { Button } from "@/components/ui/button";
@@ -28,14 +28,12 @@ function PreviewFadeGate({ children, active }: { children: ReactNode; active: bo
         }}
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center pb-6 pt-24">
-        <Link
-          to="/auth"
-          className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-navy shadow-elegant transition hover:scale-[1.02]"
-        >
+        <div className="inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-navy shadow-elegant">
           <Sparkles className="h-4 w-4" />
-          Регистрирайте се безплатно, за да видите целия документ
-        </Link>
+          Завършете въпросника, за да генерирате пълния документ
+        </div>
       </div>
+
     </div>
   );
 }
@@ -709,7 +707,10 @@ export function LiveDraft({
   const [fontSize, setFontSize] = useState<number>(14);
   const editorInputClass = "bg-white text-gray-900 placeholder:text-gray-400 border-gray-300 focus-visible:ring-gold";
   const { user } = useAuth();
-  const fadeActive = !user && !editing;
+  // Fade за всички (не само гости) когато не редактираме и не сме генерирали финален документ —
+  // целта е да задържи интереса и да накара потребителя да завърши въпросника / да изхарчи операция.
+  const fadeActive = !editing;
+
 
 
   if (generated) {
@@ -767,7 +768,8 @@ export function LiveDraft({
             </span>
           )}
         </div>
-        <PreviewFadeGate active={fadeActive}>
+        <PreviewFadeGate active={false}>
+
         <article
           className="legal-paper rounded-md p-6 shadow-elegant md:p-8"
           style={editing && isPro ? { fontFamily, fontSize: `${fontSize}px` } : undefined}
