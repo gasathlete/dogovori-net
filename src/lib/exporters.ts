@@ -153,20 +153,20 @@ export async function exportPDF(
   doc.line(M, y, pw - M, y);
   y += 18;
 
-  writeWrapped(c.preamble, 11);
+  writeWrapped(c.preamble, 11, { align: "justify" });
   y += 10;
 
   for (const cl of c.clauses) {
     y += 8;
     writeWrapped(`${cl.number} ${cl.title.toUpperCase()}`, 12);
     y += 4;
-    writeWrapped(cl.body, 11);
+    writeWrapped(cl.body, 11, { align: "justify" });
   }
 
   y += 14;
   doc.line(M, y, pw - M, y);
   y += 14;
-  writeWrapped(c.closing, 11);
+  writeWrapped(c.closing, 11, { align: "justify" });
   y += 40;
 
   // Signature footer
