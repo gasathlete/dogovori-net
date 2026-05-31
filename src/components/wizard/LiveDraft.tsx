@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+
 import type { Sector } from "@/data/sectors";
 import { ProtectedContent } from "@/components/ProtectedContent";
 import { Button } from "@/components/ui/button";
