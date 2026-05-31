@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Bird, Loader2, FileDown, FileText, Save, Wand2, Sparkles, ShieldCheck, FileSignature, Lightbulb, Zap, Briefcase, Scale, ChevronDown, Check, Languages } from "lucide-react";
+import { ArrowLeft, Loader2, FileDown, FileText, Save, Wand2, Sparkles, Zap, Briefcase, Scale, ChevronDown, Check, Languages } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type BuildMode = "fast" | "working" | "strict";
@@ -23,7 +23,7 @@ import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard
 import { DetectedReferencesBanner } from "@/components/DetectedReferencesBanner";
 import { SECTORS, type Sector } from "@/data/sectors";
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, collectContractText, type DocumentTypeId } from "@/lib/documentReferences";
-import { getBuildSchema, getAllFieldKeys, type BuildField } from "@/lib/documentFieldSchemas";
+import { getBuildSchema, type BuildField } from "@/lib/documentFieldSchemas";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsPro } from "@/hooks/useIsPro";
@@ -33,7 +33,7 @@ import { downloadDocument } from "@/lib/downloadDocument";
 import { mergeParentWithAppendices } from "@/lib/appendixMerger";
 import { Seo } from "@/components/Seo";
 import { trackEvent } from "@/lib/analytics";
-import { PartyListEditor, parseParties, serializeParties, type PartyRow } from "@/components/wizard/PartyListEditor";
+import { PartyListEditor, parseParties, serializeParties } from "@/components/wizard/PartyListEditor";
 import { Lock } from "lucide-react";
 
 const buildPresetSignature = (params: URLSearchParams) => [
@@ -102,7 +102,7 @@ export default function BuildContractPage() {
     presetName
       ? presetName
       : presetDocumentType && refNumberParam && parentTitleParam
-        ? `${getDocumentType(presetDocumentType).label} № ${refNumberParam} към „${parentTitleParam}"`
+        ? `${getDocumentType(presetDocumentType).label} № ${refNumberParam} към „${parentTitleParam}”`
         : (persisted?.name ?? "")
   );
   const [categoryId, setCategoryId] = useState<string>(
@@ -159,7 +159,7 @@ export default function BuildContractPage() {
       presetName
         ? presetName
         : presetDocumentType && refNumberParam && parentTitleParam
-          ? `${getDocumentType(presetDocumentType).label} № ${refNumberParam} към „${parentTitleParam}"`
+          ? `${getDocumentType(presetDocumentType).label} № ${refNumberParam} към „${parentTitleParam}”`
           : "",
     );
     setCategoryId(
