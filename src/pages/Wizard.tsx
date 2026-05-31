@@ -47,6 +47,26 @@ export default function WizardPage() {
   const navigate = useNavigate();
   const baseSector = sectorId ? getSector(sectorId) : undefined;
   const subWizard = getSubWizard(baseSector, docName);
+
+  // Bilingual documents are generated through the custom builder, not the wizard.
+  // If a user lands here (e.g. via direct link or stale search suggestion) for a
+  // bilingual document, redirect them to /build with the correct preset so the
+  // preview is the actual bilingual document instead of a wizard fallback.
+  useEffect(() => {
+    if (!sectorId || !docName) return;
+    const cat = CATALOG.find((c) => c.sectorId === sectorId);
+    const doc = cat?.documents.find((d) => d.name === docName);
+    if (doc?.bilingual) {
+      const qs = new URLSearchParams({
+        category: sectorId,
+        bilingual: "1",
+        name: docName,
+      });
+      if (doc.documentType) qs.set("documentType", doc.documentType);
+      navigate(`/build?${qs.toString()}`, { replace: true });
+    }
+  }, [sectorId, docName, navigate]);
+
   const sector = useMemo(() => {
     if (!baseSector) return undefined;
     return {
