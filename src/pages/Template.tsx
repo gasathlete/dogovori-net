@@ -249,7 +249,15 @@ export default function TemplatePage() {
               Виж всички шаблони
             </Link>
           </div>
+
+          <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground anim-rise" style={{ animationDelay: "320ms" }}>
+            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-gold" /> Съобразен със ЗЗД/ТЗ/КТ</li>
+            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-gold" /> PDF и DOCX експорт</li>
+            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-gold" /> Готов за 2 минути</li>
+            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-gold" /> Безплатен първи документ</li>
+          </ul>
         </header>
+
 
         {intro && (
           <div className="prose prose-invert mb-10 max-w-none text-base leading-[1.8] text-foreground/90">
