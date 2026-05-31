@@ -26,6 +26,8 @@ export default function TemplatePage() {
   useEffect(() => {
     let alive = true;
     if (!entry) return;
+    setAiContent(undefined);
+    setDraftText(undefined);
     const p = loadTemplateContent(entry.slug);
     if (p) p.then((c) => alive && setAiContent(c)).catch(() => {});
     const d = loadTemplateDraft(entry.slug);
@@ -47,8 +49,12 @@ export default function TemplatePage() {
   // Sync meta (used for <meta description> + JSON-LD) — keeps SEO unchanged.
   const meta = TEMPLATE_CONTENT_META[entry.slug];
 
-  const wizardHref = `/wizard/${category.sectorId}?doc=${encodeURIComponent(doc.name)}`;
-  const blankWizardHref = `${wizardHref}&blank=1&returnTo=${encodeURIComponent(`/shablon/${entry.slug}`)}`;
+  const wizardHref = doc.bilingual
+    ? `/build?category=${encodeURIComponent(category.sectorId)}&bilingual=1&name=${encodeURIComponent(doc.name)}${doc.documentType ? `&documentType=${doc.documentType}` : ""}`
+    : `/wizard/${category.sectorId}?doc=${encodeURIComponent(doc.name)}`;
+  const blankWizardHref = doc.bilingual
+    ? wizardHref
+    : `${wizardHref}&blank=1&returnTo=${encodeURIComponent(`/shablon/${entry.slug}`)}`;
   const canonical = `/shablon/${entry.slug}`;
   const pageTitle = `${doc.name} — образец на български`;
   const pageDesc = meta?.introExcerpt
