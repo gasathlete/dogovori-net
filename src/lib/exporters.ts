@@ -323,57 +323,148 @@ export async function exportPDF(
 }
 
 export async function exportDOCX(c: GeneratedContract, opts?: WatermarkOpts) {
-  const children: Paragraph[] = [];
+  const children: (Paragraph | Table)[] = [];
 
   // Watermark is rendered as a page header (applied below via section headers),
   // so it appears discreetly on every page instead of only on the first one.
 
-
-  children.push(
-    new Paragraph({
-      heading: HeadingLevel.TITLE,
-      alignment: AlignmentType.CENTER,
-      children: [new TextRun({ text: c.title.toUpperCase(), bold: true, size: 32 })],
-    })
+  const isBilingual = Boolean(
+    c.bilingual && (c.title_en || c.preamble_en || c.clauses.some((cl) => cl.title_en || cl.body_en)),
   );
-  children.push(new Paragraph({ text: "" }));
 
-  for (const line of c.preamble.split("\n")) {
-    children.push(new Paragraph({
-      alignment: AlignmentType.JUSTIFIED,
-      children: [new TextRun({ text: line, size: 22 })],
-    }));
-  }
+  // A4 portrait content width ≈ 9026 DXA with default 1" margins.
+  // Two columns with a small gutter inside the cell margins.
+  const TABLE_W = 9026;
+  const COL_W = Math.floor(TABLE_W / 2);
+  const noBorder = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
+  const cellBorders = { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder };
 
-  for (const cl of c.clauses) {
+  const paragraphsFromText = (text: string, runOpts: { bold?: boolean; italics?: boolean; size?: number; align?: typeof AlignmentType[keyof typeof AlignmentType] } = {}) => {
+    const lines = (text ?? "").split("\n");
+    return lines.map((line) =>
+      new Paragraph({
+        alignment: runOpts.align ?? AlignmentType.JUSTIFIED,
+        children: [new TextRun({ text: line, size: runOpts.size ?? 22, bold: runOpts.bold, italics: runOpts.italics })],
+      }),
+    );
+  };
+
+  const twoColRow = (bg: Paragraph[], en: Paragraph[]) =>
+    new Table({
+      width: { size: TABLE_W, type: WidthType.DXA },
+      columnWidths: [COL_W, COL_W],
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: COL_W, type: WidthType.DXA },
+              borders: cellBorders,
+              margins: { top: 60, bottom: 60, left: 80, right: 160 },
+              children: bg.length ? bg : [new Paragraph({ text: "" })],
+            }),
+            new TableCell({
+              width: { size: COL_W, type: WidthType.DXA },
+              borders: cellBorders,
+              margins: { top: 60, bottom: 60, left: 160, right: 80 },
+              children: en.length ? en : [new Paragraph({ text: "" })],
+            }),
+          ],
+        }),
+      ],
+    });
+
+  if (isBilingual) {
+    // Title
+    children.push(
+      twoColRow(
+        [new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new TextRun({ text: c.title.toUpperCase(), bold: true, size: 28 })],
+        })],
+        [new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new TextRun({ text: (c.title_en || c.title).toUpperCase(), bold: true, size: 28 })],
+        })],
+      ),
+    );
     children.push(new Paragraph({ text: "" }));
+
+    // Preamble
+    children.push(twoColRow(paragraphsFromText(c.preamble), paragraphsFromText(c.preamble_en || "")));
+    children.push(new Paragraph({ text: "" }));
+
+    // Clauses
+    for (const cl of c.clauses) {
+      const bgHead = new Paragraph({
+        children: [new TextRun({ text: `${cl.number} ${cl.title.toUpperCase()}`, bold: true, size: 24 })],
+      });
+      const enHead = new Paragraph({
+        children: [new TextRun({ text: `${cl.number} ${(cl.title_en || cl.title).toUpperCase()}`, bold: true, size: 24 })],
+      });
+      children.push(
+        twoColRow(
+          [bgHead, ...paragraphsFromText(cl.body)],
+          [enHead, ...paragraphsFromText(cl.body_en || "")],
+        ),
+      );
+      children.push(new Paragraph({ text: "" }));
+    }
+
+    // Closing
+    children.push(
+      twoColRow(
+        paragraphsFromText(c.closing, { italics: true }),
+        paragraphsFromText(c.closing_en || "", { italics: true }),
+      ),
+    );
+    children.push(new Paragraph({ text: "" }));
+  } else {
     children.push(
       new Paragraph({
-        heading: HeadingLevel.HEADING_2,
-        children: [
-          new TextRun({
-            text: `${cl.number} ${cl.title.toUpperCase()}`,
-            bold: true,
-            size: 26,
-          }),
-        ],
+        heading: HeadingLevel.TITLE,
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text: c.title.toUpperCase(), bold: true, size: 32 })],
       })
     );
-    for (const line of cl.body.split("\n")) {
+    children.push(new Paragraph({ text: "" }));
+
+    for (const line of c.preamble.split("\n")) {
       children.push(new Paragraph({
         alignment: AlignmentType.JUSTIFIED,
         children: [new TextRun({ text: line, size: 22 })],
       }));
     }
-  }
 
-  children.push(new Paragraph({ text: "" }));
-  children.push(
-    new Paragraph({
-      alignment: AlignmentType.JUSTIFIED,
-      children: [new TextRun({ text: c.closing, italics: true, size: 22 })],
-    })
-  );
+    for (const cl of c.clauses) {
+      children.push(new Paragraph({ text: "" }));
+      children.push(
+        new Paragraph({
+          heading: HeadingLevel.HEADING_2,
+          children: [
+            new TextRun({
+              text: `${cl.number} ${cl.title.toUpperCase()}`,
+              bold: true,
+              size: 26,
+            }),
+          ],
+        })
+      );
+      for (const line of cl.body.split("\n")) {
+        children.push(new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          children: [new TextRun({ text: line, size: 22 })],
+        }));
+      }
+    }
+
+    children.push(new Paragraph({ text: "" }));
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        children: [new TextRun({ text: c.closing, italics: true, size: 22 })],
+      })
+    );
+  }
   children.push(new Paragraph({ text: "" }));
   children.push(new Paragraph({ text: "" }));
   const sig = c.signature;
