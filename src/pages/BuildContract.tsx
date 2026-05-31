@@ -53,6 +53,8 @@ export default function BuildContractPage() {
   const [searchParams] = useSearchParams();
   const presetCategory = searchParams.get("category") ?? "";
   const presetDocumentType = (searchParams.get("documentType") ?? "") as DocumentTypeId | "";
+  const presetName = searchParams.get("name") ?? "";
+  const presetBilingual = searchParams.get("bilingual") === "1";
   const parentSavedIdParam = searchParams.get("parentSavedId");
   const parentUploadedIdParam = searchParams.get("parentUploadedId");
   const parentTitleParam = searchParams.get("parentTitle");
