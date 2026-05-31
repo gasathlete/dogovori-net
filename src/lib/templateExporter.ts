@@ -110,7 +110,10 @@ export async function exportTemplateDOCX(t: CompanionTemplate, opts?: WatermarkO
 
   if (t.intro) {
     for (const line of t.intro.split("\n")) {
-      children.push(new Paragraph({ children: [new TextRun({ text: line, size: 22 })] }));
+      children.push(new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        children: [new TextRun({ text: line, size: 22 })],
+      }));
     }
     children.push(new Paragraph({ text: "" }));
   }
@@ -125,7 +128,10 @@ export async function exportTemplateDOCX(t: CompanionTemplate, opts?: WatermarkO
       );
     }
     for (const line of s.body.split("\n")) {
-      children.push(new Paragraph({ children: [new TextRun({ text: line, size: 22 })] }));
+      children.push(new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        children: [new TextRun({ text: line, size: 22 })],
+      }));
     }
     children.push(new Paragraph({ text: "" }));
   }
@@ -133,7 +139,10 @@ export async function exportTemplateDOCX(t: CompanionTemplate, opts?: WatermarkO
   if (t.closing) {
     children.push(new Paragraph({ text: "" }));
     for (const line of t.closing.split("\n")) {
-      children.push(new Paragraph({ children: [new TextRun({ text: line, size: 22 })] }));
+      children.push(new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        children: [new TextRun({ text: line, size: 22 })],
+      }));
     }
   }
 
