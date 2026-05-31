@@ -9,38 +9,22 @@
 // stroezha-ot-vazlozhite".
 
 import { slugify } from "@/lib/slugify";
-
-type Loader = () => Promise<string>;
-
-let loaderMap: Record<string, Loader> | null = null;
-let keys: string[] = [];
-
-async function ensureLoaders() {
-  if (loaderMap) return;
-  // Lazy: only fetch the index when first needed.
-  const mod = await import("@/data/templateDrafts/index");
-  // The auto-generated index file uses a default export of the loaders map.
-  // It actually exports as a named `loaders` const via `export default`, so
-  // we accept either shape.
-  loaderMap =
-    (mod as unknown as { default?: Record<string, Loader>; loaders?: Record<string, Loader> })
-      .default ??
-    (mod as unknown as { loaders?: Record<string, Loader> }).loaders ??
-    null;
-  if (!loaderMap) loaderMap = {};
-  keys = Object.keys(loaderMap);
-}
+import {
+  loadTemplateDraft as loadBySlug,
+  hasTemplateDraft,
+  TEMPLATE_DRAFT_SLUGS,
+} from "@/data/templateDrafts/index";
 
 function resolveSlug(docName: string): string | null {
   const wanted = slugify(docName);
   if (!wanted) return null;
-  if (loaderMap && loaderMap[wanted]) return wanted;
+  if (hasTemplateDraft(wanted)) return wanted;
 
   const tokens = wanted.split("-").filter((t) => t.length >= 3);
   if (tokens.length === 0) return null;
 
   let best: { slug: string; score: number; length: number } | null = null;
-  for (const k of keys) {
+  for (const k of TEMPLATE_DRAFT_SLUGS) {
     let score = 0;
     for (const t of tokens) if (k.includes(t)) score++;
     if (score < 2) continue;
@@ -59,18 +43,20 @@ const draftCache = new Map<string, string>();
 
 export async function loadTemplateDraft(docName: string | undefined | null): Promise<string | null> {
   if (!docName) return null;
-  await ensureLoaders();
   const slug = resolveSlug(docName);
-  if (!slug || !loaderMap) return null;
+  if (!slug) return null;
   if (draftCache.has(slug)) return draftCache.get(slug)!;
+  const p = loadBySlug(slug);
+  if (!p) return null;
   try {
-    const text = await loaderMap[slug]();
+    const text = await p;
     draftCache.set(slug, text);
     return text;
   } catch {
     return null;
   }
 }
+
 
 // ---------- Placeholder substitution ----------
 
