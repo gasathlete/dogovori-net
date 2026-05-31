@@ -257,6 +257,7 @@ export default function BuildContractPage() {
           categorySectorId: categoryId === "__other__" ? null : categoryId,
           documentType,
           buildMode,
+          bilingual: canBilingual && bilingual,
           parentContext: parentTitleParam ? {
             parentTitle: parentTitleParam,
             refNumber: refNumberParam ? Number(refNumberParam) : null,
