@@ -120,8 +120,7 @@ export function collectContractText(contract: {
   title?: string; preamble?: string;
   clauses?: { number: string; title: string; body: string }[];
   closing?: string;
-} | null | undefined): string {
-  if (!contract) return "";
+}): string {
   const parts: string[] = [];
   if (contract.title) parts.push(contract.title);
   if (contract.preamble) parts.push(contract.preamble);
