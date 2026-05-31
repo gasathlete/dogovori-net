@@ -770,7 +770,8 @@ export function LiveDraft({
             </span>
           )}
         </div>
-        <PreviewFadeGate active={fadeActive}>
+        <PreviewFadeGate active={false}>
+
         <article
           className="legal-paper rounded-md p-6 shadow-elegant md:p-8"
           style={editing && isPro ? { fontFamily, fontSize: `${fontSize}px` } : undefined}
