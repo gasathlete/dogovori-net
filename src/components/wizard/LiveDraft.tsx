@@ -767,10 +767,12 @@ export function LiveDraft({
             </span>
           )}
         </div>
+        <PreviewFadeGate active={fadeActive}>
         <article
           className="legal-paper rounded-md p-6 shadow-elegant md:p-8"
           style={editing && isPro ? { fontFamily, fontSize: `${fontSize}px` } : undefined}
         >
+
           <div className="mb-2 text-center text-[10px] uppercase tracking-[0.2em] text-foreground/50">
             Създадено с изкуствен интелект
           </div>
