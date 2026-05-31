@@ -76,19 +76,19 @@ export async function exportTemplatePDF(t: CompanionTemplate, opts?: WatermarkOp
   y += 14;
 
   if (t.intro) {
-    write(t.intro, 11);
+    write(t.intro, 11, "justify");
     y += 8;
   }
   for (const s of t.sections) {
     y += 6;
     if (s.heading) write(s.heading, 12);
-    write(s.body, 11);
+    write(s.body, 11, "justify");
   }
   if (t.closing) {
     y += 16;
     doc.line(M, y, pw - M, y);
     y += 12;
-    write(t.closing, 11);
+    write(t.closing, 11, "justify");
   }
 
   if (opts?.watermark) await applyPdfWatermark(doc, { userTag: opts.userTag });
