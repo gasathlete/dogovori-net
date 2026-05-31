@@ -206,18 +206,28 @@ export default function CatalogPage() {
                     style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
                     onWheel={(e) => e.stopPropagation()}
                   >
-                    {suggestions.map((s) => (
-                      <li key={`${s.sectorId}-${s.name}`}>
-                        <Link
-                          to={`/wizard/${s.sectorId}?doc=${encodeURIComponent(s.name)}`}
-                          className="block border-b border-border/40 px-4 py-3 transition-colors last:border-0 hover:bg-gold/[0.06]"
-                        >
-                          <div className="font-serif text-sm font-bold text-foreground">{s.name}</div>
-                          <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{s.purpose}</div>
-                          <div className="mt-1 text-[10px] uppercase tracking-wider text-gold/80">{s.catTitle}</div>
-                        </Link>
-                      </li>
-                    ))}
+                    {suggestions.map((s) => {
+                      const href = s.bilingual
+                        ? `/build?category=${encodeURIComponent(s.sectorId)}&bilingual=1&name=${encodeURIComponent(s.name)}${s.documentType ? `&documentType=${s.documentType}` : ""}`
+                        : `/wizard/${s.sectorId}?doc=${encodeURIComponent(s.name)}`;
+                      return (
+                        <li key={`${s.sectorId}-${s.name}`}>
+                          <Link
+                            to={href}
+                            className="block border-b border-border/40 px-4 py-3 transition-colors last:border-0 hover:bg-gold/[0.06]"
+                          >
+                            <div className="font-serif text-sm font-bold text-foreground">
+                              {s.name}
+                              {s.bilingual && (
+                                <span className="ml-2 inline-block rounded-sm border border-gold/40 px-1.5 py-px text-[9px] uppercase tracking-wider text-gold">BG/EN</span>
+                              )}
+                            </div>
+                            <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{s.purpose}</div>
+                            <div className="mt-1 text-[10px] uppercase tracking-wider text-gold/80">{s.catTitle}</div>
+                          </Link>
+                        </li>
+                      );
+                    })}
                   </ul>
                   {suggestions.length > 3 && (
                     <div className="border-t border-border/60 bg-navy-light/40 px-4 py-1.5 text-center text-[10px] uppercase tracking-wider text-muted-foreground">
