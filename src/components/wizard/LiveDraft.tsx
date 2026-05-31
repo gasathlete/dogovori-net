@@ -20,11 +20,15 @@ function PreviewFadeGate({ children, active }: { children: ReactNode; active: bo
       {children}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 top-[30%] rounded-b-md"
+        className="pointer-events-none absolute inset-x-0 bottom-0 top-[25%] rounded-b-md"
         style={{
           background:
-            "linear-gradient(to bottom, hsl(var(--card) / 0) 0%, hsl(var(--card) / 0.4) 20%, hsl(var(--card) / 0.75) 50%, hsl(var(--card) / 0.95) 80%, hsl(var(--card)) 100%)",
-          backdropFilter: "blur(1px)",
+            "linear-gradient(to bottom, hsl(var(--card) / 0) 0%, hsl(var(--card) / 0.55) 25%, hsl(var(--card) / 0.92) 55%, hsl(var(--card)) 75%, hsl(var(--card)) 100%)",
+          backdropFilter: "blur(2px)",
+          WebkitMaskImage:
+            "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40%, rgba(0,0,0,1) 100%)",
+          maskImage:
+            "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40%, rgba(0,0,0,1) 100%)",
         }}
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center pb-6 pt-24">
