@@ -255,9 +255,10 @@ Deno.serve(async (req: Request) => {
       .eq("document_name", documentName)
       .maybeSingle();
 
-    // Cache version prefix. Bumped to invalidate previously cached blanks that
-    // were generated without the brand watermark in header/footer.
-    const CACHE_VERSION = "v2";
+    // Cache version prefix. Bumped to v3 — initial blanks now use a
+    // higher-quality model (gemini-2.5-pro) and document-type-aware structure
+    // (разписка ≠ договор ≠ декларация ≠ пълномощно etc).
+    const CACHE_VERSION = "v3";
     const existingPath = existing?.storage_path as string | undefined;
     let storagePath: string | undefined =
       existingPath && existingPath.startsWith(`${CACHE_VERSION}/`) ? existingPath : undefined;
@@ -267,7 +268,11 @@ Deno.serve(async (req: Request) => {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
-      const userPrompt = `Сектор: ${sectorTitle || sectorId}\nДокумент: ${documentName}\n\nГенерирай професионална българска правна БЛАНКА (празен шаблон) за този документ.`;
+      // Match the document type so the AI doesn't render every blank as a contract.
+      const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName));
+      const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Специфика за този вид документ (${docTypeSpec.label}) ---\n${docTypeSpec.systemAddendum}`;
+
+      const userPrompt = `Сектор: ${sectorTitle || sectorId}\nВид документ: ${docTypeSpec.label}\nКонкретен документ: ${documentName}\n\nГенерирай професионална българска правна БЛАНКА (празен шаблон) за този КОНКРЕТЕН ВИД документ. Спазвай структурата за „${docTypeSpec.label}" — не я смесвай с друг вид документ.`;
 
       const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -276,11 +281,12 @@ Deno.serve(async (req: Request) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          // Cost optimization: blanks are deterministic JSON fills — flash-lite
-          // delivers identical quality at ~5x lower cost vs full flash.
-          model: "google/gemini-2.5-flash-lite",
+          // First-time blank generation is cached forever per (sector, document) —
+          // worth investing in higher quality. gemini-2.5-pro produces more
+          // legally precise wording and respects per-document-type structure.
+          model: "google/gemini-2.5-pro",
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
           ],
           response_format: { type: "json_object" },
@@ -288,6 +294,7 @@ Deno.serve(async (req: Request) => {
       });
 
       if (aiRes.status === 429) {
+
         return new Response(JSON.stringify({ error: "AI лимитът е достигнат. Опитайте след малко." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
