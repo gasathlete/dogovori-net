@@ -1,10 +1,45 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import type { Sector } from "@/data/sectors";
 import { ProtectedContent } from "@/components/ProtectedContent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Pencil, Check, Lock } from "lucide-react";
+import { Pencil, Check, Lock, Sparkles } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+
+/**
+ * Скрива долната половина на дълъг превю-документ зад градиент за гости.
+ * Цел: задържа интереса и пречи на screenshot/copy извличане на пълния текст.
+ * За автентикирани потребители връща децата без промяна.
+ */
+function PreviewFadeGate({ children, active }: { children: ReactNode; active: boolean }) {
+  if (!active) return <>{children}</>;
+  return (
+    <div className="relative">
+      {children}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 top-1/2 rounded-b-md"
+        style={{
+          background:
+            "linear-gradient(to bottom, hsl(var(--card) / 0) 0%, hsl(var(--card) / 0.55) 35%, hsl(var(--card) / 0.92) 70%, hsl(var(--card)) 100%)",
+          backdropFilter: "blur(0.5px)",
+        }}
+      />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center pb-6 pt-24">
+        <Link
+          to="/auth"
+          className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-navy shadow-elegant transition hover:scale-[1.02]"
+        >
+          <Sparkles className="h-4 w-4" />
+          Регистрирайте се безплатно, за да видите целия документ
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 
 type Clause = { roman: string; title: string; body: string };
 
@@ -673,6 +708,9 @@ export function LiveDraft({
   const [fontFamily, setFontFamily] = useState<string>("'Libre Baskerville', Georgia, serif");
   const [fontSize, setFontSize] = useState<number>(14);
   const editorInputClass = "bg-white text-gray-900 placeholder:text-gray-400 border-gray-300 focus-visible:ring-gold";
+  const { user } = useAuth();
+  const fadeActive = !user && !editing;
+
 
   if (generated) {
     const updateClause = (idx: number, patch: Partial<{ title: string; body: string; number: string }>) => {
@@ -729,10 +767,12 @@ export function LiveDraft({
             </span>
           )}
         </div>
+        <PreviewFadeGate active={fadeActive}>
         <article
           className="legal-paper rounded-md p-6 shadow-elegant md:p-8"
           style={editing && isPro ? { fontFamily, fontSize: `${fontSize}px` } : undefined}
         >
+
           <div className="mb-2 text-center text-[10px] uppercase tracking-[0.2em] text-foreground/50">
             Създадено с изкуствен интелект
           </div>
@@ -829,7 +869,9 @@ export function LiveDraft({
             </div>
           </div>
         </article>
+        </PreviewFadeGate>
       </ProtectedContent>
+
     );
   }
 
@@ -842,6 +884,7 @@ export function LiveDraft({
 
   return (
     <ProtectedContent>
+      <PreviewFadeGate active={fadeActive}>
       <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
         <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
           {documentTitle}
@@ -887,7 +930,9 @@ export function LiveDraft({
           </p>
         </div>
       </article>
+      </PreviewFadeGate>
     </ProtectedContent>
+
 
   );
 }
