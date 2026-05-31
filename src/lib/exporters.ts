@@ -7,6 +7,11 @@ import {
   HeadingLevel,
   AlignmentType,
   ImageRun,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  BorderStyle,
 } from "docx";
 import { saveAs } from "file-saver";
 import { applyPdfWatermark, buildDocxWatermarkHeader, type WatermarkOpts as _WMOpts } from "./watermark";
