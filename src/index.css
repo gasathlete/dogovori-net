@@ -290,23 +290,24 @@
 
   /* Subtle gold text shimmer for hero accents — settles to solid gold */
   .gold-shimmer {
-    background: linear-gradient(
-      100deg,
-      hsl(var(--gold)) 0%,
-      hsl(var(--gold)) 38%,
-      hsl(43 95% 88%) 50%,
-      hsl(var(--gold)) 62%,
-      hsl(var(--gold)) 100%
-    );
-    background-size: 200% 100%;
-    background-position: 100% 0;
+    background-image:
+      linear-gradient(hsl(var(--gold)), hsl(var(--gold))),
+      linear-gradient(
+        100deg,
+        transparent 38%,
+        hsl(43 95% 88%) 50%,
+        transparent 62%
+      );
+    background-size: 100% 100%, 220% 100%;
+    background-position: 0 0, 130% 0;
+    background-repeat: no-repeat;
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
     animation: gold-sweep 2.4s ease-out 0.4s 1 both;
   }
   @keyframes gold-sweep {
-    to { background-position: 0% 0; }
+    to { background-position: 0 0, -130% 0; }
   }
   @media (prefers-reduced-motion: reduce) {
     .gold-shimmer {
