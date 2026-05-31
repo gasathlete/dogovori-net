@@ -28,12 +28,25 @@ export interface SignatureInfo {
   image_b?: string;
 }
 
+export interface BilingualClause {
+  number: string;
+  title: string;
+  body: string;
+  title_en?: string;
+  body_en?: string;
+}
+
 export interface GeneratedContract {
   title: string;
   preamble: string;
-  clauses: { number: string; title: string; body: string }[];
+  clauses: BilingualClause[];
   closing: string;
   signature?: SignatureInfo;
+  // Bilingual (BG + EN, two-column) support
+  bilingual?: boolean;
+  title_en?: string;
+  preamble_en?: string;
+  closing_en?: string;
 }
 
 const fileBase = (title: string) =>
