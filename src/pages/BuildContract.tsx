@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Bird, Loader2, FileDown, FileText, Save, Wand2, Sparkles, ShieldCheck, FileSignature, Lightbulb, Zap, Briefcase, Scale, ChevronDown, Check, Languages } from "lucide-react";
+import { ArrowLeft, Loader2, FileDown, FileText, Save, Wand2, Sparkles, Zap, Briefcase, Scale, ChevronDown, Check, Languages } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type BuildMode = "fast" | "working" | "strict";
@@ -23,7 +23,7 @@ import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard
 import { DetectedReferencesBanner } from "@/components/DetectedReferencesBanner";
 import { SECTORS, type Sector } from "@/data/sectors";
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, collectContractText, type DocumentTypeId } from "@/lib/documentReferences";
-import { getBuildSchema, getAllFieldKeys, type BuildField } from "@/lib/documentFieldSchemas";
+import { getBuildSchema, type BuildField } from "@/lib/documentFieldSchemas";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsPro } from "@/hooks/useIsPro";
@@ -33,8 +33,23 @@ import { downloadDocument } from "@/lib/downloadDocument";
 import { mergeParentWithAppendices } from "@/lib/appendixMerger";
 import { Seo } from "@/components/Seo";
 import { trackEvent } from "@/lib/analytics";
-import { PartyListEditor, parseParties, serializeParties, type PartyRow } from "@/components/wizard/PartyListEditor";
+import { PartyListEditor, parseParties, serializeParties } from "@/components/wizard/PartyListEditor";
 import { Lock } from "lucide-react";
+
+const buildPresetSignature = (params: URLSearchParams) => [
+  params.get("category") ?? "",
+  params.get("documentType") ?? "",
+  params.get("name") ?? "",
+  params.get("bilingual") ?? "",
+  params.get("parentSavedId") ?? "",
+  params.get("parentUploadedId") ?? "",
+  params.get("parentTitle") ?? "",
+  params.get("refNumber") ?? "",
+  params.get("refType") ?? "",
+  params.get("partiesA") ?? "",
+  params.get("partiesB") ?? "",
+  params.get("subject") ?? "",
+].join("|");
 
 
 interface AIResult {
@@ -51,6 +66,7 @@ export default function BuildContractPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
+  const presetSignature = useMemo(() => buildPresetSignature(searchParams), [searchParams]);
   const presetCategory = searchParams.get("category") ?? "";
   const presetDocumentType = (searchParams.get("documentType") ?? "") as DocumentTypeId | "";
   const presetName = searchParams.get("name") ?? "";
@@ -86,7 +102,7 @@ export default function BuildContractPage() {
     presetName
       ? presetName
       : presetDocumentType && refNumberParam && parentTitleParam
-        ? `${getDocumentType(presetDocumentType).label} № ${refNumberParam} към „${parentTitleParam}"`
+        ? `${getDocumentType(presetDocumentType).label} № ${refNumberParam} към „${parentTitleParam}”`
         : (persisted?.name ?? "")
   );
   const [categoryId, setCategoryId] = useState<string>(
@@ -132,17 +148,59 @@ export default function BuildContractPage() {
   const [applyingCorrections, setApplyingCorrections] = useState(false);
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(undefined);
 
+  useEffect(() => {
+    const prevSignature = persisted?.presetSignature ?? "";
+    if (!presetSignature || presetSignature === prevSignature) return;
+
+    setDocumentType((presetDocumentType as DocumentTypeId) || "contract");
+    setBuildMode("working");
+    setBilingual(presetBilingual);
+    setName(
+      presetName
+        ? presetName
+        : presetDocumentType && refNumberParam && parentTitleParam
+          ? `${getDocumentType(presetDocumentType).label} № ${refNumberParam} към „${parentTitleParam}”`
+          : "",
+    );
+    setCategoryId(
+      presetCategory && SECTORS.some((s) => s.id === presetCategory)
+        ? presetCategory
+        : "",
+    );
+    setCategoryOther("");
+    setPartiesA(prefillPartiesA ?? "");
+    setPartiesB(prefillPartiesB ?? "");
+    setFieldValues(prefillSubject ? { subject: prefillSubject } : {});
+    setResult(null);
+    setSavedDocId(undefined);
+    setAppliedNotes(undefined);
+    setSignature({ name_a: "", name_b: "", city: "", date: "" });
+  }, [
+    persisted?.presetSignature,
+    presetSignature,
+    presetCategory,
+    presetDocumentType,
+    presetName,
+    presetBilingual,
+    parentTitleParam,
+    refNumberParam,
+    prefillPartiesA,
+    prefillPartiesB,
+    prefillSubject,
+  ]);
+
   // Persist on every change
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        presetSignature,
         documentType, buildMode, bilingual,
         name, categoryId, categoryOther, partiesA, partiesB,
         fieldValues,
         result, signature, savedDocId,
       }));
     } catch {}
-  }, [documentType, buildMode, bilingual, name, categoryId, categoryOther, partiesA, partiesB, fieldValues, result, signature, savedDocId]);
+  }, [presetSignature, documentType, buildMode, bilingual, name, categoryId, categoryOther, partiesA, partiesB, fieldValues, result, signature, savedDocId]);
 
   // Force non-Pro/Team users out of bilingual mode.
   useEffect(() => {
@@ -1023,67 +1081,15 @@ export default function BuildContractPage() {
                 </div>
 
                 {/* Preview body */}
-                <div className="flex-1 space-y-8 overflow-y-auto p-6 md:p-8">
-                  {/* Skeleton document silhouette */}
-                  <div className="space-y-3 opacity-40">
-                    <div className="h-3 w-1/4 rounded bg-foreground/15" />
-                    <div className="mb-5 h-7 w-3/4 rounded bg-foreground/15" />
-                    <div className="space-y-2">
-                      <div className="h-2.5 rounded bg-foreground/10" />
-                      <div className="h-2.5 rounded bg-foreground/10" />
-                      <div className="h-2.5 w-2/3 rounded bg-foreground/10" />
-                    </div>
-                  </div>
-
-                  {/* What you'll get */}
-                  <div className="relative rounded-xl border border-border/60 bg-card/40 px-5 py-6">
-                    <div className="absolute -top-2.5 left-5 rounded bg-navy px-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gold">
-                      Какво ще получите
-                    </div>
-                    <ul className="space-y-4">
-                      <li className="flex items-start gap-3">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold/10 ring-1 ring-gold/25">
-                          <ShieldCheck className="h-4 w-4 text-gold" />
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-foreground">Юридически издържана структура</p>
-                          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                            Пълен набор от клаузи съобразно ЗЗД и Търговския закон.
-                          </p>
-                        </div>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold/10 ring-1 ring-gold/25">
-                          <Sparkles className="h-4 w-4 text-gold" />
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-foreground">AI адаптация</p>
-                          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                            Автоматично генерирани детайли според въведения от Вас предмет.
-                          </p>
-                        </div>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold/10 ring-1 ring-gold/25">
-                          <FileSignature className="h-4 w-4 text-gold" />
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-foreground">Готов за подписване PDF / DOCX</p>
-                          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                            Професионално форматиран документ, готов за печат или електронен подпис.
-                          </p>
-                        </div>
-                      </li>
-                    </ul>
-                  </div>
-
-                  {/* Tip */}
-                  <div className="flex items-start gap-3 rounded-xl border border-gold/20 bg-gold/5 p-4">
-                    <Lightbulb className="h-4 w-4 flex-shrink-0 text-gold" />
-                    <p className="text-xs italic leading-relaxed text-foreground/80">
-                      Съвет: Колкото по-подробно опишете предмета и задълженията, толкова по-прецизен ще бъде финалният резултат.
-                    </p>
-                  </div>
+                <div className="flex-1 overflow-y-auto p-6 md:p-8">
+                  <LiveDraft
+                    key={presetSignature}
+                    sector={syntheticSector}
+                    answers={syntheticAnswers}
+                    signature={signature}
+                    docName={name || presetName || undefined}
+                    isPro={isPro}
+                  />
                 </div>
 
                 {/* Preview footer */}
