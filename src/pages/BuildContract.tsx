@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Loader2, FileDown, FileText, Save, Wand2, Sparkles, Zap, Briefcase, Scale, ChevronDown, Check, Languages } from "lucide-react";
+import { ArrowLeft, Loader2, FileDown, FileText, Save, Wand2, Sparkles, Zap, Briefcase, Scale, ChevronDown, Check, Languages, ShieldCheck, FileSignature, Lightbulb } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type BuildMode = "fast" | "working" | "strict";
