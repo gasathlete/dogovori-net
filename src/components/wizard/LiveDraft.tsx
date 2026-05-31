@@ -708,6 +708,9 @@ export function LiveDraft({
   const [fontFamily, setFontFamily] = useState<string>("'Libre Baskerville', Georgia, serif");
   const [fontSize, setFontSize] = useState<number>(14);
   const editorInputClass = "bg-white text-gray-900 placeholder:text-gray-400 border-gray-300 focus-visible:ring-gold";
+  const { user } = useAuth();
+  const fadeActive = !user && !editing;
+
 
   if (generated) {
     const updateClause = (idx: number, patch: Partial<{ title: string; body: string; number: string }>) => {
