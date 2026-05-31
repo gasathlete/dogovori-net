@@ -399,6 +399,12 @@ ${fieldsSection}
       throw new Error("AI отговорът не може да бъде анализиран като JSON");
     }
 
+    // Ensure bilingual flag is set when requested, so the renderer/exporters
+    // know to use the two-column layout even if the AI forgets to include it.
+    if (safeBilingual && parsed?.contract) {
+      parsed.contract.bilingual = true;
+    }
+
     // Cache successful result.
     try {
       await admin.from("template_cache").upsert({ hash: cacheHash, payload: parsed, created_at: new Date().toISOString() });
