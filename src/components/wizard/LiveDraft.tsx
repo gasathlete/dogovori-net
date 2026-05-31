@@ -798,7 +798,7 @@ export function LiveDraft({
           ) : generated.bilingual ? (
             <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
               <span className="block">{generated.title}</span>
-              <span className="mt-1 block text-foreground">{generated.title_en || generated.title}</span>
+              <span className="mt-1 block text-[hsl(220_35%_10%)]">{generated.title_en || generated.title}</span>
             </h1>
           ) : (
             <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
@@ -816,7 +816,7 @@ export function LiveDraft({
           ) : generated.bilingual ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
               <p className="whitespace-pre-line text-sm leading-relaxed">{generated.preamble}</p>
-              <p className="whitespace-pre-line text-sm leading-relaxed text-foreground md:border-l md:border-foreground/30 md:pl-6">
+              <p className="whitespace-pre-line text-sm leading-relaxed text-[hsl(220_35%_10%)] md:border-l md:border-[hsl(220_20%_35%/0.45)] md:pl-6">
                 {generated.preamble_en}
               </p>
             </div>
@@ -856,11 +856,11 @@ export function LiveDraft({
                     </h2>
                     <p className="mt-2 whitespace-pre-line text-sm leading-relaxed">{c.body}</p>
                   </div>
-                  <div className="md:border-l md:border-foreground/30 md:pl-6">
-                    <h2 className="font-serif text-base font-bold uppercase text-foreground">
+                  <div className="md:border-l md:border-[hsl(220_20%_35%/0.45)] md:pl-6">
+                    <h2 className="font-serif text-base font-bold uppercase text-[hsl(220_35%_10%)]">
                       {c.number} {c.title_en || c.title}
                     </h2>
-                    <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-foreground">{c.body_en}</p>
+                    <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[hsl(220_35%_10%)]">{c.body_en}</p>
                   </div>
                 </div>
               ) : (
@@ -884,7 +884,7 @@ export function LiveDraft({
           ) : generated.bilingual ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
               <p className="whitespace-pre-line text-sm italic">{generated.closing}</p>
-              <p className="whitespace-pre-line text-sm italic text-foreground md:border-l md:border-foreground/30 md:pl-6">
+              <p className="whitespace-pre-line text-sm italic text-[hsl(220_35%_10%)] md:border-l md:border-[hsl(220_20%_35%/0.45)] md:pl-6">
                 {generated.closing_en}
               </p>
             </div>
