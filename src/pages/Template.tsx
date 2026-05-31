@@ -254,7 +254,7 @@ export default function TemplatePage() {
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-gold" /> Съобразен със ЗЗД/ТЗ/КТ</li>
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-gold" /> PDF и DOCX експорт</li>
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-gold" /> Готов за 2 минути</li>
-            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-gold" /> Безплатен първи документ</li>
+            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-gold" /> Добавен в лична, защитена база данни</li>
           </ul>
         </header>
 
