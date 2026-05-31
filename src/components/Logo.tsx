@@ -23,9 +23,9 @@ export function Logo({ className = "", compact = false }: { className?: string; 
             href="https://im-development.imot.bg"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex cursor-pointer items-center text-[8px] uppercase tracking-[0.14em] text-muted-foreground/60 transition-colors hover:text-gold"
+            className="inline-flex cursor-pointer items-center text-[9px] font-medium uppercase tracking-[0.14em] text-muted-foreground/80 transition-colors hover:text-gold"
           >
-            Powered by <span className="ml-0.5 text-gold/70">IM Development</span>
+            Powered by <span className="ml-0.5 text-gold/80">IM Development</span>
           </a>
         </div>
         <span className={`${compact ? "hidden sm:block" : ""} text-[10px] uppercase tracking-[0.2em] text-muted-foreground`}>
