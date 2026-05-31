@@ -830,12 +830,14 @@ export default function WizardPage() {
               generated={result?.contract}
               signature={result ? signature : undefined}
               isPro={isPro}
+              docName={docName}
               onContractChange={(next) => {
                 if (!result) return;
                 setResult({ ...result, contract: { ...result.contract, ...next } });
                 setSavedDocId(undefined); // invalidate saved version
               }}
             />
+
           </section>
         </div>
       </main>
