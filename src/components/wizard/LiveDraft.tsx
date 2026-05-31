@@ -689,8 +689,12 @@ export function LiveDraft({
   generated?: {
     title: string;
     preamble: string;
-    clauses: { number: string; title: string; body: string }[];
+    clauses: { number: string; title: string; body: string; title_en?: string; body_en?: string }[];
     closing: string;
+    bilingual?: boolean;
+    title_en?: string;
+    preamble_en?: string;
+    closing_en?: string;
   } | null;
   signature?: {
     name_a: string;
