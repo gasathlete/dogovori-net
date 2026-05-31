@@ -73,8 +73,8 @@ export default function CatalogPage() {
 
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return [] as { name: string; purpose: string; sectorId: string; catTitle: string }[];
-    const out: { name: string; purpose: string; sectorId: string; catTitle: string; score: number }[] = [];
+    if (!q) return [] as { name: string; purpose: string; sectorId: string; catTitle: string; bilingual?: boolean; documentType?: string }[];
+    const out: { name: string; purpose: string; sectorId: string; catTitle: string; bilingual?: boolean; documentType?: string; score: number }[] = [];
     for (const cat of CATALOG) {
       for (const d of cat.documents) {
         const name = d.name.toLowerCase();
@@ -84,12 +84,13 @@ export default function CatalogPage() {
         else if (name.includes(q)) score = 2;
         else if (purpose.includes(q)) score = 1;
         if (score > 0) {
-          out.push({ name: d.name, purpose: d.purpose, sectorId: cat.sectorId, catTitle: cat.title, score });
+          out.push({ name: d.name, purpose: d.purpose, sectorId: cat.sectorId, catTitle: cat.title, bilingual: d.bilingual, documentType: d.documentType, score });
         }
       }
     }
     return out.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
   }, [query]);
+
 
   const visibleSuggestions = showAll ? suggestions : suggestions.slice(0, 5);
   const remaining = suggestions.length - visibleSuggestions.length;
