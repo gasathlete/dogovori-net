@@ -1032,9 +1032,6 @@ function TemplateDraftOrSkeleton({
           </p>
         </div>
       </article>
-      </PreviewFadeGate>
-    </ProtectedContent>
-
-
   );
 }
+
