@@ -1,40 +1,64 @@
-# Pre-launch QA — Batch 2
+# Why новият потребител вижда празно
 
-Продължаваме с останалите задачи от пълния одит.
+Проблемът е на две места:
 
-## 1. Responsive QA (393px + 1280px)
-- Browser tool обход на ключови маршрути: `/`, `/catalog`, `/template/:slug`, `/build`, `/auth`, `/account`, `/checkout`, `/blog`, `/blog/:slug`.
-- Screenshot на двата viewport-а, fix на overflow / clipping / touch target < 44px.
+1. **Wizard preview (десният панел „Работен договор")** — `src/components/wizard/LiveDraft.tsx` → `buildInitialClauses(sector, answers)` има `switch` само за 5 сектора (`real-estate`, `construction`, `logistics`, … `trade`). За всички останали (`family`, `employment`, `corporate`, `power-of-attorney`, `finance`, `healthcare`, `ip`, `services`, `digital`, `vehicles`, `ecommerce`, `energy`, `agriculture`, `sports`, `media`, `partnerships`) `default: return []`. Новият потребител на `/wizard/family` вижда само заглавие, преамбюл с „между:" и един сив бокс отдолу — нула клаузи. Естествено напуска.
+2. **Template SEO страница** (`src/pages/Template.tsx`) — за шаблони без файл в `src/data/templateContent/*.ts` (има ~280 такива от 432) се показва кратко generic intro и по 3–4 общи булета за „Кога се използва" / „Грешки" / FAQ. Усещането е „това е празна страница".
 
-## 2. BG localization sweep
-- `rg` за hardcoded английски стрингове в `src/` (UI копи, toast-ове, error states, email шаблони, edge функции с user-facing текст).
-- Fix всичко user-facing на български. App UI остава English ↔ изключение: продуктът е BG.
-- Проверка за остатъци от "BGN/лв/lev" (паметта казва само EUR).
+# Какво ще променим (само UI/presentation)
 
-## 3. Anti-spam за публични форми
-- Идентифициране на публичните форми (contact, newsletter, signup).
-- Honeypot поле + проста rate-limit проверка в edge функции (IP-based, 5/min).
-- Cloud captcha само ако вече има инфраструктура — иначе honeypot е достатъчен за launch.
+## 1. LiveDraft — общ skeleton за всеки сектор
 
-## 4. Stripe sandbox end-to-end
-- `supabase--curl_edge_functions` на `create-checkout` с тестов price.
-- Проверка на `payments-webhook` логове за `customer.subscription.created` / `checkout.session.completed`.
-- `consume_quota` / `consume_team_quota` smoke test през read_query.
-- `/checkout/return` рендира коректно session_id.
+В `src/components/wizard/LiveDraft.tsx`:
 
-## 5. Email queue верификация
-- `supabase--read_query` на `email_send_log` за последни 50 записа — status разпределение.
-- `process-email-queue` logs за грешки.
-- Trigger тестов signal (signup → welcome) и проверка че попада в queue + изпраща се.
+- Извличам `baseClosing` (Форсмажор, Подсъдност, Severability, Заключителни) извън `switch`-а — вече се преизползва.
+- Добавям **generic builder** `buildGenericClauses(sector, answers, docName)` с 6 универсални клаузи:
+  - I. Предмет на договора (използва `sector.contractName` или подаденото `docName` от query параметъра + `answers.subject_summary` / `extra_notes` ако има)
+  - II. Срок и действие (`answers.duration` / „безсрочно, до писмено прекратяване")
+  - III. Възнаграждение и плащане (с `€`)
+  - IV. Права и задължения на страните
+  - V. Отговорност и неустойки (с `penalty_pct`, `penalty_cap`)
+  - VI. Прекратяване (с `termination`, `notice_days`)
+  - + `baseClosing`
+- `default:` в `switch` връща `buildGenericClauses(...)` вместо `[]`.
+- За избрани специфични сектори, където skeleton-ът би бил подвеждащ, добавям по 1 case с правилните страни / терминология:
+  - `employment` — Трудов договор / длъжностна характеристика (работодател/служител, длъжност, работно време, отпуск, възнаграждение)
+  - `family` — заглавието и преамбюлът да използват „Заявител" / „Получател" вместо страни от договор, скелет за нотариална покана / декларация (предмет, основание, искане, дата)
+  - `power-of-attorney` — Упълномощител / Пълномощник, обем на представителната власт, срок, отмяна
+  - `finance` — Заемодател / Заемополучател, главница, лихва, срок, обезпечение, неустойка
+  - `healthcare`, `ip`, `services` — generic skeleton е достатъчен
+- Подавам `docName` (взет от `searchParams.get("doc")` в `Wizard.tsx`) към `LiveDraft` като нов prop, за да може заглавието и преамбюлът на skeleton-а да съответстват на конкретния избран документ, а не само на общото име на сектора. (Малка промяна в `src/pages/Wizard.tsx` — само подаване на prop, без логика.)
+- Долният сив бокс („работен текст") получава по-силно послание:
+  > Това е примерен скелет на „<doc name>", който се актуализира на живо с Вашите отговори. Финалният документ — с прецизни клаузи по ЗЗД/ТЗ/КТ, оценка на риска и препоръки — се генерира от ИИ след завършване на въпросника. Отговарянето отнема ~2 минути.
 
-## 6. Performance baseline
-- Bundle size check (`du -sh dist/assets/*` след build).
-- Lazy-load на тежки routes (Wizard, Template) ако още не са.
-- Lighthouse-style ръчна проверка: LCP element, CLS на hero, font-display.
+  + малка прогрес-индикация „Попълнени X / Y отговора" за по-силен hook.
 
-## Извън scope
-- Промени в бизнес логика, нови features, design redirection.
-- Live Stripe тестове (само sandbox).
+## 2. Template SEO страница — по-богат fallback
 
-## Ред на изпълнение
-Batch-ите ще се изпълняват последователно, със спиране при blocker findings. Очаквам 2-3 итерации с конкретни фиксове + QA evidence (screenshots/log изводи).
+В `src/pages/Template.tsx`:
+
+- Когато `aiContent` още не е зареден или такъв файл липсва за слъга, fallback-овете `usageCases`, `requirements`, `mistakes`, `faq` се изчисляват от:
+  - `doc.name`, `doc.purpose`, `doc.keyClause`
+  - `category.title` (трудово, семейно, недвижими имоти, …)
+- Разширявам fallback масивите от 3–4 на 5–6 точки всеки, със смислени по-конкретни формулировки (а не текущите 3 generic).
+- Добавям нов fallback блок „Какво включва документът" (skeleton от 4 типични раздела: страни, предмет, права и задължения, прекратяване) — показва се само когато няма `draftText`, за да не дублира „Готов образец".
+- Над hero CTA добавям лента с trust сигнали (вече ги има за пълни шаблони — само разширявам да се показват винаги): „✓ По ЗЗД/ТЗ/КТ · ✓ PDF & DOCX · ✓ Готов за 2 минути · ✓ Безплатен първи документ".
+
+## 3. Без промяна
+
+- Никаква бекенд логика, edge functions, схема, RLS.
+- SEO структурираните данни остават (FAQ JSON-LD ще включва разширените въпроси).
+- Шрифтове, цветове, токени — без промяна.
+
+# Файлове
+
+- `src/components/wizard/LiveDraft.tsx` — generic builder + employment/family/power-of-attorney/finance специфики + по-силен помощен текст + опционален `docName` prop.
+- `src/pages/Wizard.tsx` — подава `docName={searchParams.get("doc") ?? undefined}` към `<LiveDraft />`. Без друга логика.
+- `src/pages/Template.tsx` — по-обемни fallback масиви + нов skeleton блок + винаги-видими trust signals.
+
+# Тестване
+
+- `/wizard/family?doc=Нотариална+покана...` → виждам пълен скелет с 6 клаузи и помощен текст.
+- `/wizard/employment` без doc → виждам skeleton за трудов договор.
+- `/shablon/<слъг-без-templateContent>` → виждам разширените 5–6 булета и skeleton секция.
+- `/shablon/trudov-dogovor-po-chl-67-kt-bezsrochen` → нищо не се чупи (има `aiContent` → fallback не се ползва).
