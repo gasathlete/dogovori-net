@@ -44,6 +44,7 @@ interface BuildPayload {
   categorySectorId?: string | null;
   documentType?: string;        // defaults to "contract"
   buildMode?: BuildMode;        // NEW — fast | working | strict (defaults to "working")
+  bilingual?: boolean;          // NEW — when true, generate parallel BG + EN text
   parentContext?: {              // when building a child document
     parentTitle?: string;
     refNumber?: number | null;
@@ -58,6 +59,16 @@ interface BuildPayload {
   obligations?: string;
   other?: string;
 }
+
+const BILINGUAL_ADDENDUM = `\n\n=== ДВУЕЗИЧЕН РЕЖИМ (BG + EN) ===
+Документът трябва да бъде ДВУЕЗИЧЕН — паралелно на български и официален английски правен език.
+- "title": формат "Български заглавие / English Title".
+- "preamble": първо параграф на български, после празен ред и същият параграф на английски (маркиран с "EN: ...").
+- Всяка клауза в "clauses[].title" и "clauses[].body" се изписва двуезично: български оригинал, нов ред, английски превод със същата номерация ("Чл. 1 / Art. 1", "(1) / (1)").
+- "closing": подписи и реквизити двуезично ("ВЪЗЛОЖИТЕЛ / CLIENT", "ИЗПЪЛНИТЕЛ / CONTRACTOR" и т.н.).
+- Английският текст трябва да бъде юридически точен превод, не машинен — използвай стандартна международна терминология (Party, Term, Consideration, Governing Law, Jurisdiction, Confidentiality, Indemnification и т.н.).
+- В последна клауза задължително добави: "В случай на разминаване между двата текста, българската версия има предимство. / In case of discrepancy between the two versions, the Bulgarian text shall prevail."
+- Парични суми остават в евро (€) в двата текста.`;
 
 const BUILD_MODE_ADDENDUM: Record<BuildMode, { label: string; addendum: string; model: string }> = {
   fast: {
