@@ -15,17 +15,22 @@ export function Logo({ className = "", compact = false }: { className?: string; 
         />
       </div>
       <div className="flex min-w-0 flex-col leading-tight">
-        <span className="truncate font-serif text-lg font-bold tracking-tight text-foreground sm:text-xl">
-          Dogovori<span className="text-gold">.net</span>
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="truncate font-serif text-lg font-bold tracking-tight text-foreground sm:text-xl">
+            Dogovori<span className="text-gold">.net</span>
+          </span>
+          <a
+            href="https://im-development.imot.bg"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex cursor-pointer items-center text-[8px] uppercase tracking-[0.14em] text-muted-foreground/60 transition-colors hover:text-gold"
+          >
+            Powered by <span className="ml-0.5 text-gold/70">IM Development</span>
+          </a>
+        </div>
         <span className={`${compact ? "hidden sm:block" : ""} text-[10px] uppercase tracking-[0.2em] text-muted-foreground`}>
           Архитект на Вашите сделки
         </span>
-        {compact && (
-          <span className="text-[7px] uppercase tracking-[0.14em] text-muted-foreground/60 sm:hidden">
-            Powered by <span className="text-gold/70">IM Development</span>
-          </span>
-        )}
       </div>
     </div>
   );
