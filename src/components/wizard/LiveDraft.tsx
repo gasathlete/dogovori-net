@@ -884,6 +884,7 @@ export function LiveDraft({
 
   return (
     <ProtectedContent>
+      <PreviewFadeGate active={fadeActive}>
       <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
         <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
           {documentTitle}
@@ -929,7 +930,9 @@ export function LiveDraft({
           </p>
         </div>
       </article>
+      </PreviewFadeGate>
     </ProtectedContent>
+
 
   );
 }
