@@ -199,6 +199,7 @@ Deno.serve(async (req: Request) => {
       categorySectorId = null,
       documentType = "contract",
       buildMode = "working",
+      bilingual = false,
       parentContext = undefined,
       partiesA = [],
       partiesB = [],
@@ -213,6 +214,7 @@ Deno.serve(async (req: Request) => {
       ? (buildMode as BuildMode)
       : "working";
     const modeSpec = BUILD_MODE_ADDENDUM[safeBuildMode];
+    const safeBilingual = Boolean(bilingual);
 
     if (!name.trim() || !category.trim()) {
       return new Response(
