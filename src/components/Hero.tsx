@@ -56,7 +56,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
               onClick={onStart}
               className="btn-gold btn-sheen w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
             >
-              <Search className="h-[18px] w-[18px]" /> Намери договор
+              <Search className="h-[18px] w-[18px]" /> Намери документ
             </button>
             <a
               href="/build"
