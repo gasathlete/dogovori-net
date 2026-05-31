@@ -709,7 +709,10 @@ export function LiveDraft({
   const [fontSize, setFontSize] = useState<number>(14);
   const editorInputClass = "bg-white text-gray-900 placeholder:text-gray-400 border-gray-300 focus-visible:ring-gold";
   const { user } = useAuth();
-  const fadeActive = !user && !editing;
+  // Fade за всички (не само гости) когато не редактираме и не сме генерирали финален документ —
+  // целта е да задържи интереса и да накара потребителя да завърши въпросника / да изхарчи операция.
+  const fadeActive = !editing;
+
 
 
   if (generated) {
