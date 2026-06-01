@@ -907,12 +907,54 @@ function FoldersTab({
 }
 
 /* ============================ SUBSCRIPTION ============================ */
+type SubRow = {
+  id: string;
+  status: string | null;
+  environment: "sandbox" | "live";
+  price_id: string | null;
+  product_id: string | null;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  created_at: string;
+};
+
+const PLAN_LABELS: Record<string, { name: string; price: string; cycle: string }> = {
+  pro_monthly: { name: "Предприемач — месечен", price: "9.90 €", cycle: "месечно" },
+  pro_yearly: { name: "Предприемач — годишен", price: "99 €", cycle: "годишно" },
+  five_operations: { name: "Пакет 5 операции", price: "1.90 €", cycle: "еднократно" },
+};
+
+const STATUS_META: Record<string, { label: string; tone: "ok" | "warn" | "err" | "info" }> = {
+  active: { label: "Активен", tone: "ok" },
+  trialing: { label: "Пробен период", tone: "ok" },
+  past_due: { label: "Неуспешно плащане", tone: "err" },
+  unpaid: { label: "Неплатен", tone: "err" },
+  canceled: { label: "Прекратен", tone: "warn" },
+  incomplete: { label: "Незавършен", tone: "warn" },
+  incomplete_expired: { label: "Изтекъл", tone: "warn" },
+  paused: { label: "Поставен на пауза", tone: "info" },
+};
+
+function formatSubDate(iso: string | null): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString("bg-BG", { day: "2-digit", month: "long", year: "numeric" });
+  } catch { return "—"; }
+}
+
 function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean }) {
   const { user } = useAuth();
   const [busy, setBusy] = useState(false);
   const [checkoutPrice, setCheckoutPrice] = useState<string | null>(null);
-  const [subStatus, setSubStatus] = useState<string | null>(null);
+  const [sub, setSub] = useState<SubRow | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const subStatus = sub?.status ?? null;
+  const planMeta = sub?.price_id ? PLAN_LABELS[sub.price_id] : undefined;
+  const statusMeta = subStatus ? STATUS_META[subStatus] ?? { label: subStatus, tone: "info" as const } : null;
+  const renewLabel = sub?.cancel_at_period_end ? "Достъп до" : "Подновяване на";
   const redirectAfter = searchParams.get("redirect") || "";
   const returnUrl = `${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}${
     redirectAfter ? `&redirect=${encodeURIComponent(redirectAfter)}` : ""
@@ -934,27 +976,29 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
     if (!user) return;
     supabase
       .from("subscriptions")
-      .select("status")
+      .select("id, status, environment, price_id, product_id, current_period_start, current_period_end, cancel_at_period_end, stripe_customer_id, stripe_subscription_id, created_at")
       .eq("user_id", user.id)
-      .order("updated_at", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle()
-      .then(({ data }) => setSubStatus((data as any)?.status ?? null));
+      .then(({ data }) => setSub((data as any) ?? null));
   }, [user]);
 
   const portal = async () => {
     setBusy(true);
+    const env = sub?.environment
+      ?? ((import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string)?.startsWith("pk_test_") ? "sandbox" : "live");
     const { data, error } = await supabase.functions.invoke("customer-portal", {
       body: {
-        environment: (import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string)?.startsWith("pk_test_") ? "sandbox" : "live",
+        environment: env,
         returnUrl: window.location.origin + "/account?tab=subscription",
       },
     });
     setBusy(false);
     const errMsg = (data as any)?.error || error?.message;
     if (errMsg?.includes("No subscription")) {
-      return toast.info("Няма активен Stripe абонамент", {
-        description: "Вашият Предприемач достъп е активиран ръчно от администратор и не се управлява през платежния портал.",
+      return toast.info("Няма Stripe абонамент в този режим", {
+        description: "Достъпът Ви е активиран ръчно от администратор и не се управлява през платежния портал. За промени се свържете с поддръжката.",
       });
     }
     if (errMsg || !data?.url) return toast.error("Грешка", { description: errMsg || "Неуспешно отваряне на портала." });
@@ -1019,17 +1063,49 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
         </div>
       )}
 
+      {sub?.cancel_at_period_end && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+          <div className="flex-1">
+            <p className="font-medium text-amber-600">Абонаментът няма да се поднови</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Имате достъп до {formatSubDate(sub.current_period_end)}. След тази дата планът се прекратява автоматично.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Current plan */}
       <div className="relative overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-7 shadow-soft">
         <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-gold/10 blur-3xl" />
         <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex-1">
-            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold">
+            <div className="flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold">
               <Crown className="h-3.5 w-3.5" /> Текущ план
+              {statusMeta && (
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider ${
+                    statusMeta.tone === "ok"
+                      ? "bg-emerald-500/15 text-emerald-500"
+                      : statusMeta.tone === "warn"
+                      ? "bg-amber-500/15 text-amber-500"
+                      : statusMeta.tone === "err"
+                      ? "bg-destructive/15 text-destructive"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {statusMeta.label}
+                </span>
+              )}
             </div>
             <h3 className="mt-2 font-serif text-3xl font-bold tracking-tight">
-              {isPro ? "Предприемач" : "Безплатен"}
+              {planMeta?.name ?? (isPro ? "Предприемач" : "Безплатен")}
             </h3>
+            {planMeta && (
+              <p className="mt-1 text-sm font-medium text-foreground/80">
+                {planMeta.price} · {planMeta.cycle}
+              </p>
+            )}
             <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
               {isPro
                 ? `Използвани ${proMonthlyUsed} от ${proMonthlyCap} операции за текущия период.`
@@ -1072,6 +1148,112 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
           )}
         </div>
       </div>
+
+      {/* Subscription management details */}
+      {sub && (
+        <div className="rounded-2xl border border-border/60 bg-card/40 p-7">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="font-serif text-xl font-bold tracking-tight">Управление на абонамента</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Всички промени се извършват сигурно през платежния портал на Stripe.
+              </p>
+            </div>
+            <Button onClick={portal} disabled={busy} variant="outline" className="border-gold/40">
+              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <CreditCard className="mr-2 h-4 w-4" /> Отвори платежен портал
+            </Button>
+          </div>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl border border-border/50 bg-background/50 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">План</p>
+              <p className="mt-1 text-sm font-medium">{planMeta?.name ?? sub.price_id ?? "—"}</p>
+              {planMeta && <p className="text-xs text-muted-foreground">{planMeta.price} · {planMeta.cycle}</p>}
+            </div>
+            <div className="rounded-xl border border-border/50 bg-background/50 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Статус</p>
+              <p className="mt-1 text-sm font-medium">{statusMeta?.label ?? "—"}</p>
+              <p className="text-xs text-muted-foreground">Режим: {sub.environment === "live" ? "реални плащания" : "тест"}</p>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-background/50 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Текущ период</p>
+              <p className="mt-1 text-sm font-medium">от {formatSubDate(sub.current_period_start)}</p>
+              <p className="text-xs text-muted-foreground">начална дата</p>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-background/50 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{renewLabel}</p>
+              <p className="mt-1 text-sm font-medium">{formatSubDate(sub.current_period_end)}</p>
+              <p className="text-xs text-muted-foreground">
+                {sub.cancel_at_period_end ? "няма да се поднови" : "автоматично подновяване"}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <button onClick={portal} disabled={busy} className="group flex items-start gap-3 rounded-xl border border-border/50 bg-background/40 p-4 text-left transition-colors hover:border-gold/40 hover:bg-background/70 disabled:opacity-60">
+              <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+              <div>
+                <p className="text-sm font-medium">Метод на плащане</p>
+                <p className="text-xs text-muted-foreground">Смяна на карта или адрес</p>
+              </div>
+            </button>
+            <button onClick={portal} disabled={busy} className="group flex items-start gap-3 rounded-xl border border-border/50 bg-background/40 p-4 text-left transition-colors hover:border-gold/40 hover:bg-background/70 disabled:opacity-60">
+              <FileText className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+              <div>
+                <p className="text-sm font-medium">Фактури и плащания</p>
+                <p className="text-xs text-muted-foreground">Изтегли PDF фактури</p>
+              </div>
+            </button>
+            <button onClick={portal} disabled={busy} className="group flex items-start gap-3 rounded-xl border border-border/50 bg-background/40 p-4 text-left transition-colors hover:border-gold/40 hover:bg-background/70 disabled:opacity-60">
+              <RefreshCw className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+              <div>
+                <p className="text-sm font-medium">Смяна на план</p>
+                <p className="text-xs text-muted-foreground">Месечен ↔ годишен</p>
+              </div>
+            </button>
+            <button onClick={portal} disabled={busy} className="group flex items-start gap-3 rounded-xl border border-border/50 bg-background/40 p-4 text-left transition-colors hover:border-destructive/40 hover:bg-background/70 disabled:opacity-60">
+              <X className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+              <div>
+                <p className="text-sm font-medium">Откажи абонамента</p>
+                <p className="text-xs text-muted-foreground">Достъп до края на периода</p>
+              </div>
+            </button>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3 rounded-xl border border-border/40 bg-background/30 p-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <Lock className="h-3.5 w-3.5 text-gold" />
+              <span>Картовите данни се обработват от Stripe — не се съхраняват на наш сървър.</span>
+            </div>
+            <a href="/contacts" className="inline-flex items-center gap-1 font-medium text-gold hover:underline">
+              <Mail className="h-3.5 w-3.5" /> Свържи се с поддръжката
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* Manual-activation notice when isPro but no Stripe sub */}
+      {isPro && !sub && (
+        <div className="rounded-2xl border border-border/60 bg-card/40 p-6">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
+            <div className="flex-1">
+              <p className="font-medium">Достъп активиран ръчно</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Вашият Предприемач достъп е активиран от администратор и не се управлява през платежния портал.
+                {(quota as any)?.pro_until && (
+                  <> Валиден до <span className="font-medium text-foreground">{formatSubDate((quota as any).pro_until)}</span>.</>
+                )}
+              </p>
+              <Button asChild variant="outline" size="sm" className="mt-3 border-gold/40">
+                <a href="/contacts"><Mail className="mr-2 h-4 w-4" /> Свържи се с поддръжката</a>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {!isPro && (
         <>
