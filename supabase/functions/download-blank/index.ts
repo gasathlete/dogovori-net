@@ -309,6 +309,7 @@ Deno.serve(async (req: Request) => {
     const rawSectorId = String(body?.sector_id ?? "").trim();
     const rawDocumentName = String(body?.document_name ?? "").trim();
     const rawSectorTitle = String(body?.sector_title ?? "").trim();
+    const isBilingual = Boolean(body?.bilingual);
 
     // Strict input validation to prevent prompt-cache poisoning. The generated
     // blank is shared globally by (sector_id, document_name), so untrusted
