@@ -16,6 +16,48 @@ import {
   TEMPLATE_DRAFT_SLUGS,
 } from "@/data/templateDrafts/index";
 
+// Maps the leading "kind" word of the Bulgarian docName to the slug prefix
+// every draft file of that kind uses. This is a HARD filter for the fuzzy
+// fallback so that e.g. "Договор за …" can never resolve to a draft starting
+// with `prilozhenie-` / `aneks-` / `dopalnitelno-` even when the appendix
+// shares more tokens with the docName (because the appendix's name literally
+// contains the word "приложение" / "анекс" / …).
+const KIND_PREFIXES: Array<{ test: RegExp; prefix: string }> = [
+  // Compound prefixes first — order matters (more specific before generic).
+  { test: /^\s*количествено[\s\-]*стойностна\s+сметка/i, prefix: "kolichestveno-stoynostna-smetka" },
+  { test: /^\s*допълнително\s+споразумение/i, prefix: "dopalnitelno" },
+  { test: /^\s*договор/i, prefix: "dogovor" },
+  { test: /^\s*предварителен\s+договор/i, prefix: "predvaritelen-dogovor" },
+  { test: /^\s*приложение/i, prefix: "prilozhenie" },
+  { test: /^\s*анекс/i, prefix: "aneks" },
+  { test: /^\s*споразумение/i, prefix: "sporazumenie" },
+  { test: /^\s*декларация/i, prefix: "deklaratsiya" },
+  { test: /^\s*пълномощно/i, prefix: "palnomoshtno" },
+  { test: /^\s*протокол/i, prefix: "protokol" },
+  { test: /^\s*оферта/i, prefix: "oferta" },
+  { test: /^\s*фактура/i, prefix: "faktura" },
+  { test: /^\s*разписка/i, prefix: "razpiska" },
+  { test: /^\s*покана/i, prefix: "pokana" },
+  { test: /^\s*заявление/i, prefix: "zayavlenie" },
+  { test: /^\s*молба/i, prefix: "molba" },
+  { test: /^\s*решение/i, prefix: "reshenie" },
+  { test: /^\s*акт\b/i, prefix: "akt" },
+  { test: /^\s*сертификат/i, prefix: "sertifikat" },
+  { test: /^\s*уведомление/i, prefix: "uvedomlenie" },
+  { test: /^\s*препоръка/i, prefix: "preporaka" },
+  { test: /^\s*заповед/i, prefix: "zapoved" },
+  { test: /^\s*бланка/i, prefix: "blanka" },
+  { test: /^\s*дропшипинг/i, prefix: "dropshipping" },
+  { test: /^\s*длъжностна\s+характеристика/i, prefix: "dlazhnostna-harakteristika" },
+];
+
+function detectKindPrefix(docName: string): string | null {
+  for (const k of KIND_PREFIXES) {
+    if (k.test.test(docName)) return k.prefix;
+  }
+  return null;
+}
+
 function resolveSlug(docName: string): string | null {
   const wanted = slugify(docName);
   if (!wanted) return null;
@@ -24,21 +66,45 @@ function resolveSlug(docName: string): string | null {
   const tokens = wanted.split("-").filter((t) => t.length >= 3);
   if (tokens.length === 0) return null;
 
-  let best: { slug: string; score: number; length: number } | null = null;
-  for (const k of TEMPLATE_DRAFT_SLUGS) {
+  const kindPrefix = detectKindPrefix(docName);
+  // When a kind prefix is recognised, fuzzy match candidates are restricted
+  // to slugs that start with the same prefix. This prevents an appendix /
+  // anex draft from "winning" the fuzzy match for a main contract just
+  // because it shares the word "приложение" / "анекс" in its slug.
+  const candidates = kindPrefix
+    ? TEMPLATE_DRAFT_SLUGS.filter((s) => s.startsWith(kindPrefix + "-") || s === kindPrefix)
+    : TEMPLATE_DRAFT_SLUGS;
+
+  // Stricter threshold: require either >= 2 shared tokens OR >= 50% coverage
+  // of the wanted tokens (whichever is larger). Avoids weak 2-token matches
+  // on long docNames where 2 tokens cover < 20% of the meaning.
+  const minScore = Math.max(2, Math.ceil(tokens.length * 0.5));
+
+  const leadingTokens = new Set(tokens.slice(0, 3));
+
+  let best: { slug: string; score: number; leadingScore: number; length: number } | null = null;
+  for (const k of candidates) {
     let score = 0;
-    for (const t of tokens) if (k.includes(t)) score++;
-    if (score < 2) continue;
+    let leadingScore = 0;
+    for (const t of tokens) {
+      if (k.includes(t)) {
+        score++;
+        if (leadingTokens.has(t)) leadingScore++;
+      }
+    }
+    if (score < minScore) continue;
     if (
       !best ||
       score > best.score ||
-      (score === best.score && k.length < best.length)
+      (score === best.score && leadingScore > best.leadingScore) ||
+      (score === best.score && leadingScore === best.leadingScore && k.length < best.length)
     ) {
-      best = { slug: k, score, length: k.length };
+      best = { slug: k, score, leadingScore, length: k.length };
     }
   }
   return best?.slug ?? null;
 }
+
 
 const draftCache = new Map<string, string>();
 
