@@ -986,6 +986,8 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
 
   const portal = async () => {
     setBusy(true);
+    // Open a placeholder tab synchronously to avoid popup blockers
+    const popup = window.open("about:blank", "_blank");
     const env = sub?.environment
       ?? ((import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string)?.startsWith("pk_test_") ? "sandbox" : "live");
     const { data, error } = await supabase.functions.invoke("customer-portal", {
@@ -997,12 +999,21 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
     setBusy(false);
     const errMsg = (data as any)?.error || error?.message;
     if (errMsg?.includes("No subscription")) {
+      popup?.close();
       return toast.info("Няма Stripe абонамент в този режим", {
         description: "Достъпът Ви е активиран ръчно от администратор и не се управлява през платежния портал. За промени се свържете с поддръжката.",
       });
     }
-    if (errMsg || !data?.url) return toast.error("Грешка", { description: errMsg || "Неуспешно отваряне на портала." });
-    window.open(data.url, "_blank");
+    if (errMsg || !data?.url) {
+      popup?.close();
+      return toast.error("Грешка", { description: errMsg || "Неуспешно отваряне на портала." });
+    }
+    if (popup) {
+      popup.location.href = data.url;
+    } else {
+      // Popup blocked — fall back to same-tab navigation
+      window.location.href = data.url;
+    }
   };
 
   const proFeatures = [
