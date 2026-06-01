@@ -1180,7 +1180,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
                 variant="outline"
                 className="mt-5 border-gold/40 text-gold hover:bg-gold/10"
               >
-                Купи годишен план
+                Купи Годишен Предприемач
               </Button>
               <div className="my-6 h-px bg-border/60" />
               <ul className="space-y-2.5">
