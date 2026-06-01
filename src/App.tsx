@@ -40,6 +40,7 @@ import { AIDisclaimerModal } from "@/components/AIDisclaimerModal";
 const Template = lazy(() => import("./pages/Template.tsx"));
 const Wizard = lazy(() => import("./pages/Wizard.tsx"));
 const BuildContract = lazy(() => import("./pages/BuildContract.tsx"));
+const WizardBilingual = lazy(() => import("./pages/WizardBilingual.tsx"));
 const Catalog = lazy(() => import("./pages/Catalog.tsx"));
 const Category = lazy(() => import("./pages/Category.tsx"));
 const Sector = lazy(() => import("./pages/Sector.tsx"));
