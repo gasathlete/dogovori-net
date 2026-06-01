@@ -108,6 +108,7 @@ const AnimatedRoutes = () => {
         <Route path="/" element={<Index />} />
         <Route path="/wizard/:sectorId" element={<Wizard />} />
         <Route path="/build" element={<BuildContract />} />
+        <Route path="/wizard-bilingual/:sectorId" element={<WizardBilingual />} />
         <Route path="/catalog" element={<Catalog />} />
         <Route path="/karta" element={<SiteMap />} />
         <Route path="/kategoria/:slug" element={<Category />} />
