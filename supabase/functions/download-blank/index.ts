@@ -453,7 +453,9 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({
         ok: true,
         url: signed.signedUrl,
-        filename: `${documentName} - бланка.docx`,
+        filename: isBilingual
+          ? `${documentName} - бланка (BG-EN).docx`
+          : `${documentName} - бланка.docx`,
         cached: !!existing,
         is_pro: !!quota.is_pro,
       }),
