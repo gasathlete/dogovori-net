@@ -1018,7 +1018,7 @@ function TemplateDraftOrSkeleton({
           {rest.map((p, i) => (
             <div key={i} className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
               <p className="whitespace-pre-line text-sm leading-relaxed">{p}</p>
-              <p className="legal-paper-strong whitespace-pre-line text-sm italic leading-relaxed text-foreground/70 md:border-l md:pl-6">
+              <p className="legal-paper-strong whitespace-pre-line text-sm italic leading-relaxed md:border-l md:pl-6">
                 {BILINGUAL_PLACEHOLDER_EN}
               </p>
             </div>
@@ -1085,7 +1085,7 @@ function TemplateDraftOrSkeleton({
             </p>
             <p>се сключи настоящият документ за следното:</p>
           </div>
-          <div className="legal-paper-strong space-y-3 text-sm italic leading-relaxed text-foreground/70 md:border-l md:pl-6">
+          <div className="legal-paper-strong space-y-3 text-sm italic leading-relaxed md:border-l md:pl-6">
             <p>Today, [DATE], in [CITY], between:</p>
             <p>
               <strong>1. {partyA}</strong>
@@ -1113,7 +1113,7 @@ function TemplateDraftOrSkeleton({
                 <h2 className="legal-paper-strong font-serif text-base font-bold uppercase">
                   {c.roman} {titleEn}
                 </h2>
-                <p className="legal-paper-strong mt-2 whitespace-pre-line text-sm italic leading-relaxed text-foreground/70">
+                <p className="legal-paper-strong mt-2 whitespace-pre-line text-sm italic leading-relaxed">
                   {BILINGUAL_PLACEHOLDER_EN}
                 </p>
               </div>
