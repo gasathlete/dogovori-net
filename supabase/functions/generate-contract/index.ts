@@ -84,7 +84,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { sector, contractName, documentName, parties, answers, questions, arbitration } = await req.json();
+    const { sector, contractName, documentName, parties, answers, questions, arbitration, bilingual } = await req.json();
+    const isBilingual = Boolean(bilingual);
 
     // Illegal content guard — block before AI call, log + alert admin.
     const guardText = [
