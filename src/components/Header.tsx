@@ -60,7 +60,7 @@ export function Header() {
         </Link>
 
         {/* Primary nav */}
-        <nav className="hidden flex-1 items-center justify-center gap-8 lg:flex xl:gap-10">
+        <nav className="hidden flex-1 items-center justify-center gap-6 lg:flex xl:gap-9">
           {NAV.map((n) => {
             const active = isActive(n.to);
             return (
@@ -90,7 +90,7 @@ export function Header() {
 
         {/* Actions */}
         <div className="flex items-center gap-3">
-          <span className="hidden h-9 items-center gap-1.5 rounded-full border border-gold/25 bg-gold/[0.06] px-4 text-[11px] font-semibold tracking-[0.12em] text-gold transition-colors hover:bg-gold/10 lg:inline-flex">
+          <span className="hidden h-9 items-center gap-1.5 rounded-full border border-gold/25 bg-gold/[0.06] px-4 text-[11px] font-semibold tracking-[0.12em] text-gold transition-colors hover:bg-gold/10 xl:inline-flex">
             <a
               href="https://lex.bg/laws/ldoc/2121934337"
               target="_blank"
