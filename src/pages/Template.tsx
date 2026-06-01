@@ -15,7 +15,7 @@ import { trackEvent } from "@/lib/analytics";
 import { autoLinkParagraph, createAutoLinkState } from "@/lib/autoLinkBlog";
 import { RELATED_TEMPLATES } from "@/data/relatedTemplates";
 import { getPostBySlug } from "@/lib/blog";
-import { resolveBuildSectorId } from "@/lib/bilingualBuildRouting";
+
 
 export default function TemplatePage() {
   const { slug } = useParams<{ slug: string }>();
