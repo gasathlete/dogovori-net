@@ -45,23 +45,23 @@ export default function WizardPage() {
   const [searchParams] = useSearchParams();
   const docName = searchParams.get("doc") || undefined;
   const returnTo = searchParams.get("returnTo") || "/catalog";
+  const bilingualMode = searchParams.get("bilingual") === "1";
   const navigate = useNavigate();
   const baseSector = sectorId ? getSector(sectorId) : undefined;
   const subWizard = getSubWizard(baseSector, docName);
 
-  // Bilingual documents are generated through the dedicated bilingual wizard
-  // (which renders the BG/EN builder with template-locked chrome). If a user
-  // lands on the regular wizard for a bilingual document (e.g. via direct link
-  // or stale search suggestion), redirect them to the bilingual route.
+  // Bilingual documents are normally generated through the dedicated bilingual
+  // entry point, which redirects here with `?bilingual=1`. Only bounce to the
+  // bilingual wizard when the URL is *not* already flagged as bilingual.
   useEffect(() => {
-    if (!sectorId || !docName) return;
+    if (!sectorId || !docName || bilingualMode) return;
     const isBilingual = CATALOG.some(
       (cat) => cat.sectorId === sectorId && cat.documents.some((d) => d.name === docName && d.bilingual),
     );
     if (isBilingual) {
       navigate(`/wizard-bilingual/${sectorId}?doc=${encodeURIComponent(docName)}`, { replace: true });
     }
-  }, [sectorId, docName, navigate]);
+  }, [sectorId, docName, navigate, bilingualMode]);
 
 
   const sector = useMemo(() => {
