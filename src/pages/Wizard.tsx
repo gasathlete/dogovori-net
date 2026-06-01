@@ -426,6 +426,7 @@ export default function WizardPage() {
           sector_id: sector.id,
           sector_title: sector.title,
           document_name: docName ?? sector.contractName,
+          bilingual: bilingualMode,
         },
       });
       if (error || data?.error) {
