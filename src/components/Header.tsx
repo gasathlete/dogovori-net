@@ -69,7 +69,7 @@ export function Header() {
                 to={n.to}
                 onClick={(e) => handleNav(n.to, e)}
                 className={cn(
-                  "group relative text-[13px] font-medium tracking-wide transition-colors",
+                  "group relative whitespace-nowrap text-[13px] font-medium tracking-wide transition-colors",
                   active
                     ? "text-gold"
                     : "text-foreground/75 hover:text-gold",
