@@ -56,7 +56,10 @@ serve(async (req) => {
       .maybeSingle();
     const isPro =
       !!planRow && (planRow.plan === "pro" || (!!planRow.pro_until && new Date(planRow.pro_until) > new Date()));
-    const watermark = !isPro;
+    const bonusAvailable = (planRow?.bonus_contracts ?? 0) > 0;
+    // Watermark for re-downloads / generic state (no consume happens).
+    // For new downloads we recompute below using `used_bonus`.
+    const watermark = !isPro && !bonusAvailable;
     const userTag = userId.slice(0, 8);
 
     const auditInsert = (action: string, target_id?: string, metadata?: Record<string, unknown>) =>
@@ -156,6 +159,8 @@ serve(async (req) => {
 
     await auditInsert("download", saved.id, { kind, used_bonus: useBonus });
 
+    const newDownloadWatermark = !isPro && !useBonus && !bonusAvailable;
+
     return new Response(
       JSON.stringify({
         ok: true,
@@ -163,7 +168,7 @@ serve(async (req) => {
         title,
         saved_document_id: saved.id,
         free: false,
-        watermark,
+        watermark: newDownloadWatermark,
         user_tag: userTag,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },

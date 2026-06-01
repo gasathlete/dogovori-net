@@ -962,12 +962,16 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   };
 
   const features = [
-    "До 100 операции на месец (договори + бланки + анализи)",
-    "Сваляне на договори в PDF и DOCX",
-    "Сваляне на бланки и приложения",
+    "До 100 операции на месец (договори, бланки и интелигентни анализи от нашата система)",
+    "Двуезични документи (BG/EN) с паралелна колона",
+    "Преглед на живо и стъпков визард за всеки документ",
+    "Интелигентен анализ на качени документи",
     "Дигитален подпис с изображение",
-    "Без воден знак върху документите",
-    "Достъп до всички бъдещи нови договори",
+    "Онлайн подписване — споделяне на документ за подпис през линк",
+    "Сваляне в PDF и DOCX без воден знак",
+    "История, папки и повторно сваляне без брой",
+    "Правен асистент без лимит",
+    "Достъп до всички нови шаблони",
   ];
 
   const proMonthlyUsed = (quota as any)?.pro_monthly_used ?? 0;
@@ -999,7 +1003,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             <p className="mt-2 text-sm text-muted-foreground">
               {isPro
                 ? `${proMonthlyUsed} / ${proMonthlyCap} операции този период.`
-                : `Безплатно: 6 операции общо, след това 2 на месец (договори, бланки или анализи). Използвани: ${(quota as any)?.total_used ?? 0} от 6 общо · ${(quota as any)?.monthly_total_used ?? 0} от 2 този месец.`}
+                : `Безплатен план: 6 операции общо при регистрация, после 2 на месец (договор, бланка или интелигентен анализ от нашата система). Документите се свалят с дискретен воден знак. Използвани: ${(quota as any)?.total_used ?? 0} от 6 общо · ${(quota as any)?.monthly_total_used ?? 0} от 2 този месец.`}
             </p>
             {isPro && (
               <div className="mt-3">
@@ -1062,9 +1066,10 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             <div className="mt-2 font-serif text-2xl font-bold sm:text-3xl">1.90 €</div>
             <p className="mt-1 text-xs text-muted-foreground">Еднократно — пакет от 5 операции</p>
             <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
-              <li>• 5 операции (договор, бланка или анализ)</li>
-              <li>• Без воден знак</li>
-              <li>• Без абонамент · не изтичат</li>
+              <li>• 5 операции по избор (договор, бланка или анализ от нашата система)</li>
+              <li>• Без воден знак върху сваляните документи</li>
+              <li>• Еднократно плащане · операциите не изтичат</li>
+              <li>• Подходящо за инцидентна нужда без абонамент</li>
             </ul>
             <Button
               onClick={() => setCheckoutPrice("five_operations")}
@@ -1105,10 +1110,13 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             </div>
             <p className="mt-1 text-xs text-muted-foreground">мин. 3 места · 100 операции/място/мес</p>
             <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
-              <li>• Споделени шаблони и документи</li>
+              <li>• 100 операции на място/месец (споделен капацитет в екипа)</li>
+              <li>• Споделени шаблони, контакти и папки</li>
+              <li>• Брандирани PDF/DOCX с лого на фирмата</li>
               <li>• Журнал на действията за администратори</li>
-              <li>• Единно фактуриране и достъп с фирмен имейл</li>
-              <li>• Брандирани PDF/DOCX с лого</li>
+              <li>• Споделяне на документи за онлайн подпис</li>
+              <li>• Достъп с фирмен имейл и роли (собственик/админ/член)</li>
+              <li>• Всичко от плана Предприемач за всеки член</li>
             </ul>
             <Button asChild variant="outline" className="mt-6 border-gold/40">
               <a href="/team">Създай екип</a>
