@@ -13,6 +13,11 @@ import {
   AlignmentType,
   Header,
   Footer,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  BorderStyle,
 } from "https://esm.sh/docx@8.5.0";
 import { buildCors } from "../_shared/cors.ts";
 import { getDocumentTypeSpec, inferDocumentType } from "../_shared/document-types.ts";
