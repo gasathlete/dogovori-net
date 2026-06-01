@@ -14,7 +14,7 @@ import { allTemplates } from "@/lib/templateIndex";
 import { slugify } from "@/lib/slugify";
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, type DocumentTypeId } from "@/lib/documentReferences";
 import { inferDocumentType } from "@/lib/documentTypeInference";
-import { resolveBuildSectorId } from "@/lib/bilingualBuildRouting";
+
 
 export default function CatalogPage() {
   const [query, setQuery] = useState("");
