@@ -60,7 +60,7 @@ export function Header() {
         </Link>
 
         {/* Primary nav */}
-        <nav className="hidden flex-1 items-center justify-center gap-10 md:flex">
+        <nav className="hidden flex-1 items-center justify-center gap-6 lg:flex xl:gap-9">
           {NAV.map((n) => {
             const active = isActive(n.to);
             return (
@@ -69,7 +69,7 @@ export function Header() {
                 to={n.to}
                 onClick={(e) => handleNav(n.to, e)}
                 className={cn(
-                  "group relative text-[13px] font-medium tracking-wide transition-colors",
+                  "group relative whitespace-nowrap text-[13px] font-medium tracking-wide transition-colors",
                   active
                     ? "text-gold"
                     : "text-foreground/75 hover:text-gold",
@@ -90,7 +90,7 @@ export function Header() {
 
         {/* Actions */}
         <div className="flex items-center gap-3">
-          <span className="hidden h-9 items-center gap-1.5 rounded-full border border-gold/25 bg-gold/[0.06] px-4 text-[11px] font-semibold tracking-[0.12em] text-gold transition-colors hover:bg-gold/10 lg:inline-flex">
+          <span className="hidden h-9 items-center gap-1.5 rounded-full border border-gold/25 bg-gold/[0.06] px-4 text-[11px] font-semibold tracking-[0.12em] text-gold transition-colors hover:bg-gold/10 xl:inline-flex">
             <a
               href="https://lex.bg/laws/ldoc/2121934337"
               target="_blank"
@@ -142,7 +142,7 @@ export function Header() {
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Затвори менюто" : "Отвори менюто"}
             aria-expanded={open}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border/60 bg-card/40 text-foreground transition-colors hover:border-gold/50 hover:text-gold md:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border/60 bg-card/40 text-foreground transition-colors hover:border-gold/50 hover:text-gold lg:hidden"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -150,7 +150,7 @@ export function Header() {
       </div>
 
       {open && (
-        <nav className="origin-top animate-accordion-down overflow-hidden border-t border-border/60 bg-navy/95 backdrop-blur-xl md:hidden">
+        <nav className="origin-top animate-accordion-down overflow-hidden border-t border-border/60 bg-navy/95 backdrop-blur-xl lg:hidden">
           <div className="container flex flex-col py-3">
             {NAV.map((n) => (
               <Link

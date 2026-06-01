@@ -23,13 +23,13 @@ export function Logo({ className = "", compact = false }: { className?: string; 
             href="https://im-development.imot.bg"
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden cursor-pointer items-center text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70 transition-colors hover:text-gold sm:inline-flex"
+            className="hidden cursor-pointer items-center text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70 transition-colors hover:text-gold xl:inline-flex"
           >
             Powered by <span className="ml-1 text-gold/80">IM Development</span>
           </a>
         </div>
         <span
-          className={`${compact ? "hidden sm:block" : ""} mt-1.5 text-[9px] font-medium uppercase tracking-[0.28em] text-muted-foreground/80`}
+          className={`${compact ? "hidden xl:block" : ""} mt-1.5 text-[9px] font-medium uppercase tracking-[0.28em] text-muted-foreground/80`}
         >
           Архитект на Вашите сделки
         </span>
