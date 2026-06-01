@@ -961,32 +961,55 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
     window.open(data.url, "_blank");
   };
 
-  const features = [
-    "До 100 операции на месец (договори, бланки и интелигентни анализи от нашата система)",
+  const proFeatures = [
+    "До 100 операции на месец (договори, бланки и интелигентни анализи)",
     "Двуезични документи (BG/EN) с паралелна колона",
-    "Преглед на живо и стъпков визард за всеки документ",
+    "Преглед на живо и стъпков визард",
     "Интелигентен анализ на качени документи",
     "Дигитален подпис с изображение",
-    "Онлайн подписване — споделяне на документ за подпис през линк",
+    "Онлайн подписване чрез споделен линк",
     "Сваляне в PDF и DOCX без воден знак",
     "История, папки и повторно сваляне без брой",
     "Правен асистент без лимит",
     "Достъп до всички нови шаблони",
   ];
 
+  const teamFeatures = [
+    "100 операции на място/месец (споделен капацитет)",
+    "Споделени шаблони, контакти и папки",
+    "Брандирани PDF/DOCX с лого на фирмата",
+    "Журнал на действията за администратори",
+    "Споделяне за онлайн подпис",
+    "Достъп с фирмен имейл и роли",
+    "Всичко от плана Предприемач за всеки член",
+  ];
+
+  const oneOffFeatures = [
+    "5 операции по избор",
+    "Без воден знак",
+    "Без абонамент · не изтичат",
+  ];
+
   const proMonthlyUsed = (quota as any)?.pro_monthly_used ?? 0;
   const proMonthlyCap = 100;
   const proPct = Math.min(100, Math.round((proMonthlyUsed / proMonthlyCap) * 100));
 
+  const Feature = ({ children }: { children: React.ReactNode }) => (
+    <li className="flex items-start gap-2.5 text-[13px] leading-relaxed text-foreground/85">
+      <Check className="mt-0.5 h-4 w-4 shrink-0 text-gold" strokeWidth={2.5} />
+      <span>{children}</span>
+    </li>
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {subStatus === "past_due" && (
-        <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/10 p-4">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
           <div className="flex-1">
             <p className="font-medium text-destructive">Плащането за абонамента не премина</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Картата Ви е отказана или изтекла. Stripe ще опита отново автоматично, но за да избегнете прекъсване — обновете данните за плащане.
+              Картата Ви е отказана или изтекла. Ще опитаме отново автоматично, но за да избегнете прекъсване — обновете данните за плащане.
             </p>
             <Button onClick={portal} disabled={busy} size="sm" variant="outline" className="mt-3 border-destructive/40 text-destructive hover:bg-destructive/10">
               {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -995,135 +1018,208 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
           </div>
         </div>
       )}
-      <div className="rounded-xl border border-gold/30 bg-gradient-card p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="text-xs uppercase tracking-wider text-gold">Текущ план</div>
-            <h3 className="mt-1 font-serif text-2xl font-bold">{isPro ? "Предприемач" : "Безплатен"}</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
+
+      {/* Current plan */}
+      <div className="relative overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-7 shadow-soft">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-gold/10 blur-3xl" />
+        <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold">
+              <Crown className="h-3.5 w-3.5" /> Текущ план
+            </div>
+            <h3 className="mt-2 font-serif text-3xl font-bold tracking-tight">
+              {isPro ? "Предприемач" : "Безплатен"}
+            </h3>
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
               {isPro
-                ? `${proMonthlyUsed} / ${proMonthlyCap} операции този период.`
-                : `Безплатен план: 6 операции общо при регистрация, после 2 на месец (договор, бланка или интелигентен анализ от нашата система). Документите се свалят с дискретен воден знак. Използвани: ${(quota as any)?.total_used ?? 0} от 6 общо · ${(quota as any)?.monthly_total_used ?? 0} от 2 този месец.`}
+                ? `Използвани ${proMonthlyUsed} от ${proMonthlyCap} операции за текущия период.`
+                : `6 операции общо при регистрация, после 2 на месец. Документите се свалят с дискретен воден знак. Използвани: ${(quota as any)?.total_used ?? 0} от 6 общо · ${(quota as any)?.monthly_total_used ?? 0} от 2 този месец.`}
             </p>
+
             {isPro && (
-              <div className="mt-3">
-                <div className="h-2 overflow-hidden rounded-full bg-muted">
+              <div className="mt-5 max-w-md">
+                <div className="flex items-center justify-between text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  <span>Капацитет</span>
+                  <span className="text-gold">{proMonthlyUsed} / {proMonthlyCap}</span>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted/60">
                   <div className="h-full bg-gradient-gold transition-all" style={{ width: `${proPct}%` }} />
                 </div>
                 {proPct >= 90 && (
-                  <p className="mt-2 text-xs text-gold">Наближавате месечния лимит. Помислете за план Екип за повече капацитет.</p>
+                  <p className="mt-2 text-xs text-gold">Наближавате месечния лимит. Помислете за план Екип.</p>
                 )}
               </div>
             )}
+
             {!isPro && ((quota as any)?.bonus_contracts ?? 0) > 0 && (
-              <p className="mt-2 text-sm text-gold">
-                Налични операции: {(quota as any)?.bonus_contracts}
-              </p>
+              <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-semibold text-gold">
+                <Sparkles className="h-3.5 w-3.5" />
+                Налични купени операции: {(quota as any)?.bonus_contracts}
+              </div>
             )}
           </div>
-          <Crown className="h-8 w-8 text-gold" />
+
+          {isPro && (
+            <div className="flex shrink-0 flex-col gap-2 sm:items-end">
+              <Button onClick={portal} disabled={busy} variant="outline" className="border-gold/40">
+                {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Управление на абонамент
+              </Button>
+              <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-gold">
+                <a href="/team">План Екип за фирми →</a>
+              </Button>
+            </div>
+          )}
         </div>
-        {isPro && (
-          <div className="mt-6 flex flex-wrap gap-2">
-            <Button onClick={portal} disabled={busy} variant="outline" className="border-gold/40">
-              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Управление на абонамент
-            </Button>
-            <Button asChild variant="outline" className="border-gold/40">
-              <a href="/team">План Екип за фирми →</a>
-            </Button>
-          </div>
-        )}
       </div>
 
       {!isPro && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Monthly — first on mobile */}
-          <div className="relative order-1 flex flex-col rounded-xl border-2 border-gold bg-gradient-card p-5 shadow-gold sm:p-6 lg:order-2">
-            <div className="absolute -top-3 left-4 rounded-full bg-gradient-gold px-3 py-0.5 text-xs font-bold text-navy">
-              Най-популярен
-            </div>
-            <div className="text-xs uppercase tracking-wider text-gold">Предприемач — месечно</div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-serif text-2xl font-bold sm:text-3xl">9.90 €</span>
-              <span className="text-sm text-muted-foreground line-through">29.90 €</span>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">на месец · отказ по всяко време</p>
-            <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
-              {features.map((f) => (<li key={f}>• {f}</li>))}
-            </ul>
-            <Button
-              onClick={() => setCheckoutPrice("pro_monthly")}
-              className="mt-6 bg-gradient-gold text-navy hover:shadow-gold"
-            >
-              Премини на Предприемач
-            </Button>
+        <>
+          {/* Pricing header */}
+          <div className="text-center">
+            <h2 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl">Изберете правилния план за Вас</h2>
+            <p className="mt-2 text-sm text-muted-foreground">Прозрачно ценообразуване · ДДС включено · отказ по всяко време</p>
           </div>
 
-          {/* 5 операции */}
-          <div className="order-2 flex flex-col rounded-xl border border-border/60 bg-gradient-card p-5 sm:p-6 lg:order-1">
-            <div className="text-xs uppercase tracking-wider text-muted-foreground">5 операции</div>
-            <div className="mt-2 font-serif text-2xl font-bold sm:text-3xl">1.90 €</div>
-            <p className="mt-1 text-xs text-muted-foreground">Еднократно — пакет от 5 операции</p>
-            <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
-              <li>• 5 операции по избор (договор, бланка или анализ от нашата система)</li>
-              <li>• Без воден знак върху сваляните документи</li>
-              <li>• Еднократно плащане · операциите не изтичат</li>
-              <li>• Подходящо за инцидентна нужда без абонамент</li>
-            </ul>
-            <Button
-              onClick={() => setCheckoutPrice("five_operations")}
-              variant="outline"
-              className="mt-6 border-gold/40"
-            >
-              Купи за 1.90 €
-            </Button>
+          {/* Pricing grid */}
+          <div className="grid gap-5 lg:grid-cols-3">
+            {/* Monthly — featured center */}
+            <div className="relative flex flex-col rounded-2xl border-2 border-gold bg-gradient-card p-7 shadow-gold lg:order-2 lg:scale-[1.02]">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-gold px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-navy shadow-soft">
+                Най-популярен
+              </div>
+              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold">
+                <Crown className="h-3.5 w-3.5" /> Предприемач
+              </div>
+              <h3 className="mt-2 font-serif text-2xl font-bold">Месечен план</h3>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="font-serif text-4xl font-bold text-foreground">9.90 €</span>
+                <span className="text-sm text-muted-foreground line-through">29.90 €</span>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">на месец · ДДС вкл. · отказ по всяко време</p>
+              <Button
+                onClick={() => setCheckoutPrice("pro_monthly")}
+                className="mt-5 bg-gradient-gold text-navy hover:shadow-gold"
+              >
+                Премини на Предприемач
+              </Button>
+              <div className="my-6 h-px bg-gold/15" />
+              <ul className="space-y-2.5">
+                {proFeatures.map((f) => (<Feature key={f}>{f}</Feature>))}
+              </ul>
+            </div>
+
+            {/* Yearly */}
+            <div className="relative flex flex-col rounded-2xl border border-border/60 bg-gradient-card p-7 transition-colors hover:border-gold/40 lg:order-3">
+              <div className="absolute -top-3 right-5 rounded-full border border-gold/40 bg-navy px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gold">
+                −17%
+              </div>
+              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <Crown className="h-3.5 w-3.5" /> Предприемач
+              </div>
+              <h3 className="mt-2 font-serif text-2xl font-bold">Годишен план</h3>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="font-serif text-4xl font-bold text-foreground">99 €</span>
+                <span className="text-sm text-muted-foreground line-through">118.80 €</span>
+              </div>
+              <p className="mt-1 text-xs text-gold">≈ 8.25 €/месец · 2 безплатни месеца</p>
+              <Button
+                onClick={() => setCheckoutPrice("pro_yearly")}
+                variant="outline"
+                className="mt-5 border-gold/40 text-gold hover:bg-gold/10"
+              >
+                Купи годишен план
+              </Button>
+              <div className="my-6 h-px bg-border/60" />
+              <ul className="space-y-2.5">
+                {proFeatures.map((f) => (<Feature key={f}>{f}</Feature>))}
+                <Feature>2 безплатни месеца спрямо месечния</Feature>
+              </ul>
+            </div>
+
+            {/* 5 operations */}
+            <div className="flex flex-col rounded-2xl border border-border/60 bg-gradient-card p-7 transition-colors hover:border-gold/40 lg:order-1">
+              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <Sparkles className="h-3.5 w-3.5" /> Еднократно
+              </div>
+              <h3 className="mt-2 font-serif text-2xl font-bold">5 операции</h3>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="font-serif text-4xl font-bold text-foreground">1.90 €</span>
+                <span className="text-sm text-muted-foreground">/ пакет</span>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">без абонамент · операциите не изтичат</p>
+              <Button
+                onClick={() => setCheckoutPrice("five_operations")}
+                variant="outline"
+                className="mt-5 border-border/80"
+              >
+                Купи за 1.90 €
+              </Button>
+              <div className="my-6 h-px bg-border/60" />
+              <ul className="space-y-2.5">
+                {oneOffFeatures.map((f) => (<Feature key={f}>{f}</Feature>))}
+                <Feature>Подходящо за инцидентна нужда</Feature>
+              </ul>
+            </div>
           </div>
 
-          {/* Yearly */}
-          <div className="order-3 flex flex-col rounded-xl border border-border/60 bg-gradient-card p-5 sm:p-6">
-            <div className="text-xs uppercase tracking-wider text-muted-foreground">Предприемач — годишно</div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-serif text-2xl font-bold sm:text-3xl">99 €</span>
-              <span className="text-sm text-muted-foreground line-through">118.80 €</span>
+          {/* Team — separate emphasis */}
+          <div className="rounded-2xl border border-gold/30 bg-gradient-card p-7">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold">
+                  <Building2 className="h-3.5 w-3.5" /> За фирми и екипи
+                </div>
+                <h3 className="mt-2 font-serif text-2xl font-bold">План Екип</h3>
+                <div className="mt-3 flex items-baseline gap-2">
+                  <span className="font-serif text-3xl font-bold">7.90 €</span>
+                  <span className="text-sm text-muted-foreground">/ място / месец</span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">мин. 3 места (23.70 €/мес) · 100 операции/място/мес</p>
+                <Button asChild className="mt-5 bg-gradient-gold text-navy hover:shadow-gold">
+                  <a href="/team">Създай екип</a>
+                </Button>
+              </div>
+              <ul className="grid flex-1 gap-2.5 sm:grid-cols-2">
+                {teamFeatures.map((f) => (<Feature key={f}>{f}</Feature>))}
+              </ul>
             </div>
-            <p className="mt-1 text-xs text-gold">Спестявате ~17% (≈ 8.25 €/месец)</p>
-            <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
-              {features.map((f) => (<li key={f}>• {f}</li>))}
-              <li>• 2 безплатни месеца спрямо месечния</li>
-            </ul>
-            <Button
-              onClick={() => setCheckoutPrice("pro_yearly")}
-              variant="outline"
-              className="mt-6 border-gold/40"
-            >
-              Купи годишен план
-            </Button>
           </div>
 
-          {/* Team */}
-          <div className="order-4 flex flex-col rounded-xl border border-gold/40 bg-gradient-card p-5 sm:p-6">
-            <div className="text-xs uppercase tracking-wider text-gold">Екип — за фирми</div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-serif text-2xl font-bold sm:text-3xl">7.90 €</span>
-              <span className="text-sm text-muted-foreground">/място/мес</span>
+          {/* Trust strip */}
+          <div className="grid gap-4 rounded-xl border border-border/60 bg-card/30 p-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="flex items-start gap-3">
+              <Lock className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+              <div>
+                <p className="text-xs font-semibold text-foreground">Сигурно плащане</p>
+                <p className="text-[11px] text-muted-foreground">Stripe · картови данни не се съхраняват</p>
+              </div>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">мин. 3 места · 100 операции/място/мес</p>
-            <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
-              <li>• 100 операции на място/месец (споделен капацитет в екипа)</li>
-              <li>• Споделени шаблони, контакти и папки</li>
-              <li>• Брандирани PDF/DOCX с лого на фирмата</li>
-              <li>• Журнал на действията за администратори</li>
-              <li>• Споделяне на документи за онлайн подпис</li>
-              <li>• Достъп с фирмен имейл и роли (собственик/админ/член)</li>
-              <li>• Всичко от плана Предприемач за всеки член</li>
-            </ul>
-            <Button asChild variant="outline" className="mt-6 border-gold/40">
-              <a href="/team">Създай екип</a>
-            </Button>
+            <div className="flex items-start gap-3">
+              <RefreshCw className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+              <div>
+                <p className="text-xs font-semibold text-foreground">Отказ по всяко време</p>
+                <p className="text-[11px] text-muted-foreground">Без скрити такси и ангажименти</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+              <div>
+                <p className="text-xs font-semibold text-foreground">ДДС включено</p>
+                <p className="text-[11px] text-muted-foreground">Прозрачни цени в евро · 20% ДДС</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+              <div>
+                <p className="text-xs font-semibold text-foreground">EU фактуриране</p>
+                <p className="text-[11px] text-muted-foreground">Шаблон на фактура за всяко плащане</p>
+              </div>
+            </div>
           </div>
-        </div>
+        </>
       )}
+
 
       <Dialog open={!!checkoutPrice} onOpenChange={(o) => !o && setCheckoutPrice(null)}>
         <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto p-0" aria-describedby={undefined}>
