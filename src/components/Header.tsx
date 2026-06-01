@@ -60,7 +60,7 @@ export function Header() {
         </Link>
 
         {/* Primary nav */}
-        <nav className="hidden flex-1 items-center justify-center gap-10 md:flex">
+        <nav className="hidden flex-1 items-center justify-center gap-8 lg:flex xl:gap-10">
           {NAV.map((n) => {
             const active = isActive(n.to);
             return (
@@ -142,7 +142,7 @@ export function Header() {
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Затвори менюто" : "Отвори менюто"}
             aria-expanded={open}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border/60 bg-card/40 text-foreground transition-colors hover:border-gold/50 hover:text-gold md:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border/60 bg-card/40 text-foreground transition-colors hover:border-gold/50 hover:text-gold lg:hidden"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -150,7 +150,7 @@ export function Header() {
       </div>
 
       {open && (
-        <nav className="origin-top animate-accordion-down overflow-hidden border-t border-border/60 bg-navy/95 backdrop-blur-xl md:hidden">
+        <nav className="origin-top animate-accordion-down overflow-hidden border-t border-border/60 bg-navy/95 backdrop-blur-xl lg:hidden">
           <div className="container flex flex-col py-3">
             {NAV.map((n) => (
               <Link
