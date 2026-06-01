@@ -364,7 +364,9 @@ Deno.serve(async (req: Request) => {
     // Cache version prefix. Bumped to v3 — initial blanks now use a
     // higher-quality model (gemini-2.5-pro) and document-type-aware structure
     // (разписка ≠ договор ≠ декларация ≠ пълномощно etc).
-    const CACHE_VERSION = "v3";
+    // Bilingual blanks live under a separate `v3-bilingual` namespace so they
+    // never collide with the monolingual cache for the same (sector, document).
+    const CACHE_VERSION = isBilingual ? "v3-bilingual" : "v3";
     const existingPath = existing?.storage_path as string | undefined;
     let storagePath: string | undefined =
       existingPath && existingPath.startsWith(`${CACHE_VERSION}/`) ? existingPath : undefined;
@@ -376,9 +378,9 @@ Deno.serve(async (req: Request) => {
 
       // Match the document type so the AI doesn't render every blank as a contract.
       const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName));
-      const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Специфика за този вид документ (${docTypeSpec.label}) ---\n${docTypeSpec.systemAddendum}`;
+      const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Специфика за този вид документ (${docTypeSpec.label}) ---\n${docTypeSpec.systemAddendum}${isBilingual ? BILINGUAL_ADDENDUM : ""}`;
 
-      const userPrompt = `Сектор: ${sectorTitle || sectorId}\nВид документ: ${docTypeSpec.label}\nКонкретен документ: ${documentName}\n\nГенерирай професионална българска правна БЛАНКА (празен шаблон) за този КОНКРЕТЕН ВИД документ. Спазвай структурата за „${docTypeSpec.label}" — не я смесвай с друг вид документ.`;
+      const userPrompt = `Сектор: ${sectorTitle || sectorId}\nВид документ: ${docTypeSpec.label}\nКонкретен документ: ${documentName}\n\nГенерирай професионална българска правна БЛАНКА (празен шаблон) за този КОНКРЕТЕН ВИД документ. Спазвай структурата за „${docTypeSpec.label}" — не я смесвай с друг вид документ.${isBilingual ? "\n\nЗАДЪЛЖИТЕЛНО: добави паралелен английски превод в полетата title_en, preamble_en, closing_en и в clauses[].title_en/body_en (виж системния промпт за билингвален режим)." : ""}`;
 
       const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -421,7 +423,7 @@ Deno.serve(async (req: Request) => {
       const raw = aiJson?.choices?.[0]?.message?.content ?? "";
       const blank = extractJson(raw);
 
-      const docxBytes = await buildDocx(blank);
+      const docxBytes = await buildDocx(blank, isBilingual);
       storagePath = `${CACHE_VERSION}/${safeKey(sectorId)}/${safeKey(documentName)}.docx`;
 
       const { error: upErr } = await admin.storage
