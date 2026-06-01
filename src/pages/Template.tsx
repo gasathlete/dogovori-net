@@ -327,29 +327,8 @@ export default function TemplatePage() {
 
 
 
-        {draftText && (
-          <Section title="Готов образец">
-            <p className="mb-4 text-sm text-muted-foreground">
-              По-долу е пълният текст на бланката. Полетата в <code className="rounded bg-muted/40 px-1 font-mono text-xs">[квадратни скоби]</code> се попълват според Вашата ситуация. Можете да копирате текста или да го свалите като PDF/DOCX през бутона по-горе.
-            </p>
-            <LegalDisclaimer variant="subtle" className="mb-4">
-              Бланката е <strong>примерен образец</strong>, генериран с моделиран по българското законодателство ИИ, и <strong>не представлява правен съвет</strong>. Прегледайте текста и при значими сделки се консултирайте с адвокат или нотариус.
-            </LegalDisclaimer>
-            <div className="rounded-xl border border-gold/20 bg-card/40 p-5 md:p-7">
-              <pre className="whitespace-pre-wrap font-serif text-[15px] leading-[1.75] text-foreground/95">
-                {draftText}
-              </pre>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <Link to={wizardHref} className="btn-gold btn-sheen">
-                Попълни автоматично <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link to={blankWizardHref} className="btn-ghost-gold normal-case tracking-normal">
-                <Download className="h-4 w-4" /> Свали PDF/DOCX
-              </Link>
-            </div>
-          </Section>
-        )}
+        {/* Готовият образец е скрит от потребителя — използва се само от системата при зареждане на работния документ след „Създай“. */}
+
 
         <Section title="Кога се използва този договор">
           <ul className="space-y-2">
