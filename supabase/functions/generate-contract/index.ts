@@ -226,6 +226,12 @@ ${docTypeSpec.systemAddendum}
       throw new Error("AI отговорът не може да бъде анализиран като JSON");
     }
 
+    // Defensive: ensure bilingual flag is set on contract when requested,
+    // so exporters render BG/EN two-column layout reliably.
+    if (isBilingual && parsed?.contract) {
+      parsed.contract.bilingual = true;
+    }
+
     // Persist to cache for future identical requests (best-effort).
     try {
       await admin.from("template_cache").upsert({ hash: cacheHash, payload: parsed, created_at: new Date().toISOString() });
