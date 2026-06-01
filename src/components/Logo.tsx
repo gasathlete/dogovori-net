@@ -2,8 +2,8 @@ import logoImg from "@/assets/logo-dogovori.webp";
 
 export function Logo({ className = "", compact = false }: { className?: string; compact?: boolean }) {
   return (
-    <div className={`flex items-center gap-2 sm:gap-3 ${className}`}>
-      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-gold/30 bg-navy-light/60 shadow-soft">
+    <div className={`flex items-center gap-3 ${className}`}>
+      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-gold/30 bg-navy-light/60 shadow-soft ring-1 ring-inset ring-gold/10">
         <img
           src={logoImg}
           alt="Dogovori.net лого"
@@ -14,21 +14,23 @@ export function Logo({ className = "", compact = false }: { className?: string; 
           className="h-9 w-9 object-contain"
         />
       </div>
-      <div className="flex min-w-0 flex-col leading-tight">
-        <div className="flex items-center gap-2">
-          <span className="truncate font-serif text-lg font-bold tracking-tight text-foreground sm:text-xl">
+      <div className="flex min-w-0 flex-col leading-none">
+        <div className="flex items-baseline gap-2.5">
+          <span className="truncate font-serif text-xl font-bold tracking-tight text-foreground">
             Dogovori<span className="text-gold">.net</span>
           </span>
           <a
             href="https://im-development.imot.bg"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex cursor-pointer items-center text-[9px] font-medium uppercase tracking-[0.14em] text-muted-foreground/80 transition-colors hover:text-gold"
+            className="hidden cursor-pointer items-center text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70 transition-colors hover:text-gold sm:inline-flex"
           >
-            Powered by <span className="ml-0.5 text-gold/80">IM Development</span>
+            Powered by <span className="ml-1 text-gold/80">IM Development</span>
           </a>
         </div>
-        <span className={`${compact ? "hidden sm:block" : ""} text-[10px] uppercase tracking-[0.2em] text-muted-foreground`}>
+        <span
+          className={`${compact ? "hidden sm:block" : ""} mt-1.5 text-[9px] font-medium uppercase tracking-[0.28em] text-muted-foreground/80`}
+        >
           Архитект на Вашите сделки
         </span>
       </div>

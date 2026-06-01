@@ -44,61 +44,97 @@ export function Header() {
     <header
       className={cn(
         "sticky top-0 z-40 border-b backdrop-blur-xl transition-all duration-300",
-        scrolled ? "border-gold/15 bg-navy/95 shadow-soft" : "border-border/60 bg-navy/80"
+        scrolled
+          ? "border-gold/15 bg-navy/95 shadow-soft"
+          : "border-border/40 bg-navy/80",
       )}
     >
-      <div className="container flex h-16 items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-          <Link to="/" onClick={() => setOpen(false)} className="flex min-w-0 items-center">
-            <Logo compact />
-          </Link>
-        </div>
+      <div className="container flex h-20 items-center justify-between gap-6">
+        {/* Brand */}
+        <Link
+          to="/"
+          onClick={() => setOpen(false)}
+          className="flex min-w-0 items-center transition-opacity hover:opacity-90"
+        >
+          <Logo compact />
+        </Link>
 
-        <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
-          {NAV.map((n) => (
-            <Link
-              key={n.to}
-              to={n.to}
-              onClick={(e) => handleNav(n.to, e)}
-              className={cn(
-                "relative transition-colors hover:text-gold",
-                isActive(n.to) && "text-gold"
-              )}
-            >
-              {n.label}
-              {isActive(n.to) && (
+        {/* Primary nav */}
+        <nav className="hidden flex-1 items-center justify-center gap-10 md:flex">
+          {NAV.map((n) => {
+            const active = isActive(n.to);
+            return (
+              <Link
+                key={n.to}
+                to={n.to}
+                onClick={(e) => handleNav(n.to, e)}
+                className={cn(
+                  "group relative text-[13px] font-medium tracking-wide transition-colors",
+                  active
+                    ? "text-gold"
+                    : "text-foreground/75 hover:text-gold",
+                )}
+              >
+                {n.label}
                 <span
                   aria-hidden="true"
-                  className="absolute -bottom-1.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-gold"
+                  className={cn(
+                    "absolute -bottom-1.5 left-0 h-px bg-gold transition-all duration-300",
+                    active ? "w-full opacity-100" : "w-0 opacity-0 group-hover:w-full group-hover:opacity-60",
+                  )}
                 />
-              )}
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </nav>
 
-        <div className="flex items-center gap-2">
-          <span className="hidden h-9 items-center gap-1.5 rounded-full border border-gold/30 bg-gold/10 px-3 text-xs font-medium text-gold lg:inline-flex">
-            <a href="https://lex.bg/laws/ldoc/2121934337" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-gold/70 hover:underline">ЗЗД</a>
-            <span className="opacity-50">,</span>
-            <a href="https://lex.bg/laws/ldoc/-14917630" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-gold/70 hover:underline">ТЗ</a>
-            <span className="opacity-50">,</span>
-            <a href="https://lex.bg/laws/ldoc/2135163904" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-gold/70 hover:underline">ЗУТ</a>
+        {/* Actions */}
+        <div className="flex items-center gap-3">
+          <span className="hidden h-9 items-center gap-1.5 rounded-full border border-gold/25 bg-gold/[0.06] px-4 text-[11px] font-semibold tracking-[0.12em] text-gold transition-colors hover:bg-gold/10 lg:inline-flex">
+            <a
+              href="https://lex.bg/laws/ldoc/2121934337"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-gold/70 hover:underline"
+            >
+              ЗЗД
+            </a>
+            <span className="opacity-40">·</span>
+            <a
+              href="https://lex.bg/laws/ldoc/-14917630"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-gold/70 hover:underline"
+            >
+              ТЗ
+            </a>
+            <span className="opacity-40">·</span>
+            <a
+              href="https://lex.bg/laws/ldoc/2135163904"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-gold/70 hover:underline"
+            >
+              ЗУТ
+            </a>
           </span>
           {user ? (
             <Link
               to="/account"
               aria-label="Профил"
-              className="inline-flex h-11 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-3 text-xs font-medium text-gold transition-colors hover:bg-gold/20 sm:h-9 sm:px-3"
+              className="inline-flex h-11 items-center gap-2 rounded-full border border-gold/40 bg-gold/[0.08] px-4 text-[12px] font-semibold tracking-wide text-gold transition-all hover:bg-gold/15 hover:shadow-[0_0_0_4px_hsl(var(--gold)/0.08)] sm:h-9 sm:px-4"
             >
-              <UserIcon className="h-4 w-4" /> <span className="hidden sm:inline">Профил</span>
+              <UserIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Профил</span>
             </Link>
           ) : (
             <Link
               to="/auth"
               aria-label="Вход"
-              className="inline-flex h-11 items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-3 text-xs font-medium text-gold transition-colors hover:bg-gold/20 sm:h-9 sm:px-3"
+              className="inline-flex h-11 items-center gap-2 rounded-full border border-gold/40 bg-gold/[0.08] px-4 text-[12px] font-semibold tracking-wide text-gold transition-all hover:bg-gold/15 hover:shadow-[0_0_0_4px_hsl(var(--gold)/0.08)] sm:h-9 sm:px-4"
             >
-              <LogIn className="h-4 w-4" /> <span className="hidden sm:inline">Вход</span>
+              <LogIn className="h-4 w-4" />
+              <span className="hidden sm:inline">Вход</span>
             </Link>
           )}
           <button
@@ -106,7 +142,7 @@ export function Header() {
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Затвори менюто" : "Отвори менюто"}
             aria-expanded={open}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-border/60 bg-card/40 text-foreground transition-colors hover:border-gold/50 hover:text-gold md:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border/60 bg-card/40 text-foreground transition-colors hover:border-gold/50 hover:text-gold md:hidden"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -115,7 +151,7 @@ export function Header() {
 
       {open && (
         <nav className="origin-top animate-accordion-down overflow-hidden border-t border-border/60 bg-navy/95 backdrop-blur-xl md:hidden">
-          <div className="container flex flex-col py-2">
+          <div className="container flex flex-col py-3">
             {NAV.map((n) => (
               <Link
                 key={n.to}
@@ -130,11 +166,11 @@ export function Header() {
               </Link>
             ))}
             <div className="mt-2 border-t border-border/60 px-3 py-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-medium text-gold">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-[11px] font-semibold tracking-[0.12em] text-gold">
                 <a href="https://lex.bg/laws/ldoc/2121934337" target="_blank" rel="noopener noreferrer" className="hover:underline">ЗЗД</a>
-                <span className="opacity-50">,</span>
+                <span className="opacity-40">·</span>
                 <a href="https://lex.bg/laws/ldoc/-14917630" target="_blank" rel="noopener noreferrer" className="hover:underline">ТЗ</a>
-                <span className="opacity-50">,</span>
+                <span className="opacity-40">·</span>
                 <a href="https://lex.bg/laws/ldoc/2135163904" target="_blank" rel="noopener noreferrer" className="hover:underline">ЗУТ</a>
               </span>
             </div>
