@@ -62,15 +62,35 @@ const STORAGE_KEY = "build:custom-contract";
 const splitLines = (s: string) =>
   s.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
 
-export default function BuildContractPage() {
+export interface BuildContractPageProps {
+  /**
+   * Optional preset overrides. When provided, take precedence over the
+   * equivalent URL search params (used e.g. by the bilingual-template wizard
+   * which passes them in instead of using /build?... query strings).
+   */
+  presetOverride?: {
+    category?: string;
+    documentType?: string;
+    name?: string;
+    bilingual?: boolean;
+  };
+  /**
+   * Chrome variant. "generic" is the default /build experience.
+   * "bilingual-template" tailors title/breadcrumb/SEO to the specific
+   * bilingual document chosen from the catalog.
+   */
+  variant?: "generic" | "bilingual-template";
+}
+
+export default function BuildContractPage({ presetOverride, variant = "generic" }: BuildContractPageProps = {}) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const presetSignature = useMemo(() => buildPresetSignature(searchParams), [searchParams]);
-  const presetCategory = searchParams.get("category") ?? "";
-  const presetDocumentType = (searchParams.get("documentType") ?? "") as DocumentTypeId | "";
-  const presetName = searchParams.get("name") ?? "";
-  const presetBilingual = searchParams.get("bilingual") === "1";
+  const presetCategory = presetOverride?.category ?? searchParams.get("category") ?? "";
+  const presetDocumentType = (presetOverride?.documentType ?? searchParams.get("documentType") ?? "") as DocumentTypeId | "";
+  const presetName = presetOverride?.name ?? searchParams.get("name") ?? "";
+  const presetBilingual = presetOverride?.bilingual ?? (searchParams.get("bilingual") === "1");
   const parentSavedIdParam = searchParams.get("parentSavedId");
   const parentUploadedIdParam = searchParams.get("parentUploadedId");
   const parentTitleParam = searchParams.get("parentTitle");
@@ -79,6 +99,7 @@ export default function BuildContractPage() {
   const prefillPartiesA = searchParams.get("partiesA");
   const prefillPartiesB = searchParams.get("partiesB");
   const prefillSubject = searchParams.get("subject");
+
 
   // Restore persisted state
   const persisted = useMemo(() => {
