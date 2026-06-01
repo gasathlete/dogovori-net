@@ -55,9 +55,10 @@ export default function WizardPage() {
   // or stale search suggestion), redirect them to the bilingual route.
   useEffect(() => {
     if (!sectorId || !docName) return;
-    const cat = CATALOG.find((c) => c.sectorId === sectorId);
-    const doc = cat?.documents.find((d) => d.name === docName);
-    if (doc?.bilingual) {
+    const isBilingual = CATALOG.some(
+      (cat) => cat.sectorId === sectorId && cat.documents.some((d) => d.name === docName && d.bilingual),
+    );
+    if (isBilingual) {
       navigate(`/wizard-bilingual/${sectorId}?doc=${encodeURIComponent(docName)}`, { replace: true });
     }
   }, [sectorId, docName, navigate]);
