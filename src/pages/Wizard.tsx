@@ -185,6 +185,7 @@ export default function WizardPage() {
             courtName: arbitrationCourt?.name ?? arbitration.customName,
             courtLink: arbitrationCourt?.website ?? arbitration.customLink,
           } : { enabled: false },
+          bilingual: bilingualMode,
         },
       });
       if (error) throw error;
@@ -196,7 +197,9 @@ export default function WizardPage() {
         }
         throw new Error(data?.error || "Неуспешно създаване");
       }
-      setResult(data as AIResult);
+      const payload = data as AIResult;
+      if (bilingualMode && payload.contract) payload.contract.bilingual = true;
+      setResult(payload);
       toast.success("Договорът е готов", { description: "Прегледайте Краен Договор отдясно." });
     } catch (e: any) {
       if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) return;
