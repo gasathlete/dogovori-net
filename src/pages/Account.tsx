@@ -1066,9 +1066,10 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             <div className="mt-2 font-serif text-2xl font-bold sm:text-3xl">1.90 €</div>
             <p className="mt-1 text-xs text-muted-foreground">Еднократно — пакет от 5 операции</p>
             <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
-              <li>• 5 операции (договор, бланка или анализ)</li>
-              <li>• Без воден знак</li>
-              <li>• Без абонамент · не изтичат</li>
+              <li>• 5 операции по избор (договор, бланка или анализ от нашата система)</li>
+              <li>• Без воден знак върху сваляните документи</li>
+              <li>• Еднократно плащане · операциите не изтичат</li>
+              <li>• Подходящо за инцидентна нужда без абонамент</li>
             </ul>
             <Button
               onClick={() => setCheckoutPrice("five_operations")}
