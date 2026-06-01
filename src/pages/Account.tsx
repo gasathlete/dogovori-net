@@ -1109,31 +1109,27 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               </ul>
             </div>
 
-            {/* Yearly */}
+            {/* Team monthly */}
             <div className="relative flex flex-col rounded-2xl border border-border/60 bg-gradient-card p-7 transition-colors hover:border-gold/40 lg:order-3">
-              <div className="absolute -top-3 right-5 rounded-full border border-gold/40 bg-navy px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gold">
-                −17%
+              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold">
+                <Building2 className="h-3.5 w-3.5" /> За фирми и екипи
               </div>
-              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                <Crown className="h-3.5 w-3.5" /> Предприемач
-              </div>
-              <h3 className="mt-2 font-serif text-2xl font-bold">Годишен план</h3>
+              <h3 className="mt-2 font-serif text-2xl font-bold">План Екип</h3>
               <div className="mt-4 flex items-baseline gap-2">
-                <span className="font-serif text-4xl font-bold text-foreground">99 €</span>
-                <span className="text-sm text-muted-foreground line-through">118.80 €</span>
+                <span className="font-serif text-4xl font-bold text-foreground">7.90 €</span>
+                <span className="text-sm text-muted-foreground">/ място</span>
               </div>
-              <p className="mt-1 text-xs text-gold">≈ 8.25 €/месец · 2 безплатни месеца</p>
+              <p className="mt-1 text-xs text-muted-foreground">мин. 3 места (23.70 €/мес) · 100 оп./място/мес</p>
               <Button
-                onClick={() => setCheckoutPrice("pro_yearly")}
+                asChild
                 variant="outline"
                 className="mt-5 border-gold/40 text-gold hover:bg-gold/10"
               >
-                Купи годишен план
+                <a href="/team">Създай екип</a>
               </Button>
               <div className="my-6 h-px bg-border/60" />
               <ul className="space-y-2.5">
-                {proFeatures.map((f) => (<Feature key={f}>{f}</Feature>))}
-                <Feature>2 безплатни месеца спрямо месечния</Feature>
+                {teamFeatures.map((f) => (<Feature key={f}>{f}</Feature>))}
               </ul>
             </div>
 
@@ -1163,24 +1159,59 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             </div>
           </div>
 
-          {/* Team — separate emphasis */}
-          <div className="rounded-2xl border border-gold/30 bg-gradient-card p-7">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold">
-                  <Building2 className="h-3.5 w-3.5" /> За фирми и екипи
-                </div>
-                <h3 className="mt-2 font-serif text-2xl font-bold">План Екип</h3>
-                <div className="mt-3 flex items-baseline gap-2">
-                  <span className="font-serif text-3xl font-bold">7.90 €</span>
-                  <span className="text-sm text-muted-foreground">/ място / месец</span>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">мин. 3 места (23.70 €/мес) · 100 операции/място/мес</p>
-                <Button asChild className="mt-5 bg-gradient-gold text-navy hover:shadow-gold">
-                  <a href="/team">Създай екип</a>
-                </Button>
+          {/* Yearly plans */}
+          <div className="grid gap-5 lg:grid-cols-2">
+            {/* Yearly Pro */}
+            <div className="relative flex flex-col rounded-2xl border border-border/60 bg-gradient-card p-7 transition-colors hover:border-gold/40">
+              <div className="absolute -top-3 right-5 rounded-full border border-gold/40 bg-navy px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gold">
+                −17%
               </div>
-              <ul className="grid flex-1 gap-2.5 sm:grid-cols-2">
+              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <Crown className="h-3.5 w-3.5" /> Предприемач
+              </div>
+              <h3 className="mt-2 font-serif text-2xl font-bold">Годишен план</h3>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="font-serif text-4xl font-bold text-foreground">99 €</span>
+                <span className="text-sm text-muted-foreground line-through">118.80 €</span>
+              </div>
+              <p className="mt-1 text-xs text-gold">≈ 8.25 €/месец · 2 безплатни месеца</p>
+              <Button
+                onClick={() => setCheckoutPrice("pro_yearly")}
+                variant="outline"
+                className="mt-5 border-gold/40 text-gold hover:bg-gold/10"
+              >
+                Купи годишен план
+              </Button>
+              <div className="my-6 h-px bg-border/60" />
+              <ul className="space-y-2.5">
+                {proFeatures.map((f) => (<Feature key={f}>{f}</Feature>))}
+                <Feature>2 безплатни месеца спрямо месечния</Feature>
+              </ul>
+            </div>
+
+            {/* Yearly Team */}
+            <div className="relative flex flex-col rounded-2xl border border-border/60 bg-gradient-card p-7 transition-colors hover:border-gold/40">
+              <div className="absolute -top-3 right-5 rounded-full border border-gold/40 bg-navy px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gold">
+                −17%
+              </div>
+              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold">
+                <Building2 className="h-3.5 w-3.5" /> За фирми и екипи
+              </div>
+              <h3 className="mt-2 font-serif text-2xl font-bold">Годишен Екип</h3>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="font-serif text-4xl font-bold text-foreground">79 €</span>
+                <span className="text-sm text-muted-foreground">/ място / година</span>
+              </div>
+              <p className="mt-1 text-xs text-gold">≈ 6.58 €/месец · мин. 3 места (237 €/год)</p>
+              <Button
+                asChild
+                variant="outline"
+                className="mt-5 border-gold/40 text-gold hover:bg-gold/10"
+              >
+                <a href="/team">Създай екип годишно</a>
+              </Button>
+              <div className="my-6 h-px bg-border/60" />
+              <ul className="space-y-2.5">
                 {teamFeatures.map((f) => (<Feature key={f}>{f}</Feature>))}
               </ul>
             </div>
