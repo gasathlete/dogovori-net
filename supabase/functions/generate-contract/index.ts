@@ -151,10 +151,14 @@ Deno.serve(async (req: Request) => {
       ? `\nАРБИТРАЖ: enabled=true, court="${arbitration.courtName || arbitration.courtId || ""}"${arbitration.courtLink ? `, link=${arbitration.courtLink}` : ""}`
       : `\nАРБИТРАЖ: enabled=false (използвай държавна подсъдност)`;
 
+    const bilingualLine = isBilingual
+      ? `\nБИЛИНГВАЛЕН РЕЖИМ: ЗАДЪЛЖИТЕЛНО върни паралелен английски превод. За contract добави полета: "title_en", "preamble_en", "closing_en" и за всяка клауза в "clauses" — "title_en" и "body_en". Преводът да е професионален легален английски (US/UK неутрален), номерацията на членовете да е "Art. N." и да съответства 1:1 на българския текст. Поставяй "bilingual": true на root на contract. Английският текст НЕ заменя българския — те съществуват паралелно.`
+      : "";
+
     const userPrompt = `СЕКТОР: ${sector}
 ТИП ДОКУМЕНТ: ${docTypeSpec.label}
 НАИМЕНОВАНИЕ: ${contractName}
-${docLine}СТРАНИ: ${parties.a} ↔ ${parties.b}${arbitrationLine}
+${docLine}СТРАНИ: ${parties.a} ↔ ${parties.b}${arbitrationLine}${bilingualLine}
 
 ОТГОВОРИ:
 ${qaLines}
@@ -162,7 +166,7 @@ ${qaLines}
 ВАЖНО: Изготви документ от вид „${docTypeSpec.label}" (не разглеждай автоматично като двустранен договор). Спазвай специфичната структура за този вид документ:
 ${docTypeSpec.systemAddendum}
 
-Задача: Risk Analysis (конкретни слаби места за ${parties.a}${parties.b ? ` и ${parties.b}` : ""}) + ПЪЛНИЯТ документ на български за "${documentName || contractName}" според структурата за „${docTypeSpec.label}". Върни СТРОГО валиден JSON по схемата.`;
+Задача: Risk Analysis (конкретни слаби места за ${parties.a}${parties.b ? ` и ${parties.b}` : ""}) + ПЪЛНИЯТ документ на български за "${documentName || contractName}" според структурата за „${docTypeSpec.label}"${isBilingual ? " + паралелен английски превод в полетата *_en" : ""}. Върни СТРОГО валиден JSON по схемата.`;
 
     const activeSystemPrompt = await loadActivePrompt(admin, "generate-contract", SYSTEM_PROMPT);
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
