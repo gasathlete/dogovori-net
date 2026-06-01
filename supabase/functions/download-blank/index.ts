@@ -13,6 +13,11 @@ import {
   AlignmentType,
   Header,
   Footer,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  BorderStyle,
 } from "https://esm.sh/docx@8.5.0";
 import { buildCors } from "../_shared/cors.ts";
 import { getDocumentTypeSpec, inferDocumentType } from "../_shared/document-types.ts";
@@ -38,12 +43,25 @@ const SYSTEM_PROMPT = `Ти си български правен архитек�
   "closing": "Заключителен текст + подписи"
 }`;
 
+const BILINGUAL_ADDENDUM = `
+
+БИЛИНГВАЛЕН РЕЖИМ (BG/EN): ЗАДЪЛЖИТЕЛНО върни паралелен професионален английски превод. Към JSON схемата добави:
+- "title_en": английското заглавие
+- "preamble_en": английски превод на преамбюла, със [square bracket] плейсхолдъри
+- "closing_en": английски превод на заключителния текст
+- във всеки елемент на "clauses" — "title_en" и "body_en" с английски превод
+
+Преводът е професионален легален английски (US/UK неутрален). Номерацията съответства 1:1 — където на български е "Чл. 1.", на английски е "Art. 1.". Английският текст НЕ заменя българския — двата съществуват паралелно и са огледални по съдържание. Запази всички плейсхолдъри в [квадратни скоби] и в двата езика.`;
+
 
 interface BlankPayload {
   title: string;
   preamble: string;
-  clauses: Array<{ number: string; title: string; body: string }>;
+  clauses: Array<{ number: string; title: string; body: string; title_en?: string; body_en?: string }>;
   closing: string;
+  title_en?: string;
+  preamble_en?: string;
+  closing_en?: string;
 }
 
 function extractJson(raw: string): BlankPayload {
@@ -54,54 +72,139 @@ function extractJson(raw: string): BlankPayload {
   return JSON.parse(cleaned) as BlankPayload;
 }
 
-function buildDocx(blank: BlankPayload): Promise<Uint8Array> {
-  const children: Paragraph[] = [];
-
-  children.push(
+function paragraphsFromText(text: string, opts: { bold?: boolean; size?: number; align?: typeof AlignmentType[keyof typeof AlignmentType] } = {}): Paragraph[] {
+  const lines = (text ?? "").split(/\n+/).filter(Boolean);
+  if (lines.length === 0) return [new Paragraph({ text: "" })];
+  return lines.map((line) =>
     new Paragraph({
-      heading: HeadingLevel.TITLE,
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 360 },
-      children: [new TextRun({ text: blank.title, bold: true, size: 36 })],
+      alignment: opts.align ?? AlignmentType.JUSTIFIED,
+      spacing: { after: 160 },
+      children: [new TextRun({ text: line, size: opts.size ?? 22, bold: opts.bold })],
     }),
   );
+}
 
-  for (const line of blank.preamble.split(/\n+/).filter(Boolean)) {
-    children.push(
-      new Paragraph({
-        spacing: { after: 200 },
-        children: [new TextRun({ text: line, size: 24 })],
-      }),
-    );
-  }
+function buildDocx(blank: BlankPayload, isBilingual: boolean): Promise<Uint8Array> {
+  const children: (Paragraph | Table)[] = [];
 
-  for (const c of blank.clauses) {
-    children.push(
-      new Paragraph({
-        spacing: { before: 320, after: 160 },
-        alignment: AlignmentType.CENTER,
-        children: [
-          new TextRun({ text: `${c.number} ${c.title}`, bold: true, size: 26 }),
+  if (isBilingual) {
+    // ----- Two-column BG/EN layout (mirrors src/lib/exporters.ts twoColRow) -----
+    const TABLE_W = 9026;
+    const COL_W = Math.floor(TABLE_W / 2);
+    const noBorder = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
+    const cellBorders = { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder };
+
+    const twoColRow = (bg: Paragraph[], en: Paragraph[]) =>
+      new Table({
+        width: { size: TABLE_W, type: WidthType.DXA },
+        columnWidths: [COL_W, COL_W],
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({
+                width: { size: COL_W, type: WidthType.DXA },
+                borders: cellBorders,
+                margins: { top: 60, bottom: 60, left: 80, right: 160 },
+                children: bg.length ? bg : [new Paragraph({ text: "" })],
+              }),
+              new TableCell({
+                width: { size: COL_W, type: WidthType.DXA },
+                borders: cellBorders,
+                margins: { top: 60, bottom: 60, left: 160, right: 80 },
+                children: en.length ? en : [new Paragraph({ text: "" })],
+              }),
+            ],
+          }),
         ],
+      });
+
+    // Title
+    children.push(
+      twoColRow(
+        [new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new TextRun({ text: blank.title.toUpperCase(), bold: true, size: 28 })],
+        })],
+        [new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new TextRun({ text: (blank.title_en || blank.title).toUpperCase(), bold: true, size: 28 })],
+        })],
+      ),
+    );
+    children.push(new Paragraph({ text: "" }));
+
+    // Preamble
+    children.push(twoColRow(paragraphsFromText(blank.preamble), paragraphsFromText(blank.preamble_en || "")));
+    children.push(new Paragraph({ text: "" }));
+
+    // Clauses
+    for (const c of blank.clauses) {
+      const bgHead = new Paragraph({
+        children: [new TextRun({ text: `${c.number} ${c.title.toUpperCase()}`, bold: true, size: 24 })],
+      });
+      const enHead = new Paragraph({
+        children: [new TextRun({ text: `${c.number} ${(c.title_en || c.title).toUpperCase()}`, bold: true, size: 24 })],
+      });
+      children.push(
+        twoColRow(
+          [bgHead, ...paragraphsFromText(c.body)],
+          [enHead, ...paragraphsFromText(c.body_en || "")],
+        ),
+      );
+      children.push(new Paragraph({ text: "" }));
+    }
+
+    if (blank.closing) {
+      children.push(twoColRow(paragraphsFromText(blank.closing), paragraphsFromText(blank.closing_en || "")));
+    }
+  } else {
+    // ----- Original single-column layout -----
+    children.push(
+      new Paragraph({
+        heading: HeadingLevel.TITLE,
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 360 },
+        children: [new TextRun({ text: blank.title, bold: true, size: 36 })],
       }),
     );
-    for (const line of c.body.split(/\n+/).filter(Boolean)) {
+
+    for (const line of blank.preamble.split(/\n+/).filter(Boolean)) {
       children.push(
         new Paragraph({
-          spacing: { after: 160 },
+          spacing: { after: 200 },
           children: [new TextRun({ text: line, size: 24 })],
         }),
       );
     }
-  }
 
-  if (blank.closing) {
-    children.push(
-      new Paragraph({
-        spacing: { before: 320 },
-        children: [new TextRun({ text: blank.closing, size: 24 })],
-      }),
-    );
+    for (const c of blank.clauses) {
+      children.push(
+        new Paragraph({
+          spacing: { before: 320, after: 160 },
+          alignment: AlignmentType.CENTER,
+          children: [
+            new TextRun({ text: `${c.number} ${c.title}`, bold: true, size: 26 }),
+          ],
+        }),
+      );
+      for (const line of c.body.split(/\n+/).filter(Boolean)) {
+        children.push(
+          new Paragraph({
+            spacing: { after: 160 },
+            children: [new TextRun({ text: line, size: 24 })],
+          }),
+        );
+      }
+    }
+
+    if (blank.closing) {
+      children.push(
+        new Paragraph({
+          spacing: { before: 320 },
+          children: [new TextRun({ text: blank.closing, size: 24 })],
+        }),
+      );
+    }
   }
 
   // Discrete brand watermark on every page (header + footer).
@@ -117,7 +220,9 @@ function buildDocx(blank: BlankPayload): Promise<Uint8Array> {
         alignment: AlignmentType.CENTER,
         children: [
           new TextRun({
-            text: "Безплатна бланка · Архитект на Вашите сделки",
+            text: isBilingual
+              ? "Bilingual template · BG / EN · Free blank"
+              : "Безплатна бланка · Архитект на Вашите сделки",
             color: "A0A0A0",
             size: 14,
             italics: true,
@@ -204,6 +309,7 @@ Deno.serve(async (req: Request) => {
     const rawSectorId = String(body?.sector_id ?? "").trim();
     const rawDocumentName = String(body?.document_name ?? "").trim();
     const rawSectorTitle = String(body?.sector_title ?? "").trim();
+    const isBilingual = Boolean(body?.bilingual);
 
     // Strict input validation to prevent prompt-cache poisoning. The generated
     // blank is shared globally by (sector_id, document_name), so untrusted
@@ -258,7 +364,9 @@ Deno.serve(async (req: Request) => {
     // Cache version prefix. Bumped to v3 — initial blanks now use a
     // higher-quality model (gemini-2.5-pro) and document-type-aware structure
     // (разписка ≠ договор ≠ декларация ≠ пълномощно etc).
-    const CACHE_VERSION = "v3";
+    // Bilingual blanks live under a separate `v3-bilingual` namespace so they
+    // never collide with the monolingual cache for the same (sector, document).
+    const CACHE_VERSION = isBilingual ? "v3-bilingual" : "v3";
     const existingPath = existing?.storage_path as string | undefined;
     let storagePath: string | undefined =
       existingPath && existingPath.startsWith(`${CACHE_VERSION}/`) ? existingPath : undefined;
@@ -270,9 +378,9 @@ Deno.serve(async (req: Request) => {
 
       // Match the document type so the AI doesn't render every blank as a contract.
       const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName));
-      const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Специфика за този вид документ (${docTypeSpec.label}) ---\n${docTypeSpec.systemAddendum}`;
+      const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Специфика за този вид документ (${docTypeSpec.label}) ---\n${docTypeSpec.systemAddendum}${isBilingual ? BILINGUAL_ADDENDUM : ""}`;
 
-      const userPrompt = `Сектор: ${sectorTitle || sectorId}\nВид документ: ${docTypeSpec.label}\nКонкретен документ: ${documentName}\n\nГенерирай професионална българска правна БЛАНКА (празен шаблон) за този КОНКРЕТЕН ВИД документ. Спазвай структурата за „${docTypeSpec.label}" — не я смесвай с друг вид документ.`;
+      const userPrompt = `Сектор: ${sectorTitle || sectorId}\nВид документ: ${docTypeSpec.label}\nКонкретен документ: ${documentName}\n\nГенерирай професионална българска правна БЛАНКА (празен шаблон) за този КОНКРЕТЕН ВИД документ. Спазвай структурата за „${docTypeSpec.label}" — не я смесвай с друг вид документ.${isBilingual ? "\n\nЗАДЪЛЖИТЕЛНО: добави паралелен английски превод в полетата title_en, preamble_en, closing_en и в clauses[].title_en/body_en (виж системния промпт за билингвален режим)." : ""}`;
 
       const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -315,7 +423,7 @@ Deno.serve(async (req: Request) => {
       const raw = aiJson?.choices?.[0]?.message?.content ?? "";
       const blank = extractJson(raw);
 
-      const docxBytes = await buildDocx(blank);
+      const docxBytes = await buildDocx(blank, isBilingual);
       storagePath = `${CACHE_VERSION}/${safeKey(sectorId)}/${safeKey(documentName)}.docx`;
 
       const { error: upErr } = await admin.storage
@@ -345,7 +453,9 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({
         ok: true,
         url: signed.signedUrl,
-        filename: `${documentName} - бланка.docx`,
+        filename: isBilingual
+          ? `${documentName} - бланка (BG-EN).docx`
+          : `${documentName} - бланка.docx`,
         cached: !!existing,
         is_pro: !!quota.is_pro,
       }),
