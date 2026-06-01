@@ -1003,7 +1003,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             <p className="mt-2 text-sm text-muted-foreground">
               {isPro
                 ? `${proMonthlyUsed} / ${proMonthlyCap} операции този период.`
-                : `Безплатно: 6 операции общо, след това 2 на месец (договори, бланки или анализи). Използвани: ${(quota as any)?.total_used ?? 0} от 6 общо · ${(quota as any)?.monthly_total_used ?? 0} от 2 този месец.`}
+                : `Безплатен план: 6 операции общо при регистрация, после 2 на месец (договор, бланка или интелигентен анализ от нашата система). Документите се свалят с дискретен воден знак. Използвани: ${(quota as any)?.total_used ?? 0} от 6 общо · ${(quota as any)?.monthly_total_used ?? 0} от 2 този месец.`}
             </p>
             {isPro && (
               <div className="mt-3">
