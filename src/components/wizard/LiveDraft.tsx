@@ -682,6 +682,7 @@ export function LiveDraft({
   signature,
   isPro = false,
   docName,
+  bilingual = false,
   onContractChange,
 }: {
   sector: Sector;
@@ -706,6 +707,8 @@ export function LiveDraft({
   };
   isPro?: boolean;
   docName?: string;
+  /** When true, render the pre-generation skeleton in BG/EN two columns. */
+  bilingual?: boolean;
   onContractChange?: (next: NonNullable<typeof generated>) => void;
 }) {
   const partyA = answers.party_a_name || `[${sector.parties.a}]`;
