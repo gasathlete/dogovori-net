@@ -964,7 +964,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   const proFeatures = [
     "До 100 операции на месец (договори, бланки и интелигентни анализи)",
     "Двуезични документи (BG/EN) с паралелна колона",
-    "Преглед на живо и стъпков визард",
+    "Преглед на живо и стъпков Wizard",
     "Интелигентен анализ на качени документи",
     "Дигитален подпис с изображение",
     "Онлайн подписване чрез споделен линк",
@@ -985,7 +985,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   ];
 
   const oneOffFeatures = [
-    "5 операции по избор",
+    "5 операции по избор, всички функционалности на \"Предприемач\"",
     "Без воден знак",
     "Без абонамент · не изтичат",
   ];
@@ -1169,7 +1169,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 <Crown className="h-3.5 w-3.5" /> Предприемач
               </div>
-              <h3 className="mt-2 font-serif text-2xl font-bold">Годишен план</h3>
+              <h3 className="mt-2 font-serif text-2xl font-bold">Годишен Предприемач</h3>
               <div className="mt-4 flex items-baseline gap-2">
                 <span className="font-serif text-4xl font-bold text-foreground">99 €</span>
                 <span className="text-sm text-muted-foreground line-through">118.80 €</span>
