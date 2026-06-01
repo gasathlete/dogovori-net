@@ -1110,10 +1110,13 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             </div>
             <p className="mt-1 text-xs text-muted-foreground">мин. 3 места · 100 операции/място/мес</p>
             <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
-              <li>• Споделени шаблони и документи</li>
+              <li>• 100 операции на място/месец (споделен капацитет в екипа)</li>
+              <li>• Споделени шаблони, контакти и папки</li>
+              <li>• Брандирани PDF/DOCX с лого на фирмата</li>
               <li>• Журнал на действията за администратори</li>
-              <li>• Единно фактуриране и достъп с фирмен имейл</li>
-              <li>• Брандирани PDF/DOCX с лого</li>
+              <li>• Споделяне на документи за онлайн подпис</li>
+              <li>• Достъп с фирмен имейл и роли (собственик/админ/член)</li>
+              <li>• Всичко от плана Предприемач за всеки член</li>
             </ul>
             <Button asChild variant="outline" className="mt-6 border-gold/40">
               <a href="/team">Създай екип</a>
