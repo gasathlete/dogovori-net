@@ -84,7 +84,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { sector, contractName, documentName, parties, answers, questions, arbitration } = await req.json();
+    const { sector, contractName, documentName, parties, answers, questions, arbitration, bilingual } = await req.json();
+    const isBilingual = Boolean(bilingual);
 
     // Illegal content guard — block before AI call, log + alert admin.
     const guardText = [
@@ -122,7 +123,7 @@ Deno.serve(async (req: Request) => {
 
     // Cache: identical (sector, contractName, documentName, sorted answers) → reuse output for 30 days.
     // PROMPT_VERSION included so prompt/system changes invalidate stale cache entries.
-    const PROMPT_VERSION = "v3-doc-type";
+    const PROMPT_VERSION = isBilingual ? "v3-doc-type-bilingual" : "v3-doc-type";
     const cacheKeyInput = stableStringify({
       v: PROMPT_VERSION,
       sector, contractName, documentName: documentName || null,
@@ -130,6 +131,7 @@ Deno.serve(async (req: Request) => {
       parties: { a: parties?.a ?? "", b: parties?.b ?? "" },
       answers: answers ?? {},
       arbitration: arbitration ?? null,
+      bilingual: isBilingual,
     });
     const cacheHash = await sha256Hex(cacheKeyInput);
     const cacheCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -149,10 +151,14 @@ Deno.serve(async (req: Request) => {
       ? `\nАРБИТРАЖ: enabled=true, court="${arbitration.courtName || arbitration.courtId || ""}"${arbitration.courtLink ? `, link=${arbitration.courtLink}` : ""}`
       : `\nАРБИТРАЖ: enabled=false (използвай държавна подсъдност)`;
 
+    const bilingualLine = isBilingual
+      ? `\nБИЛИНГВАЛЕН РЕЖИМ: ЗАДЪЛЖИТЕЛНО върни паралелен английски превод. За contract добави полета: "title_en", "preamble_en", "closing_en" и за всяка клауза в "clauses" — "title_en" и "body_en". Преводът да е професионален легален английски (US/UK неутрален), номерацията на членовете да е "Art. N." и да съответства 1:1 на българския текст. Поставяй "bilingual": true на root на contract. Английският текст НЕ заменя българския — те съществуват паралелно.`
+      : "";
+
     const userPrompt = `СЕКТОР: ${sector}
 ТИП ДОКУМЕНТ: ${docTypeSpec.label}
 НАИМЕНОВАНИЕ: ${contractName}
-${docLine}СТРАНИ: ${parties.a} ↔ ${parties.b}${arbitrationLine}
+${docLine}СТРАНИ: ${parties.a} ↔ ${parties.b}${arbitrationLine}${bilingualLine}
 
 ОТГОВОРИ:
 ${qaLines}
@@ -160,7 +166,7 @@ ${qaLines}
 ВАЖНО: Изготви документ от вид „${docTypeSpec.label}" (не разглеждай автоматично като двустранен договор). Спазвай специфичната структура за този вид документ:
 ${docTypeSpec.systemAddendum}
 
-Задача: Risk Analysis (конкретни слаби места за ${parties.a}${parties.b ? ` и ${parties.b}` : ""}) + ПЪЛНИЯТ документ на български за "${documentName || contractName}" според структурата за „${docTypeSpec.label}". Върни СТРОГО валиден JSON по схемата.`;
+Задача: Risk Analysis (конкретни слаби места за ${parties.a}${parties.b ? ` и ${parties.b}` : ""}) + ПЪЛНИЯТ документ на български за "${documentName || contractName}" според структурата за „${docTypeSpec.label}"${isBilingual ? " + паралелен английски превод в полетата *_en" : ""}. Върни СТРОГО валиден JSON по схемата.`;
 
     const activeSystemPrompt = await loadActivePrompt(admin, "generate-contract", SYSTEM_PROMPT);
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -218,6 +224,12 @@ ${docTypeSpec.systemAddendum}
     catch (err) {
       console.error("JSON parse failed. Content head:", content.slice(0, 800));
       throw new Error("AI отговорът не може да бъде анализиран като JSON");
+    }
+
+    // Defensive: ensure bilingual flag is set on contract when requested,
+    // so exporters render BG/EN two-column layout reliably.
+    if (isBilingual && parsed?.contract) {
+      parsed.contract.bilingual = true;
     }
 
     // Persist to cache for future identical requests (best-effort).
