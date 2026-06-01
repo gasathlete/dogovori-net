@@ -15,7 +15,7 @@ import { trackEvent } from "@/lib/analytics";
 import { autoLinkParagraph, createAutoLinkState } from "@/lib/autoLinkBlog";
 import { RELATED_TEMPLATES } from "@/data/relatedTemplates";
 import { getPostBySlug } from "@/lib/blog";
-import { resolveBuildSectorId } from "@/lib/bilingualBuildRouting";
+
 
 export default function TemplatePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -51,7 +51,7 @@ export default function TemplatePage() {
   const meta = TEMPLATE_CONTENT_META[entry.slug];
 
   const wizardHref = doc.bilingual
-    ? `/build?category=${encodeURIComponent(resolveBuildSectorId({ bilingual: true, docName: doc.name, sectorId: category.sectorId, documentType: doc.documentType }))}&bilingual=1&name=${encodeURIComponent(doc.name)}${doc.documentType ? `&documentType=${doc.documentType}` : ""}`
+    ? `/wizard-bilingual/${category.sectorId}?doc=${encodeURIComponent(doc.name)}`
     : `/wizard/${category.sectorId}?doc=${encodeURIComponent(doc.name)}`;
   const blankWizardHref = doc.bilingual
     ? wizardHref
