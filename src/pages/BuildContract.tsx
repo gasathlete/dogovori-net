@@ -592,12 +592,22 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     }
   };
 
+  const isBilingualTemplate = variant === "bilingual-template";
+  const chromeTitle = isBilingualTemplate && presetName ? presetName : "Изготви документ";
+  const seoTitle = isBilingualTemplate && presetName
+    ? `${presetName} — двуезичен документ (BG/EN) — Dogovori.net`
+    : "Изготви документ с AI — Dogovori.net";
+  const seoDescription = isBilingualTemplate && presetName
+    ? `Изгответе двуезичен документ „${presetName}" на български и английски — AI попълва клаузите за минути, със ЗЗД/ТЗ съответствие.`
+    : "Изгответе договор, разписка, пълномощно, декларация, оферта, фактура, протокол, анекс или приложение — AI попълва клаузите за минути, със ЗЗД/ТЗ съответствие.";
+
   return (
     <div className="min-h-screen">
       <Seo
-        title="Изготви документ с AI — Dogovori.net"
-        description="Изгответе договор, разписка, пълномощно, декларация, оферта, фактура, протокол, анекс или приложение — AI попълва клаузите за минути, със ЗЗД/ТЗ съответствие."
-        canonical="https://dogovori.net/build"
+        title={seoTitle}
+        description={seoDescription}
+        canonical={isBilingualTemplate ? undefined : "https://dogovori.net/build"}
+        noindex={isBilingualTemplate}
       />
       <Header />
 
@@ -614,7 +624,18 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                 <ArrowLeft className="h-3.5 w-3.5" /> Начало
               </button>
               <span className="text-muted-foreground">/</span>
-              <span className="font-medium text-foreground">Изготви документ</span>
+              {isBilingualTemplate && (
+                <>
+                  <button
+                    onClick={() => navigate("/catalog")}
+                    className="text-muted-foreground transition-colors hover:text-gold"
+                  >
+                    Каталог
+                  </button>
+                  <span className="text-muted-foreground">/</span>
+                </>
+              )}
+              <span className="font-medium text-foreground line-clamp-1">{chromeTitle}</span>
             </div>
             <div className="hidden items-center gap-4 text-muted-foreground sm:flex">
               <span className="inline-flex items-center gap-1.5">
@@ -622,7 +643,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                 Системата е в готовност
               </span>
               <span className="opacity-50">·</span>
-              <span>≤ 2 мин · AI-подпомогнат</span>
+              <span>{isBilingualTemplate ? "Двуезичен · BG + EN" : "≤ 2 мин · AI-подпомогнат"}</span>
             </div>
           </div>
         </div>
@@ -636,12 +657,19 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
               <div className="rounded-2xl border border-gold/25 bg-gradient-card p-6 shadow-soft md:p-7">
                 <div className="mb-3 flex items-center gap-3">
                   <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold/10 ring-1 ring-gold/30">
-                    <Sparkles className="h-4 w-4 text-gold" />
+                    {isBilingualTemplate ? <Languages className="h-4 w-4 text-gold" /> : <Sparkles className="h-4 w-4 text-gold" />}
                   </span>
-                  <h1 className="font-serif text-3xl font-bold text-foreground md:text-4xl">
-                    Изготви <span className="gold-gradient-text">документ</span>
-                  </h1>
+                  {isBilingualTemplate && presetName ? (
+                    <h1 className="font-serif text-2xl font-bold text-foreground md:text-3xl">
+                      <span className="gold-gradient-text">{presetName}</span>
+                    </h1>
+                  ) : (
+                    <h1 className="font-serif text-3xl font-bold text-foreground md:text-4xl">
+                      Изготви <span className="gold-gradient-text">документ</span>
+                    </h1>
+                  )}
                 </div>
+
                 {parentTitleParam && (
                   <div className="mb-4 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-foreground">
                     Изготвяте дъщерен документ към <span className="font-semibold">„{parentTitleParam}"</span>
