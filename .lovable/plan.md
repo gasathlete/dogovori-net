@@ -1,57 +1,22 @@
-# Use real document template as the live preview
+Generate a static end-card banner image for Shorts/Reels/TikTok video outros.
 
-## Problem
+**Format:** PNG, 1080×1920 (9:16 vertical)
+**Location:** `/mnt/documents/dogovori-end-banner-9x16.png`
 
-Когато потребителят влиза през `/wizard/construction?doc=Акт обр. 15 (приемане на строежа)`, дясната колона показва **общ договор за СМР** — без връзка с избрания документ. Причината: `LiveDraft` гради клаузите от `switch(sector.slug)` (`buildClausesFor`) и **игнорира `docName`**. Има 151 готови бланки в `src/data/templateDrafts/`, индексирани по slug в `templateDrafts/index.ts`, които никога не се ползват в съветника.
+**Content (in Bulgarian):**
+- Logo / wordmark: **Dogovori.net**
+- Tagline: *Договори, които търсят и намират Вашите интереси.*
+- Bullets:
+  - 500+ професионални шаблона
+  - Създавай професионални документи за < 2 мин
+- Subtle "Powered by IM Development" footer
 
-Освен това заглавието „Работен договор" е подвеждащо за документи, които не са договори (актове, протоколи, КСС…).
+**Visual direction:**
+- Brand-consistent with the site (deep navy / indigo base + accent), clean modern sans typography
+- Centered composition with strong hierarchy: logo top-third, tagline middle, bullets stacked, URL bottom
+- Soft gradient background + subtle document/contract motif so it reads instantly even on mute
+- Safe margins for TikTok/Shorts UI overlays (avoid bottom 280px and right 160px for key text)
 
-## Промени
+**Method:** Generate via `imagegen` (premium, transparent_background=false) with a detailed prompt encoding the above. Output as a single downloadable PNG artifact.
 
-### 1. Превю от реалната бланка
-
-В `src/components/wizard/LiveDraft.tsx`:
-
-- При първи рендер на `LiveDraft` (когато `generated` още го няма), да се опита да заредим бланката за текущия документ:
-  - `slug = slugify(docName)` (използваме съществуващия `@/lib/slugify`).
-  - Loader от `templateDrafts/index.ts` → асинхронно зареждане на string-а (lazy `import()`).
-  - Кеш в `useRef`/module-level `Map` по slug, за да не презарежда.
-- Когато бланката е намерена → рендериране в дясната колона на нейния текст, разбит по двойни нови редове на параграфи (с `whitespace-pre-wrap` за нормални нови редове в рамките на параграф). Заглавието (първият параграф „АКТ ОБРАЗЕЦ 15…") става H1 на бланката.
-- **Прогресивна замяна на плейсхолдъри** от `answers` и `signature`. Малка таблица за съответствие:
-
-```text
-[ДАТА]                              → signature.date (или днешна дата)
-[НАСЕЛЕНО МЯСТО]                    → signature.city
-[ИМЕ/ФИРМА НА ВЪЗЛОЖИТЕЛЯ]          → answers.party_a_name
-[ЕГН/ЕИК НА ВЪЗЛОЖИТЕЛЯ]            → answers.party_a_id
-[АДРЕС НА ВЪЗЛОЖИТЕЛЯ]              → answers.party_a_address
-[ИМЕ И ДЛЪЖНОСТ НА ПРЕДСТАВИТЕЛЯ НА ВЪЗЛОЖИТЕЛЯ] → answers.party_a_rep
-[ИМЕ/ФИРМА НА ИЗПЪЛНИТЕЛЯ]          → answers.party_b_name
-…аналогично за Изпълнител, Строителен надзор, Проектант…
-```
-
-Несъвпадналите плейсхолдъри се оставят както са (в [квадратни скоби], visually muted) — стандартното поведение за бланка с попълване на текущ момент. Така fade overlay-ът пак работи (бланките са дълги), потребителят вижда контекст и плейсхолдърите се запълват в реално време.
-
-- **Fallback**: ако няма бланка за този slug (стари заварени sector документи), запазваме сегашния `buildClausesFor` поток без промяна. Това гарантира, че нищо съществуващо не се чупи.
-
-### 2. Преименуване на header-а
-
-В `src/pages/Wizard.tsx` (ред 821): „Работен договор" → „Работен документ". Иконата `FileText` се запазва.
-
-### 3. Запазено поведение
-
-- Generated (финален AI договор) клонът на `LiveDraft` (когато `generated` има стойност) остава непроменен — той се връща от AI генерацията със структурирани клаузи и не е обект на този issue.
-- Fade overlay-ът, редактирането, шрифт/размер контролите — всичко остава както е.
-- Запазване в профила, експорт, рисков доклад — без промяна.
-
-## Технически бележки
-
-- Loader е async, ползваме `useEffect` + локален state `draftText: string | null`. Докато тече зареждане, показваме сегашния sector-generic skeleton (за да няма flash на празна страница).
-- Plain text substitution през `String.prototype.replaceAll` (regex-escape на ключа). Без HTML инжекция, текстът се рендерира в `<p>` елементи.
-- Bundle size: всички 151 бланки вече са lazy-loaded в `templateDrafts/index.ts`, така че няма extra cost — само таблицата с плейсхолдъри е нова.
-
-## Извън обхвата
-
-- Не променяме AI промпта/финалния документ.
-- Не пипаме плейсхолдърите в самите файлове `templateDrafts/*` (auto-generated).
-- Не добавяме UI за ръчно попълване на полета, които не са във въпросника — те остават като `[ПЛЕЙСХОЛДЪР]` за визуална обратна връзка.
+If you also want a 16:9 (YouTube) version, I'll add it as a second pass.

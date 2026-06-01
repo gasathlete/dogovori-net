@@ -9,6 +9,7 @@
 // stroezha-ot-vazlozhite".
 
 import { slugify } from "@/lib/slugify";
+import { isBilingualDocumentName } from "@/lib/bilingualBuildRouting";
 import {
   loadTemplateDraft as loadBySlug,
   hasTemplateDraft,
@@ -43,6 +44,7 @@ const draftCache = new Map<string, string>();
 
 export async function loadTemplateDraft(docName: string | undefined | null): Promise<string | null> {
   if (!docName) return null;
+  if (isBilingualDocumentName(docName)) return null;
   const slug = resolveSlug(docName);
   if (!slug) return null;
   if (draftCache.has(slug)) return draftCache.get(slug)!;
