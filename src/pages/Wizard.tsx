@@ -852,6 +852,7 @@ export default function WizardPage() {
               signature={result ? signature : undefined}
               isPro={isPro}
               docName={docName}
+              bilingual={bilingualMode}
               onContractChange={(next) => {
                 if (!result) return;
                 setResult({ ...result, contract: { ...result.contract, ...next } });
