@@ -159,6 +159,8 @@ serve(async (req) => {
 
     await auditInsert("download", saved.id, { kind, used_bonus: useBonus });
 
+    const newDownloadWatermark = !isPro && !useBonus && !bonusAvailable;
+
     return new Response(
       JSON.stringify({
         ok: true,
@@ -166,7 +168,7 @@ serve(async (req) => {
         title,
         saved_document_id: saved.id,
         free: false,
-        watermark,
+        watermark: newDownloadWatermark,
         user_tag: userTag,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
