@@ -43,12 +43,25 @@ const SYSTEM_PROMPT = `Ти си български правен архитек�
   "closing": "Заключителен текст + подписи"
 }`;
 
+const BILINGUAL_ADDENDUM = `
+
+БИЛИНГВАЛЕН РЕЖИМ (BG/EN): ЗАДЪЛЖИТЕЛНО върни паралелен професионален английски превод. Към JSON схемата добави:
+- "title_en": английското заглавие
+- "preamble_en": английски превод на преамбюла, със [square bracket] плейсхолдъри
+- "closing_en": английски превод на заключителния текст
+- във всеки елемент на "clauses" — "title_en" и "body_en" с английски превод
+
+Преводът е професионален легален английски (US/UK неутрален). Номерацията съответства 1:1 — където на български е "Чл. 1.", на английски е "Art. 1.". Английският текст НЕ заменя българския — двата съществуват паралелно и са огледални по съдържание. Запази всички плейсхолдъри в [квадратни скоби] и в двата езика.`;
+
 
 interface BlankPayload {
   title: string;
   preamble: string;
-  clauses: Array<{ number: string; title: string; body: string }>;
+  clauses: Array<{ number: string; title: string; body: string; title_en?: string; body_en?: string }>;
   closing: string;
+  title_en?: string;
+  preamble_en?: string;
+  closing_en?: string;
 }
 
 function extractJson(raw: string): BlankPayload {
