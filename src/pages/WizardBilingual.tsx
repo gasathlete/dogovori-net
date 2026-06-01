@@ -18,11 +18,12 @@ export default function WizardBilingualPage() {
 
   const resolved = useMemo(() => {
     if (!sectorId || !docName) return null;
-    const cat = CATALOG.find((c) => c.sectorId === sectorId);
-    if (!cat) return null;
-    const doc = cat.documents.find((d) => d.name === docName);
-    if (!doc || !doc.bilingual) return null;
-    return { cat, doc };
+    for (const cat of CATALOG) {
+      if (cat.sectorId !== sectorId) continue;
+      const doc = cat.documents.find((d) => d.name === docName);
+      if (doc?.bilingual) return { cat, doc };
+    }
+    return null;
   }, [sectorId, docName]);
 
   if (!resolved) {
