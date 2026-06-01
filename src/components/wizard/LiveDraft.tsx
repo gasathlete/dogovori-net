@@ -944,6 +944,7 @@ export function LiveDraft({
           partyB={partyB}
           clauses={clauses}
           answeredCount={answeredCount}
+          bilingual={bilingual}
         />
       </PreviewFadeGate>
     </ProtectedContent>
