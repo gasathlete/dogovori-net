@@ -130,7 +130,7 @@ function resolveSlug(docName: string): string | null {
 
   let best: { slug: string; score: number; leadingScore: number; length: number } | null = null;
   for (const k of candidates) {
-    const slugWords = k.split("-").filter((w) => w.length >= 3);
+    const slugWords = k.split("-").filter((w) => w.length >= 3 && !STOP.has(w));
     // Hard gate: every required leading token must match.
     let leadingOk = true;
     for (const lt of requiredLeading) {
