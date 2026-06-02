@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu, X, User as UserIcon, LogIn } from "lucide-react";
+import { Menu, X, User as UserIcon, LogIn, Bell } from "lucide-react";
 import { Logo } from "./Logo";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
