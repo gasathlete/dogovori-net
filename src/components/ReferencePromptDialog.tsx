@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, Wand2, Loader2 } from "lucide-react";
+import { Upload, Wand2, Loader2, Package } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import type { DetectedReference } from "@/lib/documentReferences";
 import { linkChildToParent } from "@/lib/documentLinks";
+import { AddToKitDialog } from "@/components/AddToKitDialog";
 
 interface Props {
   reference: DetectedReference;
@@ -32,6 +33,7 @@ export function ReferencePromptDialog({
   const { user } = useAuth();
   const navigate = useNavigate();
   const [uploading, setUploading] = useState(false);
+  const [kitOpen, setKitOpen] = useState(false);
 
   const handleUpload = async (file: File) => {
     if (!user) { toast.error("Влезте, за да качите документ"); return; }
@@ -131,6 +133,21 @@ export function ReferencePromptDialog({
           >
             <Wand2 className="mr-2 h-4 w-4" /> Не — изготви го с AI
           </Button>
+          <Button
+            onClick={handleGenerate}
+            className="w-full bg-gradient-gold text-navy hover:shadow-gold"
+          >
+            <Wand2 className="mr-2 h-4 w-4" /> Не — изготви го с AI
+          </Button>
+          {user && (
+            <Button
+              variant="outline"
+              onClick={() => setKitOpen(true)}
+              className="w-full border-gold/30 text-gold hover:bg-gold/10"
+            >
+              <Package className="mr-2 h-4 w-4" /> Добави в комплект
+            </Button>
+          )}
           <Button variant="ghost" onClick={onClose} className="w-full text-xs text-muted-foreground">
             Отказ
           </Button>
@@ -140,6 +157,19 @@ export function ReferencePromptDialog({
           Прикачените документи се добавят автоматично към основния договор при експорт в PDF и се запазват с версия в профила ви.
         </p>
       </DialogContent>
+      {kitOpen && (
+        <AddToKitDialog
+          open={kitOpen}
+          onClose={() => setKitOpen(false)}
+          defaultKitTitle={parentTitle ? `Комплект: ${parentTitle}` : reference.displayLabel}
+          item={{
+            role: "appendix",
+            ref_label: reference.displayLabel,
+            planned_doc_name: reference.displayLabel,
+          }}
+          onAdded={() => { onLinked(); onClose(); }}
+        />
+      )}
     </Dialog>
   );
 }

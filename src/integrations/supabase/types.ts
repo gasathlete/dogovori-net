@@ -522,6 +522,83 @@ export type Database = {
         }
         Relationships: []
       }
+      document_kit_items: {
+        Row: {
+          created_at: string
+          id: string
+          kit_id: string
+          planned_doc_name: string | null
+          position: number
+          ref_label: string
+          role: string
+          saved_id: string | null
+          uploaded_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kit_id: string
+          planned_doc_name?: string | null
+          position?: number
+          ref_label: string
+          role: string
+          saved_id?: string | null
+          uploaded_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kit_id?: string
+          planned_doc_name?: string | null
+          position?: number
+          ref_label?: string
+          role?: string
+          saved_id?: string | null
+          uploaded_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_kit_items_kit_id_fkey"
+            columns: ["kit_id"]
+            isOneToOne: false
+            referencedRelation: "document_kits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_kits: {
+        Row: {
+          created_at: string
+          id: string
+          source_kit_id: string | null
+          status: string
+          team_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          source_kit_id?: string | null
+          status?: string
+          team_id?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          source_kit_id?: string | null
+          status?: string
+          team_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       document_links: {
         Row: {
           child_saved_id: string | null
