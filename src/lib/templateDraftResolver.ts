@@ -26,8 +26,18 @@ const KIND_PREFIXES: Array<{ test: RegExp; prefix: string }> = [
   // Compound prefixes first — order matters (more specific before generic).
   { test: /^\s*количествено[\s\-]*стойностна\s+сметка/i, prefix: "kolichestveno-stoynostna-smetka" },
   { test: /^\s*допълнително\s+споразумение/i, prefix: "dopalnitelno" },
-  { test: /^\s*договор/i, prefix: "dogovor" },
   { test: /^\s*предварителен\s+договор/i, prefix: "predvaritelen-dogovor" },
+  { test: /^\s*длъжностна\s+характеристика/i, prefix: "dlazhnostna-harakteristika" },
+  { test: /^\s*приемо[\s\-]*предавателен\s+протокол/i, prefix: "priemo-predavatelen-protokol" },
+  { test: /^\s*граждански\s+договор/i, prefix: "dogovor" },
+  { test: /^\s*срочен\s+трудов\s+договор/i, prefix: "dogovor" },
+  { test: /^\s*трудов\s+договор/i, prefix: "dogovor" },
+  { test: /^\s*общо\s+пълномощно/i, prefix: "palnomoshtno" },
+  { test: /^\s*nda\b/i, prefix: "dogovor" },
+  { test: /^\s*аренда/i, prefix: "dogovor" },
+  { test: /^\s*предизвестие/i, prefix: "uvedomlenie" },
+  { test: /^\s*дисциплинарно\s+наказание/i, prefix: "zapoved" },
+  { test: /^\s*договор/i, prefix: "dogovor" },
   { test: /^\s*приложение/i, prefix: "prilozhenie" },
   { test: /^\s*анекс/i, prefix: "aneks" },
   { test: /^\s*споразумение/i, prefix: "sporazumenie" },
@@ -48,7 +58,6 @@ const KIND_PREFIXES: Array<{ test: RegExp; prefix: string }> = [
   { test: /^\s*заповед/i, prefix: "zapoved" },
   { test: /^\s*бланка/i, prefix: "blanka" },
   { test: /^\s*дропшипинг/i, prefix: "dropshipping" },
-  { test: /^\s*длъжностна\s+характеристика/i, prefix: "dlazhnostna-harakteristika" },
 ];
 
 function detectKindPrefix(docName: string): string | null {
