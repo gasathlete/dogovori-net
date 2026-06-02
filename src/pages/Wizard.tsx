@@ -433,12 +433,15 @@ export default function WizardPage() {
       clearTimeout(t2);
     };
     try {
+      const { getOpSessionId, getOpDocKey } = await import("@/lib/opSession");
       const { data, error } = await supabase.functions.invoke("download-blank", {
         body: {
           sector_id: sector.id,
           sector_title: sector.title,
           document_name: docName ?? sector.contractName,
           bilingual: bilingualMode,
+          session_id: getOpSessionId(),
+          doc_key: getOpDocKey(docName ?? sector.contractName),
         },
       });
       if (error || data?.error) {
