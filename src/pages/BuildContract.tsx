@@ -504,6 +504,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         payload: contractWithSig,
         source_id: categoryId === "__other__" ? "custom" : categoryId,
         saved_document_id: savedDocId,
+        doc_key: savedDocId || `build:${categoryId}:${finalTitle}`,
       });
       if (!res.ok) {
         if (res.error === "quota_exceeded") {
@@ -566,6 +567,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     }
     setApplyingCorrections(true);
     try {
+      const { getOpSessionId, newOpBatchId } = await import("@/lib/opSession");
       const { data, error } = await supabase.functions.invoke("apply-corrections", {
         body: {
           contract: result.contract,
@@ -573,6 +575,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
           selectedIssues: sel.issues,
           selectedRecommendations: sel.recommendations,
           answers: syntheticAnswers,
+          session_id: getOpSessionId(),
+          batch_id: newOpBatchId(),
         },
       });
       if (error || data?.error) {
