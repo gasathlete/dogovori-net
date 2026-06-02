@@ -149,7 +149,7 @@ export default function AccountPage() {
             <h1 className="mt-1 font-serif text-2xl font-bold sm:text-3xl">Моят профил</h1>
             <p className="truncate text-sm text-muted-foreground">{user?.email}</p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button asChild variant="outline" size="sm" className="border-gold/60 text-gold hover:bg-gold/10">
               <Link to="/team"><Users className="mr-2 h-4 w-4" /> Екип</Link>
             </Button>
@@ -158,11 +158,28 @@ export default function AccountPage() {
                 <Link to="/admin"><ShieldCheck className="mr-2 h-4 w-4" /> Модераторски панел</Link>
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onTabChange("notifications")}
+              aria-label={unreadCount > 0 ? `Известия (${unreadCount} непрочетени)` : "Известия"}
+              title="Известия"
+              className="relative h-9 w-9 border-gold/60 p-0 text-gold hover:bg-gold/10"
+            >
+              <Bell className="h-4 w-4" />
+              {unreadCount > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-red-500 ring-2 ring-background"
+                />
+              )}
+            </Button>
             <Button variant="outline" size="sm" onClick={signOut} className="border-border/60">
               <LogOut className="mr-2 h-4 w-4" /> Изход
             </Button>
           </div>
         </div>
+
 
         <Tabs value={initialTab} onValueChange={onTabChange} className="space-y-6">
           <ScrollableTabsList>
