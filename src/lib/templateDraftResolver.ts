@@ -51,7 +51,7 @@ const KIND_PREFIXES: Array<{ test: RegExp; prefix: string }> = [
   { test: /^\s*заявление/i, prefix: "zayavlenie" },
   { test: /^\s*молба/i, prefix: "molba" },
   { test: /^\s*решение/i, prefix: "reshenie" },
-  { test: /^\s*акт\b/i, prefix: "akt" },
+  { test: /^\s*акт(?:\s|\.|,|$)/i, prefix: "akt" },
   { test: /^\s*сертификат/i, prefix: "sertifikat" },
   { test: /^\s*уведомление/i, prefix: "uvedomlenie" },
   { test: /^\s*препоръка/i, prefix: "preporaka" },
