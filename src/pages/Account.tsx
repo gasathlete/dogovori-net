@@ -1272,7 +1272,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
       )}
 
 
-      {!isPro && (
+      {(!isPro || showAllPlans) && (
         <>
           {/* Pricing header */}
           <div className="text-center">
