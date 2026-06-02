@@ -256,9 +256,7 @@ export default function AuthPage() {
                       className="mt-0.5"
                     />
                     <Label htmlFor="c-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-muted-foreground">
-                      Съгласявам се да предоставя <strong>име и имейл</strong> на администратора (модератора) на платформата
-                      Dogovori.net с цел получаване на <strong>рекламни съобщения, бонуси и награди</strong> в платформата
-                      и по email (по избор; можете да оттеглите по всяко време от профила си).
+                      Съгласявам се да предоставя име и имейл на администратора на платформата за получаване на съобщения, известия за бонуси и награди в профила ми в dogovori.net.
                     </Label>
                   </div>
                 </div>
