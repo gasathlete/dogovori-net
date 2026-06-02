@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { GeneratedContract } from "@/lib/exporters";
 import type { CompanionTemplate } from "@/data/companionTemplates";
 import { ensureAIDisclaimerAccepted } from "@/lib/aiDisclaimerGate";
+import { getOpSessionId, getOpDocKey } from "@/lib/opSession";
 
 export type DownloadKind = "contract" | "template";
 export type DownloadFormat = "pdf" | "docx";
@@ -14,6 +15,8 @@ interface DownloadParams {
   source_id?: string;
   contact_id?: string;
   saved_document_id?: string;
+  /** Slug/ID that uniquely identifies the document for session-scoped charging. */
+  doc_key?: string;
 }
 
 export interface DownloadResult {
