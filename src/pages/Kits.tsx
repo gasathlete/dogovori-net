@@ -70,7 +70,7 @@ export default function KitsPage() {
                 {myKits.slice(0, 6).map((k) => (
                   <Link
                     key={k.id}
-                    to={`/account?tab=kits&kit=${k.id}`}
+                    to={`/komplekti/moi/${k.id}`}
                     className="group rounded-lg border border-border/60 bg-card/70 p-4 transition-all hover:border-gold/40"
                   >
                     <div className="flex items-center justify-between gap-2">
