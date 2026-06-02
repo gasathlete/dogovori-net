@@ -63,30 +63,41 @@ function resolveSlug(docName: string): string | null {
   if (!wanted) return null;
   if (hasTemplateDraft(wanted)) return wanted;
 
-  const tokens = wanted.split("-").filter((t) => t.length >= 3);
-  if (tokens.length === 0) return null;
+  const allTokens = wanted.split("-").filter((t) => t.length >= 3);
+  if (allTokens.length === 0) return null;
 
   const kindPrefix = detectKindPrefix(docName);
-  // When a kind prefix is recognised, fuzzy match candidates are restricted
-  // to slugs that start with the same prefix. This prevents an appendix /
-  // anex draft from "winning" the fuzzy match for a main contract just
-  // because it shares the word "приложение" / "анекс" in its slug.
+  // Tokens belonging to the kind prefix itself (e.g. "dogovor") are too
+  // generic to count toward similarity — otherwise every "Договор за …"
+  // weakly matches every other "dogovor-*" draft on the single shared word.
+  const kindTokens = new Set(
+    (kindPrefix || "").split("-").filter((t) => t.length >= 3),
+  );
+  // Stopwords that show up in many slugs and shouldn't carry weight.
+  const STOP = new Set(["pri", "kam", "kato", "ili"]);
+  const distinctiveTokens = allTokens.filter((t) => !kindTokens.has(t) && !STOP.has(t));
+
+  // Need distinctive content to attempt fuzzy resolution. Without it the
+  // match would be driven entirely by the generic kind word.
+  if (distinctiveTokens.length === 0) return null;
+
   const candidates = kindPrefix
     ? TEMPLATE_DRAFT_SLUGS.filter((s) => s.startsWith(kindPrefix + "-") || s === kindPrefix)
     : TEMPLATE_DRAFT_SLUGS;
 
-  // Stricter threshold: require either >= 2 shared tokens OR >= 50% coverage
-  // of the wanted tokens (whichever is larger). Avoids weak 2-token matches
-  // on long docNames where 2 tokens cover < 20% of the meaning.
-  const minScore = Math.max(2, Math.ceil(tokens.length * 0.5));
+  // Require at least 2 distinctive shared tokens AND >= 60% coverage of the
+  // distinctive tokens. Prevents e.g. "Договор за наем на офис помещение"
+  // (distinctive: naem, ofis, pomeshtenie) from resolving to the
+  // agricultural rental draft on the single shared token "naem".
+  const minScore = Math.max(2, Math.ceil(distinctiveTokens.length * 0.6));
 
-  const leadingTokens = new Set(tokens.slice(0, 3));
+  const leadingTokens = new Set(distinctiveTokens.slice(0, 3));
 
   let best: { slug: string; score: number; leadingScore: number; length: number } | null = null;
   for (const k of candidates) {
     let score = 0;
     let leadingScore = 0;
-    for (const t of tokens) {
+    for (const t of distinctiveTokens) {
       if (k.includes(t)) {
         score++;
         if (leadingTokens.has(t)) leadingScore++;
