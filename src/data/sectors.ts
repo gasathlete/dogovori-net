@@ -1819,6 +1819,16 @@ export function getSubWizard(sector: Sector | undefined, documentName: string | 
   if (!sector || !documentName) return undefined;
   const explicit = sector.subWizards?.find((sw) => sw.documentName === documentName);
   if (explicit) return explicit;
+  // Lazy import to avoid a circular dependency: subWizardsGenerated.ts imports
+  // the SubWizard type from this file.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { getGeneratedSubWizard } = require("./subWizardsGenerated") as typeof import("./subWizardsGenerated");
+    const gen = getGeneratedSubWizard(documentName);
+    if (gen) return gen;
+  } catch {
+    // registry not built yet — fall through to generic
+  }
   return buildGenericSubWizard(documentName);
 }
 
