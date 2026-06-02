@@ -10,9 +10,9 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { to: "/build", label: "Изготви документ" },
   { to: "/catalog", label: "Каталог" },
+  { to: "/komplekti", label: "Комплекти" },
   { to: "/#sectors", label: "Сектори" },
   { to: "/blog", label: "Блог" },
-  { to: "/#compliance", label: "Съответствие" },
 ];
 
 export function Header() {
