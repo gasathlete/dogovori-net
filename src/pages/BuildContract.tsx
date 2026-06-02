@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Loader2, FileDown, FileText, Save, Wand2, Sparkles, Zap, Briefcase, Scale, ChevronDown, Check, Languages, ShieldCheck, FileSignature, Lightbulb } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, FileDown, FileText, Save, Wand2, Sparkles, Zap, Briefcase, Scale, ChevronDown, Check, Languages, ShieldCheck, FileSignature, Lightbulb } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type BuildMode = "fast" | "working" | "strict";
@@ -168,6 +169,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   const [contacts, setContacts] = useState<Array<{ id: string; name: string; type?: string }>>([]);
   const [applyingCorrections, setApplyingCorrections] = useState(false);
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(undefined);
+  const [stepIdx, setStepIdx] = useState<number>(0);
 
   useEffect(() => {
     const prevSignature = persisted?.presetSignature ?? "";
@@ -294,6 +296,44 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   const goSubscription = () => navigate(`/account?tab=subscription`);
 
   const schema = useMemo(() => getBuildSchema(documentType), [documentType]);
+
+  // ----- Step-by-step wizard structure -----
+  const STEPS = useMemo(
+    () => [
+      { id: "settings", label: "Настройки" },
+      { id: "basics", label: "Документ" },
+      { id: "parties", label: "Страни" },
+      { id: "details", label: "Детайли" },
+      { id: "review", label: "Преглед" },
+    ],
+    [],
+  );
+  const totalSteps = STEPS.length;
+  const safeStepIdx = Math.min(Math.max(0, stepIdx), totalSteps - 1);
+  const stepValid = (idx: number): boolean => {
+    if (idx === 0) return !!documentType;
+    if (idx === 1) {
+      if (!name.trim()) return false;
+      if (!categoryId) return false;
+      if (categoryId === "__other__" && !categoryOther.trim()) return false;
+      return true;
+    }
+    if (idx === 2) {
+      const needsB = !!schema.partyBLabel;
+      if (splitLines(partiesA).length === 0) return false;
+      if (needsB && splitLines(partiesB).length === 0) return false;
+      return true;
+    }
+    if (idx === 3) {
+      return schema.fields.filter((f) => f.required).every((f) => (fieldValues[f.key] ?? "").trim().length > 0);
+    }
+    return true;
+  };
+  const canGoNext = stepValid(safeStepIdx);
+  const completedSteps = STEPS.reduce((acc, _s, i) => (i < safeStepIdx && stepValid(i) ? acc + 1 : acc), 0);
+  const progressPct = result
+    ? 100
+    : Math.min(100, ((completedSteps + (canGoNext ? 1 : 0)) / totalSteps) * 100);
 
   const handleGenerate = async () => {
     const docDef = getDocumentType(documentType);
@@ -688,7 +728,44 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                   Попълнете каквото знаете. <span className="text-gold">Празните полета</span> се попълват от Нашата Система&nbsp; с пазарно-стандартни клаузи. Готов документ до 2 минути.
                 </p>
 
-                <div className="space-y-3">
+                <div className="space-y-4">
+                  {/* Stepper */}
+                  <div className="rounded-xl border border-border/60 bg-navy-light/40 px-4 py-3">
+                    <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-[0.18em]">
+                      <span className="text-muted-foreground">
+                        Стъпка {safeStepIdx + 1} от {totalSteps}
+                      </span>
+                      <span className="font-semibold text-gold">{STEPS[safeStepIdx].label}</span>
+                    </div>
+                    <Progress value={progressPct} className="h-1.5 bg-secondary" />
+                    <div className="mt-2 hidden gap-1.5 sm:flex">
+                      {STEPS.map((s, i) => {
+                        const isCurrent = i === safeStepIdx;
+                        const isDone = i < safeStepIdx && stepValid(i);
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setStepIdx(i)}
+                            className={
+                              "flex-1 rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors " +
+                              (isCurrent
+                                ? "bg-gold/15 text-gold"
+                                : isDone
+                                ? "text-foreground/70 hover:bg-card/40 hover:text-gold"
+                                : "text-muted-foreground/60 hover:bg-card/40 hover:text-foreground")
+                            }
+                          >
+                            {i + 1}. {s.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* STEP 0 — Settings */}
+                  {safeStepIdx === 0 && (
+                    <div className="space-y-3 animate-fade-in">
                   {/* Build mode — fast / working / strict */}
                   <div className="rounded-xl border border-border/60 bg-navy-light/40 px-4 py-3 space-y-2">
                     <div className="flex items-baseline justify-between gap-3">
@@ -795,9 +872,6 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                     </span>
                   </button>
 
-
-
-
                   {/* Document type — compact dropdown */}
                   <div>
                     <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -856,127 +930,210 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                       </PopoverContent>
                     </Popover>
                   </div>
-
-
-                  <Field label="Заглавие на документа" required>
-                    <Input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder={`напр. ${getDocumentType(documentType).label} за…`}
-                      className="bg-input/60 text-base"
-                    />
-                  </Field>
-
-                  <Field label="Категория" required>
-                    <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                      <Select value={categoryId} onValueChange={setCategoryId}>
-                        <SelectTrigger className="bg-input/60">
-                          <SelectValue placeholder="Изберете категория…" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {SECTORS.map((s) => (
-                            <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>
-                          ))}
-                          <SelectItem value="__other__">Друго…</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {categoryId === "__other__" && (
-                        <Input
-                          value={categoryOther}
-                          onChange={(e) => setCategoryOther(e.target.value)}
-                          placeholder="напр. Спортно право"
-                          className="bg-input/60"
-                        />
-                      )}
                     </div>
-                  </Field>
-
-                  {schema.partyBLabel ? (
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <Field label={schema.partyALabel} help="Изберете тип и име; може и от контрагенти" required>
-                        <PartyListEditor
-                          rows={parseParties(partiesA)}
-                          onChange={(rows) => setPartiesA(serializeParties(rows))}
-                          contacts={contacts}
-                          placeholder={schema.partyAPlaceholder ?? '„Алфа Софт" ЕООД, ЕИК…'}
-                        />
-                      </Field>
-                      <Field label={schema.partyBLabel} help="Изберете тип и име; може и от контрагенти" required>
-                        <PartyListEditor
-                          rows={parseParties(partiesB)}
-                          onChange={(rows) => setPartiesB(serializeParties(rows))}
-                          contacts={contacts}
-                          placeholder={schema.partyBPlaceholder ?? '„Бета Дизайн" ООД, ЕИК…'}
-                        />
-                      </Field>
-                    </div>
-                  ) : (
-                    <Field label={schema.partyALabel} help="Изберете тип и име; може и от контрагенти" required>
-                      <PartyListEditor
-                        rows={parseParties(partiesA)}
-                        onChange={(rows) => setPartiesA(serializeParties(rows))}
-                        contacts={contacts}
-                        placeholder={schema.partyAPlaceholder ?? 'Иван Петров Иванов, ЕГН …'}
-                      />
-                      <p className="mt-1 text-[11px] italic text-muted-foreground">
-                        „{getDocumentType(documentType).label}" е едностранен документ — насрещна страна не се изисква.
-                      </p>
-
-                    </Field>
                   )}
 
-                  {/* Dynamic per-type fields */}
-                  {(() => {
-                    const out: JSX.Element[] = [];
-                    const renderOne = (f: BuildField) => {
-                      const v = fieldValues[f.key] ?? "";
-                      const common = {
-                        value: v,
-                        onChange: (e: any) => setField(f.key, e.target.value),
-                        placeholder: f.placeholder,
-                      };
-                      return (
-                        <Field key={f.key} label={f.label} help={f.help} hint={f.hint} required={f.required}>
-                          {f.kind === "textarea" ? (
-                            <Textarea {...common} rows={f.rows ?? 2} className="bg-input/60 text-sm" />
-                          ) : (
-                            <Input {...common} className="bg-input/60" />
-                          )}
-                        </Field>
-                      );
-                    };
-                    let i = 0;
-                    while (i < schema.fields.length) {
-                      const f = schema.fields[i];
-                      const next = schema.fields[i + 1];
-                      if (f.half && next?.half) {
-                        out.push(
-                          <div key={`row-${i}`} className="grid gap-4 sm:grid-cols-2">
-                            {renderOne(f)}
-                            {renderOne(next)}
-                          </div>
-                        );
-                        i += 2;
-                      } else {
-                        out.push(renderOne(f));
-                        i += 1;
-                      }
-                    }
-                    return out;
-                  })()}
+                  {/* STEP 1 — Basics */}
+                  {safeStepIdx === 1 && (
+                    <div className="space-y-3 animate-fade-in">
+                      <Field label="Заглавие на документа" required>
+                        <Input
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder={`напр. ${getDocumentType(documentType).label} за…`}
+                          className="bg-input/60 text-base"
+                        />
+                      </Field>
 
-                  <Button
-                    onClick={handleGenerate}
-                    disabled={generating}
-                    size="lg"
-                    className="w-full bg-gradient-gold text-navy shadow-gold hover:shadow-[0_15px_50px_-10px_hsl(43_55%_54%_/_0.5)]"
-                  >
-                    {generating ? (
-                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Изготвяне…</>
+                      <Field label="Категория" required>
+                        <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                          <Select value={categoryId} onValueChange={setCategoryId}>
+                            <SelectTrigger className="bg-input/60">
+                              <SelectValue placeholder="Изберете категория…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {SECTORS.map((s) => (
+                                <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>
+                              ))}
+                              <SelectItem value="__other__">Друго…</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {categoryId === "__other__" && (
+                            <Input
+                              value={categoryOther}
+                              onChange={(e) => setCategoryOther(e.target.value)}
+                              placeholder="напр. Спортно право"
+                              className="bg-input/60"
+                            />
+                          )}
+                        </div>
+                      </Field>
+                    </div>
+                  )}
+
+                  {/* STEP 2 — Parties */}
+                  {safeStepIdx === 2 && (
+                    <div className="space-y-3 animate-fade-in">
+                      {schema.partyBLabel ? (
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <Field label={schema.partyALabel} help="Изберете тип и име; може и от контрагенти" required>
+                            <PartyListEditor
+                              rows={parseParties(partiesA)}
+                              onChange={(rows) => setPartiesA(serializeParties(rows))}
+                              contacts={contacts}
+                              placeholder={schema.partyAPlaceholder ?? '„Алфа Софт" ЕООД, ЕИК…'}
+                            />
+                          </Field>
+                          <Field label={schema.partyBLabel} help="Изберете тип и име; може и от контрагенти" required>
+                            <PartyListEditor
+                              rows={parseParties(partiesB)}
+                              onChange={(rows) => setPartiesB(serializeParties(rows))}
+                              contacts={contacts}
+                              placeholder={schema.partyBPlaceholder ?? '„Бета Дизайн" ООД, ЕИК…'}
+                            />
+                          </Field>
+                        </div>
+                      ) : (
+                        <Field label={schema.partyALabel} help="Изберете тип и име; може и от контрагенти" required>
+                          <PartyListEditor
+                            rows={parseParties(partiesA)}
+                            onChange={(rows) => setPartiesA(serializeParties(rows))}
+                            contacts={contacts}
+                            placeholder={schema.partyAPlaceholder ?? 'Иван Петров Иванов, ЕГН …'}
+                          />
+                          <p className="mt-1 text-[11px] italic text-muted-foreground">
+                            „{getDocumentType(documentType).label}" е едностранен документ — насрещна страна не се изисква.
+                          </p>
+                        </Field>
+                      )}
+                    </div>
+                  )}
+
+                  {/* STEP 3 — Details (dynamic per-type fields) */}
+                  {safeStepIdx === 3 && (
+                    <div className="space-y-3 animate-fade-in">
+                      {(() => {
+                        const out: JSX.Element[] = [];
+                        const renderOne = (f: BuildField) => {
+                          const v = fieldValues[f.key] ?? "";
+                          const common = {
+                            value: v,
+                            onChange: (e: any) => setField(f.key, e.target.value),
+                            placeholder: f.placeholder,
+                          };
+                          return (
+                            <Field key={f.key} label={f.label} help={f.help} hint={f.hint} required={f.required}>
+                              {f.kind === "textarea" ? (
+                                <Textarea {...common} rows={f.rows ?? 2} className="bg-input/60 text-sm" />
+                              ) : (
+                                <Input {...common} className="bg-input/60" />
+                              )}
+                            </Field>
+                          );
+                        };
+                        let i = 0;
+                        while (i < schema.fields.length) {
+                          const f = schema.fields[i];
+                          const next = schema.fields[i + 1];
+                          if (f.half && next?.half) {
+                            out.push(
+                              <div key={`row-${i}`} className="grid gap-4 sm:grid-cols-2">
+                                {renderOne(f)}
+                                {renderOne(next)}
+                              </div>
+                            );
+                            i += 2;
+                          } else {
+                            out.push(renderOne(f));
+                            i += 1;
+                          }
+                        }
+                        return out;
+                      })()}
+                      <p className="text-[11px] italic text-muted-foreground">
+                        Празните полета ще бъдат попълнени автоматично с пазарно-стандартни клаузи.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* STEP 4 — Review */}
+                  {safeStepIdx === 4 && (
+                    <div className="space-y-3 animate-fade-in">
+                      <div className="rounded-xl border border-border/60 bg-navy-light/40 p-4">
+                        <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                          Обобщение
+                        </div>
+                        <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                          <div>
+                            <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">Вид документ</dt>
+                            <dd className="font-medium text-foreground">{getDocumentType(documentType).label}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">Режим</dt>
+                            <dd className="font-medium text-foreground">
+                              {BUILD_MODES.find((m) => m.id === buildMode)?.label}
+                              {bilingual && canBilingual ? " · BG + EN" : ""}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">Заглавие</dt>
+                            <dd className="font-medium text-foreground">{name || <span className="text-muted-foreground">—</span>}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">Категория</dt>
+                            <dd className="font-medium text-foreground">{categoryLabel || <span className="text-muted-foreground">—</span>}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">{schema.partyALabel}</dt>
+                            <dd className="font-medium text-foreground">{splitLines(partiesA).join(", ") || <span className="text-muted-foreground">—</span>}</dd>
+                          </div>
+                          {schema.partyBLabel && (
+                            <div>
+                              <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">{schema.partyBLabel}</dt>
+                              <dd className="font-medium text-foreground">{splitLines(partiesB).join(", ") || <span className="text-muted-foreground">—</span>}</dd>
+                            </div>
+                          )}
+                        </dl>
+                      </div>
+                      <p className="text-xs italic text-muted-foreground">
+                        Прегледайте отдясно как се изгражда документът. Натиснете „Изготви документ", за да финализирате с AI.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Footer navigation */}
+                  <div className="flex items-center justify-between gap-3 pt-1">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setStepIdx((i) => Math.max(0, i - 1))}
+                      disabled={safeStepIdx === 0}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <ArrowLeft className="mr-1 h-4 w-4" /> Назад
+                    </Button>
+                    {safeStepIdx === totalSteps - 1 ? (
+                      <Button
+                        onClick={handleGenerate}
+                        disabled={generating || !canGoNext}
+                        size="lg"
+                        className="bg-gradient-gold text-navy shadow-gold hover:shadow-[0_15px_50px_-10px_hsl(43_55%_54%_/_0.5)]"
+                      >
+                        {generating ? (
+                          <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Изготвяне…</>
+                        ) : (
+                          <><Wand2 className="mr-2 h-4 w-4" /> Изготви документ</>
+                        )}
+                      </Button>
                     ) : (
-                      <><Wand2 className="mr-2 h-4 w-4" /> Изготви документ (≤ 2 мин.)</>
+                      <Button
+                        onClick={() => setStepIdx((i) => Math.min(totalSteps - 1, i + 1))}
+                        disabled={!canGoNext}
+                        className="bg-gradient-gold text-navy hover:shadow-gold"
+                      >
+                        Напред <ArrowRight className="ml-1 h-4 w-4" />
+                      </Button>
                     )}
-                  </Button>
+                  </div>
 
                   {generating && (
                     <div className="rounded-lg border border-gold/30 bg-gold/5 p-4 animate-fade-in">
@@ -1116,90 +1273,22 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                 </div>
               </>
             ) : (
-              <div className="flex h-[700px] flex-col overflow-hidden rounded-2xl border border-border/60 bg-gradient-card shadow-soft">
-                {/* Preview header */}
-                <div className="flex items-center justify-between border-b border-border/60 bg-navy-light/40 px-6 py-4">
-                  <h3 className="font-serif text-lg font-semibold uppercase tracking-[0.18em] text-gold">
-                    Предварителен изглед
-                  </h3>
-                  <div className="flex gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-border" />
-                    <span className="h-2 w-2 rounded-full bg-border" />
-                    <span className="h-2 w-2 rounded-full bg-border" />
+              <>
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gold">
+                    <FileText className="h-3.5 w-3.5" />
+                    Работен документ
                   </div>
+                  <span className="text-xs text-muted-foreground">Актуализация в реално време</span>
                 </div>
-
-                {/* Preview body */}
-                <div className="flex-1 space-y-8 overflow-y-auto p-6 md:p-8">
-                  {/* Skeleton document silhouette */}
-                  <div className="space-y-3 opacity-40">
-                    <div className="h-3 w-1/4 rounded bg-foreground/15" />
-                    <div className="mb-5 h-7 w-3/4 rounded bg-foreground/15" />
-                    <div className="space-y-2">
-                      <div className="h-2.5 rounded bg-foreground/10" />
-                      <div className="h-2.5 rounded bg-foreground/10" />
-                      <div className="h-2.5 w-2/3 rounded bg-foreground/10" />
-                    </div>
-                  </div>
-
-                  {/* What you'll get */}
-                  <div className="relative rounded-xl border border-border/60 bg-card/40 px-5 py-6">
-                    <div className="absolute -top-2.5 left-5 rounded bg-navy px-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gold">
-                      Какво ще получите
-                    </div>
-                    <ul className="space-y-4">
-                      <li className="flex items-start gap-3">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold/10 ring-1 ring-gold/25">
-                          <ShieldCheck className="h-4 w-4 text-gold" />
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-foreground">Юридически издържана структура</p>
-                          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                            Пълен набор от клаузи съобразно ЗЗД и Търговския закон.
-                          </p>
-                        </div>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold/10 ring-1 ring-gold/25">
-                          <Sparkles className="h-4 w-4 text-gold" />
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-foreground">AI адаптация</p>
-                          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                            Автоматично генерирани детайли според въведения от Вас предмет.
-                          </p>
-                        </div>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold/10 ring-1 ring-gold/25">
-                          <FileSignature className="h-4 w-4 text-gold" />
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-foreground">Готов за подписване PDF / DOCX</p>
-                          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                            Професионално форматиран документ, готов за печат или електронен подпис.
-                          </p>
-                        </div>
-                      </li>
-                    </ul>
-                  </div>
-
-                  {/* Tip */}
-                  <div className="flex items-start gap-3 rounded-xl border border-gold/20 bg-gold/5 p-4">
-                    <Lightbulb className="h-4 w-4 flex-shrink-0 text-gold" />
-                    <p className="text-xs italic leading-relaxed text-foreground/80">
-                      Съвет: Колкото по-подробно опишете предмета и задълженията, толкова по-прецизен ще бъде финалният резултат.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Preview footer */}
-                <div className="border-t border-border/60 bg-navy-light/40 px-6 py-4 text-center backdrop-blur-sm">
-                  <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                    Попълнете формата вляво, за да видите проекта тук
-                  </p>
-                </div>
-              </div>
+                <LiveDraft
+                  sector={syntheticSector}
+                  answers={syntheticAnswers}
+                  generated={null}
+                  isPro={isPro}
+                  bilingual={bilingual && canBilingual}
+                />
+              </>
             )}
           </section>
         </div>
