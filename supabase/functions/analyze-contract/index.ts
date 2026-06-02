@@ -323,7 +323,7 @@ ${truncated}
     }
 
     if (!aiResp.ok) {
-      if (!isPro) await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
+      if (!isPro && quotaResult.charged !== false) await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
       if (aiResp.status === 429) {
         return new Response(JSON.stringify({ error: "Достигнат е лимитът. Моля опитайте след малко." }), {
           status: 429,
