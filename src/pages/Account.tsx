@@ -953,6 +953,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   const [checkoutPrice, setCheckoutPrice] = useState<string | null>(null);
   const [sub, setSub] = useState<SubRow | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [showAllPlans, setShowAllPlans] = useState(false);
   const subStatus = sub?.status ?? null;
   const planMeta = sub?.price_id ? PLAN_LABELS[sub.price_id] : undefined;
   const statusMeta = subStatus ? STATUS_META[subStatus] ?? { label: subStatus, tone: "info" as const } : null;
