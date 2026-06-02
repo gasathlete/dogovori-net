@@ -96,8 +96,11 @@ function resolveSlug(docName: string): string | null {
   const kindTokens = new Set(
     (kindPrefix || "").split("-").filter((t) => t.length >= 3),
   );
-  // Stopwords that show up in many slugs and shouldn't carry weight.
-  const STOP = new Set(["pri", "kam", "kato", "ili", "chl"]);
+  // Stopwords / Bulgarian prepositions that show up in many slugs and
+  // shouldn't carry weight. Filtered from BOTH the wanted tokens AND from
+  // the candidate slug words so a wanted token like "priemane" can't
+  // prefix-match a slug preposition like "pri".
+  const STOP = new Set(["pri", "kam", "kato", "ili", "chl", "pod", "nad", "bez", "sas", "sled", "ili"]);
   // De-duplicate distinctive tokens (preserves order).
   const seen = new Set<string>();
   const distinctiveTokens: string[] = [];
