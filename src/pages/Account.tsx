@@ -270,6 +270,7 @@ function Dashboard({ quota, isPro, docs, hasChatAccess, onOpenChat }: { quota: Q
             ? `${(quota as any)?.pro_monthly_used ?? 0}/100 операции/мес`
             : `${(quota as any)?.total_used ?? 0}/6 общо · ${(quota as any)?.monthly_total_used ?? 0}/2 този месец`
         }
+        hint="Документ · Бланка · Качване на документ за Анализ – автоматични корекции = 1 операция"
         onClick={() => navigate("/account?tab=subscription")}
       />
       <Card
