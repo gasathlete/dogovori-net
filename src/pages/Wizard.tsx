@@ -331,6 +331,7 @@ export default function WizardPage() {
     }
     setApplyingCorrections(true);
     try {
+      const { getOpSessionId, newOpBatchId } = await import("@/lib/opSession");
       const { data, error } = await supabase.functions.invoke("apply-corrections", {
         body: {
           contract: result.contract,
@@ -338,6 +339,8 @@ export default function WizardPage() {
           selectedIssues: sel.issues,
           selectedRecommendations: sel.recommendations,
           answers,
+          session_id: getOpSessionId(),
+          batch_id: newOpBatchId(),
         },
       });
       if (error || data?.error) {
