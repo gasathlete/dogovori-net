@@ -49,18 +49,20 @@ export function Header() {
           : "border-border/40 bg-navy/80",
       )}
     >
-      <div className="container flex h-20 items-center justify-between gap-6">
+      <div className="container flex h-20 items-center gap-6">
         {/* Brand */}
-        <Link
-          to="/"
-          onClick={() => setOpen(false)}
-          className="flex min-w-0 items-center transition-opacity hover:opacity-90"
-        >
-          <Logo compact />
-        </Link>
+        <div className="flex flex-1 items-center">
+          <Link
+            to="/"
+            onClick={() => setOpen(false)}
+            className="flex min-w-0 items-center transition-opacity hover:opacity-90"
+          >
+            <Logo compact />
+          </Link>
+        </div>
 
-        {/* Primary nav */}
-        <nav className="hidden flex-1 items-center justify-center gap-6 lg:flex xl:gap-9">
+        {/* Primary nav — true center via equal left/right flex-1 columns */}
+        <nav className="hidden items-center gap-6 lg:flex xl:gap-9">
           {NAV.map((n) => {
             const active = isActive(n.to);
             return (
@@ -89,7 +91,7 @@ export function Header() {
         </nav>
 
         {/* Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-1 items-center justify-end gap-3">
           <span className="hidden h-9 items-center gap-1.5 rounded-full border border-gold/25 bg-gold/[0.06] px-4 text-[11px] font-semibold tracking-[0.12em] text-gold transition-colors hover:bg-gold/10 xl:inline-flex">
             <a
               href="https://lex.bg/laws/ldoc/2121934337"
