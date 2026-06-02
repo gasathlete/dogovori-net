@@ -133,6 +133,21 @@ export function ReferencePromptDialog({
           >
             <Wand2 className="mr-2 h-4 w-4" /> Не — изготви го с AI
           </Button>
+          <Button
+            onClick={handleGenerate}
+            className="w-full bg-gradient-gold text-navy hover:shadow-gold"
+          >
+            <Wand2 className="mr-2 h-4 w-4" /> Не — изготви го с AI
+          </Button>
+          {user && (
+            <Button
+              variant="outline"
+              onClick={() => setKitOpen(true)}
+              className="w-full border-gold/30 text-gold hover:bg-gold/10"
+            >
+              <Package className="mr-2 h-4 w-4" /> Добави в комплект
+            </Button>
+          )}
           <Button variant="ghost" onClick={onClose} className="w-full text-xs text-muted-foreground">
             Отказ
           </Button>
@@ -142,6 +157,19 @@ export function ReferencePromptDialog({
           Прикачените документи се добавят автоматично към основния договор при експорт в PDF и се запазват с версия в профила ви.
         </p>
       </DialogContent>
+      {kitOpen && (
+        <AddToKitDialog
+          open={kitOpen}
+          onClose={() => setKitOpen(false)}
+          defaultKitTitle={parentTitle ? `Комплект: ${parentTitle}` : reference.displayLabel}
+          item={{
+            role: "appendix",
+            ref_label: reference.displayLabel,
+            planned_doc_name: reference.displayLabel,
+          }}
+          onAdded={() => { onLinked(); onClose(); }}
+        />
+      )}
     </Dialog>
   );
 }
