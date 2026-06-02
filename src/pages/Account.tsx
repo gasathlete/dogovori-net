@@ -69,6 +69,9 @@ export default function AccountPage() {
   const [isStaff, setIsStaff] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const { team: teamForChat } = useTeam();
+  const { count: unreadCount } = useUnreadNotifications();
+
+
 
   useEffect(() => {
     if (!user) { setIsStaff(false); return; }
