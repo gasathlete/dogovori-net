@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
+import { slugify } from "@/lib/slugify";
 import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
 import { ArbitrationSelector, type ArbitrationValue } from "@/components/wizard/ArbitrationSelector";
 import { FollowupSuggestions } from "@/components/wizard/FollowupSuggestions";
