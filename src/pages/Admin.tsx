@@ -194,6 +194,7 @@ export default function AdminPage() {
           </Table>
         </div>
 
+        <AdminNotificationsPanel />
         <AdminPartnersPanel />
         <AdminBlanksPanel />
         <AdminUserArticlesPanel />
