@@ -187,6 +187,9 @@ export default function AccountPage() {
           <TabsContent value="dashboard">
             <Dashboard quota={quota} isPro={!!isPro} docs={docs} hasChatAccess={!!isPro || (!!teamForChat && teamForChat.status === "active")} onOpenChat={() => setChatOpen(true)} />
           </TabsContent>
+          <TabsContent value="notifications">
+            <NotificationsTab />
+          </TabsContent>
           <TabsContent value="contacts">
             <ContactsTab contacts={contacts} docs={docs} reload={reload} onOpenDocs={openContactDocs} />
           </TabsContent>
