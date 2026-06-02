@@ -953,7 +953,7 @@ export function LiveDraft({
 
   return (
     <ProtectedContent>
-      <PreviewFadeGate active={fadeActive}>
+      <PreviewFadeGate active={fadeActive} onDownloadBlank={onDownloadBlank}>
         <TemplateDraftOrSkeleton
           docName={docName}
           answers={answers}
