@@ -238,12 +238,27 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { data: consumed, error: consumeErr } = await userClient.rpc("consume_quota", { _kind: "analysis" });
+    // Use session-aware consume when the client supplied session_id + a stable
+    // doc key (we use the uploaded contract id or a client-provided slug).
+    const docKey = docKeyClient || `upload:${uploadedContractId}`;
+    const useSession = !!sessionId && !!docKey;
+    const { data: consumed, error: consumeErr } = useSession
+      ? await userClient.rpc("consume_quota_session", {
+          _kind: "analysis",
+          _doc_key: docKey,
+          _session_id: sessionId,
+        })
+      : await userClient.rpc("consume_quota", { _kind: "analysis" });
     if (consumeErr) {
       console.error("consume_quota error:", consumeErr);
       throw new Error("Грешка при проверка на квотата");
     }
-    const quotaResult = consumed as { ok: boolean; reason?: string; is_pro: boolean };
+    const quotaResult = consumed as {
+      ok: boolean;
+      reason?: string;
+      is_pro: boolean;
+      charged?: boolean;
+    };
     const isPro = !!quotaResult?.is_pro;
     if (!quotaResult?.ok) {
       return new Response(
