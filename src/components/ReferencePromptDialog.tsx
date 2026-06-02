@@ -33,6 +33,7 @@ export function ReferencePromptDialog({
   const { user } = useAuth();
   const navigate = useNavigate();
   const [uploading, setUploading] = useState(false);
+  const [kitOpen, setKitOpen] = useState(false);
 
   const handleUpload = async (file: File) => {
     if (!user) { toast.error("Влезте, за да качите документ"); return; }
