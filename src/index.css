@@ -348,3 +348,10 @@
     .route-fade { animation: none; }
   }
 }
+
+/* Prevent iOS auto-zoom on input focus by ensuring min 16px font-size */
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
