@@ -74,6 +74,7 @@ const Downloads = lazy(() => import("./pages/Downloads.tsx"));
 const SiteMap = lazy(() => import("./pages/SiteMap.tsx"));
 const Kits = lazy(() => import("./pages/Kits.tsx"));
 const KitDetail = lazy(() => import("./pages/KitDetail.tsx"));
+const MyKitDetail = lazy(() => import("./pages/MyKitDetail.tsx"));
 
 // Defer Sentry boot until the browser is idle so it never competes with hydration / LCP.
 if (typeof window !== "undefined") {
@@ -113,6 +114,7 @@ const AnimatedRoutes = () => {
         <Route path="/wizard-bilingual/:sectorId" element={<WizardBilingual />} />
         <Route path="/catalog" element={<Catalog />} />
         <Route path="/komplekti" element={<Kits />} />
+        <Route path="/komplekti/moi/:id" element={<ProtectedRoute><MyKitDetail /></ProtectedRoute>} />
         <Route path="/komplekti/:slug" element={<KitDetail />} />
         <Route path="/karta" element={<SiteMap />} />
         <Route path="/kategoria/:slug" element={<Category />} />
