@@ -5,7 +5,7 @@ import { ProtectedContent } from "@/components/ProtectedContent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Pencil, Check, Lock, Sparkles } from "lucide-react";
+import { Pencil, Check, Lock, Sparkles, Feather } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { loadTemplateDraft, fillTemplateDraft } from "@/lib/templateDraftResolver";
 
