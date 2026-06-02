@@ -1151,6 +1151,9 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
 
           {isPro && (
             <div className="flex shrink-0 flex-col gap-2 sm:items-end">
+              <Button onClick={() => setShowAllPlans((v) => !v)} variant="outline" className="border-gold/40">
+                {showAllPlans ? "Скрий плановете" : "Всички планове"}
+              </Button>
               <Button onClick={portal} disabled={busy} variant="outline" className="border-gold/40">
                 {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Управление на абонамент
