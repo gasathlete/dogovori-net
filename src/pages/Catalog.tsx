@@ -350,10 +350,20 @@ export default function CatalogPage() {
                   : "border-border/70 bg-card/40 text-foreground hover:border-gold/40 hover:text-gold")
               }
             >
-              <Languages className="h-3.5 w-3.5" />
+            <Languages className="h-3.5 w-3.5" />
               Двуезичен документ
               {bilingualOnly && <Check className="h-3.5 w-3.5" />}
             </button>
+
+            <span className="mx-1 hidden h-5 w-px bg-border/60 md:inline-block" aria-hidden />
+
+            <Link
+              to="/komplekti"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-card/40 px-3 py-1.5 text-sm text-foreground transition-colors hover:border-gold/40 hover:text-gold"
+            >
+              <Package className="h-3.5 w-3.5" />
+              Комплекти
+            </Link>
           </div>
         </div>
       </section>
