@@ -38,6 +38,7 @@ function iconFor(kind: string) {
 }
 
 export function NotificationsTab() {
+  const navigate = useNavigate();
   const [items, setItems] = useState<Notification[]>([]);
   const [reads, setReads] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
