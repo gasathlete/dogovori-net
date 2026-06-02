@@ -26,6 +26,7 @@ describe("questionGraph.resolveGraph", () => {
   });
 
   it("computes progress against required-visible questions only", () => {
+    // optional_note is visible but not required, so it doesn't affect progress
     const r1 = resolveGraph(graph, { type: "a" });
     expect(r1.missingRequired).toEqual(["a_detail"]);
     expect(r1.progress).toBe(50);
@@ -36,9 +37,12 @@ describe("questionGraph.resolveGraph", () => {
     expect(r2.isComplete).toBe(true);
   });
 
-  it("groups questions into sections, skipping empty ones", () => {
+  it("groups questions into sections, including always-visible optional ones", () => {
+    // optional_note has no visible_when => always visible => details section appears
     const r = resolveGraph(graph, {});
-    expect(r.sections.map((s) => s.id)).toEqual(["basics"]);
+    expect(r.sections.map((s) => s.id)).toEqual(["basics", "details"]);
+    expect(r.sections.find((s) => s.id === "details")?.questions.map((q) => q.id))
+      .toEqual(["optional_note"]);
   });
 });
 
