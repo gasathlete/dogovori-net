@@ -297,6 +297,44 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
 
   const schema = useMemo(() => getBuildSchema(documentType), [documentType]);
 
+  // ----- Step-by-step wizard structure -----
+  const STEPS = useMemo(
+    () => [
+      { id: "settings", label: "Настройки" },
+      { id: "basics", label: "Документ" },
+      { id: "parties", label: "Страни" },
+      { id: "details", label: "Детайли" },
+      { id: "review", label: "Преглед" },
+    ],
+    [],
+  );
+  const totalSteps = STEPS.length;
+  const safeStepIdx = Math.min(Math.max(0, stepIdx), totalSteps - 1);
+  const stepValid = (idx: number): boolean => {
+    if (idx === 0) return !!documentType;
+    if (idx === 1) {
+      if (!name.trim()) return false;
+      if (!categoryId) return false;
+      if (categoryId === "__other__" && !categoryOther.trim()) return false;
+      return true;
+    }
+    if (idx === 2) {
+      const needsB = !!schema.partyBLabel;
+      if (splitLines(partiesA).length === 0) return false;
+      if (needsB && splitLines(partiesB).length === 0) return false;
+      return true;
+    }
+    if (idx === 3) {
+      return schema.fields.filter((f) => f.required).every((f) => (fieldValues[f.key] ?? "").trim().length > 0);
+    }
+    return true;
+  };
+  const canGoNext = stepValid(safeStepIdx);
+  const completedSteps = STEPS.reduce((acc, _s, i) => (i < safeStepIdx && stepValid(i) ? acc + 1 : acc), 0);
+  const progressPct = result
+    ? 100
+    : Math.min(100, ((completedSteps + (canGoNext ? 1 : 0)) / totalSteps) * 100);
+
   const handleGenerate = async () => {
     const docDef = getDocumentType(documentType);
     if (!name.trim()) { toast.error("Въведете заглавие на документа"); return; }
