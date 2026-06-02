@@ -914,6 +914,65 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_reads: {
+        Row: {
+          notification_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          notification_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          notification_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_reads_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          link: string | null
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          link?: string | null
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          link?: string | null
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       partners: {
         Row: {
           approved_at: string | null
@@ -1851,6 +1910,8 @@ export type Database = {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
       }
+      mark_all_notifications_read: { Args: never; Returns: number }
+      mark_notification_read: { Args: { _id: string }; Returns: undefined }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -1874,6 +1935,7 @@ export type Database = {
         Returns: undefined
       }
       unaccent_or_lower: { Args: { _t: string }; Returns: string }
+      unread_notifications_count: { Args: never; Returns: number }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
