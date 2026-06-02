@@ -168,6 +168,10 @@ ${Object.entries(answers).map(([k, v]) => `- ${k}: ${v}`).join("\n")}
     });
 
     if (!aiResp.ok) {
+      // Refund the batch charge so the user can retry without losing 1 op.
+      if (batchCharged) {
+        await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
+      }
       if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Достигнат е лимитът. Опитайте по-късно." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       if (aiResp.status === 402) return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const t = await aiResp.text();
