@@ -37,10 +37,10 @@ export default function WizardGraphPage() {
     (async () => {
       const { data, error: err } = await supabase
         .from("template_clauses")
-        .select("clause_id, template_slug, title, body_md, include_when, order_idx, severity")
+        .select("clause_id, template_slug, title, body_md, include_when, order, severity")
         .eq("template_slug", slug)
-        .eq("is_active", true)
-        .order("order_idx");
+        .eq("active", true)
+        .order("order");
 
       if (cancelled) return;
       if (err) {
@@ -54,10 +54,11 @@ export default function WizardGraphPage() {
           title: r.title,
           body_md: r.body_md,
           include_when: r.include_when ?? null,
-          order: r.order_idx ?? 0,
+          order: r.order ?? 0,
           severity: (r.severity as ClauseDefinition["severity"]) ?? undefined,
         })),
       );
+
     })();
     return () => { cancelled = true; };
   }, [slug]);
