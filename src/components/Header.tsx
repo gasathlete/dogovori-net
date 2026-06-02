@@ -123,20 +123,36 @@ export function Header() {
             </a>
           </span>
           {user ? (
-            <Link
-              to="/account?tab=notifications"
-              aria-label={unreadCount > 0 ? `Профил (${unreadCount} непрочетени известия)` : "Профил"}
-              className="relative inline-flex h-11 items-center gap-2 rounded-full border border-gold/40 bg-gold/[0.08] px-4 text-[12px] font-semibold tracking-wide text-gold transition-all hover:bg-gold/15 hover:shadow-[0_0_0_4px_hsl(var(--gold)/0.08)] sm:h-9 sm:px-4"
-            >
-              <UserIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Профил</span>
-              {unreadCount > 0 && (
-                <span
-                  aria-hidden="true"
-                  className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-red-500 ring-2 ring-navy"
-                />
-              )}
-            </Link>
+            <>
+              <Link
+                to="/account?tab=notifications"
+                aria-label={unreadCount > 0 ? `Известия (${unreadCount} непрочетени)` : "Известия"}
+                title="Известия"
+                className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-gold/40 bg-gold/[0.08] text-gold transition-all hover:bg-gold/15 hover:shadow-[0_0_0_4px_hsl(var(--gold)/0.08)] sm:h-9 sm:w-9"
+              >
+                <Bell className="h-4 w-4" />
+                {unreadCount > 0 && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-red-500 ring-2 ring-navy"
+                  />
+                )}
+              </Link>
+              <Link
+                to="/account"
+                aria-label="Профил"
+                className="relative inline-flex h-11 items-center gap-2 rounded-full border border-gold/40 bg-gold/[0.08] px-4 text-[12px] font-semibold tracking-wide text-gold transition-all hover:bg-gold/15 hover:shadow-[0_0_0_4px_hsl(var(--gold)/0.08)] sm:h-9 sm:px-4"
+              >
+                <UserIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">Профил</span>
+                {unreadCount > 0 && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-red-500 ring-2 ring-navy"
+                  />
+                )}
+              </Link>
+            </>
           ) : (
             <Link
               to="/auth"
