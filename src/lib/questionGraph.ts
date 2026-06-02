@@ -99,7 +99,8 @@ export function resolveGraph(graph: QuestionGraph, answers: Ctx): ResolvedGraph 
   for (const q of graph.questions) {
     const visible = evaluateExpression(q.visible_when, ctx);
     if (!visible) continue;
-    const required = evaluateExpression(q.required_when, ctx);
+    // Missing required_when => optional by default (only explicit predicate marks required)
+    const required = q.required_when ? evaluateExpression(q.required_when, ctx) : false;
     active.push({ ...q, required });
     if (required) {
       requiredCount++;
