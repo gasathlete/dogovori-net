@@ -67,6 +67,20 @@ function detectKindPrefix(docName: string): string | null {
   return null;
 }
 
+// Token-level prefix match: a wanted token `t` matches a slug if one of the
+// slug's hyphen-separated words shares a prefix of length >= 3 with `t`.
+// This is stricter than substring matching ("nda" was incorrectly hitting
+// "mandat"), but still allows for common abbreviations ("obr" ↔ "obrazets").
+function tokenMatchesSlug(t: string, slugWords: string[]): boolean {
+  for (const w of slugWords) {
+    if (w === t) return true;
+    if (w.length >= 3 && t.length >= 3) {
+      if (w.startsWith(t) || t.startsWith(w)) return true;
+    }
+  }
+  return false;
+}
+
 function resolveSlug(docName: string): string | null {
   const wanted = slugify(docName);
   if (!wanted) return null;
@@ -83,11 +97,16 @@ function resolveSlug(docName: string): string | null {
     (kindPrefix || "").split("-").filter((t) => t.length >= 3),
   );
   // Stopwords that show up in many slugs and shouldn't carry weight.
-  const STOP = new Set(["pri", "kam", "kato", "ili"]);
-  const distinctiveTokens = allTokens.filter((t) => !kindTokens.has(t) && !STOP.has(t));
+  const STOP = new Set(["pri", "kam", "kato", "ili", "chl"]);
+  // De-duplicate distinctive tokens (preserves order).
+  const seen = new Set<string>();
+  const distinctiveTokens: string[] = [];
+  for (const t of allTokens) {
+    if (kindTokens.has(t) || STOP.has(t) || seen.has(t)) continue;
+    seen.add(t);
+    distinctiveTokens.push(t);
+  }
 
-  // Need distinctive content to attempt fuzzy resolution. Without it the
-  // match would be driven entirely by the generic kind word.
   if (distinctiveTokens.length === 0) return null;
 
   const candidates = kindPrefix
@@ -95,21 +114,33 @@ function resolveSlug(docName: string): string | null {
     : TEMPLATE_DRAFT_SLUGS;
 
   // Require at least 2 distinctive shared tokens AND >= 60% coverage of the
-  // distinctive tokens. Prevents e.g. "Договор за наем на офис помещение"
-  // (distinctive: naem, ofis, pomeshtenie) from resolving to the
-  // agricultural rental draft on the single shared token "naem".
+  // distinctive tokens. Prevents weak matches like "Договор за наем на
+  // офис помещение" → agricultural rental draft on one shared token.
   const minScore = Math.max(2, Math.ceil(distinctiveTokens.length * 0.6));
 
-  const leadingTokens = new Set(distinctiveTokens.slice(0, 3));
+  // Leading tokens identify the document's subject. We REQUIRE the first
+  // distinctive token to match, and (when there are 2+) at least one of the
+  // first two. This blocks e.g. "Споразумение за прекратяване на наем по
+  // взаимно съгласие" (first 2: prekratyavane, naem) from resolving to a
+  // labor-contract termination draft that lacks "naem".
+  const requiredLeading = distinctiveTokens.slice(0, Math.min(2, distinctiveTokens.length));
 
   let best: { slug: string; score: number; leadingScore: number; length: number } | null = null;
   for (const k of candidates) {
+    const slugWords = k.split("-").filter((w) => w.length >= 3);
+    // Hard gate: every required leading token must match.
+    let leadingOk = true;
+    for (const lt of requiredLeading) {
+      if (!tokenMatchesSlug(lt, slugWords)) { leadingOk = false; break; }
+    }
+    if (!leadingOk) continue;
+
     let score = 0;
     let leadingScore = 0;
     for (const t of distinctiveTokens) {
-      if (k.includes(t)) {
+      if (tokenMatchesSlug(t, slugWords)) {
         score++;
-        if (leadingTokens.has(t)) leadingScore++;
+        if (requiredLeading.includes(t)) leadingScore++;
       }
     }
     if (score < minScore) continue;
