@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const CONSENT_VERSIONS = {
   terms: "2026-05-16",
   privacy: "2026-05-16",
-  marketing: "2026-05-16",
+  marketing: "2026-06-02",
   ai_disclaimer: "2026-05-16",
   cookies: "2026-05-16",
   age_18: "2026-05-16",
