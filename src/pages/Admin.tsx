@@ -15,6 +15,7 @@ import { AdminPartnersPanel } from "@/components/AdminPartnersPanel";
 import { AdminBlanksPanel } from "@/components/AdminBlanksPanel";
 import { AdminUserArticlesPanel } from "@/components/AdminUserArticlesPanel";
 import { AdminGscPanel } from "@/components/AdminGscPanel";
+import { AdminNotificationsPanel } from "@/components/AdminNotificationsPanel";
 
 type Row = {
   user_id: string;
@@ -193,6 +194,7 @@ export default function AdminPage() {
           </Table>
         </div>
 
+        <AdminNotificationsPanel />
         <AdminPartnersPanel />
         <AdminBlanksPanel />
         <AdminUserArticlesPanel />

@@ -5,6 +5,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { scrollToHash } from "@/lib/scrollToHash";
 import { useScrolled } from "@/hooks/useScrolled";
+import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -18,6 +19,7 @@ const NAV = [
 export function Header() {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
+  const { count: unreadCount } = useUnreadNotifications();
   const navigate = useNavigate();
   const location = useLocation();
   const scrolled = useScrolled(8);
@@ -122,12 +124,18 @@ export function Header() {
           </span>
           {user ? (
             <Link
-              to="/account"
-              aria-label="Профил"
-              className="inline-flex h-11 items-center gap-2 rounded-full border border-gold/40 bg-gold/[0.08] px-4 text-[12px] font-semibold tracking-wide text-gold transition-all hover:bg-gold/15 hover:shadow-[0_0_0_4px_hsl(var(--gold)/0.08)] sm:h-9 sm:px-4"
+              to="/account?tab=notifications"
+              aria-label={unreadCount > 0 ? `Профил (${unreadCount} непрочетени известия)` : "Профил"}
+              className="relative inline-flex h-11 items-center gap-2 rounded-full border border-gold/40 bg-gold/[0.08] px-4 text-[12px] font-semibold tracking-wide text-gold transition-all hover:bg-gold/15 hover:shadow-[0_0_0_4px_hsl(var(--gold)/0.08)] sm:h-9 sm:px-4"
             >
               <UserIcon className="h-4 w-4" />
               <span className="hidden sm:inline">Профил</span>
+              {unreadCount > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-red-500 ring-2 ring-navy"
+                />
+              )}
             </Link>
           ) : (
             <Link

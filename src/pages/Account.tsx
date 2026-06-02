@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Bird, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X, MessageSquare, Check, Lock, RefreshCw, Sparkles, Building2,
+  Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Bird, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X, MessageSquare, Check, Lock, RefreshCw, Sparkles, Building2, Bell,
 } from "lucide-react";
+import { NotificationsTab } from "@/components/NotificationsTab";
+import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { FloatingAssistant } from "@/components/FloatingAssistant";
 import { useTeam } from "@/hooks/useTeam";
 import { Header } from "@/components/Header";
@@ -67,6 +69,9 @@ export default function AccountPage() {
   const [isStaff, setIsStaff] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const { team: teamForChat } = useTeam();
+  const { count: unreadCount } = useUnreadNotifications();
+
+
 
   useEffect(() => {
     if (!user) { setIsStaff(false); return; }
@@ -162,6 +167,14 @@ export default function AccountPage() {
         <Tabs value={initialTab} onValueChange={onTabChange} className="space-y-6">
           <ScrollableTabsList>
             <TabsTrigger value="dashboard" className="shrink-0 whitespace-nowrap"><Bird className="mr-1 h-3.5 w-3.5" />Табло</TabsTrigger>
+            <TabsTrigger value="notifications" className="relative shrink-0 whitespace-nowrap">
+              <Bell className="mr-1 h-3.5 w-3.5" />Известия
+              {unreadCount > 0 && (
+                <span className="ml-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="documents" className="shrink-0 whitespace-nowrap"><FileText className="mr-1 h-3.5 w-3.5" />Документи</TabsTrigger>
             <TabsTrigger value="folders" className="shrink-0 whitespace-nowrap"><FolderOpen className="mr-1 h-3.5 w-3.5" />Папки</TabsTrigger>
             <TabsTrigger value="contacts" className="shrink-0 whitespace-nowrap"><Users className="mr-1 h-3.5 w-3.5" />Контрагенти</TabsTrigger>
@@ -170,8 +183,12 @@ export default function AccountPage() {
             <TabsTrigger value="settings" className="shrink-0 whitespace-nowrap"><SettingsIcon className="mr-1 h-3.5 w-3.5" />Настройки</TabsTrigger>
           </ScrollableTabsList>
 
+
           <TabsContent value="dashboard">
             <Dashboard quota={quota} isPro={!!isPro} docs={docs} hasChatAccess={!!isPro || (!!teamForChat && teamForChat.status === "active")} onOpenChat={() => setChatOpen(true)} />
+          </TabsContent>
+          <TabsContent value="notifications">
+            <NotificationsTab />
           </TabsContent>
           <TabsContent value="contacts">
             <ContactsTab contacts={contacts} docs={docs} reload={reload} onOpenDocs={openContactDocs} />
