@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { useSearchParams } from "react-router-dom";
 import * as Icons from "lucide-react";
-import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp, X, Filter, Check, Languages } from "lucide-react";
+import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp, X, Filter, Check, Languages, Package } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
@@ -350,10 +350,20 @@ export default function CatalogPage() {
                   : "border-border/70 bg-card/40 text-foreground hover:border-gold/40 hover:text-gold")
               }
             >
-              <Languages className="h-3.5 w-3.5" />
+            <Languages className="h-3.5 w-3.5" />
               Двуезичен документ
               {bilingualOnly && <Check className="h-3.5 w-3.5" />}
             </button>
+
+            <span className="mx-1 hidden h-5 w-px bg-border/60 md:inline-block" aria-hidden />
+
+            <Link
+              to="/komplekti"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-card/40 px-3 py-1.5 text-sm text-foreground transition-colors hover:border-gold/40 hover:text-gold"
+            >
+              <Package className="h-3.5 w-3.5" />
+              Комплекти
+            </Link>
           </div>
         </div>
       </section>
