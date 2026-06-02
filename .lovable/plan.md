@@ -1,81 +1,155 @@
-## План
+# Dogovori.net → надминаване на LawDepot
 
-### 1. Допълнение към съгласието при регистрация
+Целта: превърнем wizard-а в истинско **динамично дърво от решения** с conditional clause engine, надградим discovery, e-sign и dashboard, и подготвим архитектура за EN/международна версия. Фазиран roadmap, всяка фаза доставима самостоятелно.
 
-В `src/pages/Auth.tsx` (signup форма) — разширявам текста до чекбокса за маркетинг (или го разделям на два чекбокса):
+---
 
-- Запазвам „Общи условия и Политика за поверителност" като задължителен.
-- Маркетинговият чекбокс получава по-ясен текст:
-  > „Съгласявам се да предоставя име и имейл на администратора на платформата за получаване на рекламни съобщения, известия за бонуси и награди в dogovori.net."
-- Същият пасаж се добавя и в `src/pages/legal/` (Terms + Privacy секцията) като нов параграф, за да е отразено и в Общите условия.
-- Запис в `user_consents` остава както досега (`consent_type: "marketing"`), но bump на `CONSENT_VERSIONS.marketing` в `src/lib/consents.ts` за нова версия на документа.
+## Фаза 1 — Динамично дърво от решения (ядрото)
 
-### 2. Система за известия (notifications)
+Това е сърцето на платформата. Днес wizard-ът използва статичен набор полета на документ; целим граф от въпроси с branching, conditional визуализация и conditional клаузи.
 
-#### База данни (миграция)
+**1.1 Question Graph schema (SSOT)**
+- Нова структура `QuestionNode` в `src/lib/questionGraph.ts`:
+  - `id`, `label`, `help`, `field_type`, `options`, `validators`
+  - `visible_when` / `required_when` — boolean expression върху отговорите
+  - `branches[]` — кои въпроси следват при кои отговори
+  - `affects_clauses[]` — кои клаузи се добавят/премахват/модифицират
+- Единен resolver (`evaluateGraph(answers, graph)`) → активни въпроси, прогрес, грешки.
+- Per-template граф файлове в `src/data/questionGraphs/<slug>.ts`; миграция от `documentFieldSchemas.ts` (постепенна, най-използваните 30 шаблона първо).
 
-Таблица `public.notifications`:
-- `user_id` (nullable — `NULL` означава broadcast до всички)
-- `kind` (text: `finish_doc`, `broadcast`, `system`)
-- `title`, `body`
-- `link` (опционален път, напр. `/wizard?resume=<saved_id>`)
-- `created_by` (uuid на админа за broadcast)
-- `created_at`
+**1.2 Conditional Clause Engine**
+- Нова таблица `template_clauses` (clause_id, template_slug, title, body_md, `include_when` expression, order, severity).
+- `assembleDocument(answers, clauses)` връща финален текст само с включените клаузи; placeholder substitution с типизирани токени.
+- Real-time live preview (вече има `LiveDraft.tsx`) се пресмята reactively при всяка промяна на отговор.
 
-Таблица `public.notification_reads`:
-- `user_id`, `notification_id`, `read_at` (за маркиране на прочетени, особено за broadcast).
+**1.3 Wizard UX redesign (split view)**
+- Split layout: ляво въпроси (с прогрес steps по секции), дясно live preview с highlight на променените клаузи.
+- "Why we ask" tooltips, защо точно този въпрос (за trust).
+- Save & resume автоматично; resume линкове в notifications.
+- Back/forward без загуба на state, deep-linkable step (`?step=...`).
 
-GRANTs + RLS:
-- Authenticated user чете: свои персонални + всички broadcast (`user_id IS NULL`); + `is_staff` чете всичко.
-- Insert: само `is_staff` (за broadcast и ad-hoc); service_role за системни (напр. „Довършете документа").
-- `notification_reads`: user управлява само своите редове.
+**1.4 Scope guard (вече започнато)**
+- Audit script: за всеки шаблон да изброи въпросите, които WIZARD ще покаже, и да flag-не въпроси извън scope. Резултатът е CSV в `/mnt/documents/wizard-scope-audit.csv` за staff review.
 
-RPC функции:
-- `mark_notification_read(_id uuid)` — upsert в `notification_reads`.
-- `unread_notifications_count()` — връща broя непрочетени (персонални + broadcast без ред в reads).
+---
 
-#### Автоматични известия „Довършете документа си"
+## Фаза 2 — Discovery & каталог (LawDepot-grade)
 
-- Edge function `notify-unfinished-docs` (cron, 1×дневно): минава през `saved_documents` със статус незавършен (или `document_kits.status = 'in_progress'`) по-стари от ~24ч и без съществуващо `finish_doc` известие за същия `saved_id`, и създава запис в `notifications` с link към `/wizard?resume=<id>` (или съответната страница).
+**2.1 Search**
+- Full-text търсене по име/синоними/keywords (Postgres `tsvector` + GIN индекс на `template_search_index`).
+- Instant search в Header (cmd+k), с категории, най-популярни и "наскоро ползвани от теб".
 
-#### UI — таб „Известия" в профила
+**2.2 Каталог UX**
+- Filters: сектор, страна по договора, цел, юрисдикция, език.
+- "Best for…" use-case карти на категорийните страници.
+- Related templates на всяка template page (вече има база в `relatedTemplates.ts`, ще се обогати чрез co-usage analytics).
+- Breadcrumbs + JSON-LD навсякъде.
 
-В `src/pages/Account.tsx`:
-- Нов `TabsTrigger value="notifications"` с икона `Bell` + червена точка-badge, когато има непрочетени.
-- Нов компонент `src/components/NotificationsTab.tsx`: списък с известията (заглавие, текст, време, link бутон „Отвори"); бутон „Маркирай всички като прочетени".
-- Realtime subscribe на `notifications` (insert) за live update на брояча.
+**2.3 Trust & social proof**
+- "Used N times this month" брояч на template карта (от `audit_log` агрегати).
+- Lawyer-reviewed badge per template (нов флаг `reviewed_by_lawyer` + дата).
+- Testimonials секция на хоум.
 
-#### Червена точка на бутон „Профил" в Header
+---
 
-В `src/components/Header.tsx`:
-- Нов hook `src/hooks/useUnreadNotifications.tsx` — извиква `unread_notifications_count` при mount и слуша realtime канал.
-- Когато > 0, рисувам малка червена точка (абсолютно позиционирана) върху бутона „Профил" (десктоп + мобайл).
+## Фаза 3 — E-sign, sharing & dashboard
 
-#### Модераторски панел — изпращане на broadcast
+**3.1 Multi-party signing**
+- Дефиниране на signer roles в wizard (вече има parties); sign order (sequential/parallel).
+- Per-signer share links с email напомняния (cron edge function на 24h/72h).
+- Audit trail page per документ (кой кога видя/подписа, IP hash, OTP option).
 
-В `src/pages/Admin.tsx`:
-- Нова секция / таб „Известия" (или нов `AdminNotificationsPanel.tsx`):
-  - Форма: заглавие, текст, link (опц.), бутон „Изпрати до всички".
-  - Таблица с последно изпратените broadcast-и с брой прочитания и бутон за изтриване.
-- Insert се прави директно през supabase client (RLS позволява само `is_staff`).
+**3.2 Document lifecycle**
+- Статуси: draft → sent → partially_signed → completed → archived/expired.
+- Reminder при изтичане (срок на договора), renewal предложение.
+- Версии: всяка промяна след signing → нова версия с diff.
 
-### Технически детайли
+**3.3 Dashboard 2.0**
+- Cards по статус, drag&drop в папки, bulk actions, export ZIP.
+- "Action needed" inbox: чакащи подписи, изтичащи договори, неприключени wizards.
 
-- Realtime: `ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications, public.notification_reads;`.
-- Червена точка: `bg-red-500 ring-2 ring-navy` 8×8px, позиционирана top-right на бутоните.
-- Брояч се изчислява като: персонални (`user_id = auth.uid()`) непрочетени + broadcast (`user_id IS NULL`) без запис в `notification_reads` за този user.
-- Маркира се „прочетено" при отваряне на таба или при клик върху отделен елемент.
+---
 
-### Файлове за промяна / създаване
+## Фаза 4 — Съдържание & SEO authority
 
-- Миграция: `notifications`, `notification_reads`, RPC, grants, RLS, realtime publication.
-- `src/pages/Auth.tsx` — обновен текст на маркетинг чекбокса.
-- `src/pages/legal/Terms.tsx` (или съответната страница с общи условия) — нов параграф.
-- `src/lib/consents.ts` — bump на `marketing` версия.
-- `src/hooks/useUnreadNotifications.tsx` — нов.
-- `src/components/NotificationsTab.tsx` — нов.
-- `src/components/AdminNotificationsPanel.tsx` — нов.
-- `src/pages/Account.tsx` — нов таб + червена точка.
-- `src/components/Header.tsx` — червена точка на „Профил".
-- `src/pages/Admin.tsx` — закачам новия панел.
-- Edge function `supabase/functions/notify-unfinished-docs/index.ts` + cron.
+- Разширени guide-ове за всеки топ template (закони, casuistika, FAQ schema, internal linking).
+- "Compare templates" страници (напр. граждански vs трудов договор).
+- Glossary на правни термини с auto-link от blog/templates.
+- Schema.org: `LegalService`, `FAQPage`, `HowTo`, `BreadcrumbList` навсякъде.
+- Programmatic SEO: per-сектор + per-роля landing страници.
+
+---
+
+## Фаза 5 — i18n & EN версия
+
+**5.1 Архитектура**
+- `react-i18next` с namespace per route; ключове в `src/locales/<lang>/<ns>.json`.
+- URL стратегия: `dogovori.net/bg/...` и `dogovori.net/en/...`, hreflang tags, отделен sitemap per locale.
+- DB: `locale` колона на `notifications`, `saved_documents`, `template_clauses`; templates получават `i18n_key` родителски + per-locale тяло.
+
+**5.2 EN съдържание (Phase 5b)**
+- 20–30 най-използвани шаблона преведени и адаптирани (jurisdiction-agnostic версии + UK/EU варианти).
+- EN blog seed (10 статии) за SEO.
+- EUR/GBP/USD валути в pricing (вече EUR), Stripe products per region.
+
+---
+
+## Фаза 6 — Backend polish & enterprise-readiness
+
+- RLS audit (linter + manual review на всички таблици, особено team_*).
+- Edge function observability: structured logs, Sentry traces, error budget dashboards.
+- Performance: prerender top 200 страници, image CDN, Lighthouse target ≥95.
+- Rate limiting на public edge functions (assistant-chat, ocr-contract).
+- GDPR self-service: export & delete account (вече има delete-account, добавяме export ZIP).
+- Backup & restore процедура документирана.
+
+---
+
+## Технически детайли
+
+```text
+src/
+  lib/
+    questionGraph.ts          // resolver, types, expression evaluator
+    clauseEngine.ts           // assembleDocument, diffing
+    i18n.ts                   // i18next setup
+  data/
+    questionGraphs/<slug>.ts  // per-template graph
+  locales/{bg,en}/<ns>.json
+  components/wizard/
+    SplitWizard.tsx           // нов split layout
+    QuestionGraphRunner.tsx
+    ClausePreview.tsx         // highlights diff
+  pages/
+    Wizard.tsx                // pre-existing, switch to SplitWizard
+
+supabase/migrations/
+  - template_clauses (clause_id, template_slug, body_md, include_when, order)
+  - template_search_index (tsvector materialized view)
+  - documents.status enum + version table
+  - signing_audit (event log per share_link)
+  - i18n columns where needed
+```
+
+Expression език за `visible_when`/`include_when`: безопасен mini-DSL (whitelist на operators `==`, `!=`, `>`, `<`, `in`, `and`, `or`, `not`) с unit tests, без `eval`.
+
+---
+
+## Предложена последователност (sprint-ове по ~1 седмица)
+
+```text
+Sprint 1   Фаза 1.1 + 1.2   Question graph schema + clause engine + tests
+Sprint 2   Фаза 1.3 + 1.4   Split wizard UI, live preview, scope audit
+Sprint 3   Фаза 2.1 + 2.2   Search + каталог UX
+Sprint 4   Фаза 2.3 + 4     Trust signals + SEO authority pages
+Sprint 5   Фаза 3.1 + 3.2   Multi-party sign, lifecycle
+Sprint 6   Фаза 3.3 + 6     Dashboard 2.0, backend polish
+Sprint 7   Фаза 5.1         i18n архитектура + URL/hreflang
+Sprint 8   Фаза 5.2         EN съдържание, regional Stripe
+```
+
+---
+
+## Какво ще започна първо при approve
+
+Sprint 1: създавам `questionGraph.ts` + `clauseEngine.ts` с типове, resolver и unit tests; миграция за `template_clauses`; пилотирам с 1–2 шаблона (учредителен акт ЕООД + договор за наем) end-to-end, за да валидирам подхода преди масово мигриране.
