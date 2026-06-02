@@ -1959,14 +1959,28 @@ const group = (id: string, label: string, fields: Question[], help?: string): Qu
 /** Дали даденият документ е декларация / молба / пълномощно — само 1 страна (декларатор). */
 export function isDeclarationDoc(documentName?: string | null): boolean {
   if (!documentName) return false;
-  return /деклараци|молба|пълномощ/i.test(documentName);
+  return /деклараци|молба|пълномощ|нотариална заверка/i.test(documentName);
+}
+
+/**
+ * Документи, при които стандартните търговски клаузи (неустойка за забава,
+ * предсрочно прекратяване, форсмажор, подсъдност между страни) НЕ са приложими:
+ * корпоративни актове, вътрешни актове, едностранни изявления, оферти, протоколи,
+ * учредителни документи, инвестиционни инструменти със собствена структура и др.
+ */
+export function isNonContractDoc(documentName?: string | null): boolean {
+  if (!documentName) return false;
+  if (isDeclarationDoc(documentName)) return true;
+  return /учредителен акт|дружествен договор|устав|правилник|протокол|решение|заповед|покана|уведомление|известие(?! за)|оферта|меморандум|политика|указание|спецификация|term\s*sheet|\bsafe\b|convertible\s*note|esop|опции за дялове|жалба|справка|удостоверение|приемо-предавателен|сертификат|анкета|фактура|кредитно известие|дебитно известие|складова разписка|товарителница|коносамент|приложение|анекс(?! към)|разписка|констативен/i.test(documentName);
 }
 
 /** Връща обединените въпроси за wizard, базирани на sector + (по избор) sub-wizard.
  *  Автоматично групира свързани полета в "карти", за да намали броя стъпки до ~6-10.
- *  За декларации/молби/пълномощни — кратък поток без втора страна, неустойки и подсъдност. */
+ *  За декларации/молби/пълномощни и корпоративни/едностранни актове —
+ *  кратък поток без неустойки, предсрочно прекратяване, форсмажор и подсъдност. */
 export function buildQuestions(sector: Sector, sub?: SubWizard): Question[] {
   const declaration = isDeclarationDoc(sub?.documentName);
+  const nonContract = isNonContractDoc(sub?.documentName);
   const tailLen = commonTail.length;
   const sectorQuestions = sector.questions;
   const head = sectorQuestions.slice(0, sectorQuestions.length - tailLen);
@@ -2017,9 +2031,10 @@ export function buildQuestions(sector: Sector, sub?: SubWizard): Question[] {
   }
 
   // 4) commonTail
-  // За декларации: пропускаме неустойки/прекратяване/подсъдност между страни — оставяме само свободни бележки.
+  // За декларации и за корпоративни/едностранни актове: пропускаме неустойки/прекратяване/
+  // форсмажор/подсъдност — те са неприложими за тези типове документи.
   const byId = (id: string) => tail.find((q) => q.id === id);
-  if (!declaration) {
+  if (!nonContract) {
     const penalty = [byId("penalty_pct"), byId("penalty_cap"), byId("termination"), byId("notice_days")].filter(Boolean) as Question[];
     const legal = [byId("force_majeure"), byId("jurisdiction")].filter(Boolean) as Question[];
     if (penalty.length) out.push(group("group_penalty", "Неустойки и прекратяване", penalty));
@@ -2030,6 +2045,7 @@ export function buildQuestions(sector: Sector, sub?: SubWizard): Question[] {
 
   return out;
 }
+
 
 /** Връща плосък списък с подвъпросите (раз-групиран). Полезно за payload към LLM. */
 export function flattenQuestions(qs: Question[]): Question[] {
