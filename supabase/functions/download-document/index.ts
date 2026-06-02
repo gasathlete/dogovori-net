@@ -121,14 +121,31 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } },
     );
-    const { data: consumed, error: consumeErr } = await userClient.rpc("consume_quota", { _kind: kind });
+    // If client supplied a session_id + doc_key, route through the session-aware
+    // RPC so that repeat actions on the same document in the same browser tab
+    // do not double-charge. Otherwise fall back to plain consume_quota.
+    const useSession = !!session_id && !!doc_key;
+    const { data: consumed, error: consumeErr } = useSession
+      ? await userClient.rpc("consume_quota_session", {
+          _kind: kind,
+          _doc_key: doc_key,
+          _session_id: session_id,
+        })
+      : await userClient.rpc("consume_quota", { _kind: kind });
     if (consumeErr) {
       return new Response(JSON.stringify({ error: consumeErr.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const quotaResult = consumed as { ok: boolean; reason?: string; used_bonus?: boolean; is_pro: boolean };
+    const quotaResult = consumed as {
+      ok: boolean;
+      reason?: string;
+      used_bonus?: boolean;
+      is_pro: boolean;
+      charged?: boolean;
+      reused_session_charge?: boolean;
+    };
     if (!quotaResult?.ok) {
       return new Response(
         JSON.stringify({ error: "quota_exceeded", kind, limit: 1 }),
@@ -136,6 +153,7 @@ serve(async (req) => {
       );
     }
     const useBonus = !!quotaResult.used_bonus;
+    const charged = quotaResult.charged !== false; // default true for legacy path
 
     const { data: saved, error: saveErr } = await admin
       .from("saved_documents")
