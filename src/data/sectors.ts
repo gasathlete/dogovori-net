@@ -1815,10 +1815,14 @@ export const getSector = (id: string) => SECTORS.find((s) => s.id === id);
 
 /** Намира sub-wizard за конкретен документ в сектор.
  *  Ако няма дефиниран — генерира универсален умен sub-wizard според името на документа. */
+import { getGeneratedSubWizard } from "./subWizardsGenerated";
+
 export function getSubWizard(sector: Sector | undefined, documentName: string | undefined | null): SubWizard | undefined {
   if (!sector || !documentName) return undefined;
   const explicit = sector.subWizards?.find((sw) => sw.documentName === documentName);
   if (explicit) return explicit;
+  const gen = getGeneratedSubWizard(documentName);
+  if (gen) return gen;
   return buildGenericSubWizard(documentName);
 }
 
