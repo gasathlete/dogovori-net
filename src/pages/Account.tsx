@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Bird, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X, MessageSquare, Check, Lock, RefreshCw, Sparkles, Building2,
+  Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Bird, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X, MessageSquare, Check, Lock, RefreshCw, Sparkles, Building2, Bell,
 } from "lucide-react";
+import { NotificationsTab } from "@/components/NotificationsTab";
+import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { FloatingAssistant } from "@/components/FloatingAssistant";
 import { useTeam } from "@/hooks/useTeam";
 import { Header } from "@/components/Header";
