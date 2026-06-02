@@ -190,7 +190,7 @@ const SCHEMAS: Record<DocumentTypeId, DocumentBuildSchema> = {
       { key: "claim_value", label: "Цена на иска", kind: "input", half: true, required: true,
         placeholder: "напр. 8 000 €" },
       { key: "state_fee", label: "Държавна такса", kind: "input", half: true, hint: AI_HINT,
-        placeholder: "напр. 4% (мин. 50 лв.)" },
+        placeholder: "напр. 4% (мин. 50 EUR)" },
       { key: "legal_basis", label: "Правно основание", kind: "input", hint: AI_HINT,
         placeholder: "напр. чл. 79 ЗЗД / чл. 92 ЗЗД" },
       { key: "circumstances", label: "Обстоятелства на спора", kind: "textarea", rows: 4, required: true,
