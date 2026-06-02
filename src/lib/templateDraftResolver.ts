@@ -89,6 +89,13 @@ function resolveSlug(docName: string): string | null {
   const allTokens = wanted.split("-").filter((t) => t.length >= 3);
   if (allTokens.length === 0) return null;
 
+  // Extract numeric tokens (e.g. "15", "176") from the slug. When the
+  // wanted name contains a number it almost always identifies the form /
+  // article / law number — a candidate without that number is the WRONG
+  // document even if the rest matches (e.g. "Акт обр. 19" must not pick
+  // "акт обр. 14").
+  const numberTokens = (wanted.match(/\d+/g) || []).filter((n) => n.length >= 1);
+
   const kindPrefix = detectKindPrefix(docName);
   // Tokens belonging to the kind prefix itself (e.g. "dogovor") are too
   // generic to count toward similarity — otherwise every "Договор за …"
@@ -100,7 +107,7 @@ function resolveSlug(docName: string): string | null {
   // shouldn't carry weight. Filtered from BOTH the wanted tokens AND from
   // the candidate slug words so a wanted token like "priemane" can't
   // prefix-match a slug preposition like "pri".
-  const STOP = new Set(["pri", "kam", "kato", "ili", "chl", "pod", "nad", "bez", "sas", "sled", "ili"]);
+  const STOP = new Set(["pri", "kam", "kato", "ili", "chl", "pod", "nad", "bez", "sas", "sled"]);
   // De-duplicate distinctive tokens (preserves order).
   const seen = new Set<string>();
   const distinctiveTokens: string[] = [];
@@ -110,7 +117,7 @@ function resolveSlug(docName: string): string | null {
     distinctiveTokens.push(t);
   }
 
-  if (distinctiveTokens.length === 0) return null;
+  if (distinctiveTokens.length === 0 && numberTokens.length === 0) return null;
 
   const candidates = kindPrefix
     ? TEMPLATE_DRAFT_SLUGS.filter((s) => s.startsWith(kindPrefix + "-") || s === kindPrefix)
@@ -119,7 +126,9 @@ function resolveSlug(docName: string): string | null {
   // Require at least 2 distinctive shared tokens AND >= 60% coverage of the
   // distinctive tokens. Prevents weak matches like "Договор за наем на
   // офис помещение" → agricultural rental draft on one shared token.
-  const minScore = Math.max(2, Math.ceil(distinctiveTokens.length * 0.6));
+  const minScore = distinctiveTokens.length === 0
+    ? 0
+    : Math.max(2, Math.ceil(distinctiveTokens.length * 0.6));
 
   // Leading tokens identify the document's subject. We REQUIRE the first
   // distinctive token to match, and (when there are 2+) at least one of the
@@ -131,6 +140,18 @@ function resolveSlug(docName: string): string | null {
   let best: { slug: string; score: number; leadingScore: number; length: number } | null = null;
   for (const k of candidates) {
     const slugWords = k.split("-").filter((w) => w.length >= 3 && !STOP.has(w));
+
+    // Hard gate: any numeric token in the wanted name MUST appear as a
+    // standalone word in the candidate slug.
+    if (numberTokens.length > 0) {
+      const slugAllWords = k.split("-");
+      let numOk = true;
+      for (const n of numberTokens) {
+        if (!slugAllWords.includes(n)) { numOk = false; break; }
+      }
+      if (!numOk) continue;
+    }
+
     // Hard gate: every required leading token must match.
     let leadingOk = true;
     for (const lt of requiredLeading) {
