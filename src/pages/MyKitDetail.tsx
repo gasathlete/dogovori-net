@@ -1,0 +1,212 @@
+import { useEffect, useMemo, useState } from "react";
+import { Link, Navigate, useParams } from "react-router-dom";
+import { ArrowRight, CheckCircle2, FileText, Loader2, Package } from "lucide-react";
+import { Header } from "@/components/Header";
+import { SeoFooter } from "@/components/SeoFooter";
+import { Seo } from "@/components/Seo";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  getKitWithItems,
+  kitProgress,
+  setKitStatus,
+  type UserKitItem,
+  type UserKitWithItems,
+} from "@/lib/kits";
+import { getKit } from "@/data/documentKits";
+import { allTemplates } from "@/lib/templateIndex";
+import { toast } from "sonner";
+
+export default function MyKitDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const { user, loading: authLoading } = useAuth();
+  const [kit, setKit] = useState<UserKitWithItems | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    getKitWithItems(id)
+      .then((k) => setKit(k))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  const templatesIndex = useMemo(() => {
+    const m = new Map<string, { slug: string }>();
+    for (const t of allTemplates()) m.set(t.doc.name, { slug: t.slug });
+    return m;
+  }, []);
+
+  if (!authLoading && !user) {
+    return <Navigate to={`/auth?next=/komplekti/moi/${id ?? ""}`} replace />;
+  }
+
+  if (loading || authLoading) {
+    return (
+      <>
+        <Header />
+        <main className="container flex min-h-[40vh] items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-gold" />
+        </main>
+      </>
+    );
+  }
+
+  if (!kit) return <Navigate to="/komplekti" replace />;
+
+  const tpl = kit.source_kit_id ? getKit(kit.source_kit_id) : undefined;
+  const progress = kitProgress(kit.items);
+
+  const grouped = {
+    primary: kit.items.filter((i) => i.role === "primary"),
+    appendix: kit.items.filter((i) => i.role === "appendix"),
+    companion: kit.items.filter((i) => i.role === "companion"),
+  };
+
+  const handleArchive = async () => {
+    const ok = await setKitStatus(kit.id, "archived");
+    if (ok) {
+      toast.success("Комплектът е архивиран");
+      setKit({ ...kit, status: "archived" });
+    }
+  };
+  const handleComplete = async () => {
+    const ok = await setKitStatus(kit.id, "complete");
+    if (ok) {
+      toast.success("Комплектът е маркиран като завършен");
+      setKit({ ...kit, status: "complete" });
+    }
+  };
+
+  return (
+    <>
+      <Seo title={`${kit.title} | Моят комплект`} description={kit.title} noindex />
+      <Header />
+      <main className="bg-background">
+        <section className="border-b border-border/40">
+          <div className="container py-10">
+            <nav className="mb-6 flex items-center gap-2 text-xs text-muted-foreground">
+              <Link to="/komplekti" className="hover:text-gold">Комплекти</Link>
+              <span>/</span>
+              <Link to="/account" className="hover:text-gold">Моите комплекти</Link>
+              <span>/</span>
+              <span className="text-foreground">{kit.title}</span>
+            </nav>
+            <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">
+                  {kit.status === "in_progress" ? "В процес" : kit.status === "complete" ? "Завършен" : "Архив"}
+                </p>
+                <h1 className="mt-1 font-serif text-3xl font-bold leading-[1.1] text-balance md:text-4xl">
+                  {kit.title}
+                </h1>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Прогрес: {progress.done} / {progress.total} документа готови
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-col gap-2">
+                {tpl && (
+                  <Button asChild variant="outline">
+                    <Link to={`/komplekti/${tpl.id}`}>Виж шаблона на комплекта</Link>
+                  </Button>
+                )}
+                {kit.status !== "complete" && (
+                  <Button onClick={handleComplete} className="bg-gradient-gold text-navy hover:shadow-gold">
+                    Маркирай като завършен
+                  </Button>
+                )}
+                {kit.status !== "archived" && (
+                  <Button onClick={handleArchive} variant="ghost" size="sm">
+                    Архивирай
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="container py-10">
+          <div className="grid gap-8 lg:grid-cols-3">
+            <ItemColumn label="Основен документ" items={grouped.primary} templatesIndex={templatesIndex} kitId={kit.id} />
+            <ItemColumn label="Приложения" items={grouped.appendix} templatesIndex={templatesIndex} kitId={kit.id} />
+            <ItemColumn label="Придружаващи" items={grouped.companion} templatesIndex={templatesIndex} kitId={kit.id} />
+          </div>
+        </section>
+      </main>
+      <SeoFooter />
+    </>
+  );
+}
+
+function ItemColumn({
+  label,
+  items,
+  templatesIndex,
+  kitId,
+}: {
+  label: string;
+  items: UserKitItem[];
+  templatesIndex: Map<string, { slug: string }>;
+  kitId: string;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <div>
+      <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">
+        {label} ({items.length})
+      </h2>
+      <ul className="space-y-2">
+        {items.map((it) => {
+          const name = it.planned_doc_name || it.ref_label;
+          const t = name ? templatesIndex.get(name) : undefined;
+          const done = !!(it.saved_id || it.uploaded_id);
+          const inner = (
+            <>
+              <div className="flex items-start gap-3">
+                {done ? (
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                ) : (
+                  <FileText className="mt-0.5 h-4 w-4 shrink-0 text-gold/70" />
+                )}
+                <div className="min-w-0">
+                  <span className="text-sm font-medium text-foreground">{name}</span>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {done ? "Готов" : "Очаква попълване"}
+                  </p>
+                </div>
+              </div>
+              {t && !done && (
+                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-gold opacity-60 group-hover:translate-x-0.5" />
+              )}
+            </>
+          );
+          return (
+            <li key={it.id}>
+              {t ? (
+                <Link
+                  to={`/shablon/${t.slug}?kit=${kitId}`}
+                  className="group flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card/40 px-3 py-3 transition-colors hover:border-gold/40 hover:bg-card/70"
+                >
+                  {inner}
+                </Link>
+              ) : (
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card/40 px-3 py-3 opacity-70">
+                  {inner}
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {label === "Основен документ" && (
+        <p className="mt-3 flex items-center gap-1 text-[11px] text-muted-foreground">
+          <Package className="h-3 w-3 text-gold/70" /> Прогресът се запазва автоматично.
+        </p>
+      )}
+    </div>
+  );
+}
