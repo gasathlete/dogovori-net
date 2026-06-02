@@ -333,7 +333,7 @@ function Dashboard({ quota, isPro, docs, hasChatAccess, onOpenChat }: { quota: Q
     </div>
   );
 }
-function Card({ title, value, sub, icon, onClick }: { title: string; value: string; sub?: string; icon: React.ReactNode; onClick?: () => void }) {
+function Card({ title, value, sub, hint, icon, onClick }: { title: string; value: string; sub?: string; hint?: string; icon: React.ReactNode; onClick?: () => void }) {
   const interactive = !!onClick;
   return (
     <div
@@ -362,6 +362,7 @@ function Card({ title, value, sub, icon, onClick }: { title: string; value: stri
       </div>
       <div className="mt-2 font-serif text-2xl font-bold">{value}</div>
       {sub && <div className="mt-1 text-xs text-muted-foreground">{sub}</div>}
+      {hint && <div className="mt-2 text-[11px] leading-snug text-muted-foreground/80 border-t border-border/40 pt-2">{hint}</div>}
     </div>
   );
 }
