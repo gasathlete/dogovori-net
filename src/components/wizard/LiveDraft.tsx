@@ -702,6 +702,7 @@ export function LiveDraft({
   docName,
   bilingual = false,
   onContractChange,
+  onDownloadBlank,
 }: {
   sector: Sector;
   answers: Record<string, string>;
@@ -728,6 +729,7 @@ export function LiveDraft({
   /** When true, render the pre-generation skeleton in BG/EN two columns. */
   bilingual?: boolean;
   onContractChange?: (next: NonNullable<typeof generated>) => void;
+  onDownloadBlank?: () => void;
 }) {
   const partyA = answers.party_a_name || `[${sector.parties.a}]`;
   const partyB = answers.party_b_name || `[${sector.parties.b}]`;
