@@ -438,6 +438,30 @@ export type Database = {
         }
         Relationships: []
       }
+      corrections_batch_charges: {
+        Row: {
+          batch_id: string
+          created_at: string
+          id: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          id?: string
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          id?: string
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       custom_contract_blanks: {
         Row: {
           blank_payload: Json
@@ -965,6 +989,33 @@ export type Database = {
           signature_name?: string | null
           updated_at?: string
           vat_number?: string | null
+        }
+        Relationships: []
+      }
+      quota_session_charges: {
+        Row: {
+          created_at: string
+          doc_key: string
+          id: string
+          kind: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          doc_key: string
+          id?: string
+          kind: string
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          doc_key?: string
+          id?: string
+          kind?: string
+          session_id?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1755,7 +1806,15 @@ export type Database = {
         Returns: undefined
       }
       assemble_prompt_content: { Args: { _prompt_id: string }; Returns: string }
+      consume_corrections_batch: {
+        Args: { _batch_id: string; _session_id: string }
+        Returns: Json
+      }
       consume_quota: { Args: { _kind: string }; Returns: Json }
+      consume_quota_session: {
+        Args: { _doc_key: string; _kind: string; _session_id: string }
+        Returns: Json
+      }
       consume_team_quota: { Args: { _team_id: string }; Returns: Json }
       delete_email: {
         Args: { message_id: number; queue_name: string }
