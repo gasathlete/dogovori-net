@@ -19,6 +19,7 @@ const NAV = [
 export function Header() {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
+  const { count: unreadCount } = useUnreadNotifications();
   const navigate = useNavigate();
   const location = useLocation();
   const scrolled = useScrolled(8);
