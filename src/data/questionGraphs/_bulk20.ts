@@ -64,7 +64,7 @@ const SPECS: Record<string, BulkSpec> = {
       ],
     },
     clauses: [
-      { clause_id: "subject", order: 10, title: "Предмет", body_md: "Продавачът продава, а Купувачът купува {{item_description}} {{item_identifiers}}, в състояние „{{item_condition}}".", severity: "required" },
+      { clause_id: "subject", order: 10, title: "Предмет", body_md: "Продавачът продава, а Купувачът купува {{item_description}} {{item_identifiers}}, в състояние „{{item_condition}}“.", severity: "required" },
       { clause_id: "price", order: 20, title: "Цена", body_md: "Цената е {{price_amount}} EUR.", severity: "required" },
       { clause_id: "pay_installments", order: 25, title: "Разсрочено плащане", body_md: "Цената се изплаща на {{installments_count}} равни месечни вноски.", include_when: "payment_method == 'installments'", severity: "recommended" },
       { clause_id: "delivery", order: 30, title: "Предаване", body_md: "Вещта се предава на {{delivery_date}} в {{delivery_place}}.", severity: "required" },
@@ -229,7 +229,7 @@ const SPECS: Record<string, BulkSpec> = {
     },
     clauses: [
       { clause_id: "subject", order: 10, title: "Предмет", body_md: "Страните си разменят: Първа страна предава {{item_a}} (стойност {{value_a}} EUR); Втора страна предава {{item_b}} (стойност {{value_b}} EUR).", severity: "required" },
-      { clause_id: "equalization", order: 20, title: "Доплащане", body_md: "За изравняване страната „{{equalization_payer}}" доплаща {{equalization_amount}} EUR.", include_when: "has_equalization == true", severity: "required" },
+      { clause_id: "equalization", order: 20, title: "Доплащане", body_md: "За изравняване страната „{{equalization_payer}}“ доплаща {{equalization_amount}} EUR.", include_when: "has_equalization == true", severity: "required" },
       { clause_id: "transfer", order: 30, title: "Размяна", body_md: "Размяната се извършва на {{exchange_date}}; собствеността преминава с предаването.", severity: "required" },
       { clause_id: "warranties", order: 40, title: "Гаранции", body_md: "Всяка страна гарантира, че е собственик и че вещта ѝ е свободна от тежести.", severity: "recommended" },
     ],
