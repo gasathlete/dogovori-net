@@ -1601,6 +1601,57 @@ export type Database = {
         }
         Relationships: []
       }
+      template_clauses: {
+        Row: {
+          active: boolean
+          body_md: string
+          clause_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          include_when: string | null
+          locale: string
+          notes: string | null
+          order: number
+          severity: string
+          template_slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          body_md: string
+          clause_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          include_when?: string | null
+          locale?: string
+          notes?: string | null
+          order?: number
+          severity?: string
+          template_slug: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          body_md?: string
+          clause_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          include_when?: string | null
+          locale?: string
+          notes?: string | null
+          order?: number
+          severity?: string
+          template_slug?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       uploaded_contracts: {
         Row: {
           contact_id: string | null
