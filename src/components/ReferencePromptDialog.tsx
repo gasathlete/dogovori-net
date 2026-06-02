@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, Wand2, Loader2 } from "lucide-react";
+import { Upload, Wand2, Loader2, Package } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import type { DetectedReference } from "@/lib/documentReferences";
 import { linkChildToParent } from "@/lib/documentLinks";
+import { AddToKitDialog } from "@/components/AddToKitDialog";
 
 interface Props {
   reference: DetectedReference;
