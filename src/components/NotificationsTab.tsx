@@ -180,10 +180,17 @@ export function NotificationsTab() {
                   </div>
                   <div className="flex flex-col gap-1">
                     {n.link && (
-                      <Button asChild size="sm" variant="outline" className="border-gold/40 text-gold">
-                        <Link to={n.link} onClick={() => markRead(n.id)}>
-                          <ExternalLink className="mr-1 h-3 w-3" /> Отвори
-                        </Link>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-gold/40 text-gold"
+                        onClick={() => {
+                          markRead(n.id);
+                          navigate(n.link!);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                      >
+                        <ExternalLink className="mr-1 h-3 w-3" /> Отвори
                       </Button>
                     )}
                     {!isRead && (
