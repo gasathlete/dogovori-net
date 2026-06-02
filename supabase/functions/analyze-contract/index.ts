@@ -146,7 +146,10 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { uploadedContractId } = await req.json();
+    const reqBody = await req.json().catch(() => ({}));
+    const uploadedContractId = reqBody?.uploadedContractId;
+    const sessionId = typeof reqBody?.session_id === "string" ? reqBody.session_id : "";
+    const docKeyClient = typeof reqBody?.doc_key === "string" ? reqBody.doc_key : "";
     if (!uploadedContractId || typeof uploadedContractId !== "string") {
       return new Response(JSON.stringify({ error: "uploadedContractId е задължителен" }), {
         status: 400,
