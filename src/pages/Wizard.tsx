@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
+import { slugify } from "@/lib/slugify";
 import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
 import { ArbitrationSelector, type ArbitrationValue } from "@/components/wizard/ArbitrationSelector";
 import { FollowupSuggestions } from "@/components/wizard/FollowupSuggestions";
@@ -400,10 +401,18 @@ export default function WizardPage() {
 
   const [downloadingBlank, setDownloadingBlank] = useState(false);
   const [blankStep, setBlankStep] = useState(0);
+  const todayLabel = new Date().toLocaleDateString("bg-BG", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
   const blankSteps = [
     { icon: ShieldCheck, label: "Проверка на сигурността на IP адреса…" },
     { icon: Search, label: "Подготовка на правната бланка…" },
-    { icon: FileSearch, label: "Проверка за липсващи клаузи и реквизити…" },
+    {
+      icon: FileSearch,
+      label: `Проверка за липсващи клаузи и реквизити към дата ${todayLabel}…`,
+    },
     { icon: Download, label: "Бланката ще бъде свалена до 10 секунди…" },
   ];
   const runBlankDownload = async () => {
@@ -438,7 +447,11 @@ export default function WizardPage() {
       clearStepTimers();
       setBlankStep(3);
       const url: string = data.url;
-      const filename: string = data.filename;
+      // Override server filename with a human-readable, document-named filename.
+      const baseName = (docName ?? sector.contractName ?? "blanka").trim();
+      const ext = (data.filename as string | undefined)?.match(/\.[a-z0-9]+$/i)?.[0] ?? ".docx";
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      const filename = `${slugify(baseName) || "blanka"}-${dateStamp}${ext}`;
       const a = document.createElement("a");
       a.href = url;
       a.download = filename;
