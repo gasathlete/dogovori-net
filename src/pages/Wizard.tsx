@@ -858,6 +858,7 @@ export default function WizardPage() {
                 setResult({ ...result, contract: { ...result.contract, ...next } });
                 setSavedDocId(undefined); // invalidate saved version
               }}
+              onDownloadBlank={handleDownloadBlank}
             />
 
           </section>

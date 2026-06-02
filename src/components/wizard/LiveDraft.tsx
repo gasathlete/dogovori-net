@@ -5,7 +5,7 @@ import { ProtectedContent } from "@/components/ProtectedContent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Pencil, Check, Lock, Sparkles } from "lucide-react";
+import { Pencil, Check, Lock, Sparkles, Feather } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { loadTemplateDraft, fillTemplateDraft } from "@/lib/templateDraftResolver";
 
@@ -15,7 +15,15 @@ import { loadTemplateDraft, fillTemplateDraft } from "@/lib/templateDraftResolve
  * Започва фейд около 30% от височината с по-силен fade за четливост.
  * Цел: задържа интереса и пречи на screenshot/copy извличане на пълния текст.
  */
-function PreviewFadeGate({ children, active }: { children: ReactNode; active: boolean }) {
+function PreviewFadeGate({
+  children,
+  active,
+  onDownloadBlank,
+}: {
+  children: ReactNode;
+  active: boolean;
+  onDownloadBlank?: () => void;
+}) {
   if (!active) return <>{children}</>;
   return (
     <div className="relative">
@@ -33,11 +41,21 @@ function PreviewFadeGate({ children, active }: { children: ReactNode; active: bo
             "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40%, rgba(0,0,0,1) 100%)",
         }}
       />
-      <div className="pointer-events-none absolute inset-x-0 top-[58%] flex justify-center px-4">
+      <div className="pointer-events-none absolute inset-x-0 top-[58%] flex flex-col items-center gap-2 px-4">
         <div className="inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-navy shadow-elegant">
           <Sparkles className="h-4 w-4" />
           Завършете въпросника, за да генерирате пълния документ
         </div>
+        {onDownloadBlank && (
+          <button
+            type="button"
+            onClick={onDownloadBlank}
+            className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-gold/40 bg-card/90 px-4 py-2 text-xs font-medium text-foreground shadow-sm backdrop-blur transition hover:bg-card hover:border-gold"
+          >
+            <Feather className="h-3.5 w-3.5 text-gold" />
+            или изтеглете като бланка
+          </button>
+        )}
       </div>
 
     </div>
@@ -684,6 +702,7 @@ export function LiveDraft({
   docName,
   bilingual = false,
   onContractChange,
+  onDownloadBlank,
 }: {
   sector: Sector;
   answers: Record<string, string>;
@@ -710,6 +729,7 @@ export function LiveDraft({
   /** When true, render the pre-generation skeleton in BG/EN two columns. */
   bilingual?: boolean;
   onContractChange?: (next: NonNullable<typeof generated>) => void;
+  onDownloadBlank?: () => void;
 }) {
   const partyA = answers.party_a_name || `[${sector.parties.a}]`;
   const partyB = answers.party_b_name || `[${sector.parties.b}]`;
@@ -933,7 +953,7 @@ export function LiveDraft({
 
   return (
     <ProtectedContent>
-      <PreviewFadeGate active={fadeActive}>
+      <PreviewFadeGate active={fadeActive} onDownloadBlank={onDownloadBlank}>
         <TemplateDraftOrSkeleton
           docName={docName}
           answers={answers}
