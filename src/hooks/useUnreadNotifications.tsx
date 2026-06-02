@@ -33,7 +33,7 @@ export function useUnreadNotifications() {
     window.addEventListener("notifications:refresh", onFocus as EventListener);
 
     const channel = supabase
-      .channel("notifications-unread")
+      .channel(`notifications-unread-${user.id}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notifications" },
