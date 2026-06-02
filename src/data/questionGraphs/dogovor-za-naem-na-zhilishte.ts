@@ -137,9 +137,16 @@ export const dogovorZaNaemGraph: QuestionGraph = {
   ],
 };
 
+import { ndaGraph } from "./nda-dogovor-za-konfidentsialnost";
+import { grazhdanskiDogovorGraph } from "./grazhdanski-dogovor-dogovor-za-uslugi";
+import { dogovorZaIzrabotkaGraph } from "./dogovor-za-izrabotka";
+
 /** Registry — extend as more graphs are migrated. */
 export const QUESTION_GRAPHS: Record<string, QuestionGraph> = {
   [dogovorZaNaemGraph.template_slug]: dogovorZaNaemGraph,
+  [ndaGraph.template_slug]: ndaGraph,
+  [grazhdanskiDogovorGraph.template_slug]: grazhdanskiDogovorGraph,
+  [dogovorZaIzrabotkaGraph.template_slug]: dogovorZaIzrabotkaGraph,
 };
 
 export function getQuestionGraph(slug: string): QuestionGraph | null {
