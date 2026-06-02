@@ -5,6 +5,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { scrollToHash } from "@/lib/scrollToHash";
 import { useScrolled } from "@/hooks/useScrolled";
+import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { cn } from "@/lib/utils";
 
 const NAV = [
