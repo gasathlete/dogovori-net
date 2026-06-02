@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Bell, Check, ExternalLink, Loader2, Megaphone, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +38,7 @@ function iconFor(kind: string) {
 }
 
 export function NotificationsTab() {
+  const navigate = useNavigate();
   const [items, setItems] = useState<Notification[]>([]);
   const [reads, setReads] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -179,10 +180,17 @@ export function NotificationsTab() {
                   </div>
                   <div className="flex flex-col gap-1">
                     {n.link && (
-                      <Button asChild size="sm" variant="outline" className="border-gold/40 text-gold">
-                        <Link to={n.link} onClick={() => markRead(n.id)}>
-                          <ExternalLink className="mr-1 h-3 w-3" /> Отвори
-                        </Link>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-gold/40 text-gold"
+                        onClick={() => {
+                          markRead(n.id);
+                          navigate(n.link!);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                      >
+                        <ExternalLink className="mr-1 h-3 w-3" /> Отвори
                       </Button>
                     )}
                     {!isRead && (
