@@ -170,14 +170,17 @@ serve(async (req) => {
       .single();
     if (saveErr) {
       // Refund the quota we just consumed since the save failed.
-      await admin.rpc("refund_quota", { _user_id: userId, _kind: kind, _used_bonus: useBonus });
+      // Only refund when we actually charged (session-reused calls are free).
+      if (charged) {
+        await admin.rpc("refund_quota", { _user_id: userId, _kind: kind, _used_bonus: useBonus });
+      }
       return new Response(JSON.stringify({ error: saveErr.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    await auditInsert("download", saved.id, { kind, used_bonus: useBonus });
+    await auditInsert("download", saved.id, { kind, used_bonus: useBonus, charged });
 
     const newDownloadWatermark = !isPro && !useBonus && !bonusAvailable;
 
@@ -187,7 +190,9 @@ serve(async (req) => {
         payload,
         title,
         saved_document_id: saved.id,
-        free: false,
+        free: !charged,
+        charged,
+        reused_session_charge: !!quotaResult.reused_session_charge,
         watermark: newDownloadWatermark,
         user_tag: userTag,
       }),
