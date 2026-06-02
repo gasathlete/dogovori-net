@@ -953,6 +953,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   const [checkoutPrice, setCheckoutPrice] = useState<string | null>(null);
   const [sub, setSub] = useState<SubRow | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [showAllPlans, setShowAllPlans] = useState(false);
   const subStatus = sub?.status ?? null;
   const planMeta = sub?.price_id ? PLAN_LABELS[sub.price_id] : undefined;
   const statusMeta = subStatus ? STATUS_META[subStatus] ?? { label: subStatus, tone: "info" as const } : null;
@@ -1150,6 +1151,9 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
 
           {isPro && (
             <div className="flex shrink-0 flex-col gap-2 sm:items-end">
+              <Button onClick={() => setShowAllPlans((v) => !v)} variant="outline" className="border-gold/40">
+                {showAllPlans ? "Скрий плановете" : "Всички планове"}
+              </Button>
               <Button onClick={portal} disabled={busy} variant="outline" className="border-gold/40">
                 {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Управление на абонамент
@@ -1268,7 +1272,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
       )}
 
 
-      {!isPro && (
+      {(!isPro || showAllPlans) && (
         <>
           {/* Pricing header */}
           <div className="text-center">
