@@ -44,6 +44,12 @@ export function NotificationsTab() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
+  const resolveNotificationLink = (link: string | null) => {
+    if (!link) return null;
+    if (link === "/wizard") return "/catalog";
+    return link;
+  };
+
   const load = async () => {
     setLoading(true);
     const [{ data: notifs, error: nErr }, { data: rds, error: rErr }] = await Promise.all([
@@ -179,14 +185,16 @@ export function NotificationsTab() {
                     </div>
                   </div>
                   <div className="flex flex-col gap-1">
-                    {n.link && (
+                    {resolveNotificationLink(n.link) && (
                       <Button
                         size="sm"
                         variant="outline"
                         className="border-gold/40 text-gold"
                         onClick={() => {
+                          const target = resolveNotificationLink(n.link);
+                          if (!target) return;
                           markRead(n.id);
-                          navigate(n.link!);
+                          navigate(target);
                           window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
                       >
