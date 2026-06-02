@@ -32,13 +32,15 @@ serve(async (req) => {
     const ipHash = await hashIp(clientIp(req));
 
     const body = await req.json();
-    const { kind, title, payload, source_id, contact_id, saved_document_id } = body as {
+    const { kind, title, payload, source_id, contact_id, saved_document_id, session_id, doc_key } = body as {
       kind: "contract" | "template";
       title: string;
       payload: unknown;
       source_id?: string;
       contact_id?: string;
       saved_document_id?: string;
+      session_id?: string;
+      doc_key?: string;
     };
 
     if (!["contract", "template"].includes(kind)) {
@@ -119,14 +121,31 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } },
     );
-    const { data: consumed, error: consumeErr } = await userClient.rpc("consume_quota", { _kind: kind });
+    // If client supplied a session_id + doc_key, route through the session-aware
+    // RPC so that repeat actions on the same document in the same browser tab
+    // do not double-charge. Otherwise fall back to plain consume_quota.
+    const useSession = !!session_id && !!doc_key;
+    const { data: consumed, error: consumeErr } = useSession
+      ? await userClient.rpc("consume_quota_session", {
+          _kind: kind,
+          _doc_key: doc_key,
+          _session_id: session_id,
+        })
+      : await userClient.rpc("consume_quota", { _kind: kind });
     if (consumeErr) {
       return new Response(JSON.stringify({ error: consumeErr.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const quotaResult = consumed as { ok: boolean; reason?: string; used_bonus?: boolean; is_pro: boolean };
+    const quotaResult = consumed as {
+      ok: boolean;
+      reason?: string;
+      used_bonus?: boolean;
+      is_pro: boolean;
+      charged?: boolean;
+      reused_session_charge?: boolean;
+    };
     if (!quotaResult?.ok) {
       return new Response(
         JSON.stringify({ error: "quota_exceeded", kind, limit: 1 }),
@@ -134,6 +153,7 @@ serve(async (req) => {
       );
     }
     const useBonus = !!quotaResult.used_bonus;
+    const charged = quotaResult.charged !== false; // default true for legacy path
 
     const { data: saved, error: saveErr } = await admin
       .from("saved_documents")
@@ -150,14 +170,17 @@ serve(async (req) => {
       .single();
     if (saveErr) {
       // Refund the quota we just consumed since the save failed.
-      await admin.rpc("refund_quota", { _user_id: userId, _kind: kind, _used_bonus: useBonus });
+      // Only refund when we actually charged (session-reused calls are free).
+      if (charged) {
+        await admin.rpc("refund_quota", { _user_id: userId, _kind: kind, _used_bonus: useBonus });
+      }
       return new Response(JSON.stringify({ error: saveErr.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    await auditInsert("download", saved.id, { kind, used_bonus: useBonus });
+    await auditInsert("download", saved.id, { kind, used_bonus: useBonus, charged });
 
     const newDownloadWatermark = !isPro && !useBonus && !bonusAvailable;
 
@@ -167,7 +190,9 @@ serve(async (req) => {
         payload,
         title,
         saved_document_id: saved.id,
-        free: false,
+        free: !charged,
+        charged,
+        reused_session_charge: !!quotaResult.reused_session_charge,
         watermark: newDownloadWatermark,
         user_tag: userTag,
       }),

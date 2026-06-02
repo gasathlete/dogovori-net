@@ -146,7 +146,10 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { uploadedContractId } = await req.json();
+    const reqBody = await req.json().catch(() => ({}));
+    const uploadedContractId = reqBody?.uploadedContractId;
+    const sessionId = typeof reqBody?.session_id === "string" ? reqBody.session_id : "";
+    const docKeyClient = typeof reqBody?.doc_key === "string" ? reqBody.doc_key : "";
     if (!uploadedContractId || typeof uploadedContractId !== "string") {
       return new Response(JSON.stringify({ error: "uploadedContractId е задължителен" }), {
         status: 400,
@@ -235,12 +238,27 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { data: consumed, error: consumeErr } = await userClient.rpc("consume_quota", { _kind: "analysis" });
+    // Use session-aware consume when the client supplied session_id + a stable
+    // doc key (we use the uploaded contract id or a client-provided slug).
+    const docKey = docKeyClient || `upload:${uploadedContractId}`;
+    const useSession = !!sessionId && !!docKey;
+    const { data: consumed, error: consumeErr } = useSession
+      ? await userClient.rpc("consume_quota_session", {
+          _kind: "analysis",
+          _doc_key: docKey,
+          _session_id: sessionId,
+        })
+      : await userClient.rpc("consume_quota", { _kind: "analysis" });
     if (consumeErr) {
       console.error("consume_quota error:", consumeErr);
       throw new Error("Грешка при проверка на квотата");
     }
-    const quotaResult = consumed as { ok: boolean; reason?: string; is_pro: boolean };
+    const quotaResult = consumed as {
+      ok: boolean;
+      reason?: string;
+      is_pro: boolean;
+      charged?: boolean;
+    };
     const isPro = !!quotaResult?.is_pro;
     if (!quotaResult?.ok) {
       return new Response(
@@ -305,7 +323,7 @@ ${truncated}
     }
 
     if (!aiResp.ok) {
-      if (!isPro) await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
+      if (!isPro && quotaResult.charged !== false) await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
       if (aiResp.status === 429) {
         return new Response(JSON.stringify({ error: "Достигнат е лимитът. Моля опитайте след малко." }), {
           status: 429,

@@ -1,163 +1,89 @@
-# План: Комплекти документи (Document Kits)
 
-Целта е да въведем понятието „комплект" — група свързани документи, които обикновено вървят заедно (основен договор + приложения + придружаващи). Всичко е **добавъчно** — не пипаме съществуващите wizard, catalog, document_links, appendix merger и Account логики.
+## 1. Какво се точкува = 1 операция
 
----
+| Действие | Операция |
+|---|---|
+| Генериране и сваляне на договор (PDF/DOCX) | **1** (`contract`) |
+| Сваляне на бланка | **1** (`template`), **безплатно** ако в същата сесия вече е таксуван `contract`/`template` за същия документ |
+| Качване на документ за интелигентен анализ | **1** (`analysis`) |
+| Партида автоматични корекции след анализ/създаване | **1** (`analysis`) |
+| Следваща партида остатъчни корекции | **1** (`analysis`) |
+| Преглед на живо, Wizard стъпки, чат, повторно сваляне на запазен документ, двуезична колона | **0** |
 
-## 1. Какво е „комплект"
+Hint под брояча в Dashboard tile:
+> „Документ · Бланка · Качване на документ за Анализ – автоматични корекции = 1 операция“
 
-Два типа:
+## 2. Промени в бекенда
 
-- **Предефинирани комплекти** (статични, ~22 бр.) — куратиран списък от шаблони от `CATALOG`, групирани за конкретен бизнес сценарий (напр. „Регистрация на ООД — пълен пакет").
-- **Потребителски комплекти** — потребителят сам прави комплект от своите запазени/качени документи (или стартира предефиниран и системата му пази прогреса).
+### 2a. Гратис при вече платен в същата сесия
+- Нова таблица `quota_session_charges(user_id, session_id uuid, doc_key text, kind text, created_at)` с UNIQUE `(user_id, session_id, doc_key)` и RLS (`auth.uid()=user_id`) + GRANTs.
+- Нова RPC `consume_quota_session(_kind, _doc_key, _session_id)`:
+  - Ако вече има запис за `(uid, session_id, doc_key)` → връща `{ok:true, charged:false, is_pro:…}`.
+  - Иначе извиква текущата логика на `consume_quota(_kind)`. При `ok:true` вписва ред в таблицата.
+- `download-document`, `download-blank`, `analyze-contract` приемат `session_id` + `doc_key` от клиента и викат новата RPC.
 
----
+### 2b. Батч-таксуване на корекции
+- Нова таблица `corrections_batch_charges(user_id, session_id uuid, batch_id uuid, created_at)` с UNIQUE `(user_id, session_id, batch_id)`.
+- Нова RPC `consume_corrections_batch(_session_id, _batch_id)`: ако партидата вече е таксувана — връща `{ok:true, charged:false}`; иначе `consume_quota('analysis')` и записва партидата.
+- `apply-corrections/index.ts` приема `session_id` + `batch_id` и вика тази RPC веднъж за цялата партида.
 
-## 2. Предефинирани комплекти
+### 2c. Документация на точкуването
+Миграция със `COMMENT ON FUNCTION public.consume_quota` и `COMMENT ON COLUMN download_quota.*` на български.
 
-Нов файл `src/data/documentKits.ts`:
+## 3. Промени във фронтенда
 
-```ts
-export interface KitItem {
-  docName: string;       // съответства точно на CATALOG document.name
-  role: "primary" | "appendix" | "companion";
-  optional?: boolean;
-}
-export interface DocumentKit {
-  id: string;            // slug
-  title: string;
-  sectorId: string;
-  icon: string;          // lucide
-  shortDescription: string;
-  forWho: string;
-  items: KitItem[];
-  featured?: boolean;
-}
-```
+- `src/lib/opSession.ts` (нов) — генерира/чете `op_session_id` (UUID) от `sessionStorage`, плюс хелпер `getOpDocKey(slug)`.
+- `Wizard.tsx`, `BuildContract.tsx`, `Document.tsx` — подават `session_id` + `doc_key` при download/analyze.
+- `CorrectionsPanel.tsx` — генерира нов `batch_id` (UUID) на отваряне на пакет корекции; нов UUID за всяка следваща партида.
 
-### Списък (общо ~22, групирани):
+### 3a. Единична цена като bullet в плановете (Account.tsx → SubscriptionTab)
 
-**Фирмено / корпоративно право (силно разширено — 8 комплекта):**
-1. **Регистрация на ООД** — учредителен акт/дружествен договор, решение на едноличния собственик / протокол от учредително събрание, декларации по чл. 13 ал. 4 ЗТР, декларация за истинност, съгласие и спесимен на управителя, документ за внесен капитал, заявление А4.
-2. **Регистрация на ЕООД** — учредителен акт, решение, декларации, спесимен, нотариално заверено съгласие.
-3. **Регистрация на АД** — устав, протокол от учредително събрание, списък на акционери, решения за избор на СД/НС, декларации, банков документ за капитала.
-4. **Промяна по партида на дружество (управител/седалище/предмет)** — протокол от ОС, нов учредителен акт (актуализиран), декларации, заявление А4.
-5. **Прехвърляне на дружествени дялове** — договор с нотариална заверка, протокол от ОС, актуализиран дружествен договор, декларации по чл. 129 ТЗ, заявление.
-6. **Увеличаване / намаляване на капитал** — протокол ОС, изменен учредителен акт, банкова бележка, декларации.
-7. **Ликвидация на дружество** — решение за прекратяване, назначаване на ликвидатор, обявление в ТР, ликвидационен баланс, заличаване.
-8. **Акционерно споразумение** — основно споразумение + NDA + правила за разпределение на печалби.
+Цени (от кода, EUR, ДДС вкл.):
 
-**Имоти / Наем:**
-9. Наем на жилище — пълен пакет
-10. Наем на офис / търговски обект
-11. Краткосрочен наем (Airbnb тип)
-12. Покупко-продажба на недвижим имот
+| План | Цена | Включени операции | **Цена/операция** |
+|---|---|---|---|
+| Предприемач — месечен | 9.90 €/мес | 100/мес | **0.099 €** |
+| Предприемач — годишен | 99 €/год | 1 200/год | **0.0825 €** |
+| Екип — месечен | 7.90 €/място/мес | 100/място/мес | **0.079 €** |
+| Екип — годишен | 79 €/място/год | 1 200/място/год | **0.066 €** |
+| Пакет 5 операции | 1.90 € | 5 | **0.38 €** |
 
-**Труд и услуги:**
-13. Трудово назначаване (чл. 67 КТ)
-14. Граждански договор / freelancer
+Имплементация: във всяка карта добавям **първи** bullet локално в JSX (не в споделените `proFeatures`/`teamFeatures` масиви, за да са числата точни и за месечен, и за годишен):
+> „**0.099 € на операция** · 9.90 € ÷ 100 оп./мес“
 
-**Дигитално / IP:**
-15. Дигитален проект (изработка + NDA + ППП)
-16. SaaS клиент пакет
-17. NDA + IP трансфер
-18. GDPR пакет за малък бизнес
+С `Coins` икона от lucide-react (gold tone).
 
-**Други ключови:**
-19. Строителен обект (СМР пакет)
-20. Продажба на МПС
-21. Фактуриране за услуги (EU/extra-EU)
-22. Наследствено дело — основни документи
+### 3b. Малки UI поправки
+- Текст за безплатния план: „2 операции на всеки 30 дни“ вместо „на месец“ (отразява rolling reset).
+- Tooltip „Какво е операция?“ до брояча в Dashboard — отваря popover с правилата от таблицата в т.1.
+- Hint текст под Dashboard tile (т.1).
 
-Всеки `docName` се валидира в `scripts/verify-build.ts` срещу `CATALOG` — build гърми при липсващ шаблон. За кратко липсващите фирмени документи в `CATALOG` се добавят като нови `CatalogDocument` записи (без да се пипат съществуващите).
+## 4. Memory обновяване (след одобрение)
 
----
+Текущата memory казва Pro 19 €/мес и one-off ~6 €. Реалните цени в кода: Pro 9.90 €/мес, Pro годишен 99 €, Team 7.90 €/място, пакет 5 операции 1.90 €. Ще обновя `mem://index.md` Core с верните стойности.
 
-## 3. Потребителски комплекти — БД
+## 5. Файлове, които ще пипна
 
-Нова схема, **не пипа** `document_links`, `saved_documents`, `uploaded_contracts`:
+**Миграции (2):**
+- `comment_consume_quota.sql` — само `COMMENT ON`.
+- `quota_session_batching.sql` — двете нови таблици + 2 нови RPC + RLS + GRANTs.
 
-```sql
-create table public.document_kits (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null,
-  team_id uuid,
-  title text not null,
-  source_kit_id text,         -- ако е стартиран от предефиниран
-  status text not null default 'in_progress',
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
+**Едж функции (4):**
+- `supabase/functions/download-document/index.ts`
+- `supabase/functions/download-blank/index.ts`
+- `supabase/functions/analyze-contract/index.ts`
+- `supabase/functions/apply-corrections/index.ts`
 
-create table public.document_kit_items (
-  id uuid primary key default gen_random_uuid(),
-  kit_id uuid not null references public.document_kits(id) on delete cascade,
-  role text not null,         -- primary|appendix|companion
-  ref_label text not null,
-  saved_id uuid,
-  uploaded_id uuid,
-  planned_doc_name text,
-  position int not null default 0,
-  created_at timestamptz not null default now()
-);
-```
+**Фронтенд:**
+- `src/lib/opSession.ts` (нов)
+- `src/pages/Wizard.tsx`, `src/pages/BuildContract.tsx`, `src/pages/Document.tsx`
+- `src/components/wizard/CorrectionsPanel.tsx`
+- `src/pages/Account.tsx` — bullets с цена/операция, hint, tooltip, „на всеки 30 дни“
 
-С GRANTs за `authenticated` + `service_role`, RLS по `user_id`/`team_id` (същият pattern като `document_links`).
+**Тестове:**
+- `src/test/quota.test.ts` — нов кейс: blank-after-contract = free; 2 партиди корекции = 2 операции; повторен apply на същата партида = 0.
 
----
-
-## 4. UI промени (само добавки)
-
-### 4.1 `/komplekti` — листинг
-Грид с всички комплекти, табове по сектор (Фирмено, Имоти, Труд, IP, …). Същия surface/gold стил като `SectorGrid`.
-
-### 4.2 `/komplekti/:slug` — детайл
-- Списък на документите (primary / приложения / придружаващи), всеки с линк към `/shablon/:slug`.
-- Бутон „Стартирай комплект" → създава `document_kits` запис, води през wizard на първия документ, след save → следващ.
-
-### 4.3 Интеграция в съществуващ flow
-- **`ReferencePromptDialog`**: трети бутон „**+ Добави в комплект**" — popover „Нов комплект" / избор от активни. След избор записва в `document_kit_items` **в допълнение** на сегашния `linkChildToParent`.
-- **`DetectedReferencesBanner`**: „Запази тези документи като комплект".
-- **Account → нов таб „Комплекти"**: списък, прогрес (X от Y), бутон „Продължи".
-
-### 4.4 Export
-- `mergeParentWithAppendices` остава непроменен. Нов helper `exportKitAsPdf(kitId)` минава **през съществуващия** merger.
-
----
-
-## 5. SEO
-- `/komplekti` и `/komplekti/:slug` в нов `sitemap-kits.xml`.
-- Schema.org `ItemList` на детайл страницата.
-- Линкове от категория страниците („Този комплект включва…").
-
----
-
-## 6. Какво НЕ променяме
-- `document_links`, `appendixMerger`, `ReferencePromptDialog` логиката за upload/generate, wizard, `saved_documents`, `uploaded_contracts`, Stripe/quota.
-- Съществуващите `companions: string[]` в `CATALOG`.
-
----
-
-## Технически детайли
-
-**Нови файлове:**
-- `src/data/documentKits.ts`
-- `src/pages/Kits.tsx`, `src/pages/KitDetail.tsx`
-- `src/components/AddToKitDialog.tsx`
-- `src/lib/kits.ts` (`createKit`, `addItemToKit`, `listMyKits`, `kitProgress`)
-- миграция за `document_kits` + `document_kit_items` + GRANTs + RLS
-- разширение на `CATALOG` с липсващи фирмено-правни документи
-
-**Променени (минимално):**
-- `src/App.tsx` — рутове
-- `src/components/Header.tsx` — линк „Комплекти"
-- `src/pages/Catalog.tsx` — секция „Готови комплекти"
-- `src/components/ReferencePromptDialog.tsx`, `DetectedReferencesBanner.tsx`
-- `src/pages/Account.tsx` — таб „Комплекти"
-- `scripts/build-sitemap.ts`, `scripts/verify-build.ts`
-
-**Грешки:** kit-добавянето е try/catch, non-blocking — единичното запазване продължава.
-
----
-
-Окей ли е така — да започвам имплементацията?
+## 6. Поведенчески промени за потребителя
+- Сваляне на бланка след вече платен договор в същата browser таб = безплатно.
+- Корекции от един анализ, дори да са приложени многократно (до изпращане), се таксуват като **1 анализ-операция**; всяка нова „вълна“ корекции = още 1.
+- Никакви промени за вече запазени документи (повторно сваляне остава безплатно).

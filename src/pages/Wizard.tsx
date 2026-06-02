@@ -331,6 +331,7 @@ export default function WizardPage() {
     }
     setApplyingCorrections(true);
     try {
+      const { getOpSessionId, newOpBatchId } = await import("@/lib/opSession");
       const { data, error } = await supabase.functions.invoke("apply-corrections", {
         body: {
           contract: result.contract,
@@ -338,6 +339,8 @@ export default function WizardPage() {
           selectedIssues: sel.issues,
           selectedRecommendations: sel.recommendations,
           answers,
+          session_id: getOpSessionId(),
+          batch_id: newOpBatchId(),
         },
       });
       if (error || data?.error) {
@@ -430,12 +433,15 @@ export default function WizardPage() {
       clearTimeout(t2);
     };
     try {
+      const { getOpSessionId, getOpDocKey } = await import("@/lib/opSession");
       const { data, error } = await supabase.functions.invoke("download-blank", {
         body: {
           sector_id: sector.id,
           sector_title: sector.title,
           document_name: docName ?? sector.contractName,
           bilingual: bilingualMode,
+          session_id: getOpSessionId(),
+          doc_key: getOpDocKey(docName ?? sector.contractName),
         },
       });
       if (error || data?.error) {

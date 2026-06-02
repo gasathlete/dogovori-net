@@ -310,6 +310,8 @@ Deno.serve(async (req: Request) => {
     const rawDocumentName = String(body?.document_name ?? "").trim();
     const rawSectorTitle = String(body?.sector_title ?? "").trim();
     const isBilingual = Boolean(body?.bilingual);
+    const sessionId = typeof body?.session_id === "string" ? body.session_id : "";
+    const docKey = typeof body?.doc_key === "string" ? body.doc_key : "";
 
     // Strict input validation to prevent prompt-cache poisoning. The generated
     // blank is shared globally by (sector_id, document_name), so untrusted
@@ -338,14 +340,31 @@ Deno.serve(async (req: Request) => {
 
     // 1) Consume template quota first — fail fast if user has no allowance.
     // Must be called with a user-scoped client so auth.uid() resolves inside the RPC.
+    // If client provided session_id + doc_key, route through the session-aware
+    // RPC so a blank download is free when the user has already paid for the
+    // contract (or another blank) for the same document in the same tab.
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } },
     );
-    const { data: quotaRes, error: quotaErr } = await userClient.rpc("consume_quota", { _kind: "template" });
+    const useSession = !!sessionId && !!docKey;
+    const { data: quotaRes, error: quotaErr } = useSession
+      ? await userClient.rpc("consume_quota_session", {
+          _kind: "template",
+          _doc_key: docKey,
+          _session_id: sessionId,
+        })
+      : await userClient.rpc("consume_quota", { _kind: "template" });
     if (quotaErr) throw new Error(quotaErr.message);
-    const quota = quotaRes as { ok: boolean; reason?: string; next_reset?: string; is_pro?: boolean };
+    const quota = quotaRes as {
+      ok: boolean;
+      reason?: string;
+      next_reset?: string;
+      is_pro?: boolean;
+      charged?: boolean;
+      reused_session_charge?: boolean;
+    };
     if (!quota?.ok) {
       return new Response(
         JSON.stringify({ error: "quota_exceeded", reason: quota?.reason, next_reset: quota?.next_reset }),
