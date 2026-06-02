@@ -67,13 +67,51 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { contract, risk, selectedIssues = [], selectedRecommendations = [], answers = {} } = await req.json();
+    const {
+      contract,
+      risk,
+      selectedIssues = [],
+      selectedRecommendations = [],
+      answers = {},
+      session_id: sessionId,
+      batch_id: batchId,
+    } = await req.json();
 
     if (!contract || (selectedIssues.length === 0 && selectedRecommendations.length === 0)) {
       return new Response(JSON.stringify({ error: "Нищо за коригиране" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Batch charging: one wave of corrections = 1 analysis op. Repeated apply
+    // of the same batch_id (same wave) is free; the next wave (new batch_id)
+    // charges again. Falls back to a plain analysis charge if the client did
+    // not supply session_id + batch_id.
+    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: batchCharge, error: batchErr } = await userClient.rpc(
+      "consume_corrections_batch",
+      { _session_id: sessionId ?? null, _batch_id: batchId ?? null },
+    );
+    if (batchErr) {
+      console.error("consume_corrections_batch error:", batchErr);
+      return new Response(JSON.stringify({ error: "Грешка при проверка на квотата" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const batchResult = batchCharge as {
+      ok: boolean;
+      reason?: string;
+      charged?: boolean;
+    };
+    if (!batchResult?.ok) {
+      return new Response(
+        JSON.stringify({ error: "quota_exceeded", reason: batchResult?.reason }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const batchCharged = batchResult.charged !== false;
 
     // Illegal content guard
     const guardText = [
