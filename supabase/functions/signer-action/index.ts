@@ -182,10 +182,11 @@ serve(async (req) => {
       });
 
       // Update envelope status
-      const { data: all } = await admin.from("signing_request_signers")
-        .select("status").eq("request_id", env.id);
-      const remaining = (all ?? []).filter((s) => s.status !== "signed");
-      const declined = (all ?? []).some((s) => s.status === "declined");
+      const { data: allSigners } = await admin.from("signing_request_signers")
+        .select("id, name, email, role, order_idx, status, sign_token")
+        .eq("request_id", env.id).order("order_idx");
+      const remaining = (allSigners ?? []).filter((s) => s.status !== "signed");
+      const declined = (allSigners ?? []).some((s) => s.status === "declined");
       let newStatus: string = env.status;
       if (declined) newStatus = "declined";
       else if (remaining.length === 0) newStatus = "completed";
@@ -194,10 +195,70 @@ serve(async (req) => {
       if (newStatus === "completed") updates.completed_at = now;
       await admin.from("signing_requests").update(updates).eq("id", env.id);
 
+      const appBase = (Deno.env.get("APP_BASE_URL") || "https://dogovori.net").replace(/\/+$/, "");
+
       if (newStatus === "completed") {
         await admin.from("signing_audit_events").insert({
           request_id: env.id, event_type: "envelope_completed",
         });
+        // Notify owner
+        const { data: ownerAuth } = await admin.auth.admin.getUserById(env.owner_id);
+        const ownerEmail = ownerAuth?.user?.email;
+        const { data: ownerProfile } = await admin.from("profiles")
+          .select("full_name").eq("id", env.owner_id).maybeSingle();
+        const ownerName = (ownerProfile as any)?.full_name || "";
+        if (ownerEmail) {
+          admin.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "signing-completed",
+              recipientEmail: ownerEmail,
+              idempotencyKey: `signing-complete-owner-${env.id}`,
+              templateData: {
+                documentTitle: env.title,
+                envelopeUrl: `${appBase}/signing/${env.id}`,
+                signerCount: (allSigners ?? []).length,
+                recipientRole: "owner",
+                recipientName: ownerName,
+              },
+            },
+          }).catch(() => {});
+        }
+        // Notify each signer
+        for (const s of (allSigners ?? [])) {
+          admin.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "signing-completed",
+              recipientEmail: s.email,
+              idempotencyKey: `signing-complete-signer-${s.id}`,
+              templateData: {
+                documentTitle: env.title,
+                envelopeUrl: `${appBase}/sign/${s.sign_token}`,
+                signerCount: (allSigners ?? []).length,
+                recipientRole: "signer",
+                recipientName: s.name,
+              },
+            },
+          }).catch(() => {});
+        }
+      } else if (env.order_mode === "sequential") {
+        // Notify next signer
+        const next = (allSigners ?? []).find((s) => s.status !== "signed" && s.status !== "declined");
+        if (next) {
+          admin.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "signing-invitation",
+              recipientEmail: next.email,
+              idempotencyKey: `signing-invite-${next.id}`,
+              templateData: {
+                signerName: next.name,
+                documentTitle: env.title,
+                signUrl: `${appBase}/sign/${next.sign_token}`,
+                expiresAt: env.expires_at,
+                role: next.role,
+              },
+            },
+          }).catch(() => {});
+        }
       }
 
       return new Response(JSON.stringify({ ok: true, envelope_status: newStatus }), {
