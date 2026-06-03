@@ -1,11 +1,18 @@
 /**
  * SplitWizard — graph-driven wizard with the legacy visual language.
  *
- * Layout: two-column grid (matches the legacy /wizard/:sector page).
- *  - LEFT  : one question per step, "ВЪПРОС X / N" badge, gold gradient CTA.
- *  - RIGHT : sticky "Работен документ" preview, serif body, centered title.
+ * Step granularity = SECTION (multiple visible questions per page),
+ * matching the "Изготви документ" (BuildContract) UX.
+ *
+ * Layout: two-column grid.
+ *  - LEFT  : section stepper + all visible questions in the current section,
+ *            gold gradient CTA, back/next.
+ *  - RIGHT : sticky "Работен документ" preview.
  *
  * Logic is driven by the resolved question graph + conditional clause engine.
+ * Visibility & required-ness are re-evaluated on every change, so empty
+ * sections collapse automatically and "Next" waits only for truly missing
+ * required fields *in the current section*.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -18,7 +25,7 @@ import { pruneAnswers, resolveGraph, type QuestionGraph } from "@/lib/questionGr
 import type { Ctx } from "@/lib/expressionEvaluator";
 import {
   AlertCircle, CheckCircle2, Sparkles, Eye, EyeOff,
-  ArrowLeft, ArrowRight, FileText,
+  ArrowLeft, ArrowRight, FileText, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -85,24 +92,59 @@ export function SplitWizard({
     setAnswers((prev) => pruneAnswers(graph, { ...prev, [id]: value }));
   };
 
-  // ---- Step = single active question (legacy "Въпрос X / N" UX) ---------
-  const total = resolved.active.length;
-  const [stepIdx, setStepIdx] = useState(0);
+  // ---- Step = SECTION (legacy "Изготви документ" UX) -------------------
+  const visibleSections = resolved.sections; // already filtered to sections with active qs
+  const total = Math.max(visibleSections.length, 1);
+
+  // Persist current section by id so it survives changes in visible set.
+  const [currentSectionId, setCurrentSectionId] = useState<string | null>(
+    () => visibleSections[0]?.id ?? null,
+  );
   useEffect(() => {
-    if (stepIdx > Math.max(0, total - 1)) setStepIdx(Math.max(0, total - 1));
-  }, [total, stepIdx]);
+    if (!visibleSections.length) return;
+    if (!currentSectionId || !visibleSections.some((s) => s.id === currentSectionId)) {
+      setCurrentSectionId(visibleSections[0].id);
+    }
+  }, [visibleSections, currentSectionId]);
+
+  const stepIdx = Math.max(
+    0,
+    visibleSections.findIndex((s) => s.id === currentSectionId),
+  );
+  const currentSection = visibleSections[stepIdx];
+
+  // Per-section completion (for stepper tab states & next-enabled).
+  const sectionStatus = useMemo(() => {
+    const missingSet = new Set(resolved.missingRequired);
+    return visibleSections.map((s) => {
+      const requiredQs = s.questions.filter((q) => q.required);
+      const missingCount = requiredQs.filter((q) => missingSet.has(q.id)).length;
+      return {
+        id: s.id,
+        title: s.title,
+        total: s.questions.length,
+        required: requiredQs.length,
+        missing: missingCount,
+        complete: missingCount === 0,
+      };
+    });
+  }, [visibleSections, resolved.missingRequired]);
+
   useEffect(() => {
-    onProgress?.({ stepIdx: Math.min(stepIdx, Math.max(total - 1, 0)), total, progress: resolved.progress });
+    onProgress?.({ stepIdx, total, progress: resolved.progress });
   }, [stepIdx, total, resolved.progress, onProgress]);
 
-  const current = resolved.active[stepIdx];
-  const currentSection = useMemo(
-    () => graph.sections.find((s) => s.id === current?.section),
-    [graph.sections, current?.section],
-  );
-
   const isLast = stepIdx === total - 1;
-  const canAdvance = !current?.required || !resolved.missingRequired.includes(current.id);
+  const canAdvance = currentSection ? sectionStatus[stepIdx]?.complete : false;
+
+  const goToSection = (idx: number) => {
+    const target = visibleSections[idx];
+    if (!target) return;
+    setCurrentSectionId(target.id);
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  };
 
   const handleNext = () => {
     if (!canAdvance) return;
@@ -113,10 +155,22 @@ export function SplitWizard({
       onComplete?.({ answers: cleaned, body_md: finalDoc.body_md });
       return;
     }
-    setStepIdx((i) => i + 1);
+    goToSection(stepIdx + 1);
   };
 
-  const handleBack = () => setStepIdx((i) => Math.max(0, i - 1));
+  const handleBack = () => goToSection(Math.max(0, stepIdx - 1));
+
+  // A section tab can be jumped to if it's already complete OR is one we've
+  // passed. To keep things simple: complete sections are always clickable;
+  // future incomplete sections require linear progression.
+  const canJumpTo = (idx: number) => {
+    if (idx <= stepIdx) return true;
+    // allow jumping over sections that are already complete in order
+    for (let i = 0; i < idx; i++) {
+      if (!sectionStatus[i]?.complete) return false;
+    }
+    return true;
+  };
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -124,43 +178,95 @@ export function SplitWizard({
       <section className="space-y-5">
         {leftHeader}
         <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft animate-fade-in">
-          {/* Heading */}
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-gold">
-              <span>Въпрос {Math.min(stepIdx + 1, Math.max(total, 1))}</span>
-              <span className="text-muted-foreground">/ {Math.max(total, 1)}</span>
+          {/* Section stepper — BuildContract style */}
+          <div className="mb-5 rounded-xl border border-border/60 bg-navy-light/40 px-4 py-3">
+            <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-[0.18em]">
+              <span className="text-muted-foreground">
+                Стъпка {stepIdx + 1} от {total}
+              </span>
+              <span className="font-semibold text-gold">
+                {currentSection?.title ?? "—"}
+              </span>
             </div>
-            {currentSection && (
-              <Badge variant="outline" className="border-gold/30 text-[10px] uppercase tracking-wider text-gold/90">
-                {currentSection.title}
-              </Badge>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+              <div
+                className="h-full bg-gradient-gold transition-all"
+                style={{ width: `${Math.round(((stepIdx + 1) / total) * 100)}%` }}
+              />
+            </div>
+            {visibleSections.length > 1 && (
+              <div className="mt-2 hidden flex-wrap gap-1.5 sm:flex">
+                {visibleSections.map((s, i) => {
+                  const isCurrent = i === stepIdx;
+                  const status = sectionStatus[i];
+                  const isDone = status?.complete && i < stepIdx;
+                  const jumpable = canJumpTo(i);
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => jumpable && goToSection(i)}
+                      disabled={!jumpable}
+                      className={cn(
+                        "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors",
+                        isCurrent && "bg-gold/15 text-gold",
+                        !isCurrent && isDone && "text-foreground/70 hover:bg-card/40 hover:text-gold",
+                        !isCurrent && !isDone && jumpable && "text-muted-foreground/80 hover:bg-card/40 hover:text-foreground",
+                        !jumpable && "cursor-not-allowed text-muted-foreground/40",
+                      )}
+                      title={s.title}
+                    >
+                      {isDone && <Check className="h-3 w-3" />}
+                      <span className="truncate">{i + 1}. {s.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
             )}
           </div>
 
+          {/* Section title row */}
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="font-serif text-xl font-semibold text-foreground">
+              {currentSection?.title}
+            </h2>
+            {currentSection?.questions.length ? (
+              <Badge variant="outline" className="border-gold/30 text-[10px] uppercase tracking-wider text-gold/90">
+                {currentSection.questions.length} {currentSection.questions.length === 1 ? "въпрос" : "въпроса"}
+              </Badge>
+            ) : null}
+          </div>
+          {currentSection?.description && (
+            <p className="mb-5 text-sm text-muted-foreground">{currentSection.description}</p>
+          )}
 
-
-          {/* Question */}
-          {current ? (
-            <GraphQuestionField
-              q={current}
-              value={answers[current.id]}
-              onChange={(v) => setAnswer(current.id, v)}
-              invalid={current.required && resolved.missingRequired.includes(current.id)}
-            />
+          {/* Questions in this section */}
+          {currentSection && currentSection.questions.length > 0 ? (
+            <div className="space-y-6">
+              {currentSection.questions.map((q) => (
+                <GraphQuestionField
+                  key={q.id}
+                  q={q}
+                  value={answers[q.id]}
+                  onChange={(v) => setAnswer(q.id, v)}
+                  invalid={q.required && resolved.missingRequired.includes(q.id)}
+                />
+              ))}
+            </div>
           ) : (
-            <p className="text-sm italic text-muted-foreground">Няма активни въпроси.</p>
+            <p className="text-sm italic text-muted-foreground">Няма активни въпроси в тази секция.</p>
           )}
 
           {/* Footer status */}
-          {!resolved.isComplete && resolved.missingRequired.length > 0 && (
-            <p className="mt-5 flex items-center gap-1.5 text-xs text-muted-foreground">
+          {currentSection && !canAdvance && (
+            <p className="mt-6 flex items-center gap-1.5 text-xs text-muted-foreground">
               <AlertCircle className="h-3.5 w-3.5" />
-              Остават {resolved.missingRequired.length} задължителни въпроса.
+              Остават {sectionStatus[stepIdx]?.missing ?? 0} задължителни в тази секция.
             </p>
           )}
-          {resolved.isComplete && (
-            <p className="mt-5 flex items-center gap-1.5 text-xs text-emerald-600">
-              <CheckCircle2 className="h-3.5 w-3.5" /> Готови сте да продължите.
+          {isLast && resolved.isComplete && (
+            <p className="mt-6 flex items-center gap-1.5 text-xs text-emerald-600">
+              <CheckCircle2 className="h-3.5 w-3.5" /> Всички секции са попълнени.
             </p>
           )}
 
