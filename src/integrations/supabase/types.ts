@@ -1988,6 +1988,7 @@ export type Database = {
         Returns: undefined
       }
       assemble_prompt_content: { Args: { _prompt_id: string }; Returns: string }
+      bg_to_lat: { Args: { input: string }; Returns: string }
       consume_corrections_batch: {
         Args: { _batch_id: string; _session_id: string }
         Returns: Json
