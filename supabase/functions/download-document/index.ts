@@ -199,7 +199,7 @@ serve(async (req) => {
       });
     }
 
-    await auditInsert("download", saved.id, { kind, used_bonus: useBonus, charged });
+    await auditInsert("download", saved.id, { kind, used_bonus: useBonus, charged, template_slug: resolvedSlug });
 
     const newDownloadWatermark = !isPro && !useBonus && !bonusAvailable;
 
