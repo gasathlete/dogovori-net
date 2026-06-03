@@ -37,7 +37,7 @@ describe("clauseEngine.assembleDocument", () => {
   it("reports unfilled tokens with a placeholder", () => {
     const out = assembleDocument(clauses, { has_probation: false, sector: "retail" });
     expect(out.unfilledTokens.sort()).toEqual(["employee.name", "employer.name"]);
-    expect(out.body_md).toContain("_______");
+    expect(out.body_md).toContain("[NAME]");
   });
 });
 
