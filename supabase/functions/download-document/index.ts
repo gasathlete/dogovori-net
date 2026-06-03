@@ -110,7 +110,7 @@ serve(async (req) => {
       // Re-download is genuinely free: do NOT increment usage counters.
       // (Previously this incremented contracts_used/templates_used, causing
       // free users to exhaust their lifetime allowance on repeat downloads.)
-      await auditInsert("redownload", existing.id, { kind: existing.kind });
+      await auditInsert("redownload", existing.id, { kind: existing.kind, template_slug: resolvedSlug });
       return new Response(
         JSON.stringify({
           ok: true,
