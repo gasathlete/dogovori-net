@@ -26,6 +26,7 @@ import { getCourtById } from "@/data/arbitrationCourts";
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
 import { ensureAIDisclaimerAccepted } from "@/lib/aiDisclaimerGate";
 import { recordConsents } from "@/lib/consents";
+import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhilishte";
 
 import { useAuth } from "@/hooks/useAuth";
 import { trackEvent } from "@/lib/analytics";
@@ -56,6 +57,12 @@ export default function WizardPage() {
   // bilingual wizard when the URL is *not* already flagged as bilingual.
   useEffect(() => {
     if (!sectorId || !docName || bilingualMode) return;
+    // Prefer the new dynamic graph wizard whenever a migrated graph exists.
+    const graphSlug = slugify(docName);
+    if (getQuestionGraph(graphSlug)) {
+      navigate(`/wizard-graph/${graphSlug}`, { replace: true });
+      return;
+    }
     const isBilingual = CATALOG.some(
       (cat) => cat.sectorId === sectorId && cat.documents.some((d) => d.name === docName && d.bilingual),
     );
