@@ -580,7 +580,7 @@ function DragScrollRow({ children }: { children: React.ReactNode }) {
 
 const INITIAL_DOCS = 5;
 
-function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean }) {
+function CategoryDocs({ cat, forceExpanded, downloadCounts }: { cat: any; forceExpanded: boolean; downloadCounts: Map<string, number> }) {
   const [expanded, setExpanded] = useState(false);
   const isOpen = expanded || forceExpanded;
 
@@ -608,9 +608,13 @@ function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean
           <tbody>
             {visible.map((doc: any) => {
               const docSlug = slugify(doc.name);
-              const wizardHref = doc.bilingual
-                ? `/wizard-bilingual/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`
-                : `/wizard/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`;
+              const hasDynamic = DYNAMIC_SLUGS.has(docSlug);
+              const downloads = downloadCounts.get(docSlug) ?? 0;
+              const wizardHref = hasDynamic
+                ? `/wizard-graph/${docSlug}`
+                : doc.bilingual
+                  ? `/wizard-bilingual/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`
+                  : `/wizard/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`;
               const shablonHref = `/shablon/${docSlug}`;
               return (
                 <tr
@@ -629,7 +633,21 @@ function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean
                         {doc.name}
                       </Link>
                       {doc.badge && <Badge label={doc.badge} />}
+                      {hasDynamic && (
+                        <span
+                          title="Динамичен уизард — клаузите се адаптират в реално време"
+                          className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300"
+                        >
+                          <Zap className="h-2.5 w-2.5" /> Динамичен
+                        </span>
+                      )}
                     </div>
+                    {downloads > 0 && (
+                      <div className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <Download className="h-2.5 w-2.5" />
+                        {downloads.toLocaleString("bg-BG")} сваляния
+                      </div>
+                    )}
                   </td>
                   <td className="px-5 py-4 align-top text-sm text-muted-foreground">{doc.purpose}</td>
                   <td className="px-5 py-4 align-top text-sm italic text-gold/90">
@@ -651,24 +669,42 @@ function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean
         </table>
 
         <div className="divide-y divide-border/40 md:hidden">
-          {visible.map((doc: any) => (
-            <Link
-              key={doc.name}
-              to={`/shablon/${slugify(doc.name)}`}
-              style={{ contentVisibility: "auto", containIntrinsicSize: "150px" } as React.CSSProperties}
-              className="block p-5 transition-colors hover:bg-gold/[0.04]"
-            >
-              <div className="flex items-start gap-2">
-                <h3 className="flex-1 font-serif text-base font-bold text-foreground">{doc.name}</h3>
-                {doc.badge && <Badge label={doc.badge} />}
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">{doc.purpose}</p>
-              <p className="mt-2 text-xs italic text-gold/90">⚖ {doc.keyClause}</p>
-              <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-gold">
-                Виж шаблона <ArrowRight className="h-3 w-3" />
-              </div>
-            </Link>
-          ))}
+          {visible.map((doc: any) => {
+            const docSlug = slugify(doc.name);
+            const hasDynamic = DYNAMIC_SLUGS.has(docSlug);
+            const downloads = downloadCounts.get(docSlug) ?? 0;
+            return (
+              <Link
+                key={doc.name}
+                to={`/shablon/${docSlug}`}
+                style={{ contentVisibility: "auto", containIntrinsicSize: "150px" } as React.CSSProperties}
+                className="block p-5 transition-colors hover:bg-gold/[0.04]"
+              >
+                <div className="flex items-start gap-2">
+                  <h3 className="flex-1 font-serif text-base font-bold text-foreground">{doc.name}</h3>
+                  {doc.badge && <Badge label={doc.badge} />}
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  {hasDynamic && (
+                    <span className="inline-flex items-center gap-0.5 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300">
+                      <Zap className="h-2.5 w-2.5" /> Динамичен
+                    </span>
+                  )}
+                  {downloads > 0 && (
+                    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <Download className="h-2.5 w-2.5" />
+                      {downloads.toLocaleString("bg-BG")}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">{doc.purpose}</p>
+                <p className="mt-2 text-xs italic text-gold/90">⚖ {doc.keyClause}</p>
+                <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-gold">
+                  Виж шаблона <ArrowRight className="h-3 w-3" />
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </div>
 
