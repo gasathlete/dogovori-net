@@ -26,6 +26,7 @@ import { getCourtById } from "@/data/arbitrationCourts";
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
 import { ensureAIDisclaimerAccepted } from "@/lib/aiDisclaimerGate";
 import { recordConsents } from "@/lib/consents";
+import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhilishte";
 
 import { useAuth } from "@/hooks/useAuth";
 import { trackEvent } from "@/lib/analytics";
