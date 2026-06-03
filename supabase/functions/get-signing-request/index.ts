@@ -58,6 +58,15 @@ serve(async (req) => {
       canSignNow = prior.every((p: any) => p.status === "signed");
     }
 
+    // When envelope is completed, expose signatures so signers can download the signed PDF.
+    let signatures: any[] = [];
+    if (env.status === "completed") {
+      const { data: full } = await admin.from("signing_request_signers")
+        .select("id, name, email, role, order_idx, signed_at, signature_data_url, signature_name, signer_ip_hash")
+        .eq("request_id", env.id).order("order_idx");
+      signatures = full ?? [];
+    }
+
     return new Response(JSON.stringify({
       ok: true,
       envelope: env,
@@ -72,6 +81,7 @@ serve(async (req) => {
         declined_at: signer.declined_at,
       },
       peers: peers ?? [],
+      signatures,
       can_sign_now: canSignNow,
       expired: new Date(env.expires_at) < new Date(),
     }), { headers: { ...cors, "Content-Type": "application/json" } });

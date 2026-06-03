@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Seo } from "@/components/Seo";
 import { toast } from "sonner";
 import { SignaturePad } from "@/components/SignaturePad";
-import { Loader2, CheckCircle2, AlertCircle, XCircle } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, XCircle, Download } from "lucide-react";
+import { downloadSignedPdf } from "@/lib/signedPdfAssembler";
 
 interface Peer { id: string; name: string; role: string | null; order_idx: number; status: string; signed_at: string | null }
 interface Envelope { id: string; title: string; document_snapshot: any; status: string; order_mode: string; expires_at: string }
@@ -21,6 +22,7 @@ export default function Sign() {
   const [env, setEnv] = useState<Envelope | null>(null);
   const [signer, setSigner] = useState<SignerInfo | null>(null);
   const [peers, setPeers] = useState<Peer[]>([]);
+  const [signatures, setSignatures] = useState<any[]>([]);
   const [canSign, setCanSign] = useState(false);
   const [expired, setExpired] = useState(false);
 
@@ -41,6 +43,7 @@ export default function Sign() {
       setErr(data?.error ?? error?.message ?? "Грешка"); setLoading(false); return;
     }
     setEnv(data.envelope); setSigner(data.signer); setPeers(data.peers); setCanSign(!!data.can_sign_now); setExpired(!!data.expired);
+    setSignatures(data.signatures ?? []);
     setName(data.signer.name ?? "");
     setLoading(false);
   }
@@ -131,8 +134,19 @@ export default function Sign() {
             </div>
 
             {alreadySigned && (
-              <div className="border rounded-lg p-4 bg-emerald-50 text-emerald-800 text-sm">
-                Подписали сте на {new Date(signer.signed_at!).toLocaleString("bg-BG")}.
+              <div className="border rounded-lg p-4 bg-emerald-50 text-emerald-800 text-sm space-y-3">
+                <div>Подписали сте на {new Date(signer.signed_at!).toLocaleString("bg-BG")}.</div>
+                {env.status === "completed" && signatures.length > 0 && (
+                  <Button size="sm" onClick={() => downloadSignedPdf(
+                    { title: env.title, document_snapshot: env.document_snapshot, completed_at: (env as any).completed_at, envelopeId: env.id, order_mode: env.order_mode },
+                    signatures,
+                  )}>
+                    <Download className="h-4 w-4 mr-2" /> Изтегли подписания PDF
+                  </Button>
+                )}
+                {env.status !== "completed" && (
+                  <div className="text-xs">Изчакваме останалите страни. Ще получите имейл с финалния PDF.</div>
+                )}
               </div>
             )}
             {alreadyDeclined && (
