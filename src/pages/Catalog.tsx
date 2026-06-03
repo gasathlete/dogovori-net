@@ -451,7 +451,7 @@ export default function CatalogPage() {
                 </Link>
               </div>
 
-              <CategoryDocs cat={cat} forceExpanded={!!query.trim()} />
+              <CategoryDocs cat={cat} forceExpanded={!!query.trim()} downloadCounts={downloadCounts} />
 
               {cat.companions && cat.companions.length > 0 && (
                 <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-border/50 bg-navy-light/20 px-4 py-3 text-xs">
