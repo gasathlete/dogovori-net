@@ -153,21 +153,21 @@ export function GraphQuestionField({ q, value, onChange, invalid }: Props) {
         </div>
       );
 
-    case "party_list":
+    case "party_list": {
+      const rows = parseParties((value as string) ?? "");
       return (
         <div className="space-y-1.5">
           {labelEl}
-          <Textarea
-            id={id}
-            value={(value as string) ?? ""}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={"Един ред на страна: Име | Тип (Физическо/Юридическо лице)"}
-            rows={3}
-            className={errorRing}
+          <PartyListEditor
+            rows={rows}
+            onChange={(next) => onChange(serializeParties(next))}
+            addLabel={`Добави ${q.label.toLowerCase()}`}
           />
           {help}
         </div>
       );
+    }
+
 
     case "signature":
       return (
