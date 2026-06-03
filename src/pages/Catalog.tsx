@@ -30,6 +30,7 @@ export default function CatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeVid = (searchParams.get("vid") as DocumentTypeId | null) ?? null;
   const bilingualOnly = searchParams.get("bilingual") === "1";
+  const dynamicOnly   = searchParams.get("dynamic") === "1";
 
   const setVid = (vid: DocumentTypeId | null) => {
     const next = new URLSearchParams(searchParams);
@@ -46,6 +47,13 @@ export default function CatalogPage() {
     setSearchParams(next, { replace: true });
   };
 
+  const setDynamic = (on: boolean) => {
+    const next = new URLSearchParams(searchParams);
+    if (on) next.set("dynamic", "1");
+    else next.delete("dynamic");
+    setSearchParams(next, { replace: true });
+  };
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
     if (window.location.hash) {
@@ -55,6 +63,9 @@ export default function CatalogPage() {
       }, 100);
     }
   }, []);
+
+  // Sprint 3 — trust signal lookups.
+  const downloadCounts = useDownloadCounts();
 
   const docMatchesVid = (name: string, explicit?: DocumentTypeId) => {
     if (!activeVid) return true;
@@ -67,6 +78,7 @@ export default function CatalogPage() {
       ...cat,
       documents: cat.documents.filter((d) => {
         if (bilingualOnly && !d.bilingual) return false;
+        if (dynamicOnly && !DYNAMIC_SLUGS.has(slugify(d.name))) return false;
         if (!docMatchesVid(d.name, d.documentType)) return false;
         if (!q) return true;
         return (
@@ -76,29 +88,17 @@ export default function CatalogPage() {
         );
       }),
     })).filter((c) => c.documents.length > 0);
-  }, [query, activeVid, bilingualOnly]);
+  }, [query, activeVid, bilingualOnly, dynamicOnly]);
 
-  const suggestions = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [] as { name: string; purpose: string; sectorId: string; catTitle: string; bilingual?: boolean; documentType?: string }[];
-    const out: { name: string; purpose: string; sectorId: string; catTitle: string; bilingual?: boolean; documentType?: string; score: number }[] = [];
-    for (const cat of CATALOG) {
-      for (const d of cat.documents) {
-        const name = d.name.toLowerCase();
-        const purpose = d.purpose.toLowerCase();
-        let score = 0;
-        if (name.startsWith(q)) score = 3;
-        else if (name.includes(q)) score = 2;
-        else if (purpose.includes(q)) score = 1;
-        if (score > 0) {
-          out.push({ name: d.name, purpose: d.purpose, sectorId: cat.sectorId, catTitle: cat.title, bilingual: d.bilingual, documentType: d.documentType, score });
-        }
-      }
-    }
-    return out.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
-  }, [query]);
-
-
+  // Server-side suggestions (Postgres FTS, BG/Latin cross-script).
+  const { hits: searchHits, loading: searchLoading } = useTemplateSearch(query, {
+    enabled: query.trim().length >= 2,
+    bilingualOnly,
+    dynamicOnly,
+    limit: 12,
+    sort: "relevance",
+  });
+  const suggestions = searchHits;
   const visibleSuggestions = showAll ? suggestions : suggestions.slice(0, 5);
   const remaining = suggestions.length - visibleSuggestions.length;
 
