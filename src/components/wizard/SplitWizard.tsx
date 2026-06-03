@@ -327,12 +327,7 @@ export function SplitWizard({
         </div>
 
         <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
-          {assembled.unfilledTokens.length > 0 && (
-            <div className="mb-4 rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
-              Незапълнени полета: {assembled.unfilledTokens.slice(0, 8).join(", ")}
-              {assembled.unfilledTokens.length > 8 && ` … +${assembled.unfilledTokens.length - 8}`}
-            </div>
-          )}
+
 
           <div className="mb-2 text-center text-[10px] uppercase tracking-[0.2em] text-foreground/50">
             Създадено с изкуствен интелект
