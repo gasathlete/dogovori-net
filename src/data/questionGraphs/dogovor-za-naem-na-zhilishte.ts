@@ -141,6 +141,7 @@ import { ndaGraph } from "./nda-dogovor-za-konfidentsialnost";
 import { grazhdanskiDogovorGraph } from "./grazhdanski-dogovor-dogovor-za-uslugi";
 import { dogovorZaIzrabotkaGraph } from "./dogovor-za-izrabotka";
 import { BULK_GRAPHS } from "./_bulk20";
+import { BULK_GRAPHS_PART2 } from "./_bulk20_part2";
 
 /** Registry — extend as more graphs are migrated. */
 export const QUESTION_GRAPHS: Record<string, QuestionGraph> = {
@@ -149,6 +150,7 @@ export const QUESTION_GRAPHS: Record<string, QuestionGraph> = {
   [grazhdanskiDogovorGraph.template_slug]: grazhdanskiDogovorGraph,
   [dogovorZaIzrabotkaGraph.template_slug]: dogovorZaIzrabotkaGraph,
   ...BULK_GRAPHS,
+  ...BULK_GRAPHS_PART2,
 };
 
 export function getQuestionGraph(slug: string): QuestionGraph | null {
