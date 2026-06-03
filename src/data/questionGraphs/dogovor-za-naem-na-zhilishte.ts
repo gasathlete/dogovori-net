@@ -150,6 +150,7 @@ export const QUESTION_GRAPHS: Record<string, QuestionGraph> = {
   [grazhdanskiDogovorGraph.template_slug]: grazhdanskiDogovorGraph,
   [dogovorZaIzrabotkaGraph.template_slug]: dogovorZaIzrabotkaGraph,
   ...BULK_GRAPHS,
+  ...BULK_GRAPHS_PART2,
 };
 
 export function getQuestionGraph(slug: string): QuestionGraph | null {
