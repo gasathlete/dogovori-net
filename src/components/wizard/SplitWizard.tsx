@@ -25,7 +25,7 @@ import { pruneAnswers, resolveGraph, type QuestionGraph } from "@/lib/questionGr
 import type { Ctx } from "@/lib/expressionEvaluator";
 import {
   AlertCircle, CheckCircle2, Sparkles, Eye, EyeOff,
-  ArrowLeft, ArrowRight, FileText, Check,
+  ArrowLeft, ArrowRight, FileText, Check, Feather,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +40,8 @@ interface Props {
   onProgress?: (info: { stepIdx: number; total: number; progress: number }) => void;
   /** Slot rendered above the question card (used for RiskMeter in legacy chrome). */
   leftHeader?: React.ReactNode;
+  /** Triggered by the fade-gate "или изтеглете като бланка" pill. */
+  onDownloadBlank?: () => void;
 }
 
 const DIFF_TTL_MS = 2500;
