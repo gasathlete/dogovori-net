@@ -26,7 +26,7 @@ import {
   pruneAnswers, resolveGraph, type QuestionGraph,
 } from "@/lib/questionGraph";
 import type { Ctx } from "@/lib/expressionEvaluator";
-import { AlertCircle, CheckCircle2, Sparkles, Eye, EyeOff } from "lucide-react";
+import { AlertCircle, CheckCircle2, Sparkles, Eye, EyeOff, ArrowLeft, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -91,12 +91,49 @@ export function SplitWizard({
     });
   };
 
-  const handleComplete = () => {
-    if (!resolved.isComplete) return;
-    const cleaned = pruneAnswers(graph, answers);
-    const finalDoc = assembleDocument(clauses, cleaned);
-    onComplete?.({ answers: cleaned, body_md: finalDoc.body_md });
+  // Step state: index into the visible sections (those with at least 1 active question).
+  const visibleSections = useMemo(
+    () => resolved.sections.filter((s) => s.questions.length > 0),
+    [resolved.sections],
+  );
+  const [stepIdx, setStepIdx] = useState(0);
+  // Clamp when sections appear/disappear due to branching.
+  useEffect(() => {
+    if (stepIdx > Math.max(0, visibleSections.length - 1)) {
+      setStepIdx(Math.max(0, visibleSections.length - 1));
+    }
+  }, [visibleSections.length, stepIdx]);
+
+  const currentSection = visibleSections[stepIdx];
+  const totalSteps = visibleSections.length;
+
+  // Required questions missing within the current section only — blocks "Next".
+  const sectionMissing = useMemo(() => {
+    if (!currentSection) return [] as string[];
+    const ids = new Set(currentSection.questions.map((q) => q.id));
+    return resolved.missingRequired.filter((id) => ids.has(id));
+  }, [currentSection, resolved.missingRequired]);
+
+  const isLastStep = stepIdx >= totalSteps - 1;
+  const canAdvance = sectionMissing.length === 0;
+
+  const handleNext = () => {
+    if (!canAdvance) return;
+    if (isLastStep) {
+      if (!resolved.isComplete) return;
+      const cleaned = pruneAnswers(graph, answers);
+      const finalDoc = assembleDocument(clauses, cleaned);
+      onComplete?.({ answers: cleaned, body_md: finalDoc.body_md });
+      return;
+    }
+    setStepIdx((i) => i + 1);
+    // Scroll question pane to top.
+    requestAnimationFrame(() => {
+      document.getElementById("split-wizard-questions")?.scrollTo({ top: 0, behavior: "smooth" });
+    });
   };
+
+  const handleBack = () => setStepIdx((i) => Math.max(0, i - 1));
 
   return (
     <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-4rem)] rounded-lg border bg-card">
@@ -104,7 +141,14 @@ export function SplitWizard({
       <ResizablePanel defaultSize={55} minSize={35}>
         <div className="flex h-full flex-col">
           <header className="border-b p-4">
-            <h1 className="text-lg font-semibold">{graph.title}</h1>
+            <div className="flex items-center justify-between gap-3">
+              <h1 className="text-lg font-semibold">{graph.title}</h1>
+              {totalSteps > 0 && (
+                <span className="shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Стъпка {stepIdx + 1} от {totalSteps}
+                </span>
+              )}
+            </div>
             <div className="mt-3 flex items-center gap-3">
               <Progress value={resolved.progress} className="h-2 flex-1" />
               <span className="text-xs tabular-nums text-muted-foreground">{resolved.progress}%</span>
@@ -122,43 +166,58 @@ export function SplitWizard({
             )}
           </header>
 
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="space-y-6">
-              {resolved.sections.map((section) => (
-                <section key={section.id} className="space-y-3">
-                  <div className="sticky top-0 z-10 -mx-1 bg-card/95 px-1 py-1 backdrop-blur">
-                    <h2 className="text-sm font-semibold text-foreground">{section.title}</h2>
-                    {section.description && (
-                      <p className="text-xs text-muted-foreground">{section.description}</p>
-                    )}
-                  </div>
-                  <div className="space-y-3">
-                    {section.questions.map((q) => (
-                      <GraphQuestionField
-                        key={q.id}
-                        q={q}
-                        value={answers[q.id]}
-                        onChange={(v) => setAnswer(q.id, v)}
-                        invalid={q.required && resolved.missingRequired.includes(q.id)}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ))}
-            </div>
+          <div id="split-wizard-questions" className="flex-1 overflow-y-auto p-4">
+            {currentSection ? (
+              <section className="space-y-4">
+                <div>
+                  <h2 className="text-base font-semibold text-foreground">{currentSection.title}</h2>
+                  {currentSection.description && (
+                    <p className="text-xs text-muted-foreground">{currentSection.description}</p>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  {currentSection.questions.map((q) => (
+                    <GraphQuestionField
+                      key={q.id}
+                      q={q}
+                      value={answers[q.id]}
+                      onChange={(v) => setAnswer(q.id, v)}
+                      invalid={q.required && resolved.missingRequired.includes(q.id)}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : (
+              <p className="text-sm italic text-muted-foreground">Няма активни въпроси.</p>
+            )}
           </div>
 
-          <footer className="flex items-center justify-between border-t p-4">
-            <div className="text-xs text-muted-foreground">
+          <footer className="flex items-center justify-between gap-3 border-t p-4">
+            <Button variant="outline" onClick={handleBack} disabled={stepIdx === 0}>
+              <ArrowLeft className="h-4 w-4" /> Назад
+            </Button>
+            <div className="hidden text-xs text-muted-foreground sm:block">
               {resolved.active.length} активни въпроса · {assembled.clauses.length}/
               {assembled.clauses.length + assembled.excluded.length} клаузи
             </div>
-            <Button onClick={handleComplete} disabled={!resolved.isComplete}>
-              <Sparkles className="h-4 w-4" /> {ctaLabel}
+            <Button
+              onClick={handleNext}
+              disabled={isLastStep ? !resolved.isComplete : !canAdvance}
+            >
+              {isLastStep ? (
+                <>
+                  <Sparkles className="h-4 w-4" /> {ctaLabel}
+                </>
+              ) : (
+                <>
+                  Напред <ArrowRight className="h-4 w-4" />
+                </>
+              )}
             </Button>
           </footer>
         </div>
       </ResizablePanel>
+
 
       <ResizableHandle withHandle />
 
