@@ -1652,6 +1652,78 @@ export type Database = {
         }
         Relationships: []
       }
+      template_download_counts: {
+        Row: {
+          count: number
+          last_at: string | null
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          count?: number
+          last_at?: string | null
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          count?: number
+          last_at?: string | null
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      template_search_index: {
+        Row: {
+          bilingual: boolean
+          category_id: string
+          category_title: string
+          created_at: string
+          document_type: string | null
+          has_dynamic_wizard: boolean
+          key_clause: string
+          lawyer_reviewed: boolean
+          locale: string
+          name: string
+          purpose: string
+          search_tsv: unknown
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          bilingual?: boolean
+          category_id: string
+          category_title: string
+          created_at?: string
+          document_type?: string | null
+          has_dynamic_wizard?: boolean
+          key_clause?: string
+          lawyer_reviewed?: boolean
+          locale?: string
+          name: string
+          purpose?: string
+          search_tsv?: unknown
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          bilingual?: boolean
+          category_id?: string
+          category_title?: string
+          created_at?: string
+          document_type?: string | null
+          has_dynamic_wizard?: boolean
+          key_clause?: string
+          lawyer_reviewed?: boolean
+          locale?: string
+          name?: string
+          purpose?: string
+          search_tsv?: unknown
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       uploaded_contracts: {
         Row: {
           contact_id: string | null
@@ -1985,6 +2057,36 @@ export type Database = {
         Args: { _kind: string; _used_bonus?: boolean; _user_id: string }
         Returns: undefined
       }
+      search_templates: {
+        Args: {
+          p_bilingual_only?: boolean
+          p_category?: string
+          p_document_type?: string
+          p_dynamic_only?: boolean
+          p_limit?: number
+          p_offset?: number
+          p_sort?: string
+          q?: string
+        }
+        Returns: {
+          bilingual: boolean
+          category_id: string
+          category_title: string
+          document_type: string
+          downloads: number
+          has_dynamic_wizard: boolean
+          key_clause: string
+          lawyer_reviewed: boolean
+          name: string
+          purpose: string
+          rank: number
+          slug: string
+          total: number
+        }[]
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+      unaccent: { Args: { "": string }; Returns: string }
       unaccent_or_lower: { Args: { _t: string }; Returns: string }
       unread_notifications_count: { Args: never; Returns: number }
     }
