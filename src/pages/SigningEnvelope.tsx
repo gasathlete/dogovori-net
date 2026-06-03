@@ -5,8 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Seo } from "@/components/Seo";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, Clock, Copy, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Copy, Loader2, Download } from "lucide-react";
 import { toast } from "sonner";
+import { downloadSignedPdf } from "@/lib/signedPdfAssembler";
 
 interface Signer {
   id: string; name: string; email: string; role: string | null; order_idx: number;
@@ -16,6 +17,7 @@ interface Signer {
 interface Envelope {
   id: string; title: string; status: string; order_mode: string;
   expires_at: string; completed_at: string | null; created_at: string;
+  document_snapshot: any;
 }
 
 export default function SigningEnvelope() {
