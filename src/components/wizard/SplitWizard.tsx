@@ -325,7 +325,7 @@ export function SplitWizard({
           </div>
         </div>
 
-        <div className="rounded-xl border border-border/60 bg-card shadow-soft">
+        <div className="rounded-xl border border-border/60 bg-white text-neutral-900 shadow-soft dark:bg-neutral-50 dark:text-neutral-900">
           {assembled.unfilledTokens.length > 0 && (
             <div className="m-4 rounded-md border border-amber-300/40 bg-amber-50/60 px-3 py-2 text-[11px] text-amber-900 dark:border-amber-400/20 dark:bg-amber-950/30 dark:text-amber-200">
               Незапълнени полета: {assembled.unfilledTokens.slice(0, 8).join(", ")}
