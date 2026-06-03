@@ -7,6 +7,7 @@ import { scrollToHash } from "@/lib/scrollToHash";
 import { useScrolled } from "@/hooks/useScrolled";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { cn } from "@/lib/utils";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 const NAV = [
   { to: "/build", label: "Изготви документ" },
@@ -122,6 +123,7 @@ export function Header() {
               ЗУТ
             </a>
           </span>
+          <LanguageSwitcher className="hidden sm:block" />
           {user ? (
             <Link
               to="/account"

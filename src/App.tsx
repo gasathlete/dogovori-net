@@ -22,6 +22,8 @@ const lazy = <T extends ComponentType<any>>(factory: () => Promise<{ default: T 
   );
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { detectLocaleFromPath, setLocale, stripLocaleFromPath } from "@/i18n";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -112,9 +114,15 @@ const RouteFallback = () => (
 
 const AnimatedRoutes = () => {
   const location = useLocation();
+  const locale = detectLocaleFromPath(location.pathname);
+  useEffect(() => { setLocale(locale); }, [locale]);
+  // For /en/* URLs, strip the prefix so existing <Route path="/..."> entries match.
+  const routedLocation = locale === "bg"
+    ? location
+    : { ...location, pathname: stripLocaleFromPath(location.pathname) };
   return (
     <div key={location.pathname} className="route-fade">
-      <Routes location={location}>
+      <Routes location={routedLocation}>
         <Route path="/" element={<Index />} />
         <Route path="/wizard/:sectorId" element={<Wizard />} />
         <Route path="/build" element={<BuildContract />} />
