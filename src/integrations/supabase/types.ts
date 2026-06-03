@@ -875,6 +875,51 @@ export type Database = {
         }
         Relationships: []
       }
+      glossary_terms: {
+        Row: {
+          body_md: string
+          created_at: string
+          created_by: string | null
+          id: string
+          published: boolean
+          related_template_slugs: string[]
+          seo_description: string | null
+          seo_title: string | null
+          short_definition: string
+          slug: string
+          term: string
+          updated_at: string
+        }
+        Insert: {
+          body_md?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          published?: boolean
+          related_template_slugs?: string[]
+          seo_description?: string | null
+          seo_title?: string | null
+          short_definition: string
+          slug: string
+          term: string
+          updated_at?: string
+        }
+        Update: {
+          body_md?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          published?: boolean
+          related_template_slugs?: string[]
+          seo_description?: string | null
+          seo_title?: string | null
+          short_definition?: string
+          slug?: string
+          term?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       illegal_content_attempts: {
         Row: {
           category: string
@@ -1275,6 +1320,199 @@ export type Database = {
           {
             foreignKeyName: "shared_links_document_fk"
             columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "saved_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signing_audit_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          ip_hash: string | null
+          metadata: Json
+          request_id: string
+          signer_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          ip_hash?: string | null
+          metadata?: Json
+          request_id: string
+          signer_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_hash?: string | null
+          metadata?: Json
+          request_id?: string
+          signer_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signing_audit_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "signing_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_audit_events_signer_id_fkey"
+            columns: ["signer_id"]
+            isOneToOne: false
+            referencedRelation: "signing_request_signers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signing_request_signers: {
+        Row: {
+          created_at: string
+          decline_reason: string | null
+          declined_at: string | null
+          email: string
+          id: string
+          name: string
+          notified_at: string | null
+          order_idx: number
+          otp_attempts: number
+          otp_code_hash: string | null
+          otp_expires_at: string | null
+          request_id: string
+          role: string | null
+          sign_token: string
+          signature_data_url: string | null
+          signature_name: string | null
+          signed_at: string | null
+          signer_ip_hash: string | null
+          signer_user_agent: string | null
+          status: Database["public"]["Enums"]["signer_status"]
+          updated_at: string
+          viewed_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          decline_reason?: string | null
+          declined_at?: string | null
+          email: string
+          id?: string
+          name: string
+          notified_at?: string | null
+          order_idx?: number
+          otp_attempts?: number
+          otp_code_hash?: string | null
+          otp_expires_at?: string | null
+          request_id: string
+          role?: string | null
+          sign_token: string
+          signature_data_url?: string | null
+          signature_name?: string | null
+          signed_at?: string | null
+          signer_ip_hash?: string | null
+          signer_user_agent?: string | null
+          status?: Database["public"]["Enums"]["signer_status"]
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          decline_reason?: string | null
+          declined_at?: string | null
+          email?: string
+          id?: string
+          name?: string
+          notified_at?: string | null
+          order_idx?: number
+          otp_attempts?: number
+          otp_code_hash?: string | null
+          otp_expires_at?: string | null
+          request_id?: string
+          role?: string | null
+          sign_token?: string
+          signature_data_url?: string | null
+          signature_name?: string | null
+          signed_at?: string | null
+          signer_ip_hash?: string | null
+          signer_user_agent?: string | null
+          status?: Database["public"]["Enums"]["signer_status"]
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signing_request_signers_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "signing_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signing_requests: {
+        Row: {
+          cancelled_at: string | null
+          completed_at: string | null
+          created_at: string
+          document_snapshot: Json
+          expires_at: string | null
+          id: string
+          metadata: Json
+          order_mode: Database["public"]["Enums"]["signing_order_mode"]
+          owner_id: string
+          saved_document_id: string | null
+          status: Database["public"]["Enums"]["signing_status"]
+          team_id: string | null
+          title: string
+          updated_at: string
+          uploaded_contract_id: string | null
+        }
+        Insert: {
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          document_snapshot: Json
+          expires_at?: string | null
+          id?: string
+          metadata?: Json
+          order_mode?: Database["public"]["Enums"]["signing_order_mode"]
+          owner_id: string
+          saved_document_id?: string | null
+          status?: Database["public"]["Enums"]["signing_status"]
+          team_id?: string | null
+          title: string
+          updated_at?: string
+          uploaded_contract_id?: string | null
+        }
+        Update: {
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          document_snapshot?: Json
+          expires_at?: string | null
+          id?: string
+          metadata?: Json
+          order_mode?: Database["public"]["Enums"]["signing_order_mode"]
+          owner_id?: string
+          saved_document_id?: string | null
+          status?: Database["public"]["Enums"]["signing_status"]
+          team_id?: string | null
+          title?: string
+          updated_at?: string
+          uploaded_contract_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signing_requests_saved_document_id_fkey"
+            columns: ["saved_document_id"]
             isOneToOne: false
             referencedRelation: "saved_documents"
             referencedColumns: ["id"]
@@ -2098,6 +2336,22 @@ export type Database = {
       blog_post_type: "core" | "user"
       contact_type: "individual" | "legal"
       document_kind: "contract" | "template"
+      signer_status:
+        | "pending"
+        | "notified"
+        | "viewed"
+        | "otp_sent"
+        | "signed"
+        | "declined"
+      signing_order_mode: "sequential" | "parallel"
+      signing_status:
+        | "draft"
+        | "pending"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
+        | "expired"
+        | "declined"
       team_role: "owner" | "admin" | "member"
       user_plan: "free" | "pro"
     }
@@ -2233,6 +2487,24 @@ export const Constants = {
       blog_post_type: ["core", "user"],
       contact_type: ["individual", "legal"],
       document_kind: ["contract", "template"],
+      signer_status: [
+        "pending",
+        "notified",
+        "viewed",
+        "otp_sent",
+        "signed",
+        "declined",
+      ],
+      signing_order_mode: ["sequential", "parallel"],
+      signing_status: [
+        "draft",
+        "pending",
+        "in_progress",
+        "completed",
+        "cancelled",
+        "expired",
+        "declined",
+      ],
       team_role: ["owner", "admin", "member"],
       user_plan: ["free", "pro"],
     },
