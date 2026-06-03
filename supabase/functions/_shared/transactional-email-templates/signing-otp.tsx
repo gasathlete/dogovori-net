@@ -26,7 +26,7 @@ const SigningOtp = ({ code, documentTitle }: Props) => (
 )
 
 const codeBox = {
-  background: COLORS.bgSoft ?? '#f5f1e8',
+  background: COLORS.bg,
   padding: '18px 20px',
   borderRadius: '8px',
   textAlign: 'center' as const,

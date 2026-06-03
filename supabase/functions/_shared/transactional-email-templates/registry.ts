@@ -16,6 +16,9 @@ import { template as proExpired } from './pro-expired.tsx'
 import { template as teamInvitation } from './team-invitation.tsx'
 import { template as paymentFailed } from './payment-failed.tsx'
 import { template as illegalContentAlert } from './illegal-content-alert.tsx'
+import { template as signingInvitation } from './signing-invitation.tsx'
+import { template as signingOtp } from './signing-otp.tsx'
+import { template as signingCompleted } from './signing-completed.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'welcome': welcome,
@@ -25,4 +28,7 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'team-invitation': teamInvitation,
   'payment-failed': paymentFailed,
   'illegal-content-alert': illegalContentAlert,
+  'signing-invitation': signingInvitation,
+  'signing-otp': signingOtp,
+  'signing-completed': signingCompleted,
 }
