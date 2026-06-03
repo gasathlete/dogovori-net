@@ -91,6 +91,9 @@ export function SplitWizard({
   useEffect(() => {
     if (stepIdx > Math.max(0, total - 1)) setStepIdx(Math.max(0, total - 1));
   }, [total, stepIdx]);
+  useEffect(() => {
+    onProgress?.({ stepIdx: Math.min(stepIdx, Math.max(total - 1, 0)), total, progress: resolved.progress });
+  }, [stepIdx, total, resolved.progress, onProgress]);
 
   const current = resolved.active[stepIdx];
   const currentSection = useMemo(
