@@ -49,7 +49,7 @@ const DIFF_TTL_MS = 2500;
 export function SplitWizard({
   graph, clauses, initialAnswers, storageKey, onComplete,
   ctaLabel = "Финализирай документа",
-  onProgress, leftHeader,
+  onProgress, leftHeader, onDownloadBlank,
 }: Props) {
   const persistKey = storageKey ?? `splitwizard:${graph.template_slug}`;
 
