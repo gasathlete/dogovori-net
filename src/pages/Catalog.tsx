@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { useSearchParams } from "react-router-dom";
 import * as Icons from "lucide-react";
-import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp, X, Filter, Check, Languages, Package } from "lucide-react";
+import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp, X, Filter, Check, Languages, Package, Zap, Download } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
@@ -14,6 +14,12 @@ import { allTemplates } from "@/lib/templateIndex";
 import { slugify } from "@/lib/slugify";
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, type DocumentTypeId } from "@/lib/documentReferences";
 import { inferDocumentType } from "@/lib/documentTypeInference";
+import { QUESTION_GRAPHS } from "@/data/questionGraphs/dogovor-za-naem-na-zhilishte";
+import { useDownloadCounts } from "@/hooks/useDownloadCounts";
+import { useTemplateSearch } from "@/hooks/useTemplateSearch";
+
+/** Slugs that have a registered dynamic question graph (Sprint 1+2). */
+const DYNAMIC_SLUGS: Set<string> = new Set(Object.keys(QUESTION_GRAPHS));
 
 
 export default function CatalogPage() {
