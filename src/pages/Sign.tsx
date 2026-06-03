@@ -134,8 +134,19 @@ export default function Sign() {
             </div>
 
             {alreadySigned && (
-              <div className="border rounded-lg p-4 bg-emerald-50 text-emerald-800 text-sm">
-                Подписали сте на {new Date(signer.signed_at!).toLocaleString("bg-BG")}.
+              <div className="border rounded-lg p-4 bg-emerald-50 text-emerald-800 text-sm space-y-3">
+                <div>Подписали сте на {new Date(signer.signed_at!).toLocaleString("bg-BG")}.</div>
+                {env.status === "completed" && signatures.length > 0 && (
+                  <Button size="sm" onClick={() => downloadSignedPdf(
+                    { title: env.title, document_snapshot: env.document_snapshot, completed_at: (env as any).completed_at, envelopeId: env.id, order_mode: env.order_mode },
+                    signatures,
+                  )}>
+                    <Download className="h-4 w-4 mr-2" /> Изтегли подписания PDF
+                  </Button>
+                )}
+                {env.status !== "completed" && (
+                  <div className="text-xs">Изчакваме останалите страни. Ще получите имейл с финалния PDF.</div>
+                )}
               </div>
             )}
             {alreadyDeclined && (
