@@ -45,3 +45,13 @@ verify_jwt = false
 [functions.team-invitation-info]
 verify_jwt = false
 
+[functions.create-signing-request]
+verify_jwt = false
+
+[functions.get-signing-request]
+verify_jwt = false
+
+[functions.signer-action]
+verify_jwt = false
+
+

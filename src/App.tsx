@@ -77,6 +77,11 @@ const SiteMap = lazy(() => import("./pages/SiteMap.tsx"));
 const Kits = lazy(() => import("./pages/Kits.tsx"));
 const KitDetail = lazy(() => import("./pages/KitDetail.tsx"));
 const MyKitDetail = lazy(() => import("./pages/MyKitDetail.tsx"));
+const Sign = lazy(() => import("./pages/Sign.tsx"));
+const SigningEnvelope = lazy(() => import("./pages/SigningEnvelope.tsx"));
+const Glossary = lazy(() => import("./pages/Glossary.tsx"));
+const GlossaryTerm = lazy(() => import("./pages/GlossaryTerm.tsx"));
+const CompareTemplates = lazy(() => import("./pages/CompareTemplates.tsx"));
 
 // Defer Sentry boot until the browser is idle so it never competes with hydration / LCP.
 if (typeof window !== "undefined") {
@@ -151,6 +156,12 @@ const AnimatedRoutes = () => {
         <Route path="/contact/:id" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
         <Route path="/downloads/contracts" element={<ProtectedRoute><Downloads kind="contract" /></ProtectedRoute>} />
         <Route path="/downloads/templates" element={<ProtectedRoute><Downloads kind="template" /></ProtectedRoute>} />
+        <Route path="/sign/:token" element={<Sign />} />
+        <Route path="/signing/:id" element={<ProtectedRoute><SigningEnvelope /></ProtectedRoute>} />
+        <Route path="/rechnik" element={<Glossary />} />
+        <Route path="/rechnik/:slug" element={<GlossaryTerm />} />
+        <Route path="/sravni" element={<CompareTemplates />} />
+        <Route path="/sravni/:a/vs/:b" element={<CompareTemplates />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
