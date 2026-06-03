@@ -88,8 +88,15 @@ serve(async (req) => {
         request_id: env.id, signer_id: signer.id, event_type: "otp_sent",
         ip_hash: ipHash, user_agent: ua, metadata: { email: signer.email },
       });
-      // NOTE: email delivery is wired separately via send-transactional-email.
-      // We still surface the code in dev mode to ease testing.
+      // Send OTP email (best-effort)
+      admin.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "signing-otp",
+          recipientEmail: signer.email,
+          idempotencyKey: `signing-otp-${signer.id}-${Date.now()}`,
+          templateData: { code, documentTitle: env.title },
+        },
+      }).catch(() => {});
       const debugCode = Deno.env.get("SIGNING_DEBUG_OTP") === "1" ? code : undefined;
       return new Response(JSON.stringify({ ok: true, expires_at: exp, debug_code: debugCode }), {
         headers: { ...cors, "Content-Type": "application/json" },
