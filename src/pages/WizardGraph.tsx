@@ -2,24 +2,17 @@
  * Sprint 1 + 2 pilot page — graph-driven wizard with live preview.
  *
  * Route: /wizard-graph/:slug
- *
- * Renders the legacy /wizard chrome (sticky breadcrumb + progress, blank
- * download bar, RiskMeter) around the new graph-driven SplitWizard, so the
- * two flows feel identical to the user.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import {
-  Loader2, AlertCircle, ArrowLeft, Download, Check, ShieldCheck,
-  Search, FileSearch,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Loader2, AlertCircle } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { SplitWizard } from "@/components/wizard/SplitWizard";
 import { RiskMeter } from "@/components/wizard/RiskMeter";
+import { WizardShell } from "@/components/wizard/WizardShell";
 import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhilishte";
 import type { ClauseDefinition } from "@/lib/clauseEngine";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,7 +26,6 @@ import { getOpSessionId, getOpDocKey } from "@/lib/opSession";
 
 export default function WizardGraphPage() {
   const { slug } = useParams<{ slug: string }>();
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const graph = slug ? getQuestionGraph(slug) : null;
   const [clauses, setClauses] = useState<ClauseDefinition[] | null>(null);
@@ -41,8 +33,6 @@ export default function WizardGraphPage() {
   const [progress, setProgress] = useState({ stepIdx: 0, total: 1, progress: 0 });
   const { user } = useAuth();
 
-  // Locate the catalog category that owns this document (for breadcrumb +
-  // blank-template download metadata). Match by slugified document name.
   const catalogHit = useMemo(() => {
     if (!graph) return null;
     for (const cat of CATALOG) {
@@ -80,18 +70,10 @@ export default function WizardGraphPage() {
     return () => { cancelled = true; };
   }, [slug]);
 
-  // -------- Blank template download (mirrors legacy Wizard.tsx) ----------
+  // -------- Blank template download -----------------------------------
   const [downloadingBlank, setDownloadingBlank] = useState(false);
   const [blankStep, setBlankStep] = useState(0);
-  const todayLabel = new Date().toLocaleDateString("bg-BG", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-  });
-  const blankSteps = [
-    { icon: ShieldCheck, label: "Проверка на сигурността на IP адреса…" },
-    { icon: Search, label: "Подготовка на правната бланка…" },
-    { icon: FileSearch, label: `Проверка за липсващи клаузи и реквизити към дата ${todayLabel}…` },
-    { icon: Download, label: "Бланката ще бъде свалена до 10 секунди…" },
-  ];
+
   const goAuth = () => {
     const ret = `/wizard-graph/${slug}`;
     navigate(`/auth?returnTo=${encodeURIComponent(ret)}`);
@@ -150,7 +132,7 @@ export default function WizardGraphPage() {
     await runBlankDownload();
   };
 
-  // ----- Early returns --------------------------------------------------
+  // ----- Early returns -------------------------------------------------
   if (!graph) {
     return (
       <div className="min-h-screen bg-background">
@@ -201,104 +183,18 @@ export default function WizardGraphPage() {
   const docName = catalogHit?.doc.name ?? graph.title;
 
   return (
-    <div className="min-h-screen">
+    <>
       <Seo title={`${graph.title} — Динамичен уизард | Dogovori.net`} description={graph.title} />
-      <Header />
-
-      {/* Blank-download progress modal */}
-      {downloadingBlank && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-md rounded-2xl border border-gold/30 bg-card p-6 shadow-2xl">
-            <div className="mb-4 flex items-center gap-3">
-              <Loader2 className="h-5 w-5 animate-spin text-gold" />
-              <h3 className="font-serif text-lg text-foreground">Подготвяме бланката…</h3>
-            </div>
-            <ul className="space-y-2.5">
-              {blankSteps.map((s, i) => {
-                const Icon = s.icon;
-                const active = i === blankStep;
-                const done = i < blankStep;
-                return (
-                  <li
-                    key={i}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all ${
-                      active ? "bg-gold/10 text-foreground"
-                      : done ? "text-muted-foreground"
-                      : "text-muted-foreground/60"
-                    }`}
-                  >
-                    {done ? <Check className="h-4 w-4 shrink-0 text-emerald-500" />
-                      : active ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-gold" />
-                      : <Icon className="h-4 w-4 shrink-0" />}
-                    <span>{s.label}</span>
-                  </li>
-                );
-              })}
-            </ul>
-            <p className="mt-4 text-center text-xs text-muted-foreground">
-              Свалянето ще започне автоматично.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Sticky breadcrumb + progress strip */}
-      <div className="sticky top-16 z-30 border-b border-border/60 bg-navy/90 backdrop-blur-xl">
-        <div className="container py-3">
-          <div className="mb-2 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate("/")}
-                className="flex items-center gap-1 text-muted-foreground transition-colors hover:text-gold"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" />
-                Сектори
-              </button>
-              {sectorTitle && (
-                <>
-                  <span className="text-muted-foreground">/</span>
-                  <span className="font-medium text-foreground">{sectorTitle}</span>
-                </>
-              )}
-              <span className="hidden text-muted-foreground sm:inline">·</span>
-              <span className="hidden font-serif italic text-gold sm:inline">{docName}</span>
-            </div>
-            <div className="text-muted-foreground">
-              Секция {progress.stepIdx + 1} от {Math.max(progress.total, 1)}
-            </div>
-          </div>
-          <Progress
-            value={Math.round(((progress.stepIdx + 1) / Math.max(progress.total, 1)) * 100)}
-            className="h-1.5 bg-secondary"
-          />
-
-        </div>
-      </div>
-
-      {/* Blank-template download bar */}
-      <div className="border-b border-border/40 bg-card/30">
-        <div className="container flex flex-wrap items-center justify-between gap-3 py-3">
-          <div className="text-xs text-muted-foreground">
-            Нужна Ви е само празна бланка за разпечатване?
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDownloadBlank}
-            disabled={downloadingBlank}
-            className="border-gold/40 text-gold hover:bg-gold/10 hover:text-gold"
-          >
-            {downloadingBlank ? (
-              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="mr-1.5 h-4 w-4" />
-            )}
-            Изтегли празна бланка (.docx)
-          </Button>
-        </div>
-      </div>
-
-      <main className="container py-6 md:py-8">
+      <WizardShell
+        sectorTitle={sectorTitle}
+        docName={docName}
+        progress={progress}
+        blankDownload={{
+          onClick: handleDownloadBlank,
+          downloading: downloadingBlank,
+          step: blankStep,
+        }}
+      >
         <SplitWizard
           graph={graph}
           clauses={clauses}
@@ -308,7 +204,7 @@ export default function WizardGraphPage() {
           leftHeader={<RiskMeter level="unknown" />}
           onDownloadBlank={handleDownloadBlank}
         />
-      </main>
-    </div>
+      </WizardShell>
+    </>
   );
 }
