@@ -357,7 +357,7 @@ export function SplitWizard({
                     )}
                   >
                     {c.title && (
-                      <h3 className="mb-1 text-[13px] font-semibold uppercase tracking-wide text-foreground">
+                      <h3 className="mb-1 text-[13px] font-semibold uppercase tracking-wide text-neutral-900">
                         {idx + 1}. {c.title}
                       </h3>
                     )}
