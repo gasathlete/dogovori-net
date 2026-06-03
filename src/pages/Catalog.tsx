@@ -373,6 +373,23 @@ export default function CatalogPage() {
               {bilingualOnly && <Check className="h-3.5 w-3.5" />}
             </button>
 
+            <button
+              type="button"
+              onClick={() => setDynamic(!dynamicOnly)}
+              aria-pressed={dynamicOnly}
+              title="Покажи само документи с динамичен уизард (адаптира клаузите според отговорите)"
+              className={
+                "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors " +
+                (dynamicOnly
+                  ? "border-emerald-400/60 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/15"
+                  : "border-border/70 bg-card/40 text-foreground hover:border-emerald-400/40 hover:text-emerald-300")
+              }
+            >
+              <Zap className="h-3.5 w-3.5" />
+              Динамичен уизард
+              {dynamicOnly && <Check className="h-3.5 w-3.5" />}
+            </button>
+
             <span className="mx-1 hidden h-5 w-px bg-border/60 md:inline-block" aria-hidden />
 
             <Link
