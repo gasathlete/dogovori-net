@@ -15,7 +15,7 @@
  * required fields *in the current section*.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +25,7 @@ import { pruneAnswers, resolveGraph, type QuestionGraph } from "@/lib/questionGr
 import type { Ctx } from "@/lib/expressionEvaluator";
 import {
   AlertCircle, CheckCircle2, Sparkles, Eye, EyeOff,
-  ArrowLeft, ArrowRight, FileText, Check,
+  ArrowLeft, ArrowRight, FileText, Check, Feather,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -40,14 +40,66 @@ interface Props {
   onProgress?: (info: { stepIdx: number; total: number; progress: number }) => void;
   /** Slot rendered above the question card (used for RiskMeter in legacy chrome). */
   leftHeader?: React.ReactNode;
+  /** Triggered by the fade-gate "или изтеглете като бланка" pill. */
+  onDownloadBlank?: () => void;
 }
 
 const DIFF_TTL_MS = 2500;
 
+/**
+ * Скрива долната част на дълъг превю-документ зад градиент + лек blur.
+ * Активира се докато документът не е окончателно завършен. Идентично с legacy LiveDraft.
+ */
+function PreviewFadeGate({
+  children,
+  active,
+  onDownloadBlank,
+}: {
+  children: ReactNode;
+  active: boolean;
+  onDownloadBlank?: () => void;
+}) {
+  if (!active) return <>{children}</>;
+  return (
+    <div className="relative">
+      {children}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 top-[25%] rounded-b-md"
+        style={{
+          background:
+            "linear-gradient(to bottom, hsl(var(--card) / 0) 0%, hsl(var(--card) / 0.55) 25%, hsl(var(--card) / 0.92) 55%, hsl(var(--card)) 75%, hsl(var(--card)) 100%)",
+          backdropFilter: "blur(2px)",
+          WebkitMaskImage:
+            "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40%, rgba(0,0,0,1) 100%)",
+          maskImage:
+            "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40%, rgba(0,0,0,1) 100%)",
+        }}
+      />
+      <div className="pointer-events-none absolute inset-x-0 top-[58%] flex flex-col items-center gap-2 px-4">
+        <div className="inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-navy shadow-elegant">
+          <Sparkles className="h-4 w-4" />
+          Завършете въпросника, за да генерирате пълния документ
+        </div>
+        {onDownloadBlank && (
+          <button
+            type="button"
+            onClick={onDownloadBlank}
+            className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-gold/40 bg-card/90 px-4 py-2 text-xs font-medium text-foreground shadow-sm backdrop-blur transition hover:bg-card hover:border-gold"
+          >
+            <Feather className="h-3.5 w-3.5 text-gold" />
+            или изтеглете като бланка
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function SplitWizard({
   graph, clauses, initialAnswers, storageKey, onComplete,
   ctaLabel = "Финализирай документа",
-  onProgress, leftHeader,
+  onProgress, leftHeader, onDownloadBlank,
 }: Props) {
   const persistKey = storageKey ?? `splitwizard:${graph.template_slug}`;
 
@@ -326,6 +378,7 @@ export function SplitWizard({
           </div>
         </div>
 
+        <PreviewFadeGate active={!resolved.isComplete} onDownloadBlank={onDownloadBlank}>
         <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
 
 
@@ -392,6 +445,7 @@ export function SplitWizard({
               </div>
             )}
         </article>
+        </PreviewFadeGate>
       </section>
 
     </div>
