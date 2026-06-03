@@ -114,9 +114,15 @@ const RouteFallback = () => (
 
 const AnimatedRoutes = () => {
   const location = useLocation();
+  const locale = detectLocaleFromPath(location.pathname);
+  useEffect(() => { setLocale(locale); }, [locale]);
+  // For /en/* URLs, strip the prefix so existing <Route path="/..."> entries match.
+  const routedLocation = locale === "bg"
+    ? location
+    : { ...location, pathname: stripLocaleFromPath(location.pathname) };
   return (
     <div key={location.pathname} className="route-fade">
-      <Routes location={location}>
+      <Routes location={routedLocation}>
         <Route path="/" element={<Index />} />
         <Route path="/wizard/:sectorId" element={<Wizard />} />
         <Route path="/build" element={<BuildContract />} />
