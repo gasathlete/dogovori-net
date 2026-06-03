@@ -328,6 +328,7 @@ export function SplitWizard({
           </div>
         </div>
 
+        <PreviewFadeGate active={!resolved.isComplete} onDownloadBlank={onDownloadBlank}>
         <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
 
 
@@ -394,6 +395,7 @@ export function SplitWizard({
               </div>
             )}
         </article>
+        </PreviewFadeGate>
       </section>
 
     </div>
