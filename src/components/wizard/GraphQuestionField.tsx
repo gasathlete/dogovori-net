@@ -13,7 +13,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { PartyListEditor, parseParties, serializeParties } from "./PartyListEditor";
 import type { ResolvedQuestion } from "@/lib/questionGraph";
+
 
 type Props = {
   q: ResolvedQuestion;
