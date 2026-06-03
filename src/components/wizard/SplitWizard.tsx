@@ -29,6 +29,10 @@ interface Props {
   storageKey?: string;
   onComplete?: (payload: { answers: Ctx; body_md: string }) => void;
   ctaLabel?: string;
+  /** Called whenever step/progress changes; lets the page render legacy chrome. */
+  onProgress?: (info: { stepIdx: number; total: number; progress: number }) => void;
+  /** Slot rendered above the question card (used for RiskMeter in legacy chrome). */
+  leftHeader?: React.ReactNode;
 }
 
 const DIFF_TTL_MS = 2500;
@@ -36,6 +40,7 @@ const DIFF_TTL_MS = 2500;
 export function SplitWizard({
   graph, clauses, initialAnswers, storageKey, onComplete,
   ctaLabel = "Финализирай документа",
+  onProgress, leftHeader,
 }: Props) {
   const persistKey = storageKey ?? `splitwizard:${graph.template_slug}`;
 
