@@ -8,7 +8,7 @@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -142,16 +142,44 @@ export function GraphQuestionField({ q, value, onChange, invalid }: Props) {
       );
     }
 
-    case "boolean":
+    case "boolean": {
+      const isYes = value === true;
+      const isNo = value === false;
       return (
-        <div className="flex items-start justify-between gap-3 rounded-md border p-3">
+        <div className={`space-y-2 rounded-md border p-3 ${invalid ? "border-destructive" : ""}`}>
           <div className="space-y-0.5">
             {labelEl}
             {help}
           </div>
-          <Switch checked={Boolean(value)} onCheckedChange={(v) => onChange(v)} />
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => onChange(true)}
+              className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                isYes
+                  ? "border-gold bg-gold/10 text-foreground"
+                  : "border-border bg-card/40 text-muted-foreground hover:border-gold/50 hover:text-foreground"
+              }`}
+              aria-pressed={isYes}
+            >
+              Да
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange(false)}
+              className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                isNo
+                  ? "border-gold bg-gold/10 text-foreground"
+                  : "border-border bg-card/40 text-muted-foreground hover:border-gold/50 hover:text-foreground"
+              }`}
+              aria-pressed={isNo}
+            >
+              Не
+            </button>
+          </div>
         </div>
       );
+    }
 
     case "party_list": {
       const rows = parseParties((value as string) ?? "");
