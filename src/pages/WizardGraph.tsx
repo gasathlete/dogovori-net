@@ -264,7 +264,7 @@ export default function WizardGraphPage() {
               <span className="hidden font-serif italic text-gold sm:inline">{docName}</span>
             </div>
             <div className="text-muted-foreground">
-              Стъпка {progress.stepIdx + 1} от {Math.max(progress.total, 1)}
+              Секция {progress.stepIdx + 1} от {Math.max(progress.total, 1)}
             </div>
           </div>
           <Progress value={progress.progress} className="h-1.5 bg-secondary" />
