@@ -26,7 +26,7 @@ import {
   pruneAnswers, resolveGraph, type QuestionGraph,
 } from "@/lib/questionGraph";
 import type { Ctx } from "@/lib/expressionEvaluator";
-import { AlertCircle, CheckCircle2, Sparkles, Eye, EyeOff } from "lucide-react";
+import { AlertCircle, CheckCircle2, Sparkles, Eye, EyeOff, ArrowLeft, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
