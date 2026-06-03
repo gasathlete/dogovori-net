@@ -333,8 +333,9 @@ export function SplitWizard({
             </div>
           )}
 
-          <article className="mx-auto max-w-[640px] px-6 py-8 font-serif text-[15px] leading-relaxed text-foreground/90 sm:px-10 sm:py-10">
-            <h1 className="mb-8 text-center font-serif text-2xl font-bold uppercase tracking-wide">
+          <article className="mx-auto max-w-[640px] px-6 py-8 font-serif text-[15px] leading-relaxed text-neutral-900 sm:px-10 sm:py-10">
+            <h1 className="mb-8 text-center font-serif text-2xl font-bold uppercase tracking-wide text-neutral-900">
+
               {graph.title}
             </h1>
 
