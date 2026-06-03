@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { useSearchParams } from "react-router-dom";
 import * as Icons from "lucide-react";
-import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp, X, Filter, Check, Languages, Package } from "lucide-react";
+import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp, X, Filter, Check, Languages, Package, Zap, Download } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
@@ -14,6 +14,12 @@ import { allTemplates } from "@/lib/templateIndex";
 import { slugify } from "@/lib/slugify";
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, type DocumentTypeId } from "@/lib/documentReferences";
 import { inferDocumentType } from "@/lib/documentTypeInference";
+import { QUESTION_GRAPHS } from "@/data/questionGraphs/dogovor-za-naem-na-zhilishte";
+import { useDownloadCounts } from "@/hooks/useDownloadCounts";
+import { useTemplateSearch } from "@/hooks/useTemplateSearch";
+
+/** Slugs that have a registered dynamic question graph (Sprint 1+2). */
+const DYNAMIC_SLUGS: Set<string> = new Set(Object.keys(QUESTION_GRAPHS));
 
 
 export default function CatalogPage() {
@@ -24,6 +30,7 @@ export default function CatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeVid = (searchParams.get("vid") as DocumentTypeId | null) ?? null;
   const bilingualOnly = searchParams.get("bilingual") === "1";
+  const dynamicOnly   = searchParams.get("dynamic") === "1";
 
   const setVid = (vid: DocumentTypeId | null) => {
     const next = new URLSearchParams(searchParams);
@@ -40,6 +47,13 @@ export default function CatalogPage() {
     setSearchParams(next, { replace: true });
   };
 
+  const setDynamic = (on: boolean) => {
+    const next = new URLSearchParams(searchParams);
+    if (on) next.set("dynamic", "1");
+    else next.delete("dynamic");
+    setSearchParams(next, { replace: true });
+  };
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
     if (window.location.hash) {
@@ -49,6 +63,9 @@ export default function CatalogPage() {
       }, 100);
     }
   }, []);
+
+  // Sprint 3 — trust signal lookups.
+  const downloadCounts = useDownloadCounts();
 
   const docMatchesVid = (name: string, explicit?: DocumentTypeId) => {
     if (!activeVid) return true;
@@ -61,6 +78,7 @@ export default function CatalogPage() {
       ...cat,
       documents: cat.documents.filter((d) => {
         if (bilingualOnly && !d.bilingual) return false;
+        if (dynamicOnly && !DYNAMIC_SLUGS.has(slugify(d.name))) return false;
         if (!docMatchesVid(d.name, d.documentType)) return false;
         if (!q) return true;
         return (
@@ -70,29 +88,17 @@ export default function CatalogPage() {
         );
       }),
     })).filter((c) => c.documents.length > 0);
-  }, [query, activeVid, bilingualOnly]);
+  }, [query, activeVid, bilingualOnly, dynamicOnly]);
 
-  const suggestions = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [] as { name: string; purpose: string; sectorId: string; catTitle: string; bilingual?: boolean; documentType?: string }[];
-    const out: { name: string; purpose: string; sectorId: string; catTitle: string; bilingual?: boolean; documentType?: string; score: number }[] = [];
-    for (const cat of CATALOG) {
-      for (const d of cat.documents) {
-        const name = d.name.toLowerCase();
-        const purpose = d.purpose.toLowerCase();
-        let score = 0;
-        if (name.startsWith(q)) score = 3;
-        else if (name.includes(q)) score = 2;
-        else if (purpose.includes(q)) score = 1;
-        if (score > 0) {
-          out.push({ name: d.name, purpose: d.purpose, sectorId: cat.sectorId, catTitle: cat.title, bilingual: d.bilingual, documentType: d.documentType, score });
-        }
-      }
-    }
-    return out.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
-  }, [query]);
-
-
+  // Server-side suggestions (Postgres FTS, BG/Latin cross-script).
+  const { hits: searchHits, loading: searchLoading } = useTemplateSearch(query, {
+    enabled: query.trim().length >= 2,
+    bilingualOnly,
+    dynamicOnly,
+    limit: 12,
+    sort: "relevance",
+  });
+  const suggestions = searchHits;
   const visibleSuggestions = showAll ? suggestions : suggestions.slice(0, 5);
   const remaining = suggestions.length - visibleSuggestions.length;
 
@@ -208,21 +214,33 @@ export default function CatalogPage() {
                     onWheel={(e) => e.stopPropagation()}
                   >
                     {suggestions.map((s) => {
-                      const href = `/shablon/${slugify(s.name)}`;
+                      const href = `/shablon/${s.slug}`;
                       return (
-                        <li key={`${s.sectorId}-${s.name}`}>
+                        <li key={s.slug}>
                           <Link
                             to={href}
                             className="block border-b border-border/40 px-4 py-3 transition-colors last:border-0 hover:bg-gold/[0.06]"
                           >
-                            <div className="font-serif text-sm font-bold text-foreground">
-                              {s.name}
-                              {s.bilingual && (
-                                <span className="ml-2 inline-block rounded-sm border border-gold/40 px-1.5 py-px text-[9px] uppercase tracking-wider text-gold">BG/EN</span>
+                            <div className="flex items-start gap-2">
+                              <div className="flex-1 font-serif text-sm font-bold text-foreground">
+                                {s.name}
+                                {s.bilingual && (
+                                  <span className="ml-2 inline-block rounded-sm border border-gold/40 px-1.5 py-px text-[9px] uppercase tracking-wider text-gold">BG/EN</span>
+                                )}
+                                {s.has_dynamic_wizard && (
+                                  <span className="ml-2 inline-flex items-center gap-0.5 rounded-sm border border-emerald-400/40 bg-emerald-400/10 px-1.5 py-px text-[9px] uppercase tracking-wider text-emerald-300">
+                                    <Zap className="h-2.5 w-2.5" /> Динамичен
+                                  </span>
+                                )}
+                              </div>
+                              {s.downloads > 0 && (
+                                <span className="inline-flex shrink-0 items-center gap-0.5 text-[10px] text-muted-foreground">
+                                  <Download className="h-2.5 w-2.5" /> {s.downloads}
+                                </span>
                               )}
                             </div>
                             <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{s.purpose}</div>
-                            <div className="mt-1 text-[10px] uppercase tracking-wider text-gold/80">{s.catTitle}</div>
+                            <div className="mt-1 text-[10px] uppercase tracking-wider text-gold/80">{s.category_title}</div>
                           </Link>
                         </li>
                       );
@@ -355,6 +373,23 @@ export default function CatalogPage() {
               {bilingualOnly && <Check className="h-3.5 w-3.5" />}
             </button>
 
+            <button
+              type="button"
+              onClick={() => setDynamic(!dynamicOnly)}
+              aria-pressed={dynamicOnly}
+              title="Покажи само документи с динамичен уизард (адаптира клаузите според отговорите)"
+              className={
+                "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors " +
+                (dynamicOnly
+                  ? "border-emerald-400/60 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/15"
+                  : "border-border/70 bg-card/40 text-foreground hover:border-emerald-400/40 hover:text-emerald-300")
+              }
+            >
+              <Zap className="h-3.5 w-3.5" />
+              Динамичен уизард
+              {dynamicOnly && <Check className="h-3.5 w-3.5" />}
+            </button>
+
             <span className="mx-1 hidden h-5 w-px bg-border/60 md:inline-block" aria-hidden />
 
             <Link
@@ -416,7 +451,7 @@ export default function CatalogPage() {
                 </Link>
               </div>
 
-              <CategoryDocs cat={cat} forceExpanded={!!query.trim()} />
+              <CategoryDocs cat={cat} forceExpanded={!!query.trim()} downloadCounts={downloadCounts} />
 
               {cat.companions && cat.companions.length > 0 && (
                 <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-border/50 bg-navy-light/20 px-4 py-3 text-xs">
@@ -545,7 +580,7 @@ function DragScrollRow({ children }: { children: React.ReactNode }) {
 
 const INITIAL_DOCS = 5;
 
-function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean }) {
+function CategoryDocs({ cat, forceExpanded, downloadCounts }: { cat: any; forceExpanded: boolean; downloadCounts: Map<string, number> }) {
   const [expanded, setExpanded] = useState(false);
   const isOpen = expanded || forceExpanded;
 
@@ -573,9 +608,13 @@ function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean
           <tbody>
             {visible.map((doc: any) => {
               const docSlug = slugify(doc.name);
-              const wizardHref = doc.bilingual
-                ? `/wizard-bilingual/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`
-                : `/wizard/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`;
+              const hasDynamic = DYNAMIC_SLUGS.has(docSlug);
+              const downloads = downloadCounts.get(docSlug) ?? 0;
+              const wizardHref = hasDynamic
+                ? `/wizard-graph/${docSlug}`
+                : doc.bilingual
+                  ? `/wizard-bilingual/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`
+                  : `/wizard/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`;
               const shablonHref = `/shablon/${docSlug}`;
               return (
                 <tr
@@ -594,7 +633,21 @@ function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean
                         {doc.name}
                       </Link>
                       {doc.badge && <Badge label={doc.badge} />}
+                      {hasDynamic && (
+                        <span
+                          title="Динамичен уизард — клаузите се адаптират в реално време"
+                          className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300"
+                        >
+                          <Zap className="h-2.5 w-2.5" /> Динамичен
+                        </span>
+                      )}
                     </div>
+                    {downloads > 0 && (
+                      <div className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <Download className="h-2.5 w-2.5" />
+                        {downloads.toLocaleString("bg-BG")} сваляния
+                      </div>
+                    )}
                   </td>
                   <td className="px-5 py-4 align-top text-sm text-muted-foreground">{doc.purpose}</td>
                   <td className="px-5 py-4 align-top text-sm italic text-gold/90">
@@ -616,24 +669,42 @@ function CategoryDocs({ cat, forceExpanded }: { cat: any; forceExpanded: boolean
         </table>
 
         <div className="divide-y divide-border/40 md:hidden">
-          {visible.map((doc: any) => (
-            <Link
-              key={doc.name}
-              to={`/shablon/${slugify(doc.name)}`}
-              style={{ contentVisibility: "auto", containIntrinsicSize: "150px" } as React.CSSProperties}
-              className="block p-5 transition-colors hover:bg-gold/[0.04]"
-            >
-              <div className="flex items-start gap-2">
-                <h3 className="flex-1 font-serif text-base font-bold text-foreground">{doc.name}</h3>
-                {doc.badge && <Badge label={doc.badge} />}
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">{doc.purpose}</p>
-              <p className="mt-2 text-xs italic text-gold/90">⚖ {doc.keyClause}</p>
-              <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-gold">
-                Виж шаблона <ArrowRight className="h-3 w-3" />
-              </div>
-            </Link>
-          ))}
+          {visible.map((doc: any) => {
+            const docSlug = slugify(doc.name);
+            const hasDynamic = DYNAMIC_SLUGS.has(docSlug);
+            const downloads = downloadCounts.get(docSlug) ?? 0;
+            return (
+              <Link
+                key={doc.name}
+                to={`/shablon/${docSlug}`}
+                style={{ contentVisibility: "auto", containIntrinsicSize: "150px" } as React.CSSProperties}
+                className="block p-5 transition-colors hover:bg-gold/[0.04]"
+              >
+                <div className="flex items-start gap-2">
+                  <h3 className="flex-1 font-serif text-base font-bold text-foreground">{doc.name}</h3>
+                  {doc.badge && <Badge label={doc.badge} />}
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  {hasDynamic && (
+                    <span className="inline-flex items-center gap-0.5 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300">
+                      <Zap className="h-2.5 w-2.5" /> Динамичен
+                    </span>
+                  )}
+                  {downloads > 0 && (
+                    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <Download className="h-2.5 w-2.5" />
+                      {downloads.toLocaleString("bg-BG")}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">{doc.purpose}</p>
+                <p className="mt-2 text-xs italic text-gold/90">⚖ {doc.keyClause}</p>
+                <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-gold">
+                  Виж шаблона <ArrowRight className="h-3 w-3" />
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </div>
 
