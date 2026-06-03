@@ -122,6 +122,7 @@ export function SplitWizard({
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       {/* LEFT — interview ------------------------------------------------ */}
       <section className="space-y-5">
+        {leftHeader}
         <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft animate-fade-in">
           {/* Heading */}
           <div className="mb-4 flex items-center justify-between gap-3">
@@ -136,11 +137,7 @@ export function SplitWizard({
             )}
           </div>
 
-          {/* Progress */}
-          <div className="mb-5 flex items-center gap-3">
-            <Progress value={resolved.progress} className="h-1.5 flex-1" />
-            <span className="text-xs tabular-nums text-muted-foreground">{resolved.progress}%</span>
-          </div>
+
 
           {/* Question */}
           {current ? (
