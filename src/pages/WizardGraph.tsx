@@ -115,7 +115,7 @@ export default function WizardGraphPage() {
     <div className="min-h-screen bg-background">
       <Seo title={`${graph.title} — Динамичен уизард | Dogovori.net`} description={graph.title} />
       <Header />
-      <main className="container mx-auto max-w-[1400px] px-2 py-4 sm:px-4">
+      <main className="container py-6 md:py-8">
         <SplitWizard
           graph={graph}
           clauses={clauses}
