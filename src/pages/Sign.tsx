@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Seo } from "@/components/Seo";
 import { toast } from "sonner";
 import { SignaturePad } from "@/components/SignaturePad";
-import { Loader2, CheckCircle2, AlertCircle, XCircle } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, XCircle, Download } from "lucide-react";
+import { downloadSignedPdf } from "@/lib/signedPdfAssembler";
 
 interface Peer { id: string; name: string; role: string | null; order_idx: number; status: string; signed_at: string | null }
 interface Envelope { id: string; title: string; document_snapshot: any; status: string; order_mode: string; expires_at: string }
@@ -21,6 +22,7 @@ export default function Sign() {
   const [env, setEnv] = useState<Envelope | null>(null);
   const [signer, setSigner] = useState<SignerInfo | null>(null);
   const [peers, setPeers] = useState<Peer[]>([]);
+  const [signatures, setSignatures] = useState<any[]>([]);
   const [canSign, setCanSign] = useState(false);
   const [expired, setExpired] = useState(false);
 
@@ -41,6 +43,7 @@ export default function Sign() {
       setErr(data?.error ?? error?.message ?? "Грешка"); setLoading(false); return;
     }
     setEnv(data.envelope); setSigner(data.signer); setPeers(data.peers); setCanSign(!!data.can_sign_now); setExpired(!!data.expired);
+    setSignatures(data.signatures ?? []);
     setName(data.signer.name ?? "");
     setLoading(false);
   }
