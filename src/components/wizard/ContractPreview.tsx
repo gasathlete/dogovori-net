@@ -72,13 +72,18 @@ export function ContractPreview({ contract, onChange }: Props) {
     );
 
   return (
-    <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft">
+    <div className="rounded-xl border border-border/60 bg-gradient-card p-4 shadow-soft sm:p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h3 className="font-serif text-lg font-bold">Преглед на документа</h3>
-        <span className="text-xs text-muted-foreground">
+        <span className="hidden text-xs text-muted-foreground sm:inline">
           Натиснете „Редактирай“ за промени по секция.
         </span>
       </div>
+
+      {/* Word-like paper sheet */}
+      <div className="mx-auto max-w-[816px] rounded-md bg-white text-neutral-900 shadow-[0_4px_24px_rgba(0,0,0,0.18)] ring-1 ring-black/5">
+        <div className="px-6 py-8 sm:px-16 sm:py-14 font-serif text-[15px] leading-7">
+
 
       {/* Title */}
       <section className="mb-5 border-b border-border/40 pb-4">
