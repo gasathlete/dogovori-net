@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Progress } from "@/components/ui/progress";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GraphQuestionField } from "./GraphQuestionField";
@@ -29,6 +29,10 @@ interface Props {
   storageKey?: string;
   onComplete?: (payload: { answers: Ctx; body_md: string }) => void;
   ctaLabel?: string;
+  /** Called whenever step/progress changes; lets the page render legacy chrome. */
+  onProgress?: (info: { stepIdx: number; total: number; progress: number }) => void;
+  /** Slot rendered above the question card (used for RiskMeter in legacy chrome). */
+  leftHeader?: React.ReactNode;
 }
 
 const DIFF_TTL_MS = 2500;
@@ -36,6 +40,7 @@ const DIFF_TTL_MS = 2500;
 export function SplitWizard({
   graph, clauses, initialAnswers, storageKey, onComplete,
   ctaLabel = "Финализирай документа",
+  onProgress, leftHeader,
 }: Props) {
   const persistKey = storageKey ?? `splitwizard:${graph.template_slug}`;
 
@@ -86,6 +91,9 @@ export function SplitWizard({
   useEffect(() => {
     if (stepIdx > Math.max(0, total - 1)) setStepIdx(Math.max(0, total - 1));
   }, [total, stepIdx]);
+  useEffect(() => {
+    onProgress?.({ stepIdx: Math.min(stepIdx, Math.max(total - 1, 0)), total, progress: resolved.progress });
+  }, [stepIdx, total, resolved.progress, onProgress]);
 
   const current = resolved.active[stepIdx];
   const currentSection = useMemo(
@@ -114,6 +122,7 @@ export function SplitWizard({
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       {/* LEFT — interview ------------------------------------------------ */}
       <section className="space-y-5">
+        {leftHeader}
         <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft animate-fade-in">
           {/* Heading */}
           <div className="mb-4 flex items-center justify-between gap-3">
@@ -128,11 +137,7 @@ export function SplitWizard({
             )}
           </div>
 
-          {/* Progress */}
-          <div className="mb-5 flex items-center gap-3">
-            <Progress value={resolved.progress} className="h-1.5 flex-1" />
-            <span className="text-xs tabular-nums text-muted-foreground">{resolved.progress}%</span>
-          </div>
+
 
           {/* Question */}
           {current ? (
