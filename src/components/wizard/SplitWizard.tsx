@@ -249,7 +249,6 @@ export function SplitWizard({
                   q={q}
                   value={answers[q.id]}
                   onChange={(v) => setAnswer(q.id, v)}
-                  invalid={q.required && resolved.missingRequired.includes(q.id)}
                 />
               ))}
             </div>
