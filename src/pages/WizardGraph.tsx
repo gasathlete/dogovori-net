@@ -306,6 +306,7 @@ export default function WizardGraphPage() {
           ctaLabel="Финализирай документа"
           onProgress={setProgress}
           leftHeader={<RiskMeter level="unknown" />}
+          onDownloadBlank={handleDownloadBlank}
         />
       </main>
     </div>
