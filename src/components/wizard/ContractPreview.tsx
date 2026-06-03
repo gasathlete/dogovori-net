@@ -72,108 +72,121 @@ export function ContractPreview({ contract, onChange }: Props) {
     );
 
   return (
-    <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft">
+    <div className="rounded-xl border border-border/60 bg-gradient-card p-4 shadow-soft sm:p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h3 className="font-serif text-lg font-bold">Преглед на документа</h3>
-        <span className="text-xs text-muted-foreground">
+        <span className="hidden text-xs text-muted-foreground sm:inline">
           Натиснете „Редактирай“ за промени по секция.
         </span>
       </div>
 
-      {/* Title */}
-      <section className="mb-5 border-b border-border/40 pb-4">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">
-            Заглавие
-          </span>
-          <EditButton k="title" current={contract.title} />
-        </div>
-        {editing === "title" ? (
-          <Input value={draft} onChange={(e) => setDraft(e.target.value)} autoFocus />
-        ) : (
-          <h2 className="font-serif text-xl font-semibold leading-snug">
-            {contract.title}
-          </h2>
-        )}
-      </section>
+      {/* Word-like paper sheet */}
+      <div className="mx-auto max-w-[816px] rounded-md bg-white text-neutral-900 shadow-[0_4px_24px_rgba(0,0,0,0.18)] ring-1 ring-black/5">
+        <div className="px-6 py-8 sm:px-16 sm:py-14 font-serif text-[15px] leading-7">
 
-      {/* Preamble */}
-      <section className="mb-5 border-b border-border/40 pb-4">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">
-            Преамбюл
-          </span>
-          <EditButton k="preamble" current={contract.preamble} />
-        </div>
-        {editing === "preamble" ? (
-          <Textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            rows={5}
-            autoFocus
-          />
-        ) : (
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
-            {contract.preamble}
-          </p>
-        )}
-      </section>
 
-      {/* Clauses */}
-      <section className="mb-5 space-y-4">
-        {contract.clauses.map((cl, i) => {
-          const key: EditKey = `clause:${i}`;
-          return (
-            <article
-              key={`${cl.number}-${i}`}
-              className="rounded-lg border border-border/40 bg-card/40 p-4"
-            >
-              <div className="mb-2 flex items-start justify-between gap-2">
-                <h4 className="font-serif text-sm font-semibold text-gold">
-                  {cl.number} {cl.title}
-                </h4>
-                <EditButton k={key} current={cl.body} />
+          {/* Title */}
+          <section className="mb-6 border-b border-neutral-200 pb-4">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="text-[11px] uppercase tracking-wider text-neutral-500">
+                Заглавие
+              </span>
+              <EditButton k="title" current={contract.title} />
+            </div>
+            {editing === "title" ? (
+              <Input
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                autoFocus
+                className="bg-white text-neutral-900"
+              />
+            ) : (
+              <h2 className="text-center font-serif text-2xl font-bold uppercase leading-snug text-neutral-900">
+                {contract.title}
+              </h2>
+            )}
+          </section>
+
+          {/* Preamble */}
+          <section className="mb-6">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="text-[11px] uppercase tracking-wider text-neutral-500">
+                Преамбюл
+              </span>
+              <EditButton k="preamble" current={contract.preamble} />
+            </div>
+            {editing === "preamble" ? (
+              <Textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                rows={6}
+                autoFocus
+                className="bg-white text-neutral-900"
+              />
+            ) : (
+              <p className="whitespace-pre-wrap text-justify indent-8 leading-7 text-neutral-900">
+                {contract.preamble}
+              </p>
+            )}
+          </section>
+
+          {/* Clauses */}
+          <section className="mb-6 space-y-5">
+            {contract.clauses.map((cl, i) => {
+              const key: EditKey = `clause:${i}`;
+              return (
+                <article key={`${cl.number}-${i}`}>
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <h4 className="font-serif text-base font-bold uppercase text-neutral-900">
+                      {cl.number} {cl.title}
+                    </h4>
+                    <EditButton k={key} current={cl.body} />
+                  </div>
+                  {editing === key ? (
+                    <Textarea
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      rows={Math.min(14, Math.max(4, draft.split("\n").length + 1))}
+                      autoFocus
+                      className="bg-white text-neutral-900"
+                    />
+                  ) : (
+                    <p className="whitespace-pre-wrap text-justify indent-8 leading-7 text-neutral-900">
+                      {cl.body}
+                    </p>
+                  )}
+                </article>
+              );
+            })}
+          </section>
+
+          {/* Closing */}
+          {contract.closing && (
+            <section className="border-t border-neutral-200 pt-4">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span className="text-[11px] uppercase tracking-wider text-neutral-500">
+                  Заключителни разпоредби
+                </span>
+                <EditButton k="closing" current={contract.closing} />
               </div>
-              {editing === key ? (
+              {editing === "closing" ? (
                 <Textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
-                  rows={Math.min(14, Math.max(4, draft.split("\n").length + 1))}
+                  rows={4}
                   autoFocus
+                  className="bg-white text-neutral-900"
                 />
               ) : (
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
-                  {cl.body}
+                <p className="whitespace-pre-wrap text-justify indent-8 leading-7 text-neutral-900">
+                  {contract.closing}
                 </p>
               )}
-            </article>
-          );
-        })}
-      </section>
-
-      {/* Closing */}
-      {contract.closing && (
-        <section className="border-t border-border/40 pt-4">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">
-              Заключителни разпоредби
-            </span>
-            <EditButton k="closing" current={contract.closing} />
-          </div>
-          {editing === "closing" ? (
-            <Textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              rows={4}
-              autoFocus
-            />
-          ) : (
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
-              {contract.closing}
-            </p>
+            </section>
           )}
-        </section>
-      )}
+        </div>
+      </div>
     </div>
   );
 }
+
