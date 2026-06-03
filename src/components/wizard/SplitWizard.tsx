@@ -249,7 +249,6 @@ export function SplitWizard({
                   q={q}
                   value={answers[q.id]}
                   onChange={(v) => setAnswer(q.id, v)}
-                  invalid={q.required && resolved.missingRequired.includes(q.id)}
                 />
               ))}
             </div>
@@ -326,7 +325,7 @@ export function SplitWizard({
           </div>
         </div>
 
-        <div className="rounded-xl border border-border/60 bg-card shadow-soft">
+        <div className="rounded-xl border border-border/60 bg-white text-neutral-900 shadow-soft dark:bg-neutral-50 dark:text-neutral-900">
           {assembled.unfilledTokens.length > 0 && (
             <div className="m-4 rounded-md border border-amber-300/40 bg-amber-50/60 px-3 py-2 text-[11px] text-amber-900 dark:border-amber-400/20 dark:bg-amber-950/30 dark:text-amber-200">
               Незапълнени полета: {assembled.unfilledTokens.slice(0, 8).join(", ")}
@@ -334,8 +333,9 @@ export function SplitWizard({
             </div>
           )}
 
-          <article className="mx-auto max-w-[640px] px-6 py-8 font-serif text-[15px] leading-relaxed text-foreground/90 sm:px-10 sm:py-10">
-            <h1 className="mb-8 text-center font-serif text-2xl font-bold uppercase tracking-wide">
+          <article className="mx-auto max-w-[640px] px-6 py-8 font-serif text-[15px] leading-relaxed text-neutral-900 sm:px-10 sm:py-10">
+            <h1 className="mb-8 text-center font-serif text-2xl font-bold uppercase tracking-wide text-neutral-900">
+
               {graph.title}
             </h1>
 
@@ -357,7 +357,7 @@ export function SplitWizard({
                     )}
                   >
                     {c.title && (
-                      <h3 className="mb-1 text-[13px] font-semibold uppercase tracking-wide text-foreground">
+                      <h3 className="mb-1 text-[13px] font-semibold uppercase tracking-wide text-neutral-900">
                         {idx + 1}. {c.title}
                       </h3>
                     )}
