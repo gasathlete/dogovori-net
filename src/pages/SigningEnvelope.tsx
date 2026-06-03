@@ -94,6 +94,20 @@ export default function SigningEnvelope() {
           ))}
         </section>
 
+        {env.status === "completed" && (
+          <div className="border rounded-lg p-4 bg-emerald-50 text-emerald-900 flex items-center justify-between gap-4">
+            <div className="text-sm">
+              Всички страни са подписали{env.completed_at ? ` на ${new Date(env.completed_at).toLocaleString("bg-BG")}` : ""}.
+            </div>
+            <Button onClick={() => downloadSignedPdf(
+              { title: env.title, document_snapshot: env.document_snapshot, completed_at: env.completed_at, envelopeId: env.id, order_mode: env.order_mode },
+              signers as any,
+            )}>
+              <Download className="h-4 w-4 mr-2" /> Изтегли подписания PDF
+            </Button>
+          </div>
+        )}
+
         {env.status !== "completed" && env.status !== "cancelled" && (
           <div>
             <Button variant="destructive" size="sm" onClick={cancel}>Откажи заявката</Button>
