@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
 import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
+import { ContractPreview } from "@/components/wizard/ContractPreview";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 
 import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhilishte";
@@ -413,6 +414,15 @@ export default function WizardReviewPage() {
                 applied={appliedNotes}
                 onApply={handleApplyCorrections}
                 onUpgrade={() => navigate("/account?tab=subscription")}
+              />
+
+              <ContractPreview
+                contract={result.contract}
+                onChange={(next) => {
+                  setResult({ ...result, contract: next });
+                  // Edited document differs from any previously saved copy.
+                  setSavedDocId(undefined);
+                }}
               />
 
               <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft">

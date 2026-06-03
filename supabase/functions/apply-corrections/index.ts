@@ -158,7 +158,9 @@ ${Object.entries(answers).map(([k, v]) => `- ${k}: ${v}`).join("\n")}
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        // Flash is ~3-5x faster than Pro for targeted edits and is more than
+        // capable for the constrained "modify only selected items" task here.
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: activeSystemPrompt },
           { role: "user", content: userPrompt },
