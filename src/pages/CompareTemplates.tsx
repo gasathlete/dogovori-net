@@ -13,11 +13,13 @@ import { CheckCircle2, XCircle, ArrowRight } from "lucide-react";
 function rows(a: TemplateEntry, b: TemplateEntry) {
   return [
     { label: "Категория", a: a.category.title, b: b.category.title },
-    { label: "Сектор", a: a.doc.sector ?? "—", b: b.doc.sector ?? "—" },
-    { label: "Тип документ", a: (a.doc as any).type ?? "Договор", b: (b.doc as any).type ?? "Договор" },
-    { label: "Кратко описание", a: (a.doc as any).description ?? "", b: (b.doc as any).description ?? "" },
+    { label: "Сектор", a: a.category.sectorId ?? "—", b: b.category.sectorId ?? "—" },
+    { label: "Цел", a: a.doc.purpose ?? "", b: b.doc.purpose ?? "" },
+    { label: "Ключова клауза", a: a.doc.keyClause ?? "", b: b.doc.keyClause ?? "" },
+    { label: "Двуезичен", a: a.doc.bilingual ? "Да" : "Не", b: b.doc.bilingual ? "Да" : "Не" },
   ];
 }
+
 
 export default function CompareTemplates() {
   const { a, b } = useParams();
@@ -69,7 +71,7 @@ export default function CompareTemplates() {
           {[ta, tb].map((t) => (
             <article key={t.slug} className="border rounded-lg p-5 bg-card space-y-3">
               <h2 className="font-serif text-xl">{t.doc.name}</h2>
-              <p className="text-sm text-muted-foreground">{(t.doc as any).description ?? ""}</p>
+              <p className="text-sm text-muted-foreground">{t.doc.purpose}</p>
               <Button asChild size="sm"><Link to={`/shablon/${t.slug}`}>Виж образеца <ArrowRight className="h-3 w-3 ml-1" /></Link></Button>
             </article>
           ))}

@@ -163,7 +163,7 @@ export default function Sign() {
                 </div>
                 <div>
                   <label className="text-sm font-medium block mb-1">Подпис</label>
-                  <SignaturePad onChange={setSignature} />
+                  <SignaturePad onCapture={setSignature} />
                 </div>
                 <div>
                   <label className="text-sm font-medium block mb-1">
