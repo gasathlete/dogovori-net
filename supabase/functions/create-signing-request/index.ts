@@ -134,6 +134,35 @@ serve(async (req) => {
       user_agent: req.headers.get("user-agent") ?? null,
     });
 
+    // Owner display name for invitation
+    const { data: ownerProfile } = await admin.from("profiles")
+      .select("full_name, email").eq("id", userId).maybeSingle();
+    const ownerName = (ownerProfile as any)?.full_name || u.user.email || "";
+
+    const appBase = (Deno.env.get("APP_BASE_URL") || "https://dogovori.net").replace(/\/+$/, "");
+    // Send invitations: all signers if parallel, else only first in sequential mode.
+    const toNotify = order_mode === "sequential"
+      ? createdSigners.slice().sort((a: any, b: any) => a.order_idx - b.order_idx).slice(0, 1)
+      : createdSigners;
+
+    await Promise.allSettled(toNotify.map((s: any) =>
+      admin.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "signing-invitation",
+          recipientEmail: s.email,
+          idempotencyKey: `signing-invite-${s.id}`,
+          templateData: {
+            signerName: s.name,
+            documentTitle: env.title,
+            signUrl: `${appBase}/sign/${s.sign_token}`,
+            ownerName,
+            expiresAt: env.expires_at,
+            role: s.role,
+          },
+        },
+      })
+    ));
+
     return new Response(JSON.stringify({
       ok: true,
       request: env,
