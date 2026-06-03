@@ -32,7 +32,7 @@ serve(async (req) => {
     const ipHash = await hashIp(clientIp(req));
 
     const body = await req.json();
-    const { kind, title, payload, source_id, contact_id, saved_document_id, session_id, doc_key } = body as {
+    const { kind, title, payload, source_id, contact_id, saved_document_id, session_id, doc_key, template_slug } = body as {
       kind: "contract" | "template";
       title: string;
       payload: unknown;
@@ -41,7 +41,26 @@ serve(async (req) => {
       saved_document_id?: string;
       session_id?: string;
       doc_key?: string;
+      template_slug?: string;
     };
+
+    // Sprint 3 — surface template_slug into audit metadata so the
+    // download-counts trigger can aggregate by template.
+    const BG_TO_LAT: Record<string, string> = {
+      а:"a",б:"b",в:"v",г:"g",д:"d",е:"e",ж:"zh",з:"z",и:"i",й:"y",
+      к:"k",л:"l",м:"m",н:"n",о:"o",п:"p",р:"r",с:"s",т:"t",у:"u",
+      ф:"f",х:"h",ц:"ts",ч:"ch",ш:"sh",щ:"sht",ъ:"a",ь:"y",ю:"yu",я:"ya",
+    };
+    const slugify = (s: string): string => {
+      let out = "";
+      for (const ch of (s || "").toLowerCase()) {
+        if (BG_TO_LAT[ch] !== undefined) out += BG_TO_LAT[ch];
+        else if (/[a-z0-9]/.test(ch)) out += ch;
+        else out += "-";
+      }
+      return out.replace(/-+/g, "-").replace(/^-|-$/g, "").substring(0, 90);
+    };
+    const resolvedSlug = (template_slug && template_slug.trim()) || (title ? slugify(title) : null);
 
     if (!["contract", "template"].includes(kind)) {
       return new Response(JSON.stringify({ error: "Invalid kind" }), {
