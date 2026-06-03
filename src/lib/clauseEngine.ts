@@ -60,11 +60,17 @@ function resolveToken(path: string, ctx: Ctx): unknown {
 function substitute(body: string, ctx: Ctx, unfilled: Set<string>): string {
   return body.replace(TOKEN_RE, (_m, name: string) => {
     const v = resolveToken(name, ctx);
-    if (v == null || v === "") { unfilled.add(name); return "_______"; }
+    if (v == null || v === "") {
+      unfilled.add(name);
+      // Render missing tokens as readable brackets, e.g. [MAKE_MODEL].
+      const label = name.split(".").pop()!.toUpperCase();
+      return `[${label}]`;
+    }
     if (Array.isArray(v)) return v.join(", ");
     return String(v);
   });
 }
+
 
 export function assembleDocument(
   clauses: ClauseDefinition[],

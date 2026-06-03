@@ -13,7 +13,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { PartyListEditor, parseParties, serializeParties } from "./PartyListEditor";
 import type { ResolvedQuestion } from "@/lib/questionGraph";
+
 
 type Props = {
   q: ResolvedQuestion;
@@ -151,21 +153,21 @@ export function GraphQuestionField({ q, value, onChange, invalid }: Props) {
         </div>
       );
 
-    case "party_list":
+    case "party_list": {
+      const rows = parseParties((value as string) ?? "");
       return (
         <div className="space-y-1.5">
           {labelEl}
-          <Textarea
-            id={id}
-            value={(value as string) ?? ""}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={"Един ред на страна: Име | Тип (Физическо/Юридическо лице)"}
-            rows={3}
-            className={errorRing}
+          <PartyListEditor
+            rows={rows}
+            onChange={(next) => onChange(serializeParties(next))}
+            addLabel={`Добави ${q.label.toLowerCase()}`}
           />
           {help}
         </div>
       );
+    }
+
 
     case "signature":
       return (

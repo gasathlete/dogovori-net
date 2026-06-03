@@ -178,8 +178,8 @@ export function SplitWizard({
       <section className="space-y-5">
         {leftHeader}
         <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft animate-fade-in">
-          {/* Section stepper — BuildContract style */}
-          <div className="mb-5 rounded-xl border border-border/60 bg-navy-light/40 px-4 py-3">
+          {/* Section stepper — flat, integrated into the parent card */}
+          <div className="mb-5 border-b border-border/40 pb-4">
             <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-[0.18em]">
               <span className="text-muted-foreground">
                 Стъпка {stepIdx + 1} от {total}
@@ -195,7 +195,7 @@ export function SplitWizard({
               />
             </div>
             {visibleSections.length > 1 && (
-              <div className="mt-2 hidden flex-wrap gap-1.5 sm:flex">
+              <div className="mt-3 hidden flex-wrap gap-1.5 sm:flex">
                 {visibleSections.map((s, i) => {
                   const isCurrent = i === stepIdx;
                   const status = sectionStatus[i];
@@ -224,6 +224,7 @@ export function SplitWizard({
               </div>
             )}
           </div>
+
 
           {/* Section title row */}
           <div className="mb-4 flex items-center justify-between gap-3">
@@ -326,12 +327,7 @@ export function SplitWizard({
         </div>
 
         <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
-          {assembled.unfilledTokens.length > 0 && (
-            <div className="mb-4 rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
-              Незапълнени полета: {assembled.unfilledTokens.slice(0, 8).join(", ")}
-              {assembled.unfilledTokens.length > 8 && ` … +${assembled.unfilledTokens.length - 8}`}
-            </div>
-          )}
+
 
           <div className="mb-2 text-center text-[10px] uppercase tracking-[0.2em] text-foreground/50">
             Създадено с изкуствен интелект

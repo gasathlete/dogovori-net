@@ -267,7 +267,11 @@ export default function WizardGraphPage() {
               Секция {progress.stepIdx + 1} от {Math.max(progress.total, 1)}
             </div>
           </div>
-          <Progress value={progress.progress} className="h-1.5 bg-secondary" />
+          <Progress
+            value={Math.round(((progress.stepIdx + 1) / Math.max(progress.total, 1)) * 100)}
+            className="h-1.5 bg-secondary"
+          />
+
         </div>
       </div>
 
