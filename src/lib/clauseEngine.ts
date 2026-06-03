@@ -12,6 +12,7 @@
  */
 
 import { evaluateExpression, type Ctx } from "./expressionEvaluator";
+import { resolveAnswerLabel, type QuestionGraph } from "./questionGraph";
 
 export interface ClauseDefinition {
   clause_id: string;
@@ -57,14 +58,24 @@ function resolveToken(path: string, ctx: Ctx): unknown {
   return cur;
 }
 
-function substitute(body: string, ctx: Ctx, unfilled: Set<string>): string {
+function substitute(
+  body: string,
+  ctx: Ctx,
+  unfilled: Set<string>,
+  graph?: QuestionGraph | null,
+): string {
   return body.replace(TOKEN_RE, (_m, name: string) => {
     const v = resolveToken(name, ctx);
-    if (v == null || v === "") {
+    if (v == null || v === "" || (Array.isArray(v) && v.length === 0)) {
       unfilled.add(name);
-      // Render missing tokens as readable brackets, e.g. [MAKE_MODEL].
       const label = name.split(".").pop()!.toUpperCase();
       return `[${label}]`;
+    }
+    // Resolve top-level question ids to their human label (so enum values
+    // like "as_is" render as "Във вида, в който е", not the raw key).
+    if (graph && !name.includes(".")) {
+      const resolved = resolveAnswerLabel(graph, name, v);
+      if (resolved != null) return resolved;
     }
     if (Array.isArray(v)) return v.join(", ");
     return String(v);
@@ -75,6 +86,7 @@ function substitute(body: string, ctx: Ctx, unfilled: Set<string>): string {
 export function assembleDocument(
   clauses: ClauseDefinition[],
   answers: Ctx,
+  graph?: QuestionGraph | null,
 ): AssembledDocument {
   const unfilled = new Set<string>();
   const sorted = [...clauses].sort((a, b) => a.order - b.order);
@@ -83,7 +95,7 @@ export function assembleDocument(
 
   for (const c of sorted) {
     const include = evaluateExpression(c.include_when, answers);
-    const body = include ? substitute(c.body_md, answers, unfilled) : c.body_md;
+    const body = include ? substitute(c.body_md, answers, unfilled, graph) : c.body_md;
     const entry: AssembledClause = {
       clause_id: c.clause_id,
       title: c.title,

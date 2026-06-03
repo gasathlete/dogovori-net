@@ -1,0 +1,516 @@
+/**
+ * WizardReview — finalize screen for graph-driven wizards.
+ *
+ * Route: /wizard-graph/:slug/review
+ *
+ * Picks up the assembled draft from `sessionStorage` (saved by WizardGraph's
+ * `handleComplete`), invokes the `generate-contract` edge function for AI
+ * risk analysis + polished contract, and shows RiskMeter + RiskReport +
+ * PDF/DOCX export, mirroring the legacy Wizard finalize UX.
+ */
+
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Bird, FileDown, FileText, Loader2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
+
+import { Header } from "@/components/Header";
+import { Seo } from "@/components/Seo";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
+import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
+import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
+import { LegalDisclaimer } from "@/components/LegalDisclaimer";
+
+import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhilishte";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { downloadDocument } from "@/lib/downloadDocument";
+import { slugify } from "@/lib/slugify";
+import type { GeneratedContract, SignatureInfo } from "@/lib/exporters";
+
+interface AIResult {
+  risk: {
+    level: RiskLevel;
+    score: number;
+    summary: string;
+    issues: RiskIssue[];
+    recommendations: string[];
+  };
+  contract: GeneratedContract;
+}
+
+interface StoredDraft {
+  answers: Record<string, unknown>;
+  body_md: string;
+  at: number;
+}
+
+const GEN_STEPS = [
+  "Проверяваме въведената информация…",
+  "Подбираме приложимите правни клаузи…",
+  "Комплектоваме структурата на договора…",
+  "Съставяме текста и форматираме раздели…",
+  "Извършваме оценка на риска…",
+  "Финализираме документа — почти готово…",
+];
+
+export default function WizardReviewPage() {
+  const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+
+  const graph = slug ? getQuestionGraph(slug) : null;
+
+  const draft = useMemo<StoredDraft | null>(() => {
+    if (!slug) return null;
+    try {
+      const raw = sessionStorage.getItem(`wizard-graph:last:${slug}`);
+      return raw ? (JSON.parse(raw) as StoredDraft) : null;
+    } catch {
+      return null;
+    }
+  }, [slug]);
+
+  const [generating, setGenerating] = useState(false);
+  const [genStepIdx, setGenStepIdx] = useState(0);
+  const [result, setResult] = useState<AIResult | null>(null);
+  const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
+  const [customTitle, setCustomTitle] = useState("");
+  const [applyingCorrections, setApplyingCorrections] = useState(false);
+  const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(undefined);
+  const [isPro, setIsPro] = useState(false);
+  const [savedDocId, setSavedDocId] = useState<string | undefined>(undefined);
+
+  const reviewHref = `/wizard-graph/${slug}/review`;
+  const goAuth = () => navigate(`/auth?redirect=${encodeURIComponent(reviewHref)}`);
+  const goSubscription = () =>
+    navigate(`/account?tab=subscription&redirect=${encodeURIComponent(reviewHref)}`);
+
+  // Detect Pro status when authenticated.
+  useEffect(() => {
+    if (!user) {
+      setIsPro(false);
+      return;
+    }
+    supabase
+      .from("download_quota")
+      .select("plan, pro_until")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        setIsPro(
+          data.plan === "pro" ||
+            (!!data.pro_until && new Date(data.pro_until) > new Date()),
+        );
+      });
+  }, [user]);
+
+  // Seed custom title once result is in.
+  useEffect(() => {
+    if (result && !customTitle) setCustomTitle(result.contract.title);
+  }, [result, customTitle]);
+
+  const runAnalysis = async () => {
+    if (!graph || !draft) return;
+    if (!user) {
+      toast.info("Влезте, за да финализирате договора", {
+        description: "Прогресът е запазен.",
+      });
+      goAuth();
+      return;
+    }
+    setGenerating(true);
+    setGenStepIdx(0);
+    const interval = setInterval(() => {
+      setGenStepIdx((i) => (i + 1) % GEN_STEPS.length);
+    }, 5000);
+    try {
+      const questions = graph.questions.map((q) => ({ id: q.id, label: q.label }));
+      // Stringify non-string answers so the edge function receives a flat
+      // Record<string, string> as it expects.
+      const flatAnswers: Record<string, string> = {};
+      for (const [k, v] of Object.entries(draft.answers ?? {})) {
+        if (v == null) continue;
+        flatAnswers[k] = typeof v === "string" ? v : JSON.stringify(v);
+      }
+      const { data, error } = await supabase.functions.invoke("generate-contract", {
+        body: {
+          sector: graph.title,
+          contractName: graph.title,
+          documentName: graph.title,
+          parties: [],
+          answers: flatAnswers,
+          questions,
+          arbitration: { enabled: false },
+          bilingual: false,
+          // Pass the locally assembled body so the model can refine instead
+          // of starting from scratch.
+          draft_body_md: draft.body_md,
+        },
+      });
+      if (error) throw error;
+      if (!data || data.error) {
+        if (data?.requires_login) {
+          toast.error(data.error);
+          setTimeout(() => goAuth(), 1200);
+          return;
+        }
+        throw new Error(data?.error || "Неуспешно създаване");
+      }
+      setResult(data as AIResult);
+      toast.success("Договорът е готов", {
+        description: "Прегледайте анализа и експортирайте.",
+      });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("429"))
+        toast.error("Достигнат е лимитът. Опитайте след малко.");
+      else if (msg.includes("402"))
+        toast.error("Изчерпан лимит на системата. Опитайте по-късно.");
+      else toast.error("Възникна грешка", { description: msg });
+    } finally {
+      clearInterval(interval);
+      setGenerating(false);
+    }
+  };
+
+  // Auto-run analysis once on mount when prerequisites are met.
+  useEffect(() => {
+    if (authLoading) return;
+    if (!graph || !draft) return;
+    if (result || generating) return;
+    if (!user) return; // wait for explicit click → triggers auth gate
+    runAnalysis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, graph, draft, user]);
+
+  const handleExport = async (format: "pdf" | "docx") => {
+    if (!result) return;
+    if (!user) {
+      toast.error("Влезте в профила си");
+      goAuth();
+      return;
+    }
+    setExporting(format);
+    try {
+      const sig: SignatureInfo = {
+        name_a: "",
+        name_b: "",
+        city: "",
+        date: "",
+      };
+      const finalTitle =
+        (customTitle || result.contract.title).trim() || result.contract.title;
+      const contractWithSig: GeneratedContract = {
+        ...result.contract,
+        title: finalTitle,
+        signature: sig,
+      };
+      const res = await downloadDocument({
+        kind: "contract",
+        format,
+        title: finalTitle,
+        payload: contractWithSig,
+        source_id: slug,
+        saved_document_id: savedDocId,
+        doc_key: slug,
+      });
+      if (!res.ok) {
+        if (res.error === "quota_exceeded") {
+          toast.error("Изчерпан безплатен лимит", {
+            description:
+              "Купете единичен договор за 1.90€ или преминете към Pro — прогресът е запазен.",
+            action: { label: "Виж опции", onClick: () => goSubscription() },
+          });
+        } else if (res.error === "auth_required") {
+          goAuth();
+        } else {
+          toast.error("Грешка при експорт", { description: res.error });
+        }
+        return;
+      }
+      if (res.saved_document_id) setSavedDocId(res.saved_document_id);
+      toast.success(format === "pdf" ? "PDF изтеглен" : "DOCX изтеглен", {
+        description: res.free
+          ? "Повторно сваляне (безплатно)"
+          : "Запазен в Документи → Всички",
+      });
+    } catch (e: unknown) {
+      toast.error("Грешка при експорт", {
+        description: e instanceof Error ? e.message : String(e),
+      });
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const handleApplyCorrections = async (sel: CorrectionsSelection) => {
+    if (!result) return;
+    if (!user) {
+      goAuth();
+      return;
+    }
+    if (sel.issues.length === 0 && sel.recommendations.length === 0) {
+      toast.message("Изберете поне една препоръка за корекция");
+      return;
+    }
+    setApplyingCorrections(true);
+    try {
+      const { getOpSessionId, newOpBatchId } = await import("@/lib/opSession");
+      const { data, error } = await supabase.functions.invoke("apply-corrections", {
+        body: {
+          contract: result.contract,
+          risk: result.risk,
+          selectedIssues: sel.issues,
+          selectedRecommendations: sel.recommendations,
+          answers: draft?.answers ?? {},
+          session_id: getOpSessionId(),
+          batch_id: newOpBatchId(),
+        },
+      });
+      if (error || data?.error) {
+        if (data?.error === "pro_required") {
+          toast.error("Нужен е Pro план", {
+            action: { label: "Pro", onClick: () => goSubscription() },
+          });
+          return;
+        }
+        throw new Error(data?.error || error?.message || "Грешка");
+      }
+      setResult({
+        risk: data.risk ?? result.risk,
+        contract: data.contract ?? result.contract,
+      });
+      setAppliedNotes(
+        Array.isArray(data.applied) ? data.applied : ["Корекциите са приложени"],
+      );
+      setSavedDocId(undefined);
+      toast.success("Корекциите са приложени");
+    } catch (e: unknown) {
+      toast.error("Грешка при корекция", {
+        description: e instanceof Error ? e.message : String(e),
+      });
+    } finally {
+      setApplyingCorrections(false);
+    }
+  };
+
+  // ----- guard rails ---------------------------------------------------
+  if (!graph) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto flex max-w-xl flex-col items-center gap-4 px-4 py-16 text-center">
+          <AlertCircle className="h-10 w-10 text-muted-foreground" />
+          <h1 className="text-xl font-semibold">Шаблонът не е намерен</h1>
+          <Button onClick={() => navigate("/catalog")}>Към каталога</Button>
+        </main>
+      </div>
+    );
+  }
+
+  if (!draft) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto flex max-w-xl flex-col items-center gap-4 px-4 py-16 text-center">
+          <AlertCircle className="h-10 w-10 text-muted-foreground" />
+          <h1 className="text-xl font-semibold">Няма чернова за финализиране</h1>
+          <p className="text-sm text-muted-foreground">
+            Първо попълнете въпросника и натиснете „Финализирай документа“.
+          </p>
+          <Button onClick={() => navigate(`/wizard-graph/${slug}`)}>
+            Към въпросника
+          </Button>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen">
+      <Seo
+        title={`${graph.title} — Финализиране | Dogovori.net`}
+        description={graph.title}
+      />
+      <Header />
+
+      <div className="sticky top-16 z-30 border-b border-border/60 bg-navy/90 backdrop-blur-xl">
+        <div className="container py-3">
+          <div className="flex items-center justify-between text-xs">
+            <button
+              onClick={() => navigate(`/wizard-graph/${slug}`)}
+              className="flex items-center gap-1 text-muted-foreground transition-colors hover:text-gold"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Назад към въпросника
+            </button>
+            <span className="font-serif italic text-gold">{graph.title}</span>
+          </div>
+        </div>
+      </div>
+
+      <main className="container py-6 md:py-8">
+        <div className="mx-auto max-w-3xl space-y-5">
+          <RiskMeter
+            level={result?.risk.level ?? "unknown"}
+            score={result?.risk.score}
+            summary={result?.risk.summary}
+          />
+
+          {!result && (
+            <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft">
+              {generating ? (
+                <div className="rounded-lg border border-gold/30 bg-gold/5 p-4">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-gold" />
+                    <div className="flex-1 min-w-0">
+                      <div
+                        key={genStepIdx}
+                        className="text-sm font-medium text-foreground animate-fade-in"
+                      >
+                        {GEN_STEPS[genStepIdx]}
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Процесът отнема около 60 секунди — благодарим за търпението.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-4 text-center">
+                  <h2 className="font-serif text-lg font-semibold">
+                    Готови за анализ и финално изготвяне
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Ще приложим AI правен анализ и ще съставим окончателния
+                    договор. Можете да го изтеглите като PDF или DOCX.
+                  </p>
+                  <Button
+                    onClick={runAnalysis}
+                    size="lg"
+                    className="bg-gradient-gold text-navy shadow-gold"
+                  >
+                    <Bird className="mr-2 h-4 w-4" />
+                    Анализирай и създай
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {result && (
+            <div className="space-y-5 animate-fade-in">
+              <CorrectionsPanel
+                isPro={isPro}
+                issues={result.risk.issues || []}
+                recommendations={result.risk.recommendations || []}
+                loading={applyingCorrections}
+                applied={appliedNotes}
+                onApply={handleApplyCorrections}
+                onUpgrade={() => navigate("/account?tab=subscription")}
+              />
+
+              <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft">
+                <RiskReport
+                  level={result.risk.level}
+                  issues={result.risk.issues || []}
+                  recommendations={result.risk.recommendations || []}
+                />
+              </div>
+
+              {Object.values(draft.answers ?? {}).some(
+                (v) =>
+                  typeof v === "string" && /\bбро[йя]\b|\bкеш\b|\bcash\b/i.test(v),
+              ) && (
+                <LegalDisclaimer variant="warning">
+                  <strong>Плащане в брой:</strong> Съгласно чл. 3 ЗОПБ плащания
+                  на стойност <strong>равна или над 5 000 €</strong> се извършват
+                  само по платежна сметка.
+                </LegalDisclaimer>
+              )}
+
+              <div className="rounded-xl border border-gold/30 bg-gradient-card p-6 shadow-soft">
+                <h3 className="mb-1 font-serif text-lg font-bold">Финализиране</h3>
+                <p className="mb-4 text-xs text-muted-foreground">
+                  Именувайте договора и го изтеглете. Запазва се във „Всички“ —
+                  после може да го преместите в папка от профила си.
+                </p>
+
+                <div className="mb-4 space-y-1.5">
+                  <Label
+                    htmlFor="doc-title"
+                    className="text-xs uppercase tracking-wider text-muted-foreground"
+                  >
+                    Име на договора
+                  </Label>
+                  <Input
+                    id="doc-title"
+                    value={customTitle}
+                    onChange={(e) => {
+                      setCustomTitle(e.target.value);
+                      setSavedDocId(undefined);
+                    }}
+                    placeholder={result.contract.title}
+                    className="bg-card/60"
+                  />
+                </div>
+
+                <h4 className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">
+                  Експорт
+                </h4>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button
+                    onClick={() => handleExport("pdf")}
+                    disabled={!!exporting}
+                    className="flex-1 bg-gradient-gold text-navy hover:shadow-gold"
+                  >
+                    {exporting === "pdf" ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileDown className="mr-2 h-4 w-4" />
+                    )}
+                    Свали PDF
+                  </Button>
+                  <Button
+                    onClick={() => handleExport("docx")}
+                    disabled={!!exporting}
+                    variant="outline"
+                    className="flex-1 border-gold/40 hover:bg-gold/10 hover:text-gold"
+                  >
+                    {exporting === "docx" ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileText className="mr-2 h-4 w-4" />
+                    )}
+                    Свали DOCX
+                  </Button>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    try {
+                      sessionStorage.removeItem(`wizard-graph:last:${slug}`);
+                      localStorage.removeItem(
+                        `splitwizard:${graph.template_slug}`,
+                      );
+                    } catch { /* noop */ }
+                    navigate(`/wizard-graph/${slug}`);
+                  }}
+                  className="mt-3 w-full text-xs text-muted-foreground hover:text-gold"
+                >
+                  Започни нов договор
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}

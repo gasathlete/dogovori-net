@@ -194,7 +194,7 @@ export default function WizardGraphPage() {
         JSON.stringify({ answers, body_md, at: Date.now() }),
       );
     } catch { /* noop */ }
-    toast.success("Документът е готов. Преминавате към преглед и експорт.");
+    navigate(`/wizard-graph/${slug}/review`);
   };
 
   const sectorTitle = catalogHit?.category.title;
