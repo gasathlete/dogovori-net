@@ -122,7 +122,7 @@ export function SplitWizard({
   }, [answers, persistKey]);
 
   const resolved = useMemo(() => resolveGraph(graph, answers), [graph, answers]);
-  const assembled = useMemo(() => assembleDocument(clauses, answers), [clauses, answers]);
+  const assembled = useMemo(() => assembleDocument(clauses, answers, graph), [clauses, answers, graph]);
 
   // Diff pulse for clause add/remove between answer changes.
   useEffect(() => {

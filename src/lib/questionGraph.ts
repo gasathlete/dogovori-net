@@ -139,3 +139,39 @@ export function pruneAnswers(graph: QuestionGraph, answers: Ctx): Ctx {
   }
   return out;
 }
+
+/**
+ * Resolve a stored answer to a human-readable label for document
+ * interpolation. For `select` it returns the matching option's `label`,
+ * for `multiselect` joined labels, for `boolean` "Да"/"Не", and for
+ * everything else the raw value. Returns null on empty values.
+ */
+export function resolveAnswerLabel(
+  graph: QuestionGraph | null | undefined,
+  questionId: string,
+  value: unknown,
+): string | null {
+  if (value == null || value === "") return null;
+  const q = graph?.questions.find((x) => x.id === questionId);
+  if (!q) {
+    if (Array.isArray(value)) return value.length ? value.join(", ") : null;
+    return String(value);
+  }
+  if (q.field_type === "select") {
+    const opt = q.options?.find((o) => o.value === value);
+    return opt?.label ?? String(value);
+  }
+  if (q.field_type === "multiselect") {
+    if (!Array.isArray(value) || value.length === 0) return null;
+    const labels = value.map((v) => {
+      const opt = q.options?.find((o) => o.value === v);
+      return opt?.label ?? String(v);
+    });
+    return labels.join(", ");
+  }
+  if (q.field_type === "boolean") {
+    return value === true ? "Да" : value === false ? "Не" : String(value);
+  }
+  if (Array.isArray(value)) return value.length ? value.join(", ") : null;
+  return String(value);
+}
