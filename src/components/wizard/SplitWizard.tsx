@@ -395,9 +395,9 @@ export function SplitWizard({
                 })}
               </div>
             )}
-          </article>
-        </div>
+        </article>
       </section>
+
     </div>
   );
 }
