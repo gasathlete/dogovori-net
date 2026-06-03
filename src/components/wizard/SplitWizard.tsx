@@ -325,19 +325,22 @@ export function SplitWizard({
           </div>
         </div>
 
-        <div className="rounded-xl border border-border/60 bg-white text-neutral-900 shadow-soft dark:bg-neutral-50 dark:text-neutral-900">
+        <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
           {assembled.unfilledTokens.length > 0 && (
-            <div className="m-4 rounded-md border border-amber-300/40 bg-amber-50/60 px-3 py-2 text-[11px] text-amber-900 dark:border-amber-400/20 dark:bg-amber-950/30 dark:text-amber-200">
+            <div className="mb-4 rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
               Незапълнени полета: {assembled.unfilledTokens.slice(0, 8).join(", ")}
               {assembled.unfilledTokens.length > 8 && ` … +${assembled.unfilledTokens.length - 8}`}
             </div>
           )}
 
-          <article className="mx-auto max-w-[640px] px-6 py-8 font-serif text-[15px] leading-relaxed text-neutral-900 sm:px-10 sm:py-10">
-            <h1 className="mb-8 text-center font-serif text-2xl font-bold uppercase tracking-wide text-neutral-900">
+          <div className="mb-2 text-center text-[10px] uppercase tracking-[0.2em] text-foreground/50">
+            Създадено с изкуствен интелект
+          </div>
+          <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
+            {graph.title}
+          </h1>
+          <div className="my-4 gold-divider" />
 
-              {graph.title}
-            </h1>
 
             {assembled.clauses.length === 0 && (
               <p className="text-center text-sm italic text-muted-foreground">
