@@ -59,13 +59,6 @@ const Index = () => {
             <SectorGrid onPick={(id) => navigate(`/sektor/${id}`)} />
           </Reveal>
           <Divider />
-        <Suspense fallback={<SectionSkeleton />}>
-          <LazyOnVisible minHeight={500}>
-            <Reveal>
-              <TopDocuments />
-            </Reveal>
-          </LazyOnVisible>
-          <Divider />
           <LazyOnVisible minHeight={400}>
             <Reveal>
               <Process />
