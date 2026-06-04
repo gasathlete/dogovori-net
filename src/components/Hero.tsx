@@ -41,7 +41,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
           >
             <span className="inline-flex items-center gap-1.5 text-gold"><ShieldCheck className="h-3.5 w-3.5" /> ЗЗД · ТЗ · ЗУТ</span>
             <span className="h-3 w-px bg-gold/30" />
-            <span className="inline-flex items-center gap-1.5"><Sparkles className="h-3.5 w-3.5 text-gold" /> AI анализ на риска</span>
+            <span className="inline-flex items-center gap-1.5"><Bird className="h-3.5 w-3.5 text-gold" /> АНАЛИЗ НА РИСКА</span>
             <span className="h-3 w-px bg-gold/30" />
             <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-gold" /> 591 шаблона</span>
             <span className="h-3 w-px bg-gold/30" />
@@ -74,7 +74,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
             className="anim-rise mt-4 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
             style={{ animationDelay: "300ms" }}
           >
-            591 шаблона · Pro 9.90 €/мес · без скрити такси
+            >590 шаблона · Предприемач - 9.90 €/мес · без скрити такси
           </p>
           <div className="anim-rise mt-3 text-center" style={{ animationDelay: "340ms" }}>
             <button
@@ -94,8 +94,8 @@ export function Hero({ onStart }: { onStart: () => void }) {
             style={{ animationDelay: "400ms" }}
           >
             {[
-              { icon: FileText, label: "Шаблона в каталога", metric: "591", value: "ЗЗД · ТЗ · ЗУТ" },
-              { icon: Sparkles, label: "До готов документ", metric: "<2 мин", value: "AI стратегически въпросник" },
+              { icon: FileText, label: "категории в каталога", metric: "Над  20 ", value: "ЗЗД · ТЗ · ЗУТ" },
+              { icon: Bird, label: "До готов документ", metric: "<2 мин", value: "Автоматизиран стратегически въпросник" },
               { icon: ShieldCheck, label: "Правно съответствие", metric: "100%", value: "GDPR · eIDAS · ЗЕДЕУУ" },
             ].map((item) => (
               <div
