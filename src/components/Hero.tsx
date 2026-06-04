@@ -8,35 +8,43 @@ export function Hero({ onStart }: { onStart: () => void }) {
       {/* Base navy gradient */}
       <div className="absolute inset-0 bg-gradient-hero opacity-95" />
       {/* Fine grid texture */}
-      <div className="absolute inset-0 bg-fine-grid opacity-40" />
-      {/* Soft gold radial glow behind monogram */}
+      <div className="absolute inset-0 bg-fine-grid opacity-30" />
+      {/* Soft gold ambient wash — top to bottom */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 60% 55% at 50% 50%, hsl(var(--gold) / 0.14), transparent 70%)",
+            "radial-gradient(ellipse 70% 50% at 50% 0%, hsl(var(--gold) / 0.10), transparent 65%)",
         }}
       />
-      {/* Centered watermark logo — refined seal */}
+      {/* Centered watermark monogram — restrained & balanced */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 flex items-center justify-center"
+        className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 flex items-center justify-center"
       >
-        <div className="relative flex items-center justify-center">
-          {/* Concentric rings for a seal-like frame */}
-          <div className="absolute aspect-square w-[min(95vw,860px)] rounded-full border border-gold/15" />
-          <div className="absolute aspect-square w-[min(82vw,740px)] rounded-full border border-gold/12" />
-          <div className="absolute aspect-square w-[min(68vw,600px)] rounded-full border border-gold/10" />
+        <div className="relative flex aspect-square w-[min(46vw,340px)] items-center justify-center">
+          {/* Outer hairline ring */}
+          <div className="absolute inset-0 rounded-full border border-gold/20" />
+          {/* Inner hairline ring */}
+          <div className="absolute inset-[10%] rounded-full border border-gold/10" />
+          {/* Subtle glow disc behind logo */}
+          <div
+            className="absolute inset-[18%] rounded-full"
+            style={{
+              background:
+                "radial-gradient(circle, hsl(var(--gold) / 0.12), transparent 70%)",
+            }}
+          />
           <img
             src={logoImg}
             alt=""
-            width={640}
-            height={640}
+            width={320}
+            height={320}
             loading="eager"
             {...({ fetchpriority: "high" } as any)}
             decoding="async"
-            className="relative h-auto w-[min(58vw,500px)] opacity-[0.11] md:opacity-[0.15] [filter:drop-shadow(0_0_70px_hsl(var(--gold)/0.35))]"
+            className="relative h-auto w-[58%] opacity-[0.10] md:opacity-[0.14] [filter:drop-shadow(0_0_30px_hsl(var(--gold)/0.25))]"
           />
         </div>
       </div>
@@ -46,7 +54,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse at center, transparent 40%, hsl(var(--navy) / 0.55) 100%)",
+            "radial-gradient(ellipse 80% 70% at 50% 50%, transparent 55%, hsl(var(--navy) / 0.7) 100%)",
         }}
       />
       {/* Top gold hairline */}
