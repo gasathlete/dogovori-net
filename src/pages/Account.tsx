@@ -197,7 +197,7 @@ export default function AccountPage() {
 
 
           <TabsContent value="dashboard">
-            <Dashboard quota={quota} isPro={!!isPro} docs={docs} hasChatAccess={!!isPro || (!!teamForChat && teamForChat.status === "active")} onOpenChat={() => setChatOpen(true)} />
+            <Dashboard quota={quota} isPro={!!isPro} docs={docs} uploadedCount={uploaded.length} correctionsCount={correctionsCount} hasChatAccess={!!isPro || (!!teamForChat && teamForChat.status === "active")} onOpenChat={() => setChatOpen(true)} />
           </TabsContent>
           <TabsContent value="notifications">
             <NotificationsTab />
