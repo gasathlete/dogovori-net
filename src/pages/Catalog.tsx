@@ -225,7 +225,10 @@ export default function CatalogPage() {
                               <div className="flex-1 font-serif text-sm font-bold text-foreground">
                                 {s.name}
                                 {s.bilingual && (
-                                  <span className="ml-2 inline-block rounded-sm border border-gold/40 px-1.5 py-px text-[9px] uppercase tracking-wider text-gold">BG/EN</span>
+                                  <>
+                                    <span className="ml-2 inline-block rounded-sm border border-gold/40 px-1.5 py-px text-[9px] uppercase tracking-wider text-gold">BG/EN</span>
+                                    <span className="ml-1 inline-block rounded-sm bg-gradient-gold px-1.5 py-px text-[9px] font-bold uppercase tracking-wider text-navy">PRO</span>
+                                  </>
                                 )}
                                 {s.has_dynamic_wizard && (
                                   <span className="ml-2 inline-flex items-center gap-0.5 rounded-sm border border-emerald-400/40 bg-emerald-400/10 px-1.5 py-px text-[9px] uppercase tracking-wider text-emerald-300">
@@ -633,6 +636,12 @@ function CategoryDocs({ cat, forceExpanded, downloadCounts }: { cat: any; forceE
                         {doc.name}
                       </Link>
                       {doc.badge && <Badge label={doc.badge} />}
+                      {doc.bilingual && (
+                        <>
+                          <span className="inline-block shrink-0 rounded-sm border border-gold/40 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-gold">BG/EN</span>
+                          <span className="inline-block shrink-0 rounded-sm bg-gradient-gold px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-navy">PRO</span>
+                        </>
+                      )}
                       {hasDynamic && (
                         <span
                           title="Динамичен уизард — клаузите се адаптират в реално време"
