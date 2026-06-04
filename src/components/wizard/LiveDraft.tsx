@@ -808,6 +808,25 @@ export function LiveDraft({
             </span>
           )}
         </div>
+        {enLocked && (
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-gold/40 bg-gold/10 p-3">
+            <div className="flex items-start gap-2">
+              <Lock className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+              <div>
+                <div className="text-sm font-semibold text-foreground">Английската версия е заключена</div>
+                <p className="text-xs text-muted-foreground">
+                  Двуезичните договори (BG + EN) са PRO функция. Българската страна остава напълно достъпна.
+                </p>
+              </div>
+            </div>
+            <a
+              href="/account?tab=subscription"
+              className="shrink-0 rounded-md bg-gradient-gold px-3 py-1.5 text-xs font-semibold text-navy shadow-gold hover:opacity-90"
+            >
+              Отключи PRO
+            </a>
+          </div>
+        )}
         <PreviewFadeGate active={false}>
 
         <article
