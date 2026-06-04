@@ -53,6 +53,9 @@ export default function AuthPage() {
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [confirmSent, setConfirmSent] = useState(false);
 
+  // Google consent dialog (login tab — prevents account creation without consents)
+  const [googleConsentOpen, setGoogleConsentOpen] = useState(false);
+
   const openConfirmDialog = () => {
     setConfirmEmail(email);
     setConfirmCode("");
