@@ -1299,6 +1299,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                   generated={null}
                   isPro={isPro}
                   bilingual={bilingual && canBilingual}
+                  docName={name}
+                  documentType={documentType}
                 />
               </>
             )}
