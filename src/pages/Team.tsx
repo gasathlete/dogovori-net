@@ -199,6 +199,70 @@ export default function TeamPage() {
           )}
         </div>
 
+        {/* Team loyalty rewards */}
+        <div className="rounded-2xl border border-gold/30 bg-gradient-card p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-xs uppercase tracking-wider text-gold">Награди на екипа</div>
+              <h2 className="mt-1 font-serif text-xl font-bold">
+                {teamUnlocked.length ? teamUnlocked[teamUnlocked.length - 1].name : "Все още без ниво"}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Общо извършени операции от екипа: <strong className="text-foreground">{teamLifetimeOps.toLocaleString("bg-BG")}</strong>
+              </p>
+            </div>
+          </div>
+
+          {teamNextTier && (
+            <div className="mt-5">
+              <div className="mb-2 flex justify-between text-sm">
+                <span className="text-muted-foreground">До „{teamNextTier.name}"</span>
+                <span className="font-medium">
+                  {Math.min(teamLifetimeOps, teamNextTier.threshold).toLocaleString("bg-BG")} / {teamNextTier.threshold.toLocaleString("bg-BG")}
+                </span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full bg-gradient-gold transition-all"
+                  style={{ width: `${Math.min(100, (teamLifetimeOps / teamNextTier.threshold) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            {TEAM_REWARD_TIERS.map((t) => {
+              const unlocked = teamLifetimeOps >= t.threshold;
+              const Icon = t.icon;
+              return (
+                <div
+                  key={t.id}
+                  className={`rounded-xl border p-4 transition-all ${
+                    unlocked
+                      ? "border-gold/40 bg-gold/5 shadow-sm"
+                      : "border-border/50 bg-muted/20 opacity-70"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {unlocked ? (
+                      <Icon className="h-5 w-5 text-gold" />
+                    ) : (
+                      <Lock className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <div className="font-semibold">{t.name}</div>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {t.threshold.toLocaleString("bg-BG")} операции
+                  </div>
+                  <div className="mt-2 text-xs">{t.description}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+
+
         <Tabs defaultValue="documents" className="w-full">
           <TabsList className={`grid w-full ${isAdmin ? "grid-cols-3 sm:grid-cols-6" : "grid-cols-2 sm:grid-cols-4"} h-auto`}>
             <TabsTrigger value="documents">Документи</TabsTrigger>
