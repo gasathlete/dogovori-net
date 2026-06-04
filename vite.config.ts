@@ -46,7 +46,9 @@ export default defineConfig(({ mode }) => ({
           // templateExporter.ts, which themselves live behind lazy routes.
           if (/[\\/](jspdf|pdfjs-dist|mammoth)[\\/]/.test(id)) return "vendor-pdf";
           if (/[\\/](docx|file-saver)[\\/]/.test(id)) return "vendor-docx";
-          if (id.includes("recharts") || id.includes("d3-")) return "vendor-charts";
+          // NOTE: do NOT split recharts/d3 into a separate chunk — its internal
+          // circular deps cause "Cannot access 'X' before initialization" TDZ
+          // errors at runtime when Rollup splits them across chunks.
           if (/[\\/]@sentry[\\/]/.test(id)) return "vendor-sentry";
           if (/[\\/]@stripe[\\/]/.test(id)) return "vendor-stripe";
         },
