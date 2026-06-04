@@ -275,7 +275,11 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
             </div>
             <div>
               <h3 className="text-sm font-semibold text-foreground">Правен AI Асистент</h3>
-              <p className="text-[10px] text-muted-foreground">24/7 поддръжка • PRO + Team</p>
+              <p className="text-[10px] text-muted-foreground">
+                {isPro || isTeam
+                  ? "24/7 поддръжка · неограничен достъп"
+                  : `Безплатно: ${aiRemaining}/${freeQuota.aiMessagesCap} съобщения този месец`}
+              </p>
             </div>
           </div>
           <Button onClick={handleNewThread} variant="ghost" size="sm" className="md:hidden">
