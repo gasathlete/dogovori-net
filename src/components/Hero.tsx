@@ -70,7 +70,13 @@ export function Hero({ onStart }: { onStart: () => void }) {
               <ArrowRight className="h-[18px] w-[18px]" /> Изготви документ
             </a>
           </div>
-          <div className="anim-rise mt-3 text-center" style={{ animationDelay: "320ms" }}>
+          <p
+            className="anim-rise mt-4 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+            style={{ animationDelay: "300ms" }}
+          >
+            590 шаблона · Pro 9.90 €/мес · без скрити такси
+          </p>
+          <div className="anim-rise mt-3 text-center" style={{ animationDelay: "340ms" }}>
             <button
               type="button"
               onClick={(e) => {
