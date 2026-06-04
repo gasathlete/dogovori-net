@@ -221,8 +221,8 @@ function buildDocx(blank: BlankPayload, isBilingual: boolean): Promise<Uint8Arra
         children: [
           new TextRun({
             text: isBilingual
-              ? "Bilingual template · BG / EN · Free blank"
-              : "Безплатна бланка · Архитект на Вашите сделки",
+              ? "Bilingual template · BG / EN"
+              : "Архитект на Вашите сделки",
             color: "A0A0A0",
             size: 14,
             italics: true,
@@ -237,7 +237,7 @@ function buildDocx(blank: BlankPayload, isBilingual: boolean): Promise<Uint8Arra
         alignment: AlignmentType.CENTER,
         children: [
           new TextRun({
-            text: "dogovori.net · безплатна версия",
+            text: "dogovori.net",
             color: "B0B0B0",
             size: 14,
           }),
@@ -385,7 +385,7 @@ Deno.serve(async (req: Request) => {
     // (разписка ≠ договор ≠ декларация ≠ пълномощно etc).
     // Bilingual blanks live under a separate `v3-bilingual` namespace so they
     // never collide with the monolingual cache for the same (sector, document).
-    const CACHE_VERSION = isBilingual ? "v3-bilingual" : "v3";
+    const CACHE_VERSION = isBilingual ? "v4-bilingual" : "v4";
     const existingPath = existing?.storage_path as string | undefined;
     let storagePath: string | undefined =
       existingPath && existingPath.startsWith(`${CACHE_VERSION}/`) ? existingPath : undefined;
