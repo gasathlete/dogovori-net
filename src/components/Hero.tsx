@@ -27,26 +27,26 @@ export function Hero({ onStart }: { onStart: () => void }) {
 
       <div className="container relative py-10 sm:py-16 md:py-24 lg:py-28">
         <div className="mx-auto max-w-3xl text-center">
-          <div
-            className="anim-rise mb-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]"
-            style={{ animationDelay: "0ms" }}
-          >
-            <span className="inline-flex items-center gap-1.5 text-gold"><ShieldCheck className="h-3.5 w-3.5" /> ЗЗД · ТЗ · ЗУТ</span>
-            <span className="h-3 w-px bg-gold/30" />
-            <span className="inline-flex items-center gap-1.5"><Sparkles className="h-3.5 w-3.5 text-gold" /> AI анализ на риска</span>
-            <span className="h-3 w-px bg-gold/30" />
-            <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-gold" /> 590 шаблона</span>
-            <span className="h-3 w-px bg-gold/30" />
-            <span className="inline-flex items-center gap-1.5"><FileSignature className="h-3.5 w-3.5 text-gold" /> Електронен подпис</span>
-          </div>
           <h1
             className="anim-rise font-serif text-[28px] font-bold leading-[1.1] text-balance sm:text-4xl md:text-5xl lg:text-[58px] lg:leading-[1.05]"
-            style={{ animationDelay: "80ms" }}
+            style={{ animationDelay: "0ms" }}
           >
             Договори, които{" "}
             <span className="gold-shimmer">търсят и намират</span>{" "}
             Вашите интереси
           </h1>
+          <div
+            className="anim-rise mt-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]"
+            style={{ animationDelay: "80ms" }}
+          >
+            <span className="inline-flex items-center gap-1.5 text-gold"><ShieldCheck className="h-3.5 w-3.5" /> ЗЗД · ТЗ · ЗУТ</span>
+            <span className="h-3 w-px bg-gold/30" />
+            <span className="inline-flex items-center gap-1.5"><Sparkles className="h-3.5 w-3.5 text-gold" /> AI анализ на риска</span>
+            <span className="h-3 w-px bg-gold/30" />
+            <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-gold" /> 591 шаблона</span>
+            <span className="h-3 w-px bg-gold/30" />
+            <span className="inline-flex items-center gap-1.5"><FileSignature className="h-3.5 w-3.5 text-gold" /> Електронен подпис</span>
+          </div>
           <p
             className="anim-rise mx-auto mt-5 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base md:mt-6 md:text-lg md:leading-[1.7]"
             style={{ animationDelay: "160ms" }}
@@ -74,7 +74,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
             className="anim-rise mt-4 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
             style={{ animationDelay: "300ms" }}
           >
-            590 шаблона · Pro 9.90 €/мес · без скрити такси
+            591 шаблона · Pro 9.90 €/мес · без скрити такси
           </p>
           <div className="anim-rise mt-3 text-center" style={{ animationDelay: "340ms" }}>
             <button
@@ -94,7 +94,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
             style={{ animationDelay: "400ms" }}
           >
             {[
-              { icon: FileText, label: "Шаблона в каталога", metric: "590", value: "ЗЗД · ТЗ · ЗУТ" },
+              { icon: FileText, label: "Шаблона в каталога", metric: "591", value: "ЗЗД · ТЗ · ЗУТ" },
               { icon: Sparkles, label: "До готов документ", metric: "<2 мин", value: "AI стратегически въпросник" },
               { icon: ShieldCheck, label: "Правно съответствие", metric: "100%", value: "GDPR · eIDAS · ЗЕДЕУУ" },
             ].map((item) => (
