@@ -160,6 +160,7 @@ export default function AuthPage() {
           <h1 className="font-serif text-3xl font-bold text-balance">
             {tab === "login" ? "Добре дошли отново" : "Създайте профил"}
           </h1>
+          <h2 className="sr-only">Вход и регистрация в Dogovori.net</h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Влезте, за да теглите договори и да управлявате контрагентите си.
           </p>

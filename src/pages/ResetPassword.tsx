@@ -37,6 +37,7 @@ export default function ResetPasswordPage() {
       <main className="container max-w-md py-20">
         <div className="rounded-2xl border border-border/60 bg-gradient-card p-8 shadow-soft">
           <h1 className="font-serif text-2xl font-bold">Нова парола</h1>
+          <h2 className="sr-only">Възстановяване на парола в Dogovori.net</h2>
           <form onSubmit={handle} className="mt-4 space-y-3">
             <div>
               <Label htmlFor="np">Парола</Label>
