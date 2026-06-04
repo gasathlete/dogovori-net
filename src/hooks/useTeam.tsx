@@ -15,7 +15,9 @@ export interface TeamUsage {
   ops_used: number;
   cap: number;
   period_start: string;
+  lifetime_ops: number;
 }
+
 
 export function useTeam() {
   const { user } = useAuth();
@@ -51,14 +53,16 @@ export function useTeam() {
       });
       const { data: u } = await supabase
         .from("team_usage")
-        .select("ops_used, period_start")
+        .select("ops_used, period_start, lifetime_ops")
         .eq("team_id", m.team_id)
         .maybeSingle();
       setUsage({
         ops_used: u?.ops_used ?? 0,
         cap: m.teams.seat_count * 100,
         period_start: u?.period_start ?? new Date().toISOString(),
+        lifetime_ops: (u as any)?.lifetime_ops ?? 0,
       });
+
     }
     setLoading(false);
   }, [user]);

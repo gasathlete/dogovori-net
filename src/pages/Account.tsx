@@ -383,6 +383,22 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
 
   const hasAnyActivity = totalsData.some((d) => d.value > 0);
 
+  // Fire-and-forget: unlock any newly reached loyalty tiers + post in-app notification.
+  // Idempotent on the server via a unique (subject, tier) ledger.
+  useEffect(() => {
+    if (totalOps < REWARD_TIERS[0].threshold) return;
+    supabase.rpc("award_user_loyalty", { _total_ops: totalOps }).then(({ data }) => {
+      const newTiers = (data as any)?.new_tiers as string[] | undefined;
+      if (newTiers && newTiers.length) {
+        const last = REWARD_TIERS.find((t) => t.id === newTiers[newTiers.length - 1]);
+        if (last) toast.success(`Поздравления! Отключихте „${last.name}" — ${last.discountPercent}% отстъпка.`);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalOps]);
+
+
+
 
 
   return (

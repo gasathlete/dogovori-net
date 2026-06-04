@@ -67,3 +67,57 @@ export function getActiveTier(totalOps: number): RewardTier | null {
 }
 
 export { Sparkles };
+
+// ---------------------------------------------------------------------------
+// Team loyalty tiers — based on total team operations (lifetime).
+// Shown on the team dashboard only; no per-seat discount is applied here.
+// ---------------------------------------------------------------------------
+export type TeamRewardTier = {
+  id: string;
+  name: string;
+  threshold: number;
+  description: string;
+  icon: LucideIcon;
+  accent: string;
+};
+
+export const TEAM_REWARD_TIERS: TeamRewardTier[] = [
+  {
+    id: "gold_team",
+    name: "Златен екип",
+    threshold: 5000,
+    description: "Първото ниво за активни екипи.",
+    icon: Crown,
+    accent: "gold",
+  },
+  {
+    id: "platinum_team",
+    name: "Платинен екип",
+    threshold: 15000,
+    description: "За екипи с устойчиво ползване.",
+    icon: Gem,
+    accent: "primary",
+  },
+  {
+    id: "diamond_team",
+    name: "Диамантен екип",
+    threshold: 25000,
+    description: "За най-активните екипи на платформата.",
+    icon: Trophy,
+    accent: "accent",
+  },
+];
+
+export function getUnlockedTeamTiers(totalOps: number): TeamRewardTier[] {
+  return TEAM_REWARD_TIERS.filter((t) => totalOps >= t.threshold);
+}
+
+export function getNextTeamTier(totalOps: number): TeamRewardTier | null {
+  return TEAM_REWARD_TIERS.find((t) => totalOps < t.threshold) ?? null;
+}
+
+export function getActiveTeamTier(totalOps: number): TeamRewardTier | null {
+  const unlocked = getUnlockedTeamTiers(totalOps);
+  return unlocked.length ? unlocked[unlocked.length - 1] : null;
+}
+

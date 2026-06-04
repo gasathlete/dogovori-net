@@ -1,17 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, Users, Plus, ArrowLeft } from "lucide-react";
+import { Loader2, Users, Plus, ArrowLeft, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
 import { useTeam } from "@/hooks/useTeam";
 import { supabase } from "@/integrations/supabase/client";
+import { TEAM_REWARD_TIERS, getUnlockedTeamTiers, getNextTeamTier } from "@/lib/rewards";
+
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { TeamDocuments } from "@/components/TeamDocuments";
 import { TeamBranding } from "@/components/TeamBranding";
@@ -36,6 +38,23 @@ export default function TeamPage() {
   const [seatsValue, setSeatsValue] = useState(3);
 
   useEffect(() => { if (team) setSeatsValue(team.seat_count); }, [team]);
+
+  const teamLifetimeOps = usage?.lifetime_ops ?? 0;
+  const teamUnlocked = useMemo(() => getUnlockedTeamTiers(teamLifetimeOps), [teamLifetimeOps]);
+  const teamNextTier = useMemo(() => getNextTeamTier(teamLifetimeOps), [teamLifetimeOps]);
+
+  // Award newly reached team tiers — idempotent on the server.
+  useEffect(() => {
+    if (!team || teamLifetimeOps < TEAM_REWARD_TIERS[0].threshold) return;
+    supabase.rpc("award_team_loyalty", { _team_id: team.team_id, _total_ops: teamLifetimeOps }).then(({ data }) => {
+      const newTiers = (data as any)?.new_tiers as string[] | undefined;
+      if (newTiers && newTiers.length) {
+        const last = TEAM_REWARD_TIERS.find((t) => t.id === newTiers[newTiers.length - 1]);
+        if (last) toast.success(`Екипът отключи „${last.name}"!`);
+      }
+    });
+  }, [team?.team_id, teamLifetimeOps]);
+
 
   if (loading) {
     return (
@@ -179,6 +198,70 @@ export default function TeamPage() {
             </div>
           )}
         </div>
+
+        {/* Team loyalty rewards */}
+        <div className="rounded-2xl border border-gold/30 bg-gradient-card p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-xs uppercase tracking-wider text-gold">Награди на екипа</div>
+              <h2 className="mt-1 font-serif text-xl font-bold">
+                {teamUnlocked.length ? teamUnlocked[teamUnlocked.length - 1].name : "Все още без ниво"}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Общо извършени операции от екипа: <strong className="text-foreground">{teamLifetimeOps.toLocaleString("bg-BG")}</strong>
+              </p>
+            </div>
+          </div>
+
+          {teamNextTier && (
+            <div className="mt-5">
+              <div className="mb-2 flex justify-between text-sm">
+                <span className="text-muted-foreground">До „{teamNextTier.name}"</span>
+                <span className="font-medium">
+                  {Math.min(teamLifetimeOps, teamNextTier.threshold).toLocaleString("bg-BG")} / {teamNextTier.threshold.toLocaleString("bg-BG")}
+                </span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full bg-gradient-gold transition-all"
+                  style={{ width: `${Math.min(100, (teamLifetimeOps / teamNextTier.threshold) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            {TEAM_REWARD_TIERS.map((t) => {
+              const unlocked = teamLifetimeOps >= t.threshold;
+              const Icon = t.icon;
+              return (
+                <div
+                  key={t.id}
+                  className={`rounded-xl border p-4 transition-all ${
+                    unlocked
+                      ? "border-gold/40 bg-gold/5 shadow-sm"
+                      : "border-border/50 bg-muted/20 opacity-70"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {unlocked ? (
+                      <Icon className="h-5 w-5 text-gold" />
+                    ) : (
+                      <Lock className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <div className="font-semibold">{t.name}</div>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {t.threshold.toLocaleString("bg-BG")} операции
+                  </div>
+                  <div className="mt-2 text-xs">{t.description}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+
 
         <Tabs defaultValue="documents" className="w-full">
           <TabsList className={`grid w-full ${isAdmin ? "grid-cols-3 sm:grid-cols-6" : "grid-cols-2 sm:grid-cols-4"} h-auto`}>

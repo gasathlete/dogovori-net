@@ -959,6 +959,30 @@ export type Database = {
         }
         Relationships: []
       }
+      loyalty_unlocks: {
+        Row: {
+          id: string
+          subject_id: string
+          subject_type: string
+          tier_id: string
+          unlocked_at: string
+        }
+        Insert: {
+          id?: string
+          subject_id: string
+          subject_type: string
+          tier_id: string
+          unlocked_at?: string
+        }
+        Update: {
+          id?: string
+          subject_id?: string
+          subject_type?: string
+          tier_id?: string
+          unlocked_at?: string
+        }
+        Relationships: []
+      }
       notification_reads: {
         Row: {
           notification_id: string
@@ -1710,18 +1734,21 @@ export type Database = {
       }
       team_usage: {
         Row: {
+          lifetime_ops: number
           ops_used: number
           period_start: string
           team_id: string
           updated_at: string
         }
         Insert: {
+          lifetime_ops?: number
           ops_used?: number
           period_start?: string
           team_id: string
           updated_at?: string
         }
         Update: {
+          lifetime_ops?: number
           ops_used?: number
           period_start?: string
           team_id?: string
@@ -2226,6 +2253,11 @@ export type Database = {
         Returns: undefined
       }
       assemble_prompt_content: { Args: { _prompt_id: string }; Returns: string }
+      award_team_loyalty: {
+        Args: { _team_id: string; _total_ops: number }
+        Returns: Json
+      }
+      award_user_loyalty: { Args: { _total_ops: number }; Returns: Json }
       bg_to_lat: { Args: { input: string }; Returns: string }
       consume_corrections_batch: {
         Args: { _batch_id: string; _session_id: string }
