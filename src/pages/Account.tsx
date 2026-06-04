@@ -81,7 +81,7 @@ export default function AccountPage() {
 
   const reload = async () => {
     if (!user) return;
-    const [c, f, d, q, p, uc, ra] = await Promise.all([
+    const [c, f, d, q, p, uc, ra, cb] = await Promise.all([
       supabase.from("contacts").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("folders").select("*").order("is_favorites", { ascending: false }),
       supabase.from("saved_documents").select("*").order("created_at", { ascending: false }),
@@ -89,6 +89,7 @@ export default function AccountPage() {
       supabase.from("profiles").select("display_name, company, vat_number").eq("id", user.id).maybeSingle(),
       supabase.from("uploaded_contracts").select("id,title,source,folder_id,contact_id,original_filename,storage_path,created_at").order("created_at", { ascending: false }),
       supabase.from("risk_analyses").select("uploaded_contract_id,score,contract_type,created_at").order("created_at", { ascending: false }),
+      supabase.from("corrections_batch_charges").select("id", { count: "exact", head: true }).eq("user_id", user.id),
     ]);
     setContacts((c.data as any) ?? []);
     setFolders((f.data as any) ?? []);
@@ -96,6 +97,7 @@ export default function AccountPage() {
     setQuota((q.data as any) ?? null);
     if (p.data) setProfile(p.data as any);
     setUploaded((uc.data as any) ?? []);
+    setCorrectionsCount((cb as any)?.count ?? 0);
     const map: Record<string, RiskAnalysisLite> = {};
     for (const r of ((ra.data as any) ?? []) as RiskAnalysisLite[]) {
       if (!map[r.uploaded_contract_id]) map[r.uploaded_contract_id] = r;
