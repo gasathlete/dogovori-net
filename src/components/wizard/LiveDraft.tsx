@@ -993,6 +993,7 @@ function TemplateDraftOrSkeleton({
   clauses,
   answeredCount,
   bilingual = false,
+  documentType,
 }: {
   docName?: string;
   answers: Record<string, string>;
