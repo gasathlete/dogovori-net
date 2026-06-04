@@ -473,9 +473,22 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
         </div>
 
         <div className="rounded-xl border border-border/60 bg-gradient-card p-4 sm:p-6 lg:col-span-3">
-          <div className="mb-4 flex items-baseline justify-between gap-2">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <h3 className="font-serif text-base sm:text-lg font-bold">Активност (последни 30 дни)</h3>
-            <span className="shrink-0 text-xs text-muted-foreground">по дни</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className="rounded-full border border-gold/40 bg-gold/10 px-2.5 py-1 text-[11px] font-medium text-gold"
+                title="Операции през последните 30 дни"
+              >
+                Този месец: <span className="font-semibold">{last30dOps}</span>
+              </span>
+              <span
+                className="rounded-full border border-border/60 bg-muted/30 px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
+                title="Общо извършени операции от регистрацията"
+              >
+                Общо: <span className="font-semibold text-foreground">{totalOps}</span>
+              </span>
+            </div>
           </div>
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={timelineData} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
@@ -516,43 +529,7 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
         </div>
       </div>
 
-      {/* ---------- All-time operations chart ---------- */}
-      <div className="md:col-span-3 rounded-xl border border-border/60 bg-gradient-card p-4 sm:p-6">
-        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-          <h3 className="font-serif text-base sm:text-lg font-bold">All-time извършени операции</h3>
-          <span className="text-xs text-muted-foreground">общо: <span className="text-foreground font-semibold">{totalOps}</span></span>
-        </div>
-        {allTimeData.length === 0 ? (
-          <p className="py-12 text-center text-sm text-muted-foreground">Все още нямате извършени операции. Започнете с първия документ.</p>
-        ) : (
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={allTimeData} margin={{ top: 8, right: 16, left: -8, bottom: 0 }}>
-              <defs>
-                <linearGradient id="gradCumulative" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--gold))" stopOpacity={0.4} />
-                  <stop offset="100%" stopColor="hsl(var(--gold))" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.4)" vertical={false} />
-              <XAxis dataKey="label" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={32} />
-              <YAxis allowDecimals={false} width={36} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <RTooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 4 }} iconType="circle" />
-              {REWARD_TIERS.map((t) => (
-                <ReferenceLine
-                  key={t.id}
-                  y={t.threshold}
-                  stroke={`hsl(var(--${t.accent}) / 0.6)`}
-                  strokeDasharray="4 4"
-                  label={{ value: `${t.threshold}`, position: "right", fill: `hsl(var(--${t.accent}))`, fontSize: 10 }}
-                />
-              ))}
-              <Line type="monotone" dataKey="cumulative" name="Кумулативно" stroke="hsl(var(--gold))" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
-              <Area type="monotone" dataKey="ops" name="На месец" stroke="hsl(var(--primary))" fill="url(#gradCumulative)" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
-        )}
-      </div>
+
 
       {/* ---------- Loyalty rewards ---------- */}
       <div className="md:col-span-3 rounded-xl border border-gold/40 bg-gradient-card p-4 sm:p-6">
