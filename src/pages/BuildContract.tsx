@@ -825,7 +825,56 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                     </div>
                   </div>
 
-                  {/* Bilingual toggle temporarily removed */}
+                  {/* Bilingual toggle — Pro / Team only */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!canBilingual) {
+                        toast.message("Двуезичен документ е за Pro и Team", {
+                          description: "Преминете към Pro или Team план, за да генерирате документи на български и английски.",
+                          action: { label: "Виж планове", onClick: goSubscription },
+                        });
+                        return;
+                      }
+                      setBilingual((v) => !v);
+                    }}
+                    aria-pressed={bilingual}
+                    className={
+                      "flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors " +
+                      (bilingual && canBilingual
+                        ? "border-gold/60 bg-gold/10"
+                        : "border-border/60 bg-navy-light/40 hover:border-gold/40")
+                    }
+                  >
+                    <span className="flex items-center gap-3">
+                      <span className={
+                        "flex h-9 w-9 items-center justify-center rounded-lg " +
+                        (bilingual && canBilingual ? "bg-gold/20 text-gold" : "bg-card/40 text-muted-foreground")
+                      }>
+                        <Languages className="h-4 w-4" />
+                      </span>
+                      <span className="flex flex-col">
+                        <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                          Двуезичен документ (BG + EN)
+                          {!canBilingual && <Lock className="h-3 w-3 text-gold/80" />}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {canBilingual
+                            ? "Всяка клауза се изготвя паралелно на български и английски."
+                            : "Достъпно за Предприемач и Екип."}
+                        </span>
+                      </span>
+                    </span>
+                    <span className={
+                      "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors " +
+                      (bilingual && canBilingual ? "bg-gold" : "bg-border/60")
+                    }>
+                      <span className={
+                        "inline-block h-4 w-4 transform rounded-full bg-navy transition-transform " +
+                        (bilingual && canBilingual ? "translate-x-[18px]" : "translate-x-[2px]")
+                      } />
+                    </span>
+                  </button>
 
                   {/* Document type — compact dropdown */}
                   <div>
