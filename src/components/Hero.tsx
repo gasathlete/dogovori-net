@@ -7,9 +7,21 @@ export function Hero({ onStart }: { onStart: () => void }) {
     <section className="relative overflow-hidden border-b border-border/60">
       {/* Base navy gradient */}
       <div className="absolute inset-0 bg-gradient-hero opacity-95" />
+
       {/* Fine grid texture */}
-      <div className="absolute inset-0 bg-fine-grid opacity-30" />
-      {/* Soft gold ambient wash — top to bottom */}
+      <div className="absolute inset-0 bg-fine-grid opacity-25" />
+
+      {/* Diagonal hairline weave — couture cross-hatch */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-[0.06] mix-blend-screen"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(45deg, hsl(var(--gold)) 0 1px, transparent 1px 10px), repeating-linear-gradient(-45deg, hsl(var(--gold)) 0 1px, transparent 1px 10px)",
+        }}
+      />
+
+      {/* Soft gold ambient wash — top */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
@@ -18,22 +30,47 @@ export function Hero({ onStart }: { onStart: () => void }) {
             "radial-gradient(ellipse 70% 50% at 50% 0%, hsl(var(--gold) / 0.10), transparent 65%)",
         }}
       />
-      {/* Centered watermark monogram — restrained & balanced */}
+
+      {/* Constellation dots — sparse, premium */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-50"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle, hsl(var(--gold) / 0.35) 0.6px, transparent 1px)",
+          backgroundSize: "140px 140px",
+          backgroundPosition: "20px 30px",
+        }}
+      />
+
+      {/* Centered watermark monogram with seal rings */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 flex items-center justify-center"
       >
-        <div className="relative flex aspect-square w-[min(46vw,340px)] items-center justify-center">
-          {/* Outer hairline ring */}
-          <div className="absolute inset-0 rounded-full border border-gold/20" />
+        <div className="relative flex aspect-square w-[min(48vw,360px)] items-center justify-center">
+          {/* Outermost dashed ring */}
+          <div className="absolute inset-[-6%] rounded-full border border-dashed border-gold/15" />
+          {/* Hairline ring */}
+          <div className="absolute inset-0 rounded-full border border-gold/25" />
           {/* Inner hairline ring */}
-          <div className="absolute inset-[10%] rounded-full border border-gold/10" />
-          {/* Subtle glow disc behind logo */}
+          <div className="absolute inset-[10%] rounded-full border border-gold/12" />
+          {/* Tick marks at cardinal points */}
+          {[0, 90, 180, 270].map((deg) => (
+            <span
+              key={deg}
+              className="absolute left-1/2 top-1/2 block h-2.5 w-px bg-gold/45"
+              style={{
+                transform: `translate(-50%, -50%) rotate(${deg}deg) translateY(calc(min(24vw,180px) * -1))`,
+              }}
+            />
+          ))}
+          {/* Glow disc behind logo */}
           <div
             className="absolute inset-[18%] rounded-full"
             style={{
               background:
-                "radial-gradient(circle, hsl(var(--gold) / 0.12), transparent 70%)",
+                "radial-gradient(circle, hsl(var(--gold) / 0.14), transparent 70%)",
             }}
           />
           <img
@@ -44,21 +81,61 @@ export function Hero({ onStart }: { onStart: () => void }) {
             loading="eager"
             {...({ fetchpriority: "high" } as any)}
             decoding="async"
-            className="relative h-auto w-[58%] opacity-[0.10] md:opacity-[0.14] [filter:drop-shadow(0_0_30px_hsl(var(--gold)/0.25))]"
+            className="relative h-auto w-[56%] opacity-[0.11] md:opacity-[0.15] [filter:drop-shadow(0_0_30px_hsl(var(--gold)/0.28))]"
           />
         </div>
       </div>
+
+      {/* Corner filigree — four delicate ornaments */}
+      {[
+        { pos: "top-5 left-5", rot: "rotate-0" },
+        { pos: "top-5 right-5", rot: "rotate-90" },
+        { pos: "bottom-5 right-5", rot: "rotate-180" },
+        { pos: "bottom-5 left-5", rot: "-rotate-90" },
+      ].map(({ pos, rot }) => (
+        <svg
+          key={pos}
+          aria-hidden="true"
+          viewBox="0 0 60 60"
+          className={`pointer-events-none absolute h-10 w-10 text-gold/40 ${pos} ${rot}`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="0.7"
+        >
+          <path d="M0 22 L0 0 L22 0" />
+          <path d="M0 32 L9 32" />
+          <path d="M32 0 L32 9" />
+          <circle cx="14" cy="14" r="1.1" fill="currentColor" stroke="none" />
+        </svg>
+      ))}
+
+      {/* Vertical golden guidelines — column rhythm */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-full max-w-5xl -translate-x-1/2 md:block"
+      >
+        <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-gold/12 to-transparent" />
+        <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-gold/12 to-transparent" />
+      </div>
+
       {/* Vignette to focus content */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 80% 70% at 50% 50%, transparent 55%, hsl(var(--navy) / 0.7) 100%)",
+            "radial-gradient(ellipse 80% 70% at 50% 50%, transparent 55%, hsl(var(--navy) / 0.72) 100%)",
         }}
       />
-      {/* Top gold hairline */}
+
+      {/* Top gold hairline + center diamond accent */}
       <div className="absolute inset-x-0 top-0 hairline-x" />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2"
+      >
+        <div className="h-2 w-2 rotate-45 border border-gold/60 bg-navy" />
+      </div>
 
       <div className="container relative py-10 sm:py-16 md:py-24 lg:py-28">
         <div className="mx-auto max-w-3xl text-center">
