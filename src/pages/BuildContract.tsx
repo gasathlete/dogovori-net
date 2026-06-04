@@ -273,7 +273,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       subtitle: "Свободно изготвен документ",
       icon: "FileText",
       description: "",
-      contractName: name || matched?.contractName || "Договор",
+      contractName: name || matched?.contractName || getDocumentType(documentType).label,
       parties: {
         a: partyAFromSchema || matched?.parties?.a || "Възложителя",
         b: partyBFromSchema || matched?.parties?.b || "Изпълнителя",
