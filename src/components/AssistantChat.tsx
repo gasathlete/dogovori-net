@@ -35,6 +35,9 @@ const QUICK_ACTIONS = [
 export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
   const { user, session } = useAuth();
   const location = useLocation();
+  const { isPro, isTeam, freeQuota, refresh: refreshPlan } = useIsPro();
+  const aiRemaining = Math.max(0, freeQuota.aiMessagesCap - freeQuota.aiMessagesUsed);
+  const aiLocked = !isPro && !isTeam && aiRemaining <= 0;
   const [threads, setThreads] = useState<Thread[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
