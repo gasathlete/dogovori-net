@@ -16,10 +16,10 @@ export function AssistantPaywall() {
         </p>
         <ul className="mb-6 space-y-2 text-left text-sm text-muted-foreground">
           {[
+            "5 безплатни съобщения всеки месец",
             "Помощ с попълване на шаблони и клаузи",
             "Общи насоки по ЗЗД, ТЗ, КТ, СК, ЗУТ, GDPR",
-            "Навигация и техническа поддръжка",
-            "100 съобщения/месец (PRO) или споделени за екип",
+            "PRO: неограничен достъп в рамките на 100 операции/месец",
           ].map((f) => (
             <li key={f} className="flex items-start gap-2">
               <Check className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
@@ -29,11 +29,11 @@ export function AssistantPaywall() {
         </ul>
         <Button asChild className="w-full gap-2 bg-gold text-navy hover:bg-gold/90">
           <Link to="/account?tab=billing">
-            <Crown className="h-4 w-4" /> Активирай PRO
+            <Crown className="h-4 w-4" /> Активирай PRO за неограничен достъп
           </Link>
         </Button>
         <p className="mt-3 text-[11px] text-muted-foreground">
-          Достъпно за PRO и Team абонати.
+          Месечните 5 безплатни съобщения се нулират на всеки 30 дни.
         </p>
       </div>
     </div>

@@ -8,8 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsPro } from "@/hooks/useIsPro";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Crown } from "lucide-react";
 
 interface Msg {
   id: string;
@@ -33,6 +35,9 @@ const QUICK_ACTIONS = [
 export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
   const { user, session } = useAuth();
   const location = useLocation();
+  const { isPro, isTeam, freeQuota, refresh: refreshPlan } = useIsPro();
+  const aiRemaining = Math.max(0, freeQuota.aiMessagesCap - freeQuota.aiMessagesUsed);
+  const aiLocked = !isPro && !isTeam && aiRemaining <= 0;
   const [threads, setThreads] = useState<Thread[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -104,6 +109,21 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || streaming || !session?.access_token) return;
+
+    // Gate: meter against monthly AI quota (5/mo Free, unlimited PRO/Team).
+    const { data: gate, error: gateErr } = await supabase.rpc("consume_ai_message");
+    if (gateErr) {
+      toast.error("Грешка при проверка на квотата");
+      return;
+    }
+    const g = gate as { ok: boolean; reason?: string; used?: number; cap?: number } | null;
+    if (g && g.ok === false) {
+      toast.error("Изчерпани са безплатните 5 съобщения за този месец. Активирай PRO за неограничен достъп.");
+      await refreshPlan();
+      return;
+    }
+    await refreshPlan();
+
 
     const userMsg: Msg = { id: `tmp-u-${Date.now()}`, role: "user", content: text.trim() };
     const newMessages = [...messages, userMsg];
@@ -255,7 +275,11 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
             </div>
             <div>
               <h3 className="text-sm font-semibold text-foreground">Правен AI Асистент</h3>
-              <p className="text-[10px] text-muted-foreground">24/7 поддръжка • PRO + Team</p>
+              <p className="text-[10px] text-muted-foreground">
+                {isPro || isTeam
+                  ? "24/7 поддръжка · неограничен достъп"
+                  : `Безплатно: ${aiRemaining}/${freeQuota.aiMessagesCap} съобщения този месец`}
+              </p>
             </div>
           </div>
           <Button onClick={handleNewThread} variant="ghost" size="sm" className="md:hidden">

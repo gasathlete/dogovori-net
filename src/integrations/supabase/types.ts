@@ -709,9 +709,13 @@ export type Database = {
       }
       download_quota: {
         Row: {
+          ai_messages_used: number
           analyses_used: number
+          analysis_previews_used: number
+          bilingual_previews_used: number
           bonus_contracts: number
           contracts_used: number
+          features_reset_at: string
           monthly_contracts_used: number
           monthly_reset_at: string
           monthly_templates_used: number
@@ -726,9 +730,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_messages_used?: number
           analyses_used?: number
+          analysis_previews_used?: number
+          bilingual_previews_used?: number
           bonus_contracts?: number
           contracts_used?: number
+          features_reset_at?: string
           monthly_contracts_used?: number
           monthly_reset_at?: string
           monthly_templates_used?: number
@@ -743,9 +751,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_messages_used?: number
           analyses_used?: number
+          analysis_previews_used?: number
+          bilingual_previews_used?: number
           bonus_contracts?: number
           contracts_used?: number
+          features_reset_at?: string
           monthly_contracts_used?: number
           monthly_reset_at?: string
           monthly_templates_used?: number
@@ -2219,6 +2231,36 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _roll_feature_counters: {
+        Args: { _uid: string }
+        Returns: {
+          ai_messages_used: number
+          analyses_used: number
+          analysis_previews_used: number
+          bilingual_previews_used: number
+          bonus_contracts: number
+          contracts_used: number
+          features_reset_at: string
+          monthly_contracts_used: number
+          monthly_reset_at: string
+          monthly_templates_used: number
+          monthly_total_used: number
+          plan: Database["public"]["Enums"]["user_plan"]
+          pro_monthly_used: number
+          pro_period_start: string
+          pro_until: string | null
+          templates_used: number
+          total_used: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "download_quota"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_add_bonus_contracts: {
         Args: { _count: number; _user_id: string }
         Returns: undefined
@@ -2259,6 +2301,10 @@ export type Database = {
       }
       award_user_loyalty: { Args: { _total_ops: number }; Returns: Json }
       bg_to_lat: { Args: { input: string }; Returns: string }
+      can_use_kit_slot: { Args: never; Returns: Json }
+      consume_ai_message: { Args: never; Returns: Json }
+      consume_analysis_preview: { Args: never; Returns: Json }
+      consume_bilingual_preview: { Args: never; Returns: Json }
       consume_corrections_batch: {
         Args: { _batch_id: string; _session_id: string }
         Returns: Json
