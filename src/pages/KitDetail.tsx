@@ -51,8 +51,9 @@ export default function KitDetailPage() {
     }
     // Free users can keep only 1 active kit slot.
     if (!isPro && !isTeam) {
-      const { data: slotOk } = await supabase.rpc("can_use_kit_slot");
-      if (slotOk === false) {
+      const { data: slotData } = await supabase.rpc("can_use_kit_slot");
+      const slotOk = (slotData as any)?.ok !== false;
+      if (!slotOk) {
         toast.error("Безплатен лимит: 1 активен комплект", {
           description: "Изтрийте съществуващия комплект или надградете до PRO за неограничени.",
           action: { label: "Виж PRO", onClick: () => navigate("/account?tab=subscription") },
