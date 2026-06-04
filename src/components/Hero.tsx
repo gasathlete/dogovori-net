@@ -42,36 +42,37 @@ export function Hero({ onStart }: { onStart: () => void }) {
 
       <div className="container relative pt-4 pb-10 sm:pt-6 sm:pb-16 md:pt-10 md:pb-24 lg:pt-12 lg:pb-28">
         <div className="relative mx-auto max-w-3xl text-center">
-          {/* Watermark monogram — centered to content, no glow */}
+          {/* Centered hero medallion — visible, doesn't overlap content */}
           <div
-            aria-hidden="true"
-            className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+            className="anim-rise mx-auto mb-6 flex items-center justify-center sm:mb-8"
+            style={{ animationDelay: "0ms" }}
           >
-            <div className="relative flex aspect-square w-[min(46vw,340px)] items-center justify-center">
-              <div className="absolute inset-[-6%] rounded-full border border-dashed border-gold/15" />
-              <div className="absolute inset-0 rounded-full border border-gold/25" />
-              <div className="absolute inset-[10%] rounded-full border border-gold/12" />
+            <div className="relative flex h-20 w-20 items-center justify-center sm:h-24 sm:w-24 md:h-28 md:w-28">
+              <div className="absolute inset-[-10%] rounded-full border border-dashed border-gold/20" />
+              <div className="absolute inset-0 rounded-full border border-gold/40 bg-navy-light/40" />
               {[0, 90, 180, 270].map((deg) => (
                 <span
                   key={deg}
-                  className="absolute left-1/2 top-1/2 block h-2.5 w-px bg-gold/40"
+                  aria-hidden="true"
+                  className="absolute left-1/2 top-1/2 block h-1.5 w-px bg-gold/50"
                   style={{
-                    transform: `translate(-50%, -50%) rotate(${deg}deg) translateY(calc(min(23vw,170px) * -1))`,
+                    transform: `translate(-50%, -50%) rotate(${deg}deg) translateY(-58%)`,
                   }}
                 />
               ))}
               <img
                 src={logoImg}
-                alt=""
-                width={320}
-                height={320}
+                alt="Dogovori.net"
+                width={112}
+                height={112}
                 loading="eager"
                 {...({ fetchpriority: "high" } as any)}
                 decoding="async"
-                className="relative h-auto w-[56%] opacity-[0.09] md:opacity-[0.12]"
+                className="relative h-[64%] w-[64%] object-contain"
               />
             </div>
           </div>
+
           <h1
             className="anim-rise font-serif text-[28px] font-bold leading-[1.1] text-balance sm:text-4xl md:text-5xl lg:text-[58px] lg:leading-[1.05]"
             style={{ animationDelay: "0ms" }}
