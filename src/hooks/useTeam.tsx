@@ -15,7 +15,9 @@ export interface TeamUsage {
   ops_used: number;
   cap: number;
   period_start: string;
+  lifetime_ops: number;
 }
+
 
 export function useTeam() {
   const { user } = useAuth();
