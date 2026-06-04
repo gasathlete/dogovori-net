@@ -1083,6 +1083,89 @@ function TemplateDraftOrSkeleton({
     );
   }
 
+  // Type-specific skeleton override — when a non-contract documentType is
+  // selected (e.g. Споразумение, Нотариална покана, Декларация, …) we render
+  // a structure that matches that document type instead of the generic
+  // two-party contract preamble.
+  const typeSkeleton = buildTypeSkeleton(documentType, partyA, partyB, docName);
+  if (typeSkeleton) {
+    const { preambleLines, clauses: typeClauses } = typeSkeleton;
+    if (bilingual) {
+      const titleEn = translateTitleToEn(documentTitle);
+      return (
+        <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
+            <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
+              {documentTitle}
+            </h1>
+            <h1 className="legal-paper-strong text-center font-serif text-lg font-bold uppercase tracking-wide md:border-l md:pl-6 md:text-xl">
+              {titleEn}
+            </h1>
+          </div>
+          <div className="my-4 gold-divider" />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
+            <div className="space-y-3 text-sm leading-relaxed">
+              {preambleLines.map((line, i) => (
+                <p key={i}>{line}</p>
+              ))}
+            </div>
+            <div className="legal-paper-strong space-y-3 text-sm italic leading-relaxed md:border-l md:pl-6">
+              <p>{BILINGUAL_PLACEHOLDER_EN}</p>
+            </div>
+          </div>
+          {typeClauses.map((c) => {
+            const titleEnC = translateTitleToEn(c.title);
+            return (
+              <section key={c.roman} className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
+                <div>
+                  <h2 className="font-serif text-base font-bold uppercase">{c.roman} {c.title}</h2>
+                  <p className="mt-2 whitespace-pre-line text-sm leading-relaxed">{c.body}</p>
+                </div>
+                <div className="md:border-l md:pl-6">
+                  <h2 className="legal-paper-strong font-serif text-base font-bold uppercase">{c.roman} {titleEnC}</h2>
+                  <p className="legal-paper-strong mt-2 whitespace-pre-line text-sm italic leading-relaxed">
+                    {BILINGUAL_PLACEHOLDER_EN}
+                  </p>
+                </div>
+              </section>
+            );
+          })}
+          <BilingualPreviewNote documentTitle={documentTitle} answeredCount={answeredCount} />
+        </article>
+      );
+    }
+    return (
+      <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
+        <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
+          {documentTitle}
+        </h1>
+        <div className="my-4 gold-divider" />
+        <div className="space-y-3 text-sm leading-relaxed">
+          {preambleLines.map((line, i) => (
+            <p key={i}>{line}</p>
+          ))}
+        </div>
+        {typeClauses.map((c) => (
+          <section key={c.roman} className="mt-6">
+            <h2 className="font-serif text-base font-bold uppercase">{c.roman} {c.title}</h2>
+            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed">{c.body}</p>
+          </section>
+        ))}
+        <div className="mt-8 rounded-md border border-dashed border-gold/30 bg-gold/[0.04] p-4 text-xs leading-relaxed text-foreground/75">
+          <p className="font-semibold text-foreground/90">
+            Това е примерен скелет на „{documentTitle}", оформен според структурата на избрания вид документ.
+          </p>
+          <p className="mt-1.5">
+            Финалният документ — с прецизни клаузи, оценка на риска и препоръки от ИИ — се генерира след завършване на въпросника.
+            {answeredCount > 0 && (
+              <span className="ml-1 text-gold">Попълнени са {answeredCount} отговора.</span>
+            )}
+          </p>
+        </div>
+      </article>
+    );
+  }
+
   // Fallback: sector-generic skeleton (запазено поведение)
   if (bilingual) {
     const titleEn = translateTitleToEn(documentTitle);
