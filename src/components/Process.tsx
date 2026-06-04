@@ -46,7 +46,7 @@ export function Process() {
       <div className="container">
         <div className="mb-10 max-w-2xl md:mb-14">
           <div className="eyebrow mb-3">
-            <span className="font-serif text-base font-normal tracking-normal text-gold/60">02</span>
+            <span className="font-serif text-base font-normal tracking-normal text-gold/60">03</span>
             <span className="h-px w-6 bg-gold/40" />
             Процес
           </div>
