@@ -59,7 +59,7 @@ export function ComplianceSection() {
         <div className="text-center">
           <div className="eyebrow mb-4 justify-center">
             <ShieldCheck className="h-3.5 w-3.5" />
-            Съответствие
+            Защо да ни се доверите
           </div>
           <h2 className="font-serif text-xl font-bold leading-tight text-balance sm:text-2xl md:text-[32px]">
             Закон за задълженията и договорите · Търговски закон · ЗУТ
@@ -67,6 +67,16 @@ export function ComplianceSection() {
           <p className="mx-auto mt-4 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground md:text-base">
             Всеки договор включва клаузи за частична недействителност, форсмажор и подсъдност (Софийски градски съд / Арбитраж при БТПП). В зависимост от казуса, препоръчваме окончателен преглед от лицензиран адвокат.
           </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+            {["ЗЗД", "ТЗ", "ЗУТ", "GDPR", "eIDAS", "ЗЕДЕУУ"].map((b) => (
+              <span
+                key={b}
+                className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold"
+              >
+                <ShieldCheck className="h-3 w-3" /> {b}
+              </span>
+            ))}
+          </div>
         </div>
 
         <ul className="mt-10 grid gap-3 sm:grid-cols-3">
