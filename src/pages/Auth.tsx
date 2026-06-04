@@ -232,6 +232,13 @@ export default function AuthPage() {
                 <button type="button" onClick={handleReset} className="text-xs text-muted-foreground hover:text-gold">
                   Забравена парола?
                 </button>
+                <button
+                  type="button"
+                  onClick={openConfirmDialog}
+                  className="ml-3 text-xs text-muted-foreground hover:text-gold"
+                >
+                  Не получих имейл за потвърждение
+                </button>
               </form>
             </TabsContent>
 
