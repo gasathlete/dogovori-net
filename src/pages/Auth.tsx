@@ -288,6 +288,14 @@ export default function AuthPage() {
                 <div>
                   <Label htmlFor="semail">Email</Label>
                   <Input id="semail" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                  {showBgEmailWarning && (
+                    <Alert className="mt-2 border-yellow-500/40 bg-yellow-500/10 text-yellow-900 dark:text-yellow-200">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription className="text-[11px] leading-relaxed">
+                        Българските пощи (abv.bg, mail.bg, dir.bg) често блокират имейли за потвърждение. Препоръчваме <strong>Gmail</strong> или <strong>вход с Google</strong> за по-сигурна доставка.
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="spw">Парола</Label>
