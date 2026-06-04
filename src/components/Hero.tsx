@@ -21,16 +21,6 @@ export function Hero({ onStart }: { onStart: () => void }) {
         }}
       />
 
-      {/* Soft gold ambient wash — top */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 70% 50% at 50% 0%, hsl(var(--gold) / 0.10), transparent 65%)",
-        }}
-      />
-
       {/* Constellation dots — sparse, premium */}
       <div
         aria-hidden="true"
@@ -43,48 +33,6 @@ export function Hero({ onStart }: { onStart: () => void }) {
         }}
       />
 
-      {/* Centered watermark monogram with seal rings */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 flex items-center justify-center"
-      >
-        <div className="relative flex aspect-square w-[min(48vw,360px)] items-center justify-center">
-          {/* Outermost dashed ring */}
-          <div className="absolute inset-[-6%] rounded-full border border-dashed border-gold/15" />
-          {/* Hairline ring */}
-          <div className="absolute inset-0 rounded-full border border-gold/25" />
-          {/* Inner hairline ring */}
-          <div className="absolute inset-[10%] rounded-full border border-gold/12" />
-          {/* Tick marks at cardinal points */}
-          {[0, 90, 180, 270].map((deg) => (
-            <span
-              key={deg}
-              className="absolute left-1/2 top-1/2 block h-2.5 w-px bg-gold/45"
-              style={{
-                transform: `translate(-50%, -50%) rotate(${deg}deg) translateY(calc(min(24vw,180px) * -1))`,
-              }}
-            />
-          ))}
-          {/* Glow disc behind logo */}
-          <div
-            className="absolute inset-[18%] rounded-full"
-            style={{
-              background:
-                "radial-gradient(circle, hsl(var(--gold) / 0.14), transparent 70%)",
-            }}
-          />
-          <img
-            src={logoImg}
-            alt=""
-            width={320}
-            height={320}
-            loading="eager"
-            {...({ fetchpriority: "high" } as any)}
-            decoding="async"
-            className="relative h-auto w-[56%] opacity-[0.11] md:opacity-[0.15] [filter:drop-shadow(0_0_30px_hsl(var(--gold)/0.28))]"
-          />
-        </div>
-      </div>
 
       {/* Corner filigree — four delicate ornaments */}
       {[
@@ -138,7 +86,37 @@ export function Hero({ onStart }: { onStart: () => void }) {
       </div>
 
       <div className="container relative py-10 sm:py-16 md:py-24 lg:py-28">
-        <div className="mx-auto max-w-3xl text-center">
+        <div className="relative mx-auto max-w-3xl text-center">
+          {/* Watermark monogram — centered to content, no glow */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+          >
+            <div className="relative flex aspect-square w-[min(46vw,340px)] items-center justify-center">
+              <div className="absolute inset-[-6%] rounded-full border border-dashed border-gold/15" />
+              <div className="absolute inset-0 rounded-full border border-gold/25" />
+              <div className="absolute inset-[10%] rounded-full border border-gold/12" />
+              {[0, 90, 180, 270].map((deg) => (
+                <span
+                  key={deg}
+                  className="absolute left-1/2 top-1/2 block h-2.5 w-px bg-gold/40"
+                  style={{
+                    transform: `translate(-50%, -50%) rotate(${deg}deg) translateY(calc(min(23vw,170px) * -1))`,
+                  }}
+                />
+              ))}
+              <img
+                src={logoImg}
+                alt=""
+                width={320}
+                height={320}
+                loading="eager"
+                {...({ fetchpriority: "high" } as any)}
+                decoding="async"
+                className="relative h-auto w-[56%] opacity-[0.09] md:opacity-[0.12]"
+              />
+            </div>
+          </div>
           <h1
             className="anim-rise font-serif text-[28px] font-bold leading-[1.1] text-balance sm:text-4xl md:text-5xl lg:text-[58px] lg:leading-[1.05]"
             style={{ animationDelay: "0ms" }}
