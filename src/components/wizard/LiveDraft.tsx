@@ -891,7 +891,7 @@ export function LiveDraft({
                     </h2>
                     <p className="mt-2 whitespace-pre-line text-sm leading-relaxed">{c.body}</p>
                   </div>
-                  <div className="md:border-l md:pl-6 md:legal-paper-divider">
+                  <div className={`md:border-l md:pl-6 md:legal-paper-divider${enLockClass}`} aria-hidden={enLocked || undefined}>
                     <h2 className="legal-paper-strong font-serif text-base font-bold uppercase">
                       {c.number} {c.title_en || c.title}
                     </h2>
@@ -919,7 +919,10 @@ export function LiveDraft({
           ) : generated.bilingual ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
               <p className="whitespace-pre-line text-sm italic">{generated.closing}</p>
-              <p className="legal-paper-strong whitespace-pre-line text-sm italic md:border-l md:pl-6 md:legal-paper-divider">
+              <p
+                className={`legal-paper-strong whitespace-pre-line text-sm italic md:border-l md:pl-6 md:legal-paper-divider${enLockClass}`}
+                aria-hidden={enLocked || undefined}
+              >
                 {generated.closing_en}
               </p>
             </div>
