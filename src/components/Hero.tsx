@@ -1,4 +1,4 @@
-import { ShieldCheck, Bird, FileText, ArrowRight, Search, Sparkles, FileSignature } from "lucide-react";
+import { ShieldCheck, Bird, FileText, ArrowRight, Search, FileSignature } from "lucide-react";
 import logoImg from "@/assets/logo-dogovori-hero.webp";
 import { scrollToHash } from "@/lib/scrollToHash";
 
