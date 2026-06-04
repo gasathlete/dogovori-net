@@ -848,7 +848,10 @@ export function LiveDraft({
           ) : generated.bilingual ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
               <p className="whitespace-pre-line text-sm leading-relaxed">{generated.preamble}</p>
-              <p className="legal-paper-strong whitespace-pre-line text-sm leading-relaxed md:border-l md:pl-6 md:legal-paper-divider">
+              <p
+                className={`legal-paper-strong whitespace-pre-line text-sm leading-relaxed md:border-l md:pl-6 md:legal-paper-divider${enLockClass}`}
+                aria-hidden={enLocked || undefined}
+              >
                 {generated.preamble_en}
               </p>
             </div>
