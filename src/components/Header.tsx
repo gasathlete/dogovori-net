@@ -46,10 +46,10 @@ export function Header() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 border-b backdrop-blur-xl transition-all duration-300",
+        "sticky top-0 z-40 border-b transition-colors duration-300",
         scrolled
-          ? "border-gold/15 bg-navy/95 shadow-soft"
-          : "border-border/40 bg-navy/80",
+          ? "border-gold/15 bg-navy shadow-soft"
+          : "border-border/40 bg-navy",
       )}
     >
       <div className="container flex h-20 items-center gap-6">
