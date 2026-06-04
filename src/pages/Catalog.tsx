@@ -694,6 +694,12 @@ function CategoryDocs({ cat, forceExpanded, downloadCounts }: { cat: any; forceE
                   {doc.badge && <Badge label={doc.badge} />}
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
+                  {doc.bilingual && (
+                    <>
+                      <span className="inline-block rounded-sm border border-gold/40 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-gold">BG/EN</span>
+                      <span className="inline-block rounded-sm bg-gradient-gold px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-navy">PRO</span>
+                    </>
+                  )}
                   {hasDynamic && (
                     <span className="inline-flex items-center gap-0.5 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300">
                       <Zap className="h-2.5 w-2.5" /> Динамичен
