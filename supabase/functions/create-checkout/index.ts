@@ -56,15 +56,53 @@ Deno.serve(async (req) => {
     // Resolve a stable Stripe customer per Lovable user — keeps Portal/refunds clean.
     const customerId = await resolveOrCreateCustomer(stripe, { userId, email: customerEmail });
 
+    // ----- Loyalty discount -----
+    // Mirror of src/lib/rewards.ts. Keep tiers in sync between client and server.
+    const REWARD_TIERS = [
+      { couponId: "loyalty_gold_5", name: "Златен предприемач", threshold: 1000, discountPercent: 5 },
+      { couponId: "loyalty_platinum_10", name: "Платинен предприемач", threshold: 5000, discountPercent: 10 },
+      { couponId: "loyalty_diamond_15", name: "Диамантен предприемач", threshold: 15000, discountPercent: 15 },
+    ];
+
+    let appliedCouponId: string | null = null;
+    if (isRecurring) {
+      const [{ count: opsCount }, { count: corrCount }, { data: quota }] = await Promise.all([
+        supabase.from("quota_session_charges").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("corrections_batch_charges").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("download_quota").select("contracts_used,templates_used,analyses_used").eq("user_id", userId).maybeSingle(),
+      ]);
+      const fromCharges = (opsCount ?? 0) + (corrCount ?? 0);
+      const fromQuota = (quota?.contracts_used ?? 0) + (quota?.templates_used ?? 0) + (quota?.analyses_used ?? 0);
+      const totalOps = Math.max(fromCharges, fromQuota);
+
+      const activeTier = [...REWARD_TIERS].reverse().find((t) => totalOps >= t.threshold);
+      if (activeTier) {
+        // Ensure the coupon exists (idempotent — retrieve, create if missing).
+        try {
+          await stripe.coupons.retrieve(activeTier.couponId);
+        } catch {
+          await stripe.coupons.create({
+            id: activeTier.couponId,
+            name: `${activeTier.name} — ${activeTier.discountPercent}%`,
+            percent_off: activeTier.discountPercent,
+            duration: "forever",
+          });
+        }
+        appliedCouponId = activeTier.couponId;
+      }
+    }
+
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: price.id, quantity: 1 }],
       mode: isRecurring ? "subscription" : "payment",
       ui_mode: "embedded_page",
       return_url: returnUrl,
       customer: customerId,
-      metadata: { userId },
-      ...(isRecurring && { subscription_data: { metadata: { userId } } }),
+      metadata: { userId, ...(appliedCouponId ? { loyalty_coupon: appliedCouponId } : {}) },
+      ...(appliedCouponId ? { discounts: [{ coupon: appliedCouponId }] } : {}),
+      ...(isRecurring && { subscription_data: { metadata: { userId, ...(appliedCouponId ? { loyalty_coupon: appliedCouponId } : {}) } } }),
     });
+
 
     return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
