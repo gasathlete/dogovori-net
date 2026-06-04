@@ -62,7 +62,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
               ))}
               <img
                 src={logoImg}
-                alt="Dogovori.net"
+                alt="Dogovori.net лого"
                 width={112}
                 height={112}
                 loading="eager"

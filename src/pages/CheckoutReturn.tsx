@@ -70,6 +70,7 @@ export default function CheckoutReturn() {
         <div className="rounded-2xl border border-gold/30 bg-gradient-card p-10">
           <CheckCircle2 className="mx-auto h-12 w-12 text-gold" />
           <h1 className="mt-4 font-serif text-2xl font-bold">Благодарим Ви!</h1>
+          <h2 className="sr-only">Завършена покупка в Dogovori.net</h2>
           <p className="mt-2 text-sm text-muted-foreground">
             {!sessionId
               ? "Няма информация за плащане."
