@@ -260,19 +260,27 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   }, [categoryId, categoryOther]);
 
   // Synthetic sector — used by LiveDraft so signature block and party labels work.
+  // Party labels are taken from the selected document-type schema so that e.g.
+  // "Декларация" shows Декларатор, "Пълномощно" shows Упълномощител/Пълномощник, etc.
   const syntheticSector = useMemo<Sector>(() => {
     const matched = SECTORS.find((x) => x.id === categoryId);
+    const typeSchema = getBuildSchema(documentType || "contract");
+    const partyAFromSchema = typeSchema?.partyALabel?.replace(/\/и\s*$/i, "").trim();
+    const partyBFromSchema = typeSchema?.partyBLabel?.replace(/\/и\s*$/i, "").trim();
     return {
       id: "custom",
       title: categoryLabel || "Свободен договор",
-      subtitle: "Свободно изготвен договор",
+      subtitle: "Свободно изготвен документ",
       icon: "FileText",
       description: "",
       contractName: name || matched?.contractName || "Договор",
-      parties: matched?.parties ?? { a: "Възложителя", b: "Изпълнителя" },
+      parties: {
+        a: partyAFromSchema || matched?.parties?.a || "Възложителя",
+        b: partyBFromSchema || matched?.parties?.b || "Изпълнителя",
+      },
       questions: [],
     };
-  }, [categoryId, categoryLabel, name]);
+  }, [categoryId, categoryLabel, name, documentType]);
 
   // Synthetic answers map so LiveDraft's signature block shows the first party from each side.
   const syntheticAnswers = useMemo(() => ({
