@@ -8,32 +8,6 @@ export function Hero({ onStart }: { onStart: () => void }) {
       {/* Base navy gradient */}
       <div className="absolute inset-0 bg-gradient-hero opacity-95" />
 
-      {/* Fine grid texture */}
-      <div className="absolute inset-0 bg-fine-grid opacity-25" />
-
-      {/* Diagonal hairline weave — couture cross-hatch */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-[0.06] mix-blend-screen"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(45deg, hsl(var(--gold)) 0 1px, transparent 1px 10px), repeating-linear-gradient(-45deg, hsl(var(--gold)) 0 1px, transparent 1px 10px)",
-        }}
-      />
-
-      {/* Constellation dots — sparse, premium */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-50"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle, hsl(var(--gold) / 0.35) 0.6px, transparent 1px)",
-          backgroundSize: "140px 140px",
-          backgroundPosition: "20px 30px",
-        }}
-      />
-
-
       {/* Corner filigree — four delicate ornaments */}
       {[
         { pos: "top-5 left-5", rot: "rotate-0" },
@@ -56,25 +30,6 @@ export function Hero({ onStart }: { onStart: () => void }) {
           <circle cx="14" cy="14" r="1.1" fill="currentColor" stroke="none" />
         </svg>
       ))}
-
-      {/* Vertical golden guidelines — column rhythm */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-full max-w-5xl -translate-x-1/2 md:block"
-      >
-        <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-gold/12 to-transparent" />
-        <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-gold/12 to-transparent" />
-      </div>
-
-      {/* Vignette to focus content */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 70% at 50% 50%, transparent 55%, hsl(var(--navy) / 0.72) 100%)",
-        }}
-      />
 
       {/* Top gold hairline + center diamond accent */}
       <div className="absolute inset-x-0 top-0 hairline-x" />
@@ -122,7 +77,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
             style={{ animationDelay: "0ms" }}
           >
             Договори, които{" "}
-            <span className="gold-shimmer">търсят и намират</span>{" "}
+            <span className="text-gold">търсят и намират</span>{" "}
             Вашите интереси
           </h1>
           <div
@@ -149,13 +104,13 @@ export function Hero({ onStart }: { onStart: () => void }) {
           >
             <button
               onClick={onStart}
-              className="btn-gold btn-sheen w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
+              className="btn-gold w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
             >
               <Search className="h-[18px] w-[18px]" /> Намери документ
             </button>
             <a
               href="/build"
-              className="btn-gold-inverse btn-sheen w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
+              className="btn-gold-inverse w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
             >
               <ArrowRight className="h-[18px] w-[18px]" /> Изготви документ
             </a>
