@@ -1004,6 +1004,7 @@ function TemplateDraftOrSkeleton({
   clauses: Clause[];
   answeredCount: number;
   bilingual?: boolean;
+  documentType?: DocumentTypeId | string | null;
 }) {
   const [draftRaw, setDraftRaw] = useState<string | null>(null);
   const [resolved, setResolved] = useState(false);
