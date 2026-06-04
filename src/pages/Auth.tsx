@@ -35,6 +35,49 @@ export default function AuthPage() {
   const [acceptMarketing, setAcceptMarketing] = useState(false);
   const [tab, setTab] = useState<"login" | "signup">("login");
 
+  // Manual confirmation flow (resend + OTP code)
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmEmail, setConfirmEmail] = useState("");
+  const [confirmCode, setConfirmCode] = useState("");
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const [confirmSent, setConfirmSent] = useState(false);
+
+  const openConfirmDialog = () => {
+    setConfirmEmail(email);
+    setConfirmCode("");
+    setConfirmSent(false);
+    setConfirmOpen(true);
+  };
+
+  const handleResendCode = async () => {
+    if (!confirmEmail) return toast.error("Въведете email");
+    setConfirmBusy(true);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: confirmEmail,
+      options: { emailRedirectTo: window.location.origin + redirect },
+    });
+    setConfirmBusy(false);
+    if (error) return toast.error("Не успяхме да изпратим код", { description: translateAuthError(error.message) });
+    setConfirmSent(true);
+    toast.success("Изпратихме нов 6-цифрен код на имейла ви");
+  };
+
+  const handleVerifyCode = async () => {
+    if (!confirmEmail || confirmCode.length < 6) return toast.error("Въведете 6-цифрения код");
+    setConfirmBusy(true);
+    const { error } = await supabase.auth.verifyOtp({
+      email: confirmEmail,
+      token: confirmCode.trim(),
+      type: "signup",
+    });
+    setConfirmBusy(false);
+    if (error) return toast.error("Невалиден код", { description: translateAuthError(error.message) });
+    toast.success("Имейлът е потвърден!");
+    setConfirmOpen(false);
+    navigate(redirect);
+  };
+
   const signupReady = acceptTerms && acceptPrivacy && acceptAge;
   // Google OAuth: returning users (login tab) don't need to re-accept; new users (signup tab) must.
   const googleReady = tab === "login" ? true : signupReady;
