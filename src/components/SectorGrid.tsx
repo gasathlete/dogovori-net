@@ -14,7 +14,7 @@ export function SectorGrid({ onPick }: { onPick: (id: string) => void }) {
     <section id="sectors" className="container py-14 sm:py-16 md:py-24">
       <div className="mb-10 max-w-2xl md:mb-12">
         <div className="eyebrow mb-3">
-          <span className="font-serif text-base font-normal tracking-normal text-gold/60">01</span>
+          <span className="font-serif text-base font-normal tracking-normal text-gold/60">02</span>
           <span className="h-px w-6 bg-gold/40" />
           Сектори
         </div>
