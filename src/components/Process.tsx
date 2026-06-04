@@ -54,18 +54,40 @@ export function Process() {
             Функции
           </h2>
         </div>
-        <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-hairline bg-hairline sm:grid-cols-2 md:grid-cols-3">
-          {steps.map((s) => (
+        <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-hairline bg-hairline sm:grid-cols-2 md:grid-cols-4">
+          {steps.slice(0, 4).map((s) => (
             <div
               key={s.n}
-              className="group relative flex flex-col bg-card/80 p-7 transition-colors duration-200 hover:bg-card sm:p-8"
+              className="group relative flex flex-col bg-card/80 p-6 transition-colors duration-200 hover:bg-card sm:p-7"
             >
               <div className="mb-5 flex items-center justify-between">
                 <span className="font-serif text-2xl font-bold text-gold/35 transition-colors duration-200 group-hover:text-gold/60">{s.n}</span>
                 <s.icon className="h-5 w-5 text-gold" strokeWidth={1.6} />
               </div>
-              <h3 className="font-serif text-lg font-bold leading-snug text-foreground sm:text-xl">{s.title}</h3>
+              <h3 className="font-serif text-base font-bold leading-snug text-foreground sm:text-lg">{s.title}</h3>
               <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">{s.text}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+          <span className="h-px flex-1 bg-hairline" />
+          Допълнително
+          <span className="h-px flex-1 bg-hairline" />
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-hairline bg-hairline sm:grid-cols-2">
+          {steps.slice(4).map((s) => (
+            <div
+              key={s.n}
+              className="group relative flex flex-col bg-card/40 p-6 transition-colors duration-200 hover:bg-card/70 sm:p-7"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <span className="font-serif text-xl font-bold text-gold/30 transition-colors duration-200 group-hover:text-gold/50">{s.n}</span>
+                <s.icon className="h-4 w-4 text-gold/80" strokeWidth={1.6} />
+              </div>
+              <h3 className="font-serif text-base font-bold leading-snug text-foreground">{s.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{s.text}</p>
             </div>
           ))}
         </div>
