@@ -123,7 +123,7 @@ export function Header() {
               ЗУТ
             </a>
           </span>
-          <LanguageSwitcher className="hidden sm:block" />
+          {/* <LanguageSwitcher className="hidden sm:block" /> */}
           {user ? (
             <Link
               to="/account"
