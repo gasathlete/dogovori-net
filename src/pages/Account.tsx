@@ -85,10 +85,11 @@ export default function AccountPage() {
 
   const [analysesDates, setAnalysesDates] = useState<string[]>([]);
   const [correctionsDates, setCorrectionsDates] = useState<string[]>([]);
+  const [opChargeDates, setOpChargeDates] = useState<string[]>([]);
 
   const reload = async () => {
     if (!user) return;
-    const [c, f, d, q, p, uc, ra, cb, cbAll] = await Promise.all([
+    const [c, f, d, q, p, uc, ra, cb, cbAll, qsc] = await Promise.all([
       supabase.from("contacts").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("folders").select("*").order("is_favorites", { ascending: false }),
       supabase.from("saved_documents").select("*").order("created_at", { ascending: false }),
@@ -97,7 +98,8 @@ export default function AccountPage() {
       supabase.from("uploaded_contracts").select("id,title,source,folder_id,contact_id,original_filename,storage_path,created_at").order("created_at", { ascending: false }),
       supabase.from("risk_analyses").select("uploaded_contract_id,score,contract_type,created_at").order("created_at", { ascending: false }),
       supabase.from("corrections_batch_charges").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-      supabase.from("corrections_batch_charges").select("created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(500),
+      supabase.from("corrections_batch_charges").select("created_at").eq("user_id", user.id).order("created_at", { ascending: true }).limit(5000),
+      supabase.from("quota_session_charges").select("created_at").eq("user_id", user.id).order("created_at", { ascending: true }).limit(5000),
     ]);
     setContacts((c.data as any) ?? []);
     setFolders((f.data as any) ?? []);
@@ -108,11 +110,13 @@ export default function AccountPage() {
     setCorrectionsCount((cb as any)?.count ?? 0);
     setAnalysesDates(((ra.data as any) ?? []).map((r: any) => r.created_at));
     setCorrectionsDates(((cbAll.data as any) ?? []).map((r: any) => r.created_at));
+    setOpChargeDates(((qsc.data as any) ?? []).map((r: any) => r.created_at));
     const map: Record<string, RiskAnalysisLite> = {};
     for (const r of ((ra.data as any) ?? []) as RiskAnalysisLite[]) {
       if (!map[r.uploaded_contract_id]) map[r.uploaded_contract_id] = r;
     }
     setAnalysesByContract(map);
+
   };
 
 
