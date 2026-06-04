@@ -93,8 +93,7 @@ export default function AuthPage() {
   };
 
   const signupReady = acceptTerms && acceptPrivacy && acceptAge;
-  // Google OAuth: returning users (login tab) don't need to re-accept; new users (signup tab) must.
-  const googleReady = tab === "login" ? true : signupReady;
+  const showBgEmailWarning = isRiskyBgEmail(email);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
