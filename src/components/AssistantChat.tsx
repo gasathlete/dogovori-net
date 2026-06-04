@@ -110,6 +110,21 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
   const sendMessage = async (text: string) => {
     if (!text.trim() || streaming || !session?.access_token) return;
 
+    // Gate: meter against monthly AI quota (5/mo Free, unlimited PRO/Team).
+    const { data: gate, error: gateErr } = await supabase.rpc("consume_ai_message");
+    if (gateErr) {
+      toast.error("Грешка при проверка на квотата");
+      return;
+    }
+    const g = gate as { ok: boolean; reason?: string; used?: number; cap?: number } | null;
+    if (g && g.ok === false) {
+      toast.error("Изчерпани са безплатните 5 съобщения за този месец. Активирай PRO за неограничен достъп.");
+      await refreshPlan();
+      return;
+    }
+    await refreshPlan();
+
+
     const userMsg: Msg = { id: `tmp-u-${Date.now()}`, role: "user", content: text.trim() };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
