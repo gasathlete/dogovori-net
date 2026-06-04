@@ -28,11 +28,16 @@ export function Hero({ onStart }: { onStart: () => void }) {
       <div className="container relative py-10 sm:py-16 md:py-24 lg:py-28">
         <div className="mx-auto max-w-3xl text-center">
           <div
-            className="anim-rise mb-5 inline-flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold sm:px-3.5 sm:text-[11px]"
+            className="anim-rise mb-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]"
             style={{ animationDelay: "0ms" }}
           >
-            <Bird className="h-3.5 w-3.5" />
-            Професионален юридически помощник
+            <span className="inline-flex items-center gap-1.5 text-gold"><ShieldCheck className="h-3.5 w-3.5" /> ЗЗД · ТЗ · ЗУТ</span>
+            <span className="h-3 w-px bg-gold/30" />
+            <span className="inline-flex items-center gap-1.5"><Sparkles className="h-3.5 w-3.5 text-gold" /> AI анализ на риска</span>
+            <span className="h-3 w-px bg-gold/30" />
+            <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-gold" /> 590 шаблона</span>
+            <span className="h-3 w-px bg-gold/30" />
+            <span className="inline-flex items-center gap-1.5"><FileSignature className="h-3.5 w-3.5 text-gold" /> Електронен подпис</span>
           </div>
           <h1
             className="anim-rise font-serif text-[28px] font-bold leading-[1.1] text-balance sm:text-4xl md:text-5xl lg:text-[58px] lg:leading-[1.05]"
