@@ -286,8 +286,10 @@ function ScrollableTabsList({ children }: { children: React.ReactNode }) {
 }
 
 /* ============================ DASHBOARD ============================ */
-function Dashboard({ quota, isPro, docs, hasChatAccess, onOpenChat }: { quota: Quota | null; isPro: boolean; docs: SavedDoc[]; hasChatAccess: boolean; onOpenChat: () => void }) {
+function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, hasChatAccess, onOpenChat }: { quota: Quota | null; isPro: boolean; docs: SavedDoc[]; uploadedCount: number; correctionsCount: number; hasChatAccess: boolean; onOpenChat: () => void }) {
   const navigate = useNavigate();
+  const createdDocs = docs.length;
+  const analysesUsed = (quota as any)?.analyses_used ?? 0;
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <Card
@@ -310,6 +312,13 @@ function Dashboard({ quota, isPro, docs, hasChatAccess, onOpenChat }: { quota: Q
         onClick={() => navigate("/account?tab=subscription&checkout=five_operations")}
       />
       <Card
+        title="Създадени документи"
+        value={`${createdDocs}`}
+        icon={<Sparkles className="h-5 w-5 text-gold" />}
+        sub="Запазени чернови в профила"
+        onClick={() => navigate("/account?tab=documents")}
+      />
+      <Card
         title="Свалени договори"
         value={`${quota?.contracts_used ?? 0}`}
         icon={<FileText className="h-5 w-5 text-gold" />}
@@ -321,6 +330,21 @@ function Dashboard({ quota, isPro, docs, hasChatAccess, onOpenChat }: { quota: Q
         icon={<FileText className="h-5 w-5 text-gold" />}
         onClick={() => navigate("/downloads/templates")}
       />
+      <Card
+        title="Качени за анализ"
+        value={`${uploadedCount}`}
+        icon={<ShieldCheck className="h-5 w-5 text-gold" />}
+        sub={`${analysesUsed} извършени анализа`}
+        onClick={() => navigate("/account?tab=uploaded")}
+      />
+      <Card
+        title="Автоматични корекции"
+        value={`${correctionsCount}`}
+        icon={<RefreshCw className="h-5 w-5 text-gold" />}
+        sub="Приложени вълни от корекции"
+        onClick={() => navigate("/account?tab=uploaded")}
+      />
+
 
       <div className="md:col-span-3 rounded-xl border border-border/60 bg-gradient-card p-6">
         <h3 className="mb-3 font-serif text-lg font-bold">Последни документи</h3>
