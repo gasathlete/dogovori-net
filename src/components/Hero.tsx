@@ -25,17 +25,18 @@ export function Hero({ onStart }: { onStart: () => void }) {
       >
         <div className="relative flex items-center justify-center">
           {/* Concentric rings for a seal-like frame */}
-          <div className="absolute aspect-square w-[min(70vw,560px)] rounded-full border border-gold/15" />
-          <div className="absolute aspect-square w-[min(60vw,480px)] rounded-full border border-gold/10" />
+          <div className="absolute aspect-square w-[min(95vw,860px)] rounded-full border border-gold/15" />
+          <div className="absolute aspect-square w-[min(82vw,740px)] rounded-full border border-gold/12" />
+          <div className="absolute aspect-square w-[min(68vw,600px)] rounded-full border border-gold/10" />
           <img
             src={logoImg}
             alt=""
-            width={420}
-            height={420}
+            width={640}
+            height={640}
             loading="eager"
             {...({ fetchpriority: "high" } as any)}
             decoding="async"
-            className="relative h-auto w-[min(38vw,300px)] opacity-[0.07] md:opacity-[0.10] [filter:drop-shadow(0_0_40px_hsl(var(--gold)/0.25))]"
+            className="relative h-auto w-[min(58vw,500px)] opacity-[0.11] md:opacity-[0.15] [filter:drop-shadow(0_0_70px_hsl(var(--gold)/0.35))]"
           />
         </div>
       </div>
