@@ -432,6 +432,11 @@ export default function AuthPage() {
               {confirmBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {confirmSent ? "Изпрати кода отново" : "Изпрати ми код"}
             </Button>
+            {isRiskyBgEmail(confirmEmail) && (
+              <p className="text-[11px] text-yellow-700 dark:text-yellow-300">
+                Ако кодът не пристигне до 5 минути, опитайте с <strong>Google вход</strong> или друг имейл — abv.bg / mail.bg / dir.bg често блокират изпращача ни.
+              </p>
+            )}
 
             {confirmSent && (
               <p className="text-[11px] text-muted-foreground">
