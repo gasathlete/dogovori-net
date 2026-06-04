@@ -1,70 +1,71 @@
-## Какво има днес и защо изглежда различно
-
-Открих **четири** различни уизарда, всеки със собствен изглед и навигация:
-
-| Уизард | Файл | Стил на стъпките |
-|---|---|---|
-| Legacy per-sector | `src/pages/Wizard.tsx` (895 реда) | **Един въпрос на страница** ("Въпрос X / N"), без секции |
-| Bilingual | `src/pages/WizardBilingual.tsx` | preset / отделен поток |
-| "Изготви документ" (custom) | `src/pages/BuildContract.tsx` | **Многостъпков stepper по секции** (Режим → Основни → …), показва _всички полета_ от секцията наведнъж |
-| Graph (нов, динамичен) | `src/pages/WizardGraph.tsx` → `SplitWizard.tsx` | **Един въпрос на страница** (както legacy) |
-
-Освен това всеки уизард рендира собствен page-chrome (заглавия, breadcrumbs, лента "Изтегли бланка"), което създава визуални различия дори когато съдържанието е същото.
-
-Графовете (`src/data/questionGraphs/*.ts`) вече имат `sections: [{id,title,description?}]` и всеки въпрос си знае `section`-а — т.е. структурата за групиране **вече съществува**, просто не се ползва в UI-я.
 
 ## Цел
 
-1. **Един общ компонент** за всички уизарди (graph и legacy).
-2. **Стъпка = секция**, не въпрос. Всички видими въпроси от секцията се показват едновременно (като BuildContract).
-3. **Динамична логика остава непокътната** — `visible_when`/`required_when` се ре-оценяват при всяка промяна; празни секции автоматично се прескачат; "Напред" блокирано докато има непопълнено required в текущата секция.
-4. **Един визуален език** — stepper отгоре, серифен live preview отдясно, златни акценти. Page-chrome (breadcrumbs, "Изтегли бланка", RiskMeter) се рендира еднократно от страницата-обвивка.
+Изостряне на съществуващия dark-navy + gold editorial стил на началната страница. Без смяна на палитра/типография. Подобрена маркетингова йерархия: доверие → скорост/AI → цена → social proof. Всички числа за каталога са **590 шаблона**.
 
-## План за изпълнение
+## Промени по секции
 
-### 1. Refactor `SplitWizard.tsx` — секция-базиран stepper
-- Заместване на `stepIdx` върху `resolved.active` (per question) с `stepIdx` върху `resolved.sections` (per section).
-- Добавяне на хоризонтален stepper в стил BuildContract: `Стъпка X от N` + progress + клик-в-таб (само за вече валидирани секции).
-- Рендериране на **всички** въпроси от текущата секция в `space-y-5`, всеки през `GraphQuestionField`.
-- `canAdvance` = няма `missingRequired` ID, който е във въпросите на текущата секция.
-- На последна секция → `Финализирай документа` (както сега).
-- Live preview (дясна колона) — без промени.
+### 1. Hero (`src/components/Hero.tsx`)
+- **Trust bar над H1**: тънка лента с 3–4 микро-сигнала ("ЗЗД · ТЗ · ЗУТ съответствие", "AI анализ на риска", "590 безплатни шаблона", "Електронен подпис"). Сепаратори от gold hairline.
+- **H1**: запазен текст, по-стегнат tracking, gold shimmer само на ключовата фраза.
+- **Subheadline**: добавяне на ред „590 шаблона · Pro 9.90 €/месец · без скрити такси" (само EUR).
+- **CTA блок**: основен „Намери документ" с лек pulse glow; вторичен „Изготви документ" — outline gold. Микро-копие под бутоните: „Без регистрация за разглеждане · 2 минути до готов документ".
+- **Trust строки (3 карти отдолу)**: над label-а се добавя метрика — „590" шаблона, „<2 мин" изготвяне, „100%" GDPR/ЗЗД съответствие.
+- По-фина прозрачност на фоновото лого.
 
-### 2. `WizardGraph.tsx` chrome — без промяна на логиката
-- Запазва sticky breadcrumb + "Изтегли празна бланка" + RiskMeter.
-- `onProgress` callback от `SplitWizard` връща `{sectionIdx, totalSections, percent}` вместо per-question — лентата отгоре остава, но броячът става "Секция X / N".
+### 2. SectorGrid (`src/components/SectorGrid.tsx`)
+- Counter chip до H2: „12 сектора · 590 документа".
+- По-изразен hover на картите (gold corner ticks като в PartnersBoard) и малък arrow icon долу-вдясно.
 
-### 3. Унификация на legacy `Wizard.tsx`
-- Когато sector-ът има migrated graph (`getQuestionGraph(slug)`) — вече се редиректва към `/wizard-graph/:slug`. Това остава.
-- За немигрираните: групиране на `flattenQuestions(sector)` по `question.section` (полето вече съществува в `Question`). Същият секция-stepper UI се изнася в споделен helper `<SectionedQuestionList>` под `src/components/wizard/`, за да го ползват и двата уизарда.
-- Ако даден стар sector няма секции — fallback: целият списък като една секция "Въпроси".
+### 3. TopDocuments (`src/components/TopDocuments.tsx`)
+- Карта №1 като „featured" вариант (gold rim, badge „Най-търсен").
+- Микро-метрика под всяка карта („X хил. изтегляния" — индикативни числа през токени).
+- Долу: вторичен CTA „Виж целия каталог (590 шаблона)" в `btn-ghost-gold`.
 
-### 4. Unified visual tokens
-- Извличане на shared "wizard chrome" в малък компонент `WizardShell` (breadcrumb + blank-download bar + RiskMeter slot + children), използван от `Wizard.tsx`, `WizardGraph.tsx` и `WizardBilingual.tsx`. Това гарантира еднакъв изглед независимо от кой route влиза потребителят.
+### 4. Process (`src/components/Process.tsx`)
+- Визуално свързване със стрелки/hairline между картите на desktop.
+- Стъпки 5–6 (Storage, Blog) се групират като „Допълнително" с по-тих фон.
 
-### 5. Не пипаме
-- `BuildContract.tsx` — той има напълно различни стъпки (Режим, Двуезичен, Тип документ…), които не са въпроси от каталог. Запазва се както е, но визуално вече ще е консистентен с останалите (същите токени).
-- Логика на графа, clauseEngine, clause definitions, експорти, AI поток.
+### 5. PartnersBoard
+- Над marquee: „Доверени от 40+ фирми в България".
+
+### 6. ComplianceSection
+- Sub-headline „Защо да ни се доверите" + 3 trust badges (ЗЗД · GDPR · eIDAS) над pillars.
+
+### 7. Нова секция: Testimonials (между Partners и Compliance)
+- `src/components/Testimonials.tsx` — 3 карти с цитати (юрист, фрийлансър, малък бизнес), stars, инициали. Lazy-loaded.
+
+### 8. Финална CTA лента (преди SeoFooter)
+- `src/components/CTABand.tsx` — full-width gold-tinted band: „Готови ли сте да изготвите своя документ?" + 2 CTA. Силен conversion момент.
+
+### 9. `src/index.css`
+- Подсилен `gold-shimmer` keyframe.
+- Нови utility-та: `.metric-number` (font-serif, gold gradient за големи числа) и `.trust-chip`.
 
 ## Технически детайли
+- Само semantic tokens (`gold`, `card`, `hairline`, `muted-foreground`) — без hardcoded цветове.
+- Само CSS keyframes + съществуващите `anim-rise` / `Reveal`. Без нови JS зависимости.
+- Новите секции се mount-ват през `LazyOnVisible` в `Index.tsx`.
+- Mobile-first: всичко single-column на <640px; trust chips wrap-ват.
 
-- Нов helper в `src/lib/questionGraph.ts`: `getSectionStatus(graph, answers)` връща `[{id,title,filled,total,missing,visible}]` — използва се и за stepper, и за "section complete" чек.
-- `SplitWizard` props разширяват с `mode?: "section" | "question"` (default `"section"`) за обратна съвместимост, но всички routes ще ползват `section`.
-- За плавно превключване между секции — `requestAnimationFrame` scroll-to-top на лявата колона (вече има).
-- Persist: `localStorage` запазва `answers` + `currentSectionId` (по id, не по индекс, за да оцелее при промяна на видими секции).
+## Файлове
 
-## Файлове за промяна
+Промяна:
+- `src/components/Hero.tsx`
+- `src/components/SectorGrid.tsx`
+- `src/components/TopDocuments.tsx`
+- `src/components/Process.tsx`
+- `src/components/PartnersBoard.tsx`
+- `src/components/ComplianceSection.tsx`
+- `src/pages/Index.tsx`
+- `src/index.css`
 
-- `src/components/wizard/SplitWizard.tsx` — section stepper rewrite
-- `src/components/wizard/SectionedQuestionList.tsx` — нов, споделен
-- `src/components/wizard/WizardShell.tsx` — нов, споделен chrome
-- `src/lib/questionGraph.ts` — добавя `getSectionStatus`
-- `src/pages/WizardGraph.tsx` — ползва `WizardShell` + per-section progress
-- `src/pages/Wizard.tsx` — ползва `WizardShell` + `SectionedQuestionList` за немигрирани шаблони
-- `src/pages/WizardBilingual.tsx` — обвива в `WizardShell`
+Нови:
+- `src/components/Testimonials.tsx`
+- `src/components/CTABand.tsx`
 
-## Резултат за потребителя
-
-- Един и същ изглед навсякъде (graph, legacy, bilingual).
-- Всяка стъпка = логическа секция с няколко въпроса наведнъж — както в "Изготви документ".
-- Динамичното дърво си работи: невидими въпроси не се броят, "Напред" чака само това, което реално е задължително _в момента_.
+## Извън обхват
+- Промяна на палитра/шрифтове
+- Routing или съдържание на каталога
+- Backend/Supabase
+- Wizard pages

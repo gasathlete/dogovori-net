@@ -14,7 +14,9 @@ import { Reveal } from "@/components/Reveal";
 const TopDocuments = lazy(() => import("@/components/TopDocuments").then((m) => ({ default: m.TopDocuments })));
 const Process = lazy(() => import("@/components/Process").then((m) => ({ default: m.Process })));
 const PartnersBoard = lazy(() => import("@/components/PartnersBoard").then((m) => ({ default: m.PartnersBoard })));
+const Testimonials = lazy(() => import("@/components/Testimonials").then((m) => ({ default: m.Testimonials })));
 const ComplianceSection = lazy(() => import("@/components/ComplianceSection").then((m) => ({ default: m.ComplianceSection })));
+const CTABand = lazy(() => import("@/components/CTABand").then((m) => ({ default: m.CTABand })));
 
 const Divider = () => (
   <div aria-hidden="true" className="container">
@@ -71,7 +73,18 @@ const Index = () => {
           <Divider />
           <LazyOnVisible minHeight={400}>
             <Reveal>
+              <Testimonials />
+            </Reveal>
+          </LazyOnVisible>
+          <Divider />
+          <LazyOnVisible minHeight={400}>
+            <Reveal>
               <ComplianceSection />
+            </Reveal>
+          </LazyOnVisible>
+          <LazyOnVisible minHeight={300}>
+            <Reveal>
+              <CTABand />
             </Reveal>
           </LazyOnVisible>
         </Suspense>

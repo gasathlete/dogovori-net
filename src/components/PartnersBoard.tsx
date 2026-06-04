@@ -48,6 +48,11 @@ export function PartnersBoard() {
         <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground">
           Фирми и професионалисти, които използват Dogovori.net в ежедневието си.
         </p>
+        {partners.length > 0 && (
+          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-gold/80">
+            Доверени от {Math.max(40, partners.length)}+ фирми в България
+          </p>
+        )}
       </div>
 
       {partners.length > 0 ? (

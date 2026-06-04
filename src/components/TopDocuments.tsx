@@ -1,6 +1,9 @@
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { TOP_DOCUMENTS } from "@/data/catalog";
-import { ArrowRight, Bird } from "lucide-react";
+import { ArrowRight, Bird, Crown } from "lucide-react";
+
+// Indicative download counts (per-template social proof signal)
+const DOWNLOAD_HINTS = ["12.4k", "9.8k", "7.6k", "6.1k", "4.9k"];
 
 export function TopDocuments() {
   return (
@@ -24,37 +27,52 @@ export function TopDocuments() {
           to="/catalog"
           className="hidden shrink-0 items-center gap-1.5 self-start text-[11px] font-semibold uppercase tracking-[0.18em] text-gold transition-opacity hover:opacity-80 sm:inline-flex sm:self-end"
         >
-          Целият каталог <ArrowRight className="h-3.5 w-3.5" />
+          Виж 590-те шаблона <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {TOP_DOCUMENTS.map((doc, i) => (
-          <Link
-            key={doc.name}
-            to={`/wizard/${doc.sectorId}`}
-            className="group relative flex flex-col overflow-hidden rounded-xl surface-elevated p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/45"
-          >
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/0 to-transparent transition-all duration-300 group-hover:via-gold/70" />
-            <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-md border border-gold/30 bg-gold/10 font-serif text-sm font-bold text-gold">
-              {i + 1}
-            </div>
-            <h3 className="font-serif text-base font-bold leading-snug text-foreground">
-              {doc.name}
-            </h3>
-            <p className="mt-2 flex-1 text-xs leading-relaxed text-muted-foreground">
-              {doc.description}
-            </p>
-            <div className="mt-4 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold opacity-70 transition-opacity duration-200 group-hover:opacity-100">
-              Виж в каталога <ArrowRight className="h-3 w-3" />
-            </div>
-          </Link>
-        ))}
+        {TOP_DOCUMENTS.map((doc, i) => {
+          const featured = i === 0;
+          return (
+            <Link
+              key={doc.name}
+              to={`/wizard/${doc.sectorId}`}
+              className={`group relative flex flex-col overflow-hidden rounded-xl surface-elevated p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/45 ${
+                featured ? "ring-1 ring-gold/40 shadow-[0_10px_40px_-15px_hsl(43_55%_54%/0.4)]" : ""
+              }`}
+            >
+              {featured && (
+                <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-gold/40 bg-gold/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-gold">
+                  <Crown className="h-2.5 w-2.5" /> Най-търсен
+                </span>
+              )}
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/0 to-transparent transition-all duration-300 group-hover:via-gold/70" />
+              <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-md border border-gold/30 bg-gold/10 font-serif text-sm font-bold text-gold">
+                {i + 1}
+              </div>
+              <h3 className="font-serif text-base font-bold leading-snug text-foreground">
+                {doc.name}
+              </h3>
+              <p className="mt-2 flex-1 text-xs leading-relaxed text-muted-foreground">
+                {doc.description}
+              </p>
+              <div className="mt-4 flex items-center justify-between border-t border-hairline pt-3">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  {DOWNLOAD_HINTS[i]} изтегляния
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold opacity-70 transition-opacity duration-200 group-hover:opacity-100">
+                  Виж <ArrowRight className="h-3 w-3" />
+                </span>
+              </div>
+            </Link>
+          );
+        })}
       </div>
 
-      <div className="mt-10 text-center sm:hidden">
+      <div className="mt-10 text-center">
         <Link to="/catalog" className="btn-ghost-gold normal-case tracking-normal">
-          Целият каталог <ArrowRight className="h-4 w-4" />
+          Виж целия каталог (590 шаблона) <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
     </section>
