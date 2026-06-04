@@ -970,6 +970,7 @@ export function LiveDraft({
           clauses={clauses}
           answeredCount={answeredCount}
           bilingual={bilingual}
+          documentType={documentType}
         />
       </PreviewFadeGate>
     </ProtectedContent>
