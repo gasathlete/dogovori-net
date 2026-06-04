@@ -162,20 +162,17 @@ export default function AuthPage() {
     navigate(redirect);
   };
 
-  const handleGoogle = async () => {
-    if (tab === "signup" && !signupReady) {
-      toast.error("Преди регистрация с Google, моля приемете задължителните условия");
-      return;
-    }
+  const startGoogleOAuth = async (marketing: boolean) => {
     setBusy(true);
     try {
       sessionStorage.setItem("post_login_redirect", redirect);
-      if (tab === "signup") {
-        sessionStorage.setItem(
-          "pending_consents",
-          JSON.stringify({ marketing: acceptMarketing, terms: true, privacy: true, age_18: true, ts: Date.now() }),
-        );
-      }
+      // Always stash consents — recordConsents on the server side is idempotent
+      // for existing users (won't duplicate), and ensures new accounts created
+      // via Google have the required terms/privacy/age records.
+      sessionStorage.setItem(
+        "pending_consents",
+        JSON.stringify({ marketing, terms: true, privacy: true, age_18: true, ts: Date.now() }),
+      );
     } catch { /* storage unavailable */ }
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
@@ -188,6 +185,25 @@ export default function AuthPage() {
     if (result.redirected) return;
     setBusy(false);
     navigate(redirect);
+  };
+
+  const handleGoogle = async () => {
+    if (tab === "signup") {
+      if (!signupReady) {
+        toast.error("Преди регистрация с Google, моля приемете задължителните условия");
+        return;
+      }
+      await startGoogleOAuth(acceptMarketing);
+      return;
+    }
+    // Login tab: open consent dialog before OAuth to close the gap where
+    // Google would silently create a new account without consents.
+    setGoogleConsentOpen(true);
+  };
+
+  const handleGoogleConsentConfirm = async (marketing: boolean) => {
+    setGoogleConsentOpen(false);
+    await startGoogleOAuth(marketing);
   };
 
   const handleReset = async () => {
