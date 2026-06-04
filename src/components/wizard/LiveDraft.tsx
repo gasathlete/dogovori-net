@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Pencil, Check, Lock, Sparkles, Feather } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { loadTemplateDraft, fillTemplateDraft } from "@/lib/templateDraftResolver";
+import type { DocumentTypeId } from "@/lib/documentReferences";
+import { buildTypeSkeleton, isOneSidedType } from "@/lib/typeSkeletons";
 
 
 /**
