@@ -174,7 +174,7 @@ export default function BlogPost() {
             <div className="absolute inset-x-0 top-0 hairline-x" />
             <h3 className="font-serif text-xl font-bold leading-tight md:text-2xl">Нужен ви е готов договор?</h3>
             <p className="mx-auto mt-3 max-w-xl text-balance text-sm leading-relaxed text-muted-foreground">
-              Над 290 професионални шаблона на български — попълнете с AI помощник за минути.
+              Над 500 професионални документи и бланки на български — попълнете с AI асистент за минути.
             </p>
             <Link to="/catalog" className="btn-gold mt-6">
               Виж шаблоните

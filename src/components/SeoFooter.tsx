@@ -86,7 +86,7 @@ export function SeoFooter() {
           <div className="md:col-span-1">
             <Logo />
             <p className="mt-3 max-w-xs text-xs leading-relaxed text-muted-foreground">
-              Договори онлайн на български език. Над 290 шаблона по ЗЗД, ТЗ и КТ — готови за попълване с AI помощник.
+              Документи, договори, бланки и шаблони онлайн на български език. Над 500 готови шаблона по ЗЗД, ТЗ и КТ — попълнете с AI асистент.
             </p>
             <a
               href="https://im-development.imot.bg"
