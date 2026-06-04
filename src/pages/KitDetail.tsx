@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { getKit, type KitItem } from "@/data/documentKits";
 import { allTemplates } from "@/lib/templateIndex";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsPro } from "@/hooks/useIsPro";
 import { createKitFromTemplate } from "@/lib/kits";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export default function KitDetailPage() {
@@ -40,11 +42,24 @@ export default function KitDetailPage() {
     return { primary, appendix, companion };
   }, [kit]);
 
+  const { isPro, isTeam } = useIsPro();
   const handleStart = async () => {
     if (!user) {
       toast.info("Влезте, за да стартирате комплект");
       navigate(`/auth?next=/komplekti/${kit.id}`);
       return;
+    }
+    // Free users can keep only 1 active kit slot.
+    if (!isPro && !isTeam) {
+      const { data: slotData } = await supabase.rpc("can_use_kit_slot");
+      const slotOk = (slotData as any)?.ok !== false;
+      if (!slotOk) {
+        toast.error("Безплатен лимит: 1 активен комплект", {
+          description: "Изтрийте съществуващия комплект или надградете до PRO за неограничени.",
+          action: { label: "Виж PRO", onClick: () => navigate("/account?tab=subscription") },
+        });
+        return;
+      }
     }
     setStarting(true);
     try {

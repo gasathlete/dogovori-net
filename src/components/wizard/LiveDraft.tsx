@@ -760,6 +760,8 @@ export function LiveDraft({
       };
       onContractChange(next);
     };
+    const enLocked = !!(generated.bilingual && !isPro);
+    const enLockClass = enLocked ? " blur-sm select-none pointer-events-none" : "";
     return (
       <ProtectedContent>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -806,6 +808,25 @@ export function LiveDraft({
             </span>
           )}
         </div>
+        {enLocked && (
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-gold/40 bg-gold/10 p-3">
+            <div className="flex items-start gap-2">
+              <Lock className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+              <div>
+                <div className="text-sm font-semibold text-foreground">Английската версия е заключена</div>
+                <p className="text-xs text-muted-foreground">
+                  Двуезичните договори (BG + EN) са PRO функция. Българската страна остава напълно достъпна.
+                </p>
+              </div>
+            </div>
+            <a
+              href="/account?tab=subscription"
+              className="shrink-0 rounded-md bg-gradient-gold px-3 py-1.5 text-xs font-semibold text-navy shadow-gold hover:opacity-90"
+            >
+              Отключи PRO
+            </a>
+          </div>
+        )}
         <PreviewFadeGate active={false}>
 
         <article
@@ -826,7 +847,9 @@ export function LiveDraft({
           ) : generated.bilingual ? (
             <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
               <span className="block">{generated.title}</span>
-              <span className="legal-paper-strong mt-1 block">{generated.title_en || generated.title}</span>
+              <span className={`legal-paper-strong mt-1 block${enLockClass}`} aria-hidden={enLocked || undefined}>
+                {generated.title_en || generated.title}
+              </span>
             </h1>
           ) : (
             <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
@@ -844,7 +867,10 @@ export function LiveDraft({
           ) : generated.bilingual ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
               <p className="whitespace-pre-line text-sm leading-relaxed">{generated.preamble}</p>
-              <p className="legal-paper-strong whitespace-pre-line text-sm leading-relaxed md:border-l md:pl-6 md:legal-paper-divider">
+              <p
+                className={`legal-paper-strong whitespace-pre-line text-sm leading-relaxed md:border-l md:pl-6 md:legal-paper-divider${enLockClass}`}
+                aria-hidden={enLocked || undefined}
+              >
                 {generated.preamble_en}
               </p>
             </div>
@@ -884,7 +910,7 @@ export function LiveDraft({
                     </h2>
                     <p className="mt-2 whitespace-pre-line text-sm leading-relaxed">{c.body}</p>
                   </div>
-                  <div className="md:border-l md:pl-6 md:legal-paper-divider">
+                  <div className={`md:border-l md:pl-6 md:legal-paper-divider${enLockClass}`} aria-hidden={enLocked || undefined}>
                     <h2 className="legal-paper-strong font-serif text-base font-bold uppercase">
                       {c.number} {c.title_en || c.title}
                     </h2>
@@ -912,7 +938,10 @@ export function LiveDraft({
           ) : generated.bilingual ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
               <p className="whitespace-pre-line text-sm italic">{generated.closing}</p>
-              <p className="legal-paper-strong whitespace-pre-line text-sm italic md:border-l md:pl-6 md:legal-paper-divider">
+              <p
+                className={`legal-paper-strong whitespace-pre-line text-sm italic md:border-l md:pl-6 md:legal-paper-divider${enLockClass}`}
+                aria-hidden={enLocked || undefined}
+              >
                 {generated.closing_en}
               </p>
             </div>

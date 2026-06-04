@@ -725,6 +725,7 @@ export default function WizardPage() {
                     level={result.risk.level}
                     issues={result.risk.issues || []}
                     recommendations={result.risk.recommendations || []}
+                    isPro={isPro}
                   />
                 </div>
 
