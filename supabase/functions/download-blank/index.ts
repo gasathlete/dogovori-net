@@ -221,8 +221,8 @@ function buildDocx(blank: BlankPayload, isBilingual: boolean): Promise<Uint8Arra
         children: [
           new TextRun({
             text: isBilingual
-              ? "Bilingual template · BG / EN · Free blank"
-              : "Безплатна бланка · Архитект на Вашите сделки",
+              ? "Bilingual template · BG / EN"
+              : "Архитект на Вашите сделки",
             color: "A0A0A0",
             size: 14,
             italics: true,
@@ -237,7 +237,7 @@ function buildDocx(blank: BlankPayload, isBilingual: boolean): Promise<Uint8Arra
         alignment: AlignmentType.CENTER,
         children: [
           new TextRun({
-            text: "dogovori.net · безплатна версия",
+            text: "dogovori.net",
             color: "B0B0B0",
             size: 14,
           }),
