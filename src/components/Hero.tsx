@@ -5,23 +5,49 @@ import { scrollToHash } from "@/lib/scrollToHash";
 export function Hero({ onStart }: { onStart: () => void }) {
   return (
     <section className="relative overflow-hidden border-b border-border/60">
-      <div className="absolute inset-0 bg-gradient-hero opacity-90" />
-      <div className="absolute inset-0 bg-fine-grid opacity-60" />
+      {/* Base navy gradient */}
+      <div className="absolute inset-0 bg-gradient-hero opacity-95" />
+      {/* Fine grid texture */}
+      <div className="absolute inset-0 bg-fine-grid opacity-40" />
+      {/* Soft gold radial glow behind monogram */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 60% 55% at 50% 50%, hsl(var(--gold) / 0.14), transparent 70%)",
+        }}
+      />
+      {/* Centered watermark logo — refined seal */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 flex items-center justify-center"
       >
-        <img
-          src={logoImg}
-          alt=""
-          width={256}
-          height={256}
-          loading="eager"
-          {...({ fetchpriority: "high" } as any)}
-          decoding="async"
-          className="h-[80%] max-h-[680px] w-auto -rotate-[4deg] opacity-[0.08] md:opacity-[0.12]"
-        />
+        <div className="relative flex items-center justify-center">
+          {/* Concentric rings for a seal-like frame */}
+          <div className="absolute aspect-square w-[min(70vw,560px)] rounded-full border border-gold/15" />
+          <div className="absolute aspect-square w-[min(60vw,480px)] rounded-full border border-gold/10" />
+          <img
+            src={logoImg}
+            alt=""
+            width={420}
+            height={420}
+            loading="eager"
+            {...({ fetchpriority: "high" } as any)}
+            decoding="async"
+            className="relative h-auto w-[min(38vw,300px)] opacity-[0.07] md:opacity-[0.10] [filter:drop-shadow(0_0_40px_hsl(var(--gold)/0.25))]"
+          />
+        </div>
       </div>
+      {/* Vignette to focus content */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at center, transparent 40%, hsl(var(--navy) / 0.55) 100%)",
+        }}
+      />
       {/* Top gold hairline */}
       <div className="absolute inset-x-0 top-0 hairline-x" />
 
