@@ -32,6 +32,10 @@ import { isValidEGN, isValidEIK } from "@/lib/bgValidation";
 import { translateAuthError } from "@/lib/authErrors";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { Seo } from "@/components/Seo";
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip as RTooltip, Legend, AreaChart, Area,
+} from "recharts";
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
@@ -79,9 +83,12 @@ export default function AccountPage() {
     supabase.rpc("is_staff", { _user_id: user.id }).then(({ data }) => setIsStaff(Boolean(data)));
   }, [user]);
 
+  const [analysesDates, setAnalysesDates] = useState<string[]>([]);
+  const [correctionsDates, setCorrectionsDates] = useState<string[]>([]);
+
   const reload = async () => {
     if (!user) return;
-    const [c, f, d, q, p, uc, ra, cb] = await Promise.all([
+    const [c, f, d, q, p, uc, ra, cb, cbAll] = await Promise.all([
       supabase.from("contacts").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("folders").select("*").order("is_favorites", { ascending: false }),
       supabase.from("saved_documents").select("*").order("created_at", { ascending: false }),
@@ -90,6 +97,7 @@ export default function AccountPage() {
       supabase.from("uploaded_contracts").select("id,title,source,folder_id,contact_id,original_filename,storage_path,created_at").order("created_at", { ascending: false }),
       supabase.from("risk_analyses").select("uploaded_contract_id,score,contract_type,created_at").order("created_at", { ascending: false }),
       supabase.from("corrections_batch_charges").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+      supabase.from("corrections_batch_charges").select("created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(500),
     ]);
     setContacts((c.data as any) ?? []);
     setFolders((f.data as any) ?? []);
@@ -98,12 +106,15 @@ export default function AccountPage() {
     if (p.data) setProfile(p.data as any);
     setUploaded((uc.data as any) ?? []);
     setCorrectionsCount((cb as any)?.count ?? 0);
+    setAnalysesDates(((ra.data as any) ?? []).map((r: any) => r.created_at));
+    setCorrectionsDates(((cbAll.data as any) ?? []).map((r: any) => r.created_at));
     const map: Record<string, RiskAnalysisLite> = {};
     for (const r of ((ra.data as any) ?? []) as RiskAnalysisLite[]) {
       if (!map[r.uploaded_contract_id]) map[r.uploaded_contract_id] = r;
     }
     setAnalysesByContract(map);
   };
+
 
   useEffect(() => { reload(); /* eslint-disable-next-line */ }, [user]);
 
@@ -197,7 +208,7 @@ export default function AccountPage() {
 
 
           <TabsContent value="dashboard">
-            <Dashboard quota={quota} isPro={!!isPro} docs={docs} uploadedCount={uploaded.length} correctionsCount={correctionsCount} hasChatAccess={!!isPro || (!!teamForChat && teamForChat.status === "active")} onOpenChat={() => setChatOpen(true)} />
+            <Dashboard quota={quota} isPro={!!isPro} docs={docs} uploadedCount={uploaded.length} correctionsCount={correctionsCount} analysesDates={analysesDates} correctionsDates={correctionsDates} hasChatAccess={!!isPro || (!!teamForChat && teamForChat.status === "active")} onOpenChat={() => setChatOpen(true)} />
           </TabsContent>
           <TabsContent value="notifications">
             <NotificationsTab />
@@ -286,12 +297,46 @@ function ScrollableTabsList({ children }: { children: React.ReactNode }) {
 }
 
 /* ============================ DASHBOARD ============================ */
-function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, hasChatAccess, onOpenChat }: { quota: Quota | null; isPro: boolean; docs: SavedDoc[]; uploadedCount: number; correctionsCount: number; hasChatAccess: boolean; onOpenChat: () => void }) {
+function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analysesDates, correctionsDates, hasChatAccess, onOpenChat }: { quota: Quota | null; isPro: boolean; docs: SavedDoc[]; uploadedCount: number; correctionsCount: number; analysesDates: string[]; correctionsDates: string[]; hasChatAccess: boolean; onOpenChat: () => void }) {
   const navigate = useNavigate();
   const createdDocs = docs.length;
   const analysesUsed = (quota as any)?.analyses_used ?? 0;
+  const contractsUsed = quota?.contracts_used ?? 0;
+  const templatesUsed = quota?.templates_used ?? 0;
+
+  const totalsData = useMemo(() => ([
+    { name: "Създадени", value: createdDocs, fill: "hsl(var(--gold))" },
+    { name: "Договори", value: contractsUsed, fill: "hsl(var(--gold) / 0.85)" },
+    { name: "Бланки", value: templatesUsed, fill: "hsl(var(--gold) / 0.7)" },
+    { name: "Качени", value: uploadedCount, fill: "hsl(var(--gold) / 0.55)" },
+    { name: "Анализи", value: analysesUsed, fill: "hsl(var(--gold) / 0.4)" },
+    { name: "Корекции", value: correctionsCount, fill: "hsl(var(--gold) / 0.25)" },
+  ]), [createdDocs, contractsUsed, templatesUsed, uploadedCount, analysesUsed, correctionsCount]);
+
+  const timelineData = useMemo(() => {
+    const days = 30;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const buckets: Record<string, { date: string; label: string; created: number; analyses: number; corrections: number }> = {};
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today); d.setDate(today.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      buckets[key] = { date: key, label: d.toLocaleDateString("bg-BG", { day: "2-digit", month: "2-digit" }), created: 0, analyses: 0, corrections: 0 };
+    }
+    const add = (iso: string, field: "created" | "analyses" | "corrections") => {
+      const key = iso.slice(0, 10);
+      if (buckets[key]) buckets[key][field] += 1;
+    };
+    for (const d of docs) add(d.created_at, "created");
+    for (const t of analysesDates) add(t, "analyses");
+    for (const t of correctionsDates) add(t, "corrections");
+    return Object.values(buckets);
+  }, [docs, analysesDates, correctionsDates]);
+
+  const hasAnyActivity = totalsData.some((d) => d.value > 0);
+
   return (
     <div className="grid gap-4 md:grid-cols-3">
+
       <Card
         title="План"
         value={isPro ? "Предприемач" : "Безплатен"}
@@ -346,8 +391,70 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, hasCha
       />
 
 
+      <div className="md:col-span-3 grid gap-4 lg:grid-cols-5">
+        <div className="rounded-xl border border-border/60 bg-gradient-card p-6 lg:col-span-2">
+          <div className="mb-4 flex items-baseline justify-between">
+            <h3 className="font-serif text-lg font-bold">Разпределение на операциите</h3>
+            <span className="text-xs text-muted-foreground">общо</span>
+          </div>
+          {hasAnyActivity ? (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={totalsData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.4)" vertical={false} />
+                <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} axisLine={false} tickLine={false} interval={0} />
+                <YAxis allowDecimals={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <RTooltip
+                  cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="py-12 text-center text-sm text-muted-foreground">Все още нямате извършени операции.</p>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-border/60 bg-gradient-card p-6 lg:col-span-3">
+          <div className="mb-4 flex items-baseline justify-between">
+            <h3 className="font-serif text-lg font-bold">Активност (последни 30 дни)</h3>
+            <span className="text-xs text-muted-foreground">по дни</span>
+          </div>
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={timelineData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+              <defs>
+                <linearGradient id="gradCreated" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--gold))" stopOpacity={0.55} />
+                  <stop offset="100%" stopColor="hsl(var(--gold))" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gradAnalyses" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.5} />
+                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gradCorrections" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity={0.5} />
+                  <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.4)" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} interval={Math.ceil(timelineData.length / 8)} />
+              <YAxis allowDecimals={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} axisLine={false} tickLine={false} />
+              <RTooltip
+                contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                labelStyle={{ color: "hsl(var(--foreground))" }}
+              />
+              <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" />
+              <Area type="monotone" dataKey="created" name="Създадени" stroke="hsl(var(--gold))" fill="url(#gradCreated)" strokeWidth={2} />
+              <Area type="monotone" dataKey="analyses" name="Анализи" stroke="hsl(var(--primary))" fill="url(#gradAnalyses)" strokeWidth={2} />
+              <Area type="monotone" dataKey="corrections" name="Корекции" stroke="hsl(var(--accent))" fill="url(#gradCorrections)" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
       <div className="md:col-span-3 rounded-xl border border-border/60 bg-gradient-card p-6">
         <h3 className="mb-3 font-serif text-lg font-bold">Последни документи</h3>
+
         {docs.length === 0 ? (
           <p className="text-sm text-muted-foreground">Все още нямате запазени документи.</p>
         ) : (
