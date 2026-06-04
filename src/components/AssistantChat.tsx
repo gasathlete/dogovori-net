@@ -11,7 +11,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsPro } from "@/hooks/useIsPro";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Link } from "react-router-dom";
 import { Crown } from "lucide-react";
 
 interface Msg {
