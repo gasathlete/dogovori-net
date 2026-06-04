@@ -104,13 +104,13 @@ export function Hero({ onStart }: { onStart: () => void }) {
           >
             <button
               onClick={onStart}
-              className="btn-gold btn-sheen w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
+              className="btn-gold w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
             >
               <Search className="h-[18px] w-[18px]" /> Намери документ
             </button>
             <a
               href="/build"
-              className="btn-gold-inverse btn-sheen w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
+              className="btn-gold-inverse w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
             >
               <ArrowRight className="h-[18px] w-[18px]" /> Изготви документ
             </a>
