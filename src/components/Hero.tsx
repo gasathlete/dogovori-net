@@ -120,7 +120,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
             className="anim-rise mt-4 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
             style={{ animationDelay: "300ms" }}
           >
-            &gt;590 шаблона · Предприемач - 9.90 €/мес · без скрити такси
+            Безплатно: 3 операции/месец · PRO 9.90 €/мес — 100 операции, двуезични договори, без воден знак
           </p>
           <div className="anim-rise mt-3 text-center" style={{ animationDelay: "340ms" }}>
             <button
