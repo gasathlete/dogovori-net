@@ -369,9 +369,9 @@ export default function AuthPage() {
             type="button"
             variant="outline"
             onClick={handleGoogle}
-            disabled={busy || !googleReady}
+            disabled={busy || (tab === "signup" && !signupReady)}
             className="btn-sheen w-full border-gold/40 hover:bg-gold/10 hover:text-gold disabled:opacity-50"
-            title={!googleReady ? "Първо приемете задължителните условия по-горе" : undefined}
+            title={tab === "signup" && !signupReady ? "Първо приемете задължителните условия по-горе" : undefined}
           >
             Продължи с Google
           </Button>
