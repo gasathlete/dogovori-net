@@ -828,7 +828,9 @@ export function LiveDraft({
           ) : generated.bilingual ? (
             <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
               <span className="block">{generated.title}</span>
-              <span className="legal-paper-strong mt-1 block">{generated.title_en || generated.title}</span>
+              <span className={`legal-paper-strong mt-1 block${enLockClass}`} aria-hidden={enLocked || undefined}>
+                {generated.title_en || generated.title}
+              </span>
             </h1>
           ) : (
             <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
