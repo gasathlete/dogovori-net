@@ -521,6 +521,119 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
         </div>
       </div>
 
+      {/* ---------- All-time operations chart ---------- */}
+      <div className="md:col-span-3 rounded-xl border border-border/60 bg-gradient-card p-4 sm:p-6">
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+          <h3 className="font-serif text-base sm:text-lg font-bold">All-time извършени операции</h3>
+          <span className="text-xs text-muted-foreground">общо: <span className="text-foreground font-semibold">{totalOps}</span></span>
+        </div>
+        {allTimeData.length === 0 ? (
+          <p className="py-12 text-center text-sm text-muted-foreground">Все още нямате извършени операции. Започнете с първия документ.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={allTimeData} margin={{ top: 8, right: 16, left: -8, bottom: 0 }}>
+              <defs>
+                <linearGradient id="gradCumulative" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--gold))" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="hsl(var(--gold))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.4)" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={32} />
+              <YAxis allowDecimals={false} width={36} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} axisLine={false} tickLine={false} />
+              <RTooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 4 }} iconType="circle" />
+              {REWARD_TIERS.map((t) => (
+                <ReferenceLine
+                  key={t.id}
+                  y={t.threshold}
+                  stroke={`hsl(var(--${t.accent}) / 0.6)`}
+                  strokeDasharray="4 4"
+                  label={{ value: `${t.threshold}`, position: "right", fill: `hsl(var(--${t.accent}))`, fontSize: 10 }}
+                />
+              ))}
+              <Line type="monotone" dataKey="cumulative" name="Кумулативно" stroke="hsl(var(--gold))" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
+              <Area type="monotone" dataKey="ops" name="На месец" stroke="hsl(var(--primary))" fill="url(#gradCumulative)" strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+
+      {/* ---------- Loyalty rewards ---------- */}
+      <div className="md:col-span-3 rounded-xl border border-gold/40 bg-gradient-card p-4 sm:p-6">
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+          <div>
+            <h3 className="font-serif text-base sm:text-lg font-bold flex items-center gap-2">
+              <Crown className="h-5 w-5 text-gold" /> Награди за лоялност
+            </h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Всяка извършена операция ви приближава към следващото ниво. Активното ниво се прилага автоматично към следващия абонамент.
+            </p>
+          </div>
+          {activeTier ? (
+            <span className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs font-medium text-gold">
+              Активно: {activeTier.name} · −{activeTier.discountPercent}%
+            </span>
+          ) : (
+            <span className="rounded-full border border-border/60 px-3 py-1 text-xs text-muted-foreground">
+              Още не е отключена награда
+            </span>
+          )}
+        </div>
+
+        {nextTier && (
+          <div className="mb-4">
+            <div className="mb-1 flex items-baseline justify-between text-xs text-muted-foreground">
+              <span>До <span className="text-foreground font-medium">{nextTier.name}</span></span>
+              <span>{Math.min(totalOps, nextTier.threshold)}/{nextTier.threshold}</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-muted/40">
+              <div
+                className="h-full rounded-full bg-gradient-gold transition-all"
+                style={{ width: `${Math.min(100, (totalOps / nextTier.threshold) * 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          {REWARD_TIERS.map((t) => {
+            const unlocked = totalOps >= t.threshold;
+            const Icon = t.icon;
+            return (
+              <div
+                key={t.id}
+                className={`rounded-lg border p-4 transition-all ${
+                  unlocked
+                    ? "border-gold/50 bg-gold/5 shadow-[0_0_0_1px_hsl(var(--gold)/0.2)]"
+                    : "border-border/60 bg-card/40 opacity-70"
+                }`}
+              >
+                <div className="mb-2 flex items-center justify-between">
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-full ${unlocked ? "bg-gold/15" : "bg-muted/30"}`}>
+                    <Icon className={`h-5 w-5 ${unlocked ? "text-gold" : "text-muted-foreground"}`} />
+                  </div>
+                  {unlocked ? (
+                    <Check className="h-4 w-4 text-gold" />
+                  ) : (
+                    <Lock className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="font-serif text-sm font-bold">{t.name}</div>
+                <div className="text-xs text-muted-foreground">{t.threshold.toLocaleString("bg-BG")} операции</div>
+                <div className="mt-2 text-xs">
+                  <span className={unlocked ? "text-gold font-medium" : "text-muted-foreground"}>
+                    −{t.discountPercent}% от абонамента
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+
+
 
       <div className="md:col-span-3 rounded-xl border border-border/60 bg-gradient-card p-6">
         <h3 className="mb-3 font-serif text-lg font-bold">Последни документи</h3>
