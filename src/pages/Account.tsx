@@ -64,6 +64,7 @@ export default function AccountPage() {
   const [uploaded, setUploaded] = useState<UploadedContract[]>([]);
   const [analysesByContract, setAnalysesByContract] = useState<Record<string, RiskAnalysisLite>>({});
   const [quota, setQuota] = useState<Quota | null>(null);
+  const [correctionsCount, setCorrectionsCount] = useState<number>(0);
   const [profile, setProfile] = useState<{ display_name: string | null; company: string | null; vat_number: string | null }>({ display_name: "", company: "", vat_number: "" });
   const [activeFolder, setActiveFolder] = useState<string | "all">("all");
   const [isStaff, setIsStaff] = useState(false);
