@@ -224,7 +224,7 @@ export default function CatalogPage() {
                             <div className="flex items-start gap-2">
                               <div className="flex-1 font-serif text-sm font-bold text-foreground">
                                 {s.name}
-                                {s.bilingual && (
+                                {false && s.bilingual && (
                                   <span className="ml-2 inline-block rounded-sm border border-gold/40 px-1.5 py-px text-[9px] uppercase tracking-wider text-gold">BG/EN</span>
                                 )}
                                 {s.has_dynamic_wizard && (
@@ -354,24 +354,7 @@ export default function CatalogPage() {
               </>
             )}
 
-            <span className="mx-1 hidden h-5 w-px bg-border/60 md:inline-block" aria-hidden />
-
-            <button
-              type="button"
-              onClick={() => setBilingual(!bilingualOnly)}
-              aria-pressed={bilingualOnly}
-              title="Покажи само двуезични документи (BG/EN)"
-              className={
-                "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors " +
-                (bilingualOnly
-                  ? "border-gold/60 bg-gold/10 text-gold hover:bg-gold/15"
-                  : "border-border/70 bg-card/40 text-foreground hover:border-gold/40 hover:text-gold")
-              }
-            >
-            <Languages className="h-3.5 w-3.5" />
-              Двуезичен документ
-              {bilingualOnly && <Check className="h-3.5 w-3.5" />}
-            </button>
+            {/* Bilingual filter temporarily hidden */}
 
             <button
               type="button"
