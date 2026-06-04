@@ -1,34 +1,88 @@
-# Freemium Wave 2 — Implementation Plan
+# Общ план: имейл доставка + Google consent
 
-Continuing from Wave 1 (quota backend + Account KPI + AI gating done). This wave covers the remaining gates.
+## Част A — Затваряне на consent gap при Google вход
 
-## 1. Bilingual contracts (the only "premium" doc type)
-- `src/pages/WizardBilingual.tsx` + `src/components/wizard/ContractPreview.tsx`: for Free users, blur the EN column with an overlay "Само за PRO — отключи двуезичен договор" + upgrade CTA. Allow 1 preview/mo via `consume_bilingual_preview`. Disable EN download button.
-- `src/pages/BuildContract.tsx`, `src/components/SectorGrid.tsx`, `src/components/TopDocuments.tsx`: add small "PRO" badge on bilingual templates.
-- Free download attempt → upgrade modal.
+**Проблем:** От таб **Вход** бутонът „Продължи с Google" е винаги активен. Ако имейлът няма съществуващ акаунт, Google автоматично го създава, без потребителят да е приел Общи условия / Поверителност / 18+.
 
-## 2. Risk analysis preview (1/mo, blurred details)
-- `src/components/wizard/RiskReport.tsx`: Free users see summary score + first finding clearly; remaining findings blurred with lock overlay "PRO отключва пълния risk report".
-- Gate the analyze action via `consume_analysis_preview` (1/mo).
+### A1. Нов компонент `GoogleConsentDialog`
+Файл: `src/components/auth/GoogleConsentDialog.tsx`
+- Reusable `Dialog` със същите 4 чекбокса като формата за регистрация (18+, Общи условия, Поверителност — задължителни; Маркетинг — опционален).
+- Props: `open`, `onOpenChange`, `onConfirm(marketing: boolean)`, `busy`.
+- Confirm бутонът disabled докато 3-те задължителни не са чек-нати.
 
-## 3. Auto-corrections preview (first 2 only)
-- `src/components/wizard/CorrectionsPanel.tsx`: show first 2 corrections, rest behind blur + "Отключи всички корекции с PRO".
-- `supabase/functions/correct-uploaded/index.ts`: for Free users return all findings but mark `locked:true` on items beyond index 1 (truncate detail text). Or return full and let UI gate — simpler. Plan: UI-only gate, server returns full, UI hides.
+### A2. Refactor на `handleGoogle` в `src/pages/Auth.tsx`
+- Нов state: `googleConsentOpen`, `googleConsentBusy`.
+- Wrapper `startGoogleOAuth(marketing: boolean)` — съдържа реалното извикване на `lovable.auth.signInWithOAuth(...)` и `pending_consents` записа.
+- Таб **Регистрация** → директно `startGoogleOAuth(acceptMarketing)` (както сега).
+- Таб **Вход** → отваря `GoogleConsentDialog`; при потвърждение → `startGoogleOAuth(marketing)`.
+- Съществуващите потребители ще видят диалога еднократно при следващия Google вход (приемливо UX; pre-flight email-existence проверка не правим заради email-enumeration риска).
 
-## 4. Kits (1 active slot for Free)
-- `src/pages/Kits.tsx`: check `can_use_kit_slot` before allowing create; show "1/1 използван — PRO дава неограничени комплекти" when full.
+---
 
-## 5. Watermark on free downloads
-- `src/lib/downloadDocument.ts` + `src/lib/signedPdfAssembler.ts`: when user is not PRO, append footer "Изготвено с Dogovori.net — надгради до PRO за чисти документи" on each page.
+## Част B — Предупреждение за български имейл доставчици
 
-## 6. Pricing/Hero copy refresh
-- `src/components/Hero.tsx` + pricing section: reflect new Free tier (3 ops/mo + teasers) instead of old wording.
+**Файл:** `src/pages/Auth.tsx`
 
-## Files touched
-WizardBilingual.tsx, ContractPreview.tsx, BuildContract.tsx, SectorGrid.tsx, TopDocuments.tsx, RiskReport.tsx, CorrectionsPanel.tsx, Kits.tsx, downloadDocument.ts, signedPdfAssembler.ts, Hero.tsx, pricing copy.
+- Helper `isRiskyBgEmail(email)` за домейните `abv.bg`, `mail.bg`, `dir.bg` (case-insensitive).
+- В таб **Регистрация**: inline жълт `Alert` под полето за имейл при рисков домейн:
+  > „Българските пощи (abv.bg, mail.bg, dir.bg) често блокират имейли за потвърждение. Препоръчваме Gmail или вход с Google за по-сигурна доставка."
+- В таб **Вход**: същият Alert над линка „Не получих имейл за потвърждение".
+- В диалога за ръчно потвърждение (resend OTP): ако имейлът е рисков, под бутона „Изпрати код наново" се показва:
+  > „Ако кодът не пристигне до 5 минути, опитайте с Google вход или друг имейл."
 
-## Out of scope (later wave)
-- Server-side enforcement of watermark / corrections lock (currently UI-only; PRO bypass via `useIsPro`).
-- Telemetry on paywall impressions.
+Без backend промени.
 
-Confirm and I'll implement all of the above in one pass.
+---
+
+## Част C — Warm-up на `notify.dogovori.net` (стратегия, без код)
+
+**Текущо:** Домейн е активен, SPF/DKIM/DMARC настроени от Lovable. Обем — единични имейли/ден → нулева репутация → `abv.bg` bounce.
+
+**Поетапно (4–6 седмици):**
+
+1. **Седмица 1–2:** 5–10 имейла/ден към „топли" Gmail/Outlook inbox-и на екипа и доверени потребители. Молба да отворят, да цъкнат линка, да маркират като „Not spam" при нужда. Без `@abv.bg` / `@mail.bg`.
+2. **Седмица 3–4:** 20–50 имейла/ден. Постепенно 1–2/ден към `@abv.bg` от реални потребители. Следене на `email_send_log` за bounce/complaint rate < 2%.
+3. **Седмица 5–6:** Нормален режим (100+/ден). Очаквано отваряне от `abv.bg`/`mail.bg`.
+
+**Технически подобрения (ръчни/външни действия от потребителя):**
+- Регистрация в Google Postmaster Tools и Microsoft SNDS за `dogovori.net` (виждаме reputation метрики).
+- DMARC aggregate reports (`rua=mailto:dmarc@dogovori.net`) — конфигурира се през Cloud → Emails ако е достъпно; иначе ръчна стъпка.
+- Suppression cleanup — само за конкретни случаи, ръчно.
+
+**Извън scope сега:** dedicated IP, отделен subdomain за маркетинг, резервен SMTP fallback.
+
+---
+
+## Част D — Admin Email Monitoring Dashboard (по избор)
+
+За да следим warm-up прогреса и проблеми, нова admin-only страница `/admin/emails`:
+
+- **Защита:** route guard — само за потребители с роля `admin` от `user_roles`.
+- **Филтри:** Time range (24h / 7d / 30d / custom), Template (multi-select), Status (All / Sent / Failed / Suppressed).
+- **Stat cards:** Total / Sent / Failed / Suppressed (deduplicated по `message_id`).
+- **Таблица:** Template, Recipient, Status badge, Timestamp, Error — paginated, сортирана по `created_at DESC`, deduplicated.
+- **Bonus widget:** „Top failing domains last 30d" — agregirano по domain part на `recipient_email`, за warm-up мониторинг.
+- Заявките използват `DISTINCT ON (message_id) ... ORDER BY message_id, created_at DESC` както изисква schema-та.
+
+Нови файлове:
+- `src/pages/admin/EmailsDashboard.tsx`
+- `src/components/admin/EmailStatsCards.tsx`
+- `src/components/admin/EmailLogTable.tsx`
+- route добавен в `App.tsx` с admin guard.
+
+---
+
+## Файлове, които ще се пипнат
+
+**Задължително (Части A + B):**
+- `src/components/auth/GoogleConsentDialog.tsx` *(нов)*
+- `src/pages/Auth.tsx` *(refactor + warnings)*
+
+**По избор (Част D):**
+- `src/pages/admin/EmailsDashboard.tsx` *(нов)*
+- `src/components/admin/EmailStatsCards.tsx` *(нов)*
+- `src/components/admin/EmailLogTable.tsx` *(нов)*
+- `src/App.tsx` *(нов route)*
+
+## Въпрос за теб
+Да включа ли Част D (admin dashboard) в имплементацията сега, или само A + B + warm-up документация?

@@ -14,6 +14,17 @@ import { Loader2 } from "lucide-react";
 import { translateAuthError } from "@/lib/authErrors";
 import { recordConsents } from "@/lib/consents";
 import { Seo } from "@/components/Seo";
+import { GoogleConsentDialog } from "@/components/auth/GoogleConsentDialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
+
+const RISKY_BG_EMAIL_DOMAINS = ["abv.bg", "mail.bg", "dir.bg"];
+function isRiskyBgEmail(value: string): boolean {
+  const at = value.lastIndexOf("@");
+  if (at < 0) return false;
+  const domain = value.slice(at + 1).trim().toLowerCase();
+  return RISKY_BG_EMAIL_DOMAINS.includes(domain);
+}
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -41,6 +52,9 @@ export default function AuthPage() {
   const [confirmCode, setConfirmCode] = useState("");
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [confirmSent, setConfirmSent] = useState(false);
+
+  // Google consent dialog (login tab — prevents account creation without consents)
+  const [googleConsentOpen, setGoogleConsentOpen] = useState(false);
 
   const openConfirmDialog = () => {
     setConfirmEmail(email);
@@ -79,8 +93,7 @@ export default function AuthPage() {
   };
 
   const signupReady = acceptTerms && acceptPrivacy && acceptAge;
-  // Google OAuth: returning users (login tab) don't need to re-accept; new users (signup tab) must.
-  const googleReady = tab === "login" ? true : signupReady;
+  const showBgEmailWarning = isRiskyBgEmail(email);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,20 +162,17 @@ export default function AuthPage() {
     navigate(redirect);
   };
 
-  const handleGoogle = async () => {
-    if (tab === "signup" && !signupReady) {
-      toast.error("Преди регистрация с Google, моля приемете задължителните условия");
-      return;
-    }
+  const startGoogleOAuth = async (marketing: boolean) => {
     setBusy(true);
     try {
       sessionStorage.setItem("post_login_redirect", redirect);
-      if (tab === "signup") {
-        sessionStorage.setItem(
-          "pending_consents",
-          JSON.stringify({ marketing: acceptMarketing, terms: true, privacy: true, age_18: true, ts: Date.now() }),
-        );
-      }
+      // Always stash consents — recordConsents on the server side is idempotent
+      // for existing users (won't duplicate), and ensures new accounts created
+      // via Google have the required terms/privacy/age records.
+      sessionStorage.setItem(
+        "pending_consents",
+        JSON.stringify({ marketing, terms: true, privacy: true, age_18: true, ts: Date.now() }),
+      );
     } catch { /* storage unavailable */ }
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
@@ -175,6 +185,25 @@ export default function AuthPage() {
     if (result.redirected) return;
     setBusy(false);
     navigate(redirect);
+  };
+
+  const handleGoogle = async () => {
+    if (tab === "signup") {
+      if (!signupReady) {
+        toast.error("Преди регистрация с Google, моля приемете задължителните условия");
+        return;
+      }
+      await startGoogleOAuth(acceptMarketing);
+      return;
+    }
+    // Login tab: open consent dialog before OAuth to close the gap where
+    // Google would silently create a new account without consents.
+    setGoogleConsentOpen(true);
+  };
+
+  const handleGoogleConsentConfirm = async (marketing: boolean) => {
+    setGoogleConsentOpen(false);
+    await startGoogleOAuth(marketing);
   };
 
   const handleReset = async () => {
@@ -220,6 +249,14 @@ export default function AuthPage() {
                 <div>
                   <Label htmlFor="lemail">Email</Label>
                   <Input id="lemail" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                  {showBgEmailWarning && (
+                    <Alert className="mt-2 border-yellow-500/40 bg-yellow-500/10 text-yellow-900 dark:text-yellow-200">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription className="text-[11px] leading-relaxed">
+                        Българските пощи (abv.bg, mail.bg, dir.bg) често блокират имейли за потвърждение. Препоръчваме <strong>Gmail</strong> или <strong>вход с Google</strong> за по-сигурна доставка.
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="lpw">Парола</Label>
@@ -251,6 +288,14 @@ export default function AuthPage() {
                 <div>
                   <Label htmlFor="semail">Email</Label>
                   <Input id="semail" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                  {showBgEmailWarning && (
+                    <Alert className="mt-2 border-yellow-500/40 bg-yellow-500/10 text-yellow-900 dark:text-yellow-200">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription className="text-[11px] leading-relaxed">
+                        Българските пощи (abv.bg, mail.bg, dir.bg) често блокират имейли за потвърждение. Препоръчваме <strong>Gmail</strong> или <strong>вход с Google</strong> за по-сигурна доставка.
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="spw">Парола</Label>
@@ -340,9 +385,9 @@ export default function AuthPage() {
             type="button"
             variant="outline"
             onClick={handleGoogle}
-            disabled={busy || !googleReady}
+            disabled={busy || (tab === "signup" && !signupReady)}
             className="btn-sheen w-full border-gold/40 hover:bg-gold/10 hover:text-gold disabled:opacity-50"
-            title={!googleReady ? "Първо приемете задължителните условия по-горе" : undefined}
+            title={tab === "signup" && !signupReady ? "Първо приемете задължителните условия по-горе" : undefined}
           >
             Продължи с Google
           </Button>
@@ -387,6 +432,11 @@ export default function AuthPage() {
               {confirmBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {confirmSent ? "Изпрати кода отново" : "Изпрати ми код"}
             </Button>
+            {isRiskyBgEmail(confirmEmail) && (
+              <p className="text-[11px] text-yellow-700 dark:text-yellow-300">
+                Ако кодът не пристигне до 5 минути, опитайте с <strong>Google вход</strong> или друг имейл — abv.bg / mail.bg / dir.bg често блокират изпращача ни.
+              </p>
+            )}
 
             {confirmSent && (
               <p className="text-[11px] text-muted-foreground">
@@ -419,6 +469,13 @@ export default function AuthPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <GoogleConsentDialog
+        open={googleConsentOpen}
+        onOpenChange={setGoogleConsentOpen}
+        onConfirm={handleGoogleConsentConfirm}
+        busy={busy}
+      />
     </div>
   );
 }
