@@ -27,7 +27,7 @@ export function SectorGrid({ onPick }: { onPick: (id: string) => void }) {
         <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-gold/25 bg-gold/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold">
           <span>{SECTORS.length} сектора</span>
           <span className="h-2.5 w-px bg-gold/30" />
-          <span>591 документа</span>
+          <span>&gt;590 документа</span>
         </div>
       </div>
 
