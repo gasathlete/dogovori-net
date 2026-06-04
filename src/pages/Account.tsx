@@ -392,22 +392,33 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
 
 
       <div className="md:col-span-3 grid gap-4 lg:grid-cols-5">
-        <div className="rounded-xl border border-border/60 bg-gradient-card p-6 lg:col-span-2">
-          <div className="mb-4 flex items-baseline justify-between">
-            <h3 className="font-serif text-lg font-bold">Разпределение на операциите</h3>
-            <span className="text-xs text-muted-foreground">общо</span>
+        <div className="rounded-xl border border-border/60 bg-gradient-card p-4 sm:p-6 lg:col-span-2">
+          <div className="mb-4 flex items-baseline justify-between gap-2">
+            <h3 className="font-serif text-base sm:text-lg font-bold">Разпределение на операциите</h3>
+            <span className="shrink-0 text-xs text-muted-foreground">общо</span>
           </div>
           {hasAnyActivity ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={totalsData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.4)" vertical={false} />
-                <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} axisLine={false} tickLine={false} interval={0} />
-                <YAxis allowDecimals={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} axisLine={false} tickLine={false} />
+            <ResponsiveContainer width="100%" height={Math.max(220, totalsData.length * 36)}>
+              <BarChart data={totalsData} layout="vertical" margin={{ top: 4, right: 16, left: 4, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.4)" horizontal={false} />
+                <XAxis type="number" allowDecimals={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  width={92}
+                  tick={{ fill: "hsl(var(--foreground))", fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
                 <RTooltip
                   cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
                   contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
                 />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={18}>
+                  {totalsData.map((entry, idx) => (
+                    <Cell key={idx} fill={entry.fill} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -415,13 +426,13 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
           )}
         </div>
 
-        <div className="rounded-xl border border-border/60 bg-gradient-card p-6 lg:col-span-3">
-          <div className="mb-4 flex items-baseline justify-between">
-            <h3 className="font-serif text-lg font-bold">Активност (последни 30 дни)</h3>
-            <span className="text-xs text-muted-foreground">по дни</span>
+        <div className="rounded-xl border border-border/60 bg-gradient-card p-4 sm:p-6 lg:col-span-3">
+          <div className="mb-4 flex items-baseline justify-between gap-2">
+            <h3 className="font-serif text-base sm:text-lg font-bold">Активност (последни 30 дни)</h3>
+            <span className="shrink-0 text-xs text-muted-foreground">по дни</span>
           </div>
           <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={timelineData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+            <AreaChart data={timelineData} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
               <defs>
                 <linearGradient id="gradCreated" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="hsl(var(--gold))" stopOpacity={0.55} />
@@ -437,13 +448,20 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.4)" vertical={false} />
-              <XAxis dataKey="label" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} interval={Math.ceil(timelineData.length / 8)} />
-              <YAxis allowDecimals={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} axisLine={false} tickLine={false} />
+              <XAxis
+                dataKey="label"
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+                interval="preserveStartEnd"
+                minTickGap={28}
+              />
+              <YAxis allowDecimals={false} width={28} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} axisLine={false} tickLine={false} />
               <RTooltip
                 contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
                 labelStyle={{ color: "hsl(var(--foreground))" }}
               />
-              <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" />
+              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 4 }} iconType="circle" />
               <Area type="monotone" dataKey="created" name="Създадени" stroke="hsl(var(--gold))" fill="url(#gradCreated)" strokeWidth={2} />
               <Area type="monotone" dataKey="analyses" name="Анализи" stroke="hsl(var(--primary))" fill="url(#gradAnalyses)" strokeWidth={2} />
               <Area type="monotone" dataKey="corrections" name="Корекции" stroke="hsl(var(--accent))" fill="url(#gradCorrections)" strokeWidth={2} />
@@ -451,6 +469,7 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
           </ResponsiveContainer>
         </div>
       </div>
+
 
       <div className="md:col-span-3 rounded-xl border border-border/60 bg-gradient-card p-6">
         <h3 className="mb-3 font-serif text-lg font-bold">Последни документи</h3>
