@@ -28,7 +28,7 @@ export function TopDocuments() {
           to="/catalog"
           className="hidden shrink-0 items-center gap-1.5 self-start text-[11px] font-semibold uppercase tracking-[0.18em] text-gold transition-opacity hover:opacity-80 sm:inline-flex sm:self-end"
         >
-          Виж >590-те шаблона <ArrowRight className="h-3.5 w-3.5" />
+          Виж &gt;590-те шаблона <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
 
@@ -73,7 +73,7 @@ export function TopDocuments() {
 
       <div className="mt-10 text-center">
         <Link to="/catalog" className="btn-ghost-gold normal-case tracking-normal">
-          Виж целия каталог (>590 шаблона) <ArrowRight className="h-4 w-4" />
+          Виж целия каталог (&gt;590 шаблона) <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
     </section>

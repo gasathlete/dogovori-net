@@ -43,7 +43,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
             <span className="h-3 w-px bg-gold/30" />
             <span className="inline-flex items-center gap-1.5"><Bird className="h-3.5 w-3.5 text-gold" /> АНАЛИЗ НА РИСКА</span>
             <span className="h-3 w-px bg-gold/30" />
-            <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-gold" /> 591 шаблона</span>
+            <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-gold" /> &gt;590 шаблона</span>
             <span className="h-3 w-px bg-gold/30" />
             <span className="inline-flex items-center gap-1.5"><FileSignature className="h-3.5 w-3.5 text-gold" /> Електронен подпис</span>
           </div>
@@ -74,7 +74,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
             className="anim-rise mt-4 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
             style={{ animationDelay: "300ms" }}
           >
-            >590 шаблона · Предприемач - 9.90 €/мес · без скрити такси
+            &gt;590 шаблона · Предприемач - 9.90 €/мес · без скрити такси
           </p>
           <div className="anim-rise mt-3 text-center" style={{ animationDelay: "340ms" }}>
             <button
