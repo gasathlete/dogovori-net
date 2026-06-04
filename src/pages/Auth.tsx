@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
@@ -33,6 +34,49 @@ export default function AuthPage() {
   const [acceptAge, setAcceptAge] = useState(false);
   const [acceptMarketing, setAcceptMarketing] = useState(false);
   const [tab, setTab] = useState<"login" | "signup">("login");
+
+  // Manual confirmation flow (resend + OTP code)
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmEmail, setConfirmEmail] = useState("");
+  const [confirmCode, setConfirmCode] = useState("");
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const [confirmSent, setConfirmSent] = useState(false);
+
+  const openConfirmDialog = () => {
+    setConfirmEmail(email);
+    setConfirmCode("");
+    setConfirmSent(false);
+    setConfirmOpen(true);
+  };
+
+  const handleResendCode = async () => {
+    if (!confirmEmail) return toast.error("Въведете email");
+    setConfirmBusy(true);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: confirmEmail,
+      options: { emailRedirectTo: window.location.origin + redirect },
+    });
+    setConfirmBusy(false);
+    if (error) return toast.error("Не успяхме да изпратим код", { description: translateAuthError(error.message) });
+    setConfirmSent(true);
+    toast.success("Изпратихме нов 6-цифрен код на имейла ви");
+  };
+
+  const handleVerifyCode = async () => {
+    if (!confirmEmail || confirmCode.length < 6) return toast.error("Въведете 6-цифрения код");
+    setConfirmBusy(true);
+    const { error } = await supabase.auth.verifyOtp({
+      email: confirmEmail,
+      token: confirmCode.trim(),
+      type: "signup",
+    });
+    setConfirmBusy(false);
+    if (error) return toast.error("Невалиден код", { description: translateAuthError(error.message) });
+    toast.success("Имейлът е потвърден!");
+    setConfirmOpen(false);
+    navigate(redirect);
+  };
 
   const signupReady = acceptTerms && acceptPrivacy && acceptAge;
   // Google OAuth: returning users (login tab) don't need to re-accept; new users (signup tab) must.
@@ -188,6 +232,13 @@ export default function AuthPage() {
                 <button type="button" onClick={handleReset} className="text-xs text-muted-foreground hover:text-gold">
                   Забравена парола?
                 </button>
+                <button
+                  type="button"
+                  onClick={openConfirmDialog}
+                  className="ml-3 text-xs text-muted-foreground hover:text-gold"
+                >
+                  Не получих имейл за потвърждение
+                </button>
               </form>
             </TabsContent>
 
@@ -306,6 +357,68 @@ export default function AuthPage() {
           </p>
         </div>
       </main>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Потвърждение на имейл с код</DialogTitle>
+            <DialogDescription>
+              Ако не сте получили линка за потвърждение, ще ви изпратим 6-цифрен код. Въведете го тук, за да активирате профила си.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="confirm-email">Email</Label>
+              <Input
+                id="confirm-email"
+                type="email"
+                value={confirmEmail}
+                onChange={(e) => setConfirmEmail(e.target.value)}
+                disabled={confirmBusy}
+              />
+            </div>
+            <Button
+              type="button"
+              onClick={handleResendCode}
+              disabled={confirmBusy || !confirmEmail}
+              variant="outline"
+              className="w-full border-gold/40 hover:bg-gold/10 hover:text-gold"
+            >
+              {confirmBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {confirmSent ? "Изпрати кода отново" : "Изпрати ми код"}
+            </Button>
+
+            {confirmSent && (
+              <p className="text-[11px] text-muted-foreground">
+                Проверете и папката „Спам". Ако и след минута не получите код, проверете дали имейлът е изписан правилно или опитайте с друг адрес (Gmail работи най-надеждно).
+              </p>
+            )}
+
+            <div>
+              <Label htmlFor="confirm-code">6-цифрен код от имейла</Label>
+              <Input
+                id="confirm-code"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="123456"
+                value={confirmCode}
+                onChange={(e) => setConfirmCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                disabled={confirmBusy}
+                className="tracking-[0.4em] text-center font-mono text-lg"
+              />
+            </div>
+            <Button
+              type="button"
+              onClick={handleVerifyCode}
+              disabled={confirmBusy || confirmCode.length < 6}
+              className="btn-sheen w-full bg-gradient-gold text-navy hover:shadow-gold"
+            >
+              {confirmBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Потвърди профила
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
