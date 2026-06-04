@@ -118,7 +118,7 @@ export default function TemplatePage() {
     },
     {
       q: `Колко струва изготвянето на ${docLower} в Dogovori.net?`,
-      a: "Безплатно за първия документ. Pro абонамент (19 €/мес) дава неограничен брой документи, DOCX експорт, електронен подпис и пълен анализ на риска от ИИ.",
+      a: "Безплатно: 3 операции на месец. PRO (9.90 €/мес, 100 операции) добавя двуезични договори (BG/EN), пълни AI-корекции, пълен risk report, неограничени комплекти и сваляне без воден знак.",
     },
     {
       q: "Мога ли да го редактирам след генериране?",
@@ -245,7 +245,15 @@ export default function TemplatePage() {
               Свали само бланка
             </Link>
           </div>
-          <h1 className="font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl anim-rise" style={{ animationDelay: "80ms" }}>{doc.name}</h1>
+          <h1 className="font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl anim-rise" style={{ animationDelay: "80ms" }}>
+            {doc.name}
+            {doc.bilingual && (
+              <span className="ml-3 inline-flex items-center gap-1 align-middle">
+                <span className="rounded border border-gold/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-gold">BG/EN</span>
+                <span className="rounded bg-gradient-gold px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-navy shadow-gold">PRO</span>
+              </span>
+            )}
+          </h1>
           <p className="mt-5 text-balance text-base leading-relaxed text-muted-foreground md:text-lg anim-rise" style={{ animationDelay: "160ms" }}>{doc.purpose}</p>
 
           <div className="mt-7 flex flex-wrap gap-3 anim-rise" style={{ animationDelay: "240ms" }}>
