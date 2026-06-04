@@ -301,12 +301,20 @@ function ScrollableTabsList({ children }: { children: React.ReactNode }) {
 }
 
 /* ============================ DASHBOARD ============================ */
-function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analysesDates, correctionsDates, hasChatAccess, onOpenChat }: { quota: Quota | null; isPro: boolean; docs: SavedDoc[]; uploadedCount: number; correctionsCount: number; analysesDates: string[]; correctionsDates: string[]; hasChatAccess: boolean; onOpenChat: () => void }) {
+function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analysesDates, correctionsDates, opChargeDates, hasChatAccess, onOpenChat }: { quota: Quota | null; isPro: boolean; docs: SavedDoc[]; uploadedCount: number; correctionsCount: number; analysesDates: string[]; correctionsDates: string[]; opChargeDates: string[]; hasChatAccess: boolean; onOpenChat: () => void }) {
   const navigate = useNavigate();
   const createdDocs = docs.length;
   const analysesUsed = (quota as any)?.analyses_used ?? 0;
   const contractsUsed = quota?.contracts_used ?? 0;
   const templatesUsed = quota?.templates_used ?? 0;
+
+  // Lifetime operations: combine quota_session_charges + corrections_batch_charges,
+  // fall back to the quota counters when we have no per-op history yet.
+  const totalOps = useMemo(() => {
+    const fromCharges = opChargeDates.length + correctionsDates.length;
+    const fromQuota = contractsUsed + templatesUsed + analysesUsed + correctionsCount;
+    return Math.max(fromCharges, fromQuota);
+  }, [opChargeDates, correctionsDates, contractsUsed, templatesUsed, analysesUsed, correctionsCount]);
 
   const totalsData = useMemo(() => ([
     { name: "Създадени", value: createdDocs, fill: "hsl(var(--gold))" },
@@ -336,7 +344,45 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
     return Object.values(buckets);
   }, [docs, analysesDates, correctionsDates]);
 
+  // All-time cumulative operations chart — monthly buckets so it scales
+  // gracefully from a brand-new account up to power users.
+  const allTimeData = useMemo(() => {
+    const ops = [...opChargeDates, ...correctionsDates]
+      .map((t) => new Date(t))
+      .filter((d) => !isNaN(d.getTime()))
+      .sort((a, b) => a.getTime() - b.getTime());
+    if (ops.length === 0) return [] as { label: string; ops: number; cumulative: number }[];
+    const first = new Date(ops[0]); first.setDate(1); first.setHours(0, 0, 0, 0);
+    const now = new Date(); now.setDate(1); now.setHours(0, 0, 0, 0);
+    const buckets: { key: string; label: string; ops: number; cumulative: number }[] = [];
+    const cursor = new Date(first);
+    while (cursor <= now) {
+      buckets.push({
+        key: `${cursor.getFullYear()}-${cursor.getMonth()}`,
+        label: cursor.toLocaleDateString("bg-BG", { month: "short", year: "2-digit" }),
+        ops: 0, cumulative: 0,
+      });
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+    const idx = new Map(buckets.map((b, i) => [b.key, i]));
+    for (const d of ops) {
+      const k = `${d.getFullYear()}-${d.getMonth()}`;
+      const i = idx.get(k);
+      if (i != null) buckets[i].ops += 1;
+    }
+    let acc = 0;
+    for (const b of buckets) { acc += b.ops; b.cumulative = acc; }
+    return buckets;
+  }, [opChargeDates, correctionsDates]);
+
+  // Rewards
+  const unlockedTiers = useMemo(() => getUnlockedTiers(totalOps), [totalOps]);
+  const activeTier = unlockedTiers.length ? unlockedTiers[unlockedTiers.length - 1] : null;
+  const nextTier = useMemo(() => getNextTier(totalOps), [totalOps]);
+
   const hasAnyActivity = totalsData.some((d) => d.value > 0);
+
+
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
