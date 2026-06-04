@@ -39,6 +39,23 @@ export default function TeamPage() {
 
   useEffect(() => { if (team) setSeatsValue(team.seat_count); }, [team]);
 
+  const teamLifetimeOps = usage?.lifetime_ops ?? 0;
+  const teamUnlocked = useMemo(() => getUnlockedTeamTiers(teamLifetimeOps), [teamLifetimeOps]);
+  const teamNextTier = useMemo(() => getNextTeamTier(teamLifetimeOps), [teamLifetimeOps]);
+
+  // Award newly reached team tiers — idempotent on the server.
+  useEffect(() => {
+    if (!team || teamLifetimeOps < TEAM_REWARD_TIERS[0].threshold) return;
+    supabase.rpc("award_team_loyalty", { _team_id: team.team_id, _total_ops: teamLifetimeOps }).then(({ data }) => {
+      const newTiers = (data as any)?.new_tiers as string[] | undefined;
+      if (newTiers && newTiers.length) {
+        const last = TEAM_REWARD_TIERS.find((t) => t.id === newTiers[newTiers.length - 1]);
+        if (last) toast.success(`Екипът отключи „${last.name}"!`);
+      }
+    });
+  }, [team?.team_id, teamLifetimeOps]);
+
+
   if (loading) {
     return (
       <>
