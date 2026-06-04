@@ -14,6 +14,17 @@ import { Loader2 } from "lucide-react";
 import { translateAuthError } from "@/lib/authErrors";
 import { recordConsents } from "@/lib/consents";
 import { Seo } from "@/components/Seo";
+import { GoogleConsentDialog } from "@/components/auth/GoogleConsentDialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
+
+const RISKY_BG_EMAIL_DOMAINS = ["abv.bg", "mail.bg", "dir.bg"];
+function isRiskyBgEmail(value: string): boolean {
+  const at = value.lastIndexOf("@");
+  if (at < 0) return false;
+  const domain = value.slice(at + 1).trim().toLowerCase();
+  return RISKY_BG_EMAIL_DOMAINS.includes(domain);
+}
 
 export default function AuthPage() {
   const navigate = useNavigate();
