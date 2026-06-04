@@ -469,6 +469,13 @@ export default function AuthPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <GoogleConsentDialog
+        open={googleConsentOpen}
+        onOpenChange={setGoogleConsentOpen}
+        onConfirm={handleGoogleConsentConfirm}
+        busy={busy}
+      />
     </div>
   );
 }
