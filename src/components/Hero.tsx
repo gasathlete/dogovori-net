@@ -94,9 +94,9 @@ export function Hero({ onStart }: { onStart: () => void }) {
             style={{ animationDelay: "400ms" }}
           >
             {[
-              { icon: ShieldCheck, label: "Правно съответствие", value: "ЗЗД · ТЗ · ЗУТ" },
-              { icon: Bird, label: "Оценка на риска", value: "Набюдавайте проблем" },
-              { icon: FileText, label: "Експорт", value: "PDF + DOCX + ЕЛЕКТРОНЕН ПОДПИС" },
+              { icon: FileText, label: "Шаблона в каталога", metric: "590", value: "ЗЗД · ТЗ · ЗУТ" },
+              { icon: Sparkles, label: "До готов документ", metric: "<2 мин", value: "AI стратегически въпросник" },
+              { icon: ShieldCheck, label: "Правно съответствие", metric: "100%", value: "GDPR · eIDAS · ЗЕДЕУУ" },
             ].map((item) => (
               <div
                 key={item.label}
@@ -106,10 +106,11 @@ export function Hero({ onStart }: { onStart: () => void }) {
                   className="mb-3 h-5 w-5 text-gold transition-transform duration-300 group-hover:scale-110"
                   strokeWidth={1.6}
                 />
-                <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                <div className="metric-number text-2xl sm:text-3xl">{item.metric}</div>
+                <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                   {item.label}
                 </div>
-                <div className="mt-1.5 font-serif text-base text-foreground sm:text-lg mx-[6px]">
+                <div className="mt-1.5 text-xs leading-relaxed text-muted-foreground/80 sm:text-sm">
                   {item.value}
                 </div>
                 <span className="pointer-events-none absolute left-2 top-2 h-2.5 w-2.5 border-l border-t border-gold/0 transition-colors duration-300 group-hover:border-gold/60" />
