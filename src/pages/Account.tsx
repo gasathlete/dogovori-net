@@ -32,6 +32,10 @@ import { isValidEGN, isValidEIK } from "@/lib/bgValidation";
 import { translateAuthError } from "@/lib/authErrors";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { Seo } from "@/components/Seo";
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip as RTooltip, Legend, AreaChart, Area,
+} from "recharts";
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
