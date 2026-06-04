@@ -48,10 +48,17 @@ const Index = () => {
       <Header />
       <main className="route-fade">
         <Hero onStart={startInterview} />
-        <Reveal>
-          <SectorGrid onPick={(id) => navigate(`/sektor/${id}`)} />
-        </Reveal>
-        <Divider />
+        <Suspense fallback={<SectionSkeleton />}>
+          <LazyOnVisible minHeight={500}>
+            <Reveal>
+              <TopDocuments />
+            </Reveal>
+          </LazyOnVisible>
+          <Divider />
+          <Reveal>
+            <SectorGrid onPick={(id) => navigate(`/sektor/${id}`)} />
+          </Reveal>
+          <Divider />
         <Suspense fallback={<SectionSkeleton />}>
           <LazyOnVisible minHeight={500}>
             <Reveal>
