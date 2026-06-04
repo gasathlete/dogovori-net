@@ -77,7 +77,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
             style={{ animationDelay: "0ms" }}
           >
             Договори, които{" "}
-            <span className="gold-shimmer">търсят и намират</span>{" "}
+            <span className="text-gold">търсят и намират</span>{" "}
             Вашите интереси
           </h1>
           <div
