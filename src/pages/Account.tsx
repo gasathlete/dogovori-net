@@ -293,12 +293,46 @@ function ScrollableTabsList({ children }: { children: React.ReactNode }) {
 }
 
 /* ============================ DASHBOARD ============================ */
-function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, hasChatAccess, onOpenChat }: { quota: Quota | null; isPro: boolean; docs: SavedDoc[]; uploadedCount: number; correctionsCount: number; hasChatAccess: boolean; onOpenChat: () => void }) {
+function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analysesDates, correctionsDates, hasChatAccess, onOpenChat }: { quota: Quota | null; isPro: boolean; docs: SavedDoc[]; uploadedCount: number; correctionsCount: number; analysesDates: string[]; correctionsDates: string[]; hasChatAccess: boolean; onOpenChat: () => void }) {
   const navigate = useNavigate();
   const createdDocs = docs.length;
   const analysesUsed = (quota as any)?.analyses_used ?? 0;
+  const contractsUsed = quota?.contracts_used ?? 0;
+  const templatesUsed = quota?.templates_used ?? 0;
+
+  const totalsData = useMemo(() => ([
+    { name: "Създадени", value: createdDocs, fill: "hsl(var(--gold))" },
+    { name: "Договори", value: contractsUsed, fill: "hsl(var(--gold) / 0.85)" },
+    { name: "Бланки", value: templatesUsed, fill: "hsl(var(--gold) / 0.7)" },
+    { name: "Качени", value: uploadedCount, fill: "hsl(var(--gold) / 0.55)" },
+    { name: "Анализи", value: analysesUsed, fill: "hsl(var(--gold) / 0.4)" },
+    { name: "Корекции", value: correctionsCount, fill: "hsl(var(--gold) / 0.25)" },
+  ]), [createdDocs, contractsUsed, templatesUsed, uploadedCount, analysesUsed, correctionsCount]);
+
+  const timelineData = useMemo(() => {
+    const days = 30;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const buckets: Record<string, { date: string; label: string; created: number; analyses: number; corrections: number }> = {};
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today); d.setDate(today.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      buckets[key] = { date: key, label: d.toLocaleDateString("bg-BG", { day: "2-digit", month: "2-digit" }), created: 0, analyses: 0, corrections: 0 };
+    }
+    const add = (iso: string, field: "created" | "analyses" | "corrections") => {
+      const key = iso.slice(0, 10);
+      if (buckets[key]) buckets[key][field] += 1;
+    };
+    for (const d of docs) add(d.created_at, "created");
+    for (const t of analysesDates) add(t, "analyses");
+    for (const t of correctionsDates) add(t, "corrections");
+    return Object.values(buckets);
+  }, [docs, analysesDates, correctionsDates]);
+
+  const hasAnyActivity = totalsData.some((d) => d.value > 0);
+
   return (
     <div className="grid gap-4 md:grid-cols-3">
+
       <Card
         title="План"
         value={isPro ? "Предприемач" : "Безплатен"}
