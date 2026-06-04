@@ -760,6 +760,8 @@ export function LiveDraft({
       };
       onContractChange(next);
     };
+    const enLocked = !!(generated.bilingual && !isPro);
+    const enLockClass = enLocked ? " blur-sm select-none pointer-events-none" : "";
     return (
       <ProtectedContent>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
