@@ -24,6 +24,11 @@ export function SectorGrid({ onPick }: { onPick: (id: string) => void }) {
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
           Всеки сектор има индивидуален стратегически въпросник, изграден от експертите ни.
         </p>
+        <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-gold/25 bg-gold/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold">
+          <span>{SECTORS.length} сектора</span>
+          <span className="h-2.5 w-px bg-gold/30" />
+          <span>590 документа</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-5">
