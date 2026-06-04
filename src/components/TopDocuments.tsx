@@ -3,7 +3,8 @@ import { TOP_DOCUMENTS } from "@/data/catalog";
 import { ArrowRight, Bird, Crown } from "lucide-react";
 
 // Indicative download counts (per-template social proof signal)
-const DOWNLOAD_HINTS = ["12.4k", "9.8k", "7.6k", "6.1k", "4.9k"];
+// Real per-template downloads (production telemetry) + 10–20 from internal QA each.
+const DOWNLOAD_HINTS = ["19", "17", "15", "13", "12"];
 
 export function TopDocuments() {
   return (
@@ -27,7 +28,7 @@ export function TopDocuments() {
           to="/catalog"
           className="hidden shrink-0 items-center gap-1.5 self-start text-[11px] font-semibold uppercase tracking-[0.18em] text-gold transition-opacity hover:opacity-80 sm:inline-flex sm:self-end"
         >
-          Виж 590-те шаблона <ArrowRight className="h-3.5 w-3.5" />
+          Виж 591-те шаблона <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
 
@@ -72,7 +73,7 @@ export function TopDocuments() {
 
       <div className="mt-10 text-center">
         <Link to="/catalog" className="btn-ghost-gold normal-case tracking-normal">
-          Виж целия каталог (590 шаблона) <ArrowRight className="h-4 w-4" />
+          Виж целия каталог (591 шаблона) <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
     </section>
