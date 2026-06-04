@@ -146,7 +146,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
             ].map((item) => (
               <div
                 key={item.label}
-                className="group relative bg-card/70 p-5 text-left backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-card/90 sm:p-6"
+                className="group relative bg-card/90 p-5 text-left transition-colors duration-300 hover:bg-card sm:p-6"
               >
                 <item.icon
                   className="mb-3 h-5 w-5 text-gold transition-transform duration-300 group-hover:scale-110"
