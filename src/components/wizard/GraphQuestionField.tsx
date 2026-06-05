@@ -105,11 +105,28 @@ export function GraphQuestionField({ q, value, onChange, invalid }: Props) {
         </div>
       );
 
-    case "select":
+    case "select": {
+      const knownValues = new Set((q.options ?? []).map((o) => o.value));
+      const currentStr = (value as string) ?? "";
+      const isCustom = currentStr !== "" && !knownValues.has(currentStr);
+      const [customMode, setCustomMode] = useState<boolean>(isCustom);
+      useEffect(() => { if (isCustom) setCustomMode(true); }, [isCustom]);
+      const selectValue = customMode ? CUSTOM_SENTINEL : currentStr;
       return (
         <div className="space-y-1.5">
           {labelEl}
-          <Select value={(value as string) ?? ""} onValueChange={onChange}>
+          <Select
+            value={selectValue}
+            onValueChange={(v) => {
+              if (v === CUSTOM_SENTINEL) {
+                setCustomMode(true);
+                onChange("");
+              } else {
+                setCustomMode(false);
+                onChange(v);
+              }
+            }}
+          >
             <SelectTrigger id={id} className={errorRing}>
               <SelectValue placeholder="Изберете…" />
             </SelectTrigger>
@@ -117,28 +134,67 @@ export function GraphQuestionField({ q, value, onChange, invalid }: Props) {
               {q.options?.map((o) => (
                 <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
               ))}
+              <SelectItem value={CUSTOM_SENTINEL}>Друго (свободен текст)…</SelectItem>
             </SelectContent>
           </Select>
+          {customMode && (
+            <Input
+              value={isCustom ? currentStr : ""}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Въведете собствен отговор"
+              className={errorRing}
+            />
+          )}
           {help}
         </div>
       );
+    }
 
     case "multiselect": {
       const arr = Array.isArray(value) ? (value as string[]) : [];
+      const knownValues = new Set((q.options ?? []).map((o) => o.value));
+      const customValues = arr.filter((v) => !knownValues.has(v));
+      const customText = customValues[0] ?? "";
+      const [customMode, setCustomMode] = useState<boolean>(customValues.length > 0);
+      useEffect(() => { if (customValues.length > 0) setCustomMode(true); }, [customValues.length]);
       const toggle = (v: string) => {
         if (arr.includes(v)) onChange(arr.filter((x) => x !== v));
         else onChange([...arr, v]);
       };
+      const updateCustom = (text: string) => {
+        const cleaned = arr.filter((v) => knownValues.has(v));
+        if (text.trim()) onChange([...cleaned, text]);
+        else onChange(cleaned);
+      };
       return (
         <div className="space-y-1.5">
           {labelEl}
-          <div className="grid gap-2 rounded-md border p-3">
+          <div className={`grid gap-2 rounded-md border p-3 ${invalid ? "border-destructive" : ""}`}>
             {q.options?.map((o) => (
               <label key={o.value} className="flex cursor-pointer items-start gap-2 text-sm">
                 <Checkbox checked={arr.includes(o.value)} onCheckedChange={() => toggle(o.value)} />
                 <span>{o.label}</span>
               </label>
             ))}
+            <label className="flex cursor-pointer items-start gap-2 text-sm">
+              <Checkbox
+                checked={customMode}
+                onCheckedChange={(c) => {
+                  const next = !!c;
+                  setCustomMode(next);
+                  if (!next) updateCustom("");
+                }}
+              />
+              <span>Друго (свободен текст)…</span>
+            </label>
+            {customMode && (
+              <Input
+                value={customText}
+                onChange={(e) => updateCustom(e.target.value)}
+                placeholder="Въведете собствен отговор"
+                className="mt-1"
+              />
+            )}
           </div>
           {help}
         </div>
