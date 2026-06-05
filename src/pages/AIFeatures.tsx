@@ -50,68 +50,7 @@ export default function AIFeaturesPage() {
   const description =
     "Как AI системата на Dogovori.net анализира български договори: извличане на клаузи, проверка по ЗЗД/ТЗ/КТ, конкретни корекции и експорт в PDF/DOCX. Над 600 шаблона.";
 
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
-
-  // Detailed SoftwareApplication schema specifically describing the AI module.
-  const softwareLd = {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    name: "Dogovori.net AI Contract Analysis",
-    url: "https://dogovori.net/ai",
-    applicationCategory: "BusinessApplication",
-    applicationSubCategory: "LegalTech / Contract Lifecycle Management",
-    operatingSystem: "Web",
-    inLanguage: ["bg-BG", "en"],
-    description:
-      "AI-powered legal contract analysis for Bulgarian law (ЗЗД, ТЗ, КТ). Extracts clauses, scores risk on a 1–10 scale, suggests concrete redlines and exports to PDF/DOCX with e-signature support.",
-    featureList: [
-      "600+ Bulgarian contract templates",
-      "Clause extraction and segmentation",
-      "Risk scoring vs Bulgarian statutory law (ЗЗД / ТЗ / КТ)",
-      "Concrete redline suggestions per clause",
-      "Bilingual (BG/EN) parallel export",
-      "PDF + DOCX export with tracked changes",
-      "Electronic signature (КЕП and platform-native)",
-      "GDPR-compliant; uploaded documents not used for model training",
-    ],
-    offers: [
-      { "@type": "Offer", name: "Pro", price: "9.90", priceCurrency: "EUR", description: "100 operations/month" },
-      { "@type": "Offer", name: "Team (per seat)", price: "7.90", priceCurrency: "EUR", description: "Min 3 seats, 100 operations/seat/month" },
-      { "@type": "Offer", name: "Pay-as-you-go", price: "1.90", priceCurrency: "EUR", description: "5 operations" },
-    ],
-    aggregateRating: { "@type": "AggregateRating", ratingValue: "4.8", ratingCount: "127" },
-  };
-
-  const howToLd = {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
-    name: "Как работи AI анализът на договори",
-    inLanguage: "bg-BG",
-    totalTime: "PT2M",
-    step: ANALYSIS_STEPS.map((s, i) => ({
-      "@type": "HowToStep",
-      position: i + 1,
-      name: s.title.replace(/^\d+\.\s*/, ""),
-      text: s.body,
-    })),
-  };
-
-  const breadcrumbsLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Начало", item: "https://dogovori.net/" },
-      { "@type": "ListItem", position: 2, name: "AI правен анализ", item: "https://dogovori.net/ai" },
-    ],
-  };
+  const jsonLd = buildAiFeaturesSchemas();
 
   return (
     <div className="min-h-screen">
@@ -119,7 +58,7 @@ export default function AIFeaturesPage() {
         title={title}
         description={description}
         canonical={canonical}
-        jsonLd={[softwareLd, faqLd, howToLd, breadcrumbsLd]}
+        jsonLd={jsonLd}
       />
       <Header />
 
