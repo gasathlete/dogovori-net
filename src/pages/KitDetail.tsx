@@ -5,6 +5,7 @@ import { ArrowRight, CheckCircle2, FileText, Loader2, Package, Play, Sparkles } 
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
+import { breadcrumbSchema } from "@/lib/jsonLd";
 import { Button } from "@/components/ui/button";
 import { getKit, type KitItem } from "@/data/documentKits";
 import { allTemplates } from "@/lib/templateIndex";
@@ -88,17 +89,24 @@ export default function KitDetailPage() {
         title={`${kit.title} | Комплект документи`}
         description={kit.shortDescription}
         canonical={`https://dogovori.net/komplekti/${kit.id}`}
-        jsonLd={{
-          "@context": "https://schema.org",
-          "@type": "ItemList",
-          name: kit.title,
-          description: kit.shortDescription,
-          itemListElement: kit.items.map((it, i) => ({
-            "@type": "ListItem",
-            position: i + 1,
-            name: it.docName,
-          })),
-        }}
+        jsonLd={[
+          {
+            "@context": "https://schema.org",
+            "@type": "ItemList",
+            name: kit.title,
+            description: kit.shortDescription,
+            itemListElement: kit.items.map((it, i) => ({
+              "@type": "ListItem",
+              position: i + 1,
+              name: it.docName,
+            })),
+          },
+          breadcrumbSchema([
+            { name: "Начало", url: "/" },
+            { name: "Комплекти", url: "/komplekti" },
+            { name: kit.title },
+          ]),
+        ]}
       />
       <Header />
       <main className="bg-background">
