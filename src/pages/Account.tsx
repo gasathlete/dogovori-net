@@ -410,15 +410,10 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
         onClick={() => navigate("/account?tab=documents")}
       />
       <Card
-        title="Свалени договори"
-        value={`${quota?.contracts_used ?? 0}`}
-        icon={<FileText className="h-5 w-5 text-gold" />}
-        onClick={() => navigate("/downloads/contracts")}
-      />
-      <Card
         title="Свалени бланки"
         value={`${quota?.templates_used ?? 0}`}
         icon={<FileText className="h-5 w-5 text-gold" />}
+        sub="Лична история на свалените бланки"
         onClick={() => navigate("/downloads/templates")}
       />
       <Card
@@ -433,7 +428,6 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
         value={`${correctionsCount}`}
         icon={<RefreshCw className="h-5 w-5 text-gold" />}
         sub="Приложени вълни от корекции"
-        onClick={() => navigate("/account?tab=uploaded")}
       />
 
 
