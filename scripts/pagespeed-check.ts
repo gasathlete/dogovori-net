@@ -153,6 +153,23 @@ async function main() {
         ghAnnotate("warning", "scripts/pagespeed-check.ts", msg);
       }
     }
+    // Core Web Vitals — explicit thresholds so Slack fires on slow LCP/INP/CLS
+    // even when the aggregate performance score still passes.
+    if (r.metrics.lcp != null && r.metrics.lcp > CWV_THRESHOLDS.lcpMs) {
+      const msg = `${r.url} — LCP ${Math.round(r.metrics.lcp)}ms > ${CWV_THRESHOLDS.lcpMs}ms`;
+      regressions.push(msg);
+      ghAnnotate("warning", "scripts/pagespeed-check.ts", msg);
+    }
+    if (r.metrics.cls != null && r.metrics.cls > CWV_THRESHOLDS.cls) {
+      const msg = `${r.url} — CLS ${r.metrics.cls.toFixed(3)} > ${CWV_THRESHOLDS.cls}`;
+      regressions.push(msg);
+      ghAnnotate("warning", "scripts/pagespeed-check.ts", msg);
+    }
+    if (r.metrics.inp != null && r.metrics.inp > CWV_THRESHOLDS.inpMs) {
+      const msg = `${r.url} — INP ${Math.round(r.metrics.inp)}ms > ${CWV_THRESHOLDS.inpMs}ms`;
+      regressions.push(msg);
+      ghAnnotate("warning", "scripts/pagespeed-check.ts", msg);
+    }
   }
 
   // Markdown report
