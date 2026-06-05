@@ -153,15 +153,10 @@ export function Header() {
                 {n.label}
               </Link>
             ))}
-            <div className="mt-2 border-t border-border/60 px-3 py-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-[11px] font-semibold tracking-[0.12em] text-gold">
-                <a href="https://lex.bg/laws/ldoc/2121934337" target="_blank" rel="noopener noreferrer" className="hover:underline">ЗЗД</a>
-                <span className="opacity-40">·</span>
-                <a href="https://lex.bg/laws/ldoc/-14917630" target="_blank" rel="noopener noreferrer" className="hover:underline">ТЗ</a>
-                <span className="opacity-40">·</span>
-                <a href="https://lex.bg/laws/ldoc/2135163904" target="_blank" rel="noopener noreferrer" className="hover:underline">ЗУТ</a>
-              </span>
+            <div className="mt-2 border-t border-border/60 pt-2">
+              <ToolsMenu variant="mobile" onNavigate={() => setOpen(false)} />
             </div>
+
           </div>
         </nav>
       )}
