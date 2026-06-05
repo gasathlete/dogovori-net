@@ -192,6 +192,7 @@ const App = () => (
           <PaymentTestModeBanner />
           <CookieBanner />
           <AIDisclaimerModal />
+          <UsernamePrompt />
           <Suspense fallback={<RouteFallback />}>
             <AnimatedRoutes />
           </Suspense>
