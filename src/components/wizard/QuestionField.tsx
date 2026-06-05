@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import type { Question } from "@/data/sectors";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +17,7 @@ type Props = {
   onAnswerChange?: (id: string, v: string) => void;
   compact?: boolean;
   contacts?: Contact[];
+  invalid?: boolean;
 };
 
 const TYPE_OPTIONS = ["Юридическо лице", "Физическо лице", "ЕТ / Самоосигуряващо се"];
