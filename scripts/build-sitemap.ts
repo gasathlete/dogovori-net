@@ -17,6 +17,8 @@ import { CATALOG, TOP_DOCUMENTS } from "../src/data/catalog";
 import { SECTORS } from "../src/data/sectors";
 import { DOCUMENT_TYPES } from "../src/lib/documentReferences";
 import { slugify } from "../src/lib/slugify";
+import { CALCULATORS } from "../src/data/calculators";
+
 
 const SITE = "https://dogovori.net";
 const today = new Date().toISOString().split("T")[0];
