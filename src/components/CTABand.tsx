@@ -25,7 +25,7 @@ export function CTABand() {
           Изгответе своя професионален договор още днес
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-          590 шаблона · AI анализ на риска · електронен подпис · без скрити такси.
+          +600 шаблона · AI анализ на риска · електронен подпис · без скрити такси.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
           <Link to="/catalog" className="btn-gold btn-sheen w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4">

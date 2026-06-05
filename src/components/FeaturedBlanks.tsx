@@ -37,7 +37,7 @@ export function FeaturedBlanks() {
             <span className="font-serif text-base font-normal tracking-normal text-gold/60">★</span>
             <span className="h-px w-6 bg-gold/40" />
             <Sparkles className="h-3 w-3" />
-            Избрани от Договори нет
+            <span className="whitespace-pre-line text-left leading-tight">{"★\nИЗБРАНИ ОТ ДОГОВОРИ НЕТ"}</span>
           </div>
           <h2
             id="featured-blanks-title"
