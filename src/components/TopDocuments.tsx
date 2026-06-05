@@ -9,6 +9,7 @@ import { slugify } from "@/lib/slugify";
 const DOWNLOAD_BASELINE = [19, 17, 15, 13, 12];
 
 export function TopDocuments() {
+  const counts = useDownloadCounts();
   return (
     <section id="top-documents" className="container py-14 sm:py-16 md:py-24">
       <div className="mb-10 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between md:mb-12">
