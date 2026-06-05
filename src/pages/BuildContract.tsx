@@ -36,6 +36,9 @@ import { Seo } from "@/components/Seo";
 import { trackEvent } from "@/lib/analytics";
 import { PartyListEditor, parseParties, serializeParties } from "@/components/wizard/PartyListEditor";
 import { Lock } from "lucide-react";
+import { findSimilarTemplates, type SimilarTemplate } from "@/lib/templateSimilarity";
+import { Link } from "react-router-dom";
+import { Info, X } from "lucide-react";
 
 const buildPresetSignature = (params: URLSearchParams) => [
   params.get("category") ?? "",
@@ -127,6 +130,15 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         ? `${getDocumentType(presetDocumentType).label} № ${refNumberParam} към „${parentTitleParam}”`
         : (persisted?.name ?? "")
   );
+  const [similarTemplates, setSimilarTemplates] = useState<SimilarTemplate[]>([]);
+  const [similarDismissed, setSimilarDismissed] = useState(false);
+  useEffect(() => {
+    setSimilarDismissed(false);
+    const handle = setTimeout(() => {
+      setSimilarTemplates(name.trim().length >= 4 ? findSimilarTemplates(name, 0.8, 3) : []);
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [name]);
   const [categoryId, setCategoryId] = useState<string>(
     presetCategory && SECTORS.some((s) => s.id === presetCategory)
       ? presetCategory
@@ -955,6 +967,44 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                           placeholder={`напр. ${getDocumentType(documentType).label} за…`}
                           className="bg-input/60 text-base"
                         />
+                        {!similarDismissed && similarTemplates.length > 0 && (
+                          <div className="mt-2 rounded-md border border-gold/40 bg-gold/5 p-3 text-sm">
+                            <div className="flex items-start gap-2">
+                              <Info className="mt-0.5 h-4 w-4 shrink-0 text-gold" aria-hidden />
+                              <div className="flex-1 space-y-2">
+                                <p className="text-foreground">
+                                  Имаме вече подобен{similarTemplates.length > 1 ? "и" : ""} документ{similarTemplates.length > 1 ? "и" : ""} в каталога. Искате ли да го редактирате оттам или да продължите със създаването?
+                                </p>
+                                <ul className="space-y-1">
+                                  {similarTemplates.map((m) => (
+                                    <li key={m.entry.slug}>
+                                      <Link
+                                        to={`/shablon/${m.entry.slug}`}
+                                        className="font-medium text-gold underline-offset-2 hover:underline"
+                                      >
+                                        {m.entry.doc.name}
+                                      </Link>
+                                      <span className="ml-2 text-xs text-muted-foreground">
+                                        ({Math.round(m.score * 100)}% съвпадение)
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                                <p className="text-xs text-muted-foreground">
+                                  Или продължете със създаването на собствен документ по-долу.
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setSimilarDismissed(true)}
+                                className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                aria-label="Скрий предложението"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </Field>
 
                       <Field label="Категория" required>
