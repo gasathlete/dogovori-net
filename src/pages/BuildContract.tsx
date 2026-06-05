@@ -723,6 +723,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                 <>
                   <button
                     onClick={() => navigate("/catalog")}
+                    {...prefetchHandlers("/catalog")}
                     className="text-muted-foreground transition-colors hover:text-gold"
                   >
                     Каталог
