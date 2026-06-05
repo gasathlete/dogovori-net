@@ -35,6 +35,7 @@ import Index from "./pages/Index.tsx";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { CookieBanner } from "@/components/CookieBanner";
 import { AIDisclaimerModal } from "@/components/AIDisclaimerModal";
+import { UsernamePrompt } from "@/components/auth/UsernamePrompt";
 // Sentry init is deferred to idle time below — keeps it off the critical path.
 
 // Lazy-load every route except Index (landing page) so the initial bundle stays light.
@@ -191,6 +192,7 @@ const App = () => (
           <PaymentTestModeBanner />
           <CookieBanner />
           <AIDisclaimerModal />
+          <UsernamePrompt />
           <Suspense fallback={<RouteFallback />}>
             <AnimatedRoutes />
           </Suspense>
