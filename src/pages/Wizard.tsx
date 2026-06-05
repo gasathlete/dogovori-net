@@ -680,10 +680,19 @@ export default function WizardPage() {
 
 
 
+                {attemptedNext && !canNext && current && (
+                  <div className="mt-4 rounded-md border border-destructive/50 bg-destructive/5 p-3 text-xs text-destructive">
+                    <div className="flex items-center gap-1.5 font-semibold">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      Моля, попълнете задължителното поле: {current.label}
+                    </div>
+                  </div>
+                )}
+
                 <div className="mt-8 flex items-center justify-between gap-3">
                   <Button
                     variant="ghost"
-                    onClick={() => setStepIdx((i) => Math.max(0, i - 1))}
+                    onClick={() => { setAttemptedNext(false); setStepIdx((i) => Math.max(0, i - 1)); }}
                     disabled={safeIdx === 0}
                     className="text-muted-foreground hover:text-foreground"
                   >
@@ -691,8 +700,8 @@ export default function WizardPage() {
                   </Button>
                   {isLast ? (
                     <Button
-                      onClick={handleGenerate}
-                      disabled={!canNext || generating}
+                      onClick={() => { if (!canNext) { setAttemptedNext(true); return; } handleGenerate(); }}
+                      disabled={generating}
                       size="lg"
                       className="bg-gradient-gold text-navy shadow-gold hover:shadow-[0_15px_50px_-10px_hsl(43_55%_54%_/_0.5)]"
                     >
@@ -710,8 +719,11 @@ export default function WizardPage() {
                     </Button>
                   ) : (
                     <Button
-                      onClick={() => setStepIdx((i) => i + 1)}
-                      disabled={!canNext}
+                      onClick={() => {
+                        if (!canNext) { setAttemptedNext(true); return; }
+                        setAttemptedNext(false);
+                        setStepIdx((i) => i + 1);
+                      }}
                       className="bg-gradient-gold text-navy hover:shadow-gold"
                     >
                       Напред <ArrowRight className="ml-1 h-4 w-4" />
