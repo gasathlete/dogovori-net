@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { prefetchHandlers } from "@/components/PrefetchLink";
 import { ArrowLeft, ArrowRight, Loader2, FileDown, FileText, Save, Wand2, Sparkles, Zap, Briefcase, Scale, ChevronDown, Check, Languages, ShieldCheck, FileSignature, Lightbulb } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -723,6 +724,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                 <>
                   <button
                     onClick={() => navigate("/catalog")}
+                    {...prefetchHandlers("/catalog")}
                     className="text-muted-foreground transition-colors hover:text-gold"
                   >
                     Каталог

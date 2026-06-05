@@ -251,6 +251,37 @@ export default function SectorPage() {
           </section>
         )}
 
+        {/* People-also-browse: other sectors — topic cluster cross-linking */}
+        {(() => {
+          const others = SECTORS.filter((s) => s.id !== sector.id).slice(0, 6);
+          if (others.length === 0) return null;
+          return (
+            <section className="rounded-xl border border-border/60 bg-card/30 p-6 md:p-7" aria-labelledby="related-sectors">
+              <h2 id="related-sectors" className="mb-4 font-serif text-lg font-bold md:text-xl">
+                Разгледайте други сектори
+              </h2>
+              <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {others.map((s) => {
+                  const OtherIcon = (Icons as any)[s.icon] ?? Icons.FileText;
+                  return (
+                    <li key={s.id}>
+                      <Link
+                        to={`/sektor/${s.id}`}
+                        className="group flex items-start gap-2.5 rounded-lg border border-border/40 bg-background/40 p-3 transition-colors hover:border-gold/45"
+                      >
+                        <OtherIcon className="mt-0.5 h-4 w-4 shrink-0 text-gold/70" strokeWidth={1.6} />
+                        <span className="text-sm leading-snug text-foreground/90 group-hover:text-gold">
+                          {s.title}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          );
+        })()}
+
         {/* CTA */}
         <section className="relative overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-10 text-center shadow-elegant md:p-12">
           <div className="absolute inset-x-0 top-0 hairline-x" />

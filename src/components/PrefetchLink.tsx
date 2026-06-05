@@ -11,6 +11,8 @@ const PREFETCHERS: Array<[RegExp, () => Promise<unknown>]> = [
   [/^\/catalog\b/, () => import("@/pages/Catalog.tsx")],
   [/^\/shablon\b/, () => import("@/pages/Template.tsx")],
   [/^\/kategoria\b/, () => import("@/pages/Category.tsx")],
+  [/^\/sektor\b/, () => import("@/pages/Sector.tsx")],
+  [/^\/build\b/, () => import("@/pages/BuildContract.tsx")],
   [/^\/auth\b/, () => import("@/pages/Auth.tsx")],
   [/^\/account\b/, () => import("@/pages/Account.tsx")],
   [/^\/blog\/[^/]+/, () => import("@/pages/BlogPost.tsx")],
@@ -45,3 +47,17 @@ export const PrefetchLink = forwardRef<HTMLAnchorElement, LinkProps>(
 );
 
 PrefetchLink.displayName = "PrefetchLink";
+
+/**
+ * Handlers for non-Link CTAs (e.g. `<button onClick={() => navigate(...)}>`).
+ * Safe to call inside loops — it's a plain function, not a hook.
+ *
+ * Usage:
+ *   <button {...prefetchHandlers("/sektor/finance")} onClick={...}>...</button>
+ */
+export function prefetchHandlers(href: string) {
+  return {
+    onMouseEnter: () => prefetchFor(href),
+    onFocus: () => prefetchFor(href),
+  };
+}

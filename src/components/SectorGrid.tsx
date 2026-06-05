@@ -3,6 +3,7 @@ import { SECTOR_META as SECTORS } from "@/data/sectorsMeta";
 import * as Icons from "lucide-react";
 import { ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
 import { SECTOR_IMAGES } from "@/lib/sectorImages";
+import { prefetchHandlers } from "@/components/PrefetchLink";
 
 const INITIAL_VISIBLE = 9;
 
@@ -35,10 +36,12 @@ export function SectorGrid({ onPick }: { onPick: (id: string) => void }) {
         {visible.map((s) => {
           const Icon = (Icons as any)[s.icon] ?? Icons.FileText;
           const bg = SECTOR_IMAGES[s.id];
+          const prefetch = prefetchHandlers(`/sektor/${s.id}`);
           return (
             <button
               key={s.id}
               onClick={() => onPick(s.id)}
+              {...prefetch}
               className="group relative isolate overflow-hidden rounded-xl surface-elevated p-6 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/45 sm:p-7"
             >
               {bg && (
