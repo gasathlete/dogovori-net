@@ -146,24 +146,25 @@ export function Hero({ onStart }: { onStart: () => void }) {
             Освен шаблони и бланки, сайтът предлага разработка на собствен документ, с правна подкрепа от Нашата Система. Стратегически въпроси, които да напътстват Вашата сделка. Dogovori.net изгражда индивидуални договори и документи, съобразени със ЗЗД, ТЗ и ЗУТ, придружени от пълен правен риск-анализ.
           </p>
           <div
-            className="anim-rise mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-5"
+            className="anim-rise mt-5 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-5"
             style={{ animationDelay: "240ms" }}
           >
             <button
               onClick={onStart}
-              className="btn-gold w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
+              className="btn-gold w-full sm:w-auto normal-case tracking-normal text-[15px] px-7 py-3.5"
             >
               <Search className="h-[18px] w-[18px]" /> Намери документ
             </button>
             <a
               href="/build"
-              className="btn-gold-inverse w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
+              className="btn-gold-inverse w-full sm:w-auto normal-case tracking-normal text-[15px] px-7 py-3.5"
             >
               <ArrowRight className="h-[18px] w-[18px]" /> Изготви документ
             </a>
           </div>
           <p
-            className="anim-rise mt-4 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+            className="anim-rise mt-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+
             style={{ animationDelay: "300ms" }}
           >
             Безплатно: 3 операции/месец · ПРЕДПРИЕМАЧ 9.90 €/мес — 100 операции, двуезични договори, комплекти, всички функционалности
