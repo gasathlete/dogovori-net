@@ -136,35 +136,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
             </button>
           </div>
 
-          <div
-            className="anim-rise mt-12 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-hairline bg-hairline sm:mt-14 sm:grid-cols-3 md:mt-16"
-            style={{ animationDelay: "400ms" }}
-          >
-            {[
-              { icon: FileText, label: "категории в каталога", metric: "Над  20 ", value: "ЗЗД · ТЗ · ЗУТ" },
-              { icon: Bird, label: "До готов документ", metric: "<2 мин", value: "Автоматизиран стратегически въпросник" },
-              { icon: ShieldCheck, label: "Правно съответствие", metric: "100%", value: "GDPR · eIDAS · ЗЕДЕУУ" },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="group relative bg-card/90 p-5 text-left transition-colors duration-300 hover:bg-card sm:p-6"
-              >
-                <item.icon
-                  className="mb-3 h-5 w-5 text-gold transition-transform duration-300 group-hover:scale-110"
-                  strokeWidth={1.6}
-                />
-                <div className="metric-number text-2xl sm:text-3xl">{item.metric}</div>
-                <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                  {item.label}
-                </div>
-                <div className="mt-1.5 text-xs leading-relaxed text-muted-foreground/80 sm:text-sm">
-                  {item.value}
-                </div>
-                <span className="pointer-events-none absolute left-2 top-2 h-2.5 w-2.5 border-l border-t border-gold/0 transition-colors duration-300 group-hover:border-gold/60" />
-                <span className="pointer-events-none absolute bottom-2 right-2 h-2.5 w-2.5 border-b border-r border-gold/0 transition-colors duration-300 group-hover:border-gold/60" />
-              </div>
-            ))}
-          </div>
+          <BlogRotator />
         </div>
       </div>
 
