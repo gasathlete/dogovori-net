@@ -290,6 +290,8 @@ export default function WizardReviewPage() {
         payload: contractWithSig,
         source_id: slug,
         saved_document_id: savedDocId,
+        folder_id: folderId || undefined,
+        contact_id: contactId || undefined,
         doc_key: slug,
       });
       if (!res.ok) {
