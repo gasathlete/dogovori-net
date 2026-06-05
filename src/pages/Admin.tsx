@@ -127,6 +127,7 @@ export default function AdminPage() {
           <Button asChild variant="outline" size="sm" className="border-gold/40">
             <Link to="/admin/ai-training">🧠 AI обучение</Link>
           </Button>
+          <BlankCacheWarmer />
         </div>
 
         <div className="flex gap-2 mb-4">
