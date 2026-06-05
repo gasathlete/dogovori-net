@@ -122,6 +122,9 @@ export default function AdminPage() {
           <Button asChild variant="ghost" size="sm"><Link to="/account"><ArrowLeft className="h-4 w-4 mr-1" /> Профил</Link></Button>
           <h1 className="text-3xl font-bold flex items-center gap-2"><ShieldCheck className="h-7 w-7 text-gold" /> Модераторски панел</h1>
           <Button asChild variant="outline" size="sm" className="ml-auto border-gold/40">
+            <Link to="/admin/subscriptions">💳 Абонаменти & екипи</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm" className="border-gold/40">
             <Link to="/admin/ai-training">🧠 AI обучение</Link>
           </Button>
         </div>
