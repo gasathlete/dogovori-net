@@ -148,11 +148,14 @@ writeSitemap("sitemap-templates.xml", templateEntries);
 writeSitemap("sitemap-blog.xml", blogEntries);
 
 // Sitemap index
+const blogLatest = blogEntries.reduce((m, e) => (e.lastmod && e.lastmod > m ? e.lastmod : m), "1970-01-01");
+const staticLatest = staticEntries.reduce((m, e) => (e.lastmod && e.lastmod > m ? e.lastmod : m), "1970-01-01");
+const categoryLatest = [catalogDate, sectorsDate].sort().reverse()[0];
 const children = [
-  { loc: "sitemap-static.xml", lastmod: today },
-  { loc: "sitemap-categories.xml", lastmod: catalogDate },
+  { loc: "sitemap-static.xml", lastmod: staticLatest },
+  { loc: "sitemap-categories.xml", lastmod: categoryLatest },
   { loc: "sitemap-templates.xml", lastmod: catalogDate },
-  { loc: "sitemap-blog.xml", lastmod: today },
+  { loc: "sitemap-blog.xml", lastmod: blogLatest },
 ];
 const indexXml = `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
