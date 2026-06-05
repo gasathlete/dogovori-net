@@ -1,13 +1,27 @@
 User-agent: *
 Allow: /
+
+# Authenticated workspace + tokenized/private routes — never index.
 Disallow: /account
-Disallow: /document/
+Disallow: /admin
+Disallow: /admin/
+Disallow: /build
 Disallow: /checkout/
+Disallow: /contact/
+Disallow: /document/
+Disallow: /downloads/
+Disallow: /komplekti/moi/
 Disallow: /reset-password
 Disallow: /share/
-Disallow: /wizard/
+Disallow: /sign/
+Disallow: /signing/
+Disallow: /team
+Disallow: /team/
 Disallow: /unsubscribe
-Disallow: /admin
+Disallow: /uploaded/
+Disallow: /wizard/
+Disallow: /wizard-bilingual/
+Disallow: /wizard-graph/
 
 # Block AI training / dataset scrapers — content is original Bulgarian legal material.
 User-agent: GPTBot
