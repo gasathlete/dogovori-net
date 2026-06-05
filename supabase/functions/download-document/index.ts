@@ -32,12 +32,13 @@ serve(async (req) => {
     const ipHash = await hashIp(clientIp(req));
 
     const body = await req.json();
-    const { kind, title, payload, source_id, contact_id, saved_document_id, session_id, doc_key, template_slug } = body as {
+    const { kind, title, payload, source_id, contact_id, folder_id, saved_document_id, session_id, doc_key, template_slug } = body as {
       kind: "contract" | "template";
       title: string;
       payload: unknown;
       source_id?: string;
       contact_id?: string;
+      folder_id?: string;
       saved_document_id?: string;
       session_id?: string;
       doc_key?: string;
