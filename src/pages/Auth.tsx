@@ -92,7 +92,7 @@ export default function AuthPage() {
     navigate(redirect);
   };
 
-  const signupReady = acceptTerms && acceptPrivacy && acceptAge;
+  const signupReady = acceptTerms && acceptPrivacy && acceptAge && acceptMarketing;
   const showBgEmailWarning = isRiskyBgEmail(email);
 
   const handleLogin = async (e: React.FormEvent) => {
