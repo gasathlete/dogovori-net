@@ -57,7 +57,15 @@ const staticEntries: Entry[] = [
     priority: "0.8",
     lastmod: catalogDate,
   })),
+  // /tools/<slug> — calculator detail pages.
+  ...CALCULATORS.map<Entry>((c) => ({
+    loc: `/tools/${c.slug}`,
+    changefreq: "monthly",
+    priority: "0.75",
+    lastmod: today,
+  })),
 ];
+
 
 
 const blogDir = resolve(process.cwd(), "src/content/blog");
