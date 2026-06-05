@@ -55,6 +55,7 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
       payload: p.payload,
       source_id: p.source_id,
       contact_id: p.contact_id,
+      folder_id: p.folder_id,
       saved_document_id: p.saved_document_id,
       session_id: getOpSessionId(),
       doc_key: getOpDocKey(p.doc_key || p.source_id || p.title),
