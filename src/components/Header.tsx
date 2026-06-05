@@ -52,7 +52,7 @@ export function Header() {
           : "border-border/40 bg-navy",
       )}
     >
-      <div className="container flex h-20 items-center gap-6">
+      <div className="container flex h-16 items-center gap-4 lg:gap-5">
         {/* Brand */}
         <div className="flex flex-1 items-center">
           <Link
