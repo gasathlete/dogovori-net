@@ -161,6 +161,43 @@ export default function CategoryPage() {
           );
         })()}
 
+        {/* People-also-browse: sibling categories in the same sector — strengthens topic clusters */}
+        {(() => {
+          const siblings = CATALOG.filter((c) => c.sectorId === cat.sectorId && c.id !== cat.id).slice(0, 6);
+          if (siblings.length === 0) return null;
+          return (
+            <section className="mt-12 rounded-xl border border-border/60 bg-card/30 p-6 md:p-7" aria-labelledby="related-cats">
+              <h2 id="related-cats" className="mb-4 font-serif text-lg font-bold md:text-xl">
+                Свързани категории
+              </h2>
+              <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {siblings.map((s) => (
+                  <li key={s.id}>
+                    <Link
+                      to={`/kategoria/${s.id}`}
+                      className="group flex items-start gap-2 rounded-lg border border-border/40 bg-background/40 p-3 transition-colors hover:border-gold/45"
+                    >
+                      <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold/70" strokeWidth={1.6} />
+                      <span className="text-sm leading-snug text-foreground/90 group-hover:text-gold">
+                        {s.title}
+                        <span className="ml-1 text-xs text-muted-foreground">({s.documents.length})</span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-4 text-xs text-muted-foreground">
+                Разгледайте целия{" "}
+                <Link to={`/sektor/${cat.sectorId}`} className="text-gold hover:underline">
+                  сектор
+                </Link>
+                {" "}или се върнете към{" "}
+                <Link to="/catalog" className="text-gold hover:underline">пълния каталог</Link>.
+              </p>
+            </section>
+          );
+        })()}
+
         <section className="mt-14">
           <h2 className="mb-6 font-serif text-2xl font-bold md:text-3xl">Често задавани въпроси</h2>
           <dl className="space-y-4">
