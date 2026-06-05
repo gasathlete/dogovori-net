@@ -144,6 +144,9 @@ const AnimatedRoutes = () => {
         <Route path="/wizard-graph/:slug/review" element={<WizardReview />} />
 
         <Route path="/catalog" element={<Catalog />} />
+        <Route path="/tools" element={<Tools />} />
+        <Route path="/tools/:slug" element={<ToolDetail />} />
+
         <Route path="/komplekti" element={<Kits />} />
         <Route path="/komplekti/moi/:id" element={<ProtectedRoute><MyKitDetail /></ProtectedRoute>} />
         <Route path="/komplekti/:slug" element={<KitDetail />} />
