@@ -65,7 +65,7 @@ export function TopDocuments() {
               </p>
               <div className="mt-4 flex items-center justify-between border-t border-hairline pt-3">
                 <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  {DOWNLOAD_HINTS[i]} изтегляния
+                  {total.toLocaleString("bg-BG")} изтегляния
                 </span>
                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold opacity-70 transition-opacity duration-200 group-hover:opacity-100">
                   Виж <ArrowRight className="h-3 w-3" />
