@@ -86,7 +86,7 @@ export default function TeamPage() {
             <h1 className="mt-4 font-serif text-3xl font-bold">План Екип за фирми</h1>
             <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
               Споделени шаблони, журнал на действията, достъп с фирмен имейл, брандирани документи и общ лимит от 100 операции на място на месец.
-              7.90 €/място/месец, мин. 3 места.
+              10.90 €/място/месец, мин. 3 места.
             </p>
             <Button onClick={() => setCreateOpen(true)} className="mt-6 bg-gradient-gold text-navy hover:shadow-gold">
               <Plus className="mr-2 h-4 w-4" /> Създай екип
@@ -111,10 +111,10 @@ export default function TeamPage() {
                 <Label>Период на фактуриране</Label>
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <Button variant={createBilling === "monthly" ? "default" : "outline"} onClick={() => setCreateBilling("monthly")} className={createBilling === "monthly" ? "bg-gradient-gold text-navy" : ""}>
-                    Месечно — {(7.9 * createSeats).toFixed(2)} €/мес
+                    Месечно — {(10.9 * createSeats).toFixed(2)} €/мес
                   </Button>
                   <Button variant={createBilling === "yearly" ? "default" : "outline"} onClick={() => setCreateBilling("yearly")} className={createBilling === "yearly" ? "bg-gradient-gold text-navy" : ""}>
-                    Годишно — {(79 * createSeats).toFixed(0)} €/год
+                    Годишно — {(109 * createSeats).toFixed(0)} €/год
                   </Button>
                 </div>
               </div>

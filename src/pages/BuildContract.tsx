@@ -560,7 +560,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       if (!res.ok) {
         if (res.error === "quota_exceeded") {
           toast.error("Изчерпан безплатен лимит", {
-            description: "Купете единичен документ за 1.90€ или преминете към Pro.",
+            description: "Купете единичен документ за 2.90€ или преминете към Pro.",
             action: { label: "Виж опции", onClick: goSubscription },
           });
         } else {
