@@ -201,24 +201,8 @@ Deno.serve(async (req: Request) => {
     }
     console.log("[build-custom-contract] auth ok:", { userId, ...authDiag });
 
-    const ipHash = await hashIp(clientIp(req));
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { count } = await admin
-      .from("ai_usage")
-      .select("id", { count: "exact", head: true })
-      .eq("function_name", "build-custom-contract")
-      .gte("created_at", since)
-      .eq("user_id", userId);
-    if ((count ?? 0) >= 5) {
-      return new Response(
-        JSON.stringify({
-          error: "Достигнахте дневния лимит от 5 генерации. Опитайте утре или вземете Pro.",
-          code: "rate_limited",
-        }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
+    // Parse + validate body first so we can fire rate-limit, content
+    // guard, and cache lookup queries in parallel.
     const body = (await req.json()) as BuildPayload;
     const {
       name = "",
@@ -260,24 +244,6 @@ Deno.serve(async (req: Request) => {
         .map((f) => ({ key: String(f.key), label: String(f.label), value: String(f.value ?? "") }))
       : [];
 
-    // Illegal content guard
-    const guardText = [
-      name, category,
-      ...(partiesA ?? []), ...(partiesB ?? []),
-      subject, term, prices, obligations, other,
-      ...safeCustomFields.map((f) => f.value),
-    ].join("\n");
-    const blocked = await guardIllegalContent({
-      admin, text: guardText, functionName: "build-custom-contract",
-      userId, ipHash: null,
-      userAgent: req.headers.get("user-agent"),
-      corsHeaders,
-    });
-    if (blocked) return blocked;
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
-
     const PROMPT_VERSION = "v6-bilingual-cols";
     const cacheKeyInput = stableStringify({
       v: PROMPT_VERSION, kind: "custom",
@@ -290,8 +256,50 @@ Deno.serve(async (req: Request) => {
       customFields: safeCustomFields,
       subject, term, prices, obligations, other,
     });
-    const cacheHash = await sha256Hex(cacheKeyInput);
+    const guardText = [
+      name, category,
+      ...(partiesA ?? []), ...(partiesB ?? []),
+      subject, term, prices, obligations, other,
+      ...safeCustomFields.map((f) => f.value),
+    ].join("\n");
+
+    const ipHash = await hashIp(clientIp(req));
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const cacheCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    // Run rate-limit count, illegal-content guard, and cache lookup in
+    // parallel. They are independent of each other, so we save ~2 RTTs
+    // versus the previous sequential pipeline.
+    const [countRes, blocked, cacheHash] = await Promise.all([
+      admin
+        .from("ai_usage")
+        .select("id", { count: "exact", head: true })
+        .eq("function_name", "build-custom-contract")
+        .gte("created_at", since)
+        .eq("user_id", userId),
+      guardIllegalContent({
+        admin, text: guardText, functionName: "build-custom-contract",
+        userId, ipHash: null,
+        userAgent: req.headers.get("user-agent"),
+        corsHeaders,
+      }),
+      sha256Hex(cacheKeyInput),
+    ]);
+
+    if ((countRes.count ?? 0) >= 5) {
+      return new Response(
+        JSON.stringify({
+          error: "Достигнахте дневния лимит от 5 генерации. Опитайте утре или вземете Pro.",
+          code: "rate_limited",
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (blocked) return blocked;
+
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
+
     const { data: cachedRow } = await admin
       .from("template_cache")
       .select("payload")
@@ -303,6 +311,8 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+
 
     const partyALabel = docSpec.partyAName || "Страна А";
     const partyBLabel = docSpec.partyBName || "Страна Б";
