@@ -411,6 +411,29 @@ export default function WizardPage() {
 
   const [downloadingBlank, setDownloadingBlank] = useState(false);
   const [blankStep, setBlankStep] = useState(0);
+
+  // Lock body scroll while the blank-download modal is open so it stays
+  // anchored to the current viewport on mobile (otherwise URL-bar dynamics
+  // and page scrolling can push the card out of view).
+  useEffect(() => {
+    if (!downloadingBlank) return;
+    const prevOverflow = document.body.style.overflow;
+    const prevPosition = document.body.style.position;
+    const prevTop = document.body.style.top;
+    const prevWidth = document.body.style.width;
+    const scrollY = window.scrollY;
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.position = prevPosition;
+      document.body.style.top = prevTop;
+      document.body.style.width = prevWidth;
+      window.scrollTo(0, scrollY);
+    };
+  }, [downloadingBlank]);
   const todayLabel = new Date().toLocaleDateString("bg-BG", {
     day: "2-digit",
     month: "2-digit",
@@ -525,8 +548,11 @@ export default function WizardPage() {
 
 
       {downloadingBlank && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-md rounded-2xl border border-gold/30 bg-card p-6 shadow-2xl">
+        <div
+          className="fixed inset-x-0 top-0 z-[100] flex items-start justify-center overflow-y-auto bg-background/80 p-4 pt-[10vh] backdrop-blur-sm sm:items-center sm:pt-4"
+          style={{ height: "100dvh" }}
+        >
+          <div className="w-full max-w-md rounded-2xl border border-gold/30 bg-card p-6 shadow-2xl">
             <div className="mb-4 flex items-center gap-3">
               <Loader2 className="h-5 w-5 animate-spin text-gold" />
               <h3 className="font-serif text-lg text-foreground">Подготвяме бланката…</h3>
