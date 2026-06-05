@@ -42,7 +42,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
       </div>
 
       <div className="container relative pt-4 pb-10 sm:pt-6 sm:pb-16 md:pt-10 md:pb-24 lg:pt-12 lg:pb-28">
-        <div className="relative mx-auto max-w-3xl text-center">
+        <div className="relative mx-auto max-w-3xl text-center px-0 my-0">
           {/* Centered hero medallion — visible, doesn't overlap content */}
           <div
             className="anim-rise mx-auto mb-6 flex items-center justify-center sm:mb-8"
@@ -121,7 +121,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
             className="anim-rise mt-4 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
             style={{ animationDelay: "300ms" }}
           >
-            Безплатно: 3 операции/месец · PRO 9.90 €/мес — 100 операции, двуезични договори, без воден знак
+            Безплатно: 3 операции/месец · ПРЕДПРИЕМАЧ 9.90 €/мес — 100 операции, двуезични договори, комплекти, всички функционалности
           </p>
           <div className="anim-rise mt-3 text-center" style={{ animationDelay: "340ms" }}>
             <button
@@ -130,9 +130,9 @@ export function Hero({ onStart }: { onStart: () => void }) {
                 e.preventDefault();
                 scrollToHash("process");
               }}
-              className="text-xs uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold focus-visible:text-gold"
+              className="text-xs uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold focus-visible:text-gold my-[6px] px-[10px] py-[12px]"
             >
-              Как работи процесът ↓
+              Как работи системата↓
             </button>
           </div>
 

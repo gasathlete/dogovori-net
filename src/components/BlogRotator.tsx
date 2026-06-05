@@ -97,7 +97,7 @@ export function BlogRotator() {
       <span className="pointer-events-none absolute bottom-2 right-2 h-3 w-3 border-b border-r border-gold/40" />
 
       {/* Header strip */}
-      <div className="flex items-center justify-between border-b border-hairline px-5 py-3 sm:px-6">
+      <div className="flex items-center justify-between border-b border-hairline px-5 py-3 sm:px-6 my-[2px]">
         <div className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold">
           <BookOpen className="h-3.5 w-3.5" strokeWidth={1.6} />
           От блога
