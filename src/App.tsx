@@ -153,6 +153,7 @@ const AnimatedRoutes = () => {
         <Route path="/komplekti/moi/:id" element={<ProtectedRoute><MyKitDetail /></ProtectedRoute>} />
         <Route path="/komplekti/:slug" element={<KitDetail />} />
         <Route path="/karta" element={<SiteMap />} />
+        <Route path="/ai" element={<AIFeatures />} />
         <Route path="/kategoria/:slug" element={<Category />} />
         <Route path="/sektor/:id" element={<Sector />} />
         <Route path="/shablon/:slug" element={<Template />} />
