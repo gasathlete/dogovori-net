@@ -35,10 +35,11 @@ export function BlankCacheWarmer() {
   const currentTaskRef = useRef<BlankTask | null>(null);
 
   const counts = useMemo(() => {
-    const c = { pending: 0, skipped: 0, generated: 0, failed: 0 };
+    const c = { pending: 0, skipped: 0, generated: 0, queued: 0, failed: 0 };
     for (const t of tasks) {
       if (t.status === "skipped") c.skipped++;
       else if (t.status === "generated") c.generated++;
+      else if (t.status === "queued") c.queued++;
       else if (t.status === "failed") c.failed++;
       else c.pending++;
     }
@@ -46,7 +47,7 @@ export function BlankCacheWarmer() {
   }, [tasks]);
 
   const total = tasks.length;
-  const done = counts.skipped + counts.generated + counts.failed;
+  const done = counts.skipped + counts.generated + counts.queued + counts.failed;
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
 
   // Initialise the task list when dialog opens.
