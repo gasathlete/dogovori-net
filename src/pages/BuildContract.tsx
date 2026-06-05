@@ -36,6 +36,9 @@ import { Seo } from "@/components/Seo";
 import { trackEvent } from "@/lib/analytics";
 import { PartyListEditor, parseParties, serializeParties } from "@/components/wizard/PartyListEditor";
 import { Lock } from "lucide-react";
+import { findSimilarTemplates, type SimilarTemplate } from "@/lib/templateSimilarity";
+import { Link } from "react-router-dom";
+import { Info, X } from "lucide-react";
 
 const buildPresetSignature = (params: URLSearchParams) => [
   params.get("category") ?? "",
