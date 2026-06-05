@@ -663,6 +663,7 @@ export default function WizardPage() {
                   answers={answers}
                   onAnswerChange={(id, v) => setAnswers((p) => ({ ...p, [id]: v }))}
                   contacts={contacts}
+                  invalid={attemptedNext && !canNext}
                 />
 
                 {isLast && (
