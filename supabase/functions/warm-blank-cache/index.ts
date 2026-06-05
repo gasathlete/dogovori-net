@@ -300,7 +300,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const CACHE_VERSION = isBilingual ? "v4-bilingual" : "v4";
+    const CACHE_VERSION = isBilingual ? "v5-bilingual" : "v5";
 
     // ---- Idempotent skip ----
     const { data: existing } = await admin
