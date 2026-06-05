@@ -130,7 +130,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
                 e.preventDefault();
                 scrollToHash("process");
               }}
-              className="text-xs uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold focus-visible:text-gold my-[6px] px-[10px] py-[12px]"
+              className="text-xs uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold focus-visible:text-gold my-[6px] px-[10px] py-[12px] text-amber-100"
             >
               Как работи системата↓
             </button>
