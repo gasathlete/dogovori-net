@@ -205,7 +205,9 @@ export function AdminGscPanel() {
   }, [urls, results]);
 
   return (
-    <section className="mt-10 border rounded-lg p-4 md:p-6 bg-card">
+    <>
+      <ImpressionsTrendCard />
+      <section className="mt-10 border rounded-lg p-4 md:p-6 bg-card">
       <div className="flex items-center gap-3 flex-wrap">
         <h2 className="text-xl font-semibold flex items-center gap-2">
           <Search className="h-5 w-5 text-gold" /> Индексиране в Google
