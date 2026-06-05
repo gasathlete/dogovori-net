@@ -92,13 +92,13 @@ export function Hero({ onStart }: { onStart: () => void }) {
                 className="relative h-[64%] w-[64%] object-contain"
               />
 
-              {/* Hover tooltip — business quote, floats above medallion */}
+              {/* Hover tooltip — business quote, floats to the left of the medallion */}
               {quote && (
                 <div
                   id={tooltipId}
                   role="tooltip"
-                  className={`pointer-events-none absolute left-1/2 bottom-full z-30 mb-3 hidden w-[280px] -translate-x-1/2 rounded-md border border-gold/30 bg-navy/95 px-4 py-3 text-center shadow-elegant backdrop-blur-sm transition-all duration-300 ease-out sm:w-[340px] md:block ${
-                    visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"
+                  className={`pointer-events-none absolute right-full top-1/2 z-30 mr-4 hidden w-[240px] -translate-y-1/2 rounded-md border border-gold/30 bg-navy/95 px-4 py-3 text-center shadow-elegant backdrop-blur-sm transition-all duration-300 ease-out sm:w-[300px] md:block ${
+                    visible ? "translate-x-0 opacity-100" : "translate-x-1 opacity-0"
                   }`}
                 >
                   <p className="font-serif text-[13px] italic leading-snug text-muted-foreground">
