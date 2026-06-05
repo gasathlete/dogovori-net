@@ -133,24 +133,78 @@ pages.push({
   jsonLd: [],
 });
 
-// HTML sitemap — single page that lists every URL. Massive help for crawl.
-pages.push({
-  path: "/karta",
-  title: `Карта на сайта — всички ${totalDocs}+ шаблона | Dogovori.net`,
-  description: `Пълна карта на сайта: ${totalDocs}+ шаблона на договори и бланки на български, групирани по категория. Бърз достъп до всеки документ.`,
-  bodyHtml: `<main style="font-family:Georgia,serif;max-width:900px;margin:2rem auto;padding:1rem">
-      <h1>Карта на сайта</h1>
-      <p>Всички ${totalDocs} шаблона на договори и бланки, групирани по категория.</p>
-      ${CATALOG.map((c) => `<section><h2><a href="/kategoria/${c.id}">${escapeHtml(c.title)}</a></h2><ul>${c.documents.map((d) => `<li><a href="/shablon/${slugify(d.name)}">${escapeHtml(d.name)}</a></li>`).join("")}</ul></section>`).join("")}
-    </main>`,
-  jsonLd: [{
-    "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    name: "Карта на сайта Dogovori.net",
-    url: `${SITE}/karta`,
-    inLanguage: "bg-BG",
-  }],
-});
+// HTML sitemap (/karta) — SSG version with the SAME JSON-LD as the React page,
+// rendered into static HTML so LLM crawlers see the full TemplateDirectory
+// (semantic <article>/<section>/<dl>) without waiting for client JS.
+{
+  const allDocs: { slug: string; name: string; purpose: string; catId: string; catTitle: string }[] = [];
+  const seen = new Set<string>();
+  for (const c of CATALOG) {
+    for (const d of c.documents) {
+      let base = slugify(d.name) || "shablon";
+      let s = base;
+      let i = 2;
+      while (seen.has(s)) s = `${base}-${i++}`;
+      seen.add(s);
+      allDocs.push({ slug: s, name: d.name, purpose: d.purpose, catId: c.id, catTitle: c.title });
+    }
+  }
+  const kartaLd = buildKartaSchemas({
+    templates: allDocs.map((d) => ({ slug: d.slug, name: d.name })),
+    categoryCount: CATALOG.length,
+    sectorCount: SECTORS.length,
+    categoryTitles: CATALOG.map((c) => c.title),
+  });
+  const kartaErrors = validateAll(kartaLd);
+  if (kartaErrors.length) {
+    console.error("✗ /karta JSON-LD validation failed:", kartaErrors);
+    process.exit(1);
+  }
+  pages.push({
+    path: "/karta",
+    title: `Карта на сайта — всички ${totalDocs}+ шаблона | Dogovori.net`,
+    description: `Пълна карта на сайта: ${totalDocs}+ шаблона на договори и бланки на български, групирани по категория. Бърз достъп до всеки документ.`,
+    bodyHtml: `<main style="font-family:Georgia,serif;max-width:1000px;margin:2rem auto;padding:1rem;color:#0f1a30">
+        <nav><a href="/">Начало</a> › Карта на сайта</nav>
+        <h1>Карта на сайта</h1>
+        <p>Всички ${totalDocs} шаблона на договори и бланки на български език, групирани по категория и сектор. Всеки запис включва име и кратко предназначение, така че търсачки и AI асистенти (ChatGPT, Perplexity, Claude, Gemini) могат да разпознават пълния каталог на платформата.</p>
+        <section><h2>Сектори (${SECTORS.length})</h2><ul>${SECTORS.map((s) => `<li><a href="/sektor/${s.id}">${escapeHtml(s.title)}</a></li>`).join("")}</ul></section>
+        <section><h2>Категории и шаблони (${totalDocs} документа)</h2>
+        ${CATALOG.map((c) => `<article><h3><a href="/kategoria/${c.id}">${escapeHtml(c.title)}</a></h3>${c.intro ? `<p>${escapeHtml(c.intro)}</p>` : ""}<dl>${c.documents.map((d) => `<dt><a href="/shablon/${slugify(d.name)}">${escapeHtml(d.name)}</a></dt><dd>${escapeHtml(d.purpose)}</dd>`).join("")}</dl></article>`).join("")}
+        </section>
+        <p><a href="/ai">AI правен анализ</a> · <a href="/catalog">Каталог</a> · <a href="/blog">Блог</a></p>
+      </main>`,
+    jsonLd: kartaLd,
+  });
+}
+
+// /ai — GEO-targeted explainer for the AI contract-analysis module.
+{
+  const aiLd = buildAiFeaturesSchemas();
+  const aiErrors = validateAll(aiLd);
+  if (aiErrors.length) {
+    console.error("✗ /ai JSON-LD validation failed:", aiErrors);
+    process.exit(1);
+  }
+  pages.push({
+    path: "/ai",
+    title: "AI правен анализ на договори — как работи | Dogovori.net",
+    description:
+      "Как AI системата на Dogovori.net анализира български договори: извличане на клаузи, проверка по ЗЗД/ТЗ/КТ, конкретни корекции и експорт в PDF/DOCX. Над 600 шаблона.",
+    bodyHtml: `<main style="font-family:Georgia,serif;max-width:900px;margin:2rem auto;padding:1rem;color:#0f1a30">
+        <nav><a href="/">Начало</a> › AI правен анализ</nav>
+        <h1>Как AI системата на Dogovori.net анализира договори</h1>
+        <p>Платформата комбинира над 600 правно курирани шаблона с AI пайплайн, обучен за българското договорно право (ЗЗД, ТЗ, КТ).</p>
+        <h2>Пайплайн на анализа — 5 стъпки</h2>
+        <ol>${AI_ANALYSIS_STEPS.map((s) => `<li><strong>${escapeHtml(s.title)}</strong> — ${escapeHtml(s.body)}</li>`).join("")}</ol>
+        <h2>Често задавани въпроси</h2>
+        ${AI_FAQS.map((f) => `<section><h3>${escapeHtml(f.q)}</h3><p>${escapeHtml(f.a)}</p></section>`).join("")}
+        <p><a href="/build">Изготви договор с AI</a> · <a href="/karta">Карта на сайта (всички 600+ шаблона)</a> · <a href="/catalog">Каталог</a></p>
+      </main>`,
+    jsonLd: aiLd,
+  });
+}
+
 
 // Category hub pages
 for (const cat of CATALOG) {
