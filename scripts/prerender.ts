@@ -11,7 +11,15 @@
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { CATALOG } from "../src/data/catalog";
+import { SECTORS } from "../src/data/sectors";
 import { slugify } from "../src/lib/slugify";
+import {
+  buildAiFeaturesSchemas,
+  buildKartaSchemas,
+  AI_ANALYSIS_STEPS,
+  AI_FAQS,
+  validateAll,
+} from "../src/lib/seo/schemas";
 
 const DIST = resolve(process.cwd(), "dist");
 const SITE = "https://dogovori.net";
