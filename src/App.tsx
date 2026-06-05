@@ -56,6 +56,9 @@ const WizardGraph = lazy(() => import("./pages/WizardGraph.tsx"));
 const WizardReview = lazy(() => import("./pages/WizardReview.tsx"));
 
 const Catalog = lazy(() => import("./pages/Catalog.tsx"));
+const Tools = lazy(() => import("./pages/Tools.tsx"));
+const ToolDetail = lazy(() => import("./pages/ToolDetail.tsx"));
+
 const Category = lazy(() => import("./pages/Category.tsx"));
 const Sector = lazy(() => import("./pages/Sector.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
@@ -141,6 +144,9 @@ const AnimatedRoutes = () => {
         <Route path="/wizard-graph/:slug/review" element={<WizardReview />} />
 
         <Route path="/catalog" element={<Catalog />} />
+        <Route path="/tools" element={<Tools />} />
+        <Route path="/tools/:slug" element={<ToolDetail />} />
+
         <Route path="/komplekti" element={<Kits />} />
         <Route path="/komplekti/moi/:id" element={<ProtectedRoute><MyKitDetail /></ProtectedRoute>} />
         <Route path="/komplekti/:slug" element={<KitDetail />} />

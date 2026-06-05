@@ -1,0 +1,132 @@
+import { Navigate, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
+import { Header } from "@/components/Header";
+import { SeoFooter } from "@/components/SeoFooter";
+import { Seo } from "@/components/Seo";
+import { CalculatorShell } from "@/components/calculators/CalculatorShell";
+import { getCalculator, CALCULATORS } from "@/data/calculators";
+
+export default function ToolDetail() {
+  const { slug } = useParams<{ slug: string }>();
+  const calc = slug ? getCalculator(slug) : undefined;
+
+  if (!calc) return <Navigate to="/tools" replace />;
+
+  const canonical = `/tools/${calc.slug}`;
+  const title = `${calc.shortTitle} – безплатен калкулатор 2026 | Dogovori.net`;
+  const desc = calc.seo.metaDescription;
+
+  const breadcrumbsLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Начало", item: "https://dogovori.net/" },
+      { "@type": "ListItem", position: 2, name: "Инструменти", item: "https://dogovori.net/tools" },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: calc.shortTitle,
+        item: `https://dogovori.net${canonical}`,
+      },
+    ],
+  };
+
+  const appLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: calc.title,
+    description: calc.description,
+    applicationCategory: "FinanceApplication",
+    operatingSystem: "Any",
+    url: `https://dogovori.net${canonical}`,
+    offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+  };
+
+  const faqLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: calc.seo.faq.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
+
+  const related = CALCULATORS.filter((c) => c.slug !== calc.slug).slice(0, 4);
+
+  return (
+    <div className="min-h-screen">
+      <Seo
+        title={title}
+        description={desc}
+        canonical={canonical}
+        jsonLd={[breadcrumbsLd, appLd, faqLd]}
+      />
+      <Header />
+
+      <article className="container max-w-6xl py-10 md:py-14">
+        <nav aria-label="Breadcrumb" className="mb-6 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+          <Link to="/" className="hover:text-gold">Начало</Link>
+          <ChevronRight className="h-3 w-3" />
+          <Link to="/tools" className="hover:text-gold">Инструменти</Link>
+          <ChevronRight className="h-3 w-3" />
+          <span className="truncate text-foreground/70">{calc.shortTitle}</span>
+        </nav>
+
+        <header className="mb-8">
+          <div className="eyebrow">Калкулатор</div>
+          <h1 className="mt-2 font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl">
+            {calc.shortTitle}
+          </h1>
+          <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">
+            {calc.seo.intro}
+          </p>
+        </header>
+
+        <CalculatorShell calculator={calc} />
+
+        <section className="mt-14 max-w-3xl">
+          <h2 className="mb-4 font-serif text-2xl font-bold md:text-3xl">Как работи изчислението</h2>
+          <p className="text-sm leading-relaxed text-muted-foreground md:text-base">
+            {calc.seo.howItWorks}
+          </p>
+        </section>
+
+        <section className="mt-14 max-w-3xl">
+          <h2 className="mb-6 font-serif text-2xl font-bold md:text-3xl">Често задавани въпроси</h2>
+          <dl className="space-y-4">
+            {calc.seo.faq.map((f) => (
+              <div key={f.q} className="rounded-xl border border-border/60 bg-card/40 p-5">
+                <dt className="font-serif text-base font-bold text-foreground">{f.q}</dt>
+                <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.a}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        <section className="mt-14">
+          <h2 className="mb-5 font-serif text-xl font-bold md:text-2xl">Свързани инструменти</h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {related.map((r) => (
+              <Link
+                key={r.slug}
+                to={`/tools/${r.slug}`}
+                className="group rounded-lg border border-border/60 bg-card/40 p-4 transition-colors hover:border-gold/40"
+              >
+                <div className="text-xs font-semibold text-foreground group-hover:text-gold">
+                  {r.shortTitle}
+                </div>
+                <div className="mt-1 line-clamp-2 text-[11px] leading-snug text-muted-foreground">
+                  {r.description}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </article>
+
+      <SeoFooter />
+    </div>
+  );
+}

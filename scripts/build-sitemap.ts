@@ -17,6 +17,8 @@ import { CATALOG, TOP_DOCUMENTS } from "../src/data/catalog";
 import { SECTORS } from "../src/data/sectors";
 import { DOCUMENT_TYPES } from "../src/lib/documentReferences";
 import { slugify } from "../src/lib/slugify";
+import { CALCULATORS } from "../src/data/calculators";
+
 
 const SITE = "https://dogovori.net";
 const today = new Date().toISOString().split("T")[0];
@@ -40,6 +42,8 @@ const staticEntries: Entry[] = [
   { loc: "/karta", changefreq: "weekly", priority: "0.9", lastmod: catalogDate },
   { loc: "/build", changefreq: "weekly", priority: "0.85", lastmod: catalogDate },
   { loc: "/blog", changefreq: "weekly", priority: "0.85", lastmod: today },
+  { loc: "/tools", changefreq: "weekly", priority: "0.85", lastmod: today },
+
   { loc: "/auth", changefreq: "monthly", priority: "0.4" },
   { loc: "/contacts", changefreq: "yearly", priority: "0.3" },
   { loc: "/terms", changefreq: "yearly", priority: "0.3" },
@@ -53,7 +57,15 @@ const staticEntries: Entry[] = [
     priority: "0.8",
     lastmod: catalogDate,
   })),
+  // /tools/<slug> — calculator detail pages.
+  ...CALCULATORS.map<Entry>((c) => ({
+    loc: `/tools/${c.slug}`,
+    changefreq: "monthly",
+    priority: "0.75",
+    lastmod: today,
+  })),
 ];
+
 
 
 const blogDir = resolve(process.cwd(), "src/content/blog");
