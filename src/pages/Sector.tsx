@@ -56,13 +56,31 @@ export default function SectorPage() {
     ),
   };
 
+  // HowTo schema — Sector pages are the main wizard entry-points. Google may
+  // surface this as a HowTo rich result on "how to draft <sector> contract" queries.
+  const howToLd = {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: `Как се изготвя договор за ${sector.title.toLowerCase()} в 5 стъпки`,
+    description: `Изготвяне на професионален договор за ${sector.title.toLowerCase()} чрез стратегическо интервю, риск-анализ и експорт в PDF/DOCX.`,
+    inLanguage: "bg-BG",
+    totalTime: "PT5M",
+    step: [
+      { "@type": "HowToStep", position: 1, name: "Изберете шаблон", text: `Изберете подходящ шаблон от категориите в сектор „${sector.title}".`, url: `https://dogovori.net${canonical}#templates` },
+      { "@type": "HowToStep", position: 2, name: "Стратегическо интервю", text: "Отговорете на въпросите — wizard-ът адаптира клаузите според вашия казус и страните по договора." },
+      { "@type": "HowToStep", position: 3, name: "Риск-анализ", text: `Системата проверява клаузите спрямо ЗЗД, ТЗ и специалното законодателство за ${sector.title.toLowerCase()} и предлага корекции.` },
+      { "@type": "HowToStep", position: 4, name: "Преглед и експорт", text: "Прегледайте готовия документ и експортирайте в PDF или DOCX." },
+      { "@type": "HowToStep", position: 5, name: "Електронен подпис", text: "Подпишете онлайн с електронен подпис или разпечатайте за хартиен подпис." },
+    ],
+  };
+
   return (
     <div className="min-h-screen">
       <Seo
         title={title}
         description={desc}
         canonical={canonical}
-        jsonLd={[breadcrumbsLd, collectionLd]}
+        jsonLd={[breadcrumbsLd, collectionLd, howToLd]}
       />
       <Header />
 
