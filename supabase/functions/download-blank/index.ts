@@ -390,7 +390,7 @@ Deno.serve(async (req: Request) => {
     // (разписка ≠ договор ≠ декларация ≠ пълномощно etc).
     // Bilingual blanks live under a separate `v3-bilingual` namespace so they
     // never collide with the monolingual cache for the same (sector, document).
-    const CACHE_VERSION = isBilingual ? "v4-bilingual" : "v4";
+    const CACHE_VERSION = isBilingual ? "v5-bilingual" : "v5";
     const existingPath = existing?.storage_path as string | undefined;
     let storagePath: string | undefined =
       existingPath && existingPath.startsWith(`${CACHE_VERSION}/`) ? existingPath : undefined;
