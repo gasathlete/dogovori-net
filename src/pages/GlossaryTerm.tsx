@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Seo } from "@/components/Seo";
+import { breadcrumbSchema } from "@/lib/jsonLd";
 import { Header } from "@/components/Header";
 import { allTemplates, getTemplateBySlug } from "@/lib/templateIndex";
 import { Loader2 } from "lucide-react";
@@ -48,13 +49,20 @@ export default function GlossaryTerm() {
         title={term.seo_title || `${term.term} — определение и значение`}
         description={term.seo_description || term.short_definition}
         canonical={`/rechnik/${term.slug}`}
-        jsonLd={{
-          "@context": "https://schema.org",
-          "@type": "DefinedTerm",
-          name: term.term,
-          description: term.short_definition,
-          inDefinedTermSet: { "@type": "DefinedTermSet", name: "Юридически речник — Dogovori.net" },
-        }}
+        jsonLd={[
+          {
+            "@context": "https://schema.org",
+            "@type": "DefinedTerm",
+            name: term.term,
+            description: term.short_definition,
+            inDefinedTermSet: { "@type": "DefinedTermSet", name: "Юридически речник — Dogovori.net" },
+          },
+          breadcrumbSchema([
+            { name: "Начало", url: "/" },
+            { name: "Речник", url: "/rechnik" },
+            { name: term.term },
+          ]),
+        ]}
       />
       <Header />
       <main className="container max-w-3xl py-10 space-y-6">

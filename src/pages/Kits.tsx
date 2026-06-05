@@ -5,6 +5,7 @@ import { ArrowRight, Sparkles, Package } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
+import { breadcrumbSchema } from "@/lib/jsonLd";
 import { DOCUMENT_KITS, KIT_GROUPS, type DocumentKit } from "@/data/documentKits";
 import { useAuth } from "@/hooks/useAuth";
 import { listMyKits, type UserKit } from "@/lib/kits";
@@ -34,6 +35,10 @@ export default function KitsPage() {
         title="Готови комплекти документи | dogovori.net"
         description="Куратирани комплекти от свързани документи — от регистрация на ООД до наем, IP, GDPR и SaaS. Стартирайте целия пакет с един клик."
         canonical="https://dogovori.net/komplekti"
+        jsonLd={breadcrumbSchema([
+          { name: "Начало", url: "/" },
+          { name: "Комплекти" },
+        ])}
       />
       <Header />
       <main className="bg-background">
