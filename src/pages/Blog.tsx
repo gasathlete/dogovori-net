@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
+import { breadcrumbSchema } from "@/lib/jsonLd";
 import { ALL_POSTS, getAllCategories } from "@/lib/blog";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,7 +65,13 @@ export default function Blog() {
         title="Блог за договорно право в България | Dogovori.net"
         description="Експертни статии за договори, трудово право, имоти, GDPR и данъци. Цитирани закони от ЗЗД, КТ, ТЗ и практически съвети."
         canonical="/blog"
-        jsonLd={jsonLd}
+        jsonLd={[
+          jsonLd,
+          breadcrumbSchema([
+            { name: "Начало", url: "/" },
+            { name: "Блог" },
+          ]),
+        ]}
       />
       <Header />
       <main className="container py-14 md:py-20">

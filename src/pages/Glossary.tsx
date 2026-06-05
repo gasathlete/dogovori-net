@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Seo } from "@/components/Seo";
+import { breadcrumbSchema } from "@/lib/jsonLd";
 import { Header } from "@/components/Header";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
@@ -44,17 +45,23 @@ export default function Glossary() {
         title="Юридически речник — основни термини в българското право"
         description="Безплатен онлайн речник на често използвани правни термини в България: договори, гражданско право, трудово право, GDPR и др."
         canonical="/rechnik"
-        jsonLd={{
-          "@context": "https://schema.org",
-          "@type": "DefinedTermSet",
-          name: "Юридически речник — Dogovori.net",
-          inDefinedTermSet: terms.map((t) => ({
-            "@type": "DefinedTerm",
-            name: t.term,
-            description: t.short_definition,
-            url: `https://dogovori.net/rechnik/${t.slug}`,
-          })),
-        }}
+        jsonLd={[
+          {
+            "@context": "https://schema.org",
+            "@type": "DefinedTermSet",
+            name: "Юридически речник — Dogovori.net",
+            inDefinedTermSet: terms.map((t) => ({
+              "@type": "DefinedTerm",
+              name: t.term,
+              description: t.short_definition,
+              url: `https://dogovori.net/rechnik/${t.slug}`,
+            })),
+          },
+          breadcrumbSchema([
+            { name: "Начало", url: "/" },
+            { name: "Речник" },
+          ]),
+        ]}
       />
       <Header />
       <main className="container max-w-4xl py-10 space-y-8">
