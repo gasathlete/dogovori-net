@@ -8,7 +8,7 @@
  * Used by WizardGraph today; intended adoption by legacy Wizard / WizardBilingual.
  */
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Check, Download, FileSearch, Loader2,
