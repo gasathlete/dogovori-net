@@ -132,19 +132,26 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   );
   const [similarTemplates, setSimilarTemplates] = useState<SimilarTemplate[]>([]);
   const [similarDismissed, setSimilarDismissed] = useState(false);
-  useEffect(() => {
-    setSimilarDismissed(false);
-    const handle = setTimeout(() => {
-      setSimilarTemplates(name.trim().length >= 4 ? findSimilarTemplates(name, 0.6, 5) : []);
-    }, 250);
-    return () => clearTimeout(handle);
-  }, [name]);
   const [categoryId, setCategoryId] = useState<string>(
     presetCategory && SECTORS.some((s) => s.id === presetCategory)
       ? presetCategory
       : (persisted?.categoryId ?? ""),
   );
   const [categoryOther, setCategoryOther] = useState<string>(persisted?.categoryOther ?? "");
+  useEffect(() => {
+    setSimilarDismissed(false);
+    const handle = setTimeout(() => {
+      setSimilarTemplates(
+        name.trim().length >= 4
+          ? findSimilarTemplates(name, 0.6, 5, {
+              documentType,
+              categorySectorId: categoryId && categoryId !== "__other__" ? categoryId : undefined,
+            })
+          : [],
+      );
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [name, documentType, categoryId]);
   const [partiesA, setPartiesA] = useState<string>(prefillPartiesA ?? persisted?.partiesA ?? "");
   const [partiesB, setPartiesB] = useState<string>(prefillPartiesB ?? persisted?.partiesB ?? "");
   // Dynamic per-document-type field values (key -> value)
