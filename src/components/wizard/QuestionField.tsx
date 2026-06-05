@@ -189,7 +189,8 @@ function PartyBlock({
 }
 
 export function QuestionField(props: Props) {
-  const { q, value, onChange, answers = {}, onAnswerChange, compact = false, contacts = [] } = props;
+  const { q, value, onChange, answers = {}, onAnswerChange, compact = false, contacts = [], invalid = false } = props;
+  const invalidRing = invalid ? "border-destructive ring-1 ring-destructive" : "";
 
   // Специален custom рендер за групата „Страни по договора“ — с „+ Добави“ и контрагенти.
   if (q.type === "group" && q.id === "group_parties" && q.fields && q.fields.length >= 4) {
