@@ -25,31 +25,35 @@ const today = new Date().toISOString().split("T")[0];
 
 type Entry = { loc: string; changefreq: string; priority: string; lastmod?: string };
 
-function catalogMtime(): string {
+function fileMtime(relPath: string): string {
   try {
-    return statSync(resolve(process.cwd(), "src/data/catalog.ts")).mtime.toISOString().split("T")[0];
+    return statSync(resolve(process.cwd(), relPath)).mtime.toISOString().split("T")[0];
   } catch {
     return today;
   }
 }
-const catalogDate = catalogMtime();
+const catalogDate = fileMtime("src/data/catalog.ts");
+const sectorsDate = fileMtime("src/data/sectors.ts");
+const calculatorsDate = fileMtime("src/data/calculators.ts");
 const topNames = new Set(TOP_DOCUMENTS.map((d) => d.name));
 
 // ---------- buckets ----------
+// Each static URL's lastmod is tied to the mtime of the page source file
+// that renders it, so Google sees real change signals (not a daily reset).
 const staticEntries: Entry[] = [
-  { loc: "/", changefreq: "daily", priority: "1.0", lastmod: today },
+  { loc: "/", changefreq: "daily", priority: "1.0", lastmod: fileMtime("src/pages/Index.tsx") },
   { loc: "/catalog", changefreq: "weekly", priority: "0.95", lastmod: catalogDate },
   { loc: "/karta", changefreq: "weekly", priority: "0.9", lastmod: catalogDate },
-  { loc: "/build", changefreq: "weekly", priority: "0.85", lastmod: catalogDate },
-  { loc: "/blog", changefreq: "weekly", priority: "0.85", lastmod: today },
-  { loc: "/tools", changefreq: "weekly", priority: "0.85", lastmod: today },
+  { loc: "/build", changefreq: "weekly", priority: "0.85", lastmod: fileMtime("src/pages/BuildContract.tsx") },
+  { loc: "/blog", changefreq: "weekly", priority: "0.85", lastmod: fileMtime("src/pages/Blog.tsx") },
+  { loc: "/tools", changefreq: "weekly", priority: "0.85", lastmod: calculatorsDate },
 
-  { loc: "/auth", changefreq: "monthly", priority: "0.4" },
-  { loc: "/contacts", changefreq: "yearly", priority: "0.3" },
-  { loc: "/terms", changefreq: "yearly", priority: "0.3" },
-  { loc: "/privacy", changefreq: "yearly", priority: "0.3" },
-  { loc: "/cookies", changefreq: "yearly", priority: "0.3" },
-  { loc: "/refund", changefreq: "yearly", priority: "0.3" },
+  { loc: "/auth", changefreq: "monthly", priority: "0.4", lastmod: fileMtime("src/pages/Auth.tsx") },
+  { loc: "/contacts", changefreq: "yearly", priority: "0.3", lastmod: fileMtime("src/pages/Contact.tsx") },
+  { loc: "/terms", changefreq: "yearly", priority: "0.3", lastmod: fileMtime("src/pages/Terms.tsx") },
+  { loc: "/privacy", changefreq: "yearly", priority: "0.3", lastmod: fileMtime("src/pages/Privacy.tsx") },
+  { loc: "/cookies", changefreq: "yearly", priority: "0.3", lastmod: fileMtime("src/pages/Cookies.tsx") },
+  { loc: "/refund", changefreq: "yearly", priority: "0.3", lastmod: fileMtime("src/pages/Refund.tsx") },
   // /catalog?vid=<type> — one entry per document type for SEO landing.
   ...DOCUMENT_TYPES.map<Entry>((d) => ({
     loc: `/catalog?vid=${d.id}`,
@@ -62,7 +66,7 @@ const staticEntries: Entry[] = [
     loc: `/tools/${c.slug}`,
     changefreq: "monthly",
     priority: "0.75",
-    lastmod: today,
+    lastmod: calculatorsDate,
   })),
 ];
 
@@ -95,7 +99,7 @@ const categoryEntries: Entry[] = [
     loc: `/sektor/${s.id}`,
     changefreq: "weekly",
     priority: "0.85",
-    lastmod: catalogDate,
+    lastmod: sectorsDate,
   })),
 ];
 
@@ -144,11 +148,14 @@ writeSitemap("sitemap-templates.xml", templateEntries);
 writeSitemap("sitemap-blog.xml", blogEntries);
 
 // Sitemap index
+const blogLatest = blogEntries.reduce((m, e) => (e.lastmod && e.lastmod > m ? e.lastmod : m), "1970-01-01");
+const staticLatest = staticEntries.reduce((m, e) => (e.lastmod && e.lastmod > m ? e.lastmod : m), "1970-01-01");
+const categoryLatest = [catalogDate, sectorsDate].sort().reverse()[0];
 const children = [
-  { loc: "sitemap-static.xml", lastmod: today },
-  { loc: "sitemap-categories.xml", lastmod: catalogDate },
+  { loc: "sitemap-static.xml", lastmod: staticLatest },
+  { loc: "sitemap-categories.xml", lastmod: categoryLatest },
   { loc: "sitemap-templates.xml", lastmod: catalogDate },
-  { loc: "sitemap-blog.xml", lastmod: today },
+  { loc: "sitemap-blog.xml", lastmod: blogLatest },
 ];
 const indexXml = `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
