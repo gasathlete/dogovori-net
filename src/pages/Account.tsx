@@ -935,7 +935,7 @@ function DocumentsTab({
       </aside>
       <div className="space-y-8">
         {/* ===== Uploaded contracts (own files with AI risk analysis) ===== */}
-        <section>
+        <section id="uploaded" className="scroll-mt-24">
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <h3 className="font-serif text-lg font-bold">Качени договори</h3>
