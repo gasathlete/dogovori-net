@@ -1,6 +1,6 @@
 import { useId, useRef, useState } from "react";
 import { ShieldCheck, Bird, FileText, ArrowRight, Search, FileSignature } from "lucide-react";
-import logoImg from "@/assets/logo-dogovori-hero.webp";
+const logoImg = "/logo-dogovori-hero.webp";
 import { scrollToHash } from "@/lib/scrollToHash";
 import { BlogRotator } from "@/components/BlogRotator";
 import { pickRandomQuote, type BusinessQuote } from "@/lib/businessQuotes";
