@@ -52,6 +52,30 @@ export function WizardShell({
   const total = Math.max(progress.total, 1);
   const pct = Math.round(((progress.stepIdx + 1) / total) * 100);
 
+  // While the blank-download modal is open, lock body scroll so it stays
+  // anchored to the current viewport (especially on mobile, where scrolling
+  // would otherwise push the modal out of view).
+  const isDownloading = !!blankDownload?.downloading;
+  useEffect(() => {
+    if (!isDownloading) return;
+    const prevOverflow = document.body.style.overflow;
+    const prevTop = document.body.style.top;
+    const prevPosition = document.body.style.position;
+    const prevWidth = document.body.style.width;
+    const scrollY = window.scrollY;
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.position = prevPosition;
+      document.body.style.top = prevTop;
+      document.body.style.width = prevWidth;
+      window.scrollTo(0, scrollY);
+    };
+  }, [isDownloading]);
+
   return (
     <div className="min-h-screen">
       <Header />
