@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams, Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Loader2, Bird, FileDown, FileText, Save, User, Download, ShieldCheck, Search, FileSearch, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Bird, FileDown, FileText, Save, User, Download, ShieldCheck, Search, FileSearch, Check, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -106,6 +106,7 @@ export default function WizardPage() {
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
   const [applyingCorrections, setApplyingCorrections] = useState(false);
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(persisted?.appliedNotes);
+  const [attemptedNext, setAttemptedNext] = useState(false);
 
   // Filter top-level questions based on conditional logic. За групите — филтрираме самата група
   // ако всички ѝ полета се скрият; вътрешното филтриране на полета става в QuestionField.
@@ -663,6 +664,7 @@ export default function WizardPage() {
                   answers={answers}
                   onAnswerChange={(id, v) => setAnswers((p) => ({ ...p, [id]: v }))}
                   contacts={contacts}
+                  invalid={attemptedNext && !canNext}
                 />
 
                 {isLast && (
@@ -678,10 +680,19 @@ export default function WizardPage() {
 
 
 
+                {attemptedNext && !canNext && current && (
+                  <div className="mt-4 rounded-md border border-destructive/50 bg-destructive/5 p-3 text-xs text-destructive">
+                    <div className="flex items-center gap-1.5 font-semibold">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      Моля, попълнете задължителното поле: {current.label}
+                    </div>
+                  </div>
+                )}
+
                 <div className="mt-8 flex items-center justify-between gap-3">
                   <Button
                     variant="ghost"
-                    onClick={() => setStepIdx((i) => Math.max(0, i - 1))}
+                    onClick={() => { setAttemptedNext(false); setStepIdx((i) => Math.max(0, i - 1)); }}
                     disabled={safeIdx === 0}
                     className="text-muted-foreground hover:text-foreground"
                   >
@@ -689,8 +700,8 @@ export default function WizardPage() {
                   </Button>
                   {isLast ? (
                     <Button
-                      onClick={handleGenerate}
-                      disabled={!canNext || generating}
+                      onClick={() => { if (!canNext) { setAttemptedNext(true); return; } handleGenerate(); }}
+                      disabled={generating}
                       size="lg"
                       className="bg-gradient-gold text-navy shadow-gold hover:shadow-[0_15px_50px_-10px_hsl(43_55%_54%_/_0.5)]"
                     >
@@ -708,8 +719,11 @@ export default function WizardPage() {
                     </Button>
                   ) : (
                     <Button
-                      onClick={() => setStepIdx((i) => i + 1)}
-                      disabled={!canNext}
+                      onClick={() => {
+                        if (!canNext) { setAttemptedNext(true); return; }
+                        setAttemptedNext(false);
+                        setStepIdx((i) => i + 1);
+                      }}
                       className="bg-gradient-gold text-navy hover:shadow-gold"
                     >
                       Напред <ArrowRight className="ml-1 h-4 w-4" />

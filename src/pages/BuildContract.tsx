@@ -357,10 +357,34 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     return true;
   };
   const canGoNext = stepValid(safeStepIdx);
+  const [attemptedNext, setAttemptedNext] = useState(false);
+  useEffect(() => { setAttemptedNext(false); }, [safeStepIdx]);
   const completedSteps = STEPS.reduce((acc, _s, i) => (i < safeStepIdx && stepValid(i) ? acc + 1 : acc), 0);
   const progressPct = result
     ? 100
     : Math.min(100, ((completedSteps + (canGoNext ? 1 : 0)) / totalSteps) * 100);
+
+  const missingForStep = (idx: number): string[] => {
+    const out: string[] = [];
+    if (idx === 0 && !documentType) out.push("Тип на документа");
+    if (idx === 1) {
+      if (!name.trim()) out.push("Заглавие");
+      if (!categoryId) out.push("Категория");
+      if (categoryId === "__other__" && !categoryOther.trim()) out.push("Категория (свободен текст)");
+    }
+    if (idx === 2) {
+      const needsB = !!schema.partyBLabel;
+      if (splitLines(partiesA).length === 0) out.push(schema.partyALabel);
+      if (needsB && splitLines(partiesB).length === 0) out.push(schema.partyBLabel as string);
+    }
+    if (idx === 3) {
+      schema.fields.filter((f) => f.required).forEach((f) => {
+        if (!(fieldValues[f.key] ?? "").trim()) out.push(f.label);
+      });
+    }
+    return out;
+  };
+  const currentMissing = attemptedNext && !canGoNext ? missingForStep(safeStepIdx) : [];
 
   const handleGenerate = async () => {
     const docDef = getDocumentType(documentType);
@@ -1200,10 +1224,18 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                   )}
 
                   {/* Footer navigation */}
+                  {currentMissing.length > 0 && (
+                    <div className="rounded-md border border-destructive/50 bg-destructive/5 p-3 text-xs text-destructive">
+                      <div className="font-semibold">Моля, попълнете задължителните полета:</div>
+                      <ul className="ml-5 mt-1 list-disc space-y-0.5">
+                        {currentMissing.map((m) => <li key={m}>{m}</li>)}
+                      </ul>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between gap-3 pt-1">
                     <Button
                       variant="ghost"
-                      onClick={() => setStepIdx((i) => Math.max(0, i - 1))}
+                      onClick={() => { setAttemptedNext(false); setStepIdx((i) => Math.max(0, i - 1)); }}
                       disabled={safeStepIdx === 0}
                       className="text-muted-foreground hover:text-foreground"
                     >
@@ -1211,8 +1243,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                     </Button>
                     {safeStepIdx === totalSteps - 1 ? (
                       <Button
-                        onClick={handleGenerate}
-                        disabled={generating || !canGoNext}
+                        onClick={() => { if (!canGoNext) { setAttemptedNext(true); return; } handleGenerate(); }}
+                        disabled={generating}
                         size="lg"
                         className="bg-gradient-gold text-navy shadow-gold hover:shadow-[0_15px_50px_-10px_hsl(43_55%_54%_/_0.5)]"
                       >
@@ -1224,14 +1256,18 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                       </Button>
                     ) : (
                       <Button
-                        onClick={() => setStepIdx((i) => Math.min(totalSteps - 1, i + 1))}
-                        disabled={!canGoNext}
+                        onClick={() => {
+                          if (!canGoNext) { setAttemptedNext(true); return; }
+                          setAttemptedNext(false);
+                          setStepIdx((i) => Math.min(totalSteps - 1, i + 1));
+                        }}
                         className="bg-gradient-gold text-navy hover:shadow-gold"
                       >
                         Напред <ArrowRight className="ml-1 h-4 w-4" />
                       </Button>
                     )}
                   </div>
+
 
                   {generating && (
                     <div className="rounded-lg border border-gold/30 bg-gold/5 p-4 animate-fade-in">

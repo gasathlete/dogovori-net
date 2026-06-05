@@ -189,9 +189,21 @@ export function SplitWizard({
   const isLast = stepIdx === total - 1;
   const canAdvance = currentSection ? sectionStatus[stepIdx]?.complete : false;
 
+  // Show red highlighting on missing required fields after a failed Next attempt.
+  const [attemptedNext, setAttemptedNext] = useState(false);
+  useEffect(() => { setAttemptedNext(false); }, [currentSectionId]);
+  const missingIds = useMemo(() => new Set(resolved.missingRequired), [resolved.missingRequired]);
+  const missingInCurrent = useMemo(() => {
+    if (!currentSection) return [] as { id: string; label: string }[];
+    return currentSection.questions
+      .filter((q) => q.required && missingIds.has(q.id))
+      .map((q) => ({ id: q.id, label: q.label }));
+  }, [currentSection, missingIds]);
+
   const goToSection = (idx: number) => {
     const target = visibleSections[idx];
     if (!target) return;
+    setAttemptedNext(false);
     setCurrentSectionId(target.id);
     requestAnimationFrame(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -199,9 +211,20 @@ export function SplitWizard({
   };
 
   const handleNext = () => {
-    if (!canAdvance) return;
+    if (!canAdvance) {
+      setAttemptedNext(true);
+      // Scroll to first missing field
+      const firstMissing = missingInCurrent[0]?.id;
+      if (firstMissing) {
+        requestAnimationFrame(() => {
+          const el = document.getElementById(`q-${firstMissing}`);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+      }
+      return;
+    }
     if (isLast) {
-      if (!resolved.isComplete) return;
+      if (!resolved.isComplete) { setAttemptedNext(true); return; }
       const cleaned = pruneAnswers(graph, answers);
       const finalDoc = assembleDocument(clauses, cleaned);
       onComplete?.({ answers: cleaned, body_md: finalDoc.body_md });
@@ -302,6 +325,7 @@ export function SplitWizard({
                   q={q}
                   value={answers[q.id]}
                   onChange={(v) => setAnswer(q.id, v)}
+                  invalid={attemptedNext && missingIds.has(q.id)}
                 />
               ))}
             </div>
@@ -310,7 +334,20 @@ export function SplitWizard({
           )}
 
           {/* Footer status */}
-          {currentSection && !canAdvance && (
+          {currentSection && !canAdvance && attemptedNext && missingInCurrent.length > 0 && (
+            <div className="mt-6 rounded-md border border-destructive/50 bg-destructive/5 p-3 text-xs text-destructive">
+              <div className="flex items-center gap-1.5 font-semibold">
+                <AlertCircle className="h-3.5 w-3.5" />
+                Моля, попълнете задължителните полета:
+              </div>
+              <ul className="ml-5 mt-1 list-disc space-y-0.5">
+                {missingInCurrent.map((m) => (
+                  <li key={m.id}>{m.label}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {currentSection && !canAdvance && !attemptedNext && (
             <p className="mt-6 flex items-center gap-1.5 text-xs text-muted-foreground">
               <AlertCircle className="h-3.5 w-3.5" />
               Остават {sectionStatus[stepIdx]?.missing ?? 0} задължителни в тази секция.
@@ -335,7 +372,6 @@ export function SplitWizard({
             {isLast ? (
               <Button
                 onClick={handleNext}
-                disabled={!resolved.isComplete}
                 size="lg"
                 className="bg-gradient-gold text-navy shadow-gold hover:shadow-[0_15px_50px_-10px_hsl(43_55%_54%_/_0.5)]"
               >
@@ -345,7 +381,6 @@ export function SplitWizard({
             ) : (
               <Button
                 onClick={handleNext}
-                disabled={!canAdvance}
                 className="bg-gradient-gold text-navy hover:shadow-gold"
               >
                 Напред <ArrowRight className="ml-1 h-4 w-4" />
@@ -354,6 +389,7 @@ export function SplitWizard({
           </div>
         </div>
       </section>
+
 
       {/* RIGHT — live preview ------------------------------------------- */}
       <section className="lg:sticky lg:top-32 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">
