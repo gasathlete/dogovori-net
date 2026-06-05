@@ -171,6 +171,7 @@ function buildDocx(blank: BlankPayload, isBilingual: boolean): Promise<Uint8Arra
     for (const line of blank.preamble.split(/\n+/).filter(Boolean)) {
       children.push(
         new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
           spacing: { after: 200 },
           children: [new TextRun({ text: line, size: 24 })],
         }),
@@ -190,6 +191,7 @@ function buildDocx(blank: BlankPayload, isBilingual: boolean): Promise<Uint8Arra
       for (const line of c.body.split(/\n+/).filter(Boolean)) {
         children.push(
           new Paragraph({
+            alignment: AlignmentType.JUSTIFIED,
             spacing: { after: 160 },
             children: [new TextRun({ text: line, size: 24 })],
           }),
@@ -198,12 +200,15 @@ function buildDocx(blank: BlankPayload, isBilingual: boolean): Promise<Uint8Arra
     }
 
     if (blank.closing) {
-      children.push(
-        new Paragraph({
-          spacing: { before: 320 },
-          children: [new TextRun({ text: blank.closing, size: 24 })],
-        }),
-      );
+      for (const line of blank.closing.split(/\n+/).filter(Boolean)) {
+        children.push(
+          new Paragraph({
+            alignment: AlignmentType.JUSTIFIED,
+            spacing: { before: 320, after: 160 },
+            children: [new TextRun({ text: line, size: 24 })],
+          }),
+        );
+      }
     }
   }
 
@@ -385,7 +390,7 @@ Deno.serve(async (req: Request) => {
     // (разписка ≠ договор ≠ декларация ≠ пълномощно etc).
     // Bilingual blanks live under a separate `v3-bilingual` namespace so they
     // never collide with the monolingual cache for the same (sector, document).
-    const CACHE_VERSION = isBilingual ? "v4-bilingual" : "v4";
+    const CACHE_VERSION = isBilingual ? "v5-bilingual" : "v5";
     const existingPath = existing?.storage_path as string | undefined;
     let storagePath: string | undefined =
       existingPath && existingPath.startsWith(`${CACHE_VERSION}/`) ? existingPath : undefined;

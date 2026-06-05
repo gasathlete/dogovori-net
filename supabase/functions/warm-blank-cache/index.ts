@@ -144,7 +144,7 @@ function buildDocx(blank: BlankPayload, isBilingual: boolean): Promise<Uint8Arra
     );
 
     for (const line of blank.preamble.split(/\n+/).filter(Boolean)) {
-      children.push(new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: line, size: 24 })] }));
+      children.push(new Paragraph({ alignment: AlignmentType.JUSTIFIED, spacing: { after: 200 }, children: [new TextRun({ text: line, size: 24 })] }));
     }
 
     for (const c of blank.clauses) {
@@ -156,12 +156,14 @@ function buildDocx(blank: BlankPayload, isBilingual: boolean): Promise<Uint8Arra
         }),
       );
       for (const line of c.body.split(/\n+/).filter(Boolean)) {
-        children.push(new Paragraph({ spacing: { after: 160 }, children: [new TextRun({ text: line, size: 24 })] }));
+        children.push(new Paragraph({ alignment: AlignmentType.JUSTIFIED, spacing: { after: 160 }, children: [new TextRun({ text: line, size: 24 })] }));
       }
     }
 
     if (blank.closing) {
-      children.push(new Paragraph({ spacing: { before: 320 }, children: [new TextRun({ text: blank.closing, size: 24 })] }));
+      for (const line of blank.closing.split(/\n+/).filter(Boolean)) {
+        children.push(new Paragraph({ alignment: AlignmentType.JUSTIFIED, spacing: { before: 320, after: 160 }, children: [new TextRun({ text: line, size: 24 })] }));
+      }
     }
   }
 
@@ -298,7 +300,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const CACHE_VERSION = isBilingual ? "v4-bilingual" : "v4";
+    const CACHE_VERSION = isBilingual ? "v5-bilingual" : "v5";
 
     // ---- Idempotent skip ----
     const { data: existing } = await admin
