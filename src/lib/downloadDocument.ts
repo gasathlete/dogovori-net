@@ -14,6 +14,7 @@ interface DownloadParams {
   payload: GeneratedContract | CompanionTemplate;
   source_id?: string;
   contact_id?: string;
+  folder_id?: string;
   saved_document_id?: string;
   /** Slug/ID that uniquely identifies the document for session-scoped charging. */
   doc_key?: string;
