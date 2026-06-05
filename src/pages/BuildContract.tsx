@@ -135,7 +135,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   useEffect(() => {
     setSimilarDismissed(false);
     const handle = setTimeout(() => {
-      setSimilarTemplates(name.trim().length >= 4 ? findSimilarTemplates(name, 0.8, 3) : []);
+      setSimilarTemplates(name.trim().length >= 4 ? findSimilarTemplates(name, 0.6, 5) : []);
     }, 250);
     return () => clearTimeout(handle);
   }, [name]);
