@@ -40,6 +40,8 @@ const staticEntries: Entry[] = [
   { loc: "/karta", changefreq: "weekly", priority: "0.9", lastmod: catalogDate },
   { loc: "/build", changefreq: "weekly", priority: "0.85", lastmod: catalogDate },
   { loc: "/blog", changefreq: "weekly", priority: "0.85", lastmod: today },
+  { loc: "/tools", changefreq: "weekly", priority: "0.85", lastmod: today },
+
   { loc: "/auth", changefreq: "monthly", priority: "0.4" },
   { loc: "/contacts", changefreq: "yearly", priority: "0.3" },
   { loc: "/terms", changefreq: "yearly", priority: "0.3" },
