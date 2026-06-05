@@ -525,8 +525,11 @@ export default function WizardPage() {
 
 
       {downloadingBlank && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-md rounded-2xl border border-gold/30 bg-card p-6 shadow-2xl">
+        <div
+          className="fixed inset-x-0 top-0 z-[100] flex items-start justify-center overflow-y-auto bg-background/80 p-4 pt-[10vh] backdrop-blur-sm sm:items-center sm:pt-4"
+          style={{ height: "100dvh" }}
+        >
+          <div className="w-full max-w-md rounded-2xl border border-gold/30 bg-card p-6 shadow-2xl">
             <div className="mb-4 flex items-center gap-3">
               <Loader2 className="h-5 w-5 animate-spin text-gold" />
               <h3 className="font-serif text-lg text-foreground">Подготвяме бланката…</h3>
