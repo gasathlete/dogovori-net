@@ -90,6 +90,7 @@ const TeamAccept = lazy(() => import("./pages/TeamAccept.tsx"));
 const Contact = lazy(() => import("./pages/Contact.tsx"));
 const Downloads = lazy(() => import("./pages/Downloads.tsx"));
 const SiteMap = lazy(() => import("./pages/SiteMap.tsx"));
+const AIFeatures = lazy(() => import("./pages/AIFeatures.tsx"));
 const Kits = lazy(() => import("./pages/Kits.tsx"));
 const KitDetail = lazy(() => import("./pages/KitDetail.tsx"));
 const MyKitDetail = lazy(() => import("./pages/MyKitDetail.tsx"));
