@@ -56,7 +56,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
         <div className="h-2 w-2 rotate-45 border border-gold/60 bg-navy" />
       </div>
 
-      <div className="container relative pt-4 pb-10 sm:pt-6 sm:pb-16 md:pt-10 md:pb-24 lg:pt-12 lg:pb-28">
+      <div className="container relative w-full pt-4 pb-10 sm:pt-6 sm:pb-12 md:pt-6 md:pb-12 lg:pt-6 lg:pb-10">
         <div className="relative mx-auto max-w-3xl text-center px-0 my-0">
           {/* Centered hero medallion — visible, doesn't overlap content */}
           <div
