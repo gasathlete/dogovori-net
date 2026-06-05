@@ -20,7 +20,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
   const hideQuote = () => setVisible(false);
 
   return (
-    <section className="relative overflow-hidden border-b border-border/60">
+    <section className="relative overflow-hidden border-b border-border/60 lg:flex lg:min-h-[calc(100svh-4rem)] lg:items-center">
       {/* Base navy gradient */}
       <div className="absolute inset-0 bg-gradient-hero opacity-95" />
 
