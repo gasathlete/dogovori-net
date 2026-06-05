@@ -8,7 +8,7 @@ import { Loader2, Play, Pause, Square, Download, Flame } from "lucide-react";
 import { buildBlankTasks, type BlankTask } from "@/lib/blankCatalog";
 import { toast } from "sonner";
 
-type Status = "pending" | "running" | "skipped" | "generated" | "failed";
+type Status = "pending" | "running" | "skipped" | "generated" | "queued" | "failed";
 
 interface TaskResult {
   task: BlankTask;
@@ -17,7 +17,11 @@ interface TaskResult {
   attempts?: number;
 }
 
+// Generation now runs as a background task on the edge function and returns
+// "queued" immediately. We throttle the client loop so the AI gateway isn't
+// flooded — ~8s per queued task ≈ steady ~7 concurrent generations.
 const STEP_DELAY_MS = 500;
+const QUEUED_DELAY_MS = 8000;
 const RATE_LIMIT_BACKOFF_MS = 10_000;
 const NETWORK_RETRIES = 2;
 
@@ -31,10 +35,11 @@ export function BlankCacheWarmer() {
   const currentTaskRef = useRef<BlankTask | null>(null);
 
   const counts = useMemo(() => {
-    const c = { pending: 0, skipped: 0, generated: 0, failed: 0 };
+    const c = { pending: 0, skipped: 0, generated: 0, queued: 0, failed: 0 };
     for (const t of tasks) {
       if (t.status === "skipped") c.skipped++;
       else if (t.status === "generated") c.generated++;
+      else if (t.status === "queued") c.queued++;
       else if (t.status === "failed") c.failed++;
       else c.pending++;
     }
@@ -42,7 +47,7 @@ export function BlankCacheWarmer() {
   }, [tasks]);
 
   const total = tasks.length;
-  const done = counts.skipped + counts.generated + counts.failed;
+  const done = counts.skipped + counts.generated + counts.queued + counts.failed;
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
 
   // Initialise the task list when dialog opens.
@@ -145,7 +150,10 @@ export function BlankCacheWarmer() {
       updateTask(i, { status: res.status, error: res.error });
 
       // Tiny throttle between tasks (skip if already cached, no AI load).
-      if (res.status !== "skipped") {
+      // Throttle: skipped is free; queued kicked off background AI work so wait longer.
+      if (res.status === "queued") {
+        await new Promise((r) => setTimeout(r, QUEUED_DELAY_MS));
+      } else if (res.status !== "skipped") {
         await new Promise((r) => setTimeout(r, STEP_DELAY_MS));
       }
     }
@@ -221,7 +229,8 @@ export function BlankCacheWarmer() {
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               Pre-generates all blank templates from the catalog and uploads them to Storage.
-              Already-cached blanks are skipped. Safe to run multiple times.
+              Already-cached blanks are skipped. Generation runs in background on the server —
+              "queued" means it was kicked off; re-run later to confirm via "skipped". Safe to run multiple times.
             </p>
             {running && (
               <p className="text-xs text-amber-600 font-medium">
@@ -232,6 +241,7 @@ export function BlankCacheWarmer() {
             <div className="flex items-center gap-3 flex-wrap">
               <Badge variant="outline">Total: {total}</Badge>
               <Badge variant="outline" className="border-emerald-500/40 text-emerald-700">Generated: {counts.generated}</Badge>
+              <Badge variant="outline" className="border-amber-500/40 text-amber-700">Queued: {counts.queued}</Badge>
               <Badge variant="outline" className="border-blue-500/40 text-blue-700">Skipped: {counts.skipped}</Badge>
               <Badge variant="outline" className="border-red-500/40 text-red-700">Failed: {counts.failed}</Badge>
               <Badge variant="outline">Pending: {counts.pending}</Badge>
@@ -256,10 +266,11 @@ export function BlankCacheWarmer() {
                 const realIdx = Math.max(0, index - 3) + idx;
                 const color =
                   t.status === "generated" ? "text-emerald-600"
-                    : t.status === "skipped" ? "text-blue-600"
-                      : t.status === "failed" ? "text-red-600"
-                        : t.status === "running" ? "text-amber-600 font-semibold"
-                          : "text-muted-foreground";
+                    : t.status === "queued" ? "text-amber-700"
+                      : t.status === "skipped" ? "text-blue-600"
+                        : t.status === "failed" ? "text-red-600"
+                          : t.status === "running" ? "text-amber-600 font-semibold"
+                            : "text-muted-foreground";
                 return (
                   <div key={`${t.task.sector_id}-${t.task.document_name}-${t.task.bilingual}-${realIdx}`} className={`px-2 py-1 border-b last:border-b-0 flex items-center gap-2 ${color}`}>
                     <span className="w-12 tabular-nums">{realIdx + 1}.</span>

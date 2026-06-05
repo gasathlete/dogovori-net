@@ -322,7 +322,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // ---- Generate ----
+    // ---- Generate (background task to avoid 150s edge timeout) ----
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ status: "failed", error: "LOVABLE_API_KEY missing" }), {
@@ -334,48 +334,40 @@ Deno.serve(async (req: Request) => {
     const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName));
     const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Специфика за този вид документ (${docTypeSpec.label}) ---\n${docTypeSpec.systemAddendum}${isBilingual ? BILINGUAL_ADDENDUM : ""}`;
     const userPrompt = `Сектор: ${sectorTitle || sectorId}\nВид документ: ${docTypeSpec.label}\nКонкретен документ: ${documentName}\n\nГенерирай професионална българска правна БЛАНКА (празен шаблон) за този КОНКРЕТЕН ВИД документ. Спазвай структурата за „${docTypeSpec.label}" — не я смесвай с друг вид документ.${isBilingual ? "\n\nЗАДЪЛЖИТЕЛНО: добави паралелен английски превод в полетата title_en, preamble_en, closing_en и в clauses[].title_en/body_en (виж системния промпт за билингвален режим)." : ""}`;
-
-    let blank: BlankPayload;
-    try {
-      blank = await callAiWithRetry(systemPrompt, userPrompt, LOVABLE_API_KEY);
-    } catch (e) {
-      return new Response(
-        JSON.stringify({ status: "failed", error: String((e as Error)?.message ?? e) }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    const docxBytes = await buildDocx(blank, isBilingual);
     const storagePath = `${CACHE_VERSION}/${safeKey(sectorId)}/${safeKey(documentName)}.docx`;
 
-    const { error: upErr } = await admin.storage
-      .from("document-blanks")
-      .upload(storagePath, docxBytes, {
-        contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        upsert: true,
-      });
-    if (upErr) {
-      return new Response(
-        JSON.stringify({ status: "failed", error: `upload: ${upErr.message}` }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    const work = (async () => {
+      try {
+        const blank = await callAiWithRetry(systemPrompt, userPrompt, LOVABLE_API_KEY);
+        const docxBytes = await buildDocx(blank, isBilingual);
+        const { error: upErr } = await admin.storage
+          .from("document-blanks")
+          .upload(storagePath, docxBytes, {
+            contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            upsert: true,
+          });
+        if (upErr) {
+          console.error(`[warm] upload failed ${storagePath}:`, upErr.message);
+          return;
+        }
+        const { error: insErr } = await admin
+          .from("document_blanks")
+          .upsert(
+            { sector_id: sectorId, document_name: documentName, storage_path: storagePath },
+            { onConflict: "sector_id,document_name" },
+          );
+        if (insErr) console.error(`[warm] index failed ${storagePath}:`, insErr.message);
+        else console.log(`[warm] generated ${storagePath}`);
+      } catch (e) {
+        console.error(`[warm] generation failed ${storagePath}:`, (e as Error)?.message ?? e);
+      }
+    })();
 
-    const { error: insErr } = await admin
-      .from("document_blanks")
-      .upsert(
-        { sector_id: sectorId, document_name: documentName, storage_path: storagePath },
-        { onConflict: "sector_id,document_name" },
-      );
-    if (insErr) {
-      return new Response(
-        JSON.stringify({ status: "failed", error: `index: ${insErr.message}` }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    // @ts-ignore - EdgeRuntime is available in Supabase Edge Runtime
+    if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(work);
 
     return new Response(
-      JSON.stringify({ status: "generated", storage_path: storagePath, bilingual: isBilingual }),
+      JSON.stringify({ status: "queued", storage_path: storagePath, bilingual: isBilingual }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
