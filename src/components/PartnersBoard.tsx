@@ -50,7 +50,7 @@ export function PartnersBoard() {
         </p>
         {partners.length > 0 && (
           <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-gold/80">
-            Доверени от {Math.max(40, partners.length)}+ фирми в България
+            ДОВЕРЕНИ ОТ ТОП ФИРМИ В БЪЛГАРИЯ
           </p>
         )}
       </div>

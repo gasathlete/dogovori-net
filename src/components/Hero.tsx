@@ -134,7 +134,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
             <span className="h-3 w-px bg-gold/30" />
             <span className="inline-flex items-center gap-1.5"><Bird className="h-3.5 w-3.5 text-gold" /> АНАЛИЗ НА РИСКА</span>
             <span className="h-3 w-px bg-gold/30" />
-            <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-gold" /> &gt;590 шаблона</span>
+            <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-gold" /> &gt;600 ШАБЛОНА</span>
             <span className="h-3 w-px bg-gold/30" />
             <span className="inline-flex items-center gap-1.5"><FileSignature className="h-3.5 w-3.5 text-gold" /> Електронен подпис</span>
           </div>
