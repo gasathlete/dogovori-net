@@ -3,6 +3,7 @@ import { SECTOR_META as SECTORS } from "@/data/sectorsMeta";
 import * as Icons from "lucide-react";
 import { ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
 import { SECTOR_IMAGES } from "@/lib/sectorImages";
+import { usePrefetchRoute } from "@/components/PrefetchLink";
 
 const INITIAL_VISIBLE = 9;
 
