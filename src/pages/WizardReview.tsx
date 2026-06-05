@@ -116,10 +116,76 @@ export default function WizardReviewPage() {
       });
   }, [user]);
 
+  // Load user's contacts and folders for the finalize selectors.
+  useEffect(() => {
+    if (!user) {
+      setContacts([]);
+      setFolders([]);
+      return;
+    }
+    Promise.all([
+      supabase.from("contacts").select("id, name").is("deleted_at", null).order("name", { ascending: true }),
+      supabase.from("folders").select("id, name, is_favorites").order("is_favorites", { ascending: false }).order("name", { ascending: true }),
+    ]).then(([c, f]) => {
+      setContacts((c.data ?? []) as Array<{ id: string; name: string }>);
+      setFolders((f.data ?? []) as Array<{ id: string; name: string; is_favorites: boolean }>);
+    });
+  }, [user]);
+
   // Seed custom title once result is in.
   useEffect(() => {
     if (result && !customTitle) setCustomTitle(result.contract.title);
   }, [result, customTitle]);
+
+  const handleSaveToProfile = async () => {
+    if (!result) return;
+    if (!user) { goAuth(); return; }
+    if (savedDocId) {
+      // Update existing save with selected folder/contact.
+      setSaving(true);
+      try {
+        const { error } = await supabase
+          .from("saved_documents")
+          .update({
+            folder_id: folderId || null,
+            contact_id: contactId || null,
+          })
+          .eq("id", savedDocId);
+        if (error) throw error;
+        toast.success("Обновено в профила");
+      } catch (e: unknown) {
+        toast.error("Грешка", { description: e instanceof Error ? e.message : String(e) });
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+    setSaving(true);
+    try {
+      const finalTitle = (customTitle || result.contract.title).trim() || result.contract.title;
+      const { data, error } = await supabase
+        .from("saved_documents")
+        .insert({
+          user_id: user.id,
+          kind: "contract",
+          title: finalTitle,
+          payload: { ...result.contract, title: finalTitle } as never,
+          source_id: slug ?? null,
+          folder_id: folderId || null,
+          contact_id: contactId || null,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      setSavedDocId(data.id);
+      toast.success("Запазено в профила", { description: "Документи → Всички" });
+    } catch (e: unknown) {
+      toast.error("Грешка при запазване", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setSaving(false);
+    }
+  };
+
 
   const runAnalysis = async () => {
     if (!graph || !draft) return;
