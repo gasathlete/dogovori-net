@@ -38,6 +38,8 @@ export function TopDocuments() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {TOP_DOCUMENTS.map((doc, i) => {
           const featured = i === 0;
+          const real = counts.get(slugify(doc.name)) ?? 0;
+          const total = (DOWNLOAD_BASELINE[i] ?? 0) + real;
           return (
             <Link
               key={doc.name}
