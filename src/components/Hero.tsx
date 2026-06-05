@@ -64,12 +64,9 @@ export function Hero({ onStart }: { onStart: () => void }) {
             style={{ animationDelay: "0ms" }}
           >
             <div
-              className="group/medallion relative flex h-20 w-20 items-center justify-center sm:h-24 sm:w-24 md:h-28 md:w-28"
+              className="relative flex h-20 w-20 items-center justify-center sm:h-24 sm:w-24 md:h-28 md:w-28"
               onMouseEnter={showQuote}
               onMouseLeave={hideQuote}
-              onFocus={showQuote}
-              onBlur={hideQuote}
-              tabIndex={0}
               aria-describedby={visible ? tooltipId : undefined}
             >
               <div className="absolute inset-[-10%] rounded-full border border-dashed border-gold/20" />
@@ -95,16 +92,16 @@ export function Hero({ onStart }: { onStart: () => void }) {
                 className="relative h-[64%] w-[64%] object-contain"
               />
 
-              {/* Hover tooltip — business quote */}
+              {/* Hover tooltip — business quote, floats above medallion */}
               {quote && (
                 <div
                   id={tooltipId}
                   role="tooltip"
-                  className={`pointer-events-none absolute left-1/2 top-full z-20 mt-3 hidden w-[280px] -translate-x-1/2 rounded-md border border-gold/30 bg-navy-light/95 px-4 py-3 text-center shadow-elegant backdrop-blur-sm transition-all duration-300 ease-out sm:w-[320px] md:block ${
-                    visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"
+                  className={`pointer-events-none absolute left-1/2 bottom-full z-30 mb-3 hidden w-[280px] -translate-x-1/2 rounded-md border border-gold/30 bg-navy/95 px-4 py-3 text-center shadow-elegant backdrop-blur-sm transition-all duration-300 ease-out sm:w-[340px] md:block ${
+                    visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"
                   }`}
                 >
-                  <p className="font-serif text-sm italic leading-snug text-muted-foreground">
+                  <p className="font-serif text-[13px] italic leading-snug text-muted-foreground">
                     <span className="text-gold">«</span> {quote.text}{" "}
                     <span className="text-gold">»</span>
                   </p>
@@ -114,6 +111,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
                 </div>
               )}
             </div>
+
           </div>
 
 
