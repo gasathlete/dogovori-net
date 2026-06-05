@@ -206,7 +206,10 @@ async function callAiWithRetry(systemPrompt: string, userPrompt: string, apiKey:
         method: "POST",
         headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
+          // Bulk cache warming uses flash — ~5× cheaper than pro and the
+          // structure of each blank already comes from `document-types` spec,
+          // so the model mostly fills in legal wording.
+          model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
