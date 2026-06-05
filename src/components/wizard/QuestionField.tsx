@@ -284,7 +284,7 @@ export function QuestionField(props: Props) {
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={q.placeholder}
-          className="bg-input/60 text-base"
+          className={`bg-input/60 text-base ${invalidRing}`}
         />
       )}
       {q.type === "number" && (
@@ -293,11 +293,11 @@ export function QuestionField(props: Props) {
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={q.placeholder}
-          className="bg-input/60 text-base"
+          className={`bg-input/60 text-base ${invalidRing}`}
         />
       )}
       {q.type === "date" && (
-        <Input type="date" value={value} onChange={(e) => onChange(e.target.value)} className="bg-input/60" />
+        <Input type="date" value={value} onChange={(e) => onChange(e.target.value)} className={`bg-input/60 ${invalidRing}`} />
       )}
       {q.type === "textarea" && (
         <Textarea
@@ -305,39 +305,67 @@ export function QuestionField(props: Props) {
           onChange={(e) => onChange(e.target.value)}
           placeholder={q.placeholder}
           rows={compact ? 3 : 4}
-          className="bg-input/60 text-base"
+          className={`bg-input/60 text-base ${invalidRing}`}
         />
       )}
-      {(q.type === "radio" || q.type === "select") && (
-        <div className={compact && (q.options?.length ?? 0) > 3 ? "grid gap-2 sm:grid-cols-2" : "space-y-2"}>
-          {q.options?.map((opt) => {
-            const selected = value === opt;
-            return (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => onChange(opt)}
-                className={`w-full rounded-lg border text-left transition-all ${compact ? "p-3" : "p-4"} ${
-                  selected
-                    ? "border-gold bg-gold/10 text-foreground shadow-soft"
-                    : "border-border bg-card/40 text-muted-foreground hover:border-gold/50 hover:bg-gold/5 hover:text-foreground"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 ${
-                      selected ? "border-gold bg-gold" : "border-border"
-                    }`}
-                  >
-                    {selected && <div className="h-1.5 w-1.5 rounded-full bg-navy" />}
+      {(q.type === "radio" || q.type === "select") && (() => {
+        const opts = q.options ?? [];
+        const isKnown = opts.includes(value);
+        const isCustom = !!value && !isKnown;
+        const [customMode, setCustomMode] = useState<boolean>(isCustom);
+        useEffect(() => { if (isCustom) setCustomMode(true); }, [isCustom]);
+        const tiles: Array<{ key: string; label: string; selected: boolean; onClick: () => void }> = [
+          ...opts.map((opt) => ({
+            key: opt,
+            label: opt,
+            selected: !customMode && value === opt,
+            onClick: () => { setCustomMode(false); onChange(opt); },
+          })),
+          {
+            key: "__custom__",
+            label: "Друго (свободен текст)…",
+            selected: customMode,
+            onClick: () => { setCustomMode(true); onChange(isCustom ? value : ""); },
+          },
+        ];
+        return (
+          <div className="space-y-2">
+            <div className={`${compact && tiles.length > 3 ? "grid gap-2 sm:grid-cols-2" : "space-y-2"} ${invalid ? "rounded-lg ring-1 ring-destructive p-1" : ""}`}>
+              {tiles.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={t.onClick}
+                  className={`w-full rounded-lg border text-left transition-all ${compact ? "p-3" : "p-4"} ${
+                    t.selected
+                      ? "border-gold bg-gold/10 text-foreground shadow-soft"
+                      : "border-border bg-card/40 text-muted-foreground hover:border-gold/50 hover:bg-gold/5 hover:text-foreground"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 ${
+                        t.selected ? "border-gold bg-gold" : "border-border"
+                      }`}
+                    >
+                      {t.selected && <div className="h-1.5 w-1.5 rounded-full bg-navy" />}
+                    </div>
+                    <span className="text-sm font-medium">{t.label}</span>
                   </div>
-                  <span className="text-sm font-medium">{opt}</span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
+                </button>
+              ))}
+            </div>
+            {customMode && (
+              <Input
+                value={isCustom ? value : ""}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder="Въведете собствен отговор"
+                className={`bg-input/60 text-base ${invalidRing}`}
+              />
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
