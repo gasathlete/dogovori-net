@@ -37,6 +37,12 @@
     <priority>0.85</priority>
   </url>
   <url>
+    <loc>https://dogovori.net/ai</loc>
+    <lastmod>2026-06-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
     <loc>https://dogovori.net/auth</loc>
     <lastmod>2026-06-05</lastmod>
     <changefreq>monthly</changefreq>
