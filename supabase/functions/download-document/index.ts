@@ -184,7 +184,7 @@ serve(async (req) => {
         payload,
         source_id: source_id ?? null,
         contact_id: contact_id ?? null,
-        folder_id: null,
+        folder_id: folder_id ?? null,
       })
       .select()
       .single();
