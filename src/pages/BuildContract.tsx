@@ -132,20 +132,6 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   );
   const [similarTemplates, setSimilarTemplates] = useState<SimilarTemplate[]>([]);
   const [similarDismissed, setSimilarDismissed] = useState(false);
-  useEffect(() => {
-    setSimilarDismissed(false);
-    const handle = setTimeout(() => {
-      setSimilarTemplates(
-        name.trim().length >= 4
-          ? findSimilarTemplates(name, 0.6, 5, {
-              documentType,
-              categorySectorId: categoryId && categoryId !== "__other__" ? categoryId : undefined,
-            })
-          : [],
-      );
-    }, 250);
-    return () => clearTimeout(handle);
-  }, [name, documentType, categoryId]);
   const [categoryId, setCategoryId] = useState<string>(
     presetCategory && SECTORS.some((s) => s.id === presetCategory)
       ? presetCategory
