@@ -204,7 +204,7 @@ async function main() {
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(
     out,
-    JSON.stringify({ baseUrl: BASE_URL, strategy: STRATEGY, ranAt: new Date().toISOString(), thresholds: THRESHOLDS, reports }, null, 2),
+    JSON.stringify({ baseUrl: BASE_URL, strategy: STRATEGY, ranAt: new Date().toISOString(), thresholds: THRESHOLDS, cwvThresholds: CWV_THRESHOLDS, reports }, null, 2),
   );
 
   // Webhook on regression
