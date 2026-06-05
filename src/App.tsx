@@ -68,6 +68,7 @@ const DocumentPage = lazy(() => import("./pages/Document.tsx"));
 const UploadedContract = lazy(() => import("./pages/UploadedContract.tsx"));
 const Admin = lazy(() => import("./pages/Admin.tsx"));
 const AdminAITraining = lazy(() => import("./pages/AdminAITraining.tsx"));
+const AdminSubscriptions = lazy(() => import("./pages/AdminSubscriptions.tsx"));
 const CheckoutReturn = lazy(() => import("./pages/CheckoutReturn.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 const Terms = lazy(() => import("./pages/legal/Terms.tsx"));
