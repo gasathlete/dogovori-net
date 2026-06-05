@@ -165,6 +165,7 @@ export function BlogRotator() {
           );
         })}
       </div>
+      </div>
 
       {/* Footer: dots + progress */}
       <div className="flex items-center justify-between gap-3 border-t border-hairline px-5 py-3 sm:px-6">
