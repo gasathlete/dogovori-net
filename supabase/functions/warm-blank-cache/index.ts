@@ -191,9 +191,7 @@ function buildDocx(blank: BlankPayload, isBilingual: boolean): Promise<Uint8Arra
   return Packer.toBuffer(doc).then((b) => new Uint8Array(b));
 }
 
-function safeKey(s: string): string {
-  return s.normalize("NFKD").replace(/[^a-zA-Z0-9-_]+/g, "_").replace(/_+/g, "_").slice(0, 80);
-}
+// `safeKey` removed — see `_shared/blank-key.ts` `buildBlankStoragePath`.
 
 const SECTOR_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const SAFE_TEXT_RE = /^[^\u0000-\u001F\u007F<>{}`]{1,200}$/;
