@@ -117,7 +117,8 @@ export function Hero({ onStart }: { onStart: () => void }) {
 
 
           <h1
-            className="anim-rise font-serif text-[28px] font-bold leading-[1.1] text-balance sm:text-4xl md:text-5xl lg:text-[58px] lg:leading-[1.05]"
+            className="anim-rise font-serif text-[28px] font-bold leading-[1.1] text-balance sm:text-4xl md:text-5xl lg:text-5xl xl:text-[52px] lg:leading-[1.1]"
+
             style={{ animationDelay: "0ms" }}
           >
             Договори, които{" "}
