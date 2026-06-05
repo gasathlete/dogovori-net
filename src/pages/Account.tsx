@@ -421,7 +421,7 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
         value={`${uploadedCount}`}
         icon={<ShieldCheck className="h-5 w-5 text-gold" />}
         sub={`${analysesUsed} извършени анализа`}
-        onClick={() => navigate("/account?tab=uploaded")}
+        onClick={() => navigate("/account?tab=documents#uploaded")}
       />
       <Card
         title="Автоматични корекции"
