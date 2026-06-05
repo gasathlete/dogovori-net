@@ -32,10 +32,18 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import Index from "./pages/Index.tsx";
-import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
-import { CookieBanner } from "@/components/CookieBanner";
-import { AIDisclaimerModal } from "@/components/AIDisclaimerModal";
-import { UsernamePrompt } from "@/components/auth/UsernamePrompt";
+const PaymentTestModeBanner = reactLazy(() =>
+  import("@/components/PaymentTestModeBanner").then((m) => ({ default: m.PaymentTestModeBanner })),
+);
+const CookieBanner = reactLazy(() =>
+  import("@/components/CookieBanner").then((m) => ({ default: m.CookieBanner })),
+);
+const AIDisclaimerModal = reactLazy(() =>
+  import("@/components/AIDisclaimerModal").then((m) => ({ default: m.AIDisclaimerModal })),
+);
+const UsernamePrompt = reactLazy(() =>
+  import("@/components/auth/UsernamePrompt").then((m) => ({ default: m.UsernamePrompt })),
+);
 // Sentry init is deferred to idle time below — keeps it off the critical path.
 
 // Lazy-load every route except Index (landing page) so the initial bundle stays light.
@@ -189,10 +197,12 @@ const App = () => (
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ScrollToTop />
         <AuthProvider>
-          <PaymentTestModeBanner />
-          <CookieBanner />
-          <AIDisclaimerModal />
-          <UsernamePrompt />
+          <Suspense fallback={null}>
+            <PaymentTestModeBanner />
+            <CookieBanner />
+            <AIDisclaimerModal />
+            <UsernamePrompt />
+          </Suspense>
           <Suspense fallback={<RouteFallback />}>
             <AnimatedRoutes />
           </Suspense>
