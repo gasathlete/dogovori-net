@@ -171,6 +171,9 @@ export default function AIFeaturesPage() {
               Изготви договор с AI <ArrowRight className="h-4 w-4" />
             </Link>
             <Link to="/catalog" className="btn-ghost-gold">Разгледай каталога</Link>
+            <Link to="/karta" className="btn-ghost-gold inline-flex items-center gap-1.5">
+              <MapIcon className="h-4 w-4" /> Карта на сайта (всички 600+ шаблона)
+            </Link>
           </div>
         </section>
       </main>
