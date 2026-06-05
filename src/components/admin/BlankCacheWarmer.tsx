@@ -150,7 +150,10 @@ export function BlankCacheWarmer() {
       updateTask(i, { status: res.status, error: res.error });
 
       // Tiny throttle between tasks (skip if already cached, no AI load).
-      if (res.status !== "skipped") {
+      // Throttle: skipped is free; queued kicked off background AI work so wait longer.
+      if (res.status === "queued") {
+        await new Promise((r) => setTimeout(r, QUEUED_DELAY_MS));
+      } else if (res.status !== "skipped") {
         await new Promise((r) => setTimeout(r, STEP_DELAY_MS));
       }
     }
