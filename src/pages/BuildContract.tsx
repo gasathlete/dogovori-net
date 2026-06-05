@@ -933,7 +933,33 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                                   <button
                                     key={d.id}
                                     type="button"
-                                    onClick={() => { setDocumentType(d.id); setDocTypeOpen(false); }}
+                                    onClick={() => {
+                                      // Reset downstream content whenever a doc type is (re)selected
+                                      // from step 1 — prevents stale name/category/parties/fields
+                                      // from a previous type bleeding into the new flow.
+                                      setDocumentType(d.id);
+                                      setName(
+                                        presetDocumentType === d.id && refNumberParam && parentTitleParam
+                                          ? `${getDocumentType(d.id).label} № ${refNumberParam} към „${parentTitleParam}”`
+                                          : "",
+                                      );
+                                      setCategoryId(
+                                        presetCategory && SECTORS.some((s) => s.id === presetCategory)
+                                          ? presetCategory
+                                          : "",
+                                      );
+                                      setCategoryOther("");
+                                      setPartiesA(prefillPartiesA ?? "");
+                                      setPartiesB(prefillPartiesB ?? "");
+                                      setFieldValues(prefillSubject ? { subject: prefillSubject } : {});
+                                      setResult(null);
+                                      setSavedDocId(undefined);
+                                      setAppliedNotes(undefined);
+                                      setSignature({ name_a: "", name_b: "", city: "", date: "" });
+                                      setSimilarTemplates([]);
+                                      setSimilarDismissed(false);
+                                      setDocTypeOpen(false);
+                                    }}
                                     title={d.description}
                                     className={
                                       "flex w-full items-start gap-2 rounded-sm px-2.5 py-1.5 text-left text-sm transition-colors " +
