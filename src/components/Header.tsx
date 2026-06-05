@@ -8,6 +8,8 @@ import { useScrolled } from "@/hooks/useScrolled";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { ToolsMenu } from "@/components/calculators/ToolsMenu";
+
 
 const NAV = [
   { to: "/build", label: "Изготви документ" },
