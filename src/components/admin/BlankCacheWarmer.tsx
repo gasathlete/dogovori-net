@@ -8,7 +8,7 @@ import { Loader2, Play, Pause, Square, Download, Flame } from "lucide-react";
 import { buildBlankTasks, type BlankTask } from "@/lib/blankCatalog";
 import { toast } from "sonner";
 
-type Status = "pending" | "running" | "skipped" | "generated" | "failed";
+type Status = "pending" | "running" | "skipped" | "generated" | "queued" | "failed";
 
 interface TaskResult {
   task: BlankTask;
@@ -17,7 +17,11 @@ interface TaskResult {
   attempts?: number;
 }
 
+// Generation now runs as a background task on the edge function and returns
+// "queued" immediately. We throttle the client loop so the AI gateway isn't
+// flooded — ~8s per queued task ≈ steady ~7 concurrent generations.
 const STEP_DELAY_MS = 500;
+const QUEUED_DELAY_MS = 8000;
 const RATE_LIMIT_BACKOFF_MS = 10_000;
 const NETWORK_RETRIES = 2;
 
