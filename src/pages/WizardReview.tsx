@@ -11,7 +11,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Bird, FileDown, FileText, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Bird, FileDown, FileText, Loader2, AlertCircle, Save, Folder, User } from "lucide-react";
 import { toast } from "sonner";
 
 import { Header } from "@/components/Header";
@@ -19,6 +19,7 @@ import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
 import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
@@ -84,6 +85,11 @@ export default function WizardReviewPage() {
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(undefined);
   const [isPro, setIsPro] = useState(false);
   const [savedDocId, setSavedDocId] = useState<string | undefined>(undefined);
+  const [contactId, setContactId] = useState<string>("");
+  const [folderId, setFolderId] = useState<string>("");
+  const [contacts, setContacts] = useState<Array<{ id: string; name: string }>>([]);
+  const [folders, setFolders] = useState<Array<{ id: string; name: string; is_favorites: boolean }>>([]);
+  const [saving, setSaving] = useState(false);
 
   const reviewHref = `/wizard-graph/${slug}/review`;
   const goAuth = () => navigate(`/auth?redirect=${encodeURIComponent(reviewHref)}`);
@@ -110,10 +116,76 @@ export default function WizardReviewPage() {
       });
   }, [user]);
 
+  // Load user's contacts and folders for the finalize selectors.
+  useEffect(() => {
+    if (!user) {
+      setContacts([]);
+      setFolders([]);
+      return;
+    }
+    Promise.all([
+      supabase.from("contacts").select("id, name").is("deleted_at", null).order("name", { ascending: true }),
+      supabase.from("folders").select("id, name, is_favorites").order("is_favorites", { ascending: false }).order("name", { ascending: true }),
+    ]).then(([c, f]) => {
+      setContacts((c.data ?? []) as Array<{ id: string; name: string }>);
+      setFolders((f.data ?? []) as Array<{ id: string; name: string; is_favorites: boolean }>);
+    });
+  }, [user]);
+
   // Seed custom title once result is in.
   useEffect(() => {
     if (result && !customTitle) setCustomTitle(result.contract.title);
   }, [result, customTitle]);
+
+  const handleSaveToProfile = async () => {
+    if (!result) return;
+    if (!user) { goAuth(); return; }
+    if (savedDocId) {
+      // Update existing save with selected folder/contact.
+      setSaving(true);
+      try {
+        const { error } = await supabase
+          .from("saved_documents")
+          .update({
+            folder_id: folderId || null,
+            contact_id: contactId || null,
+          })
+          .eq("id", savedDocId);
+        if (error) throw error;
+        toast.success("Обновено в профила");
+      } catch (e: unknown) {
+        toast.error("Грешка", { description: e instanceof Error ? e.message : String(e) });
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+    setSaving(true);
+    try {
+      const finalTitle = (customTitle || result.contract.title).trim() || result.contract.title;
+      const { data, error } = await supabase
+        .from("saved_documents")
+        .insert({
+          user_id: user.id,
+          kind: "contract",
+          title: finalTitle,
+          payload: { ...result.contract, title: finalTitle } as never,
+          source_id: slug ?? null,
+          folder_id: folderId || null,
+          contact_id: contactId || null,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      setSavedDocId(data.id);
+      toast.success("Запазено в профила", { description: "Документи → Всички" });
+    } catch (e: unknown) {
+      toast.error("Грешка при запазване", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setSaving(false);
+    }
+  };
+
 
   const runAnalysis = async () => {
     if (!graph || !draft) return;
@@ -218,6 +290,8 @@ export default function WizardReviewPage() {
         payload: contractWithSig,
         source_id: slug,
         saved_document_id: savedDocId,
+        folder_id: folderId || undefined,
+        contact_id: contactId || undefined,
         doc_key: slug,
       });
       if (!res.ok) {
@@ -471,6 +545,47 @@ export default function WizardReviewPage() {
                   />
                 </div>
 
+                <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                      <span className="inline-flex items-center gap-1"><Folder className="h-3 w-3" /> Папка</span>
+                    </Label>
+                    <Select
+                      value={folderId || "none"}
+                      onValueChange={(v) => setFolderId(v === "none" ? "" : v)}
+                    >
+                      <SelectTrigger className="bg-card/60">
+                        <SelectValue placeholder="— Без папка —" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">— Без папка —</SelectItem>
+                        {folders.map((f) => (
+                          <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                      <span className="inline-flex items-center gap-1"><User className="h-3 w-3" /> Контрагент</span>
+                    </Label>
+                    <Select
+                      value={contactId || "none"}
+                      onValueChange={(v) => setContactId(v === "none" ? "" : v)}
+                    >
+                      <SelectTrigger className="bg-card/60">
+                        <SelectValue placeholder="— Без контрагент —" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">— Без контрагент —</SelectItem>
+                        {contacts.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <h4 className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">
                   Експорт
                 </h4>
@@ -501,6 +616,17 @@ export default function WizardReviewPage() {
                     Свали DOCX
                   </Button>
                 </div>
+
+                <Button
+                  onClick={handleSaveToProfile}
+                  disabled={saving}
+                  variant="outline"
+                  className="mt-2 w-full border-gold/40 hover:bg-gold/10 hover:text-gold"
+                >
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  {savedDocId ? "Обнови запазеното" : "Запиши в профила"}
+                </Button>
+
 
                 <Button
                   variant="ghost"

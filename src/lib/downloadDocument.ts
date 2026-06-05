@@ -14,6 +14,7 @@ interface DownloadParams {
   payload: GeneratedContract | CompanionTemplate;
   source_id?: string;
   contact_id?: string;
+  folder_id?: string;
   saved_document_id?: string;
   /** Slug/ID that uniquely identifies the document for session-scoped charging. */
   doc_key?: string;
@@ -54,6 +55,7 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
       payload: p.payload,
       source_id: p.source_id,
       contact_id: p.contact_id,
+      folder_id: p.folder_id,
       saved_document_id: p.saved_document_id,
       session_id: getOpSessionId(),
       doc_key: getOpDocKey(p.doc_key || p.source_id || p.title),
