@@ -95,8 +95,8 @@ export function GoogleConsentDialog({ open, onOpenChange, onConfirm, busy }: Goo
               onCheckedChange={(v) => setMarketing(!!v)}
               className="mt-0.5"
             />
-            <Label htmlFor="g-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-muted-foreground">
-              Съгласявам се да предоставя име и имейл на администратора на платформата за получаване на съобщения, известия за бонуси и награди в профила ми в dogovori.net.
+            <Label htmlFor="g-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+              Съгласявам се да предоставя име и имейл на администратора на платформата за получаване на съобщения, известия за бонуси и награди в профила ми в dogovori.net. <span className="text-gold">*</span>
             </Label>
           </div>
         </div>
