@@ -735,6 +735,9 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
               <span className="font-medium text-foreground line-clamp-1">{chromeTitle}</span>
             </div>
             <div className="hidden items-center gap-4 text-muted-foreground sm:flex">
+              <a href="/ai" {...prefetchHandlers("/ai")} className="underline-offset-2 hover:text-gold hover:underline">Как работи AI</a>
+              <a href="/karta" {...prefetchHandlers("/karta")} className="underline-offset-2 hover:text-gold hover:underline">Карта на сайта</a>
+              <span className="opacity-50">·</span>
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_hsl(142_70%_45%/0.8)]" />
                 Системата е в готовност
