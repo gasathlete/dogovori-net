@@ -3,6 +3,7 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } fro
 import { saveAs } from "file-saver";
 import type { CompanionTemplate } from "@/data/companionTemplates";
 import { applyPdfWatermark, buildDocxWatermarkHeader, type WatermarkOpts } from "./watermark";
+import { loadCyrillicFontB64 } from "./pdfFont";
 
 export type { WatermarkOpts };
 
@@ -15,13 +16,7 @@ const fileBase = (title: string) =>
 
 
 export async function exportTemplatePDF(t: CompanionTemplate, opts?: WatermarkOpts) {
-  const fontUrl =
-    "https://cdn.jsdelivr.net/npm/dejavu-sans@1.0.3/fonts/dejavu-sans.normal.ttf";
-  const buffer = await fetch(fontUrl).then((r) => r.arrayBuffer());
-  let binary = "";
-  const bytes = new Uint8Array(buffer);
-  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-  const b64 = btoa(binary);
+  const b64 = await loadCyrillicFontB64();
 
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   doc.addFileToVFS("DejaVuSans.ttf", b64);

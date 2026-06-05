@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { GeneratedContract } from "@/lib/exporters";
+import { usePrefetchExporters } from "@/hooks/usePrefetchExporters";
 
 type Props = {
   contract: GeneratedContract;
@@ -22,6 +23,10 @@ type Props = {
 type EditKey = "title" | "preamble" | "closing" | `clause:${number}`;
 
 export function ContractPreview({ contract, onChange }: Props) {
+  // Warm the PDF/DOCX export chunks and embed font while the user reads
+  // through the preview — the next click on Download is then near-instant.
+  usePrefetchExporters({ pdf: true, docx: true });
+
   const [editing, setEditing] = useState<EditKey | null>(null);
   const [draft, setDraft] = useState<string>("");
 
