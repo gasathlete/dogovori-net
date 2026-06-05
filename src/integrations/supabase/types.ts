@@ -2265,6 +2265,57 @@ export type Database = {
         Args: { _count: number; _user_id: string }
         Returns: undefined
       }
+      admin_list_subscriptions: {
+        Args: {
+          _env?: string
+          _limit?: number
+          _search?: string
+          _status?: string
+        }
+        Returns: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          display_name: string
+          email: string
+          environment: string
+          id: string
+          price_id: string
+          product_id: string
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at: string
+          user_id: string
+        }[]
+      }
+      admin_list_teams: {
+        Args: {
+          _env?: string
+          _limit?: number
+          _search?: string
+          _status?: string
+        }
+        Returns: {
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          environment: string
+          id: string
+          lifetime_ops: number
+          member_count: number
+          name: string
+          ops_used: number
+          owner_email: string
+          owner_id: string
+          seat_count: number
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at: string
+        }[]
+      }
       admin_list_users: {
         Args: { _limit?: number; _search?: string }
         Returns: {
@@ -2293,6 +2344,81 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      admin_update_subscription: {
+        Args: {
+          _cancel_at_period_end?: boolean
+          _current_period_end?: string
+          _current_period_start?: string
+          _environment?: string
+          _id: string
+          _price_id?: string
+          _status?: string
+        }
+        Returns: {
+          cancel_at_period_end: boolean | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          environment: string
+          id: string
+          price_id: string | null
+          product_id: string | null
+          status: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "subscriptions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_update_team: {
+        Args: {
+          _current_period_end?: string
+          _current_period_start?: string
+          _environment?: string
+          _id: string
+          _seat_count?: number
+          _status?: string
+        }
+        Returns: {
+          brand_color: string | null
+          company_address: string | null
+          company_eik: string | null
+          company_email: string | null
+          company_mol: string | null
+          company_phone: string | null
+          company_vat: string | null
+          company_website: string | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          environment: string
+          id: string
+          letterhead_enabled: boolean
+          logo_url: string | null
+          name: string
+          owner_id: string
+          seat_count: number
+          signature_data_url: string | null
+          signature_name: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          vat_data: Json | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "teams"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       assemble_prompt_content: { Args: { _prompt_id: string }; Returns: string }
       award_team_loyalty: {
