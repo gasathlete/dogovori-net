@@ -382,12 +382,12 @@ Deno.serve(async (req: Request) => {
       .eq("document_name", documentName)
       .maybeSingle();
 
-    // Cache version prefix. Bumped to v3 — initial blanks now use a
-    // higher-quality model (gemini-2.5-pro) and document-type-aware structure
-    // (разписка ≠ договор ≠ декларация ≠ пълномощно etc).
-    // Bilingual blanks live under a separate `v3-bilingual` namespace so they
-    // never collide with the monolingual cache for the same (sector, document).
-    const CACHE_VERSION = isBilingual ? "v5-bilingual" : "v5";
+    // Cache version prefix. `v6` fixes the safeKey collision bug — earlier
+    // versions stripped Cyrillic and mapped every blank in a sector to the
+    // same Storage object. `v6` uses BG→Latin transliteration + an 8-char
+    // SHA-1 suffix per (sector, document) to guarantee uniqueness.
+    // Bilingual blanks live under a separate namespace.
+    const CACHE_VERSION = isBilingual ? "v6-bilingual" : "v6";
     const existingPath = existing?.storage_path as string | undefined;
     let storagePath: string | undefined =
       existingPath && existingPath.startsWith(`${CACHE_VERSION}/`) ? existingPath : undefined;
