@@ -332,6 +332,7 @@ export function AdminGscPanel() {
           </TableBody>
         </Table>
       </div>
-    </section>
+      </section>
+    </>
   );
 }
