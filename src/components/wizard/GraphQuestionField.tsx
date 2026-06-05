@@ -1,10 +1,11 @@
 /**
  * Renders a single QuestionNode from the graph engine. Pure, presentational.
  * Supports text/longtext/number/money/date/select/multiselect/boolean.
- * `party_list` is rendered as a simple "Name | Type" textarea — the legacy
- * PartyListEditor can be wired in later without touching the engine.
+ * Select & multiselect questions automatically expose a "Друго" custom
+ * free-text entry alongside their predefined options.
  */
 
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+
+const CUSTOM_SENTINEL = "__custom__";
 import { PartyListEditor, parseParties, serializeParties } from "./PartyListEditor";
 import type { ResolvedQuestion } from "@/lib/questionGraph";
 
