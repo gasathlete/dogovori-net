@@ -189,9 +189,21 @@ export function SplitWizard({
   const isLast = stepIdx === total - 1;
   const canAdvance = currentSection ? sectionStatus[stepIdx]?.complete : false;
 
+  // Show red highlighting on missing required fields after a failed Next attempt.
+  const [attemptedNext, setAttemptedNext] = useState(false);
+  useEffect(() => { setAttemptedNext(false); }, [currentSectionId]);
+  const missingIds = useMemo(() => new Set(resolved.missingRequired), [resolved.missingRequired]);
+  const missingInCurrent = useMemo(() => {
+    if (!currentSection) return [] as { id: string; label: string }[];
+    return currentSection.questions
+      .filter((q) => q.required && missingIds.has(q.id))
+      .map((q) => ({ id: q.id, label: q.label }));
+  }, [currentSection, missingIds]);
+
   const goToSection = (idx: number) => {
     const target = visibleSections[idx];
     if (!target) return;
+    setAttemptedNext(false);
     setCurrentSectionId(target.id);
     requestAnimationFrame(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -199,9 +211,20 @@ export function SplitWizard({
   };
 
   const handleNext = () => {
-    if (!canAdvance) return;
+    if (!canAdvance) {
+      setAttemptedNext(true);
+      // Scroll to first missing field
+      const firstMissing = missingInCurrent[0]?.id;
+      if (firstMissing) {
+        requestAnimationFrame(() => {
+          const el = document.getElementById(`q-${firstMissing}`);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+      }
+      return;
+    }
     if (isLast) {
-      if (!resolved.isComplete) return;
+      if (!resolved.isComplete) { setAttemptedNext(true); return; }
       const cleaned = pruneAnswers(graph, answers);
       const finalDoc = assembleDocument(clauses, cleaned);
       onComplete?.({ answers: cleaned, body_md: finalDoc.body_md });
