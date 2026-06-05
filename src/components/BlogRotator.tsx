@@ -8,7 +8,10 @@ export function BlogRotator() {
   const posts = useMemo(() => ALL_POSTS.slice(0, 6), []);
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [dragDx, setDragDx] = useState(0);
   const timerRef = useRef<number | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
+  const swipedRef = useRef(false);
 
   useEffect(() => {
     if (paused || posts.length <= 1) return;
@@ -22,17 +25,71 @@ export function BlogRotator() {
 
   if (posts.length === 0) return null;
 
-  const active = posts[idx];
+  const goTo = (i: number) => {
+    const n = posts.length;
+    setIdx(((i % n) + n) % n);
+  };
+  const next = () => goTo(idx + 1);
+  const prev = () => goTo(idx - 1);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY, t: Date.now() };
+    swipedRef.current = false;
+    setPaused(true);
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const t = e.touches[0];
+    const dx = t.clientX - touchStartRef.current.x;
+    const dy = t.clientY - touchStartRef.current.y;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+      // Horizontal intent — prevent vertical scroll hijack and follow finger.
+      e.preventDefault();
+      setDragDx(Math.max(-180, Math.min(180, dx)));
+    }
+  };
+  const onTouchEnd = () => {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    const dx = dragDx;
+    setDragDx(0);
+    setPaused(false);
+    if (!start) return;
+    const SWIPE_PX = 50;
+    if (Math.abs(dx) > SWIPE_PX) {
+      swipedRef.current = true;
+      if (dx < 0) next();
+      else prev();
+    }
+  };
 
   return (
     <div
-      className="anim-rise group relative mt-12 overflow-hidden rounded-xl border border-hairline bg-card/90 text-left shadow-elegant sm:mt-14 md:mt-16"
-      style={{ animationDelay: "400ms" }}
+      className="anim-rise group relative mt-12 select-none overflow-hidden rounded-xl border border-hairline bg-card/90 text-left shadow-elegant sm:mt-14 md:mt-16"
+      style={{ animationDelay: "400ms", touchAction: "pan-y" }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
-      onTouchStart={() => setPaused(true)}
-      onTouchEnd={() => setPaused(false)}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchEnd}
     >
+      {/* Swallow click that follows a swipe so we don't navigate to the article. */}
+      <div
+        onClickCapture={(e) => {
+          if (swipedRef.current) {
+            e.preventDefault();
+            e.stopPropagation();
+            swipedRef.current = false;
+          }
+        }}
+        style={{
+          transform: dragDx ? `translate3d(${dragDx}px,0,0)` : undefined,
+          transition: dragDx ? "none" : "transform 280ms ease-out",
+        }}
+      >
+
       {/* Corner ornaments */}
       <span className="pointer-events-none absolute left-2 top-2 h-3 w-3 border-l border-t border-gold/40" />
       <span className="pointer-events-none absolute right-2 top-2 h-3 w-3 border-r border-t border-gold/40" />
@@ -107,6 +164,7 @@ export function BlogRotator() {
             </a>
           );
         })}
+      </div>
       </div>
 
       {/* Footer: dots + progress */}
