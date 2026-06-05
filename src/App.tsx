@@ -56,6 +56,9 @@ const WizardGraph = lazy(() => import("./pages/WizardGraph.tsx"));
 const WizardReview = lazy(() => import("./pages/WizardReview.tsx"));
 
 const Catalog = lazy(() => import("./pages/Catalog.tsx"));
+const Tools = lazy(() => import("./pages/Tools.tsx"));
+const ToolDetail = lazy(() => import("./pages/ToolDetail.tsx"));
+
 const Category = lazy(() => import("./pages/Category.tsx"));
 const Sector = lazy(() => import("./pages/Sector.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
