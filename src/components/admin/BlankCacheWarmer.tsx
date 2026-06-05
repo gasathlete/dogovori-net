@@ -229,7 +229,8 @@ export function BlankCacheWarmer() {
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               Pre-generates all blank templates from the catalog and uploads them to Storage.
-              Already-cached blanks are skipped. Safe to run multiple times.
+              Already-cached blanks are skipped. Generation runs in background on the server —
+              "queued" means it was kicked off; re-run later to confirm via "skipped". Safe to run multiple times.
             </p>
             {running && (
               <p className="text-xs text-amber-600 font-medium">
@@ -240,6 +241,7 @@ export function BlankCacheWarmer() {
             <div className="flex items-center gap-3 flex-wrap">
               <Badge variant="outline">Total: {total}</Badge>
               <Badge variant="outline" className="border-emerald-500/40 text-emerald-700">Generated: {counts.generated}</Badge>
+              <Badge variant="outline" className="border-amber-500/40 text-amber-700">Queued: {counts.queued}</Badge>
               <Badge variant="outline" className="border-blue-500/40 text-blue-700">Skipped: {counts.skipped}</Badge>
               <Badge variant="outline" className="border-red-500/40 text-red-700">Failed: {counts.failed}</Badge>
               <Badge variant="outline">Pending: {counts.pending}</Badge>
