@@ -1,10 +1,12 @@
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { TOP_DOCUMENTS } from "@/data/catalog";
 import { ArrowRight, Bird, Crown } from "lucide-react";
+import { useDownloadCounts } from "@/hooks/useDownloadCounts";
+import { slugify } from "@/lib/slugify";
 
-// Indicative download counts (per-template social proof signal)
-// Real per-template downloads (production telemetry) + 10–20 from internal QA each.
-const DOWNLOAD_HINTS = ["19", "17", "15", "13", "12"];
+// Baseline floor per top-5 slot (early social proof while real telemetry ramps up).
+// Real downloads from `template_download_counts` are added on top of this baseline.
+const DOWNLOAD_BASELINE = [19, 17, 15, 13, 12];
 
 export function TopDocuments() {
   return (
