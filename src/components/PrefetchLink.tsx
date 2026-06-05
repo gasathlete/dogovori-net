@@ -47,3 +47,18 @@ export const PrefetchLink = forwardRef<HTMLAnchorElement, LinkProps>(
 );
 
 PrefetchLink.displayName = "PrefetchLink";
+
+/**
+ * Hook for non-Link CTAs (e.g. `<button onClick={() => navigate(...)}>`).
+ * Returns hover/focus handlers that warm the target route chunk.
+ *
+ * Usage:
+ *   const prefetch = usePrefetchRoute("/sektor/finance");
+ *   <button {...prefetch} onClick={...}>...</button>
+ */
+export function usePrefetchRoute(href: string) {
+  return {
+    onMouseEnter: () => prefetchFor(href),
+    onFocus: () => prefetchFor(href),
+  };
+}
