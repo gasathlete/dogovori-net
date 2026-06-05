@@ -37,6 +37,14 @@ const THRESHOLDS = {
   "best-practices": Number(process.env.PSI_MIN_BP ?? 90),
 };
 
+// Core Web Vitals thresholds (Google "good" bands: LCP ≤ 2500ms, CLS ≤ 0.1, INP ≤ 200ms).
+// Override per environment via env vars (e.g. PSI_MAX_LCP_MS=2200 for stricter alerts).
+const CWV_THRESHOLDS = {
+  lcpMs: Number(process.env.PSI_MAX_LCP_MS ?? 2500),
+  cls: Number(process.env.PSI_MAX_CLS ?? 0.1),
+  inpMs: Number(process.env.PSI_MAX_INP_MS ?? 200),
+};
+
 // Key SEO routes — keep small to stay within PSI quota.
 const ROUTES = [
   "/",
