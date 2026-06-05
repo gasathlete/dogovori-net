@@ -16,6 +16,7 @@ import { AdminBlanksPanel } from "@/components/AdminBlanksPanel";
 import { AdminUserArticlesPanel } from "@/components/AdminUserArticlesPanel";
 import { AdminGscPanel } from "@/components/AdminGscPanel";
 import { AdminNotificationsPanel } from "@/components/AdminNotificationsPanel";
+import { BlankCacheWarmer } from "@/components/admin/BlankCacheWarmer";
 
 type Row = {
   user_id: string;
@@ -127,6 +128,7 @@ export default function AdminPage() {
           <Button asChild variant="outline" size="sm" className="border-gold/40">
             <Link to="/admin/ai-training">🧠 AI обучение</Link>
           </Button>
+          <BlankCacheWarmer />
         </div>
 
         <div className="flex gap-2 mb-4">

@@ -1,44 +1,57 @@
-## План (обновен): цени + FIRST100 с допълнителни 10% за годишен
+# План: Затопляне на кеша на бланките (Опция В — идемпотентно)
 
-### 1. Нови цени (EUR, ДДС включено)
+## Цел
+Един бутон в `/admin`, който генерира всички липсващи бланки от каталога (461 моноезични + 20 билингвални = 481 потенциални) и пропуска вече кешираните. Безгрешно, последователно, с retry. Може да се пуска многократно без риск.
 
-| Продукт | Стара | Нова |
-|---|---|---|
-| Pro месечен (`pro_monthly`) | 9.90 € | **12.90 €** |
-| Pro годишен (`pro_yearly`) | 99 € | **129 €** |
-| Team място / месец (`team_seat_monthly`) | 7.90 € | **10.90 €** (мин. 3 = 32.70 €/мес) |
-| Team място / година (`team_seat_yearly`) | — | **109 €/място** |
-| Пакет 5 операции (`five_operations`) | 1.90 € | **2.90 €** |
+## Поток
 
-### 2. Промокод FIRST100 — два варианта зад една дума
-Stripe позволява само един купон на checkout сесия, затова правим **два купона зад една и съща Promotion Code лента**:
+1. **Бутон** „🔥 Warm blanks cache" в `Admin.tsx` отваря модал с прогрес.
+2. **Frontend** изгражда списък от `src/data/catalog.ts`: за всяка категория → за всеки документ → `{ sector_id, document_name, sector_title, bilingual: doc.bilingual === true }`. Само 20-те маркирани документа се пускат и в билингвален вариант.
+3. **Pre-check (опционално, бързо)**: чете `document_blanks` веднъж и маркира кои вече имат валиден `storage_path` (`v4/` или `v4-bilingual/`). Това позволява UI да покаже „N от 481 вече кеширани" преди старт.
+4. **Последователна обработка** (една по една, никаква паралелност), пауза 500 ms между извикванията.
+5. За всяка задача се вика нов edge function **`warm-blank-cache`**.
+6. **Progress UI**: текущ индекс/общо, име на бланка, статус (skipped / generated / failed), брояч на успешни/пропуснати/грешни, бутон „Pause" и „Stop".
+7. След края: обобщение + downloadable JSON лог с грешките за повторен опит.
 
-| Lookup ID | % off | Прилага се за |
-|---|---|---|
-| `first100_monthly` | **30%** | `pro_monthly`, `team_seat_monthly` |
-| `first100_yearly` | **40%** | `pro_yearly`, `team_seat_yearly` (30% база + 10% годишен бонус) |
+## Edge function: `warm-blank-cache` (нова)
 
-Не се прилага за `five_operations` / `single_contract`.
+Огледало на генериращата част от `download-blank`, но:
+- **Staff guard**: изисква `is_staff(auth.uid())`, иначе 403.
+- **НЕ извиква `consume_quota`** — нулев разход за staff.
+- Приема: `{ sector_id, document_name, sector_title, bilingual }`.
+- Проверка в `document_blanks`: ако съществува запис със `storage_path` започващ с правилния `CACHE_VERSION` (`v4/` за моно, `v4-bilingual/` за bil) → връща `{ status: "skipped" }` веднага, без AI заявка.
+- Иначе генерира с **`google/gemini-2.5-pro`** (същия модел като production за качество), пакетира .docx с `docx@8.5.0`, ъплоудва в bucket `document-blanks`, ъпсърт в `document_blanks`.
+- **Retry с backoff** при AI грешки: до 3 опита (2s, 6s, 15s) при 429/5xx/timeout.
+- При финален провал → връща `{ status: "failed", error }` (200 OK с тяло, не 500), за да продължи batch-ът.
+- Reuse на `SYSTEM_PROMPT`, `BILINGUAL_ADDENDUM`, `buildDocx`, `document-types` spec — идентично качество с production.
 
-**UX:** потребителят пише `FIRST100` в Stripe-вграденото поле "Add promotion code". И двата промо-кода (monthly + yearly) се регистрират в Stripe с **един и същ публичен код** `FIRST100`, но с различни `restrictions.applies_to.products` (или различни ценови ограничения), така че Stripe сам избира правилния спрямо това какво е в количката. Без cap на брой ползвания, без ограничение нов/стар клиент.
+## Frontend контрол (sequential, безгрешно)
 
-### 3. Server (edge functions)
-- `create-checkout` и `create-team`:
-  - `allow_promotion_codes: true` само за recurring сесии;
-  - идемпотентен `ensureFirstHundredCoupons()` при boot — създава двата купона + двата promotion code-а (`code: "FIRST100"`) ако не съществуват;
-  - купоните се ограничават до съответните Stripe Products (Pro / Team) чрез `applies_to.products`.
+- Едно `await` на заявка, никаква паралелност.
+- При мрежова грешка → auto-retry на същата задача до 2 пъти преди `failed`.
+- При HTTP 429 → пауза 10 сек и продължава.
+- При затваряне/Stop процесът спира на следващата итерация (не убива текущата заявка).
+- **Идемпотентно**: повторно натискане пропуска всички вече кеширани — безопасно за многократно пускане.
 
-### 4. Frontend копи (само замяна на числа)
-`src/pages/Account.tsx`, `Hero.tsx`, `Team.tsx`, `Template.tsx`, `Wizard.tsx`, `WizardReview.tsx`, `BuildContract.tsx`, `legal/Terms.tsx` + email темплейти. Добавям малък банер на pricing картите: "Промокод FIRST100 → -30% месечно / -40% годишно".
+## Безопасност
 
-### 5. Memory
-Обновявам `mem://index.md` Core с новите цени и кратко правило за FIRST100.
+- Staff guard и на сървъра (`is_staff`), и на бутона (`/admin` вече има guard).
+- Никакви промени в DB schema, RLS, квоти или потребителския UI.
+- Cache key се пази (`v4` / `v4-bilingual`) — никакво презаписване на валидни файлове.
 
-### 6. Revenue.xlsx
-Файлът все още не е качен. Когато го прикачите, ще:
-- сменя цените на 12.90 / 10.90 / 2.90 / 129 / 109;
-- добавя input cells: % клиенти ползващи FIRST100 (месечен 30% / годишен 40%);
-- преизчисля MRR/ARR и LTV с новите формули, запазвайки форматирането.
+## Файлове
 
-### Извън обхвата
-БД/RLS, webhooks, миграция на съществуващи абонаменти, loyalty купоните.
+| Файл | Промяна |
+|------|---------|
+| `supabase/functions/warm-blank-cache/index.ts` | **Нов** — staff-only генератор без quota |
+| `src/lib/blankCatalog.ts` | **Нов** helper — flatten на `catalog.ts` в 481 задачи |
+| `src/components/admin/BlankCacheWarmer.tsx` | **Нов** модал с batch loop, прогрес, error log |
+| `src/pages/Admin.tsx` | Нов бутон, който отваря модала |
+
+Никакви миграции.
+
+## Оценка
+
+- **Първи run** (всичко некеширано): ~481 × ~8 сек ≈ **65 минути** под надзор.
+- **Следващи runs**: основно skipped (БД lookup без AI), ~481 × ~0.3 сек ≈ **2.5 минути**.
+- Admin трябва да държи модала отворен по време на работа (показваме предупреждение „Don't close this tab").
