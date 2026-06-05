@@ -51,6 +51,68 @@ for (const f of required) {
   console.log(`✓ dist/${f.path} (${size} bytes)`);
 }
 
+// ---------------------------------------------------------------------------
+// SSG semantic-content + JSON-LD checks for GEO-targeted pages.
+// These pages must render their semantic <main>/<article>/<dl> content AND
+// the full set of structured-data blocks into static HTML so LLM crawlers
+// (ChatGPT, Perplexity, Claude, Gemini) and Googlebot can parse them
+// without executing client-side JavaScript.
+// ---------------------------------------------------------------------------
+const ssgChecks: { path: string; mustContainTypes: string[]; mustContainHtml: string[] }[] = [
+  {
+    path: "ai/index.html",
+    mustContainTypes: ["SoftwareApplication", "FAQPage", "HowTo", "BreadcrumbList"],
+    mustContainHtml: ["<h1>", "AI", "ЗЗД"],
+  },
+  {
+    path: "karta/index.html",
+    mustContainTypes: ["ItemList", "CollectionPage"],
+    mustContainHtml: ["<h1>", "<dl>", "<dt>", "/shablon/"],
+  },
+];
+
+for (const c of ssgChecks) {
+  const full = resolve(DIST, c.path);
+  if (!existsSync(full)) {
+    console.error(`✗ MISSING SSG page: dist/${c.path}`);
+    failed = true;
+    continue;
+  }
+  const html = readFileSync(full, "utf8");
+  // Extract every <script type="application/ld+json"> payload and parse it.
+  const matches = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+  if (matches.length === 0) {
+    console.error(`✗ dist/${c.path} has no JSON-LD scripts`);
+    failed = true;
+    continue;
+  }
+  const seenTypes = new Set<string>();
+  let parseFailed = false;
+  for (const m of matches) {
+    try {
+      const obj = JSON.parse(m[1]);
+      if (obj && typeof obj["@type"] === "string") seenTypes.add(obj["@type"]);
+    } catch (e) {
+      console.error(`✗ dist/${c.path} has invalid JSON-LD: ${(e as Error).message}`);
+      parseFailed = true;
+    }
+  }
+  if (parseFailed) { failed = true; continue; }
+  for (const t of c.mustContainTypes) {
+    if (!seenTypes.has(t)) {
+      console.error(`✗ dist/${c.path} missing JSON-LD @type="${t}" (saw: ${[...seenTypes].join(", ")})`);
+      failed = true;
+    }
+  }
+  for (const s of c.mustContainHtml) {
+    if (!html.includes(s)) {
+      console.error(`✗ dist/${c.path} missing required HTML snippet "${s}"`);
+      failed = true;
+    }
+  }
+  if (!failed) console.log(`✓ dist/${c.path} (SSG + ${matches.length} JSON-LD blocks)`);
+}
+
 if (failed) {
   console.error("\nBuild verification FAILED. Refusing to publish broken artifacts.");
   process.exit(1);

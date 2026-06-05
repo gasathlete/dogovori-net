@@ -12,6 +12,11 @@ import { Footer } from "@/components/Footer";
 import { Seo } from "@/components/Seo";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import {
+  AI_ANALYSIS_STEPS,
+  AI_FAQS,
+  buildAiFeaturesSchemas,
+} from "@/lib/seo/schemas";
+import {
   ShieldCheck,
   Scale,
   FileSearch,
@@ -22,35 +27,13 @@ import {
   Languages,
   Lock,
   ArrowRight,
+  Map as MapIcon,
 } from "lucide-react";
 
-const ANALYSIS_STEPS = [
-  {
-    title: "1. Структурно разпознаване",
-    body:
-      "Качените PDF/DOCX се преобразуват в текст и AI моделът разпознава типа на документа (трудов, наем, услуга, NDA, дистрибуторски и др.) и страните по него.",
-  },
-  {
-    title: "2. Извличане на клаузи",
-    body:
-      "Системата сегментира договора по клаузи (предмет, цена, срок, отговорност, прекратяване, юрисдикция) и ги нормализира за съпоставка със стандартни шаблони.",
-  },
-  {
-    title: "3. Риск-анализ спрямо БГ право",
-    body:
-      "Всяка клауза се сравнява с императивните разпоредби на ЗЗД, ТЗ, КТ и специалното законодателство. Маркират се липсващи задължителни елементи, неравноправни условия и потенциални нищожности.",
-  },
-  {
-    title: "4. Конкретни корекции",
-    body:
-      "За всеки риск AI предлага конкретна редакция — нов или преформулиран текст на клаузата — с обяснение защо подобрението е необходимо.",
-  },
-  {
-    title: "5. Експорт и e-подпис",
-    body:
-      "Финалният документ се експортира като PDF и DOCX (с проследени промени) и може да бъде подписан електронно с КЕП или електронен подпис в платформата.",
-  },
-];
+// Step + FAQ datasets live in src/lib/seo/schemas.ts so they can be reused by
+// the prerender script and unit-tested in CI.
+const ANALYSIS_STEPS = AI_ANALYSIS_STEPS;
+const FAQS = AI_FAQS;
 
 const CAPABILITIES = [
   { icon: FileSearch, title: "Над 600 шаблона", body: "Български договори по ЗЗД, ТЗ, КТ и специални закони." },
@@ -61,105 +44,13 @@ const CAPABILITIES = [
   { icon: Lock, title: "Поверителност", body: "Документите не се ползват за обучение на модела." },
 ];
 
-const FAQS = [
-  {
-    q: "Какво точно прави AI анализът на договори в Dogovori.net?",
-    a: "Платформата качва качения от вас договор (PDF или DOCX), разпознава типа му, извлича всички клаузи и ги сравнява спрямо изискванията на българското право — ЗЗД, ТЗ, КТ и съответните специални закони. За всеки идентифициран риск връща обяснение и конкретна редакция на клаузата.",
-  },
-  {
-    q: "На колко езика работи AI асистентът?",
-    a: "Първичният език е български. Системата поддържа и двуезични договори (български + английски) за работа с чуждестранни контрагенти, с автоматично синхронизиране на двата варианта.",
-  },
-  {
-    q: "Какви типове договори анализира?",
-    a: "Над 600 шаблона: трудови договори (чл. 67 КТ), договори за наем на жилище и търговски обект, граждански договори за услуги и изработка, NDA, дистрибуторски, франчайзинг, заем, дарение, цесия, договори по ЗОП, ЗУТ и др.",
-  },
-  {
-    q: "Колко струва AI анализът?",
-    a: "Pro план: 9.90 €/месец, включва 100 операции. Team план: 7.90 €/seat/месец (минимум 3 места). Еднократен пакет: 1.90 € за 5 операции. Цените са с включен 20% ДДС. Една операция = един downloaded договор или анализ.",
-  },
-  {
-    q: "Заместват ли AI препоръките правен консулт?",
-    a: "Не. AI анализът е инструмент за подкрепа на решенията — той маркира рискове и предлага корекции, но окончателната правна преценка трябва да бъде направена от квалифициран юрист. Платформата изрично извежда дисклеймър при всеки експорт.",
-  },
-  {
-    q: "Качените от мен документи използват ли се за обучение?",
-    a: "Не. Документите, които потребителите качват за анализ, не се ползват за обучение или подобряване на модела. Те се съхраняват временно и могат да бъдат изтрити по всяко време от профила на потребителя.",
-  },
-  {
-    q: "Кои AI модели стоят зад анализа?",
-    a: "Платформата ползва съчетание от Gemini и собствена prompt пайплайн, специализирана за българското договорно право, плюс експертно курирани шаблони от юристи.",
-  },
-];
-
 export default function AIFeaturesPage() {
   const canonical = "/ai";
   const title = "AI правен анализ на договори — как работи | Dogovori.net";
   const description =
     "Как AI системата на Dogovori.net анализира български договори: извличане на клаузи, проверка по ЗЗД/ТЗ/КТ, конкретни корекции и експорт в PDF/DOCX. Над 600 шаблона.";
 
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
-
-  // Detailed SoftwareApplication schema specifically describing the AI module.
-  const softwareLd = {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    name: "Dogovori.net AI Contract Analysis",
-    url: "https://dogovori.net/ai",
-    applicationCategory: "BusinessApplication",
-    applicationSubCategory: "LegalTech / Contract Lifecycle Management",
-    operatingSystem: "Web",
-    inLanguage: ["bg-BG", "en"],
-    description:
-      "AI-powered legal contract analysis for Bulgarian law (ЗЗД, ТЗ, КТ). Extracts clauses, scores risk on a 1–10 scale, suggests concrete redlines and exports to PDF/DOCX with e-signature support.",
-    featureList: [
-      "600+ Bulgarian contract templates",
-      "Clause extraction and segmentation",
-      "Risk scoring vs Bulgarian statutory law (ЗЗД / ТЗ / КТ)",
-      "Concrete redline suggestions per clause",
-      "Bilingual (BG/EN) parallel export",
-      "PDF + DOCX export with tracked changes",
-      "Electronic signature (КЕП and platform-native)",
-      "GDPR-compliant; uploaded documents not used for model training",
-    ],
-    offers: [
-      { "@type": "Offer", name: "Pro", price: "9.90", priceCurrency: "EUR", description: "100 operations/month" },
-      { "@type": "Offer", name: "Team (per seat)", price: "7.90", priceCurrency: "EUR", description: "Min 3 seats, 100 operations/seat/month" },
-      { "@type": "Offer", name: "Pay-as-you-go", price: "1.90", priceCurrency: "EUR", description: "5 operations" },
-    ],
-    aggregateRating: { "@type": "AggregateRating", ratingValue: "4.8", ratingCount: "127" },
-  };
-
-  const howToLd = {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
-    name: "Как работи AI анализът на договори",
-    inLanguage: "bg-BG",
-    totalTime: "PT2M",
-    step: ANALYSIS_STEPS.map((s, i) => ({
-      "@type": "HowToStep",
-      position: i + 1,
-      name: s.title.replace(/^\d+\.\s*/, ""),
-      text: s.body,
-    })),
-  };
-
-  const breadcrumbsLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Начало", item: "https://dogovori.net/" },
-      { "@type": "ListItem", position: 2, name: "AI правен анализ", item: "https://dogovori.net/ai" },
-    ],
-  };
+  const jsonLd = buildAiFeaturesSchemas();
 
   return (
     <div className="min-h-screen">
@@ -167,7 +58,7 @@ export default function AIFeaturesPage() {
         title={title}
         description={description}
         canonical={canonical}
-        jsonLd={[softwareLd, faqLd, howToLd, breadcrumbsLd]}
+        jsonLd={jsonLd}
       />
       <Header />
 
@@ -280,6 +171,9 @@ export default function AIFeaturesPage() {
               Изготви договор с AI <ArrowRight className="h-4 w-4" />
             </Link>
             <Link to="/catalog" className="btn-ghost-gold">Разгледай каталога</Link>
+            <Link to="/karta" className="btn-ghost-gold inline-flex items-center gap-1.5">
+              <MapIcon className="h-4 w-4" /> Карта на сайта (всички 600+ шаблона)
+            </Link>
           </div>
         </section>
       </main>

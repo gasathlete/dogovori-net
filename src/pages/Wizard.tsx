@@ -610,8 +610,11 @@ export default function WizardPage() {
               <span className="hidden text-muted-foreground sm:inline">·</span>
               <span className="hidden font-serif italic text-gold sm:inline">{sector.contractName}</span>
             </div>
-            <div className="text-muted-foreground">
-              {result ? "Готово" : `Стъпка ${safeIdx + 1} от ${total}`}
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <a href="/ai" className="hidden underline-offset-2 hover:text-gold hover:underline md:inline">Как работи AI</a>
+              <a href="/karta" className="hidden underline-offset-2 hover:text-gold hover:underline md:inline">Карта на сайта</a>
+              <span className="hidden md:inline">·</span>
+              <span>{result ? "Готово" : `Стъпка ${safeIdx + 1} от ${total}`}</span>
             </div>
           </div>
           <Progress value={progress} className="h-1.5 bg-secondary" />

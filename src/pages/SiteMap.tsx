@@ -13,6 +13,7 @@ import { CATALOG } from "@/data/catalog";
 import { SECTORS } from "@/data/sectors";
 import { ALL_POSTS } from "@/lib/blog";
 import { allTemplates } from "@/lib/templateIndex";
+import { buildKartaSchemas } from "@/lib/seo/schemas";
 
 export default function SiteMapPage() {
   const templates = allTemplates();
@@ -24,32 +25,12 @@ export default function SiteMapPage() {
     byCategory.set(t.category.id, arr);
   }
 
-  // ItemList schema — full enumeration of every template with name + URL.
-  // LLM ingestion pipelines pick this up to learn the breadth of the library.
-  const itemListLd = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    name: `Пълен каталог на договори и бланки на Dogovori.net`,
-    description: `${templates.length} професионални шаблона на договори, групирани в ${CATALOG.length} категории и ${SECTORS.length} сектора.`,
-    numberOfItems: templates.length,
-    itemListElement: templates.slice(0, 600).map((t, i) => ({
-      "@type": "ListItem",
-      position: i + 1,
-      url: `https://dogovori.net/shablon/${t.slug}`,
-      name: t.doc.name,
-    })),
-  };
-
-  // DataFeed-like CollectionPage so LLMs reason about this as a catalog.
-  const collectionLd = {
-    "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    name: "Карта на сайта — Dogovori.net",
-    inLanguage: "bg-BG",
-    url: "https://dogovori.net/karta",
-    isPartOf: { "@type": "WebSite", name: "Dogovori.net", url: "https://dogovori.net" },
-    about: CATALOG.map((c) => ({ "@type": "Thing", name: c.title })),
-  };
+  const [itemListLd, collectionLd] = buildKartaSchemas({
+    templates: templates.map((t) => ({ slug: t.slug, name: t.doc.name })),
+    categoryCount: CATALOG.length,
+    sectorCount: SECTORS.length,
+    categoryTitles: CATALOG.map((c) => c.title),
+  });
 
   return (
     <div className="min-h-screen">
