@@ -85,6 +85,11 @@ export default function WizardReviewPage() {
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(undefined);
   const [isPro, setIsPro] = useState(false);
   const [savedDocId, setSavedDocId] = useState<string | undefined>(undefined);
+  const [contactId, setContactId] = useState<string>("");
+  const [folderId, setFolderId] = useState<string>("");
+  const [contacts, setContacts] = useState<Array<{ id: string; name: string }>>([]);
+  const [folders, setFolders] = useState<Array<{ id: string; name: string; is_favorites: boolean }>>([]);
+  const [saving, setSaving] = useState(false);
 
   const reviewHref = `/wizard-graph/${slug}/review`;
   const goAuth = () => navigate(`/auth?redirect=${encodeURIComponent(reviewHref)}`);
