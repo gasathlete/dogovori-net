@@ -169,18 +169,19 @@ export function Hero({ onStart }: { onStart: () => void }) {
           >
             Безплатно: 3 операции/месец · ПРЕДПРИЕМАЧ 9.90 €/мес — 100 операции, двуезични договори, комплекти, всички функционалности
           </p>
-          <div className="anim-rise mt-3 text-center" style={{ animationDelay: "340ms" }}>
+          <div className="anim-rise mt-2 text-center" style={{ animationDelay: "340ms" }}>
             <button
               type="button"
               onClick={(e) => {
                 e.preventDefault();
                 scrollToHash("process");
               }}
-              className="text-xs uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold focus-visible:text-gold my-[6px] px-[10px] py-[12px] text-amber-100"
+              className="text-xs uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold focus-visible:text-gold my-1 px-[10px] py-2 text-amber-100"
             >
               Как работи системата↓
             </button>
           </div>
+
 
           <BlogRotator />
         </div>
