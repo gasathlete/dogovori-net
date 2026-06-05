@@ -92,12 +92,57 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ----- FIRST100 promo codes -----
+    // Two coupons share the public code "FIRST100": 30% off monthly subs,
+    // 40% off yearly subs (extra 10% for annual commitment). Restricted to
+    // the matching Stripe Products so the right one applies to the cart.
+    // Skipped for one-off purchases (five_operations / single_contract).
+    if (isRecurring) {
+      const recurringInterval = price.recurring?.interval; // 'month' | 'year'
+      const productId = typeof price.product === "string" ? price.product : (price.product as any)?.id;
+      try {
+        for (const tier of [
+          { id: "first100_monthly", percent: 30, interval: "month" as const },
+          { id: "first100_yearly", percent: 40, interval: "year" as const },
+        ]) {
+          try {
+            await stripe.coupons.retrieve(tier.id);
+          } catch {
+            await stripe.coupons.create({
+              id: tier.id,
+              name: `FIRST100 — ${tier.percent}% off`,
+              percent_off: tier.percent,
+              duration: "forever",
+              applies_to: { products: [productId] },
+            });
+          }
+          // Ensure a single public promotion code "FIRST100" exists per coupon.
+          const existing = await stripe.promotionCodes.list({ coupon: tier.id, code: "FIRST100", limit: 1 });
+          if (!existing.data.length) {
+            await stripe.promotionCodes.create({
+              coupon: tier.id,
+              code: "FIRST100",
+              restrictions: tier.interval === "year"
+                ? { minimum_amount: 0, minimum_amount_currency: "eur" } as any
+                : undefined,
+            });
+          }
+        }
+      } catch (couponErr) {
+        console.error("FIRST100 setup failed (non-fatal):", couponErr);
+      }
+    }
+
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: price.id, quantity: 1 }],
       mode: isRecurring ? "subscription" : "payment",
       ui_mode: "embedded_page",
       return_url: returnUrl,
       customer: customerId,
+      // Show Stripe's built-in "Add promotion code" field only for subs.
+      // Loyalty coupon (auto-applied) takes precedence; if absent, the
+      // customer can type FIRST100 manually.
+      ...(isRecurring && !appliedCouponId && { allow_promotion_codes: true }),
       metadata: { userId, ...(appliedCouponId ? { loyalty_coupon: appliedCouponId } : {}) },
       ...(appliedCouponId ? { discounts: [{ coupon: appliedCouponId }] } : {}),
       ...(isRecurring && { subscription_data: { metadata: { userId, ...(appliedCouponId ? { loyalty_coupon: appliedCouponId } : {}) } } }),
