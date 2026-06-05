@@ -545,6 +545,47 @@ export default function WizardReviewPage() {
                   />
                 </div>
 
+                <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                      <span className="inline-flex items-center gap-1"><Folder className="h-3 w-3" /> Папка</span>
+                    </Label>
+                    <Select
+                      value={folderId || "none"}
+                      onValueChange={(v) => setFolderId(v === "none" ? "" : v)}
+                    >
+                      <SelectTrigger className="bg-card/60">
+                        <SelectValue placeholder="— Без папка —" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">— Без папка —</SelectItem>
+                        {folders.map((f) => (
+                          <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                      <span className="inline-flex items-center gap-1"><User className="h-3 w-3" /> Контрагент</span>
+                    </Label>
+                    <Select
+                      value={contactId || "none"}
+                      onValueChange={(v) => setContactId(v === "none" ? "" : v)}
+                    >
+                      <SelectTrigger className="bg-card/60">
+                        <SelectValue placeholder="— Без контрагент —" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">— Без контрагент —</SelectItem>
+                        {contacts.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <h4 className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">
                   Експорт
                 </h4>
@@ -575,6 +616,17 @@ export default function WizardReviewPage() {
                     Свали DOCX
                   </Button>
                 </div>
+
+                <Button
+                  onClick={handleSaveToProfile}
+                  disabled={saving}
+                  variant="outline"
+                  className="mt-2 w-full border-gold/40 hover:bg-gold/10 hover:text-gold"
+                >
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  {savedDocId ? "Обнови запазеното" : "Запиши в профила"}
+                </Button>
+
 
                 <Button
                   variant="ghost"
