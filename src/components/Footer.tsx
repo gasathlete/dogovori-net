@@ -18,6 +18,8 @@ export function Footer() {
             </a>
           </div>
           <nav className="grid w-full grid-cols-2 gap-x-5 gap-y-2 text-xs text-muted-foreground sm:flex sm:w-auto sm:flex-wrap md:justify-end">
+            <Link to="/ai" className="transition-colors hover:text-gold">AI анализ</Link>
+            <Link to="/karta" className="transition-colors hover:text-gold">Карта на сайта</Link>
             <Link to="/provider-info" className="transition-colors hover:text-gold">За доставчика</Link>
             <Link to="/terms" className="transition-colors hover:text-gold">Общи условия</Link>
             <Link to="/privacy" className="transition-colors hover:text-gold">Поверителност</Link>

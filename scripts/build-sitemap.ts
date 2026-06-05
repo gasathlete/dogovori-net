@@ -47,6 +47,7 @@ const staticEntries: Entry[] = [
   { loc: "/build", changefreq: "weekly", priority: "0.85", lastmod: fileMtime("src/pages/BuildContract.tsx") },
   { loc: "/blog", changefreq: "weekly", priority: "0.85", lastmod: fileMtime("src/pages/Blog.tsx") },
   { loc: "/tools", changefreq: "weekly", priority: "0.85", lastmod: calculatorsDate },
+  { loc: "/ai", changefreq: "monthly", priority: "0.85", lastmod: fileMtime("src/pages/AIFeatures.tsx") },
 
   { loc: "/auth", changefreq: "monthly", priority: "0.4", lastmod: fileMtime("src/pages/Auth.tsx") },
   { loc: "/contacts", changefreq: "yearly", priority: "0.3", lastmod: fileMtime("src/pages/Contact.tsx") },
