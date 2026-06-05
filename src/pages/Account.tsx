@@ -1239,9 +1239,9 @@ type SubRow = {
 };
 
 const PLAN_LABELS: Record<string, { name: string; price: string; cycle: string }> = {
-  pro_monthly: { name: "Предприемач — месечен", price: "9.90 €", cycle: "месечно" },
-  pro_yearly: { name: "Предприемач — годишен", price: "99 €", cycle: "годишно" },
-  five_operations: { name: "Пакет 5 операции", price: "1.90 €", cycle: "еднократно" },
+  pro_monthly: { name: "Предприемач — месечен", price: "12.90 €", cycle: "месечно" },
+  pro_yearly: { name: "Предприемач — годишен", price: "129 €", cycle: "годишно" },
+  five_operations: { name: "Пакет 5 операции", price: "2.90 €", cycle: "еднократно" },
 };
 
 const STATUS_META: Record<string, { label: string; tone: "ok" | "warn" | "err" | "info" }> = {
@@ -1593,6 +1593,9 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
           <div className="text-center">
             <h2 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl">Изберете правилния план за Вас</h2>
             <p className="mt-2 text-sm text-muted-foreground">Прозрачно ценообразуване · ДДС включено · отказ по всяко време</p>
+            <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs font-medium text-gold">
+              <Sparkles className="h-3.5 w-3.5" /> Промокод <strong className="tracking-wider">FIRST100</strong> → −30% месечно · −40% годишно
+            </p>
           </div>
 
           {/* Pricing grid */}
@@ -1607,11 +1610,11 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               </div>
               <h3 className="mt-2 font-serif text-2xl font-bold">Месечен план</h3>
               <div className="mt-4 flex items-baseline gap-2">
-                <span className="font-serif text-4xl font-bold text-foreground">9.90 €</span>
+                <span className="font-serif text-4xl font-bold text-foreground">12.90 €</span>
                 <span className="text-sm text-muted-foreground line-through">29.90 €</span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">на месец · ДДС вкл. · отказ по всяко време</p>
-              <p className="mt-1 text-[11px] font-medium text-gold/90" title="9.90 € ÷ 100 операции / месец">≈ 0.099 € на операция · 100 оп. на всеки 30 дни</p>
+              <p className="mt-1 text-[11px] font-medium text-gold/90" title="12.90 € ÷ 100 операции / месец">≈ 0.129 € на операция · 100 оп. на всеки 30 дни</p>
               <Button
                 onClick={() => setCheckoutPrice("pro_monthly")}
                 className="mt-5 bg-gradient-gold text-navy hover:shadow-gold"
@@ -1631,11 +1634,11 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               </div>
               <h3 className="mt-2 font-serif text-2xl font-bold">План Екип</h3>
               <div className="mt-4 flex items-baseline gap-2">
-                <span className="font-serif text-4xl font-bold text-foreground">7.90 €</span>
+                <span className="font-serif text-4xl font-bold text-foreground">10.90 €</span>
                 <span className="text-sm text-muted-foreground">/ място</span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">мин. 3 места (23.70 €/мес) · 100 оп./място/мес</p>
-              <p className="mt-1 text-[11px] font-medium text-gold/90" title="7.90 € ÷ 100 операции / място / месец">≈ 0.079 € на операция · 100 оп./място на всеки 30 дни</p>
+              <p className="mt-1 text-xs text-muted-foreground">мин. 3 места (32.70 €/мес) · 100 оп./място/мес</p>
+              <p className="mt-1 text-[11px] font-medium text-gold/90" title="10.90 € ÷ 100 операции / място / месец">≈ 0.109 € на операция · 100 оп./място на всеки 30 дни</p>
               <Button
                 asChild
                 variant="outline"
@@ -1656,17 +1659,17 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               </div>
               <h3 className="mt-2 font-serif text-2xl font-bold">5 операции</h3>
               <div className="mt-4 flex items-baseline gap-2">
-                <span className="font-serif text-4xl font-bold text-foreground">1.90 €</span>
+                <span className="font-serif text-4xl font-bold text-foreground">2.90 €</span>
                 <span className="text-sm text-muted-foreground">/ пакет</span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">без абонамент · операциите не изтичат</p>
-              <p className="mt-1 text-[11px] font-medium text-gold/90" title="1.90 € ÷ 5 операции">≈ 0.38 € на операция · 5 операции в пакета</p>
+              <p className="mt-1 text-[11px] font-medium text-gold/90" title="2.90 € ÷ 5 операции">≈ 0.58 € на операция · 5 операции в пакета</p>
               <Button
                 onClick={() => setCheckoutPrice("five_operations")}
                 variant="outline"
                 className="mt-5 border-border/80"
               >
-                Купи за 1.90 €
+                Купи за 2.90 €
               </Button>
               <div className="my-6 h-px bg-border/60" />
               <ul className="space-y-2.5">
@@ -1688,11 +1691,11 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               </div>
               <h3 className="mt-2 font-serif text-2xl font-bold">Годишен Предприемач</h3>
               <div className="mt-4 flex items-baseline gap-2">
-                <span className="font-serif text-4xl font-bold text-foreground">99 €</span>
-                <span className="text-sm text-muted-foreground line-through">118.80 €</span>
+                <span className="font-serif text-4xl font-bold text-foreground">129 €</span>
+                <span className="text-sm text-muted-foreground line-through">154.80 €</span>
               </div>
-              <p className="mt-1 text-xs text-gold">≈ 8.25 €/месец · 2 безплатни месеца</p>
-              <p className="mt-1 text-[11px] font-medium text-gold/90" title="99 € ÷ (100 × 12) операции / година">≈ 0.0825 € на операция · 1200 оп./година</p>
+              <p className="mt-1 text-xs text-gold">≈ 10.75 €/месец · 2 безплатни месеца</p>
+              <p className="mt-1 text-[11px] font-medium text-gold/90" title="129 € ÷ (100 × 12) операции / година">≈ 0.108 € на операция · 1200 оп./година</p>
               <Button
                 onClick={() => setCheckoutPrice("pro_yearly")}
                 variant="outline"
@@ -1717,11 +1720,11 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               </div>
               <h3 className="mt-2 font-serif text-2xl font-bold">Годишен Екип</h3>
               <div className="mt-4 flex items-baseline gap-2">
-                <span className="font-serif text-4xl font-bold text-foreground">79 €</span>
+                <span className="font-serif text-4xl font-bold text-foreground">109 €</span>
                 <span className="text-sm text-muted-foreground">/ място / година</span>
               </div>
-              <p className="mt-1 text-xs text-gold">≈ 6.58 €/месец · мин. 3 места (237 €/год)</p>
-              <p className="mt-1 text-[11px] font-medium text-gold/90" title="79 € ÷ (100 × 12) операции / място / година">≈ 0.0658 € на операция · 1200 оп./място/година</p>
+              <p className="mt-1 text-xs text-gold">≈ 9.08 €/месец · мин. 3 места (327 €/год)</p>
+              <p className="mt-1 text-[11px] font-medium text-gold/90" title="109 € ÷ (100 × 12) операции / място / година">≈ 0.091 € на операция · 1200 оп./място/година</p>
               <Button
                 asChild
                 variant="outline"

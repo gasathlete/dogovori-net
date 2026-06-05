@@ -71,6 +71,9 @@ Deno.serve(async (req) => {
       ui_mode: "embedded_page",
       return_url: returnUrl,
       customer: customerId,
+      // FIRST100 promo code support — coupons are ensured on first
+      // create-checkout call; allow_promotion_codes shows Stripe's input.
+      allow_promotion_codes: true,
       metadata: { userId: user.id, teamId: team.id, kind: "team" },
       subscription_data: { metadata: { userId: user.id, teamId: team.id, kind: "team" } },
     });

@@ -75,9 +75,9 @@ export default function TermsPage() {
       <h2>7. Цени, плащания и ДДС</h2>
       <ul>
         <li><strong>Безплатен план</strong> — ограничен брой тегления на месец.</li>
-        <li><strong>Pro месечен</strong> — 9,90 € / месец.</li>
-        <li><strong>Pro годишен</strong> — 99 € / година.</li>
-        <li><strong>5 операции</strong> — 1,90 € еднократно.</li>
+        <li><strong>Pro месечен</strong> — 12,90 € / месец.</li>
+        <li><strong>Pro годишен</strong> — 129 € / година.</li>
+        <li><strong>5 операции</strong> — 2,90 € еднократно.</li>
         <li><strong>Team</strong> — корпоративен план съгласно offer.</li>
       </ul>
       <p>
