@@ -346,8 +346,8 @@ Deno.serve(async (req: Request) => {
         (other ? `ДРУГИ КЛАУЗИ / СПЕЦИФИКИ:\n${other}\n` : "");
     }
 
-    const userPrompt = `${parentHeader}ВИД ДОКУМЕНТ: ${docSpec.label}
-КАТЕГОРИЯ: ${category}
+    const userPrompt = `${parentHeader}ВИД ДОКУМЕНТ (ВОДЕЩ — не променяй): ${docSpec.label}
+КАТЕГОРИЯ (само тематичен контекст): ${category}
 ЗАГЛАВИЕ: ${name}
 
 ${partyALabel.toUpperCase()}/И:
