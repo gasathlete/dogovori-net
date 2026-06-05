@@ -266,10 +266,11 @@ export function BlankCacheWarmer() {
                 const realIdx = Math.max(0, index - 3) + idx;
                 const color =
                   t.status === "generated" ? "text-emerald-600"
-                    : t.status === "skipped" ? "text-blue-600"
-                      : t.status === "failed" ? "text-red-600"
-                        : t.status === "running" ? "text-amber-600 font-semibold"
-                          : "text-muted-foreground";
+                    : t.status === "queued" ? "text-amber-700"
+                      : t.status === "skipped" ? "text-blue-600"
+                        : t.status === "failed" ? "text-red-600"
+                          : t.status === "running" ? "text-amber-600 font-semibold"
+                            : "text-muted-foreground";
                 return (
                   <div key={`${t.task.sector_id}-${t.task.document_name}-${t.task.bilingual}-${realIdx}`} className={`px-2 py-1 border-b last:border-b-0 flex items-center gap-2 ${color}`}>
                     <span className="w-12 tabular-nums">{realIdx + 1}.</span>
