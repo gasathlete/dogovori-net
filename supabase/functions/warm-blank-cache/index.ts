@@ -22,6 +22,7 @@ import {
 } from "https://esm.sh/docx@8.5.0";
 import { buildCors } from "../_shared/cors.ts";
 import { getDocumentTypeSpec, inferDocumentType } from "../_shared/document-types.ts";
+import { buildBlankStoragePath } from "../_shared/blank-key.ts";
 
 const SYSTEM_PROMPT = `Ти си български правен архитект с 20+ години практика. Генерираш ПРАЗНИ БЛАНКИ (шаблони) на български юридически език (ЗЗД, ТЗ, ЗУТ, ГПК, КТ, ЗННД).
 
@@ -190,9 +191,7 @@ function buildDocx(blank: BlankPayload, isBilingual: boolean): Promise<Uint8Arra
   return Packer.toBuffer(doc).then((b) => new Uint8Array(b));
 }
 
-function safeKey(s: string): string {
-  return s.normalize("NFKD").replace(/[^a-zA-Z0-9-_]+/g, "_").replace(/_+/g, "_").slice(0, 80);
-}
+// `safeKey` removed — see `_shared/blank-key.ts` `buildBlankStoragePath`.
 
 const SECTOR_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const SAFE_TEXT_RE = /^[^\u0000-\u001F\u007F<>{}`]{1,200}$/;
@@ -207,7 +206,10 @@ async function callAiWithRetry(systemPrompt: string, userPrompt: string, apiKey:
         method: "POST",
         headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
+          // Bulk cache warming uses flash — ~5× cheaper than pro and the
+          // structure of each blank already comes from `document-types` spec,
+          // so the model mostly fills in legal wording.
+          model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
@@ -300,7 +302,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const CACHE_VERSION = isBilingual ? "v5-bilingual" : "v5";
+    const CACHE_VERSION = isBilingual ? "v6-bilingual" : "v6";
 
     // ---- Idempotent skip ----
     const { data: existing } = await admin
@@ -334,7 +336,7 @@ Deno.serve(async (req: Request) => {
     const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName));
     const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Специфика за този вид документ (${docTypeSpec.label}) ---\n${docTypeSpec.systemAddendum}${isBilingual ? BILINGUAL_ADDENDUM : ""}`;
     const userPrompt = `Сектор: ${sectorTitle || sectorId}\nВид документ: ${docTypeSpec.label}\nКонкретен документ: ${documentName}\n\nГенерирай професионална българска правна БЛАНКА (празен шаблон) за този КОНКРЕТЕН ВИД документ. Спазвай структурата за „${docTypeSpec.label}" — не я смесвай с друг вид документ.${isBilingual ? "\n\nЗАДЪЛЖИТЕЛНО: добави паралелен английски превод в полетата title_en, preamble_en, closing_en и в clauses[].title_en/body_en (виж системния промпт за билингвален режим)." : ""}`;
-    const storagePath = `${CACHE_VERSION}/${safeKey(sectorId)}/${safeKey(documentName)}.docx`;
+    const storagePath = await buildBlankStoragePath(CACHE_VERSION, sectorId, documentName);
 
     const work = (async () => {
       try {

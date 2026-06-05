@@ -21,6 +21,7 @@ import {
 } from "https://esm.sh/docx@8.5.0";
 import { buildCors } from "../_shared/cors.ts";
 import { getDocumentTypeSpec, inferDocumentType } from "../_shared/document-types.ts";
+import { buildBlankStoragePath } from "../_shared/blank-key.ts";
 
 
 const SYSTEM_PROMPT = `Ти си български правен архитект с 20+ години практика. Генерираш ПРАЗНИ БЛАНКИ (шаблони) на български юридически език (ЗЗД, ТЗ, ЗУТ, ГПК, КТ, ЗННД).
@@ -267,13 +268,9 @@ function buildDocx(blank: BlankPayload, isBilingual: boolean): Promise<Uint8Arra
   return Packer.toBuffer(doc).then((b) => new Uint8Array(b));
 }
 
-function safeKey(s: string): string {
-  return s
-    .normalize("NFKD")
-    .replace(/[^a-zA-Z0-9-_]+/g, "_")
-    .replace(/_+/g, "_")
-    .slice(0, 80);
-}
+// `safeKey` removed — see `_shared/blank-key.ts` `buildBlankStoragePath`,
+// which transliterates Cyrillic and appends a SHA-1 hash so two different
+// documents in the same sector can never collide on the same Storage path.
 
 Deno.serve(async (req: Request) => {
   const corsHeaders = buildCors(req);
@@ -385,12 +382,12 @@ Deno.serve(async (req: Request) => {
       .eq("document_name", documentName)
       .maybeSingle();
 
-    // Cache version prefix. Bumped to v3 — initial blanks now use a
-    // higher-quality model (gemini-2.5-pro) and document-type-aware structure
-    // (разписка ≠ договор ≠ декларация ≠ пълномощно etc).
-    // Bilingual blanks live under a separate `v3-bilingual` namespace so they
-    // never collide with the monolingual cache for the same (sector, document).
-    const CACHE_VERSION = isBilingual ? "v5-bilingual" : "v5";
+    // Cache version prefix. `v6` fixes the safeKey collision bug — earlier
+    // versions stripped Cyrillic and mapped every blank in a sector to the
+    // same Storage object. `v6` uses BG→Latin transliteration + an 8-char
+    // SHA-1 suffix per (sector, document) to guarantee uniqueness.
+    // Bilingual blanks live under a separate namespace.
+    const CACHE_VERSION = isBilingual ? "v6-bilingual" : "v6";
     const existingPath = existing?.storage_path as string | undefined;
     let storagePath: string | undefined =
       existingPath && existingPath.startsWith(`${CACHE_VERSION}/`) ? existingPath : undefined;
@@ -448,7 +445,7 @@ Deno.serve(async (req: Request) => {
       const blank = extractJson(raw);
 
       const docxBytes = await buildDocx(blank, isBilingual);
-      storagePath = `${CACHE_VERSION}/${safeKey(sectorId)}/${safeKey(documentName)}.docx`;
+      storagePath = await buildBlankStoragePath(CACHE_VERSION, sectorId, documentName);
 
       const { error: upErr } = await admin.storage
         .from("document-blanks")

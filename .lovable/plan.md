@@ -1,57 +1,51 @@
-# План: Затопляне на кеша на бланките (Опция В — идемпотентно)
+# План Б: Поправка на storage collision + презареждане с `gemini-2.5-flash`
 
-## Цел
-Един бутон в `/admin`, който генерира всички липсващи бланки от каталога (461 моноезични + 20 билингвални = 481 потенциални) и пропуска вече кешираните. Безгрешно, последователно, с retry. Може да се пуска многократно без риск.
+## Проблем
 
-## Поток
+`safeKey()` в `download-blank` и `warm-blank-cache` използва `[^a-zA-Z0-9-_]+`, което изтрива цялата кирилица. Резултат: всички бланки в един сектор се пишат в един и същ `_.docx` файл и се припокриват. В БД виждам ≥7 различни employment записа сочещи към `v5/employment/_.docx`.
 
-1. **Бутон** „🔥 Warm blanks cache" в `Admin.tsx` отваря модал с прогрес.
-2. **Frontend** изгражда списък от `src/data/catalog.ts`: за всяка категория → за всеки документ → `{ sector_id, document_name, sector_title, bilingual: doc.bilingual === true }`. Само 20-те маркирани документа се пускат и в билингвален вариант.
-3. **Pre-check (опционално, бързо)**: чете `document_blanks` веднъж и маркира кои вече имат валиден `storage_path` (`v4/` или `v4-bilingual/`). Това позволява UI да покаже „N от 481 вече кеширани" преди старт.
-4. **Последователна обработка** (една по една, никаква паралелност), пауза 500 ms между извикванията.
-5. За всяка задача се вика нов edge function **`warm-blank-cache`**.
-6. **Progress UI**: текущ индекс/общо, име на бланка, статус (skipped / generated / failed), брояч на успешни/пропуснати/грешни, бутон „Pause" и „Stop".
-7. След края: обобщение + downloadable JSON лог с грешките за повторен опит.
+## Промени
 
-## Edge function: `warm-blank-cache` (нова)
+### 1. Нов споделен helper `supabase/functions/_shared/blank-key.ts`
 
-Огледало на генериращата част от `download-blank`, но:
-- **Staff guard**: изисква `is_staff(auth.uid())`, иначе 403.
-- **НЕ извиква `consume_quota`** — нулев разход за staff.
-- Приема: `{ sector_id, document_name, sector_title, bilingual }`.
-- Проверка в `document_blanks`: ако съществува запис със `storage_path` започващ с правилния `CACHE_VERSION` (`v4/` за моно, `v4-bilingual/` за bil) → връща `{ status: "skipped" }` веднага, без AI заявка.
-- Иначе генерира с **`google/gemini-2.5-pro`** (същия модел като production за качество), пакетира .docx с `docx@8.5.0`, ъплоудва в bucket `document-blanks`, ъпсърт в `document_blanks`.
-- **Retry с backoff** при AI грешки: до 3 опита (2s, 6s, 15s) при 429/5xx/timeout.
-- При финален провал → връща `{ status: "failed", error }` (200 OK с тяло, не 500), за да продължи batch-ът.
-- Reuse на `SYSTEM_PROMPT`, `BILINGUAL_ADDENDUM`, `buildDocx`, `document-types` spec — идентично качество с production.
+- `slugifyBlank(s)` — BG→Latin транслитерация (а→a, ж→zh, ш→sh, щ→sht, ю→yu, я→ya, ь→"" и т.н.) + lowercase ASCII slug.
+- `buildBlankStoragePath(version, sectorId, documentName)` — връща `vN/<sector-slug>/<doc-slug>-<8-hex-sha1>.docx`. Хешът гарантира уникалност дори при колизия в slug-овете.
 
-## Frontend контрол (sequential, безгрешно)
+### 2. `supabase/functions/download-blank/index.ts`
 
-- Едно `await` на заявка, никаква паралелност.
-- При мрежова грешка → auto-retry на същата задача до 2 пъти преди `failed`.
-- При HTTP 429 → пауза 10 сек и продължава.
-- При затваряне/Stop процесът спира на следващата итерация (не убива текущата заявка).
-- **Идемпотентно**: повторно натискане пропуска всички вече кеширани — безопасно за многократно пускане.
+- Махам локалния `safeKey`.
+- `import { buildBlankStoragePath } from "../_shared/blank-key.ts"`.
+- `CACHE_VERSION = isBilingual ? "v6-bilingual" : "v6"`.
+- `storagePath = await buildBlankStoragePath(CACHE_VERSION, sectorId, documentName)`.
 
-## Безопасност
+### 3. `supabase/functions/warm-blank-cache/index.ts`
 
-- Staff guard и на сървъра (`is_staff`), и на бутона (`/admin` вече има guard).
-- Никакви промени в DB schema, RLS, квоти или потребителския UI.
-- Cache key се пази (`v4` / `v4-bilingual`) — никакво презаписване на валидни файлове.
+- Същата подмяна на `safeKey` → `buildBlankStoragePath`.
+- `CACHE_VERSION` → `v6` / `v6-bilingual`.
+- Сменям модела в `callAiWithRetry`: `google/gemini-2.5-pro` → **`google/gemini-2.5-flash`** (≈5× по-евтин, достатъчно качество за бланки със структура от `document-types` spec).
 
-## Файлове
+### 4. Миграция: изчистване на `v5`
 
-| Файл | Промяна |
-|------|---------|
-| `supabase/functions/warm-blank-cache/index.ts` | **Нов** — staff-only генератор без quota |
-| `src/lib/blankCatalog.ts` | **Нов** helper — flatten на `catalog.ts` в 481 задачи |
-| `src/components/admin/BlankCacheWarmer.tsx` | **Нов** модал с batch loop, прогрес, error log |
-| `src/pages/Admin.tsx` | Нов бутон, който отваря модала |
+```sql
+DELETE FROM public.document_blanks
+WHERE storage_path LIKE 'v5/%' OR storage_path LIKE 'v5-bilingual/%';
+```
 
-Никакви миграции.
+(Storage обектите `v5/...` могат да останат — никой няма да ги чете. Опционално чистене по-късно.)
 
-## Оценка
+### 5. Deploy + warm
 
-- **Първи run** (всичко некеширано): ~481 × ~8 сек ≈ **65 минути** под надзор.
-- **Следващи runs**: основно skipped (БД lookup без AI), ~481 × ~0.3 сек ≈ **2.5 минути**.
-- Admin трябва да държи модала отворен по време на работа (показваме предупреждение „Don't close this tab").
+- Deploy и на двете функции.
+- Натискам warmer от `/admin` (или казвам на потребителя да го направи) — пуска ~500 бланки с flash → **~6 €** общо.
+
+## Какво НЕ променям
+
+- `BlankCacheWarmer.tsx` UI, throttling, прогрес — работят коректно.
+- Логиката за квота, signed URL, билингвалния layout — без промяна.
+- `inferDocumentType` / `document-types.ts` spec — без промяна.
+
+## Очакван резултат
+
+- Всеки от ~500 записа получава уникален `v6/...` storage обект → край на припокриването.
+- Свалянето на бланка след презареждане е 1–2s (cache hit), без AI извикване.
+- Бъдещи bumps на cache version повтарят процеса за ~6 € вместо ~30 €.
