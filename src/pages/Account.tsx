@@ -1376,6 +1376,14 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
 
   return (
     <div className="space-y-8">
+      {/* Context links: deep-link to public GEO pages so they remain reachable
+          from the pricing surface (helps internal-link graph + crawl depth). */}
+      <p className="text-xs text-muted-foreground">
+        Научете повече за{" "}
+        <a href="/ai" className="underline-offset-2 hover:text-gold hover:underline">как работи AI правният анализ</a>
+        {" "}или разгледайте{" "}
+        <a href="/karta" className="underline-offset-2 hover:text-gold hover:underline">картата на всички 600+ шаблона</a>.
+      </p>
       {subStatus === "past_due" && (
         <div className="flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/10 p-4">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
