@@ -1,12 +1,15 @@
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { TOP_DOCUMENTS } from "@/data/catalog";
 import { ArrowRight, Bird, Crown } from "lucide-react";
+import { useDownloadCounts } from "@/hooks/useDownloadCounts";
+import { slugify } from "@/lib/slugify";
 
-// Indicative download counts (per-template social proof signal)
-// Real per-template downloads (production telemetry) + 10–20 from internal QA each.
-const DOWNLOAD_HINTS = ["19", "17", "15", "13", "12"];
+// Baseline floor per top-5 slot (early social proof while real telemetry ramps up).
+// Real downloads from `template_download_counts` are added on top of this baseline.
+const DOWNLOAD_BASELINE = [19, 17, 15, 13, 12];
 
 export function TopDocuments() {
+  const counts = useDownloadCounts();
   return (
     <section id="top-documents" className="container py-14 sm:py-16 md:py-24">
       <div className="mb-10 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between md:mb-12">
@@ -35,6 +38,8 @@ export function TopDocuments() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {TOP_DOCUMENTS.map((doc, i) => {
           const featured = i === 0;
+          const real = counts.get(slugify(doc.name)) ?? 0;
+          const total = (DOWNLOAD_BASELINE[i] ?? 0) + real;
           return (
             <Link
               key={doc.name}
@@ -60,7 +65,7 @@ export function TopDocuments() {
               </p>
               <div className="mt-4 flex items-center justify-between border-t border-hairline pt-3">
                 <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  {DOWNLOAD_HINTS[i]} изтегляния
+                  {total.toLocaleString("bg-BG")} изтегляния
                 </span>
                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold opacity-70 transition-opacity duration-200 group-hover:opacity-100">
                   Виж <ArrowRight className="h-3 w-3" />

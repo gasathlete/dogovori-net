@@ -8,7 +8,7 @@
  * Used by WizardGraph today; intended adoption by legacy Wizard / WizardBilingual.
  */
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Check, Download, FileSearch, Loader2,
@@ -52,13 +52,38 @@ export function WizardShell({
   const total = Math.max(progress.total, 1);
   const pct = Math.round(((progress.stepIdx + 1) / total) * 100);
 
+  // While the blank-download modal is open, lock body scroll so it stays
+  // anchored to the current viewport (especially on mobile, where scrolling
+  // would otherwise push the modal out of view).
+  const isDownloading = !!blankDownload?.downloading;
+  useEffect(() => {
+    if (!isDownloading) return;
+    const prevOverflow = document.body.style.overflow;
+    const prevTop = document.body.style.top;
+    const prevPosition = document.body.style.position;
+    const prevWidth = document.body.style.width;
+    const scrollY = window.scrollY;
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.position = prevPosition;
+      document.body.style.top = prevTop;
+      document.body.style.width = prevWidth;
+      window.scrollTo(0, scrollY);
+    };
+  }, [isDownloading]);
+
   return (
     <div className="min-h-screen">
       <Header />
 
       {blankDownload?.downloading && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-md rounded-2xl border border-gold/30 bg-card p-6 shadow-2xl">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-background/80 p-4 backdrop-blur-sm">
+          <div className="my-auto w-full max-w-md rounded-2xl border border-gold/30 bg-card p-6 shadow-2xl">
+
             <div className="mb-4 flex items-center gap-3">
               <Loader2 className="h-5 w-5 animate-spin text-gold" />
               <h3 className="font-serif text-lg text-foreground">Подготвяме бланката…</h3>
