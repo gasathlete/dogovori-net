@@ -1,9 +1,24 @@
+import { useId, useRef, useState } from "react";
 import { ShieldCheck, Bird, FileText, ArrowRight, Search, FileSignature } from "lucide-react";
 import logoImg from "@/assets/logo-dogovori-hero.webp";
 import { scrollToHash } from "@/lib/scrollToHash";
 import { BlogRotator } from "@/components/BlogRotator";
+import { pickRandomQuote, type BusinessQuote } from "@/lib/businessQuotes";
 
 export function Hero({ onStart }: { onStart: () => void }) {
+  const tooltipId = useId();
+  const [quote, setQuote] = useState<BusinessQuote | null>(null);
+  const [visible, setVisible] = useState(false);
+  const lastIdxRef = useRef<number | undefined>(undefined);
+
+  const showQuote = () => {
+    const { quote: q, index } = pickRandomQuote(lastIdxRef.current);
+    lastIdxRef.current = index;
+    setQuote(q);
+    setVisible(true);
+  };
+  const hideQuote = () => setVisible(false);
+
   return (
     <section className="relative overflow-hidden border-b border-border/60">
       {/* Base navy gradient */}
@@ -48,7 +63,15 @@ export function Hero({ onStart }: { onStart: () => void }) {
             className="anim-rise mx-auto mb-6 flex items-center justify-center sm:mb-8"
             style={{ animationDelay: "0ms" }}
           >
-            <div className="relative flex h-20 w-20 items-center justify-center sm:h-24 sm:w-24 md:h-28 md:w-28">
+            <div
+              className="group/medallion relative flex h-20 w-20 items-center justify-center sm:h-24 sm:w-24 md:h-28 md:w-28"
+              onMouseEnter={showQuote}
+              onMouseLeave={hideQuote}
+              onFocus={showQuote}
+              onBlur={hideQuote}
+              tabIndex={0}
+              aria-describedby={visible ? tooltipId : undefined}
+            >
               <div className="absolute inset-[-10%] rounded-full border border-dashed border-gold/20" />
               <div className="absolute inset-0 rounded-full border border-gold/40 bg-navy-light/40" />
               {[0, 90, 180, 270].map((deg) => (
@@ -71,8 +94,28 @@ export function Hero({ onStart }: { onStart: () => void }) {
                 decoding="async"
                 className="relative h-[64%] w-[64%] object-contain"
               />
+
+              {/* Hover tooltip — business quote */}
+              {quote && (
+                <div
+                  id={tooltipId}
+                  role="tooltip"
+                  className={`pointer-events-none absolute left-1/2 top-full z-20 mt-3 hidden w-[280px] -translate-x-1/2 rounded-md border border-gold/30 bg-navy-light/95 px-4 py-3 text-center shadow-elegant backdrop-blur-sm transition-all duration-300 ease-out sm:w-[320px] md:block ${
+                    visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"
+                  }`}
+                >
+                  <p className="font-serif text-sm italic leading-snug text-muted-foreground">
+                    <span className="text-gold">«</span> {quote.text}{" "}
+                    <span className="text-gold">»</span>
+                  </p>
+                  <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold/80">
+                    — {quote.author}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
+
 
           <h1
             className="anim-rise font-serif text-[28px] font-bold leading-[1.1] text-balance sm:text-4xl md:text-5xl lg:text-[58px] lg:leading-[1.05]"
