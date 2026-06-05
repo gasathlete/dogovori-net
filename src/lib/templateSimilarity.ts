@@ -59,7 +59,7 @@ export interface SimilarTemplate {
  * Returns catalog templates whose name resembles `title` with a combined
  * similarity score >= `threshold` (0..1). Ordered by score desc.
  */
-export function findSimilarTemplates(title: string, threshold = 0.8, max = 3): SimilarTemplate[] {
+export function findSimilarTemplates(title: string, threshold = 0.6, max = 5): SimilarTemplate[] {
   const q = title.trim();
   if (q.length < 4) return [];
   const matches: SimilarTemplate[] = [];
