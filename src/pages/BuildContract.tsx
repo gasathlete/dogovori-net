@@ -977,14 +977,17 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                                 </p>
                                 <ul className="space-y-1">
                                   {similarTemplates.map((m) => (
-                                    <li key={m.entry.slug}>
+                                    <li key={m.entry.slug} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                                       <Link
                                         to={`/shablon/${m.entry.slug}`}
                                         className="font-medium text-gold underline-offset-2 hover:underline"
                                       >
                                         {m.entry.doc.name}
                                       </Link>
-                                      <span className="ml-2 text-xs text-muted-foreground">
+                                      <span className="inline-flex items-center rounded-full border border-border/60 bg-background/60 px-2 py-0.5 text-[11px] text-muted-foreground">
+                                        {m.entry.category.title}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">
                                         ({Math.round(m.score * 100)}% съвпадение)
                                       </span>
                                     </li>
