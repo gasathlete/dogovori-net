@@ -60,11 +60,12 @@ export function Hero({ onStart }: { onStart: () => void }) {
         <div className="relative mx-auto max-w-3xl text-center px-0 my-0">
           {/* Centered hero medallion — visible, doesn't overlap content */}
           <div
-            className="anim-rise mx-auto mb-6 flex items-center justify-center sm:mb-8"
+            className="anim-rise mx-auto mb-3 flex items-center justify-center sm:mb-4 lg:mb-5"
             style={{ animationDelay: "0ms" }}
           >
             <div
-              className="relative flex h-20 w-20 items-center justify-center sm:h-24 sm:w-24 md:h-28 md:w-28"
+              className="relative flex h-16 w-16 items-center justify-center sm:h-20 sm:w-20 md:h-24 md:w-24"
+
               onMouseEnter={showQuote}
               onMouseLeave={hideQuote}
               aria-describedby={visible ? tooltipId : undefined}
