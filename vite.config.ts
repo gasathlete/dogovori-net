@@ -19,6 +19,7 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
+  esbuild: mode === "production" ? { drop: ["console", "debugger"] } : undefined,
   build: {
     sourcemap: false,
     cssCodeSplit: true,

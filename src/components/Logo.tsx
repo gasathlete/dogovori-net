@@ -19,16 +19,26 @@ export function Logo({ className = "", compact = false }: { className?: string; 
           <span className="truncate font-serif text-xl font-bold tracking-tight text-foreground">
             Dogovori<span className="text-gold">.net</span>
           </span>
-          <a
-            href="https://im-development.imot.bg"
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
+          <span
+            role="link"
+            tabIndex={0}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              window.open("https://im-development.imot.bg", "_blank", "noopener,noreferrer");
+            }}
             onMouseDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                e.stopPropagation();
+                window.open("https://im-development.imot.bg", "_blank", "noopener,noreferrer");
+              }
+            }}
             className="relative z-10 hidden cursor-pointer items-center text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70 transition-colors hover:text-gold xl:inline-flex"
           >
             Powered by <span className="ml-1 text-gold/80">IM Development</span>
-          </a>
+          </span>
         </div>
         <span
           className={`${compact ? "hidden xl:block" : ""} mt-1.5 text-[9px] font-medium uppercase tracking-[0.28em] text-muted-foreground/80`}
