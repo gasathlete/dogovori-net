@@ -11,7 +11,102 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Search, ExternalLink, Filter } from "lucide-react";
+import { Loader2, RefreshCw, Search, ExternalLink, Filter, TrendingDown, TrendingUp, AlertTriangle } from "lucide-react";
+
+type ImpressionsTrend = {
+  alert: boolean;
+  alertThreshold: number;
+  deltaPct: number;
+  current: { impressions: number; clicks: number; ctr: number; position: number };
+  previous: { impressions: number; clicks: number; ctr: number; position: number };
+  range: { current: { start: string; end: string }; previous: { start: string; end: string } };
+};
+
+function ImpressionsTrendCard() {
+  const [data, setData] = useState<ImpressionsTrend | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data: res, error: err } = await supabase.functions.invoke("gsc-impressions-trend", {
+        body: { alertThreshold: 10 },
+      });
+      if (err) throw err;
+      if (res?.error) throw new Error(res.error);
+      setData(res as ImpressionsTrend);
+    } catch (e: any) {
+      setError(e?.message ?? "Грешка");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  const delta = data?.deltaPct ?? 0;
+  const dropping = delta < 0;
+  const alert = data?.alert ?? false;
+
+  return (
+    <section
+      className={
+        "mt-10 rounded-lg border p-4 md:p-6 " +
+        (alert ? "border-destructive/60 bg-destructive/5" : "border-border bg-card")
+      }
+    >
+      <div className="flex items-center gap-3 flex-wrap">
+        <h2 className="text-xl font-semibold flex items-center gap-2">
+          {alert ? (
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+          ) : dropping ? (
+            <TrendingDown className="h-5 w-5 text-gold" />
+          ) : (
+            <TrendingUp className="h-5 w-5 text-gold" />
+          )}
+          Impressions trend (7d vs предходни 7d)
+        </h2>
+        <Button size="sm" variant="outline" className="ml-auto" onClick={load} disabled={loading}>
+          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+          Refresh
+        </Button>
+      </div>
+
+      {error && <p className="mt-3 text-sm text-destructive">⚠ {error}</p>}
+
+      {data && (
+        <>
+          {alert && (
+            <p className="mt-3 text-sm font-medium text-destructive">
+              🚨 Impressions паднаха с {Math.abs(delta).toFixed(1)}% спрямо предходните 7 дни (праг: {data.alertThreshold}%). Slack webhook е изпратен (ако е конфигуриран).
+            </p>
+          )}
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <div className="rounded-md border bg-background/40 p-3">
+              <div className="text-xs text-muted-foreground">Last 7d ({data.range.current.start} → {data.range.current.end})</div>
+              <div className="mt-1 text-2xl font-bold">{data.current.impressions.toLocaleString("bg-BG")}</div>
+              <div className="text-xs text-muted-foreground">{data.current.clicks.toLocaleString("bg-BG")} clicks · CTR {(data.current.ctr * 100).toFixed(2)}%</div>
+            </div>
+            <div className="rounded-md border bg-background/40 p-3">
+              <div className="text-xs text-muted-foreground">Prior 7d ({data.range.previous.start} → {data.range.previous.end})</div>
+              <div className="mt-1 text-2xl font-bold">{data.previous.impressions.toLocaleString("bg-BG")}</div>
+              <div className="text-xs text-muted-foreground">{data.previous.clicks.toLocaleString("bg-BG")} clicks · CTR {(data.previous.ctr * 100).toFixed(2)}%</div>
+            </div>
+            <div className="rounded-md border bg-background/40 p-3">
+              <div className="text-xs text-muted-foreground">Δ Impressions</div>
+              <div className={"mt-1 text-2xl font-bold " + (alert ? "text-destructive" : dropping ? "text-gold" : "text-emerald-500")}>
+                {delta >= 0 ? "+" : ""}{delta.toFixed(1)}%
+              </div>
+              <div className="text-xs text-muted-foreground">avg pos {data.current.position.toFixed(1)} (от {data.previous.position.toFixed(1)})</div>
+            </div>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
 
 type Result = {
   url: string;
@@ -110,7 +205,9 @@ export function AdminGscPanel() {
   }, [urls, results]);
 
   return (
-    <section className="mt-10 border rounded-lg p-4 md:p-6 bg-card">
+    <>
+      <ImpressionsTrendCard />
+      <section className="mt-10 border rounded-lg p-4 md:p-6 bg-card">
       <div className="flex items-center gap-3 flex-wrap">
         <h2 className="text-xl font-semibold flex items-center gap-2">
           <Search className="h-5 w-5 text-gold" /> Индексиране в Google
@@ -235,6 +332,7 @@ export function AdminGscPanel() {
           </TableBody>
         </Table>
       </div>
-    </section>
+      </section>
+    </>
   );
 }

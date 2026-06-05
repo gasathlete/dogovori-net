@@ -37,6 +37,14 @@ const THRESHOLDS = {
   "best-practices": Number(process.env.PSI_MIN_BP ?? 90),
 };
 
+// Core Web Vitals thresholds (Google "good" bands: LCP ≤ 2500ms, CLS ≤ 0.1, INP ≤ 200ms).
+// Override per environment via env vars (e.g. PSI_MAX_LCP_MS=2200 for stricter alerts).
+const CWV_THRESHOLDS = {
+  lcpMs: Number(process.env.PSI_MAX_LCP_MS ?? 2500),
+  cls: Number(process.env.PSI_MAX_CLS ?? 0.1),
+  inpMs: Number(process.env.PSI_MAX_INP_MS ?? 200),
+};
+
 // Key SEO routes — keep small to stay within PSI quota.
 const ROUTES = [
   "/",
@@ -145,6 +153,23 @@ async function main() {
         ghAnnotate("warning", "scripts/pagespeed-check.ts", msg);
       }
     }
+    // Core Web Vitals — explicit thresholds so Slack fires on slow LCP/INP/CLS
+    // even when the aggregate performance score still passes.
+    if (r.metrics.lcp != null && r.metrics.lcp > CWV_THRESHOLDS.lcpMs) {
+      const msg = `${r.url} — LCP ${Math.round(r.metrics.lcp)}ms > ${CWV_THRESHOLDS.lcpMs}ms`;
+      regressions.push(msg);
+      ghAnnotate("warning", "scripts/pagespeed-check.ts", msg);
+    }
+    if (r.metrics.cls != null && r.metrics.cls > CWV_THRESHOLDS.cls) {
+      const msg = `${r.url} — CLS ${r.metrics.cls.toFixed(3)} > ${CWV_THRESHOLDS.cls}`;
+      regressions.push(msg);
+      ghAnnotate("warning", "scripts/pagespeed-check.ts", msg);
+    }
+    if (r.metrics.inp != null && r.metrics.inp > CWV_THRESHOLDS.inpMs) {
+      const msg = `${r.url} — INP ${Math.round(r.metrics.inp)}ms > ${CWV_THRESHOLDS.inpMs}ms`;
+      regressions.push(msg);
+      ghAnnotate("warning", "scripts/pagespeed-check.ts", msg);
+    }
   }
 
   // Markdown report
@@ -179,7 +204,7 @@ async function main() {
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(
     out,
-    JSON.stringify({ baseUrl: BASE_URL, strategy: STRATEGY, ranAt: new Date().toISOString(), thresholds: THRESHOLDS, reports }, null, 2),
+    JSON.stringify({ baseUrl: BASE_URL, strategy: STRATEGY, ranAt: new Date().toISOString(), thresholds: THRESHOLDS, cwvThresholds: CWV_THRESHOLDS, reports }, null, 2),
   );
 
   // Webhook on regression
