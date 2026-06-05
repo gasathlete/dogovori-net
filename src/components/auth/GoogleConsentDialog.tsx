@@ -34,7 +34,7 @@ export function GoogleConsentDialog({ open, onOpenChange, onConfirm, busy }: Goo
     }
   }, [open]);
 
-  const ready = age && terms && privacy;
+  const ready = age && terms && privacy && marketing;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
