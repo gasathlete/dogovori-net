@@ -99,7 +99,7 @@ const categoryEntries: Entry[] = [
     loc: `/sektor/${s.id}`,
     changefreq: "weekly",
     priority: "0.85",
-    lastmod: catalogDate,
+    lastmod: sectorsDate,
   })),
 ];
 
