@@ -36,7 +36,7 @@ export function SectorGrid({ onPick }: { onPick: (id: string) => void }) {
         {visible.map((s) => {
           const Icon = (Icons as any)[s.icon] ?? Icons.FileText;
           const bg = SECTOR_IMAGES[s.id];
-          const prefetch = usePrefetchRoute(`/sektor/${s.id}`);
+          const prefetch = prefetchHandlers(`/sektor/${s.id}`);
           return (
             <button
               key={s.id}
