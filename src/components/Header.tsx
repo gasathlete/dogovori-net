@@ -97,34 +97,8 @@ export function Header() {
 
         {/* Actions */}
         <div className="flex flex-1 items-center justify-end gap-3">
-          <span className="hidden h-9 items-center gap-1.5 rounded-full border border-gold/25 bg-gold/[0.06] px-4 text-[11px] font-semibold tracking-[0.12em] text-gold transition-colors hover:bg-gold/10 xl:inline-flex">
-            <a
-              href="https://lex.bg/laws/ldoc/2121934337"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition-colors hover:text-gold/70 hover:underline"
-            >
-              ЗЗД
-            </a>
-            <span className="opacity-40">·</span>
-            <a
-              href="https://lex.bg/laws/ldoc/-14917630"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition-colors hover:text-gold/70 hover:underline"
-            >
-              ТЗ
-            </a>
-            <span className="opacity-40">·</span>
-            <a
-              href="https://lex.bg/laws/ldoc/2135163904"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition-colors hover:text-gold/70 hover:underline"
-            >
-              ЗУТ
-            </a>
-          </span>
+          <ToolsMenu variant="desktop" />
+
           {/* <LanguageSwitcher className="hidden sm:block" /> */}
           {user ? (
             <Link
