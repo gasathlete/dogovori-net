@@ -357,10 +357,34 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     return true;
   };
   const canGoNext = stepValid(safeStepIdx);
+  const [attemptedNext, setAttemptedNext] = useState(false);
+  useEffect(() => { setAttemptedNext(false); }, [safeStepIdx]);
   const completedSteps = STEPS.reduce((acc, _s, i) => (i < safeStepIdx && stepValid(i) ? acc + 1 : acc), 0);
   const progressPct = result
     ? 100
     : Math.min(100, ((completedSteps + (canGoNext ? 1 : 0)) / totalSteps) * 100);
+
+  const missingForStep = (idx: number): string[] => {
+    const out: string[] = [];
+    if (idx === 0 && !documentType) out.push("Тип на документа");
+    if (idx === 1) {
+      if (!name.trim()) out.push("Заглавие");
+      if (!categoryId) out.push("Категория");
+      if (categoryId === "__other__" && !categoryOther.trim()) out.push("Категория (свободен текст)");
+    }
+    if (idx === 2) {
+      const needsB = !!schema.partyBLabel;
+      if (splitLines(partiesA).length === 0) out.push(schema.partyALabel);
+      if (needsB && splitLines(partiesB).length === 0) out.push(schema.partyBLabel as string);
+    }
+    if (idx === 3) {
+      schema.fields.filter((f) => f.required).forEach((f) => {
+        if (!(fieldValues[f.key] ?? "").trim()) out.push(f.label);
+      });
+    }
+    return out;
+  };
+  const currentMissing = attemptedNext && !canGoNext ? missingForStep(safeStepIdx) : [];
 
   const handleGenerate = async () => {
     const docDef = getDocumentType(documentType);
