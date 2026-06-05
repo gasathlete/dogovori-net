@@ -106,6 +106,7 @@ export default function WizardPage() {
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
   const [applyingCorrections, setApplyingCorrections] = useState(false);
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(persisted?.appliedNotes);
+  const [attemptedNext, setAttemptedNext] = useState(false);
 
   // Filter top-level questions based on conditional logic. За групите — филтрираме самата група
   // ако всички ѝ полета се скрият; вътрешното филтриране на полета става в QuestionField.
