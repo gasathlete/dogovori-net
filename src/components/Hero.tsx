@@ -20,7 +20,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
   const hideQuote = () => setVisible(false);
 
   return (
-    <section className="relative overflow-hidden border-b border-border/60">
+    <section className="relative overflow-hidden border-b border-border/60 lg:flex lg:min-h-[calc(100svh-4rem)] lg:items-center">
       {/* Base navy gradient */}
       <div className="absolute inset-0 bg-gradient-hero opacity-95" />
 
@@ -56,15 +56,16 @@ export function Hero({ onStart }: { onStart: () => void }) {
         <div className="h-2 w-2 rotate-45 border border-gold/60 bg-navy" />
       </div>
 
-      <div className="container relative pt-4 pb-10 sm:pt-6 sm:pb-16 md:pt-10 md:pb-24 lg:pt-12 lg:pb-28">
+      <div className="container relative w-full pt-4 pb-10 sm:pt-6 sm:pb-12 md:pt-6 md:pb-12 lg:pt-6 lg:pb-10">
         <div className="relative mx-auto max-w-3xl text-center px-0 my-0">
           {/* Centered hero medallion — visible, doesn't overlap content */}
           <div
-            className="anim-rise mx-auto mb-6 flex items-center justify-center sm:mb-8"
+            className="anim-rise mx-auto mb-3 flex items-center justify-center sm:mb-4 lg:mb-5"
             style={{ animationDelay: "0ms" }}
           >
             <div
-              className="relative flex h-20 w-20 items-center justify-center sm:h-24 sm:w-24 md:h-28 md:w-28"
+              className="relative flex h-16 w-16 items-center justify-center sm:h-20 sm:w-20 md:h-24 md:w-24"
+
               onMouseEnter={showQuote}
               onMouseLeave={hideQuote}
               aria-describedby={visible ? tooltipId : undefined}
@@ -116,7 +117,8 @@ export function Hero({ onStart }: { onStart: () => void }) {
 
 
           <h1
-            className="anim-rise font-serif text-[28px] font-bold leading-[1.1] text-balance sm:text-4xl md:text-5xl lg:text-[58px] lg:leading-[1.05]"
+            className="anim-rise font-serif text-[28px] font-bold leading-[1.1] text-balance sm:text-4xl md:text-5xl lg:text-5xl xl:text-[52px] lg:leading-[1.1]"
+
             style={{ animationDelay: "0ms" }}
           >
             Договори, които{" "}
@@ -124,7 +126,8 @@ export function Hero({ onStart }: { onStart: () => void }) {
             Вашите интереси
           </h1>
           <div
-            className="anim-rise mt-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]"
+            className="anim-rise mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]"
+
             style={{ animationDelay: "80ms" }}
           >
             <span className="inline-flex items-center gap-1.5 text-gold"><ShieldCheck className="h-3.5 w-3.5" /> ЗЗД · ТЗ · ЗУТ</span>
@@ -136,46 +139,49 @@ export function Hero({ onStart }: { onStart: () => void }) {
             <span className="inline-flex items-center gap-1.5"><FileSignature className="h-3.5 w-3.5 text-gold" /> Електронен подпис</span>
           </div>
           <p
-            className="anim-rise mx-auto mt-5 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base md:mt-6 md:text-lg md:leading-[1.7]"
+            className="anim-rise mx-auto mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base md:mt-4 md:text-base md:leading-[1.6]"
+
             style={{ animationDelay: "160ms" }}
           >
             Освен шаблони и бланки, сайтът предлага разработка на собствен документ, с правна подкрепа от Нашата Система. Стратегически въпроси, които да напътстват Вашата сделка. Dogovori.net изгражда индивидуални договори и документи, съобразени със ЗЗД, ТЗ и ЗУТ, придружени от пълен правен риск-анализ.
           </p>
           <div
-            className="anim-rise mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-5"
+            className="anim-rise mt-5 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-5"
             style={{ animationDelay: "240ms" }}
           >
             <button
               onClick={onStart}
-              className="btn-gold w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
+              className="btn-gold w-full sm:w-auto normal-case tracking-normal text-[15px] px-7 py-3.5"
             >
               <Search className="h-[18px] w-[18px]" /> Намери документ
             </button>
             <a
               href="/build"
-              className="btn-gold-inverse w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
+              className="btn-gold-inverse w-full sm:w-auto normal-case tracking-normal text-[15px] px-7 py-3.5"
             >
               <ArrowRight className="h-[18px] w-[18px]" /> Изготви документ
             </a>
           </div>
           <p
-            className="anim-rise mt-4 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+            className="anim-rise mt-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+
             style={{ animationDelay: "300ms" }}
           >
             Безплатно: 3 операции/месец · ПРЕДПРИЕМАЧ 9.90 €/мес — 100 операции, двуезични договори, комплекти, всички функционалности
           </p>
-          <div className="anim-rise mt-3 text-center" style={{ animationDelay: "340ms" }}>
+          <div className="anim-rise mt-2 text-center" style={{ animationDelay: "340ms" }}>
             <button
               type="button"
               onClick={(e) => {
                 e.preventDefault();
                 scrollToHash("process");
               }}
-              className="text-xs uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold focus-visible:text-gold my-[6px] px-[10px] py-[12px] text-amber-100"
+              className="text-xs uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold focus-visible:text-gold my-1 px-[10px] py-2 text-amber-100"
             >
               Как работи системата↓
             </button>
           </div>
+
 
           <BlogRotator />
         </div>
