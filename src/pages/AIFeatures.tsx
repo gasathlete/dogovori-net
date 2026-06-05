@@ -12,6 +12,11 @@ import { Footer } from "@/components/Footer";
 import { Seo } from "@/components/Seo";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import {
+  AI_ANALYSIS_STEPS,
+  AI_FAQS,
+  buildAiFeaturesSchemas,
+} from "@/lib/seo/schemas";
+import {
   ShieldCheck,
   Scale,
   FileSearch,
@@ -22,6 +27,7 @@ import {
   Languages,
   Lock,
   ArrowRight,
+  Map as MapIcon,
 } from "lucide-react";
 
 const ANALYSIS_STEPS = [
