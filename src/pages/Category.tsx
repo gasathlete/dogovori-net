@@ -161,7 +161,20 @@ export default function CategoryPage() {
           );
         })()}
 
+        <section className="mt-14">
+          <h2 className="mb-6 font-serif text-2xl font-bold md:text-3xl">Често задавани въпроси</h2>
+          <dl className="space-y-4">
+            {faqs.map((f) => (
+              <div key={f.q} className="rounded-xl border border-border/60 bg-card/40 p-5">
+                <dt className="font-serif text-base font-bold text-foreground">{f.q}</dt>
+                <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.a}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
         <section className="relative mt-14 overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-10 text-center shadow-elegant md:p-12">
+
           <div className="absolute inset-x-0 top-0 hairline-x" />
           <div className="eyebrow mb-4 justify-center">Готови ли сте?</div>
           <h2 className="font-serif text-2xl font-bold leading-tight text-balance md:text-[32px]">Започнете персонализиран договор</h2>
