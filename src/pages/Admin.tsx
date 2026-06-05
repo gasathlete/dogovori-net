@@ -16,6 +16,7 @@ import { AdminBlanksPanel } from "@/components/AdminBlanksPanel";
 import { AdminUserArticlesPanel } from "@/components/AdminUserArticlesPanel";
 import { AdminGscPanel } from "@/components/AdminGscPanel";
 import { AdminNotificationsPanel } from "@/components/AdminNotificationsPanel";
+import { BlankCacheWarmer } from "@/components/admin/BlankCacheWarmer";
 
 type Row = {
   user_id: string;
