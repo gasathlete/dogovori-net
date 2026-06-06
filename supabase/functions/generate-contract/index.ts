@@ -49,6 +49,11 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
+    );
 
     // Identify caller: prefer authenticated user, fall back to IP-based limit.
     const authHeader = req.headers.get("Authorization") ?? "";
@@ -84,8 +89,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { sector, contractName, documentName, parties, answers, questions, arbitration, bilingual } = await req.json();
+    const { sector, contractName, documentName, parties, answers, questions, arbitration, bilingual, session_id, doc_key } = await req.json();
     const isBilingual = Boolean(bilingual);
+
 
     // Illegal content guard — block before AI call, log + alert admin.
     const guardText = [
@@ -141,11 +147,43 @@ Deno.serve(async (req: Request) => {
       .eq("hash", cacheHash)
       .gte("created_at", cacheCutoff)
       .maybeSingle();
+    // Session-aware quota consumption — same (session_id, doc_key) in tab = free.
+    // Skipped for anonymous calls; userId is guaranteed by the rate-limit branch above
+    // (anonymous get limit=0).
+    async function consumeQuota(): Promise<{ ok: boolean; quota?: unknown }> {
+      if (!userId) return { ok: true };
+      const useSession = !!session_id && !!doc_key;
+      const { data: consumed, error: consumeErr } = useSession
+        ? await userClient.rpc("consume_quota_session", {
+            _kind: "analysis",
+            _doc_key: String(doc_key),
+            _session_id: String(session_id),
+          })
+        : await userClient.rpc("consume_quota", { _kind: "analysis" });
+      if (consumeErr) {
+        console.error("consume_quota error:", consumeErr);
+        return { ok: false, quota: { reason: "consume_error" } };
+      }
+      const q = consumed as { ok: boolean; reason?: string; is_pro?: boolean; charged?: boolean };
+      return { ok: !!q?.ok, quota: q };
+    }
+
     if (cachedRow?.payload) {
+      const q = await consumeQuota();
+      if (!q.ok) {
+        return new Response(
+          JSON.stringify({
+            error: "Изчерпан е безплатният ви лимит. Активирайте Pro за неограничени анализи.",
+            code: "quota_exceeded",
+          }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
       return new Response(JSON.stringify(cachedRow.payload), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     const arbitrationLine = arbitration?.enabled
       ? `\nАРБИТРАЖ: enabled=true, court="${arbitration.courtName || arbitration.courtId || ""}"${arbitration.courtLink ? `, link=${arbitration.courtLink}` : ""}`
@@ -237,9 +275,23 @@ ${docTypeSpec.systemAddendum}
       await admin.from("template_cache").upsert({ hash: cacheHash, payload: parsed, created_at: new Date().toISOString() });
     } catch (e) { console.error("template_cache upsert:", e); }
 
+    // Charge operation AFTER successful AI generation so failed attempts don't
+    // burn the quota. Same (session_id, doc_key) in tab → server returns free.
+    const q = await consumeQuota();
+    if (!q.ok) {
+      return new Response(
+        JSON.stringify({
+          error: "Изчерпан е безплатният ви лимит. Активирайте Pro за неограничени анализи.",
+          code: "quota_exceeded",
+        }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (e) {
     console.error("generate-contract error:", e);
     return new Response(
