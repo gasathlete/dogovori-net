@@ -418,8 +418,8 @@ export default function WizardReviewPage() {
     }
     setApplyingCorrections(true);
     try {
-      const { getOpSessionId, newOpBatchId } = await import("@/lib/opSession");
       const { data, error } = await supabase.functions.invoke("apply-corrections", {
+
         body: {
           contract: result.contract,
           risk: result.risk,
