@@ -205,9 +205,9 @@ export function SplitWizard({
     if (!target) return;
     setAttemptedNext(false);
     setCurrentSectionId(target.id);
-    requestAnimationFrame(() => {
+    setTimeout(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
-    });
+    }, 50);
   };
 
   const handleNext = () => {
