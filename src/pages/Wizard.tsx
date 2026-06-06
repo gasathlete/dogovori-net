@@ -695,7 +695,11 @@ export default function WizardPage() {
                 <div className="mt-8 flex items-center justify-between gap-3">
                   <Button
                     variant="ghost"
-                    onClick={() => { setAttemptedNext(false); setStepIdx((i) => Math.max(0, i - 1)); }}
+                    onClick={() => {
+                      setAttemptedNext(false);
+                      setStepIdx((i) => Math.max(0, i - 1));
+                      setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
+                    }}
                     disabled={safeIdx === 0}
                     className="text-muted-foreground hover:text-foreground"
                   >
