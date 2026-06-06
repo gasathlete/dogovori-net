@@ -1,81 +1,38 @@
-## Цел
+# Поправка: бутонът „Добави страна" не работи
 
-Добавям **20 нови динамични уизарда** (QuestionGraph + clause definitions) към съществуващата система, без да чупя нищо. След това каталогът ще има **46 динамични уизарда** (4 ръчни + 22 в bulk1/bulk2 + 20 нови).
+## Причина
 
-## Защо безопасно
+`PartyListEditor` (`src/components/wizard/PartyListEditor.tsx`) държи редовете чрез сериализиран стринг, който идва обратно като `value` от `GraphQuestionField` (`party_list` case).
 
-- Цялата нова логика се изолира в **нов файл** `src/data/questionGraphs/_bulk20_part3.ts`, по същия pattern като `_bulk20.ts` и `_bulk20_part2.ts`.
-- В регистъра в `dogovor-za-naem-na-zhilishte.ts` добавям един import + един `...spread`. Нула промени в `questionGraph.ts`, `clauseEngine.ts`, `WizardGraph.tsx`, downloads, метеринг.
-- Всеки graph е напълно независим — счупване на един = счупване само на този slug, fallback маршрутът към стария `Wizard.tsx` остава непокътнат.
-- Slug-овете трябва да съществуват като реални шаблони в каталога (catalog.ts / templateIndex), за да резолне роутингът. Преди commit ще ги сверя 1:1.
+Потокът при клик на „Добави":
+1. `add()` → `onChange([...list, { name: "", type: "ЮЛ" }])`
+2. Родителят извиква `serializeParties(next)`, която **изхвърля редове с празно `name`** (`r.name.trim()` filter).
+3. Резултатът се записва в `answers[q.id]` като празен стринг.
+4. На следващия рендер `parseParties("")` връща `[]` → `list` отново става `[{ name: "", type: "ЮЛ" }]`.
 
-## Обхват (20 шаблона)
+Затова, ако потребителят не е попълнил името на първата страна, новият ред „изчезва" моментално и бутонът изглежда счупен. Същото важи и за изтриване — премахването на единствения непопълнен ред от 2 празни също не се вижда.
 
-**Featured Blanks (5)** — пряко обвързани с homepage „Избрани от Договори нет":
-1. `molba-za-napuskane-chl-326-kt`
-2. `molba-za-platen-godishen-otpusk`
-3. `zapis-na-zapoved`
-4. `notarialno-pulnomoshtno-universalno`
-5. `razpiska-za-poluchena-suma`
+## Решение (минимално, локализирано)
 
-**HR / Кодекс на труда (8)**:
-6. `molba-za-otpusk-po-maychinstvo`
-7. `molba-za-neplaten-otpusk-chl-160-kt`
-8. `zapoved-za-komandirovka`
-9. `zapoved-za-otpusk`
-10. `molba-za-promyana-na-rabotno-vreme`
-11. `predizvestie-ot-rabotodatel-chl-328-kt`
-12. `sluzhebna-belezhka-za-dohod`
-13. `trudova-harakteristika`
+Превръщаме `PartyListEditor` в **controlled-with-local-buffer** компонент:
 
-**Граждански / финансови (7)**:
-14. `pulnomoshtno-obshto`
-15. `deklaratsiya-po-chl-313-nk`
-16. `priemo-predavatelen-protokol-imot`
-17. `priemo-predavatelen-protokol-vesht`
-18. `anex-kum-dogovor-za-naem`
-19. `dogovor-za-poruchitelstvo`
-20. `raznoska-za-vrushtane-na-zaem`
+- Държим вътрешен `useState<PartyRow[]>` инициализиран от подадените `rows`.
+- Синхронизираме входящия `rows` prop към локалния state **само когато сериализираните им стойности се различават** (за да не презаписваме празни редове, които току-що сме добавили).
+- Всички мутации (`update`, `add`, `remove`) обновяват локалния state и едва тогава викат `onChange(serializeParties(next))`.
+- `serializeParties` остава както е (продължава да филтрира празни редове за документа — това е правилното поведение за export).
 
-> Списъкът ще се потвърди срещу catalog.ts/templateIndex преди build — ако някой slug липсва, се заменя с най-близкия съществуващ топ-търсен (slug мисмач = няма роутинг, затова е важно).
+Резултат: бутонът „Добави" и кошчето работят за всеки темплейт, който използва `party_list` (всички ~46 уизарда), без да чупим съществуващото сериализиране в `answers`.
 
-## Структура на всеки уизард
+## Засегнати файлове
 
-Спазвам същия DSL от bulk файловете:
-- `sections` — Страни, Предмет, Условия, Подписи.
-- `questions` — `field_type`: text/longtext/number/money/date/boolean/select/party_list, с `visible_when` / `required_when` / `affects_clauses`.
-- `clauses` — `clause_id`, `order`, `title`, `body_md` с `{{var}}` плейсхолдъри, `include_when`, `severity` (required/recommended/optional).
-- `signQuestions()` helper за стандартните подписи.
+- `src/components/wizard/PartyListEditor.tsx` — единствена промяна; добавя локален state и sync ефект. Публичният API (props, `serializeParties`, `parseParties`) остава непроменен.
 
-Сложност: 6–14 въпроса и 5–10 клаузи на шаблон (молбите по-малко, имотните протоколи и анексите по-сложни).
+## Тестове / верификация
 
-## Промени по файлове
+- `bun run test` — съществуващите тестове трябва да минават (PartyListEditor няма unit тест; контрактът се запазва).
+- Ръчно: отвори `/wizard/dogovor-za-naem-na-zhilishte` (и още 2 случайни от bulk_part3) → клик „Добави страна" → новият ред се появява веднага и при празно първо поле.
+- Smoke: попълни 2 страни, експортирай PDF → серилизацията в документа остава коректна.
 
-```text
-NEW   src/data/questionGraphs/_bulk20_part3.ts        // 20 graph + clause specs
-EDIT  src/data/questionGraphs/dogovor-za-naem-na-zhilishte.ts
-      // +1 import { BULK_GRAPHS_PART3 }
-      // +1 spread в QUESTION_GRAPHS registry
-```
+## Извън обхват
 
-Нищо друго не се пипа.
-
-## Валидация преди завършване
-
-1. `grep template_slug` срещу catalog.ts → 20/20 съвпадения.
-2. `bun run test` — `questionGraph.test.ts` и `clauseEngine.test.ts` минават.
-3. `bun run typecheck` / build — без TS грешки.
-4. Smoke на 3 от новите slug-ове в WizardGraph (по 1 от всяка група).
-
-## Извън обхват (за следващ спринт)
-
-- Промяна на TOP_DOCUMENTS подредбата.
-- Backfill в `template_clauses` Supabase таблицата (clause engine чете и от код, и от DB — кодовият път работи без миграция).
-- Превод на graph-овете на английски / билингвал.
-- Допълнителни 20+ шаблона — мога да добавя `_part4` по същия pattern, ако след прегледа решим, че капацитетът е достатъчен.
-
-## Технически детайли
-
-- `WizardGraph.tsx` вече използва `getQuestionGraph(slug)` от единствения registry — новите 20 автоматично стават достъпни на `/wizard/<slug>` без route промени.
-- `Wizard.tsx` legacy fallback остава за всички шаблони без graph — обратна съвместимост 100%.
-- `download-document` edge function и брояч на операции не се променят: новите шаблони използват същия `template`/`contract` kind.
+- Без промени в `GraphQuestionField`, `questionGraph.ts`, метеринг, експорти или регистъра на графите.
