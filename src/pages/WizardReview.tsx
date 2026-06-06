@@ -232,6 +232,9 @@ export default function WizardReviewPage() {
           // Pass the locally assembled body so the model can refine instead
           // of starting from scratch.
           draft_body_md: draft.body_md,
+          // Session-aware quota: same (session_id, doc_key) in tab = free.
+          session_id: getOpSessionId(),
+          doc_key: getOpDocKey(slug),
         },
       });
       if (error) throw error;
@@ -241,8 +244,16 @@ export default function WizardReviewPage() {
           setTimeout(() => goAuth(), 1200);
           return;
         }
+        if (data?.code === "quota_exceeded") {
+          toast.error("Изчерпан безплатен лимит", {
+            description: "Активирайте Pro или закупете пакет операции.",
+            action: { label: "Виж опции", onClick: () => goSubscription() },
+          });
+          return;
+        }
         throw new Error(data?.error || "Неуспешно създаване");
       }
+
       setResult(data as AIResult);
       toast.success("Договорът е готов", {
         description: "Прегледайте анализа и експортирайте.",
