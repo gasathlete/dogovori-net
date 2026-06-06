@@ -61,8 +61,13 @@ function renderPage(meta: PageMeta): string {
   let html = baseHtml.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(meta.title)}</title>`);
   // Replace meta description
   html = html.replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${escapeHtml(meta.description)}" />`);
-  // Replace canonical
-  html = html.replace(/<link rel="canonical"[^>]*>/, `<link rel="canonical" href="${url}" />`);
+  // Replace or inject canonical (index.html no longer ships a static canonical — Helmet owns it per-route at runtime, so prerendered HTML must inject it).
+  const canonicalTag = `<link rel="canonical" href="${url}" />`;
+  if (/<link rel="canonical"[^>]*>/.test(html)) {
+    html = html.replace(/<link rel="canonical"[^>]*>/, canonicalTag);
+  } else {
+    html = html.replace(/<\/head>/, `    ${canonicalTag}\n  </head>`);
+  }
   // Replace OG
   html = html.replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${url}" />`);
   html = html.replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${escapeHtml(meta.title)}" />`);
