@@ -71,8 +71,8 @@ const Index = () => {
   return (
     <div className="min-h-screen">
       <Seo
-        title="Договори, образци и бланки на български — Dogovori.net"
-        description="600+ безплатни образци на договори и правни бланки на български – трудови, наем, NDA, GDPR, IT. Готови за попълване, PDF/DOCX експорт и електронен подпис."
+        title="Dogovori.net – документи, бланки и образци на български"
+        description="600+ безплатни образци – трудов договор, наем, граждански, NDA, пълномощно. Попълни онлайн, свали в PDF/DOCX, подпиши електронно."
         canonical="/"
         jsonLd={featuredJsonLd}
       />
