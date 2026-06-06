@@ -49,6 +49,11 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
+    );
 
     // Identify caller: prefer authenticated user, fall back to IP-based limit.
     const authHeader = req.headers.get("Authorization") ?? "";
@@ -84,8 +89,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { sector, contractName, documentName, parties, answers, questions, arbitration, bilingual } = await req.json();
+    const { sector, contractName, documentName, parties, answers, questions, arbitration, bilingual, session_id, doc_key } = await req.json();
     const isBilingual = Boolean(bilingual);
+
 
     // Illegal content guard — block before AI call, log + alert admin.
     const guardText = [
