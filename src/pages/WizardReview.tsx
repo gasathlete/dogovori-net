@@ -148,6 +148,67 @@ export default function WizardReviewPage() {
     if (result && !customTitle) setCustomTitle(result.contract.title);
   }, [result, customTitle]);
 
+  // Auto-save the generated document to the user's profile (status: draft) so
+  // their progress is never lost. Fires once when the analysis completes, and
+  // re-fires on contract edits / applied corrections to update the snapshot.
+  useEffect(() => {
+    if (!result || !user) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const finalTitle = (customTitle || result.contract.title).trim() || result.contract.title;
+        if (!savedDocId) {
+          const { data, error } = await supabase
+            .from("saved_documents")
+            .insert({
+              user_id: user.id,
+              kind: "contract",
+              title: finalTitle,
+              payload: { ...result.contract, title: finalTitle } as never,
+              source_id: slug ?? null,
+            })
+            .select("id")
+            .single();
+          if (error) throw error;
+          if (!cancelled) {
+            setSavedDocId(data.id);
+            setAutoSaved(true);
+          }
+        } else {
+          const { error } = await supabase
+            .from("saved_documents")
+            .update({
+              title: finalTitle,
+              payload: { ...result.contract, title: finalTitle } as never,
+            })
+            .eq("id", savedDocId);
+          if (error) throw error;
+          if (!cancelled) setAutoSaved(true);
+        }
+      } catch (e) {
+        console.error("auto-save saved_documents:", e);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result, user]);
+
+  // Generate a new wizard session for a referenced appendix and route there.
+  const handleCreateAppendix = (ref: AppendixReference) => {
+    const title = ref.label;
+    try {
+      sessionStorage.setItem(
+        `appendix:prefill:${slug}`,
+        JSON.stringify({ kind: ref.kind, number: ref.number, label: title, parent_slug: slug }),
+      );
+    } catch { /* noop */ }
+    toast.success(`Стартираме ${title}`, {
+      description: "Изберете шаблон, който отговаря на приложението.",
+    });
+    navigate(`/catalog?appendix=${encodeURIComponent(title)}&parent=${encodeURIComponent(slug ?? "")}`);
+  };
+
+
   const handleSaveToProfile = async () => {
     if (!result) return;
     if (!user) { goAuth(); return; }
