@@ -147,11 +147,43 @@ Deno.serve(async (req: Request) => {
       .eq("hash", cacheHash)
       .gte("created_at", cacheCutoff)
       .maybeSingle();
+    // Session-aware quota consumption — same (session_id, doc_key) in tab = free.
+    // Skipped for anonymous calls; userId is guaranteed by the rate-limit branch above
+    // (anonymous get limit=0).
+    async function consumeQuota(): Promise<{ ok: boolean; quota?: unknown }> {
+      if (!userId) return { ok: true };
+      const useSession = !!session_id && !!doc_key;
+      const { data: consumed, error: consumeErr } = useSession
+        ? await userClient.rpc("consume_quota_session", {
+            _kind: "analysis",
+            _doc_key: String(doc_key),
+            _session_id: String(session_id),
+          })
+        : await userClient.rpc("consume_quota", { _kind: "analysis" });
+      if (consumeErr) {
+        console.error("consume_quota error:", consumeErr);
+        return { ok: false, quota: { reason: "consume_error" } };
+      }
+      const q = consumed as { ok: boolean; reason?: string; is_pro?: boolean; charged?: boolean };
+      return { ok: !!q?.ok, quota: q };
+    }
+
     if (cachedRow?.payload) {
+      const q = await consumeQuota();
+      if (!q.ok) {
+        return new Response(
+          JSON.stringify({
+            error: "Изчерпан е безплатният ви лимит. Активирайте Pro за неограничени анализи.",
+            code: "quota_exceeded",
+          }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
       return new Response(JSON.stringify(cachedRow.payload), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     const arbitrationLine = arbitration?.enabled
       ? `\nАРБИТРАЖ: enabled=true, court="${arbitration.courtName || arbitration.courtId || ""}"${arbitration.courtLink ? `, link=${arbitration.courtLink}` : ""}`
