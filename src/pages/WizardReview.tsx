@@ -11,7 +11,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Bird, FileDown, FileText, Loader2, AlertCircle, Save, Folder, User } from "lucide-react";
+import { ArrowLeft, Bird, FileDown, FileText, Loader2, AlertCircle, Save, Folder, User, CheckCircle2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
 import { Header } from "@/components/Header";
@@ -20,10 +20,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
 import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
 import { ContractPreview } from "@/components/wizard/ContractPreview";
+import { AppendixSuggestions } from "@/components/wizard/AppendixSuggestions";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 
 import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhilishte";
@@ -31,7 +33,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { slugify } from "@/lib/slugify";
+import { getOpSessionId, getOpDocKey, newOpBatchId } from "@/lib/opSession";
+import {
+  detectAppendixReferences,
+  contractToPlainText,
+  type AppendixReference,
+} from "@/lib/detectAppendixReferences";
 import type { GeneratedContract, SignatureInfo } from "@/lib/exporters";
+
 
 interface AIResult {
   risk: {
