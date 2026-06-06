@@ -852,6 +852,7 @@ function DocumentsTab({
 }) {
   const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name;
   const [busy, setBusy] = useState<string | null>(null);
+  const hasMobileViewport = typeof window !== "undefined" && window.innerWidth < 640;
 
   // Bundle children: map parent_saved_id → [{ref_label, child_saved_id, child_uploaded_id}]
   type LinkRow = {
@@ -933,7 +934,7 @@ function DocumentsTab({
           </button>
         ))}
       </aside>
-      <div className="space-y-8">
+      <div className={hasMobileViewport ? "space-y-8 pb-20" : "space-y-8"}>
         {/* ===== Uploaded contracts (own files with AI risk analysis) ===== */}
         <section id="uploaded" className="scroll-mt-24">
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
@@ -990,8 +991,8 @@ function DocumentsTab({
                         {score != null ? <><strong>{score}</strong>/10</> : "Без анализ"}
                       </div>
                     </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                      <ShareForSignDialog uploadedContractId={u.id} documentTitle={u.title} />
+                    <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5">
+                      <ShareForSignDialog uploadedContractId={u.id} documentTitle={u.title} triggerClassName="h-10 w-full justify-center sm:h-9 sm:w-auto" />
                       <Select
                         value={u.folder_id ?? "none"}
                         onValueChange={async (v) => {
@@ -1003,7 +1004,7 @@ function DocumentsTab({
                           else { toast.success("Преместен"); reload(); }
                         }}
                       >
-                        <SelectTrigger className="h-9 w-32 text-xs"><SelectValue placeholder="Папка" /></SelectTrigger>
+                        <SelectTrigger className="h-10 w-full text-xs sm:h-9 sm:w-32"><SelectValue placeholder="Папка" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">— Без папка —</SelectItem>
                           {folders.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
@@ -1088,24 +1089,24 @@ function DocumentsTab({
                       )}
                     </div>
                     <div
-                      className="flex flex-wrap items-center gap-1.5"
+                      className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5"
                       onClick={(e) => e.preventDefault()}
                     >
-                      <Button size="sm" variant="outline" className="h-9" disabled={busy === d.id + "pdf"} onClick={() => redownload(d, "pdf")}>
+                      <Button size="sm" variant="outline" className="h-10 w-full sm:h-9 sm:w-auto" disabled={busy === d.id + "pdf"} onClick={() => redownload(d, "pdf")}>
                         {busy === d.id + "pdf" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Download className="mr-1 h-3 w-3" />} PDF
                       </Button>
-                      <Button size="sm" variant="outline" className="h-9" disabled={busy === d.id + "docx"} onClick={() => redownload(d, "docx")}>
+                      <Button size="sm" variant="outline" className="h-10 w-full sm:h-9 sm:w-auto" disabled={busy === d.id + "docx"} onClick={() => redownload(d, "docx")}>
                         {busy === d.id + "docx" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Download className="mr-1 h-3 w-3" />} DOCX
                       </Button>
-                      {d.kind === "contract" && <ShareForSignDialog documentId={d.id} documentTitle={d.title} />}
+                      {d.kind === "contract" && <ShareForSignDialog documentId={d.id} documentTitle={d.title} triggerClassName="h-10 w-full justify-center sm:h-9 sm:w-auto" />}
                       <Select value={d.folder_id ?? "none"} onValueChange={(v) => move(d.id, v === "none" ? null : v)}>
-                        <SelectTrigger className="h-9 w-32 text-xs"><SelectValue placeholder="Папка" /></SelectTrigger>
+                        <SelectTrigger className="h-10 w-full text-xs sm:h-9 sm:w-32"><SelectValue placeholder="Папка" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">— Без папка —</SelectItem>
                           {folders.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      <Button size="sm" variant="ghost" className="h-9 w-9 p-0 text-destructive" onClick={() => remove(d.id)}>
+                      <Button size="sm" variant="ghost" className="h-10 w-full p-0 text-destructive sm:h-9 sm:w-9" onClick={() => remove(d.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>

@@ -8,14 +8,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/clipboard";
+import { cn } from "@/lib/utils";
 
 interface Props {
   documentId?: string;
   uploadedContractId?: string;
   documentTitle: string;
+  triggerClassName?: string;
 }
 
-export function ShareForSignDialog({ documentId, uploadedContractId, documentTitle }: Props) {
+export function ShareForSignDialog({ documentId, uploadedContractId, documentTitle, triggerClassName }: Props) {
   const [open, setOpen] = useState(false);
   const [days, setDays] = useState("7");
   const [loading, setLoading] = useState(false);
@@ -64,7 +66,7 @@ export function ShareForSignDialog({ documentId, uploadedContractId, documentTit
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setLink(null); setCopied(false); } }}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline">
+        <Button size="sm" variant="outline" className={cn(triggerClassName)}>
           <Share2 className="mr-1 h-3 w-3" /> Сподели
         </Button>
       </DialogTrigger>
