@@ -562,7 +562,11 @@ export default function WizardReviewPage() {
           )}
 
           {result && (() => {
-            const appendices = detectAppendixReferences(contractToPlainText(result.contract));
+            const appendices = detectAppendixReferences(
+              [contractToPlainText(result.contract), draft.body_md]
+                .filter(Boolean)
+                .join("\n\n"),
+            );
             const hasCashPayment = Object.values(draft.answers ?? {}).some(
               (v) => typeof v === "string" && /\bбро[йя]\b|\bкеш\b|\bcash\b/i.test(v),
             );
