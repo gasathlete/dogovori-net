@@ -1,51 +1,81 @@
-# План Б: Поправка на storage collision + презареждане с `gemini-2.5-flash`
+## Цел
 
-## Проблем
+Добавям **20 нови динамични уизарда** (QuestionGraph + clause definitions) към съществуващата система, без да чупя нищо. След това каталогът ще има **46 динамични уизарда** (4 ръчни + 22 в bulk1/bulk2 + 20 нови).
 
-`safeKey()` в `download-blank` и `warm-blank-cache` използва `[^a-zA-Z0-9-_]+`, което изтрива цялата кирилица. Резултат: всички бланки в един сектор се пишат в един и същ `_.docx` файл и се припокриват. В БД виждам ≥7 различни employment записа сочещи към `v5/employment/_.docx`.
+## Защо безопасно
 
-## Промени
+- Цялата нова логика се изолира в **нов файл** `src/data/questionGraphs/_bulk20_part3.ts`, по същия pattern като `_bulk20.ts` и `_bulk20_part2.ts`.
+- В регистъра в `dogovor-za-naem-na-zhilishte.ts` добавям един import + един `...spread`. Нула промени в `questionGraph.ts`, `clauseEngine.ts`, `WizardGraph.tsx`, downloads, метеринг.
+- Всеки graph е напълно независим — счупване на един = счупване само на този slug, fallback маршрутът към стария `Wizard.tsx` остава непокътнат.
+- Slug-овете трябва да съществуват като реални шаблони в каталога (catalog.ts / templateIndex), за да резолне роутингът. Преди commit ще ги сверя 1:1.
 
-### 1. Нов споделен helper `supabase/functions/_shared/blank-key.ts`
+## Обхват (20 шаблона)
 
-- `slugifyBlank(s)` — BG→Latin транслитерация (а→a, ж→zh, ш→sh, щ→sht, ю→yu, я→ya, ь→"" и т.н.) + lowercase ASCII slug.
-- `buildBlankStoragePath(version, sectorId, documentName)` — връща `vN/<sector-slug>/<doc-slug>-<8-hex-sha1>.docx`. Хешът гарантира уникалност дори при колизия в slug-овете.
+**Featured Blanks (5)** — пряко обвързани с homepage „Избрани от Договори нет":
+1. `molba-za-napuskane-chl-326-kt`
+2. `molba-za-platen-godishen-otpusk`
+3. `zapis-na-zapoved`
+4. `notarialno-pulnomoshtno-universalno`
+5. `razpiska-za-poluchena-suma`
 
-### 2. `supabase/functions/download-blank/index.ts`
+**HR / Кодекс на труда (8)**:
+6. `molba-za-otpusk-po-maychinstvo`
+7. `molba-za-neplaten-otpusk-chl-160-kt`
+8. `zapoved-za-komandirovka`
+9. `zapoved-za-otpusk`
+10. `molba-za-promyana-na-rabotno-vreme`
+11. `predizvestie-ot-rabotodatel-chl-328-kt`
+12. `sluzhebna-belezhka-za-dohod`
+13. `trudova-harakteristika`
 
-- Махам локалния `safeKey`.
-- `import { buildBlankStoragePath } from "../_shared/blank-key.ts"`.
-- `CACHE_VERSION = isBilingual ? "v6-bilingual" : "v6"`.
-- `storagePath = await buildBlankStoragePath(CACHE_VERSION, sectorId, documentName)`.
+**Граждански / финансови (7)**:
+14. `pulnomoshtno-obshto`
+15. `deklaratsiya-po-chl-313-nk`
+16. `priemo-predavatelen-protokol-imot`
+17. `priemo-predavatelen-protokol-vesht`
+18. `anex-kum-dogovor-za-naem`
+19. `dogovor-za-poruchitelstvo`
+20. `raznoska-za-vrushtane-na-zaem`
 
-### 3. `supabase/functions/warm-blank-cache/index.ts`
+> Списъкът ще се потвърди срещу catalog.ts/templateIndex преди build — ако някой slug липсва, се заменя с най-близкия съществуващ топ-търсен (slug мисмач = няма роутинг, затова е важно).
 
-- Същата подмяна на `safeKey` → `buildBlankStoragePath`.
-- `CACHE_VERSION` → `v6` / `v6-bilingual`.
-- Сменям модела в `callAiWithRetry`: `google/gemini-2.5-pro` → **`google/gemini-2.5-flash`** (≈5× по-евтин, достатъчно качество за бланки със структура от `document-types` spec).
+## Структура на всеки уизард
 
-### 4. Миграция: изчистване на `v5`
+Спазвам същия DSL от bulk файловете:
+- `sections` — Страни, Предмет, Условия, Подписи.
+- `questions` — `field_type`: text/longtext/number/money/date/boolean/select/party_list, с `visible_when` / `required_when` / `affects_clauses`.
+- `clauses` — `clause_id`, `order`, `title`, `body_md` с `{{var}}` плейсхолдъри, `include_when`, `severity` (required/recommended/optional).
+- `signQuestions()` helper за стандартните подписи.
 
-```sql
-DELETE FROM public.document_blanks
-WHERE storage_path LIKE 'v5/%' OR storage_path LIKE 'v5-bilingual/%';
+Сложност: 6–14 въпроса и 5–10 клаузи на шаблон (молбите по-малко, имотните протоколи и анексите по-сложни).
+
+## Промени по файлове
+
+```text
+NEW   src/data/questionGraphs/_bulk20_part3.ts        // 20 graph + clause specs
+EDIT  src/data/questionGraphs/dogovor-za-naem-na-zhilishte.ts
+      // +1 import { BULK_GRAPHS_PART3 }
+      // +1 spread в QUESTION_GRAPHS registry
 ```
 
-(Storage обектите `v5/...` могат да останат — никой няма да ги чете. Опционално чистене по-късно.)
+Нищо друго не се пипа.
 
-### 5. Deploy + warm
+## Валидация преди завършване
 
-- Deploy и на двете функции.
-- Натискам warmer от `/admin` (или казвам на потребителя да го направи) — пуска ~500 бланки с flash → **~6 €** общо.
+1. `grep template_slug` срещу catalog.ts → 20/20 съвпадения.
+2. `bun run test` — `questionGraph.test.ts` и `clauseEngine.test.ts` минават.
+3. `bun run typecheck` / build — без TS грешки.
+4. Smoke на 3 от новите slug-ове в WizardGraph (по 1 от всяка група).
 
-## Какво НЕ променям
+## Извън обхват (за следващ спринт)
 
-- `BlankCacheWarmer.tsx` UI, throttling, прогрес — работят коректно.
-- Логиката за квота, signed URL, билингвалния layout — без промяна.
-- `inferDocumentType` / `document-types.ts` spec — без промяна.
+- Промяна на TOP_DOCUMENTS подредбата.
+- Backfill в `template_clauses` Supabase таблицата (clause engine чете и от код, и от DB — кодовият път работи без миграция).
+- Превод на graph-овете на английски / билингвал.
+- Допълнителни 20+ шаблона — мога да добавя `_part4` по същия pattern, ако след прегледа решим, че капацитетът е достатъчен.
 
-## Очакван резултат
+## Технически детайли
 
-- Всеки от ~500 записа получава уникален `v6/...` storage обект → край на припокриването.
-- Свалянето на бланка след презареждане е 1–2s (cache hit), без AI извикване.
-- Бъдещи bumps на cache version повтарят процеса за ~6 € вместо ~30 €.
+- `WizardGraph.tsx` вече използва `getQuestionGraph(slug)` от единствения registry — новите 20 автоматично стават достъпни на `/wizard/<slug>` без route промени.
+- `Wizard.tsx` legacy fallback остава за всички шаблони без graph — обратна съвместимост 100%.
+- `download-document` edge function и брояч на операции не се променят: новите шаблони използват същия `template`/`contract` kind.
