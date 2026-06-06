@@ -99,6 +99,8 @@ export default function WizardReviewPage() {
   const [contacts, setContacts] = useState<Array<{ id: string; name: string }>>([]);
   const [folders, setFolders] = useState<Array<{ id: string; name: string; is_favorites: boolean }>>([]);
   const [saving, setSaving] = useState(false);
+  const [autoSaved, setAutoSaved] = useState(false);
+
 
   const reviewHref = `/wizard-graph/${slug}/review`;
   const goAuth = () => navigate(`/auth?redirect=${encodeURIComponent(reviewHref)}`);
