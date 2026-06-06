@@ -275,9 +275,23 @@ ${docTypeSpec.systemAddendum}
       await admin.from("template_cache").upsert({ hash: cacheHash, payload: parsed, created_at: new Date().toISOString() });
     } catch (e) { console.error("template_cache upsert:", e); }
 
+    // Charge operation AFTER successful AI generation so failed attempts don't
+    // burn the quota. Same (session_id, doc_key) in tab → server returns free.
+    const q = await consumeQuota();
+    if (!q.ok) {
+      return new Response(
+        JSON.stringify({
+          error: "Изчерпан е безплатният ви лимит. Активирайте Pro за неограничени анализи.",
+          code: "quota_exceeded",
+        }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (e) {
     console.error("generate-contract error:", e);
     return new Response(
