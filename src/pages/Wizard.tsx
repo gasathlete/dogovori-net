@@ -730,6 +730,7 @@ export default function WizardPage() {
                         if (!canNext) { setAttemptedNext(true); return; }
                         setAttemptedNext(false);
                         setStepIdx((i) => i + 1);
+                        setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
                       }}
                       className="bg-gradient-gold text-navy hover:shadow-gold"
                     >
