@@ -44,21 +44,40 @@ export function parseParties(raw: string): PartyRow[] {
 }
 
 export function PartyListEditor({ rows, onChange, contacts = [], placeholder, addLabel = "Добави страна" }: Props) {
-  const list = useMemo<PartyRow[]>(() => (rows.length ? rows : [{ name: "", type: "ЮЛ" }]), [rows]);
+  const initial: PartyRow[] = rows.length ? rows : [{ name: "", type: "ЮЛ" }];
+  const [list, setList] = useState<PartyRow[]>(initial);
+  const lastSerializedRef = useRef<string>(serializeParties(initial));
+
+  // Sync from incoming `rows` only when the upstream serialized value differs
+  // from what we last emitted — otherwise we'd wipe in-progress empty rows
+  // (since serializeParties drops rows with empty `name`).
+  useEffect(() => {
+    const incoming = serializeParties(rows);
+    if (incoming !== lastSerializedRef.current) {
+      setList(rows.length ? rows : [{ name: "", type: "ЮЛ" }]);
+      lastSerializedRef.current = incoming;
+    }
+  }, [rows]);
+
+  const commit = (next: PartyRow[]) => {
+    setList(next);
+    const serialized = serializeParties(next);
+    lastSerializedRef.current = serialized;
+    onChange(next);
+  };
 
   const update = (idx: number, patch: Partial<PartyRow>) =>
-    onChange(list.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
-  const add = () => onChange([...list, { name: "", type: "ЮЛ" }]);
-  const remove = (idx: number) => onChange(list.filter((_, i) => i !== idx));
+    commit(list.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  const add = () => commit([...list, { name: "", type: "ЮЛ" }]);
+  const remove = (idx: number) => commit(list.filter((_, i) => i !== idx));
 
   const pickContact = (contactId: string) => {
     const c = contacts.find((x) => x.id === contactId);
     if (!c) return;
     const mapped: PartyType = c.type === "individual" ? "ФЛ" : "ЮЛ";
-    // Fill the first empty row if any; otherwise append.
     const emptyIdx = list.findIndex((r) => !r.name.trim());
     if (emptyIdx >= 0) update(emptyIdx, { name: c.name, type: mapped });
-    else onChange([...list, { name: c.name, type: mapped }]);
+    else commit([...list, { name: c.name, type: mapped }]);
   };
 
   return (
