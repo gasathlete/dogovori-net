@@ -10,6 +10,8 @@ interface Props {
 }
 
 export function FloatingAssistant({ open, onOpenChange }: Props) {
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+
   // Close on Escape
   useEffect(() => {
     if (!open) return;
@@ -25,7 +27,8 @@ export function FloatingAssistant({ open, onOpenChange }: Props) {
         onClick={() => onOpenChange(!open)}
         aria-label={open ? "Затвори чат поддръжка" : "Отвори чат поддръжка"}
         className={cn(
-          "fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full",
+          "fixed z-50 flex items-center justify-center rounded-full",
+          isMobile ? "bottom-4 right-4 h-12 w-12" : "bottom-5 right-5 h-14 w-14",
           "bg-gradient-gold text-navy shadow-gold transition-transform hover:scale-105",
           open && "rotate-90"
         )}
@@ -36,7 +39,8 @@ export function FloatingAssistant({ open, onOpenChange }: Props) {
       {/* Chat window */}
       <div
         className={cn(
-          "fixed bottom-24 right-5 z-50 w-[min(420px,calc(100vw-2.5rem))]",
+          "fixed z-50 w-[min(420px,calc(100vw-2rem))]",
+          isMobile ? "bottom-20 right-4" : "bottom-24 right-5",
           "h-[min(640px,calc(100vh-8rem))] origin-bottom-right",
           "rounded-2xl border border-gold/30 bg-card shadow-2xl",
           "transition-all duration-200",
