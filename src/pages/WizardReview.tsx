@@ -561,8 +561,39 @@ export default function WizardReviewPage() {
             </div>
           )}
 
-          {result && (
-            <div className="space-y-5 animate-fade-in">
+          {result && (() => {
+            const appendices = detectAppendixReferences(contractToPlainText(result.contract));
+            const hasCashPayment = Object.values(draft.answers ?? {}).some(
+              (v) => typeof v === "string" && /\bбро[йя]\b|\bкеш\b|\bcash\b/i.test(v),
+            );
+            return (
+            <div className="space-y-4 animate-fade-in">
+              {/* 2. Ready banner + auto-save status */}
+              <div className="rounded-xl border border-success/40 bg-success/5 p-4 shadow-soft">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-success" />
+                  <div className="min-w-0 flex-1">
+                    <h2 className="font-serif text-base font-bold leading-tight">
+                      Документът е готов
+                    </h2>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {autoSaved ? (
+                        <span className="inline-flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3 text-success" />
+                          Записан в профила · Документи → Всички
+                        </span>
+                      ) : (
+                        "Записва се автоматично в профила ви…"
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Appendix suggestions */}
+              <AppendixSuggestions appendices={appendices} onCreate={handleCreateAppendix} />
+
+              {/* 4. Corrections panel — hero CTA when collapsed */}
               <CorrectionsPanel
                 isPro={isPro}
                 issues={result.risk.issues || []}
@@ -573,28 +604,50 @@ export default function WizardReviewPage() {
                 onUpgrade={() => navigate("/account?tab=subscription")}
               />
 
-              <ContractPreview
-                contract={result.contract}
-                onChange={(next) => {
-                  setResult({ ...result, contract: next });
-                  // Edited document differs from any previously saved copy.
-                  setSavedDocId(undefined);
-                }}
-              />
+              {/* 5. Contract preview — collapsible on mobile, open on desktop */}
+              <Collapsible defaultOpen className="md:!block">
+                <div className="rounded-xl border border-border/60 bg-gradient-card shadow-soft md:p-0">
+                  <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 p-4 md:hidden">
+                    <span className="font-serif text-base font-bold">Преглед на документа</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform data-[state=open]:rotate-180" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="md:!block">
+                    <ContractPreview
+                      contract={result.contract}
+                      onChange={(next) => {
+                        setResult({ ...result, contract: next });
+                      }}
+                    />
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
 
-              <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft">
-                <RiskReport
-                  level={result.risk.level}
-                  issues={result.risk.issues || []}
-                  recommendations={result.risk.recommendations || []}
-                  isPro={isPro}
-                />
-              </div>
+              {/* 6. Risk report — collapsible */}
+              <Collapsible className="md:!block" defaultOpen={false}>
+                <div className="rounded-xl border border-border/60 bg-gradient-card shadow-soft">
+                  <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 p-4">
+                    <div className="text-left">
+                      <div className="font-serif text-base font-bold">Подробен риск анализ</div>
+                      <div className="text-xs text-muted-foreground">
+                        {(result.risk.issues?.length ?? 0)} слаби места · {(result.risk.recommendations?.length ?? 0)} препоръки
+                      </div>
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform data-[state=open]:rotate-180" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="border-t border-border/40 p-4">
+                      <RiskReport
+                        level={result.risk.level}
+                        issues={result.risk.issues || []}
+                        recommendations={result.risk.recommendations || []}
+                        isPro={isPro}
+                      />
+                    </div>
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
 
-              {Object.values(draft.answers ?? {}).some(
-                (v) =>
-                  typeof v === "string" && /\bбро[йя]\b|\bкеш\b|\bcash\b/i.test(v),
-              ) && (
+              {hasCashPayment && (
                 <LegalDisclaimer variant="warning">
                   <strong>Плащане в брой:</strong> Съгласно чл. 3 ЗОПБ плащания
                   на стойност <strong>равна или над 5 000 €</strong> се извършват
@@ -602,133 +655,137 @@ export default function WizardReviewPage() {
                 </LegalDisclaimer>
               )}
 
-              <div className="rounded-xl border border-gold/30 bg-gradient-card p-6 shadow-soft">
-                <h3 className="mb-1 font-serif text-lg font-bold">Финализиране</h3>
-                <p className="mb-4 text-xs text-muted-foreground">
-                  Именувайте договора и го изтеглете. Запазва се във „Всички“ —
-                  после може да го преместите в папка от профила си.
-                </p>
+              {/* 7. Finalize — collapsible */}
+              <Collapsible defaultOpen>
+                <div className="rounded-xl border border-gold/30 bg-gradient-card shadow-soft">
+                  <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 p-4">
+                    <div className="text-left">
+                      <div className="font-serif text-base font-bold">Финализиране и експорт</div>
+                      <div className="text-xs text-muted-foreground">Изтегли като PDF или DOCX</div>
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform data-[state=open]:rotate-180" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="border-t border-border/40 p-4">
+                      <div className="mb-4 space-y-1.5">
+                        <Label
+                          htmlFor="doc-title"
+                          className="text-xs uppercase tracking-wider text-muted-foreground"
+                        >
+                          Име на договора
+                        </Label>
+                        <Input
+                          id="doc-title"
+                          value={customTitle}
+                          onChange={(e) => setCustomTitle(e.target.value)}
+                          placeholder={result.contract.title}
+                          className="bg-card/60"
+                        />
+                      </div>
 
-                <div className="mb-4 space-y-1.5">
-                  <Label
-                    htmlFor="doc-title"
-                    className="text-xs uppercase tracking-wider text-muted-foreground"
-                  >
-                    Име на договора
-                  </Label>
-                  <Input
-                    id="doc-title"
-                    value={customTitle}
-                    onChange={(e) => {
-                      setCustomTitle(e.target.value);
-                      setSavedDocId(undefined);
-                    }}
-                    placeholder={result.contract.title}
-                    className="bg-card/60"
-                  />
+                      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                            <span className="inline-flex items-center gap-1"><Folder className="h-3 w-3" /> Папка</span>
+                          </Label>
+                          <Select
+                            value={folderId || "none"}
+                            onValueChange={(v) => setFolderId(v === "none" ? "" : v)}
+                          >
+                            <SelectTrigger className="bg-card/60">
+                              <SelectValue placeholder="— Без папка —" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">— Без папка —</SelectItem>
+                              {folders.map((f) => (
+                                <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                            <span className="inline-flex items-center gap-1"><User className="h-3 w-3" /> Контрагент</span>
+                          </Label>
+                          <Select
+                            value={contactId || "none"}
+                            onValueChange={(v) => setContactId(v === "none" ? "" : v)}
+                          >
+                            <SelectTrigger className="bg-card/60">
+                              <SelectValue placeholder="— Без контрагент —" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">— Без контрагент —</SelectItem>
+                              {contacts.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <Button
+                          onClick={() => handleExport("pdf")}
+                          disabled={!!exporting}
+                          className="flex-1 bg-gradient-gold text-navy hover:shadow-gold"
+                        >
+                          {exporting === "pdf" ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <FileDown className="mr-2 h-4 w-4" />
+                          )}
+                          Свали PDF
+                        </Button>
+                        <Button
+                          onClick={() => handleExport("docx")}
+                          disabled={!!exporting}
+                          variant="outline"
+                          className="flex-1 border-gold/40 hover:bg-gold/10 hover:text-gold"
+                        >
+                          {exporting === "docx" ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <FileText className="mr-2 h-4 w-4" />
+                          )}
+                          Свали DOCX
+                        </Button>
+                      </div>
+
+                      <Button
+                        onClick={handleSaveToProfile}
+                        disabled={saving}
+                        variant="outline"
+                        className="mt-2 w-full border-gold/40 hover:bg-gold/10 hover:text-gold"
+                      >
+                        {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        {savedDocId ? "Обнови запазеното" : "Запиши в профила"}
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          try {
+                            sessionStorage.removeItem(`wizard-graph:last:${slug}`);
+                            localStorage.removeItem(`splitwizard:${graph.template_slug}`);
+                          } catch { /* noop */ }
+                          navigate(`/wizard-graph/${slug}`);
+                        }}
+                        className="mt-3 w-full text-xs text-muted-foreground hover:text-gold"
+                      >
+                        Започни нов договор
+                      </Button>
+                    </div>
+                  </CollapsibleContent>
                 </div>
+              </Collapsible>
 
-                <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                      <span className="inline-flex items-center gap-1"><Folder className="h-3 w-3" /> Папка</span>
-                    </Label>
-                    <Select
-                      value={folderId || "none"}
-                      onValueChange={(v) => setFolderId(v === "none" ? "" : v)}
-                    >
-                      <SelectTrigger className="bg-card/60">
-                        <SelectValue placeholder="— Без папка —" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">— Без папка —</SelectItem>
-                        {folders.map((f) => (
-                          <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                      <span className="inline-flex items-center gap-1"><User className="h-3 w-3" /> Контрагент</span>
-                    </Label>
-                    <Select
-                      value={contactId || "none"}
-                      onValueChange={(v) => setContactId(v === "none" ? "" : v)}
-                    >
-                      <SelectTrigger className="bg-card/60">
-                        <SelectValue placeholder="— Без контрагент —" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">— Без контрагент —</SelectItem>
-                        {contacts.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <h4 className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">
-                  Експорт
-                </h4>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Button
-                    onClick={() => handleExport("pdf")}
-                    disabled={!!exporting}
-                    className="flex-1 bg-gradient-gold text-navy hover:shadow-gold"
-                  >
-                    {exporting === "pdf" ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <FileDown className="mr-2 h-4 w-4" />
-                    )}
-                    Свали PDF
-                  </Button>
-                  <Button
-                    onClick={() => handleExport("docx")}
-                    disabled={!!exporting}
-                    variant="outline"
-                    className="flex-1 border-gold/40 hover:bg-gold/10 hover:text-gold"
-                  >
-                    {exporting === "docx" ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <FileText className="mr-2 h-4 w-4" />
-                    )}
-                    Свали DOCX
-                  </Button>
-                </div>
-
-                <Button
-                  onClick={handleSaveToProfile}
-                  disabled={saving}
-                  variant="outline"
-                  className="mt-2 w-full border-gold/40 hover:bg-gold/10 hover:text-gold"
-                >
-                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                  {savedDocId ? "Обнови запазеното" : "Запиши в профила"}
-                </Button>
-
-
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    try {
-                      sessionStorage.removeItem(`wizard-graph:last:${slug}`);
-                      localStorage.removeItem(
-                        `splitwizard:${graph.template_slug}`,
-                      );
-                    } catch { /* noop */ }
-                    navigate(`/wizard-graph/${slug}`);
-                  }}
-                  className="mt-3 w-full text-xs text-muted-foreground hover:text-gold"
-                >
-                  Започни нов договор
-                </Button>
-              </div>
+              {/* 8. Disclaimer */}
+              <LegalDisclaimer />
             </div>
-          )}
+            );
+          })()}
+
         </div>
       </main>
     </div>
