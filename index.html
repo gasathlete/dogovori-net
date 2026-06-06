@@ -22,9 +22,8 @@
     <!-- Fonts are self-hosted via @fontsource (bundled by Vite, served from our own origin). -->
     <!-- See src/fonts.ts -->
 
-    <link rel="canonical" href="https://dogovori.net/" />
-    <link rel="alternate" hreflang="bg-BG" href="https://dogovori.net/" />
-    <link rel="alternate" hreflang="x-default" href="https://dogovori.net/" />
+    <!-- canonical + hreflang are managed per-route via react-helmet-async in src/components/Seo.tsx -->
+    <!-- (static <link> tags don't dedupe with Helmet, so duplicates would otherwise ship on every route) -->
     <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#0b1525" />
     <meta name="geo.region" content="BG" />
