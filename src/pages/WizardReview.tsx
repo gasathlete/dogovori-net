@@ -32,7 +32,7 @@ import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhili
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadDocument } from "@/lib/downloadDocument";
-import { slugify } from "@/lib/slugify";
+
 import { getOpSessionId, getOpDocKey, newOpBatchId } from "@/lib/opSession";
 import {
   detectAppendixReferences,
