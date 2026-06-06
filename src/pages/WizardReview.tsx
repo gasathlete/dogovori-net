@@ -781,7 +781,11 @@ export default function WizardReviewPage() {
               </Collapsible>
 
               {/* 8. Disclaimer */}
-              <LegalDisclaimer />
+              <LegalDisclaimer>
+                Документът е изготвен с помощта на AI. За съществени правни въпроси
+                препоръчваме консултация с адвокат.
+              </LegalDisclaimer>
+
             </div>
             );
           })()}
