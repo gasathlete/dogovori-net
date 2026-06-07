@@ -511,7 +511,7 @@ export function PlatformShowcase() {
                     }
                     if (!isActive) goTo(i);
                   }}
-                  className="group absolute left-1/2 top-1/2 -ml-[230px] -mt-[270px] block h-[540px] w-[460px] rounded-2xl border border-hairline bg-card/95 text-left shadow-elegant outline-none transition-[transform,opacity,box-shadow] duration-700 ease-[cubic-bezier(.22,1,.36,1)] focus-visible:ring-2 focus-visible:ring-gold/60 sm:h-[600px] sm:w-[520px] sm:-ml-[260px] sm:-mt-[300px] md:h-[640px] md:w-[560px] md:-ml-[280px] md:-mt-[320px]"
+                  className="group absolute left-1/2 top-1/2 -ml-[150px] -mt-[210px] block h-[420px] w-[300px] rounded-2xl border border-hairline bg-card/95 text-left shadow-elegant outline-none transition-[transform,opacity,box-shadow] duration-700 ease-[cubic-bezier(.22,1,.36,1)] focus-visible:ring-2 focus-visible:ring-gold/60 sm:h-[560px] sm:w-[460px] sm:-ml-[230px] sm:-mt-[280px] md:h-[640px] md:w-[560px] md:-ml-[280px] md:-mt-[320px]"
                   style={{
                     transform: `translate3d(${translateX}px,0,0) rotateY(${rotateY}deg) scale(${scale})`,
                     opacity,
