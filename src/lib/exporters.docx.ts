@@ -170,10 +170,102 @@ export async function exportDOCX(c: GeneratedContract, opts?: WatermarkOpts) {
       }),
     );
   }
-  // Signature ending is rendered inside the contract body (closing/clauses)
-  // with role labels specific to the document (Наемодател/Наемател, Възложител/
-  // Изпълнител, etc.), so we intentionally do NOT append a generic
-  // "СТРАНИ ПО ДОГОВОРА / ЗА СТРАНА А" block here.
+  // ── Signature block ─────────────────────────────────────────────────────
+  // Always append a clear signature area at the very end. Uses role-specific
+  // parties from c.signature when available (Наемодател/Наемател, Възложител/
+  // Изпълнител, …), with a sensible fallback otherwise.
+  const sig = c.signature;
+  const parties: { role: string; name: string; type?: string; image?: string }[] = (() => {
+    if (sig?.parties && sig.parties.length) return sig.parties;
+    if (sig?.name_a || sig?.name_b) {
+      return [
+        { role: "Страна А", name: sig?.name_a ?? "", image: sig?.image_a },
+        { role: "Страна Б", name: sig?.name_b ?? "", image: sig?.image_b },
+      ];
+    }
+    return [
+      { role: "Страна А", name: "" },
+      { role: "Страна Б", name: "" },
+    ];
+  })();
+
+  children.push(new Paragraph({ text: "" }));
+  if (sig?.city || sig?.date) {
+    children.push(new Paragraph({
+      alignment: AlignmentType.LEFT,
+      children: [new TextRun({
+        text: `Гр. ${sig?.city || "________________"}, дата: ${sig?.date || "____________"}`,
+        size: 22,
+      })],
+    }));
+  }
+  children.push(new Paragraph({ text: "" }));
+
+  const SIG_COL = Math.floor(TABLE_W / 2);
+  const buildPartyCell = (p: { role: string; name: string; type?: string; image?: string }) => {
+    const cellChildren: Paragraph[] = [
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        children: [new TextRun({ text: (p.role || "").toUpperCase(), bold: true, size: 22 })],
+      }),
+    ];
+    if (p.image) {
+      try {
+        cellChildren.push(new Paragraph({
+          alignment: AlignmentType.LEFT,
+          children: [new ImageRun({
+            type: "png",
+            data: dataUrlToUint8(p.image),
+            transformation: { width: 160, height: 50 },
+          } as any)],
+        }));
+      } catch { /* ignore */ }
+    } else {
+      cellChildren.push(new Paragraph({ text: "" }));
+      cellChildren.push(new Paragraph({ text: "" }));
+    }
+    cellChildren.push(new Paragraph({
+      alignment: AlignmentType.LEFT,
+      children: [new TextRun({ text: "____________________________", size: 22 })],
+    }));
+    cellChildren.push(new Paragraph({
+      alignment: AlignmentType.LEFT,
+      children: [new TextRun({
+        text: p.name?.trim() ? p.name : "(подпис и имена)",
+        size: 20,
+      })],
+    }));
+    if (p.type) {
+      cellChildren.push(new Paragraph({
+        alignment: AlignmentType.LEFT,
+        children: [new TextRun({ text: p.type, size: 20, italics: true })],
+      }));
+    }
+    return new TableCell({
+      borders: cellBorders,
+      width: { size: SIG_COL, type: WidthType.DXA },
+      margins: { top: 80, bottom: 80, left: 120, right: 120 },
+      children: cellChildren,
+    });
+  };
+
+  for (let i = 0; i < parties.length; i += 2) {
+    const left = buildPartyCell(parties[i]);
+    const right = parties[i + 1]
+      ? buildPartyCell(parties[i + 1])
+      : new TableCell({
+          borders: cellBorders,
+          width: { size: SIG_COL, type: WidthType.DXA },
+          children: [new Paragraph({ text: "" })],
+        });
+    children.push(new Table({
+      width: { size: TABLE_W, type: WidthType.DXA },
+      columnWidths: [SIG_COL, SIG_COL],
+      rows: [new TableRow({ children: [left, right] })],
+    }));
+    children.push(new Paragraph({ text: "" }));
+  }
+
 
 
   const header = opts?.watermark ? await buildDocxWatermarkHeader() : undefined;
