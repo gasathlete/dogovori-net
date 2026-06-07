@@ -237,7 +237,7 @@ export function PlatformShowcase() {
   return (
     <section
       aria-labelledby="platform-showcase-heading"
-      className="relative py-16 sm:py-20 md:py-24"
+      className="relative overflow-hidden py-16 sm:py-20 md:py-24"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onKeyDown={onKeyDown}
@@ -262,7 +262,7 @@ export function PlatformShowcase() {
         />
         {/* skyline silhouette */}
         <svg
-          className="absolute inset-x-0 bottom-0 h-[42%] w-full text-gold"
+          className="absolute inset-x-0 bottom-0 h-[28%] w-full text-gold opacity-70"
           viewBox="0 0 1600 400"
           preserveAspectRatio="xMidYEnd slice"
           fill="none"
@@ -365,14 +365,14 @@ export function PlatformShowcase() {
 
         {/* Coverflow stage */}
         <div
-          className="relative mx-auto select-none"
-          style={{ perspective: "1600px", touchAction: "pan-y" }}
+          className="relative mx-auto select-none overflow-hidden"
+          style={{ perspective: "1800px", touchAction: "pan-y" }}
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
           onTouchCancel={onTouchEnd}
         >
-          <div className="relative mx-auto h-[480px] w-full max-w-5xl sm:h-[520px]">
+          <div className="relative mx-auto h-[560px] w-full max-w-6xl sm:h-[620px] md:h-[660px]">
             {SLIDES.map((slide, i) => {
               // shortest signed distance on a ring
               let delta = i - idx;
@@ -381,9 +381,9 @@ export function PlatformShowcase() {
               const abs = Math.abs(delta);
               const isActive = delta === 0;
 
-              const translateX = delta * 240 + (isActive ? dragDx : dragDx * 0.4);
-              const rotateY = reducedMotion ? 0 : delta * -18;
-              const scale = abs === 0 ? 1 : abs === 1 ? 0.82 : 0.66;
+              const translateX = delta * 300 + (isActive ? dragDx : dragDx * 0.4);
+              const rotateY = reducedMotion ? 0 : delta * -16;
+              const scale = abs === 0 ? 1 : abs === 1 ? 0.84 : 0.68;
               const opacity = abs === 0 ? 1 : abs === 1 ? 0.55 : 0.22;
               const z = 10 - abs;
 
@@ -403,7 +403,7 @@ export function PlatformShowcase() {
                     }
                     if (!isActive) goTo(i);
                   }}
-                  className="group absolute left-1/2 top-1/2 -ml-[180px] -mt-[230px] block h-[460px] w-[360px] rounded-2xl border border-hairline bg-card/95 text-left shadow-elegant outline-none transition-[transform,opacity,box-shadow] duration-700 ease-[cubic-bezier(.22,1,.36,1)] focus-visible:ring-2 focus-visible:ring-gold/60 sm:h-[500px] sm:w-[400px] sm:-ml-[200px] sm:-mt-[250px]"
+                  className="group absolute left-1/2 top-1/2 -ml-[230px] -mt-[270px] block h-[540px] w-[460px] rounded-2xl border border-hairline bg-card/95 text-left shadow-elegant outline-none transition-[transform,opacity,box-shadow] duration-700 ease-[cubic-bezier(.22,1,.36,1)] focus-visible:ring-2 focus-visible:ring-gold/60 sm:h-[600px] sm:w-[520px] sm:-ml-[260px] sm:-mt-[300px] md:h-[640px] md:w-[560px] md:-ml-[280px] md:-mt-[320px]"
                   style={{
                     transform: `translate3d(${translateX}px,0,0) rotateY(${rotateY}deg) scale(${scale})`,
                     opacity,
@@ -512,10 +512,10 @@ export function PlatformShowcase() {
         </div>
 
         {/* CTA */}
-        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:mt-12">
+        <div className="relative z-10 mx-auto mt-12 flex max-w-xl flex-col items-center justify-center gap-3 rounded-2xl border border-hairline bg-card/85 px-6 py-6 backdrop-blur-md sm:mt-16">
           <Link
             to="/account#plans"
-            className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-gold/50 bg-gradient-to-r from-gold/15 via-gold/10 to-gold/15 px-6 py-3 text-sm font-semibold tracking-wide text-gold shadow-elegant transition-all duration-300 hover:border-gold hover:from-gold/25 hover:via-gold/15 hover:to-gold/25 hover:shadow-[0_10px_40px_-10px_hsl(var(--gold)/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
+            className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-gold/60 bg-gradient-to-r from-gold/20 via-gold/15 to-gold/20 px-7 py-3 text-sm font-semibold tracking-wide text-gold shadow-elegant transition-all duration-300 hover:border-gold hover:from-gold/30 hover:via-gold/20 hover:to-gold/30 hover:shadow-[0_10px_40px_-10px_hsl(var(--gold)/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
           >
             <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-gold/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
             <span className="relative">Вижте плановете</span>
@@ -529,6 +529,7 @@ export function PlatformShowcase() {
           </p>
         </div>
       </div>
+
 
 
       <style>{`
