@@ -29,6 +29,7 @@ import { AppendixSuggestions } from "@/components/wizard/AppendixSuggestions";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { ProValueCard } from "@/components/ProValueCard";
 import { FreeOpsChip } from "@/components/FreeOpsChip";
+import { useProConversionToast } from "@/components/ProConversionToast";
 
 import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhilishte";
 import { useAuth } from "@/hooks/useAuth";
