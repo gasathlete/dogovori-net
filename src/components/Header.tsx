@@ -9,6 +9,9 @@ import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ToolsMenu } from "@/components/calculators/ToolsMenu";
+import { useFreeJourneyStage } from "@/hooks/useFreeJourneyStage";
+import { trackEvent } from "@/lib/analytics";
+import { Crown } from "lucide-react";
 
 
 const NAV = [
@@ -26,6 +29,8 @@ export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const scrolled = useScrolled(8);
+  const { isPro, stage, opsLeft } = useFreeJourneyStage();
+  const showProBadge = !isPro && stage >= 2;
 
   const handleNav = (to: string, e: React.MouseEvent) => {
     if (!to.includes("#")) return;
@@ -98,6 +103,30 @@ export function Header() {
         {/* Actions */}
         <div className="flex flex-1 items-center justify-end gap-3">
           <ToolsMenu variant="desktop" />
+
+          {showProBadge && (
+            <button
+              type="button"
+              onClick={() => {
+                trackEvent("tease_clicked", { channel: "header_badge", stage });
+                window.dispatchEvent(
+                  new CustomEvent("dogovori:open-pro-dialog", {
+                    detail: { trigger: stage === 3 ? "ops_exhausted" : "generic" },
+                  }),
+                );
+              }}
+              className={cn(
+                "hidden md:inline-flex items-center gap-1.5 rounded-full border px-3 h-9 text-[11px] font-semibold uppercase tracking-wider transition-all",
+                stage === 3
+                  ? "border-red-400/50 bg-red-500/10 text-red-200 hover:bg-red-500/20"
+                  : "border-gold/40 bg-gold/10 text-gold hover:bg-gold/20",
+              )}
+              aria-label="Надгради до Pro"
+            >
+              <Crown className="h-3.5 w-3.5" />
+              {stage === 3 ? "Лимит · Pro" : `${opsLeft} безпл. · Pro`}
+            </button>
+          )}
 
           {/* <LanguageSwitcher className="hidden sm:block" /> */}
           {user ? (
