@@ -60,11 +60,22 @@ export function MultiPartySigningDialog(p: Props) {
     setBusy(false);
     if (error || data?.error) {
       const code = data?.error ?? error?.message;
-      toast.error(code === "pro_required" ? "Изисква се Pro план" : (code ?? "Грешка"));
+      if (code === "pro_required") {
+        toast.error("Безплатният онлайн подпис вече е използван", {
+          description: "Активирайте Pro за неограничен брой заявки за подпис.",
+        });
+      } else {
+        toast.error(code ?? "Грешка");
+      }
       return;
     }
     setCreatedId(data.request.id);
-    toast.success("Заявката е създадена. Изпратете линковете на подписващите.");
+    p.onCreated?.();
+    toast.success(
+      !p.isPro && p.freeAvailable
+        ? "Безплатната заявка е създадена. Изпратете линковете на подписващите."
+        : "Заявката е създадена. Изпратете линковете на подписващите.",
+    );
   }
 
   return (
