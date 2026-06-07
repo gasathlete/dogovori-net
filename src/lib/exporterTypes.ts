@@ -4,6 +4,17 @@
  * into a consumer's chunk.
  */
 
+export interface SignatureParty {
+  /** Role label, e.g. "ВЪЗЛОЖИТЕЛ", "ИЗПЪЛНИТЕЛ", "СТРАНА А". */
+  role: string;
+  /** Display name; may be empty (then a placeholder line is shown). */
+  name: string;
+  /** Legal type label, e.g. "Юридическо лице", "Физическо лице", "ЕТ". */
+  type?: string;
+  /** Optional signature image (Pro only). */
+  image?: string;
+}
+
 export interface SignatureInfo {
   name_a: string;
   name_b: string;
@@ -11,6 +22,11 @@ export interface SignatureInfo {
   date: string;
   image_a?: string; // data URL (PNG)
   image_b?: string;
+  /**
+   * Optional rich list of parties for a polished closing block. When provided,
+   * exporters render this list (2-column grid) instead of the legacy A/B pair.
+   */
+  parties?: SignatureParty[];
 }
 
 export interface BilingualClause {
