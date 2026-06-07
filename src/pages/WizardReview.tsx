@@ -754,6 +754,23 @@ export default function WizardReviewPage() {
                           </Button>
 
                           <Button
+                            onClick={() => {
+                              if (!user) { goAuth(); return; }
+                              setSignDialogOpen(true);
+                            }}
+                            variant="outline"
+                            className="mt-2 w-full border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10"
+                          >
+                            <FileSignature className="mr-2 h-4 w-4" />
+                            Експорт за онлайн подпис
+                            {!isPro && signingFreeAvailable && (
+                              <span className="ml-2 inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
+                                1 безплатна
+                              </span>
+                            )}
+                          </Button>
+
+                          <Button
                             variant="ghost"
                             onClick={() => {
                               try {
