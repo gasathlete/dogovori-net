@@ -2,8 +2,7 @@ import { useId, useRef, useState } from "react";
 import { ShieldCheck, Bird, FileText, ArrowRight, Search, FileSignature, ChevronDown } from "lucide-react";
 const logoImg = "/logo-dogovori-hero.webp";
 import { scrollToHash } from "@/lib/scrollToHash";
-import { BlogRotator } from "@/components/BlogRotator";
-import { pickRandomQuote, type BusinessQuote } from "@/lib/businessQuotes";
+import type { BusinessQuote } from "@/lib/businessQuotes";
 
 export function Hero({ onStart }: { onStart: () => void }) {
   const tooltipId = useId();
@@ -12,7 +11,9 @@ export function Hero({ onStart }: { onStart: () => void }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const lastIdxRef = useRef<number | undefined>(undefined);
 
-  const showQuote = () => {
+  const showQuote = async () => {
+    // Lazy-load quotes module on first hover to keep it out of the Index entry bundle.
+    const { pickRandomQuote } = await import("@/lib/businessQuotes");
     const { quote: q, index } = pickRandomQuote(lastIdxRef.current);
     lastIdxRef.current = index;
     setQuote(q);
