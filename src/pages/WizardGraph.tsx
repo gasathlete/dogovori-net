@@ -31,7 +31,19 @@ export default function WizardGraphPage() {
   const [clauses, setClauses] = useState<ClauseDefinition[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState({ stepIdx: 0, total: 1, progress: 0 });
+  const [contacts, setContacts] = useState<Array<{ id: string; name: string; type?: string }>>([]);
   const { user } = useAuth();
+
+  // Load saved contacts so party_list questions can be filled in 1 click.
+  useEffect(() => {
+    if (!user) { setContacts([]); return; }
+    supabase
+      .from("contacts")
+      .select("id, name, type")
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setContacts((data as any) ?? []));
+  }, [user]);
 
   const catalogHit = useMemo(() => {
     if (!graph) return null;
