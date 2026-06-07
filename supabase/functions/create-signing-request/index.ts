@@ -79,14 +79,19 @@ serve(async (req) => {
       cleanSigners.push({ name, email, role: role ?? undefined });
     }
 
-    // Pro guard (consistent with create-share-link)
+    // Pro guard — free users get exactly ONE free online-signing export.
     const { data: q } = await admin.from("download_quota")
-      .select("plan, pro_until").eq("user_id", userId).maybeSingle();
+      .select("plan, pro_until, free_signing_used").eq("user_id", userId).maybeSingle();
     const isPro = !!q && (q.plan === "pro" || (!!q.pro_until && new Date(q.pro_until) > new Date()));
+    const freeAvailable = !!q && q.free_signing_used === false;
+    let consumedFreeSigning = false;
     if (!isPro) {
-      return new Response(JSON.stringify({ error: "pro_required" }), {
-        status: 403, headers: { ...cors, "Content-Type": "application/json" },
-      });
+      if (!freeAvailable) {
+        return new Response(JSON.stringify({ error: "pro_required" }), {
+          status: 403, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      consumedFreeSigning = true;
     }
 
     const days = Math.min(Math.max(Number(expires_in_days) || 14, 1), 60);
