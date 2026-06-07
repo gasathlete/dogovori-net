@@ -98,6 +98,8 @@ export default function WizardReviewPage() {
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(undefined);
   const [isPro, setIsPro] = useState(false);
   const [freeWaveAvailable, setFreeWaveAvailable] = useState(false);
+  const [signingFreeAvailable, setSigningFreeAvailable] = useState(false);
+  const [signDialogOpen, setSignDialogOpen] = useState(false);
   const [savedDocId, setSavedDocId] = useState<string | undefined>(undefined);
   const [contactId, setContactId] = useState<string>("");
   const [folderId, setFolderId] = useState<string>("");
