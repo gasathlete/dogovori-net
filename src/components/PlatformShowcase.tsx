@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Briefcase,
   Sparkles,
@@ -10,6 +11,7 @@ import {
   Users,
   Wand2,
   Layers,
+  ArrowRight,
 } from "lucide-react";
 
 type FeatureSlide = {
