@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Briefcase,
   Sparkles,
@@ -10,6 +11,7 @@ import {
   Users,
   Wand2,
   Layers,
+  ArrowRight,
 } from "lucide-react";
 
 type FeatureSlide = {
@@ -241,11 +243,106 @@ export function PlatformShowcase() {
       onKeyDown={onKeyDown}
       tabIndex={-1}
     >
-      {/* Ambient gold glow */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_45%_at_50%_55%,hsl(var(--gold)/0.08),transparent_70%)]"
-      />
+      {/* Digitized corporate backdrop: skyline + deal motif + circuitry */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        {/* soft ambient gold */}
+        <div className="absolute inset-0 bg-[radial-gradient(60%_45%_at_50%_55%,hsl(var(--gold)/0.08),transparent_70%)]" />
+        {/* digital grid */}
+        <div
+          className="absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage:
+              "linear-gradient(hsl(var(--gold)/0.6) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--gold)/0.6) 1px, transparent 1px)",
+            backgroundSize: "56px 56px, 56px 56px",
+            maskImage:
+              "radial-gradient(ellipse 80% 60% at 50% 50%, #000 40%, transparent 80%)",
+            WebkitMaskImage:
+              "radial-gradient(ellipse 80% 60% at 50% 50%, #000 40%, transparent 80%)",
+          }}
+        />
+        {/* skyline silhouette */}
+        <svg
+          className="absolute inset-x-0 bottom-0 h-[42%] w-full text-gold"
+          viewBox="0 0 1600 400"
+          preserveAspectRatio="xMidYEnd slice"
+          fill="none"
+        >
+          <defs>
+            <linearGradient id="ps-tower" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="hsl(var(--gold))" stopOpacity="0.18" />
+              <stop offset="100%" stopColor="hsl(var(--gold))" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="ps-tower-2" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="hsl(var(--foreground))" stopOpacity="0.10" />
+              <stop offset="100%" stopColor="hsl(var(--foreground))" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {/* back row */}
+          <g fill="url(#ps-tower-2)" stroke="hsl(var(--gold) / 0.25)" strokeWidth="1">
+            <rect x="60"  y="180" width="80"  height="220" />
+            <rect x="160" y="140" width="60"  height="260" />
+            <rect x="240" y="200" width="90"  height="200" />
+            <rect x="350" y="120" width="70"  height="280" />
+            <rect x="440" y="170" width="100" height="230" />
+            <rect x="560" y="150" width="60"  height="250" />
+            <rect x="640" y="190" width="120" height="210" />
+            <rect x="780" y="130" width="80"  height="270" />
+            <rect x="880" y="170" width="70"  height="230" />
+            <rect x="970" y="110" width="100" height="290" />
+            <rect x="1090" y="160" width="80"  height="240" />
+            <rect x="1190" y="200" width="120" height="200" />
+            <rect x="1330" y="140" width="70"  height="260" />
+            <rect x="1420" y="180" width="110" height="220" />
+          </g>
+          {/* front taller towers with windows */}
+          <g>
+            <rect x="300" y="80"  width="60"  height="320" fill="url(#ps-tower)" stroke="hsl(var(--gold) / 0.45)" />
+            <rect x="700" y="50"  width="70"  height="350" fill="url(#ps-tower)" stroke="hsl(var(--gold) / 0.5)" />
+            <rect x="1020" y="70" width="60"  height="330" fill="url(#ps-tower)" stroke="hsl(var(--gold) / 0.45)" />
+            <rect x="1280" y="90" width="55"  height="310" fill="url(#ps-tower)" stroke="hsl(var(--gold) / 0.4)" />
+          </g>
+          {/* window dots */}
+          <g fill="hsl(var(--gold) / 0.55)">
+            {Array.from({ length: 10 }).map((_, r) =>
+              [320, 720, 1040, 1300].map((x, ci) => (
+                <g key={`${r}-${ci}`}>
+                  <rect x={x}      y={110 + r * 28} width="6" height="6" />
+                  <rect x={x + 14} y={110 + r * 28} width="6" height="6" opacity="0.6" />
+                  <rect x={x + 28} y={110 + r * 28} width="6" height="6" opacity="0.85" />
+                </g>
+              ))
+            )}
+          </g>
+          {/* antennae */}
+          <g stroke="hsl(var(--gold) / 0.6)" strokeWidth="1.2">
+            <line x1="330" y1="80"  x2="330" y2="50" />
+            <line x1="735" y1="50"  x2="735" y2="14" />
+            <line x1="1050" y1="70" x2="1050" y2="38" />
+          </g>
+        </svg>
+
+        {/* deal motif: handshake-inspired arcs meeting */}
+        <svg
+          className="absolute right-[6%] top-10 hidden h-40 w-64 md:block"
+          viewBox="0 0 256 160"
+          fill="none"
+        >
+          <circle cx="64" cy="80" r="58" stroke="hsl(var(--gold) / 0.35)" strokeWidth="1" />
+          <circle cx="192" cy="80" r="58" stroke="hsl(var(--gold) / 0.35)" strokeWidth="1" />
+          <circle cx="128" cy="80" r="14" fill="none" stroke="hsl(var(--gold))" strokeWidth="1.4" />
+          <path
+            d="M128 66 l6 8 l-9 12"
+            stroke="hsl(var(--gold))"
+            strokeWidth="1.6"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <line x1="6" y1="80" x2="48" y2="80" stroke="hsl(var(--gold) / 0.4)" strokeDasharray="2 4" />
+          <line x1="208" y1="80" x2="250" y2="80" stroke="hsl(var(--gold) / 0.4)" strokeDasharray="2 4" />
+        </svg>
+      </div>
+
 
       <div className="container relative">
         <div className="mx-auto mb-10 max-w-2xl text-center sm:mb-14">
@@ -413,7 +510,26 @@ export function PlatformShowcase() {
             {String(idx + 1).padStart(2, "0")} / {String(n).padStart(2, "0")}
           </span>
         </div>
+
+        {/* CTA */}
+        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:mt-12">
+          <Link
+            to="/account#plans"
+            className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-gold/50 bg-gradient-to-r from-gold/15 via-gold/10 to-gold/15 px-6 py-3 text-sm font-semibold tracking-wide text-gold shadow-elegant transition-all duration-300 hover:border-gold hover:from-gold/25 hover:via-gold/15 hover:to-gold/25 hover:shadow-[0_10px_40px_-10px_hsl(var(--gold)/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
+          >
+            <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-gold/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+            <span className="relative">Вижте плановете</span>
+            <ArrowRight
+              className="relative h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
+              strokeWidth={1.8}
+            />
+          </Link>
+          <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+            Започнете още днес — без обвързване
+          </p>
+        </div>
       </div>
+
 
       <style>{`
         @keyframes platform-progress {
