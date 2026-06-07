@@ -8,6 +8,7 @@ import { Seo } from "@/components/Seo";
 import { LazyOnVisible } from "@/components/LazyOnVisible";
 import { SectionSkeleton } from "@/components/SectionSkeleton";
 import { Reveal } from "@/components/Reveal";
+import { BlogRotator } from "@/components/BlogRotator";
 import { FEATURED_BLANKS } from "@/data/featuredBlanks";
 import { allTemplates } from "@/lib/templateIndex";
 
@@ -81,9 +82,9 @@ const Index = () => {
       <main className="route-fade">
         <Hero onStart={startInterview} />
         <Suspense fallback={<SectionSkeleton />}>
-          <LazyOnVisible minHeight={560}>
+          <LazyOnVisible minHeight={420}>
             <Reveal>
-              <PlatformShowcase />
+              <BlogRotator />
             </Reveal>
           </LazyOnVisible>
           <Divider />
@@ -96,6 +97,12 @@ const Index = () => {
           <LazyOnVisible minHeight={500}>
             <Reveal>
               <TopDocuments />
+            </Reveal>
+          </LazyOnVisible>
+          <Divider />
+          <LazyOnVisible minHeight={560}>
+            <Reveal>
+              <PlatformShowcase />
             </Reveal>
           </LazyOnVisible>
           <Divider />
