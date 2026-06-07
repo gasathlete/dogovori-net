@@ -1371,6 +1371,24 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
 
   return (
     <div className="space-y-8">
+      {redirectAfter && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-gold/30 bg-gold/5 px-4 py-3">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-gold">←</span>
+            <span className="text-muted-foreground">
+              Договорът, върху който работехте, е запазен. Можете да се върнете без да губите прогрес.
+            </span>
+          </div>
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="shrink-0 border-gold/40 hover:bg-gold/10 hover:text-gold"
+          >
+            <Link to={redirectAfter}>Назад към документа</Link>
+          </Button>
+        </div>
+      )}
       {/* Context links: deep-link to public GEO pages so they remain reachable
           from the pricing surface (helps internal-link graph + crawl depth). */}
       <p className="text-xs text-muted-foreground">
