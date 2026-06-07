@@ -36,6 +36,7 @@ const DEFAULT_FREE_QUOTA: FreeQuota = {
   bilingualPreviewsCap: 1,
   kitSlotsCap: 1,
   correctionsFreeUsed: false,
+  signingFreeUsed: false,
   signupAt: null,
 };
 
