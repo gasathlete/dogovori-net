@@ -25,9 +25,10 @@ type Props = {
   value: unknown;
   onChange: (v: unknown) => void;
   invalid?: boolean;
+  contacts?: Array<{ id: string; name: string; type?: string }>;
 };
 
-export function GraphQuestionField({ q, value, onChange, invalid }: Props) {
+export function GraphQuestionField({ q, value, onChange, invalid, contacts }: Props) {
   const id = `q-${q.id}`;
   const suggestion = q.default != null && q.default !== "" ? String(q.default) : "";
   const placeholderText = suggestion ? `Препоръчано: ${suggestion}` : undefined;
