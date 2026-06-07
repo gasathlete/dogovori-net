@@ -604,6 +604,7 @@ export default function WizardReviewPage() {
 
                   <CorrectionsPanel
                     isPro={isPro}
+                    freeWaveAvailable={freeWaveAvailable}
                     issues={result.risk.issues || []}
                     recommendations={result.risk.recommendations || []}
                     loading={applyingCorrections}
