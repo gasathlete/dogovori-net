@@ -106,9 +106,13 @@ export function CorrectionsPanel({
       )}
 
       {!isPro && (issues.length > 0 || recommendations.length > 0) && (
-        <div className="mb-4 rounded-md border border-gold/30 bg-gold/5 p-2.5 text-xs text-muted-foreground">
+        <div className={`mb-4 rounded-md border p-2.5 text-xs text-muted-foreground ${
+          freeWaveAvailable ? "border-success/30 bg-success/5" : "border-gold/30 bg-gold/5"
+        }`}>
           AI откри <strong className="text-foreground">{issues.length + recommendations.length}</strong> възможни подобрения.
-          С Pro прилагаш всички без да харчиш безплатна операция.
+          {freeWaveAvailable
+            ? " Имаш 1 безплатна вълна корекции — приложи я сега, без да харчиш операция."
+            : " С Pro прилагаш всички без да харчиш безплатна операция."}
         </div>
       )}
 
