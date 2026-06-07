@@ -13,6 +13,7 @@ export interface FreeQuota {
   bilingualPreviewsCap: number;
   kitSlotsCap: number;
   correctionsFreeUsed: boolean;
+  signingFreeUsed: boolean;
   signupAt: string | null;
 }
 
