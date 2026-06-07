@@ -27,6 +27,7 @@ import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard
 import { ContractPreview } from "@/components/wizard/ContractPreview";
 import { AppendixSuggestions } from "@/components/wizard/AppendixSuggestions";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
+import { MultiPartySigningDialog } from "@/components/MultiPartySigningDialog";
 import { ProValueCard } from "@/components/ProValueCard";
 import { FreeOpsChip } from "@/components/FreeOpsChip";
 import { useProConversionToast } from "@/components/ProConversionToast";
