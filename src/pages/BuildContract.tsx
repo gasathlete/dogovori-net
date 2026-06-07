@@ -179,7 +179,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   );
   const [savedDocId, setSavedDocId] = useState<string | undefined>(persisted?.savedDocId);
   const [saving, setSaving] = useState(false);
-  const { isPro, isTeam } = useIsPro();
+  const { isPro, isTeam, freeQuota } = useIsPro();
+  const freeWaveAvailable = !freeQuota.correctionsFreeUsed;
   const canStrict = isPro || isTeam;
   const canBilingual = isPro || isTeam;
   const [bilingual, setBilingual] = useState<boolean>(
