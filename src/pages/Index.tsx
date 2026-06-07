@@ -82,9 +82,9 @@ const Index = () => {
       <main className="route-fade">
         <Hero onStart={startInterview} />
         <Suspense fallback={<SectionSkeleton />}>
-          <LazyOnVisible minHeight={420}>
+          <LazyOnVisible minHeight={560}>
             <Reveal>
-              <BlogRotator />
+              <PlatformShowcase />
             </Reveal>
           </LazyOnVisible>
           <Divider />
@@ -100,9 +100,9 @@ const Index = () => {
             </Reveal>
           </LazyOnVisible>
           <Divider />
-          <LazyOnVisible minHeight={560}>
+          <LazyOnVisible minHeight={420}>
             <Reveal>
-              <PlatformShowcase />
+              <BlogRotator />
             </Reveal>
           </LazyOnVisible>
           <Divider />
