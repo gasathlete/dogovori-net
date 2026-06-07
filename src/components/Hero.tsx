@@ -183,7 +183,6 @@ export function Hero({ onStart }: { onStart: () => void }) {
           </div>
 
 
-          <BlogRotator />
         </div>
       </div>
 
