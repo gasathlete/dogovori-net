@@ -629,12 +629,12 @@ export function PlatformShowcase() {
         <div className="relative z-10 mx-auto mt-12 flex max-w-xl flex-col items-center justify-center gap-3 rounded-2xl border border-hairline bg-card/85 px-6 py-6 backdrop-blur-md sm:mt-16">
           <Link
             to="/account#plans"
-            className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-gold/60 bg-gradient-to-r from-gold/20 via-gold/15 to-gold/20 px-7 py-3 text-sm font-semibold tracking-wide text-gold shadow-elegant transition-all duration-300 hover:border-gold hover:from-gold/30 hover:via-gold/20 hover:to-gold/30 hover:shadow-[0_10px_40px_-10px_hsl(var(--gold)/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
+            className="ps-cta group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-gold/60 bg-gradient-to-r from-gold/20 via-gold/15 to-gold/20 px-7 py-3 text-sm font-semibold tracking-wide text-gold transition-all duration-300 hover:border-gold hover:from-gold/30 hover:via-gold/20 hover:to-gold/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
           >
             <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-gold/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
             <span className="relative">Вижте плановете</span>
             <ArrowRight
-              className="relative h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
+              className="relative h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
               strokeWidth={1.8}
             />
           </Link>
@@ -643,8 +643,6 @@ export function PlatformShowcase() {
           </p>
         </div>
       </div>
-
-
 
       <style>{`
         @keyframes platform-progress {
@@ -659,6 +657,50 @@ export function PlatformShowcase() {
           0% { transform: translateX(-100%); opacity: 0; }
           40% { opacity: 1; }
           100% { transform: translateX(100%); opacity: 0; }
+        }
+        /* Deal motif — 7s loop aligned with carousel rotation, building toward CTA */
+        @keyframes ps-sign-draw {
+          0%, 10%  { stroke-dasharray: 1; stroke-dashoffset: 1; }
+          32%      { stroke-dasharray: 1; stroke-dashoffset: 0; }
+          100%     { stroke-dasharray: 1; stroke-dashoffset: 0; }
+        }
+        @keyframes ps-pen-glide {
+          0%, 10%  { transform: translate(36px, 124px) rotate(-32deg); }
+          32%      { transform: translate(82px, 124px) rotate(-30deg); }
+          42%      { transform: translate(96px, 122px) rotate(-28deg); }
+          90%      { transform: translate(96px, 122px) rotate(-28deg); }
+          100%     { transform: translate(36px, 124px) rotate(-32deg); }
+        }
+        @keyframes ps-seal-stamp {
+          0%, 42%   { transform: scale(0); opacity: 0; }
+          50%       { transform: scale(1.3); opacity: 1; }
+          56%       { transform: scale(0.92); opacity: 1; }
+          62%, 100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes ps-seal-ring-anim {
+          0%, 48%   { transform: scale(1); opacity: 0; }
+          52%       { transform: scale(1); opacity: 0.9; }
+          75%       { transform: scale(2.2); opacity: 0; }
+          100%      { transform: scale(2.2); opacity: 0; }
+        }
+        @keyframes ps-doc-settle {
+          0%, 100% { transform: translateY(0) translateX(0); }
+          50%      { transform: translateY(-2px) translateX(0.5px); }
+        }
+        @keyframes ps-cta-pulse {
+          0%, 60%, 100% { box-shadow: 0 6px 22px -12px hsl(var(--gold) / 0.35); transform: translateY(0); }
+          72%           { box-shadow: 0 18px 48px -10px hsl(var(--gold) / 0.75); transform: translateY(-2px); }
+          85%           { box-shadow: 0 14px 36px -10px hsl(var(--gold) / 0.55); transform: translateY(-1px); }
+        }
+        .ps-doc       { animation: ps-doc-settle 7s ease-in-out infinite; transform-origin: 95px 90px; }
+        .ps-sign      { animation: ps-sign-draw 7s ease-in-out infinite; }
+        .ps-pen       { animation: ps-pen-glide 7s cubic-bezier(.4,.1,.3,1) infinite; transform-box: fill-box; transform-origin: 0 0; }
+        .ps-seal     { animation: ps-seal-stamp 7s ease-out infinite; transform-box: fill-box; transform-origin: 138px 132px; }
+        .ps-seal-ring{ animation: ps-seal-ring-anim 7s ease-out infinite; transform-box: fill-box; transform-origin: 138px 132px; }
+        .ps-cta       { animation: ps-cta-pulse 7s ease-in-out infinite; }
+        .ps-cta:hover { animation-play-state: paused; box-shadow: 0 16px 44px -10px hsl(var(--gold) / 0.7) !important; }
+        @media (prefers-reduced-motion: reduce) {
+          .ps-doc, .ps-sign, .ps-pen, .ps-seal, .ps-seal-ring, .ps-cta { animation: none !important; }
         }
       `}</style>
     </section>
