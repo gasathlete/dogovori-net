@@ -1,86 +1,84 @@
-## Модернизация на началната страница — "Wow" ритъм с progressive disclosure
+## Цел
 
-Целта: запазваме съществуващата йерархия (Hero → PlatformShowcase → FeaturedBlanks → TopDocuments → BlogRotator → Sectors → Process → Partners → Testimonials → Compliance → CTABand), но всяка секция получава модерен пласт — expandable "Виж повече" cards, magnetic hover, scroll-reveal stagger и микро-анимации, които водят естествено към conversion.
+1. Нова **публична** страница `/plans` — модерна landing-style със сравнение на плановете. Нерегистрираните потребители я виждат без login wall.
+2. CTA „Вижте плановете" от PlatformShowcase → води към `/plans` (вместо `/account#plans`).
+3. Smart CTA в plan cards: ако не е логнат → регистрация → после checkout за избрания план.
+4. **Запазване в паметта**: имена на плановете в BG UI — **„Предприемач"** (Pro) и **„Екип"** (Team).
 
-### Принципи (приложени навсякъде)
+## Промени
 
-- **Progressive disclosure**: всяка секция показва кратък front-side; пълните детайли са под "Виж повече" / expand-toggle. Намалява cognitive load, повишава scroll engagement.
-- **Single visual language**: gold accents, hairline borders, navy surfaces — без нови цветове. Само нови *motion* tokens.
-- **Motion budget**: всичко с `prefers-reduced-motion` бранч. Никаква auto-rotation > 8s.
-- **Mobile-first**: всеки expandable е tap-friendly (44px target), плавно height-transition.
+### 1. Memory update (при влизане в build mode)
+Създавам `.lovable/memory/plan-names.md` + добавям ред в `.lovable/memory/index.md` под Core:
 
-### Секционни промени
+> Plan display names (BG UI): Free → „Безплатен", Pro → **„Предприемач"**, Team → **„Екип"**. Използват се навсякъде — pricing, account, ProUpgradeDialog, CTA копи, Stripe product display names, имейли. Не показваме „Pro"/„Team" в UI копи.
 
-**1. Hero — финален щрих (минимални промени)**
-- Запазва се. Добавя се едва доловим parallax на медальона при scroll (translateY 0→-8px), `motion-safe` only.
-- Под двата CTA: нов микро-индикатор `↓ Scroll за да видите как работи` с gold pulse — насочва към PlatformShowcase.
+### 2. Нова страница `src/pages/Plans.tsx` (публична)
 
-**2. PlatformShowcase — без структурни промени**
-- Вече беше оптимизиран; запазваме.
+- **Hero**: „Изберете плана, който работи за вас" + златен FIRST100 банер (30% месечен / 40% годишен).
+- **Billing toggle**: Месечно ↔ Годишно, „спести ~17%" значка.
+- **3 plan cards** (bento grid, glass-morphism, hairline gold borders):
+  - **Безплатен** — 5 операции при регистрация + 2/мес, AI 5 съобщ./мес, 1 комплект. CTA „Започни безплатно".
+  - **Предприемач** (highlighted, gold `border-beam`, „Най-популярен" badge): 12.90 €/мес или 129 €/год. 100 операции, неограничен AI, двуезични, неогр. комплекти, без воден знак, loyalty 5–15%. CTA „Активирай Предприемач".
+  - **Екип**: 10.90 €/seat/мес (мин. 3 = 32.70 €/мес) или 109 €/seat/год. Споделени документи, audit log, екипно фактуриране. CTA „Създай екип".
+- **Feature comparison** — collapsible `ExpandableCard` „Виж пълно сравнение ↓": операции, AI, езици, комплекти, поддръжка, loyalty, воден знак, audit log.
+- **FAQ accordion** (5–6 въпр.: какво е операция, смяна на план, ДДС, отказ, годишно vs месечно, екип).
+- **Trust strip** (ЗЗД/GDPR/ТЗ badges).
+- **Final CTA band**: ако не е логнат → „Регистрирай се за 30 секунди"; ако е логнат → „Активирай Предприемач сега".
 
-**3. FeaturedBlanks (Топ 5 най-търсени бланки) — Expandable Card Pattern**
-- Всяка карта получава: front-side (текущото съдържание), back-side под бутон **"Виж детайли ↓"**.
-- Expanded съдържание (height auto-animated): кратки буллети — *Кога се ползва*, *Кой подписва*, *Срок*, mini-FAQ (1 въпрос).
-- Magnetic hover: картата леко follow-cursor (max 4px translate) на desktop.
-- Stagger reveal: всяка карта се появява със 60ms delay при scroll-in.
+### 3. Smart CTA логика (във всяка plan card)
 
-**4. TopDocuments (Топ 5 най-теглени) — Live counters + expandable**
-- Брояч на изтегляния анимира от 0 до `total` при scroll-in (1.2s ease-out). Усещане за "живи данни".
-- "Виж още 5" toggle: разкрива position 6-10 със slide-down animation. Без navigation.
-- Hover: gold border-beam обикаля картата (CSS conic-gradient mask, 2s loop, only on featured card).
+```ts
+const { user } = useAuth();
+const target = `/account?tab=subscription&plan=${plan}&promo=FIRST100`;
+const href = user
+  ? target
+  : `/auth?redirect=${encodeURIComponent(target)}&intent=plan_${plan}`;
+```
 
-**5. BlogRotator — без структурни промени** (вече има карусел).
+След регистрация потребителят се връща директно в checkout flow за избрания план (Auth страницата вече чете `redirect` от sessionStorage).
 
-**6. SectorGrid — Bento-style hover reveal**
-- Текущите икони/тайтли остават. На hover (или tap mobile) карточката се "разтваря" и разкрива 3 примерни документа от сектора като quick-pills с линкове.
+### 4. Routing
 
-**7. Process (Функции) — Vertical timeline + expandable steps**
-- Преподреждане от 4+2 grid на vertical **scroll-driven timeline** (gold линия отляво, активната стъпка highlight при scroll position).
-- Всяка стъпка collapsed по default; tap/click за expand → пълно описание + screenshot/icon-illustration.
-- На desktop: split layout — left side timeline pinned, right side показва съдържанието на активната стъпка (като Apple product page).
-- Mobile: класически accordion.
+В `src/App.tsx`:
+```
+<Route path="/plans" element={<Plans />} />
+```
+Lazy-loaded като останалите. SEO: `<Seo>` с title „Планове и цени — Dogovori.net" + JSON-LD `Product`/`Offer`. Запис в `public/sitemap-static.xml`.
 
-**8. Testimonials — Marquee → Carousel hybrid**
-- Auto-scroll marquee при desktop (slow, 60s), pause on hover, "Виж всички отзиви" expand → grid от всички testimonials.
+### 5. Пренасочване на CTA „Вижте плановете"
 
-**9. ComplianceSection — Trust badges с tooltip-on-hover**
-- Всеки badge (ЗЗД, GDPR, ТЗ, ЗУТ) получава hover-popover с 2 изречения какво означава за потребителя.
+`src/components/PlatformShowcase.tsx` ред 631:
+```
+to="/account#plans"  →  to="/plans"
+```
 
-**10. CTABand — Final wow**
-- Animated gold gradient sweep на background (8s loop, motion-safe).
-- Counter: "Над **X** документа изтеглени днес" (real-time от download counts hook), pulse animation.
-- Двоен CTA: основен `btn-gold` + secondary `Виж планове`.
+### 6. Преименуване Pro/Team → Предприемач/Екип
 
-### Нови utility класове (в `src/index.css`)
+Само user-facing копи. Кодови ключове (`plan: "pro"`, Stripe lookup_keys) **остават непокътнати**. Засегнати файлове за UI копи:
+- `src/components/ProUpgradeDialog.tsx` — „Pro план" → „Предприемач", бутони „Pro — 9.90 € / месец" → „Предприемач — 12.90 €/мес"; ъпдейтнати и към актуалното ценообразуване.
+- `src/components/ProValueCard.tsx`, `src/components/FreeOpsChip.tsx`, `src/pages/Account.tsx` (subscription tab labels), `src/components/wizard/RiskReport.tsx`, `src/components/CTABand.tsx` ако реферира „Pro".
+- `src/i18n/locales/bg/*.json` (ако има plan labels) — преименуване.
+- НЕ пипам: `useIsPro.tsx`, `plan === "pro"` логиката, Stripe ID, types.
 
-- `.expandable-card` — height-transition wrapper с `data-state="open|closed"`.
-- `.magnetic-hover` — CSS-only cursor-follow (използва `transform: translate(var(--mx), var(--my))` set чрез JS на mousemove, throttled).
-- `.count-up` — CSS counter анимация tied to IntersectionObserver.
-- `.border-beam` — conic-gradient ротиращ border.
-- `.scroll-stagger > *` — auto-stagger children при reveal (delays чрез `nth-child`).
+### 7. Дизайн език
 
-### Технически детайли
+- Тъмен navy gradient + suptle gold sweep (`gold-sweep-bg`).
+- Plan cards: backdrop-blur, hairline gold border, hover lift + magnetic.
+- Pro card: rotating conic-gradient `border-beam`.
+- Stagger reveal scroll-in, count-up за брояч „Над X документа подписани днес".
+- Mobile-first: stack cards, sticky billing toggle при scroll.
+- Reduced-motion respect.
 
-- Без нови dependencies. Всички анимации са CSS + малки JS hooks (IntersectionObserver, mousemove throttle).
-- Нов hook: `src/hooks/useCountUp.ts` — анимира число от 0 до target когато елемент е in-view.
-- Нов компонент: `src/components/ui/ExpandableCard.tsx` — generic wrapper за expand/collapse с smooth height transition (използва `grid-template-rows: 0fr → 1fr` трик — без JS measurement).
-- Process секцията получава нов sub-component `src/components/ProcessTimeline.tsx` (sticky scroll-driven на desktop).
-- Всички motion bracketed с `@media (prefers-reduced-motion: no-preference)`.
-- Bundle impact: ~3-5 KB gzipped (само CSS + 2 малки hooks).
+## Технически детайли
 
-### Файлове
+- **Нови файлове**: `src/pages/Plans.tsx`, `src/lib/plansData.ts` (центриран източник за features + cena), `.lovable/memory/plan-names.md`.
+- **Промени**: `src/App.tsx`, `src/components/PlatformShowcase.tsx`, `.lovable/memory/index.md`, `src/components/ProUpgradeDialog.tsx`, и UI копи в горепосочените файлове.
+- **Без backend, без нови dependencies**. Използва съществуващи: `ExpandableCard`, `Accordion`, `Tooltip`, `Seo`, `useAuth`, `useIsPro`, `Button`, design tokens.
+- Pricing източник: Pro 12.90/129 €, Team 10.90/109 € (от memory), one-off 2.90 €.
 
-- **Нови**: `src/components/ui/ExpandableCard.tsx`, `src/hooks/useCountUp.ts`, `src/components/ProcessTimeline.tsx`
-- **Промени**: `src/components/FeaturedBlanks.tsx`, `src/components/TopDocuments.tsx`, `src/components/Process.tsx`, `src/components/Testimonials.tsx`, `src/components/ComplianceSection.tsx`, `src/components/CTABand.tsx`, `src/components/SectorGrid.tsx`, `src/components/Hero.tsx` (минимално — scroll hint), `src/index.css` (нови utility класове)
+## Извън скоупа
 
-### Извън скоупа
-
-- Не пипаме PlatformShowcase (вече финализиран), BlogRotator, Header, Footer.
-- Не променяме routing, backend, data structures.
-- Не добавяме нови секции — само модернизираме съществуващите.
-
-### Очакван ефект
-
-- Wow при първи scroll: PlatformShowcase carousel + signed contract animation (вече има) → live counters на TopDocuments → scroll-driven Process timeline → animated CTABand.
-- По-високо engagement: expandable cards задържат потребителя на homepage вместо да го пращат към 5 отделни страници.
-- По-висок conversion: всеки expand завършва с soft CTA към `/catalog` или `/build`.
+- Не променям Stripe price IDs или backend логика.
+- Не пипам `plan === "pro"` checks или `useIsPro`.
+- Не пипам i18n EN копи (само BG в този ход).
+- Не добавям нови планове.
