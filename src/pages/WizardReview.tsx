@@ -453,6 +453,7 @@ export default function WizardReviewPage() {
       );
       setSavedDocId(undefined);
       toast.success("Корекциите са приложени");
+      showProToast("corrections_applied");
     } catch (e: unknown) {
       toast.error("Грешка при корекция", {
         description: e instanceof Error ? e.message : String(e),
