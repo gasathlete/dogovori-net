@@ -139,6 +139,14 @@ serve(async (req) => {
       user_agent: req.headers.get("user-agent") ?? null,
     });
 
+    // Mark the free online-signing export as used (only after the envelope
+    // and signers were created successfully).
+    if (consumedFreeSigning) {
+      await admin.from("download_quota")
+        .update({ free_signing_used: true })
+        .eq("user_id", userId);
+    }
+
     // Owner display name for invitation
     const { data: ownerProfile } = await admin.from("profiles")
       .select("full_name, email").eq("id", userId).maybeSingle();
