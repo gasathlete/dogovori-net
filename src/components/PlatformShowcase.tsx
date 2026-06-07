@@ -477,7 +477,7 @@ export function PlatformShowcase() {
           onTouchEnd={onTouchEnd}
           onTouchCancel={onTouchEnd}
         >
-          <div className="relative mx-auto h-[560px] w-full max-w-6xl sm:h-[620px] md:h-[660px]">
+          <div className="relative mx-auto h-[460px] w-full max-w-6xl sm:h-[580px] md:h-[660px]">
             {SLIDES.map((slide, i) => {
               // shortest signed distance on a ring
               let delta = i - idx;
