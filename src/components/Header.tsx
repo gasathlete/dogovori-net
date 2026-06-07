@@ -9,6 +9,9 @@ import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ToolsMenu } from "@/components/calculators/ToolsMenu";
+import { useFreeJourneyStage } from "@/hooks/useFreeJourneyStage";
+import { trackEvent } from "@/lib/analytics";
+import { Crown } from "lucide-react";
 
 
 const NAV = [
