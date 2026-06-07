@@ -321,27 +321,144 @@ export function PlatformShowcase() {
           </g>
         </svg>
 
-        {/* deal motif: handshake-inspired arcs meeting */}
+        {/* deal motif: fountain pen signing a contract */}
         <svg
-          className="absolute right-[6%] top-10 hidden h-40 w-64 md:block"
-          viewBox="0 0 256 160"
+          className="absolute right-[5%] top-8 hidden h-44 w-72 md:block"
+          viewBox="0 0 288 176"
           fill="none"
         >
-          <circle cx="64" cy="80" r="58" stroke="hsl(var(--gold) / 0.35)" strokeWidth="1" />
-          <circle cx="192" cy="80" r="58" stroke="hsl(var(--gold) / 0.35)" strokeWidth="1" />
-          <circle cx="128" cy="80" r="14" fill="none" stroke="hsl(var(--gold))" strokeWidth="1.4" />
-          <path
-            d="M128 66 l6 8 l-9 12"
-            stroke="hsl(var(--gold))"
-            strokeWidth="1.6"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+          {/* Contract / document */}
+          <g>
+            <rect
+              x="20"
+              y="22"
+              width="150"
+              height="138"
+              rx="4"
+              fill="hsl(var(--card) / 0.55)"
+              stroke="hsl(var(--gold) / 0.45)"
+              strokeWidth="1"
+            />
+            {/* folded corner */}
+            <path
+              d="M150 22 L170 42 L150 42 Z"
+              fill="hsl(var(--gold) / 0.18)"
+              stroke="hsl(var(--gold) / 0.45)"
+              strokeWidth="1"
+            />
+            {/* header bar */}
+            <rect x="32" y="36" width="60" height="4" rx="2" fill="hsl(var(--gold) / 0.7)" />
+            {/* body lines */}
+            <g stroke="hsl(var(--foreground) / 0.35)" strokeWidth="1" strokeLinecap="round">
+              <line x1="32" y1="54" x2="158" y2="54" />
+              <line x1="32" y1="64" x2="150" y2="64" />
+              <line x1="32" y1="74" x2="156" y2="74" />
+              <line x1="32" y1="84" x2="140" y2="84" />
+              <line x1="32" y1="94" x2="154" y2="94" />
+            </g>
+            {/* signature line */}
+            <line
+              x1="32"
+              y1="132"
+              x2="110"
+              y2="132"
+              stroke="hsl(var(--foreground) / 0.5)"
+              strokeWidth="1"
+            />
+            {/* signature flourish */}
+            <path
+              d="M36 128 C 48 116, 56 140, 68 126 S 86 118, 96 130"
+              stroke="hsl(var(--gold))"
+              strokeWidth="1.6"
+              fill="none"
+              strokeLinecap="round"
+            />
+            {/* check seal */}
+            <circle
+              cx="138"
+              cy="132"
+              r="11"
+              fill="none"
+              stroke="hsl(var(--gold))"
+              strokeWidth="1.3"
+            />
+            <path
+              d="M133 132 l4 4 l7 -8"
+              stroke="hsl(var(--gold))"
+              strokeWidth="1.6"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </g>
+
+          {/* Fountain pen — angled, nib touching signature */}
+          <g transform="translate(40 124) rotate(-32)">
+            {/* barrel */}
+            <rect
+              x="0"
+              y="-5"
+              width="120"
+              height="10"
+              rx="3"
+              fill="hsl(var(--navy-light) / 0.9)"
+              stroke="hsl(var(--gold) / 0.6)"
+              strokeWidth="1"
+            />
+            {/* grip band */}
+            <rect x="36" y="-6" width="6" height="12" fill="hsl(var(--gold) / 0.55)" />
+            {/* cap end */}
+            <rect
+              x="116"
+              y="-6"
+              width="10"
+              height="12"
+              rx="2"
+              fill="hsl(var(--gold) / 0.5)"
+              stroke="hsl(var(--gold))"
+              strokeWidth="1"
+            />
+            {/* clip */}
+            <rect x="100" y="-9" width="14" height="3" rx="1" fill="hsl(var(--gold))" />
+            {/* nib */}
+            <path
+              d="M0 -5 L-14 0 L0 5 Z"
+              fill="hsl(var(--gold))"
+              stroke="hsl(var(--gold))"
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            {/* nib slit */}
+            <line
+              x1="-12"
+              y1="0"
+              x2="-2"
+              y2="0"
+              stroke="hsl(var(--navy) / 0.9)"
+              strokeWidth="0.8"
+            />
+          </g>
+
+          {/* ambient dashed connectors */}
+          <line
+            x1="6"
+            y1="92"
+            x2="22"
+            y2="92"
+            stroke="hsl(var(--gold) / 0.4)"
+            strokeDasharray="2 4"
           />
-          <line x1="6" y1="80" x2="48" y2="80" stroke="hsl(var(--gold) / 0.4)" strokeDasharray="2 4" />
-          <line x1="208" y1="80" x2="250" y2="80" stroke="hsl(var(--gold) / 0.4)" strokeDasharray="2 4" />
+          <line
+            x1="172"
+            y1="92"
+            x2="282"
+            y2="92"
+            stroke="hsl(var(--gold) / 0.35)"
+            strokeDasharray="2 4"
+          />
         </svg>
       </div>
+
 
 
       <div className="container relative">
