@@ -68,22 +68,20 @@ export function useProConversionToast() {
  * App-level mount of ProUpgradeDialog that listens for the custom event
  * dispatched by useProConversionToast. Drop once near the app root.
  */
+import { useEffect } from "react";
 export function GlobalProUpgradeListener() {
   const [open, setOpen] = useState(false);
   const [trigger, setTrigger] = useState<ProUpgradeTrigger>("generic");
 
-  if (typeof window !== "undefined") {
-    (window as any).__dogovoriProListener =
-      (window as any).__dogovoriProListener ||
-      (() => {
-        window.addEventListener("dogovori:open-pro-dialog", (e: Event) => {
-          const detail = (e as CustomEvent).detail || {};
-          setTrigger((detail.trigger as ProUpgradeTrigger) || "generic");
-          setOpen(true);
-        });
-        return true;
-      })();
-  }
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      setTrigger((detail.trigger as ProUpgradeTrigger) || "generic");
+      setOpen(true);
+    };
+    window.addEventListener("dogovori:open-pro-dialog", handler);
+    return () => window.removeEventListener("dogovori:open-pro-dialog", handler);
+  }, []);
 
   return <ProUpgradeDialog open={open} onOpenChange={setOpen} trigger={trigger} />;
 }
