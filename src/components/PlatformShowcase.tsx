@@ -262,7 +262,7 @@ export function PlatformShowcase() {
         />
         {/* skyline silhouette */}
         <svg
-          className="absolute inset-x-0 bottom-0 h-[42%] w-full text-gold"
+          className="absolute inset-x-0 bottom-0 h-[28%] w-full text-gold opacity-70"
           viewBox="0 0 1600 400"
           preserveAspectRatio="xMidYEnd slice"
           fill="none"
