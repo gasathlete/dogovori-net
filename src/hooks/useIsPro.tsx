@@ -93,6 +93,7 @@ export function useIsPro(): ProState {
         bilingualPreviewsCap: 1,
         kitSlotsCap: 1,
         correctionsFreeUsed: Boolean((q as any)?.corrections_free_used),
+        signingFreeUsed: Boolean((q as any)?.free_signing_used),
         signupAt,
       },
     });
