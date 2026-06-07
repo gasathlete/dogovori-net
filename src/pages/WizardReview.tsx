@@ -97,6 +97,7 @@ export default function WizardReviewPage() {
   const [applyingCorrections, setApplyingCorrections] = useState(false);
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(undefined);
   const [isPro, setIsPro] = useState(false);
+  const [freeWaveAvailable, setFreeWaveAvailable] = useState(false);
   const [savedDocId, setSavedDocId] = useState<string | undefined>(undefined);
   const [contactId, setContactId] = useState<string>("");
   const [folderId, setFolderId] = useState<string>("");
@@ -115,11 +116,12 @@ export default function WizardReviewPage() {
   useEffect(() => {
     if (!user) {
       setIsPro(false);
+      setFreeWaveAvailable(false);
       return;
     }
     supabase
       .from("download_quota")
-      .select("plan, pro_until")
+      .select("plan, pro_until, corrections_free_used")
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => {
@@ -128,6 +130,7 @@ export default function WizardReviewPage() {
           data.plan === "pro" ||
             (!!data.pro_until && new Date(data.pro_until) > new Date()),
         );
+        setFreeWaveAvailable(!(data as any).corrections_free_used);
       });
   }, [user]);
 
