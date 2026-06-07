@@ -27,6 +27,8 @@ import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard
 import { ContractPreview } from "@/components/wizard/ContractPreview";
 import { AppendixSuggestions } from "@/components/wizard/AppendixSuggestions";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
+import { ProValueCard } from "@/components/ProValueCard";
+import { FreeOpsChip } from "@/components/FreeOpsChip";
 
 import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhilishte";
 import { useAuth } from "@/hooks/useAuth";
@@ -499,7 +501,7 @@ export default function WizardReviewPage() {
 
       <div className="sticky top-16 z-30 border-b border-border/60 bg-navy/90 backdrop-blur-xl">
         <div className="container py-3">
-          <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center justify-between gap-3 text-xs">
             <button
               onClick={() => navigate(`/wizard-graph/${slug}`)}
               className="flex items-center gap-1 text-muted-foreground transition-colors hover:text-gold"
@@ -507,7 +509,10 @@ export default function WizardReviewPage() {
               <ArrowLeft className="h-3.5 w-3.5" />
               Назад към въпросника
             </button>
-            <span className="font-serif italic text-gold">{graph.title}</span>
+            <div className="flex items-center gap-3">
+              <FreeOpsChip />
+              <span className="hidden font-serif italic text-gold sm:inline">{graph.title}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -585,6 +590,8 @@ export default function WizardReviewPage() {
                       </div>
                     </div>
                   </div>
+
+                  <ProValueCard source="corrections" />
 
                   <AppendixSuggestions appendices={appendices} onCreate={handleCreateAppendix} />
 

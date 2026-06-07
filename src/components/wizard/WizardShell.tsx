@@ -17,6 +17,7 @@ import {
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { FreeOpsChip } from "@/components/FreeOpsChip";
 
 export interface WizardShellProgress {
   stepIdx: number;
@@ -141,8 +142,9 @@ export function WizardShell({
               <span className="hidden text-muted-foreground sm:inline">·</span>
               <span className="hidden font-serif italic text-gold sm:inline">{docName}</span>
             </div>
-            <div className="text-muted-foreground">
-              Секция {progress.stepIdx + 1} от {total}
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <FreeOpsChip />
+              <span>Секция {progress.stepIdx + 1} от {total}</span>
             </div>
           </div>
           <Progress value={pct} className="h-1.5 bg-secondary" />
