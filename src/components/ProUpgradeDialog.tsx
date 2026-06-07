@@ -94,8 +94,16 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
 
   const goToBilling = (plan: "monthly" | "yearly") => {
     trackEvent("paywall_clicked", { trigger, plan });
+    const returnTo =
+      typeof window !== "undefined"
+        ? window.location.pathname + window.location.search
+        : "";
+    const redirect =
+      returnTo && !returnTo.startsWith("/account") && !returnTo.startsWith("/auth")
+        ? `&redirect=${encodeURIComponent(returnTo)}`
+        : "";
     onOpenChange(false);
-    navigate(`/account?tab=subscription&plan=${plan}&promo=FIRST100`);
+    navigate(`/account?tab=subscription&plan=${plan}&promo=FIRST100${redirect}`);
   };
 
   return (
