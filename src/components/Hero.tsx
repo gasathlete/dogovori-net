@@ -1,5 +1,5 @@
 import { useId, useRef, useState } from "react";
-import { ShieldCheck, Bird, FileText, ArrowRight, Search, FileSignature } from "lucide-react";
+import { ShieldCheck, Bird, FileText, ArrowRight, Search, FileSignature, ChevronDown } from "lucide-react";
 const logoImg = "/logo-dogovori-hero.webp";
 import { scrollToHash } from "@/lib/scrollToHash";
 import { BlogRotator } from "@/components/BlogRotator";
@@ -9,6 +9,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
   const tooltipId = useId();
   const [quote, setQuote] = useState<BusinessQuote | null>(null);
   const [visible, setVisible] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const lastIdxRef = useRef<number | undefined>(undefined);
 
   const showQuote = () => {
@@ -143,8 +144,32 @@ export function Hero({ onStart }: { onStart: () => void }) {
 
             style={{ animationDelay: "160ms" }}
           >
-            Освен шаблони и бланки, сайтът предлага разработка на собствен документ, с правна подкрепа от Нашата Система. Стратегически въпроси, които да напътстват Вашата сделка. Dogovori.net изгражда индивидуални договори и документи, съобразени със ЗЗД, ТЗ и ЗУТ, придружени от пълен правен риск-анализ.
+            Индивидуални договори, съобразени със ЗЗД, ТЗ и ЗУТ — с пълен правен риск-анализ.
           </p>
+          <div
+            className="anim-rise mx-auto mt-2 max-w-2xl text-center"
+            style={{ animationDelay: "200ms" }}
+          >
+            <button
+              type="button"
+              onClick={() => setMoreOpen((v) => !v)}
+              aria-expanded={moreOpen}
+              className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold/80 transition-colors hover:text-gold"
+            >
+              {moreOpen ? "Скрий" : "Виж повече"}
+              <ChevronDown className={`h-3 w-3 transition-transform duration-300 ${moreOpen ? "rotate-180" : ""}`} />
+            </button>
+            <div
+              className="grid transition-[grid-template-rows] duration-500 ease-out motion-reduce:transition-none"
+              style={{ gridTemplateRows: moreOpen ? "1fr" : "0fr" }}
+            >
+              <div className="overflow-hidden">
+                <p className={`pt-3 text-pretty text-sm leading-relaxed text-muted-foreground transition-opacity duration-300 ${moreOpen ? "opacity-100" : "opacity-0"}`}>
+                  Освен шаблони и бланки, сайтът предлага разработка на собствен документ с правна подкрепа от Нашата Система. Стратегически въпроси, които напътстват Вашата сделка стъпка по стъпка.
+                </p>
+              </div>
+            </div>
+          </div>
           <div
             className="anim-rise mt-5 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-5"
             style={{ animationDelay: "240ms" }}
@@ -167,7 +192,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
 
             style={{ animationDelay: "300ms" }}
           >
-            Безплатно: 5 операции при регистрация + 2/месец · 1 безплатна авто-корекция · Pro 9.90 €/мес — 100 операции · Промокод FIRST100 → −30%
+            5 безплатни операции · Pro 9.90 €/мес · Промокод <span className="text-gold">FIRST100</span> → −30%
           </p>
           <div className="anim-rise mt-2 text-center" style={{ animationDelay: "340ms" }}>
             <button

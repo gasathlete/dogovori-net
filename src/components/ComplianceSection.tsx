@@ -75,7 +75,7 @@ export function ComplianceSection() {
             Закон за задълженията и договорите · Търговски закон · ЗУТ
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground md:text-base">
-            Всеки договор включва клаузи за частична недействителност, форсмажор и подсъдност (Софийски градски съд / Арбитраж при БТПП). В зависимост от казуса, препоръчваме окончателен преглед от лицензиран адвокат.
+            Защитни клаузи и подсъдност по подразбиране — препоръчваме окончателен преглед от адвокат при сложни казуси.
           </p>
           <TooltipProvider delayDuration={150}>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
