@@ -3,10 +3,14 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 /**
  * Mounts children only once the wrapper enters (or nears) the viewport.
  * Reserves space via `minHeight` to avoid layout shift while idle.
+ *
+ * Uses a generous rootMargin so chunks mount well before the user reaches
+ * them — this prevents the "jump" that happens when a placeholder swaps
+ * for taller real content.
  */
 export function LazyOnVisible({
   children,
-  rootMargin = "800px",
+  rootMargin = "1600px",
   minHeight = 400,
   fallback = null,
 }: {
@@ -36,11 +40,32 @@ export function LazyOnVisible({
       { rootMargin },
     );
     io.observe(node);
-    return () => io.disconnect();
+
+    // Safety net: when the main thread is idle, hydrate remaining sections.
+    // This avoids any chance of a late-mount jump if the user scrolls fast.
+    const ric =
+      (window as any).requestIdleCallback ??
+      ((cb: () => void) => setTimeout(cb, 1200));
+    const handle = ric(() => setVisible(true), { timeout: 2500 });
+
+    return () => {
+      io.disconnect();
+      const cic = (window as any).cancelIdleCallback;
+      if (cic) cic(handle);
+      else clearTimeout(handle as any);
+    };
   }, [rootMargin, visible]);
 
   return (
-    <div ref={ref} style={visible ? undefined : { minHeight }}>
+    <div
+      ref={ref}
+      className="cv-auto"
+      style={{
+        // `contain-intrinsic-size` via .cv-auto reserves space; we still set
+        // minHeight for browsers without content-visibility support.
+        ...(visible ? null : { minHeight, containIntrinsicSize: `1px ${minHeight}px` as any }),
+      }}
+    >
       {visible ? children : fallback}
     </div>
   );
