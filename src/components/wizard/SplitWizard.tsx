@@ -101,7 +101,7 @@ function PreviewFadeGate({
 export function SplitWizard({
   graph, clauses, initialAnswers, storageKey, onComplete,
   ctaLabel = "Финализирай документа",
-  onProgress, leftHeader, onDownloadBlank,
+  onProgress, leftHeader, onDownloadBlank, contacts,
 }: Props) {
   const persistKey = storageKey ?? `splitwizard:${graph.template_slug}`;
 
