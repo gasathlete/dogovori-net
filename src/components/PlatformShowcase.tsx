@@ -486,10 +486,13 @@ export function PlatformShowcase() {
               const abs = Math.abs(delta);
               const isActive = delta === 0;
 
-              const translateX = delta * 300 + (isActive ? dragDx : dragDx * 0.4);
-              const rotateY = reducedMotion ? 0 : delta * -16;
-              const scale = abs === 0 ? 1 : abs === 1 ? 0.84 : 0.68;
-              const opacity = abs === 0 ? 1 : abs === 1 ? 0.55 : 0.22;
+              // Responsive offsets — tighter on mobile to avoid edge clipping
+              const isMobileVP = typeof window !== "undefined" && window.innerWidth < 640;
+              const offset = isMobileVP ? 180 : 300;
+              const translateX = delta * offset + (isActive ? dragDx : dragDx * 0.4);
+              const rotateY = reducedMotion ? 0 : delta * (isMobileVP ? -22 : -16);
+              const scale = abs === 0 ? 1 : abs === 1 ? (isMobileVP ? 0.7 : 0.84) : (isMobileVP ? 0.5 : 0.68);
+              const opacity = abs === 0 ? 1 : abs === 1 ? 0.5 : 0.18;
               const z = 10 - abs;
 
               const { Icon } = slide;
