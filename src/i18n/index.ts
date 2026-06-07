@@ -7,7 +7,8 @@ import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 
 import bgCommon from "./locales/bg/common.json";
-import enCommon from "./locales/en/common.json";
+// English bundle is loaded on demand only when the user actually visits /en/*.
+// Keeps ~10KB of JSON + parsing work off the default Bulgarian critical path.
 
 export const SUPPORTED_LOCALES = ["bg", "en"] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
@@ -47,7 +48,6 @@ i18n
   .init({
     resources: {
       bg: { common: bgCommon },
-      en: { common: enCommon },
     },
     lng: initial,
     fallbackLng: DEFAULT_LOCALE,
@@ -62,9 +62,24 @@ i18n
     returnNull: false,
   });
 
+let enLoaded = false;
+async function ensureEnLoaded() {
+  if (enLoaded) return;
+  enLoaded = true;
+  const mod = await import("./locales/en/common.json");
+  i18n.addResourceBundle("en", "common", mod.default ?? mod, true, true);
+}
+
+// If the app booted directly on an /en/* URL, fetch the English bundle now.
+if (initial === "en") void ensureEnLoaded();
+
 export function setLocale(locale: Locale) {
   if (!SUPPORTED_LOCALES.includes(locale)) return;
-  i18n.changeLanguage(locale);
+  if (locale === "en") {
+    void ensureEnLoaded().then(() => i18n.changeLanguage(locale));
+  } else {
+    i18n.changeLanguage(locale);
+  }
   try { localStorage.setItem(STORAGE_KEY, locale); } catch { /* ignore */ }
   if (typeof document !== "undefined") document.documentElement.lang = locale;
 }

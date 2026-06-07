@@ -27,6 +27,10 @@ export function PartnersBoard() {
   };
 
   useEffect(() => {
+    // Guard against React 18 StrictMode double-invoke + any accidental remount
+    // by ensuring we only fire the request once per page lifecycle.
+    if ((window as any).__partnersLoaded) return;
+    (window as any).__partnersLoaded = true;
     load();
   }, []);
 
@@ -93,6 +97,10 @@ export function PartnersBoard() {
                         src={p.logo_url}
                         alt={p.name}
                         loading="lazy"
+                        decoding="async"
+                        {...({ fetchpriority: "low" } as any)}
+                        width={400}
+                        height={144}
                         className="h-20 sm:h-28 md:h-36 w-auto max-w-[260px] sm:max-w-[320px] md:max-w-[400px] object-contain opacity-80 transition-all duration-300 group-hover/item:opacity-100 group-hover/item:scale-[1.03]"
                       />
                     </div>

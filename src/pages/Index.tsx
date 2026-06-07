@@ -8,9 +8,16 @@ import { Seo } from "@/components/Seo";
 import { LazyOnVisible } from "@/components/LazyOnVisible";
 import { SectionSkeleton } from "@/components/SectionSkeleton";
 import { Reveal } from "@/components/Reveal";
-import { BlogRotator } from "@/components/BlogRotator";
+// BlogRotator пада в `LazyOnVisible` секцията по-долу — превърнат в lazy chunk
+// за да не дърпа blogTopics + autoLinkBlog в entry bundle-а.
 import { FEATURED_BLANKS } from "@/data/featuredBlanks";
 import { allTemplates } from "@/lib/templateIndex";
+
+// Pre-compute the doc-name -> slug lookup once at module load instead of on every
+// Index render. ItemList JSON-LD below depends on this.
+const SLUG_BY_NAME: Map<string, string> = new Map(
+  allTemplates().map((t) => [t.doc.name, t.slug]),
+);
 
 // Below-the-fold sections — code-split + mounted on scroll.
 // SeoFooter stays eager (internal links matter for crawling).
@@ -23,6 +30,7 @@ const PartnersBoard = lazy(() => import("@/components/PartnersBoard").then((m) =
 const Testimonials = lazy(() => import("@/components/Testimonials").then((m) => ({ default: m.Testimonials })));
 const ComplianceSection = lazy(() => import("@/components/ComplianceSection").then((m) => ({ default: m.ComplianceSection })));
 const CTABand = lazy(() => import("@/components/CTABand").then((m) => ({ default: m.CTABand })));
+const BlogRotator = lazy(() => import("@/components/BlogRotator").then((m) => ({ default: m.BlogRotator })));
 
 const Divider = () => (
   <div aria-hidden="true" className="container">
@@ -49,10 +57,9 @@ const Index = () => {
   // top 5 high-search blanks. Slugs are resolved from templateIndex so they
   // always match the real /shablon/:slug URLs.
   const featuredJsonLd = useMemo(() => {
-    const slugByName = new Map(allTemplates().map((t) => [t.doc.name, t.slug]));
     const items = FEATURED_BLANKS
       .map((b, i) => {
-        const slug = slugByName.get(b.docName);
+        const slug = SLUG_BY_NAME.get(b.docName);
         if (!slug) return null;
         return {
           "@type": "ListItem",
