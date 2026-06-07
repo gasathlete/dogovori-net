@@ -390,7 +390,16 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
         sub={
           isPro
             ? `${(quota as any)?.pro_monthly_used ?? 0}/100 операции/мес`
-            : `${(quota as any)?.total_used ?? 0}/6 общо · ${(quota as any)?.monthly_total_used ?? 0}/2 този месец`
+            : (() => {
+                const signupAt = (quota as any)?.signup_at ? new Date((quota as any).signup_at).getTime() : null;
+                const withinFirstMonth = !!signupAt && Date.now() - signupAt < 30 * 24 * 60 * 60 * 1000;
+                const cap = withinFirstMonth ? 5 : 2;
+                const used = (quota as any)?.monthly_total_used ?? 0;
+                const corrFree = (quota as any)?.corrections_free_used
+                  ? "вълна корекции използвана"
+                  : "+1 безплатна вълна корекции";
+                return `${used}/${cap} операции · ${corrFree}`;
+              })()
         }
         hint="Документ · Бланка · Качване на документ за Анализ – автоматични корекции = 1 операция"
         onClick={() => navigate("/account?tab=subscription")}
