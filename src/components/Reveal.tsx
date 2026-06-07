@@ -20,8 +20,8 @@ export function Reveal({
       ref={ref as any}
       style={delay ? { transitionDelay: `${delay}ms` } : undefined}
       className={cn(
-        "transition-all duration-700 ease-out motion-reduce:transition-none motion-reduce:translate-y-0 motion-reduce:opacity-100",
-        inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4",
+        "transition-opacity duration-500 ease-out motion-reduce:transition-none motion-reduce:opacity-100",
+        inView ? "opacity-100" : "opacity-0",
         className
       )}
     >

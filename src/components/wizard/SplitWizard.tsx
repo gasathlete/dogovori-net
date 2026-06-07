@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GraphQuestionField } from "./GraphQuestionField";
 import { assembleDocument, diffInclusion, type ClauseDefinition } from "@/lib/clauseEngine";
-import { pruneAnswers, resolveGraph, type QuestionGraph } from "@/lib/questionGraph";
+import { pruneAnswers, resolveGraph, resolveQuestionDefault, type QuestionGraph } from "@/lib/questionGraph";
 import type { Ctx } from "@/lib/expressionEvaluator";
 import {
   AlertCircle, CheckCircle2, Sparkles, Eye, EyeOff,
@@ -212,8 +212,33 @@ export function SplitWizard({
 
   const handleNext = () => {
     if (!canAdvance) {
+      // Auto-accept suggested defaults for any missing required fields.
+      const filled: Ctx = { ...answers };
+      let appliedAny = false;
+      let stillMissing = false;
+      for (const m of missingInCurrent) {
+        const q = currentSection?.questions.find((x) => x.id === m.id);
+        if (!q) { stillMissing = true; continue; }
+        const def = resolveQuestionDefault(q, filled);
+        if (def == null || def === "") { stillMissing = true; continue; }
+        filled[q.id] = def;
+        appliedAny = true;
+      }
+      if (appliedAny && !stillMissing) {
+        setAnswers(pruneAnswers(graph, filled));
+        // Defer navigation until state propagates.
+        setTimeout(() => {
+          if (isLast) {
+            const cleaned = pruneAnswers(graph, filled);
+            const finalDoc = assembleDocument(clauses, cleaned);
+            onComplete?.({ answers: cleaned, body_md: finalDoc.body_md });
+          } else {
+            goToSection(stepIdx + 1);
+          }
+        }, 0);
+        return;
+      }
       setAttemptedNext(true);
-      // Scroll to first missing field
       const firstMissing = missingInCurrent[0]?.id;
       if (firstMissing) {
         requestAnimationFrame(() => {

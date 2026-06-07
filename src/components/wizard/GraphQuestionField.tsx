@@ -29,6 +29,8 @@ type Props = {
 
 export function GraphQuestionField({ q, value, onChange, invalid }: Props) {
   const id = `q-${q.id}`;
+  const suggestion = q.default != null && q.default !== "" ? String(q.default) : "";
+  const placeholderText = suggestion ? `Препоръчано: ${suggestion}` : undefined;
   const labelEl = (
     <Label htmlFor={id} className="flex items-baseline gap-1 text-sm font-medium">
       <span>{q.label}</span>
@@ -52,6 +54,7 @@ export function GraphQuestionField({ q, value, onChange, invalid }: Props) {
             onChange={(e) => onChange(e.target.value)}
             className={errorRing}
             inputMode={q.field_type === "money" ? "decimal" : undefined}
+            placeholder={placeholderText}
           />
           {help}
         </div>
@@ -70,6 +73,7 @@ export function GraphQuestionField({ q, value, onChange, invalid }: Props) {
               onChange(v === "" ? undefined : Number(v));
             }}
             className={errorRing}
+            placeholder={placeholderText}
           />
           {help}
         </div>
