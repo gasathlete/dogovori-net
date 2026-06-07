@@ -30,6 +30,7 @@ const PartnersBoard = lazy(() => import("@/components/PartnersBoard").then((m) =
 const Testimonials = lazy(() => import("@/components/Testimonials").then((m) => ({ default: m.Testimonials })));
 const ComplianceSection = lazy(() => import("@/components/ComplianceSection").then((m) => ({ default: m.ComplianceSection })));
 const CTABand = lazy(() => import("@/components/CTABand").then((m) => ({ default: m.CTABand })));
+const BlogRotator = lazy(() => import("@/components/BlogRotator").then((m) => ({ default: m.BlogRotator })));
 
 const Divider = () => (
   <div aria-hidden="true" className="container">
