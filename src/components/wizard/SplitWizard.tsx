@@ -42,6 +42,8 @@ interface Props {
   leftHeader?: React.ReactNode;
   /** Triggered by the fade-gate "или изтеглете като бланка" pill. */
   onDownloadBlank?: () => void;
+  /** User's saved contacts — fed into party_list questions for one-click party fill. */
+  contacts?: Array<{ id: string; name: string; type?: string }>;
 }
 
 const DIFF_TTL_MS = 2500;
