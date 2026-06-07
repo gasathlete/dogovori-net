@@ -13,7 +13,7 @@ export interface DocumentKit {
   id: string;
   title: string;
   sectorId: string;
-  group: "corporate" | "real_estate" | "employment" | "digital" | "ip" | "other";
+  group: "corporate" | "real_estate" | "employment" | "digital" | "ip" | "family" | "other";
   groupLabel: string;
   icon: string; // lucide
   shortDescription: string;
@@ -28,6 +28,7 @@ export const KIT_GROUPS: { id: DocumentKit["group"]; label: string }[] = [
   { id: "employment", label: "Труд и Услуги" },
   { id: "digital", label: "Дигитално и SaaS" },
   { id: "ip", label: "Интелектуална собственост" },
+  { id: "family", label: "Семейно и лично" },
   { id: "other", label: "Други ключови" },
 ];
 
@@ -374,6 +375,119 @@ export const DOCUMENT_KITS: DocumentKit[] = [
       { docName: "Договор за покупко-продажба на МПС", role: "primary" },
       { docName: "Декларация за продажба на МПС пред КАТ", role: "appendix" },
       { docName: "Пълномощно за управление и продажба на МПС", role: "companion", optional: true },
+    ],
+  },
+
+  // ─────────────────────────────  REAL ESTATE (extra)  ─────────────────────────────
+  {
+    id: "predvaritelen-dogovor-imot",
+    title: "Предварителен договор за имот — пълен пакет",
+    sectorId: "real-estate",
+    group: "real_estate",
+    groupLabel: "Имоти",
+    icon: "FileSignature",
+    shortDescription:
+      "Предварителен договор, задатък и декларации преди нотариалния акт.",
+    forWho: "За купувачи и продавачи преди финализиране на сделка.",
+    items: [
+      { docName: "Предварителен договор за покупка на имот", role: "primary" },
+      { docName: "Разписка за получена сума в агенция (задатък)", role: "appendix" },
+      { docName: "Декларация по чл. 264 ДОПК", role: "companion" },
+      { docName: "Споразумение за разваляне на предварителен договор", role: "companion", optional: true },
+    ],
+  },
+
+  // ─────────────────────────────  POWER OF ATTORNEY  ─────────────────────────────
+  {
+    id: "pulnomoshchno-paket",
+    title: "Пълномощни — представителство",
+    sectorId: "power-of-attorney",
+    group: "family",
+    groupLabel: "Пълномощни",
+    icon: "FileSignature",
+    featured: true,
+    shortDescription:
+      "Най-използваните пълномощни — банка, МПС, имот, НАП и съд.",
+    forWho: "За всеки, който упълномощава трето лице да го представлява.",
+    items: [
+      { docName: "Пълномощно за банкови операции", role: "primary" },
+      { docName: "Пълномощно за управление и продажба на МПС", role: "appendix" },
+      { docName: "Пълномощно за недвижим имот", role: "appendix" },
+      { docName: "Пълномощно за НАП", role: "companion", optional: true },
+      { docName: "Пълномощно за съд", role: "companion", optional: true },
+    ],
+  },
+
+  // ─────────────────────────────  FAMILY  ─────────────────────────────
+  {
+    id: "razvod-paket",
+    title: "Развод по взаимно съгласие",
+    sectorId: "family",
+    group: "family",
+    groupLabel: "Семейно",
+    icon: "Users",
+    featured: true,
+    shortDescription:
+      "Споразумение за развод, родителски права и издръжка.",
+    forWho: "За съпрузи, които прекратяват брака без съдебен спор.",
+    items: [
+      { docName: "Споразумение за развод по взаимно съгласие", role: "primary" },
+      { docName: "Споразумение за родителски права", role: "appendix" },
+      { docName: "Молба за издръжка на дете (бланка)", role: "companion", optional: true },
+    ],
+  },
+  {
+    id: "roditelski-prava-paket",
+    title: "Родителски права и издръжка",
+    sectorId: "family",
+    group: "family",
+    groupLabel: "Семейно",
+    icon: "Heart",
+    shortDescription:
+      "За определяне на режим на лични отношения и издръжка след развод.",
+    forWho: "За разделени родители или при промяна на режима.",
+    items: [
+      { docName: "Споразумение за родителски права", role: "primary" },
+      { docName: "Молба за издръжка на дете (бланка)", role: "appendix" },
+      { docName: "Споразумение за извънсъдебно уреждане на спор", role: "companion", optional: true },
+    ],
+  },
+
+  // ─────────────────────────────  FINANCE  ─────────────────────────────
+  {
+    id: "zaem-pari-paket",
+    title: "Заем между физически лица",
+    sectorId: "finance",
+    group: "other",
+    groupLabel: "Финанси",
+    icon: "HandCoins",
+    featured: true,
+    shortDescription:
+      "Договор за заем, запис на заповед и разписка — пълно обезпечение.",
+    forWho: "За заемодатели и заемополучатели между физически лица.",
+    items: [
+      { docName: "Договор за заем на парични средства", role: "primary" },
+      { docName: "Запис на заповед", role: "appendix" },
+      { docName: "Разписка за получена сума", role: "appendix" },
+      { docName: "Споразумение за опрощаване на дълг (чл. 108 ЗЗД)", role: "companion", optional: true },
+    ],
+  },
+
+  // ─────────────────────────────  DECLARATIONS  ─────────────────────────────
+  {
+    id: "deklaratsii-paket",
+    title: "Често използвани декларации",
+    sectorId: "family",
+    group: "family",
+    groupLabel: "Декларации",
+    icon: "FileCheck",
+    shortDescription:
+      "ДОПК, ЗМИП и GDPR — задължителните декларации при сделки.",
+    forWho: "За страни по сделки с имоти, МПС или обработка на лични данни.",
+    items: [
+      { docName: "Декларация по чл. 264 ДОПК", role: "primary" },
+      { docName: "Декларация по ЗМИП (мерки срещу прането на пари)", role: "appendix" },
+      { docName: "Декларация за съгласие за обработка на лични данни (GDPR)", role: "appendix" },
     ],
   },
 ];
