@@ -1,104 +1,76 @@
+## Дигитален карусел „Какво може платформата"
 
-# Conversion Loop за Free → Pro
+High-end 3D coverflow секция веднага след Hero блока на началната страница, която представя 4 ключови предимства на Dogovori.net по визуално впечатляващ начин.
 
-## Принципи
-- **Никакво скриване на ценност.** Авто-корекциите и предложенията стават видими за всички. Free вижда какво прави Pro и иска още.
-- **Tactical pacing.** Различни pitch-ове на различни моменти от 3-те безплатни операции, плюс след изчерпването им.
-- **„Just-in-time" paywall.** Не блокираме нищо предварително — paywall се появява точно в момента, в който потребителят се сблъсква с граница.
-- **Multi-channel.** Минимум 6 различни места където системата show-ва Pro оферта в естествен flow, без да дразни.
+### Място
+- Нов компонент `src/components/PlatformShowcase.tsx`
+- Монтира се в `src/pages/Index.tsx` веднага след `<Hero />` и преди `<FeaturedBlanks />` (lazy-loaded + Reveal, както останалите секции)
+- Запазваме Process / TopDocuments / FeaturedBlanks непокътнати
 
-## 1. Премахване на скриването на корекциите
-**Файл:** `src/components/wizard/CorrectionsPanel.tsx`
-- Премахваме `blur-sm pointer-events-none` и lock-овете за позиции ≥2.
-- Free потребителят вижда ВСИЧКИ issues + recommendations с активни чекбоксове.
-- Бутонът „Приложи избраните (N)" работи и за Free, но:
-  - Първите 3 пъти (докато има свободни ops) → пуска auto-corrections wave нормално (счита се като 1 op).
-  - При нямане на op → бутонът става „Приложи с Pro (N корекции)" и отваря paywall с конкретен ROI: „X корекции готови за прилагане → отключи с Pro".
+### Съдържание (4 карти)
 
-## 2. Op-aware tease pacing (3 безплатни операции / месец)
+1. **Решения за ежедневния бизнес**
+   - Иконка: Briefcase / Building
+   - Подзаглавие: „Договори, протоколи и заявления, готови за подпис за минути"
+   - Mini-визуал: стилизиран mock на договор с подчертани полета
+2. **Качествено съдържание — бързо и удобно**
+   - Иконка: Sparkles / Wand
+   - Подзаглавие: „AI-асистент, auto-корекции и интелигентни клаузи. Без правен жаргон без причина."
+   - Mini-визуал: текст с „светещи" корекции (gold highlight линии)
+3. **Дигитален каталог правна документация**
+   - Иконка: Library / BookOpen
+   - Подзаглавие: „600+ образци по сектори — от наем и труд до NDA, GDPR и пълномощни"
+   - Mini-визуал: stack от мини-карти с категории
+4. **Съхранение, подреждане и контрагенти**
+   - Иконка: FolderTree / Users
+   - Подзаглавие: „Папки, споделяне и прилагане към контрагенти на едно място"
+   - Mini-визуал: контрагент-аватари + папка
 
-`useIsPro` вече дава `opsUsed` / `opsCap`. Въвеждаме `useFreeJourneyStage()` helper в `src/hooks/useFreeJourneyStage.ts`:
-
-```
-stage 0 (opsUsed = 0):  „Discovery" — без push, само value showcase
-stage 1 (opsUsed = 1):  „Aha"      — soft hint: „1 операция използвана. Pro = 100/мес"
-stage 2 (opsUsed = 2):  „Pressure" — конкретен ROI tease: „Остава 1 безплатна. Ето какво пропускаш…"
-stage 3 (opsUsed ≥ 3):  „Convert"  — paywall blocking + ясна оферта
-```
-
-## 3. Шест канала за tease (placed strategically)
-
-### Канал A — Inline meter в WizardShell sticky header
-**Файл:** `src/components/wizard/WizardShell.tsx`
-- Малък counter chip „2/3 безплатни операции" → клик отваря Pro модал.
-- При stage 2 → chip светва златно с „Остава 1 — виж какво пропускаш".
-- При stage 3 → chip → „Изчерпани. Pro = 100/мес".
-
-### Канал B — Post-action celebration toast
-**Файл:** нов `src/components/ProConversionToast.tsx` + интегриран в успешен download/analyze.
-- След ОПЕРАЦИЯ 1: toast „🎉 Готово! Имаш още 2 безплатни операции."
-- След ОПЕРАЦИЯ 2: toast „Това е последната ти безплатна. Pro = 100/мес → 10ст/документ".
-- След ОПЕРАЦИЯ 3: toast → меко директен CTA „Беше първите ти 3. Продължи с Pro →".
-
-### Канал C — Corrections Panel ROI banner (на stage 2-3)
-**Файл:** `src/components/wizard/CorrectionsPanel.tsx`
-- Над списъка добавяме banner: „AI намери N подобрения. С Pro прилагаш неограничено без да харчиш операции."
-
-### Канал D — Risk Report unlock teaser
-**Файл:** `src/components/wizard/RiskReport.tsx`
-- В дъното на доклада на free: малък card „Pro получава автоматично прилагане на всички N препоръки + auto-monitor при промяна на договора."
-
-### Канал E — Wizard Review sidebar value card
-**Файл:** `src/pages/WizardReview.tsx`
-- В лявата колона, под RiskMeter, нов компонент `<ProValueCard stage={…} />`:
-  - stage 0: hidden.
-  - stage 1: „С Pro получаваш…" — 4 bullet-а с икони (100 ops, неогр. корекции, AI асистент, bilingual).
-  - stage 2: + reward teaser „Loyalty: 1000 ops = 5% доживот".
-  - stage 3: blocker + бутон „Виж плановете" с FIRST100 promo highlight.
-
-### Канал F — Category / Hero contextual nudge
-**Файл:** `src/components/Hero.tsx` или нов компонент в Index.tsx над fold за logged-in free.
-- Personalized nudge: „Здравей! Използва 2 от 3 безплатни — следващият договор отключи с FIRST100 (30% отстъпка)."
-- Само за logged-in free; скрит при logged-out и Pro.
-
-### Канал G (бонус) — Account dropdown badge
-**Файл:** `src/components/Header.tsx`
-- Малка точка/чип върху avatar-а при stage 2-3 → води към `/account` с подчертан upgrade CTA.
-
-## 4. Paywall модал — единен компонент
-**Файл:** нов `src/components/ProUpgradeDialog.tsx`
-- Една централна точка с props: `trigger: "corrections" | "ops_exhausted" | "ai_limit" | "bilingual" | "kit_slot" | "generic"`.
-- Динамичен copy спрямо trigger (показва какво искаше user-ът + какво Pro прави там).
-- Винаги показва FIRST100 promo + reward ladder (gold/platinum/diamond).
-- Сравнение Free vs Pro vs Team в кратка таблица.
-- 2 CTA: „Pro 12.90 €/мес" + „Pro годишно 129 €" (highlight save).
-
-Замества разпръснатите `onUpgrade` callbacks — всеки досегашен upgrade entry point вика `openProDialog(trigger)`.
-
-## 5. Auto-corrections charging (важно)
-- Една wave auto-corrections = 1 op (вече така работи).
-- За free потребител на stage 2: преди да го заредим, питаме „Това ще използва последната ти безплатна операция. Продължи?" (lightweight confirm, не paywall).
-- На stage 3: вместо confirm → ProUpgradeDialog с trigger="corrections".
-
-## 6. Analytics за измерване
-**Файл:** `src/lib/analytics.ts`
-- Track events: `tease_shown` (channel, stage), `tease_clicked`, `paywall_shown` (trigger), `paywall_converted`.
-- Позволява да A/B тестваме pacing на каналите.
-
-## Извън обхвата
-- Backend/Stripe промени (FIRST100 вече съществува).
-- Промяна на цените (12.90/129 остават).
-- Промени по reward tier-овете.
-
-## Технически детайли (compact)
+### Дизайн (3D Coverflow)
 
 ```text
-useFreeJourneyStage()  →  { stage: 0|1|2|3, opsLeft, opsUsed, isPro }
-  ↓
-WizardShell chip ──┐
-CorrectionsPanel ──┤
-RiskReport teaser──┼──→ ProUpgradeDialog(trigger)
-WizardReview card ─┤
-Hero nudge ────────┤
-Toast on success ──┘
+        [card -2]   [card -1]   [ ACTIVE ]   [card +1]   [card +2]
+         dim 40%    dim 70%      100% scale   dim 70%     dim 40%
+         rotateY    rotateY      front        rotateY     rotateY
+         +35°       +18°                      -18°        -35°
 ```
+
+- Контейнер `perspective: 1600px`, всяка карта `transform-style: preserve-3d`
+- Активна карта: 420×520px, scale 1, лек float (translateY hover), gold border-glow (shadow-elegant + ring-gold/30)
+- Странични карти: scale 0.78 / 0.6, opacity 0.55 / 0.25, rotateY ±18° / ±35°, translateX за припокриване
+- Преходи: `transition: transform 700ms cubic-bezier(.22,1,.36,1), opacity 500ms`
+- Auto-rotate на 7s (pause on hover / focus / touch — както BlogRotator)
+- Навигация: ← → стрелки (lucide ChevronLeft/Right в кръгли бутони с hairline border), точки долу, клик върху странична карта = центрира я
+- Drag / swipe на touch и мишка (reuse touch логиката от BlogRotator, threshold 60px)
+- Keyboard: ArrowLeft / ArrowRight когато секцията е в focus
+- Reduced motion: премахва rotateY, оставя fade + scale; auto-rotate спира
+
+### Визуални акценти (motion level 4)
+
+- Background: navy с suptle radial gold gradient под активната карта (`bg-[radial-gradient(60%_50%_at_50%_60%,hsl(var(--gold)/.08),transparent)]`)
+- Corner ornaments (gold/40, 3px) на активната карта — консистентно с BlogRotator
+- Kicker chip „Платформата" в gold uppercase tracking
+- H2 секция: `Всичко за вашите договори — в едно работно пространство`
+- Mini-визуалите вътре в картата с лек parallax (translateY -8px при hover), border-beam-like тънка линия в долния ръб (CSS-only animated gradient)
+- Анимирана progress линия под точките (както BlogRotator), синхронизирана с 7s ротация
+
+### Технически детайли
+
+- React + Tailwind, само existing tokens (`gold`, `navy`, `hairline`, `card`, `shadow-elegant`, `font-serif`)
+- Lucide icons (вече налични)
+- Lazy import в `Index.tsx`: `const PlatformShowcase = lazy(() => import("@/components/PlatformShowcase").then(m => ({ default: m.PlatformShowcase })))`
+- Обвиване с `<LazyOnVisible minHeight={560}>` + `<Reveal>`
+- Без нови dependencies (без Three.js — CSS 3D transforms са достатъчни за coverflow и пазят bundle)
+- SEO: семантичен `<section aria-labelledby="platform-showcase-heading">` с H2
+- a11y: aria-live="polite" за активното заглавие, focus ring върху бутони и карти, `prefers-reduced-motion` бранч
+
+### Файлове
+
+- **Нов**: `src/components/PlatformShowcase.tsx`
+- **Промени**: `src/pages/Index.tsx` (добавя секцията след Hero)
+
+### Извън скоупа
+
+- Не пипаме Hero, Process, FeaturedBlanks, TopDocuments
+- Не добавяме нови маршрути или backend
+- Не променяме съществуващи компоненти или дизайн система

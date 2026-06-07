@@ -14,6 +14,7 @@ import { allTemplates } from "@/lib/templateIndex";
 // Below-the-fold sections — code-split + mounted on scroll.
 // SeoFooter stays eager (internal links matter for crawling).
 const FeaturedBlanks = lazy(() => import("@/components/FeaturedBlanks").then((m) => ({ default: m.FeaturedBlanks })));
+const PlatformShowcase = lazy(() => import("@/components/PlatformShowcase").then((m) => ({ default: m.PlatformShowcase })));
 const TopDocuments = lazy(() => import("@/components/TopDocuments").then((m) => ({ default: m.TopDocuments })));
 const Process = lazy(() => import("@/components/Process").then((m) => ({ default: m.Process })));
 const PartnersBoard = lazy(() => import("@/components/PartnersBoard").then((m) => ({ default: m.PartnersBoard })));
@@ -80,6 +81,12 @@ const Index = () => {
       <main className="route-fade">
         <Hero onStart={startInterview} />
         <Suspense fallback={<SectionSkeleton />}>
+          <LazyOnVisible minHeight={560}>
+            <Reveal>
+              <PlatformShowcase />
+            </Reveal>
+          </LazyOnVisible>
+          <Divider />
           <LazyOnVisible minHeight={420}>
             <Reveal>
               <FeaturedBlanks />
