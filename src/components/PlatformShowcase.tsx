@@ -510,7 +510,26 @@ export function PlatformShowcase() {
             {String(idx + 1).padStart(2, "0")} / {String(n).padStart(2, "0")}
           </span>
         </div>
+
+        {/* CTA */}
+        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:mt-12">
+          <Link
+            to="/account#plans"
+            className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-gold/50 bg-gradient-to-r from-gold/15 via-gold/10 to-gold/15 px-6 py-3 text-sm font-semibold tracking-wide text-gold shadow-elegant transition-all duration-300 hover:border-gold hover:from-gold/25 hover:via-gold/15 hover:to-gold/25 hover:shadow-[0_10px_40px_-10px_hsl(var(--gold)/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
+          >
+            <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-gold/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+            <span className="relative">Вижте плановете</span>
+            <ArrowRight
+              className="relative h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
+              strokeWidth={1.8}
+            />
+          </Link>
+          <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+            Започнете още днес — без обвързване
+          </p>
+        </div>
       </div>
+
 
       <style>{`
         @keyframes platform-progress {
