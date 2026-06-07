@@ -833,6 +833,16 @@ export default function WizardReviewPage() {
                     </div>
                   </div>
                 </div>
+                <MultiPartySigningDialog
+                  open={signDialogOpen}
+                  onOpenChange={setSignDialogOpen}
+                  title={(customTitle || result.contract.title || "Договор").trim()}
+                  documentSnapshot={result.contract}
+                  savedDocumentId={savedDocId ?? null}
+                  isPro={isPro}
+                  freeAvailable={signingFreeAvailable}
+                  onCreated={refreshQuota}
+                />
               </div>
             );
           })()}
