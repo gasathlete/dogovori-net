@@ -512,10 +512,10 @@ export function PlatformShowcase() {
         </div>
 
         {/* CTA */}
-        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:mt-12">
+        <div className="relative z-10 mx-auto mt-12 flex max-w-xl flex-col items-center justify-center gap-3 rounded-2xl border border-hairline bg-card/85 px-6 py-6 backdrop-blur-md sm:mt-16">
           <Link
             to="/account#plans"
-            className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-gold/50 bg-gradient-to-r from-gold/15 via-gold/10 to-gold/15 px-6 py-3 text-sm font-semibold tracking-wide text-gold shadow-elegant transition-all duration-300 hover:border-gold hover:from-gold/25 hover:via-gold/15 hover:to-gold/25 hover:shadow-[0_10px_40px_-10px_hsl(var(--gold)/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
+            className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-gold/60 bg-gradient-to-r from-gold/20 via-gold/15 to-gold/20 px-7 py-3 text-sm font-semibold tracking-wide text-gold shadow-elegant transition-all duration-300 hover:border-gold hover:from-gold/30 hover:via-gold/20 hover:to-gold/30 hover:shadow-[0_10px_40px_-10px_hsl(var(--gold)/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
           >
             <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-gold/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
             <span className="relative">Вижте плановете</span>
@@ -529,6 +529,7 @@ export function PlatformShowcase() {
           </p>
         </div>
       </div>
+
 
 
       <style>{`
