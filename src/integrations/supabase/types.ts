@@ -715,6 +715,7 @@ export type Database = {
           bilingual_previews_used: number
           bonus_contracts: number
           contracts_used: number
+          corrections_free_used: boolean
           features_reset_at: string
           monthly_contracts_used: number
           monthly_reset_at: string
@@ -724,6 +725,7 @@ export type Database = {
           pro_monthly_used: number
           pro_period_start: string
           pro_until: string | null
+          signup_at: string
           templates_used: number
           total_used: number
           updated_at: string
@@ -736,6 +738,7 @@ export type Database = {
           bilingual_previews_used?: number
           bonus_contracts?: number
           contracts_used?: number
+          corrections_free_used?: boolean
           features_reset_at?: string
           monthly_contracts_used?: number
           monthly_reset_at?: string
@@ -745,6 +748,7 @@ export type Database = {
           pro_monthly_used?: number
           pro_period_start?: string
           pro_until?: string | null
+          signup_at?: string
           templates_used?: number
           total_used?: number
           updated_at?: string
@@ -757,6 +761,7 @@ export type Database = {
           bilingual_previews_used?: number
           bonus_contracts?: number
           contracts_used?: number
+          corrections_free_used?: boolean
           features_reset_at?: string
           monthly_contracts_used?: number
           monthly_reset_at?: string
@@ -766,6 +771,7 @@ export type Database = {
           pro_monthly_used?: number
           pro_period_start?: string
           pro_until?: string | null
+          signup_at?: string
           templates_used?: number
           total_used?: number
           updated_at?: string
@@ -2240,6 +2246,7 @@ export type Database = {
           bilingual_previews_used: number
           bonus_contracts: number
           contracts_used: number
+          corrections_free_used: boolean
           features_reset_at: string
           monthly_contracts_used: number
           monthly_reset_at: string
@@ -2249,6 +2256,7 @@ export type Database = {
           pro_monthly_used: number
           pro_period_start: string
           pro_until: string | null
+          signup_at: string
           templates_used: number
           total_used: number
           updated_at: string
