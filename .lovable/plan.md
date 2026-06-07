@@ -1,76 +1,86 @@
-## Дигитален карусел „Какво може платформата"
+## Модернизация на началната страница — "Wow" ритъм с progressive disclosure
 
-High-end 3D coverflow секция веднага след Hero блока на началната страница, която представя 4 ключови предимства на Dogovori.net по визуално впечатляващ начин.
+Целта: запазваме съществуващата йерархия (Hero → PlatformShowcase → FeaturedBlanks → TopDocuments → BlogRotator → Sectors → Process → Partners → Testimonials → Compliance → CTABand), но всяка секция получава модерен пласт — expandable "Виж повече" cards, magnetic hover, scroll-reveal stagger и микро-анимации, които водят естествено към conversion.
 
-### Място
-- Нов компонент `src/components/PlatformShowcase.tsx`
-- Монтира се в `src/pages/Index.tsx` веднага след `<Hero />` и преди `<FeaturedBlanks />` (lazy-loaded + Reveal, както останалите секции)
-- Запазваме Process / TopDocuments / FeaturedBlanks непокътнати
+### Принципи (приложени навсякъде)
 
-### Съдържание (4 карти)
+- **Progressive disclosure**: всяка секция показва кратък front-side; пълните детайли са под "Виж повече" / expand-toggle. Намалява cognitive load, повишава scroll engagement.
+- **Single visual language**: gold accents, hairline borders, navy surfaces — без нови цветове. Само нови *motion* tokens.
+- **Motion budget**: всичко с `prefers-reduced-motion` бранч. Никаква auto-rotation > 8s.
+- **Mobile-first**: всеки expandable е tap-friendly (44px target), плавно height-transition.
 
-1. **Решения за ежедневния бизнес**
-   - Иконка: Briefcase / Building
-   - Подзаглавие: „Договори, протоколи и заявления, готови за подпис за минути"
-   - Mini-визуал: стилизиран mock на договор с подчертани полета
-2. **Качествено съдържание — бързо и удобно**
-   - Иконка: Sparkles / Wand
-   - Подзаглавие: „AI-асистент, auto-корекции и интелигентни клаузи. Без правен жаргон без причина."
-   - Mini-визуал: текст с „светещи" корекции (gold highlight линии)
-3. **Дигитален каталог правна документация**
-   - Иконка: Library / BookOpen
-   - Подзаглавие: „600+ образци по сектори — от наем и труд до NDA, GDPR и пълномощни"
-   - Mini-визуал: stack от мини-карти с категории
-4. **Съхранение, подреждане и контрагенти**
-   - Иконка: FolderTree / Users
-   - Подзаглавие: „Папки, споделяне и прилагане към контрагенти на едно място"
-   - Mini-визуал: контрагент-аватари + папка
+### Секционни промени
 
-### Дизайн (3D Coverflow)
+**1. Hero — финален щрих (минимални промени)**
+- Запазва се. Добавя се едва доловим parallax на медальона при scroll (translateY 0→-8px), `motion-safe` only.
+- Под двата CTA: нов микро-индикатор `↓ Scroll за да видите как работи` с gold pulse — насочва към PlatformShowcase.
 
-```text
-        [card -2]   [card -1]   [ ACTIVE ]   [card +1]   [card +2]
-         dim 40%    dim 70%      100% scale   dim 70%     dim 40%
-         rotateY    rotateY      front        rotateY     rotateY
-         +35°       +18°                      -18°        -35°
-```
+**2. PlatformShowcase — без структурни промени**
+- Вече беше оптимизиран; запазваме.
 
-- Контейнер `perspective: 1600px`, всяка карта `transform-style: preserve-3d`
-- Активна карта: 420×520px, scale 1, лек float (translateY hover), gold border-glow (shadow-elegant + ring-gold/30)
-- Странични карти: scale 0.78 / 0.6, opacity 0.55 / 0.25, rotateY ±18° / ±35°, translateX за припокриване
-- Преходи: `transition: transform 700ms cubic-bezier(.22,1,.36,1), opacity 500ms`
-- Auto-rotate на 7s (pause on hover / focus / touch — както BlogRotator)
-- Навигация: ← → стрелки (lucide ChevronLeft/Right в кръгли бутони с hairline border), точки долу, клик върху странична карта = центрира я
-- Drag / swipe на touch и мишка (reuse touch логиката от BlogRotator, threshold 60px)
-- Keyboard: ArrowLeft / ArrowRight когато секцията е в focus
-- Reduced motion: премахва rotateY, оставя fade + scale; auto-rotate спира
+**3. FeaturedBlanks (Топ 5 най-търсени бланки) — Expandable Card Pattern**
+- Всяка карта получава: front-side (текущото съдържание), back-side под бутон **"Виж детайли ↓"**.
+- Expanded съдържание (height auto-animated): кратки буллети — *Кога се ползва*, *Кой подписва*, *Срок*, mini-FAQ (1 въпрос).
+- Magnetic hover: картата леко follow-cursor (max 4px translate) на desktop.
+- Stagger reveal: всяка карта се появява със 60ms delay при scroll-in.
 
-### Визуални акценти (motion level 4)
+**4. TopDocuments (Топ 5 най-теглени) — Live counters + expandable**
+- Брояч на изтегляния анимира от 0 до `total` при scroll-in (1.2s ease-out). Усещане за "живи данни".
+- "Виж още 5" toggle: разкрива position 6-10 със slide-down animation. Без navigation.
+- Hover: gold border-beam обикаля картата (CSS conic-gradient mask, 2s loop, only on featured card).
 
-- Background: navy с suptle radial gold gradient под активната карта (`bg-[radial-gradient(60%_50%_at_50%_60%,hsl(var(--gold)/.08),transparent)]`)
-- Corner ornaments (gold/40, 3px) на активната карта — консистентно с BlogRotator
-- Kicker chip „Платформата" в gold uppercase tracking
-- H2 секция: `Всичко за вашите договори — в едно работно пространство`
-- Mini-визуалите вътре в картата с лек parallax (translateY -8px при hover), border-beam-like тънка линия в долния ръб (CSS-only animated gradient)
-- Анимирана progress линия под точките (както BlogRotator), синхронизирана с 7s ротация
+**5. BlogRotator — без структурни промени** (вече има карусел).
+
+**6. SectorGrid — Bento-style hover reveal**
+- Текущите икони/тайтли остават. На hover (или tap mobile) карточката се "разтваря" и разкрива 3 примерни документа от сектора като quick-pills с линкове.
+
+**7. Process (Функции) — Vertical timeline + expandable steps**
+- Преподреждане от 4+2 grid на vertical **scroll-driven timeline** (gold линия отляво, активната стъпка highlight при scroll position).
+- Всяка стъпка collapsed по default; tap/click за expand → пълно описание + screenshot/icon-illustration.
+- На desktop: split layout — left side timeline pinned, right side показва съдържанието на активната стъпка (като Apple product page).
+- Mobile: класически accordion.
+
+**8. Testimonials — Marquee → Carousel hybrid**
+- Auto-scroll marquee при desktop (slow, 60s), pause on hover, "Виж всички отзиви" expand → grid от всички testimonials.
+
+**9. ComplianceSection — Trust badges с tooltip-on-hover**
+- Всеки badge (ЗЗД, GDPR, ТЗ, ЗУТ) получава hover-popover с 2 изречения какво означава за потребителя.
+
+**10. CTABand — Final wow**
+- Animated gold gradient sweep на background (8s loop, motion-safe).
+- Counter: "Над **X** документа изтеглени днес" (real-time от download counts hook), pulse animation.
+- Двоен CTA: основен `btn-gold` + secondary `Виж планове`.
+
+### Нови utility класове (в `src/index.css`)
+
+- `.expandable-card` — height-transition wrapper с `data-state="open|closed"`.
+- `.magnetic-hover` — CSS-only cursor-follow (използва `transform: translate(var(--mx), var(--my))` set чрез JS на mousemove, throttled).
+- `.count-up` — CSS counter анимация tied to IntersectionObserver.
+- `.border-beam` — conic-gradient ротиращ border.
+- `.scroll-stagger > *` — auto-stagger children при reveal (delays чрез `nth-child`).
 
 ### Технически детайли
 
-- React + Tailwind, само existing tokens (`gold`, `navy`, `hairline`, `card`, `shadow-elegant`, `font-serif`)
-- Lucide icons (вече налични)
-- Lazy import в `Index.tsx`: `const PlatformShowcase = lazy(() => import("@/components/PlatformShowcase").then(m => ({ default: m.PlatformShowcase })))`
-- Обвиване с `<LazyOnVisible minHeight={560}>` + `<Reveal>`
-- Без нови dependencies (без Three.js — CSS 3D transforms са достатъчни за coverflow и пазят bundle)
-- SEO: семантичен `<section aria-labelledby="platform-showcase-heading">` с H2
-- a11y: aria-live="polite" за активното заглавие, focus ring върху бутони и карти, `prefers-reduced-motion` бранч
+- Без нови dependencies. Всички анимации са CSS + малки JS hooks (IntersectionObserver, mousemove throttle).
+- Нов hook: `src/hooks/useCountUp.ts` — анимира число от 0 до target когато елемент е in-view.
+- Нов компонент: `src/components/ui/ExpandableCard.tsx` — generic wrapper за expand/collapse с smooth height transition (използва `grid-template-rows: 0fr → 1fr` трик — без JS measurement).
+- Process секцията получава нов sub-component `src/components/ProcessTimeline.tsx` (sticky scroll-driven на desktop).
+- Всички motion bracketed с `@media (prefers-reduced-motion: no-preference)`.
+- Bundle impact: ~3-5 KB gzipped (само CSS + 2 малки hooks).
 
 ### Файлове
 
-- **Нов**: `src/components/PlatformShowcase.tsx`
-- **Промени**: `src/pages/Index.tsx` (добавя секцията след Hero)
+- **Нови**: `src/components/ui/ExpandableCard.tsx`, `src/hooks/useCountUp.ts`, `src/components/ProcessTimeline.tsx`
+- **Промени**: `src/components/FeaturedBlanks.tsx`, `src/components/TopDocuments.tsx`, `src/components/Process.tsx`, `src/components/Testimonials.tsx`, `src/components/ComplianceSection.tsx`, `src/components/CTABand.tsx`, `src/components/SectorGrid.tsx`, `src/components/Hero.tsx` (минимално — scroll hint), `src/index.css` (нови utility класове)
 
 ### Извън скоупа
 
-- Не пипаме Hero, Process, FeaturedBlanks, TopDocuments
-- Не добавяме нови маршрути или backend
-- Не променяме съществуващи компоненти или дизайн система
+- Не пипаме PlatformShowcase (вече финализиран), BlogRotator, Header, Footer.
+- Не променяме routing, backend, data structures.
+- Не добавяме нови секции — само модернизираме съществуващите.
+
+### Очакван ефект
+
+- Wow при първи scroll: PlatformShowcase carousel + signed contract animation (вече има) → live counters на TopDocuments → scroll-driven Process timeline → animated CTABand.
+- По-високо engagement: expandable cards задържат потребителя на homepage вместо да го пращат към 5 отделни страници.
+- По-висок conversion: всеки expand завършва с soft CTA към `/catalog` или `/build`.
