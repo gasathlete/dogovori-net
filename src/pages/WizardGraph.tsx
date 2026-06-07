@@ -215,6 +215,7 @@ export default function WizardGraphPage() {
           onProgress={setProgress}
           leftHeader={<RiskMeter level="unknown" />}
           onDownloadBlank={handleDownloadBlank}
+          contacts={contacts}
         />
       </WizardShell>
     </>
