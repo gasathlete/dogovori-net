@@ -55,10 +55,9 @@ const Index = () => {
   // top 5 high-search blanks. Slugs are resolved from templateIndex so they
   // always match the real /shablon/:slug URLs.
   const featuredJsonLd = useMemo(() => {
-    const slugByName = new Map(allTemplates().map((t) => [t.doc.name, t.slug]));
     const items = FEATURED_BLANKS
       .map((b, i) => {
-        const slug = slugByName.get(b.docName);
+        const slug = SLUG_BY_NAME.get(b.docName);
         if (!slug) return null;
         return {
           "@type": "ListItem",
