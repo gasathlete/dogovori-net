@@ -23,10 +23,15 @@ interface Props {
   addLabel?: string;
 }
 
+const ANON_NAME = "(име не е посочено)";
+
 export function serializeParties(rows: PartyRow[]): string {
   return rows
-    .filter((r) => r.name.trim())
-    .map((r) => `${r.name.trim()}${r.type ? ` — ${r.type}` : ""}`)
+    .filter((r) => r.name.trim() || r.type)
+    .map((r) => {
+      const name = r.name.trim() || ANON_NAME;
+      return `${name}${r.type ? ` — ${r.type}` : ""}`;
+    })
     .join("\n");
 }
 
@@ -38,7 +43,10 @@ export function parseParties(raw: string): PartyRow[] {
     .filter(Boolean)
     .map((line) => {
       const m = line.match(/^(.*?)\s+[—\-|]\s+(ФЛ|ЮЛ|ЕТ)\s*$/);
-      if (m) return { name: m[1].trim(), type: m[2] as PartyType };
+      if (m) {
+        const rawName = m[1].trim();
+        return { name: rawName === ANON_NAME ? "" : rawName, type: m[2] as PartyType };
+      }
       return { name: line, type: "ЮЛ" as PartyType };
     });
 }
