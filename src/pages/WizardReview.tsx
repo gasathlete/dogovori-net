@@ -11,7 +11,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Bird, FileDown, FileText, Loader2, AlertCircle, Save, Folder, User, CheckCircle2, ChevronDown } from "lucide-react";
+import { ArrowLeft, Bird, FileDown, FileText, Loader2, AlertCircle, Save, Folder, User, CheckCircle2, ChevronDown, FileSignature, Printer } from "lucide-react";
 import { toast } from "sonner";
 
 import { Header } from "@/components/Header";
@@ -27,6 +27,7 @@ import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard
 import { ContractPreview } from "@/components/wizard/ContractPreview";
 import { AppendixSuggestions } from "@/components/wizard/AppendixSuggestions";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
+import { MultiPartySigningDialog } from "@/components/MultiPartySigningDialog";
 import { ProValueCard } from "@/components/ProValueCard";
 import { FreeOpsChip } from "@/components/FreeOpsChip";
 import { useProConversionToast } from "@/components/ProConversionToast";
@@ -98,6 +99,8 @@ export default function WizardReviewPage() {
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(undefined);
   const [isPro, setIsPro] = useState(false);
   const [freeWaveAvailable, setFreeWaveAvailable] = useState(false);
+  const [signingFreeAvailable, setSigningFreeAvailable] = useState(false);
+  const [signDialogOpen, setSignDialogOpen] = useState(false);
   const [savedDocId, setSavedDocId] = useState<string | undefined>(undefined);
   const [contactId, setContactId] = useState<string>("");
   const [folderId, setFolderId] = useState<string>("");
@@ -113,15 +116,16 @@ export default function WizardReviewPage() {
     navigate(`/account?tab=subscription&redirect=${encodeURIComponent(reviewHref)}`);
 
   // Detect Pro status when authenticated.
-  useEffect(() => {
+  const refreshQuota = () => {
     if (!user) {
       setIsPro(false);
       setFreeWaveAvailable(false);
+      setSigningFreeAvailable(false);
       return;
     }
     supabase
       .from("download_quota")
-      .select("plan, pro_until, corrections_free_used")
+      .select("plan, pro_until, corrections_free_used, free_signing_used")
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => {
@@ -131,7 +135,12 @@ export default function WizardReviewPage() {
             (!!data.pro_until && new Date(data.pro_until) > new Date()),
         );
         setFreeWaveAvailable(!(data as any).corrections_free_used);
+        setSigningFreeAvailable(!(data as any).free_signing_used);
       });
+  };
+  useEffect(() => {
+    refreshQuota();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Load user's contacts and folders for the finalize selectors.
@@ -745,6 +754,23 @@ export default function WizardReviewPage() {
                           </Button>
 
                           <Button
+                            onClick={() => {
+                              if (!user) { goAuth(); return; }
+                              setSignDialogOpen(true);
+                            }}
+                            variant="outline"
+                            className="mt-2 w-full border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10"
+                          >
+                            <FileSignature className="mr-2 h-4 w-4" />
+                            Експорт за онлайн подпис
+                            {!isPro && signingFreeAvailable && (
+                              <span className="ml-2 inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
+                                1 безплатна
+                              </span>
+                            )}
+                          </Button>
+
+                          <Button
                             variant="ghost"
                             onClick={() => {
                               try {
@@ -771,9 +797,32 @@ export default function WizardReviewPage() {
                 <div className="min-w-0">
                   <div className="lg:sticky lg:top-32">
                     <div className="rounded-xl border border-border/60 bg-gradient-card shadow-soft">
-                      <div className="hidden border-b border-border/40 p-4 lg:block">
-                        <div className="font-serif text-base font-bold">Преглед на документа</div>
-                        <div className="text-xs text-muted-foreground">Изготвеният договор се актуализира в реално време</div>
+                      <div className="hidden border-b border-border/40 p-4 lg:flex lg:items-center lg:justify-between lg:gap-2">
+                        <div>
+                          <div className="font-serif text-base font-bold">Преглед на документа</div>
+                          <div className="text-xs text-muted-foreground">Безплатни сваляния 24 часа след създаване</div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={!!exporting}
+                            onClick={() => handleExport("pdf")}
+                            title="Свали PDF"
+                            className="h-8 px-2 text-gold hover:bg-gold/10"
+                          >
+                            {exporting === "pdf" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => window.print()}
+                            title="Печат"
+                            className="h-8 px-2 text-gold hover:bg-gold/10"
+                          >
+                            <Printer className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                       <ContractPreview
                         contract={result.contract}
@@ -784,6 +833,16 @@ export default function WizardReviewPage() {
                     </div>
                   </div>
                 </div>
+                <MultiPartySigningDialog
+                  open={signDialogOpen}
+                  onOpenChange={setSignDialogOpen}
+                  title={(customTitle || result.contract.title || "Договор").trim()}
+                  documentSnapshot={result.contract}
+                  savedDocumentId={savedDocId ?? null}
+                  isPro={isPro}
+                  freeAvailable={signingFreeAvailable}
+                  onCreated={refreshQuota}
+                />
               </div>
             );
           })()}

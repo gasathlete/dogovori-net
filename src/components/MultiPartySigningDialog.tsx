@@ -20,6 +20,12 @@ interface Props {
   documentSnapshot: unknown;
   savedDocumentId?: string | null;
   uploadedContractId?: string | null;
+  /** Whether the user still has their one-time free online-signing export. */
+  freeAvailable?: boolean;
+  /** Whether the user is on a Pro/Team plan. */
+  isPro?: boolean;
+  /** Called when the request was created successfully (e.g. to refresh quota). */
+  onCreated?: () => void;
 }
 
 export function MultiPartySigningDialog(p: Props) {
@@ -54,11 +60,22 @@ export function MultiPartySigningDialog(p: Props) {
     setBusy(false);
     if (error || data?.error) {
       const code = data?.error ?? error?.message;
-      toast.error(code === "pro_required" ? "Изисква се Pro план" : (code ?? "Грешка"));
+      if (code === "pro_required") {
+        toast.error("Безплатният онлайн подпис вече е използван", {
+          description: "Активирайте Pro за неограничен брой заявки за подпис.",
+        });
+      } else {
+        toast.error(code ?? "Грешка");
+      }
       return;
     }
     setCreatedId(data.request.id);
-    toast.success("Заявката е създадена. Изпратете линковете на подписващите.");
+    p.onCreated?.();
+    toast.success(
+      !p.isPro && p.freeAvailable
+        ? "Безплатната заявка е създадена. Изпратете линковете на подписващите."
+        : "Заявката е създадена. Изпратете линковете на подписващите.",
+    );
   }
 
   return (
@@ -75,6 +92,14 @@ export function MultiPartySigningDialog(p: Props) {
           </div>
         ) : (
           <div className="space-y-5">
+            {!p.isPro && p.freeAvailable && (
+              <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm">
+                <div className="font-semibold text-emerald-600">🎁 Имате 1 безплатен онлайн подпис</div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Тази заявка ще използва безплатния ви кредит. Следващите изискват Pro план.
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Подписващи</Label>
               {signers.map((s, i) => (

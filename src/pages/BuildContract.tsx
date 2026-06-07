@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { prefetchHandlers } from "@/components/PrefetchLink";
-import { ArrowLeft, ArrowRight, Loader2, FileDown, FileText, Save, Wand2, Sparkles, Zap, Briefcase, Scale, ChevronDown, Check, Languages, ShieldCheck, FileSignature, Lightbulb } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, FileDown, FileText, Save, Wand2, Sparkles, Zap, Briefcase, Scale, ChevronDown, Check, Languages, ShieldCheck, FileSignature, Lightbulb, Printer } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -23,6 +23,7 @@ import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
 import { DetectedReferencesBanner } from "@/components/DetectedReferencesBanner";
+import { MultiPartySigningDialog } from "@/components/MultiPartySigningDialog";
 import { SECTORS, type Sector } from "@/data/sectors";
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, collectContractText, type DocumentTypeId } from "@/lib/documentReferences";
 import { getBuildSchema, type BuildField } from "@/lib/documentFieldSchemas";
@@ -179,8 +180,10 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   );
   const [savedDocId, setSavedDocId] = useState<string | undefined>(persisted?.savedDocId);
   const [saving, setSaving] = useState(false);
-  const { isPro, isTeam, freeQuota } = useIsPro();
+  const { isPro, isTeam, freeQuota, refresh: refreshPro } = useIsPro();
   const freeWaveAvailable = !freeQuota.correctionsFreeUsed;
+  const signingFreeAvailable = !freeQuota.signingFreeUsed;
+  const [signDialogOpen, setSignDialogOpen] = useState(false);
   const canStrict = isPro || isTeam;
   const canBilingual = isPro || isTeam;
   const [bilingual, setBilingual] = useState<boolean>(
@@ -1358,6 +1361,19 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                     {savedDocId ? "Запазено в профила" : "Запази в профила"}
                   </Button>
                   <Button
+                    onClick={() => setSignDialogOpen(true)}
+                    variant="outline"
+                    className="mt-2 w-full border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10"
+                  >
+                    <FileSignature className="mr-2 h-4 w-4" />
+                    Експорт за онлайн подпис
+                    {!isPro && signingFreeAvailable && (
+                      <span className="ml-2 inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
+                        1 безплатна
+                      </span>
+                    )}
+                  </Button>
+                  <Button
                     variant="ghost"
                     onClick={() => {
                       try { localStorage.removeItem(STORAGE_KEY); } catch {}
@@ -1381,10 +1397,31 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
           <section className="lg:sticky lg:top-32 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">
             {result ? (
               <>
-                <div className="mb-3 flex items-center justify-between">
+                <div className="mb-3 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gold">
                     <FileText className="h-3.5 w-3.5" />
                     Краен документ
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={!!exporting}
+                      onClick={() => handleExport("pdf")}
+                      title="Свали PDF"
+                      className="h-8 px-2 text-gold hover:bg-gold/10"
+                    >
+                      {exporting === "pdf" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => window.print()}
+                      title="Печат"
+                      className="h-8 px-2 text-gold hover:bg-gold/10"
+                    >
+                      <Printer className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
                 <div className="space-y-4">
@@ -1413,6 +1450,16 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                     }}
                   />
                 </div>
+                <MultiPartySigningDialog
+                  open={signDialogOpen}
+                  onOpenChange={setSignDialogOpen}
+                  title={(name || result.contract.title || "Договор").trim()}
+                  documentSnapshot={result.contract}
+                  savedDocumentId={savedDocId ?? null}
+                  isPro={isPro}
+                  freeAvailable={signingFreeAvailable}
+                  onCreated={refreshPro}
+                />
               </>
             ) : (
               <>

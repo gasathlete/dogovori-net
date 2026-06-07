@@ -13,6 +13,7 @@ export interface FreeQuota {
   bilingualPreviewsCap: number;
   kitSlotsCap: number;
   correctionsFreeUsed: boolean;
+  signingFreeUsed: boolean;
   signupAt: string | null;
 }
 
@@ -35,6 +36,7 @@ const DEFAULT_FREE_QUOTA: FreeQuota = {
   bilingualPreviewsCap: 1,
   kitSlotsCap: 1,
   correctionsFreeUsed: false,
+  signingFreeUsed: false,
   signupAt: null,
 };
 
@@ -56,7 +58,7 @@ export function useIsPro(): ProState {
       supabase
         .from("download_quota")
         .select(
-          "plan, pro_until, monthly_total_used, ai_messages_used, analysis_previews_used, bilingual_previews_used, corrections_free_used, signup_at",
+          "plan, pro_until, monthly_total_used, ai_messages_used, analysis_previews_used, bilingual_previews_used, corrections_free_used, free_signing_used, signup_at",
         )
         .eq("user_id", user.id)
         .maybeSingle(),
@@ -91,6 +93,7 @@ export function useIsPro(): ProState {
         bilingualPreviewsCap: 1,
         kitSlotsCap: 1,
         correctionsFreeUsed: Boolean((q as any)?.corrections_free_used),
+        signingFreeUsed: Boolean((q as any)?.free_signing_used),
         signupAt,
       },
     });
