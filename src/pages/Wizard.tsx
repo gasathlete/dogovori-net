@@ -287,6 +287,22 @@ export default function WizardPage() {
     }
     setExporting(format);
     try {
+      // Build polished signature parties from group_parties answers (A, B + extras).
+      const parseExtras = (raw: string) =>
+        (raw || "")
+          .split("\n")
+          .map((l) => {
+            const [name = "", type = ""] = l.split("|").map((s) => s.trim());
+            return { name, type };
+          })
+          .filter((r) => r.name || r.type);
+      const partiesArr = [
+        { role: sector.parties?.a || "СТРАНА А", name: answers.party_a_name || "", type: answers.party_a_type },
+        { role: sector.parties?.b || "СТРАНА Б", name: answers.party_b_name || "", type: answers.party_b_type },
+        ...parseExtras(answers.party_a_extra || "").map((r) => ({ role: sector.parties?.a || "СТРАНА А", name: r.name, type: r.type })),
+        ...parseExtras(answers.party_b_extra || "").map((r) => ({ role: sector.parties?.b || "СТРАНА Б", name: r.name, type: r.type })),
+      ].filter((p) => p.name || p.type);
+
       const sigPayload: SignatureInfo = {
         name_a: signature.name_a || answers.party_a_name || "",
         name_b: signature.name_b || answers.party_b_name || "",
@@ -294,6 +310,7 @@ export default function WizardPage() {
         date: signature.date,
         image_a: isPro ? signature.image_a : undefined,
         image_b: isPro ? signature.image_b : undefined,
+        parties: partiesArr.length > 0 ? partiesArr : undefined,
       };
       const finalTitle = (customTitle || result.contract.title).trim() || result.contract.title;
       const contractWithSig: GeneratedContract = { ...result.contract, title: finalTitle, signature: sigPayload };

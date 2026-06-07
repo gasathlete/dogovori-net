@@ -23,10 +23,15 @@ interface Props {
   addLabel?: string;
 }
 
+const ANON_NAME = "(име не е посочено)";
+
 export function serializeParties(rows: PartyRow[]): string {
   return rows
-    .filter((r) => r.name.trim())
-    .map((r) => `${r.name.trim()}${r.type ? ` — ${r.type}` : ""}`)
+    .filter((r) => r.name.trim() || r.type)
+    .map((r) => {
+      const name = r.name.trim() || ANON_NAME;
+      return `${name}${r.type ? ` — ${r.type}` : ""}`;
+    })
     .join("\n");
 }
 
@@ -38,7 +43,10 @@ export function parseParties(raw: string): PartyRow[] {
     .filter(Boolean)
     .map((line) => {
       const m = line.match(/^(.*?)\s+[—\-|]\s+(ФЛ|ЮЛ|ЕТ)\s*$/);
-      if (m) return { name: m[1].trim(), type: m[2] as PartyType };
+      if (m) {
+        const rawName = m[1].trim();
+        return { name: rawName === ANON_NAME ? "" : rawName, type: m[2] as PartyType };
+      }
       return { name: line, type: "ЮЛ" as PartyType };
     });
 }
@@ -87,9 +95,12 @@ export function PartyListEditor({ rows, onChange, contacts = [], placeholder, ad
           <Input
             value={row.name}
             onChange={(e) => update(idx, { name: e.target.value })}
-            placeholder={placeholder ?? "Име / Фирма, ЕИК…"}
+            placeholder={placeholder ?? "Име / Фирма, ЕИК… (по избор)"}
             className="h-9 bg-input/60 text-sm"
           />
+          <p className="-mt-1 text-[10px] text-muted-foreground">
+            Може да оставите празно — но изберете тип по-долу.
+          </p>
           <div className="flex items-center justify-between gap-2">
             <div className="inline-flex gap-1 rounded-md border border-border/60 bg-card/40 p-0.5">
               {TYPES.map((t) => {

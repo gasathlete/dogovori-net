@@ -360,11 +360,37 @@ export default function WizardReviewPage() {
     }
     setExporting(format);
     try {
+      // Build a polished signature block from graph `party_list` answers.
+      const TYPE_FULL: Record<string, string> = {
+        "ЮЛ": "Юридическо лице",
+        "ФЛ": "Физическо лице",
+        "ЕТ": "ЕТ / Самоосигуряващо",
+      };
+      const partyQs = (graph?.questions ?? []).filter(
+        (q) => (q as any).field_type === "party_list",
+      );
+      const signatureParties = partyQs.flatMap((q) => {
+        const raw = (draft?.answers?.[q.id] as string) ?? "";
+        if (!raw.trim()) return [];
+        return raw
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .map((line) => {
+            const m = line.match(/^(.*?)\s+[—\-|]\s+(ФЛ|ЮЛ|ЕТ)\s*$/);
+            const rawName = m ? m[1].trim() : line;
+            const code = m ? m[2] : "ЮЛ";
+            const name = rawName === "(име не е посочено)" ? "" : rawName;
+            return { role: q.label || "СТРАНА", name, type: TYPE_FULL[code] || code };
+          });
+      });
+
       const sig: SignatureInfo = {
-        name_a: "",
-        name_b: "",
+        name_a: signatureParties[0]?.name ?? "",
+        name_b: signatureParties[1]?.name ?? "",
         city: "",
         date: "",
+        parties: signatureParties.length > 0 ? signatureParties : undefined,
       };
       const finalTitle =
         (customTitle || result.contract.title).trim() || result.contract.title;
