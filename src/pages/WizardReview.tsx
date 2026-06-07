@@ -115,15 +115,16 @@ export default function WizardReviewPage() {
     navigate(`/account?tab=subscription&redirect=${encodeURIComponent(reviewHref)}`);
 
   // Detect Pro status when authenticated.
-  useEffect(() => {
+  const refreshQuota = () => {
     if (!user) {
       setIsPro(false);
       setFreeWaveAvailable(false);
+      setSigningFreeAvailable(false);
       return;
     }
     supabase
       .from("download_quota")
-      .select("plan, pro_until, corrections_free_used")
+      .select("plan, pro_until, corrections_free_used, free_signing_used")
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => {
@@ -133,7 +134,12 @@ export default function WizardReviewPage() {
             (!!data.pro_until && new Date(data.pro_until) > new Date()),
         );
         setFreeWaveAvailable(!(data as any).corrections_free_used);
+        setSigningFreeAvailable(!(data as any).free_signing_used);
       });
+  };
+  useEffect(() => {
+    refreshQuota();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Load user's contacts and folders for the finalize selectors.
