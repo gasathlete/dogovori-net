@@ -12,6 +12,12 @@ import { BlogRotator } from "@/components/BlogRotator";
 import { FEATURED_BLANKS } from "@/data/featuredBlanks";
 import { allTemplates } from "@/lib/templateIndex";
 
+// Pre-compute the doc-name -> slug lookup once at module load instead of on every
+// Index render. ItemList JSON-LD below depends on this.
+const SLUG_BY_NAME: Map<string, string> = new Map(
+  allTemplates().map((t) => [t.doc.name, t.slug]),
+);
+
 // Below-the-fold sections — code-split + mounted on scroll.
 // SeoFooter stays eager (internal links matter for crawling).
 const FeaturedBlanks = lazy(() => import("@/components/FeaturedBlanks").then((m) => ({ default: m.FeaturedBlanks })));
