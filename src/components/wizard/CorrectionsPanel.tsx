@@ -95,35 +95,36 @@ export function CorrectionsPanel({
         </div>
       )}
 
+      {!isPro && (issues.length > 0 || recommendations.length > 0) && (
+        <div className="mb-4 rounded-md border border-gold/30 bg-gold/5 p-2.5 text-xs text-muted-foreground">
+          AI откри <strong className="text-foreground">{issues.length + recommendations.length}</strong> възможни подобрения.
+          С Pro прилагаш всички без да харчиш безплатна операция.
+        </div>
+      )}
+
       {issues.length > 0 && (
         <div className="mb-4">
           <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Слаби места {!isPro && issues.length > 2 && (
-              <span className="ml-1 normal-case text-[10px] text-gold">(преглед: първите 2 от {issues.length})</span>
-            )}
+            Слаби места
           </div>
           <div className="space-y-1.5">
-            {issues.map((iss, i) => {
-              const locked = !isPro && i >= 2;
-              return (
-                <label
-                  key={i}
-                  className={`flex cursor-pointer items-start gap-2 rounded-md border border-border/40 bg-card/40 p-2 transition-colors hover:border-gold/40 ${locked ? "select-none blur-sm pointer-events-none" : ""}`}
-                  aria-hidden={locked || undefined}
-                >
-                  <Checkbox
-                    checked={!!issueSel[i]}
-                    onCheckedChange={(v) => setIssueSel((p) => ({ ...p, [i]: !!v }))}
-                    disabled={!isPro || loading}
-                    className="mt-0.5"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-foreground">{iss.title}</div>
-                    <div className="line-clamp-2 text-xs text-muted-foreground">{iss.detail}</div>
-                  </div>
-                </label>
-              );
-            })}
+            {issues.map((iss, i) => (
+              <label
+                key={i}
+                className="flex cursor-pointer items-start gap-2 rounded-md border border-border/40 bg-card/40 p-2 transition-colors hover:border-gold/40"
+              >
+                <Checkbox
+                  checked={!!issueSel[i]}
+                  onCheckedChange={(v) => setIssueSel((p) => ({ ...p, [i]: !!v }))}
+                  disabled={loading}
+                  className="mt-0.5"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium text-foreground">{iss.title}</div>
+                  <div className="line-clamp-2 text-xs text-muted-foreground">{iss.detail}</div>
+                </div>
+              </label>
+            ))}
           </div>
         </div>
       )}
@@ -131,54 +132,46 @@ export function CorrectionsPanel({
       {recommendations.length > 0 && (
         <div className="mb-4">
           <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Препоръки {!isPro && recommendations.length > 2 && (
-              <span className="ml-1 normal-case text-[10px] text-gold">(преглед: първите 2 от {recommendations.length})</span>
-            )}
+            Препоръки
           </div>
           <div className="space-y-1.5">
-            {recommendations.map((r, i) => {
-              const locked = !isPro && i >= 2;
-              return (
-                <label
-                  key={i}
-                  className={`flex cursor-pointer items-start gap-2 rounded-md border border-border/40 bg-card/40 p-2 transition-colors hover:border-gold/40 ${locked ? "select-none blur-sm pointer-events-none" : ""}`}
-                  aria-hidden={locked || undefined}
-                >
-                  <Checkbox
-                    checked={!!recSel[i]}
-                    onCheckedChange={(v) => setRecSel((p) => ({ ...p, [i]: !!v }))}
-                    disabled={!isPro || loading}
-                    className="mt-0.5"
-                  />
-                  <div className="text-xs text-foreground">{r}</div>
-                </label>
-              );
-            })}
+            {recommendations.map((r, i) => (
+              <label
+                key={i}
+                className="flex cursor-pointer items-start gap-2 rounded-md border border-border/40 bg-card/40 p-2 transition-colors hover:border-gold/40"
+              >
+                <Checkbox
+                  checked={!!recSel[i]}
+                  onCheckedChange={(v) => setRecSel((p) => ({ ...p, [i]: !!v }))}
+                  disabled={loading}
+                  className="mt-0.5"
+                />
+                <div className="text-xs text-foreground">{r}</div>
+              </label>
+            ))}
           </div>
         </div>
       )}
 
-      {isPro ? (
-        <Button
-          onClick={() => onApply({ issues: selectedIssues, recommendations: selectedRecs })}
-          disabled={loading || total === 0}
-          className="w-full bg-gradient-gold text-navy hover:shadow-gold"
-        >
-          {loading ? (
-            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Прилагане…</>
-          ) : (
-            <><ShieldCheck className="mr-2 h-4 w-4" /> Приложи избраните ({total})</>
-          )}
-        </Button>
-      ) : (
-        <Button
-          onClick={onUpgrade}
-          variant="outline"
-          className="w-full border-gold/40 text-gold hover:bg-gold/10"
-        >
-          <Lock className="mr-2 h-4 w-4" /> Отключи с Pro план
-        </Button>
-      )}
+      <Button
+        onClick={() => {
+          if (!isPro) {
+            onUpgrade();
+            return;
+          }
+          onApply({ issues: selectedIssues, recommendations: selectedRecs });
+        }}
+        disabled={loading || total === 0}
+        className="w-full bg-gradient-gold text-navy hover:shadow-gold"
+      >
+        {loading ? (
+          <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Прилагане…</>
+        ) : !isPro ? (
+          <><Lock className="mr-2 h-4 w-4" /> Приложи с Pro ({total})</>
+        ) : (
+          <><ShieldCheck className="mr-2 h-4 w-4" /> Приложи избраните ({total})</>
+        )}
+      </Button>
       </>
       )}
     </div>
