@@ -169,10 +169,71 @@ export async function exportPDF(
     y += 40;
   }
 
-  // Signature ending is rendered inside the contract body (closing/clauses)
-  // with role labels specific to the document (Наемодател/Наемател, Възложител/
-  // Изпълнител, etc.), so we intentionally do NOT append a generic
-  // "СТРАНИ ПО ДОГОВОРА / ЗА СТРАНА А" block here.
+  // ── Signature block ─────────────────────────────────────────────────────
+  // Always append a clear signature area. Uses role-specific parties from
+  // c.signature when available (e.g. Наемодател/Наемател, Възложител/
+  // Изпълнител), with a sensible fallback otherwise.
+  const sig = c.signature;
+  const parties: { role: string; name: string; type?: string; image?: string }[] = (() => {
+    if (sig?.parties && sig.parties.length) return sig.parties;
+    if (sig?.name_a || sig?.name_b) {
+      return [
+        { role: "Страна А", name: sig?.name_a ?? "", image: sig?.image_a },
+        { role: "Страна Б", name: sig?.name_b ?? "", image: sig?.image_b },
+      ];
+    }
+    return [
+      { role: "Страна А", name: "" },
+      { role: "Страна Б", name: "" },
+    ];
+  })();
+
+  if (y + 140 > ph - M) { doc.addPage(); y = M; }
+  y += 10;
+
+  if (sig?.city || sig?.date) {
+    doc.setFontSize(11);
+    const line = `Гр. ${sig?.city || "________________"}, дата: ${sig?.date || "____________"}`;
+    doc.text(line, M, y);
+    y += 22;
+  }
+
+  const drawPartyAt = (
+    p: { role: string; name: string; type?: string; image?: string },
+    x: number,
+    colW: number,
+  ) => {
+    const top = y;
+    doc.setFontSize(11);
+    doc.text((p.role || "").toUpperCase(), x, top);
+    const lineY = top + 56;
+    doc.setDrawColor(120, 120, 120);
+    doc.setLineWidth(0.6);
+    doc.line(x, lineY, x + colW - 10, lineY);
+    doc.setFontSize(10);
+    const nameLabel = p.name?.trim() ? p.name : "(подпис и имена)";
+    doc.text(nameLabel, x, lineY + 14);
+    if (p.type) doc.text(p.type, x, lineY + 28);
+    if (p.image) {
+      try {
+        doc.addImage(p.image, "PNG", x, top + 14, Math.min(160, colW - 20), 38);
+      } catch { /* ignore */ }
+    }
+  };
+
+  const gutter = 24;
+  const colW = (pw - M * 2 - gutter) / 2;
+  for (let i = 0; i < parties.length; i += 2) {
+    if (y + 100 > ph - M) { doc.addPage(); y = M; }
+    const startY = y;
+    drawPartyAt(parties[i], M, colW);
+    if (parties[i + 1]) {
+      y = startY;
+      drawPartyAt(parties[i + 1], M + colW + gutter, colW);
+    }
+    y = startY + 100;
+  }
+
 
 
   if (opts?.watermark) await applyPdfWatermark(doc, { userTag: opts.userTag });
