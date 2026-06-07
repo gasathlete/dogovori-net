@@ -762,6 +762,7 @@ export default function WizardPage() {
               <div className="space-y-5 animate-fade-in">
                 <CorrectionsPanel
                   isPro={isPro}
+                  freeWaveAvailable={freeWaveAvailable}
                   issues={result.risk.issues || []}
                   recommendations={result.risk.recommendations || []}
                   loading={applyingCorrections}
