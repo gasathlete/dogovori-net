@@ -77,16 +77,25 @@ export function ComplianceSection() {
           <p className="mx-auto mt-4 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground md:text-base">
             Всеки договор включва клаузи за частична недействителност, форсмажор и подсъдност (Софийски градски съд / Арбитраж при БТПП). В зависимост от казуса, препоръчваме окончателен преглед от лицензиран адвокат.
           </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-            {["ЗЗД", "ТЗ", "ЗУТ", "GDPR", "eIDAS", "ЗЕДЕУУ"].map((b) => (
-              <span
-                key={b}
-                className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold"
-              >
-                <ShieldCheck className="h-3 w-3" /> {b}
-              </span>
-            ))}
-          </div>
+          <TooltipProvider delayDuration={150}>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+              {["ЗЗД", "ТЗ", "ЗУТ", "GDPR", "eIDAS", "ЗЕДЕУУ"].map((b) => (
+                <Tooltip key={b}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex cursor-help items-center gap-1.5 rounded-full border border-gold/30 bg-gold/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold transition-all hover:border-gold/60 hover:bg-gold/15"
+                    >
+                      <ShieldCheck className="h-3 w-3" /> {b}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[260px] text-xs leading-relaxed">
+                    {BADGE_INFO[b]}
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+          </TooltipProvider>
         </div>
 
         <ul className="mt-10 grid gap-3 sm:grid-cols-3">
