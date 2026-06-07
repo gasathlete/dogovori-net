@@ -92,6 +92,7 @@ export default function WizardReviewPage() {
   const [genStepIdx, setGenStepIdx] = useState(0);
   const [result, setResult] = useState<AIResult | null>(null);
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
+  const showProToast = useProConversionToast();
   const [customTitle, setCustomTitle] = useState("");
   const [applyingCorrections, setApplyingCorrections] = useState(false);
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(undefined);
@@ -400,6 +401,7 @@ export default function WizardReviewPage() {
           ? "Повторно сваляне (безплатно)"
           : "Запазен в Документи → Всички",
       });
+      if (!res.free) showProToast("download");
     } catch (e: unknown) {
       toast.error("Грешка при експорт", {
         description: e instanceof Error ? e.message : String(e),
