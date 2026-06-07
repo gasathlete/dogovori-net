@@ -60,14 +60,21 @@ export function CorrectionsPanel({
         <ShieldCheck className="h-4 w-4 text-gold" />
         <h3 className="font-serif text-lg font-bold">Автоматична корекция</h3>
         {!isPro && (
-          <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gold">
-            <Lock className="h-3 w-3" /> Pro
+          <span
+            className={`ml-auto inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+              freeWaveAvailable
+                ? "border-success/40 bg-success/10 text-success"
+                : "border-gold/40 bg-gold/10 text-gold"
+            }`}
+          >
+            {freeWaveAvailable ? <ShieldCheck className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+            {freeWaveAvailable ? "1 безплатна" : "Pro"}
           </span>
         )}
         {open ? (
-          <ChevronUp className={`h-4 w-4 text-muted-foreground ${isPro ? "ml-auto" : "ml-2"}`} />
+          <ChevronUp className="ml-2 h-4 w-4 text-muted-foreground" />
         ) : (
-          <ChevronDown className={`h-4 w-4 text-muted-foreground ${isPro ? "ml-auto" : "ml-2"}`} />
+          <ChevronDown className="ml-2 h-4 w-4 text-muted-foreground" />
         )}
       </button>
       {!open && (
