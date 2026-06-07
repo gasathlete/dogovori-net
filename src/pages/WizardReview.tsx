@@ -797,9 +797,32 @@ export default function WizardReviewPage() {
                 <div className="min-w-0">
                   <div className="lg:sticky lg:top-32">
                     <div className="rounded-xl border border-border/60 bg-gradient-card shadow-soft">
-                      <div className="hidden border-b border-border/40 p-4 lg:block">
-                        <div className="font-serif text-base font-bold">Преглед на документа</div>
-                        <div className="text-xs text-muted-foreground">Изготвеният договор се актуализира в реално време</div>
+                      <div className="hidden border-b border-border/40 p-4 lg:flex lg:items-center lg:justify-between lg:gap-2">
+                        <div>
+                          <div className="font-serif text-base font-bold">Преглед на документа</div>
+                          <div className="text-xs text-muted-foreground">Безплатни сваляния 24 часа след създаване</div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={!!exporting}
+                            onClick={() => handleExport("pdf")}
+                            title="Свали PDF"
+                            className="h-8 px-2 text-gold hover:bg-gold/10"
+                          >
+                            {exporting === "pdf" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => window.print()}
+                            title="Печат"
+                            className="h-8 px-2 text-gold hover:bg-gold/10"
+                          >
+                            <Printer className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                       <ContractPreview
                         contract={result.contract}
