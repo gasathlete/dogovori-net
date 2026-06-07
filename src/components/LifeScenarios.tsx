@@ -38,7 +38,7 @@ export function LifeScenarios() {
           const to = s.href ?? (kit ? `/komplekti/${kit.id}` : "/komplekti");
           const meta = kit ? `${kit.items.length} документа` : "Всички комплекти";
           return (
-            <li key={s.id}>
+            <li key={s.id} className="card-contain">
               <Link
                 to={to}
                 className="group flex h-full items-center gap-3 rounded-xl border border-hairline bg-card/60 p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-gold/45 hover:bg-card sm:p-4"
