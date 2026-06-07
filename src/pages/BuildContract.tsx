@@ -180,8 +180,10 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   );
   const [savedDocId, setSavedDocId] = useState<string | undefined>(persisted?.savedDocId);
   const [saving, setSaving] = useState(false);
-  const { isPro, isTeam, freeQuota } = useIsPro();
+  const { isPro, isTeam, freeQuota, refresh: refreshPro } = useIsPro();
   const freeWaveAvailable = !freeQuota.correctionsFreeUsed;
+  const signingFreeAvailable = !freeQuota.signingFreeUsed;
+  const [signDialogOpen, setSignDialogOpen] = useState(false);
   const canStrict = isPro || isTeam;
   const canBilingual = isPro || isTeam;
   const [bilingual, setBilingual] = useState<boolean>(
