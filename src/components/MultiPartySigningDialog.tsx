@@ -20,6 +20,12 @@ interface Props {
   documentSnapshot: unknown;
   savedDocumentId?: string | null;
   uploadedContractId?: string | null;
+  /** Whether the user still has their one-time free online-signing export. */
+  freeAvailable?: boolean;
+  /** Whether the user is on a Pro/Team plan. */
+  isPro?: boolean;
+  /** Called when the request was created successfully (e.g. to refresh quota). */
+  onCreated?: () => void;
 }
 
 export function MultiPartySigningDialog(p: Props) {
