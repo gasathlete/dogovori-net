@@ -3,10 +3,18 @@ import { TOP_DOCUMENTS } from "@/data/catalog";
 import { ArrowRight, Bird, Crown } from "lucide-react";
 import { useDownloadCounts } from "@/hooks/useDownloadCounts";
 import { slugify } from "@/lib/slugify";
+import { useCountUp } from "@/hooks/useCountUp";
 
-// Baseline floor per top-5 slot (early social proof while real telemetry ramps up).
-// Real downloads from `template_download_counts` are added on top of this baseline.
 const DOWNLOAD_BASELINE = [19, 17, 15, 13, 12];
+
+function AnimatedCount({ value }: { value: number }) {
+  const { ref, value: current } = useCountUp(value, { duration: 1400 });
+  return (
+    <span ref={ref as any} className="tabular-nums">
+      {current.toLocaleString("bg-BG")}
+    </span>
+  );
+}
 
 export function TopDocuments() {
   const counts = useDownloadCounts();
@@ -45,11 +53,11 @@ export function TopDocuments() {
               key={doc.name}
               to={`/wizard/${doc.sectorId}`}
               className={`group relative flex flex-col overflow-hidden rounded-xl surface-elevated p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/45 ${
-                featured ? "ring-1 ring-gold/40 shadow-[0_10px_40px_-15px_hsl(43_55%_54%/0.4)]" : ""
+                featured ? "border-beam ring-1 ring-gold/40 shadow-[0_10px_40px_-15px_hsl(43_55%_54%/0.4)]" : ""
               }`}
             >
               {featured && (
-                <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-gold/40 bg-gold/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-gold">
+                <span className="absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-full border border-gold/40 bg-gold/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-gold">
                   <Crown className="h-2.5 w-2.5" /> Най-търсен
                 </span>
               )}
@@ -65,7 +73,7 @@ export function TopDocuments() {
               </p>
               <div className="mt-4 flex items-center justify-between border-t border-hairline pt-3">
                 <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  {total.toLocaleString("bg-BG")} изтегляния
+                  <AnimatedCount value={total} /> изтегляния
                 </span>
                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold opacity-70 transition-opacity duration-200 group-hover:opacity-100">
                   Виж <ArrowRight className="h-3 w-3" />

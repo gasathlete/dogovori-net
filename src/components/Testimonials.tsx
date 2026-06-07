@@ -24,7 +24,37 @@ const TESTIMONIALS = [
   },
 ];
 
+function TestimonialCard({ t }: { t: (typeof TESTIMONIALS)[number] }) {
+  return (
+    <figure className="group relative flex w-[320px] shrink-0 flex-col rounded-xl surface-elevated p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/45 sm:w-[360px] sm:p-7">
+      <Quote className="absolute right-5 top-5 h-7 w-7 text-gold/15 transition-colors duration-300 group-hover:text-gold/30" />
+      <div className="mb-4 flex items-center gap-1 text-gold">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Star key={i} className="h-3.5 w-3.5 fill-gold" strokeWidth={0} />
+        ))}
+      </div>
+      <blockquote className="flex-1 text-sm leading-relaxed text-foreground sm:text-base">
+        „{t.quote}"
+      </blockquote>
+      <figcaption className="mt-5 flex items-center gap-3 border-t border-hairline pt-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gold/30 bg-gold/10 font-serif text-xs font-bold text-gold">
+          {t.initials}
+        </div>
+        <div>
+          <div className="font-serif text-sm font-bold text-foreground">{t.name}</div>
+          <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+            {t.role}
+          </div>
+        </div>
+      </figcaption>
+    </figure>
+  );
+}
+
 export function Testimonials() {
+  // Duplicate the row for a seamless marquee loop.
+  const row = [...TESTIMONIALS, ...TESTIMONIALS];
+
   return (
     <section id="testimonials" className="container py-14 sm:py-16 md:py-24">
       <div className="mb-10 max-w-2xl md:mb-12">
@@ -41,34 +71,20 @@ export function Testimonials() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-        {TESTIMONIALS.map((t) => (
-          <figure
-            key={t.name}
-            className="group relative flex flex-col rounded-xl surface-elevated p-6 sm:p-7 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/45"
-          >
-            <Quote className="absolute right-5 top-5 h-7 w-7 text-gold/15 transition-colors duration-300 group-hover:text-gold/30" />
-            <div className="mb-4 flex items-center gap-1 text-gold">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className="h-3.5 w-3.5 fill-gold" strokeWidth={0} />
-              ))}
-            </div>
-            <blockquote className="flex-1 text-sm leading-relaxed text-foreground sm:text-base">
-              „{t.quote}"
-            </blockquote>
-            <figcaption className="mt-5 flex items-center gap-3 border-t border-hairline pt-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gold/30 bg-gold/10 font-serif text-xs font-bold text-gold">
-                {t.initials}
-              </div>
-              <div>
-                <div className="font-serif text-sm font-bold text-foreground">{t.name}</div>
-                <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                  {t.role}
-                </div>
-              </div>
-            </figcaption>
-          </figure>
-        ))}
+      <div
+        className="relative overflow-hidden"
+        style={{
+          maskImage:
+            "linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)",
+          WebkitMaskImage:
+            "linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)",
+        }}
+      >
+        <div className="marquee-track flex w-max gap-5">
+          {row.map((t, i) => (
+            <TestimonialCard key={`${t.name}-${i}`} t={t} />
+          ))}
+        </div>
       </div>
     </section>
   );
