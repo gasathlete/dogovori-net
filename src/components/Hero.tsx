@@ -167,7 +167,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
 
             style={{ animationDelay: "300ms" }}
           >
-            Безплатно: 3 операции/месец · Pro 9.90 €/мес — 100 операции, двуезични договори, комплекти · Промокод FIRST100 → −30% месечно, −40% годишно
+            Безплатно: 5 операции при регистрация + 2/месец · 1 безплатна авто-корекция · Pro 9.90 €/мес — 100 операции · Промокод FIRST100 → −30%
           </p>
           <div className="anim-rise mt-2 text-center" style={{ animationDelay: "340ms" }}>
             <button
