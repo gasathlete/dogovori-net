@@ -176,9 +176,10 @@ export function Hero({ onStart }: { onStart: () => void }) {
                 e.preventDefault();
                 scrollToHash("process");
               }}
-              className="text-xs uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold focus-visible:text-gold my-1 px-[10px] py-2 text-amber-100"
+              className="pulse-arrow inline-flex flex-col items-center gap-1 text-xs uppercase tracking-[0.18em] text-amber-100/80 transition-colors hover:text-gold focus-visible:text-gold my-1 px-[10px] py-2"
             >
-              Как работи системата↓
+              <span>Как работи системата</span>
+              <span aria-hidden="true" className="text-gold">↓</span>
             </button>
           </div>
 

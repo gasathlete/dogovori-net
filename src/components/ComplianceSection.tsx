@@ -1,5 +1,15 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ShieldCheck, Scale, Gavel, FileCheck2 } from "lucide-react";
+
+const BADGE_INFO: Record<string, string> = {
+  "ЗЗД": "Закон за задълженията и договорите — задължителна правна рамка за всички облигационни отношения в България.",
+  "ТЗ": "Търговски закон — урежда търговските сделки, представителство и отговорност на търговците.",
+  "ЗУТ": "Закон за устройство на територията — релевантен за СМР, строителни и недвижими сделки.",
+  "GDPR": "Общ регламент за защита на данните (ЕС) 2016/679 — задължителен при обработка на лични данни.",
+  "eIDAS": "Регламент (ЕС) №910/2014 — признаване на електронни подписи в целия ЕС.",
+  "ЗЕДЕУУ": "Закон за електронния документ — правна валидност на електронен подпис в България.",
+};
 
 const pillars = [
   {
@@ -67,16 +77,25 @@ export function ComplianceSection() {
           <p className="mx-auto mt-4 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground md:text-base">
             Всеки договор включва клаузи за частична недействителност, форсмажор и подсъдност (Софийски градски съд / Арбитраж при БТПП). В зависимост от казуса, препоръчваме окончателен преглед от лицензиран адвокат.
           </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-            {["ЗЗД", "ТЗ", "ЗУТ", "GDPR", "eIDAS", "ЗЕДЕУУ"].map((b) => (
-              <span
-                key={b}
-                className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold"
-              >
-                <ShieldCheck className="h-3 w-3" /> {b}
-              </span>
-            ))}
-          </div>
+          <TooltipProvider delayDuration={150}>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+              {["ЗЗД", "ТЗ", "ЗУТ", "GDPR", "eIDAS", "ЗЕДЕУУ"].map((b) => (
+                <Tooltip key={b}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex cursor-help items-center gap-1.5 rounded-full border border-gold/30 bg-gold/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold transition-all hover:border-gold/60 hover:bg-gold/15"
+                    >
+                      <ShieldCheck className="h-3 w-3" /> {b}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[260px] text-xs leading-relaxed">
+                    {BADGE_INFO[b]}
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+          </TooltipProvider>
         </div>
 
         <ul className="mt-10 grid gap-3 sm:grid-cols-3">
