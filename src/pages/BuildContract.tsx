@@ -179,7 +179,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   );
   const [savedDocId, setSavedDocId] = useState<string | undefined>(persisted?.savedDocId);
   const [saving, setSaving] = useState(false);
-  const { isPro, isTeam } = useIsPro();
+  const { isPro, isTeam, freeQuota } = useIsPro();
+  const freeWaveAvailable = !freeQuota.correctionsFreeUsed;
   const canStrict = isPro || isTeam;
   const canBilingual = isPro || isTeam;
   const [bilingual, setBilingual] = useState<boolean>(
@@ -1298,6 +1299,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                 <RiskMeter level={result.risk.level} score={result.risk.score} summary={result.risk.summary} />
                 <CorrectionsPanel
                   isPro={isPro}
+                  freeWaveAvailable={freeWaveAvailable}
                   issues={result.risk.issues || []}
                   recommendations={result.risk.recommendations || []}
                   loading={applyingCorrections}

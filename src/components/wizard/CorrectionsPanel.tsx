@@ -11,6 +11,7 @@ export interface CorrectionsSelection {
 
 export function CorrectionsPanel({
   isPro,
+  freeWaveAvailable = false,
   issues,
   recommendations,
   loading,
@@ -19,6 +20,7 @@ export function CorrectionsPanel({
   onUpgrade,
 }: {
   isPro: boolean;
+  freeWaveAvailable?: boolean;
   issues: RiskIssue[];
   recommendations: string[];
   loading: boolean;
@@ -26,6 +28,7 @@ export function CorrectionsPanel({
   onApply: (sel: CorrectionsSelection) => void;
   onUpgrade: () => void;
 }) {
+  const canApply = isPro || freeWaveAvailable;
   const [issueSel, setIssueSel] = useState<Record<number, boolean>>(() =>
     Object.fromEntries(issues.map((_, i) => [i, true])),
   );
@@ -57,14 +60,21 @@ export function CorrectionsPanel({
         <ShieldCheck className="h-4 w-4 text-gold" />
         <h3 className="font-serif text-lg font-bold">Автоматична корекция</h3>
         {!isPro && (
-          <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gold">
-            <Lock className="h-3 w-3" /> Pro
+          <span
+            className={`ml-auto inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+              freeWaveAvailable
+                ? "border-success/40 bg-success/10 text-success"
+                : "border-gold/40 bg-gold/10 text-gold"
+            }`}
+          >
+            {freeWaveAvailable ? <ShieldCheck className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+            {freeWaveAvailable ? "1 безплатна" : "Pro"}
           </span>
         )}
         {open ? (
-          <ChevronUp className={`h-4 w-4 text-muted-foreground ${isPro ? "ml-auto" : "ml-2"}`} />
+          <ChevronUp className="ml-2 h-4 w-4 text-muted-foreground" />
         ) : (
-          <ChevronDown className={`h-4 w-4 text-muted-foreground ${isPro ? "ml-auto" : "ml-2"}`} />
+          <ChevronDown className="ml-2 h-4 w-4 text-muted-foreground" />
         )}
       </button>
       {!open && (
@@ -96,9 +106,13 @@ export function CorrectionsPanel({
       )}
 
       {!isPro && (issues.length > 0 || recommendations.length > 0) && (
-        <div className="mb-4 rounded-md border border-gold/30 bg-gold/5 p-2.5 text-xs text-muted-foreground">
+        <div className={`mb-4 rounded-md border p-2.5 text-xs text-muted-foreground ${
+          freeWaveAvailable ? "border-success/30 bg-success/5" : "border-gold/30 bg-gold/5"
+        }`}>
           AI откри <strong className="text-foreground">{issues.length + recommendations.length}</strong> възможни подобрения.
-          С Pro прилагаш всички без да харчиш безплатна операция.
+          {freeWaveAvailable
+            ? " Имаш 1 безплатна вълна корекции — приложи я сега, без да харчиш операция."
+            : " С Pro прилагаш всички без да харчиш безплатна операция."}
         </div>
       )}
 
@@ -155,7 +169,7 @@ export function CorrectionsPanel({
 
       <Button
         onClick={() => {
-          if (!isPro) {
+          if (!canApply) {
             onUpgrade();
             return;
           }
@@ -166,8 +180,10 @@ export function CorrectionsPanel({
       >
         {loading ? (
           <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Прилагане…</>
-        ) : !isPro ? (
+        ) : !canApply ? (
           <><Lock className="mr-2 h-4 w-4" /> Приложи с Pro ({total})</>
+        ) : !isPro ? (
+          <><ShieldCheck className="mr-2 h-4 w-4" /> Приложи безплатно ({total})</>
         ) : (
           <><ShieldCheck className="mr-2 h-4 w-4" /> Приложи избраните ({total})</>
         )}

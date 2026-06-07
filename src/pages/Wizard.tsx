@@ -225,6 +225,7 @@ export default function WizardPage() {
   const user = authUser;
   const [savedDocId, setSavedDocId] = useState<string | undefined>(persisted?.savedDocId);
   const [isPro, setIsPro] = useState(false);
+  const [freeWaveAvailable, setFreeWaveAvailable] = useState(false);
   const [signature, setSignature] = useState<SignatureData>(
     persisted?.signature ?? { name_a: "", name_b: "", city: "", date: "" }
   );
@@ -254,11 +255,12 @@ export default function WizardPage() {
     navigate(`/account?tab=subscription&redirect=${encodeURIComponent(wizardHref)}`);
 
   useEffect(() => {
-    if (!user) { setIsPro(false); setContacts([]); return; }
-    supabase.from("download_quota").select("plan, pro_until").eq("user_id", user.id).maybeSingle()
+    if (!user) { setIsPro(false); setFreeWaveAvailable(false); setContacts([]); return; }
+    supabase.from("download_quota").select("plan, pro_until, corrections_free_used").eq("user_id", user.id).maybeSingle()
       .then(({ data }) => {
         if (!data) return;
         setIsPro(data.plan === "pro" || (!!data.pro_until && new Date(data.pro_until) > new Date()));
+        setFreeWaveAvailable(!(data as any).corrections_free_used);
       });
     supabase.from("contacts").select("id, name, type").is("deleted_at", null).order("created_at", { ascending: false })
       .then(({ data }) => setContacts((data as any) ?? []));
@@ -760,6 +762,7 @@ export default function WizardPage() {
               <div className="space-y-5 animate-fade-in">
                 <CorrectionsPanel
                   isPro={isPro}
+                  freeWaveAvailable={freeWaveAvailable}
                   issues={result.risk.issues || []}
                   recommendations={result.risk.recommendations || []}
                   loading={applyingCorrections}

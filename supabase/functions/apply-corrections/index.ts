@@ -39,11 +39,12 @@ Deno.serve(async (req: Request) => {
     }
     const userId = userData.user.id;
 
-    // Pro check
+    // Pro check (free users get one free corrections wave via consume_corrections_batch)
     const { data: q } = await admin.from("download_quota")
-      .select("plan, pro_until").eq("user_id", userId).maybeSingle();
+      .select("plan, pro_until, corrections_free_used")
+      .eq("user_id", userId).maybeSingle();
     const isPro = !!q && (q.plan === "pro" || (!!q.pro_until && new Date(q.pro_until) > new Date()));
-    if (!isPro) {
+    if (!isPro && q?.corrections_free_used) {
       return new Response(JSON.stringify({ error: "pro_required" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
