@@ -254,6 +254,7 @@ export function GraphQuestionField({ q, value, onChange, invalid, contacts }: Pr
             rows={rows}
             onChange={(next) => onChange(serializeParties(next))}
             addLabel={`Добави ${q.label.toLowerCase()}`}
+            contacts={contacts}
           />
           {help}
         </div>
