@@ -487,7 +487,7 @@ export function PlatformShowcase() {
               const isActive = delta === 0;
 
               // Responsive offsets — tighter on mobile to avoid edge clipping
-              const isMobileVP = typeof window !== "undefined" && window.innerWidth < 640;
+              const isMobileVP = vw < 640;
               const offset = isMobileVP ? 180 : 300;
               const translateX = delta * offset + (isActive ? dragDx : dragDx * 0.4);
               const rotateY = reducedMotion ? 0 : delta * (isMobileVP ? -22 : -16);
