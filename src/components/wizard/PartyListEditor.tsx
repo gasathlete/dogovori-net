@@ -149,7 +149,7 @@ export function PartyListEditor({ rows, onChange, contacts = [], placeholder, ad
           <Plus className="mr-1 h-3.5 w-3.5" />
           {addLabel}
         </Button>
-        {contacts.length > 0 && (
+        {contacts.length > 0 ? (
           <Select onValueChange={pickContact}>
             <SelectTrigger className="h-8 w-auto gap-1 bg-input/60 px-2 text-xs">
               <UserPlus className="h-3.5 w-3.5 text-gold" />
@@ -163,6 +163,14 @@ export function PartyListEditor({ rows, onChange, contacts = [], placeholder, ad
               ))}
             </SelectContent>
           </Select>
+        ) : (
+          <a
+            href={`/account?tab=contacts&redirect=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname + window.location.search : "")}`}
+            className="inline-flex h-8 items-center gap-1 rounded-md border border-dashed border-gold/40 px-2 text-xs text-gold hover:bg-gold/10"
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+            Добави контрагент
+          </a>
         )}
       </div>
     </div>
