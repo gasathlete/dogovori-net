@@ -169,7 +169,7 @@ export function CorrectionsPanel({
 
       <Button
         onClick={() => {
-          if (!isPro) {
+          if (!canApply) {
             onUpgrade();
             return;
           }
@@ -180,8 +180,10 @@ export function CorrectionsPanel({
       >
         {loading ? (
           <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Прилагане…</>
-        ) : !isPro ? (
+        ) : !canApply ? (
           <><Lock className="mr-2 h-4 w-4" /> Приложи с Pro ({total})</>
+        ) : !isPro ? (
+          <><ShieldCheck className="mr-2 h-4 w-4" /> Приложи безплатно ({total})</>
         ) : (
           <><ShieldCheck className="mr-2 h-4 w-4" /> Приложи избраните ({total})</>
         )}
