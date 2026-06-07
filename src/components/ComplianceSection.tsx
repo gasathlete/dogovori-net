@@ -1,5 +1,15 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ShieldCheck, Scale, Gavel, FileCheck2 } from "lucide-react";
+
+const BADGE_INFO: Record<string, string> = {
+  "ЗЗД": "Закон за задълженията и договорите — задължителна правна рамка за всички облигационни отношения в България.",
+  "ТЗ": "Търговски закон — урежда търговските сделки, представителство и отговорност на търговците.",
+  "ЗУТ": "Закон за устройство на територията — релевантен за СМР, строителни и недвижими сделки.",
+  "GDPR": "Общ регламент за защита на данните (ЕС) 2016/679 — задължителен при обработка на лични данни.",
+  "eIDAS": "Регламент (ЕС) №910/2014 — признаване на електронни подписи в целия ЕС.",
+  "ЗЕДЕУУ": "Закон за електронния документ — правна валидност на електронен подпис в България.",
+};
 
 const pillars = [
   {
