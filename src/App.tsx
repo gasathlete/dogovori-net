@@ -44,6 +44,9 @@ const AIDisclaimerModal = reactLazy(() =>
 const UsernamePrompt = reactLazy(() =>
   import("@/components/auth/UsernamePrompt").then((m) => ({ default: m.UsernamePrompt })),
 );
+const GlobalProUpgradeListener = reactLazy(() =>
+  import("@/components/ProConversionToast").then((m) => ({ default: m.GlobalProUpgradeListener })),
+);
 // Sentry init is deferred to idle time below — keeps it off the critical path.
 
 // Lazy-load every route except Index (landing page) so the initial bundle stays light.
@@ -212,6 +215,7 @@ const App = () => (
             <CookieBanner />
             <AIDisclaimerModal />
             <UsernamePrompt />
+            <GlobalProUpgradeListener />
           </Suspense>
           <Suspense fallback={<RouteFallback />}>
             <AnimatedRoutes />
