@@ -169,93 +169,11 @@ export async function exportPDF(
     y += 40;
   }
 
-  // ───────── Signature ending ─────────
-  // Polished closing block: place/date row, "СТРАНИ ПО ДОГОВОРА" heading,
-  // then a 2-column grid of party blocks (role, optional sig image, line, name+type).
-  const sig = c.signature;
-  // Derive the list of parties: prefer the rich `parties` array if present,
-  // otherwise fall back to the legacy A/B pair.
-  type P = { role: string; name: string; type?: string; image?: string };
-  const parties: P[] = (sig?.parties && sig.parties.length > 0)
-    ? sig.parties.map((p) => ({
-        role: (p.role || "").trim() || "СТРАНА",
-        name: p.name || "",
-        type: p.type,
-        image: p.image,
-      }))
-    : [
-        { role: "СТРАНА А", name: sig?.name_a || "", image: sig?.image_a },
-        { role: "СТРАНА Б", name: sig?.name_b || "", image: sig?.image_b },
-      ];
+  // Signature ending is rendered inside the contract body (closing/clauses)
+  // with role labels specific to the document (Наемодател/Наемател, Възложител/
+  // Изпълнител, etc.), so we intentionally do NOT append a generic
+  // "СТРАНИ ПО ДОГОВОРА / ЗА СТРАНА А" block here.
 
-  y += 24;
-  if (y > ph - M - 160) { doc.addPage(); y = M; }
-
-  // Place / date line (right-aligned look via two columns)
-  const placeStr = sig?.city ? `гр. ${sig.city}` : "гр. ______________";
-  const dateStr = sig?.date ? `Дата: ${sig.date}` : "Дата: ____________";
-  doc.setFontSize(10);
-  doc.text(placeStr, M, y);
-  doc.text(dateStr, pw - M, y, { align: "right" });
-  y += 22;
-
-  // Section heading
-  doc.setFontSize(11);
-  doc.text("СТРАНИ ПО ДОГОВОРА", pw / 2, y, { align: "center" });
-  y += 6;
-  doc.setDrawColor(201, 168, 76);
-  doc.setLineWidth(0.6);
-  doc.line(pw / 2 - 60, y, pw / 2 + 60, y);
-  y += 22;
-
-  // Render parties as a 2-column grid (paired rows), 1 column if only one party.
-  const gutter = 28;
-  const cols = parties.length === 1 ? 1 : 2;
-  const colW = (pw - M * 2 - (cols - 1) * gutter) / cols;
-  const sigImgH = 46;
-  const blockH = sigImgH + 8 + 14 + 14 + 14 + 8; // img + line + name + type + spacing
-
-  for (let i = 0; i < parties.length; i += cols) {
-    if (y + blockH > ph - M) { doc.addPage(); y = M; }
-    const rowParties = parties.slice(i, i + cols);
-    const startY = y;
-    rowParties.forEach((p, idx) => {
-      const x = M + idx * (colW + gutter);
-      // Role label
-      doc.setFontSize(9);
-      doc.text(`ЗА ${p.role.toUpperCase()}`, x, startY);
-      // Signature image (Pro) or blank space
-      let cy = startY + 8;
-      if (p.image) {
-        try { doc.addImage(p.image, "PNG", x, cy, colW - 20, sigImgH); } catch {}
-      }
-      cy += sigImgH;
-      // Signature line
-      doc.setDrawColor(80, 80, 80);
-      doc.setLineWidth(0.5);
-      doc.line(x, cy, x + colW - 20, cy);
-      cy += 4;
-      // "(подпис)" caption
-      doc.setFontSize(8);
-      doc.setTextColor(120, 120, 120);
-      doc.text("(подпис)", x + (colW - 20) / 2, cy + 8, { align: "center" });
-      doc.setTextColor(0, 0, 0);
-      cy += 14;
-      // Name
-      doc.setFontSize(10);
-      const displayName = p.name.trim() || "______________________________";
-      doc.text(displayName, x, cy);
-      cy += 12;
-      // Type
-      if (p.type) {
-        doc.setFontSize(8);
-        doc.setTextColor(110, 110, 110);
-        doc.text(p.type, x, cy);
-        doc.setTextColor(0, 0, 0);
-      }
-    });
-    y = startY + blockH + 8;
-  }
 
   if (opts?.watermark) await applyPdfWatermark(doc, { userTag: opts.userTag });
   if (opts?.returnBytes) {
