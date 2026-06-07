@@ -175,6 +175,12 @@ function MiniVisual({ kind }: { kind: FeatureSlide["visual"] }) {
 export function PlatformShowcase() {
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [vw, setVw] = useState<number>(() => (typeof window !== "undefined" ? window.innerWidth : 1280));
+  useEffect(() => {
+    const onResize = () => setVw(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
   const [dragDx, setDragDx] = useState(0);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const swipedRef = useRef(false);
