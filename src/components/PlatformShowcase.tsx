@@ -365,14 +365,14 @@ export function PlatformShowcase() {
 
         {/* Coverflow stage */}
         <div
-          className="relative mx-auto select-none"
-          style={{ perspective: "1600px", touchAction: "pan-y" }}
+          className="relative mx-auto select-none overflow-hidden"
+          style={{ perspective: "1800px", touchAction: "pan-y" }}
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
           onTouchCancel={onTouchEnd}
         >
-          <div className="relative mx-auto h-[480px] w-full max-w-5xl sm:h-[520px]">
+          <div className="relative mx-auto h-[560px] w-full max-w-6xl sm:h-[620px] md:h-[660px]">
             {SLIDES.map((slide, i) => {
               // shortest signed distance on a ring
               let delta = i - idx;
@@ -381,9 +381,9 @@ export function PlatformShowcase() {
               const abs = Math.abs(delta);
               const isActive = delta === 0;
 
-              const translateX = delta * 240 + (isActive ? dragDx : dragDx * 0.4);
-              const rotateY = reducedMotion ? 0 : delta * -18;
-              const scale = abs === 0 ? 1 : abs === 1 ? 0.82 : 0.66;
+              const translateX = delta * 300 + (isActive ? dragDx : dragDx * 0.4);
+              const rotateY = reducedMotion ? 0 : delta * -16;
+              const scale = abs === 0 ? 1 : abs === 1 ? 0.84 : 0.68;
               const opacity = abs === 0 ? 1 : abs === 1 ? 0.55 : 0.22;
               const z = 10 - abs;
 
@@ -403,7 +403,7 @@ export function PlatformShowcase() {
                     }
                     if (!isActive) goTo(i);
                   }}
-                  className="group absolute left-1/2 top-1/2 -ml-[180px] -mt-[230px] block h-[460px] w-[360px] rounded-2xl border border-hairline bg-card/95 text-left shadow-elegant outline-none transition-[transform,opacity,box-shadow] duration-700 ease-[cubic-bezier(.22,1,.36,1)] focus-visible:ring-2 focus-visible:ring-gold/60 sm:h-[500px] sm:w-[400px] sm:-ml-[200px] sm:-mt-[250px]"
+                  className="group absolute left-1/2 top-1/2 -ml-[230px] -mt-[270px] block h-[540px] w-[460px] rounded-2xl border border-hairline bg-card/95 text-left shadow-elegant outline-none transition-[transform,opacity,box-shadow] duration-700 ease-[cubic-bezier(.22,1,.36,1)] focus-visible:ring-2 focus-visible:ring-gold/60 sm:h-[600px] sm:w-[520px] sm:-ml-[260px] sm:-mt-[300px] md:h-[640px] md:w-[560px] md:-ml-[280px] md:-mt-[320px]"
                   style={{
                     transform: `translate3d(${translateX}px,0,0) rotateY(${rotateY}deg) scale(${scale})`,
                     opacity,
