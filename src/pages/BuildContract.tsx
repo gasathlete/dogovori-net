@@ -1397,10 +1397,31 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
           <section className="lg:sticky lg:top-32 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">
             {result ? (
               <>
-                <div className="mb-3 flex items-center justify-between">
+                <div className="mb-3 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gold">
                     <FileText className="h-3.5 w-3.5" />
                     Краен документ
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={!!exporting}
+                      onClick={() => handleExport("pdf")}
+                      title="Свали PDF"
+                      className="h-8 px-2 text-gold hover:bg-gold/10"
+                    >
+                      {exporting === "pdf" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => window.print()}
+                      title="Печат"
+                      className="h-8 px-2 text-gold hover:bg-gold/10"
+                    >
+                      <Printer className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
                 <div className="space-y-4">
