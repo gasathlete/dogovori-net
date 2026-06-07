@@ -513,7 +513,245 @@ export default function WizardReviewPage() {
       </div>
 
       <main className="container py-6 md:py-8">
-        <div className="mx-auto max-w-3xl space-y-5">
+        <div className="mx-auto max-w-7xl">
+          {!result ? (
+            <div className="mx-auto max-w-3xl space-y-5">
+              <RiskMeter
+                level={result?.risk.level ?? "unknown"}
+                score={result?.risk.score}
+                summary={result?.risk.summary}
+              />
+              <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft">
+                {generating ? (
+                  <div className="rounded-lg border border-gold/30 bg-gold/5 p-4">
+                    <div className="flex items-center gap-3">
+                      <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-gold" />
+                      <div className="flex-1 min-w-0">
+                        <div key={genStepIdx} className="text-sm font-medium text-foreground animate-fade-in">
+                          {GEN_STEPS[genStepIdx]}
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          Процесът отнема около 60 секунди — благодарим за търпението.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-4 text-center">
+                    <h2 className="font-serif text-lg font-semibold">Готови за анализ и финално изготвяне</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Ще приложим AI правен анализ и ще съставим окончателния договор. Можете да го изтеглите като PDF или DOCX.
+                    </p>
+                    <Button onClick={runAnalysis} size="lg" className="bg-gradient-gold text-navy shadow-gold">
+                      <Bird className="mr-2 h-4 w-4" />
+                      Анализирай и създай
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (() => {
+            const appendices = detectAppendixReferences(
+              [contractToPlainText(result.contract), draft.body_md].filter(Boolean).join("\n\n"),
+            );
+            const hasCashPayment = Object.values(draft.answers ?? {}).some(
+              (v) => typeof v === "string" && /\bбро[йя]\b|\bкеш\b|\bcash\b/i.test(v),
+            );
+            return (
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-8 animate-fade-in">
+                {/* LEFT — actions & suggestions */}
+                <div className="space-y-4 min-w-0">
+                  <RiskMeter
+                    level={result.risk.level}
+                    score={result.risk.score}
+                    summary={result.risk.summary}
+                  />
+
+                  <div className="rounded-xl border border-success/40 bg-success/5 p-4 shadow-soft">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-success" />
+                      <div className="min-w-0 flex-1">
+                        <h2 className="font-serif text-base font-bold leading-tight">Документът е готов</h2>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {autoSaved ? (
+                            <span className="inline-flex items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3 text-success" />
+                              Записан в профила · Документи → Всички
+                            </span>
+                          ) : (
+                            "Записва се автоматично в профила ви…"
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <AppendixSuggestions appendices={appendices} onCreate={handleCreateAppendix} />
+
+                  <CorrectionsPanel
+                    isPro={isPro}
+                    issues={result.risk.issues || []}
+                    recommendations={result.risk.recommendations || []}
+                    loading={applyingCorrections}
+                    applied={appliedNotes}
+                    onApply={handleApplyCorrections}
+                    onUpgrade={() => navigate("/account?tab=subscription")}
+                  />
+
+                  <Collapsible defaultOpen={false}>
+                    <div className="rounded-xl border border-border/60 bg-gradient-card shadow-soft">
+                      <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 p-4">
+                        <div className="text-left">
+                          <div className="font-serif text-base font-bold">Подробен риск анализ</div>
+                          <div className="text-xs text-muted-foreground">
+                            {(result.risk.issues?.length ?? 0)} слаби места · {(result.risk.recommendations?.length ?? 0)} препоръки
+                          </div>
+                        </div>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform data-[state=open]:rotate-180" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="border-t border-border/40 p-4">
+                          <RiskReport
+                            level={result.risk.level}
+                            issues={result.risk.issues || []}
+                            recommendations={result.risk.recommendations || []}
+                            isPro={isPro}
+                          />
+                        </div>
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+
+                  {hasCashPayment && (
+                    <LegalDisclaimer variant="warning">
+                      <strong>Плащане в брой:</strong> Съгласно чл. 3 ЗОПБ плащания на стойност <strong>равна или над 5 000 €</strong> се извършват само по платежна сметка.
+                    </LegalDisclaimer>
+                  )}
+
+                  <Collapsible defaultOpen>
+                    <div className="rounded-xl border border-gold/30 bg-gradient-card shadow-soft">
+                      <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 p-4">
+                        <div className="text-left">
+                          <div className="font-serif text-base font-bold">Финализиране и експорт</div>
+                          <div className="text-xs text-muted-foreground">Изтегли като PDF или DOCX</div>
+                        </div>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform data-[state=open]:rotate-180" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="border-t border-border/40 p-4">
+                          <div className="mb-4 space-y-1.5">
+                            <Label htmlFor="doc-title" className="text-xs uppercase tracking-wider text-muted-foreground">
+                              Име на договора
+                            </Label>
+                            <Input
+                              id="doc-title"
+                              value={customTitle}
+                              onChange={(e) => setCustomTitle(e.target.value)}
+                              placeholder={result.contract.title}
+                              className="bg-card/60"
+                            />
+                          </div>
+
+                          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div className="space-y-1.5">
+                              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                                <span className="inline-flex items-center gap-1"><Folder className="h-3 w-3" /> Папка</span>
+                              </Label>
+                              <Select value={folderId || "none"} onValueChange={(v) => setFolderId(v === "none" ? "" : v)}>
+                                <SelectTrigger className="bg-card/60">
+                                  <SelectValue placeholder="— Без папка —" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">— Без папка —</SelectItem>
+                                  {folders.map((f) => (
+                                    <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                                <span className="inline-flex items-center gap-1"><User className="h-3 w-3" /> Контрагент</span>
+                              </Label>
+                              <Select value={contactId || "none"} onValueChange={(v) => setContactId(v === "none" ? "" : v)}>
+                                <SelectTrigger className="bg-card/60">
+                                  <SelectValue placeholder="— Без контрагент —" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">— Без контрагент —</SelectItem>
+                                  {contacts.map((c) => (
+                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col gap-2 sm:flex-row">
+                            <Button onClick={() => handleExport("pdf")} disabled={!!exporting} className="flex-1 bg-gradient-gold text-navy hover:shadow-gold">
+                              {exporting === "pdf" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+                              Свали PDF
+                            </Button>
+                            <Button onClick={() => handleExport("docx")} disabled={!!exporting} variant="outline" className="flex-1 border-gold/40 hover:bg-gold/10 hover:text-gold">
+                              {exporting === "docx" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+                              Свали DOCX
+                            </Button>
+                          </div>
+
+                          <Button onClick={handleSaveToProfile} disabled={saving} variant="outline" className="mt-2 w-full border-gold/40 hover:bg-gold/10 hover:text-gold">
+                            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                            {savedDocId ? "Обнови запазеното" : "Запиши в профила"}
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            onClick={() => {
+                              try {
+                                sessionStorage.removeItem(`wizard-graph:last:${slug}`);
+                                localStorage.removeItem(`splitwizard:${graph.template_slug}`);
+                              } catch { /* noop */ }
+                              navigate(`/wizard-graph/${slug}`);
+                            }}
+                            className="mt-3 w-full text-xs text-muted-foreground hover:text-gold"
+                          >
+                            Започни нов договор
+                          </Button>
+                        </div>
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+
+                  <LegalDisclaimer>
+                    Документът е изготвен с помощта на AI. За съществени правни въпроси препоръчваме консултация с адвокат.
+                  </LegalDisclaimer>
+                </div>
+
+                {/* RIGHT — contract preview (sticky on desktop) */}
+                <div className="min-w-0">
+                  <div className="lg:sticky lg:top-32">
+                    <div className="rounded-xl border border-border/60 bg-gradient-card shadow-soft">
+                      <div className="hidden border-b border-border/40 p-4 lg:block">
+                        <div className="font-serif text-base font-bold">Преглед на документа</div>
+                        <div className="text-xs text-muted-foreground">Изготвеният договор се актуализира в реално време</div>
+                      </div>
+                      <ContractPreview
+                        contract={result.contract}
+                        onChange={(next) => {
+                          setResult({ ...result, contract: next });
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      </main>
+    </div>
+  );
+}
+
           <RiskMeter
             level={result?.risk.level ?? "unknown"}
             score={result?.risk.score}
