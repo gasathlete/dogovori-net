@@ -717,6 +717,7 @@ export type Database = {
           contracts_used: number
           corrections_free_used: boolean
           features_reset_at: string
+          free_signing_used: boolean
           monthly_contracts_used: number
           monthly_reset_at: string
           monthly_templates_used: number
@@ -740,6 +741,7 @@ export type Database = {
           contracts_used?: number
           corrections_free_used?: boolean
           features_reset_at?: string
+          free_signing_used?: boolean
           monthly_contracts_used?: number
           monthly_reset_at?: string
           monthly_templates_used?: number
@@ -763,6 +765,7 @@ export type Database = {
           contracts_used?: number
           corrections_free_used?: boolean
           features_reset_at?: string
+          free_signing_used?: boolean
           monthly_contracts_used?: number
           monthly_reset_at?: string
           monthly_templates_used?: number
@@ -2248,6 +2251,7 @@ export type Database = {
           contracts_used: number
           corrections_free_used: boolean
           features_reset_at: string
+          free_signing_used: boolean
           monthly_contracts_used: number
           monthly_reset_at: string
           monthly_templates_used: number
