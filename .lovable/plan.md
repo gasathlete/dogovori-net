@@ -1,84 +1,81 @@
-## Цел
+# План: По-малко текст + Сценарии "Какво искате да постигнете?"
 
-1. Нова **публична** страница `/plans` — модерна landing-style със сравнение на плановете. Нерегистрираните потребители я виждат без login wall.
-2. CTA „Вижте плановете" от PlatformShowcase → води към `/plans` (вместо `/account#plans`).
-3. Smart CTA в plan cards: ако не е логнат → регистрация → после checkout за избрания план.
-4. **Запазване в паметта**: имена на плановете в BG UI — **„Предприемач"** (Pro) и **„Екип"** (Team).
+Две паралелни промени, които работят заедно: визуално олекотяване на началната страница чрез `ExpandableCard` и нов вход към платформата чрез житейски/бизнес сценарии (вдъхновен от LawDepot, но в нашата естетика — navy + gold, не зелено).
 
-## Промени
+## 1. Опростяване на текста на началната страница
 
-### 1. Memory update (при влизане в build mode)
-Създавам `.lovable/memory/plan-names.md` + добавям ред в `.lovable/memory/index.md` под Core:
+Прилагаме съществуващия `ExpandableCard` ("Виж повече") към най-плътните секции — никакво ново съдържание, само скриваме излишното при първо зареждане.
 
-> Plan display names (BG UI): Free → „Безплатен", Pro → **„Предприемач"**, Team → **„Екип"**. Използват се навсякъде — pricing, account, ProUpgradeDialog, CTA копи, Stripe product display names, имейли. Не показваме „Pro"/„Team" в UI копи.
+- **Hero** (`Hero.tsx`)
+  - Параграфът „Освен шаблони и бланки…" се скъсява до 1 изречение: *„Индивидуални договори, съобразени със ЗЗД, ТЗ и ЗУТ — с пълен правен риск-анализ."* Останалото (стратегически въпроси, AI подкрепа) → зад `Виж повече`.
+  - Безплатно-редът се компресира: показваме само *„5 безплатни операции · Pro 9.90 €/мес · Промокод FIRST100 → −30%"*. Детайлите (2/мес, авто-корекция) → зад `Виж повече`.
 
-### 2. Нова страница `src/pages/Plans.tsx` (публична)
+- **Process** (`Process.tsx`), **ComplianceSection**, **Testimonials**, **PlatformShowcase**
+  - Дълги описания под заглавия → първите 1–2 изречения остават, останалото в `ExpandableCard`.
+  - Където има списъци с предимства (>4 точки) — показваме 3, останалите зад тогъл.
 
-- **Hero**: „Изберете плана, който работи за вас" + златен FIRST100 банер (30% месечен / 40% годишен).
-- **Billing toggle**: Месечно ↔ Годишно, „спести ~17%" значка.
-- **3 plan cards** (bento grid, glass-morphism, hairline gold borders):
-  - **Безплатен** — 5 операции при регистрация + 2/мес, AI 5 съобщ./мес, 1 комплект. CTA „Започни безплатно".
-  - **Предприемач** (highlighted, gold `border-beam`, „Най-популярен" badge): 12.90 €/мес или 129 €/год. 100 операции, неограничен AI, двуезични, неогр. комплекти, без воден знак, loyalty 5–15%. CTA „Активирай Предприемач".
-  - **Екип**: 10.90 €/seat/мес (мин. 3 = 32.70 €/мес) или 109 €/seat/год. Споделени документи, audit log, екипно фактуриране. CTA „Създай екип".
-- **Feature comparison** — collapsible `ExpandableCard` „Виж пълно сравнение ↓": операции, AI, езици, комплекти, поддръжка, loyalty, воден знак, audit log.
-- **FAQ accordion** (5–6 въпр.: какво е операция, смяна на план, ДДС, отказ, годишно vs месечно, екип).
-- **Trust strip** (ЗЗД/GDPR/ТЗ badges).
-- **Final CTA band**: ако не е логнат → „Регистрирай се за 30 секунди"; ако е логнат → „Активирай Предприемач сега".
+- **TopDocuments** — описанията на картите остават както са (вече кратки), но добавяме `line-clamp-2` за гарантирана едновисочина.
 
-### 3. Smart CTA логика (във всяка plan card)
+Принцип: **никакво ново копи**, само пренареждане. Запазваме SEO съдържанието — текстът присъства в DOM-а (просто скрит чрез `grid-template-rows`), значи crawler-ите го виждат.
 
-```ts
-const { user } = useAuth();
-const target = `/account?tab=subscription&plan=${plan}&promo=FIRST100`;
-const href = user
-  ? target
-  : `/auth?redirect=${encodeURIComponent(target)}&intent=plan_${plan}`;
-```
+## 2. Нова секция: „Какво искате да постигнете?" (Real-life scenarios)
 
-След регистрация потребителят се връща директно в checkout flow за избрания план (Auth страницата вече чете `redirect` от sessionStorage).
+Нов компонент `LifeScenarios.tsx`, поставен на началната страница **между Hero и PlatformShowcase** — точката, в която LawDepot хваща потребителя.
 
-### 4. Routing
+### Локализация на сценариите към български пазар
 
-В `src/App.tsx`:
-```
-<Route path="/plans" element={<Plans />} />
-```
-Lazy-loaded като останалите. SEO: `<Seo>` с title „Планове и цени — Dogovori.net" + JSON-LD `Product`/`Offer`. Запис в `public/sitemap-static.xml`.
+Не копираме директно LawDepot. Подбираме сценарии, които съответстват на нашите 21 сектора и реалния български контекст:
 
-### 5. Пренасочване на CTA „Вижте плановете"
+| Сценарий | Икона | Води до |
+|---|---|---|
+| Отдавам имот под наем | Home | `/sektor/real-estate` (наем-под-наем филтър) |
+| Купувам или продавам имот | ArrowRightLeft | `/sektor/real-estate` |
+| Започвам бизнес (ООД/ЕООД) | Store | `/sektor/corporate` |
+| Наемам служител | Briefcase | `/sektor/employment` |
+| Възлагам услуга / freelance | Code2 | `/sektor/services` |
+| Купувам или продавам автомобил | Car | `/sektor/vehicles` |
+| Упълномощавам някого | FileSignature | `/sektor/power-of-attorney` |
+| Защитавам идея / NDA | ShieldCheck | `/shablon/nda-dogovor-za-konfidentsialnost` |
+| Развод или семейно дело | Users | `/sektor/family` |
+| Заемам / връщам пари | HandCoins | `/sektor/finance` |
+| Изготвям декларация | FileCheck | `/sektor/family` |
+| Не съм сигурен какво ми трябва | Search | `/catalog` |
 
-`src/components/PlatformShowcase.tsx` ред 631:
-```
-to="/account#plans"  →  to="/plans"
-```
+12 сценария, layout: **mobile = 2-кол. grid с икона+текст**, **desktop = 3 или 4 кол.** Преобладаващо иконичен, скромен текст — обратното на нашите тежки описания.
 
-### 6. Преименуване Pro/Team → Предприемач/Екип
+### Визуален дизайн
 
-Само user-facing копи. Кодови ключове (`plan: "pro"`, Stripe lookup_keys) **остават непокътнати**. Засегнати файлове за UI копи:
-- `src/components/ProUpgradeDialog.tsx` — „Pro план" → „Предприемач", бутони „Pro — 9.90 € / месец" → „Предприемач — 12.90 €/мес"; ъпдейтнати и към актуалното ценообразуване.
-- `src/components/ProValueCard.tsx`, `src/components/FreeOpsChip.tsx`, `src/pages/Account.tsx` (subscription tab labels), `src/components/wizard/RiskReport.tsx`, `src/components/CTABand.tsx` ако реферира „Pro".
-- `src/i18n/locales/bg/*.json` (ако има plan labels) — преименуване.
-- НЕ пипам: `useIsPro.tsx`, `plan === "pro"` логиката, Stripe ID, types.
+Не зелен LawDepot стил. Нашият стил:
+- Navy фон с gold accent border + hover lift
+- Иконата вляво в gold кръг (`border border-gold/30 bg-gold/10`)
+- Кратък etikет (1 ред) — без описание
+- Хover: `border-gold/45`, лек translate
+- Eyebrow „00 · Започнете оттук" (преномериране на следващите секции с +1 не е нужно — те остават 01, 02… защото тази секция е „вход", не номериран раздел)
 
-### 7. Дизайн език
+### Поведение
 
-- Тъмен navy gradient + suptle gold sweep (`gold-sweep-bg`).
-- Plan cards: backdrop-blur, hairline gold border, hover lift + magnetic.
-- Pro card: rotating conic-gradient `border-beam`.
-- Stagger reveal scroll-in, count-up за брояч „Над X документа подписани днес".
-- Mobile-first: stack cards, sticky billing toggle при scroll.
-- Reduced-motion respect.
+- Click → директно `navigate(path)` чрез `PrefetchLink`
+- Под grid-а: централен CTA „Не намирате? Разгледайте всички 600+ шаблона" → `/catalog`
+- 12-те сценария живеят в `src/data/lifeScenarios.ts` (id, label, icon name, href, priority)
 
-## Технически детайли
+## Файлове
 
-- **Нови файлове**: `src/pages/Plans.tsx`, `src/lib/plansData.ts` (центриран източник за features + cena), `.lovable/memory/plan-names.md`.
-- **Промени**: `src/App.tsx`, `src/components/PlatformShowcase.tsx`, `.lovable/memory/index.md`, `src/components/ProUpgradeDialog.tsx`, и UI копи в горепосочените файлове.
-- **Без backend, без нови dependencies**. Използва съществуващи: `ExpandableCard`, `Accordion`, `Tooltip`, `Seo`, `useAuth`, `useIsPro`, `Button`, design tokens.
-- Pricing източник: Pro 12.90/129 €, Team 10.90/109 € (от memory), one-off 2.90 €.
+**Нови:**
+- `src/components/LifeScenarios.tsx`
+- `src/data/lifeScenarios.ts`
 
-## Извън скоупа
+**Редактирани:**
+- `src/pages/Index.tsx` — lazy import + LifeScenarios между Hero и PlatformShowcase, увит в `LazyOnVisible` + `Reveal`
+- `src/components/Hero.tsx` — скъсяване на параграф и quota реда + `ExpandableCard` за останалото
+- `src/components/Process.tsx` — `ExpandableCard` около дълги описания на стъпки
+- `src/components/ComplianceSection.tsx` — кратко интро + `ExpandableCard`
+- `src/components/Testimonials.tsx` — само ако има тежък текст
+- `src/components/PlatformShowcase.tsx` — компресия на интро текст
 
-- Не променям Stripe price IDs или backend логика.
-- Не пипам `plan === "pro"` checks или `useIsPro`.
-- Не пипам i18n EN копи (само BG в този ход).
-- Не добавям нови планове.
+## Извън обхвата
+
+- Без backend/database промени
+- Без промени по `/plans`, auth, Stripe
+- Без редизайн на secondary страници
+- Без нови преводи — само BG копи (UI е BG, sealed by memory)
+- Без промени на номерацията на eyebrow-овете на съществуващите секции
