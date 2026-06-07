@@ -260,12 +260,18 @@ export function PlatformShowcase() {
               "radial-gradient(ellipse 80% 60% at 50% 50%, #000 40%, transparent 80%)",
           }}
         />
-        {/* skyline silhouette */}
+        {/* skyline silhouette — smaller on mobile, fades to give CTA breathing room */}
         <svg
-          className="absolute inset-x-0 bottom-0 h-[28%] w-full text-gold opacity-70"
+          className="absolute inset-x-0 bottom-0 h-[14%] w-full text-gold opacity-50 sm:h-[22%] sm:opacity-60 md:h-[26%] md:opacity-70"
           viewBox="0 0 1600 400"
           preserveAspectRatio="xMidYEnd slice"
           fill="none"
+          style={{
+            maskImage:
+              "linear-gradient(to top, #000 60%, transparent 100%)",
+            WebkitMaskImage:
+              "linear-gradient(to top, #000 60%, transparent 100%)",
+          }}
         >
           <defs>
             <linearGradient id="ps-tower" x1="0" y1="0" x2="0" y2="1">
@@ -277,7 +283,6 @@ export function PlatformShowcase() {
               <stop offset="100%" stopColor="hsl(var(--foreground))" stopOpacity="0" />
             </linearGradient>
           </defs>
-          {/* back row */}
           <g fill="url(#ps-tower-2)" stroke="hsl(var(--gold) / 0.25)" strokeWidth="1">
             <rect x="60"  y="180" width="80"  height="220" />
             <rect x="160" y="140" width="60"  height="260" />
@@ -294,14 +299,12 @@ export function PlatformShowcase() {
             <rect x="1330" y="140" width="70"  height="260" />
             <rect x="1420" y="180" width="110" height="220" />
           </g>
-          {/* front taller towers with windows */}
           <g>
             <rect x="300" y="80"  width="60"  height="320" fill="url(#ps-tower)" stroke="hsl(var(--gold) / 0.45)" />
             <rect x="700" y="50"  width="70"  height="350" fill="url(#ps-tower)" stroke="hsl(var(--gold) / 0.5)" />
             <rect x="1020" y="70" width="60"  height="330" fill="url(#ps-tower)" stroke="hsl(var(--gold) / 0.45)" />
             <rect x="1280" y="90" width="55"  height="310" fill="url(#ps-tower)" stroke="hsl(var(--gold) / 0.4)" />
           </g>
-          {/* window dots */}
           <g fill="hsl(var(--gold) / 0.55)">
             {Array.from({ length: 10 }).map((_, r) =>
               [320, 720, 1040, 1300].map((x, ci) => (
@@ -313,7 +316,6 @@ export function PlatformShowcase() {
               ))
             )}
           </g>
-          {/* antennae */}
           <g stroke="hsl(var(--gold) / 0.6)" strokeWidth="1.2">
             <line x1="330" y1="80"  x2="330" y2="50" />
             <line x1="735" y1="50"  x2="735" y2="14" />
