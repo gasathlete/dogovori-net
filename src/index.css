@@ -79,6 +79,12 @@
   }
 }
 
+/* Isolate repeating card paints/layout so hover effects don't trigger
+   full-section reflows. Apply with `card-contain` utility. */
+@layer utilities {
+  .card-contain { contain: layout paint; }
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -351,10 +357,12 @@
     }
   }
 
-  /* Staggered entrance */
+  /* Staggered entrance — only a handful of hero elements, so the
+     compositor hint cost is negligible. */
   .anim-rise {
     opacity: 0;
     transform: translateY(12px);
+    will-change: transform, opacity;
     animation: rise-in 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
   @keyframes rise-in {
