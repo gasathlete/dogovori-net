@@ -1,31 +1,24 @@
 import { type ReactNode } from "react";
-import { useInView } from "@/hooks/useInView";
 import { cn } from "@/lib/utils";
 
+/**
+ * Reveal — historically faded sections in on scroll. The fade-in caused
+ * extra paints and visible flicker on slower devices and made fast
+ * scrolling feel "choppy". It now renders children directly (no JS,
+ * no IntersectionObserver, no opacity transition) while keeping the
+ * same public API so existing call sites don't need changes.
+ */
 export function Reveal({
   children,
   className,
-  delay = 0,
   as: Tag = "div",
 }: {
   children: ReactNode;
   className?: string;
+  /** kept for API compatibility — no longer used */
   delay?: number;
   as?: keyof JSX.IntrinsicElements;
 }) {
-  const { ref, inView } = useInView<HTMLDivElement>();
   const Comp = Tag as any;
-  return (
-    <Comp
-      ref={ref as any}
-      style={delay ? { transitionDelay: `${delay}ms` } : undefined}
-      className={cn(
-        "transition-opacity duration-500 ease-out motion-reduce:transition-none motion-reduce:opacity-100",
-        inView ? "opacity-100" : "opacity-0",
-        className
-      )}
-    >
-      {children}
-    </Comp>
-  );
+  return <Comp className={cn(className)}>{children}</Comp>;
 }
