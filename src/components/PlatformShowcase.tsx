@@ -628,7 +628,7 @@ export function PlatformShowcase() {
         {/* CTA */}
         <div className="relative z-10 mx-auto mt-12 flex max-w-xl flex-col items-center justify-center gap-3 rounded-2xl border border-hairline bg-card/85 px-6 py-6 backdrop-blur-md sm:mt-16">
           <Link
-            to="/account#plans"
+            to="/plans"
             className="ps-cta group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-gold/60 bg-gradient-to-r from-gold/20 via-gold/15 to-gold/20 px-7 py-3 text-sm font-semibold tracking-wide text-gold transition-all duration-300 hover:border-gold hover:from-gold/30 hover:via-gold/20 hover:to-gold/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
           >
             <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-gold/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
