@@ -12,6 +12,8 @@ export interface FreeQuota {
   bilingualPreviewsUsed: number;
   bilingualPreviewsCap: number;
   kitSlotsCap: number;
+  correctionsFreeUsed: boolean;
+  signupAt: string | null;
 }
 
 interface ProState {
@@ -24,7 +26,7 @@ interface ProState {
 
 const DEFAULT_FREE_QUOTA: FreeQuota = {
   opsUsed: 0,
-  opsCap: 3,
+  opsCap: 5,
   aiMessagesUsed: 0,
   aiMessagesCap: 5,
   analysisPreviewsUsed: 0,
@@ -32,6 +34,8 @@ const DEFAULT_FREE_QUOTA: FreeQuota = {
   bilingualPreviewsUsed: 0,
   bilingualPreviewsCap: 1,
   kitSlotsCap: 1,
+  correctionsFreeUsed: false,
+  signupAt: null,
 };
 
 export function useIsPro(): ProState {
@@ -52,7 +56,7 @@ export function useIsPro(): ProState {
       supabase
         .from("download_quota")
         .select(
-          "plan, pro_until, monthly_total_used, ai_messages_used, analysis_previews_used, bilingual_previews_used",
+          "plan, pro_until, monthly_total_used, ai_messages_used, analysis_previews_used, bilingual_previews_used, corrections_free_used, signup_at",
         )
         .eq("user_id", user.id)
         .maybeSingle(),
@@ -68,13 +72,17 @@ export function useIsPro(): ProState {
       Boolean((q as any)?.pro_until && new Date((q as any).pro_until) > new Date());
     const t: any = tm;
     const isTeam = Boolean(t && t.teams?.status === "active");
+    const signupAt: string | null = (q as any)?.signup_at ?? null;
+    const withinFirstMonth =
+      !!signupAt && Date.now() - new Date(signupAt).getTime() < 30 * 24 * 60 * 60 * 1000;
+    const opsCap = withinFirstMonth ? 5 : 2;
     setState({
       isPro,
       isTeam,
       loading: false,
       freeQuota: {
         opsUsed: (q as any)?.monthly_total_used ?? 0,
-        opsCap: 3,
+        opsCap,
         aiMessagesUsed: (q as any)?.ai_messages_used ?? 0,
         aiMessagesCap: 5,
         analysisPreviewsUsed: (q as any)?.analysis_previews_used ?? 0,
@@ -82,6 +90,8 @@ export function useIsPro(): ProState {
         bilingualPreviewsUsed: (q as any)?.bilingual_previews_used ?? 0,
         bilingualPreviewsCap: 1,
         kitSlotsCap: 1,
+        correctionsFreeUsed: Boolean((q as any)?.corrections_free_used),
+        signupAt,
       },
     });
   }, [user]);
