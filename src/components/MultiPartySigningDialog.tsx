@@ -92,6 +92,14 @@ export function MultiPartySigningDialog(p: Props) {
           </div>
         ) : (
           <div className="space-y-5">
+            {!p.isPro && p.freeAvailable && (
+              <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm">
+                <div className="font-semibold text-emerald-600">🎁 Имате 1 безплатен онлайн подпис</div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Тази заявка ще използва безплатния ви кредит. Следващите изискват Pro план.
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Подписващи</Label>
               {signers.map((s, i) => (
