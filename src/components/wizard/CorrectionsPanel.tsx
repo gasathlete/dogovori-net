@@ -11,6 +11,7 @@ export interface CorrectionsSelection {
 
 export function CorrectionsPanel({
   isPro,
+  freeWaveAvailable = false,
   issues,
   recommendations,
   loading,
@@ -19,6 +20,7 @@ export function CorrectionsPanel({
   onUpgrade,
 }: {
   isPro: boolean;
+  freeWaveAvailable?: boolean;
   issues: RiskIssue[];
   recommendations: string[];
   loading: boolean;
@@ -26,6 +28,7 @@ export function CorrectionsPanel({
   onApply: (sel: CorrectionsSelection) => void;
   onUpgrade: () => void;
 }) {
+  const canApply = isPro || freeWaveAvailable;
   const [issueSel, setIssueSel] = useState<Record<number, boolean>>(() =>
     Object.fromEntries(issues.map((_, i) => [i, true])),
   );
