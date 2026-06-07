@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
  */
 export function LazyOnVisible({
   children,
-  rootMargin = "200px",
+  rootMargin = "800px",
   minHeight = 400,
   fallback = null,
 }: {
