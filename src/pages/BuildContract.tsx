@@ -1450,6 +1450,16 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                     }}
                   />
                 </div>
+                <MultiPartySigningDialog
+                  open={signDialogOpen}
+                  onOpenChange={setSignDialogOpen}
+                  title={(name || result.contract.title || "Договор").trim()}
+                  documentSnapshot={result.contract}
+                  savedDocumentId={savedDocId ?? null}
+                  isPro={isPro}
+                  freeAvailable={signingFreeAvailable}
+                  onCreated={refreshPro}
+                />
               </>
             ) : (
               <>
