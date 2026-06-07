@@ -95,9 +95,12 @@ export function PartyListEditor({ rows, onChange, contacts = [], placeholder, ad
           <Input
             value={row.name}
             onChange={(e) => update(idx, { name: e.target.value })}
-            placeholder={placeholder ?? "Име / Фирма, ЕИК…"}
+            placeholder={placeholder ?? "Име / Фирма, ЕИК… (по избор)"}
             className="h-9 bg-input/60 text-sm"
           />
+          <p className="-mt-1 text-[10px] text-muted-foreground">
+            Може да оставите празно — но изберете тип по-долу.
+          </p>
           <div className="flex items-center justify-between gap-2">
             <div className="inline-flex gap-1 rounded-md border border-border/60 bg-card/40 p-0.5">
               {TYPES.map((t) => {
