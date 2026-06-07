@@ -89,6 +89,23 @@ function isAnswered(value: unknown): boolean {
   return true;
 }
 
+/**
+ * Resolve a question's suggested default for auto-accept-on-empty UX.
+ * Returns null if there's nothing to suggest.
+ */
+export function resolveQuestionDefault(q: QuestionNode, ctx: Ctx): unknown {
+  if (q.default == null) return null;
+  if (typeof q.default === "string") {
+    // Try expression evaluation; if it fails or returns null, fall back to the literal string.
+    try {
+      const evald = evaluateExpression(q.default, ctx);
+      if (evald != null && evald !== false) return evald;
+    } catch { /* noop */ }
+    return q.default;
+  }
+  return q.default;
+}
+
 export function resolveGraph(graph: QuestionGraph, answers: Ctx): ResolvedGraph {
   const ctx: Ctx = { ...answers };
   const active: ResolvedQuestion[] = [];
