@@ -804,7 +804,7 @@ export function LiveDraft({
             </Button>
           ) : (
             <span className="inline-flex items-center gap-1 rounded-md border border-border/60 px-2 py-1 text-[11px] text-muted-foreground">
-              <Lock className="h-3 w-3" /> Директна редакция — само „Предприемач“
+              <Lock className="h-3 w-3" /> Директна редакция — само "Предприемач"
             </span>
           )}
         </div>
