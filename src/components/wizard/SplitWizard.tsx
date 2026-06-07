@@ -353,6 +353,7 @@ export function SplitWizard({
                   value={answers[q.id]}
                   onChange={(v) => setAnswer(q.id, v)}
                   invalid={attemptedNext && missingIds.has(q.id)}
+                  contacts={contacts}
                 />
               ))}
             </div>
