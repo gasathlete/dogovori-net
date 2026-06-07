@@ -26,26 +26,31 @@ export function Hero({ onStart }: { onStart: () => void }) {
       {/* Base navy gradient */}
       <div className="absolute inset-0 bg-gradient-hero opacity-95" />
 
-      {/* Corner filigree — four delicate ornaments */}
+      {/* Corner filigree — single SVG with <use> refs (8 DOM nodes -> 1) */}
+      <svg aria-hidden="true" width="0" height="0" className="absolute" style={{ position: "absolute" }}>
+        <defs>
+          <symbol id="hero-corner" viewBox="0 0 60 60">
+            <g fill="none" stroke="currentColor" strokeWidth="0.7">
+              <path d="M0 22 L0 0 L22 0" />
+              <path d="M0 32 L9 32" />
+              <path d="M32 0 L32 9" />
+            </g>
+            <circle cx="14" cy="14" r="1.1" fill="currentColor" />
+          </symbol>
+        </defs>
+      </svg>
       {[
-        { pos: "top-5 left-5", rot: "rotate-0" },
-        { pos: "top-5 right-5", rot: "rotate-90" },
-        { pos: "bottom-5 right-5", rot: "rotate-180" },
-        { pos: "bottom-5 left-5", rot: "-rotate-90" },
-      ].map(({ pos, rot }) => (
+        "top-5 left-5 rotate-0",
+        "top-5 right-5 rotate-90",
+        "bottom-5 right-5 rotate-180",
+        "bottom-5 left-5 -rotate-90",
+      ].map((cls) => (
         <svg
-          key={pos}
+          key={cls}
           aria-hidden="true"
-          viewBox="0 0 60 60"
-          className={`pointer-events-none absolute h-10 w-10 text-gold/40 ${pos} ${rot}`}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="0.7"
+          className={`pointer-events-none absolute h-10 w-10 text-gold/40 ${cls}`}
         >
-          <path d="M0 22 L0 0 L22 0" />
-          <path d="M0 32 L9 32" />
-          <path d="M32 0 L32 9" />
-          <circle cx="14" cy="14" r="1.1" fill="currentColor" stroke="none" />
+          <use href="#hero-corner" />
         </svg>
       ))}
 
