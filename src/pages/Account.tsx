@@ -390,7 +390,16 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
         sub={
           isPro
             ? `${(quota as any)?.pro_monthly_used ?? 0}/100 операции/мес`
-            : `${(quota as any)?.total_used ?? 0}/6 общо · ${(quota as any)?.monthly_total_used ?? 0}/2 този месец`
+            : (() => {
+                const signupAt = (quota as any)?.signup_at ? new Date((quota as any).signup_at).getTime() : null;
+                const withinFirstMonth = !!signupAt && Date.now() - signupAt < 30 * 24 * 60 * 60 * 1000;
+                const cap = withinFirstMonth ? 5 : 2;
+                const used = (quota as any)?.monthly_total_used ?? 0;
+                const corrFree = (quota as any)?.corrections_free_used
+                  ? "вълна корекции използвана"
+                  : "+1 безплатна вълна корекции";
+                return `${used}/${cap} операции · ${corrFree}`;
+              })()
         }
         hint="Документ · Бланка · Качване на документ за Анализ – автоматични корекции = 1 операция"
         onClick={() => navigate("/account?tab=subscription")}
@@ -1459,7 +1468,16 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
               {isPro
                 ? `Използвани ${proMonthlyUsed} от ${proMonthlyCap} операции за текущия период.`
-                : `6 операции общо при регистрация, после 2 на месец. Документите се свалят с дискретен воден знак. Използвани: ${(quota as any)?.total_used ?? 0} от 6 общо · ${(quota as any)?.monthly_total_used ?? 0} от 2 този месец.`}
+                : (() => {
+                    const signupAt = (quota as any)?.signup_at ? new Date((quota as any).signup_at).getTime() : null;
+                    const withinFirstMonth = !!signupAt && Date.now() - signupAt < 30 * 24 * 60 * 60 * 1000;
+                    const cap = withinFirstMonth ? 5 : 2;
+                    const used = (quota as any)?.monthly_total_used ?? 0;
+                    const corrFree = (quota as any)?.corrections_free_used
+                      ? "Безплатната вълна авто-корекции вече е използвана."
+                      : "Имате +1 безплатна вълна автоматични корекции (не консумира операция).";
+                    return `5 операции при регистрация, после 2 на месец. Документите се свалят с дискретен воден знак. Използвани: ${used} от ${cap} този месец. ${corrFree}`;
+                  })()}
             </p>
 
             {isPro && (
