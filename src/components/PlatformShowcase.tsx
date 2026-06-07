@@ -175,6 +175,12 @@ function MiniVisual({ kind }: { kind: FeatureSlide["visual"] }) {
 export function PlatformShowcase() {
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [vw, setVw] = useState<number>(() => (typeof window !== "undefined" ? window.innerWidth : 1280));
+  useEffect(() => {
+    const onResize = () => setVw(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
   const [dragDx, setDragDx] = useState(0);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const swipedRef = useRef(false);
@@ -260,12 +266,18 @@ export function PlatformShowcase() {
               "radial-gradient(ellipse 80% 60% at 50% 50%, #000 40%, transparent 80%)",
           }}
         />
-        {/* skyline silhouette */}
+        {/* skyline silhouette — smaller on mobile, fades to give CTA breathing room */}
         <svg
-          className="absolute inset-x-0 bottom-0 h-[28%] w-full text-gold opacity-70"
+          className="absolute inset-x-0 bottom-0 h-[14%] w-full text-gold opacity-50 sm:h-[22%] sm:opacity-60 md:h-[26%] md:opacity-70"
           viewBox="0 0 1600 400"
           preserveAspectRatio="xMidYEnd slice"
           fill="none"
+          style={{
+            maskImage:
+              "linear-gradient(to top, #000 60%, transparent 100%)",
+            WebkitMaskImage:
+              "linear-gradient(to top, #000 60%, transparent 100%)",
+          }}
         >
           <defs>
             <linearGradient id="ps-tower" x1="0" y1="0" x2="0" y2="1">
@@ -277,7 +289,6 @@ export function PlatformShowcase() {
               <stop offset="100%" stopColor="hsl(var(--foreground))" stopOpacity="0" />
             </linearGradient>
           </defs>
-          {/* back row */}
           <g fill="url(#ps-tower-2)" stroke="hsl(var(--gold) / 0.25)" strokeWidth="1">
             <rect x="60"  y="180" width="80"  height="220" />
             <rect x="160" y="140" width="60"  height="260" />
@@ -294,14 +305,12 @@ export function PlatformShowcase() {
             <rect x="1330" y="140" width="70"  height="260" />
             <rect x="1420" y="180" width="110" height="220" />
           </g>
-          {/* front taller towers with windows */}
           <g>
             <rect x="300" y="80"  width="60"  height="320" fill="url(#ps-tower)" stroke="hsl(var(--gold) / 0.45)" />
             <rect x="700" y="50"  width="70"  height="350" fill="url(#ps-tower)" stroke="hsl(var(--gold) / 0.5)" />
             <rect x="1020" y="70" width="60"  height="330" fill="url(#ps-tower)" stroke="hsl(var(--gold) / 0.45)" />
             <rect x="1280" y="90" width="55"  height="310" fill="url(#ps-tower)" stroke="hsl(var(--gold) / 0.4)" />
           </g>
-          {/* window dots */}
           <g fill="hsl(var(--gold) / 0.55)">
             {Array.from({ length: 10 }).map((_, r) =>
               [320, 720, 1040, 1300].map((x, ci) => (
@@ -313,7 +322,6 @@ export function PlatformShowcase() {
               ))
             )}
           </g>
-          {/* antennae */}
           <g stroke="hsl(var(--gold) / 0.6)" strokeWidth="1.2">
             <line x1="330" y1="80"  x2="330" y2="50" />
             <line x1="735" y1="50"  x2="735" y2="14" />
@@ -321,34 +329,34 @@ export function PlatformShowcase() {
           </g>
         </svg>
 
-        {/* deal motif: fountain pen signing a contract */}
+        {/* deal motif: fountain pen signing a contract — animated */}
         <svg
-          className="absolute right-[5%] top-8 hidden h-44 w-72 md:block"
+          className="absolute right-[4%] top-6 hidden h-40 w-64 md:block lg:right-[6%] lg:h-44 lg:w-72"
           viewBox="0 0 288 176"
           fill="none"
         >
-          {/* Contract / document */}
-          <g>
+          {/* subtle drop-shadow glow under the document */}
+          <ellipse cx="95" cy="166" rx="78" ry="6" fill="hsl(var(--gold) / 0.12)" />
+
+          {/* Contract / document — gentle settle-in */}
+          <g className="ps-doc">
             <rect
               x="20"
               y="22"
               width="150"
               height="138"
               rx="4"
-              fill="hsl(var(--card) / 0.55)"
-              stroke="hsl(var(--gold) / 0.45)"
+              fill="hsl(var(--card) / 0.65)"
+              stroke="hsl(var(--gold) / 0.5)"
               strokeWidth="1"
             />
-            {/* folded corner */}
             <path
               d="M150 22 L170 42 L150 42 Z"
-              fill="hsl(var(--gold) / 0.18)"
-              stroke="hsl(var(--gold) / 0.45)"
+              fill="hsl(var(--gold) / 0.22)"
+              stroke="hsl(var(--gold) / 0.5)"
               strokeWidth="1"
             />
-            {/* header bar */}
-            <rect x="32" y="36" width="60" height="4" rx="2" fill="hsl(var(--gold) / 0.7)" />
-            {/* body lines */}
+            <rect x="32" y="36" width="60" height="4" rx="2" fill="hsl(var(--gold) / 0.75)" />
             <g stroke="hsl(var(--foreground) / 0.35)" strokeWidth="1" strokeLinecap="round">
               <line x1="32" y1="54" x2="158" y2="54" />
               <line x1="32" y1="64" x2="150" y2="64" />
@@ -356,7 +364,6 @@ export function PlatformShowcase() {
               <line x1="32" y1="84" x2="140" y2="84" />
               <line x1="32" y1="94" x2="154" y2="94" />
             </g>
-            {/* signature line */}
             <line
               x1="32"
               y1="132"
@@ -365,62 +372,72 @@ export function PlatformShowcase() {
               stroke="hsl(var(--foreground) / 0.5)"
               strokeWidth="1"
             />
-            {/* signature flourish */}
+            {/* signature flourish — drawn-on */}
             <path
+              className="ps-sign"
               d="M36 128 C 48 116, 56 140, 68 126 S 86 118, 96 130"
               stroke="hsl(var(--gold))"
-              strokeWidth="1.6"
+              strokeWidth="1.8"
               fill="none"
               strokeLinecap="round"
+              pathLength={1}
             />
-            {/* check seal */}
-            <circle
-              cx="138"
-              cy="132"
-              r="11"
-              fill="none"
-              stroke="hsl(var(--gold))"
-              strokeWidth="1.3"
-            />
-            <path
-              d="M133 132 l4 4 l7 -8"
-              stroke="hsl(var(--gold))"
-              strokeWidth="1.6"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+
+            {/* check seal — stamps in */}
+            <g className="ps-seal" style={{ transformOrigin: "138px 132px" }}>
+              <circle
+                cx="138"
+                cy="132"
+                r="11"
+                fill="hsl(var(--gold) / 0.12)"
+                stroke="hsl(var(--gold))"
+                strokeWidth="1.4"
+              />
+              <path
+                d="M133 132 l4 4 l7 -8"
+                stroke="hsl(var(--gold))"
+                strokeWidth="1.8"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {/* impact ring */}
+              <circle
+                className="ps-seal-ring"
+                cx="138"
+                cy="132"
+                r="11"
+                fill="none"
+                stroke="hsl(var(--gold))"
+                strokeWidth="1.2"
+              />
+            </g>
           </g>
 
-          {/* Fountain pen — angled, nib touching signature */}
-          <g transform="translate(40 124) rotate(-32)">
-            {/* barrel */}
+          {/* Fountain pen — glides along signature */}
+          <g className="ps-pen" transform="translate(40 124) rotate(-32)">
             <rect
               x="0"
               y="-5"
               width="120"
               height="10"
               rx="3"
-              fill="hsl(var(--navy-light) / 0.9)"
+              fill="hsl(var(--navy-light) / 0.95)"
               stroke="hsl(var(--gold) / 0.6)"
               strokeWidth="1"
             />
-            {/* grip band */}
-            <rect x="36" y="-6" width="6" height="12" fill="hsl(var(--gold) / 0.55)" />
-            {/* cap end */}
+            <rect x="36" y="-6" width="6" height="12" fill="hsl(var(--gold) / 0.6)" />
             <rect
               x="116"
               y="-6"
               width="10"
               height="12"
               rx="2"
-              fill="hsl(var(--gold) / 0.5)"
+              fill="hsl(var(--gold) / 0.55)"
               stroke="hsl(var(--gold))"
               strokeWidth="1"
             />
-            {/* clip */}
             <rect x="100" y="-9" width="14" height="3" rx="1" fill="hsl(var(--gold))" />
-            {/* nib */}
             <path
               d="M0 -5 L-14 0 L0 5 Z"
               fill="hsl(var(--gold))"
@@ -428,34 +445,11 @@ export function PlatformShowcase() {
               strokeWidth="1"
               strokeLinejoin="round"
             />
-            {/* nib slit */}
-            <line
-              x1="-12"
-              y1="0"
-              x2="-2"
-              y2="0"
-              stroke="hsl(var(--navy) / 0.9)"
-              strokeWidth="0.8"
-            />
+            <line x1="-12" y1="0" x2="-2" y2="0" stroke="hsl(var(--navy) / 0.9)" strokeWidth="0.8" />
           </g>
 
-          {/* ambient dashed connectors */}
-          <line
-            x1="6"
-            y1="92"
-            x2="22"
-            y2="92"
-            stroke="hsl(var(--gold) / 0.4)"
-            strokeDasharray="2 4"
-          />
-          <line
-            x1="172"
-            y1="92"
-            x2="282"
-            y2="92"
-            stroke="hsl(var(--gold) / 0.35)"
-            strokeDasharray="2 4"
-          />
+          <line x1="6" y1="92" x2="22" y2="92" stroke="hsl(var(--gold) / 0.4)" strokeDasharray="2 4" />
+          <line x1="172" y1="92" x2="282" y2="92" stroke="hsl(var(--gold) / 0.35)" strokeDasharray="2 4" />
         </svg>
       </div>
 
@@ -489,7 +483,7 @@ export function PlatformShowcase() {
           onTouchEnd={onTouchEnd}
           onTouchCancel={onTouchEnd}
         >
-          <div className="relative mx-auto h-[560px] w-full max-w-6xl sm:h-[620px] md:h-[660px]">
+          <div className="relative mx-auto h-[460px] w-full max-w-6xl sm:h-[580px] md:h-[660px]">
             {SLIDES.map((slide, i) => {
               // shortest signed distance on a ring
               let delta = i - idx;
@@ -498,10 +492,13 @@ export function PlatformShowcase() {
               const abs = Math.abs(delta);
               const isActive = delta === 0;
 
-              const translateX = delta * 300 + (isActive ? dragDx : dragDx * 0.4);
-              const rotateY = reducedMotion ? 0 : delta * -16;
-              const scale = abs === 0 ? 1 : abs === 1 ? 0.84 : 0.68;
-              const opacity = abs === 0 ? 1 : abs === 1 ? 0.55 : 0.22;
+              // Responsive offsets — tighter on mobile to avoid edge clipping
+              const isMobileVP = vw < 640;
+              const offset = isMobileVP ? 180 : 300;
+              const translateX = delta * offset + (isActive ? dragDx : dragDx * 0.4);
+              const rotateY = reducedMotion ? 0 : delta * (isMobileVP ? -22 : -16);
+              const scale = abs === 0 ? 1 : abs === 1 ? (isMobileVP ? 0.7 : 0.84) : (isMobileVP ? 0.5 : 0.68);
+              const opacity = abs === 0 ? 1 : abs === 1 ? 0.5 : 0.18;
               const z = 10 - abs;
 
               const { Icon } = slide;
@@ -520,7 +517,7 @@ export function PlatformShowcase() {
                     }
                     if (!isActive) goTo(i);
                   }}
-                  className="group absolute left-1/2 top-1/2 -ml-[230px] -mt-[270px] block h-[540px] w-[460px] rounded-2xl border border-hairline bg-card/95 text-left shadow-elegant outline-none transition-[transform,opacity,box-shadow] duration-700 ease-[cubic-bezier(.22,1,.36,1)] focus-visible:ring-2 focus-visible:ring-gold/60 sm:h-[600px] sm:w-[520px] sm:-ml-[260px] sm:-mt-[300px] md:h-[640px] md:w-[560px] md:-ml-[280px] md:-mt-[320px]"
+                  className="group absolute left-1/2 top-1/2 -ml-[150px] -mt-[210px] block h-[420px] w-[300px] rounded-2xl border border-hairline bg-card/95 text-left shadow-elegant outline-none transition-[transform,opacity,box-shadow] duration-700 ease-[cubic-bezier(.22,1,.36,1)] focus-visible:ring-2 focus-visible:ring-gold/60 sm:h-[560px] sm:w-[460px] sm:-ml-[230px] sm:-mt-[280px] md:h-[640px] md:w-[560px] md:-ml-[280px] md:-mt-[320px]"
                   style={{
                     transform: `translate3d(${translateX}px,0,0) rotateY(${rotateY}deg) scale(${scale})`,
                     opacity,
@@ -632,12 +629,12 @@ export function PlatformShowcase() {
         <div className="relative z-10 mx-auto mt-12 flex max-w-xl flex-col items-center justify-center gap-3 rounded-2xl border border-hairline bg-card/85 px-6 py-6 backdrop-blur-md sm:mt-16">
           <Link
             to="/account#plans"
-            className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-gold/60 bg-gradient-to-r from-gold/20 via-gold/15 to-gold/20 px-7 py-3 text-sm font-semibold tracking-wide text-gold shadow-elegant transition-all duration-300 hover:border-gold hover:from-gold/30 hover:via-gold/20 hover:to-gold/30 hover:shadow-[0_10px_40px_-10px_hsl(var(--gold)/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
+            className="ps-cta group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-gold/60 bg-gradient-to-r from-gold/20 via-gold/15 to-gold/20 px-7 py-3 text-sm font-semibold tracking-wide text-gold transition-all duration-300 hover:border-gold hover:from-gold/30 hover:via-gold/20 hover:to-gold/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
           >
             <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-gold/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
             <span className="relative">Вижте плановете</span>
             <ArrowRight
-              className="relative h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
+              className="relative h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
               strokeWidth={1.8}
             />
           </Link>
@@ -646,8 +643,6 @@ export function PlatformShowcase() {
           </p>
         </div>
       </div>
-
-
 
       <style>{`
         @keyframes platform-progress {
@@ -662,6 +657,50 @@ export function PlatformShowcase() {
           0% { transform: translateX(-100%); opacity: 0; }
           40% { opacity: 1; }
           100% { transform: translateX(100%); opacity: 0; }
+        }
+        /* Deal motif — 7s loop aligned with carousel rotation, building toward CTA */
+        @keyframes ps-sign-draw {
+          0%, 10%  { stroke-dasharray: 1; stroke-dashoffset: 1; }
+          32%      { stroke-dasharray: 1; stroke-dashoffset: 0; }
+          100%     { stroke-dasharray: 1; stroke-dashoffset: 0; }
+        }
+        @keyframes ps-pen-glide {
+          0%, 10%  { transform: translate(36px, 124px) rotate(-32deg); }
+          32%      { transform: translate(82px, 124px) rotate(-30deg); }
+          42%      { transform: translate(96px, 122px) rotate(-28deg); }
+          90%      { transform: translate(96px, 122px) rotate(-28deg); }
+          100%     { transform: translate(36px, 124px) rotate(-32deg); }
+        }
+        @keyframes ps-seal-stamp {
+          0%, 42%   { transform: scale(0); opacity: 0; }
+          50%       { transform: scale(1.3); opacity: 1; }
+          56%       { transform: scale(0.92); opacity: 1; }
+          62%, 100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes ps-seal-ring-anim {
+          0%, 48%   { transform: scale(1); opacity: 0; }
+          52%       { transform: scale(1); opacity: 0.9; }
+          75%       { transform: scale(2.2); opacity: 0; }
+          100%      { transform: scale(2.2); opacity: 0; }
+        }
+        @keyframes ps-doc-settle {
+          0%, 100% { transform: translateY(0) translateX(0); }
+          50%      { transform: translateY(-2px) translateX(0.5px); }
+        }
+        @keyframes ps-cta-pulse {
+          0%, 60%, 100% { box-shadow: 0 6px 22px -12px hsl(var(--gold) / 0.35); transform: translateY(0); }
+          72%           { box-shadow: 0 18px 48px -10px hsl(var(--gold) / 0.75); transform: translateY(-2px); }
+          85%           { box-shadow: 0 14px 36px -10px hsl(var(--gold) / 0.55); transform: translateY(-1px); }
+        }
+        .ps-doc       { animation: ps-doc-settle 7s ease-in-out infinite; transform-origin: 95px 90px; }
+        .ps-sign      { animation: ps-sign-draw 7s ease-in-out infinite; }
+        .ps-pen       { animation: ps-pen-glide 7s cubic-bezier(.4,.1,.3,1) infinite; transform-box: fill-box; transform-origin: 0 0; }
+        .ps-seal     { animation: ps-seal-stamp 7s ease-out infinite; transform-box: fill-box; transform-origin: 138px 132px; }
+        .ps-seal-ring{ animation: ps-seal-ring-anim 7s ease-out infinite; transform-box: fill-box; transform-origin: 138px 132px; }
+        .ps-cta       { animation: ps-cta-pulse 7s ease-in-out infinite; }
+        .ps-cta:hover { animation-play-state: paused; box-shadow: 0 16px 44px -10px hsl(var(--gold) / 0.7) !important; }
+        @media (prefers-reduced-motion: reduce) {
+          .ps-doc, .ps-sign, .ps-pen, .ps-seal, .ps-seal-ring, .ps-cta { animation: none !important; }
         }
       `}</style>
     </section>
