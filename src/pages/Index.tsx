@@ -8,7 +8,8 @@ import { Seo } from "@/components/Seo";
 import { LazyOnVisible } from "@/components/LazyOnVisible";
 import { SectionSkeleton } from "@/components/SectionSkeleton";
 import { Reveal } from "@/components/Reveal";
-import { BlogRotator } from "@/components/BlogRotator";
+// BlogRotator пада в `LazyOnVisible` секцията по-долу — превърнат в lazy chunk
+// за да не дърпа blogTopics + autoLinkBlog в entry bundle-а.
 import { FEATURED_BLANKS } from "@/data/featuredBlanks";
 import { allTemplates } from "@/lib/templateIndex";
 
