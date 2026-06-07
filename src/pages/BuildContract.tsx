@@ -1299,6 +1299,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                 <RiskMeter level={result.risk.level} score={result.risk.score} summary={result.risk.summary} />
                 <CorrectionsPanel
                   isPro={isPro}
+                  freeWaveAvailable={freeWaveAvailable}
                   issues={result.risk.issues || []}
                   recommendations={result.risk.recommendations || []}
                   loading={applyingCorrections}
