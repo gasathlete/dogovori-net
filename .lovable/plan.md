@@ -1,123 +1,137 @@
-## Performance преглед — Dogovori.net
+# Linear-style редизайн на началната страница
 
-Анализирах bundle, началната страница, скрол поведение, шрифтове и тежки зависимости. По-долу е състоянието и какво да оптимизираме.
+Цел: Превръщаме `/` от „каталог + блог витрина" в SaaS landing страница по 8-стъпковата психологическа логика, в Linear естетика (тъмен фон, gold акценти, плътна типография, продуктови скрийншоти, премерени микро-интеракции).
 
----
-
-### Какво вече работи добре
-
-- Всички маршрути освен `/` са `React.lazy` + Suspense fallback.
-- Vite `manualChunks` отделя `vendor-react`, `vendor-supabase`, `vendor-query`, `vendor-radix`, `vendor-pdf`, `vendor-docx`, `vendor-sentry`, `vendor-stripe`.
-- Heavy libs (jspdf, pdfjs, docx, mammoth, pdf-lib) се зареждат само при export.
-- Sentry и Plausible — отложени до `requestIdleCallback`.
-- Шрифтове self-hosted, само нужните weights (400/500/600/700), Cyrillic + Latin subset.
-- LCP лого с `<link rel="preload" fetchpriority="high">`.
-- Preconnect към Supabase, Stripe, Plausible.
-- React Query с разумни `staleTime`/`gcTime`, без refetch on focus.
-- `LazyOnVisible` + `content-visibility: auto` (от последния fix) убива off-screen рендер.
-
----
-
-### Проблеми и какво да направим
-
-#### 1. Index bundle тежи повече от нужното (висок приоритет)
-
-**Намерих:**
-- `src/components/Hero.tsx:5` импортва `BlogRotator` **без да го използва** → мъртъв код влиза в entry chunk-а.
-- `src/pages/Index.tsx:11` импортва `BlogRotator` директно (не през `lazy`), въпреки че е под `LazyOnVisible`. Това дърпа `blogTopics.ts` (22K) + autoLinkBlog в entry-то.
-- `BusinessQuotes` (`businessQuotes.ts`) се зарежда веднага за hero hover tooltip.
-- `featuredBlanks` се чете и от Index.tsx (JSON-LD), и от `FeaturedBlanks` компонент → ОК, но `allTemplates()` мап е скъп — изпълнява се на всеки рендер. Кешираме с `useMemo` извън компонента.
-
-**План:**
-- Премахваме unused `BlogRotator` import от Hero.
-- Превръщаме `BlogRotator` в `React.lazy` в Index.
-- `businessQuotes` → `import()` динамично при първи hover на медальона.
-- Memoize `slugByName` map в module scope, не per-render.
-
-#### 2. Header preload и scroll listener
-
-**Намерих:** `useScrolled` сетва state без `requestAnimationFrame`, `Header` ре-рендерира при скрол (само 1 пъти, защото state е boolean — но event handler-ът се изпълнява на всеки scroll event).
-
-**План:** Добавяме `rAF` throttle в `useScrolled`. Махаме `backdrop-blur-xl` от мобилното меню (скъп paint), заменяме с плътен фон.
-
-#### 3. Изображения и партньорски лога
-
-**Намерих:** `PartnersBoard` зарежда лога от Supabase storage. Няма `preconnect` за storage CDN, няма `loading="lazy"`, няма `decoding="async"` на всички `<img>`.
-
-**План:**
-- Аудит на всички `<img>` в публичните страници → задължително `loading="lazy"`, `decoding="async"`, `width`/`height` за CLS=0.
-- Supabase Storage URL вече е под същия preconnect, но добавяме `fetchpriority="low"` за below-the-fold лога.
-
-#### 4. i18n bootstrap
-
-**Намерих:** `src/i18n/index.ts` се импортва в `main.tsx` и дърпа `i18next` (~45KB) + `i18next-browser-languagedetector` + `react-i18next` синхронно. За българския сайт (default), `en` resources се товарят излишно при всяко зареждане.
-
-**План:** Lazy-load `en/common.json` само ако URL започва с `/en`. Запазва се синхронен init на `bg`.
-
-#### 5. Тежки data файлове в `/src/data` (5.3M templateDrafts, 3M templateContent)
-
-**Намерих:** Чрез `rg` имам само 1.8M в публични страници от тях. Това е по подразбиране tree-shaken, защото всеки template е отделен модул и се import-ва само от съответната lazy страница. Не пипаме.
-
-**Проверка:** В плана включваме `bunx vite-bundle-visualizer` като one-off диагностика, за да потвърдим, че няма data файл, който случайно е bundle-нат в entry-то.
-
-#### 6. Mobile scroll — оставащи дребни шумове
-
-- `Hero.tsx`: вграден SVG `<svg>` × 4 за corner filigree + 4 `<span>` за tick marks → 8 излишни DOM възли. Слепваме в един SVG sprite.
-- `Hero.tsx`: `anim-rise` keyframe анимации стартират почти едновременно при load — кратък CPU пик. Запазваме delays, но добавяме `will-change: transform` само на анимираните елементи (по време на анимацията).
-- `LifeScenarios`: 12 ListItem с hover ефекти. Добавяме `contain: layout paint` за всяка карта.
-
-#### 7. Network waterfall
-
-- 2 идентични `/partners?...` заявки в логовете (виж network log в 21:07:00 и 21:07:04). React Query трябва да дедуплицира — да проверим дали `PartnersBoard` се рендерира 2 пъти (вероятно auto-rotation hook го реизпълнява). Поправяме `queryKey` стабилност.
-
----
-
-### Очаквани резултати
-
-| Метрика | Текущо | След |
-| --- | --- | --- |
-| Initial JS (entry + Index chunk) | ~неизвестно (трябва measure) | **−15–25%** след премахване на BlogRotator/businessQuotes от entry |
-| LCP (mobile) | няма скорошен PSI запис (HTTP 429) | да достигне ≤2.5s |
-| INP (scroll) | оплаквания от насичане | плавен, след fix-овете в Header/Hero |
-| CLS | потенциално >0 (липсват width/height на img) | <0.05 |
-
----
-
-### План за изпълнение (по стъпки)
-
-1. **Bundle hygiene** — премахваме мъртви/eager импорти от Index/Hero (`BlogRotator`, `businessQuotes` → lazy), memoize JSON-LD map.
-2. **Scroll cost** — `rAF` throttle в `useScrolled`; махаме `backdrop-blur-xl` от мобилно меню.
-3. **Image audit** — script който намира всички `<img>` без `loading`/`decoding`/`width`/`height` и ги поправяме.
-4. **i18n** — lazy-load `en` resources.
-5. **Query stability** — fix двойната `partners` заявка.
-6. **DOM trim в Hero** — slim corner filigree.
-7. **Verify** — `bunx vite-bundle-visualizer` snapshot преди/след; `code--read_network_requests` + console; ръчно scroll тест на mobile вюпорт.
-
----
-
-### Технически детайли (за разработчик)
+## Нова структура на `Index.tsx`
 
 ```text
-src/components/Hero.tsx
-  - REMOVE: import { BlogRotator } ...      // unused
-  - CHANGE: businessQuotes -> dynamic import on first hover
-  - CHANGE: 4×SVG + 4×span -> single inline <svg> with <use>
-
-src/pages/Index.tsx
-  - CHANGE: import { BlogRotator } -> const BlogRotator = lazy(...)
-  - CHANGE: featured JSON-LD slugByName map -> module-scope const
-
-src/hooks/useScrolled.tsx
-  - CHANGE: throttle handler via requestAnimationFrame + passive listener
-
-src/components/Header.tsx
-  - CHANGE: mobile nav 'backdrop-blur-xl bg-navy/95' -> 'bg-navy'
-
-src/i18n/index.ts
-  - CHANGE: import enCommon -> dynamic when locale === 'en'
-
-src/components/PartnersBoard.tsx
-  - VERIFY: useQuery key stability; remove duplicate fetch source
+1. Hero                  (рефакториран — single CTA + ⌘K hint)
+2. SocialProofStrip      (Partners изместен нагоре, тънка лента с лога)
+3. PainSolution          [НОВО]  „Преди / След" 2 колони
+4. PlatformShowcase      (запазен — основните features с реален UI)
+5. FeaturedBlanks        (запазен — Топ 5 най-търсени)
+6. LifeScenarios         (запазен, преместен по-надолу)
+7. ComparisonTable       [НОВО]  Dogovori.net vs адвокат vs безплатни PDF
+8. Testimonials          (запазен + ако има цифри, ги извеждаме напред)
+9. Process               (запазен — „как работи системата")
+10. FAQ                  [НОВО]  5–6 въпроса
+11. ComplianceSection    (запазен — последна доза доверие)
+12. CTABand              (рефакториран — финален „Започни безплатно")
+13. SeoFooter
 ```
 
-Скоупът е чисто performance — без визуални или функционални промени. Готов съм да премина в build mode и да приложа стъпките една по една, или да започна с най-високия приоритет (точки 1+2).
+Премахваме от homepage: `BlogRotator` (мести се само в `/blog`), `TopDocuments` (дублира `FeaturedBlanks` — оставяме само едното), `SectorGrid` (мести се в footer като линкова мрежа за SEO, не като пълна секция). Това намалява scroll length с ~30% и фокусира потребителя.
+
+## Hero — Linear-style рефакторинг
+
+`src/components/Hero.tsx`:
+- **Един основен CTA**: `Започни безплатно — 5 операции` (primary, gold). Вторичен дискретен link: `Виж демо ↓` (скрол към PlatformShowcase).
+- **Keyboard shortcut hint**: малък pill под CTA-та — `Натисни ⌘K за бързо търсене` с реално работещ `⌘K` / `Ctrl+K` shortcut, който отваря `/catalog` с фокус върху search input-а.
+- **Микро-интеракции (level 4)**:
+  - Магнитен ефект на primary CTA (бутонът се измества ~6px към курсора при hover, spring transition).
+  - Cursor-aware glow на hero медальона (radial gradient следва позицията на мишката).
+  - Subtle parallax на corner filigree при mouse move (transform: translate ±3px).
+  - `prefers-reduced-motion` — всички ефекти изключени.
+- **Trust chips**: запазваме редицата ЗЗД·ТЗ·ЗУТ, но я правим по-плътна (по-малък размер, по-високо tracking).
+- Премахваме „Виж повече" разкриващия параграф — Linear не държи скрит текст в Hero.
+
+## Нова секция: `PainSolution`
+
+`src/components/PainSolution.tsx` (нов файл):
+- 2 колони на десктоп, stacked на мобилно.
+- Лява колона (мута, червеникав акцент): „Без Договори.нет" — 3 bullet-а с проблеми („Плащате 150–400€ на адвокат за стандартен договор", „PDF шаблоните в Google нямат риск-анализ", „Грешка в клауза = загубена сделка").
+- Дясна колона (gold акцент): „С Договори.нет" — 3 bullet-а с резултати („9.90€/месец за 100 документа", „AI риск-анализ на всеки документ", „Електронен подпис в 2 минути").
+- Между колоните вертикална hairline + малък диамант (повтаряме hero accent-а).
+
+## Нова секция: `ComparisonTable`
+
+`src/components/ComparisonTable.tsx` (нов файл):
+- 4 колони: критерий | **Dogovori.net** (gold highlight) | Адвокат | Безплатни PDF сайтове.
+- 6 реда: Цена за документ · Време · Юридическа валидност · AI риск-анализ · Електронен подпис · Поддръжка/корекции.
+- Иконки: ✓ (gold), ✗ (muted), частично (gold/40).
+- Sticky първа колона на мобилно с хоризонтален скрол.
+
+## Нова секция: `FAQ`
+
+`src/components/FAQ.tsx` (нов файл), използва съществуващия shadcn `Accordion`:
+1. Документите валидни ли са пред НАП, съд и нотариус?
+2. Какво се случва с моите данни? (GDPR + криптиране)
+3. Мога ли да спра абонамента по всяко време?
+4. Какво е безплатно и какво плащам?
+5. Имам ли право на корекции след генериране?
+6. Електронният подпис правно обвързващ ли е в България?
+
+Добавя `FAQPage` JSON-LD за rich snippets в Google.
+
+## Social Proof лента
+
+`src/components/SocialProofStrip.tsx` (нов файл, лек, не сменя `PartnersBoard`):
+- Тънка лента веднага под Hero: `Използван от 500+ адвокати, счетоводители и предприемачи` + grayscale ред с 6–8 лога от `partners` (reuse на същия fetch с guard).
+- Пълният `PartnersBoard` остава по-надолу или се премахва в полза на лентата — ще решим в имплементацията кое е по-добро визуално.
+
+## ⌘K глобално търсене
+
+`src/components/CommandPalette.tsx` (нов файл), използва shadcn `Command` + `Dialog`:
+- Hotkey: `⌘K` / `Ctrl+K` (mount-нат глобално в `App.tsx`).
+- Източник: `templateIndex.allTemplates()` (вече съществува).
+- Резултат: до 8 шаблона + 3 действия („Изготви документ", „Виж каталог", „Моите документи").
+- Esc затваря, Enter навигира към `/shablon/:slug`.
+
+## Микро-интеракции (level 4) — глобален упгрейд
+
+В `src/index.css`:
+- Нов `.magnetic-hover` utility (CSS transform базиран, без JS) за вторични бутони.
+- Нов `.linear-card` utility: тънка горна gold hairline се появява при hover, плюс много фин inner glow.
+- Подсилваме `.btn-gold` с press state (scale 0.98 + по-тъмен gold) — Linear-style tactile feedback.
+- Запазваме `prefers-reduced-motion` гардовете.
+
+За magnetic CTA в Hero — лек JS хендлър (rAF-throttled mousemove → transform). Само на десктоп (`matchMedia("(hover: hover)")`).
+
+## Header — намалена навигация
+
+`src/components/Header.tsx`:
+- Текущо: `Изготви документ · Каталог · Комплекти · Сектори · Блог` (5 линка).
+- След: `Каталог · Комплекти · Цени · Блог` (4 линка, „Изготви документ" мигрира към CTA в Hero/header дясно).
+- Десният CTA „Започни безплатно" става primary gold бутон (не ghost).
+- ⌘K иконка/индикатор до CTA на десктоп.
+
+## Файлове за промяна / създаване
+
+**Нови:**
+- `src/components/PainSolution.tsx`
+- `src/components/ComparisonTable.tsx`
+- `src/components/FAQ.tsx`
+- `src/components/SocialProofStrip.tsx`
+- `src/components/CommandPalette.tsx`
+- `src/hooks/useCommandPalette.ts` (open/close state + hotkey)
+- `src/hooks/useMagneticHover.ts`
+
+**Редактирани:**
+- `src/pages/Index.tsx` — нов ред на секциите, премахване на `BlogRotator`/`TopDocuments`/`SectorGrid` от homepage, добавяне на новите lazy chunks.
+- `src/components/Hero.tsx` — single CTA, ⌘K hint, magnetic hover, премахване на „Виж повече".
+- `src/components/Header.tsx` — намалена nav, gold CTA, ⌘K индикатор.
+- `src/components/CTABand.tsx` — финален CTA копи + design refresh.
+- `src/App.tsx` — mount на `CommandPalette` глобално.
+- `src/index.css` — `.magnetic-hover`, `.linear-card`, press states.
+- `src/components/Seo.tsx` или директно в `Index.tsx` — FAQPage JSON-LD.
+
+## Технически детайли
+
+- Всички нови секции са lazy-loaded през `LazyOnVisible` + `React.lazy` (запазваме performance работата от предишните цикли).
+- Новите компоненти използват само semantic tokens (`text-gold`, `bg-navy`, `text-muted-foreground`) — никакви hardcoded цветове.
+- ⌘K palette използва съществуващия `templateIndex` (без нов API call).
+- Magnetic hover е изключен на touch устройства през `matchMedia("(hover: hover) and (pointer: fine)")`.
+- FAQ accordion използва нативен shadcn компонент (вече в проекта) — без нови зависимости.
+- JSON-LD `FAQPage` се сериализира заедно с текущия `ItemList` JSON-LD в `Seo.tsx`.
+
+## Какво НЕ правим в този цикъл
+
+- Не пипаме `/build`, `/catalog`, `/blog` страниците.
+- Не сменяме pricing модела или CTA текста на subscription страниците.
+- Не пипаме backend / Edge functions.
+- Не добавяме Motion library или GSAP — постигаме всичко с CSS + малък rAF JS.
+
+## Risk & rollback
+
+- Премахването на `TopDocuments` и `BlogRotator` от homepage е visible regression — ако SEO/CTR падне, връщаме ги с един commit (компонентите остават в repo-то, само се reimport-ват в `Index.tsx`).
+- ⌘K shortcut може да конфликтира с браузърни bookmarks shortcuts на някои OS — добавяме fallback на `Ctrl+/`.
