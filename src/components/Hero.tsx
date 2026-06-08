@@ -159,7 +159,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
               style={{ transition: "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms, background 200ms" }}
             >
               <Search className="h-[18px] w-[18px]" />
-              Започни безплатно — 5 операции
+              Започни безплатно
               <ArrowRight className="h-[16px] w-[16px] opacity-70" />
             </Link>
 
