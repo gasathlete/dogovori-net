@@ -476,8 +476,8 @@
 
   /* Animated gold gradient sweep — for CTA bands */
   .gold-sweep-bg {
-    position: relative;
-    overflow: hidden;
+    /* Position + overflow intentionally NOT set here so callers control them.
+       (Previously forced position:relative which broke absolute-positioned ambient layers.) */
   }
   .gold-sweep-bg::before {
     content: "";
