@@ -9,8 +9,7 @@ export function PlansHeroAnimation() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none mx-auto block w-full max-w-sm"
-      style={{ aspectRatio: "360 / 228" }}
+      className="pointer-events-none mx-auto block h-[180px] w-full max-w-[300px] sm:h-[220px] sm:max-w-[360px]"
     >
       <style>{`
         @keyframes plansDocRise {
