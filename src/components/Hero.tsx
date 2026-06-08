@@ -6,6 +6,7 @@ import { scrollToHash } from "@/lib/scrollToHash";
 import type { BusinessQuote } from "@/lib/businessQuotes";
 import { useMagneticHover } from "@/hooks/useMagneticHover";
 import { TeaserDialog } from "@/components/TeaserDialog";
+import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { useAuth } from "@/hooks/useAuth";
 
 export function Hero({ onStart: _onStart }: { onStart: () => void }) {
@@ -33,6 +34,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
   return (
     <section className="relative overflow-hidden border-b border-border/60 lg:flex lg:min-h-[calc(100svh-4rem)] lg:items-center">
       <div className="absolute inset-0 bg-gradient-hero opacity-95" />
+      <HeroBackdrop />
 
       {/* Corner filigree */}
       <svg aria-hidden="true" width="0" height="0" className="absolute" style={{ position: "absolute" }}>
