@@ -1,113 +1,77 @@
-# Преизчисление: реален AI разход на операция
+# Admin Analytics Dashboard (Plausible-style)
 
-## Откъде идваха старите 0.04 €/op
+Build a lightweight first-party analytics dashboard in the admin panel, fed by our own `page_views` table, plus existing app data for conversion KPIs.
 
-Старата симулация ползваше една обобщена цифра 0.04 €/op „на око". Не беше декомпозирана по модели и по тип операция. Затова сега я разбиваме напълно.
+## Scope
 
-## Какво ще направя
+1. **Tracking** — every page visit writes a row to `page_views` (no PII, hashed visitor id by day + UA-derived browser/OS/device, referrer, country from CF/Vercel header if available, path, duration, is_bounce).
+2. **Admin route** `/admin/analytics` — staff-only, shown as a new tab in the existing admin panel.
+3. **Metrics** (24h / 7d / 30d switcher):
+   - KPI cards: Unique visitors, Pageviews, Bounce rate, Avg visit duration
+   - Time-series chart (Recharts area chart)
+   - Top tables: Pages, Sources/referrers, Countries, Devices (mobile/desktop/tablet), Browsers
+   - App KPIs: new signups, ops consumed, paid conversions (% of signups → subscription) — from `auth.users`, `download_quota`, `subscriptions`
 
-1. **Bottom-up модел по token-и + публични цени на Lovable AI Gateway** за всеки edge function, който участва в 1 op.
-2. **Top-down валидация** срещу реалните данни в `ai_usage` (разпределение на повикванията по функции).
-3. **Усреднена цена / op по тип** (download contract / download template / upload+analyze / corrections wave).
-4. **Обновен PDF** `dogovori-simulation-v2.pdf` с нови сценарии 500 / 2 000 / 5 000 рег., нови маржове и нова страница „AI cost breakdown".
+## Technical plan
 
-## Реално разпределение от `ai_usage` (днес в продукция)
+### 1. DB migration
+- `public.page_views` table:
+  - `id uuid pk`, `created_at timestamptz`, `visitor_day_hash text` (sha256 of ip+ua+date salt — daily uniques), `session_id uuid`, `user_id uuid null`, `path text`, `referrer_host text null`, `utm_source text null`, `country text null`, `device text` (mobile/tablet/desktop), `browser text`, `os text`, `duration_ms int null`, `is_bounce bool default true`, `event text default 'pageview'` (allow custom events later).
+- Indexes: `(created_at desc)`, `(path, created_at)`, `(visitor_day_hash, created_at)`.
+- GRANT INSERT to `anon, authenticated` (writes go via edge function with service_role — so actually grant only to `service_role` and keep RLS deny-all for clients).
+- RLS: SELECT only via `is_staff(auth.uid())`; no client INSERT.
+- Aggregation RPCs (security definer, staff-only):
+  - `analytics_kpis(_from, _to)` → visitors, pageviews, bounce_rate, avg_duration_ms
+  - `analytics_timeseries(_from, _to, _bucket)` → time bucket + visitors + pageviews
+  - `analytics_top(_from, _to, _dim text, _limit int)` → returns `(label, visitors, pageviews)` for dim in (`path`,`referrer_host`,`country`,`device`,`browser`)
+  - `analytics_app_kpis(_from, _to)` → signups, ops, paid_conversions, paying_users
 
-```text
-generate-contract        25  (30%)  — flash-lite
-build-custom-contract    22  (27%)  — mix lite/flash/pro по mode
-analyze-contract         19  (23%)  — flash-lite (default), fallback flash/pro
-apply-corrections         7  ( 8%)  — flash
-correct-uploaded          6  ( 7%)  — pro
-ocr-contract              4  ( 5%)  — flash
-```
+### 2. Edge function `track-pageview`
+- Public (verify_jwt=false), CORS open.
+- Body: `{ path, referrer, session_id, duration_ms?, is_bounce? }`.
+- Server derives: country (from `cf-ipcountry` / `x-vercel-ip-country` / fallback null), device/browser/os (from UA via simple regex parser inline), `visitor_day_hash = sha256(ip + ua + YYYY-MM-DD + salt)`.
+- Optional `user_id` from JWT if present.
+- Inserts via service_role; rate-limits per IP (best effort in memory).
+- Supports a second event mode `event: 'duration_update'` that updates an existing row's `duration_ms` and clears `is_bounce` (sendBeacon on unload).
 
-## Цени на Lovable AI Gateway (USD / 1M tokens, ≈ EUR при курс 1.08)
+### 3. Client tracker `src/lib/pageviewTracker.ts`
+- Auto-tracks route changes (react-router `useLocation`) — hooked in `App.tsx`.
+- Respects existing analytics cookie consent (`getCategoryConsent('analytics')`) — fully aligned with current Plausible gate.
+- Sends initial pageview on route change, then sends `duration_update` via `navigator.sendBeacon` on `visibilitychange=hidden` / `pagehide`.
 
-```text
-gemini-2.5-flash-lite     $0.10 in / $0.40 out
-gemini-2.5-flash          $0.30 in / $2.50 out
-gemini-2.5-pro            $1.25 in / $10.00 out
-```
+### 4. Admin UI
+- New page `src/pages/AdminAnalytics.tsx`, registered in router and linked from `Admin.tsx` as a tab/section card.
+- Components inside `src/components/admin/analytics/`:
+  - `RangePicker` (24h / 7d / 30d)
+  - `KpiCards`
+  - `TrafficChart` (Recharts AreaChart)
+  - `TopList` (reused for Pages / Sources / Countries / Devices / Browsers, tabbed)
+  - `AppKpiPanel` (signups, ops, paid conversion rate)
+- All data fetched via `supabase.rpc(...)` against the new staff-only functions.
+- Uses semantic design tokens (`bg-card`, `text-muted-foreground`, `text-primary`) — no hardcoded colors.
 
-## Token estimates (реалистично за БГ договори, 3–5 стр.)
+### 5. Privacy / compliance
+- No raw IP stored; only daily-rotated hash.
+- Tracker gated by analytics consent (same as Plausible).
+- Add a short note in the existing Cookies page that we also run first-party analytics; no new consent category needed.
 
-```text
-Функция                Модел           in tok  out tok  EUR/call
-generate-contract      flash-lite       3 000    4 000   0.0017
-analyze-contract       flash-lite       6 000    2 000   0.0013
-analyze-contract       flash (fallback) 6 000    2 000   0.0064
-build-custom (quick)   flash-lite       4 000    5 000   0.0022
-build-custom (std)     flash            5 000    6 000   0.0153
-build-custom (premium) pro              6 000    8 000   0.0810
-correct-uploaded       pro             10 000    6 000   0.0671
-apply-corrections      flash            8 000    6 000   0.0161
-ocr-contract           flash            3 000    1 000   0.0032
-```
+## Out of scope (v1)
+- Funnels, goals UI, custom events beyond pageview/duration (schema supports it — UI later).
+- Geo map (countries shown as ranked list only).
+- Realtime live counter (can add a 30-min query later — easy extension).
 
-(15% retry / fallback overhead добавен в крайното смятане.)
-
-## Цена на op по тип
-
-```text
-Тип op                          AI calls вътре                    EUR/op
-1) Download contract (wizard)   generate-contract (1×)            0.002
-2) Download template            обикн. cached (template_cache)    0.0005
-3) Upload + analyze             ocr + analyze (+ ~15% fallback)   0.005
-4) Corrections wave             correct-uploaded + apply-corr.    0.085
-5) Build custom contract        build-custom (mix mode)           0.025
-```
-
-## Weighted average / op (реалистичен mix)
-
-Допускане за разпределение между типове ops в продукция (от поведенчески модел):
-
-```text
-50% generate (wizard)   × 0.002   = 0.0010
-20% template download   × 0.0005  = 0.0001
-15% upload + analyze    × 0.005   = 0.00075
-10% build custom        × 0.025   = 0.0025
- 5% corrections wave    × 0.085   = 0.00425
-                                   ────────
-Среден AI разход / op            ≈ 0.0086 €
-```
-
-**≈ 0.009 €/op — около 4.5× по-ниско от старите 0.04 €/op.**
-
-Това отразява, че: (а) повечето generate повиквания са на flash-lite, (б) template downloads са кеширани, (в) скъпият pro модел се ползва само за ~5% от ops.
-
-## Нови сценарии (същата структура, нова AI цена)
+## Files to change / add
 
 ```text
-                          500 рег.    2 000 рег.    5 000 рег.
-Общо ops/мес              3 213       12 850        32 125
-
-Разходи (€/мес)
-  AI inference (0.009€)    28.92       115.65        289.13
-  Инфра базова             60.00        60.50         62.00
-  Stripe (1.4% + 0.25€)    11.51        46.05        115.13
-  Общо разходи            100.43       222.20        466.26
-
-Приходи нето              351.25     1 405.00      3 512.50
-Брутна печалба            250.82     1 182.80      3 046.24
-Марж                        71%         84%           87%
-
-Break-even                ≈ 88 рег. потребители (от 142)
+supabase/migrations/<ts>_analytics_pageviews.sql        # new
+supabase/functions/track-pageview/index.ts              # new
+src/lib/pageviewTracker.ts                              # new
+src/components/admin/analytics/RangePicker.tsx          # new
+src/components/admin/analytics/KpiCards.tsx             # new
+src/components/admin/analytics/TrafficChart.tsx         # new
+src/components/admin/analytics/TopList.tsx              # new
+src/components/admin/analytics/AppKpiPanel.tsx          # new
+src/pages/AdminAnalytics.tsx                            # new
+src/App.tsx                                             # mount tracker + route
+src/pages/Admin.tsx                                     # add link/tab to /admin/analytics
 ```
-
-## Какво ще има в новия PDF (7 стр.)
-
-1. Корица (v2)
-2. Допускания + новата AI методология
-3. **Нова страница: „AI cost breakdown по модели и функции"** — таблица + pie chart на token spend по модел
-4. Сценарий 500 рег.
-5. Сценарий 2 000 рег.
-6. Сценарий 5 000 рег.
-7. Сравнителна страница + sensitivity (AI cost ±50%, conversion ±1pp)
-
-## Технически детайли
-
-- Python + reportlab + matplotlib
-- Изход: `/mnt/documents/dogovori-simulation-v2.pdf` (запазваме v1)
-- QA: pdftoppm на всяка страница преди финализиране
-- Без промени по кода на платформата
