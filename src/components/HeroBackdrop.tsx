@@ -90,19 +90,39 @@ export function HeroBackdrop() {
         height="100%"
         className="block h-full w-full"
       >
+        {/* Old-paper grid wash across the whole hero — very subtle. */}
+        <defs>
+          <pattern id="hbGrid" width="56" height="56" patternUnits="userSpaceOnUse">
+            <path
+              d="M 56 0 L 0 0 0 56"
+              fill="none"
+              stroke="hsl(var(--gold) / 0.045)"
+              strokeWidth="0.5"
+            />
+          </pattern>
+          <radialGradient id="hbGridMask" cx="50%" cy="50%" r="65%">
+            <stop offset="0%" stopColor="white" stopOpacity="1" />
+            <stop offset="100%" stopColor="white" stopOpacity="0.35" />
+          </radialGradient>
+          <mask id="hbGridFade">
+            <rect width="1440" height="800" fill="url(#hbGridMask)" />
+          </mask>
+        </defs>
+        <rect width="1440" height="800" fill="url(#hbGrid)" mask="url(#hbGridFade)" />
+
         {/* Three documents — sparse, balanced. */}
         <g transform="translate(170 200)"><g className="hb-doc hb-doc-1"><Doc w={72} h={94} /></g></g>
         <g transform="translate(1290 220)"><g className="hb-doc hb-doc-2"><Doc w={86} h={112} /></g></g>
-        <g transform="translate(1330 480)"><g className="hb-doc hb-doc-3"><Doc w={74} h={96} /></g></g>
+        <g transform="translate(380 640)"><g className="hb-doc hb-doc-3"><Doc w={74} h={96} /></g></g>
 
-        {/* Classic feather quill — lower-left, diagonal sweep. */}
-        <g transform="translate(170 600) rotate(-32)">
+        {/* Classic feather quill — nib touching the lower-left document. */}
+        <g transform="translate(340 640) rotate(-150)">
           <g className="hb-quill">
             <Quill />
           </g>
         </g>
 
-        {/* Signature + verification tick, bottom-right, clear of all content. */}
+        {/* Signature + verification tick — tick sits at the end of the line. */}
         <g transform="translate(980 760)">
           <path
             className="hb-sign"
@@ -112,14 +132,14 @@ export function HeroBackdrop() {
             strokeWidth="1.8"
             strokeLinecap="round"
           />
-          <g className="hb-tick-group" transform="translate(296 22)">
-            <circle r="18" fill="hsl(var(--gold) / 0.08)" stroke="hsl(var(--gold) / 0.42)" strokeWidth="1" />
+          <g className="hb-tick-group" transform="translate(272 22)">
+            <circle r="16" fill="hsl(var(--gold) / 0.08)" stroke="hsl(var(--gold) / 0.42)" strokeWidth="1" />
             <path
               className="hb-tick-check"
-              d="M -7 1 L -1 8 L 9 -6"
+              d="M -6 1 L -1 7 L 8 -5"
               fill="none"
               stroke="hsl(var(--gold) / 0.65)"
-              strokeWidth="2"
+              strokeWidth="1.9"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
