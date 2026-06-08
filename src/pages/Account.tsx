@@ -243,6 +243,7 @@ export default function AccountPage() {
               reload={reload}
               uploaded={uploaded}
               analysesByContract={analysesByContract}
+              autoOpenUpload={autoOpenUpload}
             />
           </TabsContent>
           <TabsContent value="folders">
