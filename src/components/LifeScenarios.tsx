@@ -1,8 +1,11 @@
+import { useState } from "react";
 import * as Icons from "lucide-react";
-import { ArrowRight, Compass } from "lucide-react";
+import { ArrowRight, Compass, ChevronDown } from "lucide-react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { LIFE_SCENARIOS } from "@/data/lifeScenarios";
 import { getKit } from "@/data/documentKits";
+
+const INITIAL_COUNT = 8;
 
 /**
  * "What do you want to accomplish?" — real-life scenarios entry point.
