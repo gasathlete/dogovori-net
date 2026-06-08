@@ -121,39 +121,21 @@ export function HeroBackdrop() {
           </linearGradient>
         </defs>
 
-        {/* Drifting documents — spread across the full hero canvas */}
-        <g className="hb-doc hb-doc-1" transform="translate(90 110)">
-          <Doc w={78} h={100} />
-        </g>
-        <g className="hb-doc hb-doc-5" transform="translate(300 70)">
-          <Doc w={54} h={70} />
-        </g>
-        <g className="hb-doc hb-doc-6" transform="translate(1080 80)">
-          <Doc w={62} h={80} />
-        </g>
-        <g className="hb-doc hb-doc-4" transform="translate(1340 130)">
-          <Doc w={92} h={118} />
-        </g>
+        {/* Drifting documents — spread across the full hero canvas.
+            Outer <g> positions; inner <g> animates (CSS transform must
+            not collide with the SVG transform attribute). */}
+        <g transform="translate(90 110)"><g className="hb-doc hb-doc-1"><Doc w={78} h={100} /></g></g>
+        <g transform="translate(300 70)"><g className="hb-doc hb-doc-5"><Doc w={54} h={70} /></g></g>
+        <g transform="translate(1080 80)"><g className="hb-doc hb-doc-6"><Doc w={62} h={80} /></g></g>
+        <g transform="translate(1340 130)"><g className="hb-doc hb-doc-4"><Doc w={92} h={118} /></g></g>
 
-        <g className="hb-doc hb-doc-3" transform="translate(60 400)">
-          <Doc w={66} h={86} />
-        </g>
-        <g className="hb-doc hb-doc-2" transform="translate(1380 420)">
-          <Doc w={74} h={96} />
-        </g>
+        <g transform="translate(60 400)"><g className="hb-doc hb-doc-3"><Doc w={66} h={86} /></g></g>
+        <g transform="translate(1380 420)"><g className="hb-doc hb-doc-2"><Doc w={74} h={96} /></g></g>
 
-        <g className="hb-doc hb-doc-5" transform="translate(160 700)">
-          <Doc w={70} h={92} />
-        </g>
-        <g className="hb-doc hb-doc-4" transform="translate(440 730)">
-          <Doc w={56} h={74} />
-        </g>
-        <g className="hb-doc hb-doc-2" transform="translate(1000 720)">
-          <Doc w={64} h={84} />
-        </g>
-        <g className="hb-doc hb-doc-6" transform="translate(1300 700)">
-          <Doc w={96} h={124} />
-        </g>
+        <g transform="translate(160 700)"><g className="hb-doc hb-doc-5"><Doc w={70} h={92} /></g></g>
+        <g transform="translate(440 730)"><g className="hb-doc hb-doc-4"><Doc w={56} h={74} /></g></g>
+        <g transform="translate(1000 720)"><g className="hb-doc hb-doc-2"><Doc w={64} h={84} /></g></g>
+        <g transform="translate(1300 700)"><g className="hb-doc hb-doc-6"><Doc w={96} h={124} /></g></g>
 
         {/* Signature centered, near the bottom */}
         <g transform="translate(580 600)">
@@ -186,26 +168,26 @@ export function HeroBackdrop() {
 
 function Doc({ w, h }: { w: number; h: number }) {
   return (
-    <g opacity="0.55">
+    <g opacity="1">
       <rect
         x={-w / 2}
         y={-h / 2}
         width={w}
         height={h}
         rx="3"
-        fill="url(#hbDocFill)"
-        stroke="hsl(var(--gold) / 0.22)"
-        strokeWidth="0.8"
+        fill="hsl(var(--gold) / 0.04)"
+        stroke="hsl(var(--gold) / 0.30)"
+        strokeWidth="0.9"
       />
       {/* corner fold */}
       <path
         d={`M ${w / 2 - 10} ${-h / 2} L ${w / 2} ${-h / 2 + 10} L ${w / 2 - 10} ${-h / 2 + 10} Z`}
-        fill="hsl(var(--gold) / 0.10)"
-        stroke="hsl(var(--gold) / 0.22)"
-        strokeWidth="0.6"
+        fill="hsl(var(--gold) / 0.12)"
+        stroke="hsl(var(--gold) / 0.30)"
+        strokeWidth="0.7"
       />
       {/* lines */}
-      <g stroke="hsl(var(--gold) / 0.18)" strokeWidth="0.8" strokeLinecap="round">
+      <g stroke="hsl(var(--gold) / 0.22)" strokeWidth="0.8" strokeLinecap="round">
         <line x1={-w / 2 + 8} y1={-h / 2 + 22} x2={w / 2 - 14} y2={-h / 2 + 22} />
         <line x1={-w / 2 + 8} y1={-h / 2 + 30} x2={w / 2 - 8}  y2={-h / 2 + 30} />
         <line x1={-w / 2 + 8} y1={-h / 2 + 38} x2={w / 2 - 18} y2={-h / 2 + 38} />
