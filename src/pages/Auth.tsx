@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,9 @@ export default function AuthPage() {
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [acceptAge, setAcceptAge] = useState(false);
   const [acceptMarketing, setAcceptMarketing] = useState(false);
-  const [tab, setTab] = useState<"login" | "signup">("login");
+  const [tab, setTab] = useState<"login" | "signup">(
+    params.get("tab") === "signup" ? "signup" : "login",
+  );
 
   // Manual confirmation flow (resend + OTP code)
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -91,6 +93,10 @@ export default function AuthPage() {
     setConfirmOpen(false);
     navigate(redirect);
   };
+
+  useEffect(() => {
+    setTab(params.get("tab") === "signup" ? "signup" : "login");
+  }, [params]);
 
   const signupReady = acceptTerms && acceptPrivacy && acceptAge && acceptMarketing;
   const showBgEmailWarning = isRiskyBgEmail(email);
