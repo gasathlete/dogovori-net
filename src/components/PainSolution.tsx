@@ -72,8 +72,8 @@ export function PainSolution() {
             ))}
           </ul>
         </div>
-        </div>
       </div>
+
 
       {/* Dual CTA — try without registration, login required for downloads / applying changes */}
       <div className="mx-auto mt-10 max-w-3xl">
