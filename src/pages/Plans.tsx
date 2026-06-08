@@ -4,7 +4,9 @@ import { Check, X, ArrowRight, Sparkles, ShieldCheck, Users, Zap } from "lucide-
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Seo } from "@/components/Seo";
+import { PlansHeroAnimation } from "@/components/PlansHeroAnimation";
 import { ExpandableCard } from "@/components/ui/ExpandableCard";
+
 import {
   Accordion,
   AccordionContent,
@@ -67,7 +69,9 @@ export default function Plans() {
 
         {/* Hero */}
         <section className="relative z-10 mx-auto max-w-6xl px-4 pt-12 pb-6 sm:pt-20 sm:pb-10">
-          <div className="mx-auto max-w-3xl text-center">
+          <PlansHeroAnimation />
+          <div className="relative mx-auto max-w-3xl text-center">
+
             <span className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold">
               <Sparkles className="h-3 w-3" /> Промо код FIRST100
             </span>
