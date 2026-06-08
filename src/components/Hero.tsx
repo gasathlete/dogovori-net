@@ -199,6 +199,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
       </div>
 
       <div className="absolute inset-x-0 bottom-0 hairline-x opacity-60" />
+      <TeaserDialog open={teaserOpen} onOpenChange={setTeaserOpen} />
     </section>
   );
 }
