@@ -268,7 +268,7 @@ export function PlatformShowcase() {
         />
         {/* skyline silhouette — smaller on mobile, fades to give CTA breathing room */}
         <svg
-          className="absolute inset-x-0 bottom-0 h-[14%] w-full text-gold opacity-50 sm:h-[22%] sm:opacity-60 md:h-[26%] md:opacity-70"
+          className="absolute inset-x-0 bottom-0 h-[9%] w-full text-gold opacity-45 sm:h-[14%] sm:opacity-55 md:h-[16%] md:opacity-60"
           viewBox="0 0 1600 400"
           preserveAspectRatio="xMidYEnd slice"
           fill="none"
@@ -604,19 +604,8 @@ export function PlatformShowcase() {
               />
             ))}
           </div>
-          <div className="relative h-px flex-1 overflow-hidden bg-hairline">
-            <div
-              key={`${idx}-${paused ? "p" : "r"}`}
-              className="absolute inset-y-0 left-0 bg-gold/70"
-              style={{
-                width: "100%",
-                animation:
-                  paused || reducedMotion
-                    ? "none"
-                    : `platform-progress ${ROTATE_MS}ms linear forwards`,
-              }}
-            />
-          </div>
+          <div className="flex-1" />
+
           <span
             aria-live="polite"
             className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground"
