@@ -60,8 +60,18 @@ type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_
 export default function AccountPage() {
   const { user, signOut } = useAuth();
   const [params, setParams] = useSearchParams();
-  const initialTab = params.get("tab") ?? "dashboard";
+  const initialTab = params.get("tab") ?? (params.get("action") === "upload" ? "uploaded" : "dashboard");
   const activeContact = params.get("contact");
+  const autoOpenUpload = params.get("action") === "upload";
+
+  useEffect(() => {
+    if (params.get("action") === "upload") {
+      const next = new URLSearchParams(params);
+      next.delete("action");
+      setParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
