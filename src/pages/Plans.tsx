@@ -68,14 +68,11 @@ export default function Plans() {
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[60vh] gold-sweep-bg opacity-40" aria-hidden />
 
         {/* Hero */}
-        <section className="relative z-10 mx-auto max-w-6xl px-4 pt-12 pb-6 sm:pt-20 sm:pb-10">
+        <section className="relative z-10 mx-auto max-w-6xl px-4 pt-8 pb-6 sm:pt-12 sm:pb-10">
           <PlansHeroAnimation />
-          <div className="relative mx-auto max-w-3xl text-center">
+          <div className="relative mx-auto mt-6 max-w-3xl text-center sm:mt-10">
+            <h1 className="font-serif text-4xl leading-tight text-foreground sm:text-5xl md:text-6xl">
 
-            <span className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold">
-              <Sparkles className="h-3 w-3" /> Промо код FIRST100
-            </span>
-            <h1 className="mt-5 font-serif text-4xl leading-tight text-foreground sm:text-5xl md:text-6xl">
               Изберете плана,
               <br />
               <span className="bg-gradient-to-r from-gold via-gold/80 to-gold bg-clip-text text-transparent">
