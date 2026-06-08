@@ -87,7 +87,7 @@ export function CTABand() {
               <div className="relative w-full sm:w-auto">
                 <span
                   aria-hidden="true"
-                  className="pointer-events-none absolute -inset-1.5 rounded-2xl bg-gradient-to-r from-gold/0 via-gold/50 to-gold/0 opacity-70 blur-2xl animate-pulse"
+                  className="pointer-events-none absolute -inset-1.5 rounded-2xl bg-gradient-to-r from-gold/0 via-gold/25 to-gold/0 opacity-35 blur-2xl"
                 />
                 <button
                   type="button"

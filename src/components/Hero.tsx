@@ -186,7 +186,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
               <div className="relative w-full sm:w-auto">
                 <span
                   aria-hidden="true"
-                  className="pointer-events-none absolute -inset-1 rounded-xl bg-gradient-to-r from-gold/0 via-gold/40 to-gold/0 opacity-70 blur-xl animate-pulse"
+                  className="pointer-events-none absolute -inset-1 rounded-xl bg-gradient-to-r from-gold/0 via-gold/25 to-gold/0 opacity-35 blur-xl"
                 />
                 <Link
                   ref={magneticRef}
@@ -199,9 +199,6 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
                   Започни безплатно
                   <ArrowRight className="h-[18px] w-[18px] transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
-                <p className="mt-2 text-center text-[10px] uppercase tracking-[0.22em] text-muted-foreground sm:text-left">
-                  Без карта · 3 безплатни операции
-                </p>
               </div>
             )}
 
