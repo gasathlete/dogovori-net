@@ -60,24 +60,24 @@ export function CTABand() {
             +600 шаблона · AI анализ на риска · електронен подпис · без скрити такси.
           </p>
           {user ? (
-            <div className="mt-8 flex flex-col items-center gap-2.5 sm:gap-3">
-              <div className="flex w-full flex-col items-stretch gap-2.5 sm:flex-row sm:justify-center sm:gap-3">
+            <div className="mx-auto mt-8 w-full max-w-[460px] space-y-2.5 sm:space-y-3">
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
                 <Link
                   to="/catalog"
-                  className="btn-gold btn-sheen btn-press normal-case tracking-normal text-[14px] px-5 py-3"
+                  className="btn-gold btn-sheen btn-press w-full normal-case tracking-normal text-[14px] px-5 py-3"
                 >
                   <Search className="h-[16px] w-[16px]" /> Намери документ
                 </Link>
                 <Link
                   to="/build"
-                  className="inline-flex items-center justify-center gap-2 rounded-md border border-gold/50 bg-card/60 px-5 py-3 text-[14px] font-semibold text-gold transition-colors hover:bg-gold/10"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-gold/50 bg-card/60 px-5 py-3 text-[14px] font-semibold text-gold transition-colors hover:bg-gold/10"
                 >
                   <Wand2 className="h-[16px] w-[16px]" /> Изготви документ
                 </Link>
               </div>
               <Link
                 to="/account?tab=documents&action=upload"
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-gold/50 bg-card/60 px-5 py-3 text-[14px] font-semibold text-gold transition-colors hover:bg-gold/10"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-gold/50 bg-card/60 px-5 py-3 text-[14px] font-semibold text-gold transition-colors hover:bg-gold/10"
               >
                 <FileUp className="h-[16px] w-[16px]" /> Качи документ за анализ
               </Link>
