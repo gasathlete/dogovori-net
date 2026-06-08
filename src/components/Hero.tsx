@@ -1,11 +1,12 @@
 import { useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ShieldCheck, Bird, FileText, Search, FileSignature, Command, ArrowRight } from "lucide-react";
+import { ShieldCheck, Bird, FileText, Search, FileSignature, Command, ArrowRight, FileUp, Wand2 } from "lucide-react";
 const logoImg = "/logo-dogovori-hero.webp";
 import { scrollToHash } from "@/lib/scrollToHash";
 import type { BusinessQuote } from "@/lib/businessQuotes";
 import { useMagneticHover } from "@/hooks/useMagneticHover";
 import { TeaserDialog } from "@/components/TeaserDialog";
+import { useAuth } from "@/hooks/useAuth";
 
 export function Hero({ onStart: _onStart }: { onStart: () => void }) {
   const tooltipId = useId();
