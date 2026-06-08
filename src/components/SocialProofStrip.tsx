@@ -27,7 +27,7 @@ export function SocialProofStrip() {
     <section className="border-y border-border/40 bg-card/20">
       <div className="container py-6 sm:py-7">
         <p className="mb-4 text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-          Използван от 500+ адвокати, счетоводители и предприемачи в България
+          БЪЛГАРСКА ПЛАТФОРМА, ИЗПОЛЗВАНА ОТ 500+ ПРЕДПРИЕМАЧИ, АДВОКАТИ, СЧЕТОВОДИТЕЛИ У НАС И В ЧУЖБИНА
         </p>
         {partners.length > 0 && (
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 sm:gap-x-12">
