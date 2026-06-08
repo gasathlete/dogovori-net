@@ -604,19 +604,8 @@ export function PlatformShowcase() {
               />
             ))}
           </div>
-          <div className="relative h-px flex-1 overflow-hidden bg-hairline">
-            <div
-              key={`${idx}-${paused ? "p" : "r"}`}
-              className="absolute inset-y-0 left-0 bg-gold/70"
-              style={{
-                width: "100%",
-                animation:
-                  paused || reducedMotion
-                    ? "none"
-                    : `platform-progress ${ROTATE_MS}ms linear forwards`,
-              }}
-            />
-          </div>
+          <div className="flex-1" />
+
           <span
             aria-live="polite"
             className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground"
