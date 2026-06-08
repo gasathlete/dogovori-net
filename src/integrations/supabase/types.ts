@@ -1063,6 +1063,60 @@ export type Database = {
         }
         Relationships: []
       }
+      page_views: {
+        Row: {
+          browser: string | null
+          country: string | null
+          created_at: string
+          device: string | null
+          duration_ms: number | null
+          event: string
+          id: string
+          is_bounce: boolean
+          os: string | null
+          path: string
+          referrer_host: string | null
+          session_id: string
+          user_id: string | null
+          utm_source: string | null
+          visitor_day_hash: string
+        }
+        Insert: {
+          browser?: string | null
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          duration_ms?: number | null
+          event?: string
+          id?: string
+          is_bounce?: boolean
+          os?: string | null
+          path: string
+          referrer_host?: string | null
+          session_id: string
+          user_id?: string | null
+          utm_source?: string | null
+          visitor_day_hash: string
+        }
+        Update: {
+          browser?: string | null
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          duration_ms?: number | null
+          event?: string
+          id?: string
+          is_bounce?: boolean
+          os?: string | null
+          path?: string
+          referrer_host?: string | null
+          session_id?: string
+          user_id?: string | null
+          utm_source?: string | null
+          visitor_day_hash?: string
+        }
+        Relationships: []
+      }
       partners: {
         Row: {
           approved_at: string | null
@@ -2431,6 +2485,40 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      analytics_app_kpis: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          conversion_rate: number
+          ops: number
+          paid_conversions: number
+          signups: number
+        }[]
+      }
+      analytics_kpis: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          avg_duration_ms: number
+          bounce_rate: number
+          pageviews: number
+          visitors: number
+        }[]
+      }
+      analytics_timeseries: {
+        Args: { _bucket: string; _from: string; _to: string }
+        Returns: {
+          bucket: string
+          pageviews: number
+          visitors: number
+        }[]
+      }
+      analytics_top: {
+        Args: { _dim: string; _from: string; _limit: number; _to: string }
+        Returns: {
+          label: string
+          pageviews: number
+          visitors: number
+        }[]
       }
       assemble_prompt_content: { Args: { _prompt_id: string }; Returns: string }
       award_team_loyalty: {
