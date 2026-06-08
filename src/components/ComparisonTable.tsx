@@ -11,6 +11,12 @@ const ROWS: { label: string; us: Cell; lawyer: Cell; free: Cell }[] = [
   { label: "Корекции и поддръжка", us: "yes", lawyer: "partial", free: "no" },
 ];
 
+const COLUMNS: { key: "us" | "lawyer" | "free"; label: string; highlight?: boolean }[] = [
+  { key: "us", label: "Договори.нет", highlight: true },
+  { key: "lawyer", label: "Адвокат" },
+  { key: "free", label: "Безплатни PDF" },
+];
+
 function Mark({ value }: { value: Cell }) {
   if (value === "yes")
     return (
@@ -46,7 +52,41 @@ export function ComparisonTable() {
         </p>
       </div>
 
-      <div className="mx-auto max-w-5xl overflow-x-auto rounded-xl border border-border/60">
+      {/* Mobile: stacked cards per criterion */}
+      <div className="mx-auto max-w-5xl space-y-3 sm:hidden">
+        {ROWS.map((r) => (
+          <div
+            key={r.label}
+            className="rounded-xl border border-border/60 bg-card/30 p-4"
+          >
+            <div className="mb-3 text-sm font-semibold text-foreground">{r.label}</div>
+            <ul className="space-y-2">
+              {COLUMNS.map((c) => (
+                <li
+                  key={c.key}
+                  className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 ${
+                    c.highlight
+                      ? "border border-gold/30 bg-gold/[0.06]"
+                      : "border border-border/40 bg-background/40"
+                  }`}
+                >
+                  <span
+                    className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${
+                      c.highlight ? "text-gold" : "text-muted-foreground"
+                    }`}
+                  >
+                    {c.label}
+                  </span>
+                  <Mark value={r[c.key]} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      {/* Tablet+ : full comparison table */}
+      <div className="mx-auto hidden max-w-5xl overflow-x-auto rounded-xl border border-border/60 sm:block">
         <table className="w-full min-w-[640px] border-collapse text-left">
           <thead>
             <tr className="border-b border-border/60 bg-card/40">
