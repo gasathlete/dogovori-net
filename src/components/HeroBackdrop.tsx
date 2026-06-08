@@ -83,12 +83,12 @@ export function HeroBackdrop() {
         {/* Sparse, balanced composition — 5 documents, asymmetric but settled. */}
         <g transform="translate(150 180)"><g className="hb-doc hb-doc-1"><Doc w={72} h={94} /></g></g>
         <g transform="translate(1290 200)"><g className="hb-doc hb-doc-2"><Doc w={86} h={112} /></g></g>
-        <g transform="translate(80 560)"><g className="hb-doc hb-doc-3"><Doc w={64} h={84} /></g></g>
-        <g transform="translate(1360 580)"><g className="hb-doc hb-doc-4"><Doc w={78} h={102} /></g></g>
+        <g transform="translate(100 420)"><g className="hb-doc hb-doc-3"><Doc w={64} h={84} /></g></g>
+        <g transform="translate(1340 440)"><g className="hb-doc hb-doc-4"><Doc w={78} h={102} /></g></g>
         <g transform="translate(1140 110)"><g className="hb-doc hb-doc-5"><Doc w={54} h={70} /></g></g>
 
-        {/* Signature + verification tick, centered low. */}
-        <g transform="translate(580 650)">
+        {/* Signature + verification tick, below promo code in the bottom band. */}
+        <g transform="translate(540 720)">
           <path
             className="hb-sign"
             d="M0 30 C 20 0, 40 60, 70 20 S 130 0, 160 28 S 220 10, 260 24"
