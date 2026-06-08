@@ -195,7 +195,7 @@ export default function Plans() {
                     {plan.features.map((f) => (
                       <li key={f} className="flex items-start gap-2 text-sm text-foreground/90">
                         <Check className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-                        <span>{f}</span>
+                        <span className="whitespace-pre-line">{f}</span>
                       </li>
                     ))}
                   </ul>
@@ -259,7 +259,7 @@ export default function Plans() {
                   <tbody>
                     {COMPARISON_ROWS.map((row) => (
                       <tr key={row.label} className="border-b border-hairline/60">
-                        <td className="py-3 pr-4 text-foreground/90">{row.label}</td>
+                        <td className="py-3 pr-4 text-foreground/90 whitespace-pre-line">{row.label}</td>
                         <Cell value={row.free} />
                         <Cell value={row.pro} highlight />
                         <Cell value={row.team} />
