@@ -861,7 +861,7 @@ function ContactDialog({ editing, onClose }: { editing: Contact | null; onClose:
 /* ============================ DOCUMENTS ============================ */
 function DocumentsTab({
   docs, folders, contacts, activeFolder, setActiveFolder, activeContactName, clearContactFilter, reload,
-  uploaded, analysesByContract,
+  uploaded, analysesByContract, autoOpenUpload,
 }: {
   docs: SavedDoc[]; folders: Folder[]; contacts: Contact[];
   activeFolder: string | "all"; setActiveFolder: (v: string | "all") => void;
@@ -869,6 +869,7 @@ function DocumentsTab({
   reload: () => void;
   uploaded: UploadedContract[];
   analysesByContract: Record<string, RiskAnalysisLite>;
+  autoOpenUpload?: boolean;
 }) {
   const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name;
   const [busy, setBusy] = useState<string | null>(null);
