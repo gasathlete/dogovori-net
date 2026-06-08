@@ -16,7 +16,7 @@ export function Logo({ className = "", compact = false }: { className?: string; 
       </div>
       <div className="flex min-w-0 flex-col leading-none">
         <div className="flex items-baseline gap-2.5">
-          <span className="whitespace-nowrap font-serif text-xl font-bold tracking-tight text-foreground">
+          <span className="whitespace-nowrap font-serif text-lg font-bold tracking-tight text-foreground sm:text-xl">
             Dogovori<span className="text-gold">.net</span>
           </span>
           <span
