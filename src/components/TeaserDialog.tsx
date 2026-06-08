@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { FileSignature, ShieldCheck, Bird, FileText, ArrowRight, X } from "lucide-react";
+import { FileSignature, ShieldCheck, Bird, FileText, ArrowRight } from "lucide-react";
 
 const SLIDES = [
   {
