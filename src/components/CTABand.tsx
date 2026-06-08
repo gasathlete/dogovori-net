@@ -30,6 +30,7 @@ function LiveCounter() {
 }
 
 export function CTABand() {
+  const { user } = useAuth();
   const [teaserOpen, setTeaserOpen] = useState(false);
   return (
     <section className="container py-14 sm:py-16 md:py-20">
