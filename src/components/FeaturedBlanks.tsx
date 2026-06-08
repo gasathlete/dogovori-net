@@ -73,12 +73,6 @@ export function FeaturedBlanks() {
             попълване или сваляне във Word/PDF.
           </p>
         </div>
-        <Link
-          to="/kategoria/blanki"
-          className="hidden shrink-0 items-center gap-1.5 self-start text-[11px] font-semibold uppercase tracking-[0.18em] text-gold transition-opacity hover:opacity-80 sm:inline-flex sm:self-end"
-        >
-          Виж всички бланки <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -162,6 +156,20 @@ export function FeaturedBlanks() {
             </article>
           );
         })}
+      </div>
+
+      {/* Strong CTA below the top-5 grid */}
+      <div className="mt-10 flex flex-col items-center gap-3 sm:mt-12">
+        <Link
+          to="/catalog"
+          className="group inline-flex items-center justify-center gap-2 rounded-md bg-gradient-gold px-8 py-4 text-sm font-bold uppercase tracking-[0.16em] text-navy shadow-gold transition-transform hover:-translate-y-0.5"
+        >
+          Виж пълния каталог
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+        </Link>
+        <p className="text-[11px] text-muted-foreground">
+          Над 300 документа, бланки и шаблони — категоризирани по сектор и закон.
+        </p>
       </div>
     </section>
   );

@@ -24,11 +24,12 @@ type Contact = { id: string; name: string };
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 export function UploadContractDialog({
-  folders, contacts, onUploaded,
-}: { folders: Folder[]; contacts: Contact[]; onUploaded: () => void }) {
+  folders, contacts, onUploaded, autoOpen,
+}: { folders: Folder[]; contacts: Contact[]; onUploaded: () => void; autoOpen?: boolean }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  useEffect(() => { if (autoOpen) setOpen(true); }, [autoOpen]);
   const [tab, setTab] = useState<ExtractSource>("pdf");
   const [file, setFile] = useState<File | null>(null);
   const [pasted, setPasted] = useState("");

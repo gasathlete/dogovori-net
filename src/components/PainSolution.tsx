@@ -1,4 +1,5 @@
-import { X, Check } from "lucide-react";
+import { X, Check, FileUp, FileSignature, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const PAINS = [
   "150–400 € на адвокат за стандартен договор",
@@ -71,6 +72,32 @@ export function PainSolution() {
             ))}
           </ul>
         </div>
+      </div>
+
+
+      {/* Dual CTA — try without registration, login required for downloads / applying changes */}
+      <div className="mx-auto mt-10 max-w-3xl">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Link
+            to="/account?action=upload"
+            className="group inline-flex items-center justify-center gap-2 rounded-md bg-gradient-gold px-5 py-3.5 text-sm font-semibold uppercase tracking-[0.14em] text-navy shadow-gold transition-transform hover:-translate-y-0.5"
+          >
+            <FileUp className="h-4 w-4" />
+            Качи документ за анализ
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+          <Link
+            to="/build"
+            className="group inline-flex items-center justify-center gap-2 rounded-md border border-gold/50 bg-card/60 px-5 py-3.5 text-sm font-semibold uppercase tracking-[0.14em] text-gold transition-colors hover:bg-gold/10"
+          >
+            <FileSignature className="h-4 w-4" />
+            Изготви документ
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+        </div>
+        <p className="mt-3 text-center text-[11px] text-muted-foreground">
+          Можете да започнете без регистрация. Вход/регистрация се изискват само при сваляне или прилагане на промени — прогресът Ви се запазва автоматично.
+        </p>
       </div>
     </section>
   );

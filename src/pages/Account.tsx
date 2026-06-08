@@ -60,8 +60,18 @@ type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_
 export default function AccountPage() {
   const { user, signOut } = useAuth();
   const [params, setParams] = useSearchParams();
-  const initialTab = params.get("tab") ?? "dashboard";
+  const initialTab = params.get("tab") ?? (params.get("action") === "upload" ? "uploaded" : "dashboard");
   const activeContact = params.get("contact");
+  const autoOpenUpload = params.get("action") === "upload";
+
+  useEffect(() => {
+    if (params.get("action") === "upload") {
+      const next = new URLSearchParams(params);
+      next.delete("action");
+      setParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -233,6 +243,7 @@ export default function AccountPage() {
               reload={reload}
               uploaded={uploaded}
               analysesByContract={analysesByContract}
+              autoOpenUpload={autoOpenUpload}
             />
           </TabsContent>
           <TabsContent value="folders">
@@ -850,7 +861,7 @@ function ContactDialog({ editing, onClose }: { editing: Contact | null; onClose:
 /* ============================ DOCUMENTS ============================ */
 function DocumentsTab({
   docs, folders, contacts, activeFolder, setActiveFolder, activeContactName, clearContactFilter, reload,
-  uploaded, analysesByContract,
+  uploaded, analysesByContract, autoOpenUpload,
 }: {
   docs: SavedDoc[]; folders: Folder[]; contacts: Contact[];
   activeFolder: string | "all"; setActiveFolder: (v: string | "all") => void;
@@ -858,6 +869,7 @@ function DocumentsTab({
   reload: () => void;
   uploaded: UploadedContract[];
   analysesByContract: Record<string, RiskAnalysisLite>;
+  autoOpenUpload?: boolean;
 }) {
   const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name;
   const [busy, setBusy] = useState<string | null>(null);
@@ -956,6 +968,7 @@ function DocumentsTab({
                 folders={folders}
                 contacts={contacts}
                 onUploaded={reload}
+                autoOpen={autoOpenUpload}
               />
             </div>
           </div>
