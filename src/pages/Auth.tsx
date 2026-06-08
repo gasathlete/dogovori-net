@@ -40,10 +40,10 @@ export default function AuthPage() {
   const [busy, setBusy] = useState(false);
 
   // Signup consent checkboxes
-  const [acceptTerms, setAcceptTerms] = useState(false);
-  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
-  const [acceptAge, setAcceptAge] = useState(false);
-  const [acceptMarketing, setAcceptMarketing] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(true);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(true);
+  const [acceptAge, setAcceptAge] = useState(true);
+  const [acceptMarketing, setAcceptMarketing] = useState(true);
   const [tab, setTab] = useState<"login" | "signup">(
     params.get("tab") === "signup" ? "signup" : "login",
   );

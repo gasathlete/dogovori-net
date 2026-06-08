@@ -20,17 +20,17 @@ interface GoogleConsentDialogProps {
 }
 
 export function GoogleConsentDialog({ open, onOpenChange, onConfirm, busy }: GoogleConsentDialogProps) {
-  const [age, setAge] = useState(false);
-  const [terms, setTerms] = useState(false);
-  const [privacy, setPrivacy] = useState(false);
-  const [marketing, setMarketing] = useState(false);
+  const [age, setAge] = useState(true);
+  const [terms, setTerms] = useState(true);
+  const [privacy, setPrivacy] = useState(true);
+  const [marketing, setMarketing] = useState(true);
 
   useEffect(() => {
     if (open) {
-      setAge(false);
-      setTerms(false);
-      setPrivacy(false);
-      setMarketing(false);
+      setAge(true);
+      setTerms(true);
+      setPrivacy(true);
+      setMarketing(true);
     }
   }, [open]);
 
