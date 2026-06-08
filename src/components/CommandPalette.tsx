@@ -9,8 +9,22 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import { FileText, ArrowRight, Search, FolderOpen, Sparkles } from "lucide-react";
+import * as Icons from "lucide-react";
+import {
+  FileText,
+  ArrowRight,
+  Search,
+  FolderOpen,
+  Sparkles,
+  Layers,
+  BookOpen,
+  Calculator as CalcIcon,
+  CreditCard,
+  Bell,
+  Wrench,
+} from "lucide-react";
 import { allTemplates, type TemplateEntry } from "@/lib/templateIndex";
+import { CALCULATORS } from "@/data/calculators";
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
@@ -48,7 +62,7 @@ export function CommandPalette() {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Търси шаблон, документ или действие…" />
+      <CommandInput placeholder="Търси шаблон, инструмент, документ или действие…" />
       <CommandList>
         <CommandEmpty>Няма съвпадения.</CommandEmpty>
 
@@ -61,13 +75,59 @@ export function CommandPalette() {
             <Search className="mr-2 h-4 w-4 text-gold" />
             Разгледай каталога
           </CommandItem>
+          <CommandItem onSelect={() => go("/komplekti")}>
+            <Layers className="mr-2 h-4 w-4 text-gold" />
+            Комплекти документи
+          </CommandItem>
+          <CommandItem onSelect={() => go("/tools")}>
+            <Wrench className="mr-2 h-4 w-4 text-gold" />
+            Всички инструменти
+          </CommandItem>
+          <CommandItem onSelect={() => go("/blog")}>
+            <BookOpen className="mr-2 h-4 w-4 text-gold" />
+            Блог
+          </CommandItem>
           <CommandItem onSelect={() => go("/account")}>
             <FolderOpen className="mr-2 h-4 w-4 text-gold" />
             Моите документи
           </CommandItem>
+          <CommandItem onSelect={() => go("/account?tab=notifications")}>
+            <Bell className="mr-2 h-4 w-4 text-gold" />
+            Известия
+          </CommandItem>
+          <CommandItem onSelect={() => go("/account?tab=subscription")}>
+            <CreditCard className="mr-2 h-4 w-4 text-gold" />
+            Абонамент и плащания
+          </CommandItem>
           <CommandItem onSelect={() => go("/plans")}>
             <ArrowRight className="mr-2 h-4 w-4 text-gold" />
             Цени и абонаменти
+          </CommandItem>
+        </CommandGroup>
+
+        <CommandSeparator />
+
+        <CommandGroup heading="Инструменти">
+          {CALCULATORS.map((c) => {
+            const Icon = (Icons as any)[c.icon] ?? CalcIcon;
+            return (
+              <CommandItem
+                key={c.slug}
+                value={`${c.shortTitle} ${c.title ?? ""} ${c.description ?? ""}`}
+                onSelect={() => go(`/tools/${c.slug}`)}
+              >
+                <Icon className="mr-2 h-4 w-4 text-gold/80" />
+                <span className="flex-1 truncate">{c.shortTitle}</span>
+                <span className="ml-2 shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Калкулатор
+                </span>
+              </CommandItem>
+            );
+          })}
+          <CommandItem value="всички инструменти калкулатори" onSelect={() => go("/tools")}>
+            <Wrench className="mr-2 h-4 w-4 text-gold" />
+            <span className="flex-1">Виж всички инструменти</span>
+            <ArrowRight className="ml-2 h-3.5 w-3.5 text-gold" />
           </CommandItem>
         </CommandGroup>
 
@@ -95,3 +155,4 @@ export function CommandPalette() {
     </CommandDialog>
   );
 }
+
