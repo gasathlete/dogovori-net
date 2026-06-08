@@ -268,7 +268,7 @@ export function PlatformShowcase() {
         />
         {/* skyline silhouette — smaller on mobile, fades to give CTA breathing room */}
         <svg
-          className="absolute inset-x-0 bottom-0 h-[14%] w-full text-gold opacity-50 sm:h-[22%] sm:opacity-60 md:h-[26%] md:opacity-70"
+          className="absolute inset-x-0 bottom-0 h-[9%] w-full text-gold opacity-45 sm:h-[14%] sm:opacity-55 md:h-[16%] md:opacity-60"
           viewBox="0 0 1600 400"
           preserveAspectRatio="xMidYEnd slice"
           fill="none"
