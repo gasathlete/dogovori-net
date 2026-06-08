@@ -5,7 +5,6 @@ const logoImg = "/logo-dogovori-hero.webp";
 import { scrollToHash } from "@/lib/scrollToHash";
 import type { BusinessQuote } from "@/lib/businessQuotes";
 import { useMagneticHover } from "@/hooks/useMagneticHover";
-import { TeaserDialog } from "@/components/TeaserDialog";
 
 export function Hero({ onStart: _onStart }: { onStart: () => void }) {
   const tooltipId = useId();
