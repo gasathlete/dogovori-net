@@ -172,7 +172,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
                   Изготви документ
                 </Link>
                 <Link
-                  to="/account?action=upload"
+                  to="/account?tab=documents&action=upload"
                   className="inline-flex items-center justify-center gap-2 rounded-md border border-gold/50 bg-card/60 px-5 py-3 text-[14px] font-semibold text-gold transition-colors hover:bg-gold/10"
                 >
                   <FileUp className="h-[16px] w-[16px]" />
