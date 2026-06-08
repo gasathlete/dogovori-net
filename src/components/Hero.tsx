@@ -11,6 +11,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
   const tooltipId = useId();
   const [quote, setQuote] = useState<BusinessQuote | null>(null);
   const [visible, setVisible] = useState(false);
+  const [teaserOpen, setTeaserOpen] = useState(false);
   const lastIdxRef = useRef<number | undefined>(undefined);
   const magneticRef = useMagneticHover<HTMLAnchorElement>(6);
 
