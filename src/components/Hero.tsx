@@ -5,11 +5,13 @@ const logoImg = "/logo-dogovori-hero.webp";
 import { scrollToHash } from "@/lib/scrollToHash";
 import type { BusinessQuote } from "@/lib/businessQuotes";
 import { useMagneticHover } from "@/hooks/useMagneticHover";
+import { TeaserDialog } from "@/components/TeaserDialog";
 
 export function Hero({ onStart: _onStart }: { onStart: () => void }) {
   const tooltipId = useId();
   const [quote, setQuote] = useState<BusinessQuote | null>(null);
   const [visible, setVisible] = useState(false);
+  const [teaserOpen, setTeaserOpen] = useState(false);
   const lastIdxRef = useRef<number | undefined>(undefined);
   const magneticRef = useMagneticHover<HTMLAnchorElement>(6);
 
@@ -154,7 +156,8 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           >
             <Link
               ref={magneticRef}
-              to="/auth"
+              to="/auth?tab=signup"
+              onClick={(e) => { e.preventDefault(); setTeaserOpen(true); }}
               className="btn-gold btn-press w-full sm:w-auto normal-case tracking-normal text-[15px] px-8 py-4 will-change-transform"
               style={{ transition: "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms, background 200ms" }}
             >
@@ -196,6 +199,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
       </div>
 
       <div className="absolute inset-x-0 bottom-0 hairline-x opacity-60" />
+      <TeaserDialog open={teaserOpen} onOpenChange={setTeaserOpen} />
     </section>
   );
 }
