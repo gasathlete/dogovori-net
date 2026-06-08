@@ -1,137 +1,70 @@
-# Linear-style редизайн на началната страница
+## Цел
 
-Цел: Превръщаме `/` от „каталог + блог витрина" в SaaS landing страница по 8-стъпковата психологическа логика, в Linear естетика (тъмен фон, gold акценти, плътна типография, продуктови скрийншоти, премерени микро-интеракции).
+Едно източник на истина за плановете в целия сайт (Plans.tsx вече е правилен):
 
-## Нова структура на `Index.tsx`
+- **Безплатен** — 5 операции при регистрация + 2/мес.
+- **Предприемач** — **12.90 €/мес.**, 100 операции/мес.
+- **Екип** — **10.90 €/seat/мес.** (мин. 3 места = 32.70 €/мес.)
+- Еднократен пакет — 1.90 € за 5 операции (запазва се)
 
-```text
-1. Hero                  (рефакториран — single CTA + ⌘K hint)
-2. SocialProofStrip      (Partners изместен нагоре, тънка лента с лога)
-3. PainSolution          [НОВО]  „Преди / След" 2 колони
-4. PlatformShowcase      (запазен — основните features с реален UI)
-5. FeaturedBlanks        (запазен — Топ 5 най-търсени)
-6. LifeScenarios         (запазен, преместен по-надолу)
-7. ComparisonTable       [НОВО]  Dogovori.net vs адвокат vs безплатни PDF
-8. Testimonials          (запазен + ако има цифри, ги извеждаме напред)
-9. Process               (запазен — „как работи системата")
-10. FAQ                  [НОВО]  5–6 въпроса
-11. ComplianceSection    (запазен — последна доза доверие)
-12. CTABand              (рефакториран — финален „Започни безплатно")
-13. SeoFooter
+Всички стари "Pro 9.90" / "Team 7.90" / "23.70" изчезват от UI, JSON-LD, FAQ и meta.
+
+## 1. Замени стари цени/имена (Pro→Предприемач, Team→Екип, 9.90→12.90, 7.90→10.90, 23.70→32.70)
+
+| Файл | Какво се променя |
+|---|---|
+| `src/components/Hero.tsx:192` | "Pro 9.90 €/мес." → "Предприемач 12.90 €/мес." |
+| `src/components/CTABand.tsx` | подобен полиш на под-CTA текста (ако реферира план) |
+| `src/components/PainSolution.tsx:10` | "9.90 €/мес. за до 100 документа" → "12.90 €/мес. за 100 документа" |
+| `src/components/FAQ.tsx:23` | пренапиши отговора с новите имена/цени |
+| `src/components/ProUpgradeDialog.tsx:151` | "Pro — 9.90 €" → "Предприемач — 12.90 €" + текстове долу |
+| `src/components/ProConversionToast.tsx:37,43` | "Pro дава 100 операции/месец за 9.90 €" → "Предприемач — 100 операции/мес. за 12.90 €" |
+| `src/pages/Template.tsx:121` | FAQ отговор → "Предприемач (12.90 €/мес, 100 операции)" |
+| `src/lib/seo/schemas.ts:60,109,110` | JSON-LD FAQ + Offers: имена `Предприемач` / `Екип` (per seat), цени 12.90 / 10.90 |
+| `src/lib/jsonLd.ts:116-132` | същото — обнови двата Offer-а |
+
+Промокод **FIRST100 → −30%** в Hero ще се запази (12.90 € → ~9.03 €) — само името се сменя на "Предприемач".
+
+## 2. Финален полиш: текст, размери, скорости (mobile 393px + desktop)
+
+### Hero (мобилно)
+- H1: `text-2xl sm:text-3xl md:text-5xl lg:text-6xl` → намали мобилния `clamp` с ~10%; намали и `line-height` за по-плътно първо впечатление.
+- Sub-CTA текст (под бутона) → намали до `text-[11px]` на мобилно, едноредово.
+- "Виж демо ↓" линк → по-малък tap target, същата височина като primary CTA на мобилно.
+
+### Скорости (animations)
+- Намали `transition-duration` на `magnetic-hover`, `linear-card hover` и `parallax filigree` от ~600ms на 300ms.
+- Уважавай `prefers-reduced-motion: reduce` — изключи parallax и magnetic shift.
+- `LazyOnVisible` rootMargin → `200px` за по-бързо visible-ready на бавни мобилни мрежи.
+
+### Размери (consistency)
+- Унифицирай секционни paddings: `py-14 sm:py-20 md:py-24` навсякъде (Hero, PainSolution, Comparison, FAQ).
+- Card радиуси: `rounded-xl` mobile / `rounded-2xl` desktop — едно правило.
+- Comparison table → на мобилно scroll-snap по колоните, sticky лява колона с име на ред.
+
+### Текстови микро-полирания
+- Hero H1 → запази, но провери дали "Договори, които…" чупи добре на 393px.
+- PainSolution → скъси най-дългите bullet-и (макс. 60 знака за мобилно).
+- ComparisonTable → "0,10–1,90 €" → "1,90 € за 5 ops" (по-ясно).
+
+## 3. QA — тест за проблеми
+
+След промените, проверка на:
+- Mobile 393×617 (current preview) и Desktop 1440 — визуален sweep на Hero, PainSolution, Comparison, FAQ, CTABand.
+- `rg "9\.90|7\.90|23\.70|\bPro 9|Team 7"` → трябва да върне 0 резултата в `src/components`, `src/pages`, `src/lib`.
+- Console + Network → 0 грешки.
+- JSON-LD валидация: schemas.ts и jsonLd.ts даваат правилни цени.
+
+## 4. Memory update
+
+Обнови `mem://index.md` Core: новата ценова политика:
+
+```
+Pricing: Предприемач 12.90 €/mo (100 ops), Екип 10.90 €/seat/mo (min 3 seats = 32.70 €/mo), one-off pack 1.90 € for 5 ops. VAT 20% inclusive.
 ```
 
-Премахваме от homepage: `BlogRotator` (мести се само в `/blog`), `TopDocuments` (дублира `FeaturedBlanks` — оставяме само едното), `SectorGrid` (мести се в footer като линкова мрежа за SEO, не като пълна секция). Това намалява scroll length с ~30% и фокусира потребителя.
+## Файлове за редакция (без нови)
 
-## Hero — Linear-style рефакторинг
+`Hero.tsx`, `CTABand.tsx`, `PainSolution.tsx`, `ComparisonTable.tsx`, `FAQ.tsx`, `ProUpgradeDialog.tsx`, `ProConversionToast.tsx`, `Template.tsx`, `seo/schemas.ts`, `jsonLd.ts`, `index.css` (transition speeds), `mem://index.md`.
 
-`src/components/Hero.tsx`:
-- **Един основен CTA**: `Започни безплатно — 5 операции` (primary, gold). Вторичен дискретен link: `Виж демо ↓` (скрол към PlatformShowcase).
-- **Keyboard shortcut hint**: малък pill под CTA-та — `Натисни ⌘K за бързо търсене` с реално работещ `⌘K` / `Ctrl+K` shortcut, който отваря `/catalog` с фокус върху search input-а.
-- **Микро-интеракции (level 4)**:
-  - Магнитен ефект на primary CTA (бутонът се измества ~6px към курсора при hover, spring transition).
-  - Cursor-aware glow на hero медальона (radial gradient следва позицията на мишката).
-  - Subtle parallax на corner filigree при mouse move (transform: translate ±3px).
-  - `prefers-reduced-motion` — всички ефекти изключени.
-- **Trust chips**: запазваме редицата ЗЗД·ТЗ·ЗУТ, но я правим по-плътна (по-малък размер, по-високо tracking).
-- Премахваме „Виж повече" разкриващия параграф — Linear не държи скрит текст в Hero.
-
-## Нова секция: `PainSolution`
-
-`src/components/PainSolution.tsx` (нов файл):
-- 2 колони на десктоп, stacked на мобилно.
-- Лява колона (мута, червеникав акцент): „Без Договори.нет" — 3 bullet-а с проблеми („Плащате 150–400€ на адвокат за стандартен договор", „PDF шаблоните в Google нямат риск-анализ", „Грешка в клауза = загубена сделка").
-- Дясна колона (gold акцент): „С Договори.нет" — 3 bullet-а с резултати („9.90€/месец за 100 документа", „AI риск-анализ на всеки документ", „Електронен подпис в 2 минути").
-- Между колоните вертикална hairline + малък диамант (повтаряме hero accent-а).
-
-## Нова секция: `ComparisonTable`
-
-`src/components/ComparisonTable.tsx` (нов файл):
-- 4 колони: критерий | **Dogovori.net** (gold highlight) | Адвокат | Безплатни PDF сайтове.
-- 6 реда: Цена за документ · Време · Юридическа валидност · AI риск-анализ · Електронен подпис · Поддръжка/корекции.
-- Иконки: ✓ (gold), ✗ (muted), частично (gold/40).
-- Sticky първа колона на мобилно с хоризонтален скрол.
-
-## Нова секция: `FAQ`
-
-`src/components/FAQ.tsx` (нов файл), използва съществуващия shadcn `Accordion`:
-1. Документите валидни ли са пред НАП, съд и нотариус?
-2. Какво се случва с моите данни? (GDPR + криптиране)
-3. Мога ли да спра абонамента по всяко време?
-4. Какво е безплатно и какво плащам?
-5. Имам ли право на корекции след генериране?
-6. Електронният подпис правно обвързващ ли е в България?
-
-Добавя `FAQPage` JSON-LD за rich snippets в Google.
-
-## Social Proof лента
-
-`src/components/SocialProofStrip.tsx` (нов файл, лек, не сменя `PartnersBoard`):
-- Тънка лента веднага под Hero: `Използван от 500+ адвокати, счетоводители и предприемачи` + grayscale ред с 6–8 лога от `partners` (reuse на същия fetch с guard).
-- Пълният `PartnersBoard` остава по-надолу или се премахва в полза на лентата — ще решим в имплементацията кое е по-добро визуално.
-
-## ⌘K глобално търсене
-
-`src/components/CommandPalette.tsx` (нов файл), използва shadcn `Command` + `Dialog`:
-- Hotkey: `⌘K` / `Ctrl+K` (mount-нат глобално в `App.tsx`).
-- Източник: `templateIndex.allTemplates()` (вече съществува).
-- Резултат: до 8 шаблона + 3 действия („Изготви документ", „Виж каталог", „Моите документи").
-- Esc затваря, Enter навигира към `/shablon/:slug`.
-
-## Микро-интеракции (level 4) — глобален упгрейд
-
-В `src/index.css`:
-- Нов `.magnetic-hover` utility (CSS transform базиран, без JS) за вторични бутони.
-- Нов `.linear-card` utility: тънка горна gold hairline се появява при hover, плюс много фин inner glow.
-- Подсилваме `.btn-gold` с press state (scale 0.98 + по-тъмен gold) — Linear-style tactile feedback.
-- Запазваме `prefers-reduced-motion` гардовете.
-
-За magnetic CTA в Hero — лек JS хендлър (rAF-throttled mousemove → transform). Само на десктоп (`matchMedia("(hover: hover)")`).
-
-## Header — намалена навигация
-
-`src/components/Header.tsx`:
-- Текущо: `Изготви документ · Каталог · Комплекти · Сектори · Блог` (5 линка).
-- След: `Каталог · Комплекти · Цени · Блог` (4 линка, „Изготви документ" мигрира към CTA в Hero/header дясно).
-- Десният CTA „Започни безплатно" става primary gold бутон (не ghost).
-- ⌘K иконка/индикатор до CTA на десктоп.
-
-## Файлове за промяна / създаване
-
-**Нови:**
-- `src/components/PainSolution.tsx`
-- `src/components/ComparisonTable.tsx`
-- `src/components/FAQ.tsx`
-- `src/components/SocialProofStrip.tsx`
-- `src/components/CommandPalette.tsx`
-- `src/hooks/useCommandPalette.ts` (open/close state + hotkey)
-- `src/hooks/useMagneticHover.ts`
-
-**Редактирани:**
-- `src/pages/Index.tsx` — нов ред на секциите, премахване на `BlogRotator`/`TopDocuments`/`SectorGrid` от homepage, добавяне на новите lazy chunks.
-- `src/components/Hero.tsx` — single CTA, ⌘K hint, magnetic hover, премахване на „Виж повече".
-- `src/components/Header.tsx` — намалена nav, gold CTA, ⌘K индикатор.
-- `src/components/CTABand.tsx` — финален CTA копи + design refresh.
-- `src/App.tsx` — mount на `CommandPalette` глобално.
-- `src/index.css` — `.magnetic-hover`, `.linear-card`, press states.
-- `src/components/Seo.tsx` или директно в `Index.tsx` — FAQPage JSON-LD.
-
-## Технически детайли
-
-- Всички нови секции са lazy-loaded през `LazyOnVisible` + `React.lazy` (запазваме performance работата от предишните цикли).
-- Новите компоненти използват само semantic tokens (`text-gold`, `bg-navy`, `text-muted-foreground`) — никакви hardcoded цветове.
-- ⌘K palette използва съществуващия `templateIndex` (без нов API call).
-- Magnetic hover е изключен на touch устройства през `matchMedia("(hover: hover) and (pointer: fine)")`.
-- FAQ accordion използва нативен shadcn компонент (вече в проекта) — без нови зависимости.
-- JSON-LD `FAQPage` се сериализира заедно с текущия `ItemList` JSON-LD в `Seo.tsx`.
-
-## Какво НЕ правим в този цикъл
-
-- Не пипаме `/build`, `/catalog`, `/blog` страниците.
-- Не сменяме pricing модела или CTA текста на subscription страниците.
-- Не пипаме backend / Edge functions.
-- Не добавяме Motion library или GSAP — постигаме всичко с CSS + малък rAF JS.
-
-## Risk & rollback
-
-- Премахването на `TopDocuments` и `BlogRotator` от homepage е visible regression — ако SEO/CTR падне, връщаме ги с един commit (компонентите остават в repo-то, само се reimport-ват в `Index.tsx`).
-- ⌘K shortcut може да конфликтира с браузърни bookmarks shortcuts на някои OS — добавяме fallback на `Ctrl+/`.
+Без backend / без миграции / без нови компоненти.

@@ -639,7 +639,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         if (data?.error === "pro_required") {
           toast.error("Нужен е Pro план", {
             description: "Прогресът е запазен.",
-            action: { label: "Pro", onClick: () => navigate("/account?tab=subscription") },
+            action: { label: "Предприемач", onClick: () => navigate("/account?tab=subscription") },
           });
           return;
         }

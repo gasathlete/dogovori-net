@@ -148,14 +148,14 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
             onClick={() => goToBilling("monthly")}
             className="w-full bg-gradient-gold text-navy hover:shadow-gold"
           >
-            Pro — 9.90 € / месец
+            Предприемач — 12.90 € / месец
           </Button>
           <Button
             onClick={() => goToBilling("yearly")}
             variant="outline"
             className="w-full border-gold/40 hover:bg-gold/10 hover:text-gold"
           >
-            Pro годишно — 99 € (спести ~17%)
+            Предприемач годишно — 129 € (спести ~17%)
           </Button>
         </div>
 

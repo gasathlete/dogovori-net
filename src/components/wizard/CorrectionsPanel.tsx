@@ -68,7 +68,7 @@ export function CorrectionsPanel({
             }`}
           >
             {freeWaveAvailable ? <ShieldCheck className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-            {freeWaveAvailable ? "1 безплатна" : "Pro"}
+            {freeWaveAvailable ? "1 безплатна" : "Предприемач"}
           </span>
         )}
         {open ? (

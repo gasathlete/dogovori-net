@@ -26,7 +26,7 @@ export function useProConversionToast() {
     (reason: ToastReason) => {
       if (isPro || stage === 0) return;
 
-      const cta = "Виж Pro";
+      const cta = "Виж Предприемач";
       let title = "";
       let description = "";
       const trigger: ProUpgradeTrigger =
@@ -34,13 +34,13 @@ export function useProConversionToast() {
 
       if (stage === 1) {
         title = `Остават ${opsLeft} от ${opsCap} безплатни операции`;
-        description = "Pro дава 100 операции/месец за 9.90 €. Промо FIRST100 → −30%.";
+        description = "Предприемач дава 100 операции/месец за 12.90 €. Промо FIRST100 → −30%.";
       } else if (stage === 2) {
         title = "Последна безплатна операция за месеца";
-        description = "Със следваща операция изчерпваш лимита. Pro отключва 100 ops + AI + двуезични.";
+        description = "Със следваща операция изчерпваш лимита. Предприемач отключва 100 ops + AI + двуезични.";
       } else {
         title = "Безплатният лимит е изчерпан";
-        description = "Pro: 100 ops/мес, неограничен AI, двуезични договори — 9.90 €/мес.";
+        description = "Предприемач: 100 ops/мес, неограничен AI, двуезични договори — 12.90 €/мес.";
       }
 
       trackEvent("tease_shown", { channel: "toast", stage, reason });
