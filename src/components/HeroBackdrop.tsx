@@ -109,40 +109,54 @@ export function HeroBackdrop() {
 
       <svg
         viewBox="0 0 1440 800"
-        preserveAspectRatio="xMidYMid slice"
+        preserveAspectRatio="none"
         width="100%"
         height="100%"
         className="block h-full w-full"
       >
         <defs>
           <linearGradient id="hbDocFill" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="hsl(var(--gold) / 0.10)" />
-            <stop offset="100%" stopColor="hsl(var(--gold) / 0.02)" />
+            <stop offset="0%" stopColor="hsl(var(--gold) / 0.14)" />
+            <stop offset="100%" stopColor="hsl(var(--gold) / 0.04)" />
           </linearGradient>
         </defs>
 
-        {/* Drifting documents — varied positions, sizes, rotations */}
-        <g className="hb-doc hb-doc-1" transform="translate(120 140)">
-          <Doc w={70} h={92} />
+        {/* Drifting documents — spread across the full hero canvas */}
+        <g className="hb-doc hb-doc-1" transform="translate(90 110)">
+          <Doc w={78} h={100} />
         </g>
-        <g className="hb-doc hb-doc-2" transform="translate(1230 180)">
-          <Doc w={86} h={110} />
+        <g className="hb-doc hb-doc-5" transform="translate(300 70)">
+          <Doc w={54} h={70} />
         </g>
-        <g className="hb-doc hb-doc-3" transform="translate(220 540)">
-          <Doc w={60} h={78} />
+        <g className="hb-doc hb-doc-6" transform="translate(1080 80)">
+          <Doc w={62} h={80} />
         </g>
-        <g className="hb-doc hb-doc-4" transform="translate(1120 560)">
-          <Doc w={96} h={124} />
-        </g>
-        <g className="hb-doc hb-doc-5" transform="translate(480 80)">
-          <Doc w={52} h={68} />
-        </g>
-        <g className="hb-doc hb-doc-6" transform="translate(960 90)">
-          <Doc w={64} h={84} />
+        <g className="hb-doc hb-doc-4" transform="translate(1340 130)">
+          <Doc w={92} h={118} />
         </g>
 
-        {/* Signature in lower third */}
-        <g transform="translate(560 620)">
+        <g className="hb-doc hb-doc-3" transform="translate(60 400)">
+          <Doc w={66} h={86} />
+        </g>
+        <g className="hb-doc hb-doc-2" transform="translate(1380 420)">
+          <Doc w={74} h={96} />
+        </g>
+
+        <g className="hb-doc hb-doc-5" transform="translate(160 700)">
+          <Doc w={70} h={92} />
+        </g>
+        <g className="hb-doc hb-doc-4" transform="translate(440 730)">
+          <Doc w={56} h={74} />
+        </g>
+        <g className="hb-doc hb-doc-2" transform="translate(1000 720)">
+          <Doc w={64} h={84} />
+        </g>
+        <g className="hb-doc hb-doc-6" transform="translate(1300 700)">
+          <Doc w={96} h={124} />
+        </g>
+
+        {/* Signature centered, near the bottom */}
+        <g transform="translate(580 600)">
           <path
             className="hb-sign"
             d="M0 30 C 20 0, 40 60, 70 20 S 130 0, 160 28 S 220 10, 260 24"
