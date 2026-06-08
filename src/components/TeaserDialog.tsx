@@ -76,8 +76,7 @@ export function TeaserDialog({
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) skip(); else onOpenChange(v); }}>
       <DialogContent
-        className="max-w-lg overflow-hidden border-white/10 bg-card/40 p-0 backdrop-blur-xl shadow-2xl shadow-black/60"
-        showCloseButton={false}
+        className="max-w-lg gap-0 overflow-hidden border-white/10 bg-card/40 p-0 backdrop-blur-xl shadow-2xl shadow-black/60 [&>button.absolute]:text-white/40 [&>button.absolute]:hover:text-white"
       >
         <div className="relative">
           {/* radial gold glow */}
@@ -89,15 +88,6 @@ export function TeaserDialog({
             aria-hidden
             className="pointer-events-none absolute -bottom-32 right-0 h-56 w-56 rounded-full bg-gold/10 blur-[120px]"
           />
-
-          <button
-            type="button"
-            onClick={skip}
-            aria-label="Прескочи"
-            className="absolute right-5 top-5 z-10 text-white/40 transition-colors hover:text-white"
-          >
-            <X className="h-5 w-5" />
-          </button>
 
           <div className="relative px-10 pb-10 pt-14 text-center sm:px-12">
             {/* icon */}
