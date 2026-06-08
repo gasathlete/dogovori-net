@@ -60,7 +60,7 @@ export function CTABand() {
               to="/auth"
               className="btn-gold btn-sheen btn-press w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
             >
-              <ArrowRight className="h-[18px] w-[18px]" /> Започни безплатно — 5 операции
+              <ArrowRight className="h-[18px] w-[18px]" /> Започни безплатно
             </Link>
             <Link
               to="/catalog"
