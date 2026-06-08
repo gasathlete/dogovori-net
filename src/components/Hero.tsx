@@ -156,7 +156,8 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           >
             <Link
               ref={magneticRef}
-              to="/auth"
+              to="/auth?tab=signup"
+              onClick={(e) => { e.preventDefault(); setTeaserOpen(true); }}
               className="btn-gold btn-press w-full sm:w-auto normal-case tracking-normal text-[15px] px-8 py-4 will-change-transform"
               style={{ transition: "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms, background 200ms" }}
             >
