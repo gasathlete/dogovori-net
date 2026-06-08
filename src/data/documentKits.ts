@@ -125,6 +125,7 @@ export const DOCUMENT_KITS: DocumentKit[] = [
     group: "corporate",
     groupLabel: "Фирмено",
     icon: "TrendingUp",
+    featured: true,
     shortDescription:
       "Стартъп финансиране — term sheet, SAFE/Convertible Note и акционерно споразумение.",
     forWho: "За основатели и инвеститори в seed/pre-seed рунд.",
@@ -183,7 +184,9 @@ export const DOCUMENT_KITS: DocumentKit[] = [
     items: [
       { docName: "Договор за наем на жилище", role: "primary" },
       { docName: "Приемо-предавателен протокол", role: "appendix" },
+      { docName: "Опис на инвентар към договор за наем", role: "appendix" },
       { docName: "Разписка за получена сума (наем/депозит)", role: "companion" },
+      { docName: "Декларация за регистрация на наем пред НАП", role: "companion", optional: true },
       { docName: "Предизвестие за прекратяване на наем", role: "companion", optional: true },
     ],
   },
@@ -199,6 +202,7 @@ export const DOCUMENT_KITS: DocumentKit[] = [
     items: [
       { docName: "Договор за наем на офис", role: "primary" },
       { docName: "Приемо-предавателен протокол", role: "appendix" },
+      { docName: "Опис на инвентар към договор за наем", role: "appendix" },
       { docName: "Анекс за подновяване на наем", role: "companion", optional: true },
     ],
   },
@@ -232,6 +236,9 @@ export const DOCUMENT_KITS: DocumentKit[] = [
       { docName: "Договор за капаро при продажба на имот", role: "appendix" },
       { docName: "Окончателен договор за покупко-продажба на имот (проект на нотариален акт)", role: "appendix" },
       { docName: "Приемо-предавателен протокол при продажба на имот", role: "companion" },
+      { docName: "Декларация по чл. 264 ДОПК", role: "companion" },
+      { docName: "Декларация по ЗМИП (мерки срещу прането на пари)", role: "companion" },
+      { docName: "Заявление за удостоверение за тежести", role: "companion", optional: true },
       { docName: "Подробно пълномощно за продажба на имот", role: "companion", optional: true },
     ],
   },
@@ -246,12 +253,33 @@ export const DOCUMENT_KITS: DocumentKit[] = [
     icon: "UserCheck",
     featured: true,
     shortDescription:
-      "Трудов договор, длъжностна характеристика и вътрешни правила.",
+      "Трудов договор, длъжностна характеристика и регистрация в НАП.",
     forWho: "За работодатели при ново назначение.",
     items: [
-      { docName: "Трудов договор (чл. 67 КТ)", role: "primary" },
+      { docName: "Трудов договор по чл. 67 КТ (безсрочен)", role: "primary" },
       { docName: "Длъжностна характеристика", role: "appendix" },
+      { docName: "Уведомление по чл. 62, ал. 5 КТ до НАП", role: "appendix" },
+      { docName: "Декларация по ЗЗЛД от служител", role: "companion" },
       { docName: "Заповед за работно време / Правилник за вътрешния трудов ред", role: "companion", optional: true },
+    ],
+  },
+  {
+    id: "prekratyavane-trudovo",
+    title: "Прекратяване на трудово правоотношение",
+    sectorId: "employment",
+    group: "employment",
+    groupLabel: "Труд",
+    icon: "UserMinus",
+    featured: true,
+    shortDescription:
+      "Заповед, споразумение и УП-2/УП-3 за коректно прекратяване по КТ.",
+    forWho: "За работодатели и HR при напускане или съкращение.",
+    items: [
+      { docName: "Заповед за прекратяване на ТПО", role: "primary" },
+      { docName: "Споразумение за прекратяване по чл. 325, ал. 1, т. 1 КТ", role: "appendix" },
+      { docName: "Молба за прекратяване по взаимно съгласие (чл. 325, ал. 1, т. 1 КТ)", role: "appendix", optional: true },
+      { docName: "УП-2 (образец)", role: "companion" },
+      { docName: "УП-3 (образец)", role: "companion" },
     ],
   },
   {
@@ -262,12 +290,13 @@ export const DOCUMENT_KITS: DocumentKit[] = [
     groupLabel: "Услуги",
     icon: "Briefcase",
     shortDescription:
-      "Граждански договор, NDA и сметка за изплатени суми.",
+      "Граждански договор, NDA, сметка за изплатени суми и осигуряване.",
     forWho: "За самонаети и възложители на услуги.",
     items: [
       { docName: "Граждански договор / Договор за услуги", role: "primary" },
       { docName: "NDA – Договор за конфиденциалност", role: "appendix" },
       { docName: "Сметка за изплатени суми", role: "companion" },
+      { docName: "Декларация за здравно осигуряване (самоосигуряващо се лице)", role: "companion", optional: true },
     ],
   },
 
@@ -281,13 +310,15 @@ export const DOCUMENT_KITS: DocumentKit[] = [
     icon: "Laptop",
     featured: true,
     shortDescription:
-      "Договор за изработка, NDA, MSA и SOW за уебсайт или приложение.",
+      "Договор за изработка, NDA, MSA/SOW и приемо-предавателни документи.",
     forWho: "За IT агенции и клиенти.",
     items: [
       { docName: "Договор за изработка на уебсайт / мобилно приложение", role: "primary" },
       { docName: "NDA – Договор за конфиденциалност", role: "appendix" },
       { docName: "Master Services Agreement (MSA)", role: "appendix", optional: true },
       { docName: "Statement of Work (SOW)", role: "companion" },
+      { docName: "Acceptance Protocol (приемане на разработка)", role: "companion" },
+      { docName: "Change Request форма", role: "companion", optional: true },
     ],
   },
   {
@@ -304,6 +335,25 @@ export const DOCUMENT_KITS: DocumentKit[] = [
       { docName: "SaaS абонаментен договор", role: "primary" },
       { docName: "Data Processing Agreement (DPA по GDPR)", role: "appendix" },
       { docName: "Договор за поддръжка на софтуер/хардуер (SLA)", role: "companion", optional: true },
+    ],
+  },
+  {
+    id: "saas-eshop-paket",
+    title: "Онлайн магазин / SaaS старт",
+    sectorId: "ecommerce",
+    group: "digital",
+    groupLabel: "Дигитално",
+    icon: "ShoppingCart",
+    featured: true,
+    shortDescription:
+      "Общи условия, GDPR пакет и декларации за стартиране на онлайн магазин или SaaS.",
+    forWho: "За e-commerce и SaaS основатели в България и ЕС.",
+    items: [
+      { docName: "Общи условия на онлайн магазин", role: "primary" },
+      { docName: "Политика за поверителност (GDPR)", role: "appendix" },
+      { docName: "Cookie политика", role: "appendix" },
+      { docName: "Декларация за съгласие за обработка на лични данни (GDPR)", role: "companion" },
+      { docName: "Регистър на дейностите по обработка (GDPR чл. 30)", role: "companion", optional: true },
     ],
   },
 
@@ -333,12 +383,13 @@ export const DOCUMENT_KITS: DocumentKit[] = [
     icon: "ShieldAlert",
     featured: true,
     shortDescription:
-      "Политика, cookie банер, DPA и декларация за съгласие.",
+      "Политика, cookie банер, DPA, регистър и декларации за съгласие.",
     forWho: "За уеб магазини, SaaS и услуги, които събират лични данни.",
     items: [
       { docName: "Политика за поверителност (GDPR)", role: "primary" },
       { docName: "Cookie политика", role: "appendix" },
       { docName: "Декларация за съгласие по GDPR", role: "appendix" },
+      { docName: "Регистър на дейностите по обработка (GDPR чл. 30)", role: "appendix" },
       { docName: "Data Processing Agreement (DPA по GDPR)", role: "companion", optional: true },
     ],
   },
@@ -369,11 +420,13 @@ export const DOCUMENT_KITS: DocumentKit[] = [
     groupLabel: "Транспорт",
     icon: "Car",
     shortDescription:
-      "Договор за покупко-продажба, декларация пред КАТ и пълномощно.",
+      "Договор за покупко-продажба, декларации и приемо-предавателен протокол.",
     forWho: "За продавачи и купувачи на автомобил.",
     items: [
       { docName: "Договор за покупко-продажба на МПС", role: "primary" },
       { docName: "Декларация за продажба на МПС пред КАТ", role: "appendix" },
+      { docName: "Приемо-предавателен протокол за МПС", role: "appendix" },
+      { docName: "Декларация по чл. 264 ДОПК", role: "companion" },
       { docName: "Пълномощно за управление и продажба на МПС", role: "companion", optional: true },
     ],
   },
@@ -393,6 +446,7 @@ export const DOCUMENT_KITS: DocumentKit[] = [
       { docName: "Предварителен договор за покупка на имот", role: "primary" },
       { docName: "Разписка за получена сума в агенция (задатък)", role: "appendix" },
       { docName: "Декларация по чл. 264 ДОПК", role: "companion" },
+      { docName: "Заявление за удостоверение за тежести", role: "companion", optional: true },
       { docName: "Споразумение за разваляне на предварителен договор", role: "companion", optional: true },
     ],
   },
@@ -407,14 +461,16 @@ export const DOCUMENT_KITS: DocumentKit[] = [
     icon: "FileSignature",
     featured: true,
     shortDescription:
-      "Най-използваните пълномощни — банка, МПС, имот, НАП и съд.",
+      "Най-използваните пълномощни — банка, МПС, имот, НАП и държавни органи.",
     forWho: "За всеки, който упълномощава трето лице да го представлява.",
     items: [
       { docName: "Пълномощно за банкови операции", role: "primary" },
       { docName: "Пълномощно за управление и продажба на МПС", role: "appendix" },
       { docName: "Пълномощно за недвижим имот", role: "appendix" },
+      { docName: "Пълномощно за пред държавни органи", role: "appendix" },
       { docName: "Пълномощно за НАП", role: "companion", optional: true },
       { docName: "Пълномощно за съд", role: "companion", optional: true },
+      { docName: "Оттегляне на пълномощно", role: "companion", optional: true },
     ],
   },
 
@@ -428,11 +484,13 @@ export const DOCUMENT_KITS: DocumentKit[] = [
     icon: "Users",
     featured: true,
     shortDescription:
-      "Споразумение за развод, родителски права и издръжка.",
+      "Молба, споразумение за развод, родителски права и издръжка.",
     forWho: "За съпрузи, които прекратяват брака без съдебен спор.",
     items: [
-      { docName: "Споразумение за развод по взаимно съгласие", role: "primary" },
+      { docName: "Молба за развод по взаимно съгласие", role: "primary" },
+      { docName: "Споразумение за развод по взаимно съгласие", role: "appendix" },
       { docName: "Споразумение за родителски права", role: "appendix" },
+      { docName: "Декларация за семейно и материално положение", role: "companion" },
       { docName: "Молба за издръжка на дете (бланка)", role: "companion", optional: true },
     ],
   },
@@ -449,7 +507,27 @@ export const DOCUMENT_KITS: DocumentKit[] = [
     items: [
       { docName: "Споразумение за родителски права", role: "primary" },
       { docName: "Молба за издръжка на дете (бланка)", role: "appendix" },
+      { docName: "Декларация за семейно и материално положение", role: "companion" },
       { docName: "Споразумение за извънсъдебно уреждане на спор", role: "companion", optional: true },
+    ],
+  },
+  {
+    id: "nasledstvo-paket",
+    title: "Наследство и завещание",
+    sectorId: "family",
+    group: "family",
+    groupLabel: "Семейно",
+    icon: "Scroll",
+    featured: true,
+    shortDescription:
+      "Завещание, удостоверение за наследници и декларации при наследяване.",
+    forWho: "За завещатели и наследници при откриване на наследство.",
+    items: [
+      { docName: "Саморъчно завещание", role: "primary" },
+      { docName: "Нотариално завещание", role: "appendix", optional: true },
+      { docName: "Молба за удостоверение за наследници", role: "appendix" },
+      { docName: "Декларация за отказ от наследство", role: "companion", optional: true },
+      { docName: "Декларация по чл. 264 ДОПК", role: "companion", optional: true },
     ],
   },
 
@@ -463,13 +541,34 @@ export const DOCUMENT_KITS: DocumentKit[] = [
     icon: "HandCoins",
     featured: true,
     shortDescription:
-      "Договор за заем, запис на заповед и разписка — пълно обезпечение.",
+      "Договор за заем, запис на заповед, разписка и инструменти за събиране.",
     forWho: "За заемодатели и заемополучатели между физически лица.",
     items: [
       { docName: "Договор за заем на парични средства", role: "primary" },
       { docName: "Запис на заповед", role: "appendix" },
       { docName: "Разписка за получена сума", role: "appendix" },
+      { docName: "Споразумение за разсрочване на дълг", role: "companion", optional: true },
+      { docName: "Покана за доброволно плащане", role: "companion", optional: true },
       { docName: "Споразумение за опрощаване на дълг (чл. 108 ЗЗД)", role: "companion", optional: true },
+    ],
+  },
+  {
+    id: "vzemanie-spor",
+    title: "Събиране на вземане / извънсъдебно",
+    sectorId: "finance",
+    group: "other",
+    groupLabel: "Финанси",
+    icon: "Gavel",
+    featured: true,
+    shortDescription:
+      "Стъпки за извънсъдебно и съдебно събиране на просрочено вземане.",
+    forWho: "За кредитори и фирми с просрочени вземания.",
+    items: [
+      { docName: "Покана за доброволно изпълнение", role: "primary" },
+      { docName: "Уведомление за просрочие", role: "appendix" },
+      { docName: "Покана за доброволно плащане", role: "appendix" },
+      { docName: "Заявление за заповедно производство (чл. 410 ГПК)", role: "companion" },
+      { docName: "Споразумение за разсрочване на дълг", role: "companion", optional: true },
     ],
   },
 
