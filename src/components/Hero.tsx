@@ -143,7 +143,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             className="anim-rise mx-auto mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base md:mt-4 md:text-base md:leading-[1.6]"
             style={{ animationDelay: "160ms" }}
           >
-            Индивидуални договори, съобразени със ЗЗД, ТЗ и ЗУТ — с пълен правен риск-анализ.
+            Индивидуални документи, съобразени със ЗЗД, ТЗ и ЗУТ — с пълен правен риск-анализ.
           </p>
 
           {/* Single primary CTA + discreet secondary link */}
@@ -181,7 +181,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           >
             <Command className="h-3 w-3" />
             Натисни
-            <kbd className="rounded border border-border/60 bg-background/60 px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd>
+            <kbd className="rounded border border-border/60 bg-background/60 px-1.5 py-0.5 font-mono text-[10px]">ТУК</kbd>
             за бързо търсене
           </button>
 
