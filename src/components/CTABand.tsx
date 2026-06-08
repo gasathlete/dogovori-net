@@ -59,21 +59,44 @@ export function CTABand() {
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
             +600 шаблона · AI анализ на риска · електронен подпис · без скрити такси.
           </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-            <button
-              type="button"
-              onClick={() => setTeaserOpen(true)}
-              className="btn-gold btn-sheen btn-press w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
-            >
-              <ArrowRight className="h-[18px] w-[18px]" /> Започни безплатно
-            </button>
-            <Link
-              to="/catalog"
-              className="story-link text-xs uppercase tracking-[0.18em] text-muted-foreground hover:text-gold sm:ml-2"
-            >
-              <Search className="mr-1 inline-block h-3.5 w-3.5" /> или разгледай каталога
-            </Link>
-          </div>
+          {user ? (
+            <div className="mt-8 flex flex-col items-stretch justify-center gap-2.5 sm:flex-row sm:flex-wrap sm:gap-3">
+              <Link
+                to="/catalog"
+                className="btn-gold btn-sheen btn-press normal-case tracking-normal text-[14px] px-5 py-3"
+              >
+                <Search className="h-[16px] w-[16px]" /> Намери документ
+              </Link>
+              <Link
+                to="/build"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-gold/50 bg-card/60 px-5 py-3 text-[14px] font-semibold text-gold transition-colors hover:bg-gold/10"
+              >
+                <Wand2 className="h-[16px] w-[16px]" /> Изготви документ
+              </Link>
+              <Link
+                to="/account?action=upload"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-gold/50 bg-card/60 px-5 py-3 text-[14px] font-semibold text-gold transition-colors hover:bg-gold/10"
+              >
+                <FileUp className="h-[16px] w-[16px]" /> Качи документ за анализ
+              </Link>
+            </div>
+          ) : (
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+              <button
+                type="button"
+                onClick={() => setTeaserOpen(true)}
+                className="btn-gold btn-sheen btn-press w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
+              >
+                <ArrowRight className="h-[18px] w-[18px]" /> Започни безплатно
+              </button>
+              <Link
+                to="/catalog"
+                className="story-link text-xs uppercase tracking-[0.18em] text-muted-foreground hover:text-gold sm:ml-2"
+              >
+                <Search className="mr-1 inline-block h-3.5 w-3.5" /> или разгледай каталога
+              </Link>
+            </div>
+          )}
           <p className="mt-5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             Без карта · готов документ за под 2 минути
           </p>
