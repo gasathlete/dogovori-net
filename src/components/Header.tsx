@@ -59,7 +59,7 @@ export function Header() {
           : "border-border/40 bg-navy",
       )}
     >
-      <div className="container grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-4 lg:gap-6">
+      <div className="container flex h-16 items-center justify-between gap-3 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-6">
         {/* Brand */}
         <div className="flex min-w-0 items-center justify-self-start">
           <Link
