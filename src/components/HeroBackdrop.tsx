@@ -87,8 +87,8 @@ export function HeroBackdrop() {
         <g transform="translate(1340 440)"><g className="hb-doc hb-doc-4"><Doc w={78} h={102} /></g></g>
         <g transform="translate(1140 110)"><g className="hb-doc hb-doc-5"><Doc w={54} h={70} /></g></g>
 
-        {/* Signature + verification tick, below promo code in the bottom band. */}
-        <g transform="translate(540 720)">
+        {/* Signature + verification tick, bottom-right, clear of all content. */}
+        <g transform="translate(980 760)">
           <path
             className="hb-sign"
             d="M0 30 C 20 0, 40 60, 70 20 S 130 0, 160 28 S 220 10, 260 24"
