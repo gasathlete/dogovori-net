@@ -59,7 +59,7 @@ export function Header() {
           : "border-border/40 bg-navy",
       )}
     >
-      <div className="container flex h-16 items-center gap-4 lg:gap-5">
+      <div className="container relative flex h-16 items-center gap-4 lg:gap-5">
         {/* Brand */}
         <div className="flex flex-1 items-center">
           <Link
@@ -71,8 +71,8 @@ export function Header() {
           </Link>
         </div>
 
-        {/* Primary nav — true center via equal left/right flex-1 columns */}
-        <nav className="hidden items-center gap-6 lg:flex xl:gap-9">
+        {/* Primary nav — absolutely centered on the page so it aligns with the hero diamond accent */}
+        <nav className="pointer-events-none absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-6 lg:flex xl:gap-9">
           {NAV.map((n) => {
             const active = isActive(n.to);
             return (
@@ -81,7 +81,7 @@ export function Header() {
                 to={n.to}
                 onClick={(e) => handleNav(n.to, e)}
                 className={cn(
-                  "group relative whitespace-nowrap text-[13px] font-medium tracking-wide transition-colors",
+                  "pointer-events-auto group relative whitespace-nowrap text-[13px] font-medium tracking-wide transition-colors",
                   active
                     ? "text-gold"
                     : "text-foreground/75 hover:text-gold",
@@ -99,6 +99,7 @@ export function Header() {
             );
           })}
         </nav>
+
 
         {/* Actions */}
         <div className="flex flex-1 items-center justify-end gap-3">
