@@ -68,7 +68,7 @@ export default function Plans() {
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[60vh] gold-sweep-bg opacity-40" aria-hidden />
 
         {/* Hero */}
-        <section className="relative z-10 mx-auto max-w-6xl px-4 pt-0 pb-4 sm:pt-0 sm:pb-8">
+        <section className="relative z-10 mx-auto max-w-6xl px-4 pt-0 pb-3 sm:pt-0 sm:pb-6">
           <PlansHeroAnimation />
           <div className="relative mx-auto mt-6 max-w-3xl text-center sm:mt-10">
             <h1 className="font-serif text-4xl leading-tight text-foreground sm:text-5xl md:text-6xl">
