@@ -57,20 +57,20 @@ export function CTABand() {
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <Link
-              to="/catalog"
-              className="btn-gold btn-sheen w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
+              to="/auth"
+              className="btn-gold btn-sheen btn-press w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
             >
-              <Search className="h-[18px] w-[18px]" /> Намери документ
+              <ArrowRight className="h-[18px] w-[18px]" /> Започни безплатно — 5 операции
             </Link>
             <Link
-              to="/build"
-              className="btn-gold-inverse btn-sheen w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
+              to="/catalog"
+              className="story-link text-xs uppercase tracking-[0.18em] text-muted-foreground hover:text-gold sm:ml-2"
             >
-              <ArrowRight className="h-[18px] w-[18px]" /> Изготви документ
+              <Search className="mr-1 inline-block h-3.5 w-3.5" /> или разгледай каталога
             </Link>
           </div>
           <p className="mt-5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            Без регистрация за разглеждане · готов документ за под 2 минути
+            Без карта · готов документ за под 2 минути
           </p>
         </div>
       </div>
