@@ -470,7 +470,7 @@ export function PlatformShowcase() {
             <span className="block text-gold">в едно работно пространство</span>
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Четири стълба, които превръщат правната работа в спокойна, бърза и точна.
+            Четири стълба, които превръщат документалната работа в спокойна, лесна, бърза и акуратна.
           </p>
         </div>
 
@@ -628,7 +628,7 @@ export function PlatformShowcase() {
             />
           </Link>
           <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-            Започнете още днес — без обвързване
+            ЗАПОЧНЕТЕ ОЩЕ ДНЕС — БЕЗ КАРТА&nbsp;
           </p>
         </div>
       </div>

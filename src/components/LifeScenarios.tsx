@@ -34,7 +34,7 @@ export function LifeScenarios() {
           Какво искате да постигнете?
         </h2>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-          Изберете житейска ситуация — ще получите комплект от всички нужни документи.
+          Изберете ситуация от ежедневието — ще получите комплект от всички нужни документи.
         </p>
       </div>
 

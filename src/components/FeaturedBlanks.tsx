@@ -168,7 +168,7 @@ export function FeaturedBlanks() {
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
         </Link>
         <p className="text-[11px] text-muted-foreground">
-          Над 300 документа, бланки и шаблони — категоризирани по сектор и закон.
+          Над 600 документа, бланки и шаблони — категоризирани по сектор и закон.
         </p>
       </div>
     </section>
