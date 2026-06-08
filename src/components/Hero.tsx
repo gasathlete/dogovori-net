@@ -145,8 +145,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             className="anim-rise mx-auto mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base md:mt-4 md:text-base md:leading-[1.6]"
             style={{ animationDelay: "160ms" }}
           >
-            Индивидуални документи, съобразени със ЗЗД, ТЗ и ЗУТ — с пълен правен риск-анализ.<br />
-            Вътрешен AI-асистент от ново поколение.
+            Пестете време и пари с иновативната система на dogovori.net. AI интеграции и удобен интерфейс.
           </p>
 
           {/* Single primary CTA + discreet secondary link */}
