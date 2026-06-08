@@ -9,7 +9,7 @@ export function PlansHeroAnimation() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none mx-auto block h-[180px] w-full max-w-[300px] border-2 border-red-500 sm:h-[220px] sm:max-w-[360px]"
+      className="pointer-events-none mx-auto block h-[180px] w-full max-w-[300px] sm:h-[220px] sm:max-w-[360px]"
     >
       <style>{`
         @keyframes plansDocRise {
