@@ -50,7 +50,7 @@ function buildCta(planId: PlanId, billing: Billing, isAuthed: boolean): {
 export default function Plans() {
   const { user } = useAuth();
   const isAuthed = Boolean(user);
-  const [billing, setBilling] = useState<Billing>("yearly");
+  const [billing, setBilling] = useState<Billing>("monthly");
 
   const plans = useMemo(() => PLANS, []);
 
@@ -336,7 +336,7 @@ export default function Plans() {
                 <Link
                   to={
                     isAuthed
-                      ? "/account?tab=subscription&plan=pro&billing=yearly&promo=FIRST100"
+                      ? "/account?tab=subscription&plan=pro&billing=monthly&promo=FIRST100"
                       : "/auth?tab=signup&redirect=%2Fplans"
                   }
                   className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-gold px-7 py-3 text-sm font-semibold text-navy shadow-gold transition-all hover:shadow-[0_20px_50px_-15px_hsl(var(--gold)/0.6)]"
