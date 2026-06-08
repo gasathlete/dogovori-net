@@ -94,7 +94,7 @@ export function PlansHeroAnimation() {
       `}</style>
 
       <svg
-        viewBox="0 32 360 228"
+        viewBox="0 20 360 240"
         preserveAspectRatio="xMidYMid meet"
         width="100%"
         height="100%"
