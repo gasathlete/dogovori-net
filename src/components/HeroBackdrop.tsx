@@ -175,19 +175,19 @@ function Doc({ w, h }: { w: number; h: number }) {
         width={w}
         height={h}
         rx="3"
-        fill="hsl(var(--gold) / 0.08)"
-        stroke="hsl(var(--gold) / 0.55)"
-        strokeWidth="1.2"
+        fill="hsl(var(--gold) / 0.04)"
+        stroke="hsl(var(--gold) / 0.30)"
+        strokeWidth="0.9"
       />
       {/* corner fold */}
       <path
         d={`M ${w / 2 - 10} ${-h / 2} L ${w / 2} ${-h / 2 + 10} L ${w / 2 - 10} ${-h / 2 + 10} Z`}
-        fill="hsl(var(--gold) / 0.22)"
-        stroke="hsl(var(--gold) / 0.55)"
-        strokeWidth="1"
+        fill="hsl(var(--gold) / 0.12)"
+        stroke="hsl(var(--gold) / 0.30)"
+        strokeWidth="0.7"
       />
       {/* lines */}
-      <g stroke="hsl(var(--gold) / 0.45)" strokeWidth="1.1" strokeLinecap="round">
+      <g stroke="hsl(var(--gold) / 0.22)" strokeWidth="0.8" strokeLinecap="round">
         <line x1={-w / 2 + 8} y1={-h / 2 + 22} x2={w / 2 - 14} y2={-h / 2 + 22} />
         <line x1={-w / 2 + 8} y1={-h / 2 + 30} x2={w / 2 - 8}  y2={-h / 2 + 30} />
         <line x1={-w / 2 + 8} y1={-h / 2 + 38} x2={w / 2 - 18} y2={-h / 2 + 38} />
