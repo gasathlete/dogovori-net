@@ -68,9 +68,9 @@ export default function Plans() {
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[60vh] gold-sweep-bg opacity-40" aria-hidden />
 
         {/* Hero */}
-        <section className="relative z-10 mx-auto max-w-6xl px-4 pt-2 pb-6 sm:pt-3 sm:pb-10">
+        <section className="relative z-10 mx-auto max-w-6xl px-4 pt-0 pb-3 sm:pt-0 sm:pb-6">
           <PlansHeroAnimation />
-          <div className="relative mx-auto mt-6 max-w-3xl text-center sm:mt-10">
+          <div className="relative mx-auto mt-3 max-w-3xl text-center sm:mt-5">
             <h1 className="font-serif text-4xl leading-tight text-foreground sm:text-5xl md:text-6xl">
 
               Изберете плана,
@@ -79,7 +79,7 @@ export default function Plans() {
                 който работи за вас
               </span>
             </h1>
-            <p className="mt-4 text-base text-muted-foreground sm:text-lg">
+            <p className="mt-2 text-base text-muted-foreground sm:text-lg">
               30% отстъпка на месечен · 40% отстъпка на годишен абонамент — за нови клиенти.
               <br className="hidden sm:block" />
               Без обвързване. ДДС включен. Откажи по всяко време.
@@ -87,7 +87,7 @@ export default function Plans() {
           </div>
 
           {/* Billing toggle */}
-          <div className="mt-8 flex justify-center sm:mt-10">
+          <div className="mt-5 flex justify-center sm:mt-6">
             <div
               role="tablist"
               aria-label="Период на фактуриране"

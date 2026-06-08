@@ -94,8 +94,8 @@ export function PlansHeroAnimation() {
       `}</style>
 
       <svg
-        viewBox="0 0 360 260"
-        className="h-[220px] w-full sm:h-[260px]"
+        viewBox="0 32 360 228"
+        className="h-[190px] w-full sm:h-[230px]"
         role="img"
         aria-label="Дигитално създаване и подписване на договор"
       >
