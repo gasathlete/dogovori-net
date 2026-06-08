@@ -157,6 +157,20 @@ export function FeaturedBlanks() {
           );
         })}
       </div>
+
+      {/* Strong CTA below the top-5 grid */}
+      <div className="mt-10 flex flex-col items-center gap-3 sm:mt-12">
+        <Link
+          to="/catalog"
+          className="group inline-flex items-center justify-center gap-2 rounded-md bg-gradient-gold px-8 py-4 text-sm font-bold uppercase tracking-[0.16em] text-navy shadow-gold transition-transform hover:-translate-y-0.5"
+        >
+          Виж пълния каталог
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+        </Link>
+        <p className="text-[11px] text-muted-foreground">
+          Над 300 документа, бланки и шаблони — категоризирани по сектор и закон.
+        </p>
+      </div>
     </section>
   );
 }
