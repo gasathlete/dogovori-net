@@ -1,4 +1,5 @@
-import { X, Check } from "lucide-react";
+import { X, Check, FileUp, FileSignature, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const PAINS = [
   "150–400 € на адвокат за стандартен договор",
