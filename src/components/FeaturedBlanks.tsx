@@ -73,12 +73,6 @@ export function FeaturedBlanks() {
             попълване или сваляне във Word/PDF.
           </p>
         </div>
-        <Link
-          to="/kategoria/blanki"
-          className="hidden shrink-0 items-center gap-1.5 self-start text-[11px] font-semibold uppercase tracking-[0.18em] text-gold transition-opacity hover:opacity-80 sm:inline-flex sm:self-end"
-        >
-          Виж всички бланки <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
