@@ -100,7 +100,7 @@ export function Header() {
 
 
         {/* Actions */}
-        <div className="flex flex-1 items-center justify-end gap-3">
+        <div className="flex items-center justify-end gap-3 justify-self-end">
           <ToolsMenu variant="desktop" />
 
           {showProBadge && (
