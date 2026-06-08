@@ -1,9 +1,10 @@
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
-import { ArrowRight, Search } from "lucide-react";
+import { ArrowRight, Search, Wand2, FileUp } from "lucide-react";
 import { useDownloadCounts } from "@/hooks/useDownloadCounts";
 import { useCountUp } from "@/hooks/useCountUp";
 import { useMemo, useState } from "react";
 import { TeaserDialog } from "@/components/TeaserDialog";
+import { useAuth } from "@/hooks/useAuth";
 
 function LiveCounter() {
   const counts = useDownloadCounts();
