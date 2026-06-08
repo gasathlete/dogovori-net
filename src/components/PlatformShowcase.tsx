@@ -466,7 +466,7 @@ export function PlatformShowcase() {
             id="platform-showcase-heading"
             className="font-serif text-3xl font-bold leading-tight text-foreground sm:text-4xl md:text-5xl"
           >
-            Всичко за вашите договори —
+            Всичко за Вашите сделки —
             <span className="block text-gold">в едно работно пространство</span>
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
