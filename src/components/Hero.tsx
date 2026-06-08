@@ -1,18 +1,19 @@
 import { useId, useRef, useState } from "react";
-import { ShieldCheck, Bird, FileText, ArrowRight, Search, FileSignature, ChevronDown } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ShieldCheck, Bird, FileText, Search, FileSignature, Command, ArrowRight } from "lucide-react";
 const logoImg = "/logo-dogovori-hero.webp";
 import { scrollToHash } from "@/lib/scrollToHash";
 import type { BusinessQuote } from "@/lib/businessQuotes";
+import { useMagneticHover } from "@/hooks/useMagneticHover";
 
-export function Hero({ onStart }: { onStart: () => void }) {
+export function Hero({ onStart: _onStart }: { onStart: () => void }) {
   const tooltipId = useId();
   const [quote, setQuote] = useState<BusinessQuote | null>(null);
   const [visible, setVisible] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
   const lastIdxRef = useRef<number | undefined>(undefined);
+  const magneticRef = useMagneticHover<HTMLAnchorElement>(6);
 
   const showQuote = async () => {
-    // Lazy-load quotes module on first hover to keep it out of the Index entry bundle.
     const { pickRandomQuote } = await import("@/lib/businessQuotes");
     const { quote: q, index } = pickRandomQuote(lastIdxRef.current);
     lastIdxRef.current = index;
@@ -21,12 +22,15 @@ export function Hero({ onStart }: { onStart: () => void }) {
   };
   const hideQuote = () => setVisible(false);
 
+  const openCommand = () => {
+    window.dispatchEvent(new CustomEvent("dogovori:open-command"));
+  };
+
   return (
     <section className="relative overflow-hidden border-b border-border/60 lg:flex lg:min-h-[calc(100svh-4rem)] lg:items-center">
-      {/* Base navy gradient */}
       <div className="absolute inset-0 bg-gradient-hero opacity-95" />
 
-      {/* Corner filigree — single SVG with <use> refs (8 DOM nodes -> 1) */}
+      {/* Corner filigree */}
       <svg aria-hidden="true" width="0" height="0" className="absolute" style={{ position: "absolute" }}>
         <defs>
           <symbol id="hero-corner" viewBox="0 0 60 60">
@@ -54,7 +58,6 @@ export function Hero({ onStart }: { onStart: () => void }) {
         </svg>
       ))}
 
-      {/* Top gold hairline + center diamond accent */}
       <div className="absolute inset-x-0 top-0 hairline-x" />
       <div
         aria-hidden="true"
@@ -65,14 +68,12 @@ export function Hero({ onStart }: { onStart: () => void }) {
 
       <div className="container relative w-full pt-4 pb-10 sm:pt-6 sm:pb-12 md:pt-6 md:pb-12 lg:pt-6 lg:pb-10">
         <div className="relative mx-auto max-w-3xl text-center px-0 my-0">
-          {/* Centered hero medallion — visible, doesn't overlap content */}
           <div
             className="anim-rise mx-auto mb-3 flex items-center justify-center sm:mb-4 lg:mb-5"
             style={{ animationDelay: "0ms" }}
           >
             <div
               className="relative flex h-16 w-16 items-center justify-center sm:h-20 sm:w-20 md:h-24 md:w-24"
-
               onMouseEnter={showQuote}
               onMouseLeave={hideQuote}
               aria-describedby={visible ? tooltipId : undefined}
@@ -84,9 +85,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
                   key={deg}
                   aria-hidden="true"
                   className="absolute left-1/2 top-1/2 block h-1.5 w-px bg-gold/50"
-                  style={{
-                    transform: `translate(-50%, -50%) rotate(${deg}deg) translateY(-58%)`,
-                  }}
+                  style={{ transform: `translate(-50%, -50%) rotate(${deg}deg) translateY(-58%)` }}
                 />
               ))}
               <img
@@ -99,8 +98,6 @@ export function Hero({ onStart }: { onStart: () => void }) {
                 decoding="async"
                 className="relative h-[64%] w-[64%] object-contain"
               />
-
-              {/* Hover tooltip — business quote, floats to the left of the medallion */}
               {quote && (
                 <div
                   id={tooltipId}
@@ -110,8 +107,7 @@ export function Hero({ onStart }: { onStart: () => void }) {
                   }`}
                 >
                   <p className="font-serif text-[13px] italic leading-snug text-muted-foreground">
-                    <span className="text-gold">«</span> {quote.text}{" "}
-                    <span className="text-gold">»</span>
+                    <span className="text-gold">«</span> {quote.text} <span className="text-gold">»</span>
                   </p>
                   <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold/80">
                     — {quote.author}
@@ -119,106 +115,85 @@ export function Hero({ onStart }: { onStart: () => void }) {
                 </div>
               )}
             </div>
-
           </div>
-
 
           <h1
             className="anim-rise font-serif text-[28px] font-bold leading-[1.1] text-balance sm:text-4xl md:text-5xl lg:text-5xl xl:text-[52px] lg:leading-[1.1]"
-
             style={{ animationDelay: "0ms" }}
           >
             Договори, които{" "}
             <span className="text-gold whitespace-nowrap">търсят и намират</span>{" "}
             Вашите интереси
           </h1>
+
           <div
             className="anim-rise mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]"
-
             style={{ animationDelay: "80ms" }}
           >
             <span className="inline-flex items-center gap-1.5 text-gold"><ShieldCheck className="h-3.5 w-3.5" /> ЗЗД · ТЗ · ЗУТ</span>
             <span className="h-3 w-px bg-gold/30" />
-            <span className="inline-flex items-center gap-1.5"><Bird className="h-3.5 w-3.5 text-gold" /> АНАЛИЗ НА РИСКА</span>
+            <span className="inline-flex items-center gap-1.5"><Bird className="h-3.5 w-3.5 text-gold" /> АНАЛИЗ НА РИСКА</span>
             <span className="h-3 w-px bg-gold/30" />
             <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-gold" /> &gt;600 ШАБЛОНА</span>
             <span className="h-3 w-px bg-gold/30" />
-            <span className="inline-flex items-center gap-1.5"><FileSignature className="h-3.5 w-3.5 text-gold" /> Електронен подпис</span>
+            <span className="inline-flex items-center gap-1.5"><FileSignature className="h-3.5 w-3.5 text-gold" /> Е-ПОДПИС</span>
           </div>
+
           <p
             className="anim-rise mx-auto mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base md:mt-4 md:text-base md:leading-[1.6]"
-
             style={{ animationDelay: "160ms" }}
           >
             Индивидуални договори, съобразени със ЗЗД, ТЗ и ЗУТ — с пълен правен риск-анализ.
           </p>
+
+          {/* Single primary CTA + discreet secondary link */}
           <div
-            className="anim-rise mx-auto mt-2 max-w-2xl text-center"
-            style={{ animationDelay: "200ms" }}
-          >
-            <button
-              type="button"
-              onClick={() => setMoreOpen((v) => !v)}
-              aria-expanded={moreOpen}
-              className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold/80 transition-colors hover:text-gold"
-            >
-              {moreOpen ? "Скрий" : "Виж повече"}
-              <ChevronDown className={`h-3 w-3 transition-transform duration-300 ${moreOpen ? "rotate-180" : ""}`} />
-            </button>
-            <div
-              className="grid transition-[grid-template-rows] duration-500 ease-out motion-reduce:transition-none"
-              style={{ gridTemplateRows: moreOpen ? "1fr" : "0fr" }}
-            >
-              <div className="overflow-hidden">
-                <p className={`pt-3 text-pretty text-sm leading-relaxed text-muted-foreground transition-opacity duration-300 ${moreOpen ? "opacity-100" : "opacity-0"}`}>
-                  Освен шаблони и бланки, сайтът предлага разработка на собствен документ с правна подкрепа от Нашата Система. Стратегически въпроси, които напътстват Вашата сделка стъпка по стъпка.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div
-            className="anim-rise mt-5 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-5"
+            className="anim-rise mt-6 flex flex-col items-center justify-center gap-3 sm:mt-7"
             style={{ animationDelay: "240ms" }}
           >
-            <button
-              onClick={onStart}
-              className="btn-gold w-full sm:w-auto normal-case tracking-normal text-[15px] px-7 py-3.5"
+            <Link
+              ref={magneticRef}
+              to="/auth"
+              className="btn-gold btn-press w-full sm:w-auto normal-case tracking-normal text-[15px] px-8 py-4 will-change-transform"
+              style={{ transition: "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms, background 200ms" }}
             >
-              <Search className="h-[18px] w-[18px]" /> Намери документ
-            </button>
-            <a
-              href="/build"
-              className="btn-gold-inverse w-full sm:w-auto normal-case tracking-normal text-[15px] px-7 py-3.5"
-            >
-              <ArrowRight className="h-[18px] w-[18px]" /> Изготви документ
-            </a>
-          </div>
-          <p
-            className="anim-rise mt-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+              <Search className="h-[18px] w-[18px]" />
+              Започни безплатно — 5 операции
+              <ArrowRight className="h-[16px] w-[16px] opacity-70" />
+            </Link>
 
-            style={{ animationDelay: "300ms" }}
-          >
-            5 безплатни операции · Pro 9.90 €/мес · Промокод <span className="text-gold">FIRST100</span> → −30%
-          </p>
-          <div className="anim-rise mt-2 text-center" style={{ animationDelay: "340ms" }}>
             <button
               type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToHash("process");
-              }}
-              className="pulse-arrow inline-flex flex-col items-center gap-1 text-xs uppercase tracking-[0.18em] text-amber-100/80 transition-colors hover:text-gold focus-visible:text-gold my-1 px-[10px] py-2"
+              onClick={(e) => { e.preventDefault(); scrollToHash("process"); }}
+              className="story-link text-xs uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold"
             >
-              <span>Как работи системата</span>
-              <span aria-hidden="true" className="text-gold">↓</span>
+              Виж демо ↓
             </button>
           </div>
 
+          {/* ⌘K hint pill */}
+          <button
+            type="button"
+            onClick={openCommand}
+            className="anim-rise mt-5 inline-flex items-center gap-2 rounded-full border border-gold/25 bg-card/40 px-3 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-gold/50 hover:text-gold"
+            style={{ animationDelay: "300ms" }}
+            aria-label="Отвори бързо търсене"
+          >
+            <Command className="h-3 w-3" />
+            Натисни
+            <kbd className="rounded border border-border/60 bg-background/60 px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd>
+            за бързо търсене
+          </button>
 
+          <p
+            className="anim-rise mt-4 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+            style={{ animationDelay: "340ms" }}
+          >
+            Без карта · Pro 9.90 €/мес. · Промокод <span className="text-gold">FIRST100</span> → −30%
+          </p>
         </div>
       </div>
 
-      {/* Bottom hairline */}
       <div className="absolute inset-x-0 bottom-0 hairline-x opacity-60" />
     </section>
   );

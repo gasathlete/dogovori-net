@@ -47,6 +47,9 @@ const UsernamePrompt = reactLazy(() =>
 const GlobalProUpgradeListener = reactLazy(() =>
   import("@/components/ProConversionToast").then((m) => ({ default: m.GlobalProUpgradeListener })),
 );
+const CommandPalette = reactLazy(() =>
+  import("@/components/CommandPalette").then((m) => ({ default: m.CommandPalette })),
+);
 // Sentry init is deferred to idle time below — keeps it off the critical path.
 
 // Lazy-load every route except Index (landing page) so the initial bundle stays light.
@@ -218,6 +221,7 @@ const App = () => (
             <AIDisclaimerModal />
             <UsernamePrompt />
             <GlobalProUpgradeListener />
+            <CommandPalette />
           </Suspense>
           <Suspense fallback={<RouteFallback />}>
             <AnimatedRoutes />

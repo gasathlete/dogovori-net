@@ -2,35 +2,34 @@ import { lazy, Suspense, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
-import { SectorGrid } from "@/components/SectorGrid";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { LazyOnVisible } from "@/components/LazyOnVisible";
 import { SectionSkeleton } from "@/components/SectionSkeleton";
 import { Reveal } from "@/components/Reveal";
-// BlogRotator пада в `LazyOnVisible` секцията по-долу — превърнат в lazy chunk
-// за да не дърпа blogTopics + autoLinkBlog в entry bundle-а.
 import { FEATURED_BLANKS } from "@/data/featuredBlanks";
 import { allTemplates } from "@/lib/templateIndex";
+import { buildFaqJsonLd } from "@/components/FAQ";
 
-// Pre-compute the doc-name -> slug lookup once at module load instead of on every
-// Index render. ItemList JSON-LD below depends on this.
 const SLUG_BY_NAME: Map<string, string> = new Map(
   allTemplates().map((t) => [t.doc.name, t.slug]),
 );
 
-// Below-the-fold sections — code-split + mounted on scroll.
-// SeoFooter stays eager (internal links matter for crawling).
+// Linear-style landing structure (top → bottom):
+//  Hero → SocialProofStrip → PainSolution → PlatformShowcase → FeaturedBlanks
+//  → LifeScenarios → ComparisonTable → Testimonials → Process → FAQ
+//  → ComplianceSection → CTABand → SeoFooter
+const SocialProofStrip = lazy(() => import("@/components/SocialProofStrip").then((m) => ({ default: m.SocialProofStrip })));
+const PainSolution = lazy(() => import("@/components/PainSolution").then((m) => ({ default: m.PainSolution })));
 const FeaturedBlanks = lazy(() => import("@/components/FeaturedBlanks").then((m) => ({ default: m.FeaturedBlanks })));
 const LifeScenarios = lazy(() => import("@/components/LifeScenarios").then((m) => ({ default: m.LifeScenarios })));
 const PlatformShowcase = lazy(() => import("@/components/PlatformShowcase").then((m) => ({ default: m.PlatformShowcase })));
-const TopDocuments = lazy(() => import("@/components/TopDocuments").then((m) => ({ default: m.TopDocuments })));
+const ComparisonTable = lazy(() => import("@/components/ComparisonTable").then((m) => ({ default: m.ComparisonTable })));
 const Process = lazy(() => import("@/components/Process").then((m) => ({ default: m.Process })));
-const PartnersBoard = lazy(() => import("@/components/PartnersBoard").then((m) => ({ default: m.PartnersBoard })));
 const Testimonials = lazy(() => import("@/components/Testimonials").then((m) => ({ default: m.Testimonials })));
+const FAQ = lazy(() => import("@/components/FAQ").then((m) => ({ default: m.FAQ })));
 const ComplianceSection = lazy(() => import("@/components/ComplianceSection").then((m) => ({ default: m.ComplianceSection })));
 const CTABand = lazy(() => import("@/components/CTABand").then((m) => ({ default: m.CTABand })));
-const BlogRotator = lazy(() => import("@/components/BlogRotator").then((m) => ({ default: m.BlogRotator })));
 
 const Divider = () => (
   <div aria-hidden="true" className="container">
@@ -52,11 +51,8 @@ const Index = () => {
   const startInterview = () => {
     navigate("/catalog");
   };
-  // ItemList JSON-LD for "Избрани от Договори нет" — gives Google a rich-result
-  // candidate on the homepage and concentrates internal link equity onto the
-  // top 5 high-search blanks. Slugs are resolved from templateIndex so they
-  // always match the real /shablon/:slug URLs.
-  const featuredJsonLd = useMemo(() => {
+
+  const jsonLd = useMemo(() => {
     const items = FEATURED_BLANKS
       .map((b, i) => {
         const slug = SLUG_BY_NAME.get(b.docName);
@@ -69,14 +65,14 @@ const Index = () => {
         };
       })
       .filter(Boolean);
-    return {
+    const itemList = {
       "@context": "https://schema.org",
       "@type": "ItemList",
       name: "Избрани от Договори нет — Топ 5 най-търсени бланки",
       itemListElement: items,
     };
+    return [itemList, buildFaqJsonLd()];
   }, []);
-
 
   return (
     <div className="min-h-screen">
@@ -84,69 +80,78 @@ const Index = () => {
         title="Dogovori.net – документи, бланки и образци на български"
         description="600+ безплатни образци – трудов договор, наем, граждански, NDA, пълномощно. Попълни онлайн, свали в PDF/DOCX, подпиши електронно."
         canonical="/"
-        jsonLd={featuredJsonLd}
+        jsonLd={jsonLd}
       />
       <Header />
       <main className="route-fade">
         <Hero onStart={startInterview} />
         <Suspense fallback={<SectionSkeleton />}>
+          <LazyOnVisible minHeight={120}>
+            <SocialProofStrip />
+          </LazyOnVisible>
+
           <LazyOnVisible minHeight={420}>
             <Reveal>
-              <LifeScenarios />
+              <PainSolution />
             </Reveal>
           </LazyOnVisible>
           <Divider />
+
           <LazyOnVisible minHeight={560}>
             <Reveal>
               <PlatformShowcase />
             </Reveal>
           </LazyOnVisible>
           <Divider />
+
           <LazyOnVisible minHeight={420}>
             <Reveal>
               <FeaturedBlanks />
             </Reveal>
           </LazyOnVisible>
           <Divider />
-          <LazyOnVisible minHeight={500}>
-            <Reveal>
-              <TopDocuments />
-            </Reveal>
-          </LazyOnVisible>
-          <Divider />
+
           <LazyOnVisible minHeight={420}>
             <Reveal>
-              <BlogRotator />
+              <LifeScenarios />
             </Reveal>
           </LazyOnVisible>
           <Divider />
-          <Reveal>
-            <SectorGrid onPick={(id) => navigate(`/sektor/${id}`)} />
-          </Reveal>
-          <Divider />
-          <LazyOnVisible minHeight={400}>
+
+          <LazyOnVisible minHeight={500}>
             <Reveal>
-              <Process />
+              <ComparisonTable />
             </Reveal>
           </LazyOnVisible>
           <Divider />
-          <LazyOnVisible minHeight={400}>
-            <Reveal>
-              <PartnersBoard />
-            </Reveal>
-          </LazyOnVisible>
-          <Divider />
+
           <LazyOnVisible minHeight={400}>
             <Reveal>
               <Testimonials />
             </Reveal>
           </LazyOnVisible>
           <Divider />
+
+          <LazyOnVisible minHeight={400}>
+            <Reveal>
+              <Process />
+            </Reveal>
+          </LazyOnVisible>
+          <Divider />
+
+          <LazyOnVisible minHeight={500}>
+            <Reveal>
+              <FAQ />
+            </Reveal>
+          </LazyOnVisible>
+          <Divider />
+
           <LazyOnVisible minHeight={400}>
             <Reveal>
               <ComplianceSection />
             </Reveal>
           </LazyOnVisible>
+
           <LazyOnVisible minHeight={300}>
             <Reveal>
               <CTABand />
