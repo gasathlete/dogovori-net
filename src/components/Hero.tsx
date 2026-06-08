@@ -183,17 +183,26 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
                 </Link>
               </div>
             ) : (
-              <Link
-                ref={magneticRef}
-                to="/auth?tab=signup"
-                onClick={(e) => { e.preventDefault(); setTeaserOpen(true); }}
-                className="btn-gold btn-press w-full sm:w-auto normal-case tracking-normal text-[15px] px-8 py-4 will-change-transform"
-                style={{ transition: "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms, background 200ms" }}
-              >
-                <Search className="h-[18px] w-[18px]" />
-                Започни безплатно
-                <ArrowRight className="h-[16px] w-[16px] opacity-70" />
-              </Link>
+              <div className="relative w-full sm:w-auto">
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -inset-1 rounded-xl bg-gradient-to-r from-gold/0 via-gold/40 to-gold/0 opacity-70 blur-xl animate-pulse"
+                />
+                <Link
+                  ref={magneticRef}
+                  to="/auth?tab=signup"
+                  onClick={(e) => { e.preventDefault(); setTeaserOpen(true); }}
+                  className="btn-gold btn-sheen btn-press relative w-full sm:w-auto normal-case tracking-normal text-[17px] sm:text-[18px] px-10 py-5 sm:px-12 sm:py-5 rounded-xl font-bold shadow-gold will-change-transform"
+                  style={{ transition: "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms, background 200ms" }}
+                >
+                  <Search className="h-[20px] w-[20px]" />
+                  Започни безплатно
+                  <ArrowRight className="h-[18px] w-[18px] transition-transform duration-300 group-hover:translate-x-1" />
+                </Link>
+                <p className="mt-2 text-center text-[10px] uppercase tracking-[0.22em] text-muted-foreground sm:text-left">
+                  Без карта · 3 безплатни операции
+                </p>
+              </div>
             )}
 
             <button

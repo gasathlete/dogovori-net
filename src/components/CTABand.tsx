@@ -83,17 +83,23 @@ export function CTABand() {
               </Link>
             </div>
           ) : (
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-              <button
-                type="button"
-                onClick={() => setTeaserOpen(true)}
-                className="btn-gold btn-sheen btn-press w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
-              >
-                <ArrowRight className="h-[18px] w-[18px]" /> Започни безплатно
-              </button>
+            <div className="mt-8 flex flex-col items-center justify-center gap-3">
+              <div className="relative w-full sm:w-auto">
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -inset-1.5 rounded-2xl bg-gradient-to-r from-gold/0 via-gold/50 to-gold/0 opacity-70 blur-2xl animate-pulse"
+                />
+                <button
+                  type="button"
+                  onClick={() => setTeaserOpen(true)}
+                  className="btn-gold btn-sheen btn-press relative w-full sm:w-auto normal-case tracking-normal text-lg sm:text-xl px-12 py-5 sm:px-14 sm:py-6 rounded-xl font-bold shadow-gold"
+                >
+                  <ArrowRight className="h-[22px] w-[22px]" /> Започни безплатно
+                </button>
+              </div>
               <Link
                 to="/catalog"
-                className="story-link text-xs uppercase tracking-[0.18em] text-muted-foreground hover:text-gold sm:ml-2"
+                className="story-link text-xs uppercase tracking-[0.18em] text-muted-foreground hover:text-gold"
               >
                 <Search className="mr-1 inline-block h-3.5 w-3.5" /> или разгледай каталога
               </Link>
