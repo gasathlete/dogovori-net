@@ -148,7 +148,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             style={{ animationDelay: "160ms" }}
           >
             Индивидуални документи, съобразени със ЗЗД, ТЗ и ЗУТ — с пълен правен риск-анализ.<br />
-            Вътрешен AI-асистент от ново поколение.
+            Вътрешен AI-асистент от ново поколение. Създай, прецизирай, подпиши.
           </p>
 
           {/* Single primary CTA + discreet secondary link */}

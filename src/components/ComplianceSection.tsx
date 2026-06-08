@@ -72,10 +72,10 @@ export function ComplianceSection() {
             Защо да ни се доверите
           </div>
           <h2 className="font-serif text-xl font-bold leading-tight text-balance sm:text-2xl md:text-[32px]">
-            Закон за задълженията и договорите · Търговски закон · ЗУТ
+            Съобразено с  -<br />Закон за задълженията и договорите · Търговски закон · ЗУТ
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground md:text-base">
-            Защитни клаузи и подсъдност по подразбиране — препоръчваме окончателен преглед от адвокат при сложни казуси.
+            Системата работи с модерен, интегриран модел, за проследяване на промени, в реално време за Българското законодателство. Включваме оптимални защитни клаузи и прилагаме нормативната уредба за изготвяне на всички документи — препоръчваме окончателен преглед от адвокат при сложни казуси.
           </p>
           <TooltipProvider delayDuration={150}>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-2">

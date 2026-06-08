@@ -100,7 +100,7 @@ export function CTABand() {
             </div>
           )}
           <p className="mt-5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            Без карта · готов документ за под 2 минути
+            БЕЗ КАРТА · ГОТОВ ДОКУМЕНТ ЗА 2 МИНУТИ
           </p>
         </div>
       </div>
