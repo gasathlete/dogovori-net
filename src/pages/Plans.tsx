@@ -324,10 +324,10 @@ export default function Plans() {
           <div className="relative overflow-hidden rounded-3xl border border-gold/40 bg-gradient-to-br from-navy via-navy to-foreground/5 p-8 text-center sm:p-12">
             <div className="pointer-events-none absolute inset-0 gold-sweep-bg opacity-50" aria-hidden />
             <div className="relative z-10">
-              <h2 className="font-serif text-2xl text-background sm:text-3xl">
+              <h2 className="font-serif text-2xl text-white sm:text-3xl">
                 {isAuthed ? "Активирай Предприемач сега" : "Регистрирай се за 30 секунди"}
               </h2>
-              <p className="mt-2 text-sm text-background/80 sm:text-base">
+              <p className="mt-2 text-sm text-white/80 sm:text-base">
                 {isAuthed
                   ? "Получи 100 операции/мес, неограничен AI и пълни двуезични договори."
                   : "Безплатен старт: 5 операции + 2 всеки месец. Без карта."}
@@ -346,7 +346,7 @@ export default function Plans() {
                 </Link>
                 <Link
                   to="/catalog"
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-background/30 px-6 py-3 text-sm font-medium text-background/90 transition-all hover:border-background/60 hover:bg-background/5"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-white/30 px-6 py-3 text-sm font-medium text-white/90 transition-all hover:border-white/60 hover:bg-white/5"
                 >
                   Разгледай каталога
                 </Link>
