@@ -346,7 +346,7 @@ export default function Plans() {
                 </Link>
                 <Link
                   to="/catalog"
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-background/30 px-6 py-3 text-sm font-medium text-background/90 transition-all hover:border-background/60 hover:bg-background/5"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-white/30 px-6 py-3 text-sm font-medium text-white/90 transition-all hover:border-white/60 hover:bg-white/5"
                 >
                   Разгледай каталога
                 </Link>
