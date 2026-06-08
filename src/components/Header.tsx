@@ -59,20 +59,20 @@ export function Header() {
           : "border-border/40 bg-navy",
       )}
     >
-      <div className="container relative flex h-16 items-center gap-4 lg:gap-5">
+      <div className="container grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-4 lg:gap-6">
         {/* Brand */}
-        <div className="flex flex-1 items-center">
+        <div className="flex min-w-0 items-center justify-self-start">
           <Link
             to="/"
             onClick={() => setOpen(false)}
-            className="flex min-w-0 items-center transition-opacity hover:opacity-90"
+            className="flex min-w-0 items-center"
           >
             <Logo compact />
           </Link>
         </div>
 
-        {/* Primary nav — absolutely centered on the page so it aligns with the hero diamond accent */}
-        <nav className="pointer-events-none absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-6 lg:flex xl:gap-9">
+        {/* Primary nav — centered column in the header grid, aligns with hero diamond */}
+        <nav className="hidden items-center gap-6 justify-self-center lg:flex xl:gap-9">
           {NAV.map((n) => {
             const active = isActive(n.to);
             return (
@@ -81,10 +81,8 @@ export function Header() {
                 to={n.to}
                 onClick={(e) => handleNav(n.to, e)}
                 className={cn(
-                  "pointer-events-auto group relative whitespace-nowrap text-[13px] font-medium tracking-wide transition-colors",
-                  active
-                    ? "text-gold"
-                    : "text-foreground/75 hover:text-gold",
+                  "group relative whitespace-nowrap text-[13px] font-medium tracking-wide transition-colors",
+                  active ? "text-gold" : "text-foreground/75 hover:text-gold",
                 )}
               >
                 {n.label}
@@ -102,7 +100,7 @@ export function Header() {
 
 
         {/* Actions */}
-        <div className="flex flex-1 items-center justify-end gap-3">
+        <div className="flex items-center justify-end gap-3 justify-self-end">
           <ToolsMenu variant="desktop" />
 
           {showProBadge && (
