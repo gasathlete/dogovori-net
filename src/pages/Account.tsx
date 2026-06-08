@@ -966,6 +966,7 @@ function DocumentsTab({
                 folders={folders}
                 contacts={contacts}
                 onUploaded={reload}
+                autoOpen={autoOpenUpload}
               />
             </div>
           </div>
