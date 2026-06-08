@@ -143,7 +143,8 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             className="anim-rise mx-auto mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base md:mt-4 md:text-base md:leading-[1.6]"
             style={{ animationDelay: "160ms" }}
           >
-            Индивидуални документи, съобразени със ЗЗД, ТЗ и ЗУТ — с пълен правен риск-анализ.
+            Индивидуални документи, съобразени със ЗЗД, ТЗ и ЗУТ — с пълен правен риск-анализ.<br />
+            Вътрешен AI-асистент от ново поколение.
           </p>
 
           {/* Single primary CTA + discreet secondary link */}
@@ -189,7 +190,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             className="anim-rise mt-4 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
             style={{ animationDelay: "340ms" }}
           >
-            Без карта · Предприемач 12.90 €/мес. · Промокод <span className="text-gold">FIRST100</span> → −30%
+            БЕЗ ДОБАВЯНЕ НА КАРТА · ПРЕДПРИЕМАЧ 12.90 €/МЕС. · ПРОМОКОД <span className="text-gold">FIRST100</span> → −30%
           </p>
         </div>
       </div>
