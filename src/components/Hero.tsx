@@ -9,6 +9,7 @@ import { TeaserDialog } from "@/components/TeaserDialog";
 import { useAuth } from "@/hooks/useAuth";
 
 export function Hero({ onStart: _onStart }: { onStart: () => void }) {
+  const { user } = useAuth();
   const tooltipId = useId();
   const [quote, setQuote] = useState<BusinessQuote | null>(null);
   const [visible, setVisible] = useState(false);
