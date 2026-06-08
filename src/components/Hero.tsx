@@ -1,13 +1,15 @@
 import { useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ShieldCheck, Bird, FileText, Search, FileSignature, Command, ArrowRight } from "lucide-react";
+import { ShieldCheck, Bird, FileText, Search, FileSignature, Command, ArrowRight, FileUp, Wand2 } from "lucide-react";
 const logoImg = "/logo-dogovori-hero.webp";
 import { scrollToHash } from "@/lib/scrollToHash";
 import type { BusinessQuote } from "@/lib/businessQuotes";
 import { useMagneticHover } from "@/hooks/useMagneticHover";
 import { TeaserDialog } from "@/components/TeaserDialog";
+import { useAuth } from "@/hooks/useAuth";
 
 export function Hero({ onStart: _onStart }: { onStart: () => void }) {
+  const { user } = useAuth();
   const tooltipId = useId();
   const [quote, setQuote] = useState<BusinessQuote | null>(null);
   const [visible, setVisible] = useState(false);
@@ -153,17 +155,43 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             className="anim-rise mt-6 flex flex-col items-center justify-center gap-3 sm:mt-7"
             style={{ animationDelay: "240ms" }}
           >
-            <Link
-              ref={magneticRef}
-              to="/auth?tab=signup"
-              onClick={(e) => { e.preventDefault(); setTeaserOpen(true); }}
-              className="btn-gold btn-press w-full sm:w-auto normal-case tracking-normal text-[15px] px-8 py-4 will-change-transform"
-              style={{ transition: "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms, background 200ms" }}
-            >
-              <Search className="h-[18px] w-[18px]" />
-              Започни безплатно
-              <ArrowRight className="h-[16px] w-[16px] opacity-70" />
-            </Link>
+            {user ? (
+              <div className="flex w-full flex-col items-stretch justify-center gap-2.5 sm:flex-row sm:flex-wrap sm:gap-3">
+                <Link
+                  to="/catalog"
+                  className="btn-gold btn-press normal-case tracking-normal text-[14px] px-5 py-3"
+                >
+                  <Search className="h-[16px] w-[16px]" />
+                  Намери документ
+                </Link>
+                <Link
+                  to="/build"
+                  className="inline-flex items-center justify-center gap-2 rounded-md border border-gold/50 bg-card/60 px-5 py-3 text-[14px] font-semibold text-gold transition-colors hover:bg-gold/10"
+                >
+                  <Wand2 className="h-[16px] w-[16px]" />
+                  Изготви документ
+                </Link>
+                <Link
+                  to="/account?action=upload"
+                  className="inline-flex items-center justify-center gap-2 rounded-md border border-gold/50 bg-card/60 px-5 py-3 text-[14px] font-semibold text-gold transition-colors hover:bg-gold/10"
+                >
+                  <FileUp className="h-[16px] w-[16px]" />
+                  Качи документ за анализ
+                </Link>
+              </div>
+            ) : (
+              <Link
+                ref={magneticRef}
+                to="/auth?tab=signup"
+                onClick={(e) => { e.preventDefault(); setTeaserOpen(true); }}
+                className="btn-gold btn-press w-full sm:w-auto normal-case tracking-normal text-[15px] px-8 py-4 will-change-transform"
+                style={{ transition: "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms, background 200ms" }}
+              >
+                <Search className="h-[18px] w-[18px]" />
+                Започни безплатно
+                <ArrowRight className="h-[16px] w-[16px] opacity-70" />
+              </Link>
+            )}
 
             <button
               type="button"
