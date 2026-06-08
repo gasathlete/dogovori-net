@@ -94,7 +94,7 @@ export function PlansHeroAnimation() {
       `}</style>
 
       <svg
-        viewBox="0 32 360 228"
+        viewBox="0 20 360 240"
         preserveAspectRatio="xMidYMid meet"
         width="100%"
         height="100%"
@@ -205,15 +205,19 @@ export function PlansHeroAnimation() {
             strokeLinejoin="round" />
         </g>
 
-        {/* Final label */}
+        {/* Final label — green "signed" frame */}
         <g className="plans-anim-label">
-          <rect x="126" y="232" width="108" height="16" rx="8" fill="hsl(43 55% 54% / 0.12)" stroke="hsl(43 55% 54% / 0.4)" strokeWidth="0.8" />
-          <text x="180" y="243" textAnchor="middle"
+          <rect x="106" y="232" width="148" height="18" rx="9"
+            fill="hsl(142 70% 40% / 0.18)"
+            stroke="hsl(142 70% 50% / 0.85)"
+            strokeWidth="1"
+            style={{ filter: "drop-shadow(0 0 6px hsl(142 70% 50% / 0.55))" }} />
+          <text x="180" y="244" textAnchor="middle"
             fontSize="8" letterSpacing="1.4"
-            fill="hsl(43 65% 70%)"
+            fill="hsl(142 70% 72%)"
             fontFamily="ui-sans-serif, system-ui"
             fontWeight="600">
-            ДОГОВОРЪТ Е ПОДПИСАН
+            ДОКУМЕНТЪТ Е ПОДПИСАН
           </text>
         </g>
       </svg>
