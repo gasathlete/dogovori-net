@@ -112,24 +112,24 @@ export function softwareApplicationSchema() {
     offers: [
       {
         "@type": "Offer",
-        name: "Pro",
-        price: "9.90",
+        name: "Предприемач",
+        price: "12.90",
         priceCurrency: "EUR",
         priceSpecification: {
           "@type": "UnitPriceSpecification",
-          price: "9.90",
+          price: "12.90",
           priceCurrency: "EUR",
           referenceQuantity: { "@type": "QuantitativeValue", value: 1, unitCode: "MON" },
         },
       },
       {
         "@type": "Offer",
-        name: "Team (per seat)",
-        price: "7.90",
+        name: "Екип (per seat)",
+        price: "10.90",
         priceCurrency: "EUR",
         priceSpecification: {
           "@type": "UnitPriceSpecification",
-          price: "7.90",
+          price: "10.90",
           priceCurrency: "EUR",
           referenceQuantity: { "@type": "QuantitativeValue", value: 1, unitCode: "MON" },
         },

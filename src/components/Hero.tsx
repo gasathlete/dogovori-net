@@ -189,7 +189,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             className="anim-rise mt-4 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
             style={{ animationDelay: "340ms" }}
           >
-            Без карта · Pro 9.90 €/мес. · Промокод <span className="text-gold">FIRST100</span> → −30%
+            Без карта · Предприемач 12.90 €/мес. · Промокод <span className="text-gold">FIRST100</span> → −30%
           </p>
         </div>
       </div>
