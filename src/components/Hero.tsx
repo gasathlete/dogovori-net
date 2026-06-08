@@ -168,7 +168,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
                   to="/build"
                   className="inline-flex items-center justify-center gap-2 rounded-md border border-gold/50 bg-card/60 px-5 py-3 text-[14px] font-semibold text-gold transition-colors hover:bg-gold/10"
                 >
-                  <Wand2 className="h-[16px] w-[16px]" />
+                  <Bird className="h-[16px] w-[16px]" />
                   Изготви документ
                 </Link>
                 <Link
