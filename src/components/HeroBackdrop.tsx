@@ -186,26 +186,26 @@ export function HeroBackdrop() {
 
 function Doc({ w, h }: { w: number; h: number }) {
   return (
-    <g opacity="0.55">
+    <g opacity="1">
       <rect
         x={-w / 2}
         y={-h / 2}
         width={w}
         height={h}
         rx="3"
-        fill="url(#hbDocFill)"
-        stroke="hsl(var(--gold) / 0.22)"
-        strokeWidth="0.8"
+        fill="hsl(var(--gold) / 0.08)"
+        stroke="hsl(var(--gold) / 0.55)"
+        strokeWidth="1.2"
       />
       {/* corner fold */}
       <path
         d={`M ${w / 2 - 10} ${-h / 2} L ${w / 2} ${-h / 2 + 10} L ${w / 2 - 10} ${-h / 2 + 10} Z`}
-        fill="hsl(var(--gold) / 0.10)"
-        stroke="hsl(var(--gold) / 0.22)"
-        strokeWidth="0.6"
+        fill="hsl(var(--gold) / 0.22)"
+        stroke="hsl(var(--gold) / 0.55)"
+        strokeWidth="1"
       />
       {/* lines */}
-      <g stroke="hsl(var(--gold) / 0.18)" strokeWidth="0.8" strokeLinecap="round">
+      <g stroke="hsl(var(--gold) / 0.45)" strokeWidth="1.1" strokeLinecap="round">
         <line x1={-w / 2 + 8} y1={-h / 2 + 22} x2={w / 2 - 14} y2={-h / 2 + 22} />
         <line x1={-w / 2 + 8} y1={-h / 2 + 30} x2={w / 2 - 8}  y2={-h / 2 + 30} />
         <line x1={-w / 2 + 8} y1={-h / 2 + 38} x2={w / 2 - 18} y2={-h / 2 + 38} />
