@@ -29,6 +29,7 @@ function LiveCounter() {
 }
 
 export function CTABand() {
+  const [teaserOpen, setTeaserOpen] = useState(false);
   return (
     <section className="container py-14 sm:py-16 md:py-20">
       <div
@@ -57,12 +58,13 @@ export function CTABand() {
             +600 шаблона · AI анализ на риска · електронен подпис · без скрити такси.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-            <Link
-              to="/auth"
+            <button
+              type="button"
+              onClick={() => setTeaserOpen(true)}
               className="btn-gold btn-sheen btn-press w-full sm:w-auto normal-case tracking-normal text-base px-8 py-4"
             >
               <ArrowRight className="h-[18px] w-[18px]" /> Започни безплатно
-            </Link>
+            </button>
             <Link
               to="/catalog"
               className="story-link text-xs uppercase tracking-[0.18em] text-muted-foreground hover:text-gold sm:ml-2"
@@ -75,6 +77,7 @@ export function CTABand() {
           </p>
         </div>
       </div>
+      <TeaserDialog open={teaserOpen} onOpenChange={setTeaserOpen} />
     </section>
   );
 }
