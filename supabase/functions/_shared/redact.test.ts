@@ -24,7 +24,7 @@ Deno.test("redact: повтарящ се ЕГН ползва един placeholde
   assert(!r.redacted.includes("<EGN_2>"));
 });
 
-Deno.test("redact: mapping не съдържа стопвордови „имена" като София", () => {
+Deno.test("redact: mapping does not include stopwords like Sofia", () => {
   const r = redactForAI("Договор между страните в София.");
   // Името София е стопворд → не трябва да се замени с NAME placeholder
   const placeholders = Object.keys(r.mapping);
