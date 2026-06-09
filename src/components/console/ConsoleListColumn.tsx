@@ -485,7 +485,7 @@ function SigningListView() {
       const { data } = await supabase
         .from("signing_requests")
         .select("id, subject, status, created_at")
-        .eq("user_id", user.id)
+        .eq("owner_id", user.id)
         .order("created_at", { ascending: false })
         .limit(200);
       if (active) {
