@@ -1814,17 +1814,33 @@ export const SECTORS: Sector[] = [
 export const getSector = (id: string) => SECTORS.find((s) => s.id === id);
 
 /** Намира sub-wizard за конкретен документ в сектор.
- *  Ако няма дефиниран — генерира универсален умен sub-wizard според името на документа. */
+ *  Ако няма дефиниран — генерира универсален умен sub-wizard според името на документа.
+ *
+ *  CRITICAL: винаги налага коректни роли на страните в подписния блок чрез
+ *  централната keyword-инференция (src/data/partyRoles.ts). Това гарантира,
+ *  че при договор за покупко-продажба под „real-estate" сектор не се
+ *  наследяват „Наемодател/Наемател" от секторния default. */
 import { getGeneratedSubWizard } from "./subWizardsGenerated";
+import { inferPartyRolesGenitive, partiesAreCompatible } from "./partyRoles";
+
+function enforcePartyRoles(sw: SubWizard, sector: Sector, documentName: string): SubWizard {
+  const inferred = inferPartyRolesGenitive(sw.contractName || documentName);
+  const current = sw.parties ?? sector.parties;
+  // If existing parties already match the inference (or no inference available), keep them.
+  if (!inferred) return sw;
+  if (partiesAreCompatible(sw.contractName || documentName, current)) return sw;
+  return { ...sw, parties: inferred };
+}
 
 export function getSubWizard(sector: Sector | undefined, documentName: string | undefined | null): SubWizard | undefined {
   if (!sector || !documentName) return undefined;
   const explicit = sector.subWizards?.find((sw) => sw.documentName === documentName);
-  if (explicit) return explicit;
+  if (explicit) return enforcePartyRoles(explicit, sector, documentName);
   const gen = getGeneratedSubWizard(documentName);
-  if (gen) return gen;
-  return buildGenericSubWizard(documentName);
+  if (gen) return enforcePartyRoles(gen, sector, documentName);
+  return enforcePartyRoles(buildGenericSubWizard(documentName), sector, documentName);
 }
+
 
 /** Анализира името на документа и връща уместни въпроси по ключови думи. */
 function buildGenericSubWizard(documentName: string): SubWizard {
