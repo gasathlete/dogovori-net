@@ -641,7 +641,7 @@ export default function WizardPage() {
       </div>
 
       {/* Blank-template download — always available, before answering questions */}
-      <div className="sticky top-[112px] z-20 border-b border-border/40 bg-card/80 backdrop-blur-md">
+      <div className="border-b border-border/40 bg-card/30">
         <div className="container flex flex-wrap items-center justify-between gap-3 py-3">
           <div className="text-xs text-muted-foreground">
             Нужна Ви е само празна бланка за разпечатване?
