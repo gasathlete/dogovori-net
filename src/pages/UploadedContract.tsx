@@ -21,6 +21,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/clipboard";
+import { SensitiveDataWarning } from "@/components/SensitiveDataWarning";
+import {
+  parseSensitiveResponse,
+  isConfirmationRequired,
+  isSpecialCategoryBlocked,
+  type ClassificationSummary,
+} from "@/lib/aiSensitiveData";
 
 
 type Issue = {
