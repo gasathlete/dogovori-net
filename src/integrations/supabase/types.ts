@@ -723,6 +723,7 @@ export type Database = {
           monthly_templates_used: number
           monthly_total_used: number
           plan: Database["public"]["Enums"]["user_plan"]
+          plan_ops_cap: number | null
           pro_monthly_used: number
           pro_period_start: string
           pro_until: string | null
@@ -747,6 +748,7 @@ export type Database = {
           monthly_templates_used?: number
           monthly_total_used?: number
           plan?: Database["public"]["Enums"]["user_plan"]
+          plan_ops_cap?: number | null
           pro_monthly_used?: number
           pro_period_start?: string
           pro_until?: string | null
@@ -771,6 +773,7 @@ export type Database = {
           monthly_templates_used?: number
           monthly_total_used?: number
           plan?: Database["public"]["Enums"]["user_plan"]
+          plan_ops_cap?: number | null
           pro_monthly_used?: number
           pro_period_start?: string
           pro_until?: string | null
@@ -2311,6 +2314,7 @@ export type Database = {
           monthly_templates_used: number
           monthly_total_used: number
           plan: Database["public"]["Enums"]["user_plan"]
+          plan_ops_cap: number | null
           pro_monthly_used: number
           pro_period_start: string
           pro_until: string | null
@@ -2657,7 +2661,7 @@ export type Database = {
         | "expired"
         | "declined"
       team_role: "owner" | "admin" | "member"
-      user_plan: "free" | "pro"
+      user_plan: "free" | "pro" | "professional" | "entrepreneur"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2810,7 +2814,7 @@ export const Constants = {
         "declined",
       ],
       team_role: ["owner", "admin", "member"],
-      user_plan: ["free", "pro"],
+      user_plan: ["free", "pro", "professional", "entrepreneur"],
     },
   },
 } as const
