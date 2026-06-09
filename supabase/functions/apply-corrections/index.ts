@@ -193,7 +193,22 @@ Deno.serve(async (req: Request) => {
     const redaction = route.redactionRequired
       ? redactForAI(contractJsonStr)
       : { redacted: contractJsonStr, mapping: {}, stats: {} };
+    const answersStr = Object.entries(answers).map(([k, v]) => `- ${k}: ${v}`).join("\n");
+    const answersRedacted = route.redactionRequired
+      ? (() => {
+          const r = redactForAI(answersStr);
+          // Merge mappings so unredact restores both contract and answers content.
+          Object.assign(redaction.mapping, r.mapping);
+          return r.redacted;
+        })()
+      : answersStr;
 
+    const redactionNote = route.redactionRequired
+      ? "Забележка: Лични данни (имена, ЕГН, IBAN, адреси, телефони, ел.поща) са заменени с плейсхолдъри от вида <NAME_1>, <EGN_1>. Запази ги дословно в изхода — НЕ ги променяй.\n"
+      : "";
+
+    const userPrompt = `${redactionNote}СЪЩЕСТВУВАЩ ДОГОВОР (JSON):
+${redaction.redacted}
 
 ТЕКУЩ RISK:
 ${risk ? JSON.stringify(risk) : "(не е предоставен)"}
@@ -203,7 +218,7 @@ ${issuesBlock}
 ${recsBlock}
 
 КОНТЕКСТ ОТ ИНТЕРВЮТО:
-${Object.entries(answers).map(([k, v]) => `- ${k}: ${v}`).join("\n")}
+${answersRedacted}
 
 Задача: Коригирай договора така, че да адресира САМО избраните препоръки/слаби места. Не променяй несвързани клаузи. Накрая върни нов risk анализ на коригирания договор и списък "applied" с кратко описание на промените.`;
 
