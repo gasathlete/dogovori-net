@@ -232,12 +232,6 @@ Deno.serve(async (req) => {
     const systemFinal = `${activeSystemPrompt}\n\n[КОНТЕКСТ] ${ctxLines}`;
 
     // Call Lovable AI Gateway with streaming
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
     const chatModel = isEntrepreneur ? MODEL_PREMIUM : MODEL_STANDARD;
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
