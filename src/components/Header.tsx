@@ -15,6 +15,7 @@ import { Crown } from "lucide-react";
 
 
 const NAV = [
+  { to: "/console", label: "Workspace" },
   { to: "/build", label: "Изготви документ" },
   { to: "/catalog", label: "Каталог" },
   { to: "/komplekti", label: "Комплекти" },
