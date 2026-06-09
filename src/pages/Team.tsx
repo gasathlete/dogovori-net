@@ -32,7 +32,7 @@ export default function TeamPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createSeats, setCreateSeats] = useState(3);
-  const [createBilling, setCreateBilling] = useState<"monthly" | "yearly">("monthly");
+  const createBilling = "yearly" as const;
   const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [seatsValue, setSeatsValue] = useState(3);
