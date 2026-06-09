@@ -7,6 +7,10 @@ import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
 import { getDocumentTypeSpec, inferDocumentType } from "../_shared/document-types.ts";
+import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
+import { redactForAI, unredact } from "../_shared/redact.ts";
+import { routeModel } from "../_shared/model-router.ts";
+import { logAiAudit } from "../_shared/ai-call.ts";
 
 
 const SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ). Използваш правилните понятия (Възложител/Изпълнител, Наемодател/Наемател, Продавач/Купувач, Страните, Настоящият Договор).
@@ -89,7 +93,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { sector, contractName, documentName, parties, answers, questions, arbitration, bilingual, session_id, doc_key } = await req.json();
+    const { sector, contractName, documentName, parties, answers, questions, arbitration, bilingual, session_id, doc_key, userConfirmed = false } = await req.json();
     const isBilingual = Boolean(bilingual);
 
 
@@ -193,25 +197,81 @@ Deno.serve(async (req: Request) => {
       ? `\nБИЛИНГВАЛЕН РЕЖИМ: ЗАДЪЛЖИТЕЛНО върни паралелен английски превод. За contract добави полета: "title_en", "preamble_en", "closing_en" и за всяка клауза в "clauses" — "title_en" и "body_en". Преводът да е професионален легален английски (US/UK неутрален), номерацията на членовете да е "Art. N." и да съответства 1:1 на българския текст. Поставяй "bilingual": true на root на contract. Английският текст НЕ заменя българския — те съществуват паралелно.`
       : "";
 
-    const userPrompt = `СЕКТОР: ${sector}
+    // === GDPR/AI Act compliance layer ===
+    const sourceText = [
+      String(parties?.a ?? ""), String(parties?.b ?? ""),
+      qaLines,
+    ].join("\n");
+    const classification = classifyDocumentBeforeAI(sourceText);
+    const route = routeModel("generate-contract", classification, {
+      userConfirmed,
+      promptLength: sourceText.length,
+    });
+
+    if (!route.allowed) {
+      await logAiAudit({
+        user_id: userId, operation: "generate-contract", model: "",
+        classification, redaction_applied: false, status: "blocked",
+        error_code: route.blockedReason ?? "blocked",
+      });
+      return new Response(JSON.stringify({
+        error: "Въведените данни съдържат специални категории лични данни и не могат да бъдат обработени автоматично.",
+        code: route.blockedReason ?? "special_category_blocked",
+        classification: {
+          risk_level: classification.risk_level,
+          contains_special_category_data: classification.contains_special_category_data,
+          reasons: classification.reasons,
+        },
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (route.requireConfirmation) {
+      return new Response(JSON.stringify({
+        error: "needs_confirmation",
+        code: "sensitive_data_confirmation_required",
+        classification: {
+          risk_level: classification.risk_level,
+          contains_personal_data: classification.contains_personal_data,
+          contains_special_category_data: classification.contains_special_category_data,
+          pii_counts: classification.pii_counts,
+          reasons: classification.reasons,
+        },
+      }), { status: 428, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const redactedParties = route.redactionRequired
+      ? { a: redactForAI(String(parties?.a ?? "")), b: redactForAI(String(parties?.b ?? "")) }
+      : null;
+    const redactedQaLines = route.redactionRequired ? redactForAI(qaLines) : null;
+    const mergedMapping: Record<string, string> = {};
+    if (redactedParties) Object.assign(mergedMapping, redactedParties.a.mapping, redactedParties.b.mapping);
+    if (redactedQaLines) Object.assign(mergedMapping, redactedQaLines.mapping);
+
+    const safePartyA = redactedParties ? redactedParties.a.redacted : String(parties?.a ?? "");
+    const safePartyB = redactedParties ? redactedParties.b.redacted : String(parties?.b ?? "");
+    const safeQaLines = redactedQaLines ? redactedQaLines.redacted : qaLines;
+    const redactionNote = route.redactionRequired
+      ? "ВАЖНО: Лични данни (имена, ЕГН, IBAN, адреси) са заменени с плейсхолдъри (<NAME_1>, <EGN_1> и т.н.). В готовия документ ИЗПОЛЗВАЙ плейсхолдърите дословно — те ще бъдат заменени с реалните стойности при връщане на потребителя.\n\n"
+      : "";
+
+    const userPrompt = `${redactionNote}СЕКТОР: ${sector}
 ТИП ДОКУМЕНТ: ${docTypeSpec.label}
 НАИМЕНОВАНИЕ: ${contractName}
-${docLine}СТРАНИ: ${parties.a} ↔ ${parties.b}${arbitrationLine}${bilingualLine}
+${docLine}СТРАНИ: ${safePartyA} ↔ ${safePartyB}${arbitrationLine}${bilingualLine}
 
 ОТГОВОРИ:
-${qaLines}
+${safeQaLines}
 
 ВАЖНО: Изготви документ от вид „${docTypeSpec.label}" (не разглеждай автоматично като двустранен договор). Спазвай специфичната структура за този вид документ:
 ${docTypeSpec.systemAddendum}
 
-Задача: Risk Analysis (конкретни слаби места за ${parties.a}${parties.b ? ` и ${parties.b}` : ""}) + ПЪЛНИЯТ документ на български за "${documentName || contractName}" според структурата за „${docTypeSpec.label}"${isBilingual ? " + паралелен английски превод в полетата *_en" : ""}. Върни СТРОГО валиден JSON по схемата.`;
+Задача: Risk Analysis (конкретни слаби места за ${safePartyA}${safePartyB ? ` и ${safePartyB}` : ""}) + ПЪЛНИЯТ документ на български за "${documentName || contractName}" според структурата за „${docTypeSpec.label}"${isBilingual ? " + паралелен английски превод в полетата *_en" : ""}. Върни СТРОГО валиден JSON по схемата.`;
 
     const activeSystemPrompt = await loadActivePrompt(admin, "generate-contract", SYSTEM_PROMPT);
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
+        model: route.model,
         messages: [
           { role: "system", content: activeSystemPrompt },
           { role: "user", content: userPrompt },
@@ -222,6 +282,11 @@ ${docTypeSpec.systemAddendum}
 
 
     if (!aiResp.ok) {
+      await logAiAudit({
+        user_id: userId, operation: "generate-contract", model: route.model,
+        classification, redaction_applied: route.redactionRequired,
+        status: "error", error_code: `http_${aiResp.status}`,
+      });
       if (aiResp.status === 429) {
         return new Response(JSON.stringify({ error: "Достигнат е лимитът. Моля опитайте след малко." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
@@ -255,8 +320,6 @@ ${docTypeSpec.systemAddendum}
       throw new Error("AI не върна съдържание (вероятно прекъснат отговор). Опитайте отново.");
     }
 
-
-
     let parsed;
     try { parsed = extractJson(content); }
     catch (err) {
@@ -264,11 +327,28 @@ ${docTypeSpec.systemAddendum}
       throw new Error("AI отговорът не може да бъде анализиран като JSON");
     }
 
+    // Unredact AI output so the user sees real names/EGN/IBAN in the final doc.
+    if (Object.keys(mergedMapping).length > 0) {
+      try {
+        const restored = JSON.parse(unredact(JSON.stringify(parsed), mergedMapping));
+        parsed = restored;
+      } catch (e) {
+        console.error("unredact failed:", e);
+      }
+    }
+
     // Defensive: ensure bilingual flag is set on contract when requested,
     // so exporters render BG/EN two-column layout reliably.
     if (isBilingual && parsed?.contract) {
       parsed.contract.bilingual = true;
     }
+
+    await logAiAudit({
+      user_id: userId, operation: "generate-contract", model: route.model,
+      classification, redaction_applied: route.redactionRequired, status: "ok",
+      tokens_in: data?.usage?.prompt_tokens,
+      tokens_out: data?.usage?.completion_tokens,
+    });
 
     // Persist to cache for future identical requests (best-effort).
     try {

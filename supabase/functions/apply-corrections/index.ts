@@ -4,6 +4,10 @@ import { buildCors } from "../_shared/cors.ts";
 import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
+import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
+import { redactForAI, unredact } from "../_shared/redact.ts";
+import { routeModel } from "../_shared/model-router.ts";
+import { logAiAudit } from "../_shared/ai-call.ts";
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш съществуващ договор (в JSON) и списък от ИЗБРАНИ препоръки/слаби места, които трябва да коригираш в текста.
 Запази всички останали клаузи, формат, номерация и стил. Промени САМО това, което е необходимо, за да адресираш избраните препоръки. Където е нужно — добави нови клаузи или алинеи в съответния раздел (или нов раздел "Допълнителни защитни клаузи").
@@ -76,6 +80,7 @@ Deno.serve(async (req: Request) => {
       answers = {},
       session_id: sessionId,
       batch_id: batchId,
+      userConfirmed = false,
     } = await req.json();
 
     if (!contract || (selectedIssues.length === 0 && selectedRecommendations.length === 0)) {
@@ -139,8 +144,71 @@ Deno.serve(async (req: Request) => {
       ? "ИЗБРАНИ ПРЕПОРЪКИ:\n" + selectedRecommendations.map((r: string, n: number) => `${n + 1}. ${r}`).join("\n")
       : "";
 
-    const userPrompt = `СЪЩЕСТВУВАЩ ДОГОВОР (JSON):
-${JSON.stringify(contract)}
+    // === GDPR/AI Act compliance layer ===
+    const sourceText = [
+      JSON.stringify(contract).slice(0, 20000),
+      ...Object.values(answers ?? {}).map((v) => String(v ?? "")),
+    ].join("\n");
+    const classification = classifyDocumentBeforeAI(sourceText);
+    const route = routeModel("apply-corrections", classification, { userConfirmed });
+
+    if (!route.allowed) {
+      if (batchCharged) {
+        await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
+      }
+      await logAiAudit({
+        user_id: userId, operation: "apply-corrections", model: "",
+        classification, redaction_applied: false, status: "blocked",
+        error_code: route.blockedReason ?? "blocked",
+      });
+      return new Response(JSON.stringify({
+        error: "Документът съдържа специални категории лични данни и не може да бъде обработен автоматично.",
+        code: route.blockedReason ?? "special_category_blocked",
+        classification: {
+          risk_level: classification.risk_level,
+          contains_special_category_data: classification.contains_special_category_data,
+          reasons: classification.reasons,
+        },
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (route.requireConfirmation) {
+      if (batchCharged) {
+        await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
+      }
+      return new Response(JSON.stringify({
+        error: "needs_confirmation",
+        code: "sensitive_data_confirmation_required",
+        classification: {
+          risk_level: classification.risk_level,
+          contains_personal_data: classification.contains_personal_data,
+          contains_special_category_data: classification.contains_special_category_data,
+          pii_counts: classification.pii_counts,
+          reasons: classification.reasons,
+        },
+      }), { status: 428, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const contractJsonStr = JSON.stringify(contract);
+    const redaction = route.redactionRequired
+      ? redactForAI(contractJsonStr)
+      : { redacted: contractJsonStr, mapping: {}, stats: {} };
+    const answersStr = Object.entries(answers).map(([k, v]) => `- ${k}: ${v}`).join("\n");
+    const answersRedacted = route.redactionRequired
+      ? (() => {
+          const r = redactForAI(answersStr);
+          // Merge mappings so unredact restores both contract and answers content.
+          Object.assign(redaction.mapping, r.mapping);
+          return r.redacted;
+        })()
+      : answersStr;
+
+    const redactionNote = route.redactionRequired
+      ? "Забележка: Лични данни (имена, ЕГН, IBAN, адреси, телефони, ел.поща) са заменени с плейсхолдъри от вида <NAME_1>, <EGN_1>. Запази ги дословно в изхода — НЕ ги променяй.\n"
+      : "";
+
+    const userPrompt = `${redactionNote}СЪЩЕСТВУВАЩ ДОГОВОР (JSON):
+${redaction.redacted}
 
 ТЕКУЩ RISK:
 ${risk ? JSON.stringify(risk) : "(не е предоставен)"}
@@ -150,7 +218,7 @@ ${issuesBlock}
 ${recsBlock}
 
 КОНТЕКСТ ОТ ИНТЕРВЮТО:
-${Object.entries(answers).map(([k, v]) => `- ${k}: ${v}`).join("\n")}
+${answersRedacted}
 
 Задача: Коригирай договора така, че да адресира САМО избраните препоръки/слаби места. Не променяй несвързани клаузи. Накрая върни нов risk анализ на коригирания договор и списък "applied" с кратко описание на промените.`;
 
@@ -159,9 +227,7 @@ ${Object.entries(answers).map(([k, v]) => `- ${k}: ${v}`).join("\n")}
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        // Flash is ~3-5x faster than Pro for targeted edits and is more than
-        // capable for the constrained "modify only selected items" task here.
-        model: "google/gemini-2.5-flash",
+        model: route.model,
         messages: [
           { role: "system", content: activeSystemPrompt },
           { role: "user", content: userPrompt },
@@ -171,10 +237,14 @@ ${Object.entries(answers).map(([k, v]) => `- ${k}: ${v}`).join("\n")}
     });
 
     if (!aiResp.ok) {
-      // Refund the batch charge so the user can retry without losing 1 op.
       if (batchCharged) {
         await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
       }
+      await logAiAudit({
+        user_id: userId, operation: "apply-corrections", model: route.model,
+        classification, redaction_applied: route.redactionRequired,
+        status: "error", error_code: `http_${aiResp.status}`,
+      });
       if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Достигнат е лимитът. Опитайте по-късно." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       if (aiResp.status === 402) return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const t = await aiResp.text();
@@ -182,7 +252,6 @@ ${Object.entries(answers).map(([k, v]) => `- ${k}: ${v}`).join("\n")}
       throw new Error("AI грешка");
     }
 
-    // Log usage AFTER successful AI call
     await admin.from("ai_usage").insert({
       user_id: userId,
       function_name: "apply-corrections",
@@ -192,6 +261,20 @@ ${Object.entries(answers).map(([k, v]) => `- ${k}: ${v}`).join("\n")}
     const content: string = raw.choices?.[0]?.message?.content ?? "";
     if (!content.trim()) throw new Error("Празен AI отговор");
     const parsed = extractJson(content);
+
+    // Unredact AI output before returning.
+    if (Object.keys(redaction.mapping).length > 0) {
+      const restored = JSON.parse(unredact(JSON.stringify(parsed), redaction.mapping));
+      Object.assign(parsed, restored);
+    }
+
+    await logAiAudit({
+      user_id: userId, operation: "apply-corrections", model: route.model,
+      classification, redaction_applied: route.redactionRequired,
+      status: "ok",
+      tokens_in: raw?.usage?.prompt_tokens,
+      tokens_out: raw?.usage?.completion_tokens,
+    });
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

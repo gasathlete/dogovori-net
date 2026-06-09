@@ -6,6 +6,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
+import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
+import { logAiAudit } from "../_shared/ai-call.ts";
 
 const OCR_SYSTEM = `Ти си високо точен OCR енджин за български правни документи.
 Получаваш изображение на страница от договор. Върни ИЗКЛЮЧИТЕЛНО извлечения текст,
@@ -128,6 +130,18 @@ Deno.serve(async (req: Request) => {
       parts.push(trimmed.replace(/\[OCR_UNREADABLE\]/gi, "").trim());
     }
     const text = parts.join("\n\n").replace(/[ \t]+/g, " ").trim();
+
+    // Classify the OCR output (post-hoc) for the audit trail. We cannot
+    // pre-classify images. Special-category text is allowed through here
+    // because OCR is read-only — downstream operations (correct-uploaded)
+    // re-classify and may block.
+    const ocrClassification = classifyDocumentBeforeAI(text);
+    await logAiAudit({
+      user_id: userId, operation: "ocr-contract",
+      model: "google/gemini-2.5-flash",
+      classification: ocrClassification,
+      redaction_applied: false, status: "ok",
+    });
 
     // Per-user accounting so abuse is visible and rate-limitable downstream.
     try {

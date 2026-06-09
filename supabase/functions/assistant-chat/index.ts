@@ -5,6 +5,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
+import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
+import { routeModel } from "../_shared/model-router.ts";
+import { logAiAudit } from "../_shared/ai-call.ts";
 
 const SYSTEM_PROMPT = `Ти си "Правен асистент Dogovori.net" — професионален 24/7 помощник за PRO и Team абонати на платформата dogovori.net.
 
@@ -123,6 +126,22 @@ Deno.serve(async (req) => {
     });
     if (blockedChat) return blockedChat;
 
+    // === GDPR/AI Act compliance: block special-category data in chat ===
+    const lastUserMsg = safeMessages[safeMessages.length - 1].content;
+    const chatClassification = classifyDocumentBeforeAI(lastUserMsg);
+    if (chatClassification.contains_special_category_data) {
+      await logAiAudit({
+        user_id: userId, operation: "assistant-chat", model: "",
+        classification: chatClassification, redaction_applied: false,
+        status: "blocked", error_code: "special_category_in_chat",
+      });
+      return new Response(JSON.stringify({
+        error: "Молим не споделяйте чувствителни лични данни (здравни, биометрични, синдикални, политически, религиозни) в чата. За такива въпроси се консултирайте с адвокат.",
+        code: "special_category_blocked",
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+
     // PRO / Team gate
     const { data: quota } = await admin
       .from("download_quota")
@@ -213,6 +232,7 @@ Deno.serve(async (req) => {
     const systemFinal = `${activeSystemPrompt}\n\n[КОНТЕКСТ] ${ctxLines}`;
 
     // Call Lovable AI Gateway with streaming
+    const chatModel = isEntrepreneur ? MODEL_PREMIUM : MODEL_STANDARD;
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -220,13 +240,22 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: isEntrepreneur ? MODEL_PREMIUM : MODEL_STANDARD,
+        model: chatModel,
         stream: true,
         messages: [
           { role: "system", content: systemFinal },
           ...safeMessages,
         ],
       }),
+    });
+
+    // Metadata-only audit log (chat is streamed, content never stored here).
+    await logAiAudit({
+      user_id: userId, operation: "assistant-chat", model: chatModel,
+      classification: chatClassification,
+      redaction_applied: false,
+      status: aiResp.ok ? "ok" : "error",
+      error_code: aiResp.ok ? undefined : `http_${aiResp.status}`,
     });
 
     if (!aiResp.ok || !aiResp.body) {
