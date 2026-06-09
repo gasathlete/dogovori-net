@@ -41,7 +41,7 @@ export function FloatingAssistant({ open, onOpenChange }: Props) {
         className={cn(
           "fixed z-50 w-[min(420px,calc(100vw-2rem))]",
           isMobile ? "bottom-20 right-4" : "bottom-24 right-5",
-          "h-[min(640px,calc(100vh-8rem))] origin-bottom-right",
+          "h-[min(640px,calc(100dvh-8rem))] origin-bottom-right",
           "rounded-2xl border border-gold/30 bg-card shadow-2xl",
           "transition-all duration-200",
           open ? "scale-100 opacity-100 pointer-events-auto" : "pointer-events-none scale-95 opacity-0"

@@ -120,7 +120,7 @@ export default function BlogPost() {
             />
           </figure>
 
-          <div className="prose prose-invert max-w-none text-pretty">
+          <div className="prose prose-invert max-w-none text-pretty [&_pre]:overflow-x-auto [&_table]:block [&_table]:overflow-x-auto">
             {(() => {
               const linkState = createAutoLinkState(8);
               return (

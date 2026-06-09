@@ -692,7 +692,7 @@ export function PlatformShowcase() {
                     }
                     if (!isActive) goTo(i);
                   }}
-                  className="group absolute left-1/2 top-1/2 -ml-[150px] -mt-[210px] block h-[420px] w-[300px] rounded-2xl border border-hairline bg-card/95 text-left shadow-elegant outline-none transition-[transform,opacity,box-shadow] duration-700 ease-[cubic-bezier(.22,1,.36,1)] focus-visible:ring-2 focus-visible:ring-gold/60 sm:h-[560px] sm:w-[460px] sm:-ml-[230px] sm:-mt-[280px] md:h-[640px] md:w-[560px] md:-ml-[280px] md:-mt-[320px]"
+                  className="group absolute left-1/2 top-1/2 -ml-[140px] -mt-[200px] block h-[400px] w-[280px] rounded-2xl border border-hairline bg-card/95 text-left shadow-elegant outline-none transition-[transform,opacity,box-shadow] duration-700 ease-[cubic-bezier(.22,1,.36,1)] focus-visible:ring-2 focus-visible:ring-gold/60 sm:h-[560px] sm:w-[460px] sm:-ml-[230px] sm:-mt-[280px] md:h-[640px] md:w-[560px] md:-ml-[280px] md:-mt-[320px]"
                   style={{
                     transform: `translate3d(${translateX}px,0,0) rotateY(${rotateY}deg) scale(${scale})`,
                     opacity,
@@ -722,19 +722,19 @@ export function PlatformShowcase() {
 
                     {/* Caption band — translucent overlay at the bottom */}
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 border-t border-hairline bg-gradient-to-t from-navy via-navy/95 to-navy/0 px-5 pb-5 pt-10 sm:px-6 sm:pb-6">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <h3 className="font-serif text-lg font-bold leading-snug text-foreground sm:text-xl md:text-2xl">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                          <h3 className="font-serif text-base font-bold leading-snug text-foreground break-words sm:text-xl md:text-2xl">
                             {slide.title}
                           </h3>
-                          <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
+                          <p className="mt-1.5 line-clamp-2 text-[12px] leading-relaxed text-muted-foreground sm:text-sm">
                             {slide.description}
                           </p>
                         </div>
                         {/* Kicker chip — bottom-right */}
-                        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-gold/40 bg-navy/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold backdrop-blur">
-                          <Icon className="h-3.5 w-3.5" strokeWidth={1.6} />
-                          {slide.kicker}
+                        <span className="inline-flex max-w-[6.5rem] shrink-0 items-center gap-1.5 truncate rounded-full border border-gold/40 bg-navy/85 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-gold backdrop-blur sm:max-w-none sm:px-2.5 sm:text-[10px] sm:tracking-[0.2em]">
+                          <Icon className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} />
+                          <span className="truncate">{slide.kicker}</span>
                         </span>
                       </div>
                       <div className="relative mt-3 h-px overflow-hidden bg-hairline">
