@@ -12,6 +12,15 @@ import {
   Wand2,
   Layers,
   ArrowRight,
+  Search,
+  Check,
+  AlertTriangle,
+  Download,
+  ChevronDown,
+  Folder,
+  Share2,
+  ListChecks,
+  PenLine,
 } from "lucide-react";
 
 type FeatureSlide = {
