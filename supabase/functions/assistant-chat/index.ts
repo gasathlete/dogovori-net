@@ -131,6 +131,21 @@ Deno.serve(async (req) => {
       .maybeSingle();
     const isPro = quota?.plan === "pro" || (quota?.pro_until && new Date(quota.pro_until) > new Date());
 
+    // Detect Entrepreneur tier (premium model + priority)
+    let isEntrepreneur = false;
+    if (isPro) {
+      const { data: subRow } = await admin
+        .from("subscriptions")
+        .select("price_id, status, current_period_end")
+        .eq("user_id", userId)
+        .in("status", ["active", "trialing", "past_due"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const pid = (subRow as any)?.price_id || "";
+      isEntrepreneur = pid.startsWith("entrepreneur");
+    }
+
     let teamId: string | null = null;
     if (!isPro) {
       const { data: tm } = await admin
