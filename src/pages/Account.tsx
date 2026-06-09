@@ -1512,6 +1512,21 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               </div>
             )}
 
+            {isPro && sub?.price_id?.startsWith("entrepreneur") && (
+              <div className="mt-5 rounded-xl border border-gold/40 bg-gradient-to-br from-gold/10 to-transparent p-5">
+                <div className="flex items-center gap-2 text-gold">
+                  <Sparkles className="h-4 w-4" />
+                  <span className="text-xs font-semibold uppercase tracking-wider">Премиум привилегии</span>
+                </div>
+                <ul className="mt-3 space-y-1.5 text-sm text-foreground/90">
+                  <li>✓ Приоритетна AI обработка + GPT-5 модел</li>
+                  <li>✓ Премиум поддръжка 24/7 — <a href="mailto:premium@dogovori.net" className="text-gold underline">premium@dogovori.net</a></li>
+                  <li>✓ Персонален onboarding — <a href="mailto:onboarding@dogovori.net" className="text-gold underline">резервирайте час</a></li>
+                  <li>✓ Ранен достъп до нови функции</li>
+                </ul>
+              </div>
+            )}
+
             {!isPro && ((quota as any)?.bonus_contracts ?? 0) > 0 && (
               <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-semibold text-gold">
                 <Sparkles className="h-3.5 w-3.5" />

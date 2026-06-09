@@ -32,7 +32,7 @@ export default function TeamPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createSeats, setCreateSeats] = useState(3);
-  const [createBilling, setCreateBilling] = useState<"monthly" | "yearly">("monthly");
+  const createBilling = "yearly" as const;
   const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [seatsValue, setSeatsValue] = useState(3);
@@ -109,13 +109,9 @@ export default function TeamPage() {
               </div>
               <div>
                 <Label>Период на фактуриране</Label>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <Button variant={createBilling === "monthly" ? "default" : "outline"} onClick={() => setCreateBilling("monthly")} className={createBilling === "monthly" ? "bg-gradient-gold text-navy" : ""}>
-                    Месечно — {(10.9 * createSeats).toFixed(2)} €/мес
-                  </Button>
-                  <Button variant={createBilling === "yearly" ? "default" : "outline"} onClick={() => setCreateBilling("yearly")} className={createBilling === "yearly" ? "bg-gradient-gold text-navy" : ""}>
-                    Годишно — {(109 * createSeats).toFixed(0)} €/год
-                  </Button>
+                <div className="mt-2 rounded-lg border border-border bg-card/40 px-4 py-3 text-sm">
+                  <div className="font-medium text-foreground">Годишно — {(109 * createSeats).toFixed(0)} €/год</div>
+                  <div className="text-xs text-muted-foreground mt-1">Екипите са само на годишен абонамент (109 €/seat).</div>
                 </div>
               </div>
               <Button

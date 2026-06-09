@@ -52,7 +52,8 @@ const SYSTEM_PROMPT = `Ти си "Правен асистент Dogovori.net" �
 - Ако има признак на спешен правен казус (съдебно дело, арест, заплахи) → препоръчай адвокат веднага.`;
 
 // In-code allowlist of supported models (keeps client requests safe).
-const MODEL = "google/gemini-2.5-flash";
+const MODEL_STANDARD = "google/gemini-2.5-flash";
+const MODEL_PREMIUM = "openai/gpt-5"; // Предприемач tier
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCors(req);
@@ -130,6 +131,21 @@ Deno.serve(async (req) => {
       .maybeSingle();
     const isPro = quota?.plan === "pro" || (quota?.pro_until && new Date(quota.pro_until) > new Date());
 
+    // Detect Entrepreneur tier (premium model + priority)
+    let isEntrepreneur = false;
+    if (isPro) {
+      const { data: subRow } = await admin
+        .from("subscriptions")
+        .select("price_id, status, current_period_end")
+        .eq("user_id", userId)
+        .in("status", ["active", "trialing", "past_due"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const pid = (subRow as any)?.price_id || "";
+      isEntrepreneur = pid.startsWith("entrepreneur");
+    }
+
     let teamId: string | null = null;
     if (!isPro) {
       const { data: tm } = await admin
@@ -204,7 +220,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: isEntrepreneur ? MODEL_PREMIUM : MODEL_STANDARD,
         stream: true,
         messages: [
           { role: "system", content: systemFinal },

@@ -20,6 +20,7 @@ export interface FreeQuota {
 interface ProState {
   isPro: boolean;
   isTeam: boolean;
+  isEntrepreneur: boolean;
   loading: boolean;
   freeQuota: FreeQuota;
   refresh: () => Promise<void>;
@@ -45,13 +46,14 @@ export function useIsPro(): ProState {
   const [state, setState] = useState<Omit<ProState, "refresh">>({
     isPro: false,
     isTeam: false,
+    isEntrepreneur: false,
     loading: true,
     freeQuota: DEFAULT_FREE_QUOTA,
   });
 
   const refresh = useCallback(async () => {
     if (!user) {
-      setState({ isPro: false, isTeam: false, loading: false, freeQuota: DEFAULT_FREE_QUOTA });
+      setState({ isPro: false, isTeam: false, isEntrepreneur: false, loading: false, freeQuota: DEFAULT_FREE_QUOTA });
       return;
     }
     const [{ data: q }, { data: tm }, { data: sub }] = await Promise.all([
@@ -103,6 +105,7 @@ export function useIsPro(): ProState {
     setState({
       isPro,
       isTeam,
+      isEntrepreneur: isPro && isEntrepreneur,
       loading: false,
       freeQuota: {
         opsUsed: (q as any)?.monthly_total_used ?? 0,
