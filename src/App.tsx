@@ -88,6 +88,11 @@ const Contacts = lazy(() => import("./pages/legal/Contacts.tsx"));
 const ProviderInfo = lazy(() => import("./pages/legal/ProviderInfo.tsx"));
 const WithdrawalForm = lazy(() => import("./pages/legal/WithdrawalForm.tsx"));
 const DPA = lazy(() => import("./pages/legal/DPA.tsx"));
+const AIProcessingPolicy = lazy(() => import("./pages/legal/AIProcessingPolicy.tsx"));
+const RetentionPolicy = lazy(() => import("./pages/legal/RetentionPolicy.tsx"));
+const SubprocessorRegister = lazy(() => import("./pages/legal/SubprocessorRegister.tsx"));
+const ModelRoutingPolicy = lazy(() => import("./pages/legal/ModelRoutingPolicy.tsx"));
+const IncidentResponse = lazy(() => import("./pages/legal/IncidentResponse.tsx"));
 const SharedDocument = lazy(() => import("./pages/SharedDocument.tsx"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe.tsx"));
 const Blog = lazy(() => import("./pages/Blog.tsx"));
@@ -195,6 +200,11 @@ const AnimatedRoutes = () => {
         <Route path="/provider-info" element={<ProviderInfo />} />
         <Route path="/withdrawal-form" element={<WithdrawalForm />} />
         <Route path="/dpa" element={<DPA />} />
+        <Route path="/legal/ai-processing" element={<AIProcessingPolicy />} />
+        <Route path="/legal/retention" element={<RetentionPolicy />} />
+        <Route path="/legal/subprocessors" element={<SubprocessorRegister />} />
+        <Route path="/legal/model-routing" element={<ModelRoutingPolicy />} />
+        <Route path="/legal/incident-response" element={<IncidentResponse />} />
         <Route path="/share/:token" element={<SharedDocument />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="/blog" element={<Blog />} />

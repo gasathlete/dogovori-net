@@ -27,6 +27,10 @@ export function Footer() {
             <Link to="/refund" className="transition-colors hover:text-gold sm:whitespace-nowrap">Възстановяване</Link>
             <Link to="/withdrawal-form" className="transition-colors hover:text-gold sm:whitespace-nowrap">Право на отказ</Link>
             <Link to="/dpa" className="transition-colors hover:text-gold sm:whitespace-nowrap">DPA</Link>
+            <Link to="/legal/ai-processing" className="transition-colors hover:text-gold sm:whitespace-nowrap">AI политика</Link>
+            <Link to="/legal/subprocessors" className="transition-colors hover:text-gold sm:whitespace-nowrap">Подпроцесори</Link>
+            <Link to="/legal/retention" className="transition-colors hover:text-gold sm:whitespace-nowrap">Съхранение</Link>
+            <Link to="/legal/incident-response" className="transition-colors hover:text-gold sm:whitespace-nowrap">Сигурност</Link>
             <Link to="/contacts" className="transition-colors hover:text-gold sm:whitespace-nowrap">Контакти</Link>
           </nav>
         </div>
