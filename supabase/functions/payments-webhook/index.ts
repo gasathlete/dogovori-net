@@ -12,17 +12,26 @@ function getSupabase() {
   return _supabase;
 }
 
-async function setProPlan(userId: string, until: string | null) {
+function tierFromPriceId(priceId: string | null | undefined): { plan: "pro" | "free"; opsCap: number | null } {
+  if (!priceId) return { plan: "pro", opsCap: null };
+  if (priceId.startsWith("entrepreneur")) return { plan: "pro", opsCap: 120 };
+  if (priceId.startsWith("professional")) return { plan: "pro", opsCap: 50 };
+  if (priceId.startsWith("pro_")) return { plan: "pro", opsCap: 100 }; // legacy grandfathered
+  return { plan: "pro", opsCap: null };
+}
+
+async function setPaidPlan(userId: string, until: string | null, priceId: string | null) {
+  const { opsCap } = tierFromPriceId(priceId);
   await getSupabase()
     .from("download_quota")
-    .update({ plan: "pro", pro_until: until })
+    .update({ plan: "pro", pro_until: until, plan_ops_cap: opsCap })
     .eq("user_id", userId);
 }
 
 async function setFreePlan(userId: string) {
   await getSupabase()
     .from("download_quota")
-    .update({ plan: "free", pro_until: null })
+    .update({ plan: "free", pro_until: null, plan_ops_cap: null })
     .eq("user_id", userId);
 }
 
