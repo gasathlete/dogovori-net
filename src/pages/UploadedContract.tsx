@@ -815,6 +815,19 @@ export default function UploadedContractPage() {
           </div>
         )}
       </main>
+
+      <SensitiveDataWarning
+        open={sensitiveOpen}
+        onClose={() => {
+          setSensitiveOpen(false);
+          setPendingAction(null);
+          setPendingCorrectSelection(null);
+        }}
+        onConfirm={handleSensitiveConfirm}
+        classification={sensitiveClass}
+        blocked={sensitiveBlocked}
+        operationLabel={pendingAction === "correct" ? "корекция" : "анализ"}
+      />
     </div>
   );
 }
