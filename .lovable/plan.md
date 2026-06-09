@@ -1,58 +1,58 @@
 ## Цел
-Премахване на застъпвания, хоризонтален скрол, отрязан текст и счупени диалози/менюта в мобилния изглед (≤390 px) по цялото приложение — Начална, Wizard, Качване и анализ, Каталог/Шаблон/Сектор/Блог.
+Системно прецизиране на десктоп визията (1280–1920 px) — премахване на застъпвания на sticky ленти, фиксирани z-index конфликти, оразмеряване на герои/каруселa за ултрашироки екрани, читаеми редове в дълги текстове, изчистена страница Планове и подравнен Footer.
 
-## Какво ще се промени
+## Промени (групирани)
 
-### A. Глобални предпазители (поправят 80% от случаите наведнъж)
+### A. Глобални / z-index йерархия
+1. **`src/components/ui/dialog.tsx`** — диалогът да минава над всичко друго на десктоп. `DialogOverlay` и `DialogContent` → `z-[60]`. Същевременно базовият `overflow-y-auto` става conditional: `overflow-y-auto lg:overflow-visible lg:max-h-none` (на десктоп няма ненужен scrollbar; диалозите, които наистина имат много съдържание, си задават `max-h` явно).
+2. **`src/components/FloatingAssistant.tsx`** — бутон и панел `z-50` → `z-40` (под диалозите).
+3. **`src/components/CookieBanner.tsx`** — `z-50` → `z-[45]`.
 
-1. **`index.html`** — премахване на `maximum-scale=1.0, user-scalable=no` от `<meta viewport>` (WCAG fail, блокира pinch-zoom). Запазва се `viewport-fit=cover`.
-2. **`src/index.css`** — добавяне в `@layer base`:
-   - `html, body { overflow-x: hidden; max-width: 100vw; }`
-   - `* { min-width: 0; }` (позволява truncate във flex/grid деца)
-   - `img, video, svg, table, pre { max-width: 100%; }`
-   - `p, h1, h2, h3 { overflow-wrap: break-word; }`
-   - Премахване на остарелия `-webkit-overflow-scrolling: touch`.
+### B. Hero и горна част на началната
+4. **`src/components/Hero.tsx`** — `lg:min-h-[calc(100svh-4rem)]` → `lg:min-h-[min(calc(100svh-4rem),680px)]`; на `<h1>` се добавя `mx-auto max-w-2xl` за по-компактна геометрия на широки екрани.
 
-### B. Диалози и оверлеи
+### C. Wizard / Split — sticky слоеве
+5. **CSS променлива за височината на лентите** (във `src/index.css`): `--header-h: 64px; --wizard-strip-h: 52px;` плюс util клас `.sticky-below-strip { top: calc(var(--header-h) + var(--wizard-strip-h)); }`.
+6. **`src/pages/Wizard.tsx`**:
+   - ред 933 (десен преглед): `lg:top-32 lg:max-h-[calc(100dvh-9rem)]` → `lg:top-[calc(var(--header-h)+var(--wizard-strip-h))] lg:max-h-[calc(100dvh-var(--header-h)-var(--wizard-strip-h)-1rem)]`.
+   - ред 644 (utility band за празна бланка): прави се sticky веднага под progress strip-а, `z-20`, за да не изчезва при скрол.
+7. **`src/pages/BuildContract.tsx:1397`** — същата корекция на sticky offset.
+8. **`src/components/wizard/SplitWizard.tsx`** — добавя се `stickyTop?: string` проп (default `"lg:top-20"` за страници без progress strip); прилага се на `<section className={cn("lg:sticky lg:overflow-y-auto", stickyTop, "lg:max-h-[calc(100dvh-7rem)]")}>`. Wizard.tsx и BuildContract.tsx ще подадат правилния offset.
 
-3. **`src/components/ui/dialog.tsx`** — на базовия `DialogContent` се добавят `max-h-[90dvh] overflow-y-auto` + `w-[calc(100vw-2rem)]`, така че всички диалози в проекта (TeaserDialog, ShareForSign, UploadContract, и т.н.) се поправят наведнъж.
-4. **`src/components/ui/sheet.tsx`** — `SheetContent` получава `overflow-y-auto` и `flex flex-col`.
-5. **`src/components/TeaserDialog.tsx`** — `px-10` → `px-6 sm:px-10`; заглавието `h3` получава `break-words`.
+### D. Carousel "Платформата" (десктоп)
+9. **`src/components/PlatformShowcase.tsx`** — добавяне на `lg:h-[720px] xl:h-[780px]` на сцената; на картите `lg:h-[680px] xl:h-[740px]` с пропорционални `-mt` стойности; kicker chip с `md:max-w-[10rem] lg:max-w-[12rem]`.
 
-### C. Sticky `100vh` → `100dvh` (iOS bar причинява изрязване)
+### E. Дължина на ред / типография
+10. **`src/pages/BlogPost.tsx:123`** — `prose ... max-w-none` → `prose ... max-w-prose mx-auto`.
+11. **`src/pages/Template.tsx:278`** — същото.
+12. **`src/components/FAQ.tsx`** — `AccordionContent` получава `max-w-prose`.
+13. **`src/pages/BlogPost.tsx:186`** — related секцията получава `mx-auto max-w-3xl` и `lg:grid-cols-2`, за да съвпада с ширината на статията.
+14. **`src/pages/Catalog.tsx:181`** — `lg:leading-[1.15]` на заглавието.
 
-6. **`src/components/AssistantChat.tsx:225`**, **`FloatingAssistant.tsx:44`**, **`Wizard.tsx:933`**, **`BuildContract.tsx:1397`**, **`wizard/SplitWizard.tsx:423`**, **`wizard/WizardShell.tsx:81`** — `100vh`/`h-screen`/`min-h-screen` → `dvh` варианти.
+### F. Pricing / Plans
+15. **`src/pages/Plans.tsx:135`** — `gap-5` → `gap-6 xl:gap-7`; на маркираната карта се добавя `overflow-visible` за beam ефекта.
+16. **`src/pages/Plans.tsx:251`** — таблицата се завива в `<div className="mx-auto max-w-4xl overflow-x-auto">`.
 
-### D. Карусел Платформата (главният източник на overflow на началната)
+### G. Footer
+17. **`src/components/Footer.tsx`** — на link контейнера `lg:flex-nowrap`, на връзките `sm:whitespace-nowrap`; на главния flex ред — `xl:gap-12`, на лого колоната `min-w-[220px]`.
 
-7. **`src/components/PlatformShowcase.tsx`** — слайдовете `w-[300px] -ml-[150px]` стават `w-[min(300px,85vw)]` с пропорционален `-ml`; caption блокът получава `overflow-hidden`; kicker chip-ът — `max-w-[8rem] truncate`.
+### H. Тестимониали и PainSolution
+18. **`src/components/Testimonials.tsx`** — `w-[320px] sm:w-[360px]` → добавя се `lg:w-[400px] xl:w-[440px]`.
+19. **`src/components/PainSolution.tsx`** — `max-w-5xl` → `max-w-5xl lg:max-w-6xl`.
 
-### E. Wizard / Качване
+### I. Модални прозорци
+20. **`src/components/TeaserDialog.tsx`** — `min-h-[7rem]` → `min-h-[9rem]` за стабилен превключвател между слайдове на десктоп.
+21. **`src/pages/UploadedContract.tsx:516`** — `max-h-[85vh]` → `max-h-[min(85vh,900px)]`; вътрешният текстов блок `max-h-[50vh]` → `max-h-[40vh] lg:max-h-[55vh]`.
 
-8. **`src/components/wizard/QuestionField.tsx:89`** — премахване на `min-w-[200px]` от `SelectTrigger`, заменя се с `w-full`.
-9. **`src/pages/Account.tsx`** TabsList — `min-w-0` на тригерите + потвърждаване на `overflow-x-auto` на контейнера.
-
-### F. Начална страница и съдържание
-
-10. **`src/components/Hero.tsx:131`** — премахване на `whitespace-nowrap` от частта „търсят и намират".
-11. **`src/components/ProtectedContent.tsx:44`** — `overflow-hidden` на най-близкия предшественик на ротирания watermark.
-12. **`src/pages/BlogPost.tsx:123`** — на `prose` контейнера се добавя `[&_pre]:overflow-x-auto [&_table]:block [&_table]:overflow-x-auto`.
-13. **`src/pages/Blog.tsx:80`** — добавя се `sm:text-4xl` и `hyphens-auto` на хедъра.
-14. **`src/pages/Catalog.tsx:284`** — `min-w-[200px]` → само `shrink-0`.
-
-## Технически детайли
-
-- Tailwind вече поддържа `dvh`/`min-h-dvh` (v3.4+). Където стойностите са в arbitrary class-ове (`h-[calc(100vh-…)]`), сменям `100vh` на `100dvh`.
-- За старите браузъри без `dvh` (<1.5% трафик), `100vh` остава като естествен fallback чрез `@supports`.
-- Не пипам бизнес логика, payments, security, бекенд миграции. Само presentation код.
-
-## Верификация
-
-- След промените: `browser--view_preview` на 390×844 и 360×800 за: `/`, `/wizard`, `/upload`, `/catalog`, `/template/<slug>`, `/blog`, `/blog/<slug>`.
-- На всеки от тези маршрути ще проверя `document.documentElement.scrollWidth <= window.innerWidth` (без хоризонтален скрол) и че диалозите се скролват.
-- Скриншот преди/след за карусела на Платформата и Hero.
+### J. CTA консистентност
+22. **`src/components/CTABand.tsx:95`** — `sm:text-xl sm:px-14 sm:py-6` → `sm:text-xl sm:px-14 sm:py-6 lg:px-10 lg:py-4 lg:text-lg` за хармония с останалите CTA-ове.
 
 ## Извън обхват
-- Не сменям дизайна или съдържанието.
-- Не реорганизирам компоненти, не премествам секции.
-- Десктоп изгледът остава непроменен (всички правки са или мобил-специфични, или подобряват и десктоп без визуална регресия).
+- Не пипам бизнес логика, бекенд, security, payments.
+- Мобилните корекции от предишния тур остават.
+- Цветове и брандинг — без промяна.
+
+## Верификация
+- `browser--view_preview` на 1366×768, 1440×900 и 1920×1080 за маршрутите: `/`, `/catalog`, `/template/...`, `/wizard`, `/upload`, `/plans`, `/blog`, `/blog/...`.
+- Проверка: няма sticky lenti, които се припокриват; диалогите се отварят без scrollbar когато съдържанието е късо; редовете в дълги текстове са под ~75ch; floating assistant не блокира модал.
+- Скриншот before/after за: Hero, Plans, PlatformShowcase, BlogPost.
