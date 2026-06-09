@@ -4,7 +4,7 @@ type Cell = "yes" | "no" | "partial" | string;
 
 const ROWS: { label: string; us: Cell; lawyer: Cell; free: Cell }[] = [
   { label: "Цена за документ", us: "от 0,13 €", lawyer: "150–400 €", free: "0 €" },
-  { label: "Време за готов документ", us: " 2-3 мин.", lawyer: "1–5 дни", free: "30–60 мин." },
+  { label: "Време до готов документ", us: " 2-3 мин.", lawyer: "1–5 дни", free: "30–60 мин." },
   { label: "Юридическа валидност (ЗЗД·ТЗ·ЗУТ)", us: "yes", lawyer: "yes", free: "partial" },
   { label: "AI риск-анализ", us: "yes", lawyer: "partial", free: "no" },
   { label: "Електронен подпис", us: "yes", lawyer: "partial", free: "no" },
@@ -14,7 +14,7 @@ const ROWS: { label: string; us: Cell; lawyer: Cell; free: Cell }[] = [
 const COLUMNS: { key: "us" | "lawyer" | "free"; label: string; highlight?: boolean }[] = [
   { key: "us", label: "Договори.нет", highlight: true },
   { key: "lawyer", label: "Адвокат" },
-  { key: "free", label: "Безплатни PDF" },
+  { key: "free", label: "СТАРИ БЛАНКИ \nВ ГУГЪЛ" },
 ];
 
 function Mark({ value }: { value: Cell }) {
