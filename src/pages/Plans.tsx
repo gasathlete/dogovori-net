@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, X, ArrowRight, Sparkles, ShieldCheck, Users, Zap } from "lucide-react";
+import { Check, X, ArrowRight, Sparkles, ShieldCheck, Users, Zap, Crown } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Seo } from "@/components/Seo";
@@ -20,7 +20,8 @@ import { trackEvent } from "@/lib/analytics";
 
 const PLAN_ICON: Record<PlanId, React.ComponentType<{ className?: string }>> = {
   free: Sparkles,
-  pro: Zap,
+  professional: Zap,
+  entrepreneur: Crown,
   team: Users,
 };
 
@@ -33,17 +34,25 @@ function buildCta(planId: PlanId, billing: Billing, isAuthed: boolean): {
       ? { href: "/account", label: "Към моя профил" }
       : { href: "/auth?tab=signup", label: "Започни безплатно" };
   }
+  if (planId === "team") {
+    // Team is yearly-only — always link to team creation.
+    const target = `/team`;
+    return isAuthed
+      ? { href: target, label: "Създай екип" }
+      : { href: `/auth?tab=signup&redirect=${encodeURIComponent(target)}&intent=plan_team`, label: "Регистрирай се за Екип" };
+  }
   const target = `/account?tab=subscription&plan=${planId}&billing=${billing}&promo=FIRST100`;
+  const planLabel = planId === "entrepreneur" ? "Предприемач" : "Професионалист";
   if (isAuthed) {
     return {
       href: target,
-      label: planId === "pro" ? "Активирай Предприемач" : "Създай екип",
+      label: `Активирай ${planLabel}`,
     };
   }
   const redirect = encodeURIComponent(target);
   return {
     href: `/auth?tab=signup&redirect=${redirect}&intent=plan_${planId}`,
-    label: planId === "pro" ? "Регистрирай се за Предприемач" : "Регистрирай се за Екип",
+    label: `Регистрирай се за ${planLabel}`,
   };
 }
 
@@ -58,21 +67,18 @@ export default function Plans() {
     <>
       <Seo
         title="Планове и цени — Dogovori.net"
-        description="Изберете плана, който работи за вас: Безплатен за първи стъпки, Предприемач 12.90 €/мес за самонаети и малък бизнес, Екип 10.90 €/seat/мес за фирми. ДДС включен. Откажи по всяко време."
+        description="Изберете плана: Безплатен за първи стъпки, Професионалист 12.90 €/мес (50 операции), Предприемач 19.90 €/мес (120 операции, GPT-5, Premium support), Екип 109 €/seat/год за фирми."
         canonical="https://dogovori.net/plans"
       />
       <Header />
 
       <main className="relative overflow-hidden bg-background">
-        {/* Ambient gold sweep */}
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[60vh] gold-sweep-bg opacity-40" aria-hidden />
 
-        {/* Hero */}
         <section className="relative z-10 mx-auto max-w-6xl px-4 pt-0 pb-3 sm:pt-0 sm:pb-6">
           <PlansHeroAnimation />
           <div className="relative mx-auto mt-3 max-w-3xl text-center sm:mt-5">
             <h1 className="font-serif text-4xl leading-tight text-foreground sm:text-5xl md:text-6xl">
-
               Изберете плана,
               <br />
               <span className="bg-gradient-to-r from-gold via-gold/80 to-gold bg-clip-text text-transparent">
@@ -86,7 +92,6 @@ export default function Plans() {
             </p>
           </div>
 
-          {/* Billing toggle */}
           <div className="mt-5 flex justify-center sm:mt-6">
             <div
               role="tablist"
@@ -126,12 +131,14 @@ export default function Plans() {
           </div>
         </section>
 
-        {/* Plan cards */}
-        <section className="relative z-10 mx-auto max-w-6xl px-4 pb-12 sm:pb-16">
-          <div className="grid gap-5 md:grid-cols-3">
+        <section className="relative z-10 mx-auto max-w-7xl px-4 pb-12 sm:pb-16">
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
             {plans.map((plan, idx) => {
               const Icon = PLAN_ICON[plan.id];
               const price = billing === "yearly" ? plan.yearly : plan.monthly;
+              // Team has no monthly — fall back to yearly with a "годишно" note.
+              const effectivePrice = price ?? plan.yearly;
+              const teamMonthlyDisabled = plan.id === "team" && billing === "monthly";
               const cta = buildCta(plan.id, billing, isAuthed);
               return (
                 <article
@@ -139,7 +146,7 @@ export default function Plans() {
                   className={cn(
                     "group relative flex flex-col rounded-3xl border bg-card/85 p-6 backdrop-blur-md transition-all duration-500 hover:-translate-y-1 sm:p-7",
                     plan.highlight
-                      ? "border-gold/50 shadow-[0_30px_80px_-40px_hsl(var(--gold)/0.5)] md:scale-[1.02]"
+                      ? "border-gold/50 shadow-[0_30px_80px_-40px_hsl(var(--gold)/0.5)] lg:scale-[1.02]"
                       : "border-hairline hover:border-gold/30",
                   )}
                   style={{ animationDelay: `${idx * 80}ms` }}
@@ -169,16 +176,19 @@ export default function Plans() {
                   </div>
 
                   <div className="relative z-10 mt-6">
-                    {price && price.price > 0 ? (
+                    {effectivePrice && effectivePrice.price > 0 ? (
                       <>
                         <div className="flex items-baseline gap-1">
                           <span className="font-serif text-4xl font-semibold text-foreground sm:text-5xl">
-                            {price.price.toFixed(2).replace(/\.00$/, "")}
+                            {effectivePrice.price.toFixed(2).replace(/\.00$/, "")}
                           </span>
-                          <span className="text-sm text-muted-foreground">{price.suffix}</span>
+                          <span className="text-sm text-muted-foreground">{effectivePrice.suffix}</span>
                         </div>
-                        {price.note && (
-                          <p className="mt-1 text-xs text-muted-foreground">{price.note}</p>
+                        {teamMonthlyDisabled && (
+                          <p className="mt-1 text-xs font-medium text-gold">Само годишно</p>
+                        )}
+                        {effectivePrice.note && (
+                          <p className="mt-1 text-xs text-muted-foreground">{effectivePrice.note}</p>
                         )}
                       </>
                     ) : (
@@ -231,7 +241,6 @@ export default function Plans() {
             })}
           </div>
 
-          {/* Comparison table — collapsible */}
           <ExpandableCard
             className="mt-10 rounded-2xl border border-hairline bg-card/70 p-5 backdrop-blur-md sm:mt-14 sm:p-6"
             triggerLabel="Виж пълно сравнение ↓"
@@ -239,7 +248,7 @@ export default function Plans() {
             triggerClassName="!text-xs"
             expandedContent={
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[520px] border-collapse text-sm">
+                <table className="w-full min-w-[640px] border-collapse text-sm">
                   <thead>
                     <tr className="border-b border-hairline">
                       <th className="py-3 pr-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -247,6 +256,9 @@ export default function Plans() {
                       </th>
                       <th className="py-3 px-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                         Безплатен
+                      </th>
+                      <th className="py-3 px-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Професионалист
                       </th>
                       <th className="py-3 px-3 text-center text-xs font-semibold uppercase tracking-wider text-gold">
                         Предприемач
@@ -261,7 +273,8 @@ export default function Plans() {
                       <tr key={row.label} className="border-b border-hairline/60">
                         <td className="py-3 pr-4 text-foreground/90 whitespace-pre-line">{row.label}</td>
                         <Cell value={row.free} />
-                        <Cell value={row.pro} highlight />
+                        <Cell value={row.professional} />
+                        <Cell value={row.entrepreneur} highlight />
                         <Cell value={row.team} />
                       </tr>
                     ))}
@@ -279,7 +292,6 @@ export default function Plans() {
           </ExpandableCard>
         </section>
 
-        {/* Trust strip */}
         <section className="relative z-10 mx-auto max-w-5xl px-4 pb-12 sm:pb-16">
           <div className="grid grid-cols-2 gap-3 rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:grid-cols-4 sm:p-6">
             {[
@@ -296,7 +308,6 @@ export default function Plans() {
           </div>
         </section>
 
-        {/* FAQ */}
         <section className="relative z-10 mx-auto max-w-3xl px-4 pb-16 sm:pb-24">
           <h2 className="text-center font-serif text-2xl text-foreground sm:text-3xl">
             Често задавани въпроси
@@ -319,7 +330,6 @@ export default function Plans() {
           </Accordion>
         </section>
 
-        {/* Final CTA */}
         <section className="relative z-10 mx-auto max-w-4xl px-4 pb-20">
           <div className="relative overflow-hidden rounded-3xl border border-gold/40 bg-gradient-to-br from-navy via-navy to-foreground/5 p-8 text-center sm:p-12">
             <div className="pointer-events-none absolute inset-0 gold-sweep-bg opacity-50" aria-hidden />
@@ -329,14 +339,14 @@ export default function Plans() {
               </h2>
               <p className="mt-2 text-sm text-white/80 sm:text-base">
                 {isAuthed
-                  ? "Получи 100 операции/мес, неограничен AI и пълни двуезични договори."
+                  ? "Получи 120 операции/мес, GPT-5 модел, неограничен AI и Premium поддръжка 24/7."
                   : "Безплатен старт: 5 операции + 2 всеки месец. Без карта."}
               </p>
               <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Link
                   to={
                     isAuthed
-                      ? "/account?tab=subscription&plan=pro&billing=monthly&promo=FIRST100"
+                      ? "/account?tab=subscription&plan=entrepreneur&billing=monthly&promo=FIRST100"
                       : "/auth?tab=signup&redirect=%2Fplans"
                   }
                   className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-gold px-7 py-3 text-sm font-semibold text-navy shadow-gold transition-all hover:shadow-[0_20px_50px_-15px_hsl(var(--gold)/0.6)]"
