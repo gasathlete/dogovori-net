@@ -70,7 +70,7 @@ Deno.serve(async (req: Request) => {
       }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { uploadedContractId, selectedIssues, selectedMissing } = await req.json();
+    const { uploadedContractId, selectedIssues, selectedMissing, userConfirmed } = await req.json();
     if (!uploadedContractId) {
       return new Response(JSON.stringify({ error: "uploadedContractId липсва" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
