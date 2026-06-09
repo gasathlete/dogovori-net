@@ -126,6 +126,22 @@ Deno.serve(async (req) => {
     });
     if (blockedChat) return blockedChat;
 
+    // === GDPR/AI Act compliance: block special-category data in chat ===
+    const lastUserMsg = safeMessages[safeMessages.length - 1].content;
+    const chatClassification = classifyDocumentBeforeAI(lastUserMsg);
+    if (chatClassification.contains_special_category_data) {
+      await logAiAudit({
+        user_id: userId, operation: "assistant-chat", model: "",
+        classification: chatClassification, redaction_applied: false,
+        status: "blocked", error_code: "special_category_in_chat",
+      });
+      return new Response(JSON.stringify({
+        error: "Молим не споделяйте чувствителни лични данни (здравни, биометрични, синдикални, политически, религиозни) в чата. За такива въпроси се консултирайте с адвокат.",
+        code: "special_category_blocked",
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+
     // PRO / Team gate
     const { data: quota } = await admin
       .from("download_quota")
