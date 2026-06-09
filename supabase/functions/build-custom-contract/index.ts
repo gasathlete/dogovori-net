@@ -226,7 +226,8 @@ Deno.serve(async (req: Request) => {
       prices = "",
       obligations = "",
       other = "",
-    } = body;
+      userConfirmed = false,
+    } = body as BuildPayload & { userConfirmed?: boolean };
     const safeBuildMode: BuildMode = (["fast", "working", "strict"] as BuildMode[]).includes(buildMode as BuildMode)
       ? (buildMode as BuildMode)
       : "working";
