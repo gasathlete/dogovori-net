@@ -1,151 +1,230 @@
-# Console View — Работен плот „Архитект на сделките"
+# План: GDPR/AI Act съответствие за Dogovori.net
 
-Нова CRM-style работна среда в `dogovori.net`, достъпна от профила. Интегрира съществуващите функции (шаблони, wizard, качени договори, анализи, подписване, екипи) в единен мулти-таск интерфейс. Спазва EUR-only и текущия metering модел — отварянето на таб не е операция; платените действия (download/upload+analyze) остават както са.
+Този план приема адвокатския одит и го превежда в конкретни кодови промени, политики и операционни процеси. Изпълняваме на 3 вълни (P0 → P1 → P2). За всяка вълна посочвам кои файлове да създадем/променим, какво ще съдържат и кой риск адресират.
 
-## 1. Архитектура на изгледа
+## Текущо състояние (от ревюто на кода)
+
+Налично:
+- `src/lib/anonymize.ts` — има regex редактиране за EGN/EIK/IBAN/email/телефон/имена (само за админ преглед, **не се ползва преди AI повиквания**).
+- `supabase/functions/_shared/illegal-content.ts` — блокировка на незаконно съдържание.
+- Edge функции `analyze-contract`, `correct-uploaded`, `apply-corrections`, `ocr-contract`, `generate-contract`, `build-custom-contract` — викат Lovable AI Gateway, **без класификация или redaction слой**.
+- Логват сурови частични отговори в `console.log`/`console.error` (видими в edge logs).
+- `analyze-contract` има автоматичен fallback flash-lite → flash → pro **без policy проверка**.
+- Правни страници: `Privacy.tsx`, `Terms.tsx`, `DPA.tsx`, `Cookies.tsx`, `ProviderInfo.tsx`, `Refund.tsx`, `WithdrawalForm.tsx`.
+- В `src/pages/Account.tsx` има `Delete account` функционалност (edge function `delete-account`).
+
+Липсва: класификация преди AI, automatic redaction в продукцията, model routing policy, retention job, audit log без съдържание, export/erase на ниво документ, DPIA, политики (AI Processing, Retention, Subprocessor Register), security headers.
+
+---
+
+## ВЪЛНА P0 — Технически "stop the bleeding" (1 итерация)
+
+Цел: спираме изтичането на лични данни към AI и в логовете, без да чупим съществуващата UX.
+
+### 1. Shared PII/класификация слой за edge functions
+
+Нови файлове:
+- `supabase/functions/_shared/classify.ts`
+  - `classifyDocumentBeforeAI(text): { risk_level, contains_personal_data, contains_special_category_data, redaction_required, user_confirmation_required, allowed_models[], reasons[] }`
+  - Открива: EGN/ЛНЧ (10 цифри с checksum), номер лична карта, IBAN, телефон, email, имена (българска и латиница heuristic), адреси (улица/гр./бул.), подпис ("/п/", "(подпис)").
+  - Special category keywords (BG/EN): "ТЕЛК", "НЕЛК", "болничен лист", "диагноза", "ХИВ", "инвалидност", "синдикат", "вероизповедание", "етнос", "сексуална ориентация", "биометрични", "ДНК", имена на деца под 18.
+  - Връща `allowed_models` според риска: low → all, medium → flash-lite/flash, high → flash-lite only (след redaction), blocked → [].
+- `supabase/functions/_shared/redact.ts`
+  - `redactForAI(text): { redacted, mapping, stats }` — портира `src/lib/anonymize.ts` в Deno, плюс placeholders `<NAME_1>`, `<EGN_1>`, `<EMAIL_1>`, `<IBAN_1>`, `<PHONE_1>`, `<ADDRESS_1>`, `<ID_CARD_1>`.
+  - Mapping се връща САМО на caller (in-memory) — не се пише никъде.
+  - `unredact(text, mapping)` — за връщане на финалния документ към потребителя.
+- `supabase/functions/_shared/model-router.ts`
+  - `routeModel(operation, classification, opts): { model, allowFallback, fallbackChain[], requireConfirmation }`
+  - Имплементира таблицата от ревюто (analyze → flash-lite след redaction; correct-uploaded/pro → blocked при special category; и т.н.).
+- `supabase/functions/_shared/ai-call.ts`
+  - Единна обвивка около fetch към `ai.gateway.lovable.dev`. Записва audit log БЕЗ съдържание.
+  - Преди request: ако `redaction_required` и payload не е redacted → throw.
+  - Fallback: винаги използва същия redacted payload; не извиква друг модел без `allowFallback`.
+
+### 2. Audit log без съдържание
+
+Нова миграция: таблица `public.ai_audit_log` с колони:
+`id, user_id, team_id, operation_id, operation, model, fallback_used, fallback_model, risk_level, redaction_applied, contains_personal_data, contains_special_category_data, tokens_in, tokens_out, status, error_code, created_at`.
+
+RLS: потребителят чете само своите записи; service_role пълен достъп.
+
+GRANTs за `authenticated` (SELECT собствените) и `service_role` (ALL).
+
+### 3. Интеграция в съществуващите edge functions
+
+Промени в:
+- `supabase/functions/analyze-contract/index.ts`
+- `supabase/functions/correct-uploaded/index.ts`
+- `supabase/functions/apply-corrections/index.ts`
+- `supabase/functions/ocr-contract/index.ts`
+- `supabase/functions/build-custom-contract/index.ts`
+- `supabase/functions/generate-contract/index.ts`
+
+Във всяка:
+1. Преди AI call: `const cls = classifyDocumentBeforeAI(text)`.
+2. Ако `cls.risk_level === "blocked"` → 422 с код `blocked_special_category`, текст за потребителя.
+3. Ако `cls.redaction_required` → `const { redacted, mapping } = redactForAI(text)`, изпращаме `redacted` към AI.
+4. `routeModel(operation, cls)` определя модел и fallback правилата.
+5. Викаме AI през `ai-call.ts` обвивката.
+6. След отговор: `unredact(aiOutput, mapping)` ако е нужно за крайния продукт.
+7. Записваме `ai_audit_log` ред (без съдържание).
+8. Премахваме всички `console.log` с части от prompts/documents — оставяме само status/error code.
+
+### 4. Frontend confirmation modal
+
+Нов компонент: `src/components/ai/SensitiveDataWarning.tsx` — диалог преди upload/OCR/pro действие:
+- Списък забранени документи (лични карти, медицински, документи за деца, биометрика и т.н.).
+- Checkbox "Декларирам, че имам основание".
+- Запис в `user_consents` (вече съществуващ таблица).
+
+Интеграция в:
+- `src/components/UploadContract.tsx` (или където е upload UI).
+- `src/pages/BuildContract.tsx` преди pro операции.
+
+### 5. Retention job
+
+Нова edge функция `supabase/functions/retention-sweeper/index.ts` + cron (pg_cron) на всеки час:
+- Изтрива `uploaded_contracts` където `created_at < now() - 24h` И няма свързан `saved_documents`/`risk_analyses` И няма `folder_id`.
+- Trim-ва `extracted_text` от `uploaded_contracts` след 24h ако не са запазени.
+- Изтрива `ai_audit_log` записи > 12 месеца.
+- Изтрива storage обекти от bucket-а за upload, не свързани с активен ред.
+
+### 6. Премахване на raw логване
+
+- Глобално търсене и премахване на `console.log(...prompt...)`, `console.log(...output...)`, `console.error(text)` в edge functions. Запазваме само статус код и съкратен error message.
+
+---
+
+## ВЪЛНА P1 — Политики, прозрачност и потребителски права
+
+### 7. User self-service
+
+Нова страница `src/pages/account/Privacy.tsx` (таб в `Account.tsx`):
+- "Изтегли моите данни" → нова edge function `export-user-data` връща ZIP/JSON с: профил, saved_documents, uploaded_contracts (текст), risk_analyses, ai_audit_log (без съдържание).
+- "Изтрий качен документ" / "Изтрий запазен документ" с потвърждение.
+- "История на AI операции" — таблица от `ai_audit_log`.
+- "Оттегли съгласие" (linked към `user_consents`).
+
+### 8. Обновени правни документи
+
+Промени в съществуващите MDX/TSX страници:
+- `src/pages/Privacy.tsx` — детайлно описание на:
+  - категории AI операции;
+  - Lovable AI Gateway като processor;
+  - fallback модели;
+  - regions (EU/global);
+  - retention срокове;
+  - права на субекта;
+  - забранени категории документи.
+- `src/pages/Terms.tsx` — добавя раздел "Забранено съдържание" + AI Act ограничения (no automated hiring/credit decisions).
+- `src/pages/DPA.tsx` — обновяваме с минималните клаузи (subject, duration, types, instructions, confidentiality, no training, no human review, zero retention, subprocessors, SCCs, deletion).
+
+Нови страници:
+- `src/pages/legal/AIProcessingPolicy.tsx`
+- `src/pages/legal/RetentionPolicy.tsx`
+- `src/pages/legal/SubprocessorRegister.tsx` (списък: Lovable AI Gateway, Google Gemini, Supabase, Stripe, Resend; страна/регион; категории данни).
+- `src/pages/legal/ModelRoutingPolicy.tsx` (публикуване на таблицата operation×model).
+- `src/pages/legal/IncidentResponse.tsx` (контакти, SLA за уведомяване).
+
+Добавяме routes в `src/App.tsx`.
+
+### 9. Security headers и web hardening
+
+- `index.html` / Vite preview headers + продакшън през Cloudflare/host:
+  - CSP (script-src self + Lovable домейни + Stripe);
+  - X-Frame-Options: DENY;
+  - X-Content-Type-Options: nosniff;
+  - Referrer-Policy: strict-origin-when-cross-origin;
+  - Permissions-Policy.
+- Cookies: проверка че `supabase.auth` използва secure/SameSite (вече по default, но документираме).
+- Rate limiting на edge functions: shared `_shared/rate-limit.ts` базиран на user_id + IP, пер endpoint (login, upload, analyze).
+
+### 10. Upload pipeline hardening
+
+Промяна в upload edge endpoint (или client `UploadContract.tsx`):
+- MIME проверка whitelist: pdf/docx/odt/txt.
+- File size cap (вече има, потвърждаваме 10MB).
+- Magic-bytes check (не само extension).
+- PDF sanitization step (вика `pdf-lib` flatten преди OCR).
+- Hook за външен AV scan (готов interface, дори без активиран доставчик).
+- След upload: `classifyDocumentBeforeAI(extracted_text)` → ако high/blocked → показваме warning + изискваме потвърждение.
+
+### 11. DPIA документ
+
+`/mnt/documents/dpia_dogovori_net.docx` (генерира се със `docx` skill) — пълно ОВЗД покритие за: AI анализ, OCR, upload, pro операции, fallback, prompt logging, document storage, special category handling, third-party processors. Включва risk matrix и митигации.
+
+---
+
+## ВЪЛНА P2 — Зрялост и enterprise
+
+### 12. Advanced
+
+- DLP engine: тестова матрица + auto-fail тестове, че logs не съдържат EGN/email/IBAN.
+- Admin dashboard за privacy/security метрики (`/admin/privacy`): брой blocked операции, % с redaction, retention статистика.
+- Configurable per-team retention (Team plan).
+- EU-only AI region pinning (когато Lovable Gateway го позволи).
+- SOC2/ISO 27001 readiness checklist (markdown в `docs/`).
+- Periodic pen-test plan (документ, не код).
+- Red-team prompt injection тест suite (`tests/security/prompt-injection.test.ts`).
+
+### 13. Тестове (Deno + vitest)
+
+- `supabase/functions/_shared/classify.test.ts` — unit за класификация (EGN, IBAN, medical, names).
+- `supabase/functions/_shared/redact.test.ts` — round-trip redact/unredact.
+- `supabase/functions/_shared/model-router.test.ts` — pro не се връща при special category.
+- `tests/security/no-pii-in-logs.test.ts` — фейлва при намерен EGN/IBAN pattern в edge logs sample.
+- Integration: analyze-contract с medical text → blocked отговор.
+
+---
+
+## Технически детайли
+
+### Точки на интеграция
 
 ```text
-┌───────────────────────────────────────────────────────────────┐
-│ Глобален хедър (съществуващ)                                  │
-├──────────┬─────────────────┬─────────────────────────────────┤
-│ Лява     │ Среден списък   │ Tab bar (browser-like)          │
-│ навигация│ (динамичен)     │ ┌──────┬──────┬──────┬───┐      │
-│          │  • филтри       │ │ Tab1 │ Tab2*│ Tab3 │ + │      │
-│ • Табло  │  • търсене      │ ├──────┴──────┴──────┴───┴──────┤│
-│ • Сделки │  • сортиране    │ │ Активен canvas (split-view)   ││
-│ • Клиенти│  • виртуализиран│ │ ┌──────────┬────────────────┐ ││
-│ • Шаблони│   списък        │ │ │Метаданни │ Документ /     │ ││
-│ • Док-ти │  • bulk select  │ │ │ 30%      │ изглед 70%     │ ││
-│ • Анализи│                 │ │ └──────────┴────────────────┘ ││
-│ • Екип   │                 │ │ Footer: статус, бр. ops       ││
-│ collapse │                 │ │                                ││
-└──────────┴─────────────────┴────────────────────────────────┘
+Edge function (analyze/correct/apply/ocr/build/generate)
+  ↓
+classifyDocumentBeforeAI(text)
+  ↓                    ↓ blocked
+redactForAI(text) → 422 user-facing
+  ↓
+routeModel(op, cls)
+  ↓
+aiCall(redacted, model, allowFallback)
+  ↓
+unredact(output, mapping) → user
+  ↓
+ai_audit_log.insert({...metadata only...})
 ```
 
-- **Маршрут**: `/console` (и под-маршрути `/console/:section/:entityId?`). URL-ът отразява активния таб, така че линкове са споделими; табовете обаче живеят паралелно в паметта.
-- **Достъп**: за всички логнати потребители. Pro/Team отключва: повече от 3 паралелни таба, споделяне на сделки в екип, експорт на Сделка като пакет, AI обобщение на сделка.
-- **Desktop-first**: пълен 3-колонен изглед при ≥1280px. При 1024–1279px лявата колона става icon-only (`shadcn Sidebar collapsible="icon"`). Под 1024px списъкът се рендерира като Sheet drawer, а split-view се сгъва в табове „Метаданни / Документ" вътре в активния canvas.
+### Файлове, които ще се добавят (P0)
+- `supabase/functions/_shared/classify.ts`
+- `supabase/functions/_shared/redact.ts`
+- `supabase/functions/_shared/model-router.ts`
+- `supabase/functions/_shared/ai-call.ts`
+- `supabase/functions/retention-sweeper/index.ts`
+- `src/components/ai/SensitiveDataWarning.tsx`
+- Миграция за `ai_audit_log` + pg_cron за retention sweeper.
 
-## 2. Persistent Tab System
+### Файлове, които ще се променят (P0)
+- Всички 6 AI edge functions (analyze/correct/apply/ocr/build/generate).
+- `src/components/UploadContract.tsx` (или съответния upload компонент).
+- `src/pages/BuildContract.tsx` (confirmation gate за pro).
 
-- Глобален стор `useConsoleStore` (Zustand — лек, мач към съществуващия стил; алтернатива: context+reducer ако екипът предпочита нулеви depes).
-- Tab shape: `{ id, kind, entityId, title, icon, dirty, pinned, scrollY, formDraft, openedAt }`.
-- `kind`: `dashboard | deal | document | uploaded | template | client | analysis | wizard | signing`.
-- **State retention**: всички отворени табове остават mounted; неактивните се скриват с `hidden` + `aria-hidden`. Никакво unmount при превключване → формите не губят данни.
-- Лимит: 3 безплатно / до 12 в Pro/Team. При надвишаване — toast с upgrade CTA (преизползваме `ProUpgradeDialog`).
-- **Pin Tab**: закрепен ляво, не се затваря с „Close all", оцелява refresh.
-- **Close All / Close Others / Reopen Closed** (history стек последните 10).
-- Persist в `localStorage` по `user.id` (TTL 7 дни). При reload — табовете се възстановяват; ако entity-то е изтрито, табът се маркира с warning и се предлага close.
-- **Keyboard**: `⌘T` нов таб, `⌘W` затвори, `⌘⇧T` reopen, `⌘1..9` jump, `⌘K` команден палет (преизползваме `CommandPalette`), `⌘B` toggle sidebar, `⌘[` / `⌘]` prev/next таб.
+### Граници (какво НЕ правим в този план)
+- Не сменяме pricing/billing логиката.
+- Не сменяме AI доставчика (оставаме на Lovable Gateway).
+- Не пишем нови adversarial prompt injection защити в самия модел (оставяме за P2).
+- Не добавяме външен AV (само hook).
 
-## 3. Split-view вътре в активен таб
+---
 
-- Resizable splitter (`src/components/ui/resizable.tsx` — налично).
-- **Ляво 30% (мин 280px) — Метаданни / CRM полета**:
-  - Статус (бадж с цвят по фаза), страни (`PartyListEditor`), сума EUR + ДДС, краен срок, тагове, отговорник, бележки, последна активност, свързани документи (с бутон „Отвори в нов таб"), история на подписване.
-  - Inline edit с auto-save (debounced 600ms) + индикатор „Запазено преди X сек".
-  - Бързи действия: Подпиши (отваря `SigningEnvelope` в нов таб), Сподели за подпис, Анализ на риска, Експорт PDF/DOCX, Архивирай.
-- **Дясно 70% — съдържанието** според `kind`:
-  - `document` → `ContractPreview` + corrections panel
-  - `uploaded` → viewer + `RiskReport`
-  - `template` → детайл + CTA „Изготви по този шаблон" (отваря Wizard таб с prefill от текущата сделка)
-  - `wizard` → `SplitWizard` (вече съществува, embed-ва се вътре)
-  - `client` → CRM профил: контакти, история, всички сделки/документи
-  - `analysis` → `RiskMeter` + детайлен doc по точки
-  - `dashboard` → KPI карти (активни сделки, очакващи подпис, изтичащи срокове, ops остатък)
-  - `signing` → envelope tracking + signers status
+## Препоръчителен ред на изпълнение
 
-## 4. Данни — нов обект „Сделка"
+1. **Стъпка 1 (P0 ядро):** classify + redact + model-router + ai-call helpers + ai_audit_log таблица. Само shared слой, без интеграция още.
+2. **Стъпка 2 (P0 интеграция):** вкарваме слоя в analyze-contract първо (най-голям риск), тестваме, после в останалите 5 функции.
+3. **Стъпка 3 (P0 UX):** sensitive data warning + премахване на raw logs + retention sweeper.
+4. **Стъпка 4 (P1):** правни страници + user self-service + security headers.
+5. **Стъпка 5 (P2):** DPIA + тестове + admin metrics.
 
-Нова таблица `public.deals` обединява документи + страни + статуси. Съществуващите документи продължават да работят и без сделка (deal_id е nullable).
-
-| Колона | Тип | Описание |
-|---|---|---|
-| id | uuid | PK |
-| user_id | uuid | owner (FK auth.users) |
-| team_id | uuid? | за фирмени сделки |
-| title | text | „Наем офис, ул. Витоша 12" |
-| status | text enum | `draft`, `negotiating`, `signing`, `active`, `closed`, `archived` |
-| counterparty | text | име на контрагента |
-| counterparty_email | text? | за бърза покана към подписване |
-| amount_eur | numeric? | сума |
-| due_date | date? | краен срок |
-| tags | text[] | свободни тагове |
-| notes | text | бележки |
-| pinned | bool | за закачени сделки |
-| created_at / updated_at | tstz | |
-
-Свързване (миграция добавя nullable `deal_id` колони — нула риск за съществуващи редове):
-- `saved_documents.deal_id` → `deals.id`
-- `uploaded_contracts.deal_id` → `deals.id`
-- `signing_requests.deal_id` → `deals.id`
-
-RLS: owner или член на същия team може да чете/редактира. Грантове за `authenticated` и `service_role`. Триггер `set_updated_at`. Helper функция `user_can_access_deal(_deal_id)` използва съществуващата `is_team_member`.
-
-„Клиент" в първа фаза = виртуален обект, агрегиран от `counterparty` (без отделна таблица). Във фаза 2 може да стане самостоятелна таблица `clients` с history.
-
-## 5. Файлова структура
-
-```
-src/pages/Console.tsx                       // shell, рутиране, store provider
-src/components/console/
-  ConsoleSidebar.tsx                        // лява навигация
-  ConsoleListColumn.tsx                     // среден списък, делегира към List по секция
-  ConsoleTabBar.tsx                         // browser-like табове + действия
-  ConsoleCanvas.tsx                         // mount-all renderer (hidden=!active)
-  ConsoleFooter.tsx                         // статус линия (ops, save state, shortcuts hint)
-  panes/
-    DashboardPane.tsx
-    DealPane.tsx                            // split: meta + linked docs board
-    DocumentPane.tsx                        // ContractPreview интеграция
-    UploadedPane.tsx                        // uploaded viewer + risk
-    TemplatePane.tsx
-    ClientPane.tsx
-    AnalysisPane.tsx
-    WizardPane.tsx                          // wraps SplitWizard
-    SigningPane.tsx
-  meta/
-    MetadataPanel.tsx                       // 30% ляв панел (общ)
-    DealMetaForm.tsx
-    DocumentMetaForm.tsx
-  lists/
-    DealsList.tsx, DocsList.tsx, ClientsList.tsx,
-    TemplatesList.tsx, AnalysesList.tsx, DashboardList.tsx
-  shortcuts/useConsoleShortcuts.ts
-src/hooks/useConsoleStore.ts                // Zustand store + persist
-src/hooks/useDeals.ts                       // CRUD + realtime подписка
-```
-
-Линк към Console:
-- Header (логнат потребител): primary CTA „Работен плот".
-- `Account` страница: голяма карта „Отвори Console View".
-- След download/upload се появява toast „Отвори в Console" → отваря в нов таб.
-
-## 6. Микро-интеракции и моушън
-
-- Tab open: subtle slide-in отдясно (Motion, 180ms ease-out).
-- Tab close: collapse width → 0 с opacity fade.
-- List row hover: gold accent линия отляво (1px).
-- Splitter: визуален grip + cursor `col-resize`, snap при 25/30/40/50%.
-- Sidebar collapse: width transition 200ms, икони с tooltip.
-- Dirty dot: pulsing gold на таба, ако има unsaved формна промяна.
-- Empty states: илюстрация + 3 бързи действия („Нова сделка", „Качи договор", „Изготви по шаблон").
-
-## 7. Етапи на изпълнение
-
-1. **Миграция** `deals` + `deal_id` колони + RLS + GRANTs + триггер.
-2. **Shell + store**: `/console` route, `useConsoleStore`, persist, празен canvas с placeholder.
-3. **Sidebar + Tab bar** (без съдържание) + keyboard shortcuts.
-4. **DashboardPane** и **DocumentPane / UploadedPane** (преизползват съществуващите viewer-и) — най-бърза стойност за потребителя.
-5. **DealsList + DealPane + MetadataPanel** (inline edit, auto-save).
-6. **TemplatePane + WizardPane** (с prefill от текуща сделка).
-7. **ClientPane (агрегиран)**, **AnalysisPane**, **SigningPane**.
-8. **Polish**: motion, empty states, mobile fallback, тестове за store quota neutrality (отваряне на таб ≠ op), e2e сценарий „отвори 3 сделки, мини през всеки таб, refresh → state intact".
-
-## Технически бележки
-
-- Без нови тежки зависимости — преизползваме `react-resizable-panels`, `cmdk`, `@tanstack/react-virtual`, `framer-motion`, shadcn `Sidebar`.
-- Zustand е единствената нова dep (~1KB). Алтернатива: чист context+reducer ако предпочиташ нулеви добавки.
-- EUR-only, текущ metering и Pro/Team гейтинг се запазват без промяна.
-- A11y: roving tabindex на tab bar, `role="tablist"`, `aria-selected`, focus visible, screen-reader announce при tab switch.
-- SEO: `/console` остава `noindex` (private workspace).
+Готов съм да започна със Стъпка 1, ако одобрите плана. Ако предпочитате друг ред (напр. първо политиките/правните страници), кажете.
