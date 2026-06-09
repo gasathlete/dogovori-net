@@ -561,6 +561,15 @@ ${payloadText}
       function_name: "analyze-contract",
     });
 
+    await logAiAudit({
+      user_id: userId,
+      operation: "analyze-contract",
+      model,
+      classification,
+      redaction_applied: route.redactionRequired,
+      status: "ok",
+    });
+
     return new Response(JSON.stringify({ analysis: inserted }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
