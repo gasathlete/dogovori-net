@@ -6,6 +6,10 @@ import { normalizeText, sha256Hex } from "../_shared/normalize.ts";
 import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
+import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
+import { redactForAI, unredact } from "../_shared/redact.ts";
+import { routeModel } from "../_shared/model-router.ts";
+import { logAiAudit } from "../_shared/ai-call.ts";
 
 // PROMPT_VERSION — bump to invalidate cached analyses produced by older prompts.
 const PROMPT_VERSION = "v4-balanced-scale";
