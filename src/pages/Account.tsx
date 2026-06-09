@@ -1914,6 +1914,33 @@ function SettingsTab({ profile, setProfile, userId }: {
     }
   };
 
+  // Изтегляне на лични данни (GDPR чл. 15 / 20)
+  const [exportBusy, setExportBusy] = useState(false);
+  const exportMyData = async () => {
+    setExportBusy(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) { toast.error("Моля, влезте отново."); return; }
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const url = `https://${projectId}.supabase.co/functions/v1/export-my-data`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.status === 429) { toast.error("Твърде много заявки. Опитайте отново по-късно."); return; }
+      if (!res.ok) { toast.error("Грешка при изтегляне на данни"); return; }
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `dogovori-export-${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a); a.click();
+      a.remove(); URL.revokeObjectURL(a.href);
+      toast.success("Готово — JSON файлът е изтеглен.");
+    } catch (e: any) {
+      toast.error("Грешка", { description: String(e?.message ?? e) });
+    } finally {
+      setExportBusy(false);
+    }
+  };
+
   // Изтриване на акаунт
   const [delOpen, setDelOpen] = useState(false);
   const [delConfirm, setDelConfirm] = useState("");
@@ -1931,6 +1958,7 @@ function SettingsTab({ profile, setProfile, userId }: {
     await signOut();
     window.location.href = "/";
   };
+
 
   return (
     <div className="space-y-4">
@@ -1970,6 +1998,21 @@ function SettingsTab({ profile, setProfile, userId }: {
           {emailBusy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Промени имейла
         </Button>
+      </div>
+
+      {/* Изтегляне на лични данни (GDPR) */}
+      <div className="max-w-lg space-y-3 rounded-xl border border-border/60 bg-gradient-card p-6">
+        <h3 className="flex items-center gap-2 font-serif text-lg font-bold">
+          <Download className="h-4 w-4 text-gold" /> Моите данни (GDPR)
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          Получете машинно четимо копие (JSON) на всички Ваши лични данни — профил, документи, контрагенти, съгласия, AI лог. По чл. 15 и чл. 20 GDPR.
+        </p>
+        <Button onClick={exportMyData} disabled={exportBusy} variant="outline" className="border-gold/40">
+          {exportBusy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Download className="mr-2 h-4 w-4" /> Изтегли моите данни (JSON)
+        </Button>
+        <p className="text-[11px] text-muted-foreground/80">Лимит: 3 изтегляния в 24 часа.</p>
       </div>
 
       {/* Изтриване на акаунт */}
