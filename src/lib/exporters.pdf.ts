@@ -177,18 +177,36 @@ export async function exportPDF(
   // Изпълнител), with a sensible fallback otherwise.
   const sig = c.signature;
   const parties: { role: string; name: string; type?: string; image?: string }[] = (() => {
-    if (sig?.parties && sig.parties.length) return sig.parties;
+    const inferred = inferPartyRolesGenitive(c.title);
+    const fixRole = (role: string, fallback: string): string => {
+      if (!inferred) return role || fallback;
+      // If the supplied role label is empty, a generic "Страна А/Б", or otherwise
+      // incompatible with the document's title, override it with the inferred role.
+      const isGeneric = !role || /^страна\s*[аб]$/i.test(role.trim());
+      if (isGeneric) return fallback;
+      if (!partiesAreCompatible(c.title, { a: role, b: role })) {
+        return fallback;
+      }
+      return role;
+    };
+    if (sig?.parties && sig.parties.length) {
+      return sig.parties.map((p, idx) => ({
+        ...p,
+        role: fixRole(p.role, (idx % 2 === 0 ? inferred?.a : inferred?.b) ?? p.role ?? `Страна ${idx % 2 === 0 ? "А" : "Б"}`),
+      }));
+    }
     if (sig?.name_a || sig?.name_b) {
       return [
-        { role: "Страна А", name: sig?.name_a ?? "", image: sig?.image_a },
-        { role: "Страна Б", name: sig?.name_b ?? "", image: sig?.image_b },
+        { role: inferred?.a ?? "Страна А", name: sig?.name_a ?? "", image: sig?.image_a },
+        { role: inferred?.b ?? "Страна Б", name: sig?.name_b ?? "", image: sig?.image_b },
       ];
     }
     return [
-      { role: "Страна А", name: "" },
-      { role: "Страна Б", name: "" },
+      { role: inferred?.a ?? "Страна А", name: "" },
+      { role: inferred?.b ?? "Страна Б", name: "" },
     ];
   })();
+
 
   if (y + 140 > ph - M) { doc.addPage(); y = M; }
   y += 10;
