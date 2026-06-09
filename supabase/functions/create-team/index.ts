@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     });
 
     const stripe = createStripeClient(environment);
-    const lookupKey = billing === "monthly" ? "team_seat_monthly" : "team_seat_yearly";
+    const lookupKey = "team_seat_yearly";
     const prices = await stripe.prices.list({ lookup_keys: [lookupKey] });
     if (!prices.data.length) throw new Error("Team price not found");
 
