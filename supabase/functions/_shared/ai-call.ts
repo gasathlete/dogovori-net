@@ -84,6 +84,41 @@ async function logAudit(row: {
   }
 }
 
+/**
+ * Public helper for functions that don't use aiCall() (e.g. analyze-contract
+ * which has its own fallback/verification pipeline) but still need to write
+ * a metadata-only audit row.
+ */
+export async function logAiAudit(row: {
+  user_id: string | null;
+  team_id?: string | null;
+  operation: AIOperation;
+  model: string;
+  fallback_used?: boolean;
+  fallback_model?: string | null;
+  classification: Classification;
+  redaction_applied: boolean;
+  tokens_in?: number;
+  tokens_out?: number;
+  status: "ok" | "blocked" | "error";
+  error_code?: string;
+}) {
+  await logAudit({
+    user_id: row.user_id,
+    team_id: row.team_id,
+    operation: row.operation,
+    model: row.model,
+    fallback_used: row.fallback_used ?? false,
+    fallback_model: row.fallback_model ?? null,
+    classification: row.classification,
+    redaction_applied: row.redaction_applied,
+    tokens_in: row.tokens_in,
+    tokens_out: row.tokens_out,
+    status: row.status,
+    error_code: row.error_code,
+  });
+}
+
 export async function aiCall(input: AICallInput): Promise<AICallResult> {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) {
