@@ -111,6 +111,16 @@ export default function UploadedContractPage() {
   const [savingTitle, setSavingTitle] = useState(false);
   const [contactId, setContactId] = useState<string>("none");
   const [contacts, setContacts] = useState<Contact[]>([]);
+
+  // Sensitive-data confirmation flow
+  const [sensitiveOpen, setSensitiveOpen] = useState(false);
+  const [sensitiveBlocked, setSensitiveBlocked] = useState(false);
+  const [sensitiveClass, setSensitiveClass] = useState<ClassificationSummary | null>(null);
+  const [pendingAction, setPendingAction] = useState<null | "analyze" | "correct">(null);
+  const [pendingCorrectSelection, setPendingCorrectSelection] = useState<{
+    selectedIssues: Issue[];
+    selectedMissing: Missing[];
+  } | null>(null);
   const [savingText, setSavingText] = useState(false);
   const [savingContact, setSavingContact] = useState(false);
   const [savedDocId, setSavedDocId] = useState<string | null>(null);
