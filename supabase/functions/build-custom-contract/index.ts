@@ -362,16 +362,56 @@ ${docSpec.partyBName ? `${partyBLabel.toUpperCase()}/И:\n${partiesBList}\n` : "
 ${fieldsSection}
 Задача: Risk Analysis (конкретни слаби места) + ПЪЛНИЯТ документ${safeBilingual ? " на български И английски (двуезично, паралелно)" : " на български"}. Върни СТРОГО валиден JSON по схемата.`;
 
+    // === GDPR/AI Act compliance layer ===
+    const classification = classifyDocumentBeforeAI(userPrompt);
+    const route = routeModel("build-custom-contract", classification, {
+      userConfirmed, promptLength: userPrompt.length,
+    });
+    if (!route.allowed) {
+      await logAiAudit({
+        user_id: userId, operation: "build-custom-contract", model: "",
+        classification, redaction_applied: false, status: "blocked",
+        error_code: route.blockedReason ?? "blocked",
+      });
+      return new Response(JSON.stringify({
+        error: "Въведените данни съдържат специални категории лични данни и не могат да бъдат обработени автоматично.",
+        code: route.blockedReason ?? "special_category_blocked",
+        classification: {
+          risk_level: classification.risk_level,
+          contains_special_category_data: classification.contains_special_category_data,
+          reasons: classification.reasons,
+        },
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (route.requireConfirmation) {
+      return new Response(JSON.stringify({
+        error: "needs_confirmation",
+        code: "sensitive_data_confirmation_required",
+        classification: {
+          risk_level: classification.risk_level,
+          contains_personal_data: classification.contains_personal_data,
+          contains_special_category_data: classification.contains_special_category_data,
+          pii_counts: classification.pii_counts,
+          reasons: classification.reasons,
+        },
+      }), { status: 428, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const redacted = route.redactionRequired ? redactForAI(userPrompt) : { redacted: userPrompt, mapping: {}, stats: {} };
+    const redactionNote = route.redactionRequired
+      ? "ВАЖНО: Лични данни са заменени с плейсхолдъри (<NAME_1>, <EGN_1>, <IBAN_1> и т.н.). Използвай ги дословно в готовия документ — те ще бъдат възстановени при връщане.\n\n"
+      : "";
+
     const composedSystem = `${BASE_SYSTEM_PROMPT}\n\n=== СПЕЦИФИКА ЗА ВИД „${docSpec.label.toUpperCase()}" ===\n${docSpec.systemAddendum}\n\n=== ${modeSpec.label} ===\n${modeSpec.addendum}${safeBilingual ? BILINGUAL_ADDENDUM : ""}`;
     const activeSystemPrompt = await loadActivePrompt(admin, "build-custom-contract", composedSystem);
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: modeSpec.model,
+        model: route.model,
         messages: [
           { role: "system", content: activeSystemPrompt },
-          { role: "user", content: userPrompt },
+          { role: "user", content: redactionNote + redacted.redacted },
         ],
         response_format: { type: "json_object" },
       }),
