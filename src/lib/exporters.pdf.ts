@@ -178,22 +178,23 @@ export async function exportPDF(
   const sig = c.signature;
   const parties: { role: string; name: string; type?: string; image?: string }[] = (() => {
     const inferred = inferPartyRolesGenitive(c.title);
-    const fixRole = (role: string, fallback: string): string => {
-      if (!inferred) return role || fallback;
-      // If the supplied role label is empty, a generic "Страна А/Б", or otherwise
-      // incompatible with the document's title, override it with the inferred role.
-      const isGeneric = !role || /^страна\s*[аб]$/i.test(role.trim());
-      if (isGeneric) return fallback;
-      if (!partiesAreCompatible(c.title, { a: role, b: role })) {
-        return fallback;
-      }
+    const normalize = (s: string) => (s || "").toLowerCase().replace(/[^a-zа-я]+/gi, "");
+    const looksLike = (have: string, want: string) => {
+      const x = normalize(have), y = normalize(want);
+      if (!x || !y) return false;
+      return x.startsWith(y.slice(0, Math.min(6, y.length))) ||
+             y.startsWith(x.slice(0, Math.min(6, x.length)));
+    };
+    const isGeneric = (role: string) => !role || /^страна\s*[аб]$/i.test(role.trim());
+    const fixRole = (role: string, idx: number): string => {
+      if (!inferred) return role || `Страна ${idx % 2 === 0 ? "А" : "Б"}`;
+      const want = idx % 2 === 0 ? inferred.a : inferred.b;
+      if (isGeneric(role)) return want;
+      if (!looksLike(role, inferred.a) && !looksLike(role, inferred.b)) return want;
       return role;
     };
     if (sig?.parties && sig.parties.length) {
-      return sig.parties.map((p, idx) => ({
-        ...p,
-        role: fixRole(p.role, (idx % 2 === 0 ? inferred?.a : inferred?.b) ?? p.role ?? `Страна ${idx % 2 === 0 ? "А" : "Б"}`),
-      }));
+      return sig.parties.map((p, idx) => ({ ...p, role: fixRole(p.role, idx) }));
     }
     if (sig?.name_a || sig?.name_b) {
       return [
@@ -206,6 +207,7 @@ export async function exportPDF(
       { role: inferred?.b ?? "Страна Б", name: "" },
     ];
   })();
+
 
 
   if (y + 140 > ph - M) { doc.addPage(); y = M; }
