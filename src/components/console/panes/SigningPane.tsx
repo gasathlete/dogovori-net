@@ -26,8 +26,8 @@ export function SigningPane({ requestId }: { requestId: string }) {
         supabase
           .from("signing_request_signers")
           .select("*")
-          .eq("signing_request_id", requestId)
-          .order("order_index", { ascending: true }),
+          .eq("request_id", requestId)
+          .order("order_idx", { ascending: true }),
       ]);
       setReq(r);
       setSigners(s ?? []);
