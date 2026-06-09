@@ -197,25 +197,81 @@ Deno.serve(async (req: Request) => {
       ? `\nБИЛИНГВАЛЕН РЕЖИМ: ЗАДЪЛЖИТЕЛНО върни паралелен английски превод. За contract добави полета: "title_en", "preamble_en", "closing_en" и за всяка клауза в "clauses" — "title_en" и "body_en". Преводът да е професионален легален английски (US/UK неутрален), номерацията на членовете да е "Art. N." и да съответства 1:1 на българския текст. Поставяй "bilingual": true на root на contract. Английският текст НЕ заменя българския — те съществуват паралелно.`
       : "";
 
-    const userPrompt = `СЕКТОР: ${sector}
+    // === GDPR/AI Act compliance layer ===
+    const sourceText = [
+      String(parties?.a ?? ""), String(parties?.b ?? ""),
+      qaLines,
+    ].join("\n");
+    const classification = classifyDocumentBeforeAI(sourceText);
+    const route = routeModel("generate-contract", classification, {
+      userConfirmed,
+      promptLength: sourceText.length,
+    });
+
+    if (!route.allowed) {
+      await logAiAudit({
+        user_id: userId, operation: "generate-contract", model: "",
+        classification, redaction_applied: false, status: "blocked",
+        error_code: route.blockedReason ?? "blocked",
+      });
+      return new Response(JSON.stringify({
+        error: "Въведените данни съдържат специални категории лични данни и не могат да бъдат обработени автоматично.",
+        code: route.blockedReason ?? "special_category_blocked",
+        classification: {
+          risk_level: classification.risk_level,
+          contains_special_category_data: classification.contains_special_category_data,
+          reasons: classification.reasons,
+        },
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (route.requireConfirmation) {
+      return new Response(JSON.stringify({
+        error: "needs_confirmation",
+        code: "sensitive_data_confirmation_required",
+        classification: {
+          risk_level: classification.risk_level,
+          contains_personal_data: classification.contains_personal_data,
+          contains_special_category_data: classification.contains_special_category_data,
+          pii_counts: classification.pii_counts,
+          reasons: classification.reasons,
+        },
+      }), { status: 428, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const redactedParties = route.redactionRequired
+      ? { a: redactForAI(String(parties?.a ?? "")), b: redactForAI(String(parties?.b ?? "")) }
+      : null;
+    const redactedQaLines = route.redactionRequired ? redactForAI(qaLines) : null;
+    const mergedMapping: Record<string, string> = {};
+    if (redactedParties) Object.assign(mergedMapping, redactedParties.a.mapping, redactedParties.b.mapping);
+    if (redactedQaLines) Object.assign(mergedMapping, redactedQaLines.mapping);
+
+    const safePartyA = redactedParties ? redactedParties.a.redacted : String(parties?.a ?? "");
+    const safePartyB = redactedParties ? redactedParties.b.redacted : String(parties?.b ?? "");
+    const safeQaLines = redactedQaLines ? redactedQaLines.redacted : qaLines;
+    const redactionNote = route.redactionRequired
+      ? "ВАЖНО: Лични данни (имена, ЕГН, IBAN, адреси) са заменени с плейсхолдъри (<NAME_1>, <EGN_1> и т.н.). В готовия документ ИЗПОЛЗВАЙ плейсхолдърите дословно — те ще бъдат заменени с реалните стойности при връщане на потребителя.\n\n"
+      : "";
+
+    const userPrompt = `${redactionNote}СЕКТОР: ${sector}
 ТИП ДОКУМЕНТ: ${docTypeSpec.label}
 НАИМЕНОВАНИЕ: ${contractName}
-${docLine}СТРАНИ: ${parties.a} ↔ ${parties.b}${arbitrationLine}${bilingualLine}
+${docLine}СТРАНИ: ${safePartyA} ↔ ${safePartyB}${arbitrationLine}${bilingualLine}
 
 ОТГОВОРИ:
-${qaLines}
+${safeQaLines}
 
 ВАЖНО: Изготви документ от вид „${docTypeSpec.label}" (не разглеждай автоматично като двустранен договор). Спазвай специфичната структура за този вид документ:
 ${docTypeSpec.systemAddendum}
 
-Задача: Risk Analysis (конкретни слаби места за ${parties.a}${parties.b ? ` и ${parties.b}` : ""}) + ПЪЛНИЯТ документ на български за "${documentName || contractName}" според структурата за „${docTypeSpec.label}"${isBilingual ? " + паралелен английски превод в полетата *_en" : ""}. Върни СТРОГО валиден JSON по схемата.`;
+Задача: Risk Analysis (конкретни слаби места за ${safePartyA}${safePartyB ? ` и ${safePartyB}` : ""}) + ПЪЛНИЯТ документ на български за "${documentName || contractName}" според структурата за „${docTypeSpec.label}"${isBilingual ? " + паралелен английски превод в полетата *_en" : ""}. Върни СТРОГО валиден JSON по схемата.`;
 
     const activeSystemPrompt = await loadActivePrompt(admin, "generate-contract", SYSTEM_PROMPT);
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
+        model: route.model,
         messages: [
           { role: "system", content: activeSystemPrompt },
           { role: "user", content: userPrompt },
