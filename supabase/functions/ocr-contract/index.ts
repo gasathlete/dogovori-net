@@ -131,6 +131,18 @@ Deno.serve(async (req: Request) => {
     }
     const text = parts.join("\n\n").replace(/[ \t]+/g, " ").trim();
 
+    // Classify the OCR output (post-hoc) for the audit trail. We cannot
+    // pre-classify images. Special-category text is allowed through here
+    // because OCR is read-only — downstream operations (correct-uploaded)
+    // re-classify and may block.
+    const ocrClassification = classifyDocumentBeforeAI(text);
+    await logAiAudit({
+      user_id: userId, operation: "ocr-contract",
+      model: "google/gemini-2.5-flash",
+      classification: ocrClassification,
+      redaction_applied: false, status: "ok",
+    });
+
     // Per-user accounting so abuse is visible and rate-limitable downstream.
     try {
       await admin.from("ai_usage").insert({ user_id: userId, function_name: "ocr-contract" });
