@@ -20,6 +20,7 @@ export interface FreeQuota {
 interface ProState {
   isPro: boolean;
   isTeam: boolean;
+  isEntrepreneur: boolean;
   loading: boolean;
   freeQuota: FreeQuota;
   refresh: () => Promise<void>;
