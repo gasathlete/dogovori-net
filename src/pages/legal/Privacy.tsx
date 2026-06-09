@@ -81,10 +81,14 @@ export default function PrivacyPage() {
       <ul>
         <li><strong>Supabase Inc.</strong> — хостинг на база данни и автентикация. Сървъри в ЕС (Франкфурт, Германия).</li>
         <li><strong>Stripe Payments Europe Ltd.</strong> (Ирландия) — обработка на плащания. Подлежи на Data Privacy Framework за трансфер към САЩ.</li>
-        <li><strong>Google LLC</strong> (САЩ) — AI генериране и анализ. Трансфери на база <a href="https://commission.europa.eu/law/law-topic/data-protection/international-dimension-data-protection/standard-contractual-clauses-scc_en" target="_blank" rel="noopener">Стандартни договорни клаузи (SCC)</a> + Data Privacy Framework.</li>
+        <li><strong>Google LLC</strong> (САЩ) — AI генериране и анализ (модели Gemini). Трансфери на база <a href="https://commission.europa.eu/law/law-topic/data-protection/international-dimension-data-protection/standard-contractual-clauses-scc_en" target="_blank" rel="noopener">SCC</a> + DPF. Входящите данни се <strong>псевдонимизират</strong> преди изпращане към модела (вижте т. 6).</li>
+        <li><strong>OpenAI Ireland Ltd.</strong> — резервен AI модел при недостъпност на първичния. Данните не се използват за обучение (Zero Data Retention API).</li>
         <li><strong>Resend Inc.</strong> (САЩ) — изпращане на транзакционен email. SCC + DPF.</li>
         <li><strong>Plausible Insights OÜ</strong> (Естония, ЕС) — анонимизирана аналитика (без бисквитки и без лични данни) — само при дадено съгласие.</li>
       </ul>
+      <p className="text-xs text-muted-foreground">
+        Актуален регистър на подпроцесорите (с дати и регион) — поискайте на email-а на администратора. Уведомяваме при добавяне на нов подпроцесор поне 30 дни предварително.
+      </p>
 
       <h2>4. Трансфер на данни извън ЕС</h2>
       <p>
@@ -105,13 +109,22 @@ export default function PrivacyPage() {
         <li><strong>Записи на съгласия</strong> — 3 години след последно действие.</li>
       </ul>
 
-      <h2>6. Автоматизирано обработване и AI</h2>
+      <h2>6. Автоматизирано обработване и AI (EU AI Act)</h2>
       <p>
-        Платформата използва AI за изготвяне на проекти на договори и за анализ на
+        Платформата използва AI за изготвяне на проекти на договори, OCR и анализ на
         риск. Това <strong>не е автоматизирано вземане на решения с правни последици
         за Вас</strong> по смисъла на чл. 22 GDPR — окончателното решение за
         използване, подписване и приложение на документа е изцяло Ваше.
       </p>
+      <ul>
+        <li><strong>Псевдонимизация преди AI:</strong> Имена, ЕГН, ЕИК, IBAN, телефони, адреси и email се заменят с placeholder-и (напр. <code>&lt;EGN_1&gt;</code>) преди заявката към модела. Реалните стойности се възстановяват само в крайния резултат при Вас.</li>
+        <li><strong>Забранени категории:</strong> Системата блокира опити за обработка на специални категории данни по чл. 9 GDPR (здраве, етнически произход, политически възгледи и др.). Тези заявки не достигат до AI модела.</li>
+        <li><strong>Модел роутинг:</strong> Високорискови документи се насочват към модели с по-строги договорни клаузи (SCC + Zero Data Retention).</li>
+        <li><strong>Без обучение:</strong> Никой подпроцесор не използва Вашите данни за обучение на собствени модели — това е договорно изключено.</li>
+        <li><strong>Право на човешка намеса:</strong> При несъгласие с AI резултат можете да поискате преглед от служител на email-а на администратора.</li>
+        <li><strong>Прозрачност:</strong> Всеки AI акт се логва в <code>ai_audit_log</code> с метаданни (риск, модел, токени) без сурово съдържание. Достъп по чл. 15 GDPR — вижте „Изтегли моите данни" в настройките.</li>
+        <li><strong>Класификация по AI Act:</strong> Системата е „limited risk" по Регламент (ЕС) 2024/1689 (общи AI системи за съдържание) — приложими са задълженията за прозрачност (чл. 50).</li>
+      </ul>
 
       <h2>7. Вашите права</h2>
       <ul>

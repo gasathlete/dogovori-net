@@ -56,13 +56,24 @@ export default function DPAPage() {
       <ul>
         <li><strong>Supabase</strong> — хостинг на база данни (ЕС, Франкфурт).</li>
         <li><strong>Stripe Payments Europe Ltd.</strong> — обработка на плащания.</li>
-        <li><strong>Google LLC</strong> — AI генериране и анализ (DPF + SCC).</li>
+        <li><strong>Google LLC</strong> — AI генериране и анализ, модели Gemini (DPF + SCC). Без обучение върху клиентски данни.</li>
+        <li><strong>OpenAI Ireland Ltd.</strong> — резервен AI модел (Zero Data Retention API, SCC).</li>
         <li><strong>Resend Inc.</strong> — изпращане на транзакционен email.</li>
       </ul>
       <p>
         При смяна на подпроцесор Процесорът уведомява Администратора с поне 30 дни
         предизвестие. Администраторът може да възрази в писмена форма.
       </p>
+
+      <h3>4.1. AI обработка — допълнителни мерки</h3>
+      <ul>
+        <li>Входящите данни се <strong>псевдонимизират</strong> (имена, ЕГН, ЕИК, IBAN, телефони → placeholder-и) преди да бъдат изпратени към AI подпроцесор.</li>
+        <li>Опити за обработка на специални категории по чл. 9 GDPR се <strong>блокират</strong> на ниво приложение.</li>
+        <li>Всеки AI акт се логва в <code>ai_audit_log</code> с метаданни без сурово съдържание (12 месеца retention).</li>
+        <li>Временно качените документи се изтриват автоматично след 24 часа, ако не са запазени към сделка.</li>
+      </ul>
+
+
 
       <h2>5. Трансфер на данни извън ЕС</h2>
       <p>
