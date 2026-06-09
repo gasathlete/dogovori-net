@@ -90,48 +90,50 @@ const ROTATE_MS = 7000;
 function MiniVisual({ kind }: { kind: FeatureSlide["visual"] }) {
   // Shared "browser chrome" wrapper that frames each excerpt as a captured screen.
   const Frame = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <div className="relative h-full w-full overflow-hidden rounded-lg border border-hairline bg-navy/60 shadow-inner">
+    <div className="relative h-full w-full overflow-hidden rounded-xl border border-hairline bg-navy/60 shadow-inner">
       {/* window chrome */}
-      <div className="flex items-center gap-1.5 border-b border-hairline bg-navy-light/70 px-2.5 py-1.5">
-        <span className="h-1.5 w-1.5 rounded-full bg-foreground/25" />
-        <span className="h-1.5 w-1.5 rounded-full bg-foreground/25" />
-        <span className="h-1.5 w-1.5 rounded-full bg-foreground/25" />
-        <div className="ml-2 flex-1 truncate rounded-sm border border-hairline bg-navy/60 px-2 py-0.5 text-[8px] uppercase tracking-[0.18em] text-muted-foreground">
+      <div className="flex items-center gap-2 border-b border-hairline bg-navy-light/70 px-3 py-2 sm:px-4 sm:py-2.5">
+        <span className="h-2 w-2 rounded-full bg-foreground/25" />
+        <span className="h-2 w-2 rounded-full bg-foreground/25" />
+        <span className="h-2 w-2 rounded-full bg-foreground/25" />
+        <div className="ml-2 flex-1 truncate rounded-sm border border-hairline bg-navy/60 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]">
           dogovori.net{label}
         </div>
       </div>
       {/* scanline / digitized overlay */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.08]"
+        className="pointer-events-none absolute inset-0 opacity-[0.07]"
         style={{
           backgroundImage:
             "repeating-linear-gradient(0deg, hsl(var(--gold)) 0 1px, transparent 1px 3px)",
         }}
       />
-      <div className="relative h-[calc(100%-26px)] p-3">{children}</div>
+      {/* Reserve bottom padding so the caption band doesn't cover content */}
+      <div className="relative h-[calc(100%-38px)] overflow-hidden p-4 pb-28 sm:p-5 sm:pb-32">
+        {children}
+      </div>
     </div>
   );
 
   if (kind === "wizard") {
-    // Digitized excerpt of /wizard-graph step UI: question + answer choices + progress.
     return (
       <Frame label="/wizard">
-        <div className="mb-2 flex items-center justify-between text-[8px] uppercase tracking-[0.18em] text-muted-foreground">
-          <span className="inline-flex items-center gap-1 text-gold">
-            <PenLine className="h-2.5 w-2.5" strokeWidth={1.8} />
+        <div className="mb-3 flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]">
+          <span className="inline-flex items-center gap-1.5 text-gold">
+            <PenLine className="h-3.5 w-3.5" strokeWidth={1.8} />
             Стъпка 3 / 8
           </span>
           <span>Трудов договор</span>
         </div>
-        <div className="mb-2 h-1 w-full overflow-hidden rounded-full bg-foreground/10">
+        <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-foreground/10">
           <div className="h-full w-[38%] rounded-full bg-gradient-to-r from-gold/70 to-gold" />
         </div>
-        <div className="rounded-md border border-hairline bg-card/70 p-2.5">
-          <div className="mb-2 text-[10px] font-semibold leading-snug text-foreground">
+        <div className="rounded-lg border border-hairline bg-card/70 p-3 sm:p-4">
+          <div className="mb-3 text-sm font-semibold leading-snug text-foreground sm:text-base">
             Какъв е срокът на договора?
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {[
               { t: "Безсрочен", active: true },
               { t: "Срочен — до 1 година", active: false },
@@ -139,74 +141,65 @@ function MiniVisual({ kind }: { kind: FeatureSlide["visual"] }) {
             ].map((o) => (
               <div
                 key={o.t}
-                className={`flex items-center gap-2 rounded border px-2 py-1.5 text-[9px] ${
+                className={`flex items-center gap-2.5 rounded-md border px-3 py-2 text-xs sm:text-[13px] ${
                   o.active
                     ? "border-gold/60 bg-gold/10 text-gold"
                     : "border-hairline bg-navy-light/40 text-muted-foreground"
                 }`}
               >
                 <span
-                  className={`grid h-2.5 w-2.5 place-items-center rounded-full border ${
+                  className={`grid h-3.5 w-3.5 place-items-center rounded-full border ${
                     o.active ? "border-gold bg-gold/20" : "border-foreground/30"
                   }`}
                 >
-                  {o.active && <span className="h-1 w-1 rounded-full bg-gold" />}
+                  {o.active && <span className="h-1.5 w-1.5 rounded-full bg-gold" />}
                 </span>
                 {o.t}
               </div>
             ))}
           </div>
         </div>
-        <div className="mt-2 flex items-center justify-between">
-          <span className="text-[8px] uppercase tracking-[0.18em] text-muted-foreground">
-            Назад
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-sm border border-gold/60 bg-gold/15 px-2 py-1 text-[9px] font-semibold text-gold">
-            Напред <ArrowRight className="h-2.5 w-2.5" strokeWidth={2} />
-          </span>
-        </div>
       </Frame>
     );
   }
 
   if (kind === "contract") {
-    // Digitized excerpt of a generated contract preview page.
     return (
       <Frame label="/document">
-        <div className="mb-2 flex items-center justify-between">
-          <div className="inline-flex items-center gap-1.5 text-[8px] uppercase tracking-[0.18em] text-gold">
-            <FileText className="h-2.5 w-2.5" strokeWidth={1.8} />
+        <div className="mb-3 flex items-center justify-between">
+          <div className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-gold sm:text-[11px]">
+            <FileText className="h-3.5 w-3.5" strokeWidth={1.8} />
             Готов договор
           </div>
-          <span className="inline-flex items-center gap-1 rounded-sm border border-gold/50 bg-gold/10 px-1.5 py-0.5 text-[8px] font-semibold text-gold">
-            <Download className="h-2.5 w-2.5" strokeWidth={1.8} />
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-gold/50 bg-gold/10 px-2 py-1 text-[10px] font-semibold text-gold sm:text-[11px]">
+            <Download className="h-3 w-3" strokeWidth={1.8} />
             .docx
           </span>
         </div>
-        <div className="rounded-md border border-hairline bg-card/80 p-2.5">
-          <div className="mb-1.5 text-center font-serif text-[10px] font-bold leading-tight text-foreground">
+        <div className="rounded-lg border border-hairline bg-card/80 p-3 sm:p-4">
+          <div className="mb-1.5 text-center font-serif text-sm font-bold leading-tight text-foreground sm:text-base">
             ДОГОВОР ЗА НАЕМ
           </div>
-          <div className="mb-2 text-center text-[7px] uppercase tracking-[0.2em] text-muted-foreground">
+          <div className="mb-3 text-center text-[9px] uppercase tracking-[0.2em] text-muted-foreground sm:text-[10px]">
             № 2026/041 · гр. София
           </div>
-          <div className="space-y-1">
-            <div className="h-1 w-full rounded-full bg-foreground/15" />
-            <div className="h-1 w-[92%] rounded-full bg-foreground/15" />
-            <div className="h-1 w-[78%] rounded-full bg-gold/55" />
-            <div className="h-1 w-[88%] rounded-full bg-foreground/15" />
-            <div className="h-1 w-[64%] rounded-full bg-gold/55" />
-            <div className="h-1 w-[95%] rounded-full bg-foreground/15" />
-            <div className="h-1 w-[70%] rounded-full bg-foreground/15" />
+          <div className="space-y-1.5">
+            <div className="h-1.5 w-full rounded-full bg-foreground/15" />
+            <div className="h-1.5 w-[92%] rounded-full bg-foreground/15" />
+            <div className="h-1.5 w-[78%] rounded-full bg-gold/55" />
+            <div className="h-1.5 w-[88%] rounded-full bg-foreground/15" />
+            <div className="h-1.5 w-[64%] rounded-full bg-gold/55" />
+            <div className="h-1.5 w-[95%] rounded-full bg-foreground/15" />
+            <div className="h-1.5 w-[70%] rounded-full bg-foreground/15" />
           </div>
-          <div className="mt-2 flex items-end justify-between border-t border-hairline pt-2">
-            <div className="space-y-0.5">
-              <div className="h-0.5 w-10 rounded-full bg-foreground/40" />
-              <div className="text-[7px] text-muted-foreground">Наемодател</div>
+          <div className="mt-3 flex items-end justify-between border-t border-hairline pt-3">
+            <div className="space-y-1">
+              <div className="h-0.5 w-14 rounded-full bg-foreground/40" />
+              <div className="text-[9px] text-muted-foreground sm:text-[10px]">Наемодател</div>
             </div>
-            <div className="space-y-0.5 text-right">
-              <div className="ml-auto h-0.5 w-10 rounded-full bg-foreground/40" />
-              <div className="text-[7px] text-muted-foreground">Наемател</div>
+            <div className="space-y-1 text-right">
+              <div className="ml-auto h-0.5 w-14 rounded-full bg-foreground/40" />
+              <div className="text-[9px] text-muted-foreground sm:text-[10px]">Наемател</div>
             </div>
           </div>
         </div>
@@ -215,73 +208,64 @@ function MiniVisual({ kind }: { kind: FeatureSlide["visual"] }) {
   }
 
   if (kind === "ai") {
-    // Digitized excerpt of /uploaded contract analyzer with AI findings.
     return (
       <Frame label="/uploaded">
-        <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.18em] text-gold">
-          <Wand2 className="h-2.5 w-2.5" strokeWidth={1.8} /> AI анализ
+        <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold sm:text-[11px]">
+          <Wand2 className="h-3.5 w-3.5" strokeWidth={1.8} /> AI анализ
         </div>
-        <div className="space-y-1.5">
-          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-1.5">
-            <div className="flex items-start gap-1.5">
-              <AlertTriangle className="mt-px h-2.5 w-2.5 shrink-0 text-amber-400" strokeWidth={2} />
+        <div className="space-y-2">
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" strokeWidth={2} />
               <div className="flex-1">
-                <div className="text-[8px] font-semibold text-amber-300">
+                <div className="text-xs font-semibold text-amber-300 sm:text-[13px]">
                   Липсваща клауза: неустойка
                 </div>
-                <div className="h-0.5 w-[80%] rounded-full bg-foreground/15 mt-1" />
+                <div className="mt-1 h-1 w-[80%] rounded-full bg-foreground/15" />
               </div>
             </div>
           </div>
-          <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 p-1.5">
-            <div className="flex items-start gap-1.5">
-              <Check className="mt-px h-2.5 w-2.5 shrink-0 text-emerald-400" strokeWidth={2.4} />
+          <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 p-2.5">
+            <div className="flex items-start gap-2">
+              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" strokeWidth={2.4} />
               <div className="flex-1">
-                <div className="text-[8px] font-semibold text-emerald-300">
+                <div className="text-xs font-semibold text-emerald-300 sm:text-[13px]">
                   Срок и предмет — коректни
                 </div>
-                <div className="h-0.5 w-[60%] rounded-full bg-foreground/15 mt-1" />
+                <div className="mt-1 h-1 w-[60%] rounded-full bg-foreground/15" />
               </div>
             </div>
           </div>
-          <div className="rounded-md border border-gold/40 bg-gold/10 p-1.5">
-            <div className="flex items-start gap-1.5">
-              <Sparkles className="mt-px h-2.5 w-2.5 shrink-0 text-gold" strokeWidth={2} />
+          <div className="rounded-md border border-gold/40 bg-gold/10 p-2.5">
+            <div className="flex items-start gap-2">
+              <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" strokeWidth={2} />
               <div className="flex-1">
-                <div className="text-[8px] font-semibold text-gold">
-                  Препоръка: добавете арбитражна клауза
+                <div className="text-xs font-semibold text-gold sm:text-[13px]">
+                  Препоръка: арбитражна клауза
                 </div>
-                <div className="relative mt-1 h-0.5 w-full overflow-hidden rounded-full bg-foreground/15">
+                <div className="relative mt-1 h-1 w-full overflow-hidden rounded-full bg-foreground/15">
                   <span className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-gold/0 via-gold/80 to-gold/0 animate-[ai-sweep_2.4s_ease-in-out_infinite]" />
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <div className="mt-2 flex items-center justify-between text-[8px] text-muted-foreground">
-          <span>3 находки</span>
-          <span className="inline-flex items-center gap-1 text-gold">
-            <ListChecks className="h-2.5 w-2.5" strokeWidth={1.8} />
-            Приложи корекции
-          </span>
-        </div>
       </Frame>
     );
   }
 
   if (kind === "catalog") {
-    // Digitized excerpt of /catalog: search bar + sector chips + result cards.
     return (
       <Frame label="/catalog">
-        <div className="mb-2 flex items-center gap-1.5 rounded-md border border-hairline bg-card/70 px-2 py-1">
-          <Search className="h-2.5 w-2.5 text-gold" strokeWidth={1.8} />
-          <span className="text-[8px] text-muted-foreground">Търсете: NDA, наем…</span>
+        <div className="mb-3 flex items-center gap-2 rounded-md border border-hairline bg-card/70 px-3 py-2">
+          <Search className="h-3.5 w-3.5 text-gold" strokeWidth={1.8} />
+          <span className="text-xs text-muted-foreground sm:text-[13px]">Търсете: NDA, наем…</span>
         </div>
-        <div className="mb-2 flex flex-wrap gap-1">
+        <div className="mb-3 flex flex-wrap gap-1.5">
           {["Труд", "Наем", "NDA", "GDPR", "Услуги"].map((label, i) => (
             <span
               key={label}
-              className={`rounded-full border px-1.5 py-0.5 text-[7.5px] font-medium uppercase tracking-wider ${
+              className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider sm:text-[11px] ${
                 i === 2
                   ? "border-gold/60 bg-gold/15 text-gold"
                   : "border-hairline bg-navy-light/40 text-muted-foreground"
@@ -291,7 +275,7 @@ function MiniVisual({ kind }: { kind: FeatureSlide["visual"] }) {
             </span>
           ))}
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {[
             { t: "NDA — едностранно", s: "Конфиденциалност" },
             { t: "Договор за наем", s: "Имоти" },
@@ -299,19 +283,19 @@ function MiniVisual({ kind }: { kind: FeatureSlide["visual"] }) {
           ].map((c, i) => (
             <div
               key={c.t}
-              className={`flex items-center justify-between rounded border px-2 py-1.5 ${
+              className={`flex items-center justify-between rounded-md border px-3 py-2 ${
                 i === 0 ? "border-gold/50 bg-gold/10" : "border-hairline bg-card/60"
               }`}
             >
               <div>
-                <div className={`text-[9px] font-semibold ${i === 0 ? "text-gold" : "text-foreground"}`}>
+                <div className={`text-xs font-semibold sm:text-[13px] ${i === 0 ? "text-gold" : "text-foreground"}`}>
                   {c.t}
                 </div>
-                <div className="text-[7.5px] uppercase tracking-wider text-muted-foreground">
+                <div className="text-[9px] uppercase tracking-wider text-muted-foreground sm:text-[10px]">
                   {c.s}
                 </div>
               </div>
-              <ChevronRight className={`h-2.5 w-2.5 ${i === 0 ? "text-gold" : "text-muted-foreground"}`} strokeWidth={2} />
+              <ChevronRight className={`h-3.5 w-3.5 ${i === 0 ? "text-gold" : "text-muted-foreground"}`} strokeWidth={2} />
             </div>
           ))}
         </div>
@@ -319,17 +303,17 @@ function MiniVisual({ kind }: { kind: FeatureSlide["visual"] }) {
     );
   }
 
-  // folders — digitized excerpt of /account workspace: folder tree + party list.
+  // folders
   return (
     <Frame label="/account">
-      <div className="mb-2 flex items-center justify-between text-[8px] uppercase tracking-[0.18em]">
-        <span className="inline-flex items-center gap-1 text-gold">
-          <FolderTree className="h-2.5 w-2.5" strokeWidth={1.8} />
+      <div className="mb-3 flex items-center justify-between text-[10px] uppercase tracking-[0.18em] sm:text-[11px]">
+        <span className="inline-flex items-center gap-1.5 text-gold">
+          <FolderTree className="h-3.5 w-3.5" strokeWidth={1.8} />
           Моите документи
         </span>
         <span className="text-muted-foreground">24 файла</span>
       </div>
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         {[
           { t: "Договори 2026", c: 12, open: true },
           { t: "Контрагенти", c: 8, open: false },
@@ -337,46 +321,27 @@ function MiniVisual({ kind }: { kind: FeatureSlide["visual"] }) {
         ].map((f) => (
           <div
             key={f.t}
-            className={`flex items-center gap-1.5 rounded border px-2 py-1 ${
+            className={`flex items-center gap-2 rounded-md border px-3 py-1.5 ${
               f.open ? "border-gold/50 bg-gold/10" : "border-hairline bg-card/60"
             }`}
           >
             <ChevronDown
-              className={`h-2.5 w-2.5 ${f.open ? "text-gold" : "text-muted-foreground -rotate-90"}`}
+              className={`h-3 w-3 ${f.open ? "text-gold" : "text-muted-foreground -rotate-90"}`}
               strokeWidth={2}
             />
-            <Folder className={`h-2.5 w-2.5 ${f.open ? "text-gold" : "text-foreground/50"}`} strokeWidth={1.8} />
-            <span className={`text-[9px] font-medium ${f.open ? "text-gold" : "text-foreground"}`}>
+            <Folder className={`h-3.5 w-3.5 ${f.open ? "text-gold" : "text-foreground/50"}`} strokeWidth={1.8} />
+            <span className={`text-xs font-medium sm:text-[13px] ${f.open ? "text-gold" : "text-foreground"}`}>
               {f.t}
             </span>
-            <span className="ml-auto text-[8px] text-muted-foreground">{f.c}</span>
+            <span className="ml-auto text-[10px] text-muted-foreground sm:text-[11px]">{f.c}</span>
           </div>
         ))}
-        {/* Nested file */}
-        <div className="ml-4 flex items-center gap-1.5 rounded border border-hairline bg-navy-light/40 px-2 py-1">
-          <FileText className="h-2.5 w-2.5 text-gold/80" strokeWidth={1.8} />
-          <span className="text-[8.5px] text-foreground">Наем-офис-ул.Раковски.docx</span>
+        <div className="ml-5 flex items-center gap-2 rounded-md border border-hairline bg-navy-light/40 px-3 py-1.5">
+          <FileText className="h-3.5 w-3.5 text-gold/80" strokeWidth={1.8} />
+          <span className="truncate text-[11px] text-foreground sm:text-xs">
+            Наем-офис-ул.Раковски.docx
+          </span>
         </div>
-      </div>
-      <div className="mt-2 flex items-center justify-between border-t border-hairline pt-2">
-        <div className="flex items-center gap-1">
-          <Users className="h-2.5 w-2.5 text-gold" strokeWidth={1.8} />
-          <div className="flex -space-x-1">
-            {[0, 1, 2].map((i) => (
-              <span
-                key={i}
-                className={`inline-block h-3 w-3 rounded-full border border-card ${
-                  i === 0 ? "bg-gold/70" : i === 1 ? "bg-foreground/40" : "bg-foreground/25"
-                }`}
-              />
-            ))}
-          </div>
-          <span className="ml-1 text-[8px] text-muted-foreground">3 страни</span>
-        </div>
-        <span className="inline-flex items-center gap-1 text-[8px] text-gold">
-          <Share2 className="h-2.5 w-2.5" strokeWidth={1.8} />
-          Сподели
-        </span>
       </div>
     </Frame>
   );
