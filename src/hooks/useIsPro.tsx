@@ -53,7 +53,7 @@ export function useIsPro(): ProState {
 
   const refresh = useCallback(async () => {
     if (!user) {
-      setState({ isPro: false, isTeam: false, loading: false, freeQuota: DEFAULT_FREE_QUOTA });
+      setState({ isPro: false, isTeam: false, isEntrepreneur: false, loading: false, freeQuota: DEFAULT_FREE_QUOTA });
       return;
     }
     const [{ data: q }, { data: tm }, { data: sub }] = await Promise.all([
