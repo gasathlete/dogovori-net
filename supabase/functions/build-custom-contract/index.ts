@@ -418,6 +418,11 @@ ${fieldsSection}
     });
 
     if (!aiResp.ok) {
+      await logAiAudit({
+        user_id: userId, operation: "build-custom-contract", model: route.model,
+        classification, redaction_applied: route.redactionRequired,
+        status: "error", error_code: `http_${aiResp.status}`,
+      });
       if (aiResp.status === 429) {
         return new Response(JSON.stringify({ error: "Достигнат е лимитът. Моля опитайте след малко." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
@@ -456,11 +461,25 @@ ${fieldsSection}
       throw new Error("AI отговорът не може да бъде анализиран като JSON");
     }
 
+    // Unredact AI output so the user sees real names/EGN/IBAN in the final doc.
+    if (Object.keys(redacted.mapping).length > 0) {
+      try {
+        parsed = JSON.parse(unredact(JSON.stringify(parsed), redacted.mapping));
+      } catch (e) { console.error("unredact failed:", e); }
+    }
+
     // Ensure bilingual flag is set when requested, so the renderer/exporters
     // know to use the two-column layout even if the AI forgets to include it.
     if (safeBilingual && parsed?.contract) {
       parsed.contract.bilingual = true;
     }
+
+    await logAiAudit({
+      user_id: userId, operation: "build-custom-contract", model: route.model,
+      classification, redaction_applied: route.redactionRequired, status: "ok",
+      tokens_in: data?.usage?.prompt_tokens,
+      tokens_out: data?.usage?.completion_tokens,
+    });
 
     // Cache successful result.
     try {
