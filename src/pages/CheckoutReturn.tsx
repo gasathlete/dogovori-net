@@ -58,7 +58,7 @@ export default function CheckoutReturn() {
   }, [readyAt, redirectTo, navigate, sessionId]);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo
         title="Покупката е завършена — Dogovori.net"
         description="Благодарим за плащането. Активираме Вашата покупка в Dogovori.net и Ви връщаме автоматично към документа, върху който работехте."

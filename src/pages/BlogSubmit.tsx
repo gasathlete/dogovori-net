@@ -111,12 +111,12 @@ export default function BlogSubmit() {
   };
 
   if (authLoading) {
-    return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-gold" /></div>;
+    return <div className="flex min-h-dvh items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-gold" /></div>;
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-dvh bg-background">
         <Header />
         <div className="container py-20 text-center">
           <h1 className="mb-3 font-serif text-2xl font-bold">Необходим е акаунт</h1>
@@ -129,7 +129,7 @@ export default function BlogSubmit() {
 
   if (isPro === false) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-dvh bg-background">
         <Header />
         <div className="container py-20 text-center">
           <Crown className="mx-auto mb-4 h-10 w-10 text-gold" />
@@ -142,7 +142,7 @@ export default function BlogSubmit() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <Seo title="Публикувай статия | Dogovori.net Блог" description="Споделете експертна юридическа статия в блога на Dogovori.net." canonical="/blog/submit" />
       <Header />
       <main className="container max-w-3xl py-10">

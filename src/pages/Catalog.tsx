@@ -158,7 +158,7 @@ export default function CatalogPage() {
   const seoCanonical = activeVid ? `/catalog?vid=${activeVid}` : "/catalog";
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo
         title={seoTitle}
         description={seoDesc}

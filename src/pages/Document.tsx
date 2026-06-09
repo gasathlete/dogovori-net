@@ -141,7 +141,7 @@ export default function DocumentPage() {
 
   if (loading || !doc || !contract) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-dvh">
         <Header />
         <div className="container flex items-center justify-center py-20">
           <Loader2 className="h-6 w-6 animate-spin text-gold" />
@@ -151,7 +151,7 @@ export default function DocumentPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Header />
       <main className="container py-6 md:py-8">
         <Link

@@ -60,7 +60,7 @@ export default function Blog() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <Seo
         title="Блог за договорно право в България | Dogovori.net"
         description="Експертни статии за договори, трудово право, имоти, GDPR и данъци. Цитирани закони от ЗЗД, КТ, ТЗ и практически съвети."

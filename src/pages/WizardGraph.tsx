@@ -147,7 +147,7 @@ export default function WizardGraphPage() {
   // ----- Early returns -------------------------------------------------
   if (!graph) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-dvh bg-background">
         <Header />
         <main className="container mx-auto flex max-w-xl flex-col items-center gap-4 px-4 py-16 text-center">
           <AlertCircle className="h-10 w-10 text-muted-foreground" />
@@ -162,7 +162,7 @@ export default function WizardGraphPage() {
   }
   if (error) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-dvh bg-background">
         <Header />
         <main className="container mx-auto max-w-xl px-4 py-16 text-center">
           <p className="text-sm text-destructive">Грешка при зареждане на клаузите: {error}</p>
@@ -172,7 +172,7 @@ export default function WizardGraphPage() {
   }
   if (clauses === null) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-dvh bg-background">
         <Header />
         <main className="flex items-center justify-center py-32">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

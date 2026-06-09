@@ -702,7 +702,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     : "Изгответе договор, разписка, пълномощно, декларация, оферта, фактура, протокол, анекс или приложение — AI попълва клаузите за минути, със ЗЗД/ТЗ съответствие.";
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo
         title={seoTitle}
         description={seoDescription}

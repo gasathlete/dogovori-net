@@ -55,7 +55,7 @@ export default function ContactPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-dvh">
         <Header />
         <main className="container flex items-center justify-center py-20">
           <Loader2 className="h-6 w-6 animate-spin text-gold" />
@@ -66,7 +66,7 @@ export default function ContactPage() {
 
   if (!contact) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-dvh">
         <Header />
         <main className="container py-10">
           <p className="text-sm text-muted-foreground">Контрагентът не е намерен.</p>
@@ -81,7 +81,7 @@ export default function ContactPage() {
   const total = docs.length + uploaded.length;
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Header />
       <main className="container py-6 md:py-10">
         <Link to="/account?tab=contacts" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-gold">

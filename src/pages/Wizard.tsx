@@ -123,7 +123,7 @@ export default function WizardPage() {
 
   if (!sector) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-dvh items-center justify-center">
         <div className="text-center">
           <p className="text-muted-foreground">Невалиден сектор.</p>
           <Button onClick={() => navigate("/")} className="mt-4">
@@ -563,7 +563,7 @@ export default function WizardPage() {
 
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Header />
 
 

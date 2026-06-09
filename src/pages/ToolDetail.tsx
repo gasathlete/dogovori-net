@@ -56,7 +56,7 @@ export default function ToolDetail() {
   const related = CALCULATORS.filter((c) => c.slug !== calc.slug).slice(0, 4);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo
         title={title}
         description={desc}

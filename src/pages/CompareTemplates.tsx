@@ -34,7 +34,7 @@ export default function CompareTemplates() {
   const tb = getTemplateBySlug(b);
   if (!ta || !tb) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-dvh">
         <Header />
         <main className="container py-12 text-center space-y-3">
           <h1 className="text-2xl font-serif">Невалидно сравнение</h1>
@@ -48,7 +48,7 @@ export default function CompareTemplates() {
   const desc = `Сравнение между „${ta.doc.name}“ и „${tb.doc.name}“: категория, тип, приложимост и кога да изберете кой образец.`;
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo
         title={title}
         description={desc}
@@ -129,7 +129,7 @@ function ComparePicker({ all }: { all: TemplateEntry[] }) {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo
         title="Сравни два шаблона на договори"
         description="Изберете два юридически образеца и вижте разликите им един до друг — категория, приложимост, кога да изберете кой."

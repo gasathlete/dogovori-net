@@ -41,11 +41,11 @@ export default function AdminAITraining() {
   }, [user, loading]);
 
   if (loading || allowed === null) {
-    return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-gold" /></div>;
+    return <div className="flex min-h-dvh items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-gold" /></div>;
   }
   if (!allowed) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-dvh">
         <Header />
         <div className="container py-20 text-center">
           <h1 className="mb-2 text-2xl font-bold">Достъп отказан</h1>
@@ -56,7 +56,7 @@ export default function AdminAITraining() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Header />
       <div className="container py-8">
         <div className="mb-4 flex items-center justify-between">

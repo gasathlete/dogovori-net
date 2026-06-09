@@ -71,7 +71,7 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo
         title="Нова парола — Dogovori.net"
         description="Задайте нова парола за Вашия акаунт в Dogovori.net и продължете към профила си с пълен достъп до договорите и шаблоните."

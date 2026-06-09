@@ -61,11 +61,11 @@ export default function AdminPage() {
   useEffect(() => { if (allowed) load(); }, [allowed]);
 
   if (loading || allowed === null) {
-    return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-gold" /></div>;
+    return <div className="flex min-h-dvh items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-gold" /></div>;
   }
   if (!allowed) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-dvh">
         <Header />
         <div className="container py-20 text-center">
           <h1 className="text-2xl font-bold mb-2">Достъп отказан</h1>
@@ -116,7 +116,7 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <Header />
       <div className="container py-8">
         <div className="flex items-center gap-3 mb-6 flex-wrap">

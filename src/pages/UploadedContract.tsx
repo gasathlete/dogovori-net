@@ -321,7 +321,7 @@ export default function UploadedContractPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-dvh">
         <Header />
         <main className="container py-10 flex items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-gold" />
@@ -332,7 +332,7 @@ export default function UploadedContractPage() {
 
   if (!contract) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-dvh">
         <Header />
         <main className="container py-10">
           <p>Договорът не е намерен.</p>
@@ -343,7 +343,7 @@ export default function UploadedContractPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Header />
       <main className="container py-6 md:py-10">
         <Link to="/account?tab=documents" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-gold">

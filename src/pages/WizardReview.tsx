@@ -504,7 +504,7 @@ export default function WizardReviewPage() {
   // ----- guard rails ---------------------------------------------------
   if (!graph) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-dvh bg-background">
         <Header />
         <main className="container mx-auto flex max-w-xl flex-col items-center gap-4 px-4 py-16 text-center">
           <AlertCircle className="h-10 w-10 text-muted-foreground" />
@@ -517,7 +517,7 @@ export default function WizardReviewPage() {
 
   if (!draft) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-dvh bg-background">
         <Header />
         <main className="container mx-auto flex max-w-xl flex-col items-center gap-4 px-4 py-16 text-center">
           <AlertCircle className="h-10 w-10 text-muted-foreground" />
@@ -534,7 +534,7 @@ export default function WizardReviewPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo
         title={`${graph.title} — Финализиране | Dogovori.net`}
         description={graph.title}

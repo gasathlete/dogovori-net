@@ -28,10 +28,10 @@ export default function GlossaryTerm() {
       });
   }, [slug]);
 
-  if (loading) return <div className="min-h-screen grid place-items-center"><Loader2 className="h-6 w-6 animate-spin text-gold" /></div>;
+  if (loading) return <div className="min-h-dvh grid place-items-center"><Loader2 className="h-6 w-6 animate-spin text-gold" /></div>;
   if (missing || !term) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-dvh">
         <Header />
         <main className="container py-12 text-center">
           <h1 className="text-2xl font-serif mb-2">Терминът не е намерен</h1>
@@ -44,7 +44,7 @@ export default function GlossaryTerm() {
   const related = (term.related_template_slugs ?? []).map((s) => getTemplateBySlug(s)).filter(Boolean);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo
         title={term.seo_title || `${term.term} — определение и значение`}
         description={term.seo_description || term.short_definition}

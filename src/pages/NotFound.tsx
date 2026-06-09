@@ -14,7 +14,7 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-dvh flex-col">
       <Seo
         title="Страницата не е намерена (404) — Dogovori.net"
         description="Търсената страница в Dogovori.net не съществува или е преместена. Върнете се към началото или разгледайте каталога с над 400 договора и бланки."
