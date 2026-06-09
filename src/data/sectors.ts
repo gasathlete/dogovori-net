@@ -1847,20 +1847,9 @@ function buildGenericSubWizard(documentName: string): SubWizard {
   const n = documentName.toLowerCase();
   const qs: Question[] = [];
 
-  // Тип документ → подходящи имена на страни
-  let parties = { a: "Страна А", b: "Страна Б" };
-  if (/наем|лиз/.test(n)) parties = { a: "Наемодател", b: "Наемател" };
-  else if (/продаж|покуп|кп/.test(n)) parties = { a: "Продавач", b: "Купувач" };
-  else if (/дарен/.test(n)) parties = { a: "Дарител", b: "Надарен" };
-  else if (/заем|кредит/.test(n)) parties = { a: "Заемодател", b: "Заемател" };
-  else if (/труд|работ/.test(n)) parties = { a: "Работодател", b: "Служител" };
-  else if (/изработ|услуг|поръчк|консулт|поддръжк|сервиз/.test(n)) parties = { a: "Възложител", b: "Изпълнител" };
-  else if (/превоз|спедиц|логист|куриер/.test(n)) parties = { a: "Възложител", b: "Превозвач" };
-  else if (/посредни|комисион|брокер|агент/.test(n)) parties = { a: "Доверител", b: "Посредник" };
-  else if (/лиценз|франчайз|право/.test(n)) parties = { a: "Лицензодател", b: "Лицензополучател" };
-  else if (/поверит|nda|конфиденциал/.test(n)) parties = { a: "Разкриваща страна", b: "Получаваща страна" };
-  else if (/съдружие|партньор|асоциац/.test(n)) parties = { a: "Съдружник А", b: "Съдружник Б" };
-  else if (/застрахов/.test(n)) parties = { a: "Застраховател", b: "Застрахован" };
+  // Тип документ → подходящи имена на страни (централна keyword-инференция).
+  const parties = inferPartyRolesGenitive(documentName) ?? { a: "Страна А", b: "Страна Б" };
+
 
   // Предмет
   qs.push({
