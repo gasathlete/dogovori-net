@@ -68,15 +68,24 @@ export function UploadContractDialog({
     setBusy(false); setPhase(""); setTab("pdf"); setAnalyzing(false); setTip("");
   };
 
-  const onFileChange = (f: File | null) => {
+  const onFileChange = async (f: File | null) => {
     if (!f) return setFile(null);
-    if (f.size > MAX_FILE_BYTES) {
-      toast.error("Файлът е твърде голям (макс. 10 MB)");
+    // Magic-bytes + MIME + size валидация (защита срещу маскирани файлове)
+    const { validateUploadedFile, detectFileKind } = await import("@/lib/fileValidation");
+    const kind = detectFileKind(f);
+    if (!kind) {
+      toast.error("Поддържаме само PDF или DOCX файлове.");
+      return;
+    }
+    const v = await validateUploadedFile(f, kind, MAX_FILE_BYTES);
+    if (!v.ok) {
+      toast.error(v.error ?? "Невалиден файл.");
       return;
     }
     setFile(f);
     if (!title) setTitle(f.name.replace(/\.[^.]+$/, ""));
   };
+
 
   const ensureFreshUploadSession = async () => {
     const refreshed = await supabase.auth.refreshSession();

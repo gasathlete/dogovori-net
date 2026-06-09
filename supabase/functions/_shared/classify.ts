@@ -27,10 +27,26 @@ const EMAIL_RE = /\b[\w.+\-]+@[\w-]+\.[\w.-]+\b/gi;
 const PHONE_RE = /(?:\+?359|0)\s*[\d\s\-()]{7,15}/g;
 const EGN_RE = /\b\d{10}\b/g;
 const IBAN_RE = /\bBG\d{2}[A-Z]{4}\d{14,20}\b/gi;
-const ID_CARD_RE = /\b(?:лична\s*карта|л\.?к\.?|ид\.?\s*№)\s*[:№]?\s*\d{6,12}\b/gi;
-const ADDRESS_RE = /\b(?:гр\.|град|с\.|село|ул\.|улица|бул\.|булевард|ж\.к\.|кв\.)\s+[А-ЯA-Z][^\n,.;]{2,80}/g;
-const NAME_RE =
-  /\b([А-ЯA-Z][а-яa-z]{1,20})\s+([А-ЯA-Z][а-яa-z]{1,20})(?:\s+([А-ЯA-Z][а-яa-z]{1,20}))?\b/g;
+// Cyrillic-friendly boundary: позиция в края на низ или преди/след не-буквен символ.
+// JS \b работи само с ASCII word chars, така че го заменяме с lookarounds, които
+// третират кирилицата като буква.
+const CYR_LB = "(?<![A-Za-zА-Яа-я])";
+const CYR_RB = "(?![A-Za-zА-Яа-я])";
+
+const ID_CARD_RE = new RegExp(
+  CYR_LB + "(?:лична\\s*карта|л\\.?к\\.?|ид\\.?\\s*№)\\s*[:№]?\\s*\\d{6,12}" + CYR_RB,
+  "gi",
+);
+const ADDRESS_RE = new RegExp(
+  CYR_LB + "(?:гр\\.|град|с\\.|село|ул\\.|улица|бул\\.|булевард|ж\\.к\\.|кв\\.)\\s+[А-ЯA-Z][^\\n,.;]{2,80}",
+  "g",
+);
+const NAME_RE = new RegExp(
+  CYR_LB +
+  "([А-ЯA-Z][а-яa-z]{1,20})\\s+([А-ЯA-Z][а-яa-z]{1,20})(?:\\s+([А-ЯA-Z][а-яa-z]{1,20}))?" +
+  CYR_RB,
+  "g",
+);
 
 const NAME_STOPWORDS = new Set([
   "Република","България","София","Пловдив","Варна","Бургас","Русе",
@@ -41,21 +57,24 @@ const NAME_STOPWORDS = new Set([
   "Настоящият","Настоящата","Настоящото",
 ]);
 
+function makeCyrPattern(body: string): RegExp {
+  return new RegExp(CYR_LB + body + CYR_RB, "i");
+}
+
 // Special-category keywords (GDPR Art. 9 + children data).
-// Order matters only for `reasons` ordering.
 const SPECIAL_CATEGORY_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
-  { pattern: /\b(ТЕЛК|НЕЛК|ЕР\s*на\s*ТЕЛК)\b/i, label: "health_disability" },
-  { pattern: /\b(болничен\s*лист|временна\s*неработоспособност)\b/i, label: "health_sickleave" },
-  { pattern: /\b(диагноза|МКБ[-\s]?10|заболяване|епикриза|медицинско\s*досие)\b/i, label: "health_diagnosis" },
-  { pattern: /\b(ХИВ|HIV|СПИН|AIDS|хепатит\s*[ABC]|туберкулоза|онкологичн)\b/i, label: "health_specific" },
-  { pattern: /\b(инвалидност|степен\s*на\s*увреждане|хора\s*с\s*увреждания)\b/i, label: "health_disability" },
-  { pattern: /\b(синдикат|синдикален|синдикално\s*членство)\b/i, label: "trade_union" },
-  { pattern: /\b(вероизповедание|религия|християнин|мюсюлманин|евреин|будист)\b/i, label: "religion" },
-  { pattern: /\b(политическа\s*партия|политически\s*убеждения|политическа\s*принадлежност)\b/i, label: "political" },
-  { pattern: /\b(етнос|етническа\s*принадлежност|раса|расова)\b/i, label: "racial_ethnic" },
-  { pattern: /\b(сексуална\s*ориентация|сексуален\s*живот|LGBT|ЛГБТ)\b/i, label: "sexual_orientation" },
-  { pattern: /\b(биометрични?\s*данни|пръстов\s*отпечатък|лицево\s*разпознаване|ДНК|генетичн)\b/i, label: "biometric_genetic" },
-  { pattern: /\b(непълнолетн|малолетн|дете\s*на\s*възраст|родителски\s*права|акт\s*за\s*раждане)\b/i, label: "minor" },
+  { pattern: makeCyrPattern("(ТЕЛК|НЕЛК|ЕР\\s*на\\s*ТЕЛК)"), label: "health_disability" },
+  { pattern: makeCyrPattern("(болничен\\s*лист|временна\\s*неработоспособност)"), label: "health_sickleave" },
+  { pattern: makeCyrPattern("(диагноза|МКБ[-\\s]?10|заболяване|епикриза|медицинско\\s*досие)"), label: "health_diagnosis" },
+  { pattern: makeCyrPattern("(ХИВ|HIV|СПИН|AIDS|хепатит\\s*[ABC]|туберкулоза|онкологичн)"), label: "health_specific" },
+  { pattern: makeCyrPattern("(инвалидност|степен\\s*на\\s*увреждане|хора\\s*с\\s*увреждания)"), label: "health_disability" },
+  { pattern: makeCyrPattern("(синдикат|синдикален|синдикално\\s*членство)"), label: "trade_union" },
+  { pattern: makeCyrPattern("(вероизповедание|религия|християнин|мюсюлманин|евреин|будист)"), label: "religion" },
+  { pattern: makeCyrPattern("(политическа\\s*партия|политически\\s*убеждения|политическа\\s*принадлежност)"), label: "political" },
+  { pattern: makeCyrPattern("(етнос|етническа\\s*принадлежност|раса|расова)"), label: "racial_ethnic" },
+  { pattern: makeCyrPattern("(сексуална\\s*ориентация|сексуален\\s*живот|LGBT|ЛГБТ)"), label: "sexual_orientation" },
+  { pattern: makeCyrPattern("(биометрични?\\s*данни|пръстов\\s*отпечатък|лицево\\s*разпознаване|ДНК|генетичн)"), label: "biometric_genetic" },
+  { pattern: makeCyrPattern("(непълнолетн|малолетн|дете\\s*на\\s*възраст|родителски\\s*права|акт\\s*за\\s*раждане)"), label: "minor" },
 ];
 
 export function classifyDocumentBeforeAI(input: string): Classification {
@@ -122,7 +141,7 @@ export function classifyDocumentBeforeAI(input: string): Classification {
   //   high   => flash-lite ONLY (after redaction); special category may be blocked by router
   //   blocked => []
   let allowed_models: string[];
-  switch (risk_level) {
+  switch (risk_level as RiskLevel) {
     case "blocked":
       allowed_models = [];
       break;
