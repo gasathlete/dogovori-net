@@ -83,9 +83,9 @@ Deno.serve(async (req) => {
     //    (e.g. saved into folders) but no longer need the raw text in DB.
     const { data: trimmed, error: trimErr } = await supabase
       .from("uploaded_contracts")
-      .update({ extracted_text: null })
+      .update({ extracted_text: "" })
       .lt("created_at", cutoff24h)
-      .not("extracted_text", "is", null)
+      .neq("extracted_text", "")
       .select("id");
     if (trimErr) {
       stats.errors.push(`extracted_text trim: ${trimErr.message}`);
