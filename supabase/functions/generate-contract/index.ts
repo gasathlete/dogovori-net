@@ -282,6 +282,11 @@ ${docTypeSpec.systemAddendum}
 
 
     if (!aiResp.ok) {
+      await logAiAudit({
+        user_id: userId, operation: "generate-contract", model: route.model,
+        classification, redaction_applied: route.redactionRequired,
+        status: "error", error_code: `http_${aiResp.status}`,
+      });
       if (aiResp.status === 429) {
         return new Response(JSON.stringify({ error: "Достигнат е лимитът. Моля опитайте след малко." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
@@ -315,8 +320,6 @@ ${docTypeSpec.systemAddendum}
       throw new Error("AI не върна съдържание (вероятно прекъснат отговор). Опитайте отново.");
     }
 
-
-
     let parsed;
     try { parsed = extractJson(content); }
     catch (err) {
@@ -324,11 +327,28 @@ ${docTypeSpec.systemAddendum}
       throw new Error("AI отговорът не може да бъде анализиран като JSON");
     }
 
+    // Unredact AI output so the user sees real names/EGN/IBAN in the final doc.
+    if (Object.keys(mergedMapping).length > 0) {
+      try {
+        const restored = JSON.parse(unredact(JSON.stringify(parsed), mergedMapping));
+        parsed = restored;
+      } catch (e) {
+        console.error("unredact failed:", e);
+      }
+    }
+
     // Defensive: ensure bilingual flag is set on contract when requested,
     // so exporters render BG/EN two-column layout reliably.
     if (isBilingual && parsed?.contract) {
       parsed.contract.bilingual = true;
     }
+
+    await logAiAudit({
+      user_id: userId, operation: "generate-contract", model: route.model,
+      classification, redaction_applied: route.redactionRequired, status: "ok",
+      tokens_in: data?.usage?.prompt_tokens,
+      tokens_out: data?.usage?.completion_tokens,
+    });
 
     // Persist to cache for future identical requests (best-effort).
     try {
