@@ -658,7 +658,7 @@ export function PlatformShowcase() {
           onTouchEnd={onTouchEnd}
           onTouchCancel={onTouchEnd}
         >
-          <div className="relative mx-auto h-[460px] w-full max-w-6xl sm:h-[580px] md:h-[660px]">
+          <div className="relative mx-auto h-[460px] w-full max-w-6xl sm:h-[580px] md:h-[660px] lg:h-[720px] xl:h-[780px]">
             {SLIDES.map((slide, i) => {
               // shortest signed distance on a ring
               let delta = i - idx;
@@ -692,7 +692,7 @@ export function PlatformShowcase() {
                     }
                     if (!isActive) goTo(i);
                   }}
-                  className="group absolute left-1/2 top-1/2 -ml-[140px] -mt-[200px] block h-[400px] w-[280px] rounded-2xl border border-hairline bg-card/95 text-left shadow-elegant outline-none transition-[transform,opacity,box-shadow] duration-700 ease-[cubic-bezier(.22,1,.36,1)] focus-visible:ring-2 focus-visible:ring-gold/60 sm:h-[560px] sm:w-[460px] sm:-ml-[230px] sm:-mt-[280px] md:h-[640px] md:w-[560px] md:-ml-[280px] md:-mt-[320px]"
+                  className="group absolute left-1/2 top-1/2 -ml-[140px] -mt-[200px] block h-[400px] w-[280px] rounded-2xl border border-hairline bg-card/95 text-left shadow-elegant outline-none transition-[transform,opacity,box-shadow] duration-700 ease-[cubic-bezier(.22,1,.36,1)] focus-visible:ring-2 focus-visible:ring-gold/60 sm:h-[560px] sm:w-[460px] sm:-ml-[230px] sm:-mt-[280px] md:h-[640px] md:w-[560px] md:-ml-[280px] md:-mt-[320px] lg:h-[680px] lg:-mt-[340px] xl:h-[740px] xl:-mt-[370px]"
                   style={{
                     transform: `translate3d(${translateX}px,0,0) rotateY(${rotateY}deg) scale(${scale})`,
                     opacity,
@@ -732,7 +732,7 @@ export function PlatformShowcase() {
                           </p>
                         </div>
                         {/* Kicker chip — bottom-right */}
-                        <span className="inline-flex max-w-[6.5rem] shrink-0 items-center gap-1.5 truncate rounded-full border border-gold/40 bg-navy/85 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-gold backdrop-blur sm:max-w-none sm:px-2.5 sm:text-[10px] sm:tracking-[0.2em]">
+                        <span className="inline-flex max-w-[6.5rem] shrink-0 items-center gap-1.5 truncate rounded-full border border-gold/40 bg-navy/85 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-gold backdrop-blur sm:max-w-[8rem] sm:px-2.5 sm:text-[10px] sm:tracking-[0.2em] md:max-w-[10rem] lg:max-w-[12rem]">
                           <Icon className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} />
                           <span className="truncate">{slide.kicker}</span>
                         </span>

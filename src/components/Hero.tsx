@@ -32,7 +32,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
   };
 
   return (
-    <section className="relative overflow-hidden border-b border-border/60 lg:flex lg:min-h-[calc(100svh-4rem)] lg:items-center">
+    <section className="relative overflow-hidden border-b border-border/60 lg:flex lg:min-h-[min(calc(100svh-4rem),680px)] lg:items-center">
       <div className="absolute inset-0 bg-gradient-hero opacity-95" />
       <HeroBackdrop />
 
@@ -124,7 +124,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </div>
 
           <h1
-            className="anim-rise font-serif text-[28px] font-bold leading-[1.1] text-balance sm:text-4xl md:text-5xl lg:text-5xl xl:text-[52px] lg:leading-[1.1]"
+            className="anim-rise mx-auto max-w-2xl font-serif text-[28px] font-bold leading-[1.1] text-balance sm:text-4xl md:text-5xl lg:text-5xl xl:text-[52px] lg:leading-[1.1]"
             style={{ animationDelay: "0ms" }}
           >
             Договори, които{" "}

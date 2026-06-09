@@ -120,7 +120,7 @@ export default function BlogPost() {
             />
           </figure>
 
-          <div className="prose prose-invert max-w-none text-pretty [&_pre]:overflow-x-auto [&_table]:block [&_table]:overflow-x-auto">
+          <div className="prose prose-invert mx-auto max-w-prose text-pretty [&_pre]:overflow-x-auto [&_table]:block [&_table]:overflow-x-auto">
             {(() => {
               const linkState = createAutoLinkState(8);
               return (
@@ -183,9 +183,9 @@ export default function BlogPost() {
         </article>
 
         {related.length > 0 && (
-          <section className="mx-auto mt-20 max-w-5xl">
+          <section className="mx-auto mt-20 max-w-3xl">
             <h2 className="mb-7 font-serif text-2xl font-bold leading-tight md:text-[28px]">Свързани статии</h2>
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-5 sm:grid-cols-2">
               {related.map((r) => (
                 <Link
                   key={r.slug}

@@ -102,7 +102,7 @@ export function TeaserDialog({
             </div>
 
             {/* content with blur-fade */}
-            <div className="flex min-h-[7rem] flex-col items-center justify-center">
+            <div className="flex min-h-[9rem] flex-col items-center justify-center">
               <h3
                 key={`t-${slide}`}
                 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground break-words sm:text-3xl md:text-4xl"

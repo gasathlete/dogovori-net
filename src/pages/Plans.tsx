@@ -132,7 +132,7 @@ export default function Plans() {
         </section>
 
         <section className="relative z-10 mx-auto max-w-7xl px-4 pb-12 sm:pb-16">
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 xl:gap-7">
             {plans.map((plan, idx) => {
               const Icon = PLAN_ICON[plan.id];
               const price = billing === "yearly" ? plan.yearly : plan.monthly;
@@ -247,7 +247,7 @@ export default function Plans() {
             triggerLabelOpen="Скрий сравнението ↑"
             triggerClassName="!text-xs"
             expandedContent={
-              <div className="overflow-x-auto">
+              <div className="mx-auto max-w-4xl overflow-x-auto">
                 <table className="w-full min-w-[640px] border-collapse text-sm">
                   <thead>
                     <tr className="border-b border-hairline">
