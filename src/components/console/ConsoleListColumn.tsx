@@ -172,7 +172,7 @@ function DealsListView() {
         if (!d) return;
         openTab({ kind: "deal", entityId: d.id, title: d.title });
       }}
-      emptyHint="Все още няма сделки. Натиснете „Нов" за първа сделка."
+      emptyHint='Все още няма сделки. Натиснете „Нов" за първа сделка.'
     />
   );
 }
