@@ -70,6 +70,7 @@ const Sector = lazy(() => import("./pages/Sector.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.tsx"));
 const Account = lazy(() => import("./pages/Account.tsx"));
+const Console = lazy(() => import("./pages/Console.tsx"));
 const DocumentPage = lazy(() => import("./pages/Document.tsx"));
 const UploadedContract = lazy(() => import("./pages/UploadedContract.tsx"));
 const Admin = lazy(() => import("./pages/Admin.tsx"));
@@ -176,6 +177,9 @@ const AnimatedRoutes = () => {
         <Route path="/plans" element={<Plans />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
+        <Route path="/console" element={<ProtectedRoute><Console /></ProtectedRoute>} />
+        <Route path="/console/:section" element={<ProtectedRoute><Console /></ProtectedRoute>} />
+        <Route path="/console/:section/:entityId" element={<ProtectedRoute><Console /></ProtectedRoute>} />
         <Route path="/document/:id" element={<ProtectedRoute><DocumentPage /></ProtectedRoute>} />
         <Route path="/uploaded/:id" element={<ProtectedRoute><UploadedContract /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />

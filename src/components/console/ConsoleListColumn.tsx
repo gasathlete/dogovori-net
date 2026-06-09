@@ -1,0 +1,396 @@
+import { useEffect, useMemo, useState } from "react";
+import { useConsoleStore } from "@/hooks/useConsoleStore";
+import { useDeals, dealStatusLabel, dealStatusColor, type Deal } from "@/hooks/useDeals";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
+import { Search, Plus, Loader2, FileText, FileUp, Briefcase, Library, Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+
+interface Row {
+  id: string;
+  title: string;
+  subtitle?: string;
+  badge?: { text: string; className: string };
+}
+
+function ListShell({
+  title,
+  onCreate,
+  onSearch,
+  loading,
+  rows,
+  activeId,
+  onOpen,
+  emptyHint,
+}: {
+  title: string;
+  onCreate?: () => void;
+  onSearch: (q: string) => void;
+  loading: boolean;
+  rows: Row[];
+  activeId: string | null;
+  onOpen: (row: Row) => void;
+  emptyHint: string;
+}) {
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-2 border-b border-border/60 p-3">
+        <h2 className="flex-1 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          {title}
+        </h2>
+        {onCreate && (
+          <Button
+            size="sm"
+            onClick={onCreate}
+            className="h-7 bg-gold/15 px-2 text-gold hover:bg-gold/25"
+            variant="ghost"
+          >
+            <Plus className="mr-1 h-3.5 w-3.5" /> Нов
+          </Button>
+        )}
+      </div>
+      <div className="p-2">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Търси…"
+            onChange={(e) => onSearch(e.target.value)}
+            className="h-8 pl-8 text-xs"
+          />
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {loading ? (
+          <div className="flex justify-center p-6">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : rows.length === 0 ? (
+          <p className="px-4 py-6 text-center text-xs text-muted-foreground">{emptyHint}</p>
+        ) : (
+          <ul className="divide-y divide-border/40">
+            {rows.map((r) => {
+              const active = activeId === r.id;
+              return (
+                <li key={r.id}>
+                  <button
+                    type="button"
+                    onClick={() => onOpen(r)}
+                    className={cn(
+                      "group relative flex w-full flex-col items-start gap-1 px-3 py-2.5 text-left transition-colors",
+                      active
+                        ? "bg-gold/10"
+                        : "hover:bg-muted/30",
+                    )}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "absolute inset-y-0 left-0 w-px bg-gold transition-opacity",
+                        active ? "opacity-100" : "opacity-0 group-hover:opacity-50",
+                      )}
+                    />
+                    <div className="flex w-full items-start gap-2">
+                      <span className="line-clamp-1 flex-1 text-[13px] font-medium text-foreground">
+                        {r.title}
+                      </span>
+                      {r.badge && (
+                        <span
+                          className={cn(
+                            "shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
+                            r.badge.className,
+                          )}
+                        >
+                          {r.badge.text}
+                        </span>
+                      )}
+                    </div>
+                    {r.subtitle && (
+                      <span className="line-clamp-1 text-[11px] text-muted-foreground">
+                        {r.subtitle}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DealsListView() {
+  const { deals, loading, create } = useDeals();
+  const { openTab, state } = useConsoleStore();
+  const [q, setQ] = useState("");
+
+  const rows: Row[] = useMemo(() => {
+    const filtered = q
+      ? deals.filter(
+          (d) =>
+            d.title.toLowerCase().includes(q.toLowerCase()) ||
+            (d.counterparty ?? "").toLowerCase().includes(q.toLowerCase()),
+        )
+      : deals;
+    return filtered.map((d) => ({
+      id: d.id,
+      title: d.title,
+      subtitle: [d.counterparty, d.amount_eur ? `${d.amount_eur.toFixed(2)} €` : null]
+        .filter(Boolean)
+        .join(" · "),
+      badge: { text: dealStatusLabel(d.status), className: dealStatusColor(d.status) },
+    }));
+  }, [deals, q]);
+
+  const activeId = state.tabs.find((t) => t.id === state.activeId)?.entityId ?? null;
+
+  return (
+    <ListShell
+      title="Сделки"
+      loading={loading}
+      rows={rows}
+      activeId={activeId}
+      onSearch={setQ}
+      onCreate={async () => {
+        const deal = await create({ title: "Нова сделка" });
+        if (!deal) {
+          toast.error("Грешка при създаване");
+          return;
+        }
+        openTab({
+          kind: "deal",
+          entityId: deal.id,
+          title: deal.title,
+        });
+      }}
+      onOpen={(r) => {
+        const d = deals.find((x) => x.id === r.id);
+        if (!d) return;
+        openTab({ kind: "deal", entityId: d.id, title: d.title });
+      }}
+      emptyHint='Все още няма сделки. Натиснете „Нов" за първа сделка.'
+    />
+  );
+}
+
+function DocsListView() {
+  const { user } = useAuth();
+  const { openTab, state } = useConsoleStore();
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("saved_documents")
+        .select("id, title, kind, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (active) {
+        setItems(data ?? []);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  const rows: Row[] = useMemo(() => {
+    const filtered = q
+      ? items.filter((d) => (d.title ?? "").toLowerCase().includes(q.toLowerCase()))
+      : items;
+    return filtered.map((d) => ({
+      id: d.id,
+      title: d.title || "(без заглавие)",
+      subtitle: `${d.kind} · ${new Date(d.created_at).toLocaleDateString("bg-BG")}`,
+    }));
+  }, [items, q]);
+
+  const activeId = state.tabs.find((t) => t.id === state.activeId)?.entityId ?? null;
+
+  return (
+    <ListShell
+      title="Документи"
+      loading={loading}
+      rows={rows}
+      activeId={activeId}
+      onSearch={setQ}
+      onOpen={(r) => openTab({ kind: "document", entityId: r.id, title: r.title })}
+      emptyHint="Няма запазени документи."
+    />
+  );
+}
+
+function UploadedListView() {
+  const { user } = useAuth();
+  const { openTab, state } = useConsoleStore();
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("uploaded_contracts")
+        .select("id, title, original_filename, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (active) {
+        setItems(data ?? []);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  const rows: Row[] = useMemo(() => {
+    const filtered = q
+      ? items.filter((d) => (d.title ?? d.original_filename ?? "").toLowerCase().includes(q.toLowerCase()))
+      : items;
+    return filtered.map((d) => ({
+      id: d.id,
+      title: d.title || d.original_filename || "(без заглавие)",
+      subtitle: new Date(d.created_at).toLocaleDateString("bg-BG"),
+    }));
+  }, [items, q]);
+
+  const activeId = state.tabs.find((t) => t.id === state.activeId)?.entityId ?? null;
+
+  return (
+    <ListShell
+      title="Качени"
+      loading={loading}
+      rows={rows}
+      activeId={activeId}
+      onSearch={setQ}
+      onOpen={(r) => openTab({ kind: "uploaded", entityId: r.id, title: r.title })}
+      emptyHint="Няма качени договори."
+    />
+  );
+}
+
+function ClientsListView() {
+  const { user } = useAuth();
+  const { openTab, state } = useConsoleStore();
+  const [counterparties, setCounterparties] = useState<{ name: string; count: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("deals" as any)
+        .select("counterparty");
+      if (!active) return;
+      const map = new Map<string, number>();
+      ((data as any[]) ?? []).forEach((d) => {
+        const name = (d.counterparty ?? "").trim();
+        if (!name) return;
+        map.set(name, (map.get(name) ?? 0) + 1);
+      });
+      setCounterparties(
+        Array.from(map.entries())
+          .map(([name, count]) => ({ name, count }))
+          .sort((a, b) => b.count - a.count),
+      );
+      setLoading(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  const rows: Row[] = useMemo(() => {
+    const filtered = q
+      ? counterparties.filter((c) => c.name.toLowerCase().includes(q.toLowerCase()))
+      : counterparties;
+    return filtered.map((c) => ({
+      id: c.name,
+      title: c.name,
+      subtitle: `${c.count} ${c.count === 1 ? "сделка" : "сделки"}`,
+    }));
+  }, [counterparties, q]);
+
+  const activeId = state.tabs.find((t) => t.id === state.activeId)?.entityId ?? null;
+
+  return (
+    <ListShell
+      title="Клиенти"
+      loading={loading}
+      rows={rows}
+      activeId={activeId}
+      onSearch={setQ}
+      onOpen={(r) => openTab({ kind: "client", entityId: r.id, title: r.title })}
+      emptyHint="Клиентите се появяват автоматично от вашите сделки."
+    />
+  );
+}
+
+export function ConsoleListColumn() {
+  const { state } = useConsoleStore();
+
+  const view = useMemo(() => {
+    switch (state.section) {
+      case "deals":
+        return <DealsListView />;
+      case "documents":
+        return <DocsListView />;
+      case "uploaded":
+        return <UploadedListView />;
+      case "clients":
+        return <ClientsListView />;
+      case "templates":
+        return (
+          <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
+            <Library className="h-8 w-8 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              Каталогът е достъпен от{" "}
+              <a href="/catalog" className="text-gold underline-offset-2 hover:underline">
+                /catalog
+              </a>
+              .
+            </p>
+          </div>
+        );
+      case "analyses":
+        return (
+          <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              Анализите се появяват при качване на договор.
+            </p>
+          </div>
+        );
+      case "dashboard":
+      default:
+        return (
+          <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+            <Briefcase className="h-8 w-8 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              Изберете секция отляво, за да видите списък.
+            </p>
+          </div>
+        );
+    }
+  }, [state.section]);
+
+  return <div className="h-full w-72 shrink-0 border-r border-border/60 bg-card/20">{view}</div>;
+}
