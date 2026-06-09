@@ -33,10 +33,10 @@ Deno.serve(async (req) => {
     // Fetch candidates first to know storage paths.
     const { data: candidates, error: candErr } = await supabase
       .from("uploaded_contracts")
-      .select("id, user_id, storage_path, folder_id, saved_document_id")
+      .select("id, user_id, storage_path, folder_id, deal_id")
       .lt("created_at", cutoff24h)
       .is("folder_id", null)
-      .is("saved_document_id", null)
+      .is("deal_id", null)
       .limit(500);
 
     if (candErr) {
