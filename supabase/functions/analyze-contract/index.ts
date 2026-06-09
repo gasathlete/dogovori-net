@@ -451,6 +451,30 @@ ${payloadText}
 
     if (!parsed) throw new Error("AI не върна валиден отговор");
 
+    // Unredact text fields in AI output before verification (so clause matching
+    // works against the original source text).
+    if (Object.keys(redaction.mapping).length > 0) {
+      const unmap = redaction.mapping;
+      if (typeof parsed.summary === "string") parsed.summary = unredact(parsed.summary, unmap);
+      if (typeof parsed.contract_type === "string") parsed.contract_type = unredact(parsed.contract_type, unmap);
+      if (Array.isArray(parsed.issues)) {
+        parsed.issues = parsed.issues.map((it: Record<string, unknown>) => ({
+          ...it,
+          title: typeof it.title === "string" ? unredact(it.title, unmap) : it.title,
+          clause: typeof it.clause === "string" ? unredact(it.clause, unmap) : it.clause,
+          explanation: typeof it.explanation === "string" ? unredact(it.explanation, unmap) : it.explanation,
+          suggestion: typeof it.suggestion === "string" ? unredact(it.suggestion, unmap) : it.suggestion,
+        }));
+      }
+      if (Array.isArray(parsed.missing_clauses)) {
+        parsed.missing_clauses = parsed.missing_clauses.map((m: Record<string, unknown>) => ({
+          ...m,
+          name: typeof m.name === "string" ? unredact(m.name, unmap) : m.name,
+          why: typeof m.why === "string" ? unredact(m.why, unmap) : m.why,
+        }));
+      }
+    }
+
     const rawIssues = Array.isArray(parsed?.issues) ? parsed.issues : [];
     const rawMissing = Array.isArray(parsed?.missing_clauses) ? parsed.missing_clauses : [];
 
