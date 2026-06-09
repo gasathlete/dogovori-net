@@ -8,6 +8,7 @@ import {
   Library,
   Users,
   ShieldAlert,
+  PenSquare,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -20,6 +21,7 @@ const ITEMS: { id: ConsoleSection; label: string; icon: any }[] = [
   { id: "templates", label: "Шаблони", icon: Library },
   { id: "clients", label: "Клиенти", icon: Users },
   { id: "analyses", label: "Анализи", icon: ShieldAlert },
+  { id: "signing", label: "Подписи", icon: PenSquare },
 ];
 
 export function ConsoleSidebar() {
