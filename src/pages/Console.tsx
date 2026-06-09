@@ -4,6 +4,7 @@ import { ConsoleSidebar } from "@/components/console/ConsoleSidebar";
 import { ConsoleListColumn } from "@/components/console/ConsoleListColumn";
 import { ConsoleTabBar } from "@/components/console/ConsoleTabBar";
 import { ConsoleCanvas } from "@/components/console/ConsoleCanvas";
+import { ConsoleFooter } from "@/components/console/ConsoleFooter";
 import { Header } from "@/components/Header";
 
 function ConsoleShell() {
@@ -17,6 +18,7 @@ function ConsoleShell() {
         <div className="flex flex-1 flex-col overflow-hidden">
           <ConsoleTabBar />
           <ConsoleCanvas />
+          <ConsoleFooter />
         </div>
       </div>
     </div>

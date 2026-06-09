@@ -345,6 +345,194 @@ function ClientsListView() {
   );
 }
 
+function TemplatesListView() {
+  const { openTab, state } = useConsoleStore();
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("template_search_index")
+        .select("slug, name, category_title, bilingual, has_dynamic_wizard, lawyer_reviewed")
+        .eq("locale", "bg")
+        .order("name", { ascending: true })
+        .limit(300);
+      if (active) {
+        setItems(data ?? []);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const rows: Row[] = useMemo(() => {
+    const filtered = q
+      ? items.filter(
+          (t) =>
+            t.name.toLowerCase().includes(q.toLowerCase()) ||
+            (t.category_title ?? "").toLowerCase().includes(q.toLowerCase()),
+        )
+      : items;
+    return filtered.map((t) => ({
+      id: t.slug,
+      title: t.name,
+      subtitle: t.category_title,
+      badge: t.lawyer_reviewed
+        ? { text: "юрист", className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" }
+        : undefined,
+    }));
+  }, [items, q]);
+
+  const activeId = state.tabs.find((t) => t.id === state.activeId)?.entityId ?? null;
+
+  return (
+    <ListShell
+      title="Шаблони"
+      loading={loading}
+      rows={rows}
+      activeId={activeId}
+      onSearch={setQ}
+      onOpen={(r) => openTab({ kind: "template", entityId: r.id, title: r.title })}
+      emptyHint="Няма намерени шаблони."
+    />
+  );
+}
+
+function AnalysesListView() {
+  const { user } = useAuth();
+  const { openTab, state } = useConsoleStore();
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("risk_analyses")
+        .select("id, contract_type, summary, score, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (active) {
+        setItems(data ?? []);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  const rows: Row[] = useMemo(() => {
+    const filtered = q
+      ? items.filter((d) =>
+          (d.contract_type ?? "").toLowerCase().includes(q.toLowerCase()) ||
+          (d.summary ?? "").toLowerCase().includes(q.toLowerCase()),
+        )
+      : items;
+    return filtered.map((d) => {
+      const cls =
+        d.score >= 8
+          ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+          : d.score >= 5
+            ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
+            : "border-red-500/40 bg-red-500/10 text-red-300";
+      return {
+        id: d.id,
+        title: d.contract_type || "Анализ",
+        subtitle: new Date(d.created_at).toLocaleDateString("bg-BG"),
+        badge: { text: `${d.score}/10`, className: cls },
+      };
+    });
+  }, [items, q]);
+
+  const activeId = state.tabs.find((t) => t.id === state.activeId)?.entityId ?? null;
+
+  return (
+    <ListShell
+      title="Анализи"
+      loading={loading}
+      rows={rows}
+      activeId={activeId}
+      onSearch={setQ}
+      onOpen={(r) => openTab({ kind: "analysis", entityId: r.id, title: r.title })}
+      emptyHint="Анализите се появяват при качване на договор."
+    />
+  );
+}
+
+function SigningListView() {
+  const { user } = useAuth();
+  const { openTab, state } = useConsoleStore();
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("signing_requests")
+        .select("id, title, status, created_at")
+        .eq("owner_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (active) {
+        setItems(data ?? []);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  const rows: Row[] = useMemo(() => {
+    const filtered = q
+      ? items.filter((d) => (d.title ?? "").toLowerCase().includes(q.toLowerCase()))
+      : items;
+    return filtered.map((d) => {
+      const cls =
+        d.status === "completed"
+          ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+          : d.status === "declined" || d.status === "expired"
+            ? "border-red-500/40 bg-red-500/10 text-red-300"
+            : "border-amber-500/40 bg-amber-500/10 text-amber-300";
+      return {
+        id: d.id,
+        title: d.title || "Заявка за подпис",
+        subtitle: new Date(d.created_at).toLocaleDateString("bg-BG"),
+        badge: { text: d.status, className: cls },
+      };
+    });
+  }, [items, q]);
+
+  const activeId = state.tabs.find((t) => t.id === state.activeId)?.entityId ?? null;
+
+  return (
+    <ListShell
+      title="Подписи"
+      loading={loading}
+      rows={rows}
+      activeId={activeId}
+      onSearch={setQ}
+      onOpen={(r) => openTab({ kind: "signing", entityId: r.id, title: r.title })}
+      emptyHint="Няма изпратени заявки за подпис."
+    />
+  );
+}
+
 export function ConsoleListColumn() {
   const { state } = useConsoleStore();
 
@@ -359,26 +547,11 @@ export function ConsoleListColumn() {
       case "clients":
         return <ClientsListView />;
       case "templates":
-        return (
-          <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
-            <Library className="h-8 w-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-              Каталогът е достъпен от{" "}
-              <a href="/catalog" className="text-gold underline-offset-2 hover:underline">
-                /catalog
-              </a>
-              .
-            </p>
-          </div>
-        );
+        return <TemplatesListView />;
       case "analyses":
-        return (
-          <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              Анализите се появяват при качване на договор.
-            </p>
-          </div>
-        );
+        return <AnalysesListView />;
+      case "signing":
+        return <SigningListView />;
       case "dashboard":
       default:
         return (

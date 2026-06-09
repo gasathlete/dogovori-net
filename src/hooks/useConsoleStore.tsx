@@ -46,6 +46,7 @@ export type ConsoleSection =
   | "templates"
   | "clients"
   | "analyses"
+  | "signing"
   | "team";
 
 interface State {
