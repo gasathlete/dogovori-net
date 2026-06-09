@@ -32,14 +32,25 @@ Deno.serve(async (req) => {
     const { name, seats, billing, returnUrl, environment } = body as {
       name: string;
       seats: number;
-      billing: "monthly" | "yearly";
+      billing?: "monthly" | "yearly";
       returnUrl: string;
       environment: StripeEnv;
     };
 
     if (!name || name.length < 2 || name.length > 100) throw new Error("Invalid team name");
     if (!Number.isInteger(seats) || seats < 3 || seats > 100) throw new Error("Seats must be 3–100");
-    if (billing !== "monthly" && billing !== "yearly") throw new Error("Invalid billing");
+    if (billing && billing !== "yearly") throw new Error("Екип е само годишен абонамент");
+    // Block if user has an active individual subscription
+    {
+      const { data: sub } = await admin
+        .from("subscriptions")
+        .select("status")
+        .eq("user_id", user.id)
+        .eq("environment", environment)
+        .in("status", ["active", "trialing", "past_due"])
+        .maybeSingle();
+      if (sub) throw new Error("Имате активен индивидуален абонамент. Откажете го преди да създадете екип.");
+    }
     if (!returnUrl) throw new Error("returnUrl required");
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
 
