@@ -4,6 +4,10 @@ import { buildCors } from "../_shared/cors.ts";
 import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
+import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
+import { redactForAI, unredact } from "../_shared/redact.ts";
+import { routeModel } from "../_shared/model-router.ts";
+import { logAiAudit } from "../_shared/ai-call.ts";
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш СУРОВ ТЕКСТ на договор и списък от установени правни проблеми и липсващи клаузи.
 
