@@ -91,7 +91,7 @@ async function handleSubscriptionCreated(subscription: any, env: StripeEnv) {
   );
 
   if (["active", "trialing"].includes(subscription.status)) {
-    await setProPlan(userId, periodEnd ? new Date(periodEnd * 1000).toISOString() : null);
+    await setPaidPlan(userId, periodEnd ? new Date(periodEnd * 1000).toISOString() : null, priceId);
   }
 }
 
@@ -122,7 +122,7 @@ async function handleSubscriptionUpdated(subscription: any, env: StripeEnv) {
   const userId = subscription.metadata?.userId;
   if (userId) {
     if (["active", "trialing"].includes(subscription.status)) {
-      await setProPlan(userId, periodEnd ? new Date(periodEnd * 1000).toISOString() : null);
+      await setPaidPlan(userId, periodEnd ? new Date(periodEnd * 1000).toISOString() : null, priceId);
     } else if (subscription.status === "canceled" && (!periodEnd || periodEnd * 1000 < Date.now())) {
       await setFreePlan(userId);
     }
