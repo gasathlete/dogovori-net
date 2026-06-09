@@ -147,14 +147,18 @@ export function partiesAreCompatible(
   documentName: string | null | undefined,
   parties: PartyRoles | null | undefined,
 ): boolean {
-  if (!parties || !parties.a || !parties.b) return false;
+  if (!parties || !parties.a) return false;
+  // Unilateral documents (declarations, wills, applications) have a single
+  // party — accept any A label when B is empty; these never reach the
+  // bilateral signing block.
+  if (!parties.b) return true;
   const expected = inferPartyRoles(documentName);
   if (!expected) return true; // no opinion → trust caller
   const norm = (s: string) => s.toLowerCase().replace(/[^a-zа-я]+/gi, "");
   const matches = (have: string, want: string) =>
     norm(have).startsWith(norm(want).slice(0, Math.min(6, norm(want).length)));
-  // Allow exact OR reversed; reversed flagged separately by the audit.
   const direct = matches(parties.a, expected.a) && matches(parties.b, expected.b);
   const reversed = matches(parties.a, expected.b) && matches(parties.b, expected.a);
   return direct || reversed;
 }
+
