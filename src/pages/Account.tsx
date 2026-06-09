@@ -180,6 +180,9 @@ export default function AccountPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button asChild variant="outline" size="sm" className="border-gold/60 text-gold hover:bg-gold/10">
+              <Link to="/console"><LayoutDashboard className="mr-2 h-4 w-4" /> Workspace</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm" className="border-gold/60 text-gold hover:bg-gold/10">
               <Link to="/team"><Users className="mr-2 h-4 w-4" /> Екип</Link>
             </Button>
             {isStaff && (
