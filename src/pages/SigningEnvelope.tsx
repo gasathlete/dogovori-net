@@ -29,7 +29,9 @@ export default function SigningEnvelope() {
   async function load() {
     const [{ data: e }, { data: s }] = await Promise.all([
       supabase.from("signing_requests").select("*").eq("id", id).maybeSingle(),
-      supabase.from("signing_request_signers").select("*").eq("request_id", id).order("order_idx"),
+      supabase.from("signing_request_signers")
+        .select("id, name, email, role, order_idx, status, signed_at, declined_at, viewed_at, sign_token, request_id")
+        .eq("request_id", id).order("order_idx"),
     ]);
     setEnv(e as any); setSigners((s as any) ?? []); setLoading(false);
   }
