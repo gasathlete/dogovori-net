@@ -220,7 +220,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: isEntrepreneur ? MODEL_PREMIUM : MODEL_STANDARD,
         stream: true,
         messages: [
           { role: "system", content: systemFinal },
