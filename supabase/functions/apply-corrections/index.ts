@@ -227,9 +227,7 @@ ${answersRedacted}
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        // Flash is ~3-5x faster than Pro for targeted edits and is more than
-        // capable for the constrained "modify only selected items" task here.
-        model: "google/gemini-2.5-flash",
+        model: route.model,
         messages: [
           { role: "system", content: activeSystemPrompt },
           { role: "user", content: userPrompt },
@@ -239,10 +237,14 @@ ${answersRedacted}
     });
 
     if (!aiResp.ok) {
-      // Refund the batch charge so the user can retry without losing 1 op.
       if (batchCharged) {
         await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
       }
+      await logAiAudit({
+        user_id: userId, operation: "apply-corrections", model: route.model,
+        classification, redaction_applied: route.redactionRequired,
+        status: "error", error_code: `http_${aiResp.status}`,
+      });
       if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Достигнат е лимитът. Опитайте по-късно." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       if (aiResp.status === 402) return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const t = await aiResp.text();
@@ -250,7 +252,6 @@ ${answersRedacted}
       throw new Error("AI грешка");
     }
 
-    // Log usage AFTER successful AI call
     await admin.from("ai_usage").insert({
       user_id: userId,
       function_name: "apply-corrections",
@@ -260,6 +261,20 @@ ${answersRedacted}
     const content: string = raw.choices?.[0]?.message?.content ?? "";
     if (!content.trim()) throw new Error("Празен AI отговор");
     const parsed = extractJson(content);
+
+    // Unredact AI output before returning.
+    if (Object.keys(redaction.mapping).length > 0) {
+      const restored = JSON.parse(unredact(JSON.stringify(parsed), redaction.mapping));
+      Object.assign(parsed, restored);
+    }
+
+    await logAiAudit({
+      user_id: userId, operation: "apply-corrections", model: route.model,
+      classification, redaction_applied: route.redactionRequired,
+      status: "ok",
+      tokens_in: raw?.usage?.prompt_tokens,
+      tokens_out: raw?.usage?.completion_tokens,
+    });
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
