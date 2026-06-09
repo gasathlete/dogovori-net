@@ -1256,8 +1256,12 @@ type SubRow = {
 };
 
 const PLAN_LABELS: Record<string, { name: string; price: string; cycle: string }> = {
-  pro_monthly: { name: "Предприемач — месечен", price: "12.90 €", cycle: "месечно" },
-  pro_yearly: { name: "Предприемач — годишен", price: "129 €", cycle: "годишно" },
+  pro_monthly: { name: "Професионалист — месечен", price: "12.90 €", cycle: "месечно" },
+  pro_yearly: { name: "Професионалист — годишен", price: "129 €", cycle: "годишно" },
+  professional_monthly: { name: "Професионалист — месечен", price: "12.90 €", cycle: "месечно" },
+  professional_yearly: { name: "Професионалист — годишен", price: "129 €", cycle: "годишно" },
+  entrepreneur_monthly: { name: "Предприемач — месечен", price: "19.90 €", cycle: "месечно" },
+  entrepreneur_yearly: { name: "Предприемач — годишен", price: "199 €", cycle: "годишно" },
   five_operations: { name: "Пакет 5 операции", price: "2.90 €", cycle: "еднократно" },
 };
 
