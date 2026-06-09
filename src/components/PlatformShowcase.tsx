@@ -749,30 +749,33 @@ export function PlatformShowcase() {
                     </>
                   )}
 
-                  <div className="flex h-full flex-col p-6 sm:p-7">
-                    <div className="mb-4 inline-flex items-center gap-2 self-start rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold">
+                  <div className="relative flex h-full flex-col overflow-hidden rounded-2xl">
+                    {/* Visual fills the entire card */}
+                    <div className="absolute inset-0">
+                      <MiniVisual kind={slide.visual} />
+                    </div>
+
+                    {/* Kicker chip — floats over the chrome */}
+                    <div className="pointer-events-none absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-navy/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold backdrop-blur sm:left-4 sm:top-4">
                       <Icon className="h-3.5 w-3.5" strokeWidth={1.6} />
                       {slide.kicker}
                     </div>
 
-                    <h3 className="font-serif text-xl font-bold leading-snug text-foreground sm:text-2xl">
-                      {slide.title}
-                    </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
-                      {slide.description}
-                    </p>
-
-                    <div className="mt-5 flex-1">
-                      <MiniVisual kind={slide.visual} />
-                    </div>
-
-                    {/* Animated bottom accent */}
-                    <div className="relative mt-4 h-px overflow-hidden bg-hairline">
-                      <span
-                        className={`absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-gold/80 to-transparent ${
-                          isActive ? "animate-[platform-beam_3.2s_ease-in-out_infinite]" : ""
-                        }`}
-                      />
+                    {/* Caption band — translucent overlay at the bottom */}
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 border-t border-hairline bg-gradient-to-t from-navy via-navy/95 to-navy/0 px-5 pb-5 pt-10 sm:px-6 sm:pb-6">
+                      <h3 className="font-serif text-lg font-bold leading-snug text-foreground sm:text-xl md:text-2xl">
+                        {slide.title}
+                      </h3>
+                      <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
+                        {slide.description}
+                      </p>
+                      <div className="relative mt-3 h-px overflow-hidden bg-hairline">
+                        <span
+                          className={`absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-gold/80 to-transparent ${
+                            isActive ? "animate-[platform-beam_3.2s_ease-in-out_infinite]" : ""
+                          }`}
+                        />
+                      </div>
                     </div>
                   </div>
                 </button>
