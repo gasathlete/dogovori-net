@@ -144,8 +144,56 @@ Deno.serve(async (req: Request) => {
       ? "ИЗБРАНИ ПРЕПОРЪКИ:\n" + selectedRecommendations.map((r: string, n: number) => `${n + 1}. ${r}`).join("\n")
       : "";
 
-    const userPrompt = `СЪЩЕСТВУВАЩ ДОГОВОР (JSON):
-${JSON.stringify(contract)}
+    // === GDPR/AI Act compliance layer ===
+    const sourceText = [
+      JSON.stringify(contract).slice(0, 20000),
+      ...Object.values(answers ?? {}).map((v) => String(v ?? "")),
+    ].join("\n");
+    const classification = classifyDocumentBeforeAI(sourceText);
+    const route = routeModel("apply-corrections", classification, { userConfirmed });
+
+    if (!route.allowed) {
+      if (batchCharged) {
+        await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
+      }
+      await logAiAudit({
+        user_id: userId, operation: "apply-corrections", model: "",
+        classification, redaction_applied: false, status: "blocked",
+        error_code: route.blockedReason ?? "blocked",
+      });
+      return new Response(JSON.stringify({
+        error: "Документът съдържа специални категории лични данни и не може да бъде обработен автоматично.",
+        code: route.blockedReason ?? "special_category_blocked",
+        classification: {
+          risk_level: classification.risk_level,
+          contains_special_category_data: classification.contains_special_category_data,
+          reasons: classification.reasons,
+        },
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (route.requireConfirmation) {
+      if (batchCharged) {
+        await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
+      }
+      return new Response(JSON.stringify({
+        error: "needs_confirmation",
+        code: "sensitive_data_confirmation_required",
+        classification: {
+          risk_level: classification.risk_level,
+          contains_personal_data: classification.contains_personal_data,
+          contains_special_category_data: classification.contains_special_category_data,
+          pii_counts: classification.pii_counts,
+          reasons: classification.reasons,
+        },
+      }), { status: 428, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const contractJsonStr = JSON.stringify(contract);
+    const redaction = route.redactionRequired
+      ? redactForAI(contractJsonStr)
+      : { redacted: contractJsonStr, mapping: {}, stats: {} };
+
 
 ТЕКУЩ RISK:
 ${risk ? JSON.stringify(risk) : "(не е предоставен)"}
