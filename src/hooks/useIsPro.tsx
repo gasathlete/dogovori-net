@@ -105,6 +105,7 @@ export function useIsPro(): ProState {
     setState({
       isPro,
       isTeam,
+      isEntrepreneur: isPro && isEntrepreneur,
       loading: false,
       freeQuota: {
         opsUsed: (q as any)?.monthly_total_used ?? 0,
