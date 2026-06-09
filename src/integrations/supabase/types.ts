@@ -14,6 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_audit_log: {
+        Row: {
+          contains_personal_data: boolean
+          contains_special_category_data: boolean
+          created_at: string
+          error_code: string | null
+          fallback_model: string | null
+          fallback_used: boolean
+          id: string
+          model: string
+          operation: string
+          redaction_applied: boolean
+          risk_level: string
+          status: string
+          team_id: string | null
+          tokens_in: number | null
+          tokens_out: number | null
+          user_id: string | null
+        }
+        Insert: {
+          contains_personal_data?: boolean
+          contains_special_category_data?: boolean
+          created_at?: string
+          error_code?: string | null
+          fallback_model?: string | null
+          fallback_used?: boolean
+          id?: string
+          model: string
+          operation: string
+          redaction_applied?: boolean
+          risk_level: string
+          status: string
+          team_id?: string | null
+          tokens_in?: number | null
+          tokens_out?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          contains_personal_data?: boolean
+          contains_special_category_data?: boolean
+          created_at?: string
+          error_code?: string | null
+          fallback_model?: string | null
+          fallback_used?: boolean
+          id?: string
+          model?: string
+          operation?: string
+          redaction_applied?: boolean
+          risk_level?: string
+          status?: string
+          team_id?: string | null
+          tokens_in?: number | null
+          tokens_out?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_audit_log_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_prompt_sections: {
         Row: {
           content: string
