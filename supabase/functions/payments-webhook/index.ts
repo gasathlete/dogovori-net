@@ -12,17 +12,26 @@ function getSupabase() {
   return _supabase;
 }
 
-async function setProPlan(userId: string, until: string | null) {
+function tierFromPriceId(priceId: string | null | undefined): { plan: "pro" | "free"; opsCap: number | null } {
+  if (!priceId) return { plan: "pro", opsCap: null };
+  if (priceId.startsWith("entrepreneur")) return { plan: "pro", opsCap: 120 };
+  if (priceId.startsWith("professional")) return { plan: "pro", opsCap: 50 };
+  if (priceId.startsWith("pro_")) return { plan: "pro", opsCap: 100 }; // legacy grandfathered
+  return { plan: "pro", opsCap: null };
+}
+
+async function setPaidPlan(userId: string, until: string | null, priceId: string | null) {
+  const { opsCap } = tierFromPriceId(priceId);
   await getSupabase()
     .from("download_quota")
-    .update({ plan: "pro", pro_until: until })
+    .update({ plan: "pro", pro_until: until, plan_ops_cap: opsCap })
     .eq("user_id", userId);
 }
 
 async function setFreePlan(userId: string) {
   await getSupabase()
     .from("download_quota")
-    .update({ plan: "free", pro_until: null })
+    .update({ plan: "free", pro_until: null, plan_ops_cap: null })
     .eq("user_id", userId);
 }
 
@@ -82,7 +91,7 @@ async function handleSubscriptionCreated(subscription: any, env: StripeEnv) {
   );
 
   if (["active", "trialing"].includes(subscription.status)) {
-    await setProPlan(userId, periodEnd ? new Date(periodEnd * 1000).toISOString() : null);
+    await setPaidPlan(userId, periodEnd ? new Date(periodEnd * 1000).toISOString() : null, priceId);
   }
 }
 
@@ -113,7 +122,7 @@ async function handleSubscriptionUpdated(subscription: any, env: StripeEnv) {
   const userId = subscription.metadata?.userId;
   if (userId) {
     if (["active", "trialing"].includes(subscription.status)) {
-      await setProPlan(userId, periodEnd ? new Date(periodEnd * 1000).toISOString() : null);
+      await setPaidPlan(userId, periodEnd ? new Date(periodEnd * 1000).toISOString() : null, priceId);
     } else if (subscription.status === "canceled" && (!periodEnd || periodEnd * 1000 < Date.now())) {
       await setFreePlan(userId);
     }
