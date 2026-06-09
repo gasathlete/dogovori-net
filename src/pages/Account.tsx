@@ -1256,8 +1256,12 @@ type SubRow = {
 };
 
 const PLAN_LABELS: Record<string, { name: string; price: string; cycle: string }> = {
-  pro_monthly: { name: "Предприемач — месечен", price: "12.90 €", cycle: "месечно" },
-  pro_yearly: { name: "Предприемач — годишен", price: "129 €", cycle: "годишно" },
+  pro_monthly: { name: "Професионалист — месечен", price: "12.90 €", cycle: "месечно" },
+  pro_yearly: { name: "Професионалист — годишен", price: "129 €", cycle: "годишно" },
+  professional_monthly: { name: "Професионалист — месечен", price: "12.90 €", cycle: "месечно" },
+  professional_yearly: { name: "Професионалист — годишен", price: "129 €", cycle: "годишно" },
+  entrepreneur_monthly: { name: "Предприемач — месечен", price: "19.90 €", cycle: "месечно" },
+  entrepreneur_yearly: { name: "Предприемач — годишен", price: "199 €", cycle: "годишно" },
   five_operations: { name: "Пакет 5 операции", price: "2.90 €", cycle: "еднократно" },
 };
 
@@ -1299,7 +1303,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   useEffect(() => {
     const requested = searchParams.get("checkout");
     if (!requested) return;
-    const allowed = ["pro_monthly", "pro_yearly", "five_operations"];
+    const allowed = ["pro_monthly", "pro_yearly", "professional_monthly", "professional_yearly", "entrepreneur_monthly", "entrepreneur_yearly", "five_operations"];
     if (allowed.includes(requested)) setCheckoutPrice(requested);
     const next = new URLSearchParams(searchParams);
     next.delete("checkout");

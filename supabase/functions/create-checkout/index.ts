@@ -43,6 +43,7 @@ Deno.serve(async (req) => {
     };
 
     if (!priceId || !/^[a-zA-Z0-9_-]+$/.test(priceId)) throw new Error("Invalid priceId");
+    if (priceId === "team_monthly") throw new Error("Екип е само годишен абонамент. Използвай team_yearly.");
     if (!returnUrl || typeof returnUrl !== "string") throw new Error("returnUrl required");
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
 
