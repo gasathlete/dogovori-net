@@ -210,7 +210,7 @@ export default function TemplatePage() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo
         title={pageTitle}
         description={pageDesc}

@@ -158,7 +158,7 @@ export default function CatalogPage() {
   const seoCanonical = activeVid ? `/catalog?vid=${activeVid}` : "/catalog";
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo
         title={seoTitle}
         description={seoDesc}
@@ -281,7 +281,7 @@ export default function CatalogPage() {
                 <button
                   type="button"
                   className={
-                    "inline-flex min-w-[200px] items-center justify-between gap-3 rounded-md border px-3 py-1.5 text-sm transition-colors " +
+                    "inline-flex items-center justify-between gap-3 rounded-md border px-3 py-1.5 text-sm transition-colors sm:min-w-[200px] " +
                     (activeVid
                       ? "border-gold/60 bg-gold/10 text-gold hover:bg-gold/15"
                       : "border-border/70 bg-card/40 text-foreground hover:border-gold/40")

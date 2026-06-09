@@ -53,7 +53,7 @@ export default function AIFeaturesPage() {
   const jsonLd = buildAiFeaturesSchemas();
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo
         title={title}
         description={description}

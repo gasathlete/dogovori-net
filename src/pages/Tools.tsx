@@ -32,7 +32,7 @@ export default function Tools() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo title={title} description={desc} canonical="/tools" jsonLd={[breadcrumbsLd, itemListLd]} />
       <Header />
 

@@ -84,9 +84,9 @@ function PartyBlock({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm font-semibold text-foreground">{role}</div>
         {contacts.length > 0 && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-1 items-center gap-2 sm:flex-initial">
             <Select onValueChange={pickContact}>
-              <SelectTrigger className="h-9 w-auto min-w-[200px] bg-input/60 text-xs">
+              <SelectTrigger className="h-9 w-full bg-input/60 text-xs sm:w-auto sm:min-w-[200px]">
                 <UserPlus className="mr-1.5 h-3.5 w-3.5 text-gold" />
                 <SelectValue placeholder="Избери от контрагенти" />
               </SelectTrigger>

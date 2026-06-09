@@ -45,7 +45,7 @@ export default function Unsubscribe() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 py-12 bg-background">
+    <main className="min-h-dvh flex items-center justify-center px-4 py-12 bg-background">
       <Seo
         title="Отписване от имейли — Dogovori.net"
         description="Потвърдете отписването си от имейл известията на Dogovori.net. Един клик и повече няма да получавате нашите съобщения."

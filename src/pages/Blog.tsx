@@ -60,7 +60,7 @@ export default function Blog() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <Seo
         title="Блог за договорно право в България | Dogovori.net"
         description="Експертни статии за договори, трудово право, имоти, GDPR и данъци. Цитирани закони от ЗЗД, КТ, ТЗ и практически съвети."
@@ -77,7 +77,7 @@ export default function Blog() {
       <main className="container py-14 md:py-20">
         <header className="mx-auto max-w-3xl text-center">
           <div className="eyebrow mb-4 justify-center">Блог</div>
-          <h1 className="font-serif text-3xl font-bold leading-[1.1] tracking-tight text-balance md:text-5xl lg:text-[56px]">
+          <h1 className="font-serif text-3xl font-bold leading-[1.1] tracking-tight text-balance hyphens-auto sm:text-4xl md:text-5xl lg:text-[56px]">
             Юридически насоки за договорите в България
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-balance text-base leading-relaxed text-muted-foreground md:text-lg">

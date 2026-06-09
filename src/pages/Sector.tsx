@@ -75,7 +75,7 @@ export default function SectorPage() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo
         title={title}
         description={desc}

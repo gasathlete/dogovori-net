@@ -49,11 +49,11 @@ export default function SigningEnvelope() {
     load();
   }
 
-  if (loading) return <div className="min-h-screen grid place-items-center"><Loader2 className="h-6 w-6 animate-spin text-gold" /></div>;
+  if (loading) return <div className="min-h-dvh grid place-items-center"><Loader2 className="h-6 w-6 animate-spin text-gold" /></div>;
   if (!env) return <div className="container py-12">Не е намерено.</div>;
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo title={`Подпис: ${env.title}`} description="Статус на електронно подписване" noindex />
       <Header />
       <main className="container max-w-4xl py-8 space-y-6">

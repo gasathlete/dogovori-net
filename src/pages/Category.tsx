@@ -82,7 +82,7 @@ export default function CategoryPage() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo title={title} description={desc} canonical={canonical} jsonLd={[breadcrumbsLd, collectionLd, faqLd]} />
 
       <Header />

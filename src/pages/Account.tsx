@@ -161,7 +161,7 @@ export default function AccountPage() {
   const activeContactName = contacts.find((c) => c.id === activeContact)?.name;
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo
         title="Моят профил — Dogovori.net"
         description="Управлявайте профила, абонамента, документите и екипа си в Dogovori.net."

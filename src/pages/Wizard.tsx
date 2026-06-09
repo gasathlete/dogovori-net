@@ -123,7 +123,7 @@ export default function WizardPage() {
 
   if (!sector) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-dvh items-center justify-center">
         <div className="text-center">
           <p className="text-muted-foreground">Невалиден сектор.</p>
           <Button onClick={() => navigate("/")} className="mt-4">
@@ -563,7 +563,7 @@ export default function WizardPage() {
 
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Header />
 
 
@@ -930,7 +930,7 @@ export default function WizardPage() {
           </section>
 
           {/* RIGHT — Live draft */}
-          <section className="lg:sticky lg:top-32 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">
+          <section className="lg:sticky lg:top-32 lg:max-h-[calc(100dvh-9rem)] lg:overflow-y-auto">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gold">
                 <FileText className="h-3.5 w-3.5" />

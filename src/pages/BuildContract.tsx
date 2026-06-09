@@ -702,7 +702,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     : "Изгответе договор, разписка, пълномощно, декларация, оферта, фактура, протокол, анекс или приложение — AI попълва клаузите за минути, със ЗЗД/ТЗ съответствие.";
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo
         title={seoTitle}
         description={seoDescription}
@@ -1394,7 +1394,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
           </section>
 
           {/* RIGHT — Live draft / Guidance pane */}
-          <section className="lg:sticky lg:top-32 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">
+          <section className="lg:sticky lg:top-32 lg:max-h-[calc(100dvh-9rem)] lg:overflow-y-auto">
             {result ? (
               <>
                 <div className="mb-3 flex items-center justify-between gap-2">

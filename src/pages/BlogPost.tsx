@@ -70,7 +70,7 @@ export default function BlogPost() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <Seo
         title={`${post.title} | Dogovori.net`}
         description={post.metaDescription}
@@ -120,7 +120,7 @@ export default function BlogPost() {
             />
           </figure>
 
-          <div className="prose prose-invert max-w-none text-pretty">
+          <div className="prose prose-invert max-w-none text-pretty [&_pre]:overflow-x-auto [&_table]:block [&_table]:overflow-x-auto">
             {(() => {
               const linkState = createAutoLinkState(8);
               return (

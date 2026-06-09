@@ -222,7 +222,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
   const isEmpty = messages.length === 0 && !streaming;
 
   return (
-    <div className={cn("flex gap-3 sm:gap-4", compact ? "h-full" : "h-[calc(100vh-12rem)] min-h-[500px]")}>
+    <div className={cn("flex gap-3 sm:gap-4", compact ? "h-full" : "h-[calc(100dvh-12rem)] min-h-[500px]")}>
       {/* Threads sidebar */}
       <aside className={cn("w-56 flex-col rounded-lg border border-border/60 bg-card/40 p-2", compact ? "hidden" : "hidden md:flex")}>
         <Button

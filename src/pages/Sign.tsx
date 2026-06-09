@@ -78,9 +78,9 @@ export default function Sign() {
     else toast.error(data?.error ?? "Грешка");
   }
 
-  if (loading) return <div className="min-h-screen grid place-items-center"><Loader2 className="h-6 w-6 animate-spin text-gold" /></div>;
+  if (loading) return <div className="min-h-dvh grid place-items-center"><Loader2 className="h-6 w-6 animate-spin text-gold" /></div>;
   if (err) return (
-    <div className="min-h-screen grid place-items-center p-6">
+    <div className="min-h-dvh grid place-items-center p-6">
       <Seo title="Линк за подпис" description="Електронен подпис" noindex />
       <div className="max-w-md text-center space-y-3">
         <AlertCircle className="h-10 w-10 mx-auto text-destructive" />
@@ -98,7 +98,7 @@ export default function Sign() {
     : (env.document_snapshot?.body || JSON.stringify(env.document_snapshot, null, 2));
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <Seo title={`Подпис: ${env.title}`} description="Електронен подпис на договор" noindex />
       <div className="container max-w-5xl py-8 space-y-6">
         <header className="space-y-2">

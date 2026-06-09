@@ -40,7 +40,7 @@ export default function Glossary() {
   }, [filtered]);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo
         title="Юридически речник — основни термини в българското право"
         description="Безплатен онлайн речник на често използвани правни термини в България: договори, гражданско право, трудово право, GDPR и др."

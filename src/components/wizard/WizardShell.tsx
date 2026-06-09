@@ -78,7 +78,7 @@ export function WizardShell({
   }, [isDownloading]);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Header />
 
       {blankDownload?.downloading && (

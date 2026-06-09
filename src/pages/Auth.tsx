@@ -222,7 +222,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo
         title="Вход и регистрация — Dogovori.net"
         description="Влезте или си създайте безплатен профил в Dogovori.net, за да съставяте договори, да съхранявате документи и да управлявате абонамента си."

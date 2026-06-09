@@ -18,7 +18,7 @@ export function LegalLayout({ title, description, updated = "8 май 2026 г.",
   }, [title, description]);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Header />
       <main className="container max-w-3xl py-10 md:py-16">
         <p className="text-xs uppercase tracking-[0.18em] text-gold">Правна информация</p>

@@ -33,7 +33,7 @@ export default function SiteMapPage() {
   });
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Seo
         title="Карта на сайта — всички договори и бланки | Dogovori.net"
         description={`Пълна карта на сайта: ${templates.length} шаблона на договори, ${CATALOG.length} категории, ${SECTORS.length} сектора и ${ALL_POSTS.length} статии в блога.`}

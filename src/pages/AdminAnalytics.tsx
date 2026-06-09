@@ -66,11 +66,11 @@ export default function AdminAnalytics() {
   }, [allowed, bounds.from, bounds.to, bounds.bucket]);
 
   if (loading || allowed === null) {
-    return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-gold" /></div>;
+    return <div className="flex min-h-dvh items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-gold" /></div>;
   }
   if (!allowed) {
     return (
-      <div className="min-h-screen"><Header />
+      <div className="min-h-dvh"><Header />
         <div className="container py-20 text-center">
           <h1 className="text-2xl font-bold mb-2">Access denied</h1>
           <Button asChild variant="outline"><Link to="/">Home</Link></Button>
@@ -80,7 +80,7 @@ export default function AdminAnalytics() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <Header />
       <div className="container py-8 space-y-6">
         <div className="flex items-center gap-3 flex-wrap">

@@ -89,7 +89,7 @@ export function TeaserDialog({
             className="pointer-events-none absolute -bottom-32 right-0 h-56 w-56 rounded-full bg-gold/10 blur-[120px]"
           />
 
-          <div className="relative px-10 pb-10 pt-14 text-center sm:px-12">
+          <div className="relative px-6 pb-8 pt-12 text-center sm:px-12 sm:pb-10 sm:pt-14">
             {/* icon */}
             <div className="relative mx-auto mb-9 h-16 w-16">
               <div className="absolute inset-0 -z-10 scale-150 rounded-full bg-gold/20 blur-3xl" />
@@ -105,7 +105,7 @@ export function TeaserDialog({
             <div className="flex min-h-[7rem] flex-col items-center justify-center">
               <h3
                 key={`t-${slide}`}
-                className="font-serif text-3xl font-semibold leading-tight tracking-tight text-foreground sm:text-4xl"
+                className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground break-words sm:text-3xl md:text-4xl"
                 style={{
                   animation: "teaser-blur-in 700ms cubic-bezier(0.4,0,0.2,1) both",
                 }}

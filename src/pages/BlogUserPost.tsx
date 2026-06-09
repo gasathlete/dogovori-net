@@ -67,7 +67,7 @@ export default function BlogUserPost() {
   if (notFound) return <Navigate to="/blog" replace />;
   if (loading || !post) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-dvh items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-gold" />
       </div>
     );
@@ -77,7 +77,7 @@ export default function BlogUserPost() {
   const dateStr = post.published_at ?? post.created_at;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <Seo
         title={`${post.title} | Dogovori.net`}
         description={post.meta_description || post.summary}

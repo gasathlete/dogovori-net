@@ -151,7 +151,7 @@ export default function Downloads({ kind }: { kind: "contract" | "template" }) {
   const legacyDelta = Math.max(0, (quotaUsed ?? 0) - events.length);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <Header />
       <main className="container mx-auto max-w-4xl px-4 py-8">
         <Link

@@ -176,7 +176,7 @@ export default function SharedDocument() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-dvh items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-gold" />
       </div>
     );
@@ -200,7 +200,7 @@ export default function SharedDocument() {
   if (!doc) return null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <Seo title="Споделен документ — Dogovori.net" description="Защитен преглед на споделен документ от Dogovori.net — отворете го по получената връзка, прегледайте съдържанието и при нужда го подпишете електронно." canonical="/share" noindex />
       <header className="sticky top-0 z-30 border-b border-border/60 bg-navy/80 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between gap-3">
