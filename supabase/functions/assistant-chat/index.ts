@@ -238,14 +238,30 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
+    const chatModel = isEntrepreneur ? MODEL_PREMIUM : MODEL_STANDARD;
+    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        model: isEntrepreneur ? MODEL_PREMIUM : MODEL_STANDARD,
+        model: chatModel,
         stream: true,
         messages: [
           { role: "system", content: systemFinal },
           ...safeMessages,
         ],
       }),
+    });
+
+    // Metadata-only audit log (chat is streamed, content never stored here).
+    await logAiAudit({
+      user_id: userId, operation: "assistant-chat", model: chatModel,
+      classification: chatClassification,
+      redaction_applied: false,
+      status: aiResp.ok ? "ok" : "error",
+      error_code: aiResp.ok ? undefined : `http_${aiResp.status}`,
     });
 
     if (!aiResp.ok || !aiResp.body) {
