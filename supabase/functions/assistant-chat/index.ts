@@ -52,7 +52,8 @@ const SYSTEM_PROMPT = `Ти си "Правен асистент Dogovori.net" �
 - Ако има признак на спешен правен казус (съдебно дело, арест, заплахи) → препоръчай адвокат веднага.`;
 
 // In-code allowlist of supported models (keeps client requests safe).
-const MODEL = "google/gemini-2.5-flash";
+const MODEL_STANDARD = "google/gemini-2.5-flash";
+const MODEL_PREMIUM = "openai/gpt-5"; // Предприемач tier
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCors(req);
