@@ -46,6 +46,7 @@ export function useIsPro(): ProState {
   const [state, setState] = useState<Omit<ProState, "refresh">>({
     isPro: false,
     isTeam: false,
+    isEntrepreneur: false,
     loading: true,
     freeQuota: DEFAULT_FREE_QUOTA,
   });
