@@ -1,116 +1,58 @@
-# Поправка на имената на страните в подписни блокове
+## Цел
+Премахване на застъпвания, хоризонтален скрол, отрязан текст и счупени диалози/менюта в мобилния изглед (≤390 px) по цялото приложение — Начална, Wizard, Качване и анализ, Каталог/Шаблон/Сектор/Блог.
 
-## Проблем
+## Какво ще се промени
 
-В подписния блок на договори страните се появяват с грешни роли (напр. „НАЕМОДАТЕЛ/НАЕМАТЕЛ" при договор за покупко-продажба). Това е критичен правен дефект.
+### A. Глобални предпазители (поправят 80% от случаите наведнъж)
 
-## Първопричина
+1. **`index.html`** — премахване на `maximum-scale=1.0, user-scalable=no` от `<meta viewport>` (WCAG fail, блокира pinch-zoom). Запазва се `viewport-fit=cover`.
+2. **`src/index.css`** — добавяне в `@layer base`:
+   - `html, body { overflow-x: hidden; max-width: 100vw; }`
+   - `* { min-width: 0; }` (позволява truncate във flex/grid деца)
+   - `img, video, svg, table, pre { max-width: 100%; }`
+   - `p, h1, h2, h3 { overflow-wrap: break-word; }`
+   - Премахване на остарелия `-webkit-overflow-scrolling: touch`.
 
-В `src/pages/Wizard.tsx` (ред 80):
+### B. Диалози и оверлеи
 
-```ts
-parties: subWizard?.parties || baseSector.parties,
-```
+3. **`src/components/ui/dialog.tsx`** — на базовия `DialogContent` се добавят `max-h-[90dvh] overflow-y-auto` + `w-[calc(100vw-2rem)]`, така че всички диалози в проекта (TeaserDialog, ShareForSign, UploadContract, и т.н.) се поправят наведнъж.
+4. **`src/components/ui/sheet.tsx`** — `SheetContent` получава `overflow-y-auto` и `flex flex-col`.
+5. **`src/components/TeaserDialog.tsx`** — `px-10` → `px-6 sm:px-10`; заглавието `h3` получава `break-words`.
 
-Подписният блок се изгражда в `Wizard.tsx` (редове 299–303) от `sector.parties.a/b`. Когато:
+### C. Sticky `100vh` → `100dvh` (iOS bar причинява изрязване)
 
-- документът се отваря под сектор „Недвижими имоти и наеми" (`baseSector.parties = { a: "Наемодателя", b: "Наемателя" }`), И
-- няма явен `subWizard` в `sector.subWizards[]` с `parties` override, И
-- няма запис в `REGISTRY` на `subWizardsGenerated.ts` с правилни `parties`,
+6. **`src/components/AssistantChat.tsx:225`**, **`FloatingAssistant.tsx:44`**, **`Wizard.tsx:933`**, **`BuildContract.tsx:1397`**, **`wizard/SplitWizard.tsx:423`**, **`wizard/WizardShell.tsx:81`** — `100vh`/`h-screen`/`min-h-screen` → `dvh` варианти.
 
-тогава ролите се наследяват от секторния default → продавачът става „Наемодател", купувачът – „Наемател".
+### D. Карусел Платформата (главният източник на overflow на началната)
 
-Допълнително открих:
+7. **`src/components/PlatformShowcase.tsx`** — слайдовете `w-[300px] -ml-[150px]` стават `w-[min(300px,85vw)]` с пропорционален `-ml`; caption блокът получава `overflow-hidden`; kicker chip-ът — `max-w-[8rem] truncate`.
 
-1. **Обърнат ред A/B** – „Окончателен договор за покупко-продажба на имот (проект на нотариален акт)" в `subWizardsGenerated.ts` (ред 14049) има `a: "Купувач", b: "Продавач"` – трябва да е обратно (по правна конвенция Продавачът е Страна А).
-2. **Помощникът `sub()`** в `sectors.ts` приема `parties` като опционален параметър, но почти никое извикване не го подава – всички subWizards в даден сектор наследяват секторните параметри, включително неподходящите такива (напр. „Приемо-предавателен протокол", „Анекс", „Споразумение за прекратяване" – някои може да са OK, други не).
-3. **Generic fallback** в `buildGenericSubWizard` ползва правилна keyword-логика, но е последна opция.
+### E. Wizard / Качване
 
-## Обхват на одита
+8. **`src/components/wizard/QuestionField.tsx:89`** — премахване на `min-w-[200px]` от `SelectTrigger`, заменя се с `w-full`.
+9. **`src/pages/Account.tsx`** TabsList — `min-w-0` на тригерите + потвърждаване на `overflow-x-auto` на контейнера.
 
-Файлове за систематичен преглед:
+### F. Начална страница и съдържание
 
-```text
-src/data/sectors.ts                       (22 сектора, ~30 explicit sub())
-src/data/subWizardsGenerated.ts           (~318 шаблона в REGISTRY)
-src/data/questionGraphs/*.ts              (graph-driven wizards)
-src/data/templateDrafts/*.ts              (live preview drafts)
-src/data/companionTemplates.ts
-src/data/newTemplates.ts
-src/data/catalog.ts
-src/pages/Wizard.tsx                      (партии конструктор, ред 299–303)
-src/components/wizard/LiveDraft.tsx       (preview ползва sector.parties)
-src/lib/exporters.pdf.ts / .docx.ts       (рендер на подписния блок)
-supabase/functions/generate-contract/     (AI prompt — получава parties)
-```
+10. **`src/components/Hero.tsx:131`** — премахване на `whitespace-nowrap` от частта „търсят и намират".
+11. **`src/components/ProtectedContent.tsx:44`** — `overflow-hidden` на най-близкия предшественик на ротирания watermark.
+12. **`src/pages/BlogPost.tsx:123`** — на `prose` контейнера се добавя `[&_pre]:overflow-x-auto [&_table]:block [&_table]:overflow-x-auto`.
+13. **`src/pages/Blog.tsx:80`** — добавя се `sm:text-4xl` и `hyphens-auto` на хедъра.
+14. **`src/pages/Catalog.tsx:284`** — `min-w-[200px]` → само `shrink-0`.
 
-## План за изпълнение
+## Технически детайли
 
-### Стъпка 1 — Автоматизиран одит-скрипт
+- Tailwind вече поддържа `dvh`/`min-h-dvh` (v3.4+). Където стойностите са в arbitrary class-ове (`h-[calc(100vh-…)]`), сменям `100vh` на `100dvh`.
+- За старите браузъри без `dvh` (<1.5% трафик), `100vh` остава като естествен fallback чрез `@supports`.
+- Не пипам бизнес логика, payments, security, бекенд миграции. Само presentation код.
 
-Създавам `scripts/audit-party-roles.ts` който:
+## Верификация
 
-1. За всеки запис в `REGISTRY` (`subWizardsGenerated.ts`) и всеки `sub()` в `sectors.ts`, изчислява **очаквани роли** по keyword regex върху `documentName` (същата логика като `buildGenericSubWizard`, разширена):
-   - продаж|покуп|кп → Продавач / Купувач
-   - наем|аренд → Наемодател / Наемател (аренд → Арендодател / Арендатор)
-   - дарен → Дарител / Надарен
-   - заем|кредит → Заемодател / Заемател
-   - труд|работ → Работодател / Служител
-   - изработ|услуг|поръчк|консулт|поддръжк|сервиз → Възложител / Изпълнител
-   - превоз|спедиц|логист|куриер → Възложител / Превозвач
-   - комисион|посредни|брокер|агент → Доверител / Посредник
-   - лиценз|франчайз → Лицензодател / Лицензополучател
-   - nda|поверит|конфиденциал → Разкриваща страна / Получаваща страна
-   - застрахов → Застраховател / Застрахован
-   - пълномощ → Упълномощител / Пълномощник
-   - залог → Залогодател / Залогоприемател
-   - поръчителств → Кредитор / Поръчител
-   - спонсор → Спонсор / Спонсориран
-   - и т.н.
-2. Сравнява с реално зададените `parties.a/b` (и с наследения секторен default, когато няма override).
-3. Маркира два класа грешки:
-   - **MISMATCH** – съществуваща роля не съвпада с очакваната (напр. „Наемодател" при покупко-продажба).
-   - **REVERSED** – двойката е обърната (Купувач/Продавач вместо Продавач/Купувач).
-4. Печата CSV отчет в `reports/party-roles-audit.csv` с колони: documentName, sectorId, source (explicit/generated/inherited/generic), currentA, currentB, expectedA, expectedB, issue.
-
-### Стъпка 2 — Поправка на данните
-
-На базата на отчета:
-
-- В `subWizardsGenerated.ts` – обновявам `parties` за всеки MISMATCH/REVERSED шаблон. Конкретно знам, че:
-  - „Окончателен договор за покупко-продажба на имот (проект на нотариален акт)" → `{ a: "Продавач", b: "Купувач" }` (понастоящем обратно).
-  - „Нотариална покана … покупко-продажба на недвижим имот" – ще се прецени според контекста (страна на купувача срещу неизпълнил продавач или обратно).
-- В `sectors.ts` – добавям `parties` override на всеки `sub(...)` чийто документ не съвпада със секторния default (напр. продажни/анекс/протокол документи в real-estate сектора).
-- За документи без явна категория – оставям generic fallback, но укрепвам regex-а в `buildGenericSubWizard`.
-
-### Стъпка 3 — Защита от регресии
-
-1. Преместване на keyword-картата от `buildGenericSubWizard` в нов модул `src/data/partyRoles.ts` с pure функция `inferPartyRoles(documentName) → { a, b } | null`.
-2. В `Wizard.tsx` (редове 299–303): преди да се сглоби `partiesArr`, ако `sector.parties` изглежда несъвместим с името на документа (т.е. `inferPartyRoles(docName)` връща различни роли), да се ползват inferred роли – защитен мрежест слой при липсващо override.
-3. Vitest тест `src/test/party-roles.test.ts` – зарежда всички documentNames от `CATALOG`, `REGISTRY` и `SECTORS` и проверява, че `subWizard.parties || sector.parties` минава `inferPartyRoles` валидация (без MISMATCH). Тестът се регистрира в CI workflow `tests.yml` – ще failва бъдещи регресии.
-
-### Стъпка 4 — Подписен блок exporters
-
-В `src/lib/exporters.pdf.ts` (ред 208) и `exporters.docx.ts`:
-- Ако `p.role` е празен или съдържа placeholder „Страна А/Б", използваме `inferPartyRoles` върху заглавието на договора. Така дори AI отговор без `parties` метаданни ще получи правилни роли в подписната секция.
-
-### Стъпка 5 — Ръчна проверка
-
-След автоматичните поправки – генерирам по 1 документ от всеки сектор (3–5 ключови: покупко-продажба имот, покупко-продажба МПС, наем жилище, договор за изработка, NDA, договор за заем, дарение, договор за труд) и визуално проверявам подписния блок в DOCX/PDF, че ролите са правилни. Резултатите се прилагат към PR като скрийншоти.
-
-## Файлове за промяна
-
-- `scripts/audit-party-roles.ts` (нов)
-- `src/data/partyRoles.ts` (нов – централен keyword мап)
-- `src/data/sectors.ts` (parties overrides на explicit sub() + рефакторинг на `buildGenericSubWizard` да ползва `partyRoles.ts`)
-- `src/data/subWizardsGenerated.ts` (поправени `parties` за маркираните шаблони)
-- `src/pages/Wizard.tsx` (защитен слой с `inferPartyRoles` преди сглобяването на `partiesArr`)
-- `src/lib/exporters.pdf.ts`, `src/lib/exporters.docx.ts` (fallback на role)
-- `src/test/party-roles.test.ts` (нов тест)
-- `reports/party-roles-audit.csv` (генериран отчет за ревю)
+- След промените: `browser--view_preview` на 390×844 и 360×800 за: `/`, `/wizard`, `/upload`, `/catalog`, `/template/<slug>`, `/blog`, `/blog/<slug>`.
+- На всеки от тези маршрути ще проверя `document.documentElement.scrollWidth <= window.innerWidth` (без хоризонтален скрол) и че диалозите се скролват.
+- Скриншот преди/след за карусела на Платформата и Hero.
 
 ## Извън обхват
-
-- Промени в Stripe/billing/auth.
-- Преводи EN на ролите (вече има `translatePartyRole` в `LiveDraft.tsx` – ще се ползва наготово).
-- AI prompt пренаписване в `generate-contract` – функцията вече получава `parties` от клиента, така че корекциите на данните автоматично разрешават и AI-генерираните клаузи.
+- Не сменям дизайна или съдържанието.
+- Не реорганизирам компоненти, не премествам секции.
+- Десктоп изгледът остава непроменен (всички правки са или мобил-специфични, или подобряват и десктоп без визуална регресия).
