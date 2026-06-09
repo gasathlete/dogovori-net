@@ -484,7 +484,7 @@ function SigningListView() {
       setLoading(true);
       const { data } = await supabase
         .from("signing_requests")
-        .select("id, subject, status, created_at")
+        .select("id, title, status, created_at")
         .eq("owner_id", user.id)
         .order("created_at", { ascending: false })
         .limit(200);
@@ -500,7 +500,7 @@ function SigningListView() {
 
   const rows: Row[] = useMemo(() => {
     const filtered = q
-      ? items.filter((d) => (d.subject ?? "").toLowerCase().includes(q.toLowerCase()))
+      ? items.filter((d) => (d.title ?? "").toLowerCase().includes(q.toLowerCase()))
       : items;
     return filtered.map((d) => {
       const cls =
@@ -511,7 +511,7 @@ function SigningListView() {
             : "border-amber-500/40 bg-amber-500/10 text-amber-300";
       return {
         id: d.id,
-        title: d.subject || "Заявка за подпис",
+        title: d.title || "Заявка за подпис",
         subtitle: new Date(d.created_at).toLocaleDateString("bg-BG"),
         badge: { text: d.status, className: cls },
       };

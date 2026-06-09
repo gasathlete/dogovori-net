@@ -56,7 +56,7 @@ export function SigningPane({ requestId }: { requestId: string }) {
           <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
             <PenSquare className="h-3.5 w-3.5 text-gold" /> Подпис
           </div>
-          <h1 className="mt-1 font-serif text-2xl font-bold">{req.subject || "Заявка за подпис"}</h1>
+          <h1 className="mt-1 font-serif text-2xl font-bold">{req.title || "Заявка за подпис"}</h1>
           <p className="mt-1 text-xs text-muted-foreground">
             Създадена на {new Date(req.created_at).toLocaleString("bg-BG")}
           </p>
