@@ -80,20 +80,20 @@ const TRIGGER_COPY: Record<
 };
 
 const FEATURES = [
-  { icon: Zap, label: "100 операции/месец" },
+  { icon: Zap, label: "50 операции / месец (Професионалист) или 120 (Предприемач)" },
   { icon: Sparkles, label: "Неограничен AI Асистент" },
   { icon: Crown, label: "Пълен достъп до двуезични договори" },
   { icon: Check, label: "Неограничени комплекти документи" },
   { icon: Check, label: "Без воден знак на PDF" },
-  { icon: Check, label: "Loyalty: 5–15% доживотна отстъпка" },
+  { icon: Check, label: "Предприемач: GPT-5 + Premium support 24/7" },
 ];
 
 export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props) {
   const navigate = useNavigate();
   const copy = TRIGGER_COPY[trigger];
 
-  const goToBilling = (plan: "monthly" | "yearly") => {
-    trackEvent("paywall_clicked", { trigger, plan });
+  const goToBilling = (plan: "professional" | "entrepreneur", billing: "monthly" | "yearly") => {
+    trackEvent("paywall_clicked", { trigger, plan, billing });
     const returnTo =
       typeof window !== "undefined"
         ? window.location.pathname + window.location.search
@@ -103,7 +103,7 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
         ? `&redirect=${encodeURIComponent(returnTo)}`
         : "";
     onOpenChange(false);
-    navigate(`/account?tab=subscription&plan=${plan}&promo=FIRST100${redirect}`);
+    navigate(`/account?tab=subscription&plan=${plan}&billing=${billing}&promo=FIRST100${redirect}`);
   };
 
   return (
@@ -145,17 +145,17 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
 
         <div className="mt-2 flex flex-col gap-2">
           <Button
-            onClick={() => goToBilling("monthly")}
+            onClick={() => goToBilling("entrepreneur", "monthly")}
             className="w-full bg-gradient-gold text-navy hover:shadow-gold"
           >
-            Предприемач — 12.90 € / месец
+            Предприемач — 19.90 € / месец (120 операции, GPT-5)
           </Button>
           <Button
-            onClick={() => goToBilling("yearly")}
+            onClick={() => goToBilling("professional", "monthly")}
             variant="outline"
             className="w-full border-gold/40 hover:bg-gold/10 hover:text-gold"
           >
-            Предприемач годишно — 129 € (спести ~17%)
+            Професионалист — 12.90 € / месец (50 операции)
           </Button>
         </div>
 
