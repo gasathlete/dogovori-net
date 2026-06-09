@@ -20,9 +20,9 @@ function PaneRouter({ tab }: { tab: ConsoleTab }) {
     case "deal":
       return <DealPane dealId={tab.entityId!} tabId={tab.id} />;
     case "document":
-      return <DocumentPane documentId={tab.entityId!} />;
+      return <DocumentPane documentId={tab.entityId!} tabId={tab.id} />;
     case "uploaded":
-      return <UploadedPane uploadedId={tab.entityId!} />;
+      return <UploadedPane uploadedId={tab.entityId!} tabId={tab.id} />;
     case "client":
       return <ClientPane counterparty={tab.entityId!} />;
     case "template":
