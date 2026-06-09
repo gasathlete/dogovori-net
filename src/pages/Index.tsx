@@ -92,14 +92,7 @@ const Index = () => {
 
           <LazyOnVisible minHeight={420}>
             <Reveal>
-              <PainSolution />
-            </Reveal>
-          </LazyOnVisible>
-          <Divider />
-
-          <LazyOnVisible minHeight={560}>
-            <Reveal>
-              <PlatformShowcase />
+              <LifeScenarios />
             </Reveal>
           </LazyOnVisible>
           <Divider />
@@ -111,9 +104,16 @@ const Index = () => {
           </LazyOnVisible>
           <Divider />
 
-          <LazyOnVisible minHeight={420}>
+          <LazyOnVisible minHeight={560}>
             <Reveal>
-              <LifeScenarios />
+              <PlatformShowcase />
+            </Reveal>
+          </LazyOnVisible>
+          <Divider />
+
+          <LazyOnVisible minHeight={400}>
+            <Reveal>
+              <Process />
             </Reveal>
           </LazyOnVisible>
           <Divider />
@@ -134,7 +134,7 @@ const Index = () => {
 
           <LazyOnVisible minHeight={400}>
             <Reveal>
-              <Process />
+              <ComplianceSection />
             </Reveal>
           </LazyOnVisible>
           <Divider />
@@ -145,12 +145,6 @@ const Index = () => {
             </Reveal>
           </LazyOnVisible>
           <Divider />
-
-          <LazyOnVisible minHeight={400}>
-            <Reveal>
-              <ComplianceSection />
-            </Reveal>
-          </LazyOnVisible>
 
           <LazyOnVisible minHeight={300}>
             <Reveal>
