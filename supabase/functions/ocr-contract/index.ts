@@ -6,6 +6,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
+import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
+import { logAiAudit } from "../_shared/ai-call.ts";
 
 const OCR_SYSTEM = `Ти си високо точен OCR енджин за български правни документи.
 Получаваш изображение на страница от договор. Върни ИЗКЛЮЧИТЕЛНО извлечения текст,
