@@ -80,6 +80,7 @@ Deno.serve(async (req: Request) => {
       answers = {},
       session_id: sessionId,
       batch_id: batchId,
+      userConfirmed = false,
     } = await req.json();
 
     if (!contract || (selectedIssues.length === 0 && selectedRecommendations.length === 0)) {
