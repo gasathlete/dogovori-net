@@ -4,7 +4,7 @@
 // keyword-based builder.
 import type { SubWizard } from "./sectors";
 
-const REGISTRY: Record<string, SubWizard> = {
+export const REGISTRY: Record<string, SubWizard> = {
   "Air Waybill (AWB) бланка": {
     "documentName": "Air Waybill (AWB) бланка",
     "questions": [
