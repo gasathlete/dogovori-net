@@ -680,7 +680,7 @@ export function PlatformShowcase() {
             <span className="block text-gold">в едно работно пространство</span>
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Четири стълба, които превръщат документалната работа в спокойна, лесна, бърза и акуратна.
+            Пет стълба, които превръщат документалната работа в спокойна, лесна, бърза и акуратна.
           </p>
         </div>
 
