@@ -6,8 +6,10 @@ import {
   type GeneratedContract,
   type WatermarkOpts,
 } from "./exporterTypes";
+import { inferPartyRolesGenitive, partiesAreCompatible } from "@/data/partyRoles";
 
 export type { GeneratedContract, WatermarkOpts };
+
 
 export async function exportPDF(
   c: GeneratedContract,
