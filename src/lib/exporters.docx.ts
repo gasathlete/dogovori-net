@@ -20,6 +20,7 @@ import {
   type GeneratedContract,
   type WatermarkOpts,
 } from "./exporterTypes";
+import { inferPartyRolesGenitive } from "@/data/partyRoles";
 
 export type { GeneratedContract, WatermarkOpts };
 
