@@ -1349,6 +1349,27 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_buckets: {
+        Row: {
+          count: number
+          key: string
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          key: string
+          updated_at?: string
+          window_start?: string
+        }
+        Update: {
+          count?: number
+          key?: string
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       risk_analyses: {
         Row: {
           contract_type: string
@@ -2746,6 +2767,10 @@ export type Database = {
         Returns: number
       }
       my_team_ids: { Args: never; Returns: string[] }
+      rate_limit_check: {
+        Args: { _key: string; _max: number; _window_s: number }
+        Returns: Json
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
