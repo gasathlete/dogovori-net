@@ -720,20 +720,23 @@ export function PlatformShowcase() {
                       <MiniVisual kind={slide.visual} />
                     </div>
 
-                    {/* Kicker chip — floats over the chrome */}
-                    <div className="pointer-events-none absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-navy/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold backdrop-blur sm:left-4 sm:top-4">
-                      <Icon className="h-3.5 w-3.5" strokeWidth={1.6} />
-                      {slide.kicker}
-                    </div>
-
                     {/* Caption band — translucent overlay at the bottom */}
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 border-t border-hairline bg-gradient-to-t from-navy via-navy/95 to-navy/0 px-5 pb-5 pt-10 sm:px-6 sm:pb-6">
-                      <h3 className="font-serif text-lg font-bold leading-snug text-foreground sm:text-xl md:text-2xl">
-                        {slide.title}
-                      </h3>
-                      <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
-                        {slide.description}
-                      </p>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-serif text-lg font-bold leading-snug text-foreground sm:text-xl md:text-2xl">
+                            {slide.title}
+                          </h3>
+                          <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
+                            {slide.description}
+                          </p>
+                        </div>
+                        {/* Kicker chip — bottom-right */}
+                        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-gold/40 bg-navy/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold backdrop-blur">
+                          <Icon className="h-3.5 w-3.5" strokeWidth={1.6} />
+                          {slide.kicker}
+                        </span>
+                      </div>
                       <div className="relative mt-3 h-px overflow-hidden bg-hairline">
                         <span
                           className={`absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-gold/80 to-transparent ${
