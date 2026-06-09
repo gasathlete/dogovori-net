@@ -26,9 +26,10 @@ export function DealPane({ dealId, tabId }: { dealId: string; tabId: string }) {
 
   useEffect(() => {
     (async () => {
+      const sb = supabase as any;
       const [{ data: saved }, { data: uploaded }] = await Promise.all([
-        supabase.from("saved_documents").select("id, title, kind").eq("deal_id" as any, dealId),
-        supabase.from("uploaded_contracts").select("id, title, original_filename").eq("deal_id" as any, dealId),
+        sb.from("saved_documents").select("id, title, kind").eq("deal_id", dealId),
+        sb.from("uploaded_contracts").select("id, title, original_filename").eq("deal_id", dealId),
       ]);
       setLinked({ saved: saved ?? [], uploaded: uploaded ?? [] });
     })();
