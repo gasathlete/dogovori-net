@@ -26,7 +26,7 @@ const TESTIMONIALS = [
 
 function TestimonialCard({ t }: { t: (typeof TESTIMONIALS)[number] }) {
   return (
-    <figure className="group relative flex w-[320px] shrink-0 flex-col rounded-xl surface-elevated p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/45 sm:w-[360px] sm:p-7">
+    <figure className="group relative flex w-[320px] shrink-0 flex-col rounded-xl surface-elevated p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/45 sm:w-[360px] sm:p-7 lg:w-[400px] xl:w-[440px]">
       <Quote className="absolute right-5 top-5 h-7 w-7 text-gold/15 transition-colors duration-300 group-hover:text-gold/30" />
       <div className="mb-4 flex items-center gap-1 text-gold">
         {Array.from({ length: 5 }).map((_, i) => (

@@ -275,7 +275,7 @@ export default function TemplatePage() {
 
 
         {intro && (
-          <div className="prose prose-invert mb-10 max-w-none text-base leading-[1.8] text-foreground/90">
+          <div className="prose prose-invert mx-auto mb-10 max-w-prose text-base leading-[1.8] text-foreground/90">
             <p className="text-pretty">
               {autoLinkParagraph(intro, createAutoLinkState(3), entry.slug, 3)}
             </p>

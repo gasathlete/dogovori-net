@@ -52,7 +52,7 @@ export function FAQ() {
               <AccordionTrigger className="text-left text-sm font-semibold hover:no-underline sm:text-[15px]">
                 {item.q}
               </AccordionTrigger>
-              <AccordionContent className="text-sm leading-relaxed text-muted-foreground">
+              <AccordionContent className="max-w-prose text-sm leading-relaxed text-muted-foreground">
                 {item.a}
               </AccordionContent>
             </AccordionItem>

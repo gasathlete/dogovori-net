@@ -41,7 +41,7 @@ export function CookieBanner() {
     <div
       role="dialog"
       aria-label="Бисквитки — управление по категории"
-      className="fixed inset-x-3 bottom-3 z-50 rounded-lg border border-gold/20 bg-navy/95 p-4 shadow-lg backdrop-blur-md sm:left-3 sm:right-auto sm:max-w-md"
+      className="fixed inset-x-3 bottom-3 z-[45] rounded-lg border border-gold/20 bg-navy/95 p-4 shadow-lg backdrop-blur-md sm:left-3 sm:right-auto sm:max-w-md"
       style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
     >
       {!showSettings ? (

@@ -26,7 +26,7 @@ export function PainSolution() {
         </p>
       </div>
 
-      <div className="relative mx-auto grid max-w-5xl gap-6 md:grid-cols-2 md:gap-0">
+      <div className="relative mx-auto grid max-w-5xl gap-6 md:grid-cols-2 md:gap-0 lg:max-w-6xl">
         {/* Vertical center hairline + diamond accent (desktop only) */}
         <div
           aria-hidden="true"

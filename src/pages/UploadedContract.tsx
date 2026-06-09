@@ -513,7 +513,7 @@ export default function UploadedContractPage() {
 
 
         <Dialog open={!!corrections} onOpenChange={(o) => !o && setCorrections(null)}>
-          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[min(85vh,900px)] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-serif">Предложени корекции</DialogTitle>
             </DialogHeader>
@@ -527,7 +527,7 @@ export default function UploadedContractPage() {
                     </ul>
                   </div>
                 )}
-                <div className="rounded-lg bg-white p-4 text-sm leading-relaxed text-gray-900 whitespace-pre-wrap font-serif max-h-[50vh] overflow-y-auto">
+                <div className="rounded-lg bg-white p-4 text-sm leading-relaxed text-gray-900 whitespace-pre-wrap font-serif max-h-[40vh] overflow-y-auto lg:max-h-[55vh]">
                   {corrections.corrected_text}
                 </div>
                 <div className="flex gap-2">

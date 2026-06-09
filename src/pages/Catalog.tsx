@@ -178,7 +178,7 @@ export default function CatalogPage() {
               <BookOpen className="h-3.5 w-3.5" />
               Каталог на документите
             </div>
-            <h1 className="font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl lg:text-[56px] anim-rise" style={{ animationDelay: "80ms" }}>
+            <h1 className="font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl lg:text-[56px] lg:leading-[1.15] anim-rise" style={{ animationDelay: "80ms" }}>
               {totalDocs}+ професионални договора и бланки
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-balance text-base leading-relaxed text-muted-foreground md:text-lg anim-rise" style={{ animationDelay: "160ms" }}>
