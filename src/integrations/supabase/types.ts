@@ -516,6 +516,65 @@ export type Database = {
         }
         Relationships: []
       }
+      deals: {
+        Row: {
+          amount_eur: number | null
+          counterparty: string | null
+          counterparty_email: string | null
+          created_at: string
+          due_date: string | null
+          id: string
+          notes: string | null
+          pinned: boolean
+          status: Database["public"]["Enums"]["deal_status"]
+          tags: string[]
+          team_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_eur?: number | null
+          counterparty?: string | null
+          counterparty_email?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          pinned?: boolean
+          status?: Database["public"]["Enums"]["deal_status"]
+          tags?: string[]
+          team_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_eur?: number | null
+          counterparty?: string | null
+          counterparty_email?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          pinned?: boolean
+          status?: Database["public"]["Enums"]["deal_status"]
+          tags?: string[]
+          team_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deals_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_blanks: {
         Row: {
           created_at: string
@@ -1286,6 +1345,7 @@ export type Database = {
         Row: {
           contact_id: string | null
           created_at: string
+          deal_id: string | null
           folder_id: string | null
           id: string
           kind: Database["public"]["Enums"]["document_kind"]
@@ -1299,6 +1359,7 @@ export type Database = {
         Insert: {
           contact_id?: string | null
           created_at?: string
+          deal_id?: string | null
           folder_id?: string | null
           id?: string
           kind: Database["public"]["Enums"]["document_kind"]
@@ -1312,6 +1373,7 @@ export type Database = {
         Update: {
           contact_id?: string | null
           created_at?: string
+          deal_id?: string | null
           folder_id?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["document_kind"]
@@ -1335,6 +1397,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_documents_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
             referencedColumns: ["id"]
           },
           {
@@ -1564,6 +1633,7 @@ export type Database = {
           cancelled_at: string | null
           completed_at: string | null
           created_at: string
+          deal_id: string | null
           document_snapshot: Json
           expires_at: string | null
           id: string
@@ -1581,6 +1651,7 @@ export type Database = {
           cancelled_at?: string | null
           completed_at?: string | null
           created_at?: string
+          deal_id?: string | null
           document_snapshot: Json
           expires_at?: string | null
           id?: string
@@ -1598,6 +1669,7 @@ export type Database = {
           cancelled_at?: string | null
           completed_at?: string | null
           created_at?: string
+          deal_id?: string | null
           document_snapshot?: Json
           expires_at?: string | null
           id?: string
@@ -1612,6 +1684,13 @@ export type Database = {
           uploaded_contract_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "signing_requests_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "signing_requests_saved_document_id_fkey"
             columns: ["saved_document_id"]
@@ -2071,6 +2150,7 @@ export type Database = {
         Row: {
           contact_id: string | null
           created_at: string
+          deal_id: string | null
           extracted_text: string
           folder_id: string | null
           id: string
@@ -2088,6 +2168,7 @@ export type Database = {
         Insert: {
           contact_id?: string | null
           created_at?: string
+          deal_id?: string | null
           extracted_text?: string
           folder_id?: string | null
           id?: string
@@ -2105,6 +2186,7 @@ export type Database = {
         Update: {
           contact_id?: string | null
           created_at?: string
+          deal_id?: string | null
           extracted_text?: string
           folder_id?: string | null
           id?: string
@@ -2132,6 +2214,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uploaded_contracts_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
             referencedColumns: ["id"]
           },
           {
@@ -2643,6 +2732,13 @@ export type Database = {
       article_status: "pending" | "approved" | "rejected"
       blog_post_type: "core" | "user"
       contact_type: "individual" | "legal"
+      deal_status:
+        | "draft"
+        | "negotiating"
+        | "signing"
+        | "active"
+        | "closed"
+        | "archived"
       document_kind: "contract" | "template"
       signer_status:
         | "pending"
@@ -2794,6 +2890,14 @@ export const Constants = {
       article_status: ["pending", "approved", "rejected"],
       blog_post_type: ["core", "user"],
       contact_type: ["individual", "legal"],
+      deal_status: [
+        "draft",
+        "negotiating",
+        "signing",
+        "active",
+        "closed",
+        "archived",
+      ],
       document_kind: ["contract", "template"],
       signer_status: [
         "pending",
