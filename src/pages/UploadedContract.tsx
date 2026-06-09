@@ -21,6 +21,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/clipboard";
+import { SensitiveDataWarning } from "@/components/SensitiveDataWarning";
+import {
+  parseSensitiveResponse,
+  isConfirmationRequired,
+  isSpecialCategoryBlocked,
+  type ClassificationSummary,
+} from "@/lib/aiSensitiveData";
 
 
 type Issue = {
@@ -104,6 +111,16 @@ export default function UploadedContractPage() {
   const [savingTitle, setSavingTitle] = useState(false);
   const [contactId, setContactId] = useState<string>("none");
   const [contacts, setContacts] = useState<Contact[]>([]);
+
+  // Sensitive-data confirmation flow
+  const [sensitiveOpen, setSensitiveOpen] = useState(false);
+  const [sensitiveBlocked, setSensitiveBlocked] = useState(false);
+  const [sensitiveClass, setSensitiveClass] = useState<ClassificationSummary | null>(null);
+  const [pendingAction, setPendingAction] = useState<null | "analyze" | "correct">(null);
+  const [pendingCorrectSelection, setPendingCorrectSelection] = useState<{
+    selectedIssues: Issue[];
+    selectedMissing: Missing[];
+  } | null>(null);
   const [savingText, setSavingText] = useState(false);
   const [savingContact, setSavingContact] = useState(false);
   const [savedDocId, setSavedDocId] = useState<string | null>(null);
@@ -140,14 +157,29 @@ export default function UploadedContractPage() {
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id, user]);
 
-  const reanalyze = async () => {
+  const runAnalyze = async (userConfirmed: boolean) => {
     if (!id) return;
     setAnalyzing(true);
     const { data, error } = await supabase.functions.invoke("analyze-contract", {
-      body: { uploadedContractId: id },
+      body: { uploadedContractId: id, userConfirmed },
     });
     setAnalyzing(false);
     if (error || (data as any)?.error) {
+      const sensitive = await parseSensitiveResponse(error, data);
+      if (isSpecialCategoryBlocked(sensitive)) {
+        setSensitiveClass(sensitive!.classification ?? null);
+        setSensitiveBlocked(true);
+        setPendingAction(null);
+        setSensitiveOpen(true);
+        return;
+      }
+      if (isConfirmationRequired(sensitive)) {
+        setSensitiveClass(sensitive!.classification ?? null);
+        setSensitiveBlocked(false);
+        setPendingAction("analyze");
+        setSensitiveOpen(true);
+        return;
+      }
       if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(error)) return;
       const msg = (data as any)?.error ?? error?.message ?? "Грешка";
       toast.error(msg);
@@ -157,6 +189,8 @@ export default function UploadedContractPage() {
     load();
   };
 
+  const reanalyze = () => runAnalyze(false);
+
   const openPicker = () => {
     if (!analysis) return;
     setIssueSel(Object.fromEntries(analysis.issues.map((_, i) => [i, true])));
@@ -164,21 +198,34 @@ export default function UploadedContractPage() {
     setPickerOpen(true);
   };
 
-  const suggestCorrections = async () => {
-    if (!id || !analysis) return;
-    const selectedIssues = analysis.issues.filter((_, i) => issueSel[i]);
-    const selectedMissing = analysis.missing_clauses.filter((_, i) => missingSel[i]);
-    if (selectedIssues.length === 0 && selectedMissing.length === 0) {
-      toast.error("Изберете поне едно подобрение");
-      return;
-    }
-    setPickerOpen(false);
+  const runCorrect = async (
+    selectedIssues: Issue[],
+    selectedMissing: Missing[],
+    userConfirmed: boolean,
+  ) => {
+    if (!id) return;
     setCorrecting(true);
     const { data, error } = await supabase.functions.invoke("correct-uploaded", {
-      body: { uploadedContractId: id, selectedIssues, selectedMissing },
+      body: { uploadedContractId: id, selectedIssues, selectedMissing, userConfirmed },
     });
     setCorrecting(false);
     if (error || (data as any)?.error) {
+      const sensitive = await parseSensitiveResponse(error, data);
+      if (isSpecialCategoryBlocked(sensitive)) {
+        setSensitiveClass(sensitive!.classification ?? null);
+        setSensitiveBlocked(true);
+        setPendingAction(null);
+        setSensitiveOpen(true);
+        return;
+      }
+      if (isConfirmationRequired(sensitive)) {
+        setSensitiveClass(sensitive!.classification ?? null);
+        setSensitiveBlocked(false);
+        setPendingAction("correct");
+        setPendingCorrectSelection({ selectedIssues, selectedMissing });
+        setSensitiveOpen(true);
+        return;
+      }
       if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(error)) return;
       const msg = (data as any)?.error ?? error?.message ?? "Грешка";
       if (msg === "pro_required") {
@@ -190,6 +237,31 @@ export default function UploadedContractPage() {
       return;
     }
     setCorrections(data as any);
+  };
+
+  const suggestCorrections = async () => {
+    if (!id || !analysis) return;
+    const selectedIssues = analysis.issues.filter((_, i) => issueSel[i]);
+    const selectedMissing = analysis.missing_clauses.filter((_, i) => missingSel[i]);
+    if (selectedIssues.length === 0 && selectedMissing.length === 0) {
+      toast.error("Изберете поне едно подобрение");
+      return;
+    }
+    setPickerOpen(false);
+    await runCorrect(selectedIssues, selectedMissing, false);
+  };
+
+  const handleSensitiveConfirm = async () => {
+    setSensitiveOpen(false);
+    const action = pendingAction;
+    const sel = pendingCorrectSelection;
+    setPendingAction(null);
+    setPendingCorrectSelection(null);
+    if (action === "analyze") {
+      await runAnalyze(true);
+    } else if (action === "correct" && sel) {
+      await runCorrect(sel.selectedIssues, sel.selectedMissing, true);
+    }
   };
 
   const downloadOriginal = async () => {
@@ -743,6 +815,19 @@ export default function UploadedContractPage() {
           </div>
         )}
       </main>
+
+      <SensitiveDataWarning
+        open={sensitiveOpen}
+        onClose={() => {
+          setSensitiveOpen(false);
+          setPendingAction(null);
+          setPendingCorrectSelection(null);
+        }}
+        onConfirm={handleSensitiveConfirm}
+        classification={sensitiveClass}
+        blocked={sensitiveBlocked}
+        operationLabel={pendingAction === "correct" ? "корекция" : "анализ"}
+      />
     </div>
   );
 }
