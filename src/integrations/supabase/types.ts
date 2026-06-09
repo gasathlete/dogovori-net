@@ -2657,7 +2657,7 @@ export type Database = {
         | "expired"
         | "declined"
       team_role: "owner" | "admin" | "member"
-      user_plan: "free" | "pro"
+      user_plan: "free" | "pro" | "professional" | "entrepreneur"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2810,7 +2810,7 @@ export const Constants = {
         "declined",
       ],
       team_role: ["owner", "admin", "member"],
-      user_plan: ["free", "pro"],
+      user_plan: ["free", "pro", "professional", "entrepreneur"],
     },
   },
 } as const
