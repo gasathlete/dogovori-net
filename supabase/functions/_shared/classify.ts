@@ -122,7 +122,7 @@ export function classifyDocumentBeforeAI(input: string): Classification {
   //   high   => flash-lite ONLY (after redaction); special category may be blocked by router
   //   blocked => []
   let allowed_models: string[];
-  switch (risk_level) {
+  switch (risk_level as RiskLevel) {
     case "blocked":
       allowed_models = [];
       break;
