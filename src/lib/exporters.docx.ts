@@ -20,6 +20,7 @@ import {
   type GeneratedContract,
   type WatermarkOpts,
 } from "./exporterTypes";
+import { inferPartyRolesGenitive } from "@/data/partyRoles";
 
 export type { GeneratedContract, WatermarkOpts };
 
@@ -176,18 +177,37 @@ export async function exportDOCX(c: GeneratedContract, opts?: WatermarkOpts) {
   // Изпълнител, …), with a sensible fallback otherwise.
   const sig = c.signature;
   const parties: { role: string; name: string; type?: string; image?: string }[] = (() => {
-    if (sig?.parties && sig.parties.length) return sig.parties;
+    const inferred = inferPartyRolesGenitive(c.title);
+    const normalize = (s: string) => (s || "").toLowerCase().replace(/[^a-zа-я]+/gi, "");
+    const looksLike = (have: string, want: string) => {
+      const x = normalize(have), y = normalize(want);
+      if (!x || !y) return false;
+      return x.startsWith(y.slice(0, Math.min(6, y.length))) ||
+             y.startsWith(x.slice(0, Math.min(6, x.length)));
+    };
+    const isGeneric = (role: string) => !role || /^страна\s*[аб]$/i.test(role.trim());
+    const fixRole = (role: string, idx: number): string => {
+      if (!inferred) return role || `Страна ${idx % 2 === 0 ? "А" : "Б"}`;
+      const want = idx % 2 === 0 ? inferred.a : inferred.b;
+      if (isGeneric(role)) return want;
+      if (!looksLike(role, inferred.a) && !looksLike(role, inferred.b)) return want;
+      return role;
+    };
+    if (sig?.parties && sig.parties.length) {
+      return sig.parties.map((p, idx) => ({ ...p, role: fixRole(p.role, idx) }));
+    }
     if (sig?.name_a || sig?.name_b) {
       return [
-        { role: "Страна А", name: sig?.name_a ?? "", image: sig?.image_a },
-        { role: "Страна Б", name: sig?.name_b ?? "", image: sig?.image_b },
+        { role: inferred?.a ?? "Страна А", name: sig?.name_a ?? "", image: sig?.image_a },
+        { role: inferred?.b ?? "Страна Б", name: sig?.name_b ?? "", image: sig?.image_b },
       ];
     }
     return [
-      { role: "Страна А", name: "" },
-      { role: "Страна Б", name: "" },
+      { role: inferred?.a ?? "Страна А", name: "" },
+      { role: inferred?.b ?? "Страна Б", name: "" },
     ];
   })();
+
 
   children.push(new Paragraph({ text: "" }));
   if (sig?.city || sig?.date) {
