@@ -1,22 +1,53 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ExternalLink, FileUp } from "lucide-react";
+import { Loader2, ExternalLink, FileUp, Save } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { useConsoleStore } from "@/hooks/useConsoleStore";
 
-export function UploadedPane({ uploadedId }: { uploadedId: string }) {
+export function UploadedPane({ uploadedId, tabId }: { uploadedId: string; tabId?: string }) {
+  const { setDirty } = useConsoleStore();
   const [doc, setDoc] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [title, setTitle] = useState("");
+  const [text, setText] = useState("");
 
   useEffect(() => {
     (async () => {
+      setLoading(true);
       const { data } = await supabase
         .from("uploaded_contracts")
         .select("*")
         .eq("id", uploadedId)
         .maybeSingle();
       setDoc(data);
+      if (data) {
+        setTitle(data.title || data.original_filename || "");
+        setText(data.extracted_text || "");
+      }
       setLoading(false);
     })();
   }, [uploadedId]);
+
+  const markDirty = () => { if (tabId) setDirty(tabId, true); };
+
+  const handleSave = async () => {
+    if (!doc) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("uploaded_contracts")
+      .update({ title, extracted_text: text })
+      .eq("id", doc.id);
+    setSaving(false);
+    if (error) toast.error("Грешка", { description: error.message });
+    else {
+      toast.success("Запазено");
+      if (tabId) setDirty(tabId, false);
+    }
+  };
 
   if (loading) {
     return (
@@ -33,32 +64,45 @@ export function UploadedPane({ uploadedId }: { uploadedId: string }) {
   return (
     <div className="mx-auto max-w-4xl p-6">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
             <FileUp className="h-3.5 w-3.5 text-gold" /> Качен документ
           </div>
-          <h1 className="mt-1 font-serif text-2xl font-bold">
-            {doc.title || doc.original_filename || "(без заглавие)"}
-          </h1>
+          <Input
+            value={title}
+            onChange={(e) => { setTitle(e.target.value); markDirty(); }}
+            className="mt-1 border-0 bg-transparent px-0 font-serif text-2xl font-bold focus-visible:ring-0"
+            placeholder="(без заглавие)"
+          />
           <p className="mt-1 text-xs text-muted-foreground">
             Качен на {new Date(doc.created_at).toLocaleString("bg-BG")}
           </p>
         </div>
-        <a
-          href={`/uploaded/${doc.id}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-md bg-gold/15 px-3 py-2 text-sm text-gold hover:bg-gold/25"
-        >
-          <ExternalLink className="h-4 w-4" /> Отвори анализ
-        </a>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleSave} disabled={saving} size="sm" className="bg-gradient-gold text-navy">
+            {saving ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-2 h-3.5 w-3.5" />}
+            Запази
+          </Button>
+          <a
+            href={`/uploaded/${doc.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-md bg-gold/15 px-3 py-2 text-sm text-gold hover:bg-gold/25"
+          >
+            <ExternalLink className="h-4 w-4" /> Анализ
+          </a>
+        </div>
       </div>
 
-      {doc.extracted_text && (
-        <article className="mt-6 max-h-[60vh] overflow-y-auto rounded-xl border border-border/60 bg-card/40 p-6">
-          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">{doc.extracted_text}</pre>
-        </article>
-      )}
+      <div className="mt-6">
+        <label className="mb-1 block text-xs uppercase tracking-wider text-muted-foreground">Текст на документа</label>
+        <Textarea
+          value={text}
+          onChange={(e) => { setText(e.target.value); markDirty(); }}
+          className="min-h-[65vh] bg-card/40 font-sans text-sm leading-relaxed"
+          placeholder="Няма извлечен текст"
+        />
+      </div>
     </div>
   );
 }
