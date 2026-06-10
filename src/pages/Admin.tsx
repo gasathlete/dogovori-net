@@ -126,6 +126,9 @@ export default function AdminPage() {
             <Link to="/admin/analytics">📊 Analytics</Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="border-gold/40">
+            <Link to="/admin/privacy">🛡️ Privacy</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm" className="border-gold/40">
             <Link to="/admin/subscriptions">💳 Абонаменти & екипи</Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="border-gold/40">
