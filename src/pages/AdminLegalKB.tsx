@@ -38,6 +38,8 @@ export default function AdminLegalKB() {
   const [sources, setSources] = useState<SourceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [fetchingUrl, setFetchingUrl] = useState(false);
+  const [fetchUrl, setFetchUrl] = useState("");
   const [form, setForm] = useState({
     short_code: "",
     title: "",
@@ -60,6 +62,43 @@ export default function AdminLegalKB() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const fetchFromUrl = async () => {
+    if (!session?.access_token || !fetchUrl.trim()) return;
+    setFetchingUrl(true);
+    try {
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-legal-source`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ url: fetchUrl.trim() }),
+        },
+      );
+      const json = await resp.json();
+      if (!resp.ok) {
+        toast.error(json.error || "Грешка при извличане");
+        return;
+      }
+      setForm((f) => ({
+        ...f,
+        raw_text: json.raw_text,
+        official_url: json.url || f.official_url,
+        jurisdiction: json.jurisdiction || f.jurisdiction,
+        title: f.title || json.suggested_title || "",
+      }));
+      toast.success(`Извлечени ${Math.round((json.length || 0) / 1024)} KB текст. Прегледай и индексирай.`);
+    } catch (e) {
+      console.error(e);
+      toast.error("Грешка при заявката");
+    } finally {
+      setFetchingUrl(false);
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,6 +163,35 @@ export default function AdminLegalKB() {
         Качи нормативни текстове (закон, кодекс, регламент). Системата ги разбива на статии,
         генерира embeddings и ги индексира за всички AI операции.
       </p>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Извличане от URL</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            Разрешени домейни: lex.bg, eur-lex.europa.eu, dv.parliament.bg. Текстът се сваля,
+            почиства от HTML и попълва формата отдолу за преглед преди индексиране.
+          </p>
+          <div className="flex gap-2">
+            <Input
+              type="url"
+              value={fetchUrl}
+              onChange={(e) => setFetchUrl(e.target.value)}
+              placeholder="https://lex.bg/laws/ldoc/2121934337"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={fetchFromUrl}
+              disabled={fetchingUrl || !fetchUrl.trim()}
+            >
+              {fetchingUrl && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Извлечи
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
