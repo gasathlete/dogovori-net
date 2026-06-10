@@ -82,6 +82,10 @@ const AdminIllegalContent = lazy(() => import("./pages/AdminRestrictedProcessing
 const AdminPenTest = lazy(() => import("./pages/AdminPenTest.tsx"));
 const AdminRestoreDrills = lazy(() => import("./pages/AdminRestoreDrills.tsx"));
 const AdminCompliance = lazy(() => import("./pages/AdminCompliance.tsx"));
+const AdminVendors = lazy(() => import("./pages/AdminVendors.tsx"));
+const AdminBreaches = lazy(() => import("./pages/AdminBreaches.tsx"));
+const AdminAiPostMarket = lazy(() => import("./pages/AdminAiPostMarket.tsx"));
+const AdminTraining = lazy(() => import("./pages/AdminTraining.tsx"));
 const CheckoutReturn = lazy(() => import("./pages/CheckoutReturn.tsx"));
 const Plans = lazy(() => import("./pages/Plans.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
@@ -205,6 +209,10 @@ const AnimatedRoutes = () => {
         <Route path="/admin/pentest" element={<ProtectedRoute><AdminPenTest /></ProtectedRoute>} />
         <Route path="/admin/restore-drills" element={<ProtectedRoute><AdminRestoreDrills /></ProtectedRoute>} />
         <Route path="/admin/compliance" element={<ProtectedRoute><AdminCompliance /></ProtectedRoute>} />
+        <Route path="/admin/vendors" element={<ProtectedRoute><AdminVendors /></ProtectedRoute>} />
+        <Route path="/admin/breaches" element={<ProtectedRoute><AdminBreaches /></ProtectedRoute>} />
+        <Route path="/admin/ai-post-market" element={<ProtectedRoute><AdminAiPostMarket /></ProtectedRoute>} />
+        <Route path="/admin/training" element={<ProtectedRoute><AdminTraining /></ProtectedRoute>} />
         <Route path="/checkout/return" element={<CheckoutReturn />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
