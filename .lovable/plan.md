@@ -1,230 +1,141 @@
-# План: GDPR/AI Act съответствие за Dogovori.net
+# План: правни корекции преди launch (25.06.2026)
 
-Този план приема адвокатския одит и го превежда в конкретни кодови промени, политики и операционни процеси. Изпълняваме на 3 вълни (P0 → P1 → P2). За всяка вълна посочвам кои файлове да създадем/променим, какво ще съдържат и кой риск адресират.
+Базиран на адвокатския меморандум. Всички 10 блокиращи точки + критични 30‑дневни се изпълняват преди 25.06.
 
-## Текущо състояние (от ревюто на кода)
+## A. GDPR роли, основания и DPA (т. 1, 3)
 
-Налично:
-- `src/lib/anonymize.ts` — има regex редактиране за EGN/EIK/IBAN/email/телефон/имена (само за админ преглед, **не се ползва преди AI повиквания**).
-- `supabase/functions/_shared/illegal-content.ts` — блокировка на незаконно съдържание.
-- Edge функции `analyze-contract`, `correct-uploaded`, `apply-corrections`, `ocr-contract`, `generate-contract`, `build-custom-contract` — викат Lovable AI Gateway, **без класификация или redaction слой**.
-- Логват сурови частични отговори в `console.log`/`console.error` (видими в edge logs).
-- `analyze-contract` има автоматичен fallback flash-lite → flash → pro **без policy проверка**.
-- Правни страници: `Privacy.tsx`, `Terms.tsx`, `DPA.tsx`, `Cookies.tsx`, `ProviderInfo.tsx`, `Refund.tsx`, `WithdrawalForm.tsx`.
-- В `src/pages/Account.tsx` има `Delete account` функционалност (edge function `delete-account`).
+1. **Разделяне на ролите** в `Privacy.tsx`, `DPA.tsx`, `ROPA.tsx`, `legal-memorandum`:
+   - Dogovori.net **като администратор** — акаунти, плащания, фактури, сигурност, маркетинг, продуктова аналитика.
+   - Dogovori.net **като обработващ** — съдържание на качени документи и AI операции по възлагане на потребителя.
+   - **Потребителят като администратор** за данни на трети лица.
+2. **Правни основания** — пренаписване на таблицата „операция → основание“ по модела от меморандума (договор за услугата; легитимен интерес само за audit/security; съгласие само за маркетинг/analytics/optional model improvement).
+3. **LIA документ** — `docs/LIA_audit_security.md` за audit logs, fraud prevention, security monitoring.
+4. **Обвързващо приемане на DPA** при регистрация/абонамент за бизнес/Team:
+   - нов чекбокс „Приемам DPA в качеството си на администратор за данните на трети лица“;
+   - запис в `user_consents` с версия и timestamp.
+5. **Декларация в Terms** — потребителят гарантира правно основание да качва данни на трети лица (клауза 8.3).
 
-Липсва: класификация преди AI, automatic redaction в продукцията, model routing policy, retention job, audit log без съдържание, export/erase на ниво документ, DPIA, политики (AI Processing, Retention, Subprocessor Register), security headers.
+## B. Псевдонимизация и AI логване (т. 1.3)
 
----
+1. Code review на `_shared/redact.ts` + всички AI edge функции:
+   - hard‑guard: никога не логва `originalText`, `redactionMap`, `prompt`, `response.text`, stack traces с фрагменти.
+   - `redactionMap.clear()` във `finally`.
+   - Само `piiStats`, токени, model, operation, status → `ai_audit_log`.
+2. Unit тест `redact.test.ts` за no‑leak guarantee.
 
-## ВЪЛНА P0 — Технически "stop the bleeding" (1 итерация)
+## C. Преименуване на illegal_content_attempts (т. 1.4)
 
-Цел: спираме изтичането на лични данни към AI и в логовете, без да чупим съществуващата UX.
+1. Migration: `illegal_content_attempts` → **`restricted_processing_events`**.
+   - колони: `user_id`, `event_type`, `category_code` (enum: `health_data | biometric | criminal | minors | political_religious | other`), `operation`, `action`, `created_at`.
+   - **без** сурово съдържание, без фрагменти.
+   - RLS + GRANT.
+2. Update код: `_shared/illegal-content.ts`, `AdminIllegalContent.tsx` → `AdminRestrictedProcessing.tsx`.
+3. UI текст: „Документът изглежда съдържа чувствителни лични данни. Поради защита на Вашата поверителност автоматизираният AI анализ не е наличен за този файл.“
 
-### 1. Shared PII/класификация слой за edge functions
+## D. DPIA — премахване от user profile (т. 1.5)
 
-Нови файлове:
-- `supabase/functions/_shared/classify.ts`
-  - `classifyDocumentBeforeAI(text): { risk_level, contains_personal_data, contains_special_category_data, redaction_required, user_confirmation_required, allowed_models[], reasons[] }`
-  - Открива: EGN/ЛНЧ (10 цифри с checksum), номер лична карта, IBAN, телефон, email, имена (българска и латиница heuristic), адреси (улица/гр./бул.), подпис ("/п/", "(подпис)").
-  - Special category keywords (BG/EN): "ТЕЛК", "НЕЛК", "болничен лист", "диагноза", "ХИВ", "инвалидност", "синдикат", "вероизповедание", "етнос", "сексуална ориентация", "биометрични", "ДНК", имена на деца под 18.
-  - Връща `allowed_models` според риска: low → all, medium → flash-lite/flash, high → flash-lite only (след redaction), blocked → [].
-- `supabase/functions/_shared/redact.ts`
-  - `redactForAI(text): { redacted, mapping, stats }` — портира `src/lib/anonymize.ts` в Deno, плюс placeholders `<NAME_1>`, `<EGN_1>`, `<EMAIL_1>`, `<IBAN_1>`, `<PHONE_1>`, `<ADDRESS_1>`, `<ID_CARD_1>`.
-  - Mapping се връща САМО на caller (in-memory) — не се пише никъде.
-  - `unredact(text, mapping)` — за връщане на финалния документ към потребителя.
-- `supabase/functions/_shared/model-router.ts`
-  - `routeModel(operation, classification, opts): { model, allowFallback, fallbackChain[], requireConfirmation }`
-  - Имплементира таблицата от ревюто (analyze → flash-lite след redaction; correct-uploaded/pro → blocked при special category; и т.н.).
-- `supabase/functions/_shared/ai-call.ts`
-  - Единна обвивка около fetch към `ai.gateway.lovable.dev`. Записва audit log БЕЗ съдържание.
-  - Преди request: ако `redaction_required` и payload не е redacted → throw.
-  - Fallback: винаги използва същия redacted payload; не извиква друг модел без `allowFallback`.
+1. Премахване на бутона „DPIA download“ от `Account.tsx`.
+2. Премахване на `public/dpia-dogovori-net.docx`.
+3. Генериране на **DPIA Summary** (`public/dpia-summary-dogovori-net.pdf` + страница `/legal/dpia-summary`): какви данни, защо, защити, права, контакт. Без архитектура/слабости/residual risk.
+4. Пълната DPIA се пази вътрешно в `docs/internal/DPIA_full.md` (не се сервира).
 
-### 2. Audit log без съдържание
+## E. Електронен подпис — ЗЕДЕУУ корекции (т. 2)
 
-Нова миграция: таблица `public.ai_audit_log` с колони:
-`id, user_id, team_id, operation_id, operation, model, fallback_used, fallback_model, risk_level, redaction_applied, contains_personal_data, contains_special_category_data, tokens_in, tokens_out, status, error_code, created_at`.
+1. **Пренаписване на правния текст** в `IncidentResponse.tsx` (премахване на „SES няма правна сила, равностойна на саморъчния подпис“). Заменя се с формулировката от т. 2.1.
+2. **Signing flow** (`SigningEnvelope.tsx`, `MultiPartySigningDialog.tsx`):
+   - отделен чекбокс „Съгласявам се този електронен подпис ... да има правната сила на саморъчен подпис ...“;
+   - при подпис от ЮЛ — нови полета: `eik`, `signer_capacity` (управител/пълномощник/служител/друго), декларация за представителна власт;
+   - предупреждение „Dogovori.net не проверява представителната власт ...“;
+   - препоръка за QES при високорискови документи.
+3. **Audit trail** — `signing_audit_events` се обогатява с: doc hash, envelope id, IP, user-agent, channel, document_version, consent_text_version. Документира се отделно от `ai_audit_log` с по‑дълъг retention (обвързан с давност/договор).
+4. Клауза 8.2 от меморандума в Terms.
 
-RLS: потребителят чете само своите записи; service_role пълен достъп.
+## F. ЗЕТ — посредник при електронно изявление (т. 2.3)
 
-GRANTs за `authenticated` (SELECT собствените) и `service_role` (ALL).
+1. `signature_audit_trail` retention ≥ 12 м., практически до изтичане на давност или докато документът е в профила. `ai_audit_log` остава 12 м.
+2. Описание в Terms + Retention Policy.
 
-### 3. Интеграция в съществуващите edge functions
+## G. ЗЕТ/ЗЗП — информация за доставчика и checkout (т. 3.1–3.3)
 
-Промени в:
-- `supabase/functions/analyze-contract/index.ts`
-- `supabase/functions/correct-uploaded/index.ts`
-- `supabase/functions/apply-corrections/index.ts`
-- `supabase/functions/ocr-contract/index.ts`
-- `supabase/functions/build-custom-contract/index.ts`
-- `supabase/functions/generate-contract/index.ts`
+1. **`/legal/contacts`** — пълно търговско наименование, ЕИК/БУЛСТАТ, седалище и адрес на управление, email, телефон, ДДС №, лице за GDPR, контакт за DSA.
+2. **Checkout flow** (`StripeEmbeddedCheckout.tsx`, `CheckoutReturn.tsx`):
+   - екран „Преглед на поръчката“ с цена с/без ДДС, период;
+   - бутон „Потвърждавам поръчката и се задължавам да платя“;
+   - линкове към Terms, Privacy, Withdrawal, Refund;
+   - email потвърждение след сключване.
+3. **`order_snapshots` таблица** + edge function записва snapshot при всяка покупка: plan, price, vat, версии на правни документи, IP, UA.
+4. Технически средства за поправяне на грешки + езици на договора в Terms § „Електронно сключване“.
 
-Във всяка:
-1. Преди AI call: `const cls = classifyDocumentBeforeAI(text)`.
-2. Ако `cls.risk_level === "blocked"` → 422 с код `blocked_special_category`, текст за потребителя.
-3. Ако `cls.redaction_required` → `const { redacted, mapping } = redactForAI(text)`, изпращаме `redacted` към AI.
-4. `routeModel(operation, cls)` определя модел и fallback правилата.
-5. Викаме AI през `ai-call.ts` обвивката.
-6. След отговор: `unredact(aiOutput, mapping)` ако е нужно за крайния продукт.
-7. Записваме `ai_audit_log` ред (без съдържание).
-8. Премахваме всички `console.log` с части от prompts/documents — оставяме само status/error code.
+## H. Маркетингови твърдения (т. 3.4)
 
-### 4. Frontend confirmation modal
+1. Глобален audit на копи в `src/pages/Index.tsx`, `ComplianceSection.tsx`, `Plans*`, blog seed: премахване на „изцяло правно издържани“, „без риск“, „гарантирано съответствие“, „сертифицирани“, „SOC2 compliant“.
+2. Замяна с: „подпомага изготвянето и анализа“, „AI резултатите подлежат на човешка проверка“, „не замества правна консултация“, „ISO 27001/SOC 2 readiness — в процес на подготовка“.
 
-Нов компонент: `src/components/ai/SensitiveDataWarning.tsx` — диалог преди upload/OCR/pro действие:
-- Списък забранени документи (лични карти, медицински, документи за деца, биометрика и т.н.).
-- Checkbox "Декларирам, че имам основание".
-- Запис в `user_consents` (вече съществуващ таблица).
+## I. Cookies (т. 4)
 
-Интеграция в:
-- `src/components/UploadContract.tsx` (или където е upload UI).
-- `src/pages/BuildContract.tsx` преди pro операции.
+1. `Cookies.tsx` + `llms.txt` — корекция: **чл. 4а ЗЕТ** (не ЗЕС).
+2. `CookieBanner.tsx` — analytics/marketing скриптове да НЕ се зареждат преди избор; gating през `cookieConsent.{analytics,marketing}`.
+3. Бутон **„Промени настройките за бисквитки“** във `Footer.tsx`.
+4. Запис в `user_consents`: категории, версия на cookie policy, timestamp, source, pseudo session id.
 
-### 5. Retention job
+## J. Трансфери извън ЕС (т. 5)
 
-Нова edge функция `supabase/functions/retention-sweeper/index.ts` + cron (pg_cron) на всеки час:
-- Изтрива `uploaded_contracts` където `created_at < now() - 24h` И няма свързан `saved_documents`/`risk_analyses` И няма `folder_id`.
-- Trim-ва `extracted_text` от `uploaded_contracts` след 24h ако не са запазени.
-- Изтрива `ai_audit_log` записи > 12 месеца.
-- Изтрива storage обекти от bucket-а за upload, не свързани с активен ред.
+1. **`/legal/subprocessors`** — за всеки доставчик: ЮЛ, държава, регион на обработка, transfer outside EEA (yes/no), основание/SCC/DPF, training (yes/no), retention, линк към DPA. Премахване на „когато е възможно“.
+2. **Account setting** „Само EU processing за AI заявки“ (per‑user + per‑team) → `profiles.allow_third_country_ai` (default `true` за consumer, `false` за бизнес).
+3. Edge functions: hard guard
+   ```ts
+   if (!allowNonEU && model.requiresNonEUTransfer) throw ...
+   ```
+4. Routing fallback актуализиран в `model-router.ts`.
 
-### 6. Премахване на raw логване
+## K. Retention — премахване на противоречия (т. 6)
 
-- Глобално търсене и премахване на `console.log(...prompt...)`, `console.log(...output...)`, `console.error(text)` в edge functions. Запазваме само статус код и съкратен error message.
+1. Update `RetentionPolicy.tsx` + `retention-sweeper`:
+   - `extracted_text` → **7 дни** (вместо 90), документирано.
+   - matrix таблица в политиката съвпада с реалния sweeper.
+2. Сверяване на `ai_audit_log` (12м), `signing_audit_events` (≥ давностен срок), saved documents (докато са в профила).
 
----
+## L. AI Act & AI Acknowledgement (т. 7)
 
-## ВЪЛНА P1 — Политики, прозрачност и потребителски права
+1. Преименуване на „AI processing consent“ → **„AI acknowledgement“** в UI/код/`user_consents.consent_type`.
+2. Истинско съгласие — само за маркетинг, analytics, optional model improvement, optional non‑EU AI.
+3. **Hard warning банер** при високорискови типове документи (имоти, трудови, потребителски кредити, заеми, прехвърляне на дялове, пълномощни, семейни, нотариална форма, специални категории) — `RiskWarningBanner.tsx`.
+4. Disclaimer text под всеки AI output: „Това е автоматично генериран резултат ...“ (вече има, но унифициране).
 
-### 7. User self-service
+## M. Terms клаузи (т. 8.1–8.5)
 
-Нова страница `src/pages/account/Privacy.tsx` (таб в `Account.tsx`):
-- "Изтегли моите данни" → нова edge function `export-user-data` връща ZIP/JSON с: профил, saved_documents, uploaded_contracts (текст), risk_analyses, ai_audit_log (без съдържание).
-- "Изтрий качен документ" / "Изтрий запазен документ" с потвърждение.
-- "История на AI операции" — таблица от `ai_audit_log`.
-- "Оттегли съгласие" (linked към `user_consents`).
+Добавяне/пренаписване в `Terms.tsx` на клаузи 8.1 (AI резултати), 8.2 (е‑подпис), 8.3 (данни на трети лица), 8.4 (забранени документи), 8.5 (балансирана отговорност, без изключване на умисъл/груба небрежност).
 
-### 8. Обновени правни документи
+## N. Сигурност — преди launch (т. 9.1–9.4)
 
-Промени в съществуващите MDX/TSX страници:
-- `src/pages/Privacy.tsx` — детайлно описание на:
-  - категории AI операции;
-  - Lovable AI Gateway като processor;
-  - fallback модели;
-  - regions (EU/global);
-  - retention срокове;
-  - права на субекта;
-  - забранени категории документи.
-- `src/pages/Terms.tsx` — добавя раздел "Забранено съдържание" + AI Act ограничения (no automated hiring/credit decisions).
-- `src/pages/DPA.tsx` — обновяваме с минималните клаузи (subject, duration, types, instructions, confidentiality, no training, no human review, zero retention, subprocessors, SCCs, deletion).
+1. **`docs/ACCESS_POLICY.md`** — кой/кога/как получава prod достъп, quarterly review.
+2. **Отделяне на среди** — документиране на production/staging/development; забрана за реални документи в dev/staging без анонимизация (`docs/ENV_POLICY.md`).
+3. Първи **restore drill** изпълнен и логнат в `restore_drills`.
+4. Incident response runbook — потвърждение 72ч SLA + темплейт за уведомление (вече има, само review).
 
-Нови страници:
-- `src/pages/legal/AIProcessingPolicy.tsx`
-- `src/pages/legal/RetentionPolicy.tsx`
-- `src/pages/legal/SubprocessorRegister.tsx` (списък: Lovable AI Gateway, Google Gemini, Supabase, Stripe, Resend; страна/регион; категории данни).
-- `src/pages/legal/ModelRoutingPolicy.tsx` (публикуване на таблицата operation×model).
-- `src/pages/legal/IncidentResponse.tsx` (контакти, SLA за уведомяване).
+## O. Launch checklist update
 
-Добавяме routes в `src/App.tsx`.
-
-### 9. Security headers и web hardening
-
-- `index.html` / Vite preview headers + продакшън през Cloudflare/host:
-  - CSP (script-src self + Lovable домейни + Stripe);
-  - X-Frame-Options: DENY;
-  - X-Content-Type-Options: nosniff;
-  - Referrer-Policy: strict-origin-when-cross-origin;
-  - Permissions-Policy.
-- Cookies: проверка че `supabase.auth` използва secure/SameSite (вече по default, но документираме).
-- Rate limiting на edge functions: shared `_shared/rate-limit.ts` базиран на user_id + IP, пер endpoint (login, upload, analyze).
-
-### 10. Upload pipeline hardening
-
-Промяна в upload edge endpoint (или client `UploadContract.tsx`):
-- MIME проверка whitelist: pdf/docx/odt/txt.
-- File size cap (вече има, потвърждаваме 10MB).
-- Magic-bytes check (не само extension).
-- PDF sanitization step (вика `pdf-lib` flatten преди OCR).
-- Hook за външен AV scan (готов interface, дори без активиран доставчик).
-- След upload: `classifyDocumentBeforeAI(extracted_text)` → ако high/blocked → показваме warning + изискваме потвърждение.
-
-### 11. DPIA документ
-
-`/mnt/documents/dpia_dogovori_net.docx` (генерира се със `docx` skill) — пълно ОВЗД покритие за: AI анализ, OCR, upload, pro операции, fallback, prompt logging, document storage, special category handling, third-party processors. Включва risk matrix и митигации.
-
----
-
-## ВЪЛНА P2 — Зрялост и enterprise
-
-### 12. Advanced
-
-- DLP engine: тестова матрица + auto-fail тестове, че logs не съдържат EGN/email/IBAN.
-- Admin dashboard за privacy/security метрики (`/admin/privacy`): брой blocked операции, % с redaction, retention статистика.
-- Configurable per-team retention (Team plan).
-- EU-only AI region pinning (когато Lovable Gateway го позволи).
-- SOC2/ISO 27001 readiness checklist (markdown в `docs/`).
-- Periodic pen-test plan (документ, не код).
-- Red-team prompt injection тест suite (`tests/security/prompt-injection.test.ts`).
-
-### 13. Тестове (Deno + vitest)
-
-- `supabase/functions/_shared/classify.test.ts` — unit за класификация (EGN, IBAN, medical, names).
-- `supabase/functions/_shared/redact.test.ts` — round-trip redact/unredact.
-- `supabase/functions/_shared/model-router.test.ts` — pro не се връща при special category.
-- `tests/security/no-pii-in-logs.test.ts` — фейлва при намерен EGN/IBAN pattern в edge logs sample.
-- Integration: analyze-contract с medical text → blocked отговор.
+Compliance Dashboard (`AdminCompliance.tsx`) — нова секция „Pre‑launch 25.06“ с тези 10 точки + статус/owner/evidence.
 
 ---
 
 ## Технически детайли
 
-### Точки на интеграция
+- Migrations:
+  - rename `illegal_content_attempts` → `restricted_processing_events` (+ нов enum за `category_code`).
+  - нова `order_snapshots` (id, user_id, plan, price, currency, vat_included, terms_version, privacy_version, withdrawal_version, refund_version, ip, user_agent, created_at). GRANT + RLS.
+  - `profiles.allow_third_country_ai boolean default true`.
+  - `teams.eu_only_ai boolean default false`.
+  - `signing_request_signers`: `eik`, `signer_capacity`, `representative_declaration_accepted`, `ses_equivalence_accepted`.
+- Edge functions update: всички AI функции — proверка `eu_only_ai` + no‑leak логване.
+- Тестове: `redact.test.ts` no‑leak, `order-snapshot.test.ts`, schema на `restricted_processing_events`.
+- Файлове: премахване на `public/dpia-dogovori-net.docx`; нова `dpia-summary-dogovori-net.pdf` + `/legal/dpia-summary` route; нова `docs/LIA_audit_security.md`, `docs/ACCESS_POLICY.md`, `docs/ENV_POLICY.md`, `docs/internal/DPIA_full.md`.
 
-```text
-Edge function (analyze/correct/apply/ocr/build/generate)
-  ↓
-classifyDocumentBeforeAI(text)
-  ↓                    ↓ blocked
-redactForAI(text) → 422 user-facing
-  ↓
-routeModel(op, cls)
-  ↓
-aiCall(redacted, model, allowFallback)
-  ↓
-unredact(output, mapping) → user
-  ↓
-ai_audit_log.insert({...metadata only...})
-```
+## Извън скоупа за 25.06 (отлагат се за +30 дни)
 
-### Файлове, които ще се добавят (P0)
-- `supabase/functions/_shared/classify.ts`
-- `supabase/functions/_shared/redact.ts`
-- `supabase/functions/_shared/model-router.ts`
-- `supabase/functions/_shared/ai-call.ts`
-- `supabase/functions/retention-sweeper/index.ts`
-- `src/components/ai/SensitiveDataWarning.tsx`
-- Миграция за `ai_audit_log` + pg_cron за retention sweeper.
+- Vendor DPA pack за всеки subprocessor (организационно).
+- Публичен changelog на legal docs + автоматизирано versioning.
+- Subprocessor change notice mechanism (email broadcast).
+- Първи external pen‑test.
 
-### Файлове, които ще се променят (P0)
-- Всички 6 AI edge functions (analyze/correct/apply/ocr/build/generate).
-- `src/components/UploadContract.tsx` (или съответния upload компонент).
-- `src/pages/BuildContract.tsx` (confirmation gate за pro).
-
-### Граници (какво НЕ правим в този план)
-- Не сменяме pricing/billing логиката.
-- Не сменяме AI доставчика (оставаме на Lovable Gateway).
-- Не пишем нови adversarial prompt injection защити в самия модел (оставяме за P2).
-- Не добавяме външен AV (само hook).
-
----
-
-## Препоръчителен ред на изпълнение
-
-1. **Стъпка 1 (P0 ядро):** classify + redact + model-router + ai-call helpers + ai_audit_log таблица. Само shared слой, без интеграция още.
-2. **Стъпка 2 (P0 интеграция):** вкарваме слоя в analyze-contract първо (най-голям риск), тестваме, после в останалите 5 функции.
-3. **Стъпка 3 (P0 UX):** sensitive data warning + премахване на raw logs + retention sweeper.
-4. **Стъпка 4 (P1):** правни страници + user self-service + security headers.
-5. **Стъпка 5 (P2):** DPIA + тестове + admin metrics.
-
-Готов съм да започна със Стъпка 1, ако одобрите плана. Ако предпочитате друг ред (напр. първо политиките/правните страници), кажете.
+Готов съм да започна изпълнението веднага щом одобрите плана.
