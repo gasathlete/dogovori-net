@@ -150,7 +150,7 @@ export function BlogRatingAndComments({ postType, postSlug }: Props) {
                   className="p-1 transition-transform disabled:cursor-not-allowed hover:scale-110"
                   aria-label={`${v} ${v === 1 ? "звезда" : "звезди"}`}
                 >
-                  <Star className={`h-6 w-6 ${active ? "fill-gold text-gold" : "text-muted-foreground/40"}`} />
+                  <Star className={`h-6 w-6 ${active ? "fill-gold text-gold" : "text-muted-foreground/70"}`} />
                 </button>
               );
             })}
