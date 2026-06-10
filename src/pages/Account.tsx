@@ -2091,3 +2091,66 @@ function SettingsTab({ profile, setProfile, userId }: {
     </div>
   );
 }
+
+// ---- Data residency (EU-only AI) card ----
+function DataResidencyCard({ userId }: { userId: string | null }) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [euOnly, setEuOnly] = useState(false);
+
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("allow_third_country_ai")
+        .eq("id", userId)
+        .maybeSingle();
+      if (!cancelled) {
+        setEuOnly((data as { allow_third_country_ai?: boolean } | null)?.allow_third_country_ai === false);
+        setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  const toggle = async () => {
+    if (!userId) return;
+    setSaving(true);
+    const next = !euOnly;
+    const { error } = await supabase
+      .from("profiles")
+      .update({ allow_third_country_ai: !next })
+      .eq("id", userId);
+    setSaving(false);
+    if (error) { toast.error("Грешка при запазване"); return; }
+    setEuOnly(next);
+    toast.success(next ? "Включено: само ЕИП обработка на AI" : "Изключено: разрешена глобална AI обработка");
+  };
+
+  return (
+    <div className="max-w-lg space-y-3 rounded-xl border border-border/60 bg-gradient-card p-6">
+      <h3 className="flex items-center gap-2 font-serif text-lg font-bold">
+        <ShieldCheck className="h-4 w-4 text-gold" /> AI данни (EU residency)
+      </h3>
+      <p className="text-xs text-muted-foreground">
+        По подразбиране AI обработката се извършва през Lovable AI Gateway, който може да маршрутизира заявки и към доставчици извън ЕИП.
+        Когато включите „Само EU обработка", системата ще <strong>блокира</strong> всяка AI операция, която би напуснала ЕИП (чл. 44–49 GDPR).
+      </p>
+      <p className="text-[11px] text-muted-foreground/80">
+        Внимание: при включена опция, AI генерирането и анализът ще бъдат недостъпни докато не върнете настройката. Препоръчва се само ако обработвате специални категории данни.
+      </p>
+      <Button
+        onClick={toggle}
+        disabled={loading || saving || !userId}
+        variant="outline"
+        className="border-gold/40"
+      >
+        {(loading || saving) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {euOnly ? "Изключи EU-only режим" : "Включи EU-only режим"}
+      </Button>
+    </div>
+  );
+}
+
