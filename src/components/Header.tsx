@@ -105,6 +105,8 @@ export function Header() {
         {/* Actions */}
         <div className="flex items-center justify-end gap-3 justify-self-end">
           <ToolsMenu variant="desktop" />
+          <ThemeToggle className="hidden sm:inline-flex" />
+
 
           {showProBadge && (
             <button
