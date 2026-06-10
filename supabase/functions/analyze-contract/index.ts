@@ -355,7 +355,13 @@ ${payloadText}
 
 Извърши пълен правен риск-анализ. За всеки issue включи дословен цитат от текста между маркерите в "clause". Върни СТРОГО валиден JSON по схемата.`;
 
-    const activeSystemPrompt = await loadActivePrompt(admin, "analyze-contract", SYSTEM_PROMPT);
+    const baseSystemPrompt = await loadActivePrompt(admin, "analyze-contract", SYSTEM_PROMPT);
+    // RAG: ground analysis in the regulated legal knowledge base.
+    const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
+    const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, payloadText.slice(0, 4000), { matchCount: 6 });
+    const activeSystemPrompt = legal.hasMatches
+      ? `${baseSystemPrompt}\n\n${legal.promptBlock}`
+      : baseSystemPrompt;
 
     const callAi = async (modelName: string) => {
       return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
