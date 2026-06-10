@@ -254,6 +254,46 @@ export default function AdminLegalKB() {
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">Препоръчителен каталог</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Един клик: системата сваля и индексира основните актове (ЗЗД, ТЗ, КТ, СК, ЗЗП, ЗЗЛД, ГПК, GDPR).
+            Вече индексирани се прескачат автоматично.
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {SEED_CATALOG.map((c) => {
+              const done = sources.some((s) => s.jurisdiction === c.jurisdiction && s.short_code === c.short_code);
+              return (
+                <Badge
+                  key={`${c.jurisdiction}:${c.short_code}`}
+                  variant={done ? "default" : "outline"}
+                  className="text-[10px]"
+                >
+                  {done ? "✓ " : ""}{c.short_code}
+                </Badge>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              onClick={seedAll}
+              disabled={seedProgress !== null}
+              className="bg-gold text-navy hover:bg-gold/90"
+            >
+              {seedProgress !== null && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Индексирай препоръчителните
+            </Button>
+            {seedProgress && (
+              <span className="text-xs text-muted-foreground">{seedProgress}</span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">Извличане от URL</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
