@@ -215,6 +215,7 @@ const AnimatedRoutes = () => {
         <Route path="/admin/breaches" element={<ProtectedRoute><AdminBreaches /></ProtectedRoute>} />
         <Route path="/admin/ai-post-market" element={<ProtectedRoute><AdminAiPostMarket /></ProtectedRoute>} />
         <Route path="/admin/training" element={<ProtectedRoute><AdminTraining /></ProtectedRoute>} />
+        <Route path="/admin/legal-kb" element={<ProtectedRoute><AdminLegalKB /></ProtectedRoute>} />
         <Route path="/checkout/return" element={<CheckoutReturn />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
