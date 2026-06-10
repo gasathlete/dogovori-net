@@ -294,7 +294,7 @@ Deno.serve(async (req) => {
     const stream = new ReadableStream({
       async start(controller) {
         // Send threadId first as a custom event so client can store it
-        controller.enqueue(encoder.encode(`event: meta\ndata: ${JSON.stringify({ threadId: activeThreadId })}\n\n`));
+        controller.enqueue(encoder.encode(`event: meta\ndata: ${JSON.stringify({ threadId: activeThreadId, citations: legal.citations })}\n\n`));
 
         let buffer = "";
         try {
