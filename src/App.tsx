@@ -86,6 +86,7 @@ const AdminVendors = lazy(() => import("./pages/AdminVendors.tsx"));
 const AdminBreaches = lazy(() => import("./pages/AdminBreaches.tsx"));
 const AdminAiPostMarket = lazy(() => import("./pages/AdminAiPostMarket.tsx"));
 const AdminTraining = lazy(() => import("./pages/AdminTraining.tsx"));
+const AdminLegalKB = lazy(() => import("./pages/AdminLegalKB.tsx"));
 const CheckoutReturn = lazy(() => import("./pages/CheckoutReturn.tsx"));
 const Plans = lazy(() => import("./pages/Plans.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
