@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
       },
     });
     if (!resp.ok) {
-      return new Response(JSON.stringify({ error: `HTTP ${resp.status} от източника` }), {
+      return new Response(JSON.stringify({ error: `HTTP ${resp.status} от източника`, status: resp.status }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -106,14 +106,57 @@ Deno.serve(async (req) => {
     const title = extractTitle(html);
     const text = htmlToText(html);
 
+    // ---- Validation ----
+    const warnings: string[] = [];
+    const lower = text.toLowerCase();
+
+    // login/paywall detection
+    const loginMarkers = ["вход в системата", "моля влезте", "регистрирайте се за достъп", "log in to view", "subscribe to read", "abonament"];
+    const hasLoginWall = loginMarkers.some((m) => lower.includes(m));
+    if (hasLoginWall) warnings.push("Възможна login/paywall стена в съдържанието.");
+
+    // article density (laws/codes should have many "Чл." / "Article")
+    const articleMatches = text.match(/\b(Чл\.|Член|Article)\s*\d+/gi) || [];
+    const articleCount = articleMatches.length;
+    const isEU = parsed.host.includes("eur-lex");
+    const minArticles = isEU ? 3 : 5;
+    if (articleCount < minArticles) {
+      warnings.push(`Открити само ${articleCount} члена/article (очаквани ≥${minArticles}). Възможно непълно съдържание.`);
+    }
+
+    // text length sanity
     if (text.length < 500) {
       return new Response(JSON.stringify({
         error: "Извлеченият текст е твърде кратък. Опитай прав .txt/HTML източник.",
         length: text.length,
+        status: resp.status,
       }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    if (text.length < 2000) warnings.push("Текстът е необичайно кратък за нормативен акт.");
 
-    const jurisdiction = parsed.host.includes("eur-lex") ? "EU" : "BG";
+    // checksum for dedup detection client-side
+    const enc = new TextEncoder().encode(text);
+    const hashBuf = await crypto.subtle.digest("SHA-256", enc);
+    const checksum = Array.from(new Uint8Array(hashBuf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+
+    // cross-source dedup: same checksum already indexed?
+    const { data: dupRow } = await admin
+      .from("legal_documents")
+      .select("id, source_id")
+      .eq("checksum", checksum)
+      .maybeSingle();
+    let duplicate_of: { source_id: string; short_code: string | null; title: string | null } | null = null;
+    if (dupRow) {
+      const { data: srcRow } = await admin
+        .from("legal_sources")
+        .select("short_code, title")
+        .eq("id", dupRow.source_id)
+        .maybeSingle();
+      duplicate_of = { source_id: dupRow.source_id, short_code: srcRow?.short_code ?? null, title: srcRow?.title ?? null };
+      warnings.push(`Същият текст вече е индексиран като ${srcRow?.short_code ?? "(?)"} — ${srcRow?.title ?? ""}.`);
+    }
+
+    const jurisdiction = isEU ? "EU" : "BG";
 
     return new Response(JSON.stringify({
       ok: true,
@@ -122,6 +165,15 @@ Deno.serve(async (req) => {
       suggested_title: title,
       raw_text: text,
       length: text.length,
+      validation: {
+        article_count: articleCount,
+        has_login_wall: hasLoginWall,
+        checksum,
+        warnings,
+        is_duplicate: !!duplicate_of,
+        duplicate_of,
+        passes: warnings.length === 0,
+      },
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("fetch-legal-source", e);
