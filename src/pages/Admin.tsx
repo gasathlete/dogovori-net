@@ -127,6 +127,10 @@ export default function AdminPage() {
           <Button asChild variant="outline" size="sm" className="ml-auto border-gold/40"><Link to="/admin/analytics">📊 Analytics</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/privacy">🛡️ Privacy</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/compliance">✅ Compliance</Link></Button>
+          <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/vendors">🤝 Vendors</Link></Button>
+          <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/breaches">🚨 Breaches</Link></Button>
+          <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/ai-post-market">📈 AI Monitor</Link></Button>
+          <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/training">📚 Training</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/pentest">🔒 Пен-тестове</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/restore-drills">💾 Restore drills</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/subscriptions">💳 Абонаменти & екипи</Link></Button>
