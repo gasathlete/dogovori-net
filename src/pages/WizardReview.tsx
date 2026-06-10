@@ -9,7 +9,7 @@
  * PDF/DOCX export, mirroring the legacy Wizard finalize UX.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Bird, FileDown, FileText, Loader2, AlertCircle, Save, Folder, User, CheckCircle2, ChevronDown, FileSignature, Printer } from "lucide-react";
 import { toast } from "sonner";
