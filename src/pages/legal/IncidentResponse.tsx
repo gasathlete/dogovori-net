@@ -37,7 +37,15 @@ export default function IncidentResponsePage() {
         </li>
       </ul>
 
-      <h2>3. Процедура</h2>
+      <h2>3. Цели за възстановяване (RTO / RPO)</h2>
+      <ul>
+        <li><strong>RTO (Recovery Time Objective):</strong> ≤ 4 часа за критични функции (вход, генериране, подписване).</li>
+        <li><strong>RPO (Recovery Point Objective):</strong> ≤ 5 минути — Point-in-Time Recovery (PITR) на базата данни през Lovable Cloud.</li>
+        <li><strong>Backup retention:</strong> 7 дни PITR + дневни snapshots за 30 дни.</li>
+        <li><strong>Restore drill:</strong> провежда се поне веднъж на 6 месеца; резултатите се документират вътрешно.</li>
+      </ul>
+
+      <h2>4. Процедура</h2>
       <ol>
         <li><strong>Откриване</strong> — Sentry alert, ръчно докладване или сигнал от потребител.</li>
         <li><strong>Изолация</strong> — спираме засегнатата функция/сесия/акаунт.</li>
