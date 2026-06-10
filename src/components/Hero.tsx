@@ -232,7 +232,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             className="anim-rise mt-4 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
             style={{ animationDelay: "340ms" }}
           >
-            БЕЗ ДОБАВЯНЕ НА КАРТА · ПРЕДПРИЕМАЧ 12.90 €/МЕС. · ПРОМОКОД <span className="text-gold">FIRST100</span> → −30%
+            БЕЗ ДОБАВЯНЕ НА КАРТА · ПРОФЕСИОНАЛИСТ 12.90 €/МЕС. · ПРОМОКОД <span className="text-gold">FIRST100</span> → −30%
           </p>
         </div>
       </div>

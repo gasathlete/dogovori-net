@@ -57,7 +57,7 @@ export const AI_FAQS = [
   },
   {
     q: "Колко струва AI анализът?",
-    a: "Предприемач план: 12.90 €/месец, включва 100 операции. Екип план: 10.90 €/seat/месец (минимум 3 места = 32.70 €/мес.). Еднократен пакет: 1.90 € за 5 операции. Цените са с включен 20% ДДС. Една операция = един downloaded договор или анализ.",
+    a: "Професионалист план: 12.90 €/месец, включва 50 операции. Предприемач план: 19.90 €/месец, включва 120 операции, GPT-5 модел и Premium 24/7 поддръжка. Екип план: 109 €/seat/година (минимум 3 места = 327 €/год). Еднократен пакет: 2.90 € за 5 операции. Цените са с включен 20% ДДС. Една операция = един downloaded договор или анализ.",
   },
   {
     q: "Заместват ли AI препоръките правен консулт?",
@@ -106,9 +106,10 @@ export function buildAiFeaturesSchemas(): JsonLd[] {
       "GDPR-compliant; uploaded documents not used for model training",
     ],
     offers: [
-      { "@type": "Offer", name: "Предприемач", price: "12.90", priceCurrency: "EUR", description: "100 operations/month" },
-      { "@type": "Offer", name: "Екип (per seat)", price: "10.90", priceCurrency: "EUR", description: "Min 3 seats, 100 operations/seat/month" },
-      { "@type": "Offer", name: "Pay-as-you-go", price: "1.90", priceCurrency: "EUR", description: "5 operations" },
+      { "@type": "Offer", name: "Професионалист", price: "12.90", priceCurrency: "EUR", description: "50 operations/month" },
+      { "@type": "Offer", name: "Предприемач", price: "19.90", priceCurrency: "EUR", description: "120 operations/month, GPT-5, Premium 24/7 support" },
+      { "@type": "Offer", name: "Екип (per seat, yearly)", price: "109", priceCurrency: "EUR", description: "Min 3 seats; per-seat annual price" },
+      { "@type": "Offer", name: "Pay-as-you-go", price: "2.90", priceCurrency: "EUR", description: "5 operations, one-off" },
     ],
     aggregateRating: { "@type": "AggregateRating", ratingValue: "4.8", ratingCount: "127" },
   };
