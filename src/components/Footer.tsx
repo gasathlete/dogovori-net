@@ -41,6 +41,8 @@ export function Footer() {
             <Link to="/legal/ropa" className="transition-colors hover:text-gold sm:whitespace-nowrap">ROPA</Link>
             <Link to="/contacts" className="transition-colors hover:text-gold sm:whitespace-nowrap">Контакти</Link>
             <Link to="/legal/dpia-summary" className="transition-colors hover:text-gold sm:whitespace-nowrap">DPIA резюме</Link>
+            <Link to="/legal/security" className="transition-colors hover:text-gold sm:whitespace-nowrap">VDP</Link>
+            <Link to="/legal/changelog" className="transition-colors hover:text-gold sm:whitespace-nowrap">Changelog</Link>
             <button
               type="button"
               onClick={openCookieSettings}
