@@ -171,7 +171,7 @@ export function Header() {
       </div>
 
       {open && (
-        <nav className="origin-top animate-accordion-down overflow-hidden border-t border-border/60 bg-navy lg:hidden">
+        <nav className="origin-top animate-accordion-down overflow-hidden border-t border-border/60 bg-background lg:hidden">
           <div className="container flex flex-col py-3">
             {NAV.map((n) => (
               <Link
@@ -189,10 +189,14 @@ export function Header() {
             <div className="mt-2 border-t border-border/60 pt-2">
               <ToolsMenu variant="mobile" onNavigate={() => setOpen(false)} />
             </div>
-
+            <div className="mt-2 flex items-center gap-2 border-t border-border/60 pt-3">
+              <ThemeToggle />
+              <span className="text-xs text-muted-foreground">Theme</span>
+            </div>
           </div>
         </nav>
       )}
     </header>
   );
 }
+
