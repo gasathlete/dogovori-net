@@ -33,6 +33,27 @@ const SOURCE_TYPES = [
   { value: "case_law", label: "Съдебна практика" },
 ];
 
+// Препоръчителен каталог — основни актове за договорно/трудово/потребителско/данни право.
+// URL-ите сочат към публични версии в lex.bg / eur-lex.europa.eu.
+const SEED_CATALOG: Array<{
+  short_code: string;
+  title: string;
+  jurisdiction: "BG" | "EU";
+  source_type: string;
+  issuer: string;
+  url: string;
+}> = [
+  { short_code: "ЗЗД", title: "Закон за задълженията и договорите", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2121934337" },
+  { short_code: "ТЗ", title: "Търговски закон", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/-14917630" },
+  { short_code: "КТ", title: "Кодекс на труда", jurisdiction: "BG", source_type: "code", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/1594373121" },
+  { short_code: "СК", title: "Семеен кодекс", jurisdiction: "BG", source_type: "code", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135637484" },
+  { short_code: "ЗЗП", title: "Закон за защита на потребителите", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135513678" },
+  { short_code: "ЗЗЛД", title: "Закон за защита на личните данни", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/-549710339" },
+  { short_code: "ГПК", title: "Граждански процесуален кодекс", jurisdiction: "BG", source_type: "code", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135558368" },
+  { short_code: "GDPR", title: "Регламент (ЕС) 2016/679 — Общ регламент относно защитата на данните", jurisdiction: "EU", source_type: "eu_regulation", issuer: "ЕП и Съвет", url: "https://eur-lex.europa.eu/legal-content/BG/TXT/?uri=CELEX:32016R0679" },
+];
+
+
 export default function AdminLegalKB() {
   const { session } = useAuth();
   const [sources, setSources] = useState<SourceRow[]>([]);
@@ -150,6 +171,73 @@ export default function AdminLegalKB() {
     load();
   };
 
+  const [seedProgress, setSeedProgress] = useState<string | null>(null);
+
+  const seedOne = async (item: typeof SEED_CATALOG[number]) => {
+    if (!session?.access_token) return { ok: false, reason: "no-session" };
+    // 1) fetch text
+    const fetchResp = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-legal-source`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ url: item.url }),
+      },
+    );
+    const fetchJson = await fetchResp.json();
+    if (!fetchResp.ok) return { ok: false, reason: fetchJson.error || "fetch failed" };
+
+    // 2) ingest
+    const ingestResp = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ingest-legal-source`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          short_code: item.short_code,
+          title: item.title,
+          jurisdiction: item.jurisdiction,
+          source_type: item.source_type,
+          issuer: item.issuer,
+          official_url: item.url,
+          raw_text: fetchJson.raw_text,
+        }),
+      },
+    );
+    const ingestJson = await ingestResp.json();
+    if (!ingestResp.ok) return { ok: false, reason: ingestJson.error || "ingest failed" };
+    return { ok: true, chunks: ingestJson.chunks_inserted ?? 0, skipped: ingestJson.skipped };
+  };
+
+  const seedAll = async () => {
+    const indexed = new Set(sources.map((s) => `${s.jurisdiction}:${s.short_code}`));
+    const pending = SEED_CATALOG.filter((c) => !indexed.has(`${c.jurisdiction}:${c.short_code}`));
+    if (pending.length === 0) {
+      toast.info("Всички препоръчителни актове са вече индексирани.");
+      return;
+    }
+    let ok = 0;
+    let fail = 0;
+    for (let i = 0; i < pending.length; i++) {
+      const item = pending[i];
+      setSeedProgress(`${i + 1}/${pending.length} — ${item.short_code}…`);
+      const res = await seedOne(item);
+      if (res.ok) ok++; else { fail++; console.error("seed fail", item.short_code, res.reason); }
+    }
+    setSeedProgress(null);
+    toast.success(`Готово: ${ok} успешни, ${fail} грешки.`);
+    load();
+  };
+
+
   return (
     <div className="container mx-auto max-w-5xl space-y-6 py-8">
       <Helmet>
@@ -163,6 +251,46 @@ export default function AdminLegalKB() {
         Качи нормативни текстове (закон, кодекс, регламент). Системата ги разбива на статии,
         генерира embeddings и ги индексира за всички AI операции.
       </p>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Препоръчителен каталог</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Един клик: системата сваля и индексира основните актове (ЗЗД, ТЗ, КТ, СК, ЗЗП, ЗЗЛД, ГПК, GDPR).
+            Вече индексирани се прескачат автоматично.
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {SEED_CATALOG.map((c) => {
+              const done = sources.some((s) => s.jurisdiction === c.jurisdiction && s.short_code === c.short_code);
+              return (
+                <Badge
+                  key={`${c.jurisdiction}:${c.short_code}`}
+                  variant={done ? "default" : "outline"}
+                  className="text-[10px]"
+                >
+                  {done ? "✓ " : ""}{c.short_code}
+                </Badge>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              onClick={seedAll}
+              disabled={seedProgress !== null}
+              className="bg-gold text-navy hover:bg-gold/90"
+            >
+              {seedProgress !== null && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Индексирай препоръчителните
+            </Button>
+            {seedProgress && (
+              <span className="text-xs text-muted-foreground">{seedProgress}</span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
