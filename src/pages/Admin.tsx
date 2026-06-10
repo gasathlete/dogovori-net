@@ -17,6 +17,7 @@ import { AdminUserArticlesPanel } from "@/components/AdminUserArticlesPanel";
 import { AdminGscPanel } from "@/components/AdminGscPanel";
 import { AdminNotificationsPanel } from "@/components/AdminNotificationsPanel";
 import { BlankCacheWarmer } from "@/components/admin/BlankCacheWarmer";
+import { AdminMFAGuard } from "@/components/admin/AdminMFAGuard";
 
 type Row = {
   user_id: string;
