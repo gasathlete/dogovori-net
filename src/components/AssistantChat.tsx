@@ -404,6 +404,7 @@ function MessageBubble({ role, content, isStreaming, citations }: { role: "user"
             >
               {content}
             </ReactMarkdown>
+            {citations && citations.length > 0 && <LegalCitations citations={citations} />}
           </div>
         )}
       </div>
