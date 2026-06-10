@@ -99,9 +99,10 @@ export async function retrieveLegalContext(
   const minSim = opts.minSimilarity ?? 0;
   const rows = (data as Array<Record<string, unknown>>) ?? [];
 
-  const chunks = rows
+  const enriched = rows
     .filter((r) => Number(r.similarity) >= minSim || Number(r.text_rank) > 0)
     .map((r, idx) => ({
+      _idx: idx + 1,
       chunk_id: String(r.chunk_id),
       citation_label: String(r.citation_label),
       short_code: String(r.source_short_code ?? ""),
@@ -112,38 +113,38 @@ export async function retrieveLegalContext(
       jurisdiction: (String(r.jurisdiction) === "EU" ? "EU" : "BG") as "BG" | "EU",
       similarity: Number(r.similarity) || 0,
       content: String(r.content),
-      _idx: idx + 1,
     }));
 
-  if (chunks.length === 0) return empty;
+  if (enriched.length === 0) return empty;
 
-  const promptBlock = [
-    "## РАЗРЕШЕНА НОРМАТИВНА БАЗА (единствен валиден източник)",
-    "Отговаряй ИЗКЛЮЧИТЕЛНО на база следните извадки от българското и европейско законодателство. " +
-      "Цитирай номер на източник в квадратни скоби [S1], [S2]. " +
-      "Ако в извадките НЯМА основание за пълен отговор, кажи изрично: " +
-      "„Няма основание в наличната нормативна база." +
-      " За конкретния казус се консултирайте с адвокат." +
-      "" +
-      "" +
-      "" +
-      "",
-    "Никога не цитирай актове, които не са в списъка по-долу. Не измисляй членове или решения.",
-    "",
-    ...chunks.map((c) =>
-      `[S${c._idx}] ${c.citation_label}${c.jurisdiction === "EU" ? " (ЕС)" : ""}:\n${c.content.trim()}`,
-    ),
-    "",
-    "В края на отговора добави секция „**Източници**:" +
-      "" with bullet list of used [Sn] -> citation_label.",
-  ].join("\n");
+  const lines: string[] = [];
+  lines.push("## РАЗРЕШЕНА НОРМАТИВНА БАЗА (единствен валиден източник)");
+  lines.push(
+    "Отговаряй ИЗКЛЮЧИТЕЛНО на база следните извадки от българското и европейско законодателство.",
+  );
+  lines.push("Цитирай номер на източник в квадратни скоби, напр. [S1], [S2].");
+  lines.push(
+    "Ако в извадките НЯМА основание за пълен отговор, кажи изрично: " +
+      '"Няма основание в наличната нормативна база. За конкретния казус се консултирайте с адвокат."',
+  );
+  lines.push(
+    "Никога не цитирай актове извън списъка по-долу. Не измисляй членове, алинеи или съдебни решения.",
+  );
+  lines.push("");
+  for (const c of enriched) {
+    const jur = c.jurisdiction === "EU" ? " (ЕС)" : "";
+    lines.push(`[S${c._idx}] ${c.citation_label}${jur}:`);
+    lines.push(c.content.trim());
+    lines.push("");
+  }
+  lines.push(
+    'В края на отговора добави секция "**Източници:**" със списък на използваните [Sn] и пълния citation_label.',
+  );
+  const promptBlock = lines.join("\n");
 
-  const citations: LegalCitation[] = chunks.map(({ content: _content, _idx: _i, ...c }) => c);
+  const stripIdx = ({ _idx: _i, content: _c, ...rest }: typeof enriched[number]) => rest;
+  const citations: LegalCitation[] = enriched.map(stripIdx);
+  const chunks = enriched.map(({ _idx: _i, ...rest }) => rest);
 
-  return {
-    chunks: chunks.map(({ _idx: _i, ...c }) => c),
-    citations,
-    promptBlock,
-    hasMatches: true,
-  };
+  return { chunks, citations, promptBlock, hasMatches: true };
 }
