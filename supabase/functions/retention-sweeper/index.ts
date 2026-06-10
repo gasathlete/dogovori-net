@@ -113,8 +113,9 @@ Deno.serve(async (req) => {
       status: 200,
     });
   } catch (e) {
+    console.error("retention-sweeper error", e);
     return new Response(
-      JSON.stringify({ ok: false, error: (e as Error).message, stats }),
+      JSON.stringify({ ok: false, error: "internal_error", stats }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 },
     );
   }
