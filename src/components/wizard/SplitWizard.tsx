@@ -314,7 +314,7 @@ export function SplitWizard({
                         isCurrent && "bg-gold/15 text-gold",
                         !isCurrent && isDone && "text-foreground/70 hover:bg-card/40 hover:text-gold",
                         !isCurrent && !isDone && jumpable && "text-muted-foreground/80 hover:bg-card/40 hover:text-foreground",
-                        !jumpable && "cursor-not-allowed text-muted-foreground/40",
+                        !jumpable && "cursor-not-allowed text-muted-foreground/70",
                       )}
                       title={s.title}
                     >
