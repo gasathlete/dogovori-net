@@ -1,113 +1,128 @@
-# Post-Launch Compliance Plan (June 25 → +30/90 days)
-
-Pre-launch waves (P0–Wave 3) са изпълнени и адресират всички 10 blocking items на адвокатския преглед. Този план обхваща *organizational* и *evidence* задачите, които юристите маркираха като „30-day post-launch" — за да не остане платформата с „празни" контроли след отваряне за реални клиенти.
-
 ## Цели
 
-- Затваряне на AI Act документация (чл. 11, 13, 50, 72) преди първите 100 платени операции.
-- Доказуема vendor due diligence за всеки subprocessor (Stripe, Lovable AI Gateway, Resend, Cloudflare).
-- Стандартен RFC 9116 vulnerability disclosure канал.
-- Записан, проследим breach workflow (72h КЗЛД) и BCP tabletop.
-- Видимо governance: DPO контакт, policy review графици, training register, legal changelog.
+1. По-голяма, по-четима типография в цялата платформа.
+2. По-ясна йерархия и spacing в landing секциите.
+3. Партньорска секция с големи лога в grid (като референцията Правен Интелект).
+4. Светла тема с toggle в Header (тъмната остава по подразбиране), палитра Paper & Gold — `#faf8f3 / #ffffff / #0f1b3d / #c9a84c`.
 
-## Какво ще се изгради
+---
 
-### 1. AI Act технически файл (Art. 11)
-- `docs/AI_ACT_TECHNICAL_FILE.md` — описание на AI системата (purpose, risk class = limited risk per Art. 50), training/finetuning (= none, само prompt engineering), governance, model cards (Gemini 2.5 lite/flash/pro), classification & redaction pipeline, human oversight (Art. 14), accuracy & robustness metrics, cyber-security мерки.
-- Линкване от `/legal/ai-processing-policy` и от админ compliance матрицата.
+## 1. Светла тема (Paper & Gold)
 
-### 2. FRIA (Fundamental Rights Impact Assessment)
-- `docs/FRIA.md` — оценка по Art. 27 AI Act: засегнати групи (consumers, SMEs), специфични рискове (errors in legal clauses, bias срещу нестандартни сценарии, language exclusion), смекчаващи мерки (disclaimers, human-in-the-loop, no fully automated legal decisions).
-- Записва се като evidence pack в `compliance_items` (`AI_ACT.FRIA`).
+**Подход:** `tailwind.config.ts` вече има `darkMode: ["class"]`. В момента всички токени са в `:root` (тъмни) — те ще се преместят в `.dark` блок, а `:root` ще съдържа светлите. По подразбиране ще слагаме `class="dark"` на `<html>` за обратна съвместимост, а toggle ще го превключва.
 
-### 3. Post-market monitoring (Art. 72)
-- Нова таблица `ai_post_market_metrics` (date, operation, total_calls, blocked_count, redaction_count, fallback_count, user_complaints, special_category_blocks).
-- Cron job `ai-post-market-rollup` (daily) агрегира от `ai_audit_log` и `restricted_processing_events`.
-- Нова страница `src/pages/AdminAiPostMarket.tsx` — графики + експорт CSV.
-- Месечен alert към DPO при отклонения (>2σ от 30-day baseline).
+**`src/index.css`:**
+- Преструктуриране на токените:
+  - `:root` → светла Paper & Gold палитра:
+    - `--background: 42 40% 97%` (paper #faf8f3)
+    - `--foreground: 220 60% 12%` (deep navy #0f1b3d)
+    - `--card: 0 0% 100%`, `--card-foreground: 220 60% 12%`
+    - `--muted: 42 25% 92%`, `--muted-foreground: 220 20% 38%`
+    - `--border: 220 15% 88%`, `--input: 220 15% 92%`
+    - `--gold: 43 55% 48%` (леко по-тъмно за контраст върху paper), `--gold-light: 43 70% 60%`, `--gold-dark: 43 60% 35%`
+    - `--navy: 220 60% 12%`, `--navy-light: 220 30% 22%`
+    - `--primary: 43 55% 48%`, `--primary-foreground: 0 0% 100%`
+    - `--surface-1/2/3`, `--hairline`, `--sidebar-*` светли еквиваленти
+    - Светли версии на `--gradient-hero`, `--gradient-card`, `--gradient-radial`, `--shadow-elegant/soft/gold`
+  - `.dark { ... }` → текущите тъмни токени без промяна.
+- Body/scrollbar/selection селектори, които използват хардкоднати `hsl(220 ...)`, се пренасочват към съответните токени, за да не остават тъмни в light режим (scrollbar track, selection background).
+- Header има хардкодирано `bg-navy` — ще се замени с `bg-background` + правилен border token, за да реагира на темата.
 
-### 4. Vendor / Subprocessor Due Diligence
-- Нова таблица `vendor_assessments` (vendor_name, last_reviewed_at, next_review_at, scc_signed, dpa_url, soc2_url, notes, status).
-- Seed records за: Lovable Cloud (Supabase), Lovable AI Gateway, Stripe, Resend, Cloudflare.
-- Нова страница `src/pages/AdminVendors.tsx` — checklist на DPA/SCC/SOC2 за всеки + reminders.
-- `docs/VENDOR_DD_CHECKLIST.md` — стандартен въпросник.
+**Theme toggle:**
+- Нов хук `src/hooks/useTheme.tsx` (Provider + `useTheme()`):
+  - State: `"dark" | "light"`, persist в `localStorage["dogovori:theme"]`.
+  - При mount: чете localStorage; ако няма стойност → `"dark"` (запазваме текущото поведение).
+  - Прилага `document.documentElement.classList` toggle `"dark"`/`"light"`.
+- Wrap-ва приложението в `src/App.tsx` около `<BrowserRouter>`.
+- Нов `src/components/ThemeToggle.tsx` — icon-only бутон Sun/Moon, добавя се в `Header.tsx` до `ToolsMenu` (desktop + mobile меню).
+- Update в `index.html`: inline-скрипт преди React mount чете `localStorage` и слага `dark`/`light` клас на `<html>`, за да предотврати flash.
 
-### 5. Vulnerability Disclosure Policy + security.txt
-- `public/.well-known/security.txt` (RFC 9116) с Contact, Expires, Encryption, Policy, Preferred-Languages.
-- `src/pages/legal/SecurityPolicy.tsx` (рут `/legal/security`) — публична политика за responsible disclosure, в обхват/извън обхват, SLA отговор, безопасно зачитане (safe harbor).
-- Линк във Footer.
+**Компоненти за проверка/корекция (хардкодирани тъмни цветове):**
+- `Header.tsx` — `bg-navy` → `bg-background`, ring color tokens.
+- `Hero.tsx` — `bg-navy-light/40`, `bg-navy/95` в tooltip → token-based варианти.
+- `PartnersBoard.tsx` — inline `linear-gradient(... hsl(220 38% 11%) ...)` → token-driven `var(--gradient-card)`.
+- `SocialProofStrip.tsx` — `grayscale` opacity-50: в light режим логата трябва да са четливи (премахваме grayscale и в двата режима — виж точка 3).
+- Footer `bg-navy-light/40` → `bg-card/40`.
+- Бързо search-and-replace audit за `text-white`, `bg-black`, `bg-navy*` директни класове, които не идват от tokens.
 
-### 6. Breach Notification Workflow (чл. 33–34 GDPR)
-- Нова таблица `breach_incidents` (detected_at, category, affected_subjects_count, data_categories, risk_assessment, kzld_notified_at, subjects_notified_at, status, root_cause, remediation).
-- `src/pages/AdminBreaches.tsx` — форма за регистриране, авто-таймер до 72h, генериране на черновa нотификация (template).
-- `docs/BREACH_PLAYBOOK.md` — стъпки за detection → triage → notify → remediate → post-mortem.
+---
 
-### 7. Training Register
-- Нова таблица `staff_training` (user_id, document_id, document_version, acknowledged_at).
-- `src/pages/AdminTraining.tsx` — списък политики (ACCESS_POLICY, INCIDENT, LIA, AI_ACT_TF), checkbox „прочетох & разбирам", history.
-- Първи логин на staff → задължителен модал (вграден в `AdminMFAGuard`).
+## 2. По-голяма, по-ясна типография (глобално)
 
-### 8. Legal Changelog + User Notifications
-- Нова таблица `legal_versions` (doc_key, version, summary, effective_at, changelog_md).
-- `src/pages/legal/Changelog.tsx` (рут `/legal/changelog`) — публичен changelog на Terms/Privacy/DPA/Cookies.
-- При материална промяна (`material_change=true`) → batch email към всички активни потребители (template `legal-update`).
+**`src/index.css` base layer:**
+- `html { font-size: 17px }` на desktop (от browser default 16). Mobile fallback `15.5px` под `@media (max-width: 640px)`.
+- Глобален `body { font-size: 1rem; line-height: 1.65 }`.
+- Heading scale (минимални промени, но навсякъде):
+  - `h1` base размер `clamp(2rem, 4.5vw, 3.4rem)`, line-height 1.1
+  - `h2` `clamp(1.6rem, 3.2vw, 2.4rem)`, line-height 1.2
+  - `h3` `clamp(1.25rem, 2.2vw, 1.65rem)`, line-height 1.3
+  - `h4` 1.15rem
+  - Прилагат се в `@layer base` за всички страници (wizard/console също се повишават умерено — не екстремно).
+- Eyebrow остава `text-[11px]` (вече работи).
+- Prose в `LegalLayout` се повишава: текстът от `text-sm` → `text-base`, h2 от `text-xl` → `text-2xl`, h3 от base → `text-xl`.
 
-### 9. BCP / DR Tabletop Exercise
-- `docs/BCP_DR_PLAN.md` — RTO/RPO цели, runbook за: DB загуба, Lovable outage, Stripe outage, AI Gateway outage.
-- Разширение на съществуващия `restore_drills` модул с поле `tabletop_exercise` (boolean) + scenario template.
-- Calendar reminder на 6 месеца.
+**`Hero.tsx`:**
+- H1 размери: `text-4xl sm:text-5xl md:text-6xl lg:text-[64px]` (от текущите `text-[28px]…xl:text-[52px]`).
+- Подзаглавието `text-base sm:text-lg md:text-xl`, line-height 1.6.
+- CTA secondary бутоните от `text-[14px]` → `text-[15px]`, padding по-просторен.
 
-### 10. DPO Formalization
-- `src/pages/legal/DPO.tsx` (рут `/legal/dpo`) — име, контакт, обхват, как се подава заявка по чл. 15–22.
-- Update на Privacy/ROPA/DPA с линк.
+**`PartnersBoard.tsx`, `LifeScenarios`, `FeaturedBlanks`, `ComparisonTable`, `Process`, `Testimonials`, `FAQ`, `ComplianceSection`, `CTABand`, `PainSolution`, `PlatformShowcase`:**
+- Section heading унификация: `font-serif text-3xl sm:text-4xl md:text-5xl` (досега са `text-xl…md:text-3xl` — твърде малки).
+- Subline копи: `text-base sm:text-lg`, max-w-2xl, mx-auto.
+- Vertical rhythm: section padding `py-20 sm:py-24 md:py-28` (от текущите `py-14 md:py-20`).
+- Eyebrow + heading gap: `mb-4` → `mb-5`; heading + body gap: `mt-3` → `mt-5`.
 
-### 11. Compliance Matrix Hard-Seed
-- Миграция добавя seed `compliance_items` за всеки нов контрол (AI_ACT.ART11, AI_ACT.ART27, AI_ACT.ART50, AI_ACT.ART72, GDPR.ART33, GDPR.ART35, GDPR.VENDOR_DD, SOC2.CC7.2, SOC2.CC9.1) с owner role и due date.
+---
 
-## Какво НЕ е в обхват
+## 3. Партньорска секция — големи лога в grid
 
-- Външен SOC2 одит (изисква одиторска фирма — следваща стъпка след 6 месеца история).
-- ISO 27001 сертификация.
-- Третиране на копията/публикуването на DPIA full document извън вътрешен use.
-- Реална рассилка на legal-update имейли преди публикация (template-ите се подготвят, изпращат се при първа реална промяна).
+**`src/components/PartnersBoard.tsx` пълен рефактор:**
+- Премахваме marquee/loop логиката.
+- Heading секцията остава, но с новата типография (`text-3xl sm:text-4xl md:text-5xl`).
+- Layout: responsive grid
+  - `grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6`
+- Всяка карта:
+  - `bg-card border border-border rounded-xl`
+  - `h-40 sm:h-44 md:h-48` фиксирана височина, `flex items-center justify-center`
+  - `p-6 sm:p-8`
+  - Hover: `border-gold/40`, лек `shadow-soft`, transition
+- Изображения:
+  - `max-h-[72%] max-w-[80%] object-contain`
+  - Премахваме `opacity-80` и grayscale — логата са в пълен цвят (както в референцията).
+  - `loading="lazy"`, `decoding="async"`.
+- Ако партньорите са > 12, добавяме „Виж всички" / pagination режим (initial 12, бутон „Покажи още"). Ако ≤ 12, всички се показват.
+- Премахваме декоративните corner-ticks от външния frame (frame-ът отпада изобщо).
 
-## Технически детайли
+**`src/components/SocialProofStrip.tsx`:**
+- Запазваме горната тънка лента като trust strip, но:
+  - Логата стават `h-9 sm:h-10`, `max-w-[140px]`.
+  - Премахваме `grayscale` и `opacity-50` (отива на `opacity-70 hover:opacity-100`), за да работят и в светла, и в тъмна тема.
 
-```
-DB миграция (single transaction):
-  - CREATE TABLE ai_post_market_metrics
-  - CREATE TABLE vendor_assessments
-  - CREATE TABLE breach_incidents
-  - CREATE TABLE staff_training
-  - CREATE TABLE legal_versions
-  - ALTER TABLE restore_drills ADD COLUMN tabletop_exercise boolean DEFAULT false
-  - GRANT + RLS (staff-only за breach/vendor/training; public read за legal_versions)
-  - Seed: vendor_assessments × 5, legal_versions × 6, compliance_items × 9
+---
 
-Edge functions:
-  - supabase/functions/ai-post-market-rollup (scheduled daily via pg_cron + pg_net)
-  - supabase/functions/send-legal-update (batched)
+## 4. Технически детайли
 
-Нови маршрути:
-  - /legal/security, /legal/dpo, /legal/changelog
-  - /admin/ai-post-market, /admin/vendors, /admin/breaches, /admin/training
+**Файлове за създаване:**
+- `src/hooks/useTheme.tsx` — ThemeProvider + хук.
+- `src/components/ThemeToggle.tsx` — Sun/Moon icon бутон.
 
-Docs:
-  - docs/AI_ACT_TECHNICAL_FILE.md
-  - docs/FRIA.md
-  - docs/VENDOR_DD_CHECKLIST.md
-  - docs/BREACH_PLAYBOOK.md
-  - docs/BCP_DR_PLAN.md
-```
+**Файлове за редакция:**
+- `src/index.css` — пълно преструктуриране на токените `:root` / `.dark`, базова типография, scrollbar/selection token-ize.
+- `index.html` — inline no-flash скрипт.
+- `src/App.tsx` — ThemeProvider wrap.
+- `src/components/Header.tsx` — добавяне на ThemeToggle, замяна на `bg-navy` → `bg-background`.
+- `src/components/Hero.tsx` — типография upscale, token-ize на навy hardcodes.
+- `src/components/PartnersBoard.tsx` — grid рефактор.
+- `src/components/SocialProofStrip.tsx` — по-големи логата, премахване на grayscale.
+- `src/components/Footer.tsx` — token-ize.
+- `src/pages/legal/LegalLayout.tsx` — по-голяма prose типография.
+- Кратък sweep за всички landing секции (`LifeScenarios`, `FeaturedBlanks`, `ComparisonTable`, `Process`, `Testimonials`, `FAQ`, `PainSolution`, `PlatformShowcase`, `ComplianceSection`, `CTABand`) — само section heading + sub + section padding.
 
-Реализация в 3 последователни вълни (за да остане проектът компилируем):
+**Без промяна:**
+- Бизнес логика, цени, маршрути, backend.
+- Wizard / Console layouts — само наследяват глобалния font-size bump, без други корекции.
 
-- **Wave A — DB + docs**: миграция + всички MD файлове.
-- **Wave B — Public legal**: SecurityPolicy, DPO, Changelog страници + security.txt + Footer линкове.
-- **Wave C — Admin модули**: AiPostMarket, Vendors, Breaches, Training + edge функция за rollup.
-
-Очаквана продължителност: ~3 build съобщения, без UI на крайния потребител да се счупи в нито един момент.
-
-## Одобрение
-
-Готов съм да започна с Wave A веднага щом одобрите плана. Ще се движа последователно през A → B → C и ще докладвам след всяка вълна.
+**Verification:**
+- Преглед на preview в desktop + mobile viewport за: hero, partners, footer.
+- Toggle dark↔light, проверка че няма flash и че localStorage persist-ва.
+- Бърза проверка че няма счупени hardcoded цветове в основните секции.
