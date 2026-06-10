@@ -171,6 +171,73 @@ export default function AdminLegalKB() {
     load();
   };
 
+  const [seedProgress, setSeedProgress] = useState<string | null>(null);
+
+  const seedOne = async (item: typeof SEED_CATALOG[number]) => {
+    if (!session?.access_token) return { ok: false, reason: "no-session" };
+    // 1) fetch text
+    const fetchResp = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-legal-source`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ url: item.url }),
+      },
+    );
+    const fetchJson = await fetchResp.json();
+    if (!fetchResp.ok) return { ok: false, reason: fetchJson.error || "fetch failed" };
+
+    // 2) ingest
+    const ingestResp = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ingest-legal-source`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          short_code: item.short_code,
+          title: item.title,
+          jurisdiction: item.jurisdiction,
+          source_type: item.source_type,
+          issuer: item.issuer,
+          official_url: item.url,
+          raw_text: fetchJson.raw_text,
+        }),
+      },
+    );
+    const ingestJson = await ingestResp.json();
+    if (!ingestResp.ok) return { ok: false, reason: ingestJson.error || "ingest failed" };
+    return { ok: true, chunks: ingestJson.chunks_inserted ?? 0, skipped: ingestJson.skipped };
+  };
+
+  const seedAll = async () => {
+    const indexed = new Set(sources.map((s) => `${s.jurisdiction}:${s.short_code}`));
+    const pending = SEED_CATALOG.filter((c) => !indexed.has(`${c.jurisdiction}:${c.short_code}`));
+    if (pending.length === 0) {
+      toast.info("Всички препоръчителни актове са вече индексирани.");
+      return;
+    }
+    let ok = 0;
+    let fail = 0;
+    for (let i = 0; i < pending.length; i++) {
+      const item = pending[i];
+      setSeedProgress(`${i + 1}/${pending.length} — ${item.short_code}…`);
+      const res = await seedOne(item);
+      if (res.ok) ok++; else { fail++; console.error("seed fail", item.short_code, res.reason); }
+    }
+    setSeedProgress(null);
+    toast.success(`Готово: ${ok} успешни, ${fail} грешки.`);
+    load();
+  };
+
+
   return (
     <div className="container mx-auto max-w-5xl space-y-6 py-8">
       <Helmet>
