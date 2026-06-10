@@ -403,7 +403,10 @@ ${fieldsSection}
       : "";
 
     const composedSystem = `${BASE_SYSTEM_PROMPT}\n\n=== СПЕЦИФИКА ЗА ВИД „${docSpec.label.toUpperCase()}" ===\n${docSpec.systemAddendum}\n\n=== ${modeSpec.label} ===\n${modeSpec.addendum}${safeBilingual ? BILINGUAL_ADDENDUM : ""}`;
-    const activeSystemPrompt = await loadActivePrompt(admin, "build-custom-contract", composedSystem);
+    const baseSystem = await loadActivePrompt(admin, "build-custom-contract", composedSystem);
+    const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
+    const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, `${docSpec.label}\n${redacted.redacted}`.slice(0, 4000), { matchCount: 6 });
+    const activeSystemPrompt = legal.hasMatches ? `${baseSystem}\n\n${legal.promptBlock}` : baseSystem;
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },

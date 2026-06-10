@@ -266,7 +266,10 @@ ${docTypeSpec.systemAddendum}
 
 Задача: Risk Analysis (конкретни слаби места за ${safePartyA}${safePartyB ? ` и ${safePartyB}` : ""}) + ПЪЛНИЯТ документ на български за "${documentName || contractName}" според структурата за „${docTypeSpec.label}"${isBilingual ? " + паралелен английски превод в полетата *_en" : ""}. Върни СТРОГО валиден JSON по схемата.`;
 
-    const activeSystemPrompt = await loadActivePrompt(admin, "generate-contract", SYSTEM_PROMPT);
+    const baseSystem = await loadActivePrompt(admin, "generate-contract", SYSTEM_PROMPT);
+    const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
+    const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, `${docTypeSpec.label} ${contractName}\n${userPrompt}`.slice(0, 4000), { matchCount: 6 });
+    const activeSystemPrompt = legal.hasMatches ? `${baseSystem}\n\n${legal.promptBlock}` : baseSystem;
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },

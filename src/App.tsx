@@ -86,6 +86,7 @@ const AdminVendors = lazy(() => import("./pages/AdminVendors.tsx"));
 const AdminBreaches = lazy(() => import("./pages/AdminBreaches.tsx"));
 const AdminAiPostMarket = lazy(() => import("./pages/AdminAiPostMarket.tsx"));
 const AdminTraining = lazy(() => import("./pages/AdminTraining.tsx"));
+const AdminLegalKB = lazy(() => import("./pages/AdminLegalKB.tsx"));
 const CheckoutReturn = lazy(() => import("./pages/CheckoutReturn.tsx"));
 const Plans = lazy(() => import("./pages/Plans.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
@@ -106,6 +107,7 @@ const ROPA = lazy(() => import("./pages/legal/ROPA.tsx"));
 const DpiaSummary = lazy(() => import("./pages/legal/DpiaSummary.tsx"));
 const SecurityPolicy = lazy(() => import("./pages/legal/SecurityPolicy.tsx"));
 const Changelog = lazy(() => import("./pages/legal/Changelog.tsx"));
+const KnowledgeBase = lazy(() => import("./pages/legal/KnowledgeBase.tsx"));
 const SharedDocument = lazy(() => import("./pages/SharedDocument.tsx"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe.tsx"));
 const Blog = lazy(() => import("./pages/Blog.tsx"));
@@ -213,6 +215,7 @@ const AnimatedRoutes = () => {
         <Route path="/admin/breaches" element={<ProtectedRoute><AdminBreaches /></ProtectedRoute>} />
         <Route path="/admin/ai-post-market" element={<ProtectedRoute><AdminAiPostMarket /></ProtectedRoute>} />
         <Route path="/admin/training" element={<ProtectedRoute><AdminTraining /></ProtectedRoute>} />
+        <Route path="/admin/legal-kb" element={<ProtectedRoute><AdminLegalKB /></ProtectedRoute>} />
         <Route path="/checkout/return" element={<CheckoutReturn />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
@@ -231,6 +234,7 @@ const AnimatedRoutes = () => {
         <Route path="/legal/dpia-summary" element={<DpiaSummary />} />
         <Route path="/legal/security" element={<SecurityPolicy />} />
         <Route path="/legal/changelog" element={<Changelog />} />
+        <Route path="/legal/knowledge-base" element={<KnowledgeBase />} />
         <Route path="/share/:token" element={<SharedDocument />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="/blog" element={<Blog />} />

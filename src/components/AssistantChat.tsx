@@ -13,10 +13,13 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Crown } from "lucide-react";
 
+import { LegalCitations, type LegalCitation } from "@/components/LegalCitations";
+
 interface Msg {
   id: string;
   role: "user" | "assistant";
   content: string;
+  citations?: LegalCitation[];
 }
 
 interface Thread {
@@ -161,6 +164,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
       let buffer = "";
       let accText = "";
       let receivedThreadId: string | null = null;
+      let receivedCitations: LegalCitation[] = [];
 
       while (true) {
         const { value, done } = await reader.read();
@@ -180,8 +184,9 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
           if (dataLine === "[DONE]") continue;
           try {
             const parsed = JSON.parse(dataLine);
-            if (isMeta && parsed.threadId) {
-              receivedThreadId = parsed.threadId;
+            if (isMeta) {
+              if (parsed.threadId) receivedThreadId = parsed.threadId;
+              if (Array.isArray(parsed.citations)) receivedCitations = parsed.citations;
             } else if (parsed.delta) {
               accText += parsed.delta;
               setStreamingText(accText);
@@ -191,7 +196,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
       }
 
       // Finalize
-      const assistantMsg: Msg = { id: `tmp-a-${Date.now()}`, role: "assistant", content: accText };
+      const assistantMsg: Msg = { id: `tmp-a-${Date.now()}`, role: "assistant", content: accText, citations: receivedCitations };
       setMessages([...newMessages, assistantMsg]);
       setStreamingText("");
       if (receivedThreadId && receivedThreadId !== activeThreadId) {
@@ -313,7 +318,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
           ) : (
             <div className="space-y-4">
               {messages.map((m) => (
-                <MessageBubble key={m.id} role={m.role} content={m.content} />
+                <MessageBubble key={m.id} role={m.role} content={m.content} citations={m.citations} />
               ))}
               {streaming && (
                 <MessageBubble
@@ -362,7 +367,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
   );
 }
 
-function MessageBubble({ role, content, isStreaming }: { role: "user" | "assistant"; content: string; isStreaming?: boolean }) {
+function MessageBubble({ role, content, isStreaming, citations }: { role: "user" | "assistant"; content: string; isStreaming?: boolean; citations?: LegalCitation[] }) {
   if (role === "user") {
     return (
       <div className="flex justify-end">
@@ -399,6 +404,7 @@ function MessageBubble({ role, content, isStreaming }: { role: "user" | "assista
             >
               {content}
             </ReactMarkdown>
+            {citations && citations.length > 0 && <LegalCitations citations={citations} />}
           </div>
         )}
       </div>
