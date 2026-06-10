@@ -12,6 +12,10 @@ function readInitial(): Theme {
     const v = localStorage.getItem(STORAGE_KEY);
     if (v === "light" || v === "dark") return v;
   } catch {}
+  // Follow OS / browser preference when the user has not chosen.
+  try {
+    if (window.matchMedia?.("(prefers-color-scheme: light)").matches) return "light";
+  } catch {}
   return "dark";
 }
 
@@ -23,14 +27,33 @@ function apply(theme: Theme) {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => readInitial());
+  // Track whether the user has made an explicit choice. If not, follow the OS.
+  const [userChose, setUserChose] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const v = localStorage.getItem(STORAGE_KEY);
+      return v === "light" || v === "dark";
+    } catch { return false; }
+  });
 
   useEffect(() => {
     apply(theme);
-    try { localStorage.setItem(STORAGE_KEY, theme); } catch {}
-  }, [theme]);
+    if (userChose) {
+      try { localStorage.setItem(STORAGE_KEY, theme); } catch {}
+    }
+  }, [theme, userChose]);
 
-  const setTheme = useCallback((t: Theme) => setThemeState(t), []);
-  const toggle = useCallback(() => setThemeState((p) => (p === "dark" ? "light" : "dark")), []);
+  // Follow OS theme changes until the user explicitly picks one.
+  useEffect(() => {
+    if (userChose || typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-color-scheme: light)");
+    const onChange = (e: MediaQueryListEvent) => setThemeState(e.matches ? "light" : "dark");
+    mq.addEventListener?.("change", onChange);
+    return () => mq.removeEventListener?.("change", onChange);
+  }, [userChose]);
+
+  const setTheme = useCallback((t: Theme) => { setUserChose(true); setThemeState(t); }, []);
+  const toggle = useCallback(() => { setUserChose(true); setThemeState((p) => (p === "dark" ? "light" : "dark")); }, []);
 
   return <ThemeCtx.Provider value={{ theme, setTheme, toggle }}>{children}</ThemeCtx.Provider>;
 }

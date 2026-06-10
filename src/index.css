@@ -92,7 +92,8 @@
     --popover-foreground: 220 60% 12%;
 
     --primary: 43 60% 42%;
-    --primary-foreground: 0 0% 100%;
+    /* Gold buttons in light theme must have dark text for contrast (was white, which clashed). */
+    --primary-foreground: 220 60% 12%;
 
     --secondary: 42 30% 92%;
     --secondary-foreground: 220 60% 12%;
@@ -101,7 +102,7 @@
     --muted-foreground: 220 18% 38%;
 
     --accent: 43 70% 50%;
-    --accent-foreground: 0 0% 100%;
+    --accent-foreground: 220 60% 12%;
 
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
@@ -117,6 +118,9 @@
     --gold: 43 65% 42%;
     --gold-light: 43 75% 55%;
     --gold-dark: 43 70% 32%;
+    /* `--navy` is kept DARK in light theme on purpose — it is used as the
+       text color on gold backgrounds (`text-navy`) where it must stay readable.
+       Surface usages of `bg-navy*` are remapped below to light surfaces. */
     --navy: 220 60% 12%;
     --navy-light: 220 30% 22%;
 
@@ -140,12 +144,48 @@
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 30% 25%;
     --sidebar-primary: 43 65% 42%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary-foreground: 220 60% 12%;
     --sidebar-accent: 42 30% 94%;
     --sidebar-accent-foreground: 220 60% 12%;
     --sidebar-border: 220 14% 88%;
     --sidebar-ring: 43 65% 42%;
   }
+
+  /* =====================================================================
+     LIGHT THEME — remap dark navy SURFACES to light surfaces.
+     `bg-navy*`, `from-navy`, `via-navy`, `to-navy` are used throughout the
+     app as background utilities. We keep `text-navy` (Tailwind text-color)
+     intact (it stays dark, used on gold buttons), and only override
+     background/gradient usages here.
+     =====================================================================*/
+  html.light .bg-navy { background-color: hsl(var(--card)); }
+  html.light .bg-navy\/60 { background-color: hsl(var(--card) / 0.85); }
+  html.light .bg-navy\/70 { background-color: hsl(var(--card) / 0.9); }
+  html.light .bg-navy\/80 { background-color: hsl(var(--card) / 0.92); }
+  html.light .bg-navy\/85 { background-color: hsl(var(--card) / 0.94); }
+  html.light .bg-navy\/90 { background-color: hsl(var(--card) / 0.96); }
+  html.light .bg-navy\/95 { background-color: hsl(var(--card) / 0.98); }
+
+  html.light .bg-navy-light { background-color: hsl(var(--muted)); }
+  html.light .bg-navy-light\/20 { background-color: hsl(var(--muted) / 0.5); }
+  html.light .bg-navy-light\/30 { background-color: hsl(var(--muted) / 0.6); }
+  html.light .bg-navy-light\/40 { background-color: hsl(var(--muted) / 0.7); }
+  html.light .bg-navy-light\/60 { background-color: hsl(var(--muted) / 0.85); }
+  html.light .bg-navy-light\/70 { background-color: hsl(var(--muted) / 0.9); }
+
+  /* Gradients that fade from navy → transparent (used as bottom overlays)
+     should fade from the light card surface in light mode. */
+  html.light .from-navy { --tw-gradient-from: hsl(var(--card)) var(--tw-gradient-from-position); --tw-gradient-to: hsl(var(--card) / 0) var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+  html.light .via-navy { --tw-gradient-to: hsl(var(--card) / 0) var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), hsl(var(--card)) var(--tw-gradient-via-position), var(--tw-gradient-to); }
+  html.light .via-navy\/80 { --tw-gradient-to: hsl(var(--card) / 0) var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), hsl(var(--card) / 0.85) var(--tw-gradient-via-position), var(--tw-gradient-to); }
+  html.light .via-navy\/95 { --tw-gradient-to: hsl(var(--card) / 0) var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), hsl(var(--card) / 0.95) var(--tw-gradient-via-position), var(--tw-gradient-to); }
+  html.light .to-navy { --tw-gradient-to: hsl(var(--card)) var(--tw-gradient-to-position); }
+  html.light .to-navy\/0 { --tw-gradient-to: hsl(var(--card) / 0) var(--tw-gradient-to-position); }
+  html.light .to-navy\/95 { --tw-gradient-to: hsl(var(--card) / 0.95) var(--tw-gradient-to-position); }
+
+  /* Hard-coded HSL navy gradients in inline styles can be addressed where used;
+     here we tame any leftover dark backdrops on landing decorations. */
+  html.light [class*="bg-[radial-gradient"] { background-image: none; }
 }
 
 

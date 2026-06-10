@@ -1,15 +1,23 @@
 <!doctype html>
-<html lang="bg" class="dark">
+<html lang="bg">
   <head>
     <script>
       // No-flash theme: apply stored theme before React renders.
+      // If user has no stored preference, follow the OS / browser color scheme.
       (function () {
         try {
           var t = localStorage.getItem("dogovori:theme");
-          var c = (t === "light" || t === "dark") ? t : "dark";
+          var c;
+          if (t === "light" || t === "dark") {
+            c = t;
+          } else {
+            c = (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) ? "light" : "dark";
+          }
           document.documentElement.classList.remove("light", "dark");
           document.documentElement.classList.add(c);
-        } catch (e) {}
+        } catch (e) {
+          document.documentElement.classList.add("dark");
+        }
       })();
     </script>
 
@@ -42,7 +50,8 @@
     <!-- canonical + hreflang are managed per-route via react-helmet-async in src/components/Seo.tsx -->
     <!-- (static <link> tags don't dedupe with Helmet, so duplicates would otherwise ship on every route) -->
     <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#0b1525" />
+    <meta name="theme-color" content="#0b1525" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#faf8f3" media="(prefers-color-scheme: light)" />
     <meta name="geo.region" content="BG" />
     <meta name="geo.placename" content="Bulgaria" />
     <meta name="language" content="Bulgarian" />
