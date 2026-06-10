@@ -467,6 +467,37 @@ export default function AdminLegalKB() {
               Извлечи
             </Button>
           </div>
+          {validation && (
+            <div className={`mt-2 rounded-md border p-2 text-[11px] ${
+              validation.is_duplicate
+                ? "border-destructive/50 bg-destructive/5"
+                : validation.warnings.length > 0
+                ? "border-yellow-500/40 bg-yellow-500/5"
+                : "border-green-500/40 bg-green-500/5"
+            }`}>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className="text-[9px]">
+                  {validation.article_count} члена
+                </Badge>
+                {validation.is_duplicate && (
+                  <Badge variant="destructive" className="text-[9px]">
+                    Дубликат → {validation.duplicate_of?.short_code}
+                  </Badge>
+                )}
+                {validation.has_login_wall && (
+                  <Badge variant="destructive" className="text-[9px]">Login wall</Badge>
+                )}
+                {validation.passes && !validation.is_duplicate && (
+                  <Badge className="bg-green-600 text-[9px] text-white">✓ Валидно</Badge>
+                )}
+              </div>
+              {validation.warnings.length > 0 && (
+                <ul className="mt-1 list-inside list-disc text-muted-foreground">
+                  {validation.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                </ul>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
