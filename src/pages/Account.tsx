@@ -2020,6 +2020,11 @@ function SettingsTab({ profile, setProfile, userId }: {
               <Download className="mr-2 h-3 w-3" /> DPIA (Word, по чл. 35 GDPR)
             </a>
           </Button>
+          <Button asChild variant="outline" size="sm" className="border-gold/40">
+            <a href="/legal-memorandum-dogovori-net.docx" download>
+              <Download className="mr-2 h-3 w-3" /> Правен меморандум (за адвокатски преглед)
+            </a>
+          </Button>
         </div>
       </div>
 
