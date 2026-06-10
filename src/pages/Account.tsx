@@ -1672,143 +1672,139 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             </p>
           </div>
 
-          {/* Pricing grid */}
-          <div className="grid gap-5 lg:grid-cols-3">
-            {/* Monthly — featured center */}
-            <div className="relative flex flex-col rounded-2xl border-2 border-gold bg-gradient-card p-7 shadow-gold lg:order-2 lg:scale-[1.02]">
+          {/* Pricing grid — 4 tiers */}
+          <div className="grid gap-5 lg:grid-cols-4">
+            {/* Професионалист */}
+            <div className="flex flex-col rounded-2xl border border-border/60 bg-gradient-card p-6 transition-colors hover:border-gold/40">
+              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <Sparkles className="h-3.5 w-3.5" /> За самонаети
+              </div>
+              <h3 className="mt-2 font-serif text-xl font-bold">Професионалист</h3>
+              <div className="mt-3 flex items-baseline gap-2">
+                <span className="font-serif text-3xl font-bold text-foreground">12.90 €</span>
+                <span className="text-xs text-muted-foreground">/ мес</span>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">50 операции/мес · ДДС вкл.</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">или 129 €/год (≈ 10.75 €/мес)</p>
+              <div className="mt-4 flex flex-col gap-2">
+                <Button
+                  onClick={() => setCheckoutPrice("professional_monthly")}
+                  variant="outline"
+                  className="border-gold/40 text-gold hover:bg-gold/10"
+                >
+                  Месечен
+                </Button>
+                <Button
+                  onClick={() => setCheckoutPrice("professional_yearly")}
+                  variant="outline"
+                  className="border-border/80"
+                >
+                  Годишен 129 €
+                </Button>
+              </div>
+              <div className="my-5 h-px bg-border/60" />
+              <ul className="space-y-2.5">
+                <Feature>50 операции / месец</Feature>
+                <Feature>Неограничен AI Асистент</Feature>
+                <Feature>Двуезични договори (EN/DE/FR)</Feature>
+                <Feature>Неограничени комплекти</Feature>
+                <Feature>Без воден знак</Feature>
+              </ul>
+            </div>
+
+            {/* Предприемач — featured */}
+            <div className="relative flex flex-col rounded-2xl border-2 border-gold bg-gradient-card p-6 shadow-gold lg:scale-[1.02]">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-gold px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-navy shadow-soft">
-                Най-популярен
+                Най-премиум
               </div>
               <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold">
                 <Crown className="h-3.5 w-3.5" /> Предприемач
               </div>
-              <h3 className="mt-2 font-serif text-2xl font-bold">Месечен план</h3>
-              <div className="mt-4 flex items-baseline gap-2">
-                <span className="font-serif text-4xl font-bold text-foreground">12.90 €</span>
-                <span className="text-sm text-muted-foreground line-through">29.90 €</span>
+              <h3 className="mt-2 font-serif text-xl font-bold">Премиум план</h3>
+              <div className="mt-3 flex items-baseline gap-2">
+                <span className="font-serif text-3xl font-bold text-foreground">19.90 €</span>
+                <span className="text-xs text-muted-foreground">/ мес</span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">на месец · ДДС вкл. · отказ по всяко време</p>
-              <p className="mt-1 text-[11px] font-medium text-gold/90" title="12.90 € ÷ 100 операции / месец">≈ 0.129 € на операция · 100 оп. на всеки 30 дни</p>
-              <Button
-                onClick={() => setCheckoutPrice("pro_monthly")}
-                className="mt-5 bg-gradient-gold text-navy hover:shadow-gold"
-              >
-                Премини на Предприемач
-              </Button>
-              <div className="my-6 h-px bg-gold/15" />
+              <p className="mt-1 text-xs text-muted-foreground">120 операции/мес · GPT-5 · ДДС вкл.</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">или 199 €/год (≈ 16.60 €/мес)</p>
+              <div className="mt-4 flex flex-col gap-2">
+                <Button
+                  onClick={() => setCheckoutPrice("entrepreneur_monthly")}
+                  className="bg-gradient-gold text-navy hover:shadow-gold"
+                >
+                  Месечен
+                </Button>
+                <Button
+                  onClick={() => setCheckoutPrice("entrepreneur_yearly")}
+                  variant="outline"
+                  className="border-gold/40 text-gold hover:bg-gold/10"
+                >
+                  Годишен 199 €
+                </Button>
+              </div>
+              <div className="my-5 h-px bg-gold/15" />
               <ul className="space-y-2.5">
-                {proFeatures.map((f) => (<Feature key={f}>{f}</Feature>))}
+                <Feature>120 операции / месец</Feature>
+                <Feature>Приоритетна AI обработка + GPT-5</Feature>
+                <Feature>Premium поддръжка 24/7</Feature>
+                <Feature>Персонален onboarding</Feature>
+                <Feature>Ранен достъп до нови функции</Feature>
+                <Feature>Всичко от Професионалист</Feature>
               </ul>
             </div>
 
-            {/* Team monthly */}
-            <div className="relative flex flex-col rounded-2xl border border-border/60 bg-gradient-card p-7 transition-colors hover:border-gold/40 lg:order-3">
+            {/* Екип */}
+            <div className="flex flex-col rounded-2xl border border-border/60 bg-gradient-card p-6 transition-colors hover:border-gold/40">
               <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold">
-                <Building2 className="h-3.5 w-3.5" /> За фирми и екипи
+                <Building2 className="h-3.5 w-3.5" /> За фирми
               </div>
-              <h3 className="mt-2 font-serif text-2xl font-bold">План Екип</h3>
-              <div className="mt-4 flex items-baseline gap-2">
-                <span className="font-serif text-4xl font-bold text-foreground">10.90 €</span>
-                <span className="text-sm text-muted-foreground">/ място</span>
+              <h3 className="mt-2 font-serif text-xl font-bold">Екип</h3>
+              <div className="mt-3 flex items-baseline gap-2">
+                <span className="font-serif text-3xl font-bold text-foreground">109 €</span>
+                <span className="text-xs text-muted-foreground">/ място / год</span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">мин. 3 места (32.70 €/мес) · 100 оп./място/мес</p>
-              <p className="mt-1 text-[11px] font-medium text-gold/90" title="10.90 € ÷ 100 операции / място / месец">≈ 0.109 € на операция · 100 оп./място на всеки 30 дни</p>
+              <p className="mt-1 text-xs text-muted-foreground">мин. 3 места = 327 €/год</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">100 операции/място/мес · само годишен</p>
               <Button
                 asChild
                 variant="outline"
-                className="mt-5 border-gold/40 text-gold hover:bg-gold/10"
+                className="mt-4 border-gold/40 text-gold hover:bg-gold/10"
               >
                 <a href="/team">Създай екип</a>
               </Button>
-              <div className="my-6 h-px bg-border/60" />
+              <div className="my-5 h-px bg-border/60" />
               <ul className="space-y-2.5">
-                {teamFeatures.map((f) => (<Feature key={f}>{f}</Feature>))}
+                <Feature>100 операции / място / месец</Feature>
+                <Feature>Споделени документи и шаблони</Feature>
+                <Feature>Audit log</Feature>
+                <Feature>Екипно фактуриране</Feature>
+                <Feature>Всичко от Професионалист</Feature>
               </ul>
             </div>
 
-            {/* 5 operations */}
-            <div className="flex flex-col rounded-2xl border border-border/60 bg-gradient-card p-7 transition-colors hover:border-gold/40 lg:order-1">
+            {/* 5 операции */}
+            <div className="flex flex-col rounded-2xl border border-border/60 bg-gradient-card p-6 transition-colors hover:border-gold/40">
               <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 <Sparkles className="h-3.5 w-3.5" /> Еднократно
               </div>
-              <h3 className="mt-2 font-serif text-2xl font-bold">5 операции</h3>
-              <div className="mt-4 flex items-baseline gap-2">
-                <span className="font-serif text-4xl font-bold text-foreground">2.90 €</span>
-                <span className="text-sm text-muted-foreground">/ пакет</span>
+              <h3 className="mt-2 font-serif text-xl font-bold">5 операции</h3>
+              <div className="mt-3 flex items-baseline gap-2">
+                <span className="font-serif text-3xl font-bold text-foreground">2.90 €</span>
+                <span className="text-xs text-muted-foreground">/ пакет</span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">без абонамент · операциите не изтичат</p>
-              <p className="mt-1 text-[11px] font-medium text-gold/90" title="2.90 € ÷ 5 операции">≈ 0.58 € на операция · 5 операции в пакета</p>
+              <p className="mt-1 text-xs text-muted-foreground">без абонамент · не изтичат</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">≈ 0.58 € на операция</p>
               <Button
                 onClick={() => setCheckoutPrice("five_operations")}
                 variant="outline"
-                className="mt-5 border-border/80"
+                className="mt-4 border-border/80"
               >
                 Купи за 2.90 €
               </Button>
-              <div className="my-6 h-px bg-border/60" />
+              <div className="my-5 h-px bg-border/60" />
               <ul className="space-y-2.5">
                 {oneOffFeatures.map((f) => (<Feature key={f}>{f}</Feature>))}
                 <Feature>Подходящо за инцидентна нужда</Feature>
-              </ul>
-            </div>
-          </div>
-
-          {/* Yearly plans */}
-          <div className="grid gap-5 lg:grid-cols-2">
-            {/* Yearly Pro */}
-            <div className="relative flex flex-col rounded-2xl border border-border/60 bg-gradient-card p-7 transition-colors hover:border-gold/40">
-              <div className="absolute -top-3 right-5 rounded-full border border-gold/40 bg-navy px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gold">
-                −17%
-              </div>
-              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                <Crown className="h-3.5 w-3.5" /> Предприемач
-              </div>
-              <h3 className="mt-2 font-serif text-2xl font-bold">Годишен Предприемач</h3>
-              <div className="mt-4 flex items-baseline gap-2">
-                <span className="font-serif text-4xl font-bold text-foreground">129 €</span>
-                <span className="text-sm text-muted-foreground line-through">154.80 €</span>
-              </div>
-              <p className="mt-1 text-xs text-gold">≈ 10.75 €/месец · 2 безплатни месеца</p>
-              <p className="mt-1 text-[11px] font-medium text-gold/90" title="129 € ÷ (100 × 12) операции / година">≈ 0.108 € на операция · 1200 оп./година</p>
-              <Button
-                onClick={() => setCheckoutPrice("pro_yearly")}
-                variant="outline"
-                className="mt-5 border-gold/40 text-gold hover:bg-gold/10"
-              >
-                Купи Годишен Предприемач
-              </Button>
-              <div className="my-6 h-px bg-border/60" />
-              <ul className="space-y-2.5">
-                {proFeatures.map((f) => (<Feature key={f}>{f}</Feature>))}
-                <Feature>2 безплатни месеца спрямо месечния</Feature>
-              </ul>
-            </div>
-
-            {/* Yearly Team */}
-            <div className="relative flex flex-col rounded-2xl border border-border/60 bg-gradient-card p-7 transition-colors hover:border-gold/40">
-              <div className="absolute -top-3 right-5 rounded-full border border-gold/40 bg-navy px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gold">
-                −17%
-              </div>
-              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold">
-                <Building2 className="h-3.5 w-3.5" /> За фирми и екипи
-              </div>
-              <h3 className="mt-2 font-serif text-2xl font-bold">Годишен Екип</h3>
-              <div className="mt-4 flex items-baseline gap-2">
-                <span className="font-serif text-4xl font-bold text-foreground">109 €</span>
-                <span className="text-sm text-muted-foreground">/ място / година</span>
-              </div>
-              <p className="mt-1 text-xs text-gold">≈ 9.08 €/месец · мин. 3 места (327 €/год)</p>
-              <p className="mt-1 text-[11px] font-medium text-gold/90" title="109 € ÷ (100 × 12) операции / място / година">≈ 0.091 € на операция · 1200 оп./място/година</p>
-              <Button
-                asChild
-                variant="outline"
-                className="mt-5 border-gold/40 text-gold hover:bg-gold/10"
-              >
-                <a href="/team">Създай екип годишно</a>
-              </Button>
-              <div className="my-6 h-px bg-border/60" />
-              <ul className="space-y-2.5">
-                {teamFeatures.map((f) => (<Feature key={f}>{f}</Feature>))}
               </ul>
             </div>
           </div>
@@ -1846,6 +1842,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
           </div>
         </>
       )}
+
 
 
       <Dialog open={!!checkoutPrice} onOpenChange={(o) => !o && setCheckoutPrice(null)}>

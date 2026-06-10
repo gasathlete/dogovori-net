@@ -55,8 +55,8 @@ export function CompanionChip({ name }: Props) {
       if (!res.ok) {
         if (res.error === "quota_exceeded") {
           toast.error("Изчерпан безплатен лимит", {
-            description: "Преминете към Pro план за повече бланки.",
-            action: { label: "Pro план", onClick: () => navigate("/account?tab=subscription") },
+            description: "Преминете към платен план за повече бланки.",
+            action: { label: "платен план", onClick: () => navigate("/account?tab=subscription") },
           });
         } else {
           toast.error("Грешка при изтегляне", { description: res.error });
