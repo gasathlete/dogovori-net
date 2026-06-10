@@ -410,18 +410,17 @@ export default function CatalogPage() {
 
 
 
-      {/* Sticky category nav */}
+      {/* Sticky sector nav — replaces previous per-category nav */}
       <nav className="sticky top-16 z-30 border-b border-border/60 bg-navy/85 backdrop-blur-xl">
         <div className="relative">
           <DragScrollRow>
-            {CATALOG.map((cat) => (
+            {SECTOR_META.map((s) => (
               <a
-                key={cat.id}
-                href={`#${cat.id}`}
+                key={s.id}
+                href={`#sector-${s.id}`}
                 className="group shrink-0 snap-start whitespace-nowrap rounded-full border border-border/60 bg-card/40 px-3.5 py-1.5 font-medium text-muted-foreground transition-colors duration-200 hover:border-gold/50 hover:bg-gold/5 hover:text-gold"
               >
-                <span className="mr-1.5 font-serif text-gold/60 group-hover:text-gold/80">{cat.number}</span>
-                {cat.title}
+                {s.title}
               </a>
             ))}
           </DragScrollRow>
@@ -429,53 +428,18 @@ export default function CatalogPage() {
         </div>
       </nav>
 
-      {/* Categories */}
-      <main className="container space-y-20 py-16 md:py-20">
-        {filtered.map((cat) => {
-          const Icon = (Icons as any)[cat.icon] ?? Icons.FileText;
-          return (
-            <section key={cat.id} id={cat.id} className="scroll-mt-32">
-              <div className="mb-7 flex items-start gap-5">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-gold/30 bg-gold/5 text-gold">
-                  <Icon className="h-5 w-5" strokeWidth={1.6} />
-                </div>
-                <div className="flex-1">
-                  <div className="eyebrow">
-                    <span className="font-serif text-sm font-normal tracking-normal text-gold/60">{cat.number}</span>
-                    <span className="h-px w-5 bg-gold/40" />
-                    Категория
-                  </div>
-                  <h2 className="mt-2 font-serif text-2xl font-bold leading-tight md:text-[32px]">{cat.title}</h2>
-                  <p className="mt-2.5 max-w-3xl text-sm leading-relaxed text-muted-foreground">{cat.intro}</p>
-                </div>
-                <Link
-                  to={`/kategoria/${cat.id}`}
-                  className="hidden shrink-0 items-center gap-1.5 self-start text-[11px] font-semibold uppercase tracking-[0.18em] text-gold transition-opacity hover:opacity-80 md:inline-flex"
-                >
-                  Виж всички <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-
-              <CategoryDocs cat={cat} forceExpanded={!!query.trim()} downloadCounts={downloadCounts} />
-
-              {cat.companions && cat.companions.length > 0 && (
-                <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-border/50 bg-navy-light/20 px-4 py-3 text-xs">
-                  <ListChecks className="h-3.5 w-3.5 text-gold" />
-                  <span className="font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Придружаващи документи
-                  </span>
-                  <span className="text-muted-foreground/50">·</span>
-                  {cat.companions.map((c) => (
-                    <CompanionChip key={c} name={c} />
-                  ))}
-                </div>
-              )}
-            </section>
-          );
-        })}
+      {/* Sectors grid — categories are grouped under their parent sector and shown
+          as illustrated tiles. Each tile expands inline to reveal the first 5
+          documents from that sector. */}
+      <main className="container py-14 md:py-20">
+        <SectorCatalogGrid
+          filtered={filtered}
+          downloadCounts={downloadCounts}
+          forceExpandAll={!!query.trim()}
+        />
 
         {filtered.length === 0 && (
-          <div className="rounded-2xl border border-gold/25 bg-gradient-card p-12 text-center shadow-soft">
+          <div className="mt-12 rounded-2xl border border-gold/25 bg-gradient-card p-12 text-center shadow-soft">
             <div className="eyebrow mb-3 justify-center">
               <Search className="h-3.5 w-3.5" />
               Няма резултати
