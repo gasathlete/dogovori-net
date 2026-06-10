@@ -230,7 +230,15 @@ Deno.serve(async (req) => {
       currentPath ? `Текуща страница: ${currentPath}.` : "",
     ].filter(Boolean).join(" ");
     const activeSystemPrompt = await loadActivePrompt(admin, "assistant-chat", SYSTEM_PROMPT);
-    const systemFinal = `${activeSystemPrompt}\n\n[КОНТЕКСТ] ${ctxLines}`;
+
+    // RAG: ground the answer in the legal knowledge base.
+    const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, lastUserMsg, {
+      matchCount: 8,
+      minSimilarity: 0.45,
+    });
+    const systemFinal = legal.hasMatches
+      ? `${activeSystemPrompt}\n\n[КОНТЕКСТ] ${ctxLines}\n\n${legal.promptBlock}`
+      : `${activeSystemPrompt}\n\n[КОНТЕКСТ] ${ctxLines}\n\n[НОРМАТИВНА БАЗА] Няма намерени релевантни нормативни извадки за този въпрос. Ако въпросът изисква конкретна правна норма, отговори: "Няма основание в наличната нормативна база. За конкретния казус се консултирайте с адвокат." Иначе отговори общо в рамките на навигация / техническа помощ.`;
 
     // Call Lovable AI Gateway with streaming
     const chatModel = isEntrepreneur ? MODEL_PREMIUM : MODEL_STANDARD;
