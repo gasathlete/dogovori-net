@@ -1,6 +1,7 @@
 // Cron-triggered Edge Function: notifies Pro users whose subscription expires soon or has just expired.
 // Runs daily; idempotency keys ensure safe re-runs.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { requireServiceRole } from "../_shared/cron-auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -12,6 +13,8 @@ const corsHeaders = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const denied = await requireServiceRole(req);
+  if (denied) return denied;
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const now = new Date();
