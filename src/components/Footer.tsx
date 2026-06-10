@@ -43,6 +43,7 @@ export function Footer() {
             <Link to="/legal/dpia-summary" className="transition-colors hover:text-gold sm:whitespace-nowrap">DPIA резюме</Link>
             <Link to="/legal/security" className="transition-colors hover:text-gold sm:whitespace-nowrap">VDP</Link>
             <Link to="/legal/changelog" className="transition-colors hover:text-gold sm:whitespace-nowrap">Changelog</Link>
+            <Link to="/legal/knowledge-base" className="transition-colors hover:text-gold sm:whitespace-nowrap">Нормативна база</Link>
             <button
               type="button"
               onClick={openCookieSettings}
