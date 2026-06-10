@@ -179,6 +179,46 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
     }
   }
 
+  // 1b) Order snapshot — ЗЗП чл. 47/49: фиксираме приетите версии на правните
+  // документи и активната цена в момента на покупката (consumer protection
+  // evidence). Не съдържа payment card data.
+  if (userId && session.id) {
+    try {
+      const amountTotal = session.amount_total;
+      const currency = (session.currency || "eur").toUpperCase();
+      const lookup =
+        session.metadata?.priceId ||
+        session.metadata?.lookup_key ||
+        null;
+      const planName = session.mode === "subscription"
+        ? (lookup || "subscription")
+        : (lookup || "one_off");
+      const billingPeriod = session.mode === "subscription"
+        ? (session.metadata?.billing_period || null)
+        : null;
+      await getSupabase().from("order_snapshots").insert({
+        user_id: userId,
+        plan_name: planName,
+        price_amount: typeof amountTotal === "number" ? amountTotal / 100 : 0,
+        currency,
+        vat_included: true,
+        vat_rate: 20,
+        billing_period: billingPeriod,
+        terms_version: session.metadata?.terms_version || "2026-06-25",
+        privacy_version: session.metadata?.privacy_version || "2026-06-25",
+        withdrawal_version: session.metadata?.withdrawal_version || "2026-06-25",
+        refund_version: session.metadata?.refund_version || "2026-06-25",
+        dpa_version: session.metadata?.dpa_version || null,
+        ai_ack_accepted: session.metadata?.ai_ack_accepted === "true",
+        stripe_session_id: session.id,
+        stripe_subscription_id: session.subscription || null,
+      });
+    } catch (e) {
+      console.error("order_snapshots insert failed (non-fatal):", e);
+    }
+  }
+
+
   // 2) Receipt email — for any successful checkout (subscription or one-off)
   try {
     const email = session.customer_email || session.customer_details?.email;
