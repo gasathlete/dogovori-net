@@ -8,6 +8,7 @@ import { guardIllegalContent } from "../_shared/illegal-content.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
+import { retrieveLegalContext } from "../_shared/legal-rag.ts";
 
 const SYSTEM_PROMPT = `Ти си "Правен асистент Dogovori.net" — професионален 24/7 помощник за PRO и Team абонати на платформата dogovori.net.
 
@@ -229,7 +230,15 @@ Deno.serve(async (req) => {
       currentPath ? `Текуща страница: ${currentPath}.` : "",
     ].filter(Boolean).join(" ");
     const activeSystemPrompt = await loadActivePrompt(admin, "assistant-chat", SYSTEM_PROMPT);
-    const systemFinal = `${activeSystemPrompt}\n\n[КОНТЕКСТ] ${ctxLines}`;
+
+    // RAG: ground the answer in the legal knowledge base.
+    const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, lastUserMsg, {
+      matchCount: 8,
+      minSimilarity: 0.45,
+    });
+    const systemFinal = legal.hasMatches
+      ? `${activeSystemPrompt}\n\n[КОНТЕКСТ] ${ctxLines}\n\n${legal.promptBlock}`
+      : `${activeSystemPrompt}\n\n[КОНТЕКСТ] ${ctxLines}\n\n[НОРМАТИВНА БАЗА] Няма намерени релевантни нормативни извадки за този въпрос. Ако въпросът изисква конкретна правна норма, отговори: "Няма основание в наличната нормативна база. За конкретния казус се консултирайте с адвокат." Иначе отговори общо в рамките на навигация / техническа помощ.`;
 
     // Call Lovable AI Gateway with streaming
     const chatModel = isEntrepreneur ? MODEL_PREMIUM : MODEL_STANDARD;
@@ -285,7 +294,7 @@ Deno.serve(async (req) => {
     const stream = new ReadableStream({
       async start(controller) {
         // Send threadId first as a custom event so client can store it
-        controller.enqueue(encoder.encode(`event: meta\ndata: ${JSON.stringify({ threadId: activeThreadId })}\n\n`));
+        controller.enqueue(encoder.encode(`event: meta\ndata: ${JSON.stringify({ threadId: activeThreadId, citations: legal.citations })}\n\n`));
 
         let buffer = "";
         try {

@@ -1233,6 +1233,170 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_chunks: {
+        Row: {
+          article_no: string | null
+          chunk_index: number
+          citation_label: string
+          content: string
+          content_tsv: unknown
+          created_at: string
+          document_id: string
+          embedding: string | null
+          heading_path: Json
+          id: string
+          paragraph_no: string | null
+          source_id: string
+          token_count: number | null
+        }
+        Insert: {
+          article_no?: string | null
+          chunk_index?: number
+          citation_label: string
+          content: string
+          content_tsv?: unknown
+          created_at?: string
+          document_id: string
+          embedding?: string | null
+          heading_path?: Json
+          id?: string
+          paragraph_no?: string | null
+          source_id: string
+          token_count?: number | null
+        }
+        Update: {
+          article_no?: string | null
+          chunk_index?: number
+          citation_label?: string
+          content?: string
+          content_tsv?: unknown
+          created_at?: string
+          document_id?: string
+          embedding?: string | null
+          heading_path?: Json
+          id?: string
+          paragraph_no?: string | null
+          source_id?: string
+          token_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "legal_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_chunks_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "legal_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_documents: {
+        Row: {
+          checksum: string
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          language: string
+          raw_text: string
+          source_id: string
+          token_count: number | null
+          version: string
+        }
+        Insert: {
+          checksum: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          language?: string
+          raw_text: string
+          source_id: string
+          token_count?: number | null
+          version: string
+        }
+        Update: {
+          checksum?: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          language?: string
+          raw_text?: string
+          source_id?: string
+          token_count?: number | null
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_documents_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "legal_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_sources: {
+        Row: {
+          active: boolean
+          created_at: string
+          current_version: string | null
+          id: string
+          issuer: string | null
+          jurisdiction: string
+          language: string
+          last_indexed_at: string | null
+          metadata: Json
+          official_url: string | null
+          published_at: string | null
+          short_code: string
+          source_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          current_version?: string | null
+          id?: string
+          issuer?: string | null
+          jurisdiction: string
+          language?: string
+          last_indexed_at?: string | null
+          metadata?: Json
+          official_url?: string | null
+          published_at?: string | null
+          short_code: string
+          source_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          current_version?: string | null
+          id?: string
+          issuer?: string | null
+          jurisdiction?: string
+          language?: string
+          last_indexed_at?: string | null
+          metadata?: Json
+          official_url?: string | null
+          published_at?: string | null
+          short_code?: string
+          source_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       legal_versions: {
         Row: {
           changelog_md: string | null
@@ -3295,6 +3459,31 @@ export type Database = {
       }
       mark_all_notifications_read: { Args: never; Returns: number }
       mark_notification_read: { Args: { _id: string }; Returns: undefined }
+      match_legal_chunks: {
+        Args: {
+          jurisdictions?: string[]
+          match_count?: number
+          query_embedding: string
+          query_text?: string
+          source_types?: string[]
+        }
+        Returns: {
+          article_no: string
+          chunk_id: string
+          citation_label: string
+          content: string
+          document_id: string
+          jurisdiction: string
+          official_url: string
+          paragraph_no: string
+          score: number
+          similarity: number
+          source_id: string
+          source_short_code: string
+          source_title: string
+          text_rank: number
+        }[]
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
