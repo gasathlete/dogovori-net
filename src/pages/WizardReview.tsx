@@ -475,7 +475,7 @@ export default function WizardReviewPage() {
       });
       if (error || data?.error) {
         if (data?.error === "pro_required") {
-          toast.error("Нужен е Pro план", {
+          toast.error("Нужен е платен план", {
             action: { label: "Предприемач", onClick: () => goSubscription() },
           });
           return;

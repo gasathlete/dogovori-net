@@ -637,7 +637,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       });
       if (error || data?.error) {
         if (data?.error === "pro_required") {
-          toast.error("Нужен е Pro план", {
+          toast.error("Нужен е платен план", {
             description: "Прогресът е запазен.",
             action: { label: "Предприемач", onClick: () => navigate("/account?tab=subscription") },
           });
@@ -852,7 +852,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                             onClick={() => {
                               if (locked) {
                                 toast.message("Стриктен режим е за Pro и Team", {
-                                  description: "Преминете към Pro или Team план, за да го отключите.",
+                                  description: "Преминете към платен план, за да го отключите.",
                                   action: { label: "Виж планове", onClick: goSubscription },
                                 });
                                 return;
@@ -891,7 +891,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                     onClick={() => {
                       if (!canBilingual) {
                         toast.message("Двуезичен документ е за Pro и Team", {
-                          description: "Преминете към Pro или Team план, за да генерирате документи на български и английски.",
+                          description: "Преминете към платен план, за да генерирате документи на български и английски.",
                           action: { label: "Виж планове", onClick: goSubscription },
                         });
                         return;

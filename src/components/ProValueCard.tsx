@@ -43,7 +43,7 @@ export function ProValueCard({ source = "generic", alwaysShow = false }: Props) 
         ? {
             headline: `Остава ти ${opsLeft} безплатна операция`,
             sub: "Виж какво отключваш с Pro — преди следващото действие.",
-            cta: "Виж Pro план",
+            cta: "Виж плановете",
             tone: "warm" as const,
           }
         : {

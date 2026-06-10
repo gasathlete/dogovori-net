@@ -372,7 +372,7 @@ export default function WizardPage() {
       });
       if (error || data?.error) {
         if (data?.error === "pro_required") {
-          toast.error("Нужен е Pro план", {
+          toast.error("Нужен е платен план", {
             description: "Прогресът е запазен.",
             action: { label: "Предприемач", onClick: () => goSubscription() },
           });
