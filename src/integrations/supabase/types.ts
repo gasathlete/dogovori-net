@@ -2577,6 +2577,39 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_privacy_breakdown: {
+        Args: { _dim: string; _from: string; _to: string }
+        Returns: {
+          count: number
+          label: string
+        }[]
+      }
+      admin_privacy_kpis: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          blocked_calls: number
+          errored_calls: number
+          fallback_used: number
+          illegal_attempts: number
+          pii_calls: number
+          redacted_calls: number
+          special_category_calls: number
+          total_ai_calls: number
+          total_tokens_in: number
+          total_tokens_out: number
+          unique_users: number
+        }[]
+      }
+      admin_privacy_timeseries: {
+        Args: { _bucket: string; _from: string; _to: string }
+        Returns: {
+          blocked: number
+          bucket: string
+          pii: number
+          special: number
+          total: number
+        }[]
+      }
       admin_revoke_pro: { Args: { _user_id: string }; Returns: undefined }
       admin_set_pro: {
         Args: { _months: number; _user_id: string }

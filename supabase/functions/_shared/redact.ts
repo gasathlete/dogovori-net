@@ -66,13 +66,14 @@ export function redactForAI(input: string): RedactionResult {
   const stats: Record<string, number> = {};
   let out = input;
 
-  // Order matters: email/IBAN/ID_CARD before EGN (otherwise 10 digits inside
-  // an IBAN/ID would be eaten first).
+  // Order matters: email/IBAN/ID_CARD first (съдържат цифрови серии). После
+  // EGN (10 точни цифри) ПРЕДИ phone, защото EGN-та започващи с "0" (родени
+  // 2000+) се хващат от phone regex и водят до грешна редакция.
   out = out.replace(EMAIL_RE, makeCounter("EMAIL", mapping, stats));
   out = out.replace(IBAN_RE, makeCounter("IBAN", mapping, stats));
   out = out.replace(ID_CARD_RE, makeCounter("ID_CARD", mapping, stats));
-  out = out.replace(PHONE_RE, makeCounter("PHONE", mapping, stats));
   out = out.replace(EGN_RE, makeCounter("EGN", mapping, stats));
+  out = out.replace(PHONE_RE, makeCounter("PHONE", mapping, stats));
   out = out.replace(ADDRESS_RE, makeCounter("ADDRESS", mapping, stats));
 
   const nameCounter = makeCounter("NAME", mapping, stats);
