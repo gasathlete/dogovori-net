@@ -33,7 +33,7 @@ export function CTABand() {
   const { user } = useAuth();
   const [teaserOpen, setTeaserOpen] = useState(false);
   return (
-    <section className="container py-14 sm:py-16 md:py-20">
+    <section className="container py-20 sm:py-24 md:py-28">
       <div
         className="gold-sweep-bg relative overflow-hidden rounded-2xl border border-gold/30 px-6 py-12 text-center sm:px-10 sm:py-14 md:px-16 md:py-16"
         style={{

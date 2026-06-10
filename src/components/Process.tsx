@@ -178,7 +178,7 @@ export function Process() {
   return (
     <section
       id="process"
-      className="relative border-y border-border/60 bg-navy-light/25 py-14 sm:py-16 md:py-24"
+      className="relative border-y border-border/60 bg-card/40 py-20 sm:py-24 md:py-28"
     >
       <div className="absolute inset-x-0 top-0 hairline-x opacity-50" />
       <div className="container">

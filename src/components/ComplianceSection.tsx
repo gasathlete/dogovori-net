@@ -60,7 +60,7 @@ export function ComplianceSection() {
   };
 
   return (
-    <section id="compliance" className="container py-14 sm:py-16 md:py-24">
+    <section id="compliance" className="container py-20 sm:py-24 md:py-28">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
 
       <div className="relative overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-8 shadow-elegant md:p-14">
