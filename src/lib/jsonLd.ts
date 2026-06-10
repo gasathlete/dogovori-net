@@ -112,9 +112,10 @@ export function softwareApplicationSchema() {
     offers: [
       {
         "@type": "Offer",
-        name: "Предприемач",
+        name: "Професионалист",
         price: "12.90",
         priceCurrency: "EUR",
+        description: "50 operations/month",
         priceSpecification: {
           "@type": "UnitPriceSpecification",
           price: "12.90",
@@ -124,21 +125,36 @@ export function softwareApplicationSchema() {
       },
       {
         "@type": "Offer",
-        name: "Екип (per seat)",
-        price: "10.90",
+        name: "Предприемач",
+        price: "19.90",
         priceCurrency: "EUR",
+        description: "120 operations/month, GPT-5, Premium 24/7 support",
         priceSpecification: {
           "@type": "UnitPriceSpecification",
-          price: "10.90",
+          price: "19.90",
           priceCurrency: "EUR",
           referenceQuantity: { "@type": "QuantitativeValue", value: 1, unitCode: "MON" },
         },
       },
       {
         "@type": "Offer",
-        name: "Pay-as-you-go pack (5 ops)",
-        price: "1.90",
+        name: "Екип (per seat, yearly)",
+        price: "109",
         priceCurrency: "EUR",
+        description: "Min 3 seats; per-seat annual price",
+        priceSpecification: {
+          "@type": "UnitPriceSpecification",
+          price: "109",
+          priceCurrency: "EUR",
+          referenceQuantity: { "@type": "QuantitativeValue", value: 1, unitCode: "ANN" },
+        },
+      },
+      {
+        "@type": "Offer",
+        name: "Pay-as-you-go pack (5 ops)",
+        price: "2.90",
+        priceCurrency: "EUR",
+        description: "5 operations, one-off",
       },
     ],
     aggregateRating: {
