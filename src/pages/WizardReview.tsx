@@ -167,28 +167,69 @@ export default function WizardReviewPage() {
   // Auto-save the generated document to the user's profile (status: draft) so
   // their progress is never lost. Fires once when the analysis completes, and
   // re-fires on contract edits / applied corrections to update the snapshot.
+  // Guards against duplicate inserts from React StrictMode double-invocation
+  // and from re-firing while the initial INSERT is still in-flight.
+  const autoSaveInFlight = useRef(false);
+  const autoSavedIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (!result || !user) return;
     let cancelled = false;
     (async () => {
       try {
         const finalTitle = (customTitle || result.contract.title).trim() || result.contract.title;
-        if (!savedDocId) {
-          const { data, error } = await supabase
-            .from("saved_documents")
-            .insert({
-              user_id: user.id,
-              kind: "contract",
-              title: finalTitle,
-              payload: { ...result.contract, title: finalTitle } as never,
-              source_id: slug ?? null,
-            })
-            .select("id")
-            .single();
-          if (error) throw error;
-          if (!cancelled) {
-            setSavedDocId(data.id);
-            setAutoSaved(true);
+        const existingId = savedDocId || autoSavedIdRef.current;
+        if (!existingId) {
+          if (autoSaveInFlight.current) return;
+          autoSaveInFlight.current = true;
+          try {
+            // Dedupe across reloads: if a saved doc already exists for this
+            // user + source slug, reuse it instead of inserting a new row.
+            if (slug) {
+              const { data: existing } = await supabase
+                .from("saved_documents")
+                .select("id")
+                .eq("user_id", user.id)
+                .eq("source_id", slug)
+                .eq("kind", "contract")
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .maybeSingle();
+              if (existing?.id) {
+                autoSavedIdRef.current = existing.id;
+                const { error } = await supabase
+                  .from("saved_documents")
+                  .update({
+                    title: finalTitle,
+                    payload: { ...result.contract, title: finalTitle } as never,
+                  })
+                  .eq("id", existing.id);
+                if (error) throw error;
+                if (!cancelled) {
+                  setSavedDocId(existing.id);
+                  setAutoSaved(true);
+                }
+                return;
+              }
+            }
+            const { data, error } = await supabase
+              .from("saved_documents")
+              .insert({
+                user_id: user.id,
+                kind: "contract",
+                title: finalTitle,
+                payload: { ...result.contract, title: finalTitle } as never,
+                source_id: slug ?? null,
+              })
+              .select("id")
+              .single();
+            if (error) throw error;
+            autoSavedIdRef.current = data.id;
+            if (!cancelled) {
+              setSavedDocId(data.id);
+              setAutoSaved(true);
+            }
+          } finally {
+            autoSaveInFlight.current = false;
           }
         } else {
           const { error } = await supabase
@@ -197,7 +238,7 @@ export default function WizardReviewPage() {
               title: finalTitle,
               payload: { ...result.contract, title: finalTitle } as never,
             })
-            .eq("id", savedDocId);
+            .eq("id", existingId);
           if (error) throw error;
           if (!cancelled) setAutoSaved(true);
         }
