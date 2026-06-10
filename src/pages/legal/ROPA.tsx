@@ -1,55 +1,55 @@
-import { LegalLayout } from "./LegalLayout";
+import { LegalLayout } from »./LegalLayout»;
 
 export default function ROPA() {
   return (
     <LegalLayout
-      title="Регистър на дейностите по обработка (ROPA)"
-      description="Регистър по чл. 30 GDPR за дейностите по обработка на лични данни в Dogovori.net."
+      title=»Регистър на дейностите по обработка (ROPA)»
+      description=»Регистър по чл. 30 GDPR за дейностите по обработка на лични данни в Dogovori.net.»
     >
-      <p className="text-sm text-muted-foreground">
+      <p className=»text-sm text-muted-foreground»>
         Версия 1.0 · Последна актуализация: 10.06.2026 г.
       </p>
 
       <h2>1. Администратор</h2>
       <p>
-        <strong>Dogovori.net</strong> (по-долу „Платформата") — администратор по смисъла на чл. 4, т. 7 GDPR.
-        Контакт по защита на данните: <a href="mailto:privacy@dogovori.net">privacy@dogovori.net</a>.
+        <strong>Dogovori.net</strong> (по-долу «Платформата») — администратор по смисъла на чл. 4, т. 7 GDPR.
+        Контакт по защита на данните: <a href=»mailto:privacy@dogovori.net»>privacy@dogovori.net</a>.
       </p>
 
       <h2>2. Регистър на дейностите</h2>
-      <p className="text-sm">
+      <p className=»text-sm»>
         В таблицата по-долу е документирана всяка дейност по обработка съгласно чл. 30, ал. 1 GDPR.
         Категориите субекти, данни, получатели, срокове и мерки са поддържани отделно и в DPIA документа.
       </p>
 
       {ACTIVITIES.map((a, i) => (
-        <section key={a.id} className="my-6 rounded-md border border-border/50 p-4 text-sm">
-          <h3 className="text-base font-semibold mb-2">
+        <section key={a.id} className=»my-6 rounded-md border border-border/50 p-4 text-sm»>
+          <h3 className=»text-base font-semibold mb-2»>
             {i + 1}. {a.name}
           </h3>
-          <dl className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-x-4 gap-y-1.5 text-[13px]">
-            <dt className="font-medium text-muted-foreground">Цел</dt>
+          <dl className=»grid grid-cols-1 md:grid-cols-[180px_1fr] gap-x-4 gap-y-1.5 text-[13px]»>
+            <dt className=»font-medium text-muted-foreground»>Цел</dt>
             <dd>{a.purpose}</dd>
 
-            <dt className="font-medium text-muted-foreground">Правно основание</dt>
+            <dt className=»font-medium text-muted-foreground»>Правно основание</dt>
             <dd>{a.legalBasis}</dd>
 
-            <dt className="font-medium text-muted-foreground">Категории субекти</dt>
+            <dt className=»font-medium text-muted-foreground»>Категории субекти</dt>
             <dd>{a.subjects}</dd>
 
-            <dt className="font-medium text-muted-foreground">Категории данни</dt>
+            <dt className=»font-medium text-muted-foreground»>Категории данни</dt>
             <dd>{a.data}</dd>
 
-            <dt className="font-medium text-muted-foreground">Получатели</dt>
+            <dt className=»font-medium text-muted-foreground»>Получатели</dt>
             <dd>{a.recipients}</dd>
 
-            <dt className="font-medium text-muted-foreground">Срок на съхранение</dt>
+            <dt className=»font-medium text-muted-foreground»>Срок на съхранение</dt>
             <dd>{a.retention}</dd>
 
-            <dt className="font-medium text-muted-foreground">Технически и организационни мерки</dt>
+            <dt className=»font-medium text-muted-foreground»>Технически и организационни мерки</dt>
             <dd>{a.measures}</dd>
 
-            <dt className="font-medium text-muted-foreground">Трансфер извън ЕИП</dt>
+            <dt className=»font-medium text-muted-foreground»>Трансфер извън ЕИП</dt>
             <dd>{a.transfer}</dd>
           </dl>
         </section>
@@ -64,11 +64,11 @@ export default function ROPA() {
 
       <h2>4. Свързани документи</h2>
       <ul>
-        <li><a href="/legal/privacy">Политика за поверителност</a></li>
-        <li><a href="/legal/retention">Политика за съхранение</a></li>
-        <li><a href="/legal/subprocessors">Регистър на подпроцесорите</a></li>
-        <li><a href="/legal/ai-processing">AI обработка</a></li>
-        <li><a href="/legal/dpa">Споразумение за обработка на данни (DPA)</a></li>
+        <li><a href=»/legal/privacy»>Политика за поверителност</a></li>
+        <li><a href=»/legal/retention»>Политика за съхранение</a></li>
+        <li><a href=»/legal/subprocessors»>Регистър на подпроцесорите</a></li>
+        <li><a href=»/legal/ai-processing»>AI обработка</a></li>
+        <li><a href=»/legal/dpa»>Споразумение за обработка на данни (DPA)</a></li>
       </ul>
     </LegalLayout>
   );
@@ -87,123 +87,123 @@ const ACTIVITIES: Array<{
   transfer: string;
 }> = [
   {
-    id: "auth",
-    name: "Регистрация и удостоверяване",
-    purpose: "Създаване и поддръжка на потребителски акаунт.",
-    legalBasis: "Чл. 6, ал. 1, б. „б" — изпълнение на договор.",
-    subjects: "Регистрирани потребители (физически лица и представители на ЮЛ).",
-    data: "Имейл, парола (хеш), потребителско име, IP, User-Agent.",
-    recipients: "Supabase (хостинг auth), Resend (потвърдителни имейли).",
-    retention: "До оттегляне на акаунта; счетоводни записи 10 г.",
-    measures: "Хеширане на пароли, 2FA препоръка, RLS, TLS 1.2+.",
-    transfer: "Не. Хостинг в ЕС (Frankfurt).",
+    id: »auth»,
+    name: »Регистрация и удостоверяване»,
+    purpose: »Създаване и поддръжка на потребителски акаунт.»,
+    legalBasis: »Чл. 6, ал. 1, б. «б» — изпълнение на договор.»,
+    subjects: »Регистрирани потребители (физически лица и представители на ЮЛ).»,
+    data: »Имейл, парола (хеш), потребителско име, IP, User-Agent.»,
+    recipients: »Supabase (хостинг auth), Resend (потвърдителни имейли).»,
+    retention: »До оттегляне на акаунта; счетоводни записи 10 г.»,
+    measures: »Хеширане на пароли, 2FA препоръка, RLS, TLS 1.2+.»,
+    transfer: »Не. Хостинг в ЕС (Frankfurt).»,
   },
   {
-    id: "generate",
-    name: "Генериране на проекти на договори",
-    purpose: "AI-подпомогнато създаване на правни документи по параметри от потребителя.",
-    legalBasis: "Чл. 6, ал. 1, б. „б" — изпълнение на договор.",
-    subjects: "Платени и активни потребители.",
-    data: "Параметри на договора, имена на страни, ЕИК/ЕГН (псевдонимизирани преди AI).",
-    recipients: "Google (Gemini API, EU), OpenAI (fallback, EU). Не се ползва за обучение.",
-    retention: "Метаданни в ai_audit_log — 12 м. Съдържание не се логва.",
-    measures: "Псевдонимизация (PII redaction), unredact в RAM, без логване на съдържание.",
-    transfer: "Не. AI providerите оперират в EU регион със SCC.",
+    id: »generate»,
+    name: »Генериране на проекти на договори»,
+    purpose: »AI-подпомогнато създаване на правни документи по параметри от потребителя.»,
+    legalBasis: »Чл. 6, ал. 1, б. «б» — изпълнение на договор.»,
+    subjects: »Платени и активни потребители.»,
+    data: »Параметри на договора, имена на страни, ЕИК/ЕГН (псевдонимизирани преди AI).»,
+    recipients: »Google (Gemini API, EU), OpenAI (fallback, EU). Не се ползва за обучение.»,
+    retention: »Метаданни в ai_audit_log — 12 м. Съдържание не се логва.»,
+    measures: »Псевдонимизация (PII redaction), unredact в RAM, без логване на съдържание.»,
+    transfer: »Не. AI providerите оперират в EU регион със SCC.»,
   },
   {
-    id: "analyze",
-    name: "Анализ на качени документи",
-    purpose: "Извличане на рискови клаузи и предложения за корекции.",
-    legalBasis: "Чл. 6, ал. 1, б. „б" — изпълнение на договор.",
-    subjects: "Платени потребители.",
-    data: "Качен документ; може да съдържа имена, ЕГН, IBAN, адреси.",
-    recipients: "Google (Gemini), OpenAI (fallback).",
-    retention: "Временните файлове: 24 ч. Запазените: до изтриване от потребителя.",
-    measures: "MIME whitelist, magic-bytes валидация, псевдонимизация, retention-sweeper cron.",
-    transfer: "Не.",
+    id: »analyze»,
+    name: »Анализ на качени документи»,
+    purpose: »Извличане на рискови клаузи и предложения за корекции.»,
+    legalBasis: »Чл. 6, ал. 1, б. «б» — изпълнение на договор.»,
+    subjects: »Платени потребители.»,
+    data: »Качен документ; може да съдържа имена, ЕГН, IBAN, адреси.»,
+    recipients: »Google (Gemini), OpenAI (fallback).»,
+    retention: »Временните файлове: 24 ч. Запазените: до изтриване от потребителя.»,
+    measures: »MIME whitelist, magic-bytes валидация, псевдонимизация, retention-sweeper cron.»,
+    transfer: »Не.»,
   },
   {
-    id: "assistant",
-    name: "AI асистент чат",
-    purpose: "Отговор на правни въпроси (не-съвет) и помощ при ползване на платформата.",
-    legalBasis: "Чл. 6, ал. 1, б. „б" — изпълнение на договор.",
-    subjects: "Активни потребители.",
-    data: "Текст на въпроса; история на разговор.",
-    recipients: "Google (Gemini).",
-    retention: "12 месеца (assistant_messages).",
-    measures: "Класификация на риска преди изпращане, AI disclaimer, прозрачност чл. 50 AI Act.",
-    transfer: "Не.",
+    id: »assistant»,
+    name: »AI асистент чат»,
+    purpose: »Отговор на правни въпроси (не-съвет) и помощ при ползване на платформата.»,
+    legalBasis: »Чл. 6, ал. 1, б. «б» — изпълнение на договор.»,
+    subjects: »Активни потребители.»,
+    data: »Текст на въпроса; история на разговор.»,
+    recipients: »Google (Gemini).»,
+    retention: »12 месеца (assistant_messages).»,
+    measures: »Класификация на риска преди изпращане, AI disclaimer, прозрачност чл. 50 AI Act.»,
+    transfer: »Не.»,
   },
   {
-    id: "billing",
-    name: "Билинг и абонаменти",
-    purpose: "Обработка на плащания, фактуриране, метеринг на операции.",
-    legalBasis: "Чл. 6, ал. 1, б. „б" + б. „в" — договор + счетоводно задължение.",
-    subjects: "Платени потребители.",
-    data: "Stripe customer ID, име на фирма, ДДС номер, адрес за фактуриране, статус на абонамент.",
-    recipients: "Stripe (Ирландия, DPF + SCC).",
-    retention: "Активни записи + 10 г. за фактури (ЗСч).",
-    measures: "Не съхраняваме картови данни; Stripe е PCI-DSS L1 сертифициран.",
-    transfer: "Stripe оперира с DPF за US-резервни мощности.",
+    id: »billing»,
+    name: »Билинг и абонаменти»,
+    purpose: »Обработка на плащания, фактуриране, метеринг на операции.»,
+    legalBasis: »Чл. 6, ал. 1, б. «б» + б. «в» — договор + счетоводно задължение.»,
+    subjects: »Платени потребители.»,
+    data: »Stripe customer ID, име на фирма, ДДС номер, адрес за фактуриране, статус на абонамент.»,
+    recipients: »Stripe (Ирландия, DPF + SCC).»,
+    retention: »Активни записи + 10 г. за фактури (ЗСч).»,
+    measures: »Не съхраняваме картови данни; Stripe е PCI-DSS L1 сертифициран.»,
+    transfer: »Stripe оперира с DPF за US-резервни мощности.»,
   },
   {
-    id: "signing",
-    name: "Електронно подписване (споделяне за подпис)",
-    purpose: "Изпращане на документ за подпис към насрещна страна.",
-    legalBasis: "Чл. 6, ал. 1, б. „б" — изпълнение на договор.",
-    subjects: "Потребители и насрещни подписващи страни.",
-    data: "Имена, имейли на подписващи, IP, време на подпис, хеш на документа.",
-    recipients: "Resend (имейл), Supabase Storage (PDF).",
-    retention: "Запис за одит: 10 г. (доказателствена стойност).",
-    measures: "Audit log, OTP за подпис, имуутабъл хеш на финалния PDF.",
-    transfer: "Не.",
+    id: »signing»,
+    name: »Електронно подписване (споделяне за подпис)»,
+    purpose: »Изпращане на документ за подпис към насрещна страна.»,
+    legalBasis: »Чл. 6, ал. 1, б. «б» — изпълнение на договор.»,
+    subjects: »Потребители и насрещни подписващи страни.»,
+    data: »Имена, имейли на подписващи, IP, време на подпис, хеш на документа.»,
+    recipients: »Resend (имейл), Supabase Storage (PDF).»,
+    retention: »Запис за одит: 10 г. (доказателствена стойност).»,
+    measures: »Audit log, OTP за подпис, имуутабъл хеш на финалния PDF.»,
+    transfer: »Не.»,
   },
   {
-    id: "analytics",
-    name: "Анонимна продуктова аналитика",
-    purpose: "Подобряване на функционалности и UX.",
-    legalBasis: "Чл. 6, ал. 1, б. „е" — легитимен интерес.",
-    subjects: "Посетители на сайта.",
-    data: "Хеширан IP, страница, referrer, държава, устройство, бисквитки отказани.",
-    recipients: "Plausible (EU), Sentry (EU, PII scrubbing).",
-    retention: "page_views: 13 м. Sentry: 90 дни.",
-    measures: "Без бисквитки за tracking, IP-хеш с дневен salt, PII scrubbing.",
-    transfer: "Не.",
+    id: »analytics»,
+    name: »Анонимна продуктова аналитика»,
+    purpose: »Подобряване на функционалности и UX.»,
+    legalBasis: »Чл. 6, ал. 1, б. «е» — легитимен интерес.»,
+    subjects: »Посетители на сайта.»,
+    data: »Хеширан IP, страница, referrer, държава, устройство, бисквитки отказани.»,
+    recipients: »Plausible (EU), Sentry (EU, PII scrubbing).»,
+    retention: »page_views: 13 м. Sentry: 90 дни.»,
+    measures: »Без бисквитки за tracking, IP-хеш с дневен salt, PII scrubbing.»,
+    transfer: »Не.»,
   },
   {
-    id: "moderation",
-    name: "Модерация на потребителски статии",
-    purpose: "Преглед на подадено от потребители съдържание (блог) преди публикуване.",
-    legalBasis: "Чл. 6, ал. 1, б. „е" — легитимен интерес (качество и законност).",
-    subjects: "Автори, изпратили статия.",
-    data: "Заглавие, тяло, имейл на автор.",
-    recipients: "Вътрешни модератори.",
-    retention: "До 24 м. след решение.",
-    measures: "Анонимизация в admin UI чрез admin-redact-payload.",
-    transfer: "Не.",
+    id: »moderation»,
+    name: »Модерация на потребителски статии»,
+    purpose: »Преглед на подадено от потребители съдържание (блог) преди публикуване.»,
+    legalBasis: »Чл. 6, ал. 1, б. «е» — легитимен интерес (качество и законност).»,
+    subjects: »Автори, изпратили статия.»,
+    data: »Заглавие, тяло, имейл на автор.»,
+    recipients: »Вътрешни модератори.»,
+    retention: »До 24 м. след решение.»,
+    measures: »Анонимизация в admin UI чрез admin-redact-payload.»,
+    transfer: »Не.»,
   },
   {
-    id: "transactional-email",
-    name: "Транзакционни имейли",
-    purpose: "Известия за акаунт, билинг, изтичане на абонамент, подписи.",
-    legalBasis: "Чл. 6, ал. 1, б. „б" — изпълнение на договор.",
-    subjects: "Регистрирани потребители.",
-    data: "Имейл, име, контекст на събитието.",
-    recipients: "Resend.",
-    retention: "Send log: 6 месеца.",
-    measures: "Unsubscribe токени, suppression list, DKIM/SPF/DMARC.",
-    transfer: "Не.",
+    id: »transactional-email»,
+    name: »Транзакционни имейли»,
+    purpose: »Известия за акаунт, билинг, изтичане на абонамент, подписи.»,
+    legalBasis: »Чл. 6, ал. 1, б. «б» — изпълнение на договор.»,
+    subjects: »Регистрирани потребители.»,
+    data: »Имейл, име, контекст на събитието.»,
+    recipients: »Resend.»,
+    retention: »Send log: 6 месеца.»,
+    measures: »Unsubscribe токени, suppression list, DKIM/SPF/DMARC.»,
+    transfer: »Не.»,
   },
   {
-    id: "security",
-    name: "Сигурност и предотвратяване на злоупотреби",
-    purpose: "Откриване на опити за качване на незаконно съдържание, спам, abuse.",
-    legalBasis: "Чл. 6, ал. 1, б. „е" — легитимен интерес + чл. 6, ал. 1, б. „в" — нормативни задължения.",
-    subjects: "Всички потребители.",
-    data: "illegal_content_attempts: hash на IP, категория, кратък откъс (≤500 знака), user_id.",
-    recipients: "Само вътрешен security екип.",
-    retention: "12 месеца.",
-    measures: "RLS, само staff достъп, изтриване след разрешаване.",
-    transfer: "Не.",
+    id: »security»,
+    name: »Сигурност и предотвратяване на злоупотреби»,
+    purpose: »Откриване на опити за качване на незаконно съдържание, спам, abuse.»,
+    legalBasis: »Чл. 6, ал. 1, б. «е» — легитимен интерес + чл. 6, ал. 1, б. «в» — нормативни задължения.»,
+    subjects: »Всички потребители.»,
+    data: »illegal_content_attempts: hash на IP, категория, кратък откъс (≤500 знака), user_id.»,
+    recipients: »Само вътрешен security екип.»,
+    retention: »12 месеца.»,
+    measures: »RLS, само staff достъп, изтриване след разрешаване.»,
+    transfer: »Не.»,
   },
 ];
