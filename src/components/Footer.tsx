@@ -1,5 +1,12 @@
 import { Link } from "react-router-dom";
 import { Logo } from "./Logo";
+import { revokeCookieConsent } from "@/lib/analytics";
+
+function openCookieSettings() {
+  revokeCookieConsent();
+  // Banner re-mounts on next render reading getCookiePrefs() === null
+  window.location.reload();
+}
 
 export function Footer() {
   return (
@@ -33,6 +40,14 @@ export function Footer() {
             <Link to="/legal/incident-response" className="transition-colors hover:text-gold sm:whitespace-nowrap">Сигурност</Link>
             <Link to="/legal/ropa" className="transition-colors hover:text-gold sm:whitespace-nowrap">ROPA</Link>
             <Link to="/contacts" className="transition-colors hover:text-gold sm:whitespace-nowrap">Контакти</Link>
+            <Link to="/legal/dpia-summary" className="transition-colors hover:text-gold sm:whitespace-nowrap">DPIA резюме</Link>
+            <button
+              type="button"
+              onClick={openCookieSettings}
+              className="text-left transition-colors hover:text-gold sm:whitespace-nowrap"
+            >
+              Бисквитки: настройки
+            </button>
           </nav>
         </div>
         <div className="section-divider" />

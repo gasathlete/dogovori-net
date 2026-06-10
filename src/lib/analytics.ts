@@ -98,8 +98,22 @@ export function setConsent(value: "granted" | "denied") {
   setCookiePrefs({ analytics: value === "granted", marketing: false });
 }
 
+const PLAUSIBLE_SRC = "https://plausible.io/js/pa-z5GPPMfsUGwp_xLchEXZa.js";
+
 export function initAnalytics() {
-  /* Plausible loads via index.html; nothing extra to init */
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+  // Only load Plausible after explicit analytics consent (cookie banner / settings).
+  if (!getCategoryConsent("analytics")) return;
+  if (document.querySelector(`script[src="${PLAUSIBLE_SRC}"]`)) return;
+  const s = document.createElement("script");
+  s.src = PLAUSIBLE_SRC;
+  s.defer = true;
+  document.head.appendChild(s);
+  try {
+    window.plausible?.("init" as unknown as string);
+  } catch {
+    // never break the app
+  }
 }
 
 export function revokeCookieConsent() {

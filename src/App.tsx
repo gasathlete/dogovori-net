@@ -99,6 +99,7 @@ const SubprocessorRegister = lazy(() => import("./pages/legal/SubprocessorRegist
 const ModelRoutingPolicy = lazy(() => import("./pages/legal/ModelRoutingPolicy.tsx"));
 const IncidentResponse = lazy(() => import("./pages/legal/IncidentResponse.tsx"));
 const ROPA = lazy(() => import("./pages/legal/ROPA.tsx"));
+const DpiaSummary = lazy(() => import("./pages/legal/DpiaSummary.tsx"));
 const SharedDocument = lazy(() => import("./pages/SharedDocument.tsx"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe.tsx"));
 const Blog = lazy(() => import("./pages/Blog.tsx"));
@@ -217,6 +218,7 @@ const AnimatedRoutes = () => {
         <Route path="/legal/model-routing" element={<ModelRoutingPolicy />} />
         <Route path="/legal/incident-response" element={<IncidentResponse />} />
         <Route path="/legal/ropa" element={<ROPA />} />
+        <Route path="/legal/dpia-summary" element={<DpiaSummary />} />
         <Route path="/share/:token" element={<SharedDocument />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="/blog" element={<Blog />} />
