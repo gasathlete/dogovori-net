@@ -1,15 +1,23 @@
 <!doctype html>
-<html lang="bg" class="dark">
+<html lang="bg">
   <head>
     <script>
       // No-flash theme: apply stored theme before React renders.
+      // If user has no stored preference, follow the OS / browser color scheme.
       (function () {
         try {
           var t = localStorage.getItem("dogovori:theme");
-          var c = (t === "light" || t === "dark") ? t : "dark";
+          var c;
+          if (t === "light" || t === "dark") {
+            c = t;
+          } else {
+            c = (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) ? "light" : "dark";
+          }
           document.documentElement.classList.remove("light", "dark");
           document.documentElement.classList.add(c);
-        } catch (e) {}
+        } catch (e) {
+          document.documentElement.classList.add("dark");
+        }
       })();
     </script>
 
