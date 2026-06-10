@@ -57,10 +57,11 @@ export function Header() {
       className={cn(
         "sticky top-0 z-40 border-b transition-colors duration-300",
         scrolled
-          ? "border-gold/15 bg-navy shadow-soft"
-          : "border-border/40 bg-navy",
+          ? "border-gold/15 bg-background shadow-soft"
+          : "border-border/40 bg-background",
       )}
     >
+
       <div className="container flex h-16 items-center justify-between gap-3 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-6">
         {/* Brand */}
         <div className="flex min-w-0 items-center justify-self-start">
