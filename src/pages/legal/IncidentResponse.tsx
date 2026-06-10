@@ -37,7 +37,15 @@ export default function IncidentResponsePage() {
         </li>
       </ul>
 
-      <h2>3. Процедура</h2>
+      <h2>3. Цели за възстановяване (RTO / RPO)</h2>
+      <ul>
+        <li><strong>RTO (Recovery Time Objective):</strong> ≤ 4 часа за критични функции (вход, генериране, подписване).</li>
+        <li><strong>RPO (Recovery Point Objective):</strong> ≤ 5 минути — Point-in-Time Recovery (PITR) на базата данни през Lovable Cloud.</li>
+        <li><strong>Backup retention:</strong> 7 дни PITR + дневни snapshots за 30 дни.</li>
+        <li><strong>Restore drill:</strong> провежда се поне веднъж на 6 месеца; резултатите се документират вътрешно.</li>
+      </ul>
+
+      <h2>4. Процедура</h2>
       <ol>
         <li><strong>Откриване</strong> — Sentry alert, ръчно докладване или сигнал от потребител.</li>
         <li><strong>Изолация</strong> — спираме засегнатата функция/сесия/акаунт.</li>
@@ -48,7 +56,7 @@ export default function IncidentResponsePage() {
         <li><strong>Превенция</strong> — actionable списък + проследяване до затваряне.</li>
       </ol>
 
-      <h2>4. Докладване на уязвимост (Responsible Disclosure)</h2>
+      <h2>5. Докладване на уязвимост (Responsible Disclosure)</h2>
       <p>
         Ако сте открили уязвимост в платформата, моля свържете се с нас на:
       </p>
@@ -64,7 +72,7 @@ export default function IncidentResponsePage() {
         </li>
       </ul>
 
-      <h2>5. Контакти на надзорни органи</h2>
+      <h2>6. Контакти на надзорни органи</h2>
       <ul>
         <li>
           <strong>Комисия за защита на личните данни (КЗЛД):</strong>{" "}
@@ -77,7 +85,7 @@ export default function IncidentResponsePage() {
         </li>
       </ul>
 
-      <h2>6. Архив на инциденти</h2>
+      <h2>7. Архив на инциденти</h2>
       <p>
         Към момента няма публично оповестени инциденти. При възникване ще
         публикуваме summary на тази страница.
