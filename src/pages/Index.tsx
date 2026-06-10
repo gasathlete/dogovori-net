@@ -20,7 +20,7 @@ const SLUG_BY_NAME: Map<string, string> = new Map(
 //  → LifeScenarios → ComparisonTable → Testimonials → Process → FAQ
 //  → ComplianceSection → CTABand → SeoFooter
 const SocialProofStrip = lazy(() => import("@/components/SocialProofStrip").then((m) => ({ default: m.SocialProofStrip })));
-const PartnersBoard = lazy(() => import("@/components/PartnersBoard").then((m) => ({ default: m.PartnersBoard })));
+
 
 const PainSolution = lazy(() => import("@/components/PainSolution").then((m) => ({ default: m.PainSolution })));
 const FeaturedBlanks = lazy(() => import("@/components/FeaturedBlanks").then((m) => ({ default: m.FeaturedBlanks })));
@@ -148,12 +148,8 @@ const Index = () => {
           </LazyOnVisible>
           <Divider />
 
-          <LazyOnVisible minHeight={520}>
-            <Reveal>
-              <PartnersBoard />
-            </Reveal>
-          </LazyOnVisible>
-          <Divider />
+
+
 
 
           <LazyOnVisible minHeight={500}>
