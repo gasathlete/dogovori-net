@@ -1,0 +1,6 @@
+Contact: mailto:security@dogovori.net
+Expires: 2027-06-25T00:00:00.000Z
+Preferred-Languages: bg, en
+Canonical: https://dogovori.net/.well-known/security.txt
+Policy: https://dogovori.net/legal/security
+Hiring: https://dogovori.net/careers
