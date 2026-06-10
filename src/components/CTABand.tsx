@@ -53,7 +53,7 @@ export function CTABand() {
         <div className="relative z-10">
           <LiveCounter />
           <div className="eyebrow mb-3 justify-center">Готови?</div>
-          <h2 className="mx-auto max-w-2xl font-serif text-2xl font-bold leading-tight text-balance sm:text-3xl md:text-4xl">
+          <h2 className="mx-auto max-w-2xl font-serif text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl">
             Изгответе своя професионален договор още днес
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
