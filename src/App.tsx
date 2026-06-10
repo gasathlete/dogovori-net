@@ -232,6 +232,7 @@ const AnimatedRoutes = () => {
         <Route path="/legal/dpia-summary" element={<DpiaSummary />} />
         <Route path="/legal/security" element={<SecurityPolicy />} />
         <Route path="/legal/changelog" element={<Changelog />} />
+        <Route path="/legal/knowledge-base" element={<KnowledgeBase />} />
         <Route path="/share/:token" element={<SharedDocument />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="/blog" element={<Blog />} />
