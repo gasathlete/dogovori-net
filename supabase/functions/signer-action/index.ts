@@ -138,8 +138,20 @@ serve(async (req) => {
     }
 
     if (action === "sign") {
-      const { signature_data_url, signer_name, otp_code } = body as {
+      const {
+        signature_data_url, signer_name, otp_code,
+        ses_equivalence_accepted,
+        signs_as_legal_entity,
+        eik,
+        signer_capacity,
+        representative_declaration_accepted,
+      } = body as {
         signature_data_url?: string; signer_name?: string; otp_code?: string;
+        ses_equivalence_accepted?: boolean;
+        signs_as_legal_entity?: boolean;
+        eik?: string | null;
+        signer_capacity?: string | null;
+        representative_declaration_accepted?: boolean;
       };
       const SIG_RE = /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/;
       if (!signature_data_url || !SIG_RE.test(signature_data_url) || !signer_name?.trim()) {
@@ -151,6 +163,24 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: "signature_too_large" }), {
           status: 413, headers: { ...cors, "Content-Type": "application/json" },
         });
+      }
+      if (!ses_equivalence_accepted) {
+        return new Response(JSON.stringify({ error: "ses_consent_required" }), {
+          status: 400, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      const cleanEik = signs_as_legal_entity ? String(eik ?? "").trim() : "";
+      if (signs_as_legal_entity) {
+        if (!/^\d{9}(\d{4})?$/.test(cleanEik)) {
+          return new Response(JSON.stringify({ error: "invalid_eik" }), {
+            status: 400, headers: { ...cors, "Content-Type": "application/json" },
+          });
+        }
+        if (!signer_capacity || !representative_declaration_accepted) {
+          return new Response(JSON.stringify({ error: "entity_fields_required" }), {
+            status: 400, headers: { ...cors, "Content-Type": "application/json" },
+          });
+        }
       }
       // OTP must be verified within this call (or skip if there isn't one yet — strict mode)
       if (!signer.otp_code_hash) {
@@ -173,6 +203,13 @@ serve(async (req) => {
         signature_name: cleanName,
         signer_ip_hash: ipHash,
         signer_user_agent: ua,
+        ses_equivalence_accepted: true,
+        ses_consent_text_version: "2026-06-10",
+        signs_as_legal_entity: !!signs_as_legal_entity,
+        eik: signs_as_legal_entity ? cleanEik : null,
+        signer_capacity: signs_as_legal_entity ? String(signer_capacity).slice(0, 60) : null,
+        representative_declaration_accepted: signs_as_legal_entity
+          ? !!representative_declaration_accepted : false,
         otp_code_hash: null, otp_expires_at: null,
       }).eq("id", signer.id);
 
