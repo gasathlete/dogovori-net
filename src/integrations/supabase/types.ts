@@ -79,6 +79,51 @@ export type Database = {
           },
         ]
       }
+      ai_post_market_metrics: {
+        Row: {
+          blocked_count: number
+          created_at: string
+          date: string
+          fallback_count: number
+          id: string
+          notes: string | null
+          operation: string
+          redaction_count: number
+          special_category_blocks: number
+          total_calls: number
+          updated_at: string
+          user_complaints: number
+        }
+        Insert: {
+          blocked_count?: number
+          created_at?: string
+          date: string
+          fallback_count?: number
+          id?: string
+          notes?: string | null
+          operation: string
+          redaction_count?: number
+          special_category_blocks?: number
+          total_calls?: number
+          updated_at?: string
+          user_complaints?: number
+        }
+        Update: {
+          blocked_count?: number
+          created_at?: string
+          date?: string
+          fallback_count?: number
+          id?: string
+          notes?: string | null
+          operation?: string
+          redaction_count?: number
+          special_category_blocks?: number
+          total_calls?: number
+          updated_at?: string
+          user_complaints?: number
+        }
+        Relationships: []
+      }
       ai_prompt_sections: {
         Row: {
           content: string
@@ -398,6 +443,72 @@ export type Database = {
           rating?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      breach_incidents: {
+        Row: {
+          affected_subjects_count: number
+          category: string
+          closed_at: string | null
+          created_at: string
+          data_categories: string[]
+          description: string
+          detected_at: string
+          id: string
+          kzld_notified_at: string | null
+          kzld_reference: string | null
+          remediation: string | null
+          reported_by: string | null
+          risk_assessment: string | null
+          root_cause: string | null
+          severity: string
+          status: string
+          subjects_notified_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          affected_subjects_count?: number
+          category: string
+          closed_at?: string | null
+          created_at?: string
+          data_categories?: string[]
+          description: string
+          detected_at: string
+          id?: string
+          kzld_notified_at?: string | null
+          kzld_reference?: string | null
+          remediation?: string | null
+          reported_by?: string | null
+          risk_assessment?: string | null
+          root_cause?: string | null
+          severity?: string
+          status?: string
+          subjects_notified_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          affected_subjects_count?: number
+          category?: string
+          closed_at?: string | null
+          created_at?: string
+          data_categories?: string[]
+          description?: string
+          detected_at?: string
+          id?: string
+          kzld_notified_at?: string | null
+          kzld_reference?: string | null
+          remediation?: string | null
+          reported_by?: string | null
+          risk_assessment?: string | null
+          root_cause?: string | null
+          severity?: string
+          status?: string
+          subjects_notified_at?: string | null
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1122,6 +1233,42 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_versions: {
+        Row: {
+          changelog_md: string | null
+          created_at: string
+          doc_key: string
+          effective_at: string
+          id: string
+          material_change: boolean
+          published_at: string
+          summary: string
+          version: string
+        }
+        Insert: {
+          changelog_md?: string | null
+          created_at?: string
+          doc_key: string
+          effective_at: string
+          id?: string
+          material_change?: boolean
+          published_at?: string
+          summary: string
+          version: string
+        }
+        Update: {
+          changelog_md?: string | null
+          created_at?: string
+          doc_key?: string
+          effective_at?: string
+          id?: string
+          material_change?: boolean
+          published_at?: string
+          summary?: string
+          version?: string
+        }
+        Relationships: []
+      }
       loyalty_unlocks: {
         Row: {
           id: string
@@ -1531,9 +1678,11 @@ export type Database = {
           rpo_target_minutes: number
           rto_measured_minutes: number | null
           rto_target_minutes: number
+          scenario: string | null
           scheduled_at: string
           source_backup: string | null
           steps: Json
+          tabletop_exercise: boolean
           updated_at: string
         }
         Insert: {
@@ -1549,9 +1698,11 @@ export type Database = {
           rpo_target_minutes?: number
           rto_measured_minutes?: number | null
           rto_target_minutes?: number
+          scenario?: string | null
           scheduled_at: string
           source_backup?: string | null
           steps?: Json
+          tabletop_exercise?: boolean
           updated_at?: string
         }
         Update: {
@@ -1567,9 +1718,11 @@ export type Database = {
           rpo_target_minutes?: number
           rto_measured_minutes?: number | null
           rto_target_minutes?: number
+          scenario?: string | null
           scheduled_at?: string
           source_backup?: string | null
           steps?: Json
+          tabletop_exercise?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -2043,6 +2196,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      staff_training: {
+        Row: {
+          acknowledged_at: string
+          document_key: string
+          document_version: string
+          id: string
+          ip: unknown
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          document_key: string
+          document_version: string
+          id?: string
+          ip?: unknown
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string
+          document_key?: string
+          document_version?: string
+          id?: string
+          ip?: unknown
+          user_id?: string
+        }
+        Relationships: []
       }
       subscriptions: {
         Row: {
@@ -2725,6 +2905,69 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      vendor_assessments: {
+        Row: {
+          category: string
+          country: string | null
+          created_at: string
+          dpa_url: string | null
+          id: string
+          iso27001: boolean
+          last_reviewed_at: string | null
+          next_review_at: string | null
+          notes: string | null
+          risk_level: string
+          role: string
+          scc_module: string | null
+          scc_signed: boolean
+          security_contact: string | null
+          soc2_url: string | null
+          status: string
+          updated_at: string
+          vendor_name: string
+        }
+        Insert: {
+          category: string
+          country?: string | null
+          created_at?: string
+          dpa_url?: string | null
+          id?: string
+          iso27001?: boolean
+          last_reviewed_at?: string | null
+          next_review_at?: string | null
+          notes?: string | null
+          risk_level?: string
+          role: string
+          scc_module?: string | null
+          scc_signed?: boolean
+          security_contact?: string | null
+          soc2_url?: string | null
+          status?: string
+          updated_at?: string
+          vendor_name: string
+        }
+        Update: {
+          category?: string
+          country?: string | null
+          created_at?: string
+          dpa_url?: string | null
+          id?: string
+          iso27001?: boolean
+          last_reviewed_at?: string | null
+          next_review_at?: string | null
+          notes?: string | null
+          risk_level?: string
+          role?: string
+          scc_module?: string | null
+          scc_signed?: boolean
+          security_contact?: string | null
+          soc2_url?: string | null
+          status?: string
+          updated_at?: string
+          vendor_name?: string
         }
         Relationships: []
       }
