@@ -271,6 +271,12 @@ export default function AdminLegalKB() {
       toast.error("Попълни код, заглавие и текст");
       return;
     }
+    if (validation?.is_duplicate) {
+      const proceed = window.confirm(
+        `Същият текст вече е индексиран като ${validation.duplicate_of?.short_code ?? "(?)"}. Сигурен ли си, че искаш да дублираш?`,
+      );
+      if (!proceed) return;
+    }
     setSubmitting(true);
     try {
       const resp = await fetch(
