@@ -1,141 +1,113 @@
-# План: правни корекции преди launch (25.06.2026)
+# Post-Launch Compliance Plan (June 25 → +30/90 days)
 
-Базиран на адвокатския меморандум. Всички 10 блокиращи точки + критични 30‑дневни се изпълняват преди 25.06.
+Pre-launch waves (P0–Wave 3) са изпълнени и адресират всички 10 blocking items на адвокатския преглед. Този план обхваща *organizational* и *evidence* задачите, които юристите маркираха като „30-day post-launch" — за да не остане платформата с „празни" контроли след отваряне за реални клиенти.
 
-## A. GDPR роли, основания и DPA (т. 1, 3)
+## Цели
 
-1. **Разделяне на ролите** в `Privacy.tsx`, `DPA.tsx`, `ROPA.tsx`, `legal-memorandum`:
-   - Dogovori.net **като администратор** — акаунти, плащания, фактури, сигурност, маркетинг, продуктова аналитика.
-   - Dogovori.net **като обработващ** — съдържание на качени документи и AI операции по възлагане на потребителя.
-   - **Потребителят като администратор** за данни на трети лица.
-2. **Правни основания** — пренаписване на таблицата „операция → основание“ по модела от меморандума (договор за услугата; легитимен интерес само за audit/security; съгласие само за маркетинг/analytics/optional model improvement).
-3. **LIA документ** — `docs/LIA_audit_security.md` за audit logs, fraud prevention, security monitoring.
-4. **Обвързващо приемане на DPA** при регистрация/абонамент за бизнес/Team:
-   - нов чекбокс „Приемам DPA в качеството си на администратор за данните на трети лица“;
-   - запис в `user_consents` с версия и timestamp.
-5. **Декларация в Terms** — потребителят гарантира правно основание да качва данни на трети лица (клауза 8.3).
+- Затваряне на AI Act документация (чл. 11, 13, 50, 72) преди първите 100 платени операции.
+- Доказуема vendor due diligence за всеки subprocessor (Stripe, Lovable AI Gateway, Resend, Cloudflare).
+- Стандартен RFC 9116 vulnerability disclosure канал.
+- Записан, проследим breach workflow (72h КЗЛД) и BCP tabletop.
+- Видимо governance: DPO контакт, policy review графици, training register, legal changelog.
 
-## B. Псевдонимизация и AI логване (т. 1.3)
+## Какво ще се изгради
 
-1. Code review на `_shared/redact.ts` + всички AI edge функции:
-   - hard‑guard: никога не логва `originalText`, `redactionMap`, `prompt`, `response.text`, stack traces с фрагменти.
-   - `redactionMap.clear()` във `finally`.
-   - Само `piiStats`, токени, model, operation, status → `ai_audit_log`.
-2. Unit тест `redact.test.ts` за no‑leak guarantee.
+### 1. AI Act технически файл (Art. 11)
+- `docs/AI_ACT_TECHNICAL_FILE.md` — описание на AI системата (purpose, risk class = limited risk per Art. 50), training/finetuning (= none, само prompt engineering), governance, model cards (Gemini 2.5 lite/flash/pro), classification & redaction pipeline, human oversight (Art. 14), accuracy & robustness metrics, cyber-security мерки.
+- Линкване от `/legal/ai-processing-policy` и от админ compliance матрицата.
 
-## C. Преименуване на illegal_content_attempts (т. 1.4)
+### 2. FRIA (Fundamental Rights Impact Assessment)
+- `docs/FRIA.md` — оценка по Art. 27 AI Act: засегнати групи (consumers, SMEs), специфични рискове (errors in legal clauses, bias срещу нестандартни сценарии, language exclusion), смекчаващи мерки (disclaimers, human-in-the-loop, no fully automated legal decisions).
+- Записва се като evidence pack в `compliance_items` (`AI_ACT.FRIA`).
 
-1. Migration: `illegal_content_attempts` → **`restricted_processing_events`**.
-   - колони: `user_id`, `event_type`, `category_code` (enum: `health_data | biometric | criminal | minors | political_religious | other`), `operation`, `action`, `created_at`.
-   - **без** сурово съдържание, без фрагменти.
-   - RLS + GRANT.
-2. Update код: `_shared/illegal-content.ts`, `AdminIllegalContent.tsx` → `AdminRestrictedProcessing.tsx`.
-3. UI текст: „Документът изглежда съдържа чувствителни лични данни. Поради защита на Вашата поверителност автоматизираният AI анализ не е наличен за този файл.“
+### 3. Post-market monitoring (Art. 72)
+- Нова таблица `ai_post_market_metrics` (date, operation, total_calls, blocked_count, redaction_count, fallback_count, user_complaints, special_category_blocks).
+- Cron job `ai-post-market-rollup` (daily) агрегира от `ai_audit_log` и `restricted_processing_events`.
+- Нова страница `src/pages/AdminAiPostMarket.tsx` — графики + експорт CSV.
+- Месечен alert към DPO при отклонения (>2σ от 30-day baseline).
 
-## D. DPIA — премахване от user profile (т. 1.5)
+### 4. Vendor / Subprocessor Due Diligence
+- Нова таблица `vendor_assessments` (vendor_name, last_reviewed_at, next_review_at, scc_signed, dpa_url, soc2_url, notes, status).
+- Seed records за: Lovable Cloud (Supabase), Lovable AI Gateway, Stripe, Resend, Cloudflare.
+- Нова страница `src/pages/AdminVendors.tsx` — checklist на DPA/SCC/SOC2 за всеки + reminders.
+- `docs/VENDOR_DD_CHECKLIST.md` — стандартен въпросник.
 
-1. Премахване на бутона „DPIA download“ от `Account.tsx`.
-2. Премахване на `public/dpia-dogovori-net.docx`.
-3. Генериране на **DPIA Summary** (`public/dpia-summary-dogovori-net.pdf` + страница `/legal/dpia-summary`): какви данни, защо, защити, права, контакт. Без архитектура/слабости/residual risk.
-4. Пълната DPIA се пази вътрешно в `docs/internal/DPIA_full.md` (не се сервира).
+### 5. Vulnerability Disclosure Policy + security.txt
+- `public/.well-known/security.txt` (RFC 9116) с Contact, Expires, Encryption, Policy, Preferred-Languages.
+- `src/pages/legal/SecurityPolicy.tsx` (рут `/legal/security`) — публична политика за responsible disclosure, в обхват/извън обхват, SLA отговор, безопасно зачитане (safe harbor).
+- Линк във Footer.
 
-## E. Електронен подпис — ЗЕДЕУУ корекции (т. 2)
+### 6. Breach Notification Workflow (чл. 33–34 GDPR)
+- Нова таблица `breach_incidents` (detected_at, category, affected_subjects_count, data_categories, risk_assessment, kzld_notified_at, subjects_notified_at, status, root_cause, remediation).
+- `src/pages/AdminBreaches.tsx` — форма за регистриране, авто-таймер до 72h, генериране на черновa нотификация (template).
+- `docs/BREACH_PLAYBOOK.md` — стъпки за detection → triage → notify → remediate → post-mortem.
 
-1. **Пренаписване на правния текст** в `IncidentResponse.tsx` (премахване на „SES няма правна сила, равностойна на саморъчния подпис“). Заменя се с формулировката от т. 2.1.
-2. **Signing flow** (`SigningEnvelope.tsx`, `MultiPartySigningDialog.tsx`):
-   - отделен чекбокс „Съгласявам се този електронен подпис ... да има правната сила на саморъчен подпис ...“;
-   - при подпис от ЮЛ — нови полета: `eik`, `signer_capacity` (управител/пълномощник/служител/друго), декларация за представителна власт;
-   - предупреждение „Dogovori.net не проверява представителната власт ...“;
-   - препоръка за QES при високорискови документи.
-3. **Audit trail** — `signing_audit_events` се обогатява с: doc hash, envelope id, IP, user-agent, channel, document_version, consent_text_version. Документира се отделно от `ai_audit_log` с по‑дълъг retention (обвързан с давност/договор).
-4. Клауза 8.2 от меморандума в Terms.
+### 7. Training Register
+- Нова таблица `staff_training` (user_id, document_id, document_version, acknowledged_at).
+- `src/pages/AdminTraining.tsx` — списък политики (ACCESS_POLICY, INCIDENT, LIA, AI_ACT_TF), checkbox „прочетох & разбирам", history.
+- Първи логин на staff → задължителен модал (вграден в `AdminMFAGuard`).
 
-## F. ЗЕТ — посредник при електронно изявление (т. 2.3)
+### 8. Legal Changelog + User Notifications
+- Нова таблица `legal_versions` (doc_key, version, summary, effective_at, changelog_md).
+- `src/pages/legal/Changelog.tsx` (рут `/legal/changelog`) — публичен changelog на Terms/Privacy/DPA/Cookies.
+- При материална промяна (`material_change=true`) → batch email към всички активни потребители (template `legal-update`).
 
-1. `signature_audit_trail` retention ≥ 12 м., практически до изтичане на давност или докато документът е в профила. `ai_audit_log` остава 12 м.
-2. Описание в Terms + Retention Policy.
+### 9. BCP / DR Tabletop Exercise
+- `docs/BCP_DR_PLAN.md` — RTO/RPO цели, runbook за: DB загуба, Lovable outage, Stripe outage, AI Gateway outage.
+- Разширение на съществуващия `restore_drills` модул с поле `tabletop_exercise` (boolean) + scenario template.
+- Calendar reminder на 6 месеца.
 
-## G. ЗЕТ/ЗЗП — информация за доставчика и checkout (т. 3.1–3.3)
+### 10. DPO Formalization
+- `src/pages/legal/DPO.tsx` (рут `/legal/dpo`) — име, контакт, обхват, как се подава заявка по чл. 15–22.
+- Update на Privacy/ROPA/DPA с линк.
 
-1. **`/legal/contacts`** — пълно търговско наименование, ЕИК/БУЛСТАТ, седалище и адрес на управление, email, телефон, ДДС №, лице за GDPR, контакт за DSA.
-2. **Checkout flow** (`StripeEmbeddedCheckout.tsx`, `CheckoutReturn.tsx`):
-   - екран „Преглед на поръчката“ с цена с/без ДДС, период;
-   - бутон „Потвърждавам поръчката и се задължавам да платя“;
-   - линкове към Terms, Privacy, Withdrawal, Refund;
-   - email потвърждение след сключване.
-3. **`order_snapshots` таблица** + edge function записва snapshot при всяка покупка: plan, price, vat, версии на правни документи, IP, UA.
-4. Технически средства за поправяне на грешки + езици на договора в Terms § „Електронно сключване“.
+### 11. Compliance Matrix Hard-Seed
+- Миграция добавя seed `compliance_items` за всеки нов контрол (AI_ACT.ART11, AI_ACT.ART27, AI_ACT.ART50, AI_ACT.ART72, GDPR.ART33, GDPR.ART35, GDPR.VENDOR_DD, SOC2.CC7.2, SOC2.CC9.1) с owner role и due date.
 
-## H. Маркетингови твърдения (т. 3.4)
+## Какво НЕ е в обхват
 
-1. Глобален audit на копи в `src/pages/Index.tsx`, `ComplianceSection.tsx`, `Plans*`, blog seed: премахване на „изцяло правно издържани“, „без риск“, „гарантирано съответствие“, „сертифицирани“, „SOC2 compliant“.
-2. Замяна с: „подпомага изготвянето и анализа“, „AI резултатите подлежат на човешка проверка“, „не замества правна консултация“, „ISO 27001/SOC 2 readiness — в процес на подготовка“.
-
-## I. Cookies (т. 4)
-
-1. `Cookies.tsx` + `llms.txt` — корекция: **чл. 4а ЗЕТ** (не ЗЕС).
-2. `CookieBanner.tsx` — analytics/marketing скриптове да НЕ се зареждат преди избор; gating през `cookieConsent.{analytics,marketing}`.
-3. Бутон **„Промени настройките за бисквитки“** във `Footer.tsx`.
-4. Запис в `user_consents`: категории, версия на cookie policy, timestamp, source, pseudo session id.
-
-## J. Трансфери извън ЕС (т. 5)
-
-1. **`/legal/subprocessors`** — за всеки доставчик: ЮЛ, държава, регион на обработка, transfer outside EEA (yes/no), основание/SCC/DPF, training (yes/no), retention, линк към DPA. Премахване на „когато е възможно“.
-2. **Account setting** „Само EU processing за AI заявки“ (per‑user + per‑team) → `profiles.allow_third_country_ai` (default `true` за consumer, `false` за бизнес).
-3. Edge functions: hard guard
-   ```ts
-   if (!allowNonEU && model.requiresNonEUTransfer) throw ...
-   ```
-4. Routing fallback актуализиран в `model-router.ts`.
-
-## K. Retention — премахване на противоречия (т. 6)
-
-1. Update `RetentionPolicy.tsx` + `retention-sweeper`:
-   - `extracted_text` → **7 дни** (вместо 90), документирано.
-   - matrix таблица в политиката съвпада с реалния sweeper.
-2. Сверяване на `ai_audit_log` (12м), `signing_audit_events` (≥ давностен срок), saved documents (докато са в профила).
-
-## L. AI Act & AI Acknowledgement (т. 7)
-
-1. Преименуване на „AI processing consent“ → **„AI acknowledgement“** в UI/код/`user_consents.consent_type`.
-2. Истинско съгласие — само за маркетинг, analytics, optional model improvement, optional non‑EU AI.
-3. **Hard warning банер** при високорискови типове документи (имоти, трудови, потребителски кредити, заеми, прехвърляне на дялове, пълномощни, семейни, нотариална форма, специални категории) — `RiskWarningBanner.tsx`.
-4. Disclaimer text под всеки AI output: „Това е автоматично генериран резултат ...“ (вече има, но унифициране).
-
-## M. Terms клаузи (т. 8.1–8.5)
-
-Добавяне/пренаписване в `Terms.tsx` на клаузи 8.1 (AI резултати), 8.2 (е‑подпис), 8.3 (данни на трети лица), 8.4 (забранени документи), 8.5 (балансирана отговорност, без изключване на умисъл/груба небрежност).
-
-## N. Сигурност — преди launch (т. 9.1–9.4)
-
-1. **`docs/ACCESS_POLICY.md`** — кой/кога/как получава prod достъп, quarterly review.
-2. **Отделяне на среди** — документиране на production/staging/development; забрана за реални документи в dev/staging без анонимизация (`docs/ENV_POLICY.md`).
-3. Първи **restore drill** изпълнен и логнат в `restore_drills`.
-4. Incident response runbook — потвърждение 72ч SLA + темплейт за уведомление (вече има, само review).
-
-## O. Launch checklist update
-
-Compliance Dashboard (`AdminCompliance.tsx`) — нова секция „Pre‑launch 25.06“ с тези 10 точки + статус/owner/evidence.
-
----
+- Външен SOC2 одит (изисква одиторска фирма — следваща стъпка след 6 месеца история).
+- ISO 27001 сертификация.
+- Третиране на копията/публикуването на DPIA full document извън вътрешен use.
+- Реална рассилка на legal-update имейли преди публикация (template-ите се подготвят, изпращат се при първа реална промяна).
 
 ## Технически детайли
 
-- Migrations:
-  - rename `illegal_content_attempts` → `restricted_processing_events` (+ нов enum за `category_code`).
-  - нова `order_snapshots` (id, user_id, plan, price, currency, vat_included, terms_version, privacy_version, withdrawal_version, refund_version, ip, user_agent, created_at). GRANT + RLS.
-  - `profiles.allow_third_country_ai boolean default true`.
-  - `teams.eu_only_ai boolean default false`.
-  - `signing_request_signers`: `eik`, `signer_capacity`, `representative_declaration_accepted`, `ses_equivalence_accepted`.
-- Edge functions update: всички AI функции — proверка `eu_only_ai` + no‑leak логване.
-- Тестове: `redact.test.ts` no‑leak, `order-snapshot.test.ts`, schema на `restricted_processing_events`.
-- Файлове: премахване на `public/dpia-dogovori-net.docx`; нова `dpia-summary-dogovori-net.pdf` + `/legal/dpia-summary` route; нова `docs/LIA_audit_security.md`, `docs/ACCESS_POLICY.md`, `docs/ENV_POLICY.md`, `docs/internal/DPIA_full.md`.
+```
+DB миграция (single transaction):
+  - CREATE TABLE ai_post_market_metrics
+  - CREATE TABLE vendor_assessments
+  - CREATE TABLE breach_incidents
+  - CREATE TABLE staff_training
+  - CREATE TABLE legal_versions
+  - ALTER TABLE restore_drills ADD COLUMN tabletop_exercise boolean DEFAULT false
+  - GRANT + RLS (staff-only за breach/vendor/training; public read за legal_versions)
+  - Seed: vendor_assessments × 5, legal_versions × 6, compliance_items × 9
 
-## Извън скоупа за 25.06 (отлагат се за +30 дни)
+Edge functions:
+  - supabase/functions/ai-post-market-rollup (scheduled daily via pg_cron + pg_net)
+  - supabase/functions/send-legal-update (batched)
 
-- Vendor DPA pack за всеки subprocessor (организационно).
-- Публичен changelog на legal docs + автоматизирано versioning.
-- Subprocessor change notice mechanism (email broadcast).
-- Първи external pen‑test.
+Нови маршрути:
+  - /legal/security, /legal/dpo, /legal/changelog
+  - /admin/ai-post-market, /admin/vendors, /admin/breaches, /admin/training
 
-Готов съм да започна изпълнението веднага щом одобрите плана.
+Docs:
+  - docs/AI_ACT_TECHNICAL_FILE.md
+  - docs/FRIA.md
+  - docs/VENDOR_DD_CHECKLIST.md
+  - docs/BREACH_PLAYBOOK.md
+  - docs/BCP_DR_PLAN.md
+```
+
+Реализация в 3 последователни вълни (за да остане проектът компилируем):
+
+- **Wave A — DB + docs**: миграция + всички MD файлове.
+- **Wave B — Public legal**: SecurityPolicy, DPO, Changelog страници + security.txt + Footer линкове.
+- **Wave C — Admin модули**: AiPostMarket, Vendors, Breaches, Training + edge функция за rollup.
+
+Очаквана продължителност: ~3 build съобщения, без UI на крайния потребител да се счупи в нито един момент.
+
+## Одобрение
+
+Готов съм да започна с Wave A веднага щом одобрите плана. Ще се движа последователно през A → B → C и ще докладвам след всяка вълна.
