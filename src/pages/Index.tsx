@@ -148,6 +148,14 @@ const Index = () => {
           </LazyOnVisible>
           <Divider />
 
+          <LazyOnVisible minHeight={520}>
+            <Reveal>
+              <PartnersBoard />
+            </Reveal>
+          </LazyOnVisible>
+          <Divider />
+
+
           <LazyOnVisible minHeight={500}>
             <Reveal>
               <FAQ />
