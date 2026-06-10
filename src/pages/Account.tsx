@@ -2029,6 +2029,10 @@ function SettingsTab({ profile, setProfile, userId }: {
         </div>
       </div>
 
+      {/* EU-only AI данни (Data residency) */}
+      <DataResidencyCard userId={user?.id ?? null} />
+
+
       {/* Изтриване на акаунт */}
       <div className="max-w-lg space-y-3 rounded-xl border border-destructive/40 bg-destructive/[0.04] p-6">
         <h3 className="flex items-center gap-2 font-serif text-lg font-bold text-destructive">
