@@ -36,6 +36,13 @@ export default function Sign() {
   const [declineMode, setDeclineMode] = useState(false);
   const [reason, setReason] = useState("");
 
+  // ZEDEUU / ZET — explicit SES-equivalence consent + optional legal-entity capacity.
+  const [sesAccepted, setSesAccepted] = useState(false);
+  const [signsAsEntity, setSignsAsEntity] = useState(false);
+  const [eik, setEik] = useState("");
+  const [signerCapacity, setSignerCapacity] = useState("");
+  const [repDeclaration, setRepDeclaration] = useState(false);
+
   async function load() {
     setLoading(true);
     const { data, error } = await supabase.functions.invoke("get-signing-request", { body: { token } });
@@ -60,9 +67,25 @@ export default function Sign() {
     if (!signature) { toast.error("Моля, подпишете"); return; }
     if (!name.trim()) { toast.error("Моля, въведете име"); return; }
     if (!otpCode.trim()) { toast.error("Въведете кода от имейла"); return; }
+    if (!sesAccepted) { toast.error("Моля, потвърдете правната сила на електронния подпис"); return; }
+    if (signsAsEntity) {
+      if (!eik.trim() || !/^\d{9}(\d{4})?$/.test(eik.trim())) {
+        toast.error("Въведете валиден ЕИК / БУЛСТАТ (9 или 13 цифри)"); return;
+      }
+      if (!signerCapacity.trim()) { toast.error("Посочете качеството, в което подписвате"); return; }
+      if (!repDeclaration) { toast.error("Декларирайте представителната власт"); return; }
+    }
     setBusy(true);
     const { data } = await supabase.functions.invoke("signer-action", {
-      body: { token, action: "sign", signature_data_url: signature, signer_name: name, otp_code: otpCode },
+      body: {
+        token, action: "sign",
+        signature_data_url: signature, signer_name: name, otp_code: otpCode,
+        ses_equivalence_accepted: sesAccepted,
+        signs_as_legal_entity: signsAsEntity,
+        eik: signsAsEntity ? eik.trim() : null,
+        signer_capacity: signsAsEntity ? signerCapacity.trim() : null,
+        representative_declaration_accepted: signsAsEntity ? repDeclaration : false,
+      },
     });
     setBusy(false);
     if (data?.ok) { toast.success("Подписано успешно"); load(); }
