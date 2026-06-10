@@ -208,6 +208,7 @@ const AnimatedRoutes = () => {
         <Route path="/legal/subprocessors" element={<SubprocessorRegister />} />
         <Route path="/legal/model-routing" element={<ModelRoutingPolicy />} />
         <Route path="/legal/incident-response" element={<IncidentResponse />} />
+        <Route path="/legal/ropa" element={<ROPA />} />
         <Route path="/share/:token" element={<SharedDocument />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="/blog" element={<Blog />} />
