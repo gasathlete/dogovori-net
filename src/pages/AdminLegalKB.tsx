@@ -43,14 +43,71 @@ const SEED_CATALOG: Array<{
   issuer: string;
   url: string;
 }> = [
+  // —— Конституция ——
+  { short_code: "КРБ", title: "Конституция на Република България", jurisdiction: "BG", source_type: "constitution", issuer: "ВНС", url: "https://lex.bg/laws/ldoc/521957377" },
+
+  // —— Основни кодекси ——
   { short_code: "ЗЗД", title: "Закон за задълженията и договорите", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2121934337" },
   { short_code: "ТЗ", title: "Търговски закон", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/-14917630" },
   { short_code: "КТ", title: "Кодекс на труда", jurisdiction: "BG", source_type: "code", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/1594373121" },
   { short_code: "СК", title: "Семеен кодекс", jurisdiction: "BG", source_type: "code", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135637484" },
-  { short_code: "ЗЗП", title: "Закон за защита на потребителите", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135513678" },
-  { short_code: "ЗЗЛД", title: "Закон за защита на личните данни", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/-549710339" },
+  { short_code: "КСО", title: "Кодекс за социално осигуряване", jurisdiction: "BG", source_type: "code", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/1597824512" },
+  { short_code: "КЗ", title: "Кодекс за застраховането", jurisdiction: "BG", source_type: "code", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2136795637" },
+  { short_code: "КМЧП", title: "Кодекс на международното частно право", jurisdiction: "BG", source_type: "code", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135502801" },
   { short_code: "ГПК", title: "Граждански процесуален кодекс", jurisdiction: "BG", source_type: "code", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135558368" },
+  { short_code: "НПК", title: "Наказателно-процесуален кодекс", jurisdiction: "BG", source_type: "code", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135512224" },
+  { short_code: "НК", title: "Наказателен кодекс", jurisdiction: "BG", source_type: "code", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/1589654529" },
+  { short_code: "АПК", title: "Административнопроцесуален кодекс", jurisdiction: "BG", source_type: "code", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135521015" },
+  { short_code: "ДОПК", title: "Данъчно-осигурителен процесуален кодекс", jurisdiction: "BG", source_type: "code", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135514513" },
+
+  // —— Граждански / договорни / собственост ——
+  { short_code: "ЗС", title: "Закон за собствеността", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2122105601" },
+  { short_code: "ЗН", title: "Закон за наследството", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2122107905" },
+  { short_code: "ЗАЗ", title: "Закон за арендата в земеделието", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2133873154" },
+  { short_code: "ЗЕС", title: "Закон за електронните съобщения", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135553187" },
+  { short_code: "ЗЕДЕУУ", title: "Закон за електронния документ и електронните удостоверителни услуги", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135180800" },
+  { short_code: "ЗЕТ", title: "Закон за електронната търговия", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135475402" },
+  { short_code: "ЗАПСП", title: "Закон за авторското право и сродните му права", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2133094401" },
+
+  // —— Потребители / реклама / нелоялна конкуренция ——
+  { short_code: "ЗЗП", title: "Закон за защита на потребителите", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135513678" },
+  { short_code: "ЗПК", title: "Закон за потребителския кредит", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135672097" },
+  { short_code: "ЗКНИП", title: "Закон за кредитите за недвижими имоти на потребители", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2136803196" },
+  { short_code: "ЗЗК", title: "Закон за защита на конкуренцията", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135575503" },
+
+  // —— Трудово / осигурително ——
+  { short_code: "ЗЗБУТ", title: "Закон за здравословни и безопасни условия на труд", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2134178305" },
+  { short_code: "ЗНЗ", title: "Закон за насърчаване на заетостта", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135453184" },
+  { short_code: "ЗТМТМ", title: "Закон за трудовата миграция и трудовата мобилност", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2136807786" },
+
+  // —— Корпоративни / данъчни ——
+  { short_code: "ЗТРРЮЛНЦ", title: "Закон за търговския регистър и регистъра на ЮЛНЦ", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135517301" },
+  { short_code: "ЗКПО", title: "Закон за корпоративното подоходно облагане", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135540562" },
+  { short_code: "ЗДДФЛ", title: "Закон за данъците върху доходите на физическите лица", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135538631" },
+  { short_code: "ЗДДС", title: "Закон за данък върху добавената стойност", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135533201" },
+  { short_code: "ЗСч", title: "Закон за счетоводството", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2136697598" },
+
+  // —— Данни / киберсигурност ——
+  { short_code: "ЗЗЛД", title: "Закон за защита на личните данни", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/-549710339" },
+  { short_code: "ЗКС", title: "Закон за киберсигурност", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2137189183" },
+
+  // —— Право на ЕС — Регламенти ——
   { short_code: "GDPR", title: "Регламент (ЕС) 2016/679 — Общ регламент относно защитата на данните", jurisdiction: "EU", source_type: "eu_regulation", issuer: "ЕП и Съвет", url: "https://eur-lex.europa.eu/legal-content/BG/TXT/?uri=CELEX:32016R0679" },
+  { short_code: "eIDAS", title: "Регламент (ЕС) 910/2014 — електронна идентификация и удостоверителни услуги", jurisdiction: "EU", source_type: "eu_regulation", issuer: "ЕП и Съвет", url: "https://eur-lex.europa.eu/legal-content/BG/TXT/?uri=CELEX:32014R0910" },
+  { short_code: "Rome-I", title: "Регламент (ЕО) 593/2008 (Рим I) — приложимо право към договорни задължения", jurisdiction: "EU", source_type: "eu_regulation", issuer: "ЕП и Съвет", url: "https://eur-lex.europa.eu/legal-content/BG/TXT/?uri=CELEX:32008R0593" },
+  { short_code: "Rome-II", title: "Регламент (ЕО) 864/2007 (Рим II) — извъндоговорни задължения", jurisdiction: "EU", source_type: "eu_regulation", issuer: "ЕП и Съвет", url: "https://eur-lex.europa.eu/legal-content/BG/TXT/?uri=CELEX:32007R0864" },
+  { short_code: "Brussels-Ia", title: "Регламент (ЕС) 1215/2012 (Брюксел Iа) — компетентност и решения по граждански дела", jurisdiction: "EU", source_type: "eu_regulation", issuer: "ЕП и Съвет", url: "https://eur-lex.europa.eu/legal-content/BG/TXT/?uri=CELEX:32012R1215" },
+  { short_code: "DSA", title: "Регламент (ЕС) 2022/2065 — Акт за цифровите услуги (DSA)", jurisdiction: "EU", source_type: "eu_regulation", issuer: "ЕП и Съвет", url: "https://eur-lex.europa.eu/legal-content/BG/TXT/?uri=CELEX:32022R2065" },
+  { short_code: "DMA", title: "Регламент (ЕС) 2022/1925 — Акт за цифровите пазари (DMA)", jurisdiction: "EU", source_type: "eu_regulation", issuer: "ЕП и Съвет", url: "https://eur-lex.europa.eu/legal-content/BG/TXT/?uri=CELEX:32022R1925" },
+  { short_code: "AI-Act", title: "Регламент (ЕС) 2024/1689 — Акт за изкуствения интелект", jurisdiction: "EU", source_type: "eu_regulation", issuer: "ЕП и Съвет", url: "https://eur-lex.europa.eu/legal-content/BG/TXT/?uri=CELEX:32024R1689" },
+  { short_code: "Data-Act", title: "Регламент (ЕС) 2023/2854 — Акт за данните", jurisdiction: "EU", source_type: "eu_regulation", issuer: "ЕП и Съвет", url: "https://eur-lex.europa.eu/legal-content/BG/TXT/?uri=CELEX:32023R2854" },
+
+  // —— Право на ЕС — Директиви ——
+  { short_code: "DIR-93/13", title: "Директива 93/13/ЕИО — неравноправни клаузи в потребителски договори", jurisdiction: "EU", source_type: "eu_directive", issuer: "Съвет", url: "https://eur-lex.europa.eu/legal-content/BG/TXT/?uri=CELEX:31993L0013" },
+  { short_code: "DIR-2011/83", title: "Директива 2011/83/ЕС — права на потребителите", jurisdiction: "EU", source_type: "eu_directive", issuer: "ЕП и Съвет", url: "https://eur-lex.europa.eu/legal-content/BG/TXT/?uri=CELEX:32011L0083" },
+  { short_code: "DIR-2019/770", title: "Директива (ЕС) 2019/770 — цифрово съдържание и услуги", jurisdiction: "EU", source_type: "eu_directive", issuer: "ЕП и Съвет", url: "https://eur-lex.europa.eu/legal-content/BG/TXT/?uri=CELEX:32019L0770" },
+  { short_code: "DIR-2019/771", title: "Директива (ЕС) 2019/771 — продажба на стоки", jurisdiction: "EU", source_type: "eu_directive", issuer: "ЕП и Съвет", url: "https://eur-lex.europa.eu/legal-content/BG/TXT/?uri=CELEX:32019L0771" },
+  { short_code: "NIS2", title: "Директива (ЕС) 2022/2555 (NIS2) — мрежова и информационна сигурност", jurisdiction: "EU", source_type: "eu_directive", issuer: "ЕП и Съвет", url: "https://eur-lex.europa.eu/legal-content/BG/TXT/?uri=CELEX:32022L2555" },
 ];
 
 
