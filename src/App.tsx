@@ -78,6 +78,7 @@ const AdminAITraining = lazy(() => import("./pages/AdminAITraining.tsx"));
 const AdminSubscriptions = lazy(() => import("./pages/AdminSubscriptions.tsx"));
 const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics.tsx"));
 const AdminPrivacy = lazy(() => import("./pages/AdminPrivacy.tsx"));
+const AdminIllegalContent = lazy(() => import("./pages/AdminIllegalContent.tsx"));
 const CheckoutReturn = lazy(() => import("./pages/CheckoutReturn.tsx"));
 const Plans = lazy(() => import("./pages/Plans.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
@@ -94,6 +95,7 @@ const RetentionPolicy = lazy(() => import("./pages/legal/RetentionPolicy.tsx"));
 const SubprocessorRegister = lazy(() => import("./pages/legal/SubprocessorRegister.tsx"));
 const ModelRoutingPolicy = lazy(() => import("./pages/legal/ModelRoutingPolicy.tsx"));
 const IncidentResponse = lazy(() => import("./pages/legal/IncidentResponse.tsx"));
+const ROPA = lazy(() => import("./pages/legal/ROPA.tsx"));
 const SharedDocument = lazy(() => import("./pages/SharedDocument.tsx"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe.tsx"));
 const Blog = lazy(() => import("./pages/Blog.tsx"));
@@ -193,6 +195,7 @@ const AnimatedRoutes = () => {
         <Route path="/admin/subscriptions" element={<ProtectedRoute><AdminSubscriptions /></ProtectedRoute>} />
         <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
         <Route path="/admin/privacy" element={<ProtectedRoute><AdminPrivacy /></ProtectedRoute>} />
+        <Route path="/admin/privacy/illegal" element={<ProtectedRoute><AdminIllegalContent /></ProtectedRoute>} />
         <Route path="/checkout/return" element={<CheckoutReturn />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
@@ -207,6 +210,7 @@ const AnimatedRoutes = () => {
         <Route path="/legal/subprocessors" element={<SubprocessorRegister />} />
         <Route path="/legal/model-routing" element={<ModelRoutingPolicy />} />
         <Route path="/legal/incident-response" element={<IncidentResponse />} />
+        <Route path="/legal/ropa" element={<ROPA />} />
         <Route path="/share/:token" element={<SharedDocument />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="/blog" element={<Blog />} />

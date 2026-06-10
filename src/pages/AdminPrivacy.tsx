@@ -193,6 +193,9 @@ export default function AdminPrivacy() {
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <ShieldCheck className="h-7 w-7 text-gold" /> Privacy & AI Compliance
           </h1>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/admin/privacy/illegal">🚫 Illegal content</Link>
+          </Button>
           <div className="ml-auto"><RangePicker value={range} onChange={setRange} /></div>
         </div>
 
