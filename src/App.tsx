@@ -78,7 +78,7 @@ const AdminAITraining = lazy(() => import("./pages/AdminAITraining.tsx"));
 const AdminSubscriptions = lazy(() => import("./pages/AdminSubscriptions.tsx"));
 const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics.tsx"));
 const AdminPrivacy = lazy(() => import("./pages/AdminPrivacy.tsx"));
-const AdminIllegalContent = lazy(() => import("./pages/AdminIllegalContent.tsx"));
+const AdminIllegalContent = lazy(() => import("./pages/AdminRestrictedProcessing.tsx"));
 const AdminPenTest = lazy(() => import("./pages/AdminPenTest.tsx"));
 const AdminRestoreDrills = lazy(() => import("./pages/AdminRestoreDrills.tsx"));
 const AdminCompliance = lazy(() => import("./pages/AdminCompliance.tsx"));

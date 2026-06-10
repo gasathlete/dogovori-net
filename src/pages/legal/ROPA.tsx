@@ -201,13 +201,13 @@ const ACTIVITIES: Activity[] = [
   {
     id: "security",
     name: "Сигурност и предотвратяване на злоупотреби",
-    purpose: "Откриване на опити за качване на незаконно съдържание, спам, abuse.",
-    legalBasis: "Чл. 6, ал. 1, б. 'е' + б. 'в' GDPR — легитимен интерес + нормативни задължения.",
+    purpose: "Откриване на опити за обработка на незаконно съдържание или ограничени категории данни (чл. 9 GDPR), спам, abuse.",
+    legalBasis: "Чл. 6, ал. 1, б. 'е' GDPR — легитимен интерес (LIA проведен).",
     subjects: "Всички потребители.",
-    data: "illegal_content_attempts: hash на IP, категория, кратък откъс (≤500 знака), user_id.",
-    recipients: "Само вътрешен security екип.",
+    data: "restricted_processing_events: hash на IP, категория, тип събитие (illegal_content_blocked / special_category_detected), функция, user_id. БЕЗ съдържание и БЕЗ открити термини.",
+    recipients: "Само вътрешен security екип (staff достъп).",
     retention: "12 месеца.",
-    measures: "RLS, само staff достъп, изтриване след разрешаване.",
+    measures: "RLS, само staff достъп, минимизация на данните, без съхранение на сурово съдържание.",
     transfer: "Не.",
   },
 ];
