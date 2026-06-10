@@ -255,7 +255,10 @@ const AnimatedRoutes = () => {
   );
 };
 
+import { ThemeProvider } from "@/hooks/useTheme";
+
 const App = () => (
+  <ThemeProvider>
   <HelmetProvider>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -280,6 +283,8 @@ const App = () => (
     </TooltipProvider>
   </QueryClientProvider>
   </HelmetProvider>
+  </ThemeProvider>
 );
+
 
 export default App;

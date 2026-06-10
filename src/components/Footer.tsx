@@ -10,7 +10,7 @@ function openCookieSettings() {
 
 export function Footer() {
   return (
-    <footer className="border-t border-border/60 bg-navy-light/40 py-10">
+    <footer className="border-t border-border/60 bg-card/40 py-10">
       <div className="container flex flex-col gap-8">
         <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center xl:gap-12">
           <div className="flex min-w-[220px] flex-col gap-2">

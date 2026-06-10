@@ -30,7 +30,7 @@ export function SocialProofStrip() {
           БЪЛГАРСКА ПЛАТФОРМА, ИЗПОЛЗВАНА ОТ 500+ ПРЕДПРИЕМАЧИ, АДВОКАТИ, СЧЕТОВОДИТЕЛИ У НАС И В ЧУЖБИНА
         </p>
         {partners.length > 0 && (
-          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 sm:gap-x-12">
+          <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-5 sm:gap-x-14">
             {partners.map((p) => (
               <img
                 key={p.id}
@@ -38,14 +38,15 @@ export function SocialProofStrip() {
                 alt={p.name}
                 loading="lazy"
                 decoding="async"
-                width={120}
-                height={32}
+                width={140}
+                height={40}
                 {...({ fetchpriority: "low" } as any)}
-                className="h-7 w-auto max-w-[120px] object-contain opacity-50 grayscale transition-opacity duration-200 hover:opacity-90 hover:grayscale-0 sm:h-8"
+                className="h-9 w-auto max-w-[140px] object-contain opacity-70 transition-opacity duration-200 hover:opacity-100 sm:h-10"
               />
             ))}
           </div>
         )}
+
       </div>
     </section>
   );

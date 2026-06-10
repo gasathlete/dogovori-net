@@ -69,7 +69,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
         aria-hidden="true"
         className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2"
       >
-        <div className="h-2 w-2 rotate-45 border border-gold/60 bg-navy" />
+        <div className="h-2 w-2 rotate-45 border border-gold/60 bg-background" />
       </div>
 
       <div className="container relative w-full pt-4 pb-10 sm:pt-6 sm:pb-12 md:pt-6 md:pb-12 lg:pt-6 lg:pb-10">
@@ -85,7 +85,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
               aria-describedby={visible ? tooltipId : undefined}
             >
               <div className="absolute inset-[-10%] rounded-full border border-dashed border-gold/20" />
-              <div className="absolute inset-0 rounded-full border border-gold/40 bg-navy-light/40" />
+              <div className="absolute inset-0 rounded-full border border-gold/40 bg-card/60" />
               {[0, 90, 180, 270].map((deg) => (
                 <span
                   key={deg}
@@ -108,7 +108,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
                 <div
                   id={tooltipId}
                   role="tooltip"
-                  className={`pointer-events-none absolute right-full top-1/2 z-30 mr-4 hidden w-[240px] -translate-y-1/2 rounded-md border border-gold/30 bg-navy/95 px-4 py-3 text-center shadow-elegant backdrop-blur-sm transition-all duration-300 ease-out sm:w-[300px] md:block ${
+                  className={`pointer-events-none absolute right-full top-1/2 z-30 mr-4 hidden w-[240px] -translate-y-1/2 rounded-md border border-gold/30 bg-card/95 px-4 py-3 text-center shadow-elegant backdrop-blur-sm transition-all duration-300 ease-out sm:w-[300px] md:block ${
                     visible ? "translate-x-0 opacity-100" : "translate-x-1 opacity-0"
                   }`}
                 >
@@ -124,7 +124,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </div>
 
           <h1
-            className="anim-rise mx-auto max-w-2xl font-serif text-[28px] font-bold leading-[1.1] text-balance sm:text-4xl md:text-5xl lg:text-5xl xl:text-[52px] lg:leading-[1.1]"
+            className="anim-rise mx-auto max-w-3xl font-serif text-4xl font-bold leading-[1.08] text-balance sm:text-5xl md:text-6xl lg:text-[64px] lg:leading-[1.05]"
             style={{ animationDelay: "0ms" }}
           >
             Договори, които{" "}
@@ -133,7 +133,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </h1>
 
           <div
-            className="anim-rise mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]"
+            className="anim-rise mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]"
             style={{ animationDelay: "80ms" }}
           >
             <span className="inline-flex items-center gap-1.5 text-gold"><ShieldCheck className="h-3.5 w-3.5" /> ЗЗД · ТЗ · ЗУТ</span>
@@ -146,12 +146,13 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </div>
 
           <p
-            className="anim-rise mx-auto mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base md:mt-4 md:text-base md:leading-[1.6]"
+            className="anim-rise mx-auto mt-5 max-w-2xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg md:mt-6 md:text-xl md:leading-[1.6]"
             style={{ animationDelay: "160ms" }}
           >
             Индивидуални документи, съобразени със ЗЗД, ТЗ и ЗУТ — с пълен правен риск-анализ.<br />
             Вътрешен AI-асистент от ново поколение. Създай, прецизирай, подпиши.
           </p>
+
 
           {/* Single primary CTA + discreet secondary link */}
           <div

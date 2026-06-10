@@ -60,7 +60,7 @@ export function ComplianceSection() {
   };
 
   return (
-    <section id="compliance" className="container py-14 sm:py-16 md:py-24">
+    <section id="compliance" className="container py-20 sm:py-24 md:py-28">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
 
       <div className="relative overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-8 shadow-elegant md:p-14">
@@ -71,7 +71,7 @@ export function ComplianceSection() {
             <ShieldCheck className="h-3.5 w-3.5" />
             Защо да ни се доверите
           </div>
-          <h2 className="font-serif text-xl font-bold leading-tight text-balance sm:text-2xl md:text-[32px]">
+          <h2 className="font-serif text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl">
             Съобразено с  -<br />Закон за задълженията и договорите · Търговски закон · ЗУТ
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground md:text-base">

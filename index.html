@@ -1,6 +1,18 @@
 <!doctype html>
-<html lang="bg">
+<html lang="bg" class="dark">
   <head>
+    <script>
+      // No-flash theme: apply stored theme before React renders.
+      (function () {
+        try {
+          var t = localStorage.getItem("dogovori:theme");
+          var c = (t === "light" || t === "dark") ? t : "dark";
+          document.documentElement.classList.remove("light", "dark");
+          document.documentElement.classList.add(c);
+        } catch (e) {}
+      })();
+    </script>
+
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <!-- Content Security Policy: ограничава източниците за защита от XSS / data exfiltration.

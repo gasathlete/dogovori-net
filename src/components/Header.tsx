@@ -9,9 +9,11 @@ import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ToolsMenu } from "@/components/calculators/ToolsMenu";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useFreeJourneyStage } from "@/hooks/useFreeJourneyStage";
 import { trackEvent } from "@/lib/analytics";
 import { Crown } from "lucide-react";
+
 
 
 const NAV = [
@@ -55,10 +57,11 @@ export function Header() {
       className={cn(
         "sticky top-0 z-40 border-b transition-colors duration-300",
         scrolled
-          ? "border-gold/15 bg-navy shadow-soft"
-          : "border-border/40 bg-navy",
+          ? "border-gold/15 bg-background shadow-soft"
+          : "border-border/40 bg-background",
       )}
     >
+
       <div className="container flex h-16 items-center justify-between gap-3 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-6">
         {/* Brand */}
         <div className="flex min-w-0 items-center justify-self-start">
@@ -102,6 +105,8 @@ export function Header() {
         {/* Actions */}
         <div className="flex items-center justify-end gap-3 justify-self-end">
           <ToolsMenu variant="desktop" />
+          <ThemeToggle className="hidden sm:inline-flex" />
+
 
           {showProBadge && (
             <button
@@ -166,7 +171,7 @@ export function Header() {
       </div>
 
       {open && (
-        <nav className="origin-top animate-accordion-down overflow-hidden border-t border-border/60 bg-navy lg:hidden">
+        <nav className="origin-top animate-accordion-down overflow-hidden border-t border-border/60 bg-background lg:hidden">
           <div className="container flex flex-col py-3">
             {NAV.map((n) => (
               <Link
@@ -184,10 +189,14 @@ export function Header() {
             <div className="mt-2 border-t border-border/60 pt-2">
               <ToolsMenu variant="mobile" onNavigate={() => setOpen(false)} />
             </div>
-
+            <div className="mt-2 flex items-center gap-2 border-t border-border/60 pt-3">
+              <ThemeToggle />
+              <span className="text-xs text-muted-foreground">Theme</span>
+            </div>
           </div>
         </nav>
       )}
     </header>
   );
 }
+

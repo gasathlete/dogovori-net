@@ -33,7 +33,7 @@ export function CTABand() {
   const { user } = useAuth();
   const [teaserOpen, setTeaserOpen] = useState(false);
   return (
-    <section className="container py-14 sm:py-16 md:py-20">
+    <section className="container py-20 sm:py-24 md:py-28">
       <div
         className="gold-sweep-bg relative overflow-hidden rounded-2xl border border-gold/30 px-6 py-12 text-center sm:px-10 sm:py-14 md:px-16 md:py-16"
         style={{
@@ -53,7 +53,7 @@ export function CTABand() {
         <div className="relative z-10">
           <LiveCounter />
           <div className="eyebrow mb-3 justify-center">Готови?</div>
-          <h2 className="mx-auto max-w-2xl font-serif text-2xl font-bold leading-tight text-balance sm:text-3xl md:text-4xl">
+          <h2 className="mx-auto max-w-2xl font-serif text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl">
             Изгответе своя професионален договор още днес
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">

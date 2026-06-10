@@ -20,7 +20,7 @@ export function LifeScenarios() {
     <section
       id="scenarios"
       aria-labelledby="scenarios-heading"
-      className="container py-12 sm:py-14 md:py-20"
+      className="container py-20 sm:py-24 md:py-28"
     >
       <div className="mb-8 max-w-2xl md:mb-10">
         <div className="eyebrow mb-3">
