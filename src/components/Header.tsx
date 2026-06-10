@@ -120,14 +120,14 @@ export function Header() {
                 );
               }}
               className={cn(
-                "hidden md:inline-flex items-center gap-1.5 rounded-lg border px-3 h-9 text-[11px] font-semibold uppercase tracking-wider backdrop-blur-sm transition-all",
+                "hidden md:inline-flex items-center gap-2 rounded-lg border px-4 h-10 text-[12px] font-semibold uppercase tracking-wider backdrop-blur-sm transition-all",
                 stage === 3
                   ? "border-red-400/50 bg-red-500/10 text-red-200 hover:bg-red-500/20"
                   : "border-gold/30 bg-gold/10 text-gold hover:border-gold/50 hover:bg-gold/20 hover:shadow-[0_0_12px_hsl(var(--gold)/0.12)]",
               )}
               aria-label="Надгради до Pro"
             >
-              <Crown className="h-3.5 w-3.5" />
+              <Crown className="h-4 w-4" />
               {stage === 3 ? "Лимит · Pro" : `${opsLeft} безпл. · Pro`}
             </button>
           )}
@@ -137,9 +137,9 @@ export function Header() {
             <Link
               to="/account"
               aria-label={unreadCount > 0 ? `Профил (${unreadCount} непрочетени известия)` : "Профил"}
-              className="relative inline-flex h-10 items-center gap-2 rounded-lg border border-gold/30 bg-gold/[0.08] px-4 text-[12px] font-semibold tracking-wide text-gold backdrop-blur-sm transition-all hover:border-gold/50 hover:bg-gold/15 hover:shadow-[0_0_12px_hsl(var(--gold)/0.12)] sm:h-9 sm:px-4"
+              className="relative inline-flex h-11 items-center gap-2.5 rounded-lg border border-gold/30 bg-gold/[0.08] px-5 text-[13px] font-semibold tracking-wide text-gold backdrop-blur-sm transition-all hover:border-gold/50 hover:bg-gold/15 hover:shadow-[0_0_12px_hsl(var(--gold)/0.12)]"
             >
-              <UserIcon className="h-4 w-4" />
+              <UserIcon className="h-5 w-5" />
               <span className="hidden sm:inline">Профил</span>
               {unreadCount > 0 && (
                 <span
@@ -152,9 +152,9 @@ export function Header() {
             <Link
               to="/auth"
               aria-label="Влезте"
-              className="inline-flex h-10 items-center gap-2 rounded-lg bg-gradient-to-b from-gold/90 to-gold/70 px-5 text-[12px] font-bold tracking-widest text-navy shadow-[0_0_16px_hsl(var(--gold)/0.25)] transition-all hover:brightness-110 hover:shadow-[0_0_24px_hsl(var(--gold)/0.35)] active:scale-[0.98] sm:h-9"
+              className="inline-flex h-11 items-center gap-2.5 rounded-lg bg-gradient-to-b from-gold/90 to-gold/70 px-6 text-[13px] font-bold tracking-widest text-navy shadow-[0_0_16px_hsl(var(--gold)/0.25)] transition-all hover:brightness-110 hover:shadow-[0_0_24px_hsl(var(--gold)/0.35)] active:scale-[0.98]"
             >
-              <LogIn className="h-4 w-4" />
+              <LogIn className="h-5 w-5" />
               <span className="hidden sm:inline">Влезте</span>
             </Link>
           )}
@@ -163,9 +163,9 @@ export function Header() {
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Затвори менюто" : "Отвори менюто"}
             aria-expanded={open}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border/60 bg-card/40 text-foreground backdrop-blur-sm transition-colors hover:border-gold/50 hover:text-gold lg:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border/60 bg-card/40 text-foreground backdrop-blur-sm transition-colors hover:border-gold/50 hover:text-gold lg:hidden"
           >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
       </div>
