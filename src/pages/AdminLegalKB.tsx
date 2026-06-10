@@ -33,6 +33,27 @@ const SOURCE_TYPES = [
   { value: "case_law", label: "Съдебна практика" },
 ];
 
+// Препоръчителен каталог — основни актове за договорно/трудово/потребителско/данни право.
+// URL-ите сочат към публични версии в lex.bg / eur-lex.europa.eu.
+const SEED_CATALOG: Array<{
+  short_code: string;
+  title: string;
+  jurisdiction: "BG" | "EU";
+  source_type: string;
+  issuer: string;
+  url: string;
+}> = [
+  { short_code: "ЗЗД", title: "Закон за задълженията и договорите", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2121934337" },
+  { short_code: "ТЗ", title: "Търговски закон", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/-14917630" },
+  { short_code: "КТ", title: "Кодекс на труда", jurisdiction: "BG", source_type: "code", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/1594373121" },
+  { short_code: "СК", title: "Семеен кодекс", jurisdiction: "BG", source_type: "code", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135637484" },
+  { short_code: "ЗЗП", title: "Закон за защита на потребителите", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135513678" },
+  { short_code: "ЗЗЛД", title: "Закон за защита на личните данни", jurisdiction: "BG", source_type: "law", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/-549710339" },
+  { short_code: "ГПК", title: "Граждански процесуален кодекс", jurisdiction: "BG", source_type: "code", issuer: "Народно събрание", url: "https://lex.bg/laws/ldoc/2135558368" },
+  { short_code: "GDPR", title: "Регламент (ЕС) 2016/679 — Общ регламент относно защитата на данните", jurisdiction: "EU", source_type: "eu_regulation", issuer: "ЕП и Съвет", url: "https://eur-lex.europa.eu/legal-content/BG/TXT/?uri=CELEX:32016R0679" },
+];
+
+
 export default function AdminLegalKB() {
   const { session } = useAuth();
   const [sources, setSources] = useState<SourceRow[]>([]);
