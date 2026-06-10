@@ -144,7 +144,17 @@ Deno.serve(async (req) => {
       // Loyalty coupon (auto-applied) takes precedence; if absent, the
       // customer can type FIRST100 manually.
       ...(isRecurring && !appliedCouponId && { allow_promotion_codes: true }),
-      metadata: { userId, ...(appliedCouponId ? { loyalty_coupon: appliedCouponId } : {}) },
+      metadata: {
+        userId,
+        priceId,
+        billing_period: isRecurring ? (price.recurring?.interval ?? null) : null,
+        terms_version: "2026-06-25",
+        privacy_version: "2026-06-25",
+        withdrawal_version: "2026-06-25",
+        refund_version: "2026-06-25",
+        ai_ack_accepted: "true",
+        ...(appliedCouponId ? { loyalty_coupon: appliedCouponId } : {}),
+      },
       ...(appliedCouponId ? { discounts: [{ coupon: appliedCouponId }] } : {}),
       ...(isRecurring && { subscription_data: { metadata: { userId, ...(appliedCouponId ? { loyalty_coupon: appliedCouponId } : {}) } } }),
     });
