@@ -111,6 +111,16 @@ const SEED_CATALOG: Array<{
 ];
 
 
+type ValidationInfo = {
+  article_count: number;
+  has_login_wall: boolean;
+  checksum: string;
+  warnings: string[];
+  is_duplicate: boolean;
+  duplicate_of: { source_id: string; short_code: string | null; title: string | null } | null;
+  passes: boolean;
+};
+
 export default function AdminLegalKB() {
   const { session } = useAuth();
   const [sources, setSources] = useState<SourceRow[]>([]);
@@ -118,6 +128,8 @@ export default function AdminLegalKB() {
   const [submitting, setSubmitting] = useState(false);
   const [fetchingUrl, setFetchingUrl] = useState(false);
   const [fetchUrl, setFetchUrl] = useState("");
+  const [validation, setValidation] = useState<ValidationInfo | null>(null);
+  const [reindexingId, setReindexingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     short_code: "",
     title: "",
@@ -144,6 +156,7 @@ export default function AdminLegalKB() {
   const fetchFromUrl = async () => {
     if (!session?.access_token || !fetchUrl.trim()) return;
     setFetchingUrl(true);
+    setValidation(null);
     try {
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-legal-source`,
@@ -169,12 +182,85 @@ export default function AdminLegalKB() {
         jurisdiction: json.jurisdiction || f.jurisdiction,
         title: f.title || json.suggested_title || "",
       }));
-      toast.success(`Извлечени ${Math.round((json.length || 0) / 1024)} KB текст. Прегледай и индексирай.`);
+      setValidation(json.validation ?? null);
+      const w = json.validation?.warnings?.length ?? 0;
+      if (json.validation?.is_duplicate) {
+        toast.warning(`Дубликат: вече индексирано като ${json.validation.duplicate_of?.short_code ?? "?"}.`);
+      } else if (w > 0) {
+        toast.warning(`Извлечени ${Math.round((json.length || 0) / 1024)} KB, но има ${w} предупреждения.`);
+      } else {
+        toast.success(`Извлечени ${Math.round((json.length || 0) / 1024)} KB, ${json.validation?.article_count ?? 0} члена. ОК.`);
+      }
     } catch (e) {
       console.error(e);
       toast.error("Грешка при заявката");
     } finally {
       setFetchingUrl(false);
+    }
+  };
+
+  const reindex = async (s: SourceRow) => {
+    if (!session?.access_token) return;
+    if (!s.official_url) {
+      toast.error("Няма official_url за този източник.");
+      return;
+    }
+    setReindexingId(s.id);
+    try {
+      const fetchResp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-legal-source`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ url: s.official_url }),
+        },
+      );
+      const fj = await fetchResp.json();
+      if (!fetchResp.ok) {
+        toast.error(fj.error || "Грешка при сваляне");
+        return;
+      }
+      // Игнорираме dedup при reindex — възможно е същият checksum да е валиден
+      const ingestResp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ingest-legal-source`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            short_code: s.short_code,
+            title: s.title,
+            jurisdiction: s.jurisdiction,
+            source_type: s.source_type,
+            issuer: s.issuer,
+            official_url: s.official_url,
+            raw_text: fj.raw_text,
+          }),
+        },
+      );
+      const ij = await ingestResp.json();
+      if (!ingestResp.ok) {
+        toast.error(ij.error || "Грешка при индексиране");
+        return;
+      }
+      if (ij.skipped) {
+        toast.info(`${s.short_code}: текстът не е променен — пропуснато.`);
+      } else {
+        toast.success(`${s.short_code}: преиндексиран (${ij.chunks_inserted ?? 0} чънка).`);
+      }
+      load();
+    } catch (e) {
+      console.error(e);
+      toast.error("Грешка при заявката");
+    } finally {
+      setReindexingId(null);
     }
   };
 
