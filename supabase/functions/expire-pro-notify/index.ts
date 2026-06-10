@@ -99,8 +99,9 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
+    console.error("expire-pro-notify error", e);
     return new Response(
-      JSON.stringify({ ok: false, error: String((e as Error).message ?? e), expiringSent, expiredSent, errors }),
+      JSON.stringify({ ok: false, error: "internal_error", expiringSent, expiredSent }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
