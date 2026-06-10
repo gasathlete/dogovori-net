@@ -13,10 +13,13 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Crown } from "lucide-react";
 
+import { LegalCitations, type LegalCitation } from "@/components/LegalCitations";
+
 interface Msg {
   id: string;
   role: "user" | "assistant";
   content: string;
+  citations?: LegalCitation[];
 }
 
 interface Thread {
