@@ -192,9 +192,10 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    /* Smooth scroll only for in-page anchor clicks; do NOT globally
-       intercept wheel/touch — that causes "throw" / chop on trackpads
-       and mobile. */
+    font-size: 17px;
+  }
+  @media (max-width: 640px) {
+    html { font-size: 16px; }
   }
 
   /* NOTE: do NOT set `scroll-behavior: smooth` on html (even via :focus-within).
@@ -213,6 +214,8 @@
     background-repeat: no-repeat;
     font-feature-settings: "ss01", "cv11", "kern";
     -webkit-tap-highlight-color: transparent;
+    font-size: 1rem;
+    line-height: 1.65;
   }
 
   /* Mobile guard: allow flex/grid children to shrink and truncate */
@@ -221,10 +224,7 @@
   img, video, table, pre { max-width: 100%; }
   p, h1, h2, h3, h4 { overflow-wrap: break-word; }
 
-  /* Offscreen sections skip rendering work but reserve space — kills
-     layout shifts when LazyOnVisible mounts and keeps scrolling buttery.
-     `auto 600px` lets the browser remember the real rendered size, so the
-     scrollbar doesn't jump around while scrolling fast. */
+  /* Offscreen sections skip rendering work but reserve space */
   .cv-auto {
     content-visibility: auto;
     contain-intrinsic-size: auto 600px;
@@ -244,15 +244,15 @@
     color: hsl(var(--foreground));
   }
 
-  /* Premium scrollbar */
+  /* Premium scrollbar — theme-aware */
   ::-webkit-scrollbar { width: 10px; height: 10px; }
-  ::-webkit-scrollbar-track { background: hsl(220 45% 6%); }
+  ::-webkit-scrollbar-track { background: hsl(var(--background)); }
   ::-webkit-scrollbar-thumb {
-    background: hsl(220 25% 22%);
+    background: hsl(var(--muted));
     border-radius: 999px;
-    border: 2px solid hsl(220 45% 6%);
+    border: 2px solid hsl(var(--background));
   }
-  ::-webkit-scrollbar-thumb:hover { background: hsl(43 35% 38%); }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--gold) / 0.6); }
 
   /* Elegant focus rings */
   :focus-visible {
@@ -264,6 +264,7 @@
   /* Image rendering */
   img { -webkit-user-drag: none; }
 }
+
 
 @layer components {
   .text-gold {
