@@ -17,6 +17,7 @@ import { AdminUserArticlesPanel } from "@/components/AdminUserArticlesPanel";
 import { AdminGscPanel } from "@/components/AdminGscPanel";
 import { AdminNotificationsPanel } from "@/components/AdminNotificationsPanel";
 import { BlankCacheWarmer } from "@/components/admin/BlankCacheWarmer";
+import { AdminMFAGuard } from "@/components/admin/AdminMFAGuard";
 
 type Row = {
   user_id: string;
@@ -116,24 +117,20 @@ export default function AdminPage() {
   };
 
   return (
+    <AdminMFAGuard>
     <div className="min-h-dvh bg-background">
       <Header />
       <div className="container py-8">
         <div className="flex items-center gap-3 mb-6 flex-wrap">
           <Button asChild variant="ghost" size="sm"><Link to="/account"><ArrowLeft className="h-4 w-4 mr-1" /> Профил</Link></Button>
           <h1 className="text-3xl font-bold flex items-center gap-2"><ShieldCheck className="h-7 w-7 text-gold" /> Модераторски панел</h1>
-          <Button asChild variant="outline" size="sm" className="ml-auto border-gold/40">
-            <Link to="/admin/analytics">📊 Analytics</Link>
-          </Button>
-          <Button asChild variant="outline" size="sm" className="border-gold/40">
-            <Link to="/admin/privacy">🛡️ Privacy</Link>
-          </Button>
-          <Button asChild variant="outline" size="sm" className="border-gold/40">
-            <Link to="/admin/subscriptions">💳 Абонаменти & екипи</Link>
-          </Button>
-          <Button asChild variant="outline" size="sm" className="border-gold/40">
-            <Link to="/admin/ai-training">🧠 AI обучение</Link>
-          </Button>
+          <Button asChild variant="outline" size="sm" className="ml-auto border-gold/40"><Link to="/admin/analytics">📊 Analytics</Link></Button>
+          <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/privacy">🛡️ Privacy</Link></Button>
+          <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/compliance">✅ Compliance</Link></Button>
+          <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/pentest">🔒 Пен-тестове</Link></Button>
+          <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/restore-drills">💾 Restore drills</Link></Button>
+          <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/subscriptions">💳 Абонаменти & екипи</Link></Button>
+          <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/ai-training">🧠 AI обучение</Link></Button>
           <BlankCacheWarmer />
         </div>
 
@@ -249,5 +246,6 @@ export default function AdminPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </AdminMFAGuard>
   );
 }

@@ -401,6 +401,60 @@ export type Database = {
         }
         Relationships: []
       }
+      compliance_items: {
+        Row: {
+          control_ref: string
+          created_at: string
+          description: string | null
+          due_date: string | null
+          evidence_notes: string | null
+          evidence_url: string | null
+          framework: string
+          id: string
+          last_reviewed_at: string | null
+          owner_role: string | null
+          owner_user: string | null
+          priority: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          control_ref: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          evidence_notes?: string | null
+          evidence_url?: string | null
+          framework: string
+          id?: string
+          last_reviewed_at?: string | null
+          owner_role?: string | null
+          owner_user?: string | null
+          priority?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          control_ref?: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          evidence_notes?: string | null
+          evidence_url?: string | null
+          framework?: string
+          id?: string
+          last_reviewed_at?: string | null
+          owner_role?: string | null
+          owner_user?: string | null
+          priority?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           address: string | null
@@ -1286,6 +1340,69 @@ export type Database = {
         }
         Relationships: []
       }
+      pentest_plans: {
+        Row: {
+          checklist: Json
+          created_at: string
+          created_by: string | null
+          evidence_url: string | null
+          executed_date: string | null
+          findings_high: number
+          findings_low: number
+          findings_medium: number
+          id: string
+          notes: string | null
+          planned_date: string | null
+          remediated: boolean
+          reminder_at: string | null
+          scope: string
+          status: string
+          updated_at: string
+          vendor: string | null
+          year: number
+        }
+        Insert: {
+          checklist?: Json
+          created_at?: string
+          created_by?: string | null
+          evidence_url?: string | null
+          executed_date?: string | null
+          findings_high?: number
+          findings_low?: number
+          findings_medium?: number
+          id?: string
+          notes?: string | null
+          planned_date?: string | null
+          remediated?: boolean
+          reminder_at?: string | null
+          scope: string
+          status?: string
+          updated_at?: string
+          vendor?: string | null
+          year: number
+        }
+        Update: {
+          checklist?: Json
+          created_at?: string
+          created_by?: string | null
+          evidence_url?: string | null
+          executed_date?: string | null
+          findings_high?: number
+          findings_low?: number
+          findings_medium?: number
+          id?: string
+          notes?: string | null
+          planned_date?: string | null
+          remediated?: boolean
+          reminder_at?: string | null
+          scope?: string
+          status?: string
+          updated_at?: string
+          vendor?: string | null
+          year?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1367,6 +1484,63 @@ export type Database = {
           key?: string
           updated_at?: string
           window_start?: string
+        }
+        Relationships: []
+      }
+      restore_drills: {
+        Row: {
+          created_at: string
+          evidence_url: string | null
+          executed_at: string | null
+          executor: string | null
+          id: string
+          issues: string | null
+          outcome: string | null
+          remediation: string | null
+          rpo_measured_minutes: number | null
+          rpo_target_minutes: number
+          rto_measured_minutes: number | null
+          rto_target_minutes: number
+          scheduled_at: string
+          source_backup: string | null
+          steps: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          evidence_url?: string | null
+          executed_at?: string | null
+          executor?: string | null
+          id?: string
+          issues?: string | null
+          outcome?: string | null
+          remediation?: string | null
+          rpo_measured_minutes?: number | null
+          rpo_target_minutes?: number
+          rto_measured_minutes?: number | null
+          rto_target_minutes?: number
+          scheduled_at: string
+          source_backup?: string | null
+          steps?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          evidence_url?: string | null
+          executed_at?: string | null
+          executor?: string | null
+          id?: string
+          issues?: string | null
+          outcome?: string | null
+          remediation?: string | null
+          rpo_measured_minutes?: number | null
+          rpo_target_minutes?: number
+          rto_measured_minutes?: number | null
+          rto_target_minutes?: number
+          scheduled_at?: string
+          source_backup?: string | null
+          steps?: Json
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2740,6 +2914,7 @@ export type Database = {
       award_user_loyalty: { Args: { _total_ops: number }; Returns: Json }
       bg_to_lat: { Args: { input: string }; Returns: string }
       can_use_kit_slot: { Args: never; Returns: Json }
+      check_compliance_reminders: { Args: never; Returns: Json }
       consume_ai_message: { Args: never; Returns: Json }
       consume_analysis_preview: { Args: never; Returns: Json }
       consume_bilingual_preview: { Args: never; Returns: Json }

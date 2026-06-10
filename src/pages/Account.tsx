@@ -2013,6 +2013,14 @@ function SettingsTab({ profile, setProfile, userId }: {
           <Download className="mr-2 h-4 w-4" /> Изтегли моите данни (JSON)
         </Button>
         <p className="text-[11px] text-muted-foreground/80">Лимит: 3 изтегляния в 24 часа.</p>
+        <div className="mt-3 border-t border-border/40 pt-3 space-y-2">
+          <p className="text-xs font-semibold">Документи за съответствие</p>
+          <Button asChild variant="outline" size="sm" className="border-gold/40">
+            <a href="/dpia-dogovori-net.docx" download>
+              <Download className="mr-2 h-3 w-3" /> DPIA (Word, по чл. 35 GDPR)
+            </a>
+          </Button>
+        </div>
       </div>
 
       {/* Изтриване на акаунт */}
