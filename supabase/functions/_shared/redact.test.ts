@@ -40,6 +40,14 @@ Deno.test("redact: stats отразяват броя", () => {
   assert((r.stats.email ?? 0) >= 1);
 });
 
+Deno.test("redact: EGN започващ с 0 (родени 2000+) не се хваща от phone regex", () => {
+  // Регресия: EGN "0102030001" преди се хващаше от PHONE regex (започва с 0).
+  const r = redactForAI("ЕГН 0102030001 на лицето.");
+  assert(r.redacted.includes("<EGN_1>"), "трябва да има EGN placeholder");
+  assert(!r.redacted.includes("<PHONE_1>"), "не трябва да има PHONE placeholder");
+  assertEquals(r.mapping["<EGN_1>"], "0102030001");
+});
+
 Deno.test("redact: празен вход връща празен изход", () => {
   const r = redactForAI("");
   assertEquals(r.redacted, "");
