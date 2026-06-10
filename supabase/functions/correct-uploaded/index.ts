@@ -192,7 +192,10 @@ ${scopeNote}
 
 Задача: пренапиши договора, като отстраниш проблемите и добавиш липсващите клаузи. Връщай само JSON.`;
 
-    const activeSystemPrompt = await loadActivePrompt(admin, "correct-uploaded", SYSTEM_PROMPT);
+    const baseSystem = await loadActivePrompt(admin, "correct-uploaded", SYSTEM_PROMPT);
+    const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
+    const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, `${analysis?.contract_type || ""} ${analysis?.summary || ""}\n${redaction.redacted}`.slice(0, 4000), { matchCount: 6 });
+    const activeSystemPrompt = legal.hasMatches ? `${baseSystem}\n\n${legal.promptBlock}` : baseSystem;
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
