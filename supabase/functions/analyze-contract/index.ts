@@ -334,7 +334,7 @@ Deno.serve(async (req: Request) => {
             reasons: classification.reasons,
           },
         }),
-        { status: 428, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 

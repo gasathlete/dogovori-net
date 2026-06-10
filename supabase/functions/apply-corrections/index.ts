@@ -186,7 +186,7 @@ Deno.serve(async (req: Request) => {
           pii_counts: classification.pii_counts,
           reasons: classification.reasons,
         },
-      }), { status: 428, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const contractJsonStr = JSON.stringify(contract);
