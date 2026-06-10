@@ -119,6 +119,31 @@ export async function logAiAudit(row: {
   });
 }
 
+/**
+ * Residency guard. Returns true when the caller's user/team requires
+ * EU-only AI processing. The Lovable AI Gateway routes globally, so when
+ * EU-only is enforced we refuse the call and surface a clear block code
+ * instead of silently exfiltrating data outside the EEA.
+ */
+async function isEuOnlyRequired(userId: string | null, teamId?: string | null): Promise<boolean> {
+  if (!userId && !teamId) return false;
+  try {
+    const sb = adminClient();
+    if (teamId) {
+      const { data } = await sb.from("teams").select("eu_only_ai").eq("id", teamId).maybeSingle();
+      if ((data as { eu_only_ai?: boolean } | null)?.eu_only_ai) return true;
+    }
+    if (userId) {
+      const { data } = await sb.from("profiles").select("allow_third_country_ai").eq("id", userId).maybeSingle();
+      // allow_third_country_ai === false ⇒ EU-only required
+      if (data && (data as { allow_third_country_ai?: boolean }).allow_third_country_ai === false) return true;
+    }
+  } catch (e) {
+    console.error("isEuOnlyRequired check failed (non-fatal, defaulting to allow):", e);
+  }
+  return false;
+}
+
 export async function aiCall(input: AICallInput): Promise<AICallResult> {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) {
@@ -145,6 +170,34 @@ export async function aiCall(input: AICallInput): Promise<AICallResult> {
       errorMessage: "AI gateway misconfigured",
     };
   }
+
+  // EU-only data residency hard guard. Blocks the call when the user
+  // (or their team) has opted out of third-country AI processing.
+  if (await isEuOnlyRequired(input.userId, input.teamId)) {
+    await logAudit({
+      user_id: input.userId,
+      team_id: input.teamId,
+      operation: input.operation,
+      model: input.route.model,
+      fallback_used: false,
+      fallback_model: null,
+      classification: input.classification,
+      redaction_applied: input.route.redactionRequired,
+      status: "blocked",
+      error_code: "eu_only_ai_residency_block",
+    });
+    return {
+      ok: false,
+      status: 451,
+      modelUsed: input.route.model,
+      fallbackUsed: false,
+      fallbackModel: null,
+      data: null,
+      errorCode: "eu_only_ai_residency_block",
+      errorMessage: "AI обработката е ограничена до ЕИП по Ваше желание. Изключете „Само EU AI обработка" в Настройки, за да продължите.",
+    };
+  }
+
 
   // Belt-and-suspenders: if redaction was required, refuse to send raw PII.
   if (input.route.redactionRequired) {
