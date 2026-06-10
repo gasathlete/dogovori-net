@@ -56,7 +56,7 @@ export default function IncidentResponsePage() {
         <li><strong>Превенция</strong> — actionable списък + проследяване до затваряне.</li>
       </ol>
 
-      <h2>4. Докладване на уязвимост (Responsible Disclosure)</h2>
+      <h2>5. Докладване на уязвимост (Responsible Disclosure)</h2>
       <p>
         Ако сте открили уязвимост в платформата, моля свържете се с нас на:
       </p>
