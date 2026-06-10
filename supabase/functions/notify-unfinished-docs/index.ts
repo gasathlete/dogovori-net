@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error("notify-unfinished-docs error", e);
     return new Response(
-      JSON.stringify({ ok: false, error: String(e) }),
+      JSON.stringify({ ok: false, error: "internal_error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
