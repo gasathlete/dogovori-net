@@ -204,11 +204,10 @@ serve(async (req) => {
         signer_ip_hash: ipHash,
         signer_user_agent: ua,
         ses_equivalence_accepted: true,
-        ses_consent_text_version: "2026-06-10",
-        signs_as_legal_entity: !!signs_as_legal_entity,
-        eik: signs_as_legal_entity ? cleanEik : null,
+        ses_equivalence_text_version: "2026-06-10",
+        signer_eik: signs_as_legal_entity ? cleanEik : null,
         signer_capacity: signs_as_legal_entity ? String(signer_capacity).slice(0, 60) : null,
-        representative_declaration_accepted: signs_as_legal_entity
+        representative_declaration: signs_as_legal_entity
           ? !!representative_declaration_accepted : false,
         otp_code_hash: null, otp_expires_at: null,
       }).eq("id", signer.id);
