@@ -367,7 +367,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
   );
 }
 
-function MessageBubble({ role, content, isStreaming }: { role: "user" | "assistant"; content: string; isStreaming?: boolean }) {
+function MessageBubble({ role, content, isStreaming, citations }: { role: "user" | "assistant"; content: string; isStreaming?: boolean; citations?: LegalCitation[] }) {
   if (role === "user") {
     return (
       <div className="flex justify-end">
