@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
       expired,
     });
   } catch (e) {
-    return json({ error: String((e as Error).message ?? e) }, 400);
+    console.error("edge function error", e);
+    return json({ error: "internal_error" }, 500);
   }
 });
