@@ -318,7 +318,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
           ) : (
             <div className="space-y-4">
               {messages.map((m) => (
-                <MessageBubble key={m.id} role={m.role} content={m.content} />
+                <MessageBubble key={m.id} role={m.role} content={m.content} citations={m.citations} />
               ))}
               {streaming && (
                 <MessageBubble
