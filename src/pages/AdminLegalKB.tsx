@@ -617,13 +617,30 @@ export default function AdminLegalKB() {
                       </div>
                     )}
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => toggleActive(s.id, s.active)}
-                  >
-                    {s.active ? "Изключи" : "Активирай"}
-                  </Button>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {s.official_url && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => reindex(s)}
+                        disabled={reindexingId === s.id}
+                        title="Повторно сваляне от official_url и реиндексиране"
+                      >
+                        {reindexingId === s.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          "↻ Преиндексирай"
+                        )}
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => toggleActive(s.id, s.active)}
+                    >
+                      {s.active ? "Изключи" : "Активирай"}
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
