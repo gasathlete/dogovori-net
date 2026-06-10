@@ -1,9 +1,9 @@
 // Shared guard against generation/analysis of documents with illegal content.
 // Deterministic keyword/phrase matching after aggressive normalization
 // (lowercase, diacritics stripped, basic Cyrillic↔Latin transliteration,
-// digit-substitution like "у6ийство"). Hits are logged and an admin alert
-// email is queued. Returns a structured response object so callers can
-// short-circuit before invoking the AI gateway and before consuming quota.
+// digit-substitution like "у6ийство"). Hits are logged to the neutral
+// `restricted_processing_events` table — only minimal metadata, NO raw
+// content excerpts, NO matched terms (per legal review).
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -19,13 +19,9 @@ export type IllegalCategory =
 interface CategoryDef {
   category: IllegalCategory;
   label: string;
-  // Phrases must match as WHOLE WORDS (Unicode word boundary) after normalization.
   phrases: string[];
 }
 
-// All phrases are written normalized: lowercase, no diacritics, Cyrillic.
-// The matcher transliterates Latin→Cyrillic and replaces common digit-letter
-// substitutions before matching, so "ubiystvo" and "у6ийство" both hit "убииство".
 const CATEGORIES: CategoryDef[] = [
   {
     category: "violence",
@@ -123,7 +119,6 @@ const LATIN_TO_CYR: Record<string, string> = {
   t: "т", u: "у", f: "ф", h: "х", c: "ц", y: "и", j: "й",
 };
 
-// Bigrams handled before single-letter transliteration.
 const LATIN_BIGRAMS: Array<[RegExp, string]> = [
   [/zh/g, "ж"], [/ch/g, "ч"], [/sh/g, "ш"], [/sht/g, "щ"],
   [/yu/g, "ю"], [/ya/g, "я"], [/ts/g, "ц"], [/kh/g, "х"],
@@ -141,25 +136,20 @@ function stripDiacritics(s: string): string {
 function normalize(input: string): string {
   let s = (input ?? "").toLowerCase();
   s = stripDiacritics(s);
-  // Replace common digit/symbol substitutions
   s = s.replace(/[0134567890@$]/g, (c) => DIGIT_SUBS[c] ?? c);
-  // Latin → Cyrillic bigrams first
   for (const [re, rep] of LATIN_BIGRAMS) s = s.replace(re, rep);
-  // Latin → Cyrillic single letters (only if surrounded by/near Latin context)
   s = s.replace(/[a-z]/g, (c) => LATIN_TO_CYR[c] ?? c);
-  // Collapse runs of whitespace and remove decorative chars
   s = s.replace(/[^\p{L}\p{N}\s]/gu, " ");
   s = s.replace(/\s+/g, " ").trim();
   return s;
 }
 
-// --- Detection ----------------------------------------------------------
-
 export interface DetectionResult {
   blocked: boolean;
   category?: IllegalCategory;
   categoryLabel?: string;
-  matchedTerm?: string;
+  // Internal only — never persisted, never returned to client.
+  _internalMatchedTerm?: string;
 }
 
 export function detectIllegalContent(text: string): DetectionResult {
@@ -167,14 +157,12 @@ export function detectIllegalContent(text: string): DetectionResult {
   const norm = " " + normalize(text) + " ";
   for (const cat of CATEGORIES) {
     for (const phrase of cat.phrases) {
-      // Whole-word match by surrounding the phrase with spaces (already
-      // normalized so non-letters became spaces).
       if (norm.includes(" " + phrase + " ")) {
         return {
           blocked: true,
           category: cat.category,
           categoryLabel: cat.label,
-          matchedTerm: phrase,
+          _internalMatchedTerm: phrase,
         };
       }
     }
@@ -182,12 +170,10 @@ export function detectIllegalContent(text: string): DetectionResult {
   return { blocked: false };
 }
 
-// --- Guard helper (logs + alerts + returns ready 403 Response) ----------
-
 export const BLOCKED_USER_MESSAGE =
   "Това искане е блокирано. Платформата не генерира и не анализира документи с незаконно съдържание " +
   "(насилие, експлоатация на хора, наркотици, незаконни оръжия, измама, тероризъм). " +
-  "Опитът е регистриран и изпратен до администратор. " +
+  "Опитът е регистриран. " +
   "При повторни опити акаунтът може да бъде ограничен. " +
   "Ако смятате, че това е грешка — свържете се с екипа.";
 
@@ -198,44 +184,43 @@ interface GuardArgs {
   userId: string | null;
   userEmail?: string | null;
   ipHash?: string | null;
+  // user-agent is intentionally accepted but NOT persisted
   userAgent?: string | null;
   corsHeaders: Record<string, string>;
 }
 
 /**
  * Returns a ready-to-send 403 Response when the content is blocked,
- * or null when it is safe to proceed. Performs DB logging and fires
- * the admin alert email in the background (waitUntil if available).
+ * or null when it is safe to proceed. Logs ONLY minimal metadata —
+ * no raw text excerpt, no matched term (per legal review).
  */
 export async function guardIllegalContent(args: GuardArgs): Promise<Response | null> {
-  const { admin, text, functionName, userId, userEmail, ipHash, userAgent, corsHeaders } = args;
+  const { admin, text, functionName, userId, userEmail, ipHash, corsHeaders } = args;
   const result = detectIllegalContent(text);
   if (!result.blocked) return null;
 
-  const excerpt = text.slice(0, 500);
-
-  let attemptId: string | null = null;
+  let eventId: string | null = null;
   try {
     const { data } = await admin
-      .from("illegal_content_attempts")
+      .from("restricted_processing_events")
       .insert({
         user_id: userId,
         user_email: userEmail ?? null,
         ip_hash: ipHash ?? null,
         function_name: functionName,
         category: result.category!,
-        matched_term: result.matchedTerm ?? null,
-        payload_excerpt: excerpt,
-        user_agent: userAgent ?? null,
+        event_type: "illegal_content_blocked",
+        action: "blocked_before_model_call",
       })
       .select("id")
       .single();
-    attemptId = data?.id ?? null;
+    eventId = data?.id ?? null;
   } catch (e) {
-    console.error("[illegal-content] insert failed:", e);
+    // Never log payload content in errors.
+    console.error("[restricted-processing] insert failed:", (e as Error).message);
   }
 
-  // Fire-and-forget admin alert email(s).
+  // Fire-and-forget admin alert email(s). Excerpt is NEVER sent.
   const sendAlerts = async () => {
     try {
       const { data: admins } = await admin
@@ -245,7 +230,6 @@ export async function guardIllegalContent(args: GuardArgs): Promise<Response | n
       const adminIds = (admins ?? []).map((r: { user_id: string }) => r.user_id);
       if (adminIds.length === 0) return;
 
-      // Fetch admin emails via auth.users using admin API.
       const recipients: string[] = [];
       for (const id of adminIds) {
         try {
@@ -253,7 +237,7 @@ export async function guardIllegalContent(args: GuardArgs): Promise<Response | n
           const email = u?.user?.email;
           if (email) recipients.push(email);
         } catch (e) {
-          console.error("[illegal-content] admin lookup failed:", e);
+          console.error("[restricted-processing] admin lookup failed:", (e as Error).message);
         }
       }
 
@@ -263,24 +247,22 @@ export async function guardIllegalContent(args: GuardArgs): Promise<Response | n
             body: {
               templateName: "illegal-content-alert",
               recipientEmail: recipient,
-              idempotencyKey: `illegal-${attemptId ?? crypto.randomUUID()}-${recipient}`,
+              idempotencyKey: `restricted-${eventId ?? crypto.randomUUID()}-${recipient}`,
               templateData: {
                 category: result.categoryLabel,
-                matchedTerm: result.matchedTerm,
                 functionName,
                 userEmail: userEmail ?? "(анонимен)",
                 userId: userId ?? "—",
-                excerpt: excerpt.slice(0, 400),
                 createdAt: new Date().toISOString(),
               },
             },
           });
         } catch (e) {
-          console.error("[illegal-content] email send failed:", e);
+          console.error("[restricted-processing] email send failed:", (e as Error).message);
         }
       }
     } catch (e) {
-      console.error("[illegal-content] alert pipeline failed:", e);
+      console.error("[restricted-processing] alert pipeline failed:", (e as Error).message);
     }
   };
 
@@ -289,7 +271,7 @@ export async function guardIllegalContent(args: GuardArgs): Promise<Response | n
     // @ts-ignore
     EdgeRuntime.waitUntil(sendAlerts());
   } else {
-    sendAlerts().catch((e) => console.error(e));
+    sendAlerts().catch((e) => console.error("[restricted-processing]", e.message));
   }
 
   return new Response(
@@ -301,4 +283,32 @@ export async function guardIllegalContent(args: GuardArgs): Promise<Response | n
     }),
     { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
+}
+
+/**
+ * Log a special-category detection event (e.g., health/biometric data
+ * detected in upload). These are NOT illegal — only restricted from
+ * automated AI processing. No raw content is persisted.
+ */
+export async function logSpecialCategoryEvent(args: {
+  admin: SupabaseClient;
+  userId: string | null;
+  userEmail?: string | null;
+  functionName: string;
+  categoryCode: "health_data" | "biometric" | "criminal" | "minors" | "political_religious" | "other";
+  action?: string;
+}): Promise<void> {
+  const { admin, userId, userEmail, functionName, categoryCode, action } = args;
+  try {
+    await admin.from("restricted_processing_events").insert({
+      user_id: userId,
+      user_email: userEmail ?? null,
+      function_name: functionName,
+      category: categoryCode,
+      event_type: "special_category_detected",
+      action: action ?? "blocked_before_model_call",
+    });
+  } catch (e) {
+    console.error("[restricted-processing] special-category insert failed:", (e as Error).message);
+  }
 }

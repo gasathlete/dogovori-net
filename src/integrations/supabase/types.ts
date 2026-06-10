@@ -1122,45 +1122,6 @@ export type Database = {
         }
         Relationships: []
       }
-      illegal_content_attempts: {
-        Row: {
-          category: string
-          created_at: string
-          function_name: string
-          id: string
-          ip_hash: string | null
-          matched_term: string | null
-          payload_excerpt: string | null
-          user_agent: string | null
-          user_email: string | null
-          user_id: string | null
-        }
-        Insert: {
-          category: string
-          created_at?: string
-          function_name: string
-          id?: string
-          ip_hash?: string | null
-          matched_term?: string | null
-          payload_excerpt?: string | null
-          user_agent?: string | null
-          user_email?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          category?: string
-          created_at?: string
-          function_name?: string
-          id?: string
-          ip_hash?: string | null
-          matched_term?: string | null
-          payload_excerpt?: string | null
-          user_agent?: string | null
-          user_email?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       loyalty_unlocks: {
         Row: {
           id: string
@@ -1241,6 +1202,72 @@ export type Database = {
           link?: string | null
           title?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      order_snapshots: {
+        Row: {
+          ai_ack_accepted: boolean
+          billing_period: string | null
+          created_at: string
+          currency: string
+          dpa_version: string | null
+          id: string
+          ip: unknown
+          plan_name: string
+          price_amount: number
+          privacy_version: string
+          refund_version: string
+          stripe_session_id: string | null
+          stripe_subscription_id: string | null
+          terms_version: string
+          user_agent: string | null
+          user_id: string
+          vat_included: boolean
+          vat_rate: number
+          withdrawal_version: string
+        }
+        Insert: {
+          ai_ack_accepted?: boolean
+          billing_period?: string | null
+          created_at?: string
+          currency?: string
+          dpa_version?: string | null
+          id?: string
+          ip?: unknown
+          plan_name: string
+          price_amount: number
+          privacy_version: string
+          refund_version: string
+          stripe_session_id?: string | null
+          stripe_subscription_id?: string | null
+          terms_version: string
+          user_agent?: string | null
+          user_id: string
+          vat_included?: boolean
+          vat_rate?: number
+          withdrawal_version: string
+        }
+        Update: {
+          ai_ack_accepted?: boolean
+          billing_period?: string | null
+          created_at?: string
+          currency?: string
+          dpa_version?: string | null
+          id?: string
+          ip?: unknown
+          plan_name?: string
+          price_amount?: number
+          privacy_version?: string
+          refund_version?: string
+          stripe_session_id?: string | null
+          stripe_subscription_id?: string | null
+          terms_version?: string
+          user_agent?: string | null
+          user_id?: string
+          vat_included?: boolean
+          vat_rate?: number
+          withdrawal_version?: string
         }
         Relationships: []
       }
@@ -1405,6 +1432,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          allow_third_country_ai: boolean
           avatar_url: string | null
           company: string | null
           created_at: string
@@ -1416,6 +1444,7 @@ export type Database = {
           vat_number: string | null
         }
         Insert: {
+          allow_third_country_ai?: boolean
           avatar_url?: string | null
           company?: string | null
           created_at?: string
@@ -1427,6 +1456,7 @@ export type Database = {
           vat_number?: string | null
         }
         Update: {
+          allow_third_country_ai?: boolean
           avatar_url?: string | null
           company?: string | null
           created_at?: string
@@ -1541,6 +1571,42 @@ export type Database = {
           source_backup?: string | null
           steps?: Json
           updated_at?: string
+        }
+        Relationships: []
+      }
+      restricted_processing_events: {
+        Row: {
+          action: string
+          category: string
+          created_at: string
+          event_type: string
+          function_name: string
+          id: string
+          ip_hash: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action?: string
+          category: string
+          created_at?: string
+          event_type?: string
+          function_name: string
+          id?: string
+          ip_hash?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          category?: string
+          created_at?: string
+          event_type?: string
+          function_name?: string
+          id?: string
+          ip_hash?: string | null
+          user_email?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1810,6 +1876,7 @@ export type Database = {
           created_at: string
           decline_reason: string | null
           declined_at: string | null
+          document_hash_at_sign: string | null
           email: string
           id: string
           name: string
@@ -1818,12 +1885,17 @@ export type Database = {
           otp_attempts: number
           otp_code_hash: string | null
           otp_expires_at: string | null
+          representative_declaration: boolean
           request_id: string
           role: string | null
+          ses_equivalence_accepted: boolean
+          ses_equivalence_text_version: string | null
           sign_token: string
           signature_data_url: string | null
           signature_name: string | null
           signed_at: string | null
+          signer_capacity: string | null
+          signer_eik: string | null
           signer_ip_hash: string | null
           signer_user_agent: string | null
           status: Database["public"]["Enums"]["signer_status"]
@@ -1834,6 +1906,7 @@ export type Database = {
           created_at?: string
           decline_reason?: string | null
           declined_at?: string | null
+          document_hash_at_sign?: string | null
           email: string
           id?: string
           name: string
@@ -1842,12 +1915,17 @@ export type Database = {
           otp_attempts?: number
           otp_code_hash?: string | null
           otp_expires_at?: string | null
+          representative_declaration?: boolean
           request_id: string
           role?: string | null
+          ses_equivalence_accepted?: boolean
+          ses_equivalence_text_version?: string | null
           sign_token: string
           signature_data_url?: string | null
           signature_name?: string | null
           signed_at?: string | null
+          signer_capacity?: string | null
+          signer_eik?: string | null
           signer_ip_hash?: string | null
           signer_user_agent?: string | null
           status?: Database["public"]["Enums"]["signer_status"]
@@ -1858,6 +1936,7 @@ export type Database = {
           created_at?: string
           decline_reason?: string | null
           declined_at?: string | null
+          document_hash_at_sign?: string | null
           email?: string
           id?: string
           name?: string
@@ -1866,12 +1945,17 @@ export type Database = {
           otp_attempts?: number
           otp_code_hash?: string | null
           otp_expires_at?: string | null
+          representative_declaration?: boolean
           request_id?: string
           role?: string | null
+          ses_equivalence_accepted?: boolean
+          ses_equivalence_text_version?: string | null
           sign_token?: string
           signature_data_url?: string | null
           signature_name?: string | null
           signed_at?: string | null
+          signer_capacity?: string | null
+          signer_eik?: string | null
           signer_ip_hash?: string | null
           signer_user_agent?: string | null
           status?: Database["public"]["Enums"]["signer_status"]
@@ -2195,6 +2279,7 @@ export type Database = {
           current_period_end: string | null
           current_period_start: string | null
           environment: string
+          eu_only_ai: boolean
           id: string
           letterhead_enabled: boolean
           logo_url: string | null
@@ -2222,6 +2307,7 @@ export type Database = {
           current_period_end?: string | null
           current_period_start?: string | null
           environment?: string
+          eu_only_ai?: boolean
           id?: string
           letterhead_enabled?: boolean
           logo_url?: string | null
@@ -2249,6 +2335,7 @@ export type Database = {
           current_period_end?: string | null
           current_period_start?: string | null
           environment?: string
+          eu_only_ai?: boolean
           id?: string
           letterhead_enabled?: boolean
           logo_url?: string | null
@@ -2762,16 +2849,15 @@ export type Database = {
         Args: { _from: string; _to: string }
         Returns: {
           blocked_calls: number
-          errored_calls: number
+          distinct_users: number
           fallback_used: number
-          illegal_attempts: number
-          pii_calls: number
           redacted_calls: number
+          redaction_applied: number
+          restricted_events: number
           special_category_calls: number
-          total_ai_calls: number
-          total_tokens_in: number
-          total_tokens_out: number
-          unique_users: number
+          tokens_in_sum: number
+          tokens_out_sum: number
+          total_calls: number
         }[]
       }
       admin_privacy_timeseries: {
@@ -2851,6 +2937,7 @@ export type Database = {
           current_period_end: string | null
           current_period_start: string | null
           environment: string
+          eu_only_ai: boolean
           id: string
           letterhead_enabled: boolean
           logo_url: string | null

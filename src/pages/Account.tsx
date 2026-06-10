@@ -2015,11 +2015,12 @@ function SettingsTab({ profile, setProfile, userId }: {
         <p className="text-[11px] text-muted-foreground/80">Лимит: 3 изтегляния в 24 часа.</p>
         <div className="mt-3 border-t border-border/40 pt-3 space-y-2">
           <p className="text-xs font-semibold">Документи за съответствие</p>
-          <Button asChild variant="outline" size="sm" className="border-gold/40">
-            <a href="/dpia-dogovori-net.docx" download>
-              <Download className="mr-2 h-3 w-3" /> DPIA (Word, по чл. 35 GDPR)
-            </a>
-          </Button>
+          <p className="text-[11px] text-muted-foreground">
+            Резюме на оценката на въздействието (DPIA Summary) е достъпно на{" "}
+            <Link to="/legal/dpia-summary" className="underline text-gold">/legal/dpia-summary</Link>.
+            Пълната DPIA е вътрешен документ за отчетност и не се публикува публично —
+            предоставя се само при надзорна проверка.
+          </p>
           <Button asChild variant="outline" size="sm" className="border-gold/40">
             <a href="/legal-memorandum-dogovori-net.docx" download>
               <Download className="mr-2 h-3 w-3" /> Правен меморандум (за адвокатски преглед)

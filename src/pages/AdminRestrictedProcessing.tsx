@@ -18,41 +18,51 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-interface IllegalRow {
+interface EventRow {
   id: string;
   user_id: string | null;
   user_email: string | null;
   ip_hash: string | null;
   function_name: string;
   category: string;
-  matched_term: string | null;
-  payload_excerpt: string | null;
-  user_agent: string | null;
+  event_type: string;
+  action: string;
   created_at: string;
 }
 
 const CATEGORY_LABEL: Record<string, string> = {
-  csam: "Детска експлоатация (CSAM)",
+  violence: "Насилие",
+  sexual_minors: "Сексуална експлоатация / непълнолетни",
+  human_trafficking: "Трафик на хора",
+  drugs: "Наркотици",
+  weapons: "Незаконни оръжия",
+  fraud: "Измама / подкуп",
   terrorism: "Тероризъм",
-  weapons: "Незаконно оръжие",
-  drugs: "Незаконни наркотици",
-  fraud: "Измама / документна",
-  hate_speech: "Реч на омразата",
-  malware: "Малуер / хакване",
+  health_data: "Здравни данни",
+  biometric: "Биометрични данни",
+  criminal: "Наказателни производства",
+  minors: "Данни за непълнолетни",
+  political_religious: "Политически/религиозни убеждения",
+  other: "Други ограничения",
 };
 
-function categoryTone(c: string): "destructive" | "default" | "secondary" {
-  if (c === "csam" || c === "terrorism") return "destructive";
-  if (c === "weapons" || c === "drugs" || c === "malware") return "destructive";
+const EVENT_TYPE_LABEL: Record<string, string> = {
+  illegal_content_blocked: "Незаконно съдържание (блокирано)",
+  special_category_detected: "Чувствителна категория (ограничено)",
+};
+
+function tone(c: string): "destructive" | "secondary" {
+  if (["violence", "sexual_minors", "human_trafficking", "weapons", "terrorism", "drugs"].includes(c)) return "destructive";
   return "secondary";
 }
 
-export default function AdminIllegalContent() {
+export default function AdminRestrictedProcessing() {
   const { user, loading } = useAuth();
   const [allowed, setAllowed] = useState<boolean | null>(null);
-  const [rows, setRows] = useState<IllegalRow[]>([]);
+  const [rows, setRows] = useState<EventRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [category, setCategory] = useState<string>("all");
+  const [eventType, setEventType] = useState<string>("all");
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -65,14 +75,15 @@ export default function AdminIllegalContent() {
     setBusy(true);
     try {
       let q = supabase
-        .from("illegal_content_attempts")
+        .from("restricted_processing_events" as any)
         .select("*")
         .order("created_at", { ascending: false })
         .limit(200);
       if (category !== "all") q = q.eq("category", category);
+      if (eventType !== "all") q = q.eq("event_type", eventType);
       const { data, error } = await q;
       if (error) throw error;
-      setRows((data ?? []) as IllegalRow[]);
+      setRows((data ?? []) as unknown as EventRow[]);
     } catch (e: any) {
       toast.error(e?.message ?? "Грешка при зареждане");
     } finally {
@@ -83,22 +94,20 @@ export default function AdminIllegalContent() {
   useEffect(() => {
     if (allowed) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allowed, category]);
+  }, [allowed, category, eventType]);
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     if (!s) return rows;
     return rows.filter((r) =>
       (r.user_email ?? "").toLowerCase().includes(s) ||
-      (r.matched_term ?? "").toLowerCase().includes(s) ||
-      (r.payload_excerpt ?? "").toLowerCase().includes(s) ||
       r.function_name.toLowerCase().includes(s),
     );
   }, [rows, search]);
 
   const dismiss = async (id: string) => {
     if (!confirm("Изтриване на записа от регистъра?")) return;
-    const { error } = await supabase.from("illegal_content_attempts").delete().eq("id", id);
+    const { error } = await supabase.from("restricted_processing_events" as any).delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     setRows((prev) => prev.filter((r) => r.id !== id));
     toast.success("Изтрит");
@@ -127,7 +136,7 @@ export default function AdminIllegalContent() {
             <Link to="/admin/privacy"><ArrowLeft className="h-4 w-4 mr-1" /> Privacy</Link>
           </Button>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <ShieldAlert className="h-7 w-7 text-amber-500" /> Опити за незаконно съдържание
+            <ShieldAlert className="h-7 w-7 text-amber-500" /> Регистър на ограничени обработки
           </h1>
           <Button variant="outline" size="sm" className="ml-auto" onClick={load} disabled={busy}>
             <RefreshCw className={`h-4 w-4 mr-1 ${busy ? "animate-spin" : ""}`} /> Опресни
@@ -135,12 +144,23 @@ export default function AdminIllegalContent() {
         </div>
 
         <p className="text-sm text-muted-foreground mb-4 max-w-3xl">
-          Регистър на блокирани заявки към edge функции, които съдържат термини от black-list.
-          Показваме хеширан IP, имейл, кратък откъс (≤500 знака) и употребен термин — за оперативно проследяване.
+          Неутрален регистър на събития, при които AI обработка е била блокирана —
+          както при опит за незаконно съдържание, така и при засечена специална категория
+          лични данни по чл. 9 GDPR. Записваме само минимални метаданни (хеширан IP, имейл,
+          категория). Не съхраняваме откъси от съдържанието или открити термини.
         </p>
 
         <Card className="mb-4">
           <CardContent className="pt-4 flex flex-wrap gap-3 items-center">
+            <Select value={eventType} onValueChange={setEventType}>
+              <SelectTrigger className="w-[260px]"><SelectValue placeholder="Тип събитие" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Всички типове</SelectItem>
+                {Object.entries(EVENT_TYPE_LABEL).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger className="w-[220px]"><SelectValue placeholder="Категория" /></SelectTrigger>
               <SelectContent>
@@ -151,7 +171,7 @@ export default function AdminIllegalContent() {
               </SelectContent>
             </Select>
             <Input
-              placeholder="Търси по имейл, термин, функция…"
+              placeholder="Търси по имейл или функция…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="max-w-sm"
@@ -167,11 +187,11 @@ export default function AdminIllegalContent() {
             <TableHeader>
               <TableRow>
                 <TableHead>Дата</TableHead>
+                <TableHead>Тип</TableHead>
                 <TableHead>Категория</TableHead>
                 <TableHead>Потребител</TableHead>
                 <TableHead>Функция</TableHead>
-                <TableHead>Термин</TableHead>
-                <TableHead>Откъс</TableHead>
+                <TableHead>Действие</TableHead>
                 <TableHead className="w-[60px]" />
               </TableRow>
             </TableHeader>
@@ -185,8 +205,11 @@ export default function AdminIllegalContent() {
                   <TableCell className="whitespace-nowrap text-xs">
                     {new Date(r.created_at).toLocaleString("bg-BG")}
                   </TableCell>
+                  <TableCell className="text-xs">
+                    {EVENT_TYPE_LABEL[r.event_type] ?? r.event_type}
+                  </TableCell>
                   <TableCell>
-                    <Badge variant={categoryTone(r.category)}>
+                    <Badge variant={tone(r.category)}>
                       {CATEGORY_LABEL[r.category] ?? r.category}
                     </Badge>
                   </TableCell>
@@ -197,24 +220,9 @@ export default function AdminIllegalContent() {
                     )}
                   </TableCell>
                   <TableCell className="font-mono text-xs">{r.function_name}</TableCell>
-                  <TableCell className="text-xs">
-                    {r.matched_term ? (
-                      <code className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300">
-                        {r.matched_term}
-                      </code>
-                    ) : "—"}
-                  </TableCell>
-                  <TableCell className="max-w-[320px]">
-                    <div className="text-xs text-muted-foreground line-clamp-3">
-                      {r.payload_excerpt ?? "—"}
-                    </div>
-                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{r.action}</TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost" size="icon"
-                      onClick={() => dismiss(r.id)}
-                      title="Изтрий"
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => dismiss(r.id)} title="Изтрий">
                       <Trash2 className="h-4 w-4 text-muted-foreground" />
                     </Button>
                   </TableCell>
@@ -226,7 +234,7 @@ export default function AdminIllegalContent() {
 
         <p className="text-xs text-muted-foreground mt-4">
           Записите се пазят до 12 месеца съгласно политиката за съхранение.
-          Изтриването е окончателно — данните не подлежат на възстановяване.
+          Не съхраняваме сурово съдържание или открити термини — само метаданни.
         </p>
       </div>
     </div>
