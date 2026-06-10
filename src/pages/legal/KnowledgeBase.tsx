@@ -11,7 +11,7 @@ interface SourceRow {
   source_type: string;
   issuer: string | null;
   official_url: string | null;
-  version: string | null;
+  current_version: string | null;
   updated_at: string;
   active: boolean;
 }
@@ -24,11 +24,11 @@ export default function KnowledgeBasePage() {
     (async () => {
       const { data } = await supabase
         .from("legal_sources")
-        .select("id,short_code,title,jurisdiction,source_type,issuer,official_url,version,updated_at,active")
+        .select("id,short_code,title,jurisdiction,source_type,issuer,official_url,current_version,updated_at,active")
         .eq("active", true)
         .order("jurisdiction")
         .order("short_code");
-      setRows((data ?? []) as SourceRow[]);
+      setRows(((data ?? []) as unknown) as SourceRow[]);
       setLoading(false);
     })();
   }, []);
