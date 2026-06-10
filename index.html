@@ -50,7 +50,8 @@
     <!-- canonical + hreflang are managed per-route via react-helmet-async in src/components/Seo.tsx -->
     <!-- (static <link> tags don't dedupe with Helmet, so duplicates would otherwise ship on every route) -->
     <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#0b1525" />
+    <meta name="theme-color" content="#0b1525" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#faf8f3" media="(prefers-color-scheme: light)" />
     <meta name="geo.region" content="BG" />
     <meta name="geo.placename" content="Bulgaria" />
     <meta name="language" content="Bulgarian" />
