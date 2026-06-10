@@ -8,6 +8,7 @@ import { guardIllegalContent } from "../_shared/illegal-content.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
+import { retrieveLegalContext } from "../_shared/legal-rag.ts";
 
 const SYSTEM_PROMPT = `Ти си "Правен асистент Dogovori.net" — професионален 24/7 помощник за PRO и Team абонати на платформата dogovori.net.
 
