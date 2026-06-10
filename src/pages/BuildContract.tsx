@@ -490,11 +490,38 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
 
   // Auto-save the parent right after generation so children can be linked immediately.
   // This unlocks the "create appendix/КСС" flow without waiting for an explicit Save click.
+  const autoSaveInFlight = useRef(false);
   useEffect(() => {
     if (!result || !user || savedDocId || saving) return;
+    if (autoSaveInFlight.current) return;
+    autoSaveInFlight.current = true;
     (async () => {
       try {
         const finalTitle = (name || result.contract.title).trim() || result.contract.title;
+        const sourceId = categoryId === "__other__" ? "custom" : categoryId;
+        // Dedupe: reuse existing saved row for this user + source_id if present.
+        if (sourceId) {
+          const { data: existing } = await supabase
+            .from("saved_documents")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("source_id", sourceId)
+            .eq("kind", "contract")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (existing?.id) {
+            await supabase
+              .from("saved_documents")
+              .update({
+                title: finalTitle,
+                payload: { ...result.contract, title: finalTitle } as any,
+              })
+              .eq("id", existing.id);
+            setSavedDocId(existing.id);
+            return;
+          }
+        }
         const { data, error } = await supabase
           .from("saved_documents")
           .insert({
@@ -502,7 +529,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
             kind: "contract",
             title: finalTitle,
             payload: { ...result.contract, title: finalTitle } as any,
-            source_id: categoryId === "__other__" ? "custom" : categoryId,
+            source_id: sourceId,
           })
           .select("id")
           .single();
@@ -510,6 +537,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         setSavedDocId(data.id);
       } catch (e) {
         console.error("auto-save parent failed:", e);
+      } finally {
+        autoSaveInFlight.current = false;
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
