@@ -17,6 +17,8 @@ import { inferDocumentType } from "@/lib/documentTypeInference";
 import { QUESTION_GRAPHS } from "@/data/questionGraphs/dogovor-za-naem-na-zhilishte";
 import { useDownloadCounts } from "@/hooks/useDownloadCounts";
 import { useTemplateSearch } from "@/hooks/useTemplateSearch";
+import { SECTOR_META } from "@/data/sectorsMeta";
+import { SECTOR_IMAGES } from "@/lib/sectorImages";
 
 /** Slugs that have a registered dynamic question graph (Sprint 1+2). */
 const DYNAMIC_SLUGS: Set<string> = new Set(Object.keys(QUESTION_GRAPHS));
