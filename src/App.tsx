@@ -94,6 +94,7 @@ const RetentionPolicy = lazy(() => import("./pages/legal/RetentionPolicy.tsx"));
 const SubprocessorRegister = lazy(() => import("./pages/legal/SubprocessorRegister.tsx"));
 const ModelRoutingPolicy = lazy(() => import("./pages/legal/ModelRoutingPolicy.tsx"));
 const IncidentResponse = lazy(() => import("./pages/legal/IncidentResponse.tsx"));
+const ROPA = lazy(() => import("./pages/legal/ROPA.tsx"));
 const SharedDocument = lazy(() => import("./pages/SharedDocument.tsx"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe.tsx"));
 const Blog = lazy(() => import("./pages/Blog.tsx"));
