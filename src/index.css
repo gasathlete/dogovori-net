@@ -629,6 +629,18 @@
   @media (prefers-reduced-motion: reduce) {
     .marquee-track { animation: none; }
   }
+
+  /* Partners marquee — smoothly scrolling logo cards */
+  .partners-marquee__track {
+    animation: marquee-x 60s linear infinite;
+    will-change: transform;
+  }
+  .partners-marquee:hover .partners-marquee__track {
+    animation-play-state: paused;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .partners-marquee__track { animation: none; }
+  }
 }
 
 /* Prevent iOS auto-zoom on input focus by ensuring min 16px font-size */
