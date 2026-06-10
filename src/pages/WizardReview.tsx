@@ -325,7 +325,7 @@ export default function WizardReviewPage() {
         }
         if (data?.code === "quota_exceeded") {
           toast.error("Изчерпан безплатен лимит", {
-            description: "Активирайте Pro или закупете пакет операции.",
+            description: "Активирайте платен план или закупете пакет операции.",
             action: { label: "Виж опции", onClick: () => goSubscription() },
           });
           return;
