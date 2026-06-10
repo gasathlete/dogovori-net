@@ -164,6 +164,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
       let buffer = "";
       let accText = "";
       let receivedThreadId: string | null = null;
+      let receivedCitations: LegalCitation[] = [];
 
       while (true) {
         const { value, done } = await reader.read();
@@ -183,8 +184,9 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
           if (dataLine === "[DONE]") continue;
           try {
             const parsed = JSON.parse(dataLine);
-            if (isMeta && parsed.threadId) {
-              receivedThreadId = parsed.threadId;
+            if (isMeta) {
+              if (parsed.threadId) receivedThreadId = parsed.threadId;
+              if (Array.isArray(parsed.citations)) receivedCitations = parsed.citations;
             } else if (parsed.delta) {
               accText += parsed.delta;
               setStreamingText(accText);
@@ -194,7 +196,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
       }
 
       // Finalize
-      const assistantMsg: Msg = { id: `tmp-a-${Date.now()}`, role: "assistant", content: accText };
+      const assistantMsg: Msg = { id: `tmp-a-${Date.now()}`, role: "assistant", content: accText, citations: receivedCitations };
       setMessages([...newMessages, assistantMsg]);
       setStreamingText("");
       if (receivedThreadId && receivedThreadId !== activeThreadId) {
