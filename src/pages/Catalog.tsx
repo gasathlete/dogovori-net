@@ -706,3 +706,203 @@ function CategoryDocs({ cat, forceExpanded, downloadCounts }: { cat: any; forceE
     </>
   );
 }
+
+/* =====================================================================
+   SectorCatalogGrid — illustrated sector tiles (homepage-style grid) used
+   as the top-level structure of the catalog. Each tile groups all
+   categories that share `sectorId`, and expands inline (col-span-full) to
+   reveal the first 5 documents from that sector.
+   ===================================================================== */
+
+const SECTOR_PREVIEW_LIMIT = 5;
+
+type FilteredCategory = (typeof CATALOG)[number] & { documents: (typeof CATALOG)[number]["documents"] };
+
+function SectorCatalogGrid({
+  filtered,
+  downloadCounts,
+  forceExpandAll,
+}: {
+  filtered: FilteredCategory[];
+  downloadCounts: Map<string, number>;
+  forceExpandAll: boolean;
+}) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Group filtered categories by sectorId, preserving SECTOR_META order.
+  const buckets = useMemo(() => {
+    const byId = new Map<string, FilteredCategory[]>();
+    for (const cat of filtered) {
+      const sid = (cat as any).sectorId ?? "services";
+      if (!byId.has(sid)) byId.set(sid, []);
+      byId.get(sid)!.push(cat);
+    }
+    return SECTOR_META
+      .map((s) => {
+        const cats = byId.get(s.id) ?? [];
+        const docs = cats.flatMap((c) =>
+          c.documents.map((d) => ({ doc: d, cat: c })),
+        );
+        // Rank: TOP first, then NEW, then in-order.
+        const rank = (b?: string) => (b === "TOP" ? 0 : b === "NEW" ? 1 : 2);
+        docs.sort((a, b) => rank((a.doc as any).badge) - rank((b.doc as any).badge));
+        return { sector: s, docs, totalCats: cats.length };
+      })
+      .filter((b) => b.docs.length > 0);
+  }, [filtered]);
+
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-5">
+      {buckets.map(({ sector: s, docs, totalCats }) => {
+        const Icon = (Icons as any)[s.icon] ?? Icons.FileText;
+        const bg = SECTOR_IMAGES[s.id];
+        const isOpen = forceExpandAll || expandedId === s.id;
+        const preview = docs.slice(0, SECTOR_PREVIEW_LIMIT);
+        const remaining = docs.length - preview.length;
+
+        return (
+          <section
+            key={s.id}
+            id={`sector-${s.id}`}
+            className={`group relative isolate overflow-hidden rounded-xl surface-elevated transition-all duration-300 scroll-mt-32 ${
+              isOpen ? "lg:col-span-3 md:col-span-2" : "hover:-translate-y-0.5 hover:border-gold/45"
+            }`}
+          >
+            {bg && (
+              <>
+                <img
+                  src={bg}
+                  alt=""
+                  aria-hidden="true"
+                  loading="lazy"
+                  width={1024}
+                  height={768}
+                  className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-[0.32] transition-opacity duration-500 group-hover:opacity-[0.48]"
+                />
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-card/75 via-card/65 to-card/85"
+                />
+              </>
+            )}
+
+            {/* Tile header — always visible. Click toggles the sector. */}
+            <button
+              type="button"
+              onClick={() => setExpandedId((cur) => (cur === s.id ? null : s.id))}
+              aria-expanded={isOpen}
+              aria-controls={`sector-body-${s.id}`}
+              className="block w-full p-6 text-left sm:p-7"
+            >
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/0 to-transparent transition-all duration-300 group-hover:via-gold/70" />
+              <div className="flex items-start gap-4">
+                <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gold/25 bg-gold/5 text-gold transition-all duration-200 group-hover:border-gold/50 group-hover:bg-gold/10">
+                  <Icon className="h-5 w-5" strokeWidth={1.6} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-serif text-lg font-bold leading-snug text-foreground sm:text-xl">
+                    {s.title}
+                  </h3>
+                  <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">
+                    {s.subtitle}
+                  </p>
+                  <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+                    {s.description}
+                  </p>
+                  <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-gold/25 bg-gold/5 px-2 py-0.5 text-gold/90">
+                      {docs.length} документа
+                    </span>
+                    {totalCats > 1 && (
+                      <span>{totalCats} категории</span>
+                    )}
+                  </div>
+                </div>
+                <ChevronDown
+                  aria-hidden="true"
+                  className={`h-4 w-4 shrink-0 text-gold/70 transition-transform duration-300 ${
+                    isOpen ? "rotate-180" : "rotate-0"
+                  }`}
+                />
+              </div>
+            </button>
+
+            {/* Expanded body — first 5 documents from this sector. */}
+            {isOpen && (
+              <div id={`sector-body-${s.id}`} className="border-t border-gold/15 bg-card/85 px-5 pb-5 pt-4 sm:px-7 sm:pb-7">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                    Първите {Math.min(SECTOR_PREVIEW_LIMIT, preview.length)} документа
+                  </div>
+                  <Link
+                    to={`/sektor/${s.id}`}
+                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold transition-opacity hover:opacity-80"
+                  >
+                    Виж всички {docs.length > preview.length ? `(${docs.length})` : ""}
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+
+                <ul className="divide-y divide-border/40 overflow-hidden rounded-lg border border-border/50 bg-card/60">
+                  {preview.map(({ doc, cat }) => {
+                    const docSlug = slugify(doc.name);
+                    const hasDynamic = DYNAMIC_SLUGS.has(docSlug);
+                    const downloads = downloadCounts.get(docSlug) ?? 0;
+                    const wizardHref = hasDynamic
+                      ? `/wizard-graph/${docSlug}`
+                      : doc.bilingual
+                        ? `/wizard-bilingual/${(cat as any).sectorId}?doc=${encodeURIComponent(doc.name)}`
+                        : `/wizard/${(cat as any).sectorId}?doc=${encodeURIComponent(doc.name)}`;
+                    const shablonHref = `/shablon/${docSlug}`;
+                    return (
+                      <li key={doc.name} className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-gold/[0.05]">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Link
+                              to={shablonHref}
+                              className="font-serif text-sm font-bold text-foreground transition-colors hover:text-gold"
+                            >
+                              {doc.name}
+                            </Link>
+                            {(doc as any).badge && <Badge label={(doc as any).badge} />}
+                            {doc.bilingual && (
+                              <span className="inline-block shrink-0 rounded-sm border border-gold/40 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-gold">BG/EN</span>
+                            )}
+                            {hasDynamic && (
+                              <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300">
+                                <Zap className="h-2.5 w-2.5" /> Динамичен
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{doc.purpose}</p>
+                          {downloads > 0 && (
+                            <div className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground/80">
+                              <Download className="h-2.5 w-2.5" />
+                              {downloads.toLocaleString("bg-BG")} сваляния
+                            </div>
+                          )}
+                        </div>
+                        <Link
+                          to={wizardHref}
+                          className="shrink-0 self-center text-[11px] font-bold uppercase tracking-wider text-gold transition-opacity hover:opacity-80"
+                        >
+                          Попълни →
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                {remaining > 0 && (
+                  <div className="mt-3 text-center text-xs text-muted-foreground">
+                    + още {remaining} документа в сектора
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        );
+      })}
+    </div>
+  );
+}
