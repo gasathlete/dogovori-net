@@ -208,6 +208,74 @@ export default function Sign() {
                   </label>
                   <Input value={otpCode} onChange={(e) => setOtpCode(e.target.value)} maxLength={6} />
                 </div>
+
+                {/* ZEDEUU чл. 13, ал. 4 — equivalence-to-handwritten consent */}
+                <label className="flex items-start gap-2 text-xs leading-relaxed cursor-pointer rounded-md border border-border/60 bg-card/40 p-3">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={sesAccepted}
+                    onChange={(e) => setSesAccepted(e.target.checked)}
+                  />
+                  <span>
+                    Съгласявам се този електронен подпис (усъвършенстван електронен
+                    подпис по смисъла на Регламент (ЕС) 910/2014 — eIDAS) да има
+                    правната сила на саморъчен подпис между страните по този документ
+                    (чл. 13, ал. 4 ЗЕДЕУУ).
+                  </span>
+                </label>
+
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={signsAsEntity}
+                    onChange={(e) => setSignsAsEntity(e.target.checked)}
+                  />
+                  Подписвам от името на юридическо лице
+                </label>
+
+                {signsAsEntity && (
+                  <div className="space-y-3 rounded-md border border-border/60 bg-card/40 p-3">
+                    <div>
+                      <label className="text-xs font-medium block mb-1">ЕИК / БУЛСТАТ</label>
+                      <Input value={eik} onChange={(e) => setEik(e.target.value)} placeholder="9 или 13 цифри" maxLength={13} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium block mb-1">Качество на подписващия</label>
+                      <select
+                        value={signerCapacity}
+                        onChange={(e) => setSignerCapacity(e.target.value)}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="">— избери —</option>
+                        <option value="manager">Управител</option>
+                        <option value="board_member">Член на съвета</option>
+                        <option value="attorney">Пълномощник</option>
+                        <option value="employee">Служител с делегирани правомощия</option>
+                        <option value="other">Друго</option>
+                      </select>
+                    </div>
+                    <label className="flex items-start gap-2 text-xs leading-relaxed cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5"
+                        checked={repDeclaration}
+                        onChange={(e) => setRepDeclaration(e.target.checked)}
+                      />
+                      <span>
+                        Декларирам, че имам представителна власт да обвържа юридическото
+                        лице с този договор. Dogovori.net не проверява представителната
+                        власт — отговорността е изцяло моя.
+                      </span>
+                    </label>
+                  </div>
+                )}
+
+                <p className="text-[11px] text-muted-foreground">
+                  За документи с високи правни залози (имоти, нотариална форма, кредити,
+                  прехвърляне на дялове) препоръчваме квалифициран електронен подпис (QES).
+                </p>
+
                 <div className="flex gap-2">
                   <Button onClick={doSign} disabled={busy}>
                     {busy ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
