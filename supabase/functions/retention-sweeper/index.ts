@@ -6,12 +6,15 @@
 //   - orphaned storage objects in 'uploads' bucket
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { requireServiceRole } from "../_shared/cron-auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const denied = await requireServiceRole(req);
+  if (denied) return denied;
 
   const stats = {
     uploaded_deleted: 0,
@@ -110,8 +113,9 @@ Deno.serve(async (req) => {
       status: 200,
     });
   } catch (e) {
+    console.error("retention-sweeper error", e);
     return new Response(
-      JSON.stringify({ ok: false, error: (e as Error).message, stats }),
+      JSON.stringify({ ok: false, error: "internal_error", stats }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 },
     );
   }
