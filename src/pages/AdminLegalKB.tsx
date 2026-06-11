@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, BookOpen, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Loader2, BookOpen, Trash2, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { Helmet } from "react-helmet-async";
 
@@ -130,6 +132,26 @@ export default function AdminLegalKB() {
   const [fetchUrl, setFetchUrl] = useState("");
   const [validation, setValidation] = useState<ValidationInfo | null>(null);
   const [reindexingId, setReindexingId] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<SourceRow | null>(null);
+  const [viewChunks, setViewChunks] = useState<Array<{ id: string; citation_label: string | null; article_no: string | null; content: string; chunk_index: number }>>([]);
+  const [viewLoading, setViewLoading] = useState(false);
+  const [viewSearch, setViewSearch] = useState("");
+
+  const openViewer = async (s: SourceRow) => {
+    setViewing(s);
+    setViewChunks([]);
+    setViewSearch("");
+    setViewLoading(true);
+    const { data, error } = await supabase
+      .from("legal_chunks")
+      .select("id,citation_label,article_no,content,chunk_index")
+      .eq("source_id", s.id)
+      .order("chunk_index", { ascending: true })
+      .limit(2000);
+    if (error) toast.error("Грешка при зареждане на съдържанието");
+    setViewChunks((data ?? []) as any);
+    setViewLoading(false);
+  };
   const [form, setForm] = useState({
     short_code: "",
     title: "",
@@ -618,6 +640,14 @@ export default function AdminLegalKB() {
                     )}
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openViewer(s)}
+                      title="Преглед на индексираното съдържание"
+                    >
+                      <Eye className="h-3 w-3 mr-1" /> Преглед
+                    </Button>
                     {s.official_url && (
                       <Button
                         size="sm"
@@ -647,6 +677,53 @@ export default function AdminLegalKB() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="font-mono">
+              {viewing?.short_code} — {viewing?.title}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span>{viewChunks.length} чънка</span>
+              <Input
+                placeholder="Търси в съдържанието…"
+                value={viewSearch}
+                onChange={(e) => setViewSearch(e.target.value)}
+                className="h-8 max-w-xs text-xs"
+              />
+            </div>
+            <ScrollArea className="h-[60vh] rounded-md border border-border/40 p-3">
+              {viewLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : viewChunks.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Няма индексирано съдържание.</p>
+              ) : (
+                <div className="space-y-3">
+                  {viewChunks
+                    .filter((c) =>
+                      viewSearch.trim()
+                        ? (c.content + " " + (c.citation_label ?? "")).toLowerCase().includes(viewSearch.toLowerCase())
+                        : true,
+                    )
+                    .map((c) => (
+                      <div key={c.id} className="border-l-2 border-gold/60 pl-3">
+                        <div className="text-[10px] font-mono text-muted-foreground">
+                          {c.citation_label ?? `#${c.chunk_index}`}
+                        </div>
+                        <div className="whitespace-pre-wrap text-xs leading-relaxed">
+                          {c.content}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
