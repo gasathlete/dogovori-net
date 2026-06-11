@@ -83,7 +83,7 @@ export default function AccountPage() {
   const [profile, setProfile] = useState<{ display_name: string | null; company: string | null; vat_number: string | null }>({ display_name: "", company: "", vat_number: "" });
   const [activeFolder, setActiveFolder] = useState<string | "all">("all");
   const [isStaff, setIsStaff] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
+  
   const { team: teamForChat } = useTeam();
   const { count: unreadCount } = useUnreadNotifications();
 
