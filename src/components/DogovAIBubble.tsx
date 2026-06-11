@@ -156,7 +156,7 @@ function AnonChat({ resetKey }: { resetKey: number }) {
           <>
             <div className="rounded-xl border border-gold/30 bg-gradient-to-br from-gold/10 via-card to-card p-3 text-sm">
               <div className="mb-1 flex items-center gap-1.5 font-semibold text-gold">
-                <Sparkles className="h-3.5 w-3.5" /> Здравейте, аз съм DogovAI
+                <Sparkles className="h-3.5 w-3.5" /> Здравейте, аз съм DogovaryAI
               </div>
               <p className="text-muted-foreground text-[13px] leading-relaxed">
                 Имате <b className="text-foreground">{ANON_LIMIT} безплатни съобщения</b>.
@@ -181,16 +181,49 @@ function AnonChat({ resetKey }: { resetKey: number }) {
           </>
         )}
         {messages.map((m, i) => (
-          <div
-            key={i}
-            className={cn(
-              "max-w-[88%] rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap",
-              m.role === "user"
-                ? "ml-auto bg-gold/15 text-foreground"
-                : "mr-auto bg-muted/40 text-foreground",
+          <div key={i} className={cn("space-y-1.5", m.role === "user" ? "ml-auto max-w-[88%]" : "mr-auto max-w-[92%]")}>
+            <div
+              className={cn(
+                "rounded-2xl px-3 py-2 text-sm leading-relaxed",
+                m.role === "user"
+                  ? "bg-gold/15 text-foreground whitespace-pre-wrap"
+                  : "bg-muted/40 text-foreground prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0 prose-a:text-gold prose-a:underline prose-strong:text-foreground",
+              )}
+            >
+              {m.role === "assistant" ? (
+                <ReactMarkdown
+                  components={{
+                    a: ({ href, children }) => (
+                      <a href={href} target={href?.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer">
+                        {children}
+                      </a>
+                    ),
+                  }}
+                >
+                  {m.content}
+                </ReactMarkdown>
+              ) : (
+                m.content
+              )}
+            </div>
+            {m.role === "assistant" && m.citations && m.citations.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground self-center">Източници:</span>
+                {m.citations.map((c) => (
+                  <a
+                    key={c.chunk_id}
+                    href={c.official_url ?? "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-full border border-gold/40 bg-gold/5 px-2 py-0.5 text-[10px] text-foreground hover:bg-gold/15 hover:border-gold/70"
+                    title={c.title}
+                  >
+                    {c.citation_label}
+                    <ExternalLink className="h-2.5 w-2.5" />
+                  </a>
+                ))}
+              </div>
             )}
-          >
-            {m.content}
           </div>
         ))}
         {busy && (
@@ -229,7 +262,7 @@ function AnonChat({ resetKey }: { resetKey: number }) {
             Изчерпахте 3-те безплатни съобщения.
           </p>
           <p className="mb-3 text-xs text-muted-foreground">
-            Регистрирайте се за пълен достъп до DogovAI, шаблони и анализи.
+            Регистрирайте се за пълен достъп до DogovaryAI, шаблони и анализи.
           </p>
           <Link
             to="/auth"
@@ -252,7 +285,7 @@ function AnonChat({ resetKey }: { resetKey: number }) {
                 }
               }}
               rows={1}
-              placeholder="Питайте DogovAI…"
+              placeholder="Питайте DogovaryAI…"
               className="min-h-[36px] max-h-32 flex-1 resize-none rounded-lg border border-border/60 bg-background px-3 py-2 text-sm outline-none focus:border-gold/60"
             />
             <button
