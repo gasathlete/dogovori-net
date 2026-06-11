@@ -110,10 +110,29 @@ Deno.serve(async (req) => {
     const warnings: string[] = [];
     const lower = text.toLowerCase();
 
-    // login/paywall detection
+    // login/paywall / upstream error detection
     const loginMarkers = ["вход в системата", "моля влезте", "регистрирайте се за достъп", "log in to view", "subscribe to read", "abonament"];
     const hasLoginWall = loginMarkers.some((m) => lower.includes(m));
     if (hasLoginWall) warnings.push("Възможна login/paywall стена в съдържанието.");
+
+    const upstreamErrorMarkers = [
+      "error retrieving document",
+      "server was unable to process request",
+      "soap:server",
+      "unauthorized",
+      "returned the following error",
+    ];
+    const hasUpstreamErrorPage = upstreamErrorMarkers.some((m) => lower.includes(m));
+    if (hasUpstreamErrorPage) {
+      const isLex = parsed.host === "lex.bg" || parsed.host === "www.lex.bg";
+      return new Response(JSON.stringify({
+        error: isLex
+          ? "Източникът върна защитна страница вместо нормативния текст. Този URL в момента не позволява автоматично извличане."
+          : "Източникът върна страница за грешка вместо нормативен текст.",
+        length: text.length,
+        status: resp.status,
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     // article density (laws/codes should have many "Чл." / "Article")
     const articleMatches = text.match(/\b(Чл\.|Член|Article)\s*\d+/gi) || [];
