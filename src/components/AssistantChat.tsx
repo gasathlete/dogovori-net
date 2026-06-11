@@ -318,12 +318,14 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
       }
 
       // Finalize
+      const { content: cleanText, followups } = extractFollowups(accText);
       const assistantMsg: Msg = {
         id: `tmp-a-${Date.now()}`,
         role: "assistant",
-        content: accText,
+        content: cleanText,
         citations: receivedCitations,
         toolEvents: accTools.length > 0 ? accTools : undefined,
+        followups,
       };
       setMessages([...newMessages, assistantMsg]);
       setStreamingText("");
