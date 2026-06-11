@@ -132,6 +132,26 @@ export default function AdminLegalKB() {
   const [fetchUrl, setFetchUrl] = useState("");
   const [validation, setValidation] = useState<ValidationInfo | null>(null);
   const [reindexingId, setReindexingId] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<SourceRow | null>(null);
+  const [viewChunks, setViewChunks] = useState<Array<{ id: string; citation_label: string | null; article_no: string | null; content: string; chunk_index: number }>>([]);
+  const [viewLoading, setViewLoading] = useState(false);
+  const [viewSearch, setViewSearch] = useState("");
+
+  const openViewer = async (s: SourceRow) => {
+    setViewing(s);
+    setViewChunks([]);
+    setViewSearch("");
+    setViewLoading(true);
+    const { data, error } = await supabase
+      .from("legal_chunks")
+      .select("id,citation_label,article_no,content,chunk_index")
+      .eq("source_id", s.id)
+      .order("chunk_index", { ascending: true })
+      .limit(2000);
+    if (error) toast.error("Грешка при зареждане на съдържанието");
+    setViewChunks((data ?? []) as any);
+    setViewLoading(false);
+  };
   const [form, setForm] = useState({
     short_code: "",
     title: "",
