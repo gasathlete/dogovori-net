@@ -17,10 +17,10 @@ interface Props {
 
 interface Comment {
   id: string;
-  user_id: string;
   content: string;
   created_at: string;
   author_name?: string | null;
+  is_mine: boolean;
 }
 
 export function BlogRatingAndComments({ postType, postSlug }: Props) {
@@ -58,24 +58,17 @@ export function BlogRatingAndComments({ postType, postSlug }: Props) {
 
   const loadComments = async () => {
     setLoadingComments(true);
-    const { data: rows } = await supabase
-      .from("blog_comments")
-      .select("id, user_id, content, created_at")
+    // Read through the security-invoker view that never exposes user_id.
+    // The view returns author_name (joined from profiles) and is_mine (auth.uid()
+    // match) so the UI can render the delete button without enumerating user IDs.
+    const { data: rows } = await (supabase as any)
+      .from("blog_comments_public")
+      .select("id, content, created_at, author_name, is_mine")
       .eq("post_type", postType)
       .eq("post_slug", postSlug)
       .order("created_at", { ascending: false });
 
-    const list = (rows ?? []) as Comment[];
-    if (list.length) {
-      const ids = Array.from(new Set(list.map((c) => c.user_id)));
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("id, display_name")
-        .in("id", ids);
-      const map = new Map((profs ?? []).map((p: any) => [p.id, p.display_name as string | null]));
-      list.forEach((c) => { c.author_name = map.get(c.user_id) ?? null; });
-    }
-    setComments(list);
+    setComments((rows ?? []) as Comment[]);
     setLoadingComments(false);
   };
 
@@ -211,7 +204,7 @@ export function BlogRatingAndComments({ postType, postSlug }: Props) {
                     <time className="text-[11px] uppercase tracking-wider text-muted-foreground">
                       {new Date(c.created_at).toLocaleDateString("bg-BG", { day: "numeric", month: "short", year: "numeric" })}
                     </time>
-                    {user?.id === c.user_id && (
+                    {c.is_mine && (
                       <button onClick={() => deleteComment(c.id)} className="text-muted-foreground hover:text-destructive">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>

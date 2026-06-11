@@ -3137,7 +3137,19 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      blog_comments_public: {
+        Row: {
+          author_name: string | null
+          content: string | null
+          created_at: string | null
+          id: string | null
+          is_mine: boolean | null
+          post_slug: string | null
+          post_type: Database["public"]["Enums"]["blog_post_type"] | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       _roll_feature_counters: {
