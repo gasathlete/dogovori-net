@@ -310,9 +310,9 @@ export function DogovAIBubble() {
   const [open, setOpen] = useState(false);
   const [resetKey, setResetKey] = useState(0);
 
-  // On open, reset memory only when idle > 30 min since last message.
+  // Reset only the anonymous trial chat after idle timeout.
   useEffect(() => {
-    if (!open) return;
+    if (!open || user) return;
     let last = 0;
     try {
       const raw = localStorage.getItem(LAST_ACTIVITY_KEY);
@@ -325,7 +325,7 @@ export function DogovAIBubble() {
       } catch { /* ignore */ }
       setResetKey((k) => k + 1);
     }
-  }, [open]);
+  }, [open, user]);
 
   useEffect(() => {
     if (!open) return;
