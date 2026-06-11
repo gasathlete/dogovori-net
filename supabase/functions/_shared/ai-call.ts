@@ -194,7 +194,7 @@ export async function aiCall(input: AICallInput): Promise<AICallResult> {
       fallbackModel: null,
       data: null,
       errorCode: "eu_only_ai_residency_block",
-      errorMessage: "AI обработката е ограничена до ЕИП по Ваше желание. Изключете „Само EU AI обработка" в Настройки, за да продължите.",
+      errorMessage: 'AI обработката е ограничена до ЕИП по Ваше желание. Изключете „Само EU AI обработка" в Настройки, за да продължите.',
     };
   }
 

@@ -1,84 +1,75 @@
 
-## 1. Restore old favicon
+## 1. Преименуване: DogovAI → DogovaryAI
 
-In `index.html` replace the 3 `dogovai-favicon.png` references with the original icon set already present in `public/`:
+Глобална замяна на видимото име на бота навсякъде, където потребителят го вижда. Технически идентификатори (имена на edge функции `assistant-chat` / `assistant-chat-anon`, компонент `DogovAIBubble`) **остават същите**, за да не чупим импорти, кеш на supabase, аналитика и DB. Сменяме само лейбъли/копирайт.
 
-```html
-<link rel="icon" type="image/x-icon" href="/favicon.ico" />
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
-<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-```
+Файлове за update:
+- `src/components/DogovAIBubble.tsx` — всички видими стрингове: "DogovAI" → "DogovaryAI" (заглавие, alt, placeholder, aria-label, "Здравейте, аз съм…", CTA в края).
+- `src/components/FloatingAssistant.tsx` — "Чат поддръжка" → "DogovaryAI" (header + aria).
+- `src/pages/Account.tsx` — "Чат поддръжка 24/7" → "DogovaryAI 24/7".
+- `supabase/functions/assistant-chat/index.ts` — `SYSTEM_PROMPT`: името "Dogovori AI" → "DogovaryAI".
+- `supabase/functions/assistant-chat-anon/index.ts` — същото + CTA "пълен достъп до Dogovori AI" → "до DogovaryAI".
+- `index.html` — title/meta ако споменават старото име (проверка).
 
-(Leaving `public/dogovai-favicon.png` in place — not referenced anymore. We don't delete the file in case it's needed later for the chat bubble icon.)
+## 2. Оптимизация — конкурентно ниво (pravenintelekt.com)
 
-## 2. New DogovAi prompt — two synchronized versions
+Pravenintelekt бие с три неща: **(а) отговори от официални източници с линкове към член/параграф**, **(б) ясни модули за различни задачи**, **(в) прозрачност за данни и модели**. В нашия проект вече има инфраструктура за това — `supabase/functions/_shared/legal-rag.ts` + `legal-chunker.ts` + админ панела за индексирани източници. Използваме я докрай.
 
-We have two edge functions sharing the DogovAi persona. We apply the user-provided prompt as the canonical core, and create two variants:
+### 2.1 Grounded отговори с цитати (и в анонимния бот)
 
-- **`supabase/functions/assistant-chat-anon/index.ts`** — short variant (anonymous bubble, 3 free messages cap). Same role/identity/rules, but compressed to 3–6 изречения per response, keeps the `<followups>` block and the "Безплатните съобщения свършват" CTA at the end.
-- **`supabase/functions/assistant-chat/index.ts`** — full variant (PRO/Team, streaming). Same role/identity/rules, plus the existing 4 competence areas (навигация, документи, правни въпроси, техническа поддръжка) and quota/pricing facts.
+Сега `assistant-chat-anon` НЕ вика `retrieveLegalContext()` — заради което отговорите са "плоски" и без линкове. Добавяме:
+- В `assistant-chat-anon` извикваме `retrieveLegalContext(userQuery)` преди gateway-кол, инжектираме `promptBlock` в system prompt.
+- Връщаме `citations: LegalCitation[]` в JSON отговора (top 3, дедуплицирани).
+- `assistant-chat` (PRO) — вече ползва RAG; добавяме същата форма на цитати в стрийма (стандартен `<sources>…</sources>` маркер преди `<followups>`).
 
-### Canonical core (shared, both files)
+### 2.2 Рендериране на цитати в UI
 
-```
-# РОЛЯ И ИДЕНТИЧНОСТ
-Ти си официалният AI асистент на Dogovori.net — водещата българска
-платформа за правни документи, договори и бланки. Името ти е
-"Dogovori AI" (или просто Асистентът).
+В `DogovAIBubble.tsx` под всеки assistant message:
+- Малък разделител "Източници" + chip-ове с `citation_label` (напр. "ЗЗД, чл. 79, ал. 1"), линкващи към `official_url` (target=\_blank, rel=noopener).
+- Ако `hasMatches=false`, надпис "Общ отговор — не е намерен пряк нормативен източник" (честност вместо халюцинация).
 
-Основна задача: да помагаш на потребителите да намират подходящи
-договори, да обясняваш сложни правни термини на достъпен език и да
-ги навигираш в процеса на попълване на документите.
+### 2.3 Режими (модули) в системния промпт
 
-# ЦЕЛИ
-1. Насочване към ресурси — идентифицираш типа документ (Договор за
-   наем, Трудов договор, Граждански договор, NDA, Запис на заповед
-   и т.н.) и насочваш към съответната секция на сайта.
-2. Обяснение на термини — "неустойка", "форсмажор", "прекратяване
-   с предизвестие" и др., ясно и кратко.
-3. Структуриране на информация — кои данни трябва да подготви
-   потребителят (страни, ЕГН/ЕИК, предмет, цена, срокове).
+Подобно на конкурента ("Правни проучвания", "Чернови", "Анализ"), но в нашия скоуп (договори). В пълния `assistant-chat` въвеждаме 3 явни режима, които моделът сам разпознава от въпроса:
+1. **Намери документ** — насочване към `/catalog`, `/build`, `/shablon/SLUG`.
+2. **Обясни клауза/термин** — кратко определение + relevant ЗЗД/ТЗ/КТ/СК + линк.
+3. **Помощ при попълване** — изброява нужните данни (страни, ЕГН/ЕИК, предмет, цена, срокове, неустойки).
 
-# ПРАВИЛА (КРИТИЧНО)
-- БЕЗ ПРАВНИ СЪВЕТИ. Ти си AI, не адвокат. Никога не давай
-  индивидуални съвети за съдебни спорове.
-- НЕ ХАЛЮЦИНИРАЙ закони, цени, URL-та или шаблони.
-- ВИНАГИ добавяй накратко disclaimer:
-  *"Това е обща информация, не правен съвет. За конкретни казуси
-  се консултирайте с квалифициран юрист или адвокат."*
-- Базирай се на българското законодателство (ЗЗД, ТЗ, КТ, СК,
-  ДОПК, ЗЗЛД и др.).
-- Фокус върху сайта — задържай потребителя в екосистемата на
-  Dogovori.net; предлагай му да генерира/изтегли документа от
-  платформата.
+### 2.4 Подобрения на промптите (и двата файла)
 
-# ТОН И СТИЛ
-- Професионален и учтив. Говори на "Вие".
-- Ясен и структуриран — кратки изречения, bullet списъци,
-  **удебеляване** за акцентите.
-- Емпатичен, но дистанциран — експертна система.
-- Markdown за форматиране; линкове като [/catalog](/catalog).
-```
+- Forbid "не знам как се казва законът" → ако няма цитат, кажи го честно ("Не открих пряк източник в базата на DogovaryAI").
+- Дисклеймърът — кратък еднократен tag `_(Обща информация, не правен съвет.)_` накрая, не повтаряме във всеки отговор.
+- Markdown форматиране: списъци с тире, **bold** за акценти, линкове като `[чл. 79 ЗЗД](URL)`.
+- Запазваме `<followups>q1||q2||q3</followups>` блока в двата режима.
+- CTA в анонимния остава ("Регистрирайте се за пълен достъп до DogovaryAI").
 
-### Anon variant adds:
+### 2.5 UX подобрения на чат балончето
 
-- Hard cap: 3–6 изречения максимум.
-- В края: *"💡 Безплатните съобщения свършват. [Регистрирайте се](/auth) за пълен достъп до DogovAI."*
-- Запазваме задължителния `<followups>въпрос 1||въпрос 2||въпрос 3</followups>` блок.
+В `DogovAIBubble.tsx`:
+- **Suggested starters** (4 чипа над input при празен чат): "Изготви договор за наем", "Какво е неустойка?", "Какви документи трябват за NDA?", "Как се прекратява трудов договор?".
+- **Copy** бутон под всеки assistant message.
+- **Stop generating** бутон по време на изчакване (`AbortController`).
+- **Auto-scroll** при нов token.
+- Markdown рендериране през съществуващия `react-markdown` (ако липсва, добавяме).
+- Followups като кликаеми бутони (вече има — проверяваме).
 
-### Full variant adds (запазваме съществуващите секции):
+### 2.6 Edge functions: deployment
 
-- **Навигация** — линкове към /catalog, /build, /sektor/*, /account, /team, /blog, /shablon/SLUG.
-- **Помощ с документи** — wizard полета, risk-анализ, export, ShareForSign.
-- **Правни въпроси** — ЗЗД / ТЗ / КТ / СК / ЗУТ / GDPR общи насоки.
-- **Техническа поддръжка** — quota (Безплатен 6+2/мес, Предприемач 100/мес, Екип seats×100), Stripe billing на /account?tab=billing.
-- Спешен казус (съдебно дело, арест, заплахи) → препоръчай адвокат веднага.
+След промените деплойваме `assistant-chat` и `assistant-chat-anon`.
 
-## Files changed
+## 3. Какво НЕ правим в тази стъпка
 
-- `index.html` — favicon links restored.
-- `supabase/functions/assistant-chat-anon/index.ts` — replace `SYSTEM_PROMPT`.
-- `supabase/functions/assistant-chat/index.ts` — replace `SYSTEM_PROMPT`.
+- Не разширяваме индекса с нова съдебна практика (ВКС/ВАС) — това е отделна задача с pipeline за индексация.
+- Не добавяме нови AI модели/плащания.
+- Не пипаме pricing/quota.
 
-И двете edge функции ще бъдат деплойнати след промените.
+## Файлове за промяна
+
+- `src/components/DogovAIBubble.tsx` — нова визуализация (citations, copy, stop, starters), нов alt/title.
+- `src/components/FloatingAssistant.tsx` — лейбъли.
+- `src/pages/Account.tsx` — лейбъли.
+- `supabase/functions/assistant-chat-anon/index.ts` — RAG groundnig + цитати в response + ново име + режими.
+- `supabase/functions/assistant-chat/index.ts` — режими, формализиран `<sources>` блок, ново име.
+- (опц.) `package.json` — `react-markdown` ако липсва.
+
+И двете edge функции ще бъдат деплойнати.
