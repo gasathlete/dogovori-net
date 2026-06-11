@@ -449,9 +449,21 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
             </div>
           ) : (
             <div className="space-y-4">
-              {messages.map((m) => (
-                <MessageBubble key={m.id} role={m.role} content={m.content} citations={m.citations} toolEvents={m.toolEvents} />
-              ))}
+              {messages.map((m, idx) => {
+                const isLastAssistant =
+                  m.role === "assistant" && idx === messages.length - 1 && !streaming;
+                return (
+                  <MessageBubble
+                    key={m.id}
+                    role={m.role}
+                    content={m.content}
+                    citations={m.citations}
+                    toolEvents={m.toolEvents}
+                    followups={isLastAssistant ? m.followups : undefined}
+                    onFollowupClick={(t) => sendMessage(t)}
+                  />
+                );
+              })}
               {streaming && (
                 <MessageBubble
                   role="assistant"
