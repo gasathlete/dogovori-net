@@ -582,16 +582,15 @@ function fallbackFollowups(lastToolName: string | null): string[] {
 
 const FOLLOWUPS_TAG = /<followups>([\s\S]*?)<\/followups>/i;
 
-// Reject any followup that is a knowledge/engagement question rather than a
-// CTA. The assistant should always be pushing the user toward an action in the
-// platform (finish doc, download, analyze, share, upgrade) — never asking
-// "Какво е жалба?" or "Кога се прилага чл. ...?".
-const BAD_FOLLOWUP_RE = /(^|\s)(какво|кога|защо|кой|къде|как)\b|[?]/i;
+// Keep all followups that look like real chips. Only filter out empties,
+// overly long strings, and pure theory questions ending with a question mark
+// AND starting with an interrogative — those don't drive action.
+const PURE_THEORY_RE = /^(какво|защо|кой|къде)\b[^?]*\?\s*$/i;
 
 function isActionable(chip: string): boolean {
   const c = chip.trim();
-  if (c.length === 0 || c.length > 60) return false;
-  if (BAD_FOLLOWUP_RE.test(c)) return false;
+  if (c.length === 0 || c.length > 70) return false;
+  if (PURE_THEORY_RE.test(c)) return false;
   return true;
 }
 
