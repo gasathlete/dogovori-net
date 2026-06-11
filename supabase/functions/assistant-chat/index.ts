@@ -4,7 +4,7 @@
 // open_template) to the browser through a custom SSE event.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
-import { loadActivePrompt } from "../_shared/prompt-loader.ts";
+import { loadActivePrompt, loadActivePromptMeta } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
@@ -239,16 +239,18 @@ Deno.serve(async (req) => {
       `Потребителски статус: ${teamId ? "Team член" : "PRO"}.`,
       currentPath ? `Текуща страница: ${currentPath}.` : "",
     ].filter(Boolean).join(" ");
-    const activeSystemPrompt = await loadActivePrompt(admin, "assistant-chat", SYSTEM_PROMPT);
+    const activePrompt = await loadActivePromptMeta(admin, "assistant-chat", SYSTEM_PROMPT);
     const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, lastUserMsg, {
       matchCount: 8,
       minSimilarity: 0.45,
     });
     const systemFinal = legal.hasMatches
-      ? `${activeSystemPrompt}\n\n[КОНТЕКСТ] ${ctxLines}\n\n${legal.promptBlock}`
-      : `${activeSystemPrompt}\n\n[КОНТЕКСТ] ${ctxLines}\n\n[НОРМАТИВНА БАЗА] Няма намерени релевантни нормативни извадки.`;
+      ? `${activePrompt.content}\n\n[КОНТЕКСТ] ${ctxLines}\n\n${legal.promptBlock}`
+      : `${activePrompt.content}\n\n[КОНТЕКСТ] ${ctxLines}\n\n[НОРМАТИВНА БАЗА] Няма намерени релевантни нормативни извадки.`;
 
-    const chatModel = isEntrepreneur ? MODEL_PREMIUM : MODEL_STANDARD;
+    const standardModel = activePrompt.model || MODEL_STANDARD;
+    const premiumModel = activePrompt.premiumModel || MODEL_PREMIUM;
+    const chatModel = isEntrepreneur ? premiumModel : standardModel;
     const tools = toolSchemasFor(FULL_TOOL_NAMES);
 
     // Build conversation
