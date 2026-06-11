@@ -277,3 +277,29 @@ export async function execSearchTemplates(
 
   return { results: map(data) };
 }
+
+// ---------------- Intent expansion ----------------
+import intentsJson from "./bg-doc-intents.json" with { type: "json" };
+
+interface Intent { phrases: string[]; documentType: string; category: string }
+const INTENTS: Intent[] = (intentsJson as { intents: Intent[] }).intents ?? [];
+
+export function expandIntent(query: string): {
+  documentTypes: string[];
+  category: string | null;
+  expandedQuery: string;
+} {
+  const q = query.toLowerCase();
+  const matched: Intent[] = [];
+  for (const it of INTENTS) {
+    if (it.phrases.some((p) => q.includes(p.toLowerCase()))) matched.push(it);
+  }
+  const documentTypes = Array.from(new Set(matched.map((m) => m.documentType)));
+  const category = matched[0]?.category ?? null;
+  const expansionTerms = matched.flatMap((m) => [m.documentType, ...m.phrases]).slice(0, 12);
+  const expandedQuery = expansionTerms.length
+    ? Array.from(new Set([query, ...expansionTerms])).join(" ")
+    : query;
+  return { documentTypes, category, expandedQuery };
+}
+
