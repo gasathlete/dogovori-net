@@ -114,7 +114,94 @@ export const ASSISTANT_TOOLS: Record<string, ToolDef> = {
       },
     },
   },
+  ask_clarification: {
+    kind: "client",
+    schema: {
+      type: "function",
+      function: {
+        name: "ask_clarification",
+        description:
+          "Покажи структурирана форма с 2–5 кратки въпроса към потребителя за критични липсващи данни (страни, предмет, срок, цена, особености). Използвай ВИНАГИ преди prefill_build_contract или propose_contract_outline, ако липсват ключови данни. Само 1 ask_clarification на ход. Не повтаряй въпроси, на които потребителят вече е отговорил.",
+        parameters: {
+          type: "object",
+          properties: {
+            contextSummary: {
+              type: "string",
+              description: "1 кратко изречение какво вече разбираме (напр. 'Трудов договор за счетоводител')."
+            },
+            questions: {
+              type: "array",
+              maxItems: 5,
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "string", description: "snake_case идентификатор (напр. 'gross_salary')" },
+                  label: { type: "string", description: "Кратък въпрос до 60 знака" },
+                  type: { type: "string", enum: ["text", "choice", "number", "date"] },
+                  placeholder: { type: "string" },
+                  options: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Само при type='choice' (2–6 опции)"
+                  },
+                  required: { type: "boolean" }
+                },
+                required: ["id", "label", "type"]
+              }
+            }
+          },
+          required: ["contextSummary", "questions"]
+        }
+      }
+    }
+  },
+  propose_contract_outline: {
+    kind: "client",
+    schema: {
+      type: "function",
+      function: {
+        name: "propose_contract_outline",
+        description:
+          "Покажи план на договора (5–10 клаузи) за потвърждение от потребителя ПРЕДИ да извикаш prefill_build_contract. Използвай след ask_clarification или ако потребителят е дал достатъчно данни.",
+        parameters: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "Заглавие на договора" },
+            documentType: { type: "string", description: "ID на типа документ (от search_templates ако има)" },
+            basedOnTemplateSlug: { type: "string", description: "slug от search_templates ако планът се базира на конкретен шаблон" },
+            clauses: {
+              type: "array",
+              minItems: 3,
+              maxItems: 12,
+              items: {
+                type: "object",
+                properties: {
+                  heading: { type: "string" },
+                  summary: { type: "string", description: "1 изречение какво ще съдържа клаузата" }
+                },
+                required: ["heading", "summary"]
+              }
+            },
+            prefill: {
+              type: "object",
+              description: "Стойности които ще се подадат на wizard-а при потвърждение",
+              properties: {
+                name: { type: "string" },
+                partiesA: { type: "string" },
+                partiesB: { type: "string" },
+                subject: { type: "string" },
+                bilingual: { type: "boolean" }
+              }
+            }
+          },
+          required: ["title", "clauses"]
+        }
+      }
+    }
+  },
 };
+
+
 
 export const ANON_TOOL_NAMES: string[] = ["search_templates", "navigate", "open_template"];
 export const FULL_TOOL_NAMES: string[] = Object.keys(ASSISTANT_TOOLS);
@@ -151,9 +238,11 @@ export async function execSearchTemplates(
   admin: SupabaseClient,
   args: { query?: string; limit?: number },
 ): Promise<{ results: Array<{ slug: string; name: string; purpose: string; category: string; documentType: string }> }> {
-  const q = String(args?.query ?? "").trim().slice(0, 200);
+  const rawQ = String(args?.query ?? "").trim().slice(0, 200);
   const limit = Math.min(5, Math.max(1, Number(args?.limit) || 5));
-  if (!q) return { results: [] };
+  if (!rawQ) return { results: [] };
+  const { expandedQuery: q } = expandIntent(rawQ);
+
 
   // Use Postgres full-text search via the precomputed tsvector.
   // websearch_to_tsquery is forgiving (handles natural-language queries).
@@ -190,3 +279,29 @@ export async function execSearchTemplates(
 
   return { results: map(data) };
 }
+
+// ---------------- Intent expansion ----------------
+import intentsJson from "./bg-doc-intents.json" with { type: "json" };
+
+interface Intent { phrases: string[]; documentType: string; category: string }
+const INTENTS: Intent[] = (intentsJson as { intents: Intent[] }).intents ?? [];
+
+export function expandIntent(query: string): {
+  documentTypes: string[];
+  category: string | null;
+  expandedQuery: string;
+} {
+  const q = query.toLowerCase();
+  const matched: Intent[] = [];
+  for (const it of INTENTS) {
+    if (it.phrases.some((p) => q.includes(p.toLowerCase()))) matched.push(it);
+  }
+  const documentTypes = Array.from(new Set(matched.map((m) => m.documentType)));
+  const category = matched[0]?.category ?? null;
+  const expansionTerms = matched.flatMap((m) => [m.documentType, ...m.phrases]).slice(0, 12);
+  const expandedQuery = expansionTerms.length
+    ? Array.from(new Set([query, ...expansionTerms])).join(" ")
+    : query;
+  return { documentTypes, category, expandedQuery };
+}
+

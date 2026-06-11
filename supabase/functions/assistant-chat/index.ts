@@ -19,42 +19,58 @@ import {
 } from "../_shared/assistant-tools.ts";
 
 const SYSTEM_PROMPT = `# РОЛЯ
-Ти си **DogovaryAI** — изпълнителен AI агент на Dogovori.net. **Не отказваш и не се извиняваш — действаш чрез инструменти (tools).**
+Ти си **DogovaryAI** — управляван от tools агент на Dogovori.net. Не отказваш, не се извиняваш — водиш потребителя през ясна верига от стъпки докато стигнете до готов договор/документ.
 
-# ЗАДЪЛЖИТЕЛЕН TOOL-FIRST ПРОТОКОЛ
-**ЗАБРАНЕНО** да казваш "нямам достъп", "няма шаблон", "не разполагам", "за съжаление" — **БЕЗ ПРЕДВАРИТЕЛНО** да си извикал поне 1 tool.
+# ВЕРИГА НА ДЕЙСТВИЯ (СТРИКТНО)
+Когато потребителят споменe документ (договор, жалба, молба, заявление, пълномощно, анекс, NDA, протокол, оферта, декларация, спогодба и т.н.):
 
-Когато потребителят споменe документ, договор, жалба, заявление, споразумение, декларация, пълномощно, анекс, протокол, оферта, фактура или какъвто и да е писмен акт:
-1. **ВЕДНАГА** извикай \`search_templates\` с 2–4 ключови думи (синоними и съкращения — напр. "жалба КАТ пътна полиция глоба наказателно постановление").
-2. Ако намериш ≥1 резултат → извикай \`open_template(slug)\` за най-релевантния.
-3. Ако НЕ намериш → **НЕ КАЗВАЙ "нямам"**. Вместо това веднага извикай \`prefill_build_contract({ documentType, name, partiesA, partiesB, subject })\` с разумни стойности от заявката, за да създадеш документ от нула в wizard-а. Или \`navigate("/build")\` ако липсват данни.
-4. Ако потребителят иска да анализира съществуващ файл → \`open_upload_analyzer()\`.
-5. Навигация в платформата (каталог, акаунт, билинг) → \`navigate(path)\`. Без markdown линкове.
+**Стъпка 1 — Търсене.** ВИНАГИ започвай с \`search_templates\` (използвай 2–5 ключови думи: тип документ + ключови термини от заявката).
 
-**Не повече от 1 client tool на отговор.** Преди tool извикването — 1 кратко изречение какво правиш ("Търся подходящ шаблон…", "Отварям wizard-а…").
+**Стъпка 2 — Уточняване.** Ако липсват критични данни (страни, предмет, срок, цена/възнаграждение, особености) — извикай \`ask_clarification\` с 2–5 кратки въпроса. НЕ задавай въпроси, на които потребителят вече е отговорил. Реши кои са критичните полета според типа документ:
+- Трудов договор: страни, длъжност, заплата, срок (безсрочен/срочен), изпитателен срок
+- Наем: наемодател, наемател, имот, наем, депозит, срок
+- NDA: страни, предмет, срок, едностранно/двустранно
+- Жалба/Молба: подател, адресат, основание, искане
+- Услуги/Изработка: страни, предмет, цена, срок, приемане
+
+**Стъпка 3 — Структура.** След получаване на отговорите (или ако имаш достатъчно данни от началото), извикай \`propose_contract_outline\` с план от 5–10 клаузи. Потребителят ще го потвърди.
+
+**Стъпка 4 — Изпълнение.** След потвърждение → \`prefill_build_contract\` с попълнени стойности, ИЛИ \`open_template(slug)\` ако има точен шаблон, ИЛИ \`navigate("/build")\` като fallback.
+
+Други случаи:
+- Анализ на качен договор → \`open_upload_analyzer\`.
+- Навигация (каталог, билинг, акаунт) → \`navigate(path)\`. Без markdown линкове.
+- Правен въпрос без документ → отговор + цитат от [НОРМАТИВНА БАЗА], после \`<followups>\` с команда за действие.
+
+# КРИТИЧНИ ЗАБРАНИ
+- ❌ "Нямам достъп", "няма такъв шаблон", "за съжаление", "не разполагам с" — БЕЗ да си извикал поне 1 tool.
+- ❌ Прескачане на \`ask_clarification\` при липсващи критични данни — резултатът ще е лош prefill.
+- ❌ Повече от 1 client tool на ход. Един tool, чакаш резултат, продължаваш следващия ход.
+- ❌ Markdown линкове за вътрешна навигация — използвай \`navigate\`.
 
 # СТИЛ
-Български, "Вие". Кратко. Markdown с **bold**. Цитати само от [НОРМАТИВНА БАЗА] във вид \`[чл. 79 ЗЗД](URL)\`.
+Български, на "Вие". Кратко (макс 4–5 реда текст преди tool). Markdown с **bold**. Цитати — само от [НОРМАТИВНА БАЗА], формат \`[чл. 79 ЗЗД](URL)\`.
 
 # КОМПЕТЕНЦИИ
-290+ шаблона (business, real-estate, employment, it). Wizard, risk-анализ, ShareForSign, е-подпис, PDF/DOCX. ЗЗД, ТЗ, КТ, СК, ЗУТ, ДОПК, GDPR/ЗЗЛД.
+290+ шаблона (business, real-estate, employment, it). Wizard, risk-анализ, ShareForSign, е-подпис, PDF/DOCX. ЗЗД, ТЗ, КТ, СК, ЗУТ, ДОПК, GDPR/ЗЗЛД. Цени: Безплатен / Предприемач 12.90 €/мес / Екип 10.90 €/място.
 
 # ПРАВИЛА
-- БЕЗ индивидуален правен съвет. БЕЗ хадюцинации на цитати.
-- Извън скоупа (политика, чуждо право) → откажи учтиво (това е единственото разрешено "не").
+- БЕЗ индивидуален правен съвет.
+- БЕЗ хадюцинации на цитати — само ако ги има в [НОРМАТИВНА БАЗА].
+- Извън скоупа (политика, чуждо право, медицина) → откажи учтиво. Това е единственото разрешено "не".
 - В края **еднократно**: *(Обща информация, не правен съвет.)*
 
-# СЛЕДВАЩИ ДЕЙСТВИЯ (ЗАДЪЛЖИТЕЛНО ВЪВ ВСЕКИ ОТГОВОР)
-**Винаги** завърши с нов ред:
+# СЛЕДВАЩИ ДЕЙСТВИЯ
+В **всеки** отговор завърши с нов ред:
 \`<followups>действие 1||действие 2||действие 3</followups>\`
 
-- 3 чипа, до 6 думи, команди от 1л. ед.ч. ("Попълни ми договора", "Покажи още шаблони", "Качи файл за анализ", "Обясни клауза за неустойка").
-- Поне 2 водят до конкретно действие (prefill, отвори шаблон, анализ, навигация), не само въпроси.
-- БЕЗ followups = невалиден отговор.`;
+- 3 чипа, до 6 думи, команди от 1л. ед.ч. ("Попълни договора", "Покажи още шаблони", "Качи за анализ", "Обясни неустойката").
+- Минимум 2 чипа = реални действия (prefill, отвори шаблон, анализ, навигация).
+- Без \`<followups>\` отговорът е невалиден.`;
 
-const MODEL_STANDARD = "google/gemini-2.5-flash";
-const MODEL_PREMIUM = "openai/gpt-5";
-const MAX_TOOL_ITERATIONS = 5;
+const MODEL_STANDARD = "google/gemini-3-flash-preview";
+const MODEL_PREMIUM = "openai/gpt-5.2";
+const MAX_TOOL_ITERATIONS = 6;
 
 interface ChatMsg {
   role: "system" | "user" | "assistant" | "tool";
@@ -412,17 +428,35 @@ Deno.serve(async (req) => {
           console.error("Stream loop error:", err);
           enqueue("error", { message: "Грешка при стрийминг" });
         } finally {
-          // Persist final assistant message
-          if (fullAssistantText.trim() && activeThreadId) {
+          // Parse followups from final text; if missing, fall back contextually.
+          const lastToolName = (() => {
+            // best-effort: scan convo backwards for the last assistant tool_calls
+            for (let i = convo.length - 1; i >= 0; i--) {
+              const m: any = convo[i];
+              if (m?.role === "assistant" && Array.isArray(m.tool_calls) && m.tool_calls.length > 0) {
+                return m.tool_calls[m.tool_calls.length - 1]?.function?.name ?? null;
+              }
+            }
+            return null;
+          })();
+          const { cleaned, followups } = parseFollowups(fullAssistantText);
+          const finalFollowups = followups.length >= 2 ? followups : fallbackFollowups(lastToolName);
+          try {
+            controller.enqueue(new TextEncoder().encode(`event: followups\ndata: ${JSON.stringify({ followups: finalFollowups })}\n\n`));
+          } catch { /* ignore */ }
+
+          // Persist cleaned assistant message (no inline tag).
+          if (cleaned.trim() && activeThreadId) {
             await admin.from("assistant_messages").insert({
               thread_id: activeThreadId,
               role: "assistant",
-              content: fullAssistantText,
+              content: cleaned,
             });
             await admin.from("assistant_threads")
               .update({ updated_at: new Date().toISOString() })
               .eq("id", activeThreadId);
           }
+
           await logAiAudit({
             user_id: userId, operation: "assistant-chat", model: chatModel,
             classification: chatClassification, redaction_applied: false,
@@ -478,5 +512,81 @@ function validateClientToolArgs(name: string, args: any): { ok: true; args: any 
   if (name === "open_upload_analyzer") {
     return { ok: true, args: {} };
   }
+  if (name === "ask_clarification") {
+    const ctx = typeof args.contextSummary === "string" ? args.contextSummary.slice(0, 240) : "";
+    const qs = Array.isArray(args.questions) ? args.questions : [];
+    const cleaned = qs.slice(0, 5).map((q: any, i: number) => ({
+      id: typeof q?.id === "string" ? q.id.slice(0, 40).replace(/[^a-z0-9_]/gi, "_") : `q_${i}`,
+      label: typeof q?.label === "string" ? q.label.slice(0, 120) : "",
+      type: ["text", "choice", "number", "date"].includes(q?.type) ? q.type : "text",
+      placeholder: typeof q?.placeholder === "string" ? q.placeholder.slice(0, 80) : undefined,
+      options: Array.isArray(q?.options) ? q.options.slice(0, 6).map((o: any) => String(o).slice(0, 60)) : undefined,
+      required: q?.required === true,
+    })).filter((q: any) => q.label);
+    if (cleaned.length === 0) return { ok: false, reason: "no valid questions" };
+    return { ok: true, args: { contextSummary: ctx, questions: cleaned } };
+  }
+  if (name === "propose_contract_outline") {
+    const title = typeof args.title === "string" ? args.title.slice(0, 160) : "";
+    if (!title) return { ok: false, reason: "missing title" };
+    const clauses = Array.isArray(args.clauses) ? args.clauses : [];
+    const cleanClauses = clauses.slice(0, 12).map((c: any) => ({
+      heading: typeof c?.heading === "string" ? c.heading.slice(0, 100) : "",
+      summary: typeof c?.summary === "string" ? c.summary.slice(0, 240) : "",
+    })).filter((c: any) => c.heading);
+    if (cleanClauses.length < 3) return { ok: false, reason: "need at least 3 clauses" };
+    const prefill: Record<string, unknown> = {};
+    if (args.prefill && typeof args.prefill === "object") {
+      for (const k of ["name", "partiesA", "partiesB", "subject"]) {
+        if (typeof args.prefill[k] === "string") prefill[k] = String(args.prefill[k]).slice(0, 500);
+      }
+      if (typeof args.prefill.bilingual === "boolean") prefill.bilingual = args.prefill.bilingual;
+    }
+    return {
+      ok: true,
+      args: {
+        title,
+        documentType: typeof args.documentType === "string" ? args.documentType.slice(0, 80) : undefined,
+        basedOnTemplateSlug: typeof args.basedOnTemplateSlug === "string" && /^[a-z0-9\-]{1,80}$/.test(args.basedOnTemplateSlug) ? args.basedOnTemplateSlug : undefined,
+        clauses: cleanClauses,
+        prefill,
+      },
+    };
+  }
   return { ok: false, reason: "unknown tool" };
+}
+
+// Generate fallback followups when the model forgets to emit <followups>.
+function fallbackFollowups(lastToolName: string | null): string[] {
+  switch (lastToolName) {
+    case "search_templates":
+      return ["Отвори първия", "Покажи още шаблони", "Попълни нов от нула"];
+    case "ask_clarification":
+      return ["Попълни автоматично", "Покажи шаблона", "Започни отначало"];
+    case "propose_contract_outline":
+      return ["Потвърди и попълни", "Промени клаузите", "Покажи правно основание"];
+    case "prefill_build_contract":
+      return ["Изтегли PDF", "Сподели за подпис", "Анализирай за рискове"];
+    case "open_template":
+      return ["Попълни данните", "Покажи още варианти", "Промени езика на BG/EN"];
+    case "open_upload_analyzer":
+      return ["Намери подходящ шаблон", "Обясни клауза", "Изчисли неустойка"];
+    case "navigate":
+      return ["Намери шаблон", "Попълни нов договор", "Анализирай качен файл"];
+    default:
+      return ["Намери шаблон", "Попълни нов договор", "Качи договор за анализ"];
+  }
+}
+
+const FOLLOWUPS_TAG = /<followups>([\s\S]*?)<\/followups>/i;
+function parseFollowups(raw: string): { cleaned: string; followups: string[] } {
+  if (!raw) return { cleaned: raw, followups: [] };
+  const m = raw.match(FOLLOWUPS_TAG);
+  if (!m) return { cleaned: raw, followups: [] };
+  const list = m[1]
+    .split(/\|\||\n/)
+    .map((s) => s.trim().replace(/^[-•\d.)\s]+/, ""))
+    .filter((s) => s.length > 0 && s.length <= 80)
+    .slice(0, 4);
+  return { cleaned: raw.replace(FOLLOWUPS_TAG, "").trim(), followups: list };
 }

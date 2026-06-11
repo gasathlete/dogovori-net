@@ -275,6 +275,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
       const accTools: ToolEvent[] = [];
       let receivedThreadId: string | null = null;
       let receivedCitations: LegalCitation[] = [];
+      let receivedFollowups: string[] = [];
 
       while (true) {
         const { value, done } = await reader.read();
@@ -300,6 +301,8 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
             if (Array.isArray(parsed.citations)) receivedCitations = parsed.citations;
           } else if (eventType === "error") {
             toast.error(parsed.message || "AI грешка");
+          } else if (eventType === "followups") {
+            if (Array.isArray(parsed.followups)) receivedFollowups = parsed.followups;
           } else if (eventType === "tool_result") {
             const ev: ToolEvent = { kind: "tool_result", id: parsed.id, name: parsed.name, args: parsed.args, result: parsed.result };
             accTools.push(ev);
@@ -308,24 +311,25 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
             const ev: ToolEvent = { kind: "tool_call", id: parsed.id, name: parsed.name, args: parsed.args };
             accTools.push(ev);
             setStreamingTools([...accTools]);
-            // Execute client-side tool (navigation, prefill, etc.)
             executeClientTool(parsed.name, parsed.args);
           } else if (parsed.delta) {
             accText += parsed.delta;
             setStreamingText(accText);
           }
+
         }
       }
 
-      // Finalize
-      const { content: cleanText, followups } = extractFollowups(accText);
+      // Finalize — prefer server-emitted followups; fall back to inline tag parse.
+      const { content: cleanText, followups: inlineFollowups } = extractFollowups(accText);
+      const finalFollowups = receivedFollowups.length > 0 ? receivedFollowups : inlineFollowups;
       const assistantMsg: Msg = {
         id: `tmp-a-${Date.now()}`,
         role: "assistant",
         content: cleanText,
         citations: receivedCitations,
         toolEvents: accTools.length > 0 ? accTools : undefined,
-        followups,
+        followups: finalFollowups,
       };
       setMessages([...newMessages, assistantMsg]);
       setStreamingText("");
