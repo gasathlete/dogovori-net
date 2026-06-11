@@ -199,6 +199,8 @@ export const ASSISTANT_TOOLS: Record<string, ToolDef> = {
       }
     }
   },
+};
+
 
 
 export const ANON_TOOL_NAMES: string[] = ["search_templates", "navigate", "open_template"];
