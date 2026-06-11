@@ -44,6 +44,15 @@ function refHost(ref: string | null, ownHost: string | null): string | null {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+  const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!SUPABASE_URL || !SERVICE_ROLE) {
+    console.error("track-pageview: missing env", { hasUrl: !!SUPABASE_URL, hasKey: !!SERVICE_ROLE });
+    return new Response(JSON.stringify({ ok: false, error: "config" }), {
+      status: 200,
+      headers: { ...corsHeaders, "content-type": "application/json" },
+    });
+  }
   try {
     const body = await req.json().catch(() => ({}));
     const path: string = String(body.path ?? "/").slice(0, 512);
@@ -106,10 +115,13 @@ Deno.serve(async (req) => {
       utm_source, country, device, browser, os,
       duration_ms, is_bounce, event: "pageview",
     });
-    if (error) throw error;
+    if (error) {
+      console.error("track-pageview insert error", { code: (error as any)?.code, message: error.message, details: (error as any)?.details, hint: (error as any)?.hint });
+      return new Response(JSON.stringify({ ok: false, error: error.message }), { status: 200, headers: { ...corsHeaders, "content-type": "application/json" } });
+    }
     return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "content-type": "application/json" } });
   } catch (e: any) {
-    console.error("track-pageview error", e);
-    return new Response(JSON.stringify({ error: e?.message ?? "internal_error" }), { status: 500, headers: { ...corsHeaders, "content-type": "application/json" } });
+    console.error("track-pageview error", { message: e?.message, stack: e?.stack?.slice(0, 500) });
+    return new Response(JSON.stringify({ ok: false, error: e?.message ?? "internal_error" }), { status: 200, headers: { ...corsHeaders, "content-type": "application/json" } });
   }
 });
