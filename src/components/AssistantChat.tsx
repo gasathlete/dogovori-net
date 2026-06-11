@@ -475,7 +475,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
   );
 }
 
-function MessageBubble({ role, content, isStreaming, citations }: { role: "user" | "assistant"; content: string; isStreaming?: boolean; citations?: LegalCitation[] }) {
+function MessageBubble({ role, content, isStreaming, citations, toolEvents }: { role: "user" | "assistant"; content: string; isStreaming?: boolean; citations?: LegalCitation[]; toolEvents?: ToolEvent[] }) {
   if (role === "user") {
     return (
       <div className="flex justify-end">
@@ -485,37 +485,47 @@ function MessageBubble({ role, content, isStreaming, citations }: { role: "user"
       </div>
     );
   }
+  const hasText = content && content.trim().length > 0;
   return (
     <div className="flex gap-2">
       <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gold/15">
         <Bird className="h-3 w-3 text-gold" />
       </div>
       <div className="max-w-[85%] flex-1 text-sm text-foreground">
-        {isStreaming ? (
+        {isStreaming && !hasText ? (
           <div className="flex items-center gap-1.5 py-2 text-muted-foreground">
             <Loader2 className="h-3 w-3 animate-spin" />
             <span className="text-xs">Мисля...</span>
           </div>
         ) : (
           <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:mt-3 prose-headings:mb-1 prose-a:text-gold prose-a:no-underline hover:prose-a:underline prose-strong:text-foreground prose-code:text-gold prose-code:bg-card/60 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                a: ({ href, children, ...props }) => {
-                  // Internal links use Link, external open in new tab
-                  if (href?.startsWith("/")) {
-                    return <Link to={href} className="text-gold hover:underline" {...(props as any)}>{children}</Link>;
-                  }
-                  return <a href={href} target="_blank" rel="noopener noreferrer" className="text-gold hover:underline" {...props}>{children}</a>;
-                },
-              }}
-            >
-              {content}
-            </ReactMarkdown>
+            {hasText && (
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: ({ href, children, ...props }) => {
+                    if (href?.startsWith("/")) {
+                      return <Link to={href} className="text-gold hover:underline" {...(props as any)}>{children}</Link>;
+                    }
+                    return <a href={href} target="_blank" rel="noopener noreferrer" className="text-gold hover:underline" {...props}>{children}</a>;
+                  },
+                }}
+              >
+                {content}
+              </ReactMarkdown>
+            )}
+            {toolEvents && toolEvents.length > 0 && (
+              <div className="not-prose space-y-1">
+                {toolEvents.map((ev) => (
+                  <AssistantToolCard key={ev.id} event={ev} />
+                ))}
+              </div>
+            )}
             {citations && citations.length > 0 && <LegalCitations citations={citations} />}
           </div>
         )}
       </div>
     </div>
   );
+
 }
