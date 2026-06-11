@@ -268,6 +268,37 @@ function PromptsTab({ functionName }: { functionName: string }) {
           <span className="text-xs text-muted-foreground">~{totalChars} симв.</span>
         </div>
 
+        <div className="mb-4 grid gap-3 rounded-lg border bg-muted/20 p-3 sm:grid-cols-2">
+          <div>
+            <Label className="text-xs font-semibold">Модел (стандартен)</Label>
+            <Select value={model} onValueChange={setModel}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {AVAILABLE_MODELS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-[10px] text-muted-foreground">Използва се за PRO / Team потребители.</p>
+          </div>
+          <div>
+            <Label className="text-xs font-semibold">Премиум модел (Предприемач)</Label>
+            <Select value={premiumModel} onValueChange={setPremiumModel}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {AVAILABLE_MODELS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-[10px] text-muted-foreground">Използва се за абонати с план „Предприемач".</p>
+          </div>
+          <div className="sm:col-span-2">
+            <Button size="sm" variant="outline" onClick={updateModelsOnActive} disabled={busy}>
+              Обнови модела на активната версия
+            </Button>
+            <span className="ml-2 text-[10px] text-muted-foreground">
+              Промяната влиза в сила до 5 минути (cache TTL на edge функцията).
+            </span>
+          </div>
+        </div>
+
         <PromptSectionsEditor sections={sections} onChange={setSections} />
 
         <Input
