@@ -49,20 +49,13 @@ const faqs = [
 ];
 
 export function ComplianceSection() {
-  const faqJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqs.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
+  // FAQPage JSON-LD за тези въпроси НЕ се емитва тук — обединен е в
+  // FAQ.tsx (buildFaqJsonLd) и се подава през Helmet от Index.tsx,
+  // за да има точно ЕДИН FAQPage блок на страницата (иначе GSC
+  // рапортва "Duplicate field FAQPage").
 
   return (
     <section id="compliance" className="container py-20 sm:py-24 md:py-28">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
-
       <div className="relative overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-8 shadow-elegant md:p-14">
         <div className="absolute inset-x-0 top-0 hairline-x" />
 
