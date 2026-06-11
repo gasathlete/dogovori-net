@@ -46,6 +46,7 @@ function getActiveThreadStorageKey(userId: string) {
 export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
   const { user, session } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const { isPro, isTeam, freeQuota, refresh: refreshPlan } = useIsPro();
   const aiRemaining = Math.max(0, freeQuota.aiMessagesCap - freeQuota.aiMessagesUsed);
   const aiLocked = !isPro && !isTeam && aiRemaining <= 0;
@@ -56,8 +57,41 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState("");
+  const [streamingTools, setStreamingTools] = useState<ToolEvent[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const executeClientTool = useCallback((name: string, args: any) => {
+    try {
+      if (name === "navigate" && typeof args?.path === "string") {
+        setTimeout(() => navigate(args.path), 400);
+        return;
+      }
+      if (name === "open_template" && typeof args?.slug === "string") {
+        setTimeout(() => navigate(`/shablon/${args.slug}`), 400);
+        return;
+      }
+      if (name === "open_upload_analyzer") {
+        setTimeout(() => navigate("/analyze"), 400);
+        return;
+      }
+      if (name === "prefill_build_contract") {
+        const params = new URLSearchParams();
+        if (args?.documentType) params.set("documentType", String(args.documentType));
+        if (args?.name) params.set("name", String(args.name));
+        if (args?.partiesA) params.set("partiesA", String(args.partiesA));
+        if (args?.partiesB) params.set("partiesB", String(args.partiesB));
+        if (args?.subject) params.set("subject", String(args.subject));
+        if (args?.bilingual) params.set("bilingual", "1");
+        params.set("from", "dogovaryai");
+        setTimeout(() => navigate(`/build?${params.toString()}`), 500);
+        return;
+      }
+    } catch (e) {
+      console.error("Tool execution failed:", e);
+    }
+  }, [navigate]);
+
 
   const setPersistedActiveThreadId = useCallback((nextThreadId: string | null) => {
     setActiveThreadId(nextThreadId);
