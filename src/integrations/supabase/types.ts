@@ -176,7 +176,9 @@ export type Database = {
           function_name: string
           id: string
           is_active: boolean
+          model: string | null
           notes: string | null
+          premium_model: string | null
           version: number
         }
         Insert: {
@@ -186,7 +188,9 @@ export type Database = {
           function_name: string
           id?: string
           is_active?: boolean
+          model?: string | null
           notes?: string | null
+          premium_model?: string | null
           version: number
         }
         Update: {
@@ -196,7 +200,9 @@ export type Database = {
           function_name?: string
           id?: string
           is_active?: boolean
+          model?: string | null
           notes?: string | null
+          premium_model?: string | null
           version?: number
         }
         Relationships: []
