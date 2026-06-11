@@ -640,6 +640,14 @@ export default function AdminLegalKB() {
                     )}
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openViewer(s)}
+                      title="Преглед на индексираното съдържание"
+                    >
+                      <Eye className="h-3 w-3 mr-1" /> Преглед
+                    </Button>
                     {s.official_url && (
                       <Button
                         size="sm"
