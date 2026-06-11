@@ -275,6 +275,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
       const accTools: ToolEvent[] = [];
       let receivedThreadId: string | null = null;
       let receivedCitations: LegalCitation[] = [];
+      let receivedFollowups: string[] = [];
 
       while (true) {
         const { value, done } = await reader.read();
