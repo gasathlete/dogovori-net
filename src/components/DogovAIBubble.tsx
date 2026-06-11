@@ -9,15 +9,51 @@ const dogovaiIcon = "/dogovai-favicon.png";
 
 /**
  * DogovAI — small, branded, scroll-attached chatbot bubble visible globally.
- * - Anonymous users: get 3 free messages + register CTA. Hard cap.
+ * - Anonymous users: 3 free messages + register CTA. Hard cap.
  * - Authenticated users: full AssistantChat experience.
- * - Conversation memory resets on close (no persistence).
+ * - Conversation persists for 30 min after last message; reset thereafter.
  */
 
 const HIDDEN_PREFIXES = ["/assistant", "/signing", "/share", "/checkout"];
 const ANON_LIMIT = 3;
+const IDLE_RESET_MS = 30 * 60 * 1000; // 30 minutes
+const ANON_STORAGE_KEY = "dogovai_anon_chat_v2";
+const LAST_ACTIVITY_KEY = "dogovai_last_activity_v2";
+const LEGACY_KEYS = ["dogovai_anon_chat", "dogovai_anon_chat_v1", "dogovai_last_activity"];
+
+// One-time wipe of any prior conversations across all profiles/browsers.
+if (typeof window !== "undefined") {
+  try {
+    LEGACY_KEYS.forEach((k) => localStorage.removeItem(k));
+  } catch { /* ignore */ }
+}
 
 type AnonMsg = { role: "user" | "assistant"; content: string };
+
+type AnonStored = { messages: AnonMsg[]; followups: string[]; updatedAt: number };
+
+function loadAnonStored(): AnonStored | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(ANON_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as AnonStored;
+    if (!parsed?.updatedAt || Date.now() - parsed.updatedAt > IDLE_RESET_MS) {
+      localStorage.removeItem(ANON_STORAGE_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveAnonStored(s: AnonStored) {
+  try {
+    localStorage.setItem(ANON_STORAGE_KEY, JSON.stringify(s));
+    localStorage.setItem(LAST_ACTIVITY_KEY, String(s.updatedAt));
+  } catch { /* ignore */ }
+}
 
 const STARTERS: { icon: typeof FileText; label: string; prompt: string }[] = [
   { icon: FileText, label: "Намери ми шаблон", prompt: "Какъв шаблон да избера за договор за услуга?" },
@@ -27,19 +63,22 @@ const STARTERS: { icon: typeof FileText; label: string; prompt: string }[] = [
 ];
 
 function AnonChat({ resetKey }: { resetKey: number }) {
-  const [messages, setMessages] = useState<AnonMsg[]>([]);
-  const [followups, setFollowups] = useState<string[]>([]);
+  const initial = resetKey === 0 ? loadAnonStored() : null;
+  const [messages, setMessages] = useState<AnonMsg[]>(initial?.messages ?? []);
+  const [followups, setFollowups] = useState<string[]>(initial?.followups ?? []);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Reset memory whenever the chat panel is re-opened.
+  // Wipe state when parent forces a reset (idle >30 min).
   useEffect(() => {
+    if (resetKey === 0) return;
     setMessages([]);
     setFollowups([]);
     setInput("");
     setBusy(false);
+    try { localStorage.removeItem(ANON_STORAGE_KEY); } catch { /* ignore */ }
   }, [resetKey]);
 
   const userTurns = messages.filter((m) => m.role === "user").length;
@@ -69,14 +108,18 @@ function AnonChat({ resetKey }: { resetKey: number }) {
       if (error) throw error;
       const reply = (data as { reply?: string })?.reply ?? "Извинете, опитайте отново.";
       const fups = ((data as { followups?: string[] })?.followups ?? []).slice(0, 3);
-      setMessages([...next, { role: "assistant", content: reply }]);
+      const finalMsgs = [...next, { role: "assistant" as const, content: reply }];
+      setMessages(finalMsgs);
       setFollowups(fups);
+      saveAnonStored({ messages: finalMsgs, followups: fups, updatedAt: Date.now() });
     } catch {
-      setMessages([
+      const finalMsgs: AnonMsg[] = [
         ...next,
         { role: "assistant", content: "Грешка при връзка. Опитайте отново или се регистрирайте за пълен достъп." },
-      ]);
+      ];
+      setMessages(finalMsgs);
       setFollowups([]);
+      saveAnonStored({ messages: finalMsgs, followups: [], updatedAt: Date.now() });
     } finally {
       setBusy(false);
       requestAnimationFrame(() => inputRef.current?.focus());
@@ -221,9 +264,21 @@ export function DogovAIBubble() {
   const [open, setOpen] = useState(false);
   const [resetKey, setResetKey] = useState(0);
 
-  // Every time the panel opens, bump the reset key so AnonChat clears memory.
+  // On open, reset memory only when idle > 30 min since last message.
   useEffect(() => {
-    if (open) setResetKey((k) => k + 1);
+    if (!open) return;
+    let last = 0;
+    try {
+      const raw = localStorage.getItem(LAST_ACTIVITY_KEY);
+      last = raw ? Number(raw) : 0;
+    } catch { /* ignore */ }
+    if (!last || Date.now() - last > IDLE_RESET_MS) {
+      try {
+        localStorage.removeItem(ANON_STORAGE_KEY);
+        localStorage.removeItem(LAST_ACTIVITY_KEY);
+      } catch { /* ignore */ }
+      setResetKey((k) => k + 1);
+    }
   }, [open]);
 
   useEffect(() => {
