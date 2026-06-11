@@ -559,7 +559,7 @@ function MessageBubble({ role, content, isStreaming, citations, toolEvents, foll
             {toolEvents && toolEvents.length > 0 && (
               <div className="not-prose space-y-1">
                 {toolEvents.map((ev) => (
-                  <AssistantToolCard key={ev.id} event={ev} />
+                  <AssistantToolCard key={ev.id} event={ev} onSendMessage={handleToolMessage} />
                 ))}
               </div>
             )}
