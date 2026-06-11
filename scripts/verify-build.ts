@@ -80,7 +80,7 @@ for (const c of ssgChecks) {
   }
   const html = readFileSync(full, "utf8");
   // Extract every <script type="application/ld+json"> payload and parse it.
-  const matches = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+  const matches = [...html.matchAll(/<script type="application\/ld\+json"(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
   if (matches.length === 0) {
     console.error(`✗ dist/${c.path} has no JSON-LD scripts`);
     failed = true;
