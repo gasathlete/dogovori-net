@@ -467,7 +467,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
               {streaming && (
                 <MessageBubble
                   role="assistant"
-                  content={streamingText}
+                  content={streamingText.replace(/<followups>[\s\S]*?(?:<\/followups>|$)/i, "")}
                   isStreaming={!streamingText && streamingTools.length === 0}
                   toolEvents={streamingTools}
                 />
