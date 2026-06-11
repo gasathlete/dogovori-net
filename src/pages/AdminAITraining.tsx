@@ -25,7 +25,24 @@ const AI_FUNCTIONS = [
   { id: "suggest-followup-questions", label: "Уточняващи въпроси (wizard)" },
 ];
 
-type Prompt = { id: string; function_name: string; version: number; content: string; is_active: boolean; notes: string | null; created_at: string };
+type Prompt = { id: string; function_name: string; version: number; content: string; is_active: boolean; notes: string | null; created_at: string; model: string | null; premium_model: string | null };
+
+const AVAILABLE_MODELS = [
+  { value: "google/gemini-3-flash-preview", label: "Gemini 3 Flash (бърз, по подразбиране)" },
+  { value: "google/gemini-3.1-flash-lite-preview", label: "Gemini 3.1 Flash Lite (евтин)" },
+  { value: "google/gemini-3.5-flash", label: "Gemini 3.5 Flash (балансиран)" },
+  { value: "google/gemini-3.1-pro-preview", label: "Gemini 3.1 Pro (по-силен)" },
+  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+  { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
+  { value: "openai/gpt-5", label: "GPT-5" },
+  { value: "openai/gpt-5-mini", label: "GPT-5 Mini" },
+  { value: "openai/gpt-5.2", label: "GPT-5.2 (премиум reasoning)" },
+  { value: "openai/gpt-5.4", label: "GPT-5.4 (advanced reasoning)" },
+  { value: "openai/gpt-5.4-pro", label: "GPT-5.4 Pro" },
+  { value: "openai/gpt-5.5", label: "GPT-5.5 (state-of-the-art)" },
+  { value: "openai/gpt-5.5-pro", label: "GPT-5.5 Pro" },
+];
 type Rule = { id: string; function_name: string; rule_text: string; severity: "must" | "should"; active: boolean };
 type Example = { id: string; function_name: string; category: string; title: string; input_context: string; expected_output: string; weight: number; active: boolean };
 
