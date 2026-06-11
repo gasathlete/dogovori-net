@@ -462,7 +462,7 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
       <button
         type="button"
         onClick={() => navigate("/console")}
-        className="md:col-span-3 group relative overflow-hidden rounded-2xl border border-gold/50 bg-gradient-to-br from-navy via-navy/95 to-navy/85 p-5 sm:p-6 text-left shadow-gold transition-all hover:shadow-2xl hover:border-gold focus:outline-none focus:ring-2 focus:ring-gold/60"
+        className="md:col-span-3 group relative overflow-hidden rounded-2xl border border-gold/50 bg-gradient-to-br from-[hsl(220_45%_7%)] via-[hsl(220_45%_10%)] to-[hsl(220_45%_14%)] p-5 sm:p-6 text-left shadow-gold transition-all hover:shadow-2xl hover:border-gold focus:outline-none focus:ring-2 focus:ring-gold/60"
       >
         <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gold/20 blur-3xl transition-opacity group-hover:opacity-80" />
         <div className="pointer-events-none absolute -bottom-12 -left-8 h-32 w-32 rounded-full bg-gold/10 blur-2xl" />
