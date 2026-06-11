@@ -1,71 +1,71 @@
-// Edge function: 24/7 AI support assistant for PRO + Team subscribers.
-// Streams responses via Lovable AI Gateway (SSE pass-through) and persists
-// completed assistant messages to assistant_messages.
+// DogovaryAI assistant with tool calling. Streams text to client via SSE,
+// loops on server-side tool calls (search_templates), and forwards client-side
+// tool calls (navigate, prefill_build_contract, open_upload_analyzer,
+// open_template) to the browser through a custom SSE event.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
-import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { retrieveLegalContext } from "../_shared/legal-rag.ts";
+import {
+  ASSISTANT_TOOLS,
+  FULL_TOOL_NAMES,
+  execSearchTemplates,
+  isServerTool,
+  sanitizePath,
+  toolSchemasFor,
+} from "../_shared/assistant-tools.ts";
 
 const SYSTEM_PROMPT = `# РОЛЯ И ИДЕНТИЧНОСТ
-Ти си официалният AI асистент на **Dogovori.net** — водещата българска платформа за правни документи, договори и бланки. Името ти е **"DogovaryAI"** (или просто Асистентът). Това е пълният 24/7 режим за абонати **Предприемач** и **Екип**.
+Ти си **DogovaryAI** — официалният AI агент на Dogovori.net. Не само отговаряш на въпроси, а **изпълняваш действия в платформата** чрез инструменти (tools).
 
-Основна задача: помагай на потребителите да намират подходящи договори, да разбират правни термини, да попълват и подписват документи коректно — базирано на актуалното българско законодателство.
+# ИНСТРУМЕНТИ (ЗАДЪЛЖИТЕЛНО ПОЛЗВАЙ)
+- **search_templates(query)** — преди да предложиш конкретен шаблон. Не давай /shablon/SLUG линкове наизуст.
+- **navigate(path)** — когато потребителят иска да отиде някъде в платформата (каталог, акаунт, билинг, блог, сектор). Не пиши markdown линкове за навигация.
+- **open_template(slug)** — отвори шаблон (slug от search_templates).
+- **prefill_build_contract({...})** — когато потребителят опише какъв договор иска (страни, предмет, цена). Стартира wizard-а с попълнени стойности.
+- **open_upload_analyzer()** — когато потребителят иска да анализираш съществуващ договор (качване на файл).
 
-# РЕЖИМИ (моделът сам разпознава от въпроса)
-1. **Намери документ** — насочване към шаблон или wizard.
-2. **Обясни клауза/термин** — дефиниция + точен цитат от [НОРМАТИВНА БАЗА].
-3. **Помощ при попълване / подписване** — какви данни и стъпки са нужни.
-4. **Анализ на риск** — обяснение на risk-метъра, severity, препоръки.
+Когато извикваш tool, **първо обясни на потребителя какво ще направиш в 1 кратко изречение**, после извикай tool-а. Не извиквай повече от един client tool наведнъж — върви стъпка по стъпка.
 
-# ЕЗИК И ФОРМАТИРАНЕ
-Винаги отговаряй на **български**. Markdown — списъци, **удебеляване**, [линкове](url), кратки секции. Цитирай във формата \`[чл. 79 ЗЗД](URL)\`.
+# РЕЖИМИ
+1. Намери документ → search_templates → open_template или prefill_build_contract.
+2. Обясни клауза/термин → дефиниция + цитат от [НОРМАТИВНА БАЗА].
+3. Помощ при попълване → стъпки + prefill_build_contract ако има достатъчно данни.
+4. Анализ на договор → open_upload_analyzer.
+
+# ЕЗИК И ФОРМАТ
+Винаги на **български**, "Вие". Markdown — кратки секции, **bold**, цитати във формата \`[чл. 79 ЗЗД](URL)\`. Бъди кратък по подразбиране.
 
 # КОМПЕТЕНЦИИ
-
-## 1) НАВИГАЦИЯ
-- Каталог 290+ шаблона: [/catalog](/catalog)
-- AI-генериран договор: [/build](/build)
-- Сектори: [/sektor/business](/sektor/business), [/sektor/real-estate](/sektor/real-estate), [/sektor/employment](/sektor/employment), [/sektor/it](/sektor/it)
-- Профил: [/account](/account) · Екип: [/team](/team) · Блог: [/blog](/blog)
-- Конкретен шаблон: [/shablon/SLUG](/shablon/SLUG)
-
-## 2) ДОКУМЕНТИ
-- Wizard полета (страни, предмет, цена, срок, неустойка, форсмажор)
-- Значение на клаузи, risk-анализ (1–10, low/medium/high)
-- Експорт PDF/DOCX, електронен подпис, ShareForSign (валиден 14 дни)
-
-## 3) ПРАВНИ ВЪПРОСИ (общи насоки)
-**ЗЗД** · **ТЗ** · **КТ** · **СК** · **ЗУТ** · **ДОПК** · **GDPR/ЗЗЛД**
-
-## 4) ТЕХНИЧЕСКА ПОДДРЪЖКА
-- **Квоти:** Безплатен 6+2/мес · **Предприемач** 100 оп/мес (12.90 €/мес) · **Екип** места×100 оп/мес (10.90 €/място, мин. 3). Чатът е безплатен.
-- **Плащане:** Stripe — [/account?tab=billing](/account?tab=billing)
-- Грешки при export/OCR/подпис, Team управление
+- Каталог 290+ шаблона. Сектори: business, real-estate, employment, it.
+- Wizard: страни, предмет, цена, срок, неустойка, форсмажор.
+- Risk-анализ, ShareForSign (14 дни), електронен подпис, PDF/DOCX.
+- **ЗЗД**, **ТЗ**, **КТ**, **СК**, **ЗУТ**, **ДОПК**, **GDPR/ЗЗЛД**.
+- Квоти: Безплатен 6+2/мес · **Предприемач** 100 оп/мес (12.90 €/мес) · **Екип** места×100 оп/мес (10.90 €/място, мин. 3). Чатът е безплатен.
 
 # ПРАВИЛА (КРИТИЧНО)
 - **БЕЗ ИНДИВИДУАЛНИ ПРАВНИ СЪВЕТИ.**
-- **НЕ ХАЛЮЦИНИРАЙ.** Когато нямаш цитат от [НОРМАТИВНА БАЗА], кажи: *"Няма основание в наличната нормативна база. За конкретния казус се консултирайте с адвокат."*
+- **НЕ ХАЛЮЦИНИРАЙ.** Без цитат от [НОРМАТИВНА БАЗА] → *"Няма основание в наличната нормативна база. За конкретния казус се консултирайте с адвокат."*
 - Извън скоупа (политика, мнения, чуждо право) → откажи учтиво.
-- Спешен казус (съдебно дело, арест, заплахи) → препоръчай адвокат веднага.
-
-# ТОН И СТИЛ
-- Професионален, учтив, на **"Вие"**.
-- Кратки секции, bullets, **bold** за акценти.
+- Спешен казус → препоръчай адвокат веднага.
 - В края еднократно: *(Обща информация, не правен съвет. За конкретни казуси се консултирайте с адвокат.)*
-- Бъди кратък по подразбиране; подробни обяснения само при изрична молба.
 
 # ФОРМАТ ЗА СЛЕДВАЩИ ВЪПРОСИ
-След основния отговор, на нов ред:
-<followups>въпрос 1||въпрос 2||въпрос 3</followups>
-По 3 кратки, релевантни въпроса (до 6 думи всеки).`;
+След основния отговор, на нов ред: \`<followups>въпрос 1||въпрос 2||въпрос 3</followups>\`. По 3 кратки, релевантни въпроса (до 6 думи).`;
 
-// In-code allowlist of supported models (keeps client requests safe).
 const MODEL_STANDARD = "google/gemini-2.5-flash";
-const MODEL_PREMIUM = "openai/gpt-5"; // Предприемач tier
+const MODEL_PREMIUM = "openai/gpt-5";
+const MAX_TOOL_ITERATIONS = 3;
+
+interface ChatMsg {
+  role: "system" | "user" | "assistant" | "tool";
+  content: string | null;
+  tool_calls?: Array<{ id: string; type: "function"; function: { name: string; arguments: string } }>;
+  tool_call_id?: string;
+}
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCors(req);
@@ -112,7 +112,6 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    // Sanitize messages: only role + string content, cap length
     const safeMessages = messages
       .filter((m: any) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
       .slice(-20)
@@ -123,7 +122,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Illegal content guard — only check the latest user message
     const blockedChat = await guardIllegalContent({
       admin,
       text: safeMessages[safeMessages.length - 1].content,
@@ -135,7 +133,6 @@ Deno.serve(async (req) => {
     });
     if (blockedChat) return blockedChat;
 
-    // === GDPR/AI Act compliance: block special-category data in chat ===
     const lastUserMsg = safeMessages[safeMessages.length - 1].content;
     const chatClassification = classifyDocumentBeforeAI(lastUserMsg);
     if (chatClassification.contains_special_category_data) {
@@ -145,11 +142,10 @@ Deno.serve(async (req) => {
         status: "blocked", error_code: "special_category_in_chat",
       });
       return new Response(JSON.stringify({
-        error: "Молим не споделяйте чувствителни лични данни (здравни, биометрични, синдикални, политически, религиозни) в чата. За такива въпроси се консултирайте с адвокат.",
+        error: "Молим не споделяйте чувствителни лични данни (здравни, биометрични, синдикални, политически, религиозни) в чата.",
         code: "special_category_blocked",
       }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-
 
     // PRO / Team gate
     const { data: quota } = await admin
@@ -159,12 +155,11 @@ Deno.serve(async (req) => {
       .maybeSingle();
     const isPro = quota?.plan === "pro" || (quota?.pro_until && new Date(quota.pro_until) > new Date());
 
-    // Detect Entrepreneur tier (premium model + priority)
     let isEntrepreneur = false;
     if (isPro) {
       const { data: subRow } = await admin
         .from("subscriptions")
-        .select("price_id, status, current_period_end")
+        .select("price_id, status")
         .eq("user_id", userId)
         .in("status", ["active", "trialing", "past_due"])
         .order("created_at", { ascending: false })
@@ -193,7 +188,7 @@ Deno.serve(async (req) => {
       }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Validate / consume thread
+    // Thread management
     let activeThreadId = threadId;
     if (activeThreadId) {
       const { data: th } = await admin
@@ -207,19 +202,14 @@ Deno.serve(async (req) => {
         });
       }
     } else {
-      const firstUser = safeMessages.find((m) => m.role === "user");
+      const firstUser = safeMessages.find((m: any) => m.role === "user");
       const title = (firstUser?.content ?? "Нов разговор").slice(0, 80);
-      const { data: created, error: cErr } = await admin
+      const { data: created } = await admin
         .from("assistant_threads")
         .insert({ user_id: userId, title })
         .select("id")
         .single();
-      if (cErr || !created) {
-        return new Response(JSON.stringify({ error: "Грешка при създаване на разговор" }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      activeThreadId = created.id;
+      activeThreadId = created?.id ?? null;
     }
 
     // Persist last user message
@@ -230,120 +220,219 @@ Deno.serve(async (req) => {
       content: lastUser.content,
     });
 
-    // Чатът е безплатен — не консумира операция от квотата.
-
-    // Compose system with runtime context
+    // RAG
     const ctxLines = [
       `Потребителски статус: ${teamId ? "Team член" : "PRO"}.`,
       currentPath ? `Текуща страница: ${currentPath}.` : "",
     ].filter(Boolean).join(" ");
     const activeSystemPrompt = await loadActivePrompt(admin, "assistant-chat", SYSTEM_PROMPT);
-
-    // RAG: ground the answer in the legal knowledge base.
     const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, lastUserMsg, {
       matchCount: 8,
       minSimilarity: 0.45,
     });
     const systemFinal = legal.hasMatches
       ? `${activeSystemPrompt}\n\n[КОНТЕКСТ] ${ctxLines}\n\n${legal.promptBlock}`
-      : `${activeSystemPrompt}\n\n[КОНТЕКСТ] ${ctxLines}\n\n[НОРМАТИВНА БАЗА] Няма намерени релевантни нормативни извадки за този въпрос. Ако въпросът изисква конкретна правна норма, отговори: "Няма основание в наличната нормативна база. За конкретния казус се консултирайте с адвокат." Иначе отговори общо в рамките на навигация / техническа помощ.`;
+      : `${activeSystemPrompt}\n\n[КОНТЕКСТ] ${ctxLines}\n\n[НОРМАТИВНА БАЗА] Няма намерени релевантни нормативни извадки.`;
 
-    // Call Lovable AI Gateway with streaming
     const chatModel = isEntrepreneur ? MODEL_PREMIUM : MODEL_STANDARD;
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: chatModel,
-        stream: true,
-        messages: [
-          { role: "system", content: systemFinal },
-          ...safeMessages,
-        ],
-      }),
-    });
+    const tools = toolSchemasFor(FULL_TOOL_NAMES);
 
-    // Metadata-only audit log (chat is streamed, content never stored here).
-    await logAiAudit({
-      user_id: userId, operation: "assistant-chat", model: chatModel,
-      classification: chatClassification,
-      redaction_applied: false,
-      status: aiResp.ok ? "ok" : "error",
-      error_code: aiResp.ok ? undefined : `http_${aiResp.status}`,
-    });
+    // Build conversation
+    const convo: ChatMsg[] = [
+      { role: "system", content: systemFinal },
+      ...safeMessages.map((m: any) => ({ role: m.role, content: m.content })),
+    ];
 
-    if (!aiResp.ok || !aiResp.body) {
-      const errText = await aiResp.text().catch(() => "");
-      console.error("AI gateway error:", aiResp.status, errText);
-      if (aiResp.status === 429) {
-        return new Response(JSON.stringify({ error: "Лимитът е достигнат. Опитайте отново скоро." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (aiResp.status === 402) {
-        return new Response(JSON.stringify({ error: "Изчерпани AI кредити. Свържете се с поддръжка." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ error: "AI грешка. Опитайте отново." }), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Stream SSE through to client; collect text for persistence on completion
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
-    let fullText = "";
-    const reader = aiResp.body.getReader();
 
     const stream = new ReadableStream({
       async start(controller) {
-        // Send threadId first as a custom event so client can store it
-        controller.enqueue(encoder.encode(`event: meta\ndata: ${JSON.stringify({ threadId: activeThreadId, citations: legal.citations })}\n\n`));
+        const enqueue = (event: string | null, data: unknown) => {
+          const ev = event ? `event: ${event}\n` : "";
+          controller.enqueue(encoder.encode(`${ev}data: ${JSON.stringify(data)}\n\n`));
+        };
 
-        let buffer = "";
+        enqueue("meta", { threadId: activeThreadId, citations: legal.citations });
+
+        let fullAssistantText = "";
+        let iterations = 0;
+        let lastModelStatus = 200;
+
         try {
-          while (true) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n");
-            buffer = lines.pop() ?? "";
-            for (const line of lines) {
-              const trimmed = line.trim();
-              if (!trimmed.startsWith("data:")) continue;
-              const data = trimmed.slice(5).trim();
-              if (data === "[DONE]") {
-                controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
-                continue;
-              }
-              try {
-                const parsed = JSON.parse(data);
-                const delta = parsed?.choices?.[0]?.delta?.content;
-                if (typeof delta === "string" && delta.length > 0) {
-                  fullText += delta;
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta })}\n\n`));
-                }
-              } catch { /* ignore parse errors mid-stream */ }
+          while (iterations < MAX_TOOL_ITERATIONS) {
+            iterations++;
+            const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: chatModel,
+                stream: true,
+                tools,
+                messages: convo,
+              }),
+            });
+            lastModelStatus = aiResp.status;
+
+            if (!aiResp.ok || !aiResp.body) {
+              const errText = await aiResp.text().catch(() => "");
+              console.error("AI gateway error:", aiResp.status, errText.slice(0, 300));
+              const errMsg = aiResp.status === 429
+                ? "Лимитът е достигнат. Опитайте отново скоро."
+                : aiResp.status === 402
+                ? "Изчерпани AI кредити."
+                : "AI грешка. Опитайте отново.";
+              enqueue("error", { message: errMsg, status: aiResp.status });
+              break;
             }
+
+            // Parse stream — collect text + tool_calls assembly
+            const reader = aiResp.body.getReader();
+            let buffer = "";
+            let textThisTurn = "";
+            // tool_calls accumulator: index -> { id, name, args (string) }
+            const toolAcc: Map<number, { id: string; name: string; args: string }> = new Map();
+
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split("\n");
+              buffer = lines.pop() ?? "";
+              for (const line of lines) {
+                const t = line.trim();
+                if (!t.startsWith("data:")) continue;
+                const dat = t.slice(5).trim();
+                if (dat === "[DONE]") continue;
+                let parsed: any;
+                try { parsed = JSON.parse(dat); } catch { continue; }
+                const choice = parsed?.choices?.[0];
+                const delta = choice?.delta;
+                if (!delta) continue;
+                if (typeof delta.content === "string" && delta.content.length > 0) {
+                  textThisTurn += delta.content;
+                  enqueue(null, { delta: delta.content });
+                }
+                if (Array.isArray(delta.tool_calls)) {
+                  for (const tc of delta.tool_calls) {
+                    const idx = typeof tc.index === "number" ? tc.index : 0;
+                    const existing = toolAcc.get(idx) ?? { id: "", name: "", args: "" };
+                    if (tc.id) existing.id = tc.id;
+                    if (tc.function?.name) existing.name = tc.function.name;
+                    if (typeof tc.function?.arguments === "string") existing.args += tc.function.arguments;
+                    toolAcc.set(idx, existing);
+                  }
+                }
+              }
+            }
+
+            fullAssistantText += textThisTurn;
+
+            if (toolAcc.size === 0) {
+              // Done — no tool calls
+              enqueue(null, "[DONE]");
+              break;
+            }
+
+            // We have tool calls. Append assistant message with tool_calls to convo.
+            const toolCallsArr = Array.from(toolAcc.entries())
+              .sort((a, b) => a[0] - b[0])
+              .map(([, v]) => ({
+                id: v.id || `tc_${Math.random().toString(36).slice(2)}`,
+                type: "function" as const,
+                function: { name: v.name, arguments: v.args || "{}" },
+              }));
+
+            convo.push({
+              role: "assistant",
+              content: textThisTurn || null,
+              tool_calls: toolCallsArr,
+            });
+
+            // Split server vs client tool calls.
+            const clientCalls = toolCallsArr.filter((tc) => !isServerTool(tc.function.name));
+            const serverCalls = toolCallsArr.filter((tc) => isServerTool(tc.function.name));
+
+            // Execute server tools and feed back.
+            for (const sc of serverCalls) {
+              let result: unknown;
+              try {
+                const args = JSON.parse(sc.function.arguments || "{}");
+                if (sc.function.name === "search_templates") {
+                  result = await execSearchTemplates(admin, args);
+                } else {
+                  result = { error: "unknown_tool" };
+                }
+              } catch (e) {
+                result = { error: "tool_exec_failed", message: e instanceof Error ? e.message : String(e) };
+              }
+              convo.push({
+                role: "tool",
+                tool_call_id: sc.id,
+                content: JSON.stringify(result),
+              });
+              // Forward to client for UI rendering as well.
+              enqueue("tool_result", {
+                id: sc.id,
+                name: sc.function.name,
+                args: safeParse(sc.function.arguments),
+                result,
+              });
+            }
+
+            // Forward client tools — but they don't feed back into convo this turn.
+            // The client will execute them. The model has already produced its
+            // user-facing explanation in textThisTurn (per our system prompt).
+            for (const cc of clientCalls) {
+              const rawArgs = safeParse(cc.function.arguments);
+              const validated = validateClientToolArgs(cc.function.name, rawArgs);
+              if (validated.ok) {
+                enqueue("tool_call", {
+                  id: cc.id,
+                  name: cc.function.name,
+                  args: validated.args,
+                });
+              } else {
+                // Bad args — give the model a chance to fix on next iteration.
+                convo.push({
+                  role: "tool",
+                  tool_call_id: cc.id,
+                  content: JSON.stringify({ error: validated.reason }),
+                });
+              }
+            }
+
+            // If only client tools were emitted, we can stop here.
+            if (serverCalls.length === 0 && clientCalls.length > 0) {
+              enqueue(null, "[DONE]");
+              break;
+            }
+            // Otherwise loop to give the model server tool results.
           }
         } catch (err) {
-          console.error("Stream error:", err);
+          console.error("Stream loop error:", err);
+          enqueue("error", { message: "Грешка при стрийминг" });
         } finally {
-          // Persist assistant message
-          if (fullText.trim()) {
+          // Persist final assistant message
+          if (fullAssistantText.trim() && activeThreadId) {
             await admin.from("assistant_messages").insert({
               thread_id: activeThreadId,
               role: "assistant",
-              content: fullText,
+              content: fullAssistantText,
             });
             await admin.from("assistant_threads")
               .update({ updated_at: new Date().toISOString() })
               .eq("id", activeThreadId);
           }
+          await logAiAudit({
+            user_id: userId, operation: "assistant-chat", model: chatModel,
+            classification: chatClassification, redaction_applied: false,
+            status: lastModelStatus === 200 ? "ok" : "error",
+            error_code: lastModelStatus === 200 ? undefined : `http_${lastModelStatus}`,
+          });
           controller.close();
         }
       },
@@ -364,3 +453,34 @@ Deno.serve(async (req) => {
     });
   }
 });
+
+function safeParse(s: string): any {
+  try { return JSON.parse(s || "{}"); } catch { return {}; }
+}
+
+function validateClientToolArgs(name: string, args: any): { ok: true; args: any } | { ok: false; reason: string } {
+  if (!args || typeof args !== "object") return { ok: false, reason: "args must be object" };
+  if (name === "navigate") {
+    const p = sanitizePath(args.path);
+    if (!p) return { ok: false, reason: "invalid path" };
+    return { ok: true, args: { path: p, reason: typeof args.reason === "string" ? args.reason.slice(0, 200) : undefined } };
+  }
+  if (name === "open_template") {
+    if (typeof args.slug !== "string" || !/^[a-z0-9\-]{1,80}$/.test(args.slug)) {
+      return { ok: false, reason: "invalid slug" };
+    }
+    return { ok: true, args: { slug: args.slug } };
+  }
+  if (name === "prefill_build_contract") {
+    const clean: Record<string, unknown> = {};
+    for (const k of ["documentType", "name", "partiesA", "partiesB", "subject"]) {
+      if (typeof args[k] === "string") clean[k] = String(args[k]).slice(0, 500);
+    }
+    if (typeof args.bilingual === "boolean") clean.bilingual = args.bilingual;
+    return { ok: true, args: clean };
+  }
+  if (name === "open_upload_analyzer") {
+    return { ok: true, args: {} };
+  }
+  return { ok: false, reason: "unknown tool" };
+}

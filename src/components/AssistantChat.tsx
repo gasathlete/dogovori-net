@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Send, Loader2, Plus, Bird, AlertCircle, MessageSquare, Trash2 } from "lucide-react";
@@ -14,12 +14,14 @@ import { cn } from "@/lib/utils";
 import { Crown } from "lucide-react";
 
 import { LegalCitations, type LegalCitation } from "@/components/LegalCitations";
+import { AssistantToolCard, type ToolEvent } from "@/components/assistant/AssistantToolCard";
 
 interface Msg {
   id: string;
   role: "user" | "assistant";
   content: string;
   citations?: LegalCitation[];
+  toolEvents?: ToolEvent[];
 }
 
 interface Thread {
@@ -44,6 +46,7 @@ function getActiveThreadStorageKey(userId: string) {
 export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
   const { user, session } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const { isPro, isTeam, freeQuota, refresh: refreshPlan } = useIsPro();
   const aiRemaining = Math.max(0, freeQuota.aiMessagesCap - freeQuota.aiMessagesUsed);
   const aiLocked = !isPro && !isTeam && aiRemaining <= 0;
@@ -54,8 +57,41 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState("");
+  const [streamingTools, setStreamingTools] = useState<ToolEvent[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const executeClientTool = useCallback((name: string, args: any) => {
+    try {
+      if (name === "navigate" && typeof args?.path === "string") {
+        setTimeout(() => navigate(args.path), 400);
+        return;
+      }
+      if (name === "open_template" && typeof args?.slug === "string") {
+        setTimeout(() => navigate(`/shablon/${args.slug}`), 400);
+        return;
+      }
+      if (name === "open_upload_analyzer") {
+        setTimeout(() => navigate("/analyze"), 400);
+        return;
+      }
+      if (name === "prefill_build_contract") {
+        const params = new URLSearchParams();
+        if (args?.documentType) params.set("documentType", String(args.documentType));
+        if (args?.name) params.set("name", String(args.name));
+        if (args?.partiesA) params.set("partiesA", String(args.partiesA));
+        if (args?.partiesB) params.set("partiesB", String(args.partiesB));
+        if (args?.subject) params.set("subject", String(args.subject));
+        if (args?.bilingual) params.set("bilingual", "1");
+        params.set("from", "dogovaryai");
+        setTimeout(() => navigate(`/build?${params.toString()}`), 500);
+        return;
+      }
+    } catch (e) {
+      console.error("Tool execution failed:", e);
+    }
+  }, [navigate]);
+
 
   const setPersistedActiveThreadId = useCallback((nextThreadId: string | null) => {
     setActiveThreadId(nextThreadId);
@@ -183,6 +219,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
     setInput("");
     setStreaming(true);
     setStreamingText("");
+    setStreamingTools([]);
 
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`;
     try {
@@ -212,6 +249,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
       const decoder = new TextDecoder();
       let buffer = "";
       let accText = "";
+      const accTools: ToolEvent[] = [];
       let receivedThreadId: string | null = null;
       let receivedCitations: LegalCitation[] = [];
 
@@ -223,31 +261,50 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
         buffer = events.pop() ?? "";
         for (const evt of events) {
           const lines = evt.split("\n");
-          let isMeta = false;
+          let eventType = "";
           let dataLine = "";
           for (const line of lines) {
-            if (line.startsWith("event: meta")) isMeta = true;
+            if (line.startsWith("event:")) eventType = line.slice(6).trim();
             else if (line.startsWith("data:")) dataLine = line.slice(5).trim();
           }
           if (!dataLine) continue;
-          if (dataLine === "[DONE]") continue;
-          try {
-            const parsed = JSON.parse(dataLine);
-            if (isMeta) {
-              if (parsed.threadId) receivedThreadId = parsed.threadId;
-              if (Array.isArray(parsed.citations)) receivedCitations = parsed.citations;
-            } else if (parsed.delta) {
-              accText += parsed.delta;
-              setStreamingText(accText);
-            }
-          } catch { /* ignore */ }
+          if (dataLine === "[DONE]" || dataLine === '"[DONE]"') continue;
+          let parsed: any;
+          try { parsed = JSON.parse(dataLine); } catch { continue; }
+
+          if (eventType === "meta") {
+            if (parsed.threadId) receivedThreadId = parsed.threadId;
+            if (Array.isArray(parsed.citations)) receivedCitations = parsed.citations;
+          } else if (eventType === "error") {
+            toast.error(parsed.message || "AI грешка");
+          } else if (eventType === "tool_result") {
+            const ev: ToolEvent = { kind: "tool_result", id: parsed.id, name: parsed.name, args: parsed.args, result: parsed.result };
+            accTools.push(ev);
+            setStreamingTools([...accTools]);
+          } else if (eventType === "tool_call") {
+            const ev: ToolEvent = { kind: "tool_call", id: parsed.id, name: parsed.name, args: parsed.args };
+            accTools.push(ev);
+            setStreamingTools([...accTools]);
+            // Execute client-side tool (navigation, prefill, etc.)
+            executeClientTool(parsed.name, parsed.args);
+          } else if (parsed.delta) {
+            accText += parsed.delta;
+            setStreamingText(accText);
+          }
         }
       }
 
       // Finalize
-      const assistantMsg: Msg = { id: `tmp-a-${Date.now()}`, role: "assistant", content: accText, citations: receivedCitations };
+      const assistantMsg: Msg = {
+        id: `tmp-a-${Date.now()}`,
+        role: "assistant",
+        content: accText,
+        citations: receivedCitations,
+        toolEvents: accTools.length > 0 ? accTools : undefined,
+      };
       setMessages([...newMessages, assistantMsg]);
       setStreamingText("");
+      setStreamingTools([]);
       if (receivedThreadId && receivedThreadId !== activeThreadId) {
         setPersistedActiveThreadId(receivedThreadId);
       }
@@ -260,6 +317,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
       setStreaming(false);
     }
   };
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -367,13 +425,14 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
           ) : (
             <div className="space-y-4">
               {messages.map((m) => (
-                <MessageBubble key={m.id} role={m.role} content={m.content} citations={m.citations} />
+                <MessageBubble key={m.id} role={m.role} content={m.content} citations={m.citations} toolEvents={m.toolEvents} />
               ))}
               {streaming && (
                 <MessageBubble
                   role="assistant"
                   content={streamingText}
-                  isStreaming={!streamingText}
+                  isStreaming={!streamingText && streamingTools.length === 0}
+                  toolEvents={streamingTools}
                 />
               )}
             </div>
@@ -416,7 +475,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
   );
 }
 
-function MessageBubble({ role, content, isStreaming, citations }: { role: "user" | "assistant"; content: string; isStreaming?: boolean; citations?: LegalCitation[] }) {
+function MessageBubble({ role, content, isStreaming, citations, toolEvents }: { role: "user" | "assistant"; content: string; isStreaming?: boolean; citations?: LegalCitation[]; toolEvents?: ToolEvent[] }) {
   if (role === "user") {
     return (
       <div className="flex justify-end">
@@ -426,37 +485,47 @@ function MessageBubble({ role, content, isStreaming, citations }: { role: "user"
       </div>
     );
   }
+  const hasText = content && content.trim().length > 0;
   return (
     <div className="flex gap-2">
       <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gold/15">
         <Bird className="h-3 w-3 text-gold" />
       </div>
       <div className="max-w-[85%] flex-1 text-sm text-foreground">
-        {isStreaming ? (
+        {isStreaming && !hasText ? (
           <div className="flex items-center gap-1.5 py-2 text-muted-foreground">
             <Loader2 className="h-3 w-3 animate-spin" />
             <span className="text-xs">Мисля...</span>
           </div>
         ) : (
           <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:mt-3 prose-headings:mb-1 prose-a:text-gold prose-a:no-underline hover:prose-a:underline prose-strong:text-foreground prose-code:text-gold prose-code:bg-card/60 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                a: ({ href, children, ...props }) => {
-                  // Internal links use Link, external open in new tab
-                  if (href?.startsWith("/")) {
-                    return <Link to={href} className="text-gold hover:underline" {...(props as any)}>{children}</Link>;
-                  }
-                  return <a href={href} target="_blank" rel="noopener noreferrer" className="text-gold hover:underline" {...props}>{children}</a>;
-                },
-              }}
-            >
-              {content}
-            </ReactMarkdown>
+            {hasText && (
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: ({ href, children, ...props }) => {
+                    if (href?.startsWith("/")) {
+                      return <Link to={href} className="text-gold hover:underline" {...(props as any)}>{children}</Link>;
+                    }
+                    return <a href={href} target="_blank" rel="noopener noreferrer" className="text-gold hover:underline" {...props}>{children}</a>;
+                  },
+                }}
+              >
+                {content}
+              </ReactMarkdown>
+            )}
+            {toolEvents && toolEvents.length > 0 && (
+              <div className="not-prose space-y-1">
+                {toolEvents.map((ev) => (
+                  <AssistantToolCard key={ev.id} event={ev} />
+                ))}
+              </div>
+            )}
             {citations && citations.length > 0 && <LegalCitations citations={citations} />}
           </div>
         )}
       </div>
     </div>
   );
+
 }

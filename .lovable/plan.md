@@ -1,75 +1,112 @@
+# Пълен синхрон чат ↔ платформа (DogovaryAI агент)
 
-## 1. Преименуване: DogovAI → DogovaryAI
+Чатът ще стане истински агент, който чрез **tool calling** навигира, търси шаблони, стартира BuildContract с pre-fill и инициира анализ на качен договор. Премахваме ръчното SSE парсване и преминаваме към **AI SDK** (`streamText` + `tool` + `toUIMessageStreamResponse`).
 
-Глобална замяна на видимото име на бота навсякъде, където потребителят го вижда. Технически идентификатори (имена на edge функции `assistant-chat` / `assistant-chat-anon`, компонент `DogovAIBubble`) **остават същите**, за да не чупим импорти, кеш на supabase, аналитика и DB. Сменяме само лейбъли/копирайт.
+## Архитектура
 
-Файлове за update:
-- `src/components/DogovAIBubble.tsx` — всички видими стрингове: "DogovAI" → "DogovaryAI" (заглавие, alt, placeholder, aria-label, "Здравейте, аз съм…", CTA в края).
-- `src/components/FloatingAssistant.tsx` — "Чат поддръжка" → "DogovaryAI" (header + aria).
-- `src/pages/Account.tsx` — "Чат поддръжка 24/7" → "DogovaryAI 24/7".
-- `supabase/functions/assistant-chat/index.ts` — `SYSTEM_PROMPT`: името "Dogovori AI" → "DogovaryAI".
-- `supabase/functions/assistant-chat-anon/index.ts` — същото + CTA "пълен достъп до Dogovori AI" → "до DogovaryAI".
-- `index.html` — title/meta ако споменават старото име (проверка).
+```text
+┌────────────────────────────────────────────────────────┐
+│ AssistantChat (useChat от @ai-sdk/react)               │
+│  └─ message.parts → render text + tool UI cards        │
+│  └─ client tool handlers (navigate, prefill_build,     │
+│     open_upload, open_template) изпълняват действия    │
+└─────────────┬──────────────────────────────────────────┘
+              │ POST /functions/v1/assistant-chat
+              ▼
+┌────────────────────────────────────────────────────────┐
+│ Edge function assistant-chat                            │
+│  - Auth, PRO/Team gate, RAG, illegal-content guard      │
+│  - streamText({ model, tools, stopWhen: stepCountIs(8) })│
+│  - Server-side tools:                                   │
+│      • search_templates(query)  → template_search_index │
+│      • get_template(slug)       → template_clauses      │
+│      • list_user_documents()    → saved_documents       │
+│  - Client-side tools (без execute, ползват confirm):   │
+│      • navigate(path)                                   │
+│      • prefill_build_contract({ templateSlug, fields }) │
+│      • open_upload_analyzer()                           │
+│      • open_template(slug)                              │
+│  - toUIMessageStreamResponse({ originalMessages,        │
+│      onFinish: persist в assistant_messages })          │
+└────────────────────────────────────────────────────────┘
+```
 
-## 2. Оптимизация — конкурентно ниво (pravenintelekt.com)
+## Стъпки
 
-Pravenintelekt бие с три неща: **(а) отговори от официални източници с линкове към член/параграф**, **(б) ясни модули за различни задачи**, **(в) прозрачност за данни и модели**. В нашия проект вече има инфраструктура за това — `supabase/functions/_shared/legal-rag.ts` + `legal-chunker.ts` + админ панела за индексирани източници. Използваме я докрай.
+### 1. Edge function `assistant-chat` — миграция към AI SDK
+- Заменям raw `fetch` към gateway-а с `createLovableAiGatewayProvider` + `streamText` от `npm:ai`.
+- Дефинирам `tools` с `inputSchema` (Zod) и описания на български.
+- Server-side `execute`: `search_templates`, `get_template`, `list_user_documents` — четат от вече съществуващите таблици.
+- Client-side tools (без `execute`) за UI действия — те се изпълняват в браузъра.
+- `stopWhen: stepCountIs(8)` за multi-step разсъждение.
+- Запазвам `convertToModelMessages(messages)`, `originalMessages`, и `onFinish` за persist на `UIMessage` в `assistant_messages` (нова колона `parts jsonb`, fallback на `content`).
+- Запазваме RAG/illegal guard/PRO gate както са.
 
-### 2.1 Grounded отговори с цитати (и в анонимния бот)
+### 2. Системен prompt — обновяване
+Кратък нов раздел "ИНСТРУМЕНТИ" с правила:
+- Преди да дадеш линк за каталог/шаблон — извикай `search_templates`.
+- Когато потребителят иска "направи договор за X" — извикай `prefill_build_contract`.
+- Когато иска "анализирай моя договор" — извикай `open_upload_analyzer`.
+- При навигация — `navigate` вместо markdown линк.
 
-Сега `assistant-chat-anon` НЕ вика `retrieveLegalContext()` — заради което отговорите са "плоски" и без линкове. Добавяме:
-- В `assistant-chat-anon` извикваме `retrieveLegalContext(userQuery)` преди gateway-кол, инжектираме `promptBlock` в system prompt.
-- Връщаме `citations: LegalCitation[]` в JSON отговора (top 3, дедуплицирани).
-- `assistant-chat` (PRO) — вече ползва RAG; добавяме същата форма на цитати в стрийма (стандартен `<sources>…</sources>` маркер преди `<followups>`).
+### 3. Frontend `AssistantChat.tsx` — пренаписване с AI SDK
+- `useChat` + `DefaultChatTransport({ api: <edge function URL>, headers: { Authorization, apikey } })`.
+- `id = activeThreadId` (за thread сегрегация и remount).
+- Зареждаме история от `assistant_messages` като `UIMessage[]` (parts) при смяна на thread.
+- Рендер през `message.parts`:
+  - `type === "text"` → ReactMarkdown.
+  - `type === "tool-<name>"` → специализиран card (виж 4).
+- Composer запазва `status === "submitted" | "streaming"` за loading.
+- Persist на `activeThreadId` в localStorage остава.
 
-### 2.2 Рендериране на цитати в UI
+### 4. Tool UI карти (in-chat)
+Малки компоненти в `src/components/assistant/tools/`:
+- **TemplateResultsCard** — резултат от `search_templates`: списък с шаблони, бутон "Отвори" → `navigate(/shablon/...)`.
+- **NavigateCard** — "Отивам към ...", auto-confirm + бутон Отмени.
+- **PrefillBuildCard** — резюме на полета + бутон "Стартирай wizard-а" (отваря `/build?prefill=<id>`).
+- **UploadAnalyzerCard** — бутон "Отвори анализатор".
+Всеки card има `defaultOpen={false}` accordion за raw input/output.
 
-В `DogovAIBubble.tsx` под всеки assistant message:
-- Малък разделител "Източници" + chip-ове с `citation_label` (напр. "ЗЗД, чл. 79, ал. 1"), линкващи към `official_url` (target=\_blank, rel=noopener).
-- Ако `hasMatches=false`, надпис "Общ отговор — не е намерен пряк нормативен източник" (честност вместо халюцинация).
+### 5. Client tool изпълнение
+В `AssistantChat` дефинирам `onToolCall` handler:
+```ts
+case "navigate": navigate(args.path); return { ok: true };
+case "prefill_build_contract":
+  sessionStorage.setItem("dogovaryai_prefill", JSON.stringify(args));
+  navigate("/build?prefill=dogovaryai"); return { ok: true };
+case "open_upload_analyzer":
+  navigate("/analyze"); return { ok: true };
+case "open_template":
+  navigate(`/shablon/${args.slug}`); return { ok: true };
+```
 
-### 2.3 Режими (модули) в системния промпт
+### 6. BuildContract pre-fill съвместимост
+- В `src/pages/BuildContract.tsx` чета `sessionStorage["dogovaryai_prefill"]` при mount и попълвам полетата (минимална промяна — само ако вече има state shape).
+- Toast: "DogovaryAI предложи стойности — прегледай и редактирай".
 
-Подобно на конкурента ("Правни проучвания", "Чернови", "Анализ"), но в нашия скоуп (договори). В пълния `assistant-chat` въвеждаме 3 явни режима, които моделът сам разпознава от въпроса:
-1. **Намери документ** — насочване към `/catalog`, `/build`, `/shablon/SLUG`.
-2. **Обясни клауза/термин** — кратко определение + relevant ЗЗД/ТЗ/КТ/СК + линк.
-3. **Помощ при попълване** — изброява нужните данни (страни, ЕГН/ЕИК, предмет, цена, срокове, неустойки).
+### 7. Persistence schema
+- Миграция: `ALTER TABLE assistant_messages ADD COLUMN parts jsonb` (nullable, fallback към `content`).
+- При зареждане на thread: ако `parts` е null → конструирай `UIMessage` от `content`.
 
-### 2.4 Подобрения на промптите (и двата файла)
+### 8. assistant-chat-anon
+- Анонимната версия получава SAMO `search_templates` + `navigate` + `open_template` (без user-specific tools).
 
-- Forbid "не знам как се казва законът" → ако няма цитат, кажи го честно ("Не открих пряк източник в базата на DogovaryAI").
-- Дисклеймърът — кратък еднократен tag `_(Обща информация, не правен съвет.)_` накрая, не повтаряме във всеки отговор.
-- Markdown форматиране: списъци с тире, **bold** за акценти, линкове като `[чл. 79 ЗЗД](URL)`.
-- Запазваме `<followups>q1||q2||q3</followups>` блока в двата режима.
-- CTA в анонимния остава ("Регистрирайте се за пълен достъп до DogovaryAI").
+## Извън скоупа (потвърди, ако трябва)
+- Реално качване на файл от чата (drag-drop в композера) — за сега отваряме страницата `/analyze`.
+- Създаване на kits/папки през чат — оставяме за следваща итерация.
+- Автономно изпращане за подпис — изисква отделен approval flow.
 
-### 2.5 UX подобрения на чат балончето
-
-В `DogovAIBubble.tsx`:
-- **Suggested starters** (4 чипа над input при празен чат): "Изготви договор за наем", "Какво е неустойка?", "Какви документи трябват за NDA?", "Как се прекратява трудов договор?".
-- **Copy** бутон под всеки assistant message.
-- **Stop generating** бутон по време на изчакване (`AbortController`).
-- **Auto-scroll** при нов token.
-- Markdown рендериране през съществуващия `react-markdown` (ако липсва, добавяме).
-- Followups като кликаеми бутони (вече има — проверяваме).
-
-### 2.6 Edge functions: deployment
-
-След промените деплойваме `assistant-chat` и `assistant-chat-anon`.
-
-## 3. Какво НЕ правим в тази стъпка
-
-- Не разширяваме индекса с нова съдебна практика (ВКС/ВАС) — това е отделна задача с pipeline за индексация.
-- Не добавяме нови AI модели/плащания.
-- Не пипаме pricing/quota.
+## Технически бележки
+- Използваме `google/gemini-2.5-flash` за обикновени потребители, `openai/gpt-5` за Предприемач (както сега).
+- Tool calls се броят като 1 операция от месечната AI квота само на финалния assistant message (не на всяка стъпка).
+- CORS, auth, RAG, illegal-content guard — без промяна.
 
 ## Файлове за промяна
-
-- `src/components/DogovAIBubble.tsx` — нова визуализация (citations, copy, stop, starters), нов alt/title.
-- `src/components/FloatingAssistant.tsx` — лейбъли.
-- `src/pages/Account.tsx` — лейбъли.
-- `supabase/functions/assistant-chat-anon/index.ts` — RAG groundnig + цитати в response + ново име + режими.
-- `supabase/functions/assistant-chat/index.ts` — режими, формализиран `<sources>` блок, ново име.
-- (опц.) `package.json` — `react-markdown` ако липсва.
-
-И двете edge функции ще бъдат деплойнати.
+- `supabase/functions/assistant-chat/index.ts` — пълно пренаписване с AI SDK + tools
+- `supabase/functions/assistant-chat-anon/index.ts` — същата миграция, ограничен tool set
+- `supabase/functions/_shared/ai-gateway.ts` — нов (provider helper)
+- `supabase/functions/_shared/assistant-tools.ts` — нов (server tool definitions)
+- `src/components/AssistantChat.tsx` — миграция към `useChat` + parts rendering + tool handlers
+- `src/components/assistant/tools/*.tsx` — нови UI карти (4 файла)
+- `src/pages/BuildContract.tsx` — четене на prefill от sessionStorage
+- Migration: `parts jsonb` колона в `assistant_messages`
