@@ -278,6 +278,7 @@ const App = () => (
             <UsernamePrompt />
             <GlobalProUpgradeListener />
             <CommandPalette />
+            <DogovAIBubble />
           </Suspense>
           <Suspense fallback={<RouteFallback />}>
             <AnimatedRoutes />
