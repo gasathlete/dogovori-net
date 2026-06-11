@@ -22,6 +22,20 @@ interface Msg {
   content: string;
   citations?: LegalCitation[];
   toolEvents?: ToolEvent[];
+  followups?: string[];
+}
+
+const FOLLOWUPS_RE = /<followups>([\s\S]*?)<\/followups>/i;
+function extractFollowups(raw: string): { content: string; followups: string[] } {
+  if (!raw) return { content: raw, followups: [] };
+  const m = raw.match(FOLLOWUPS_RE);
+  if (!m) return { content: raw, followups: [] };
+  const followups = m[1]
+    .split(/\|\||\n/)
+    .map((s) => s.trim().replace(/^[-•\d.)\s]+/, ""))
+    .filter((s) => s.length > 0 && s.length <= 80)
+    .slice(0, 4);
+  return { content: raw.replace(FOLLOWUPS_RE, "").trim(), followups };
 }
 
 interface Thread {
