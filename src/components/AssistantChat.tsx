@@ -22,6 +22,20 @@ interface Msg {
   content: string;
   citations?: LegalCitation[];
   toolEvents?: ToolEvent[];
+  followups?: string[];
+}
+
+const FOLLOWUPS_RE = /<followups>([\s\S]*?)<\/followups>/i;
+function extractFollowups(raw: string): { content: string; followups: string[] } {
+  if (!raw) return { content: raw, followups: [] };
+  const m = raw.match(FOLLOWUPS_RE);
+  if (!m) return { content: raw, followups: [] };
+  const followups = m[1]
+    .split(/\|\||\n/)
+    .map((s) => s.trim().replace(/^[-•\d.)\s]+/, ""))
+    .filter((s) => s.length > 0 && s.length <= 80)
+    .slice(0, 4);
+  return { content: raw.replace(FOLLOWUPS_RE, "").trim(), followups };
 }
 
 interface Thread {
@@ -162,7 +176,16 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
         .select("id, role, content")
         .eq("thread_id", activeThreadId)
         .order("created_at", { ascending: true });
-      if (!cancelled) setMessages((data ?? []) as Msg[]);
+      if (!cancelled) {
+        const rows = (data ?? []) as Msg[];
+        setMessages(
+          rows.map((m) => {
+            if (m.role !== "assistant") return m;
+            const { content, followups } = extractFollowups(m.content || "");
+            return { ...m, content, followups };
+          }),
+        );
+      }
     })();
     return () => { cancelled = true; };
   }, [activeThreadId]);
@@ -295,12 +318,14 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
       }
 
       // Finalize
+      const { content: cleanText, followups } = extractFollowups(accText);
       const assistantMsg: Msg = {
         id: `tmp-a-${Date.now()}`,
         role: "assistant",
-        content: accText,
+        content: cleanText,
         citations: receivedCitations,
         toolEvents: accTools.length > 0 ? accTools : undefined,
+        followups,
       };
       setMessages([...newMessages, assistantMsg]);
       setStreamingText("");
@@ -424,13 +449,25 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
             </div>
           ) : (
             <div className="space-y-4">
-              {messages.map((m) => (
-                <MessageBubble key={m.id} role={m.role} content={m.content} citations={m.citations} toolEvents={m.toolEvents} />
-              ))}
+              {messages.map((m, idx) => {
+                const isLastAssistant =
+                  m.role === "assistant" && idx === messages.length - 1 && !streaming;
+                return (
+                  <MessageBubble
+                    key={m.id}
+                    role={m.role}
+                    content={m.content}
+                    citations={m.citations}
+                    toolEvents={m.toolEvents}
+                    followups={isLastAssistant ? m.followups : undefined}
+                    onFollowupClick={(t) => sendMessage(t)}
+                  />
+                );
+              })}
               {streaming && (
                 <MessageBubble
                   role="assistant"
-                  content={streamingText}
+                  content={streamingText.replace(/<followups>[\s\S]*?(?:<\/followups>|$)/i, "")}
                   isStreaming={!streamingText && streamingTools.length === 0}
                   toolEvents={streamingTools}
                 />
@@ -475,7 +512,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
   );
 }
 
-function MessageBubble({ role, content, isStreaming, citations, toolEvents }: { role: "user" | "assistant"; content: string; isStreaming?: boolean; citations?: LegalCitation[]; toolEvents?: ToolEvent[] }) {
+function MessageBubble({ role, content, isStreaming, citations, toolEvents, followups, onFollowupClick }: { role: "user" | "assistant"; content: string; isStreaming?: boolean; citations?: LegalCitation[]; toolEvents?: ToolEvent[]; followups?: string[]; onFollowupClick?: (text: string) => void }) {
   if (role === "user") {
     return (
       <div className="flex justify-end">
@@ -522,6 +559,20 @@ function MessageBubble({ role, content, isStreaming, citations, toolEvents }: { 
               </div>
             )}
             {citations && citations.length > 0 && <LegalCitations citations={citations} />}
+            {followups && followups.length > 0 && (
+              <div className="not-prose mt-3 flex flex-wrap gap-2">
+                {followups.map((f, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => onFollowupClick?.(f)}
+                    className="rounded-full border border-gold/40 bg-gold/5 px-3 py-1.5 text-xs text-foreground transition-colors hover:border-gold hover:bg-gold/15"
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
