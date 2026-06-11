@@ -114,7 +114,92 @@ export const ASSISTANT_TOOLS: Record<string, ToolDef> = {
       },
     },
   },
-};
+  ask_clarification: {
+    kind: "client",
+    schema: {
+      type: "function",
+      function: {
+        name: "ask_clarification",
+        description:
+          "Покажи структурирана форма с 2–5 кратки въпроса към потребителя за критични липсващи данни (страни, предмет, срок, цена, особености). Използвай ВИНАГИ преди prefill_build_contract или propose_contract_outline, ако липсват ключови данни. Само 1 ask_clarification на ход. Не повтаряй въпроси, на които потребителят вече е отговорил.",
+        parameters: {
+          type: "object",
+          properties: {
+            contextSummary: {
+              type: "string",
+              description: "1 кратко изречение какво вече разбираме (напр. 'Трудов договор за счетоводител')."
+            },
+            questions: {
+              type: "array",
+              maxItems: 5,
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "string", description: "snake_case идентификатор (напр. 'gross_salary')" },
+                  label: { type: "string", description: "Кратък въпрос до 60 знака" },
+                  type: { type: "string", enum: ["text", "choice", "number", "date"] },
+                  placeholder: { type: "string" },
+                  options: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Само при type='choice' (2–6 опции)"
+                  },
+                  required: { type: "boolean" }
+                },
+                required: ["id", "label", "type"]
+              }
+            }
+          },
+          required: ["contextSummary", "questions"]
+        }
+      }
+    }
+  },
+  propose_contract_outline: {
+    kind: "client",
+    schema: {
+      type: "function",
+      function: {
+        name: "propose_contract_outline",
+        description:
+          "Покажи план на договора (5–10 клаузи) за потвърждение от потребителя ПРЕДИ да извикаш prefill_build_contract. Използвай след ask_clarification или ако потребителят е дал достатъчно данни.",
+        parameters: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "Заглавие на договора" },
+            documentType: { type: "string", description: "ID на типа документ (от search_templates ако има)" },
+            basedOnTemplateSlug: { type: "string", description: "slug от search_templates ако планът се базира на конкретен шаблон" },
+            clauses: {
+              type: "array",
+              minItems: 3,
+              maxItems: 12,
+              items: {
+                type: "object",
+                properties: {
+                  heading: { type: "string" },
+                  summary: { type: "string", description: "1 изречение какво ще съдържа клаузата" }
+                },
+                required: ["heading", "summary"]
+              }
+            },
+            prefill: {
+              type: "object",
+              description: "Стойности които ще се подадат на wizard-а при потвърждение",
+              properties: {
+                name: { type: "string" },
+                partiesA: { type: "string" },
+                partiesB: { type: "string" },
+                subject: { type: "string" },
+                bilingual: { type: "boolean" }
+              }
+            }
+          },
+          required: ["title", "clauses"]
+        }
+      }
+    }
+  },
+
 
 export const ANON_TOOL_NAMES: string[] = ["search_templates", "navigate", "open_template"];
 export const FULL_TOOL_NAMES: string[] = Object.keys(ASSISTANT_TOOLS);
