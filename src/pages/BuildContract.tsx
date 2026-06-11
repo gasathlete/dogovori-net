@@ -105,6 +105,16 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   const prefillPartiesA = searchParams.get("partiesA");
   const prefillPartiesB = searchParams.get("partiesB");
   const prefillSubject = searchParams.get("subject");
+  const fromDogovaryAI = searchParams.get("from") === "dogovaryai";
+
+  useEffect(() => {
+    if (fromDogovaryAI) {
+      toast.info("DogovaryAI предложи стойности — прегледайте и редактирайте.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
 
 
   // Restore persisted state
