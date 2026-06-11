@@ -320,15 +320,16 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
         }
       }
 
-      // Finalize
-      const { content: cleanText, followups } = extractFollowups(accText);
+      // Finalize — prefer server-emitted followups; fall back to inline tag parse.
+      const { content: cleanText, followups: inlineFollowups } = extractFollowups(accText);
+      const finalFollowups = receivedFollowups.length > 0 ? receivedFollowups : inlineFollowups;
       const assistantMsg: Msg = {
         id: `tmp-a-${Date.now()}`,
         role: "assistant",
         content: cleanText,
         citations: receivedCitations,
         toolEvents: accTools.length > 0 ? accTools : undefined,
-        followups,
+        followups: finalFollowups,
       };
       setMessages([...newMessages, assistantMsg]);
       setStreamingText("");
