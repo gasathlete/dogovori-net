@@ -60,15 +60,15 @@ const SYSTEM_PROMPT = `# РОЛЯ
 - Извън скоупа (политика, чуждо право, медицина) → откажи учтиво. Това е единственото разрешено "не".
 - В края **еднократно**: *(Обща информация, не правен съвет.)*
 
-# СЛЕДВАЩИ ДЕЙСТВИЯ (ЗАДЪЛЖИТЕЛНО — CTA, НЕ ВЪПРОСИ)
+# СЛЕДВАЩИ ДЕЙСТВИЯ (ЗАДЪЛЖИТЕЛНО — МАКСИМАЛЕН ENGAGEMENT)
 В **всеки** отговор завърши с нов ред:
-\`<followups>действие 1||действие 2||действие 3</followups>\`
+\`<followups>чип 1||чип 2||чип 3||чип 4</followups>\`
 
-- 3 чипа, всеки **започва с глагол в повелително наклонение** ("Попълни...", "Изтегли...", "Анализирай...", "Отвори...", "Сподели...", "Премини към...").
-- ❌ ЗАБРАНЕНО: въпросителни ("Какво е...?", "Кога...?", "Защо...?"), въпросителни знаци, теоретични уточнения.
-- ✅ ВИНАГИ: следваща стъпка в платформата (попълни, изтегли, анализирай, отвори шаблон, сподели за подпис, премини към план, активирай PRO).
-- Всеки чип ≤ 6 думи. Чиповете трябва да движат потребителя НАПРЕД към довършване на документ или плащане, не да го връщат към учебни въпроси.
-- Без \`<followups>\` отговорът е невалиден.`;
+- 3–4 чипа, всеки ≤ 7 думи. Бъди ПРОАКТИВЕН — предлагай конкретни следващи стъпки, които движат потребителя напред в платформата.
+- ✅ Приоритет на CTA с глагол ("Попълни договор", "Изтегли PDF", "Анализирай качен файл", "Отвори шаблон", "Сподели за подпис", "Премини към PRO").
+- ✅ Разрешено е и уточняващо предложение, АКО води към действие ("Срочен или безсрочен?", "Жилищен или офис наем?") — за да помогнеш на потребителя да избере правилния шаблон.
+- ❌ Без чисто теоретични/учебни въпроси ("Какво е неустойка?") освен ако са свързани с конкретен документ.
+- Винаги поне 1 CTA chip. Без \`<followups>\` отговорът е невалиден.`;
 
 const MODEL_STANDARD = "google/gemini-3-flash-preview";
 const MODEL_PREMIUM = "openai/gpt-5.2";
@@ -582,16 +582,15 @@ function fallbackFollowups(lastToolName: string | null): string[] {
 
 const FOLLOWUPS_TAG = /<followups>([\s\S]*?)<\/followups>/i;
 
-// Reject any followup that is a knowledge/engagement question rather than a
-// CTA. The assistant should always be pushing the user toward an action in the
-// platform (finish doc, download, analyze, share, upgrade) — never asking
-// "Какво е жалба?" or "Кога се прилага чл. ...?".
-const BAD_FOLLOWUP_RE = /(^|\s)(какво|кога|защо|кой|къде|как)\b|[?]/i;
+// Keep all followups that look like real chips. Only filter out empties,
+// overly long strings, and pure theory questions ending with a question mark
+// AND starting with an interrogative — those don't drive action.
+const PURE_THEORY_RE = /^(какво|защо|кой|къде)\b[^?]*\?\s*$/i;
 
 function isActionable(chip: string): boolean {
   const c = chip.trim();
-  if (c.length === 0 || c.length > 60) return false;
-  if (BAD_FOLLOWUP_RE.test(c)) return false;
+  if (c.length === 0 || c.length > 70) return false;
+  if (PURE_THEORY_RE.test(c)) return false;
   return true;
 }
 
