@@ -329,14 +329,16 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
     return Math.max(fromCharges, fromQuota);
   }, [opChargeDates, correctionsDates, contractsUsed, templatesUsed, analysesUsed, correctionsCount]);
 
+  const totalDownloads = contractsUsed + templatesUsed;
   const totalsData = useMemo(() => ([
     { name: "Създадени", value: createdDocs, fill: "hsl(var(--gold))" },
-    { name: "Договори", value: contractsUsed, fill: "hsl(var(--gold) / 0.85)" },
-    { name: "Бланки", value: templatesUsed, fill: "hsl(var(--gold) / 0.7)" },
-    { name: "Качени", value: uploadedCount, fill: "hsl(var(--gold) / 0.55)" },
-    { name: "Анализи", value: analysesUsed, fill: "hsl(var(--gold) / 0.4)" },
-    { name: "Корекции", value: correctionsCount, fill: "hsl(var(--gold) / 0.25)" },
-  ]), [createdDocs, contractsUsed, templatesUsed, uploadedCount, analysesUsed, correctionsCount]);
+    { name: "Изтеглени", value: totalDownloads, fill: "hsl(var(--gold) / 0.9)" },
+    { name: "Договори", value: contractsUsed, fill: "hsl(var(--gold) / 0.75)" },
+    { name: "Бланки", value: templatesUsed, fill: "hsl(var(--gold) / 0.6)" },
+    { name: "Качени", value: uploadedCount, fill: "hsl(var(--gold) / 0.45)" },
+    { name: "Анализи", value: analysesUsed, fill: "hsl(var(--gold) / 0.3)" },
+    { name: "Корекции", value: correctionsCount, fill: "hsl(var(--gold) / 0.2)" },
+  ]), [createdDocs, totalDownloads, contractsUsed, templatesUsed, uploadedCount, analysesUsed, correctionsCount]);
 
   const timelineData = useMemo(() => {
     const days = 30;
