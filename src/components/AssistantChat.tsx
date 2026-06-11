@@ -474,6 +474,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
                   content={streamingText.replace(/<followups>[\s\S]*?(?:<\/followups>|$)/i, "")}
                   isStreaming={!streamingText && streamingTools.length === 0}
                   toolEvents={streamingTools}
+                  onFollowupClick={(t) => sendMessage(t)}
                 />
               )}
             </div>
@@ -517,6 +518,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
 }
 
 function MessageBubble({ role, content, isStreaming, citations, toolEvents, followups, onFollowupClick }: { role: "user" | "assistant"; content: string; isStreaming?: boolean; citations?: LegalCitation[]; toolEvents?: ToolEvent[]; followups?: string[]; onFollowupClick?: (text: string) => void }) {
+  const handleToolMessage = onFollowupClick;
   if (role === "user") {
     return (
       <div className="flex justify-end">
@@ -558,7 +560,7 @@ function MessageBubble({ role, content, isStreaming, citations, toolEvents, foll
             {toolEvents && toolEvents.length > 0 && (
               <div className="not-prose space-y-1">
                 {toolEvents.map((ev) => (
-                  <AssistantToolCard key={ev.id} event={ev} />
+                  <AssistantToolCard key={ev.id} event={ev} onSendMessage={handleToolMessage} />
                 ))}
               </div>
             )}
