@@ -47,13 +47,13 @@ export function FloatingAssistant({ open, onOpenChange }: Props) {
           open ? "scale-100 opacity-100 pointer-events-auto" : "pointer-events-none scale-95 opacity-0"
         )}
         role="dialog"
-        aria-label="Чат поддръжка"
+        aria-label="DogovaryAI чат"
       >
         <div className="flex h-full flex-col overflow-hidden rounded-2xl">
           <div className="flex items-center justify-between border-b border-border/60 bg-card/80 px-4 py-3">
             <div className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-gold" />
-              <span className="font-serif text-sm font-bold">Чат поддръжка</span>
+              <span className="font-serif text-sm font-bold">DogovaryAI</span>
             </div>
             <button
               onClick={() => onOpenChange(false)}

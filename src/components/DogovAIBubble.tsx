@@ -355,8 +355,8 @@ export function DogovAIBubble() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label={open ? "Затвори DogovAI" : "Отвори DogovAI чат"}
-        title="DogovAI"
+        aria-label={open ? "Затвори DogovaryAI" : "Отвори DogovaryAI чат"}
+        title="DogovaryAI"
         className={cn(
           "fixed bottom-4 right-4 z-40 sm:bottom-5 sm:right-5",
           "group flex items-center gap-2 rounded-full",
@@ -377,14 +377,14 @@ export function DogovAIBubble() {
           className="h-8 w-8 rounded-full sm:h-9 sm:w-9"
         />
         <span className="font-serif text-[13px] font-bold tracking-wide text-foreground sm:text-sm">
-          DogovAI
+          DogovaryAI
         </span>
       </button>
 
       {/* Panel */}
       <div
         role="dialog"
-        aria-label="DogovAI чат"
+        aria-label="DogovaryAI чат"
         className={cn(
           "fixed z-40 bottom-4 right-4 sm:bottom-5 sm:right-5",
           "w-[min(380px,calc(100vw-2rem))] h-[min(580px,calc(100dvh-6rem))]",
@@ -400,14 +400,14 @@ export function DogovAIBubble() {
             <div className="flex items-center gap-2">
               <img
                 src={dogovaiIcon}
-                alt="DogovAI"
+                alt="DogovaryAI"
                 width={28}
                 height={28}
                 loading="lazy"
                 className="h-7 w-7 rounded-full"
               />
               <div className="leading-tight">
-                <div className="font-serif text-sm font-bold">DogovAI</div>
+                <div className="font-serif text-sm font-bold">DogovaryAI</div>
                 <div className="text-[10px] text-muted-foreground">
                   {user ? "AI правен асистент" : "Безплатен тест · 3 съобщения"}
                 </div>

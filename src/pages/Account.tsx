@@ -692,7 +692,12 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
               <MessageSquare className="h-5 w-5 text-gold" />
             </div>
             <div>
-              <div className="font-serif text-sm font-bold">Чат поддръжка 24/7</div>
+              <div className="font-serif text-sm font-bold">DogovaryAI 24/7</div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                AI асистент за договори, шаблони и правни въпроси — отговори от официални източници.
+              </p>
+            </div>
+            <MessageSquare className="mr-2 h-4 w-4" /> Отвори DogovaryAI
               <div className="text-xs text-muted-foreground">Помощ с навигация, шаблони, правни въпроси и техника.</div>
             </div>
           </div>
