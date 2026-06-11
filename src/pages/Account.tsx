@@ -458,6 +458,40 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
         sub="Приложени вълни от корекции"
       />
 
+      {/* ---------- Workspace CTA (separated) ---------- */}
+      <button
+        type="button"
+        onClick={() => navigate("/console")}
+        className="md:col-span-3 group relative overflow-hidden rounded-2xl border border-gold/50 bg-gradient-to-br from-navy via-navy/95 to-navy/85 p-5 sm:p-6 text-left shadow-gold transition-all hover:shadow-2xl hover:border-gold focus:outline-none focus:ring-2 focus:ring-gold/60"
+      >
+        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gold/20 blur-3xl transition-opacity group-hover:opacity-80" />
+        <div className="pointer-events-none absolute -bottom-12 -left-8 h-32 w-32 rounded-full bg-gold/10 blur-2xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-gold text-navy shadow-gold">
+              <LayoutDashboard className="h-6 w-6" />
+            </div>
+            <div className="min-w-0">
+              <div className="mb-1 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-gold">
+                <Sparkles className="h-3 w-3" /> Workspace
+              </div>
+              <h3 className="font-serif text-lg font-bold text-white sm:text-xl">
+                Архитект на сделките
+              </h3>
+              <p className="mt-1 max-w-prose text-sm text-white/80">
+                Многозадачен работен плот: табове, чернови, сделки и подписи на едно място.
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2 self-start sm:self-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-gold px-4 py-2 text-sm font-semibold text-navy shadow-md transition-transform group-hover:scale-105">
+              Отвори Workspace
+              <ChevronRight className="h-4 w-4" />
+            </span>
+          </div>
+        </div>
+      </button>
+
 
       <div className="md:col-span-3 grid gap-4 lg:grid-cols-5">
         <div className="rounded-xl border border-border/60 bg-gradient-card p-4 sm:p-6 lg:col-span-2">
