@@ -219,6 +219,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
     setInput("");
     setStreaming(true);
     setStreamingText("");
+    setStreamingTools([]);
 
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`;
     try {
@@ -248,6 +249,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
       const decoder = new TextDecoder();
       let buffer = "";
       let accText = "";
+      const accTools: ToolEvent[] = [];
       let receivedThreadId: string | null = null;
       let receivedCitations: LegalCitation[] = [];
 
@@ -259,31 +261,50 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
         buffer = events.pop() ?? "";
         for (const evt of events) {
           const lines = evt.split("\n");
-          let isMeta = false;
+          let eventType = "";
           let dataLine = "";
           for (const line of lines) {
-            if (line.startsWith("event: meta")) isMeta = true;
+            if (line.startsWith("event:")) eventType = line.slice(6).trim();
             else if (line.startsWith("data:")) dataLine = line.slice(5).trim();
           }
           if (!dataLine) continue;
-          if (dataLine === "[DONE]") continue;
-          try {
-            const parsed = JSON.parse(dataLine);
-            if (isMeta) {
-              if (parsed.threadId) receivedThreadId = parsed.threadId;
-              if (Array.isArray(parsed.citations)) receivedCitations = parsed.citations;
-            } else if (parsed.delta) {
-              accText += parsed.delta;
-              setStreamingText(accText);
-            }
-          } catch { /* ignore */ }
+          if (dataLine === "[DONE]" || dataLine === '"[DONE]"') continue;
+          let parsed: any;
+          try { parsed = JSON.parse(dataLine); } catch { continue; }
+
+          if (eventType === "meta") {
+            if (parsed.threadId) receivedThreadId = parsed.threadId;
+            if (Array.isArray(parsed.citations)) receivedCitations = parsed.citations;
+          } else if (eventType === "error") {
+            toast.error(parsed.message || "AI грешка");
+          } else if (eventType === "tool_result") {
+            const ev: ToolEvent = { kind: "tool_result", id: parsed.id, name: parsed.name, args: parsed.args, result: parsed.result };
+            accTools.push(ev);
+            setStreamingTools([...accTools]);
+          } else if (eventType === "tool_call") {
+            const ev: ToolEvent = { kind: "tool_call", id: parsed.id, name: parsed.name, args: parsed.args };
+            accTools.push(ev);
+            setStreamingTools([...accTools]);
+            // Execute client-side tool (navigation, prefill, etc.)
+            executeClientTool(parsed.name, parsed.args);
+          } else if (parsed.delta) {
+            accText += parsed.delta;
+            setStreamingText(accText);
+          }
         }
       }
 
       // Finalize
-      const assistantMsg: Msg = { id: `tmp-a-${Date.now()}`, role: "assistant", content: accText, citations: receivedCitations };
+      const assistantMsg: Msg = {
+        id: `tmp-a-${Date.now()}`,
+        role: "assistant",
+        content: accText,
+        citations: receivedCitations,
+        toolEvents: accTools.length > 0 ? accTools : undefined,
+      };
       setMessages([...newMessages, assistantMsg]);
       setStreamingText("");
+      setStreamingTools([]);
       if (receivedThreadId && receivedThreadId !== activeThreadId) {
         setPersistedActiveThreadId(receivedThreadId);
       }
@@ -296,6 +317,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
       setStreaming(false);
     }
   };
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
