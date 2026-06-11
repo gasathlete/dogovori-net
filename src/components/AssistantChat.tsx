@@ -176,7 +176,16 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
         .select("id, role, content")
         .eq("thread_id", activeThreadId)
         .order("created_at", { ascending: true });
-      if (!cancelled) setMessages((data ?? []) as Msg[]);
+      if (!cancelled) {
+        const rows = (data ?? []) as Msg[];
+        setMessages(
+          rows.map((m) => {
+            if (m.role !== "assistant") return m;
+            const { content, followups } = extractFollowups(m.content || "");
+            return { ...m, content, followups };
+          }),
+        );
+      }
     })();
     return () => { cancelled = true; };
   }, [activeThreadId]);
