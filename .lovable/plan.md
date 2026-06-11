@@ -1,112 +1,128 @@
-# Пълен синхрон чат ↔ платформа (DogovaryAI агент)
 
-Чатът ще стане истински агент, който чрез **tool calling** навигира, търси шаблони, стартира BuildContract с pre-fill и инициира анализ на качен договор. Премахваме ръчното SSE парсване и преминаваме към **AI SDK** (`streamText` + `tool` + `toUIMessageStreamResponse`).
+# Цел
 
-## Архитектура
+DogovaryAI да работи като Правен Интелект за договори, но върху нашия каталог 290+ шаблона: разбира на разговорен език какъв документ искаме, задава целеви въпроси, показва структура за потвърждение, и едва тогава генерира/попълва. Без откази без търсене, без "няма шаблон" преди опит.
+
+# Какво прави Pravenintelekt по-добре от нас сега
+
+1. **Не зависи от ключови думи.** "Искам трудов договор за счетоводител" → разпознава типа без slug.
+2. **Целеви въпроси.** Поредица от 3–5 въпроса (срок, заплащане, прекратяване) преди генерация.
+3. **Преглед на структура.** План на клаузите → потвърждение → генерация параграф по параграф.
+4. **Източници.** Линкове към закони/практика при всеки отговор.
+5. **Нула откази.** Винаги има следваща стъпка.
+
+# Какво ще изградим
+
+## 1. Intent expansion + по-умно търсене (`search_templates`)
+
+- Преди FTS заявката, пускаме евтин LLM call (`gemini-3-flash-preview`) с фиксиран JSON output: `{ documentTypes: string[], synonyms: string[], category: "employment"|"real-estate"|"business"|"it"|"other" }`. Пример: вход *"договор за счетоводител"* → `{ documentTypes: ["трудов договор","договор за услуги"], synonyms: ["счетоводител","счетоводни услуги"], category: "employment" }`.
+- Изпълняваме FTS върху обединения query, плюс ilike fallback по всеки токен (вече добавено), плюс директен филтър по `document_type` ако е в expansion.
+- Връщаме до 5 резултата + `confidence` ("high"/"medium"/"low").
+- Бонус: малък ръчно поддържан речник `bg-doc-intents.json` (~60 фрази) за топ интенти — изпълнява се преди LLM expansion (instant, нула tokens).
+
+## 2. Нов client tool: `ask_clarification`
+
+- Schema: `{ questions: Array<{ id, label, type: "text"|"choice"|"number"|"date", options?, placeholder? }>, contextSummary: string }`.
+- UI: render в чата като компактна форма-карта (max 5 полета). Submit изпраща обратно структуриран answer като user message: `[CLARIFICATION] field=value; ...`.
+- Promptът задължава: ако липсват критични полета (страни, предмет, срок) → ВИНАГИ `ask_clarification` преди `prefill_build_contract`.
+
+## 3. Нов client tool: `propose_contract_outline`
+
+- Schema: `{ title, clauses: Array<{ heading, summary }>, basedOnTemplateSlug?, estimatedFields: string[] }`.
+- UI: карта със списък клаузи + бутони "Потвърди и попълни" (→ prefill_build_contract), "Промени структурата" (отваря текстово поле за корекции), "Покажи шаблона" (→ open_template).
+- Промптът: след clarification → винаги outline preview преди prefill.
+
+## 4. Гарантирани followup чипове (server-side safety net)
+
+Сега моделът понякога пропуска `<followups>`. Ще:
+- Парсираме на сървъра. Ако липсват → auto-generate 3 чипа въз основа на последно изпълнен tool (search → "Отвори първия", "Покажи още", "Попълни нов"; outline → "Потвърди", "Промени клаузите", "Покажи шаблона"; нищо → "Намери шаблон", "Качи договор за анализ", "Попълни нов договор").
+- Изпращаме като отделен SSE event `followups` вместо inline tag — клиентът ги рендира независимо. Това премахва риска от грозен tag в текста при streaming.
+
+## 5. Инлайн източници (legal citations) — по-настоятелно
+
+- Вече имаме `legal.hasMatches` от RAG. Засилваме prompt: когато категория = employment/real-estate/business → отговорът ТРЯБВА да включва поне 1 markdown цитат в позволения формат `[чл. X ЗЗД](URL)`. Без цитат → followup "Покажи правното основание" се forc-ва.
+- LegalCitations компонентът вече рендира chips отдолу — оставяме.
+
+## 6. По-добри модели
+
+- Standard: `google/gemini-2.5-flash` → `google/gemini-3-flash-preview` (новият default, по-добър tool calling).
+- Premium (Предприемач/Екип): `openai/gpt-5` → `openai/gpt-5.2` (по-силно разсъждение, тестваме срещу gemini-3-pro-preview).
+- Intent expansion: `google/gemini-3-flash-preview` (евтин, бърз).
+
+## 7. Регресионен тест harness
+
+Нов файл `supabase/functions/assistant-chat/__tests__/regression.ts` + npm script `bun run test:assistant`. Изпълнява 20 представителни заявки срещу deployed функцията и проверява:
+- Tool-call rate ≥ 90% (никога не отказва без поне 1 tool).
+- За документи: ≥ 1 от `{search_templates, open_template, prefill_build_contract, ask_clarification}`.
+- Followups: 2–4 чипа във всеки отговор.
+- Без забранени фрази ("за съжаление нямам", "не разполагам с").
+
+Заявки (20):
+```text
+"искам трудов договор за счетоводител", "договор за наем на офис в София 800 EUR",
+"NDA на двата езика", "пълномощно за продажба на кола",
+"жалба срещу КАТ за глоба", "молба за отпуск", "договор за изработка на сайт",
+"споразумение за раздяла на семейна вещ", "договор за заем между приятели 5000",
+"анекс към трудов договор за повишение", "договор за франчайз на кафене",
+"протокол от общо събрание на ООД", "оферта за СМР строителство",
+"договор за поръчителство", "договор за дистрибуция в ЕС",
+"спогодба за издръжка", "договор за консултантски услуги IT",
+"трудов договор с изпитателен срок 6 месеца", "договор за наем на жилище с депозит",
+"пълномощно за банкови операции"
+```
+
+Изход: markdown report в `/mnt/documents/assistant-regression.md` с pass/fail per case + латентност.
+
+## 8. UI/UX подобрения в `AssistantChat.tsx`
+
+- Нови карти: `ClarificationCard`, `OutlineCard`, `TemplateResultsCard` (replace generic AssistantToolCard за `search_templates`).
+- Followup чиповете: премахваме inline parsing, четем от SSE `followups` event.
+- При `search_templates` с 0 резултата → показваме CTA "Създай от нула" (prefill) вместо текст.
+
+## Технически детайли
+
+**Файлове за промяна:**
+- `supabase/functions/assistant-chat/index.ts` — SSE followups event, server-side followup fallback, regression-friendly logging.
+- `supabase/functions/_shared/assistant-tools.ts` — добавяме `ask_clarification`, `propose_contract_outline` schemas; intent expansion helper `expandIntent(query)`.
+- `supabase/functions/_shared/bg-doc-intents.json` (нов) — ~60 phrase→intent mappings.
+- `src/components/assistant/tools/ClarificationCard.tsx` (нов).
+- `src/components/assistant/tools/OutlineCard.tsx` (нов).
+- `src/components/assistant/tools/TemplateResultsCard.tsx` (нов).
+- `src/components/AssistantChat.tsx` — нов SSE event handler, нови tool cards, рендер на clarification answer като user message.
+- `supabase/functions/assistant-chat/__tests__/regression.ts` (нов).
+- `package.json` — script `test:assistant`.
+
+**Поведение на агента (final state machine):**
 
 ```text
-┌────────────────────────────────────────────────────────┐
-│ AssistantChat (useChat от @ai-sdk/react)               │
-│  └─ message.parts → render text + tool UI cards        │
-│  └─ client tool handlers (navigate, prefill_build,     │
-│     open_upload, open_template) изпълняват действия    │
-└─────────────┬──────────────────────────────────────────┘
-              │ POST /functions/v1/assistant-chat
-              ▼
-┌────────────────────────────────────────────────────────┐
-│ Edge function assistant-chat                            │
-│  - Auth, PRO/Team gate, RAG, illegal-content guard      │
-│  - streamText({ model, tools, stopWhen: stepCountIs(8) })│
-│  - Server-side tools:                                   │
-│      • search_templates(query)  → template_search_index │
-│      • get_template(slug)       → template_clauses      │
-│      • list_user_documents()    → saved_documents       │
-│  - Client-side tools (без execute, ползват confirm):   │
-│      • navigate(path)                                   │
-│      • prefill_build_contract({ templateSlug, fields }) │
-│      • open_upload_analyzer()                           │
-│      • open_template(slug)                              │
-│  - toUIMessageStreamResponse({ originalMessages,        │
-│      onFinish: persist в assistant_messages })          │
-└────────────────────────────────────────────────────────┘
+user message
+  ↓
+intent expansion (dictionary → LLM fallback)
+  ↓
+search_templates (винаги, ако споменат документ)
+  ↓
+има резултат? ── да → ask_clarification (липсващи полета)
+  │                       ↓
+  │                  propose_contract_outline
+  │                       ↓
+  │                  prefill_build_contract → navigate /build
+  │
+  └── не → ask_clarification (общи полета)
+              ↓
+         propose_contract_outline (generic от нула)
+              ↓
+         prefill_build_contract
 ```
 
-## Стъпки
+**Извън скоупа (отделен ход):**
+- Параграф-по-параграф генерация на пълен договор директно в чата (Pravenintelekt-style финален документ). За сега prefill отваря wizard-а — там вече има пълна генерация.
+- Caselaw/съдебна практика (Pravenintelekt я има, ние не — извън нашия offering).
 
-### 1. Edge function `assistant-chat` — миграция към AI SDK
-- Заменям raw `fetch` към gateway-а с `createLovableAiGatewayProvider` + `streamText` от `npm:ai`.
-- Дефинирам `tools` с `inputSchema` (Zod) и описания на български.
-- Server-side `execute`: `search_templates`, `get_template`, `list_user_documents` — четат от вече съществуващите таблици.
-- Client-side tools (без `execute`) за UI действия — те се изпълняват в браузъра.
-- `stopWhen: stepCountIs(8)` за multi-step разсъждение.
-- Запазвам `convertToModelMessages(messages)`, `originalMessages`, и `onFinish` за persist на `UIMessage` в `assistant_messages` (нова колона `parts jsonb`, fallback на `content`).
-- Запазваме RAG/illegal guard/PRO gate както са.
+## Резултат
 
-### 2. Системен prompt — обновяване
-Кратък нов раздел "ИНСТРУМЕНТИ" с правила:
-- Преди да дадеш линк за каталог/шаблон — извикай `search_templates`.
-- Когато потребителят иска "направи договор за X" — извикай `prefill_build_contract`.
-- Когато иска "анализирай моя договор" — извикай `open_upload_analyzer`.
-- При навигация — `navigate` вместо markdown линк.
-
-### 3. Frontend `AssistantChat.tsx` — пренаписване с AI SDK
-- `useChat` + `DefaultChatTransport({ api: <edge function URL>, headers: { Authorization, apikey } })`.
-- `id = activeThreadId` (за thread сегрегация и remount).
-- Зареждаме история от `assistant_messages` като `UIMessage[]` (parts) при смяна на thread.
-- Рендер през `message.parts`:
-  - `type === "text"` → ReactMarkdown.
-  - `type === "tool-<name>"` → специализиран card (виж 4).
-- Composer запазва `status === "submitted" | "streaming"` за loading.
-- Persist на `activeThreadId` в localStorage остава.
-
-### 4. Tool UI карти (in-chat)
-Малки компоненти в `src/components/assistant/tools/`:
-- **TemplateResultsCard** — резултат от `search_templates`: списък с шаблони, бутон "Отвори" → `navigate(/shablon/...)`.
-- **NavigateCard** — "Отивам към ...", auto-confirm + бутон Отмени.
-- **PrefillBuildCard** — резюме на полета + бутон "Стартирай wizard-а" (отваря `/build?prefill=<id>`).
-- **UploadAnalyzerCard** — бутон "Отвори анализатор".
-Всеки card има `defaultOpen={false}` accordion за raw input/output.
-
-### 5. Client tool изпълнение
-В `AssistantChat` дефинирам `onToolCall` handler:
-```ts
-case "navigate": navigate(args.path); return { ok: true };
-case "prefill_build_contract":
-  sessionStorage.setItem("dogovaryai_prefill", JSON.stringify(args));
-  navigate("/build?prefill=dogovaryai"); return { ok: true };
-case "open_upload_analyzer":
-  navigate("/analyze"); return { ok: true };
-case "open_template":
-  navigate(`/shablon/${args.slug}`); return { ok: true };
-```
-
-### 6. BuildContract pre-fill съвместимост
-- В `src/pages/BuildContract.tsx` чета `sessionStorage["dogovaryai_prefill"]` при mount и попълвам полетата (минимална промяна — само ако вече има state shape).
-- Toast: "DogovaryAI предложи стойности — прегледай и редактирай".
-
-### 7. Persistence schema
-- Миграция: `ALTER TABLE assistant_messages ADD COLUMN parts jsonb` (nullable, fallback към `content`).
-- При зареждане на thread: ако `parts` е null → конструирай `UIMessage` от `content`.
-
-### 8. assistant-chat-anon
-- Анонимната версия получава SAMO `search_templates` + `navigate` + `open_template` (без user-specific tools).
-
-## Извън скоупа (потвърди, ако трябва)
-- Реално качване на файл от чата (drag-drop в композера) — за сега отваряме страницата `/analyze`.
-- Създаване на kits/папки през чат — оставяме за следваща итерация.
-- Автономно изпращане за подпис — изисква отделен approval flow.
-
-## Технически бележки
-- Използваме `google/gemini-2.5-flash` за обикновени потребители, `openai/gpt-5` за Предприемач (както сега).
-- Tool calls се броят като 1 операция от месечната AI квота само на финалния assistant message (не на всяка стъпка).
-- CORS, auth, RAG, illegal-content guard — без промяна.
-
-## Файлове за промяна
-- `supabase/functions/assistant-chat/index.ts` — пълно пренаписване с AI SDK + tools
-- `supabase/functions/assistant-chat-anon/index.ts` — същата миграция, ограничен tool set
-- `supabase/functions/_shared/ai-gateway.ts` — нов (provider helper)
-- `supabase/functions/_shared/assistant-tools.ts` — нов (server tool definitions)
-- `src/components/AssistantChat.tsx` — миграция към `useChat` + parts rendering + tool handlers
-- `src/components/assistant/tools/*.tsx` — нови UI карти (4 файла)
-- `src/pages/BuildContract.tsx` — четене на prefill от sessionStorage
-- Migration: `parts jsonb` колона в `assistant_messages`
+След прилагане потребителят пише "искам трудов договор за счетоводител" и получава:
+1. Кратко "Ще намеря подходящ шаблон…" + търсене.
+2. Намерен шаблон + 4-полна форма (срок, заплата, изпитателен срок, дата на започване).
+3. След submit → outline preview с клаузите.
+4. След потвърждение → wizard prefilled, навигация автоматична.
+5. Винаги 3 followup чипа на дъното.
