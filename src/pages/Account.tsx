@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { NotificationsTab } from "@/components/NotificationsTab";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
-import { FloatingAssistant } from "@/components/FloatingAssistant";
+
 import { useTeam } from "@/hooks/useTeam";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
