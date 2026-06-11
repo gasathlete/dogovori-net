@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { X, Send, Loader2, Sparkles } from "lucide-react";
+import { X, Send, Loader2, Sparkles, FileText, Briefcase, ShieldCheck, Scale } from "lucide-react";
 import { AssistantChat } from "@/components/AssistantChat";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,40 +9,38 @@ const dogovaiIcon = "/dogovai-favicon.png";
 
 /**
  * DogovAI — small, branded, scroll-attached chatbot bubble visible globally.
- * - Anonymous users: get 3 free messages, then a register CTA. Hard cap.
+ * - Anonymous users: get 3 free messages + register CTA. Hard cap.
  * - Authenticated users: full AssistantChat experience.
+ * - Conversation memory resets on close (no persistence).
  */
 
 const HIDDEN_PREFIXES = ["/assistant", "/signing", "/share", "/checkout"];
 const ANON_LIMIT = 3;
-const ANON_STORAGE = "dogovai_anon_msgs";
 
 type AnonMsg = { role: "user" | "assistant"; content: string };
 
-function loadAnonHistory(): AnonMsg[] {
-  try {
-    const raw = localStorage.getItem(ANON_STORAGE);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.slice(-12) : [];
-  } catch {
-    return [];
-  }
-}
-function saveAnonHistory(msgs: AnonMsg[]) {
-  try {
-    localStorage.setItem(ANON_STORAGE, JSON.stringify(msgs.slice(-12)));
-  } catch {
-    /* ignore */
-  }
-}
+const STARTERS: { icon: typeof FileText; label: string; prompt: string }[] = [
+  { icon: FileText, label: "Намери ми шаблон", prompt: "Какъв шаблон да избера за договор за услуга?" },
+  { icon: Briefcase, label: "Трудов договор", prompt: "Какво трябва да съдържа един трудов договор по КТ?" },
+  { icon: ShieldCheck, label: "Какво е неустойка", prompt: "Какво е неустойка и кога се прилага?" },
+  { icon: Scale, label: "Как работи сайтът", prompt: "Как мога да изготвя договор в dogovori.net?" },
+];
 
-function AnonChat() {
-  const [messages, setMessages] = useState<AnonMsg[]>(() => loadAnonHistory());
+function AnonChat({ resetKey }: { resetKey: number }) {
+  const [messages, setMessages] = useState<AnonMsg[]>([]);
+  const [followups, setFollowups] = useState<string[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Reset memory whenever the chat panel is re-opened.
+  useEffect(() => {
+    setMessages([]);
+    setFollowups([]);
+    setInput("");
+    setBusy(false);
+  }, [resetKey]);
 
   const userTurns = messages.filter((m) => m.role === "user").length;
   const remaining = Math.max(0, ANON_LIMIT - userTurns);
@@ -50,18 +48,18 @@ function AnonChat() {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, busy]);
+  }, [messages, busy, followups]);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  const send = async () => {
-    const text = input.trim();
-    if (!text || busy || limitReached) return;
-    const next: AnonMsg[] = [...messages, { role: "user", content: text }];
+  const sendText = async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || busy || limitReached) return;
+    const next: AnonMsg[] = [...messages, { role: "user", content: trimmed }];
     setMessages(next);
-    saveAnonHistory(next);
+    setFollowups([]);
     setInput("");
     setBusy(true);
     try {
@@ -70,16 +68,15 @@ function AnonChat() {
       });
       if (error) throw error;
       const reply = (data as { reply?: string })?.reply ?? "Извинете, опитайте отново.";
-      const withReply: AnonMsg[] = [...next, { role: "assistant", content: reply }];
-      setMessages(withReply);
-      saveAnonHistory(withReply);
+      const fups = ((data as { followups?: string[] })?.followups ?? []).slice(0, 3);
+      setMessages([...next, { role: "assistant", content: reply }]);
+      setFollowups(fups);
     } catch {
-      const withErr: AnonMsg[] = [
+      setMessages([
         ...next,
         { role: "assistant", content: "Грешка при връзка. Опитайте отново или се регистрирайте за пълен достъп." },
-      ];
-      setMessages(withErr);
-      saveAnonHistory(withErr);
+      ]);
+      setFollowups([]);
     } finally {
       setBusy(false);
       requestAnimationFrame(() => inputRef.current?.focus());
@@ -90,7 +87,7 @@ function AnonChat() {
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center justify-between border-b border-border/40 bg-muted/30 px-3 py-1.5 text-[11px]">
         <span className="text-muted-foreground">
-          Безплатен тест · оставащи съобщения:{" "}
+          Безплатен тест · оставащи:{" "}
           <span className="font-semibold text-foreground">{remaining}</span>/{ANON_LIMIT}
         </span>
         <Link to="/auth" className="font-medium text-gold hover:underline">
@@ -100,15 +97,32 @@ function AnonChat() {
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 space-y-3">
         {messages.length === 0 && (
-          <div className="rounded-lg bg-muted/30 p-3 text-sm">
-            <div className="mb-1 flex items-center gap-1.5 font-semibold text-gold">
-              <Sparkles className="h-3.5 w-3.5" /> DogovAI
+          <>
+            <div className="rounded-xl border border-gold/30 bg-gradient-to-br from-gold/10 via-card to-card p-3 text-sm">
+              <div className="mb-1 flex items-center gap-1.5 font-semibold text-gold">
+                <Sparkles className="h-3.5 w-3.5" /> Здравейте, аз съм DogovAI
+              </div>
+              <p className="text-muted-foreground text-[13px] leading-relaxed">
+                Имате <b className="text-foreground">{ANON_LIMIT} безплатни съобщения</b>.
+                Изберете тема или питайте директно:
+              </p>
             </div>
-            <p className="text-muted-foreground">
-              Здравейте! Аз съм DogovAI. Имате <b className="text-foreground">{ANON_LIMIT} безплатни съобщения</b>.
-              Питайте за шаблони, договори или правни понятия.
-            </p>
-          </div>
+            <div className="grid grid-cols-2 gap-2">
+              {STARTERS.map((s) => (
+                <button
+                  key={s.label}
+                  type="button"
+                  onClick={() => sendText(s.prompt)}
+                  className="group flex items-start gap-2 rounded-xl border border-border/60 bg-card p-2.5 text-left text-[12px] leading-snug transition-all hover:border-gold/60 hover:bg-gold/5"
+                >
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gold/15 text-gold">
+                    <s.icon className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="font-medium text-foreground">{s.label}</span>
+                </button>
+              ))}
+            </div>
+          </>
         )}
         {messages.map((m, i) => (
           <div
@@ -128,6 +142,28 @@ function AnonChat() {
             <Loader2 className="h-3.5 w-3.5 animate-spin" /> Пиша…
           </div>
         )}
+
+        {/* Contextual follow-ups (after AI reply, based on conversation logic) */}
+        {!busy && followups.length > 0 && !limitReached && (
+          <div className="pt-1">
+            <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              Продължете с:
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {followups.map((q, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => sendText(q)}
+                  className="rounded-full border border-gold/40 bg-gold/5 px-3 py-1 text-[12px] text-foreground transition-colors hover:bg-gold/15 hover:border-gold/70"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div ref={endRef} />
       </div>
 
@@ -156,7 +192,7 @@ function AnonChat() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  send();
+                  sendText(input);
                 }
               }}
               rows={1}
@@ -165,7 +201,7 @@ function AnonChat() {
             />
             <button
               type="button"
-              onClick={send}
+              onClick={() => sendText(input)}
               disabled={busy || !input.trim()}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-gold text-navy disabled:opacity-40"
               aria-label="Изпрати"
@@ -183,6 +219,12 @@ export function DogovAIBubble() {
   const { user, loading } = useAuth();
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
+  const [resetKey, setResetKey] = useState(0);
+
+  // Every time the panel opens, bump the reset key so AnonChat clears memory.
+  useEffect(() => {
+    if (open) setResetKey((k) => k + 1);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -280,7 +322,7 @@ export function DogovAIBubble() {
             </button>
           </div>
           <div className="min-h-0 flex-1 overflow-hidden">
-            {open && (user ? <AssistantChat compact /> : <AnonChat />)}
+            {open && (user ? <AssistantChat compact key={resetKey} /> : <AnonChat resetKey={resetKey} />)}
           </div>
         </div>
       </div>

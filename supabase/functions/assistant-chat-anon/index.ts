@@ -16,7 +16,12 @@ const SYSTEM_PROMPT = `Ти си "DogovAI" — кратък AI правен ас
 - Това е безплатен тест (3 съобщения). В края на отговора винаги добавяй:
   *"💡 Безплатните съобщения свършват. [Регистрирайте се](/auth) за пълен достъп до DogovAI."*
 - НЕ давай конкретни правни съвети. Винаги: *"Това е обща информация, не правен съвет."*
-- НЕ измисляй URL-та или закони.`;
+- НЕ измисляй URL-та или закони.
+
+ФОРМАТ НА ОТГОВОРА (задължителен):
+След основния отговор, ВИНАГИ добави на нов ред блок със 3 кратки, релевантни последващи въпроса, които потребителят би могъл да зададе на база темата на текущия разговор. Форматът е точно:
+<followups>въпрос 1||въпрос 2||въпрос 3</followups>
+Всеки въпрос е до 6 думи, на български, конкретен и логично следващ темата.`;
 
 const MODEL = "google/gemini-2.5-flash";
 const MAX_MESSAGES = 3; // hard cap per request body
@@ -84,10 +89,24 @@ Deno.serve(async (req) => {
     }
 
     const data = await res.json();
-    const reply: string = data?.choices?.[0]?.message?.content ?? "";
+    const rawReply: string = data?.choices?.[0]?.message?.content ?? "";
+
+    // Parse out <followups>q1||q2||q3</followups> block.
+    let reply = rawReply;
+    let followups: string[] = [];
+    const m = rawReply.match(/<followups>([\s\S]*?)<\/followups>/i);
+    if (m) {
+      reply = rawReply.replace(m[0], "").trim();
+      followups = m[1]
+        .split("||")
+        .map((s) => s.trim().replace(/^["'\-•\s]+|["'\s]+$/g, ""))
+        .filter((s) => s.length > 0 && s.length <= 80)
+        .slice(0, 3);
+    }
+
     const remaining = Math.max(0, MAX_MESSAGES - userTurns);
     return new Response(
-      JSON.stringify({ reply, remaining }),
+      JSON.stringify({ reply, followups, remaining }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
