@@ -208,6 +208,8 @@ function PromptsTab({ functionName }: { functionName: string }) {
         notes: notes || null,
         is_active: false,
         created_by: u?.id ?? null,
+        model,
+        premium_model: premiumModel,
       })
       .select("id")
       .single();
