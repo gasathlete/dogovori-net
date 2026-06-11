@@ -494,5 +494,81 @@ function validateClientToolArgs(name: string, args: any): { ok: true; args: any 
   if (name === "open_upload_analyzer") {
     return { ok: true, args: {} };
   }
+  if (name === "ask_clarification") {
+    const ctx = typeof args.contextSummary === "string" ? args.contextSummary.slice(0, 240) : "";
+    const qs = Array.isArray(args.questions) ? args.questions : [];
+    const cleaned = qs.slice(0, 5).map((q: any, i: number) => ({
+      id: typeof q?.id === "string" ? q.id.slice(0, 40).replace(/[^a-z0-9_]/gi, "_") : `q_${i}`,
+      label: typeof q?.label === "string" ? q.label.slice(0, 120) : "",
+      type: ["text", "choice", "number", "date"].includes(q?.type) ? q.type : "text",
+      placeholder: typeof q?.placeholder === "string" ? q.placeholder.slice(0, 80) : undefined,
+      options: Array.isArray(q?.options) ? q.options.slice(0, 6).map((o: any) => String(o).slice(0, 60)) : undefined,
+      required: q?.required === true,
+    })).filter((q: any) => q.label);
+    if (cleaned.length === 0) return { ok: false, reason: "no valid questions" };
+    return { ok: true, args: { contextSummary: ctx, questions: cleaned } };
+  }
+  if (name === "propose_contract_outline") {
+    const title = typeof args.title === "string" ? args.title.slice(0, 160) : "";
+    if (!title) return { ok: false, reason: "missing title" };
+    const clauses = Array.isArray(args.clauses) ? args.clauses : [];
+    const cleanClauses = clauses.slice(0, 12).map((c: any) => ({
+      heading: typeof c?.heading === "string" ? c.heading.slice(0, 100) : "",
+      summary: typeof c?.summary === "string" ? c.summary.slice(0, 240) : "",
+    })).filter((c: any) => c.heading);
+    if (cleanClauses.length < 3) return { ok: false, reason: "need at least 3 clauses" };
+    const prefill: Record<string, unknown> = {};
+    if (args.prefill && typeof args.prefill === "object") {
+      for (const k of ["name", "partiesA", "partiesB", "subject"]) {
+        if (typeof args.prefill[k] === "string") prefill[k] = String(args.prefill[k]).slice(0, 500);
+      }
+      if (typeof args.prefill.bilingual === "boolean") prefill.bilingual = args.prefill.bilingual;
+    }
+    return {
+      ok: true,
+      args: {
+        title,
+        documentType: typeof args.documentType === "string" ? args.documentType.slice(0, 80) : undefined,
+        basedOnTemplateSlug: typeof args.basedOnTemplateSlug === "string" && /^[a-z0-9\-]{1,80}$/.test(args.basedOnTemplateSlug) ? args.basedOnTemplateSlug : undefined,
+        clauses: cleanClauses,
+        prefill,
+      },
+    };
+  }
   return { ok: false, reason: "unknown tool" };
+}
+
+// Generate fallback followups when the model forgets to emit <followups>.
+function fallbackFollowups(lastToolName: string | null): string[] {
+  switch (lastToolName) {
+    case "search_templates":
+      return ["Отвори първия", "Покажи още шаблони", "Попълни нов от нула"];
+    case "ask_clarification":
+      return ["Попълни автоматично", "Покажи шаблона", "Започни отначало"];
+    case "propose_contract_outline":
+      return ["Потвърди и попълни", "Промени клаузите", "Покажи правно основание"];
+    case "prefill_build_contract":
+      return ["Изтегли PDF", "Сподели за подпис", "Анализирай за рискове"];
+    case "open_template":
+      return ["Попълни данните", "Покажи още варианти", "Промени езика на BG/EN"];
+    case "open_upload_analyzer":
+      return ["Намери подходящ шаблон", "Обясни клауза", "Изчисли неустойка"];
+    case "navigate":
+      return ["Намери шаблон", "Попълни нов договор", "Анализирай качен файл"];
+    default:
+      return ["Намери шаблон", "Попълни нов договор", "Качи договор за анализ"];
+  }
+}
+
+const FOLLOWUPS_TAG = /<followups>([\s\S]*?)<\/followups>/i;
+function parseFollowups(raw: string): { cleaned: string; followups: string[] } {
+  if (!raw) return { cleaned: raw, followups: [] };
+  const m = raw.match(FOLLOWUPS_TAG);
+  if (!m) return { cleaned: raw, followups: [] };
+  const list = m[1]
+    .split(/\|\||\n/)
+    .map((s) => s.trim().replace(/^[-•\d.)\s]+/, ""))
+    .filter((s) => s.length > 0 && s.length <= 80)
+    .slice(0, 4);
+  return { cleaned: raw.replace(FOLLOWUPS_TAG, "").trim(), followups: list };
 }
