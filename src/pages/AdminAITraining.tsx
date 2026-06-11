@@ -25,7 +25,24 @@ const AI_FUNCTIONS = [
   { id: "suggest-followup-questions", label: "Уточняващи въпроси (wizard)" },
 ];
 
-type Prompt = { id: string; function_name: string; version: number; content: string; is_active: boolean; notes: string | null; created_at: string };
+type Prompt = { id: string; function_name: string; version: number; content: string; is_active: boolean; notes: string | null; created_at: string; model: string | null; premium_model: string | null };
+
+const AVAILABLE_MODELS = [
+  { value: "google/gemini-3-flash-preview", label: "Gemini 3 Flash (бърз, по подразбиране)" },
+  { value: "google/gemini-3.1-flash-lite-preview", label: "Gemini 3.1 Flash Lite (евтин)" },
+  { value: "google/gemini-3.5-flash", label: "Gemini 3.5 Flash (балансиран)" },
+  { value: "google/gemini-3.1-pro-preview", label: "Gemini 3.1 Pro (по-силен)" },
+  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+  { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
+  { value: "openai/gpt-5", label: "GPT-5" },
+  { value: "openai/gpt-5-mini", label: "GPT-5 Mini" },
+  { value: "openai/gpt-5.2", label: "GPT-5.2 (премиум reasoning)" },
+  { value: "openai/gpt-5.4", label: "GPT-5.4 (advanced reasoning)" },
+  { value: "openai/gpt-5.4-pro", label: "GPT-5.4 Pro" },
+  { value: "openai/gpt-5.5", label: "GPT-5.5 (state-of-the-art)" },
+  { value: "openai/gpt-5.5-pro", label: "GPT-5.5 Pro" },
+];
 type Rule = { id: string; function_name: string; rule_text: string; severity: "must" | "should"; active: boolean };
 type Example = { id: string; function_name: string; category: string; title: string; input_context: string; expected_output: string; weight: number; active: boolean };
 
@@ -97,6 +114,8 @@ function PromptsTab({ functionName }: { functionName: string }) {
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [model, setModel] = useState<string>("google/gemini-3-flash-preview");
+  const [premiumModel, setPremiumModel] = useState<string>("openai/gpt-5.2");
 
   const loadSectionsFor = async (promptId: string) => {
     const { data } = await supabase
@@ -127,6 +146,8 @@ function PromptsTab({ functionName }: { functionName: string }) {
     const active = list.find((r) => r.is_active) ?? list[0];
     if (active) {
       setActiveVersionId(active.id);
+      setModel(active.model || "google/gemini-3-flash-preview");
+      setPremiumModel(active.premium_model || "openai/gpt-5.2");
       await loadSectionsFor(active.id);
     } else {
       setActiveVersionId(null);
@@ -140,8 +161,33 @@ function PromptsTab({ functionName }: { functionName: string }) {
 
   const loadVersion = async (id: string) => {
     setActiveVersionId(id);
+    const row = rows.find((r) => r.id === id);
+    if (row) {
+      setModel(row.model || "google/gemini-3-flash-preview");
+      setPremiumModel(row.premium_model || "openai/gpt-5.2");
+    }
     await loadSectionsFor(id);
     toast.success("Заредени секции от тази версия");
+  };
+
+  const updateModelsOnActive = async () => {
+    const active = rows.find((r) => r.is_active);
+    if (!active) {
+      toast.error("Няма активна версия");
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase
+      .from("ai_prompts")
+      .update({ model, premium_model: premiumModel })
+      .eq("id", active.id);
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Моделът е обновен за активната версия");
+    load();
   };
 
   const saveNewVersion = async () => {
@@ -162,6 +208,8 @@ function PromptsTab({ functionName }: { functionName: string }) {
         notes: notes || null,
         is_active: false,
         created_by: u?.id ?? null,
+        model,
+        premium_model: premiumModel,
       })
       .select("id")
       .single();
@@ -218,6 +266,37 @@ function PromptsTab({ functionName }: { functionName: string }) {
             </p>
           </div>
           <span className="text-xs text-muted-foreground">~{totalChars} симв.</span>
+        </div>
+
+        <div className="mb-4 grid gap-3 rounded-lg border bg-muted/20 p-3 sm:grid-cols-2">
+          <div>
+            <Label className="text-xs font-semibold">Модел (стандартен)</Label>
+            <Select value={model} onValueChange={setModel}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {AVAILABLE_MODELS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-[10px] text-muted-foreground">Използва се за PRO / Team потребители.</p>
+          </div>
+          <div>
+            <Label className="text-xs font-semibold">Премиум модел (Предприемач)</Label>
+            <Select value={premiumModel} onValueChange={setPremiumModel}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {AVAILABLE_MODELS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-[10px] text-muted-foreground">Използва се за абонати с план „Предприемач".</p>
+          </div>
+          <div className="sm:col-span-2">
+            <Button size="sm" variant="outline" onClick={updateModelsOnActive} disabled={busy}>
+              Обнови модела на активната версия
+            </Button>
+            <span className="ml-2 text-[10px] text-muted-foreground">
+              Промяната влиза в сила до 5 минути (cache TTL на edge функцията).
+            </span>
+          </div>
         </div>
 
         <PromptSectionsEditor sections={sections} onChange={setSections} />

@@ -3,9 +3,72 @@
 // Falls back to the provided default when no DB row exists yet.
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-interface CacheEntry { content: string; expires: number }
+interface CacheEntry { content: string; model?: string | null; premiumModel?: string | null; expires: number }
 const cache = new Map<string, CacheEntry>();
 const TTL_MS = 5 * 60 * 1000;
+
+export interface ActivePromptMeta {
+  content: string;
+  model: string | null;
+  premiumModel: string | null;
+}
+
+/** Loads active prompt + model config in one call. */
+export async function loadActivePromptMeta(
+  admin: SupabaseClient,
+  functionName: string,
+  fallback: string,
+): Promise<ActivePromptMeta> {
+  const hit = cache.get(functionName);
+  if (hit && hit.expires > Date.now()) {
+    return { content: hit.content, model: hit.model ?? null, premiumModel: hit.premiumModel ?? null };
+  }
+  try {
+    const { data: promptRow } = await admin
+      .from("ai_prompts")
+      .select("id, content, model, premium_model")
+      .eq("function_name", functionName)
+      .eq("is_active", true)
+      .order("version", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let content = "";
+    if (promptRow?.id) {
+      const { data: sections } = await admin
+        .from("ai_prompt_sections")
+        .select("title, content, order_idx, enabled")
+        .eq("prompt_id", promptRow.id)
+        .eq("enabled", true)
+        .order("order_idx", { ascending: true });
+      if (sections && sections.length > 0) {
+        content = sections
+          .map((s: { title: string; content: string }) =>
+            s.title ? `# ${s.title}\n${s.content}` : s.content,
+          )
+          .join("\n\n")
+          .trim();
+      }
+    }
+    if (!content && promptRow?.content?.trim()) content = promptRow.content;
+    if (content && fallback && content.length < fallback.length * 0.7) {
+      console.warn(`[prompt-loader] ${functionName} assembled too small, using fallback`);
+      content = fallback;
+    }
+    if (!content) content = fallback;
+
+    const meta: ActivePromptMeta = {
+      content,
+      model: (promptRow as any)?.model ?? null,
+      premiumModel: (promptRow as any)?.premium_model ?? null,
+    };
+    cache.set(functionName, { content, model: meta.model, premiumModel: meta.premiumModel, expires: Date.now() + TTL_MS });
+    return meta;
+  } catch (e) {
+    console.warn(`[prompt-loader] ${functionName} fallback:`, (e as Error).message);
+    return { content: fallback, model: null, premiumModel: null };
+  }
+}
 
 export async function loadActivePrompt(
   admin: SupabaseClient,
