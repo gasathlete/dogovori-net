@@ -263,9 +263,7 @@ export default function AccountPage() {
           </TabsContent>
         </Tabs>
       </main>
-      {(!!isPro || (teamForChat && teamForChat.status === "active")) && (
-        <FloatingAssistant open={chatOpen} onOpenChange={setChatOpen} />
-      )}
+      {/* Global DogovAI bubble is mounted in App.tsx */}
     </div>
   );
 }
