@@ -28,7 +28,10 @@ export default defineConfig(({ mode }) => ({
     modulePreload: { polyfill: false },
     // Slightly higher warning threshold — pdf/docx route chunks are intentionally large
     // but lazy-loaded only on export, so they don't affect first paint.
-    chunkSizeWarningLimit: 900,
+    // Pdf/docx/recharts route chunks are intentionally large but lazy-loaded only on
+    // export, so they don't affect first paint. Bumped to 1500 to silence noise while
+    // still flagging genuinely runaway chunks.
+    chunkSizeWarningLimit: 1500,
     rollupOptions: {
       output: {
         // Split heavy vendor libs into their own chunks for better caching + parallel download.
@@ -52,6 +55,9 @@ export default defineConfig(({ mode }) => ({
           // errors at runtime when Rollup splits them across chunks.
           if (/[\\/]@sentry[\\/]/.test(id)) return "vendor-sentry";
           if (/[\\/]@stripe[\\/]/.test(id)) return "vendor-stripe";
+          if (/[\\/](date-fns|dayjs)[\\/]/.test(id)) return "vendor-date";
+          if (/[\\/](zod|react-hook-form|@hookform)[\\/]/.test(id)) return "vendor-forms";
+          if (/[\\/]framer-motion[\\/]/.test(id)) return "vendor-motion";
         },
       },
     },

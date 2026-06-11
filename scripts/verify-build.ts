@@ -80,23 +80,46 @@ for (const c of ssgChecks) {
   }
   const html = readFileSync(full, "utf8");
   // Extract every <script type="application/ld+json"> payload and parse it.
+  // The regex accepts any additional attributes (e.g. data-prerendered="true")
+  // because scripts/prerender.ts marks SSG-injected blocks with that attribute.
   const matches = [...html.matchAll(/<script type="application\/ld\+json"(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
   if (matches.length === 0) {
     console.error(`✗ dist/${c.path} has no JSON-LD scripts`);
     failed = true;
     continue;
   }
+  console.log(`\n[verify-build] dist/${c.path} — scanning ${matches.length} JSON-LD block(s):`);
   const seenTypes = new Set<string>();
   let parseFailed = false;
+  let blockIdx = 0;
   for (const m of matches) {
+    blockIdx++;
+    const raw = m[0];
+    const isPrerendered = raw.includes('data-prerendered="true"');
+    const origin = isPrerendered ? "prerendered" : "static/Helmet";
     try {
       const obj = JSON.parse(m[1]);
-      if (obj && typeof obj["@type"] === "string") seenTypes.add(obj["@type"]);
+      const ldType = Array.isArray(obj) ? `[array len=${obj.length}]` : (obj && typeof obj["@type"] === "string" ? obj["@type"] : "<no @type>");
+      // Walk top-level + nested @type values so e.g. CollectionPage→ItemList counts.
+      const collectTypes = (node: any) => {
+        if (!node || typeof node !== "object") return;
+        if (typeof node["@type"] === "string") seenTypes.add(node["@type"]);
+        for (const v of Object.values(node)) {
+          if (Array.isArray(v)) v.forEach(collectTypes);
+          else if (v && typeof v === "object") collectTypes(v);
+        }
+      };
+      if (Array.isArray(obj)) obj.forEach(collectTypes);
+      else collectTypes(obj);
+      const name = (obj && (obj.name || obj["@id"])) || "";
+      console.log(`  · #${blockIdx} [${origin}] @type=${ldType}${name ? ` name="${String(name).slice(0, 60)}"` : ""}`);
     } catch (e) {
-      console.error(`✗ dist/${c.path} has invalid JSON-LD: ${(e as Error).message}`);
+      console.error(`  · #${blockIdx} [${origin}] ✗ invalid JSON-LD: ${(e as Error).message}`);
+      console.error(`    payload preview: ${m[1].slice(0, 200).replace(/\s+/g, " ")}…`);
       parseFailed = true;
     }
   }
+  console.log(`  → @types seen: ${[...seenTypes].sort().join(", ") || "(none)"}`);
   if (parseFailed) { failed = true; continue; }
   for (const t of c.mustContainTypes) {
     if (!seenTypes.has(t)) {

@@ -9,7 +9,7 @@ import { SectionSkeleton } from "@/components/SectionSkeleton";
 import { Reveal } from "@/components/Reveal";
 import { FEATURED_BLANKS } from "@/data/featuredBlanks";
 import { allTemplates } from "@/lib/templateIndex";
-import { buildFaqJsonLd } from "@/components/FAQ";
+import { buildFaqJsonLd } from "@/data/faqItems";
 
 const SLUG_BY_NAME: Map<string, string> = new Map(
   allTemplates().map((t) => [t.doc.name, t.slug]),
