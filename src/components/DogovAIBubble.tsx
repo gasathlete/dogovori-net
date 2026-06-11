@@ -63,19 +63,22 @@ const STARTERS: { icon: typeof FileText; label: string; prompt: string }[] = [
 ];
 
 function AnonChat({ resetKey }: { resetKey: number }) {
-  const [messages, setMessages] = useState<AnonMsg[]>([]);
-  const [followups, setFollowups] = useState<string[]>([]);
+  const initial = resetKey === 0 ? loadAnonStored() : null;
+  const [messages, setMessages] = useState<AnonMsg[]>(initial?.messages ?? []);
+  const [followups, setFollowups] = useState<string[]>(initial?.followups ?? []);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Reset memory whenever the chat panel is re-opened.
+  // Wipe state when parent forces a reset (idle >30 min).
   useEffect(() => {
+    if (resetKey === 0) return;
     setMessages([]);
     setFollowups([]);
     setInput("");
     setBusy(false);
+    try { localStorage.removeItem(ANON_STORAGE_KEY); } catch { /* ignore */ }
   }, [resetKey]);
 
   const userTurns = messages.filter((m) => m.role === "user").length;
