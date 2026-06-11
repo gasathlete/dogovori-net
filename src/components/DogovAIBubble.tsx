@@ -219,6 +219,12 @@ export function DogovAIBubble() {
   const { user, loading } = useAuth();
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
+  const [resetKey, setResetKey] = useState(0);
+
+  // Every time the panel opens, bump the reset key so AnonChat clears memory.
+  useEffect(() => {
+    if (open) setResetKey((k) => k + 1);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
