@@ -428,17 +428,35 @@ Deno.serve(async (req) => {
           console.error("Stream loop error:", err);
           enqueue("error", { message: "Грешка при стрийминг" });
         } finally {
-          // Persist final assistant message
-          if (fullAssistantText.trim() && activeThreadId) {
+          // Parse followups from final text; if missing, fall back contextually.
+          const lastToolName = (() => {
+            // best-effort: scan convo backwards for the last assistant tool_calls
+            for (let i = convo.length - 1; i >= 0; i--) {
+              const m: any = convo[i];
+              if (m?.role === "assistant" && Array.isArray(m.tool_calls) && m.tool_calls.length > 0) {
+                return m.tool_calls[m.tool_calls.length - 1]?.function?.name ?? null;
+              }
+            }
+            return null;
+          })();
+          const { cleaned, followups } = parseFollowups(fullAssistantText);
+          const finalFollowups = followups.length >= 2 ? followups : fallbackFollowups(lastToolName);
+          try {
+            controller.enqueue(new TextEncoder().encode(`event: followups\ndata: ${JSON.stringify({ followups: finalFollowups })}\n\n`));
+          } catch { /* ignore */ }
+
+          // Persist cleaned assistant message (no inline tag).
+          if (cleaned.trim() && activeThreadId) {
             await admin.from("assistant_messages").insert({
               thread_id: activeThreadId,
               role: "assistant",
-              content: fullAssistantText,
+              content: cleaned,
             });
             await admin.from("assistant_threads")
               .update({ updated_at: new Date().toISOString() })
               .eq("id", activeThreadId);
           }
+
           await logAiAudit({
             user_id: userId, operation: "assistant-chat", model: chatModel,
             classification: chatClassification, redaction_applied: false,
