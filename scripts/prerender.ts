@@ -76,11 +76,15 @@ function renderPage(meta: PageMeta): string {
   html = html.replace(/<meta name="twitter:title"[^>]*>/, `<meta name="twitter:title" content="${escapeHtml(meta.title)}" />`);
   html = html.replace(/<meta name="twitter:description"[^>]*>/, `<meta name="twitter:description" content="${escapeHtml(meta.description)}" />`);
 
-  // Inject extra JSON-LD blocks before </head>
+  // Inject extra JSON-LD blocks before </head>.
+  // Mark each with data-prerendered="true" so the client can strip them before
+  // React/Helmet renders its own equivalent — otherwise Google sees duplicate
+  // structured data (e.g. two FAQPage on the same URL) and disqualifies rich results.
   const ldHtml = meta.jsonLd
-    .map((ld) => `<script type="application/ld+json">${JSON.stringify(ld)}</script>`)
+    .map((ld) => `<script type="application/ld+json" data-prerendered="true">${JSON.stringify(ld)}</script>`)
     .join("\n    ");
   html = html.replace(/<\/head>/, `    ${ldHtml}\n  </head>`);
+
 
   // Inject visible content into #root for crawlers (React's createRoot will wipe this on mount)
   html = html.replace(
