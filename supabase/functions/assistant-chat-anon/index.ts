@@ -89,10 +89,24 @@ Deno.serve(async (req) => {
     }
 
     const data = await res.json();
-    const reply: string = data?.choices?.[0]?.message?.content ?? "";
+    const rawReply: string = data?.choices?.[0]?.message?.content ?? "";
+
+    // Parse out <followups>q1||q2||q3</followups> block.
+    let reply = rawReply;
+    let followups: string[] = [];
+    const m = rawReply.match(/<followups>([\s\S]*?)<\/followups>/i);
+    if (m) {
+      reply = rawReply.replace(m[0], "").trim();
+      followups = m[1]
+        .split("||")
+        .map((s) => s.trim().replace(/^["'\-•\s]+|["'\s]+$/g, ""))
+        .filter((s) => s.length > 0 && s.length <= 80)
+        .slice(0, 3);
+    }
+
     const remaining = Math.max(0, MAX_MESSAGES - userTurns);
     return new Response(
-      JSON.stringify({ reply, remaining }),
+      JSON.stringify({ reply, followups, remaining }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
