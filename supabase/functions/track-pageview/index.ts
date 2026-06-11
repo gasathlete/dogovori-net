@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
       } catch { /* ignore */ }
     }
 
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
     if (event === "duration_update") {
       // Update the most recent pageview row of this session with this path
