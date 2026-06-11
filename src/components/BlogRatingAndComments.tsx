@@ -204,7 +204,7 @@ export function BlogRatingAndComments({ postType, postSlug }: Props) {
                     <time className="text-[11px] uppercase tracking-wider text-muted-foreground">
                       {new Date(c.created_at).toLocaleDateString("bg-BG", { day: "numeric", month: "short", year: "numeric" })}
                     </time>
-                    {user?.id === c.user_id && (
+                    {c.is_mine && (
                       <button onClick={() => deleteComment(c.id)} className="text-muted-foreground hover:text-destructive">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
