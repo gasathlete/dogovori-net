@@ -35,12 +35,19 @@ const QUICK_ACTIONS = [
   { label: "Проблем с плащане", text: "Имам въпрос относно моя абонамент и плащането." },
 ];
 
+const ACTIVE_THREAD_STORAGE_PREFIX = "dogovaryai_active_thread:";
+
+function getActiveThreadStorageKey(userId: string) {
+  return `${ACTIVE_THREAD_STORAGE_PREFIX}${userId}`;
+}
+
 export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
   const { user, session } = useAuth();
   const location = useLocation();
   const { isPro, isTeam, freeQuota, refresh: refreshPlan } = useIsPro();
   const aiRemaining = Math.max(0, freeQuota.aiMessagesCap - freeQuota.aiMessagesUsed);
   const aiLocked = !isPro && !isTeam && aiRemaining <= 0;
+  const activeThreadStorageKey = user ? getActiveThreadStorageKey(user.id) : null;
   const [threads, setThreads] = useState<Thread[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -49,6 +56,32 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
   const [streamingText, setStreamingText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const setPersistedActiveThreadId = useCallback((nextThreadId: string | null) => {
+    setActiveThreadId(nextThreadId);
+    if (!activeThreadStorageKey || typeof window === "undefined") return;
+    try {
+      if (nextThreadId) {
+        localStorage.setItem(activeThreadStorageKey, nextThreadId);
+      } else {
+        localStorage.removeItem(activeThreadStorageKey);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [activeThreadStorageKey]);
+
+  useEffect(() => {
+    if (!activeThreadStorageKey || typeof window === "undefined") {
+      setActiveThreadId(null);
+      return;
+    }
+    try {
+      setActiveThreadId(localStorage.getItem(activeThreadStorageKey));
+    } catch {
+      setActiveThreadId(null);
+    }
+  }, [activeThreadStorageKey]);
 
   // Load threads
   const loadThreads = useCallback(async () => {
@@ -59,11 +92,27 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false })
       .limit(20);
-    setThreads(data ?? []);
-    if (!activeThreadId && data && data.length > 0) {
-      setActiveThreadId(data[0].id);
+    const nextThreads = data ?? [];
+    setThreads(nextThreads);
+
+    if (nextThreads.length === 0) {
+      setPersistedActiveThreadId(null);
+      return;
     }
-  }, [user, activeThreadId]);
+
+    const preferredThreadId = activeThreadId ?? (activeThreadStorageKey && typeof window !== "undefined"
+      ? localStorage.getItem(activeThreadStorageKey)
+      : null);
+
+    if (preferredThreadId && nextThreads.some((thread) => thread.id === preferredThreadId)) {
+      if (preferredThreadId !== activeThreadId) {
+        setActiveThreadId(preferredThreadId);
+      }
+      return;
+    }
+
+    setPersistedActiveThreadId(nextThreads[0].id);
+  }, [user, activeThreadId, activeThreadStorageKey, setPersistedActiveThreadId]);
 
   useEffect(() => { loadThreads(); }, [loadThreads]);
 
@@ -93,7 +142,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
   }, [streaming, activeThreadId]);
 
   const handleNewThread = () => {
-    setActiveThreadId(null);
+    setPersistedActiveThreadId(null);
     setMessages([]);
     setStreamingText("");
     textareaRef.current?.focus();
@@ -104,7 +153,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
     if (!confirm("Изтрий този разговор?")) return;
     await supabase.from("assistant_threads").delete().eq("id", id);
     if (activeThreadId === id) {
-      setActiveThreadId(null);
+      setPersistedActiveThreadId(null);
       setMessages([]);
     }
     loadThreads();
@@ -200,7 +249,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
       setMessages([...newMessages, assistantMsg]);
       setStreamingText("");
       if (receivedThreadId && receivedThreadId !== activeThreadId) {
-        setActiveThreadId(receivedThreadId);
+        setPersistedActiveThreadId(receivedThreadId);
       }
       loadThreads();
     } catch (err) {
@@ -246,7 +295,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
             {threads.map((t) => (
               <div
                 key={t.id}
-                onClick={() => setActiveThreadId(t.id)}
+                onClick={() => setPersistedActiveThreadId(t.id)}
                 className={cn(
                   "group flex cursor-pointer items-center justify-between gap-1 rounded-md px-2 py-2 text-xs transition-colors",
                   activeThreadId === t.id ? "bg-gold/15 text-foreground" : "text-muted-foreground hover:bg-card/80",
