@@ -140,6 +140,25 @@ if (typeof window !== "undefined") {
   }
 }
 
+// Warm the route chunks for /ai and /karta on idle. These are GEO-targeted SEO
+// landing pages — users frequently arrive via SERP/AI-search and follow the
+// internal links from the homepage. Triggering the dynamic imports during idle
+// time turns the navigation into an instant transition without bloating the
+// initial entry chunk (each page is still its own lazy chunk).
+// JSON-LD dedup remains handled in main.tsx, so prefetching doesn't re-inject
+// structured data — only the JS chunk is fetched and cached by the browser.
+if (typeof window !== "undefined" && location.pathname !== "/ai" && location.pathname !== "/karta") {
+  const prefetchRoutes = () => {
+    void import("./pages/AIFeatures.tsx");
+    void import("./pages/SiteMap.tsx");
+  };
+  if ("requestIdleCallback" in window) {
+    (window as any).requestIdleCallback(prefetchRoutes, { timeout: 6000 });
+  } else {
+    setTimeout(prefetchRoutes, 3000);
+  }
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
