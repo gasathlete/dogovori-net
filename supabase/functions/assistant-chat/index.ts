@@ -581,6 +581,20 @@ function fallbackFollowups(lastToolName: string | null): string[] {
 }
 
 const FOLLOWUPS_TAG = /<followups>([\s\S]*?)<\/followups>/i;
+
+// Reject any followup that is a knowledge/engagement question rather than a
+// CTA. The assistant should always be pushing the user toward an action in the
+// platform (finish doc, download, analyze, share, upgrade) — never asking
+// "Какво е жалба?" or "Кога се прилага чл. ...?".
+const BAD_FOLLOWUP_RE = /(^|\s)(какво|кога|защо|кой|къде|как)\b|[?]/i;
+
+function isActionable(chip: string): boolean {
+  const c = chip.trim();
+  if (c.length === 0 || c.length > 60) return false;
+  if (BAD_FOLLOWUP_RE.test(c)) return false;
+  return true;
+}
+
 function parseFollowups(raw: string): { cleaned: string; followups: string[] } {
   if (!raw) return { cleaned: raw, followups: [] };
   const m = raw.match(FOLLOWUPS_TAG);
@@ -588,7 +602,8 @@ function parseFollowups(raw: string): { cleaned: string; followups: string[] } {
   const list = m[1]
     .split(/\|\||\n/)
     .map((s) => s.trim().replace(/^[-•\d.)\s]+/, ""))
-    .filter((s) => s.length > 0 && s.length <= 80)
+    .filter(isActionable)
     .slice(0, 4);
   return { cleaned: raw.replace(FOLLOWUPS_TAG, "").trim(), followups: list };
 }
+
