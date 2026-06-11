@@ -238,9 +238,11 @@ export async function execSearchTemplates(
   admin: SupabaseClient,
   args: { query?: string; limit?: number },
 ): Promise<{ results: Array<{ slug: string; name: string; purpose: string; category: string; documentType: string }> }> {
-  const q = String(args?.query ?? "").trim().slice(0, 200);
+  const rawQ = String(args?.query ?? "").trim().slice(0, 200);
   const limit = Math.min(5, Math.max(1, Number(args?.limit) || 5));
-  if (!q) return { results: [] };
+  if (!rawQ) return { results: [] };
+  const { expandedQuery: q } = expandIntent(rawQ);
+
 
   // Use Postgres full-text search via the precomputed tsvector.
   // websearch_to_tsquery is forgiving (handles natural-language queries).
