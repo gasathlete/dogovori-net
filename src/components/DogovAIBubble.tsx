@@ -108,14 +108,18 @@ function AnonChat({ resetKey }: { resetKey: number }) {
       if (error) throw error;
       const reply = (data as { reply?: string })?.reply ?? "Извинете, опитайте отново.";
       const fups = ((data as { followups?: string[] })?.followups ?? []).slice(0, 3);
-      setMessages([...next, { role: "assistant", content: reply }]);
+      const finalMsgs = [...next, { role: "assistant" as const, content: reply }];
+      setMessages(finalMsgs);
       setFollowups(fups);
+      saveAnonStored({ messages: finalMsgs, followups: fups, updatedAt: Date.now() });
     } catch {
-      setMessages([
+      const finalMsgs: AnonMsg[] = [
         ...next,
         { role: "assistant", content: "Грешка при връзка. Опитайте отново или се регистрирайте за пълен достъп." },
-      ]);
+      ];
+      setMessages(finalMsgs);
       setFollowups([]);
+      saveAnonStored({ messages: finalMsgs, followups: [], updatedAt: Date.now() });
     } finally {
       setBusy(false);
       requestAnimationFrame(() => inputRef.current?.focus());
