@@ -9,15 +9,51 @@ const dogovaiIcon = "/dogovai-favicon.png";
 
 /**
  * DogovAI — small, branded, scroll-attached chatbot bubble visible globally.
- * - Anonymous users: get 3 free messages + register CTA. Hard cap.
+ * - Anonymous users: 3 free messages + register CTA. Hard cap.
  * - Authenticated users: full AssistantChat experience.
- * - Conversation memory resets on close (no persistence).
+ * - Conversation persists for 30 min after last message; reset thereafter.
  */
 
 const HIDDEN_PREFIXES = ["/assistant", "/signing", "/share", "/checkout"];
 const ANON_LIMIT = 3;
+const IDLE_RESET_MS = 30 * 60 * 1000; // 30 minutes
+const ANON_STORAGE_KEY = "dogovai_anon_chat_v2";
+const LAST_ACTIVITY_KEY = "dogovai_last_activity_v2";
+const LEGACY_KEYS = ["dogovai_anon_chat", "dogovai_anon_chat_v1", "dogovai_last_activity"];
+
+// One-time wipe of any prior conversations across all profiles/browsers.
+if (typeof window !== "undefined") {
+  try {
+    LEGACY_KEYS.forEach((k) => localStorage.removeItem(k));
+  } catch { /* ignore */ }
+}
 
 type AnonMsg = { role: "user" | "assistant"; content: string };
+
+type AnonStored = { messages: AnonMsg[]; followups: string[]; updatedAt: number };
+
+function loadAnonStored(): AnonStored | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(ANON_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as AnonStored;
+    if (!parsed?.updatedAt || Date.now() - parsed.updatedAt > IDLE_RESET_MS) {
+      localStorage.removeItem(ANON_STORAGE_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveAnonStored(s: AnonStored) {
+  try {
+    localStorage.setItem(ANON_STORAGE_KEY, JSON.stringify(s));
+    localStorage.setItem(LAST_ACTIVITY_KEY, String(s.updatedAt));
+  } catch { /* ignore */ }
+}
 
 const STARTERS: { icon: typeof FileText; label: string; prompt: string }[] = [
   { icon: FileText, label: "Намери ми шаблон", prompt: "Какъв шаблон да избера за договор за услуга?" },
