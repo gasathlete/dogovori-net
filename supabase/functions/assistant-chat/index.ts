@@ -54,7 +54,7 @@ const SYSTEM_PROMPT = `# РОЛЯ
 
 const MODEL_STANDARD = "google/gemini-2.5-flash";
 const MODEL_PREMIUM = "openai/gpt-5";
-const MAX_TOOL_ITERATIONS = 3;
+const MAX_TOOL_ITERATIONS = 5;
 
 interface ChatMsg {
   role: "system" | "user" | "assistant" | "tool";
