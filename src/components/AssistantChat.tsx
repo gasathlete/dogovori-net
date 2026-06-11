@@ -300,6 +300,8 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
             if (Array.isArray(parsed.citations)) receivedCitations = parsed.citations;
           } else if (eventType === "error") {
             toast.error(parsed.message || "AI грешка");
+          } else if (eventType === "followups") {
+            if (Array.isArray(parsed.followups)) receivedFollowups = parsed.followups;
           } else if (eventType === "tool_result") {
             const ev: ToolEvent = { kind: "tool_result", id: parsed.id, name: parsed.name, args: parsed.args, result: parsed.result };
             accTools.push(ev);
@@ -308,12 +310,12 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
             const ev: ToolEvent = { kind: "tool_call", id: parsed.id, name: parsed.name, args: parsed.args };
             accTools.push(ev);
             setStreamingTools([...accTools]);
-            // Execute client-side tool (navigation, prefill, etc.)
             executeClientTool(parsed.name, parsed.args);
           } else if (parsed.delta) {
             accText += parsed.delta;
             setStreamingText(accText);
           }
+
         }
       }
 
