@@ -40,6 +40,13 @@ export function DogovAIBubble() {
     setOpen(false);
   }, [pathname]);
 
+  // External open trigger (e.g. from Account dashboard chat CTA)
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener("dogovai:open", onOpen);
+    return () => window.removeEventListener("dogovai:open", onOpen);
+  }, []);
+
   if (loading) return null;
   if (HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) return null;
   if (!user) return null; // chat requires auth; show only to logged-in users
