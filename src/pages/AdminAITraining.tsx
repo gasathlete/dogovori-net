@@ -114,6 +114,8 @@ function PromptsTab({ functionName }: { functionName: string }) {
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [model, setModel] = useState<string>("google/gemini-3-flash-preview");
+  const [premiumModel, setPremiumModel] = useState<string>("openai/gpt-5.2");
 
   const loadSectionsFor = async (promptId: string) => {
     const { data } = await supabase
@@ -144,6 +146,8 @@ function PromptsTab({ functionName }: { functionName: string }) {
     const active = list.find((r) => r.is_active) ?? list[0];
     if (active) {
       setActiveVersionId(active.id);
+      setModel(active.model || "google/gemini-3-flash-preview");
+      setPremiumModel(active.premium_model || "openai/gpt-5.2");
       await loadSectionsFor(active.id);
     } else {
       setActiveVersionId(null);
@@ -157,8 +161,33 @@ function PromptsTab({ functionName }: { functionName: string }) {
 
   const loadVersion = async (id: string) => {
     setActiveVersionId(id);
+    const row = rows.find((r) => r.id === id);
+    if (row) {
+      setModel(row.model || "google/gemini-3-flash-preview");
+      setPremiumModel(row.premium_model || "openai/gpt-5.2");
+    }
     await loadSectionsFor(id);
     toast.success("Заредени секции от тази версия");
+  };
+
+  const updateModelsOnActive = async () => {
+    const active = rows.find((r) => r.is_active);
+    if (!active) {
+      toast.error("Няма активна версия");
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase
+      .from("ai_prompts")
+      .update({ model, premium_model: premiumModel })
+      .eq("id", active.id);
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Моделът е обновен за активната версия");
+    load();
   };
 
   const saveNewVersion = async () => {
