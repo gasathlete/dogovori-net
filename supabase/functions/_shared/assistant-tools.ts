@@ -164,32 +164,29 @@ export async function execSearchTemplates(
     .eq("locale", "bg")
     .limit(limit);
 
-  if (error || !data) {
-    // Fallback: simple ilike on name/purpose
-    const { data: fb } = await admin
-      .from("template_search_index")
-      .select("slug, name, purpose, category_title, document_type")
-      .or(`name.ilike.%${q}%,purpose.ilike.%${q}%`)
-      .eq("locale", "bg")
-      .limit(limit);
-    return {
-      results: (fb ?? []).map((r) => ({
-        slug: r.slug,
-        name: r.name,
-        purpose: (r.purpose ?? "").slice(0, 200),
-        category: r.category_title ?? "",
-        documentType: r.document_type ?? "",
-      })),
-    };
-  }
-
-  return {
-    results: data.map((r) => ({
+  const map = (rows: any[] | null) =>
+    (rows ?? []).map((r) => ({
       slug: r.slug,
       name: r.name,
       purpose: (r.purpose ?? "").slice(0, 200),
       category: r.category_title ?? "",
       documentType: r.document_type ?? "",
-    })),
-  };
+    }));
+
+  // If FTS errored or returned nothing, fall back to ilike on each token.
+  if (error || !data || data.length === 0) {
+    const tokens = q.split(/\s+/).filter((t) => t.length >= 3).slice(0, 5);
+    const ors = tokens.length
+      ? tokens.flatMap((tok) => [`name.ilike.%${tok}%`, `purpose.ilike.%${tok}%`]).join(",")
+      : `name.ilike.%${q}%,purpose.ilike.%${q}%`;
+    const { data: fb } = await admin
+      .from("template_search_index")
+      .select("slug, name, purpose, category_title, document_type")
+      .or(ors)
+      .eq("locale", "bg")
+      .limit(limit);
+    return { results: map(fb) };
+  }
+
+  return { results: map(data) };
 }
