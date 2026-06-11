@@ -403,19 +403,24 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
         icon={<Crown className="h-5 w-5 text-gold" />}
         sub={
           isPro
-            ? `${(quota as any)?.pro_monthly_used ?? 0}/100 операции/мес`
+            ? (() => {
+                const start = (quota as any)?.pro_period_start ? new Date((quota as any).pro_period_start) : null;
+                const reset = start ? new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000) : null;
+                const resetStr = reset ? reset.toLocaleDateString("bg-BG", { day: "2-digit", month: "short" }) : null;
+                return `${(quota as any)?.pro_monthly_used ?? 0}/100 операции/мес${resetStr ? ` · нулиране ${resetStr}` : ""}`;
+              })()
             : (() => {
                 const signupAt = (quota as any)?.signup_at ? new Date((quota as any).signup_at).getTime() : null;
                 const withinFirstMonth = !!signupAt && Date.now() - signupAt < 30 * 24 * 60 * 60 * 1000;
                 const cap = withinFirstMonth ? 5 : 2;
                 const used = (quota as any)?.monthly_total_used ?? 0;
-                const corrFree = (quota as any)?.corrections_free_used
-                  ? "вълна корекции използвана"
-                  : "+1 безплатна вълна корекции";
-                return `${used}/${cap} операции · ${corrFree}`;
+                const resetIso = (quota as any)?.monthly_reset_at as string | null | undefined;
+                const reset = resetIso ? new Date(resetIso) : null;
+                const resetStr = reset ? reset.toLocaleDateString("bg-BG", { day: "2-digit", month: "short" }) : null;
+                return `${used}/${cap} операции${resetStr ? ` · нулиране ${resetStr}` : ""}`;
               })()
         }
-        hint="Документ · Бланка · Качване на документ за Анализ – автоматични корекции = 1 операция"
+        hint="Документ · Бланка · Качване на документ за Анализ – автоматични корекции = 1 операция. Лимитът се нулира всеки месец."
         onClick={() => navigate("/account?tab=subscription")}
       />
       <Card
