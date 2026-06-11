@@ -28,7 +28,18 @@ if (typeof window !== "undefined") {
   } catch { /* ignore */ }
 }
 
-type AnonMsg = { role: "user" | "assistant"; content: string };
+type Citation = {
+  chunk_id: string;
+  citation_label: string;
+  short_code: string;
+  title: string;
+  article_no: string | null;
+  paragraph_no: string | null;
+  official_url: string | null;
+  jurisdiction: "BG" | "EU";
+  similarity: number;
+};
+type AnonMsg = { role: "user" | "assistant"; content: string; citations?: Citation[] };
 
 type AnonStored = { messages: AnonMsg[]; followups: string[]; updatedAt: number };
 

@@ -1,44 +1,47 @@
-// Anonymous DogovAI assistant — strictly limited (3 messages enforced client-side
+// Anonymous DogovaryAI assistant — strictly limited (3 messages enforced client-side
 // via localStorage + an additional server-side soft cap per IP/day).
 // Public endpoint; verify_jwt = false. No streaming, no persistence.
+// Grounded in the legal knowledge base via retrieveLegalContext().
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
+import { retrieveLegalContext, type LegalCitation } from "../_shared/legal-rag.ts";
 
 const SYSTEM_PROMPT = `# РОЛЯ И ИДЕНТИЧНОСТ
-Ти си официалният AI асистент на **Dogovori.net** — водещата българска платформа за правни документи, договори и бланки. Името ти е "Dogovori AI" (или просто Асистентът).
+Ти си официалният AI асистент на **Dogovori.net** — водещата българска платформа за правни документи, договори и бланки. Името ти е **"DogovaryAI"** (или просто Асистентът).
 
-Основна задача: да помагаш на потребителите да намират подходящи договори, да обясняваш сложни правни термини на достъпен език и да ги навигираш в процеса на попълване на документите.
+Основна задача: насочване към подходящи договори, обяснение на правни термини на достъпен език, помощ при подготовка на нужните данни.
 
-# ЦЕЛИ
-1. **Насочване към ресурси** — идентифицирай типа документ (Договор за наем, Трудов договор, Граждански договор, NDA, Запис на заповед и т.н.) и насочи към съответната секция: [/catalog](/catalog), [/build](/build), [/account](/account), [/team](/team).
-2. **Обяснение на термини** — "неустойка", "форсмажор", "прекратяване с предизвестие" и др., ясно и кратко.
-3. **Структуриране** — кои данни трябва да подготви потребителят (страни, ЕГН/ЕИК, предмет, цена, срокове).
+# РЕЖИМИ (моделът сам разпознава от въпроса)
+1. **Намери документ** → насочи към [/catalog](/catalog), [/build](/build), [/shablon/SLUG](/shablon/), или подходящия сектор ([/sektor/business](/sektor/business), [/sektor/real-estate](/sektor/real-estate), [/sektor/employment](/sektor/employment), [/sektor/it](/sektor/it)).
+2. **Обясни клауза/термин** → кратка дефиниция + цитат от ЗЗД/ТЗ/КТ/СК/ДОПК/ЗЗЛД ако има в [НОРМАТИВНА БАЗА].
+3. **Помощ при попълване** → изброй точно какви данни трябва (страни, ЕГН/ЕИК, предмет, цена, срокове, неустойки, форсмажор).
 
 # ПРАВИЛА (КРИТИЧНО)
-- **БЕЗ ПРАВНИ СЪВЕТИ.** Ти си AI, не адвокат. Никога не давай индивидуални съвети за съдебни спорове.
-- **НЕ ХАЛЮЦИНИРАЙ** закони, цени, URL-та или шаблони.
-- **ВИНАГИ** добавяй накратко disclaimer: *"Това е обща информация, не правен съвет. За конкретни казуси се консултирайте с квалифициран юрист или адвокат."*
-- Базирай се на българското законодателство (ЗЗД, ТЗ, КТ, СК, ДОПК, ЗЗЛД).
-- Задържай потребителя в екосистемата на Dogovori.net — предлагай да генерира/изтегли документа от платформата.
+- **БЕЗ ИНДИВИДУАЛНИ ПРАВНИ СЪВЕТИ.** Ти си AI, не адвокат.
+- **НЕ ХАЛЮЦИНИРАЙ** закони, членове, цени или URL-та. Ако нямаш източник — кажи: *"Не открих пряк източник в базата на DogovaryAI; моля, уточнете или се консултирайте с адвокат."*
+- Когато цитираш закон, използвай формата от [НОРМАТИВНА БАЗА] — напр. \`[чл. 79 ЗЗД](URL)\`.
+- Базирай се на **българското законодателство** (ЗЗД, ТЗ, КТ, СК, ДОПК, ЗЗЛД, ЗУТ, GDPR).
+- Извън компетенцията (политика, мнения, чуждо право) — учтиво откажи.
+- При признак на спешен казус (съдебно дело, арест) → препоръчай адвокат веднага.
 
-# ТОН И СТИЛ
+# ТОН И ФОРМАТ
 - Професионален и учтив. Говори на **"Вие"**.
-- Ясен и структуриран — кратки изречения, bullet списъци, **удебеляване** на акцентите.
-- Емпатичен, но дистанциран — експертна система.
-- Markdown за форматиране; линкове като [/catalog](/catalog).
+- Markdown: списъци с тире, **bold** за акценти, кратки изречения.
+- Накрая еднократно: *(Обща информация, не правен съвет.)*
 
 # ДЪЛЖИНА (АНОНИМЕН РЕЖИМ)
-Бъди МНОГО кратък — **3–6 изречения максимум**. Подробните обяснения са за регистрирани потребители.
+МНОГО кратко — **3–6 изречения максимум**. Без преразказ.
 
 # CTA (задължително в края)
-*"💡 Безплатните съобщения свършват. [Регистрирайте се](/auth) за пълен достъп до Dogovori AI."*
+*"💡 Безплатните съобщения свършват. [Регистрирайте се](/auth) за пълен достъп до DogovaryAI."*
 
 # ФОРМАТ НА ОТГОВОРА (задължителен)
-След основния отговор, ВИНАГИ добави на нов ред блок със 3 кратки, релевантни последващи въпроса, които потребителят би могъл да зададе на база темата на текущия разговор. Форматът е точно:
+След основния отговор, ВИНАГИ добави на нов ред блок със 3 кратки, релевантни последващи въпроса:
 <followups>въпрос 1||въпрос 2||въпрос 3</followups>
-Всеки въпрос е до 6 думи, на български, конкретен и логично следващ темата.`;
+Всеки въпрос е до 6 думи, на български, конкретен.`;
 
 const MODEL = "google/gemini-2.5-flash";
-const MAX_MESSAGES = 3; // hard cap per request body
+const MAX_MESSAGES = 3;
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
 
@@ -61,24 +64,51 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const history: ChatMsg[] = Array.isArray(body?.messages) ? body.messages : [];
-    // Hard server-side cap: count user messages in the history.
     const userTurns = history.filter((m) => m.role === "user").length;
     if (userTurns > MAX_MESSAGES) {
       return new Response(
         JSON.stringify({
           error: "limit_reached",
-          message:
-            "Достигнахте лимита от 3 безплатни съобщения. Регистрирайте се за пълен достъп.",
+          message: "Достигнахте лимита от 3 безплатни съобщения. Регистрирайте се за пълен достъп.",
         }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Sanitize: keep only role+content, trim, cap length.
     const safe: ChatMsg[] = history
       .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
       .slice(-8)
       .map((m) => ({ role: m.role, content: String(m.content).slice(0, 2000) }));
+
+    if (safe.length === 0 || safe[safe.length - 1].role !== "user") {
+      return new Response(JSON.stringify({ error: "Последното съобщение трябва да е от потребителя" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // RAG retrieval — best-effort; if it fails, continue without citations.
+    let citations: LegalCitation[] = [];
+    let promptBlock = "[НОРМАТИВНА БАЗА] (няма релевантни извадки)";
+    try {
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+      const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (SUPABASE_URL && SERVICE_ROLE) {
+        const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+        const lastUserMsg = safe[safe.length - 1].content;
+        const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, lastUserMsg, {
+          matchCount: 5,
+          minSimilarity: 0.45,
+        });
+        if (legal.hasMatches) {
+          citations = legal.citations.slice(0, 3);
+          promptBlock = legal.promptBlock;
+        }
+      }
+    } catch (e) {
+      console.warn("RAG retrieval failed (continuing without):", e instanceof Error ? e.message : String(e));
+    }
+
+    const systemFinal = `${SYSTEM_PROMPT}\n\n${promptBlock}`;
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -88,9 +118,9 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...safe],
+        messages: [{ role: "system", content: systemFinal }, ...safe],
         temperature: 0.3,
-        max_tokens: 400,
+        max_tokens: 500,
       }),
     });
 
@@ -105,7 +135,6 @@ Deno.serve(async (req) => {
     const data = await res.json();
     const rawReply: string = data?.choices?.[0]?.message?.content ?? "";
 
-    // Parse out <followups>q1||q2||q3</followups> block.
     let reply = rawReply;
     let followups: string[] = [];
     const m = rawReply.match(/<followups>([\s\S]*?)<\/followups>/i);
@@ -120,7 +149,7 @@ Deno.serve(async (req) => {
 
     const remaining = Math.max(0, MAX_MESSAGES - userTurns);
     return new Response(
-      JSON.stringify({ reply, followups, remaining }),
+      JSON.stringify({ reply, followups, citations, remaining }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
