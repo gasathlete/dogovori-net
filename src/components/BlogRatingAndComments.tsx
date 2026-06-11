@@ -17,10 +17,10 @@ interface Props {
 
 interface Comment {
   id: string;
-  user_id: string;
   content: string;
   created_at: string;
   author_name?: string | null;
+  is_mine: boolean;
 }
 
 export function BlogRatingAndComments({ postType, postSlug }: Props) {
