@@ -677,6 +677,53 @@ export default function AdminLegalKB() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="font-mono">
+              {viewing?.short_code} — {viewing?.title}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span>{viewChunks.length} чънка</span>
+              <Input
+                placeholder="Търси в съдържанието…"
+                value={viewSearch}
+                onChange={(e) => setViewSearch(e.target.value)}
+                className="h-8 max-w-xs text-xs"
+              />
+            </div>
+            <ScrollArea className="h-[60vh] rounded-md border border-border/40 p-3">
+              {viewLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : viewChunks.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Няма индексирано съдържание.</p>
+              ) : (
+                <div className="space-y-3">
+                  {viewChunks
+                    .filter((c) =>
+                      viewSearch.trim()
+                        ? (c.content + " " + (c.citation_label ?? "")).toLowerCase().includes(viewSearch.toLowerCase())
+                        : true,
+                    )
+                    .map((c) => (
+                      <div key={c.id} className="border-l-2 border-gold/60 pl-3">
+                        <div className="text-[10px] font-mono text-muted-foreground">
+                          {c.citation_label ?? `#${c.chunk_index}`}
+                        </div>
+                        <div className="whitespace-pre-wrap text-xs leading-relaxed">
+                          {c.content}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
