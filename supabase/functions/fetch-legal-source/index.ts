@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
     }
 
     // text length sanity
-    if (text.length < 500) {
+    if (text.length < 120) {
       return new Response(JSON.stringify({
         error: "Извлеченият текст е твърде кратък. Опитай прав .txt/HTML източник.",
         length: text.length,
