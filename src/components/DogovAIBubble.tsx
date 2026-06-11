@@ -5,7 +5,7 @@ import { AssistantChat } from "@/components/AssistantChat";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import dogovaiIcon from "/dogovai-favicon.png";
+const dogovaiIcon = "/dogovai-favicon.png";
 
 /**
  * DogovAI — small, branded, scroll-attached chatbot bubble visible globally.
