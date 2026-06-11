@@ -559,6 +559,20 @@ function MessageBubble({ role, content, isStreaming, citations, toolEvents, foll
               </div>
             )}
             {citations && citations.length > 0 && <LegalCitations citations={citations} />}
+            {followups && followups.length > 0 && (
+              <div className="not-prose mt-3 flex flex-wrap gap-2">
+                {followups.map((f, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => onFollowupClick?.(f)}
+                    className="rounded-full border border-gold/40 bg-gold/5 px-3 py-1.5 text-xs text-foreground transition-colors hover:border-gold hover:bg-gold/15"
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
