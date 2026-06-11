@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { NotificationsTab } from "@/components/NotificationsTab";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
-import { FloatingAssistant } from "@/components/FloatingAssistant";
+
 import { useTeam } from "@/hooks/useTeam";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,7 @@ type SavedDoc = {
   id: string; title: string; kind: "contract" | "template"; folder_id: string | null;
   contact_id: string | null; payload: any; created_at: string;
 };
-type Quota = { contracts_used: number; templates_used: number; plan: "free" | "pro"; pro_until: string | null; analyses_used?: number; total_used?: number; monthly_total_used?: number; bonus_contracts?: number; pro_monthly_used?: number };
+type Quota = { contracts_used: number; templates_used: number; plan: "free" | "pro"; pro_until: string | null; analyses_used?: number; total_used?: number; monthly_total_used?: number; bonus_contracts?: number; pro_monthly_used?: number; monthly_reset_at?: string | null; pro_period_start?: string | null; signup_at?: string | null };
 type UploadedContract = {
   id: string; title: string; source: "pdf" | "docx" | "paste";
   folder_id: string | null; contact_id: string | null;
@@ -83,7 +83,7 @@ export default function AccountPage() {
   const [profile, setProfile] = useState<{ display_name: string | null; company: string | null; vat_number: string | null }>({ display_name: "", company: "", vat_number: "" });
   const [activeFolder, setActiveFolder] = useState<string | "all">("all");
   const [isStaff, setIsStaff] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
+  
   const { team: teamForChat } = useTeam();
   const { count: unreadCount } = useUnreadNotifications();
 
@@ -226,7 +226,7 @@ export default function AccountPage() {
 
 
           <TabsContent value="dashboard">
-            <Dashboard quota={quota} isPro={!!isPro} docs={docs} uploadedCount={uploaded.length} correctionsCount={correctionsCount} analysesDates={analysesDates} correctionsDates={correctionsDates} opChargeDates={opChargeDates} hasChatAccess={!!isPro || (!!teamForChat && teamForChat.status === "active")} onOpenChat={() => setChatOpen(true)} />
+            <Dashboard quota={quota} isPro={!!isPro} docs={docs} uploadedCount={uploaded.length} correctionsCount={correctionsCount} analysesDates={analysesDates} correctionsDates={correctionsDates} opChargeDates={opChargeDates} hasChatAccess={!!isPro || (!!teamForChat && teamForChat.status === "active")} onOpenChat={() => window.dispatchEvent(new Event("dogovai:open"))} />
           </TabsContent>
           <TabsContent value="notifications">
             <NotificationsTab />
@@ -263,9 +263,7 @@ export default function AccountPage() {
           </TabsContent>
         </Tabs>
       </main>
-      {(!!isPro || (teamForChat && teamForChat.status === "active")) && (
-        <FloatingAssistant open={chatOpen} onOpenChange={setChatOpen} />
-      )}
+      {/* Global DogovAI bubble is mounted in App.tsx */}
     </div>
   );
 }
@@ -331,14 +329,16 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
     return Math.max(fromCharges, fromQuota);
   }, [opChargeDates, correctionsDates, contractsUsed, templatesUsed, analysesUsed, correctionsCount]);
 
+  const totalDownloads = contractsUsed + templatesUsed;
   const totalsData = useMemo(() => ([
     { name: "Създадени", value: createdDocs, fill: "hsl(var(--gold))" },
-    { name: "Договори", value: contractsUsed, fill: "hsl(var(--gold) / 0.85)" },
-    { name: "Бланки", value: templatesUsed, fill: "hsl(var(--gold) / 0.7)" },
-    { name: "Качени", value: uploadedCount, fill: "hsl(var(--gold) / 0.55)" },
-    { name: "Анализи", value: analysesUsed, fill: "hsl(var(--gold) / 0.4)" },
-    { name: "Корекции", value: correctionsCount, fill: "hsl(var(--gold) / 0.25)" },
-  ]), [createdDocs, contractsUsed, templatesUsed, uploadedCount, analysesUsed, correctionsCount]);
+    { name: "Изтеглени", value: totalDownloads, fill: "hsl(var(--gold) / 0.9)" },
+    { name: "Договори", value: contractsUsed, fill: "hsl(var(--gold) / 0.75)" },
+    { name: "Бланки", value: templatesUsed, fill: "hsl(var(--gold) / 0.6)" },
+    { name: "Качени", value: uploadedCount, fill: "hsl(var(--gold) / 0.45)" },
+    { name: "Анализи", value: analysesUsed, fill: "hsl(var(--gold) / 0.3)" },
+    { name: "Корекции", value: correctionsCount, fill: "hsl(var(--gold) / 0.2)" },
+  ]), [createdDocs, totalDownloads, contractsUsed, templatesUsed, uploadedCount, analysesUsed, correctionsCount]);
 
   const timelineData = useMemo(() => {
     const days = 30;
@@ -403,19 +403,24 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
         icon={<Crown className="h-5 w-5 text-gold" />}
         sub={
           isPro
-            ? `${(quota as any)?.pro_monthly_used ?? 0}/100 операции/мес`
+            ? (() => {
+                const start = (quota as any)?.pro_period_start ? new Date((quota as any).pro_period_start) : null;
+                const reset = start ? new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000) : null;
+                const resetStr = reset ? reset.toLocaleDateString("bg-BG", { day: "2-digit", month: "short" }) : null;
+                return `${(quota as any)?.pro_monthly_used ?? 0}/100 операции/мес${resetStr ? ` · нулиране ${resetStr}` : ""}`;
+              })()
             : (() => {
                 const signupAt = (quota as any)?.signup_at ? new Date((quota as any).signup_at).getTime() : null;
                 const withinFirstMonth = !!signupAt && Date.now() - signupAt < 30 * 24 * 60 * 60 * 1000;
                 const cap = withinFirstMonth ? 5 : 2;
                 const used = (quota as any)?.monthly_total_used ?? 0;
-                const corrFree = (quota as any)?.corrections_free_used
-                  ? "вълна корекции използвана"
-                  : "+1 безплатна вълна корекции";
-                return `${used}/${cap} операции · ${corrFree}`;
+                const resetIso = (quota as any)?.monthly_reset_at as string | null | undefined;
+                const reset = resetIso ? new Date(resetIso) : null;
+                const resetStr = reset ? reset.toLocaleDateString("bg-BG", { day: "2-digit", month: "short" }) : null;
+                return `${used}/${cap} операции${resetStr ? ` · нулиране ${resetStr}` : ""}`;
               })()
         }
-        hint="Документ · Бланка · Качване на документ за Анализ – автоматични корекции = 1 операция"
+        hint="Документ · Бланка · Качване на документ за Анализ – автоматични корекции = 1 операция. Лимитът се нулира всеки месец."
         onClick={() => navigate("/account?tab=subscription")}
       />
       <Card
@@ -452,6 +457,40 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
         icon={<RefreshCw className="h-5 w-5 text-gold" />}
         sub="Приложени вълни от корекции"
       />
+
+      {/* ---------- Workspace CTA (separated) ---------- */}
+      <button
+        type="button"
+        onClick={() => navigate("/console")}
+        className="md:col-span-3 group relative overflow-hidden rounded-2xl border border-gold/50 bg-gradient-to-br from-navy via-navy/95 to-navy/85 p-5 sm:p-6 text-left shadow-gold transition-all hover:shadow-2xl hover:border-gold focus:outline-none focus:ring-2 focus:ring-gold/60"
+      >
+        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gold/20 blur-3xl transition-opacity group-hover:opacity-80" />
+        <div className="pointer-events-none absolute -bottom-12 -left-8 h-32 w-32 rounded-full bg-gold/10 blur-2xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-gold text-navy shadow-gold">
+              <LayoutDashboard className="h-6 w-6" />
+            </div>
+            <div className="min-w-0">
+              <div className="mb-1 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-gold">
+                <Sparkles className="h-3 w-3" /> Workspace
+              </div>
+              <h3 className="font-serif text-lg font-bold text-white sm:text-xl">
+                Архитект на сделките
+              </h3>
+              <p className="mt-1 max-w-prose text-sm text-white/80">
+                Многозадачен работен плот: табове, чернови, сделки и подписи на едно място.
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2 self-start sm:self-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-gold px-4 py-2 text-sm font-semibold text-navy shadow-md transition-transform group-hover:scale-105">
+              Отвори Workspace
+              <ChevronRight className="h-4 w-4" />
+            </span>
+          </div>
+        </div>
+      </button>
 
 
       <div className="md:col-span-3 grid gap-4 lg:grid-cols-5">

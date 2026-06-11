@@ -31,6 +31,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { DogovAIBubble } from "@/components/DogovAIBubble";
 import Index from "./pages/Index.tsx";
 const PaymentTestModeBanner = reactLazy(() =>
   import("@/components/PaymentTestModeBanner").then((m) => ({ default: m.PaymentTestModeBanner })),
@@ -278,6 +279,7 @@ const App = () => (
             <UsernamePrompt />
             <GlobalProUpgradeListener />
             <CommandPalette />
+            <DogovAIBubble />
           </Suspense>
           <Suspense fallback={<RouteFallback />}>
             <AnimatedRoutes />
