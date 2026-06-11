@@ -264,9 +264,21 @@ export function DogovAIBubble() {
   const [open, setOpen] = useState(false);
   const [resetKey, setResetKey] = useState(0);
 
-  // Every time the panel opens, bump the reset key so AnonChat clears memory.
+  // On open, reset memory only when idle > 30 min since last message.
   useEffect(() => {
-    if (open) setResetKey((k) => k + 1);
+    if (!open) return;
+    let last = 0;
+    try {
+      const raw = localStorage.getItem(LAST_ACTIVITY_KEY);
+      last = raw ? Number(raw) : 0;
+    } catch { /* ignore */ }
+    if (!last || Date.now() - last > IDLE_RESET_MS) {
+      try {
+        localStorage.removeItem(ANON_STORAGE_KEY);
+        localStorage.removeItem(LAST_ACTIVITY_KEY);
+      } catch { /* ignore */ }
+      setResetKey((k) => k + 1);
+    }
   }, [open]);
 
   useEffect(() => {
