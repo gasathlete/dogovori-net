@@ -52,9 +52,9 @@ const SYSTEM_PROMPT = `# РОЛЯ
 - Поне 2 водят до конкретно действие (prefill, отвори шаблон, анализ, навигация), не само въпроси.
 - БЕЗ followups = невалиден отговор.`;
 
-const MODEL_STANDARD = "google/gemini-2.5-flash";
-const MODEL_PREMIUM = "openai/gpt-5";
-const MAX_TOOL_ITERATIONS = 5;
+const MODEL_STANDARD = "google/gemini-3-flash-preview";
+const MODEL_PREMIUM = "openai/gpt-5.2";
+const MAX_TOOL_ITERATIONS = 6;
 
 interface ChatMsg {
   role: "system" | "user" | "assistant" | "tool";
