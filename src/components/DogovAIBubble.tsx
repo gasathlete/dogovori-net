@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { X, Send, Loader2, Sparkles, FileText, Briefcase, ShieldCheck, Scale } from "lucide-react";
+import { X, Send, Loader2, Sparkles, FileText, Briefcase, ShieldCheck, Scale, ExternalLink } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { AssistantChat } from "@/components/AssistantChat";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -119,7 +120,8 @@ function AnonChat({ resetKey }: { resetKey: number }) {
       if (error) throw error;
       const reply = (data as { reply?: string })?.reply ?? "Извинете, опитайте отново.";
       const fups = ((data as { followups?: string[] })?.followups ?? []).slice(0, 3);
-      const finalMsgs = [...next, { role: "assistant" as const, content: reply }];
+      const cits = ((data as { citations?: Citation[] })?.citations ?? []).slice(0, 3);
+      const finalMsgs: AnonMsg[] = [...next, { role: "assistant", content: reply, citations: cits }];
       setMessages(finalMsgs);
       setFollowups(fups);
       saveAnonStored({ messages: finalMsgs, followups: fups, updatedAt: Date.now() });
