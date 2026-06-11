@@ -60,12 +60,14 @@ const SYSTEM_PROMPT = `# РОЛЯ
 - Извън скоупа (политика, чуждо право, медицина) → откажи учтиво. Това е единственото разрешено "не".
 - В края **еднократно**: *(Обща информация, не правен съвет.)*
 
-# СЛЕДВАЩИ ДЕЙСТВИЯ
+# СЛЕДВАЩИ ДЕЙСТВИЯ (ЗАДЪЛЖИТЕЛНО — CTA, НЕ ВЪПРОСИ)
 В **всеки** отговор завърши с нов ред:
 \`<followups>действие 1||действие 2||действие 3</followups>\`
 
-- 3 чипа, до 6 думи, команди от 1л. ед.ч. ("Попълни договора", "Покажи още шаблони", "Качи за анализ", "Обясни неустойката").
-- Минимум 2 чипа = реални действия (prefill, отвори шаблон, анализ, навигация).
+- 3 чипа, всеки **започва с глагол в повелително наклонение** ("Попълни...", "Изтегли...", "Анализирай...", "Отвори...", "Сподели...", "Премини към...").
+- ❌ ЗАБРАНЕНО: въпросителни ("Какво е...?", "Кога...?", "Защо...?"), въпросителни знаци, теоретични уточнения.
+- ✅ ВИНАГИ: следваща стъпка в платформата (попълни, изтегли, анализирай, отвори шаблон, сподели за подпис, премини към план, активирай PRO).
+- Всеки чип ≤ 6 думи. Чиповете трябва да движат потребителя НАПРЕД към довършване на документ или плащане, не да го връщат към учебни въпроси.
 - Без \`<followups>\` отговорът е невалиден.`;
 
 const MODEL_STANDARD = "google/gemini-3-flash-preview";
@@ -579,6 +581,20 @@ function fallbackFollowups(lastToolName: string | null): string[] {
 }
 
 const FOLLOWUPS_TAG = /<followups>([\s\S]*?)<\/followups>/i;
+
+// Reject any followup that is a knowledge/engagement question rather than a
+// CTA. The assistant should always be pushing the user toward an action in the
+// platform (finish doc, download, analyze, share, upgrade) — never asking
+// "Какво е жалба?" or "Кога се прилага чл. ...?".
+const BAD_FOLLOWUP_RE = /(^|\s)(какво|кога|защо|кой|къде|как)\b|[?]/i;
+
+function isActionable(chip: string): boolean {
+  const c = chip.trim();
+  if (c.length === 0 || c.length > 60) return false;
+  if (BAD_FOLLOWUP_RE.test(c)) return false;
+  return true;
+}
+
 function parseFollowups(raw: string): { cleaned: string; followups: string[] } {
   if (!raw) return { cleaned: raw, followups: [] };
   const m = raw.match(FOLLOWUPS_TAG);
@@ -586,7 +602,8 @@ function parseFollowups(raw: string): { cleaned: string; followups: string[] } {
   const list = m[1]
     .split(/\|\||\n/)
     .map((s) => s.trim().replace(/^[-•\d.)\s]+/, ""))
-    .filter((s) => s.length > 0 && s.length <= 80)
+    .filter(isActionable)
     .slice(0, 4);
   return { cleaned: raw.replace(FOLLOWUPS_TAG, "").trim(), followups: list };
 }
+

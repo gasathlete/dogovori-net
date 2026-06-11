@@ -1,9 +1,16 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { FileText, ExternalLink, Wand2, Upload, ArrowRight, HelpCircle, ListChecks, Check } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { FileText, ExternalLink, Wand2, Upload, ArrowRight, HelpCircle, ListChecks, Check, FileEdit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  buildPrefillParams,
+  mergeAssistantAnswers,
+  updateAssistantDraft,
+  useAssistantDraft,
+  type DraftAnswer,
+} from "./assistantDraftStore";
 
 export type ToolEvent =
   | { kind: "tool_result"; id: string; name: string; args: any; result: any }
@@ -16,19 +23,18 @@ interface Props {
 
 export function AssistantToolCard({ event, onSendMessage }: Props) {
   if (event.kind === "tool_result" && event.name === "search_templates") {
-    const results: Array<{ slug: string; name: string; purpose: string; category: string }> = event.result?.results ?? [];
+    const results: Array<{ slug: string; name: string; purpose: string; category: string; documentType?: string }> = event.result?.results ?? [];
     if (results.length === 0) {
       return (
         <Card title="Търсене на шаблони">
-          <p className="text-xs text-muted-foreground mb-2">Няма подходящи резултати за „{event.args?.query}".</p>
+          <p className="text-xs text-muted-foreground mb-2">Няма точно съвпадение за „{event.args?.query}". Мога да го изградя от нула.</p>
           {onSendMessage && (
             <Button
               size="sm"
-              variant="outline"
-              className="h-7 text-xs border-gold/40 text-gold hover:bg-gold/10"
-              onClick={() => onSendMessage("Създай ми такъв договор от нула — започни с пълномощно/изясняване на липсващите данни.")}
+              className="h-7 text-xs bg-gold text-navy hover:bg-gold/90"
+              onClick={() => onSendMessage("Изгради ми такъв документ от нула — задай ми само критичните въпроси и продължи към план на клаузите.")}
             >
-              Създай от нула
+              Започни изграждане
             </Button>
           )}
         </Card>
@@ -134,21 +140,34 @@ interface ClarificationQuestion {
 function ClarificationCard({ args, onSendMessage }: { args: any; onSendMessage?: (text: string) => void }) {
   const contextSummary: string = args?.contextSummary ?? "";
   const questions: ClarificationQuestion[] = Array.isArray(args?.questions) ? args.questions : [];
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const draft = useAssistantDraft();
+  const [answers, setAnswers] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    for (const q of questions) {
+      const existing = draft.answers[q.id];
+      if (existing?.value) init[q.id] = existing.value;
+    }
+    return init;
+  });
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = () => {
-    if (!onSendMessage) return;
-    const lines = questions
-      .map((q) => {
-        const v = answers[q.id]?.trim();
-        if (!v) return null;
-        return `- ${q.label}: ${v}`;
-      })
-      .filter(Boolean);
-    if (lines.length === 0) return;
+    const filled = questions
+      .map((q) => ({ q, v: answers[q.id]?.trim() }))
+      .filter((x) => x.v);
+    if (filled.length === 0) return;
+
+    // Persist answers into the shared draft store so OutlineCard + Live Draft
+    // pick them up immediately, without waiting for the next model turn.
+    const patch: Record<string, DraftAnswer> = {};
+    for (const { q, v } of filled) patch[q.id] = { label: q.label, value: v! };
+    mergeAssistantAnswers(patch);
+
     setSubmitted(true);
-    onSendMessage(`Ето отговорите ми:\n${lines.join("\n")}`);
+    const lines = filled.map(({ q, v }) => `- ${q.label}: ${v}`);
+    onSendMessage?.(
+      `Ето отговорите ми:\n${lines.join("\n")}\n\nПродължи директно с план на клаузите (propose_contract_outline) — без повече въпроси.`,
+    );
   };
 
   return (
@@ -195,8 +214,11 @@ function ClarificationCard({ args, onSendMessage }: { args: any; onSendMessage?:
         disabled={submitted}
         className="mt-3 h-7 bg-gold text-navy hover:bg-gold/90 text-xs"
       >
-        {submitted ? "Изпратено" : "Изпрати отговорите"}
+        {submitted ? "Записано — продължавам с плана" : "Изпрати и продължи"}
       </Button>
+
+      {/* Live draft preview reflecting current answers across all cards. */}
+      <LiveDraftPreview />
     </Card>
   );
 }
@@ -205,7 +227,40 @@ function OutlineCard({ args, onSendMessage }: { args: any; onSendMessage?: (text
   const title: string = args?.title ?? "Договор";
   const clauses: Array<{ heading: string; summary: string }> = Array.isArray(args?.clauses) ? args.clauses : [];
   const slug: string | undefined = args?.basedOnTemplateSlug;
+  const documentType: string | undefined = args?.documentType;
+  const prefill = args?.prefill ?? {};
+  const navigate = useNavigate();
   const [confirmed, setConfirmed] = useState(false);
+
+  // Push outline + prefill into the shared draft so the Live Draft preview
+  // and the final "Финализирай" navigation are wired to the same state.
+  useEffect(() => {
+    updateAssistantDraft({
+      title,
+      documentType: documentType ?? null,
+      basedOnTemplateSlug: slug ?? null,
+      partiesA: prefill?.partiesA ?? undefined,
+      partiesB: prefill?.partiesB ?? undefined,
+      subject: prefill?.subject ?? undefined,
+      bilingual: !!prefill?.bilingual,
+      clauses,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleConfirm = () => {
+    setConfirmed(true);
+    const params = buildPrefillParams({
+      name: title,
+      documentType,
+      partiesA: prefill?.partiesA,
+      partiesB: prefill?.partiesB,
+      subject: prefill?.subject,
+      bilingual: prefill?.bilingual,
+    });
+    // Direct navigation — no extra model round-trip.
+    setTimeout(() => navigate(`/build?${params.toString()}`), 200);
+  };
 
   return (
     <Card title="План на договора" icon={<ListChecks className="h-3.5 w-3.5 text-gold" />}>
@@ -218,26 +273,26 @@ function OutlineCard({ args, onSendMessage }: { args: any; onSendMessage?: (text
           </li>
         ))}
       </ol>
+
+      <LiveDraftPreview />
+
       <div className="mt-3 flex flex-wrap gap-1.5">
         <Button
           size="sm"
           disabled={confirmed}
-          onClick={() => {
-            setConfirmed(true);
-            onSendMessage?.("Потвърждавам плана — попълни договора във wizard-а с тези клаузи.");
-          }}
+          onClick={handleConfirm}
           className="h-7 bg-gold text-navy hover:bg-gold/90 text-xs"
         >
-          <Check className="mr-1 h-3 w-3" /> Потвърди и попълни
+          <Check className="mr-1 h-3 w-3" /> Финализирай и попълни
         </Button>
         <Button
           size="sm"
           variant="outline"
           disabled={confirmed}
-          onClick={() => onSendMessage?.("Промени структурата на договора — добави/премахни клаузи.")}
+          onClick={() => onSendMessage?.("Промени структурата: добави/премахни клаузи и предложи нов план.")}
           className="h-7 border-gold/40 text-xs"
         >
-          Промени
+          Промени клаузите
         </Button>
         {slug && (
           <Link
@@ -249,5 +304,53 @@ function OutlineCard({ args, onSendMessage }: { args: any; onSendMessage?: (text
         )}
       </div>
     </Card>
+  );
+}
+
+/**
+ * Compact, always-up-to-date snapshot of the contract being assembled.
+ * Reads from the shared draft store so it stays consistent between
+ * `ask_clarification` answers and `propose_contract_outline` clauses.
+ */
+function LiveDraftPreview() {
+  const draft = useAssistantDraft();
+  const answerEntries = Object.entries(draft.answers);
+  const hasContent =
+    !!draft.title ||
+    !!draft.partiesA ||
+    !!draft.partiesB ||
+    !!draft.subject ||
+    draft.clauses.length > 0 ||
+    answerEntries.length > 0;
+
+  if (!hasContent) return null;
+
+  return (
+    <div className="mt-3 rounded-md border border-gold/20 bg-background/40 p-2">
+      <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-gold">
+        <FileEdit className="h-3 w-3" />
+        <span>Live Draft — текущ преглед</span>
+      </div>
+      <div className="space-y-1 text-xs text-foreground">
+        {draft.title && <div><span className="text-muted-foreground">Документ:</span> <strong>{draft.title}</strong></div>}
+        {draft.partiesA && <div><span className="text-muted-foreground">Страна А:</span> {draft.partiesA}</div>}
+        {draft.partiesB && <div><span className="text-muted-foreground">Страна Б:</span> {draft.partiesB}</div>}
+        {draft.subject && <div><span className="text-muted-foreground">Предмет:</span> {draft.subject}</div>}
+        {answerEntries.length > 0 && (
+          <ul className="mt-1 space-y-0.5">
+            {answerEntries.map(([id, a]) => (
+              <li key={id} className="text-[11px]">
+                <span className="text-muted-foreground">{a.label}:</span> {a.value}
+              </li>
+            ))}
+          </ul>
+        )}
+        {draft.clauses.length > 0 && (
+          <div className="mt-1.5 text-[10px] text-muted-foreground">
+            {draft.clauses.length} клаузи готови за финализиране
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

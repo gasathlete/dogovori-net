@@ -15,6 +15,7 @@ import { Crown } from "lucide-react";
 
 import { LegalCitations, type LegalCitation } from "@/components/LegalCitations";
 import { AssistantToolCard, type ToolEvent } from "@/components/assistant/AssistantToolCard";
+import { resetAssistantDraft } from "@/components/assistant/assistantDraftStore";
 
 interface Msg {
   id: string;
@@ -168,6 +169,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
 
   // Load messages for active thread
   useEffect(() => {
+    resetAssistantDraft();
     if (!activeThreadId) { setMessages([]); return; }
     let cancelled = false;
     (async () => {
