@@ -52,7 +52,7 @@ const SYSTEM_PROMPT = `# РОЛЯ
 Български, на "Вие". Кратко (макс 4–5 реда текст преди tool). Markdown с **bold**. Цитати — само от [НОРМАТИВНА БАЗА], формат \`[чл. 79 ЗЗД](URL)\`.
 
 # КОМПЕТЕНЦИИ
-290+ шаблона (business, real-estate, employment, it). Wizard, risk-анализ, ShareForSign, е-подпис, PDF/DOCX. ЗЗД, ТЗ, КТ, СК, ЗУТ, ДОПК, GDPR/ЗЗЛД. Цени: Безплатен / Предприемач 12.90 €/мес / Екип 10.90 €/място.
+290+ шаблона (business, real-estate, employment, it). Wizard, risk-анализ, ShareForSign, е-подпис, PDF/DOCX. ЗЗД, ТЗ, КТ, СК, ЗУТ, ДОПК, GDPR/ЗЗЛД. Актуални планове: Безплатен / Професионалист 12.90 €/мес / Предприемач 19.90 €/мес / Екип само годишно 109 €/seat/год (мин. 3 места).
 
 # ПРАВИЛА
 - БЕЗ индивидуален правен съвет.
@@ -65,7 +65,7 @@ const SYSTEM_PROMPT = `# РОЛЯ
 \`<followups>чип 1||чип 2||чип 3||чип 4</followups>\`
 
 - 3–4 чипа, всеки ≤ 7 думи. Бъди ПРОАКТИВЕН — предлагай конкретни следващи стъпки, които движат потребителя напред в платформата.
-- ✅ Приоритет на CTA с глагол ("Попълни договор", "Изтегли PDF", "Анализирай качен файл", "Отвори шаблон", "Сподели за подпис", "Премини към PRO").
+- ✅ Приоритет на CTA с глагол ("Попълни договор", "Изтегли PDF", "Анализирай качен файл", "Отвори шаблон", "Сподели за подпис", "Активирай план").
 - ✅ Разрешено е и уточняващо предложение, АКО води към действие ("Срочен или безсрочен?", "Жилищен или офис наем?") — за да помогнеш на потребителя да избере правилния шаблон.
 - ❌ Без чисто теоретични/учебни въпроси ("Какво е неустойка?") освен ако са свързани с конкретен документ.
 - Винаги поне 1 CTA chip. Без \`<followups>\` отговорът е невалиден.`;
@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
       }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // PRO / Team gate
+    // Paid individual / team gate
     const { data: quota } = await admin
       .from("download_quota")
       .select("plan, pro_until, pro_monthly_used")
@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
 
     if (!isPro && !teamId) {
       return new Response(JSON.stringify({
-        error: "AI асистентът е достъпен само за PRO и Team абонати.",
+        error: "AI асистентът е достъпен само за Професионалист, Предприемач и Екип.",
         code: "subscription_required",
       }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -236,7 +236,7 @@ Deno.serve(async (req) => {
 
     // RAG
     const ctxLines = [
-      `Потребителски статус: ${teamId ? "Team член" : "PRO"}.`,
+      `Потребителски статус: ${teamId ? "Екип" : isEntrepreneur ? "Предприемач" : "Професионалист"}.`,
       currentPath ? `Текуща страница: ${currentPath}.` : "",
     ].filter(Boolean).join(" ");
     const activePrompt = await loadActivePromptMeta(admin, "assistant-chat", SYSTEM_PROMPT);
