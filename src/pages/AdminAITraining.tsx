@@ -360,9 +360,13 @@ function PromptsTab({ functionName }: { functionName: string }) {
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
         />
-        <div className="mt-2 flex gap-2">
+        <div className="mt-2 flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setPreviewOpen(true)}>
             <Eye className="mr-1 h-4 w-4" /> Преглед на пълния промпт
+          </Button>
+          <Button variant="secondary" onClick={saveInPlace} disabled={busy || !activeVersionId}>
+            {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
+            Запази в заредената версия
           </Button>
           <Button onClick={saveNewVersion} disabled={busy} className="bg-gradient-gold text-navy">
             {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
@@ -370,7 +374,7 @@ function PromptsTab({ functionName }: { functionName: string }) {
           </Button>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          Запазената версия не се активира автоматично — натиснете „Активирай" в списъка отдолу.
+          „Запази в заредената версия" презаписва текущата (без нова версия). „Нова версия" създава ново копие, което трябва да активирате ръчно.
         </p>
       </div>
 
