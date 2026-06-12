@@ -118,11 +118,11 @@ export default function TemplatePage() {
     },
     {
       q: `Колко струва изготвянето на ${docLower} в Dogovori.net?`,
-      a: "Безплатно: 5 операции при регистрация + 2/месец и 1 безплатна авто-корекция. Професионалист (12.90 €/мес, 50 операции) добавя двуезични договори (BG/EN), пълни AI-корекции, пълен risk report, неограничени комплекти и сваляне без воден знак. Предприемач (19.90 €/мес, 120 операции) добавя GPT-5 и Premium 24/7 поддръжка.",
+      a: "Безплатно: 5 операции при регистрация + 2/месец и 1 безплатна авто-корекция. Професионалист (12.90 €/мес, 50 операции) добавя двуезични договори (BG/EN), пълни AI-корекции, пълен risk report, неограничени комплекти и сваляне без воден знак. Предприемач (19.90 €/мес, 120 операции) добавя GPT-5 и премиум 24/7 поддръжка.",
     },
     {
       q: "Мога ли да го редактирам след генериране?",
-      a: "Да. Експортираме документа в DOCX (Word) формат, който можете да редактирате допълнително преди подпис. Pro потребителите могат и да редактират директно в платформата.",
+      a: "Да. Експортираме документа в DOCX (Word) формат, който можете да редактирате допълнително преди подпис. Платените планове позволяват и редакция директно в платформата.",
     },
     {
       q: "Документът съобразен ли е с актуалното българско законодателство?",
@@ -250,7 +250,7 @@ export default function TemplatePage() {
             {doc.bilingual && (
               <span className="ml-3 inline-flex items-center gap-1 align-middle">
                 <span className="rounded border border-gold/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-gold">BG/EN</span>
-                <span className="rounded bg-gradient-gold px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-navy shadow-gold">PRO</span>
+                <span className="rounded bg-gradient-gold px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-navy shadow-gold">ПЛАТЕН</span>
               </span>
             )}
           </h1>
