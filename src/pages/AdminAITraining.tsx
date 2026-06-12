@@ -154,6 +154,10 @@ function PromptsTab({ functionName }: { functionName: string }) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [model, setModel] = useState<string>("google/gemini-3-flash-preview");
   const [premiumModel, setPremiumModel] = useState<string>("openai/gpt-5.2");
+  const [mode, setMode] = useState<"sections" | "full">("sections");
+  const [fullText, setFullText] = useState("");
+
+  const effectiveSections = mode === "full" ? parseFullTextToSections(fullText) : sections;
 
   const loadSectionsFor = async (promptId: string) => {
     const { data } = await supabase
