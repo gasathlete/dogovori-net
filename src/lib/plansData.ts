@@ -3,10 +3,10 @@
  *
  * Code keys mapping:
  * - `professional` → Stripe lookup_keys `professional_monthly` / `professional_yearly`
- *   (legacy `pro_monthly` / `pro_yearly` are kept for grandfathered subscribers
+ *   (legacy `pro_monthly` / `pro_yearly` are kept only for grandfathered subscribers
  *   and resolve to the same tier).
  * - `entrepreneur` → Stripe lookup_keys `entrepreneur_monthly` / `entrepreneur_yearly`.
- * - `team` → Stripe lookup_key `team_yearly` (monthly removed).
+ * - `team` → Stripe lookup_key `team_yearly` (monthly removed, yearly only).
  */
 export type PlanId = "free" | "professional" | "entrepreneur" | "team";
 export type Billing = "monthly" | "yearly";
@@ -26,7 +26,7 @@ export const PLANS: PlanData[] = [
   {
     id: "free",
     name: "Безплатен",
-    tagline: "За първи стъпки и единични документи",
+     tagline: "За първи стъпки и единични документи",
     monthly: { price: 0, suffix: "€" },
     yearly: { price: 0, suffix: "€" },
     features: [
@@ -78,7 +78,7 @@ export const PLANS: PlanData[] = [
     yearly: { price: 109, suffix: "€/seat/год", note: "мин. 3 = 327 €/год" },
     features: [
       "Само годишен абонамент",
-      "100 операции / seat / месец",
+      "100 операции / място / месец",
       "Споделени документи и шаблони",
       "Audit log на всички действия",
       "Екипно фактуриране",
@@ -95,7 +95,7 @@ export const COMPARISON_ROWS: Array<{
   entrepreneur: string;
   team: string;
 }> = [
-  { label: "Операции / месец", free: "5 + 2/мес", professional: "50", entrepreneur: "120", team: "100 / seat" },
+  { label: "Операции / месец", free: "5 + 2/мес", professional: "50", entrepreneur: "120", team: "100 / място" },
   { label: "AI Асистент", free: "5 съобщ./мес", professional: "Неограничен", entrepreneur: "Неограничен + приоритет", team: "Неограничен" },
   { label: "AI модел", free: "Стандартен", professional: "Стандартен", entrepreneur: "GPT-5", team: "Стандартен" },
   { label: "Двуезични договори", free: "Само BG", professional: "Пълни EN/DE/FR", entrepreneur: "Пълни EN/DE/FR", team: "Пълни EN/DE/FR" },
@@ -115,7 +115,7 @@ export const FAQ: Array<{ q: string; a: string }> = [
   },
   {
     q: "Каква е разликата между Професионалист и Предприемач?",
-    a: "Професионалист (12.90 €/мес, 50 операции) покрива всички основни функции — AI Асистент, двуезични договори, комплекти. Предприемач (19.90 €/мес, 120 операции) добавя GPT-5 модел с приоритетна AI обработка, Премиум поддръжка 24/7 и персонален onboarding.",
+    a: "Професионалист (12.90 €/мес, 50 операции) покрива всички основни функции — AI Асистент, двуезични договори и комплекти. Предприемач (19.90 €/мес, 120 операции) добавя GPT-5 модел, приоритетна AI обработка, премиум поддръжка 24/7 и персонален onboarding.",
   },
   {
     q: "Мога ли да сменям плана по всяко време?",
@@ -131,7 +131,7 @@ export const FAQ: Array<{ q: string; a: string }> = [
   },
   {
     q: 'Как работи „Екип" с няколко души?',
-    a: "Екип е САМО годишен абонамент: 109 €/seat/год, минимум 3 места = 327 €/год. Всеки член получава 100 операции/мес. Един потребител не може да е едновременно индивидуален абонат и член на екип.",
+    a: "Екип е само годишен абонамент: 109 €/място/год, минимум 3 места = 327 €/год. Всеки член получава 100 операции/мес. Един потребител не може да е едновременно индивидуален абонат и член на екип.",
   },
   {
     q: "Какво се случва, ако надхвърля операциите на плана?",
