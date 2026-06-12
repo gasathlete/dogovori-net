@@ -32,7 +32,7 @@ export default function IncidentResponsePage() {
           известие.
         </li>
         <li>
-          <strong>Бизнес клиенти (Team):</strong> до <strong>24 часа</strong>
+          <strong>Бизнес клиенти (Екип):</strong> до <strong>24 часа</strong>
           след установяване, дори при ниска тежест (повишен договорен SLA).
         </li>
       </ul>

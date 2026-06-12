@@ -1304,7 +1304,7 @@ const PLAN_LABELS: Record<string, { name: string; price: string; cycle: string }
   professional_yearly: { name: "Професионалист — годишен", price: "129 €", cycle: "годишно" },
   entrepreneur_monthly: { name: "Предприемач — месечен", price: "19.90 €", cycle: "месечно" },
   entrepreneur_yearly: { name: "Предприемач — годишен", price: "199 €", cycle: "годишно" },
-  five_operations: { name: "Пакет 5 операции", price: "2.90 €", cycle: "еднократно" },
+  five_operations: { name: "Пакет 5 операции", price: "1.90 €", cycle: "еднократно" },
 };
 
 const STATUS_META: Record<string, { label: string; tone: "ok" | "warn" | "err" | "info" }> = {
@@ -1828,17 +1828,17 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               </div>
               <h3 className="mt-2 font-serif text-xl font-bold">5 операции</h3>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="font-serif text-3xl font-bold text-foreground">2.90 €</span>
+                <span className="font-serif text-3xl font-bold text-foreground">1.90 €</span>
                 <span className="text-xs text-muted-foreground">/ пакет</span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">без абонамент · не изтичат</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">≈ 0.58 € на операция</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">≈ 0.38 € на операция</p>
               <Button
                 onClick={() => setCheckoutPrice("five_operations")}
                 variant="outline"
                 className="mt-4 border-border/80"
               >
-                Купи за 2.90 €
+                Купи за 1.90 €
               </Button>
               <div className="my-5 h-px bg-border/60" />
               <ul className="space-y-2.5">

@@ -464,7 +464,7 @@ export default function WizardReviewPage() {
         if (res.error === "quota_exceeded") {
           toast.error("Изчерпан безплатен лимит", {
             description:
-              "Купете единичен договор за 2.90€ или преминете към Pro — прогресът е запазен.",
+              "Купете единичен договор за 1.90€ или активирайте платен план — прогресът е запазен.",
             action: { label: "Виж опции", onClick: () => goSubscription() },
           });
         } else if (res.error === "auth_required") {

@@ -152,7 +152,7 @@ export function softwareApplicationSchema() {
       {
         "@type": "Offer",
         name: "Pay-as-you-go pack (5 ops)",
-        price: "2.90",
+        price: "1.90",
         priceCurrency: "EUR",
         description: "5 operations, one-off",
       },

@@ -228,8 +228,8 @@ export default function UploadedContractPage() {
       }
       if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(error)) return;
       const msg = (data as any)?.error ?? error?.message ?? "Грешка";
-      if (msg === "pro_required") {
-        toast.error("Тази функция е достъпна само за Pro абонати");
+        if (msg === "pro_required") {
+          toast.error("Тази функция е достъпна само за платен индивидуален план");
         navigate("/account?tab=plan");
       } else {
         toast.error(msg);
