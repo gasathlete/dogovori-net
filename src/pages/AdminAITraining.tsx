@@ -287,7 +287,7 @@ function PromptsTab({ functionName }: { functionName: string }) {
       toast.error("Няма заредена версия");
       return;
     }
-    const assembled = assembleSections(sections);
+    const assembled = mode === "full" ? fullText.trim() : assembleSections(sections);
     if (!assembled.trim()) {
       toast.error("Промптът е празен");
       return;
@@ -312,7 +312,7 @@ function PromptsTab({ functionName }: { functionName: string }) {
       toast.error("Грешка при изтриване на стари секции: " + dErr.message);
       return;
     }
-    const sectionRows = sections
+    const sectionRows = effectiveSections
       .filter((s) => s.section_key.trim().length > 0)
       .map((s, i) => ({
         prompt_id: activeVersionId,
