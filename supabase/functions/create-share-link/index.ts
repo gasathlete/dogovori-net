@@ -48,7 +48,7 @@ serve(async (req) => {
     }
     const days = Math.min(Math.max(Number(expires_in_days) || 7, 1), 30);
 
-    // Pro guard
+    // Paid-plan guard
     const { data: planRow } = await admin
       .from("download_quota")
       .select("plan, pro_until")
@@ -58,7 +58,7 @@ serve(async (req) => {
       (!!planRow.pro_until && new Date(planRow.pro_until) > new Date()));
     if (!isPro) {
       return new Response(
-        JSON.stringify({ error: "pro_required", message: "Споделянето за подпис е достъпно за Pro потребители." }),
+        JSON.stringify({ error: "pro_required", message: "Споделянето за подпис е достъпно за платени индивидуални планове." }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
