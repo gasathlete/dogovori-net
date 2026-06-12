@@ -348,19 +348,43 @@ function PromptsTab({ functionName }: { functionName: string }) {
     load();
   };
 
-  const totalChars = sections.filter((s) => s.enabled).reduce((sum, s) => sum + s.content.length + s.title.length + 3, 0);
+  const totalChars = effectiveSections
+    .filter((s) => s.enabled)
+    .reduce((sum, s) => sum + s.content.length + s.title.length + 3, 0);
 
   return (
     <div className="mt-4 space-y-4">
       <div className="rounded-lg border p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <Label className="text-base font-semibold">Системен промпт — структуриран по секции</Label>
+            <Label className="text-base font-semibold">
+              {mode === "sections" ? "Системен промпт — структуриран по секции" : "Системен промпт — цялостен текст"}
+            </Label>
             <p className="text-xs text-muted-foreground">
-              Всяка секция се редактира поотделно. Системата ги сглобява автоматично при запис.
+              {mode === "sections"
+                ? "Всяка секция се редактира поотделно. Системата ги сглобява автоматично при запис."
+                : "Редактирайте целия промпт наведнъж. Заглавията на секциите започват с # ."}
             </p>
           </div>
-          <span className="text-xs text-muted-foreground">~{totalChars} симв.</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground">~{totalChars} симв.</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">По секции</span>
+              <Switch
+                checked={mode === "full"}
+                onCheckedChange={(v) => {
+                  if (v) {
+                    setFullText(assembleSections(sections));
+                    setMode("full");
+                  } else {
+                    setSections(parseFullTextToSections(fullText));
+                    setMode("sections");
+                  }
+                }}
+              />
+              <span className="text-xs text-muted-foreground">Цялостен</span>
+            </div>
+          </div>
         </div>
 
         <div className="mb-4 grid gap-3 rounded-lg border bg-muted/20 p-3 sm:grid-cols-2">
@@ -394,7 +418,17 @@ function PromptsTab({ functionName }: { functionName: string }) {
           </div>
         </div>
 
-        <PromptSectionsEditor sections={sections} onChange={setSections} />
+        {mode === "sections" ? (
+          <PromptSectionsEditor sections={sections} onChange={setSections} />
+        ) : (
+          <Textarea
+            rows={30}
+            value={fullText}
+            onChange={(e) => setFullText(e.target.value)}
+            className="font-mono text-xs"
+            placeholder="# Заглавие на секция\nСъдържание...\n\n# Друга секция\nСъдържание..."
+          />
+        )}
 
         <Input
           className="mt-3"
