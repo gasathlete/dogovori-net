@@ -233,7 +233,7 @@ function PromptsTab({ functionName }: { functionName: string }) {
   };
 
   const saveNewVersion = async () => {
-    const assembled = assembleSections(sections);
+    const assembled = mode === "full" ? fullText.trim() : assembleSections(sections);
     if (!assembled.trim()) {
       toast.error("Промптът е празен");
       return;
@@ -261,7 +261,7 @@ function PromptsTab({ functionName }: { functionName: string }) {
       return;
     }
     // Записваме и секциите за новата версия
-    const sectionRows = sections
+    const sectionRows = effectiveSections
       .filter((s) => s.section_key.trim().length > 0)
       .map((s, i) => ({
         prompt_id: inserted.id,
