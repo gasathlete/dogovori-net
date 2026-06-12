@@ -240,6 +240,59 @@ function PromptsTab({ functionName }: { functionName: string }) {
     load();
   };
 
+  const saveInPlace = async () => {
+    if (!activeVersionId) {
+      toast.error("Няма заредена версия");
+      return;
+    }
+    const assembled = assembleSections(sections);
+    if (!assembled.trim()) {
+      toast.error("Промптът е празен");
+      return;
+    }
+    const loaded = rows.find((r) => r.id === activeVersionId);
+    const label = loaded ? `v${loaded.version}` : "версията";
+    if (!confirm(`Запис върху ${label} без нова версия. Продължаване?`)) return;
+    setBusy(true);
+    const { error: upErr } = await supabase
+      .from("ai_prompts")
+      .update({ content: assembled, model, premium_model: premiumModel, notes: notes || loaded?.notes || null })
+      .eq("id", activeVersionId);
+    if (upErr) {
+      setBusy(false);
+      toast.error(upErr.message);
+      return;
+    }
+    // Заменяме секциите изцяло
+    const { error: dErr } = await supabase.from("ai_prompt_sections").delete().eq("prompt_id", activeVersionId);
+    if (dErr) {
+      setBusy(false);
+      toast.error("Грешка при изтриване на стари секции: " + dErr.message);
+      return;
+    }
+    const sectionRows = sections
+      .filter((s) => s.section_key.trim().length > 0)
+      .map((s, i) => ({
+        prompt_id: activeVersionId,
+        section_key: s.section_key,
+        title: s.title,
+        content: s.content,
+        order_idx: i,
+        enabled: s.enabled,
+      }));
+    if (sectionRows.length > 0) {
+      const { error: sErr } = await supabase.from("ai_prompt_sections").insert(sectionRows);
+      if (sErr) {
+        setBusy(false);
+        toast.error("Промптът е обновен, но секциите не: " + sErr.message);
+        return;
+      }
+    }
+    setBusy(false);
+    toast.success(`${label} обновена (до 5 мин. cache).`);
+    load();
+  };
+
   const activate = async (id: string) => {
     setBusy(true);
     await supabase.from("ai_prompts").update({ is_active: false }).eq("function_name", functionName);
@@ -307,9 +360,13 @@ function PromptsTab({ functionName }: { functionName: string }) {
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
         />
-        <div className="mt-2 flex gap-2">
+        <div className="mt-2 flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setPreviewOpen(true)}>
             <Eye className="mr-1 h-4 w-4" /> Преглед на пълния промпт
+          </Button>
+          <Button variant="secondary" onClick={saveInPlace} disabled={busy || !activeVersionId}>
+            {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
+            Запази в заредената версия
           </Button>
           <Button onClick={saveNewVersion} disabled={busy} className="bg-gradient-gold text-navy">
             {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
@@ -317,7 +374,7 @@ function PromptsTab({ functionName }: { functionName: string }) {
           </Button>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          Запазената версия не се активира автоматично — натиснете „Активирай" в списъка отдолу.
+          „Запази в заредената версия" презаписва текущата (без нова версия). „Нова версия" създава ново копие, което трябва да активирате ръчно.
         </p>
       </div>
 
