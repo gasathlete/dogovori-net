@@ -9,11 +9,49 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Save, Plus, Trash2, Brain, Eye } from "lucide-react";
 import { PromptSectionsEditor, assembleSections, type PromptSection } from "@/components/admin/PromptSectionsEditor";
+
+function parseFullTextToSections(text: string): PromptSection[] {
+  const lines = text.split("\n");
+  const sections: PromptSection[] = [];
+  let currentTitle = "";
+  const currentContentLines: string[] = [];
+
+  const flush = () => {
+    if (currentTitle) {
+      const slug = currentTitle
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, "")
+        .trim()
+        .replace(/\s+/g, "_")
+        .substring(0, 40) || `section_${Date.now()}`;
+      sections.push({
+        section_key: slug,
+        title: currentTitle,
+        content: currentContentLines.join("\n").trim(),
+        order_idx: sections.length,
+        enabled: true,
+      });
+    }
+  };
+
+  for (const line of lines) {
+    if (line.startsWith("# ")) {
+      flush();
+      currentTitle = line.slice(2).trim();
+      currentContentLines.length = 0;
+    } else {
+      currentContentLines.push(line);
+    }
+  }
+  flush();
+  return sections;
+}
 
 const AI_FUNCTIONS = [
   { id: "generate-contract", label: "Генериране на договор" },
@@ -116,6 +154,10 @@ function PromptsTab({ functionName }: { functionName: string }) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [model, setModel] = useState<string>("google/gemini-3-flash-preview");
   const [premiumModel, setPremiumModel] = useState<string>("openai/gpt-5.2");
+  const [mode, setMode] = useState<"sections" | "full">("sections");
+  const [fullText, setFullText] = useState("");
+
+  const effectiveSections = mode === "full" ? parseFullTextToSections(fullText) : sections;
 
   const loadSectionsFor = async (promptId: string) => {
     const { data } = await supabase
@@ -191,7 +233,7 @@ function PromptsTab({ functionName }: { functionName: string }) {
   };
 
   const saveNewVersion = async () => {
-    const assembled = assembleSections(sections);
+    const assembled = mode === "full" ? fullText.trim() : assembleSections(sections);
     if (!assembled.trim()) {
       toast.error("Промптът е празен");
       return;
@@ -219,7 +261,7 @@ function PromptsTab({ functionName }: { functionName: string }) {
       return;
     }
     // Записваме и секциите за новата версия
-    const sectionRows = sections
+    const sectionRows = effectiveSections
       .filter((s) => s.section_key.trim().length > 0)
       .map((s, i) => ({
         prompt_id: inserted.id,
@@ -245,7 +287,7 @@ function PromptsTab({ functionName }: { functionName: string }) {
       toast.error("Няма заредена версия");
       return;
     }
-    const assembled = assembleSections(sections);
+    const assembled = mode === "full" ? fullText.trim() : assembleSections(sections);
     if (!assembled.trim()) {
       toast.error("Промптът е празен");
       return;
@@ -270,7 +312,7 @@ function PromptsTab({ functionName }: { functionName: string }) {
       toast.error("Грешка при изтриване на стари секции: " + dErr.message);
       return;
     }
-    const sectionRows = sections
+    const sectionRows = effectiveSections
       .filter((s) => s.section_key.trim().length > 0)
       .map((s, i) => ({
         prompt_id: activeVersionId,
@@ -306,19 +348,43 @@ function PromptsTab({ functionName }: { functionName: string }) {
     load();
   };
 
-  const totalChars = sections.filter((s) => s.enabled).reduce((sum, s) => sum + s.content.length + s.title.length + 3, 0);
+  const totalChars = effectiveSections
+    .filter((s) => s.enabled)
+    .reduce((sum, s) => sum + s.content.length + s.title.length + 3, 0);
 
   return (
     <div className="mt-4 space-y-4">
       <div className="rounded-lg border p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <Label className="text-base font-semibold">Системен промпт — структуриран по секции</Label>
+            <Label className="text-base font-semibold">
+              {mode === "sections" ? "Системен промпт — структуриран по секции" : "Системен промпт — цялостен текст"}
+            </Label>
             <p className="text-xs text-muted-foreground">
-              Всяка секция се редактира поотделно. Системата ги сглобява автоматично при запис.
+              {mode === "sections"
+                ? "Всяка секция се редактира поотделно. Системата ги сглобява автоматично при запис."
+                : "Редактирайте целия промпт наведнъж. Заглавията на секциите започват с # ."}
             </p>
           </div>
-          <span className="text-xs text-muted-foreground">~{totalChars} симв.</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground">~{totalChars} симв.</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">По секции</span>
+              <Switch
+                checked={mode === "full"}
+                onCheckedChange={(v) => {
+                  if (v) {
+                    setFullText(assembleSections(sections));
+                    setMode("full");
+                  } else {
+                    setSections(parseFullTextToSections(fullText));
+                    setMode("sections");
+                  }
+                }}
+              />
+              <span className="text-xs text-muted-foreground">Цялостен</span>
+            </div>
+          </div>
         </div>
 
         <div className="mb-4 grid gap-3 rounded-lg border bg-muted/20 p-3 sm:grid-cols-2">
@@ -352,7 +418,17 @@ function PromptsTab({ functionName }: { functionName: string }) {
           </div>
         </div>
 
-        <PromptSectionsEditor sections={sections} onChange={setSections} />
+        {mode === "sections" ? (
+          <PromptSectionsEditor sections={sections} onChange={setSections} />
+        ) : (
+          <Textarea
+            rows={30}
+            value={fullText}
+            onChange={(e) => setFullText(e.target.value)}
+            className="font-mono text-xs"
+            placeholder="# Заглавие на секция\nСъдържание...\n\n# Друга секция\nСъдържание..."
+          />
+        )}
 
         <Input
           className="mt-3"
