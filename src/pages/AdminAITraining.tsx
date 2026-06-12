@@ -9,11 +9,49 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Save, Plus, Trash2, Brain, Eye } from "lucide-react";
 import { PromptSectionsEditor, assembleSections, type PromptSection } from "@/components/admin/PromptSectionsEditor";
+
+function parseFullTextToSections(text: string): PromptSection[] {
+  const lines = text.split("\n");
+  const sections: PromptSection[] = [];
+  let currentTitle = "";
+  const currentContentLines: string[] = [];
+
+  const flush = () => {
+    if (currentTitle) {
+      const slug = currentTitle
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, "")
+        .trim()
+        .replace(/\s+/g, "_")
+        .substring(0, 40) || `section_${Date.now()}`;
+      sections.push({
+        section_key: slug,
+        title: currentTitle,
+        content: currentContentLines.join("\n").trim(),
+        order_idx: sections.length,
+        enabled: true,
+      });
+    }
+  };
+
+  for (const line of lines) {
+    if (line.startsWith("# ")) {
+      flush();
+      currentTitle = line.slice(2).trim();
+      currentContentLines.length = 0;
+    } else {
+      currentContentLines.push(line);
+    }
+  }
+  flush();
+  return sections;
+}
 
 const AI_FUNCTIONS = [
   { id: "generate-contract", label: "Генериране на договор" },
