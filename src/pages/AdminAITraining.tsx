@@ -240,6 +240,59 @@ function PromptsTab({ functionName }: { functionName: string }) {
     load();
   };
 
+  const saveInPlace = async () => {
+    if (!activeVersionId) {
+      toast.error("Няма заредена версия");
+      return;
+    }
+    const assembled = assembleSections(sections);
+    if (!assembled.trim()) {
+      toast.error("Промптът е празен");
+      return;
+    }
+    const loaded = rows.find((r) => r.id === activeVersionId);
+    const label = loaded ? `v${loaded.version}` : "версията";
+    if (!confirm(`Запис върху ${label} без нова версия. Продължаване?`)) return;
+    setBusy(true);
+    const { error: upErr } = await supabase
+      .from("ai_prompts")
+      .update({ content: assembled, model, premium_model: premiumModel, notes: notes || loaded?.notes || null })
+      .eq("id", activeVersionId);
+    if (upErr) {
+      setBusy(false);
+      toast.error(upErr.message);
+      return;
+    }
+    // Заменяме секциите изцяло
+    const { error: dErr } = await supabase.from("ai_prompt_sections").delete().eq("prompt_id", activeVersionId);
+    if (dErr) {
+      setBusy(false);
+      toast.error("Грешка при изтриване на стари секции: " + dErr.message);
+      return;
+    }
+    const sectionRows = sections
+      .filter((s) => s.section_key.trim().length > 0)
+      .map((s, i) => ({
+        prompt_id: activeVersionId,
+        section_key: s.section_key,
+        title: s.title,
+        content: s.content,
+        order_idx: i,
+        enabled: s.enabled,
+      }));
+    if (sectionRows.length > 0) {
+      const { error: sErr } = await supabase.from("ai_prompt_sections").insert(sectionRows);
+      if (sErr) {
+        setBusy(false);
+        toast.error("Промптът е обновен, но секциите не: " + sErr.message);
+        return;
+      }
+    }
+    setBusy(false);
+    toast.success(`${label} обновена (до 5 мин. cache).`);
+    load();
+  };
+
   const activate = async (id: string) => {
     setBusy(true);
     await supabase.from("ai_prompts").update({ is_active: false }).eq("function_name", functionName);
