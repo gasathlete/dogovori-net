@@ -275,10 +275,10 @@ export default function Plans() {
                     {COMPARISON_ROWS.map((row) => (
                       <tr key={row.label} className="border-b border-hairline/60">
                         <td className="py-3 pr-4 text-foreground/90 whitespace-pre-line">{row.label}</td>
-                        <Cell value={row.free} />
-                        <Cell value={row.professional} />
-                        <Cell value={row.entrepreneur} highlight />
-                        <Cell value={row.team} />
+                        <Cell value={row.free_value} />
+                        <Cell value={row.professional_value} />
+                        <Cell value={row.entrepreneur_value} highlight />
+                        <Cell value={row.team_value} />
                       </tr>
                     ))}
                   </tbody>
