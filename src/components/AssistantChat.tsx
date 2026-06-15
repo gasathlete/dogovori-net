@@ -60,7 +60,7 @@ function getActiveThreadStorageKey(userId: string) {
   return `${ACTIVE_THREAD_STORAGE_PREFIX}${userId}`;
 }
 
-export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
+export function AssistantChat({ compact = false, threadId: threadIdProp, onThreadChange }: { compact?: boolean; threadId?: string | null; onThreadChange?: (id: string | null) => void } = {}) {
   const { user, session } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
