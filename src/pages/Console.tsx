@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ConsoleProvider, useConsoleShortcuts, useConsoleStore, type ConsoleSection } from "@/hooks/useConsoleStore";
 import { ConsoleSidebar } from "@/components/console/ConsoleSidebar";
