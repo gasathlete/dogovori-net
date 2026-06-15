@@ -49,7 +49,7 @@ const SECTIONS: Section[] = [
       { to: "/cookies", title: "Бисквитки и проследяване", desc: "Чл. 4а ЗЕС и чл. 7 GDPR — съгласие за non-essential cookies." },
       { to: "/legal/ropa", title: "ROPA (Регистър на дейностите)", desc: "Чл. 30 GDPR." },
       { to: "/legal/dpia-summary", title: "DPIA — обобщение", desc: "Чл. 35 GDPR — оценка на въздействието." },
-      { to: "/legal/retention", title: "Политика за съхранение", desc: "Чл. 5, ал. 1, б. „д" GDPR — ограничение на съхранението." },
+      { to: "/legal/retention", title: "Политика за съхранение", desc: "Чл. 5, ал. 1, б. \u201eд\u201c GDPR — ограничение на съхранението." },
       { to: "/legal/subprocessors", title: "Подпроцесори", desc: "Чл. 28, ал. 2 GDPR — регистър на подпроцесорите." },
       { to: "/legal/incident-response", title: "Инциденти с данни", desc: "Чл. 33–34 GDPR — уведомяване в 72 ч." },
     ],
