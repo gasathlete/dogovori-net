@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Send, Loader2, Plus, Bird, AlertCircle, MessageSquare, Trash2 } from "lucide-react";
+import { Send, Loader2, Plus, Bird, AlertCircle, MessageSquare, Trash2, Handshake, Paperclip, Share2, Download, BookOpen, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -75,8 +75,11 @@ export function AssistantChat({ compact = false, threadId: threadIdProp, onThrea
   const [streaming, setStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const [streamingTools, setStreamingTools] = useState<ToolEvent[]>([]);
+  const [negotiationMode, setNegotiationMode] = useState(false);
+  const [showSources, setShowSources] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const executeClientTool = useCallback((name: string, args: any) => {
     try {
@@ -249,7 +252,10 @@ export function AssistantChat({ compact = false, threadId: threadIdProp, onThrea
     await refreshPlan();
 
 
-    const userMsg: Msg = { id: `tmp-u-${Date.now()}`, role: "user", content: text.trim() };
+    const finalText = negotiationMode
+      ? `[ПРЕГОВОРЕН РЕЖИМ] ${text.trim()}\n\n(Анализирай условията от позиция на договаряща страна, идентифицирай слабости в офертата на отсрещната страна и предложи аргументирани контра-предложения с правно основание.)`
+      : text.trim();
+    const userMsg: Msg = { id: `tmp-u-${Date.now()}`, role: "user", content: finalText };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput("");
@@ -375,8 +381,62 @@ export function AssistantChat({ compact = false, threadId: threadIdProp, onThrea
 
   const isEmpty = messages.length === 0 && !streaming;
 
+  // Aggregate citations across the conversation (deduped by chunk_id)
+  const allCitations: LegalCitation[] = (() => {
+    const map = new Map<string, LegalCitation>();
+    for (const m of messages) {
+      if (m.citations) for (const c of m.citations) map.set(c.chunk_id, c);
+    }
+    return Array.from(map.values());
+  })();
+
+  // File drop → upload analyzer
+  const handleFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const f = files[0];
+    const ok = /\.(pdf|docx?|txt)$/i.test(f.name);
+    if (!ok) {
+      toast.error("Поддържат се PDF / DOCX / TXT файлове");
+      return;
+    }
+    toast.info(`Качване на „${f.name}" в анализатора...`);
+    // Defer to /analyze which has full upload + analysis pipeline
+    navigate("/analyze");
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    handleFiles(e.dataTransfer.files);
+  };
+
+  // Export conversation as Markdown
+  const exportConversation = () => {
+    const md = messages.map((m) =>
+      `### ${m.role === "user" ? "Аз" : "DogovaryAI"}\n\n${m.content}\n`,
+    ).join("\n---\n\n");
+    const blob = new Blob([`# Разговор · DogovaryAI\n\n${md}`], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dogovaryai-${new Date().toISOString().slice(0, 10)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const shareConversation = async () => {
+    const text = messages.map((m) => `${m.role === "user" ? "Аз" : "AI"}: ${m.content}`).join("\n\n");
+    try {
+      if (navigator.share) await navigator.share({ title: "DogovaryAI разговор", text });
+      else { await navigator.clipboard.writeText(text); toast.success("Копирано в clipboard"); }
+    } catch { /* user cancelled */ }
+  };
+
   return (
-    <div className={cn("flex gap-3 sm:gap-4", compact ? "h-full" : "h-[calc(100dvh-12rem)] min-h-[500px]")}>
+    <div
+      className={cn("flex gap-3 sm:gap-4", compact ? "h-full" : "h-[calc(100dvh-12rem)] min-h-[500px]")}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={handleDrop}
+    >
       {/* Threads sidebar */}
       <aside className={cn("w-56 flex-col rounded-lg border border-border/60 bg-card/40 p-2", compact ? "hidden" : "hidden md:flex")}>
         <Button
@@ -436,9 +496,26 @@ export function AssistantChat({ compact = false, threadId: threadIdProp, onThrea
               </p>
             </div>
           </div>
-          <Button onClick={handleNewThread} variant="ghost" size="sm" className="md:hidden">
-            <Plus className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            {messages.length > 0 && (
+              <>
+                <button type="button" onClick={shareConversation} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-gold" title="Сподели разговор" aria-label="Сподели">
+                  <Share2 className="h-4 w-4" />
+                </button>
+                <button type="button" onClick={exportConversation} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-gold" title="Изтегли (.md)" aria-label="Изтегли">
+                  <Download className="h-4 w-4" />
+                </button>
+              </>
+            )}
+            {allCitations.length > 0 && (
+              <button type="button" onClick={() => setShowSources((v) => !v)} className={cn("hidden md:inline-flex rounded-md p-1.5 transition-colors", showSources ? "bg-gold/15 text-gold" : "text-muted-foreground hover:bg-muted hover:text-gold")} title="Източници" aria-label="Източници">
+                <BookOpen className="h-4 w-4" />
+              </button>
+            )}
+            <Button onClick={handleNewThread} variant="ghost" size="sm" className="md:hidden">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Messages */}
@@ -503,17 +580,52 @@ export function AssistantChat({ compact = false, threadId: threadIdProp, onThrea
         </div>
 
         {/* Composer */}
-        <form onSubmit={handleSubmit} className="border-t border-border/60 p-3">
+        <form onSubmit={handleSubmit} className="border-t border-border/60 p-3 space-y-2">
+          {/* Mode chips */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setNegotiationMode((v) => !v)}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                negotiationMode
+                  ? "border-gold bg-gold/15 text-gold"
+                  : "border-border/60 bg-background/40 text-muted-foreground hover:border-gold/40 hover:text-foreground",
+              )}
+              title="Активирай преговорен режим"
+            >
+              <Handshake className="h-3 w-3" /> Преговорен режим
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-gold/40 hover:text-foreground"
+              title="Прикачи документ за анализ"
+            >
+              <Paperclip className="h-3 w-3" /> Прикачи (PDF/DOCX)
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.txt"
+              className="hidden"
+              onChange={(e) => handleFiles(e.target.files)}
+            />
+            <span className="ml-auto text-[10px] text-muted-foreground/70">Drag&amp;drop PDF/DOCX навсякъде</span>
+          </div>
           <div className="flex items-end gap-2">
             <Textarea
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Напиши съобщение..."
+              placeholder={negotiationMode ? "Опиши условията/офертата за преговори..." : "Напиши съобщение..."}
               rows={1}
               disabled={streaming}
-              className="min-h-[44px] resize-none border-border/60 bg-background/60 text-sm"
+              className={cn(
+                "min-h-[44px] resize-none border-border/60 bg-background/60 text-sm",
+                negotiationMode && "border-gold/40 ring-1 ring-gold/20",
+              )}
             />
             <Button
               type="submit"
@@ -526,6 +638,59 @@ export function AssistantChat({ compact = false, threadId: threadIdProp, onThrea
           </div>
         </form>
       </div>
+
+      {/* Right: Sources panel */}
+      {!compact && showSources && allCitations.length > 0 && (
+        <aside className="hidden w-64 flex-col rounded-lg border border-border/60 bg-card/40 lg:flex">
+          <div className="flex items-center justify-between border-b border-border/60 px-3 py-2">
+            <div className="flex items-center gap-1.5">
+              <BookOpen className="h-3.5 w-3.5 text-gold" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Източници · {allCitations.length}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowSources(false)}
+              className="rounded-md p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label="Скрий"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+          <ScrollArea className="flex-1">
+            <ul className="space-y-1.5 p-2 text-xs">
+              {allCitations.map((c) => (
+                <li key={c.chunk_id} className="rounded-md border border-border/40 bg-background/40 p-2">
+                  <div className="flex items-start justify-between gap-1">
+                    <span className="inline-flex items-center rounded bg-gold/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-gold">
+                      {c.jurisdiction || "BG"}
+                    </span>
+                    {c.official_url && (
+                      <a
+                        href={c.official_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] text-gold hover:underline"
+                      >
+                        Източник ↗
+                      </a>
+                    )}
+                  </div>
+                  <div className="mt-1 font-medium text-foreground">{c.short_code || c.title}</div>
+                  {(c.article_no || c.paragraph_no) && (
+                    <div className="text-[10px] text-muted-foreground">
+                      {c.article_no && <>чл. {c.article_no}</>}
+                      {c.paragraph_no && <>, ал. {c.paragraph_no}</>}
+                    </div>
+                  )}
+                  <div className="text-[10px] text-muted-foreground/80">{c.citation_label}</div>
+                </li>
+              ))}
+            </ul>
+          </ScrollArea>
+        </aside>
+      )}
     </div>
   );
 }

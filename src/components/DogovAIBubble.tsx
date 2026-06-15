@@ -17,7 +17,7 @@ const SIZE_PREF_KEY = "dogovai_size_pref"; // "small" | "full"
  * - Conversation persists for 30 min after last message; reset thereafter.
  */
 
-const HIDDEN_PREFIXES = ["/assistant", "/signing", "/share", "/checkout"];
+const HIDDEN_PREFIXES = ["/assistant", "/console", "/signing", "/share", "/checkout"];
 const ANON_LIMIT = 5;
 const IDLE_RESET_MS = 30 * 60 * 1000; // 30 minutes
 const ANON_STORAGE_KEY = "dogovai_anon_chat_v2";
@@ -317,22 +317,16 @@ export function DogovAIBubble() {
   const goFullExperience = () => {
     setOpen(false);
     setChooserOpen(false);
-    try { localStorage.setItem(SIZE_PREF_KEY, "full"); } catch { /* ignore */ }
     navigate(user ? "/console/assistant" : "/assistant");
   };
 
   const openSmall = () => {
     setChooserOpen(false);
-    try { localStorage.setItem(SIZE_PREF_KEY, "small"); } catch { /* ignore */ }
     setOpen(true);
   };
 
   const handleBubbleClick = () => {
     if (open) { setOpen(false); return; }
-    let pref: string | null = null;
-    try { pref = localStorage.getItem(SIZE_PREF_KEY); } catch { /* ignore */ }
-    if (pref === "small") { setOpen(true); return; }
-    if (pref === "full") { goFullExperience(); return; }
     setChooserOpen(true);
   };
 

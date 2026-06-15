@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useConsoleStore, type ConsoleSection } from "@/hooks/useConsoleStore";
 import { cn } from "@/lib/utils";
 import {
@@ -28,9 +29,11 @@ const ITEMS: { id: ConsoleSection; label: string; icon: any }[] = [
 
 export function ConsoleSidebar() {
   const { state, setSection, toggleSidebar, openTab } = useConsoleStore();
+  const navigate = useNavigate();
   const collapsed = state.sidebarCollapsed;
 
   const handleClick = (id: ConsoleSection) => {
+    navigate(`/console/${id}`);
     setSection(id);
     if (id === "dashboard") {
       openTab({ kind: "dashboard", entityId: null, title: "Табло", id: "dashboard" });
