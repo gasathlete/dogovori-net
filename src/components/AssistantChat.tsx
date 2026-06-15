@@ -252,7 +252,10 @@ export function AssistantChat({ compact = false, threadId: threadIdProp, onThrea
     await refreshPlan();
 
 
-    const userMsg: Msg = { id: `tmp-u-${Date.now()}`, role: "user", content: text.trim() };
+    const finalText = negotiationMode
+      ? `[ПРЕГОВОРЕН РЕЖИМ] ${text.trim()}\n\n(Анализирай условията от позиция на договаряща страна, идентифицирай слабости в офертата на отсрещната страна и предложи аргументирани контра-предложения с правно основание.)`
+      : text.trim();
+    const userMsg: Msg = { id: `tmp-u-${Date.now()}`, role: "user", content: finalText };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput("");
