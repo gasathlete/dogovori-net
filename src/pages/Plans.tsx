@@ -62,7 +62,9 @@ export default function Plans() {
   const isAuthed = Boolean(user);
   const [billing, setBilling] = useState<Billing>("monthly");
 
-  const plans = useMemo(() => PLANS, []);
+  const { data, isLoading } = usePlans();
+  const plans = data?.plans ?? [];
+  const COMPARISON_ROWS = data?.comparison ?? [];
 
   return (
     <>
