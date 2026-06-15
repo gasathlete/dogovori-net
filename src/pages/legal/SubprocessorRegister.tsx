@@ -5,6 +5,7 @@ export default function SubprocessorRegisterPage() {
     <LegalLayout
       title="Регистър на подпроцесори"
       description="Списък на трети страни, които обработват лични данни от името на Dogovori.net (чл. 28 GDPR)."
+      basis={["GDPR чл. 28, ал. 2", "GDPR чл. 44–49"]}
     >
       <p>
         Актуален списък към <strong>9 юни 2026 г.</strong> на подпроцесорите,
