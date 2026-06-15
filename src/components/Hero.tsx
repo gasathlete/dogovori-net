@@ -149,8 +149,8 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             className="anim-rise mx-auto mt-5 max-w-2xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg md:mt-6 md:text-xl md:leading-[1.6]"
             style={{ animationDelay: "160ms" }}
           >
-            Индивидуални документи, съобразени със ЗЗД, ТЗ и ЗУТ — с пълен правен риск-анализ.<br />
-            Вътрешен AI-асистент от ново поколение. Създай, прецизирай, подпиши.
+            Индивидуални документи, съобразени със ЗЗД, ТЗ и ЗУТ — с пълен правен риск-анализ. Вътрешен AI-асистент, от ново поколение, който ти помага да договаряш най-добрите условия по твоята сделка.<br />
+            &nbsp; Преговаряй, създай, прецизирай, подпиши.
           </p>
 
 
