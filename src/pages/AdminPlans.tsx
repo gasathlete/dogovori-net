@@ -18,7 +18,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import {
   usePlansAdmin,
   type PlanRow,
@@ -28,42 +27,13 @@ import {
 } from "@/hooks/usePlans";
 
 export default function AdminPlans() {
-  const { user, loading } = useAuth();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const { data, isLoading, refetch } = usePlansAdmin();
   const qc = useQueryClient();
-
-  useEffect(() => {
-    if (!user) {
-      setIsAdmin(false);
-      return;
-    }
-    supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }).then(({ data: ok }) => {
-      setIsAdmin(Boolean(ok));
-    });
-  }, [user]);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["plans"] });
     refetch();
   };
-
-  if (loading || isAdmin === null) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin" />
-      </div>
-    );
-  }
-  if (!user || !isAdmin) {
-    return (
-      <div className="mx-auto max-w-xl p-10 text-center">
-        <h1 className="font-serif text-2xl">Само за администратори</h1>
-        <p className="mt-2 text-muted-foreground">Нямате достъп до тази страница.</p>
-        <Link to="/" className="mt-4 inline-block text-gold underline">Към началната</Link>
-      </div>
-    );
-  }
 
   return (
     <>
