@@ -67,7 +67,7 @@ export function ConsoleSidebar() {
         </button>
       </div>
 
-      <nav className="flex-1 space-y-0.5 px-2 pb-2">
+      <nav className="relative flex-1 space-y-0.5 px-2 pb-2">
         {ITEMS.map((it) => {
           const Icon = it.icon;
           const active = state.section === it.id;
@@ -78,14 +78,29 @@ export function ConsoleSidebar() {
               onClick={() => handleClick(it.id)}
               title={collapsed ? it.label : undefined}
               className={cn(
-                "flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-colors",
+                "group relative flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-all duration-200",
                 active
-                  ? "bg-gold/15 text-gold"
+                  ? "bg-gold/10 text-gold"
                   : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" />
-              {!collapsed && <span className="truncate">{it.label}</span>}
+              {/* Active gold rail */}
+              {active && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -left-2 top-1.5 bottom-1.5 w-1 rounded-r-full bg-gold shadow-[0_0_12px_hsl(var(--gold)/0.6)] animate-fade-in"
+                />
+              )}
+              {/* Hover glow */}
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "pointer-events-none absolute inset-0 rounded-md opacity-0 transition-opacity duration-300",
+                  active ? "" : "group-hover:opacity-100 bg-gradient-to-r from-gold/[0.04] to-transparent",
+                )}
+              />
+              <Icon className={cn("relative h-4 w-4 shrink-0 transition-transform group-hover:scale-110", active && "text-gold")} />
+              {!collapsed && <span className="relative truncate">{it.label}</span>}
             </button>
           );
         })}
