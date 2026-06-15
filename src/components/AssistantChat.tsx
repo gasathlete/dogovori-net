@@ -226,12 +226,25 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
 
   const handleDeleteThread = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("Изтрий този разговор?")) return;
-    await supabase.from("assistant_threads").delete().eq("id", id);
+    if (confirmDeleteId !== id) {
+      setConfirmDeleteId(id);
+      setTimeout(() => setConfirmDeleteId((cur) => (cur === id ? null : cur)), 3000);
+      return;
+    }
+    setConfirmDeleteId(null);
+    // Optimistic remove
+    setThreads((prev) => prev.filter((t) => t.id !== id));
+    const { error } = await supabase.from("assistant_threads").delete().eq("id", id);
+    if (error) {
+      toast.error("Грешка при триене: " + error.message);
+      loadThreads();
+      return;
+    }
     if (activeThreadId === id) {
       setPersistedActiveThreadId(null);
       setMessages([]);
     }
+    toast.success("Разговорът е изтрит");
     loadThreads();
   };
 
