@@ -1747,6 +1747,140 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_comparison_rows: {
+        Row: {
+          active: boolean
+          created_at: string
+          entrepreneur_value: string
+          free_value: string
+          id: string
+          label: string
+          professional_value: string
+          sort_order: number
+          team_value: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          entrepreneur_value?: string
+          free_value?: string
+          id?: string
+          label: string
+          professional_value?: string
+          sort_order?: number
+          team_value?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          entrepreneur_value?: string
+          free_value?: string
+          id?: string
+          label?: string
+          professional_value?: string
+          sort_order?: number
+          team_value?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      plan_features: {
+        Row: {
+          active: boolean
+          created_at: string
+          feature: string
+          id: string
+          plan_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          feature: string
+          id?: string
+          plan_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          feature?: string
+          id?: string
+          plan_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_features_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          active: boolean
+          badge: string | null
+          created_at: string
+          highlight: boolean
+          id: string
+          monthly_price: number | null
+          monthly_suffix: string | null
+          name: string
+          ops_cap_monthly: number | null
+          seat_min: number | null
+          sort_order: number
+          tagline: string | null
+          updated_at: string
+          yearly_note: string | null
+          yearly_price: number | null
+          yearly_suffix: string | null
+        }
+        Insert: {
+          active?: boolean
+          badge?: string | null
+          created_at?: string
+          highlight?: boolean
+          id: string
+          monthly_price?: number | null
+          monthly_suffix?: string | null
+          name: string
+          ops_cap_monthly?: number | null
+          seat_min?: number | null
+          sort_order?: number
+          tagline?: string | null
+          updated_at?: string
+          yearly_note?: string | null
+          yearly_price?: number | null
+          yearly_suffix?: string | null
+        }
+        Update: {
+          active?: boolean
+          badge?: string | null
+          created_at?: string
+          highlight?: boolean
+          id?: string
+          monthly_price?: number | null
+          monthly_suffix?: string | null
+          name?: string
+          ops_cap_monthly?: number | null
+          seat_min?: number | null
+          sort_order?: number
+          tagline?: string | null
+          updated_at?: string
+          yearly_note?: string | null
+          yearly_price?: number | null
+          yearly_suffix?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           allow_third_country_ai: boolean
@@ -3528,6 +3662,7 @@ export type Database = {
         Args: { _kind: string; _used_bonus?: boolean; _user_id: string }
         Returns: undefined
       }
+      render_plans_section_content: { Args: never; Returns: string }
       search_templates: {
         Args: {
           p_bilingual_only?: boolean
@@ -3557,6 +3692,7 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      sync_plans_into_prompts: { Args: never; Returns: undefined }
       unaccent: { Args: { "": string }; Returns: string }
       unaccent_or_lower: { Args: { _t: string }; Returns: string }
       unread_notifications_count: { Args: never; Returns: number }

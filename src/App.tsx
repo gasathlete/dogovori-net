@@ -88,6 +88,7 @@ const AdminBreaches = lazy(() => import("./pages/AdminBreaches.tsx"));
 const AdminAiPostMarket = lazy(() => import("./pages/AdminAiPostMarket.tsx"));
 const AdminTraining = lazy(() => import("./pages/AdminTraining.tsx"));
 const AdminLegalKB = lazy(() => import("./pages/AdminLegalKB.tsx"));
+const AdminPlans = lazy(() => import("./pages/AdminPlans.tsx"));
 const CheckoutReturn = lazy(() => import("./pages/CheckoutReturn.tsx"));
 const Plans = lazy(() => import("./pages/Plans.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
@@ -236,6 +237,7 @@ const AnimatedRoutes = () => {
         <Route path="/admin/ai-post-market" element={<ProtectedRoute><AdminAiPostMarket /></ProtectedRoute>} />
         <Route path="/admin/training" element={<ProtectedRoute><AdminTraining /></ProtectedRoute>} />
         <Route path="/admin/legal-kb" element={<ProtectedRoute><AdminLegalKB /></ProtectedRoute>} />
+        <Route path="/admin/plans" element={<ProtectedRoute><AdminPlans /></ProtectedRoute>} />
         <Route path="/checkout/return" element={<CheckoutReturn />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />

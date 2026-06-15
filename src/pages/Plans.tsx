@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, X, ArrowRight, Sparkles, ShieldCheck, Users, Zap, Crown } from "lucide-react";
+import { Check, X, ArrowRight, Sparkles, ShieldCheck, Users, Zap, Crown, Loader2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Seo } from "@/components/Seo";
@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/accordion";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
-import { PLANS, COMPARISON_ROWS, FAQ, type Billing, type PlanId } from "@/lib/plansData";
+import { FAQ } from "@/lib/plansData";
+import { usePlans, type Billing, type PlanId } from "@/hooks/usePlans";
 import { trackEvent } from "@/lib/analytics";
 
 const PLAN_ICON: Record<PlanId, React.ComponentType<{ className?: string }>> = {
@@ -61,7 +62,9 @@ export default function Plans() {
   const isAuthed = Boolean(user);
   const [billing, setBilling] = useState<Billing>("monthly");
 
-  const plans = useMemo(() => PLANS, []);
+  const { data, isLoading } = usePlans();
+  const plans = data?.plans ?? [];
+  const COMPARISON_ROWS = data?.comparison ?? [];
 
   return (
     <>
@@ -272,10 +275,10 @@ export default function Plans() {
                     {COMPARISON_ROWS.map((row) => (
                       <tr key={row.label} className="border-b border-hairline/60">
                         <td className="py-3 pr-4 text-foreground/90 whitespace-pre-line">{row.label}</td>
-                        <Cell value={row.free} />
-                        <Cell value={row.professional} />
-                        <Cell value={row.entrepreneur} highlight />
-                        <Cell value={row.team} />
+                        <Cell value={row.free_value} />
+                        <Cell value={row.professional_value} />
+                        <Cell value={row.entrepreneur_value} highlight />
+                        <Cell value={row.team_value} />
                       </tr>
                     ))}
                   </tbody>
