@@ -19,22 +19,14 @@ function ConsoleShell() {
   useConsoleShortcuts();
   const { state, setSection } = useConsoleStore();
   const { section: sectionParam } = useParams<{ section?: string }>();
-  const navigate = useNavigate();
   const isAssistant = state.section === "assistant";
 
-  // URL → store
+  // URL → store (one-way; sidebar navigates the URL, store follows)
   useEffect(() => {
     if (sectionParam && VALID_SECTIONS.includes(sectionParam as ConsoleSection)) {
       if (state.section !== sectionParam) setSection(sectionParam as ConsoleSection);
     }
   }, [sectionParam]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // store → URL
-  useEffect(() => {
-    if (state.section !== sectionParam) {
-      navigate(`/console/${state.section}`, { replace: true });
-    }
-  }, [state.section]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
