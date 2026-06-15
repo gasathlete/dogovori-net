@@ -38,24 +38,24 @@ import {
 } from "recharts";
 import { getUnlockedTiers, getNextTier, REWARD_TIERS } from "@/lib/rewards";
 
-type Contact = {
+export type Contact = {
   id: string; name: string; type: "individual" | "legal";
   egn?: string | null; eik?: string | null; vat_number?: string | null;
   address?: string | null; mol?: string | null; email?: string | null; phone?: string | null; notes?: string | null;
 };
-type Folder = { id: string; name: string; color: string | null; is_favorites: boolean };
-type SavedDoc = {
+export type Folder = { id: string; name: string; color: string | null; is_favorites: boolean };
+export type SavedDoc = {
   id: string; title: string; kind: "contract" | "template"; folder_id: string | null;
   contact_id: string | null; payload: any; created_at: string;
 };
-type Quota = { contracts_used: number; templates_used: number; plan: "free" | "pro"; pro_until: string | null; analyses_used?: number; total_used?: number; monthly_total_used?: number; bonus_contracts?: number; pro_monthly_used?: number; monthly_reset_at?: string | null; pro_period_start?: string | null; signup_at?: string | null };
-type UploadedContract = {
+export type Quota = { contracts_used: number; templates_used: number; plan: "free" | "pro"; pro_until: string | null; analyses_used?: number; total_used?: number; monthly_total_used?: number; bonus_contracts?: number; pro_monthly_used?: number; monthly_reset_at?: string | null; pro_period_start?: string | null; signup_at?: string | null };
+export type UploadedContract = {
   id: string; title: string; source: "pdf" | "docx" | "paste";
   folder_id: string | null; contact_id: string | null;
   original_filename: string | null; storage_path: string | null;
   created_at: string;
 };
-type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_type: string; created_at: string };
+export type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_type: string; created_at: string };
 
 /* ====================== SCROLLABLE TABS LIST ====================== */
 function ScrollableTabsList({ children }: { children: React.ReactNode }) {
