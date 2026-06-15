@@ -11,9 +11,11 @@ import {
   PenSquare,
   ChevronLeft,
   ChevronRight,
+  Bird,
 } from "lucide-react";
 
 const ITEMS: { id: ConsoleSection; label: string; icon: any }[] = [
+  { id: "assistant", label: "DogovaryAI", icon: Bird },
   { id: "dashboard", label: "Табло", icon: LayoutDashboard },
   { id: "deals", label: "Сделки", icon: Briefcase },
   { id: "documents", label: "Документи", icon: FileText },
