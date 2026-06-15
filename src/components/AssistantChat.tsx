@@ -640,55 +640,71 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
         </form>
       </div>
 
-      {/* Right: Sources panel */}
-      {(!compact || embedded) && showSources && allCitations.length > 0 && (
-        <aside className="hidden w-64 flex-col rounded-lg border border-border/60 bg-card/40 lg:flex">
-          <div className="flex items-center justify-between border-b border-border/60 px-3 py-2">
+      {/* Right: Sources panel — always visible in embedded workspace */}
+      {(embedded || (showSources && allCitations.length > 0)) && (
+        <aside className="hidden w-72 flex-col rounded-lg border border-border/60 bg-card/40 lg:flex">
+          <div className="flex items-center justify-between border-b border-border/60 px-3 py-2.5">
             <div className="flex items-center gap-1.5">
               <BookOpen className="h-3.5 w-3.5 text-gold" />
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Източници · {allCitations.length}
+                Източници{allCitations.length > 0 ? ` · ${allCitations.length}` : ""}
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowSources(false)}
-              className="rounded-md p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-              aria-label="Скрий"
-            >
-              <X className="h-3 w-3" />
-            </button>
+            {!embedded && (
+              <button
+                type="button"
+                onClick={() => setShowSources(false)}
+                className="rounded-md p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label="Скрий"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
           </div>
           <ScrollArea className="flex-1">
-            <ul className="space-y-1.5 p-2 text-xs">
-              {allCitations.map((c) => (
-                <li key={c.chunk_id} className="rounded-md border border-border/40 bg-background/40 p-2">
-                  <div className="flex items-start justify-between gap-1">
-                    <span className="inline-flex items-center rounded bg-gold/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-gold">
-                      {c.jurisdiction || "BG"}
-                    </span>
-                    {c.official_url && (
-                      <a
-                        href={c.official_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[10px] text-gold hover:underline"
-                      >
-                        Източник ↗
-                      </a>
-                    )}
-                  </div>
-                  <div className="mt-1 font-medium text-foreground">{c.short_code || c.title}</div>
-                  {(c.article_no || c.paragraph_no) && (
-                    <div className="text-[10px] text-muted-foreground">
-                      {c.article_no && <>чл. {c.article_no}</>}
-                      {c.paragraph_no && <>, ал. {c.paragraph_no}</>}
+            {allCitations.length === 0 ? (
+              <div className="p-4 text-center">
+                <BookOpen className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
+                <p className="text-xs text-muted-foreground/80">
+                  Когато AI цитира закони, съдебна практика или регламенти, източниците ще се появят тук с линкове към официалните текстове.
+                </p>
+                <div className="mt-3 flex flex-wrap justify-center gap-1">
+                  {["ЗЗД", "ТЗ", "КТ", "СК", "ЗУТ", "ВКС", "ЕС"].map((tag) => (
+                    <span key={tag} className="rounded bg-muted/40 px-1.5 py-0.5 text-[10px] text-muted-foreground">{tag}</span>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <ul className="space-y-1.5 p-2 text-xs">
+                {allCitations.map((c) => (
+                  <li key={c.chunk_id} className="rounded-md border border-border/40 bg-background/40 p-2 transition-colors hover:border-gold/40">
+                    <div className="flex items-start justify-between gap-1">
+                      <span className="inline-flex items-center rounded bg-gold/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-gold">
+                        {c.jurisdiction || "BG"}
+                      </span>
+                      {c.official_url && (
+                        <a
+                          href={c.official_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-gold hover:underline"
+                        >
+                          Източник ↗
+                        </a>
+                      )}
                     </div>
-                  )}
-                  <div className="text-[10px] text-muted-foreground/80">{c.citation_label}</div>
-                </li>
-              ))}
-            </ul>
+                    <div className="mt-1 font-medium text-foreground">{c.short_code || c.title}</div>
+                    {(c.article_no || c.paragraph_no) && (
+                      <div className="text-[10px] text-muted-foreground">
+                        {c.article_no && <>чл. {c.article_no}</>}
+                        {c.paragraph_no && <>, ал. {c.paragraph_no}</>}
+                      </div>
+                    )}
+                    <div className="text-[10px] text-muted-foreground/80">{c.citation_label}</div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </ScrollArea>
         </aside>
       )}
