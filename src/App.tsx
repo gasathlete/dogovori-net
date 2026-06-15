@@ -240,6 +240,7 @@ const AnimatedRoutes = () => {
         <Route path="/admin/legal-kb" element={<ProtectedRoute><AdminLegalKB /></ProtectedRoute>} />
         <Route path="/admin/plans" element={<ProtectedRoute><AdminPlans /></ProtectedRoute>} />
         <Route path="/checkout/return" element={<CheckoutReturn />} />
+        <Route path="/legal" element={<LegalIndex />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/cookies" element={<Cookies />} />
