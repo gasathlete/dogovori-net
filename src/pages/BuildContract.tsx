@@ -5,12 +5,19 @@ import { ArrowLeft, ArrowRight, Loader2, FileDown, FileText, Save, Wand2, Sparkl
 import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-type BuildMode = "fast" | "working" | "strict";
-const BUILD_MODES: { id: BuildMode; label: string; short: string; description: string; icon: any }[] = [
-  { id: "fast", label: "Бърз", short: "Бърз", description: "По-прости документи без висока прецизност — кратко и ясно.", icon: Zap },
-  { id: "working", label: "Разширен", short: "Разширен", description: "Балансирана версия с опционално надграждане.", icon: Briefcase },
-  { id: "strict", label: "Стриктен", short: "Стриктен", description: "Подробно, високопрофесионално — съвети и стриктна правна форма.", icon: Scale },
-];
+import {
+  type BuildMode,
+  BUILD_MODES,
+  buildPresetSignature,
+  type AIResult,
+  STORAGE_KEY,
+  splitLines,
+  GEN_STEPS,
+  Field,
+} from "./buildContract/parts";
+import { PreviewPane } from "./buildContract/PreviewPane";
+import { FinalizePane } from "./buildContract/FinalizePane";
+
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,14 +25,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LiveDraft } from "@/components/wizard/LiveDraft";
-import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
-import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
-import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
-import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
-import { DetectedReferencesBanner } from "@/components/DetectedReferencesBanner";
+import { type RiskLevel } from "@/components/wizard/RiskMeter";
+import { type RiskIssue } from "@/components/wizard/RiskReport";
+import { type SignatureData } from "@/components/wizard/SignatureBlock";
+import { type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
 import { MultiPartySigningDialog } from "@/components/MultiPartySigningDialog";
 import { SECTORS, type Sector } from "@/data/sectors";
-import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, collectContractText, type DocumentTypeId } from "@/lib/documentReferences";
+import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, type DocumentTypeId } from "@/lib/documentReferences";
 import { getBuildSchema, type BuildField } from "@/lib/documentFieldSchemas";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -42,31 +48,7 @@ import { findSimilarTemplates, type SimilarTemplate } from "@/lib/templateSimila
 import { Link } from "react-router-dom";
 import { Info, X } from "lucide-react";
 
-const buildPresetSignature = (params: URLSearchParams) => [
-  params.get("category") ?? "",
-  params.get("documentType") ?? "",
-  params.get("name") ?? "",
-  params.get("bilingual") ?? "",
-  params.get("parentSavedId") ?? "",
-  params.get("parentUploadedId") ?? "",
-  params.get("parentTitle") ?? "",
-  params.get("refNumber") ?? "",
-  params.get("refType") ?? "",
-  params.get("partiesA") ?? "",
-  params.get("partiesB") ?? "",
-  params.get("subject") ?? "",
-].join("|");
 
-
-interface AIResult {
-  risk: { level: RiskLevel; score: number; summary: string; issues: RiskIssue[]; recommendations: string[] };
-  contract: GeneratedContract;
-}
-
-const STORAGE_KEY = "build:custom-contract";
-
-const splitLines = (s: string) =>
-  s.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
 
 export interface BuildContractPageProps {
   /**
