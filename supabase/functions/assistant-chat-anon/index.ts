@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           error: "limit_reached",
-          message: "Достигнахте лимита от 3 безплатни съобщения. Регистрирайте се за пълен достъп.",
+          message: "Достигнахте лимита от 5 безплатни съобщения. Регистрирайте се за още 15 безплатни.",
         }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
