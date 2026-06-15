@@ -481,7 +481,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       </aside>
 
       {/* Chat panel */}
-      <div className={cn("flex flex-1 flex-col bg-card/40", compact ? "min-h-0" : "rounded-lg border border-border/60")}>
+      <div className={cn("flex flex-1 flex-col bg-card/40", embedded ? "rounded-lg border border-border/60 min-h-0" : compact ? "min-h-0" : "rounded-lg border border-border/60")}>
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
           <div className="flex items-center gap-2">
