@@ -110,6 +110,7 @@ const DpiaSummary = lazy(() => import("./pages/legal/DpiaSummary.tsx"));
 const SecurityPolicy = lazy(() => import("./pages/legal/SecurityPolicy.tsx"));
 const Changelog = lazy(() => import("./pages/legal/Changelog.tsx"));
 const KnowledgeBase = lazy(() => import("./pages/legal/KnowledgeBase.tsx"));
+const LegalIndex = lazy(() => import("./pages/legal/LegalIndex.tsx"));
 const SharedDocument = lazy(() => import("./pages/SharedDocument.tsx"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe.tsx"));
 const Blog = lazy(() => import("./pages/Blog.tsx"));
