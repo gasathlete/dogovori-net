@@ -8,6 +8,7 @@ export default function ROPA() {
     <LegalLayout
       title="Регистър на дейностите по обработка (ROPA)"
       description="Регистър по чл. 30 GDPR за дейностите по обработка на лични данни в Dogovori.net."
+      basis={["GDPR чл. 30"]}
     >
       <p className="text-sm text-muted-foreground">
         Версия 1.0 · Последна актуализация: 10.06.2026 г.

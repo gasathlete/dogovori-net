@@ -5,6 +5,7 @@ export default function DpiaSummary() {
     <LegalLayout
       title="Резюме на DPIA"
       description="Публично резюме на оценката на въздействието върху защитата на данните (DPIA) за Dogovori.net съгласно чл. 35 GDPR."
+      basis={["GDPR чл. 35"]}
     >
       <p className="text-sm text-muted-foreground">
         Версия: 2026-06-10. Това е публично резюме. Пълната DPIA е вътрешен документ за

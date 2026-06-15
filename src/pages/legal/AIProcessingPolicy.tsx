@@ -5,6 +5,7 @@ export default function AIProcessingPolicyPage() {
     <LegalLayout
       title="Политика за AI обработка"
       description="Как Dogovori.net използва изкуствен интелект — модели, защити, забранени категории документи и права на потребителя."
+      basis={["Регламент (ЕС) 2024/1689 (AI Act)", "GDPR чл. 22", "GDPR чл. 13"]}
     >
       <h2>1. Цел и обхват</h2>
       <p>

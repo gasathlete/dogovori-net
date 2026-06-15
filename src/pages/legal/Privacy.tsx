@@ -5,6 +5,7 @@ export default function PrivacyPage() {
     <LegalLayout
       title="Политика за поверителност"
       description="Как Dogovori.net обработва личните Ви данни в съответствие с GDPR, ЗЗЛД и решенията на КЗЛД."
+      basis={["GDPR чл. 13–14", "GDPR чл. 6", "ЗЗЛД"]}
     >
       <h2>1. Администратор на лични данни</h2>
       <ul>

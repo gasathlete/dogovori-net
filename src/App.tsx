@@ -110,6 +110,7 @@ const DpiaSummary = lazy(() => import("./pages/legal/DpiaSummary.tsx"));
 const SecurityPolicy = lazy(() => import("./pages/legal/SecurityPolicy.tsx"));
 const Changelog = lazy(() => import("./pages/legal/Changelog.tsx"));
 const KnowledgeBase = lazy(() => import("./pages/legal/KnowledgeBase.tsx"));
+const LegalIndex = lazy(() => import("./pages/legal/LegalIndex.tsx"));
 const SharedDocument = lazy(() => import("./pages/SharedDocument.tsx"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe.tsx"));
 const Blog = lazy(() => import("./pages/Blog.tsx"));
@@ -239,6 +240,7 @@ const AnimatedRoutes = () => {
         <Route path="/admin/legal-kb" element={<ProtectedRoute><AdminLegalKB /></ProtectedRoute>} />
         <Route path="/admin/plans" element={<ProtectedRoute><AdminPlans /></ProtectedRoute>} />
         <Route path="/checkout/return" element={<CheckoutReturn />} />
+        <Route path="/legal" element={<LegalIndex />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/cookies" element={<Cookies />} />

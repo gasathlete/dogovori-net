@@ -13,6 +13,7 @@ export default function CookiesPage() {
     <LegalLayout
       title="Политика за бисквитки"
       description="Какви бисквитки и подобни технологии използва Dogovori.net и как да управлявате избора си по категории."
+      basis={["ЗЕС чл. 4а", "GDPR чл. 7", "ePrivacy 2002/58/ЕО"]}
     >
       <h2>Какво са бисквитките</h2>
       <p>

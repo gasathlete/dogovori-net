@@ -5,6 +5,7 @@ export default function RetentionPolicyPage() {
     <LegalLayout
       title="Политика за съхранение на данни"
       description="Срокове за съхранение на лични данни и документи в Dogovori.net съгласно GDPR и българското законодателство."
+      basis={["GDPR чл. 5, ал. 1, б. \u201eд\u201c", "ЗСч чл. 12"]}
     >
       <h2>1. Принципи</h2>
       <p>

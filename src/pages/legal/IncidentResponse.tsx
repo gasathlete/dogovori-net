@@ -5,6 +5,7 @@ export default function IncidentResponsePage() {
     <LegalLayout
       title="Политика за реакция при инциденти"
       description="Как Dogovori.net реагира при пробив в сигурността или нарушение на личните данни (чл. 33–34 GDPR)."
+      basis={["GDPR чл. 33", "GDPR чл. 34"]}
     >
       <h2>1. Дефиниция</h2>
       <p>
