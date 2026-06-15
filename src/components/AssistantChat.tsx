@@ -77,6 +77,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   const [streamingTools, setStreamingTools] = useState<ToolEvent[]>([]);
   const [negotiationMode, setNegotiationMode] = useState(false);
   const [showSources, setShowSources] = useState(true);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -225,12 +226,25 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
 
   const handleDeleteThread = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("Изтрий този разговор?")) return;
-    await supabase.from("assistant_threads").delete().eq("id", id);
+    if (confirmDeleteId !== id) {
+      setConfirmDeleteId(id);
+      setTimeout(() => setConfirmDeleteId((cur) => (cur === id ? null : cur)), 3000);
+      return;
+    }
+    setConfirmDeleteId(null);
+    // Optimistic remove
+    setThreads((prev) => prev.filter((t) => t.id !== id));
+    const { error } = await supabase.from("assistant_threads").delete().eq("id", id);
+    if (error) {
+      toast.error("Грешка при триене: " + error.message);
+      loadThreads();
+      return;
+    }
     if (activeThreadId === id) {
       setPersistedActiveThreadId(null);
       setMessages([]);
     }
+    toast.success("Разговорът е изтрит");
     loadThreads();
   };
 
@@ -472,11 +486,17 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 <span className="flex-1 truncate">{t.title}</span>
                 <button
                   onClick={(e) => handleDeleteThread(t.id, e)}
-                  className="rounded p-0.5 opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                  aria-label="Изтрий"
+                  className={cn(
+                    "shrink-0 rounded px-1 py-0.5 text-[10px] transition-all",
+                    confirmDeleteId === t.id
+                      ? "bg-destructive text-destructive-foreground"
+                      : "opacity-60 hover:bg-destructive/10 hover:text-destructive hover:opacity-100 group-hover:opacity-100",
+                  )}
+                  aria-label={confirmDeleteId === t.id ? "Потвърди триене" : "Изтрий"}
+                  title={confirmDeleteId === t.id ? "Натисни пак за потвърждение" : "Изтрий"}
                   type="button"
                 >
-                  <Trash2 className="h-3 w-3" />
+                  {confirmDeleteId === t.id ? "Потвърди?" : <Trash2 className="h-3 w-3" />}
                 </button>
               </div>
             ))}
