@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useConsoleStore, type ConsoleSection } from "@/hooks/useConsoleStore";
 import { cn } from "@/lib/utils";
 import {
