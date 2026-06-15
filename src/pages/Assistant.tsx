@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { Sparkles, FileText, Scale, Upload, Plus, Handshake, Layers, ArrowLeft } from "lucide-react";
 import { AssistantChat } from "@/components/AssistantChat";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,6 +15,8 @@ const QUICK_LINKS = [
 export default function AssistantPage() {
   const { user } = useAuth();
   const { isPro, isTeam, freeQuota } = useIsPro();
+  const { threadId } = useParams<{ threadId?: string }>();
+  const navigate = useNavigate();
   const cap = freeQuota.aiMessagesCap;
   const used = freeQuota.aiMessagesUsed;
   const remaining = Math.max(0, cap - used);
@@ -23,6 +25,14 @@ export default function AssistantPage() {
   useEffect(() => {
     document.title = "DogovaryAI · Workspace";
   }, []);
+
+  const handleThreadChange = (id: string | null) => {
+    if (id && id !== threadId) {
+      navigate(`/assistant/${id}`, { replace: false });
+    } else if (!id && threadId) {
+      navigate("/assistant", { replace: false });
+    }
+  };
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
