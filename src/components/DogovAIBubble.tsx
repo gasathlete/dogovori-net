@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { useLocation, Link } from "react-router-dom";
-import { X, Send, Loader2, Sparkles, FileText, Briefcase, ShieldCheck, Scale, ExternalLink } from "lucide-react";
+import { useLocation, Link, useNavigate } from "react-router-dom";
+import { X, Send, Loader2, Sparkles, FileText, Briefcase, ShieldCheck, Scale, ExternalLink, Maximize2, MessageSquare } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { AssistantChat } from "@/components/AssistantChat";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 const dogovaiIcon = "/dogovai-favicon.png";
+
+const SIZE_PREF_KEY = "dogovai_size_pref"; // "small" | "full"
 
 /**
  * DogovAI — small, branded, scroll-attached chatbot bubble visible globally.
