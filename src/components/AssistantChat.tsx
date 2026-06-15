@@ -433,12 +433,13 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
 
   return (
     <div
-      className={cn("flex gap-3 sm:gap-4", compact ? "h-full" : "h-[calc(100dvh-12rem)] min-h-[500px]")}
+      className={cn("flex gap-3 sm:gap-4", embedded ? "h-full" : compact ? "h-full" : "h-[calc(100dvh-12rem)] min-h-[500px]")}
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
     >
       {/* Threads sidebar */}
-      <aside className={cn("w-56 flex-col rounded-lg border border-border/60 bg-card/40 p-2", compact ? "hidden" : "hidden md:flex")}>
+      <aside className={cn("w-56 flex-col rounded-lg border border-border/60 bg-card/40 p-2", embedded ? "hidden md:flex" : compact ? "hidden" : "hidden md:flex")}>
+
         <Button
           onClick={handleNewThread}
           variant="outline"
