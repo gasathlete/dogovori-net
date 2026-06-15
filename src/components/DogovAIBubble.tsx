@@ -380,7 +380,7 @@ export function DogovAIBubble() {
       {/* Bubble — translucent at rest, opaque on hover */}
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={handleBubbleClick}
         aria-label={open ? "Затвори DogovaryAI" : "Отвори DogovaryAI чат"}
         title="DogovaryAI"
         className={cn(
@@ -406,6 +406,50 @@ export function DogovAIBubble() {
           DogovaryAI
         </span>
       </button>
+
+      {/* Size chooser */}
+      {chooserOpen && !open && (
+        <div
+          role="dialog"
+          aria-label="Избери размер на DogovaryAI"
+          className="fixed bottom-20 right-4 z-40 w-[min(320px,calc(100vw-2rem))] rounded-2xl border border-gold/30 bg-card p-3 shadow-2xl sm:bottom-24 sm:right-5"
+        >
+          <div className="mb-2 flex items-center justify-between">
+            <div className="text-xs font-semibold text-foreground">Как да отворя DogovaryAI?</div>
+            <button
+              type="button"
+              onClick={() => setChooserOpen(false)}
+              className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label="Затвори"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <p className="mb-3 text-[11px] text-muted-foreground">
+            Изберете режим. По-късно можете да преминете между двата.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={openSmall}
+              className="flex flex-col items-start gap-1 rounded-lg border border-border/60 bg-background/60 p-3 text-left transition-colors hover:border-gold/60 hover:bg-gold/5"
+            >
+              <MessageSquare className="h-4 w-4 text-gold" />
+              <span className="text-xs font-semibold">Малък чат</span>
+              <span className="text-[10px] text-muted-foreground">Балонче в ъгъла</span>
+            </button>
+            <button
+              type="button"
+              onClick={goFullExperience}
+              className="flex flex-col items-start gap-1 rounded-lg border border-gold/40 bg-gold/10 p-3 text-left transition-colors hover:border-gold hover:bg-gold/20"
+            >
+              <Maximize2 className="h-4 w-4 text-gold" />
+              <span className="text-xs font-semibold">Цял екран</span>
+              <span className="text-[10px] text-muted-foreground">Workspace</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Panel */}
       <div
