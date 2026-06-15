@@ -84,7 +84,7 @@ function TabPill({ tab }: { tab: ConsoleTab }) {
           <button
             type="button"
             aria-label="Действия"
-            className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground/60 opacity-0 hover:bg-muted hover:text-foreground group-hover:opacity-100"
+            className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground/60 hover:bg-muted hover:text-foreground"
           >
             <MoreHorizontal className="h-3 w-3" />
           </button>
