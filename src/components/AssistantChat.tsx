@@ -231,7 +231,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
     }
     const g = gate as { ok: boolean; reason?: string; used?: number; cap?: number } | null;
     if (g && g.ok === false) {
-      toast.error("Изчерпани са безплатните 5 съобщения за този месец. Активирай PRO за неограничен достъп.");
+      toast.error("Изчерпани са 15-те безплатни съобщения за този месец. Активирай PRO за неограничен достъп.");
       await refreshPlan();
       return;
     }

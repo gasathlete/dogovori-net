@@ -17,6 +17,7 @@ import { Crown } from "lucide-react";
 
 
 const NAV = [
+  { to: "/assistant", label: "DogovaryAI", highlight: true },
   { to: "/build", label: "Изготви документ" },
   { to: "/catalog", label: "Каталог" },
   { to: "/komplekti", label: "Комплекти" },
@@ -78,6 +79,7 @@ export function Header() {
         <nav className="hidden items-center gap-6 justify-self-center lg:flex xl:gap-9">
           {NAV.map((n) => {
             const active = isActive(n.to);
+            const highlight = (n as { highlight?: boolean }).highlight;
             return (
               <Link
                 key={n.to}
@@ -85,17 +87,23 @@ export function Header() {
                 onClick={(e) => handleNav(n.to, e)}
                 className={cn(
                   "group relative whitespace-nowrap text-[13px] font-medium tracking-wide transition-colors",
-                  active ? "text-gold" : "text-foreground/75 hover:text-gold",
+                  highlight
+                    ? "rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-gold hover:bg-gold/20"
+                    : active
+                      ? "text-gold"
+                      : "text-foreground/75 hover:text-gold",
                 )}
               >
                 {n.label}
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "absolute -bottom-1.5 left-0 h-px bg-gold transition-all duration-300",
-                    active ? "w-full opacity-100" : "w-0 opacity-0 group-hover:w-full group-hover:opacity-60",
-                  )}
-                />
+                {!highlight && (
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "absolute -bottom-1.5 left-0 h-px bg-gold transition-all duration-300",
+                      active ? "w-full opacity-100" : "w-0 opacity-0 group-hover:w-full group-hover:opacity-60",
+                    )}
+                  />
+                )}
               </Link>
             );
           })}

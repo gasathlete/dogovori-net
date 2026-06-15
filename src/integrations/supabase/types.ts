@@ -1884,6 +1884,8 @@ export type Database = {
       profiles: {
         Row: {
           allow_third_country_ai: boolean
+          assistant_messages_used: number
+          assistant_quota_reset_at: string
           avatar_url: string | null
           company: string | null
           created_at: string
@@ -1896,6 +1898,8 @@ export type Database = {
         }
         Insert: {
           allow_third_country_ai?: boolean
+          assistant_messages_used?: number
+          assistant_quota_reset_at?: string
           avatar_url?: string | null
           company?: string | null
           created_at?: string
@@ -1908,6 +1912,8 @@ export type Database = {
         }
         Update: {
           allow_third_country_ai?: boolean
+          assistant_messages_used?: number
+          assistant_quota_reset_at?: string
           avatar_url?: string | null
           company?: string | null
           created_at?: string
@@ -3563,6 +3569,10 @@ export type Database = {
       check_compliance_reminders: { Args: never; Returns: Json }
       consume_ai_message: { Args: never; Returns: Json }
       consume_analysis_preview: { Args: never; Returns: Json }
+      consume_assistant_message: {
+        Args: { _limit?: number; _user_id: string }
+        Returns: Json
+      }
       consume_bilingual_preview: { Args: never; Returns: Json }
       consume_corrections_batch: {
         Args: { _batch_id: string; _session_id: string }

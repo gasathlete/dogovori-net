@@ -92,6 +92,7 @@ const AdminPlans = lazy(() => import("./pages/AdminPlans.tsx"));
 const CheckoutReturn = lazy(() => import("./pages/CheckoutReturn.tsx"));
 const Plans = lazy(() => import("./pages/Plans.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
+const Assistant = lazy(() => import("./pages/Assistant.tsx"));
 const Terms = lazy(() => import("./pages/legal/Terms.tsx"));
 const Privacy = lazy(() => import("./pages/legal/Privacy.tsx"));
 const Cookies = lazy(() => import("./pages/legal/Cookies.tsx"));
@@ -197,6 +198,8 @@ const AnimatedRoutes = () => {
     <div key={location.pathname} className="route-fade">
       <Routes location={routedLocation}>
         <Route path="/" element={<Index />} />
+        <Route path="/assistant" element={<Assistant />} />
+        <Route path="/assistant/:threadId" element={<Assistant />} />
         <Route path="/wizard/:sectorId" element={<Wizard />} />
         <Route path="/build" element={<BuildContract />} />
         <Route path="/wizard-bilingual/:sectorId" element={<WizardBilingual />} />

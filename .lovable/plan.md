@@ -1,128 +1,99 @@
+# DogovaryAI Workspace — пълноекранен режим
 
-# Цел
+Цел: кликът върху бранд бутона **DogovaryAI** да отваря отделен пълноекранен AI-workspace (по модела на praven-intelekt.com), използвайки съществуващата ни логика (`AssistantChat`, `assistant-chat` / `assistant-chat-anon` edge функции, RAG с цитати, build/upload/sign flow). Минимално натрупване — без нов backend, без нова auth.
 
-DogovaryAI да работи като Правен Интелект за договори, но върху нашия каталог 290+ шаблона: разбира на разговорен език какъв документ искаме, задава целеви въпроси, показва структура за потвърждение, и едва тогава генерира/попълва. Без откази без търсене, без "няма шаблон" преди опит.
+## 1. Нов маршрут и точки на влизане
 
-# Какво прави Pravenintelekt по-добре от нас сега
+- Нов route: **`/assistant`** (вече е „скрит prefix" в DogovAIBubble; ще го материализираме като реален пълноекранен layout) и **`/assistant/:threadId`** за индивидуален разговор.
+- Кликът върху „DogovaryAI" (Header CTA, hero бутон, floating bubble FAB) → `navigate("/assistant")`. Старият popover bubble остава достъпен само на marketing страници като бърз shortcut; в `/assistant` той се скрива (вече е в `HIDDEN_PREFIXES`).
+- `Header` получава нов CTA „Отвори DogovaryAI" (gold-accent), видим на десктоп и мобилно.
 
-1. **Не зависи от ключови думи.** "Искам трудов договор за счетоводител" → разпознава типа без slug.
-2. **Целеви въпроси.** Поредица от 3–5 въпроса (срок, заплащане, прекратяване) преди генерация.
-3. **Преглед на структура.** План на клаузите → потвърждение → генерация параграф по параграф.
-4. **Източници.** Линкове към закони/практика при всеки отговор.
-5. **Нула откази.** Винаги има следваща стъпка.
+## 2. Layout на workspace-а (`src/pages/Assistant.tsx`)
 
-# Какво ще изградим
-
-## 1. Intent expansion + по-умно търсене (`search_templates`)
-
-- Преди FTS заявката, пускаме евтин LLM call (`gemini-3-flash-preview`) с фиксиран JSON output: `{ documentTypes: string[], synonyms: string[], category: "employment"|"real-estate"|"business"|"it"|"other" }`. Пример: вход *"договор за счетоводител"* → `{ documentTypes: ["трудов договор","договор за услуги"], synonyms: ["счетоводител","счетоводни услуги"], category: "employment" }`.
-- Изпълняваме FTS върху обединения query, плюс ilike fallback по всеки токен (вече добавено), плюс директен филтър по `document_type` ако е в expansion.
-- Връщаме до 5 резултата + `confidence` ("high"/"medium"/"low").
-- Бонус: малък ръчно поддържан речник `bg-doc-intents.json` (~60 фрази) за топ интенти — изпълнява се преди LLM expansion (instant, нула tokens).
-
-## 2. Нов client tool: `ask_clarification`
-
-- Schema: `{ questions: Array<{ id, label, type: "text"|"choice"|"number"|"date", options?, placeholder? }>, contextSummary: string }`.
-- UI: render в чата като компактна форма-карта (max 5 полета). Submit изпраща обратно структуриран answer като user message: `[CLARIFICATION] field=value; ...`.
-- Promptът задължава: ако липсват критични полета (страни, предмет, срок) → ВИНАГИ `ask_clarification` преди `prefill_build_contract`.
-
-## 3. Нов client tool: `propose_contract_outline`
-
-- Schema: `{ title, clauses: Array<{ heading, summary }>, basedOnTemplateSlug?, estimatedFields: string[] }`.
-- UI: карта със списък клаузи + бутони "Потвърди и попълни" (→ prefill_build_contract), "Промени структурата" (отваря текстово поле за корекции), "Покажи шаблона" (→ open_template).
-- Промптът: след clarification → винаги outline preview преди prefill.
-
-## 4. Гарантирани followup чипове (server-side safety net)
-
-Сега моделът понякога пропуска `<followups>`. Ще:
-- Парсираме на сървъра. Ако липсват → auto-generate 3 чипа въз основа на последно изпълнен tool (search → "Отвори първия", "Покажи още", "Попълни нов"; outline → "Потвърди", "Промени клаузите", "Покажи шаблона"; нищо → "Намери шаблон", "Качи договор за анализ", "Попълни нов договор").
-- Изпращаме като отделен SSE event `followups` вместо inline tag — клиентът ги рендира независимо. Това премахва риска от грозен tag в текста при streaming.
-
-## 5. Инлайн източници (legal citations) — по-настоятелно
-
-- Вече имаме `legal.hasMatches` от RAG. Засилваме prompt: когато категория = employment/real-estate/business → отговорът ТРЯБВА да включва поне 1 markdown цитат в позволения формат `[чл. X ЗЗД](URL)`. Без цитат → followup "Покажи правното основание" се forc-ва.
-- LegalCitations компонентът вече рендира chips отдолу — оставяме.
-
-## 6. По-добри модели
-
-- Standard: `google/gemini-2.5-flash` → `google/gemini-3-flash-preview` (новият default, по-добър tool calling).
-- Premium (Предприемач/Екип): `openai/gpt-5` → `openai/gpt-5.2` (по-силно разсъждение, тестваме срещу gemini-3-pro-preview).
-- Intent expansion: `google/gemini-3-flash-preview` (евтин, бърз).
-
-## 7. Регресионен тест harness
-
-Нов файл `supabase/functions/assistant-chat/__tests__/regression.ts` + npm script `bun run test:assistant`. Изпълнява 20 представителни заявки срещу deployed функцията и проверява:
-- Tool-call rate ≥ 90% (никога не отказва без поне 1 tool).
-- За документи: ≥ 1 от `{search_templates, open_template, prefill_build_contract, ask_clarification}`.
-- Followups: 2–4 чипа във всеки отговор.
-- Без забранени фрази ("за съжаление нямам", "не разполагам с").
-
-Заявки (20):
-```text
-"искам трудов договор за счетоводител", "договор за наем на офис в София 800 EUR",
-"NDA на двата езика", "пълномощно за продажба на кола",
-"жалба срещу КАТ за глоба", "молба за отпуск", "договор за изработка на сайт",
-"споразумение за раздяла на семейна вещ", "договор за заем между приятели 5000",
-"анекс към трудов договор за повишение", "договор за франчайз на кафене",
-"протокол от общо събрание на ООД", "оферта за СМР строителство",
-"договор за поръчителство", "договор за дистрибуция в ЕС",
-"спогодба за издръжка", "договор за консултантски услуги IT",
-"трудов договор с изпитателен срок 6 месеца", "договор за наем на жилище с депозит",
-"пълномощно за банкови операции"
-```
-
-Изход: markdown report в `/mnt/documents/assistant-regression.md` с pass/fail per case + латентност.
-
-## 8. UI/UX подобрения в `AssistantChat.tsx`
-
-- Нови карти: `ClarificationCard`, `OutlineCard`, `TemplateResultsCard` (replace generic AssistantToolCard за `search_templates`).
-- Followup чиповете: премахваме inline parsing, четем от SSE `followups` event.
-- При `search_templates` с 0 резултата → показваме CTA "Създай от нула" (prefill) вместо текст.
-
-## Технически детайли
-
-**Файлове за промяна:**
-- `supabase/functions/assistant-chat/index.ts` — SSE followups event, server-side followup fallback, regression-friendly logging.
-- `supabase/functions/_shared/assistant-tools.ts` — добавяме `ask_clarification`, `propose_contract_outline` schemas; intent expansion helper `expandIntent(query)`.
-- `supabase/functions/_shared/bg-doc-intents.json` (нов) — ~60 phrase→intent mappings.
-- `src/components/assistant/tools/ClarificationCard.tsx` (нов).
-- `src/components/assistant/tools/OutlineCard.tsx` (нов).
-- `src/components/assistant/tools/TemplateResultsCard.tsx` (нов).
-- `src/components/AssistantChat.tsx` — нов SSE event handler, нови tool cards, рендер на clarification answer като user message.
-- `supabase/functions/assistant-chat/__tests__/regression.ts` (нов).
-- `package.json` — script `test:assistant`.
-
-**Поведение на агента (final state machine):**
+Three-pane shell, full-height без footer, тъмен/светъл режим спазва текущата тема:
 
 ```text
-user message
-  ↓
-intent expansion (dictionary → LLM fallback)
-  ↓
-search_templates (винаги, ако споменат документ)
-  ↓
-има резултат? ── да → ask_clarification (липсващи полета)
-  │                       ↓
-  │                  propose_contract_outline
-  │                       ↓
-  │                  prefill_build_contract → navigate /build
-  │
-  └── не → ask_clarification (общи полета)
-              ↓
-         propose_contract_outline (generic от нула)
-              ↓
-         prefill_build_contract
+┌────────────┬─────────────────────────────────┬──────────────┐
+│ Threads    │ Conversation / Quick actions    │ Sources      │
+│ sidebar    │ + composer                      │ (collapsible)│
+└────────────┴─────────────────────────────────┴──────────────┘
 ```
 
-**Извън скоупа (отделен ход):**
-- Параграф-по-параграф генерация на пълен договор директно в чата (Pravenintelekt-style финален документ). За сега prefill отваря wizard-а — там вече има пълна генерация.
-- Caselaw/съдебна практика (Pravenintelekt я има, ние не — извън нашия offering).
+- **Ляв панел (`AssistantThreadsSidebar`)** — „+ Нов разговор", търсачка, групиране по „Днес / Тази седмица / По-стари". Колапсва се чрез `shadcn-sidebar` (`collapsible="icon"`).
+- **Център** — при празен thread: 4 големи action карти (вече ги имаме в `QUICK_ACTIONS` — обогатяваме до 6):
+  1. **Правни проучвания** → RAG search в `legal_chunks`.
+  2. **Проучване по съдебна практика** → филтрира RAG към `source_type=case_law`.
+  3. **Анализ на документи** → отваря `UploadAnalyze` inline (drop-zone).
+  4. **Създаване на документ** → отваря wizard избор (`/build`, `/wizard/:sector`).
+  5. **Преговорен режим** → активира prompt от стъпка 2 (`ПРЕГОВОРЕН РЕЖИМ`).
+  6. **Комплекти документи** → линк към `/komplekti`.
+  Под картите: composer (текстарея + attach + send), starter chips, „AI избира модел" indicator.
+- **Десен панел (`AssistantSourcesPanel`)** — auto-показва списък цитати от текущия разговор (от `LegalCitations`), с брояч (напр. „Източници 12"), линкове към официални публикации. Скрива се ако няма цитати.
 
-## Резултат
+Композиция: преизползваме `AssistantChat` като core; новата страница само го обвива в shell с трите панела. Никаква дублирана логика за streaming/threads.
 
-След прилагане потребителят пише "искам трудов договор за счетоводител" и получава:
-1. Кратко "Ще намеря подходящ шаблон…" + търсене.
-2. Намерен шаблон + 4-полна форма (срок, заплата, изпитателен срок, дата на започване).
-3. След submit → outline preview с клаузите.
-4. След потвърждение → wizard prefilled, навигация автоматична.
-5. Винаги 3 followup чипа на дъното.
+## 3. Anonymous (нерегистриран) flow
+
+- Кликът върху DogovaryAI винаги отваря `/assistant`, **дори без auth**.
+- В anon режим:
+  - Threads sidebar е скрит/disabled (single-session conversation, localStorage `dogovai_anon_chat_v2`, вече има).
+  - Лимит **5 безплатни съобщения** (повишаваме от текущите 3) преди soft paywall — съответства на „encourage to try free".
+  - Banner отгоре: „Безплатна проба · X / 5 съобщения · [Регистрирайте се за 15 безплатни]".
+  - След лимита: блокира composer + показва inline регистрационна карта (email + Google), а не редирект.
+- Бекенд: продължава да удря `assistant-chat-anon` edge функцията (rate-limit по IP + session е активен).
+
+## 4. Registered (регистриран) flow
+
+- 15 безплатни съобщения на месец **в DogovaryAI** като отделен квота-counter, **независимо** от съществуващите op-метрики (download/upload). „Други безплатни се запазват" → не пипаме `download_quota`.
+- Реализация: нова колона `assistant_free_messages_used` (int, default 0) + `assistant_quota_reset_at` (date) в `profiles`, или нова `assistant_quota` table. Edge функция `assistant-chat` инкрементира при всеки **user**-message и връща 402 със ясен код когато се изчерпи.
+- UI: вечен brand-pill долу-ляво (по подобие на конкурента): „Безплатен · 11/15 съобщения · [Надгради плана]".
+- При изчерпване: модал с `PlanSelector` (вече съществува) — Предприемач 12.90 €/мес или single-op pack 1.90 € (5 op). Plan upgrade премахва counter (unlimited assistant messages = features.assistant_unlimited).
+
+## 5. Streaming, threads, persistence
+
+- Спазваме `chat-agent-ui-contract`: **threads + database persistence** за регистрирани.
+- Вече има тaблици `assistant_threads` и `assistant_messages` (виж `<supabase-tables>`). Използваме ги — нищо ново.
+- URL = source of truth: `/assistant/:threadId`. New chat → INSERT thread → navigate. Refresh на `/assistant/abc123` зарежда този thread. Chat компонентът се ремоунтва по `key={threadId}`.
+- За anon: single conversation, без route param.
+
+## 6. „Над конкурента" — какво добавяме над praven-intelekt.com
+
+Дребни функционалности, които вече имаме и просто ги изваждаме във workspace-а:
+
+- **Drag-drop анализ направо в чата** → reuse `UploadAnalyze` като inline tool card (`AssistantToolCard` вече рендерира tool events).
+- **Build-to-chat hand-off** — от съобщение „Създай ми трудов договор за…" → бутон „Отвори в Builder" (preserves draft в `assistantDraftStore`).
+- **Преговорен режим toggle** в composer (chip "🤝 Преговори") — задава режима от стъпка 2.
+- **Структурирани цитати** в десния панел с badges (ЗЗП/ЗЕТ/GDPR/ЕС) — реализирано в стъпка 3.
+- **Поделяне на разговор** — генерира shared link (вече имаме `shared_links` инфраструктура) → read-only публичен URL.
+- **Експорт на разговор** в PDF/DOCX (reuse on-the-fly DOCX генератора).
+- **Pin / favourite threads** (`pinned` boolean колона) — UX подобрение над конкурента.
+
+## 7. Технически детайли
+
+- Нов `src/pages/Assistant.tsx` + `src/components/assistant/AssistantThreadsSidebar.tsx` + `AssistantSourcesPanel.tsx` + `AssistantQuotaBadge.tsx`.
+- `AssistantChat.tsx` рефакторираме на „dumb" body (приема `threadId` от prop вместо да го пази в local storage) — backwards compatible.
+- Routes: `/assistant`, `/assistant/:threadId` (публични — guard само за thread-ownership; anon → fallback single-session).
+- Quota: миграция → нови колони + UPDATE-trigger в `assistant-chat` edge функцията (атомарен инкремент). Връща `429 quota_exceeded`. Pricing-plan check преди инкремент (Pro = bypass).
+- `Header` нов CTA + `Hero` бутон „Отвори DogovaryAI workspace" заменя/допълва съществуващите.
+- AI Elements: проверяваме инсталирани компоненти (`Conversation`, `Message`, `PromptInput`, `Tool`, `Shimmer`). Ако липсват — `bunx ai-elements@latest add conversation message prompt-input tool shimmer`. Преизползваме съществуващите `LegalCitations` и `AssistantToolCard` за вложеното рендериране.
+- Спазваме design системата: gold accent за CTA, без custom colors, semantic tokens, responsive.
+
+## 8. Извън scope (умишлено)
+
+- Без нова backend AI логика — същият prompt от стъпки 1–3.
+- Без промяна на pricing/op-метриките (memory: 12.90 € / 10.90 € seat / 1.90 € pack).
+- Без преписване на `assistant-chat` или `assistant-chat-anon` функциите.
+- Без локализация в момента (UI остава български, спазвайки текущата практика).
+
+## 9. Приемни критерии
+
+1. Клик върху „DogovaryAI" (Header/Hero/Bubble) отваря `/assistant` пълноекранно.
+2. Anon с 0 съобщения вижда 6 action карти + composer + banner „5 безплатни".
+3. Anon след 5-тото съобщение е блокиран със soft paywall (регистрация).
+4. Регистриран user вижда thread sidebar, може да създава/изтрива/превключва threads, рефрешът на `/assistant/:id` възстановява разговора.
+5. След 15-тото съобщение в месеца — модал за upgrade, без да чупи download/upload квотата.
+6. Drop на PDF/DOCX в композера стартира анализ inline; clicking „Създай документ" в стартовите карти отваря wizard избор.
+7. Десният панел показва цитати със source_id/article/version_date чипове (стъпка 3).
+8. Build / typecheck минават; съществуващите страници и flow-ове не са счупени.
+
+При одобрение пускам в build с тази последователност: миграция за quota → routes/page shell → threads sidebar → sources panel → quota badge & paywall → header/hero CTA → QA.

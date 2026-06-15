@@ -43,7 +43,7 @@ const SYSTEM_PROMPT = `# РОЛЯ И ИДЕНТИЧНОСТ
 Всеки въпрос е до 6 думи, на български, конкретен.`;
 
 const MODEL = "google/gemini-2.5-flash";
-const MAX_MESSAGES = 3;
+const MAX_MESSAGES = 5;
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
 
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           error: "limit_reached",
-          message: "Достигнахте лимита от 3 безплатни съобщения. Регистрирайте се за пълен достъп.",
+          message: "Достигнахте лимита от 5 безплатни съобщения. Регистрирайте се за още 15 безплатни.",
         }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
