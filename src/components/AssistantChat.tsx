@@ -438,37 +438,41 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       onDrop={handleDrop}
     >
       {/* Threads sidebar */}
-      <aside className={cn("w-56 flex-col rounded-lg border border-border/60 bg-card/40 p-2", embedded ? "hidden md:flex" : compact ? "hidden" : "hidden md:flex")}>
-
+      <aside className={cn("w-60 flex-col rounded-xl border border-border/50 bg-card/30 p-2.5 backdrop-blur-sm", embedded ? "hidden md:flex" : compact ? "hidden" : "hidden md:flex")}>
         <Button
           onClick={handleNewThread}
-          variant="outline"
           size="sm"
-          className="mb-2 justify-start gap-2 border-gold/40 text-gold hover:bg-gold/10"
+          className="mb-3 justify-start gap-2 bg-gold text-navy hover:bg-gold/90 shadow-sm"
         >
           <Plus className="h-4 w-4" /> Нов разговор
         </Button>
-        <ScrollArea className="flex-1">
-          <div className="space-y-1">
+        <div className="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+          История
+        </div>
+        <ScrollArea className="flex-1 -mx-1 px-1">
+          <div className="space-y-0.5">
             {threads.length === 0 && (
-              <p className="px-2 py-4 text-xs text-muted-foreground">Няма разговори</p>
+              <p className="px-2 py-6 text-center text-[11px] text-muted-foreground/70">Все още няма разговори</p>
             )}
             {threads.map((t) => (
               <div
                 key={t.id}
                 onClick={() => setPersistedActiveThreadId(t.id)}
                 className={cn(
-                  "group flex cursor-pointer items-center justify-between gap-1 rounded-md px-2 py-2 text-xs transition-colors",
-                  activeThreadId === t.id ? "bg-gold/15 text-foreground" : "text-muted-foreground hover:bg-card/80",
+                  "group relative flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-all",
+                  activeThreadId === t.id
+                    ? "bg-gold/10 text-foreground"
+                    : "text-muted-foreground hover:bg-card/60 hover:text-foreground",
                 )}
               >
-                <span className="flex min-w-0 items-center gap-2">
-                  <MessageSquare className="h-3 w-3 shrink-0" />
-                  <span className="truncate">{t.title}</span>
-                </span>
+                {activeThreadId === t.id && (
+                  <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r bg-gold" />
+                )}
+                <MessageSquare className={cn("h-3 w-3 shrink-0", activeThreadId === t.id ? "text-gold" : "text-muted-foreground/60")} />
+                <span className="flex-1 truncate">{t.title}</span>
                 <button
                   onClick={(e) => handleDeleteThread(t.id, e)}
-                  className="opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                  className="rounded p-0.5 opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
                   aria-label="Изтрий"
                   type="button"
                 >
@@ -481,61 +485,62 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       </aside>
 
       {/* Chat panel */}
-      <div className={cn("flex flex-1 flex-col bg-card/40", embedded ? "rounded-lg border border-border/60 min-h-0" : compact ? "min-h-0" : "rounded-lg border border-border/60")}>
+      <div className={cn("flex flex-1 flex-col bg-card/30 backdrop-blur-sm min-w-0", embedded ? "rounded-xl border border-border/50 min-h-0" : compact ? "min-h-0" : "rounded-xl border border-border/50")}>
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gold/15">
+        <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5">
+          <div className="flex items-center gap-2.5">
+            <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-gold/20 to-gold/5 ring-1 ring-gold/20">
               <Bird className="h-4 w-4 text-gold" />
+              <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-card" />
             </div>
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">Правен AI Асистент</h3>
-              <p className="text-[10px] text-muted-foreground">
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold leading-tight text-foreground">DogovaryAI</h3>
+              <p className="text-[10px] leading-tight text-muted-foreground">
                 {isPro || isTeam
-                  ? "24/7 поддръжка · неограничен достъп"
-                  : `Безплатно: ${aiRemaining}/${freeQuota.aiMessagesCap} съобщения този месец`}
+                  ? "Неограничен достъп · онлайн"
+                  : `${aiRemaining}/${freeQuota.aiMessagesCap} съобщения · този месец`}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             {messages.length > 0 && (
               <>
-                <button type="button" onClick={shareConversation} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-gold" title="Сподели разговор" aria-label="Сподели">
-                  <Share2 className="h-4 w-4" />
+                <button type="button" onClick={shareConversation} className="rounded-md p-1.5 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-gold" title="Сподели" aria-label="Сподели">
+                  <Share2 className="h-3.5 w-3.5" />
                 </button>
-                <button type="button" onClick={exportConversation} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-gold" title="Изтегли (.md)" aria-label="Изтегли">
-                  <Download className="h-4 w-4" />
+                <button type="button" onClick={exportConversation} className="rounded-md p-1.5 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-gold" title="Изтегли (.md)" aria-label="Изтегли">
+                  <Download className="h-3.5 w-3.5" />
                 </button>
               </>
             )}
             {allCitations.length > 0 && (
-              <button type="button" onClick={() => setShowSources((v) => !v)} className={cn("hidden md:inline-flex rounded-md p-1.5 transition-colors", showSources ? "bg-gold/15 text-gold" : "text-muted-foreground hover:bg-muted hover:text-gold")} title="Източници" aria-label="Източници">
-                <BookOpen className="h-4 w-4" />
+              <button type="button" onClick={() => setShowSources((v) => !v)} className={cn("hidden lg:inline-flex rounded-md p-1.5 transition-colors", showSources ? "bg-gold/15 text-gold" : "text-muted-foreground/70 hover:bg-muted hover:text-gold")} title="Източници" aria-label="Източници">
+                <BookOpen className="h-3.5 w-3.5" />
               </button>
             )}
-            <Button onClick={handleNewThread} variant="ghost" size="sm" className="md:hidden">
-              <Plus className="h-4 w-4" />
+            <Button onClick={handleNewThread} variant="ghost" size="sm" className="md:hidden h-7 w-7 p-0">
+              <Plus className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
 
         {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5">
           {isEmpty ? (
-            <div className="flex h-full flex-col items-center justify-center text-center">
-              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gold/10">
-                <Bird className="h-6 w-6 text-gold" />
+            <div className="flex h-full flex-col items-center justify-center">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-gold/20 to-gold/5 ring-1 ring-gold/20">
+                <Bird className="h-7 w-7 text-gold" />
               </div>
-              <h4 className="mb-1 text-sm font-semibold text-foreground">С какво да помогна?</h4>
-              <p className="mb-6 max-w-md text-xs text-muted-foreground">
-                Помагам с навигация, шаблони, правни въпроси (ЗЗД, ТЗ, КТ, СК, ЗУТ) и техническа поддръжка.
+              <h4 className="mb-1.5 text-base font-semibold text-foreground">С какво да помогна?</h4>
+              <p className="mb-6 max-w-md text-center text-xs text-muted-foreground">
+                Правни проучвания, анализ на договори, шаблони, преговори — попитай свободно.
               </p>
-              <div className="grid w-full max-w-md grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="grid w-full max-w-xl grid-cols-1 gap-2 sm:grid-cols-2">
                 {QUICK_ACTIONS.map((qa) => (
                   <button
                     key={qa.label}
                     onClick={() => sendMessage(qa.text)}
-                    className="rounded-md border border-border/60 bg-background/40 px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:border-gold/40 hover:text-foreground"
+                    className="group rounded-lg border border-border/50 bg-background/30 px-3 py-2.5 text-left text-xs text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-gold/40 hover:bg-gold/[0.03] hover:text-foreground hover:shadow-sm"
                   >
                     {qa.label}
                   </button>
@@ -543,7 +548,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-5">
               {messages.map((m, idx) => {
                 const isLastAssistant =
                   m.role === "assistant" && idx === messages.length - 1 && !streaming;
@@ -572,81 +577,80 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
           )}
         </div>
 
-        {/* Disclaimer */}
-        <div className="border-t border-border/60 bg-background/40 px-4 py-1.5">
-          <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-            <AlertCircle className="h-3 w-3" />
-            AI асистент — общи насоки, не правен съвет. За конкретен казус се консултирайте с адвокат.
-          </p>
-        </div>
-
         {/* Composer */}
-        <form onSubmit={handleSubmit} className="border-t border-border/60 p-3 space-y-2">
-          {/* Mode chips */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setNegotiationMode((v) => !v)}
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
-                negotiationMode
-                  ? "border-gold bg-gold/15 text-gold"
-                  : "border-border/60 bg-background/40 text-muted-foreground hover:border-gold/40 hover:text-foreground",
-              )}
-              title="Активирай преговорен режим"
-            >
-              <Handshake className="h-3 w-3" /> Преговорен режим
-            </button>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-gold/40 hover:text-foreground"
-              title="Прикачи документ за анализ"
-            >
-              <Paperclip className="h-3 w-3" /> Прикачи (PDF/DOCX)
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.doc,.docx,.txt"
-              className="hidden"
-              onChange={(e) => handleFiles(e.target.files)}
-            />
-            <span className="ml-auto text-[10px] text-muted-foreground/70">Drag&amp;drop PDF/DOCX навсякъде</span>
-          </div>
-          <div className="flex items-end gap-2">
+        <form onSubmit={handleSubmit} className="border-t border-border/40 p-3">
+          <div className={cn(
+            "relative rounded-xl border bg-background/60 transition-all focus-within:border-gold/50 focus-within:ring-1 focus-within:ring-gold/20",
+            negotiationMode ? "border-gold/40 bg-gold/[0.03]" : "border-border/50",
+          )}>
             <Textarea
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={negotiationMode ? "Опиши условията/офертата за преговори..." : "Напиши съобщение..."}
+              placeholder={negotiationMode ? "Опиши условията за преговори..." : "Попитай DogovaryAI..."}
               rows={1}
               disabled={streaming}
-              className={cn(
-                "min-h-[44px] resize-none border-border/60 bg-background/60 text-sm",
-                negotiationMode && "border-gold/40 ring-1 ring-gold/20",
-              )}
+              className="min-h-[48px] max-h-[160px] resize-none border-0 bg-transparent text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
             />
-            <Button
-              type="submit"
-              size="icon"
-              disabled={!input.trim() || streaming}
-              className="h-11 w-11 shrink-0 bg-gold text-navy hover:bg-gold/90"
-            >
-              {streaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </Button>
+            <div className="flex items-center gap-1 px-2 pb-2">
+              <button
+                type="button"
+                onClick={() => setNegotiationMode((v) => !v)}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                  negotiationMode
+                    ? "bg-gold/15 text-gold"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+                title="Преговорен режим"
+              >
+                <Handshake className="h-3 w-3" />
+                <span className="hidden sm:inline">Преговори</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                title="Прикачи PDF/DOCX"
+              >
+                <Paperclip className="h-3 w-3" />
+                <span className="hidden sm:inline">Прикачи</span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.txt"
+                className="hidden"
+                onChange={(e) => handleFiles(e.target.files)}
+              />
+              <span className="ml-auto hidden text-[10px] text-muted-foreground/60 sm:inline">
+                Enter за изпращане · Shift+Enter за нов ред
+              </span>
+              <Button
+                type="submit"
+                size="icon"
+                disabled={!input.trim() || streaming}
+                className="h-8 w-8 shrink-0 bg-gold text-navy hover:bg-gold/90 disabled:opacity-40"
+              >
+                {streaming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              </Button>
+            </div>
           </div>
+          <p className="mt-1.5 flex items-center justify-center gap-1 text-[10px] text-muted-foreground/60">
+            <AlertCircle className="h-2.5 w-2.5" />
+            Общи насоки, не правен съвет.
+          </p>
         </form>
       </div>
 
-      {/* Right: Sources panel — always visible in embedded workspace */}
+      {/* Right: Sources panel */}
       {(embedded || (showSources && allCitations.length > 0)) && (
-        <aside className="hidden w-72 flex-col rounded-lg border border-border/60 bg-card/40 lg:flex">
-          <div className="flex items-center justify-between border-b border-border/60 px-3 py-2.5">
+        <aside className="hidden w-72 flex-col rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm lg:flex">
+          <div className="flex items-center justify-between border-b border-border/40 px-3 py-2.5">
             <div className="flex items-center gap-1.5">
               <BookOpen className="h-3.5 w-3.5 text-gold" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground">
                 Източници{allCitations.length > 0 ? ` · ${allCitations.length}` : ""}
               </span>
             </div>
@@ -663,10 +667,10 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
           </div>
           <ScrollArea className="flex-1">
             {allCitations.length === 0 ? (
-              <div className="p-4 text-center">
-                <BookOpen className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
-                <p className="text-xs text-muted-foreground/80">
-                  Когато AI цитира закони, съдебна практика или регламенти, източниците ще се появят тук с линкове към официалните текстове.
+              <div className="p-5 text-center">
+                <BookOpen className="mx-auto mb-3 h-8 w-8 text-muted-foreground/20" />
+                <p className="text-[11px] leading-relaxed text-muted-foreground/80">
+                  Когато AI цитира закони или съдебна практика, източниците ще се появят тук с линкове.
                 </p>
                 <div className="mt-3 flex flex-wrap justify-center gap-1">
                   {["ЗЗД", "ТЗ", "КТ", "СК", "ЗУТ", "ВКС", "ЕС"].map((tag) => (
@@ -677,7 +681,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
             ) : (
               <ul className="space-y-1.5 p-2 text-xs">
                 {allCitations.map((c) => (
-                  <li key={c.chunk_id} className="rounded-md border border-border/40 bg-background/40 p-2 transition-colors hover:border-gold/40">
+                  <li key={c.chunk_id} className="rounded-lg border border-border/40 bg-background/40 p-2.5 transition-colors hover:border-gold/40">
                     <div className="flex items-start justify-between gap-1">
                       <span className="inline-flex items-center rounded bg-gold/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-gold">
                         {c.jurisdiction || "BG"}
@@ -717,7 +721,7 @@ function MessageBubble({ role, content, isStreaming, citations, toolEvents, foll
   if (role === "user") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-gold/15 px-4 py-2.5 text-sm text-foreground">
+        <div className="max-w-[85%] rounded-2xl rounded-tr-md bg-gold px-3.5 py-2 text-sm leading-relaxed text-navy shadow-sm">
           {content}
         </div>
       </div>
@@ -725,8 +729,8 @@ function MessageBubble({ role, content, isStreaming, citations, toolEvents, foll
   }
   const hasText = content && content.trim().length > 0;
   return (
-    <div className="flex gap-2">
-      <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gold/15">
+    <div className="flex gap-2.5">
+      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-gold/20 to-gold/5 ring-1 ring-gold/20">
         <Bird className="h-3 w-3 text-gold" />
       </div>
       <div className="max-w-[85%] flex-1 text-sm text-foreground">
