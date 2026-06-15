@@ -75,8 +75,11 @@ export function AssistantChat({ compact = false, threadId: threadIdProp, onThrea
   const [streaming, setStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const [streamingTools, setStreamingTools] = useState<ToolEvent[]>([]);
+  const [negotiationMode, setNegotiationMode] = useState(false);
+  const [showSources, setShowSources] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const executeClientTool = useCallback((name: string, args: any) => {
     try {
