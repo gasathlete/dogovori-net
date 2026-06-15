@@ -28,10 +28,6 @@ const ITEMS: { id: ConsoleSection; label: string; icon: any }[] = [
 
 export function ConsoleSidebar() {
   const { state, setSection, toggleSidebar, openTab } = useConsoleStore();
-import { useNavigate } from "react-router-dom";
-
-export function ConsoleSidebar() {
-  const { state, setSection, toggleSidebar, openTab } = useConsoleStore();
   const navigate = useNavigate();
   const collapsed = state.sidebarCollapsed;
 
