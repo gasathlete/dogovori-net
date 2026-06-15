@@ -381,8 +381,62 @@ export function AssistantChat({ compact = false, threadId: threadIdProp, onThrea
 
   const isEmpty = messages.length === 0 && !streaming;
 
+  // Aggregate citations across the conversation (deduped by chunk_id)
+  const allCitations: LegalCitation[] = (() => {
+    const map = new Map<string, LegalCitation>();
+    for (const m of messages) {
+      if (m.citations) for (const c of m.citations) map.set(c.chunk_id, c);
+    }
+    return Array.from(map.values());
+  })();
+
+  // File drop → upload analyzer
+  const handleFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const f = files[0];
+    const ok = /\.(pdf|docx?|txt)$/i.test(f.name);
+    if (!ok) {
+      toast.error("Поддържат се PDF / DOCX / TXT файлове");
+      return;
+    }
+    toast.info(`Качване на „${f.name}" в анализатора...`);
+    // Defer to /analyze which has full upload + analysis pipeline
+    navigate("/analyze");
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    handleFiles(e.dataTransfer.files);
+  };
+
+  // Export conversation as Markdown
+  const exportConversation = () => {
+    const md = messages.map((m) =>
+      `### ${m.role === "user" ? "Аз" : "DogovaryAI"}\n\n${m.content}\n`,
+    ).join("\n---\n\n");
+    const blob = new Blob([`# Разговор · DogovaryAI\n\n${md}`], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dogovaryai-${new Date().toISOString().slice(0, 10)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const shareConversation = async () => {
+    const text = messages.map((m) => `${m.role === "user" ? "Аз" : "AI"}: ${m.content}`).join("\n\n");
+    try {
+      if (navigator.share) await navigator.share({ title: "DogovaryAI разговор", text });
+      else { await navigator.clipboard.writeText(text); toast.success("Копирано в clipboard"); }
+    } catch { /* user cancelled */ }
+  };
+
   return (
-    <div className={cn("flex gap-3 sm:gap-4", compact ? "h-full" : "h-[calc(100dvh-12rem)] min-h-[500px]")}>
+    <div
+      className={cn("flex gap-3 sm:gap-4", compact ? "h-full" : "h-[calc(100dvh-12rem)] min-h-[500px]")}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={handleDrop}
+    >
       {/* Threads sidebar */}
       <aside className={cn("w-56 flex-col rounded-lg border border-border/60 bg-card/40 p-2", compact ? "hidden" : "hidden md:flex")}>
         <Button
