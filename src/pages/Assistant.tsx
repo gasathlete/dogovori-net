@@ -93,7 +93,11 @@ export default function AssistantPage() {
       {/* Chat surface — full-height */}
       <main className="flex-1 overflow-hidden">
         <div className="container h-full max-w-6xl py-3">
-          <AssistantChat />
+          <AssistantChat
+            key={threadId || "new"}
+            threadId={threadId ?? null}
+            onThreadChange={handleThreadChange}
+          />
         </div>
       </main>
 
