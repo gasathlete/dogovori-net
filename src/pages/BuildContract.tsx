@@ -1319,98 +1319,33 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
             )}
 
             {result && (
-              <div className="space-y-5 animate-fade-in">
-                <RiskMeter level={result.risk.level} score={result.risk.score} summary={result.risk.summary} />
-                <CorrectionsPanel
-                  isPro={isPro}
-                  freeWaveAvailable={freeWaveAvailable}
-                  issues={result.risk.issues || []}
-                  recommendations={result.risk.recommendations || []}
-                  loading={applyingCorrections}
-                  applied={appliedNotes}
-                  onApply={handleApplyCorrections}
-                  onUpgrade={() => navigate("/account?tab=subscription")}
-                />
-                <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft">
-                  <RiskReport
-                    level={result.risk.level}
-                    issues={result.risk.issues || []}
-                    recommendations={result.risk.recommendations || []}
-                    isPro={isPro}
-                  />
-                </div>
-
-                <SignatureBlock
-                  isPro={isPro}
-                  defaultPartyA={syntheticAnswers.party_a_name}
-                  defaultPartyB={syntheticAnswers.party_b_name}
-                  value={signature}
-                  onChange={setSignature}
-                />
-
-                <div className="rounded-xl border border-gold/30 bg-gradient-card p-6 shadow-soft">
-                  <h3 className="mb-1 font-serif text-lg font-bold">Финализиране</h3>
-                  <p className="mb-4 text-xs text-muted-foreground">
-                    Експорт, подпис и запис в профила — както при шаблонните договори.
-                  </p>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <Button
-                      onClick={() => handleExport("pdf")}
-                      disabled={!!exporting}
-                      className="flex-1 bg-gradient-gold text-navy hover:shadow-gold"
-                    >
-                      {exporting === "pdf" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
-                      Свали PDF
-                    </Button>
-                    <Button
-                      onClick={() => handleExport("docx")}
-                      disabled={!!exporting}
-                      variant="outline"
-                      className="flex-1 border-gold/40 hover:bg-gold/10 hover:text-gold"
-                    >
-                      {exporting === "docx" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
-                      Свали DOCX
-                    </Button>
-                  </div>
-                  <Button
-                    onClick={handleSaveToProfile}
-                    disabled={saving || !!savedDocId}
-                    variant="outline"
-                    className="mt-2 w-full border-gold/40 hover:bg-gold/10 hover:text-gold"
-                  >
-                    {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    {savedDocId ? "Запазено в профила" : "Запази в профила"}
-                  </Button>
-                  <Button
-                    onClick={() => setSignDialogOpen(true)}
-                    variant="outline"
-                    className="mt-2 w-full border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10"
-                  >
-                    <FileSignature className="mr-2 h-4 w-4" />
-                    Експорт за онлайн подпис
-                    {!isPro && signingFreeAvailable && (
-                      <span className="ml-2 inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
-                        1 безплатна
-                      </span>
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      try { localStorage.removeItem(STORAGE_KEY); } catch {}
-                      setResult(null);
-                      setName(""); setCategoryId(""); setCategoryOther("");
-                      setPartiesA(""); setPartiesB("");
-                      setFieldValues({});
-                      setSavedDocId(undefined);
-                      setSignature({ name_a: "", name_b: "", city: "", date: "" });
-                    }}
-                    className="mt-3 w-full text-xs text-muted-foreground hover:text-gold"
-                  >
-                    Започни нов договор
-                  </Button>
-                </div>
-              </div>
+              <FinalizePane
+                result={result}
+                isPro={isPro}
+                freeWaveAvailable={freeWaveAvailable}
+                applyingCorrections={applyingCorrections}
+                appliedNotes={appliedNotes}
+                syntheticAnswers={syntheticAnswers}
+                signature={signature}
+                setSignature={setSignature}
+                exporting={exporting}
+                saving={saving}
+                savedDocId={savedDocId}
+                signingFreeAvailable={signingFreeAvailable}
+                onApplyCorrections={handleApplyCorrections}
+                onExport={handleExport}
+                onSaveToProfile={handleSaveToProfile}
+                setSignDialogOpen={setSignDialogOpen}
+                onResetAll={() => {
+                  try { localStorage.removeItem(STORAGE_KEY); } catch {}
+                  setResult(null);
+                  setName(""); setCategoryId(""); setCategoryOther("");
+                  setPartiesA(""); setPartiesB("");
+                  setFieldValues({});
+                  setSavedDocId(undefined);
+                  setSignature({ name_a: "", name_b: "", city: "", date: "" });
+                }}
+              />
             )}
           </section>
 
