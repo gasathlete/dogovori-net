@@ -26,6 +26,13 @@ export default function AssistantPage() {
     document.title = "DogovaryAI · Workspace";
   }, []);
 
+  // Logged-in users → use unified Console workspace
+  useEffect(() => {
+    if (user) {
+      navigate("/console/assistant", { replace: true });
+    }
+  }, [user, navigate]);
+
   const handleThreadChange = (id: string | null) => {
     if (id && id !== threadId) {
       navigate(`/assistant/${id}`, { replace: false });

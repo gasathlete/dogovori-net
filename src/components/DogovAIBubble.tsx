@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { useLocation, Link } from "react-router-dom";
-import { X, Send, Loader2, Sparkles, FileText, Briefcase, ShieldCheck, Scale, ExternalLink } from "lucide-react";
+import { useLocation, Link, useNavigate } from "react-router-dom";
+import { X, Send, Loader2, Sparkles, FileText, Briefcase, ShieldCheck, Scale, ExternalLink, Maximize2, MessageSquare } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { AssistantChat } from "@/components/AssistantChat";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 const dogovaiIcon = "/dogovai-favicon.png";
+
+const SIZE_PREF_KEY = "dogovai_size_pref"; // "small" | "full"
 
 /**
  * DogovAI — small, branded, scroll-attached chatbot bubble visible globally.
@@ -307,8 +309,32 @@ function AnonChat({ resetKey }: { resetKey: number }) {
 export function DogovAIBubble() {
   const { user, loading } = useAuth();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [chooserOpen, setChooserOpen] = useState(false);
   const [resetKey, setResetKey] = useState(0);
+
+  const goFullExperience = () => {
+    setOpen(false);
+    setChooserOpen(false);
+    try { localStorage.setItem(SIZE_PREF_KEY, "full"); } catch { /* ignore */ }
+    navigate(user ? "/console/assistant" : "/assistant");
+  };
+
+  const openSmall = () => {
+    setChooserOpen(false);
+    try { localStorage.setItem(SIZE_PREF_KEY, "small"); } catch { /* ignore */ }
+    setOpen(true);
+  };
+
+  const handleBubbleClick = () => {
+    if (open) { setOpen(false); return; }
+    let pref: string | null = null;
+    try { pref = localStorage.getItem(SIZE_PREF_KEY); } catch { /* ignore */ }
+    if (pref === "small") { setOpen(true); return; }
+    if (pref === "full") { goFullExperience(); return; }
+    setChooserOpen(true);
+  };
 
   // Reset only the anonymous trial chat after idle timeout.
   useEffect(() => {
@@ -354,7 +380,7 @@ export function DogovAIBubble() {
       {/* Bubble — translucent at rest, opaque on hover */}
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={handleBubbleClick}
         aria-label={open ? "Затвори DogovaryAI" : "Отвори DogovaryAI чат"}
         title="DogovaryAI"
         className={cn(
@@ -380,6 +406,50 @@ export function DogovAIBubble() {
           DogovaryAI
         </span>
       </button>
+
+      {/* Size chooser */}
+      {chooserOpen && !open && (
+        <div
+          role="dialog"
+          aria-label="Избери размер на DogovaryAI"
+          className="fixed bottom-20 right-4 z-40 w-[min(320px,calc(100vw-2rem))] rounded-2xl border border-gold/30 bg-card p-3 shadow-2xl sm:bottom-24 sm:right-5"
+        >
+          <div className="mb-2 flex items-center justify-between">
+            <div className="text-xs font-semibold text-foreground">Как да отворя DogovaryAI?</div>
+            <button
+              type="button"
+              onClick={() => setChooserOpen(false)}
+              className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label="Затвори"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <p className="mb-3 text-[11px] text-muted-foreground">
+            Изберете режим. По-късно можете да преминете между двата.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={openSmall}
+              className="flex flex-col items-start gap-1 rounded-lg border border-border/60 bg-background/60 p-3 text-left transition-colors hover:border-gold/60 hover:bg-gold/5"
+            >
+              <MessageSquare className="h-4 w-4 text-gold" />
+              <span className="text-xs font-semibold">Малък чат</span>
+              <span className="text-[10px] text-muted-foreground">Балонче в ъгъла</span>
+            </button>
+            <button
+              type="button"
+              onClick={goFullExperience}
+              className="flex flex-col items-start gap-1 rounded-lg border border-gold/40 bg-gold/10 p-3 text-left transition-colors hover:border-gold hover:bg-gold/20"
+            >
+              <Maximize2 className="h-4 w-4 text-gold" />
+              <span className="text-xs font-semibold">Цял екран</span>
+              <span className="text-[10px] text-muted-foreground">Workspace</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Panel */}
       <div
@@ -413,14 +483,25 @@ export function DogovAIBubble() {
                 </div>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-              aria-label="Затвори"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={goFullExperience}
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-gold"
+                aria-label="Отвори на цял екран"
+                title="Цял екран (full experience)"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label="Затвори"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
           <div className="min-h-0 flex-1 overflow-hidden">
             {open && (user ? <AssistantChat compact key={resetKey} /> : <AnonChat resetKey={resetKey} />)}

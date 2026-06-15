@@ -39,6 +39,7 @@ export interface ConsoleTab {
 }
 
 export type ConsoleSection =
+  | "assistant"
   | "dashboard"
   | "deals"
   | "documents"
