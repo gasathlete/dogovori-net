@@ -317,22 +317,16 @@ export function DogovAIBubble() {
   const goFullExperience = () => {
     setOpen(false);
     setChooserOpen(false);
-    try { localStorage.setItem(SIZE_PREF_KEY, "full"); } catch { /* ignore */ }
     navigate(user ? "/console/assistant" : "/assistant");
   };
 
   const openSmall = () => {
     setChooserOpen(false);
-    try { localStorage.setItem(SIZE_PREF_KEY, "small"); } catch { /* ignore */ }
     setOpen(true);
   };
 
   const handleBubbleClick = () => {
     if (open) { setOpen(false); return; }
-    let pref: string | null = null;
-    try { pref = localStorage.getItem(SIZE_PREF_KEY); } catch { /* ignore */ }
-    if (pref === "small") { setOpen(true); return; }
-    if (pref === "full") { goFullExperience(); return; }
     setChooserOpen(true);
   };
 
