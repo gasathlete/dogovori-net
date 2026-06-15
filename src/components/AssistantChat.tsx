@@ -641,7 +641,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       </div>
 
       {/* Right: Sources panel */}
-      {!compact && showSources && allCitations.length > 0 && (
+      {(!compact || embedded) && showSources && allCitations.length > 0 && (
         <aside className="hidden w-64 flex-col rounded-lg border border-border/60 bg-card/40 lg:flex">
           <div className="flex items-center justify-between border-b border-border/60 px-3 py-2">
             <div className="flex items-center gap-1.5">
