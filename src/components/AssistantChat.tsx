@@ -112,6 +112,7 @@ export function AssistantChat({ compact = false, threadId: threadIdProp, onThrea
 
   const setPersistedActiveThreadId = useCallback((nextThreadId: string | null) => {
     setActiveThreadId(nextThreadId);
+    onThreadChange?.(nextThreadId);
     if (!activeThreadStorageKey || typeof window === "undefined") return;
     try {
       if (nextThreadId) {
@@ -122,7 +123,15 @@ export function AssistantChat({ compact = false, threadId: threadIdProp, onThrea
     } catch {
       /* ignore */
     }
-  }, [activeThreadStorageKey]);
+  }, [activeThreadStorageKey, onThreadChange]);
+
+  // Sync from external prop (URL-driven)
+  useEffect(() => {
+    if (threadIdProp === undefined) return;
+    if (threadIdProp !== activeThreadId) {
+      setActiveThreadId(threadIdProp);
+    }
+  }, [threadIdProp]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!activeThreadStorageKey || typeof window === "undefined") {
