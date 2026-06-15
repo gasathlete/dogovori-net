@@ -483,14 +483,25 @@ export function DogovAIBubble() {
                 </div>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-              aria-label="Затвори"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={goFullExperience}
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-gold"
+                aria-label="Отвори на цял екран"
+                title="Цял екран (full experience)"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label="Затвори"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
           <div className="min-h-0 flex-1 overflow-hidden">
             {open && (user ? <AssistantChat compact key={resetKey} /> : <AnonChat resetKey={resetKey} />)}
