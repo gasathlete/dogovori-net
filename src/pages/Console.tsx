@@ -35,7 +35,7 @@ function ConsoleShell() {
         <ConsoleSidebar />
         {isAssistant ? (
           <div className="flex flex-1 flex-col overflow-hidden p-3">
-            <AssistantChat compact />
+            <AssistantChat embedded />
           </div>
         ) : (
           <>
