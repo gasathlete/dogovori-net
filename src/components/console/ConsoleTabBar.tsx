@@ -73,7 +73,7 @@ function TabPill({ tab }: { tab: ConsoleTab }) {
             close(tab.id);
           }}
           aria-label="Затвори"
-          className="ml-0.5 inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground/60 opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100"
+          className="ml-0.5 inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground/80 transition-colors hover:bg-destructive/15 hover:text-destructive"
         >
           <X className="h-3 w-3" />
         </button>
