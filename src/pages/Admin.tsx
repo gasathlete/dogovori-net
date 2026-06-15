@@ -134,6 +134,7 @@ export default function AdminPage() {
           <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/pentest">🔒 Пен-тестове</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/restore-drills">💾 Restore drills</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/subscriptions">💳 Абонаменти & екипи</Link></Button>
+          <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/plans">💶 Планове и цени</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/ai-training">🧠 AI обучение</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/legal-kb">📖 Нормативна база</Link></Button>
           <BlankCacheWarmer />

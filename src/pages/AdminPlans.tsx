@@ -27,7 +27,7 @@ import {
 } from "@/hooks/usePlans";
 
 export default function AdminPlans() {
-  const { data, isLoading, refetch } = usePlansAdmin();
+  const { data, isLoading, error, refetch } = usePlansAdmin();
   const qc = useQueryClient();
 
   const invalidate = () => {
@@ -51,8 +51,14 @@ export default function AdminPlans() {
           </div>
         </div>
 
-        {isLoading || !data ? (
+        {isLoading ? (
           <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin" /></div>
+        ) : error ? (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-5 text-sm text-destructive">
+            Неуспешно зареждане на плановете: {(error as Error).message}
+          </div>
+        ) : !data ? (
+          <div className="rounded-lg border p-5 text-sm text-muted-foreground">Няма намерени данни за планове.</div>
         ) : (
           <Tabs defaultValue="plans">
             <TabsList>
