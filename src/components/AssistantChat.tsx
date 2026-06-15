@@ -46,10 +46,12 @@ interface Thread {
 }
 
 const QUICK_ACTIONS = [
-  { label: "Намери шаблон", text: "Помогни ми да намеря подходящ шаблон за договор за наем на офис." },
-  { label: "Обясни клауза", text: "Какво означава клауза за неустойка и кога е валидна по ЗЗД?" },
-  { label: "Електронен подпис", text: "Как мога да подпиша документ електронно през платформата?" },
-  { label: "Проблем с плащане", text: "Имам въпрос относно моя абонамент и плащането." },
+  { label: "🔍 Правни проучвания", text: "Направи правно проучване по ЗЗД относно неустойки — цитирай актуални редакции и съдебна практика." },
+  { label: "⚖️ Съдебна практика", text: "Намери релевантна практика на ВКС/ВАС по въпроса за прекомерна неустойка." },
+  { label: "📄 Анализ на документ", text: "Искам да кача договор и да получа правен риск-анализ." },
+  { label: "🛠️ Създаване на документ", text: "Помогни ми да създам трудов договор с конкретни клаузи." },
+  { label: "🤝 Преговорен режим", text: "Активирай преговорен режим — помогни ми да договоря по-добри условия по моя договор." },
+  { label: "📦 Комплекти документи", text: "Покажи ми комплекти документи за стартиране на ЕООД." },
 ];
 
 const ACTIVE_THREAD_STORAGE_PREFIX = "dogovaryai_active_thread:";
@@ -58,7 +60,7 @@ function getActiveThreadStorageKey(userId: string) {
   return `${ACTIVE_THREAD_STORAGE_PREFIX}${userId}`;
 }
 
-export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
+export function AssistantChat({ compact = false, threadId: threadIdProp, onThreadChange }: { compact?: boolean; threadId?: string | null; onThreadChange?: (id: string | null) => void } = {}) {
   const { user, session } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -110,6 +112,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
 
   const setPersistedActiveThreadId = useCallback((nextThreadId: string | null) => {
     setActiveThreadId(nextThreadId);
+    onThreadChange?.(nextThreadId);
     if (!activeThreadStorageKey || typeof window === "undefined") return;
     try {
       if (nextThreadId) {
@@ -120,7 +123,15 @@ export function AssistantChat({ compact = false }: { compact?: boolean } = {}) {
     } catch {
       /* ignore */
     }
-  }, [activeThreadStorageKey]);
+  }, [activeThreadStorageKey, onThreadChange]);
+
+  // Sync from external prop (URL-driven)
+  useEffect(() => {
+    if (threadIdProp === undefined) return;
+    if (threadIdProp !== activeThreadId) {
+      setActiveThreadId(threadIdProp);
+    }
+  }, [threadIdProp]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!activeThreadStorageKey || typeof window === "undefined") {
