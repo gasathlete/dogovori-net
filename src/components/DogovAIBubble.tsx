@@ -259,10 +259,10 @@ function AnonChat({ resetKey }: { resetKey: number }) {
       {limitReached ? (
         <div className="border-t border-gold/40 bg-gradient-to-br from-gold/15 via-card to-card p-4 text-center">
           <p className="mb-2 text-sm font-medium">
-            Изчерпахте 3-те безплатни съобщения.
+            Изчерпахте {ANON_LIMIT}-те безплатни съобщения.
           </p>
           <p className="mb-3 text-xs text-muted-foreground">
-            Регистрирайте се за пълен достъп до DogovaryAI, шаблони и анализи.
+            Регистрирайте се и получете още 15 безплатни съобщения, шаблони и анализи.
           </p>
           <Link
             to="/auth"
