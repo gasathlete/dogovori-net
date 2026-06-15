@@ -111,7 +111,7 @@ export function useIsPro(): ProState {
         opsUsed: (q as any)?.monthly_total_used ?? 0,
         opsCap,
         aiMessagesUsed: (q as any)?.ai_messages_used ?? 0,
-        aiMessagesCap: 5,
+        aiMessagesCap: 15,
         analysisPreviewsUsed: (q as any)?.analysis_previews_used ?? 0,
         analysisPreviewsCap: 1,
         bilingualPreviewsUsed: (q as any)?.bilingual_previews_used ?? 0,
