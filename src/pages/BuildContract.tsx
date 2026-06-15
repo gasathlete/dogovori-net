@@ -1350,124 +1350,34 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
           </section>
 
           {/* RIGHT — Live draft / Guidance pane */}
-          <section className="lg:sticky lg:top-32 lg:max-h-[calc(100dvh-9rem)] lg:overflow-y-auto">
-            {result ? (
-              <>
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gold">
-                    <FileText className="h-3.5 w-3.5" />
-                    Краен документ
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={!!exporting}
-                      onClick={() => handleExport("pdf")}
-                      title="Свали PDF"
-                      className="h-8 px-2 text-gold hover:bg-gold/10"
-                    >
-                      {exporting === "pdf" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => window.print()}
-                      title="Печат"
-                      className="h-8 px-2 text-gold hover:bg-gold/10"
-                    >
-                      <Printer className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <DetectedReferencesBanner
-                    key={appendixRefreshTick}
-                    text={collectContractText(result.contract)}
-                    parentSavedId={savedDocId ?? null}
-                    parentTitle={name || result.contract.title}
-                    parentContext={{
-                      partiesA: splitLines(partiesA),
-                      partiesB: splitLines(partiesB),
-                      subject: (fieldValues.subject ?? "").trim(),
-                    }}
-                    onChildLinked={() => setAppendixRefreshTick((t) => t + 1)}
-                  />
-                  <LiveDraft
-                    sector={syntheticSector}
-                    answers={syntheticAnswers}
-                    generated={result.contract}
-                    signature={signature}
-                    isPro={isPro}
-                    onContractChange={(next) => {
-                      if (!result) return;
-                      setResult({ ...result, contract: { ...result.contract, ...next } });
-                      setSavedDocId(undefined);
-                    }}
-                  />
-                </div>
-                <MultiPartySigningDialog
-                  open={signDialogOpen}
-                  onOpenChange={setSignDialogOpen}
-                  title={(name || result.contract.title || "Договор").trim()}
-                  documentSnapshot={result.contract}
-                  savedDocumentId={savedDocId ?? null}
-                  isPro={isPro}
-                  freeAvailable={signingFreeAvailable}
-                  onCreated={refreshPro}
-                />
-              </>
-            ) : (
-              <>
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gold">
-                    <FileText className="h-3.5 w-3.5" />
-                    Работен документ
-                  </div>
-                  <span className="text-xs text-muted-foreground">Актуализация в реално време</span>
-                </div>
-                <LiveDraft
-                  sector={syntheticSector}
-                  answers={syntheticAnswers}
-                  generated={null}
-                  isPro={isPro}
-                  bilingual={bilingual && canBilingual}
-                  docName={name}
-                  documentType={documentType}
-                />
-              </>
-            )}
-          </section>
+          <PreviewPane
+            result={result}
+            syntheticSector={syntheticSector}
+            syntheticAnswers={syntheticAnswers}
+            signature={signature}
+            isPro={isPro}
+            name={name}
+            partiesA={partiesA}
+            partiesB={partiesB}
+            fieldValues={fieldValues}
+            bilingual={bilingual}
+            canBilingual={canBilingual}
+            documentType={documentType}
+            exporting={exporting}
+            savedDocId={savedDocId}
+            appendixRefreshTick={appendixRefreshTick}
+            setAppendixRefreshTick={setAppendixRefreshTick}
+            signDialogOpen={signDialogOpen}
+            setSignDialogOpen={setSignDialogOpen}
+            signingFreeAvailable={signingFreeAvailable}
+            refreshPro={refreshPro}
+            onExport={handleExport}
+            setResult={setResult}
+            setSavedDocId={setSavedDocId}
+          />
         </div>
       </main>
     </div>
   );
 }
 
-function Field({
-  label,
-  required,
-  hint,
-  help,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  hint?: string;
-  help?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline justify-between gap-2">
-        <Label className="text-sm font-medium text-foreground">
-          {label}
-          {required && <span className="ml-1 text-gold">*</span>}
-        </Label>
-        {hint && <span className="text-[11px] italic text-muted-foreground">{hint}</span>}
-      </div>
-      {help && <p className="text-[11px] text-muted-foreground">{help}</p>}
-      {children}
-    </div>
-  );
-}
