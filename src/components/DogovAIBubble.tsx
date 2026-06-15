@@ -309,8 +309,32 @@ function AnonChat({ resetKey }: { resetKey: number }) {
 export function DogovAIBubble() {
   const { user, loading } = useAuth();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [chooserOpen, setChooserOpen] = useState(false);
   const [resetKey, setResetKey] = useState(0);
+
+  const goFullExperience = () => {
+    setOpen(false);
+    setChooserOpen(false);
+    try { localStorage.setItem(SIZE_PREF_KEY, "full"); } catch { /* ignore */ }
+    navigate(user ? "/console/assistant" : "/assistant");
+  };
+
+  const openSmall = () => {
+    setChooserOpen(false);
+    try { localStorage.setItem(SIZE_PREF_KEY, "small"); } catch { /* ignore */ }
+    setOpen(true);
+  };
+
+  const handleBubbleClick = () => {
+    if (open) { setOpen(false); return; }
+    let pref: string | null = null;
+    try { pref = localStorage.getItem(SIZE_PREF_KEY); } catch { /* ignore */ }
+    if (pref === "small") { setOpen(true); return; }
+    if (pref === "full") { goFullExperience(); return; }
+    setChooserOpen(true);
+  };
 
   // Reset only the anonymous trial chat after idle timeout.
   useEffect(() => {
