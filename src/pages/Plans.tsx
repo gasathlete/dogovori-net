@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, X, ArrowRight, Sparkles, ShieldCheck, Users, Zap, Crown } from "lucide-react";
+import { Check, X, ArrowRight, Sparkles, ShieldCheck, Users, Zap, Crown, Loader2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Seo } from "@/components/Seo";
@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/accordion";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
-import { PLANS, COMPARISON_ROWS, FAQ, type Billing, type PlanId } from "@/lib/plansData";
+import { FAQ } from "@/lib/plansData";
+import { usePlans, type Billing, type PlanId } from "@/hooks/usePlans";
 import { trackEvent } from "@/lib/analytics";
 
 const PLAN_ICON: Record<PlanId, React.ComponentType<{ className?: string }>> = {
