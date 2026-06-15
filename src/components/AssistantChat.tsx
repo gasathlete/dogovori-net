@@ -496,9 +496,26 @@ export function AssistantChat({ compact = false, threadId: threadIdProp, onThrea
               </p>
             </div>
           </div>
-          <Button onClick={handleNewThread} variant="ghost" size="sm" className="md:hidden">
-            <Plus className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            {messages.length > 0 && (
+              <>
+                <button type="button" onClick={shareConversation} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-gold" title="Сподели разговор" aria-label="Сподели">
+                  <Share2 className="h-4 w-4" />
+                </button>
+                <button type="button" onClick={exportConversation} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-gold" title="Изтегли (.md)" aria-label="Изтегли">
+                  <Download className="h-4 w-4" />
+                </button>
+              </>
+            )}
+            {allCitations.length > 0 && (
+              <button type="button" onClick={() => setShowSources((v) => !v)} className={cn("hidden md:inline-flex rounded-md p-1.5 transition-colors", showSources ? "bg-gold/15 text-gold" : "text-muted-foreground hover:bg-muted hover:text-gold")} title="Източници" aria-label="Източници">
+                <BookOpen className="h-4 w-4" />
+              </button>
+            )}
+            <Button onClick={handleNewThread} variant="ghost" size="sm" className="md:hidden">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Messages */}
