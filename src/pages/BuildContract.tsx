@@ -5,12 +5,19 @@ import { ArrowLeft, ArrowRight, Loader2, FileDown, FileText, Save, Wand2, Sparkl
 import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-type BuildMode = "fast" | "working" | "strict";
-const BUILD_MODES: { id: BuildMode; label: string; short: string; description: string; icon: any }[] = [
-  { id: "fast", label: "Бърз", short: "Бърз", description: "По-прости документи без висока прецизност — кратко и ясно.", icon: Zap },
-  { id: "working", label: "Разширен", short: "Разширен", description: "Балансирана версия с опционално надграждане.", icon: Briefcase },
-  { id: "strict", label: "Стриктен", short: "Стриктен", description: "Подробно, високопрофесионално — съвети и стриктна правна форма.", icon: Scale },
-];
+import {
+  type BuildMode,
+  BUILD_MODES,
+  buildPresetSignature,
+  type AIResult,
+  STORAGE_KEY,
+  splitLines,
+  GEN_STEPS,
+  Field,
+} from "./buildContract/parts";
+import { PreviewPane } from "./buildContract/PreviewPane";
+import { FinalizePane } from "./buildContract/FinalizePane";
+
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,14 +25,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LiveDraft } from "@/components/wizard/LiveDraft";
-import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
-import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
-import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
-import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
-import { DetectedReferencesBanner } from "@/components/DetectedReferencesBanner";
+import { type RiskLevel } from "@/components/wizard/RiskMeter";
+import { type RiskIssue } from "@/components/wizard/RiskReport";
+import { type SignatureData } from "@/components/wizard/SignatureBlock";
+import { type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
 import { MultiPartySigningDialog } from "@/components/MultiPartySigningDialog";
 import { SECTORS, type Sector } from "@/data/sectors";
-import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, collectContractText, type DocumentTypeId } from "@/lib/documentReferences";
+import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, type DocumentTypeId } from "@/lib/documentReferences";
 import { getBuildSchema, type BuildField } from "@/lib/documentFieldSchemas";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -42,31 +48,7 @@ import { findSimilarTemplates, type SimilarTemplate } from "@/lib/templateSimila
 import { Link } from "react-router-dom";
 import { Info, X } from "lucide-react";
 
-const buildPresetSignature = (params: URLSearchParams) => [
-  params.get("category") ?? "",
-  params.get("documentType") ?? "",
-  params.get("name") ?? "",
-  params.get("bilingual") ?? "",
-  params.get("parentSavedId") ?? "",
-  params.get("parentUploadedId") ?? "",
-  params.get("parentTitle") ?? "",
-  params.get("refNumber") ?? "",
-  params.get("refType") ?? "",
-  params.get("partiesA") ?? "",
-  params.get("partiesB") ?? "",
-  params.get("subject") ?? "",
-].join("|");
 
-
-interface AIResult {
-  risk: { level: RiskLevel; score: number; summary: string; issues: RiskIssue[]; recommendations: string[] };
-  contract: GeneratedContract;
-}
-
-const STORAGE_KEY = "build:custom-contract";
-
-const splitLines = (s: string) =>
-  s.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
 
 export interface BuildContractPageProps {
   /**
@@ -1337,220 +1319,65 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
             )}
 
             {result && (
-              <div className="space-y-5 animate-fade-in">
-                <RiskMeter level={result.risk.level} score={result.risk.score} summary={result.risk.summary} />
-                <CorrectionsPanel
-                  isPro={isPro}
-                  freeWaveAvailable={freeWaveAvailable}
-                  issues={result.risk.issues || []}
-                  recommendations={result.risk.recommendations || []}
-                  loading={applyingCorrections}
-                  applied={appliedNotes}
-                  onApply={handleApplyCorrections}
-                  onUpgrade={() => navigate("/account?tab=subscription")}
-                />
-                <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft">
-                  <RiskReport
-                    level={result.risk.level}
-                    issues={result.risk.issues || []}
-                    recommendations={result.risk.recommendations || []}
-                    isPro={isPro}
-                  />
-                </div>
-
-                <SignatureBlock
-                  isPro={isPro}
-                  defaultPartyA={syntheticAnswers.party_a_name}
-                  defaultPartyB={syntheticAnswers.party_b_name}
-                  value={signature}
-                  onChange={setSignature}
-                />
-
-                <div className="rounded-xl border border-gold/30 bg-gradient-card p-6 shadow-soft">
-                  <h3 className="mb-1 font-serif text-lg font-bold">Финализиране</h3>
-                  <p className="mb-4 text-xs text-muted-foreground">
-                    Експорт, подпис и запис в профила — както при шаблонните договори.
-                  </p>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <Button
-                      onClick={() => handleExport("pdf")}
-                      disabled={!!exporting}
-                      className="flex-1 bg-gradient-gold text-navy hover:shadow-gold"
-                    >
-                      {exporting === "pdf" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
-                      Свали PDF
-                    </Button>
-                    <Button
-                      onClick={() => handleExport("docx")}
-                      disabled={!!exporting}
-                      variant="outline"
-                      className="flex-1 border-gold/40 hover:bg-gold/10 hover:text-gold"
-                    >
-                      {exporting === "docx" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
-                      Свали DOCX
-                    </Button>
-                  </div>
-                  <Button
-                    onClick={handleSaveToProfile}
-                    disabled={saving || !!savedDocId}
-                    variant="outline"
-                    className="mt-2 w-full border-gold/40 hover:bg-gold/10 hover:text-gold"
-                  >
-                    {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    {savedDocId ? "Запазено в профила" : "Запази в профила"}
-                  </Button>
-                  <Button
-                    onClick={() => setSignDialogOpen(true)}
-                    variant="outline"
-                    className="mt-2 w-full border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10"
-                  >
-                    <FileSignature className="mr-2 h-4 w-4" />
-                    Експорт за онлайн подпис
-                    {!isPro && signingFreeAvailable && (
-                      <span className="ml-2 inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
-                        1 безплатна
-                      </span>
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      try { localStorage.removeItem(STORAGE_KEY); } catch {}
-                      setResult(null);
-                      setName(""); setCategoryId(""); setCategoryOther("");
-                      setPartiesA(""); setPartiesB("");
-                      setFieldValues({});
-                      setSavedDocId(undefined);
-                      setSignature({ name_a: "", name_b: "", city: "", date: "" });
-                    }}
-                    className="mt-3 w-full text-xs text-muted-foreground hover:text-gold"
-                  >
-                    Започни нов договор
-                  </Button>
-                </div>
-              </div>
+              <FinalizePane
+                result={result}
+                isPro={isPro}
+                freeWaveAvailable={freeWaveAvailable}
+                applyingCorrections={applyingCorrections}
+                appliedNotes={appliedNotes}
+                syntheticAnswers={syntheticAnswers}
+                signature={signature}
+                setSignature={setSignature}
+                exporting={exporting}
+                saving={saving}
+                savedDocId={savedDocId}
+                signingFreeAvailable={signingFreeAvailable}
+                onApplyCorrections={handleApplyCorrections}
+                onExport={handleExport}
+                onSaveToProfile={handleSaveToProfile}
+                setSignDialogOpen={setSignDialogOpen}
+                onResetAll={() => {
+                  try { localStorage.removeItem(STORAGE_KEY); } catch {}
+                  setResult(null);
+                  setName(""); setCategoryId(""); setCategoryOther("");
+                  setPartiesA(""); setPartiesB("");
+                  setFieldValues({});
+                  setSavedDocId(undefined);
+                  setSignature({ name_a: "", name_b: "", city: "", date: "" });
+                }}
+              />
             )}
           </section>
 
           {/* RIGHT — Live draft / Guidance pane */}
-          <section className="lg:sticky lg:top-32 lg:max-h-[calc(100dvh-9rem)] lg:overflow-y-auto">
-            {result ? (
-              <>
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gold">
-                    <FileText className="h-3.5 w-3.5" />
-                    Краен документ
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={!!exporting}
-                      onClick={() => handleExport("pdf")}
-                      title="Свали PDF"
-                      className="h-8 px-2 text-gold hover:bg-gold/10"
-                    >
-                      {exporting === "pdf" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => window.print()}
-                      title="Печат"
-                      className="h-8 px-2 text-gold hover:bg-gold/10"
-                    >
-                      <Printer className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <DetectedReferencesBanner
-                    key={appendixRefreshTick}
-                    text={collectContractText(result.contract)}
-                    parentSavedId={savedDocId ?? null}
-                    parentTitle={name || result.contract.title}
-                    parentContext={{
-                      partiesA: splitLines(partiesA),
-                      partiesB: splitLines(partiesB),
-                      subject: (fieldValues.subject ?? "").trim(),
-                    }}
-                    onChildLinked={() => setAppendixRefreshTick((t) => t + 1)}
-                  />
-                  <LiveDraft
-                    sector={syntheticSector}
-                    answers={syntheticAnswers}
-                    generated={result.contract}
-                    signature={signature}
-                    isPro={isPro}
-                    onContractChange={(next) => {
-                      if (!result) return;
-                      setResult({ ...result, contract: { ...result.contract, ...next } });
-                      setSavedDocId(undefined);
-                    }}
-                  />
-                </div>
-                <MultiPartySigningDialog
-                  open={signDialogOpen}
-                  onOpenChange={setSignDialogOpen}
-                  title={(name || result.contract.title || "Договор").trim()}
-                  documentSnapshot={result.contract}
-                  savedDocumentId={savedDocId ?? null}
-                  isPro={isPro}
-                  freeAvailable={signingFreeAvailable}
-                  onCreated={refreshPro}
-                />
-              </>
-            ) : (
-              <>
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gold">
-                    <FileText className="h-3.5 w-3.5" />
-                    Работен документ
-                  </div>
-                  <span className="text-xs text-muted-foreground">Актуализация в реално време</span>
-                </div>
-                <LiveDraft
-                  sector={syntheticSector}
-                  answers={syntheticAnswers}
-                  generated={null}
-                  isPro={isPro}
-                  bilingual={bilingual && canBilingual}
-                  docName={name}
-                  documentType={documentType}
-                />
-              </>
-            )}
-          </section>
+          <PreviewPane
+            result={result}
+            syntheticSector={syntheticSector}
+            syntheticAnswers={syntheticAnswers}
+            signature={signature}
+            isPro={isPro}
+            name={name}
+            partiesA={partiesA}
+            partiesB={partiesB}
+            fieldValues={fieldValues}
+            bilingual={bilingual}
+            canBilingual={canBilingual}
+            documentType={documentType}
+            exporting={exporting}
+            savedDocId={savedDocId}
+            appendixRefreshTick={appendixRefreshTick}
+            setAppendixRefreshTick={setAppendixRefreshTick}
+            signDialogOpen={signDialogOpen}
+            setSignDialogOpen={setSignDialogOpen}
+            signingFreeAvailable={signingFreeAvailable}
+            refreshPro={refreshPro}
+            onExport={handleExport}
+            setResult={setResult}
+            setSavedDocId={setSavedDocId}
+          />
         </div>
       </main>
     </div>
   );
 }
 
-function Field({
-  label,
-  required,
-  hint,
-  help,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  hint?: string;
-  help?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline justify-between gap-2">
-        <Label className="text-sm font-medium text-foreground">
-          {label}
-          {required && <span className="ml-1 text-gold">*</span>}
-        </Label>
-        {hint && <span className="text-[11px] italic text-muted-foreground">{hint}</span>}
-      </div>
-      {help && <p className="text-[11px] text-muted-foreground">{help}</p>}
-      {children}
-    </div>
-  );
-}
