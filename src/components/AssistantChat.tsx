@@ -60,7 +60,7 @@ function getActiveThreadStorageKey(userId: string) {
   return `${ACTIVE_THREAD_STORAGE_PREFIX}${userId}`;
 }
 
-export function AssistantChat({ compact = false, threadId: threadIdProp, onThreadChange }: { compact?: boolean; threadId?: string | null; onThreadChange?: (id: string | null) => void } = {}) {
+export function AssistantChat({ compact = false, embedded = false, threadId: threadIdProp, onThreadChange }: { compact?: boolean; embedded?: boolean; threadId?: string | null; onThreadChange?: (id: string | null) => void } = {}) {
   const { user, session } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -433,12 +433,13 @@ export function AssistantChat({ compact = false, threadId: threadIdProp, onThrea
 
   return (
     <div
-      className={cn("flex gap-3 sm:gap-4", compact ? "h-full" : "h-[calc(100dvh-12rem)] min-h-[500px]")}
+      className={cn("flex gap-3 sm:gap-4", embedded ? "h-full" : compact ? "h-full" : "h-[calc(100dvh-12rem)] min-h-[500px]")}
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
     >
       {/* Threads sidebar */}
-      <aside className={cn("w-56 flex-col rounded-lg border border-border/60 bg-card/40 p-2", compact ? "hidden" : "hidden md:flex")}>
+      <aside className={cn("w-56 flex-col rounded-lg border border-border/60 bg-card/40 p-2", embedded ? "hidden md:flex" : compact ? "hidden" : "hidden md:flex")}>
+
         <Button
           onClick={handleNewThread}
           variant="outline"
@@ -480,7 +481,7 @@ export function AssistantChat({ compact = false, threadId: threadIdProp, onThrea
       </aside>
 
       {/* Chat panel */}
-      <div className={cn("flex flex-1 flex-col bg-card/40", compact ? "min-h-0" : "rounded-lg border border-border/60")}>
+      <div className={cn("flex flex-1 flex-col bg-card/40", embedded ? "rounded-lg border border-border/60 min-h-0" : compact ? "min-h-0" : "rounded-lg border border-border/60")}>
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
           <div className="flex items-center gap-2">
@@ -640,7 +641,7 @@ export function AssistantChat({ compact = false, threadId: threadIdProp, onThrea
       </div>
 
       {/* Right: Sources panel */}
-      {!compact && showSources && allCitations.length > 0 && (
+      {(!compact || embedded) && showSources && allCitations.length > 0 && (
         <aside className="hidden w-64 flex-col rounded-lg border border-border/60 bg-card/40 lg:flex">
           <div className="flex items-center justify-between border-b border-border/60 px-3 py-2">
             <div className="flex items-center gap-1.5">
