@@ -164,9 +164,7 @@ const rad = (id: string, label: string, options: string[], required = true): Que
 const sub = (documentName: string, questions: Question[], contractName?: string, parties?: { a: string; b: string }): SubWizard =>
   ({ documentName, contractName, parties, questions });
 
-import sectorsData from "./sectors.data.json";
-
-export const SECTORS: Sector[] = sectorsData as Sector[]; = [
+export const SECTORS: Sector[] = [
   // ====================== 1) NEDVIZHIMI IMOTI / NAEMI ======================
   {
     id: "real-estate",
