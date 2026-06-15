@@ -721,7 +721,7 @@ function MessageBubble({ role, content, isStreaming, citations, toolEvents, foll
   if (role === "user") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-gold/15 px-4 py-2.5 text-sm text-foreground">
+        <div className="max-w-[85%] rounded-2xl rounded-tr-md bg-gold px-3.5 py-2 text-sm leading-relaxed text-navy shadow-sm">
           {content}
         </div>
       </div>
@@ -729,8 +729,8 @@ function MessageBubble({ role, content, isStreaming, citations, toolEvents, foll
   }
   const hasText = content && content.trim().length > 0;
   return (
-    <div className="flex gap-2">
-      <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gold/15">
+    <div className="flex gap-2.5">
+      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-gold/20 to-gold/5 ring-1 ring-gold/20">
         <Bird className="h-3 w-3 text-gold" />
       </div>
       <div className="max-w-[85%] flex-1 text-sm text-foreground">
