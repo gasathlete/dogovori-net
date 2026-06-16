@@ -1,25 +1,35 @@
 
-## Какво ще направя (без рискове)
+## Защо в Google/Claude виждаш стари данни
 
-Добавям единствен нов файл `public/_headers` за продукционния билд. Не пипам нищо друго.
+Има **два различни проблема**, не са в самия сайт:
 
-### Важно решение: НЕ пипам `robots.txt`
+### 1) Старо число "280+ шаблона" в `public/llms.txt`
+Това е единственото място в кода с остарялото число. Сайтът в `index.html` и Hero вече показва **600+**. Поправям llms.txt → 600+.
 
-В `public/robots.txt` GPTBot/Claude/Perplexity и др. са **умишлено блокирани** с коментар: *"Block AI training / dataset scrapers — content is original Bulgarian legal material."* Това е съзнателна защита на оригинално българско правно съдържание. iptrack показва "Блокиран" в жълто като предупреждение, но за този проект това е правилното поведение. Оставям го непроменено.
+### 2) "Стои +290 в Гугъл" — кеш на Google, не грешка в сайта
+Title и description в `index.html` вече казват `600+ безплатни образци`. Това което виждаш в Google резултатите е **кеширана версия** — Google преиндексира на своя график (дни до седмици). Не може да се "оправи" с код. Решава се с:
+- Request Indexing в **Google Search Console** за `/` и `/catalog`
+- Изчакване (HSTS + sitemap lastmod вече подсказват на crawler-а)
 
-### `public/_headers` (нов файл)
+### 3) "Стои старо в Claude" — Claude НЕ може да чете сайта
+В `public/robots.txt` блокираш: `ClaudeBot`, `Claude-Web`, `anthropic-ai`, `GPTBot`, `ChatGPT-User`, `PerplexityBot` и др. Това е твое съзнателно решение (защита на легалното съдържание). Затова Claude показва остарели данни от тренировъчните си данни — той физически няма достъп до сайта. **Това не е бъг.**
 
-- **CSP** — `default-src 'self'` + whitelist за Supabase, Stripe, Lovable CDN. Включва `'unsafe-inline'` + `'unsafe-eval'` (нужни за Vite/React runtime), за да не счупя нищо.
-- **Permissions-Policy** — изключва camera/microphone/geolocation/usb и т.н.; payment разрешено за Stripe.
-- **X-Frame-Options: SAMEORIGIN** — анти-clickjacking.
-- **HSTS** — `max-age=31536000; includeSubDomains; preload`.
-- **Cache-Control**:
-  - `/assets/*`, `*.js`, `*.css`, `*.woff2` → `max-age=31536000, immutable` (Vite слага хеш в името)
-  - изображения → 30 дни
-  - `index.html` → `no-cache, must-revalidate` (за да не остане стара версия)
+Ако искаш Claude/ChatGPT да виждат актуални данни → трябва да отблокираш ChatGPT-User и Claude-Web (search bots, не training bots) в robots.txt. Кажи изрично и ще го направя.
 
-### Бележка
+## Какво ще променя сега (без рискове)
 
-`_headers` се чете от Lovable hosting. Ще влезе в сила след следващото публикуване. Custom домейн `dogovori.net` минава през Lovable hosting → ще работи. Ако някоя страница се счупи от CSP, ще релаксирам конкретния директив.
+**Файл 1: `public/llms.txt`**
+- Ред 3: `Над 280 готови шаблона` → `Над 600 готови шаблона`
+- Ред 10: `Списък с 280+ шаблона` → `Списък с 600+ шаблона`
+
+**Файл 2: `public/sitemap-static.xml` и под-сайтмапите**
+- Обновявам `<lastmod>` на главните URL-и → днешна дата, за да подскажа на Google да преиндексира
+
+**Файл 3: НЕ пипам `robots.txt`** — AI ботовете остават блокирани (твое решение).
+
+## Какво ТРЯБВА да направиш ти (не е код)
+
+1. **Google Search Console** → URL Inspection → въведи `https://dogovori.net/` → **Request Indexing**. Повтори за `/catalog`.
+2. Изчакай 3–10 дни Google да преиндексира.
 
 Да приложа?
