@@ -440,7 +440,7 @@
   .text-accent-gradient::before {
     content: '';
     position: absolute;
-    top: -0.22em;
+    top: -0.05em;
     left: 50%;
     transform: translateX(-50%);
     width: 0.12em;
