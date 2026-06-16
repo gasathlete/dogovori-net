@@ -546,8 +546,8 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
               <h3 className="text-sm font-semibold leading-tight text-foreground truncate">DogovaryAI</h3>
               <p className="text-[10px] leading-tight text-muted-foreground truncate">
                 {isPro || isTeam
-                  ? "Неограничен достъп · онлайн"
-                  : `${aiRemaining}/${freeQuota.aiMessagesCap} съобщения · този месец`}
+                  ? `${Math.max(0, freeQuota.opsCap - freeQuota.opsUsed)}/${freeQuota.opsCap} операции · този месец`
+                  : `${Math.max(0, freeQuota.opsCap - freeQuota.opsUsed)}/${freeQuota.opsCap} безплатни операции`}
               </p>
             </div>
             <a
