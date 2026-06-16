@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { Seo } from "@/components/Seo";
 import { PlansHeroAnimation } from "@/components/PlansHeroAnimation";
 import { ExpandableCard } from "@/components/ui/ExpandableCard";
+import { TopupPacks } from "@/components/TopupPacks";
 
 import {
   Accordion,
