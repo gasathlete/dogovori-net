@@ -64,7 +64,7 @@ export function Testimonials() {
           Мнения
         </div>
         <h2 className="font-serif text-2xl font-bold leading-[1.15] text-balance sm:text-3xl md:text-4xl lg:text-[44px]">
-          Какво казват професионалистите
+          Не подписваме просто договори. Договаряме партньорства
         </h2>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
           Юристи, фрийлансъри и малки бизнеси, които използват Dogovori.net ежедневно.

@@ -17,7 +17,7 @@ export function FAQ() {
       <div className="mx-auto mb-10 max-w-2xl text-center">
         <div className="eyebrow mb-3 justify-center">Често задавани въпроси</div>
         <h2 className="font-serif text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl">
-          Всичко, което може да Ви спре — изяснено
+          Вашите въпроси ?
         </h2>
       </div>
       <div className="mx-auto max-w-3xl">
