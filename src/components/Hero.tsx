@@ -147,7 +147,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
 
           {/* CTA — visible immediately */}
           <div
-            className="anim-rise mt-3 flex flex-col items-center justify-center gap-2"
+            className="anim-rise mt-2 flex flex-col items-center justify-center gap-1.5 sm:mt-3 sm:gap-2"
             style={{ animationDelay: "120ms" }}
           >
             {user ? (
