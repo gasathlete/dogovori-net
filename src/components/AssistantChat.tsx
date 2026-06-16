@@ -533,20 +533,28 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       {/* Chat panel */}
       <div className={cn("flex flex-1 flex-col bg-card/30 backdrop-blur-sm min-w-0", embedded ? "rounded-xl border border-border/50 min-h-0" : compact ? "min-h-0" : "rounded-xl border border-border/50")}>
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5">
-          <div className="flex items-center gap-2.5">
-            <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-gold/20 to-gold/5 ring-1 ring-gold/20">
+        <div className="flex items-center justify-between gap-2 border-b border-border/40 px-3 py-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-gold/20 to-gold/5 ring-1 ring-gold/20">
               <Bird className="h-4 w-4 text-gold" />
               <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-card" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-sm font-semibold leading-tight text-foreground">DogovaryAI</h3>
-              <p className="text-[10px] leading-tight text-muted-foreground">
+              <h3 className="text-sm font-semibold leading-tight text-foreground truncate">DogovaryAI</h3>
+              <p className="text-[10px] leading-tight text-muted-foreground truncate">
                 {isPro || isTeam
                   ? "Неограничен достъп · онлайн"
                   : `${aiRemaining}/${freeQuota.aiMessagesCap} съобщения · този месец`}
               </p>
             </div>
+            <a
+              href="mailto:hello@dogovori.net?subject=Обратна връзка за DogovaryAI"
+              className="ml-2 hidden md:inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-gold/40 hover:text-gold"
+              title="Дай обратна връзка"
+            >
+              <AlertCircle className="h-3 w-3" />
+              <span>Дай обратна връзка</span>
+            </a>
           </div>
           <div className="flex items-center gap-0.5">
             {messages.length > 0 && (
@@ -557,6 +565,22 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 <button type="button" onClick={exportConversation} className="rounded-md p-1.5 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-gold" title="Изтегли (.md)" aria-label="Изтегли">
                   <Download className="h-3.5 w-3.5" />
                 </button>
+                {activeThreadId && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleDeleteThread(activeThreadId, e as any)}
+                    className={cn(
+                      "rounded-md p-1.5 transition-colors",
+                      confirmDeleteId === activeThreadId
+                        ? "bg-destructive text-destructive-foreground"
+                        : "text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive",
+                    )}
+                    title={confirmDeleteId === activeThreadId ? "Натисни пак за потвърждение" : "Изтрий разговор"}
+                    aria-label="Изтрий разговор"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </>
             )}
             {allCitations.length > 0 && (
