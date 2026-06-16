@@ -452,16 +452,18 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       onDrop={handleDrop}
     >
       {/* Threads sidebar */}
-      <aside className={cn("w-60 flex-col rounded-xl border border-border/50 bg-card/30 p-2.5 backdrop-blur-sm", embedded ? "hidden md:flex" : compact ? "hidden" : "hidden md:flex")}>
-        <Button
+      <aside className={cn("w-64 flex-col rounded-xl border border-border/50 bg-card/30 p-3 backdrop-blur-sm", embedded ? "hidden md:flex" : compact ? "hidden" : "hidden md:flex")}>
+        <button
+          type="button"
           onClick={handleNewThread}
-          size="sm"
-          className="mb-3 justify-start gap-2 bg-gold text-navy hover:bg-gold/90 shadow-sm"
+          className="group relative mb-3 inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-b from-gold to-gold/80 px-3 py-2.5 text-sm font-bold text-navy shadow-[0_6px_18px_-6px_hsl(var(--gold)/0.5)] transition-all hover:shadow-[0_10px_24px_-6px_hsl(var(--gold)/0.65)] active:scale-[0.98]"
         >
-          <Plus className="h-4 w-4" /> Нов разговор
-        </Button>
-        <div className="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-          История
+          <span className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-0 transition-all duration-700 group-hover:left-full group-hover:opacity-100" />
+          <MessageSquare className="relative h-4 w-4" />
+          <span className="relative">Нов разговор</span>
+        </button>
+        <div className="mb-1.5 px-1 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/70">
+          {threads.length > 0 ? "Този месец" : "История"}
         </div>
         <ScrollArea className="flex-1 -mx-1 px-1">
           <div className="space-y-0.5">
@@ -480,7 +482,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 )}
               >
                 {activeThreadId === t.id && (
-                  <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r bg-gold" />
+                  <span className="absolute -left-1 top-1.5 bottom-1.5 w-0.5 rounded-r bg-gold shadow-[0_0_8px_hsl(var(--gold)/0.7)]" />
                 )}
                 <MessageSquare className={cn("h-3 w-3 shrink-0", activeThreadId === t.id ? "text-gold" : "text-muted-foreground/60")} />
                 <span className="flex-1 truncate">{t.title}</span>
@@ -502,6 +504,30 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
             ))}
           </div>
         </ScrollArea>
+
+        {/* Quota card */}
+        {!isPro && !isTeam && (
+          <div className="mt-2 space-y-2">
+            <div className="rounded-xl border border-gold/30 bg-gradient-to-br from-gold/10 to-gold/5 p-3">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-base">🎁</span>
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold text-foreground">Безплатен</div>
+                  <div className="text-[10px] text-muted-foreground">{freeQuota.aiMessagesUsed} / {freeQuota.aiMessagesCap} съобщения</div>
+                </div>
+              </div>
+              <div className="h-1 w-full overflow-hidden rounded-full bg-muted/40">
+                <div className="h-full rounded-full bg-gradient-to-r from-gold to-gold/70 transition-all" style={{ width: `${Math.min(100, (freeQuota.aiMessagesUsed / Math.max(1, freeQuota.aiMessagesCap)) * 100)}%` }} />
+              </div>
+            </div>
+            <Link
+              to="/plans"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-gold/40 bg-gold/5 px-3 py-2 text-[11px] font-bold text-gold transition-all hover:bg-gold/15"
+            >
+              <Crown className="h-3 w-3" /> Надгради плана
+            </Link>
+          </div>
+        )}
       </aside>
 
       {/* Chat panel */}
