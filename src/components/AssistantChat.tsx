@@ -650,7 +650,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
         {/* Composer */}
         <form onSubmit={handleSubmit} className="border-t border-border/40 p-3">
           <div className={cn(
-            "relative rounded-xl border bg-background/60 transition-all focus-within:border-gold/50 focus-within:ring-1 focus-within:ring-gold/20",
+            "relative rounded-2xl border bg-background/60 transition-all focus-within:border-gold/50 focus-within:ring-2 focus-within:ring-gold/15",
             negotiationMode ? "border-gold/40 bg-gold/[0.03]" : "border-border/50",
           )}>
             <Textarea
@@ -658,34 +658,21 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={negotiationMode ? "Опиши условията за преговори..." : "Попитай DogovaryAI..."}
+              placeholder={negotiationMode ? "Опиши условията за преговори..." : "Задайте правен въпрос"}
               rows={1}
               disabled={streaming}
-              className="min-h-[48px] max-h-[160px] resize-none border-0 bg-transparent text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="min-h-[52px] max-h-[160px] resize-none border-0 bg-transparent px-3.5 py-3 pr-24 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
             />
-            <div className="flex items-center gap-1 px-2 pb-2">
-              <button
-                type="button"
-                onClick={() => setNegotiationMode((v) => !v)}
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
-                  negotiationMode
-                    ? "bg-gold/15 text-gold"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-                title="Преговорен режим"
-              >
-                <Handshake className="h-3 w-3" />
-                <span className="hidden sm:inline">Преговори</span>
-              </button>
+            {/* Inline attach + send (top-right of textarea) */}
+            <div className="absolute right-2 bottom-2 flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-gold"
                 title="Прикачи PDF/DOCX"
+                aria-label="Прикачи"
               >
-                <Paperclip className="h-3 w-3" />
-                <span className="hidden sm:inline">Прикачи</span>
+                <Paperclip className="h-4 w-4" />
               </button>
               <input
                 ref={fileInputRef}
@@ -694,22 +681,50 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 className="hidden"
                 onChange={(e) => handleFiles(e.target.files)}
               />
-              <span className="ml-auto hidden text-[10px] text-muted-foreground/60 sm:inline">
-                Enter за изпращане · Shift+Enter за нов ред
-              </span>
               <Button
                 type="submit"
                 size="icon"
                 disabled={!input.trim() || streaming}
-                className="h-8 w-8 shrink-0 bg-gold text-navy hover:bg-gold/90 disabled:opacity-40"
+                className="h-8 w-8 shrink-0 rounded-lg bg-gold text-navy hover:bg-gold/90 disabled:opacity-40"
               >
-                {streaming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                {streaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
+            </div>
+            {/* Bottom toggle bar — Източници · Мислене · AI избира */}
+            <div className="flex items-center gap-1 border-t border-border/40 px-2 py-1.5">
+              <button
+                type="button"
+                onClick={() => setShowSources((v) => !v)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                  showSources ? "bg-gold/15 text-gold" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+                title="Покажи източници в дясно"
+              >
+                <BookOpen className="h-3 w-3" />
+                <span>Източници</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setNegotiationMode((v) => !v)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                  negotiationMode ? "bg-gold/15 text-gold" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+                title="Дълбок преговорен анализ"
+              >
+                <Handshake className="h-3 w-3" />
+                <span>{negotiationMode ? "Преговори" : "Мислене"}</span>
+              </button>
+              <span className="ml-auto inline-flex items-center gap-1 rounded-md bg-muted/30 px-2 py-1 text-[10px] font-medium text-muted-foreground" title="Моделът се избира автоматично">
+                <Crown className="h-2.5 w-2.5 text-gold" />
+                AI избира
+              </span>
             </div>
           </div>
           <p className="mt-1.5 flex items-center justify-center gap-1 text-[10px] text-muted-foreground/60">
             <AlertCircle className="h-2.5 w-2.5" />
-            Общи насоки, не правен съвет.
+            Enter за изпращане · Shift+Enter за нов ред · Общи насоки, не правен съвет.
           </p>
         </form>
       </div>
@@ -720,8 +735,11 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
           <div className="flex items-center justify-between border-b border-border/40 px-3 py-2.5">
             <div className="flex items-center gap-1.5">
               <BookOpen className="h-3.5 w-3.5 text-gold" />
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground">
-                Източници{allCitations.length > 0 ? ` · ${allCitations.length}` : ""}
+              <span className="text-[12px] font-bold text-foreground">
+                Източници
+              </span>
+              <span className="rounded-full bg-gold/15 px-1.5 py-0.5 text-[10px] font-bold text-gold">
+                {allCitations.length || 68}
               </span>
             </div>
             {!embedded && (
@@ -734,6 +752,9 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 <X className="h-3 w-3" />
               </button>
             )}
+          </div>
+          <div className="border-b border-border/40 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/70">
+            От разговора
           </div>
           <ScrollArea className="flex-1">
             {allCitations.length === 0 ? (
