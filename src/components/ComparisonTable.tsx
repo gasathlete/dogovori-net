@@ -20,19 +20,19 @@ const COLUMNS: { key: "us" | "lawyer" | "free"; label: string; highlight?: boole
 function Mark({ value }: { value: Cell }) {
   if (value === "yes")
     return (
-      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-gold/40 bg-gold/15 text-gold">
+      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-emerald-500/45 bg-emerald-500/15 text-emerald-500">
         <Check className="h-3.5 w-3.5" />
       </span>
     );
   if (value === "no")
     return (
-      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-border/60 bg-muted/30 text-muted-foreground">
+      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-red-500/45 bg-red-500/15 text-red-500">
         <X className="h-3.5 w-3.5" />
       </span>
     );
   if (value === "partial")
     return (
-      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-gold/25 bg-gold/5 text-gold/60">
+      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-border/60 bg-muted/30 text-muted-foreground">
         <Minus className="h-3.5 w-3.5" />
       </span>
     );
@@ -45,7 +45,7 @@ export function ComparisonTable() {
       <div className="mx-auto mb-10 max-w-2xl text-center">
         <div className="eyebrow mb-3 justify-center">Сравнение</div>
         <h2 className="font-serif text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl">
-          Договорете Вашата&nbsp; &nbsp; &nbsp; най-добра сделка, още днес.
+          Договор<span className="text-gold font-black text-[1.12em] tracking-tight">И</span> твоята най-добра сделка още днес.
         </h2>
         <p className="mt-3 text-sm text-muted-foreground sm:text-base">
           Цена, скорост и сигурност в едно — без компромис със закона.

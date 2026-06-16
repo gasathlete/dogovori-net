@@ -127,7 +127,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             className="anim-rise mx-auto max-w-3xl font-serif text-3xl font-bold leading-[1.1] text-balance sm:text-4xl md:text-5xl lg:text-[56px] lg:leading-[1.05]"
             style={{ animationDelay: "0ms" }}
           >
-            Договори, които{" "}
+            Д<span className="text-gold font-black text-[1.12em] tracking-tight">О</span>говори, които{" "}
             <span className="text-gold">търсят и намират</span>{" "}
             Вашите интереси
           </h1>
