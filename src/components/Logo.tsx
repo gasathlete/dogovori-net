@@ -35,16 +35,17 @@ export function Logo({ className = "", compact = false }: { className?: string; 
                 window.open("https://im-development.imot.bg", "_blank", "noopener,noreferrer");
               }
             }}
-            className="relative z-10 hidden cursor-pointer items-center text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70 transition-colors hover:text-gold 2xl:inline-flex"
+            className="relative z-10 hidden cursor-pointer items-center text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70 transition-colors hover:text-gold xl:inline-flex"
           >
             Powered by <span className="ml-1 text-gold/80">IM Development</span>
           </span>
         </div>
         <span
-          className={`${compact ? "hidden 2xl:block" : ""} mt-1.5 text-[9px] font-medium uppercase tracking-[0.28em] text-muted-foreground/80`}
+          className={`${compact ? "hidden xl:block" : ""} mt-1.5 text-[9px] font-medium uppercase tracking-[0.28em] text-muted-foreground/80`}
         >
           Архитект на Вашите сделки
         </span>
+
       </div>
 
     </div>
