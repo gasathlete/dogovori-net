@@ -189,8 +189,8 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
                   className="btn-gold btn-sheen btn-press relative w-full sm:w-auto normal-case tracking-normal text-[16px] sm:text-[17px] px-8 py-4 sm:px-10 sm:py-4 rounded-xl font-bold shadow-gold will-change-transform"
                   style={{ transition: "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms, background 200ms" }}
                 >
-                  <Search className="h-[18px] w-[18px]" />
                   Започни безплатно
+
                   <ArrowRight className="h-[16px] w-[16px] transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
               </div>
