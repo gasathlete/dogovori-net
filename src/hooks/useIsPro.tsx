@@ -15,6 +15,7 @@ export interface FreeQuota {
   correctionsFreeUsed: boolean;
   signingFreeUsed: boolean;
   signupAt: string | null;
+  topupBalance: number;
 }
 
 interface ProState {
