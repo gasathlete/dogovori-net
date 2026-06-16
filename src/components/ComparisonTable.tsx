@@ -45,7 +45,7 @@ export function ComparisonTable() {
       <div className="mx-auto mb-10 max-w-2xl text-center">
         <div className="eyebrow mb-3 justify-center">Сравнение</div>
         <h2 className="font-serif text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl">
-          Договорете Вашата&nbsp; &nbsp; &nbsp; най-добра сделка, още днес.
+          Договор<span className="text-gold font-black text-[1.12em] tracking-tight">И</span> твоята най-добра сделка още днес.
         </h2>
         <p className="mt-3 text-sm text-muted-foreground sm:text-base">
           Цена, скорост и сигурност в едно — без компромис със закона.
