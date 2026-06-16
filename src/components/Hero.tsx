@@ -72,14 +72,14 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
         <div className="h-2 w-2 rotate-45 border border-gold/60 bg-background" />
       </div>
 
-      <div className="container relative w-full pt-4 pb-10 sm:pt-6 sm:pb-12 md:pt-6 md:pb-12 lg:pt-6 lg:pb-10">
+      <div className="container relative w-full pt-3 pb-8 sm:pt-4 sm:pb-10 md:pt-4 md:pb-10 lg:pt-4 lg:pb-8">
         <div className="relative mx-auto max-w-3xl text-center px-0 my-0">
           <div
-            className="anim-rise mx-auto mb-2 flex items-center justify-center sm:mb-3"
+            className="anim-rise mx-auto mb-1.5 flex items-center justify-center sm:mb-2"
             style={{ animationDelay: "0ms" }}
           >
             <div
-              className="relative flex h-14 w-14 items-center justify-center sm:h-16 sm:w-16 md:h-20 md:w-20"
+              className="relative flex h-12 w-12 items-center justify-center sm:h-14 sm:w-14 md:h-16 md:w-16"
               onMouseEnter={showQuote}
               onMouseLeave={hideQuote}
               aria-describedby={visible ? tooltipId : undefined}
