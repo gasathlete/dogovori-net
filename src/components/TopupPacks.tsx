@@ -31,21 +31,13 @@ interface TopupPacksProps {
 
 export function TopupPacks({ enabled = true, compact = false, className }: TopupPacksProps) {
   const { user } = useAuth();
-  const { openCheckout, checkoutElement } = useStripeCheckout();
-  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [activePack, setActivePack] = useState<TopupPack | null>(null);
 
   const handleBuy = (pack: TopupPack) => {
     if (!enabled || !user) return;
-    setLoadingId(pack.priceId);
-    openCheckout({
-      priceId: pack.priceId,
-      quantity: 1,
-      customerEmail: user.email,
-      userId: user.id,
-      returnUrl: `${window.location.origin}/account?tab=billing&topup=success&session_id={CHECKOUT_SESSION_ID}`,
-    });
-    setTimeout(() => setLoadingId(null), 1200);
+    setActivePack(pack);
   };
+
 
   return (
     <div className={className}>
