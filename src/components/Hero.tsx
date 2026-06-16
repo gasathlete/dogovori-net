@@ -146,7 +146,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </div>
 
           <ul
-            className="anim-rise mx-auto mt-6 grid max-w-3xl gap-2.5 sm:grid-cols-2 md:mt-7"
+            className="anim-rise mx-auto mt-6 grid max-w-3xl gap-2.5 sm:grid-cols-2 md:grid-cols-3 md:mt-7"
             style={{ animationDelay: "160ms" }}
           >
             {[
@@ -155,9 +155,9 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
               { icon: ShieldAlert, to: "/console/analysis", label: "Risk Analysis на чужди и собствени документи", desc: "открива клопки, неравноправни клаузи и липсващи защити." },
               { icon: Languages, to: "/wizard-bilingual", label: "Двуезични договори", desc: "BG / EN / DE / FR в един документ." },
               { icon: FileSignature, to: "/console/signing", label: "Електронен подпис", desc: "многостранно подписване, папки, споделяне." },
-              { icon: Package, to: "/kits", label: "Документи по ЗЗД, ТЗ и ЗУТ", desc: "съобразени с актуалната българска правна рамка.", wide: true },
-            ].map(({ icon: Icon, to, label, desc, wide }) => (
-              <li key={label} className={wide ? "sm:col-span-2" : undefined}>
+              { icon: Package, to: "/kits", label: "Комплекти за често срещани казуси", desc: "създай собствен комплект, използвай практично и лесно." },
+            ].map(({ icon: Icon, to, label, desc }) => (
+              <li key={label}>
                 <Link
                   to={to}
                   aria-label={`${label} — ${desc}`}
