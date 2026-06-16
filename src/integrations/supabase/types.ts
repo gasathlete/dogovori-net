@@ -1024,6 +1024,7 @@ export type Database = {
           pro_until: string | null
           signup_at: string
           templates_used: number
+          topup_ops_balance: number
           total_used: number
           updated_at: string
           user_id: string
@@ -1049,6 +1050,7 @@ export type Database = {
           pro_until?: string | null
           signup_at?: string
           templates_used?: number
+          topup_ops_balance?: number
           total_used?: number
           updated_at?: string
           user_id: string
@@ -1074,6 +1076,7 @@ export type Database = {
           pro_until?: string | null
           signup_at?: string
           templates_used?: number
+          topup_ops_balance?: number
           total_used?: number
           updated_at?: string
           user_id?: string
@@ -2983,6 +2986,39 @@ export type Database = {
         }
         Relationships: []
       }
+      topup_purchases: {
+        Row: {
+          amount_eur: number | null
+          created_at: string
+          environment: string
+          id: string
+          ops_added: number
+          price_id: string
+          stripe_session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_eur?: number | null
+          created_at?: string
+          environment?: string
+          id?: string
+          ops_added: number
+          price_id: string
+          stripe_session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_eur?: number | null
+          created_at?: string
+          environment?: string
+          id?: string
+          ops_added?: number
+          price_id?: string
+          stripe_session_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       uploaded_contracts: {
         Row: {
           contact_id: string | null
@@ -3321,6 +3357,7 @@ export type Database = {
           pro_until: string | null
           signup_at: string
           templates_used: number
+          topup_ops_balance: number
           total_used: number
           updated_at: string
           user_id: string
@@ -3566,6 +3603,10 @@ export type Database = {
       award_user_loyalty: { Args: { _total_ops: number }; Returns: Json }
       bg_to_lat: { Args: { input: string }; Returns: string }
       can_use_kit_slot: { Args: never; Returns: Json }
+      charge_corrections_wave: {
+        Args: { p_batch_id: string; p_count: number; p_user_id: string }
+        Returns: Json
+      }
       check_compliance_reminders: { Args: never; Returns: Json }
       consume_ai_message: { Args: never; Returns: Json }
       consume_analysis_preview: { Args: never; Returns: Json }
@@ -3584,6 +3625,17 @@ export type Database = {
         Returns: Json
       }
       consume_team_quota: { Args: { _team_id: string }; Returns: Json }
+      credit_topup_ops: {
+        Args: {
+          p_amount: number
+          p_environment: string
+          p_ops: number
+          p_price_id: string
+          p_session_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean

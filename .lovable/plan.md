@@ -1,99 +1,136 @@
-# DogovaryAI Workspace — пълноекранен режим
 
-Цел: кликът върху бранд бутона **DogovaryAI** да отваря отделен пълноекранен AI-workspace (по модела на praven-intelekt.com), използвайки съществуващата ни логика (`AssistantChat`, `assistant-chat` / `assistant-chat-anon` edge функции, RAG с цитати, build/upload/sign flow). Минимално натрупване — без нов backend, без нова auth.
+## 1. Hero — 7 кликаеми bullet точки (заменя `<p>` на ред 148-154 в `src/components/Hero.tsx`)
 
-## 1. Нов маршрут и точки на влизане
+Дългият параграф „Индивидуални документи…" се заменя със списък от 7 кликаеми bullet карти. Всяка точка е `<Link>` към най-релевантната CTA страница.
 
-- Нов route: **`/assistant`** (вече е „скрит prefix" в DogovAIBubble; ще го материализираме като реален пълноекранен layout) и **`/assistant/:threadId`** за индивидуален разговор.
-- Кликът върху „DogovaryAI" (Header CTA, hero бутон, floating bubble FAB) → `navigate("/assistant")`. Старият popover bubble остава достъпен само на marketing страници като бърз shortcut; в `/assistant` той се скрива (вече е в `HIDDEN_PREFIXES`).
-- `Header` получава нов CTA „Отвори DogovaryAI" (gold-accent), видим на десктоп и мобилно.
+| # | Икона (Lucide) | Текст | Линк |
+|---|---|---|---|
+| 1 | `ShieldCheck` | **Документи по ЗЗД, ТЗ и ЗУТ** — съобразени с актуалната българска правна рамка. | `/catalog` |
+| 2 | `Bot` | **Правен AI-асистент от ново поколение** — помага ти да преговаряш най-добрите условия. | `/assistant` |
+| 3 | `FileText` | **Над 600 готови шаблона** — за бизнес, имоти, труд, услуги и семейство. | `/catalog` |
+| 4 | `ShieldAlert` | **Risk Analysis на чужди и собствени документи** — открива клопки, неравноправни клаузи и липсващи защити. | `/console/analysis` |
+| 5 | `Languages` | **Двуезични договори** — BG / EN / DE / FR в един документ. | `/wizard-bilingual` |
+| 6 | `FileSignature` | **Електронен подпис** — многостранно подписване, папки, споделяне. | `/console/signing` |
+| 7 | `Package` | **Комплекти за често срещани казуси** — създай собствен комплект, използвай практично и лесно. | `/kits` |
 
-## 2. Layout на workspace-а (`src/pages/Assistant.tsx`)
+**Layout / стил:**
+- `<ul>` = `grid gap-2.5 sm:grid-cols-2 max-w-3xl mx-auto mt-6`.
+- Точка 7 (Комплекти) = `sm:col-span-2` за акцент.
+- Картичка: `flex items-start gap-3 rounded-lg border border-gold/15 bg-card/40 px-4 py-3 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-[0_8px_24px_-12px_hsl(var(--gold)/0.45)]`.
+- Икона: `h-5 w-5 text-gold shrink-0 mt-0.5`.
+- Етикет = **bold** в `text-foreground`; описание = `text-sm text-muted-foreground`.
+- `ChevronRight` отдясно (`ml-auto opacity-0 group-hover:opacity-100`).
+- Запазваме chip ред (ЗЗД / Анализ / >600 шаблона / е-Подпис) горе и микро-копи `Преговаряй · Създай · Прецизирай · Подпиши` отдолу в `text-gold/80`.
+- A11y: `aria-label` на всеки линк; иконите са `aria-hidden`.
 
-Three-pane shell, full-height без footer, тъмен/светъл режим спазва текущата тема:
+Без бизнес логика. Само презентация + routing.
 
-```text
-┌────────────┬─────────────────────────────────┬──────────────┐
-│ Threads    │ Conversation / Quick actions    │ Sources      │
-│ sidebar    │ + composer                      │ (collapsible)│
-└────────────┴─────────────────────────────────┴──────────────┘
+---
+
+## 2. Корекционни вълни — стъпаловидно таксуване
+
+Сменяме „1 вълна = 1 операция" на:
+
+```
+ops = max(1, ceil(corrections_in_wave / 5))
 ```
 
-- **Ляв панел (`AssistantThreadsSidebar`)** — „+ Нов разговор", търсачка, групиране по „Днес / Тази седмица / По-стари". Колапсва се чрез `shadcn-sidebar` (`collapsible="icon"`).
-- **Център** — при празен thread: 4 големи action карти (вече ги имаме в `QUICK_ACTIONS` — обогатяваме до 6):
-  1. **Правни проучвания** → RAG search в `legal_chunks`.
-  2. **Проучване по съдебна практика** → филтрира RAG към `source_type=case_law`.
-  3. **Анализ на документи** → отваря `UploadAnalyze` inline (drop-zone).
-  4. **Създаване на документ** → отваря wizard избор (`/build`, `/wizard/:sector`).
-  5. **Преговорен режим** → активира prompt от стъпка 2 (`ПРЕГОВОРЕН РЕЖИМ`).
-  6. **Комплекти документи** → линк към `/komplekti`.
-  Под картите: composer (текстарея + attach + send), starter chips, „AI избира модел" indicator.
-- **Десен панел (`AssistantSourcesPanel`)** — auto-показва списък цитати от текущия разговор (от `LegalCitations`), с брояч (напр. „Източници 12"), линкове към официални публикации. Скрива се ако няма цитати.
+| Корекции | Операции |
+|---|---|
+| 1–5 | 1 |
+| 6–10 | 2 |
+| 11–15 | 3 |
+| … | `ceil(n/5)` |
 
-Композиция: преизползваме `AssistantChat` като core; новата страница само го обвива в shell с трите панела. Никаква дублирана логика за streaming/threads.
+**Промени:**
+- Нова DB миграция: функция `charge_corrections_wave(p_user_id uuid, p_batch_id uuid, p_count int)` — изчислява ops, инкрементира `download_quota.monthly_total_used` или `pro_monthly_used` (според плана) **атомарно**, записва ред в `corrections_batch_charges` с `ops_charged`. Връща `{ ops_charged, remaining_cap, used_topup }`.
+- Edge function-ите, които генерират корекции (или client кодът, който създава `batch_id`), извикват `charge_corrections_wave` с реалния брой вместо хардкоднато 1.
+- UI преди приемане на вълна: ако `count > 5` показваме потвърждение „Тази вълна съдържа N корекции и ще струва X операции".
+- След вълната → `useIsPro().refresh()`.
 
-## 3. Anonymous (нерегистриран) flow
+---
 
-- Кликът върху DogovaryAI винаги отваря `/assistant`, **дори без auth**.
-- В anon режим:
-  - Threads sidebar е скрит/disabled (single-session conversation, localStorage `dogovai_anon_chat_v2`, вече има).
-  - Лимит **5 безплатни съобщения** (повишаваме от текущите 3) преди soft paywall — съответства на „encourage to try free".
-  - Banner отгоре: „Безплатна проба · X / 5 съобщения · [Регистрирайте се за 15 безплатни]".
-  - След лимита: блокира composer + показва inline регистрационна карта (email + Google), а не редирект.
-- Бекенд: продължава да удря `assistant-chat-anon` edge функцията (rate-limit по IP + session е активен).
+## 3. Top-up пакети за абонирани потребители
 
-## 4. Registered (регистриран) flow
+Старият пакет „5 операции за 1.90 €" се пенсионира. Налични **само** за активни абонати (Професионалист / Предприемач / Екип). Безплатни потребители виждат „Първо избери план".
 
-- 15 безплатни съобщения на месец **в DogovaryAI** като отделен квота-counter, **независимо** от съществуващите op-метрики (download/upload). „Други безплатни се запазват" → не пипаме `download_quota`.
-- Реализация: нова колона `assistant_free_messages_used` (int, default 0) + `assistant_quota_reset_at` (date) в `profiles`, или нова `assistant_quota` table. Edge функция `assistant-chat` инкрементира при всеки **user**-message и връща 402 със ясен код когато се изчерпи.
-- UI: вечен brand-pill долу-ляво (по подобие на конкурента): „Безплатен · 11/15 съобщения · [Надгради плана]".
-- При изчерпване: модал с `PlanSelector` (вече съществува) — Предприемач 12.90 €/мес или single-op pack 1.90 € (5 op). Plan upgrade премахва counter (unlimited assistant messages = features.assistant_unlimited).
+**Нови Stripe SKU-та (one-off, EUR, ДДС 20% inclusive, `quantity_min=1, quantity_max=1`):**
 
-## 5. Streaming, threads, persistence
+| price_id | Операции | Цена | €/оп |
+|---|---|---|---|
+| `topup_10`  | 10  | 2.90 €  | 0.29  |
+| `topup_20`  | 20  | 5.40 €  | 0.27  |
+| `topup_50`  | 50  | 12.90 € | 0.258 |
+| `topup_100` | 100 | 23.90 € | 0.239 |
 
-- Спазваме `chat-agent-ui-contract`: **threads + database persistence** за регистрирани.
-- Вече има тaблици `assistant_threads` и `assistant_messages` (виж `<supabase-tables>`). Използваме ги — нищо ново.
-- URL = source of truth: `/assistant/:threadId`. New chat → INSERT thread → navigate. Refresh на `/assistant/abc123` зарежда този thread. Chat компонентът се ремоунтва по `key={threadId}`.
-- За anon: single conversation, без route param.
+Един продукт `topup_ops` + 4 цени през `payments--batch_create_product` (tax_code `txcd_10000000` — digital goods).
 
-## 6. „Над конкурента" — какво добавяме над praven-intelekt.com
+**DB:**
+- Нова колона `download_quota.topup_ops_balance INT NOT NULL DEFAULT 0`.
+- Нова таблица `topup_purchases (id, user_id, price_id, ops_added, amount_eur, stripe_session_id, environment, created_at)` с RLS (user вижда своите), GRANT за authenticated + service_role.
+- Webhook handler за `checkout.session.completed`: ако `price_id` ∈ {topup_10…100} → инкрементира `download_quota.topup_ops_balance` с съответния брой и логва в `topup_purchases`. Идемпотентно по `stripe_session_id`.
 
-Дребни функционалности, които вече имаме и просто ги изваждаме във workspace-а:
+**Логика на потребление (вкл. корекционни вълни и AI съобщения):**
+1. Изчисли `ops_needed`.
+2. Налично от месечен план: `cap - used`.
+3. Ако `ops_needed ≤ available_plan` → инкрементирай само план брояча.
+4. Иначе: попълни плана до cap, остатъкът се тегли от `topup_ops_balance` (намалявайки го).
+5. Ако нито плана, нито top-up балансът стигат → блок + paywall + CTA за top-up.
 
-- **Drag-drop анализ направо в чата** → reuse `UploadAnalyze` като inline tool card (`AssistantToolCard` вече рендерира tool events).
-- **Build-to-chat hand-off** — от съобщение „Създай ми трудов договор за…" → бутон „Отвори в Builder" (preserves draft в `assistantDraftStore`).
-- **Преговорен режим toggle** в composer (chip "🤝 Преговори") — задава режима от стъпка 2.
-- **Структурирани цитати** в десния панел с badges (ЗЗП/ЗЕТ/GDPR/ЕС) — реализирано в стъпка 3.
-- **Поделяне на разговор** — генерира shared link (вече имаме `shared_links` инфраструктура) → read-only публичен URL.
-- **Експорт на разговор** в PDF/DOCX (reuse on-the-fly DOCX генератора).
-- **Pin / favourite threads** (`pinned` boolean колона) — UX подобрение над конкурента.
+**`useIsPro` връща допълнително `topupBalance: number`.**
 
-## 7. Технически детайли
+**UI:**
+- `AssistantChat` / `AssistantPaywall` / `ProUpgradeDialog`: нова секция „Добави операции" с 4 карти, hover lift + gold glow.
+- Чип над лимита: `Остават X / Y от плана · +Z top-up`.
+- `/account/billing` (или нов tab `/account/topups`): история на покупките от `topup_purchases`.
+- Безплатен потребител в paywall: top-up картите са disabled с надпис „Налично за абонати".
 
-- Нов `src/pages/Assistant.tsx` + `src/components/assistant/AssistantThreadsSidebar.tsx` + `AssistantSourcesPanel.tsx` + `AssistantQuotaBadge.tsx`.
-- `AssistantChat.tsx` рефакторираме на „dumb" body (приема `threadId` от prop вместо да го пази в local storage) — backwards compatible.
-- Routes: `/assistant`, `/assistant/:threadId` (публични — guard само за thread-ownership; anon → fallback single-session).
-- Quota: миграция → нови колони + UPDATE-trigger в `assistant-chat` edge функцията (атомарен инкремент). Връща `429 quota_exceeded`. Pricing-plan check преди инкремент (Pro = bypass).
-- `Header` нов CTA + `Hero` бутон „Отвори DogovaryAI workspace" заменя/допълва съществуващите.
-- AI Elements: проверяваме инсталирани компоненти (`Conversation`, `Message`, `PromptInput`, `Tool`, `Shimmer`). Ако липсват — `bunx ai-elements@latest add conversation message prompt-input tool shimmer`. Преизползваме съществуващите `LegalCitations` и `AssistantToolCard` за вложеното рендериране.
-- Спазваме design системата: gold accent за CTA, без custom colors, semantic tokens, responsive.
+---
 
-## 8. Извън scope (умишлено)
+## 4. Pricing / FAQ копи
 
-- Без нова backend AI логика — същият prompt от стъпки 1–3.
-- Без промяна на pricing/op-метриките (memory: 12.90 € / 10.90 € seat / 1.90 € pack).
-- Без преписване на `assistant-chat` или `assistant-chat-anon` функциите.
-- Без локализация в момента (UI остава български, спазвайки текущата практика).
+- `src/lib/plansData.ts` — FAQ запис „Какво ако надхвърля плана?" → списък с 4-те нови пакета.
+- `plan_comparison_rows` / `plan_features` (data update, не миграция): премахни „1.90 € / 5 оп.", добави нов ред „Top-up пакети 10–100 операции (само за абонати)".
+- `src/pages/Plans.tsx` — нов мини-блок „Top-up за абонати" под трите плана.
 
-## 9. Приемни критерии
+---
 
-1. Клик върху „DogovaryAI" (Header/Hero/Bubble) отваря `/assistant` пълноекранно.
-2. Anon с 0 съобщения вижда 6 action карти + composer + banner „5 безплатни".
-3. Anon след 5-тото съобщение е блокиран със soft paywall (регистрация).
-4. Регистриран user вижда thread sidebar, може да създава/изтрива/превключва threads, рефрешът на `/assistant/:id` възстановява разговора.
-5. След 15-тото съобщение в месеца — модал за upgrade, без да чупи download/upload квотата.
-6. Drop на PDF/DOCX в композера стартира анализ inline; clicking „Създай документ" в стартовите карти отваря wizard избор.
-7. Десният панел показва цитати със source_id/article/version_date чипове (стъпка 3).
-8. Build / typecheck минават; съществуващите страници и flow-ове не са счупени.
+## 5. Памет (`mem://`)
 
-При одобрение пускам в build с тази последователност: миграция за quota → routes/page shell → threads sidebar → sources panel → quota badge & paywall → header/hero CTA → QA.
+Ъпдейт на `mem://index.md` Core:
+- Премахване на „one-off pack 1.90 € for 5 ops".
+- Добавяне на „Top-up packs (only for active subs): 10/2.90 €, 20/5.40 €, 50/12.90 €, 100/23.90 €."
+- Добавяне на „Corrections wave cost = ceil(corrections/5) ops (was flat 1)."
+- Добавяне на „Hero canonical bullets = 7 items (ЗЗД, AI-асистент, 600 шаблона, Risk Analysis, двуезични, е-Подпис, Комплекти) — не добавяй/махай без съгласие."
+
+---
+
+## 6. Файлове, които ще се пипнат
+
+**Frontend:**
+- `src/components/Hero.tsx` — нови 7 bullet точки + import-и.
+- `src/components/AssistantChat.tsx` — top-up CTA + badge за тежки вълни корекции.
+- `src/components/AssistantPaywall.tsx`, `src/components/ProUpgradeDialog.tsx` — top-up секция.
+- `src/hooks/useIsPro.tsx` — `topupBalance` + cap чете нови полета.
+- `src/pages/Plans.tsx` — нов top-up блок.
+- `src/lib/plansData.ts` — FAQ.
+- (опц.) нов `src/components/TopupPacks.tsx` като share-нат компонент.
+
+**Backend / DB:**
+- Миграция 1: `download_quota.topup_ops_balance`, нова таблица `topup_purchases` + GRANT + RLS.
+- Миграция 2: функция `charge_corrections_wave` + обновяване на `consume_ai_message` за теглене от top-up след cap.
+- Stripe: `payments--batch_create_product` за `topup_ops` + 4 цени.
+- Webhook handler (`supabase/functions/stripe-webhooks` или еквивалент) — credit на top-up + insert в `topup_purchases`.
+
+**Памет:** `mem://index.md`.
+
+---
+
+### Ред на изпълнение
+
+1. Hero bullet списък (бърза визуална победа).
+2. DB миграции (топ-up колона/таблица + `charge_corrections_wave`).
+3. Stripe продукти/цени.
+4. Webhook handler + потребление логика.
+5. UI top-up карти + paywall интеграция.
+6. Pricing/FAQ + памет.
