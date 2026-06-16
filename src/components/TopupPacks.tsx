@@ -74,11 +74,11 @@ export function TopupPacks({ enabled = true, compact = false, className }: Topup
               <div className="mb-3 text-[11px] text-muted-foreground">{pack.perOp} · ДДС вкл.</div>
               <Button
                 size="sm"
-                disabled={!enabled || loadingId === pack.priceId}
+                disabled={!enabled}
                 onClick={() => handleBuy(pack)}
                 className="mt-auto w-full bg-gold text-navy hover:bg-gold/90"
               >
-                {loadingId === pack.priceId ? "Зареждам…" : enabled ? "Купи" : "Само за абонати"}
+                {enabled ? "Купи" : "Само за абонати"}
               </Button>
             </div>
           );
@@ -89,10 +89,29 @@ export function TopupPacks({ enabled = true, compact = false, className }: Topup
           Top-up пакетите са достъпни след активиране на абонамент.
         </p>
       )}
-      {checkoutElement && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl rounded-lg border border-border bg-card p-4 shadow-xl">
-            {checkoutElement}
+      {activePack && user && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
+          onClick={() => setActivePack(null)}
+        >
+          <div
+            className="relative w-full max-w-2xl rounded-lg border border-border bg-card p-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              aria-label="Затвори"
+              onClick={() => setActivePack(null)}
+              className="absolute right-3 top-3 rounded-full p-1 text-muted-foreground hover:bg-muted"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <StripeEmbeddedCheckout
+              priceId={activePack.priceId}
+              quantity={1}
+              customerEmail={user.email}
+              userId={user.id}
+              returnUrl={`${window.location.origin}/account?tab=billing&topup=success&session_id={CHECKOUT_SESSION_ID}`}
+            />
           </div>
         </div>
       )}
