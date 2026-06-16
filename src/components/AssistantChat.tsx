@@ -46,11 +46,9 @@ interface Thread {
 }
 
 const QUICK_ACTIONS = [
-  { label: "🔍 Правни проучвания", text: "Направи правно проучване по ЗЗД относно неустойки — цитирай актуални редакции и съдебна практика." },
-  { label: "⚖️ Съдебна практика", text: "Намери релевантна практика на ВКС/ВАС по въпроса за прекомерна неустойка." },
+  { label: "🔍 Правни проучвания", text: "Направи правно проучване по ЗЗД относно неустойки — цитирай актуални редакции." },
   { label: "📄 Анализ на документ", text: "Искам да кача договор и да получа правен риск-анализ." },
   { label: "🛠️ Създаване на документ", text: "Помогни ми да създам трудов договор с конкретни клаузи." },
-  { label: "🤝 Преговорен режим", text: "Активирай преговорен режим — помогни ми да договоря по-добри условия по моя договор." },
   { label: "📦 Комплекти документи", text: "Покажи ми комплекти документи за стартиране на ЕООД." },
 ];
 
@@ -259,7 +257,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     }
     const g = gate as { ok: boolean; reason?: string; used?: number; cap?: number } | null;
     if (g && g.ok === false) {
-      toast.error("Изчерпани са 15-те безплатни съобщения за този месец. Активирай PRO за неограничен достъп.");
+      toast.error("Изчерпани са безплатните операции за този месец. 1 съобщение = 1 операция. Надгради за 100/мес.");
       await refreshPlan();
       return;
     }
@@ -505,27 +503,32 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
           </div>
         </ScrollArea>
 
-        {/* Quota card */}
+        {/* Quota card — операции = съобщения */}
         {!isPro && !isTeam && (
           <div className="mt-2 space-y-2">
-            <div className="rounded-xl border border-gold/30 bg-gradient-to-br from-gold/10 to-gold/5 p-3">
-              <div className="mb-2 flex items-center gap-2">
-                <span className="text-base">🎁</span>
-                <div className="min-w-0">
-                  <div className="text-[11px] font-bold text-foreground">Безплатен</div>
-                  <div className="text-[10px] text-muted-foreground">{freeQuota.aiMessagesUsed} / {freeQuota.aiMessagesCap} съобщения</div>
+            <div className="rounded-xl border border-gold/40 bg-gradient-to-br from-gold/15 to-gold/5 p-3 shadow-[0_8px_24px_-12px_hsl(var(--gold)/0.35)]">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-base">🎁</span>
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-bold text-foreground">Безплатни операции</div>
+                    <div className="text-[10px] text-muted-foreground truncate">1 съобщение = 1 операция</div>
+                  </div>
                 </div>
+                <span className="shrink-0 rounded-md bg-gold/15 px-1.5 py-0.5 text-[10px] font-bold text-gold tabular-nums">
+                  {Math.max(0, freeQuota.opsCap - freeQuota.opsUsed)}/{freeQuota.opsCap}
+                </span>
               </div>
-              <div className="h-1 w-full overflow-hidden rounded-full bg-muted/40">
-                <div className="h-full rounded-full bg-gradient-to-r from-gold to-gold/70 transition-all" style={{ width: `${Math.min(100, (freeQuota.aiMessagesUsed / Math.max(1, freeQuota.aiMessagesCap)) * 100)}%` }} />
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/40">
+                <div className="h-full rounded-full bg-gradient-to-r from-gold to-gold/70 transition-all" style={{ width: `${Math.min(100, (freeQuota.opsUsed / Math.max(1, freeQuota.opsCap)) * 100)}%` }} />
               </div>
+              <Link
+                to="/account?tab=subscription"
+                className="mt-2.5 flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-b from-gold to-gold/80 px-3 py-1.5 text-[11px] font-bold text-navy shadow-sm transition-all hover:shadow-[0_6px_16px_-6px_hsl(var(--gold)/0.55)] active:scale-[0.98]"
+              >
+                <Crown className="h-3 w-3" /> Надгради до 100 / мес.
+              </Link>
             </div>
-            <Link
-              to="/plans"
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-gold/40 bg-gold/5 px-3 py-2 text-[11px] font-bold text-gold transition-all hover:bg-gold/15"
-            >
-              <Crown className="h-3 w-3" /> Надгради плана
-            </Link>
           </div>
         )}
       </aside>
@@ -543,8 +546,8 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
               <h3 className="text-sm font-semibold leading-tight text-foreground truncate">DogovaryAI</h3>
               <p className="text-[10px] leading-tight text-muted-foreground truncate">
                 {isPro || isTeam
-                  ? "Неограничен достъп · онлайн"
-                  : `${aiRemaining}/${freeQuota.aiMessagesCap} съобщения · този месец`}
+                  ? `${Math.max(0, freeQuota.opsCap - freeQuota.opsUsed)}/${freeQuota.opsCap} операции · този месец`
+                  : `${Math.max(0, freeQuota.opsCap - freeQuota.opsUsed)}/${freeQuota.opsCap} безплатни операции`}
               </p>
             </div>
             <a
@@ -661,7 +664,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
               placeholder={negotiationMode ? "Опиши условията за преговори..." : "Задайте правен въпрос"}
               rows={1}
               disabled={streaming}
-              className="min-h-[52px] max-h-[160px] resize-none border-0 bg-transparent px-3.5 py-3 pr-24 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="min-h-[52px] max-h-[160px] resize-none border-0 bg-transparent px-3.5 py-3 pr-[88px] text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             {/* Inline attach + send (top-right of textarea) */}
             <div className="absolute right-2 bottom-2 flex items-center gap-1">
@@ -690,31 +693,37 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 {streaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
-            {/* Bottom toggle bar — Източници · Мислене · AI избира */}
-            <div className="flex items-center gap-1 border-t border-border/40 px-2 py-1.5">
-              <button
-                type="button"
-                onClick={() => setShowSources((v) => !v)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
-                  showSources ? "bg-gold/15 text-gold" : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-                title="Покажи източници в дясно"
-              >
-                <BookOpen className="h-3 w-3" />
-                <span>Източници</span>
-              </button>
+            {/* Bottom toggle bar — Преговори (action) · Източници · AI избира */}
+            <div className="flex flex-wrap items-center gap-1.5 border-t border-border/40 px-2 py-1.5">
               <button
                 type="button"
                 onClick={() => setNegotiationMode((v) => !v)}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
-                  negotiationMode ? "bg-gold/15 text-gold" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  "group relative inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-all active:scale-[0.97]",
+                  negotiationMode
+                    ? "bg-gradient-to-b from-gold to-gold/80 text-navy shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.55)]"
+                    : "border border-gold/40 bg-gold/[0.06] text-gold hover:bg-gold/15",
                 )}
                 title="Дълбок преговорен анализ"
+                aria-pressed={negotiationMode}
               >
-                <Handshake className="h-3 w-3" />
-                <span>{negotiationMode ? "Преговори" : "Мислене"}</span>
+                <Handshake className="h-3.5 w-3.5" />
+                <span>Режим преговори</span>
+                {negotiationMode && (
+                  <span className="ml-0.5 inline-flex h-1.5 w-1.5 rounded-full bg-navy/70" aria-hidden />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSources((v) => !v)}
+                className={cn(
+                  "hidden sm:inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                  showSources ? "bg-gold/15 text-gold" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+                title="Покажи източници"
+              >
+                <BookOpen className="h-3 w-3" />
+                <span>Източници</span>
               </button>
               <span className="ml-auto inline-flex items-center gap-1 rounded-md bg-muted/30 px-2 py-1 text-[10px] font-medium text-muted-foreground" title="Моделът се избира автоматично">
                 <Crown className="h-2.5 w-2.5 text-gold" />

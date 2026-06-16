@@ -16,10 +16,10 @@ export function AssistantPaywall() {
         </p>
         <ul className="mb-6 space-y-2 text-left text-sm text-muted-foreground">
           {[
-            "5 безплатни съобщения всеки месец",
+            "1 съобщение = 1 операция (5 при регистрация + 2/мес. безплатно)",
             "Помощ с попълване на шаблони и клаузи",
             "Общи насоки по ЗЗД, ТЗ, КТ, СК, ЗУТ, GDPR",
-            "PRO: неограничен достъп в рамките на 100 операции/месец",
+            "Платен план: 100 операции/мес.",
           ].map((f) => (
             <li key={f} className="flex items-start gap-2">
               <Check className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
@@ -28,12 +28,12 @@ export function AssistantPaywall() {
           ))}
         </ul>
         <Button asChild className="w-full gap-2 bg-gold text-navy hover:bg-gold/90">
-          <Link to="/account?tab=billing">
-            <Crown className="h-4 w-4" /> Активирай PRO за неограничен достъп
+          <Link to="/account?tab=subscription">
+            <Crown className="h-4 w-4" /> Активирай платен план
           </Link>
         </Button>
         <p className="mt-3 text-[11px] text-muted-foreground">
-          Месечните 5 безплатни съобщения се нулират на всеки 30 дни.
+          1 съобщение към AI Асистента = 1 операция от месечния ти лимит.
         </p>
       </div>
     </div>
