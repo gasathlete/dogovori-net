@@ -75,11 +75,11 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
       <div className="container relative w-full pt-4 pb-10 sm:pt-6 sm:pb-12 md:pt-6 md:pb-12 lg:pt-6 lg:pb-10">
         <div className="relative mx-auto max-w-3xl text-center px-0 my-0">
           <div
-            className="anim-rise mx-auto mb-3 flex items-center justify-center sm:mb-4 lg:mb-5"
+            className="anim-rise mx-auto mb-2 flex items-center justify-center sm:mb-3"
             style={{ animationDelay: "0ms" }}
           >
             <div
-              className="relative flex h-16 w-16 items-center justify-center sm:h-20 sm:w-20 md:h-24 md:w-24"
+              className="relative flex h-14 w-14 items-center justify-center sm:h-16 sm:w-16 md:h-20 md:w-20"
               onMouseEnter={showQuote}
               onMouseLeave={hideQuote}
               aria-describedby={visible ? tooltipId : undefined}
@@ -124,7 +124,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </div>
 
           <h1
-            className="anim-rise mx-auto max-w-3xl font-serif text-4xl font-bold leading-[1.08] text-balance sm:text-5xl md:text-6xl lg:text-[64px] lg:leading-[1.05]"
+            className="anim-rise mx-auto max-w-3xl font-serif text-3xl font-bold leading-[1.1] text-balance sm:text-4xl md:text-5xl lg:text-[56px] lg:leading-[1.05]"
             style={{ animationDelay: "0ms" }}
           >
             Договори, които{" "}
@@ -133,7 +133,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </h1>
 
           <div
-            className="anim-rise mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]"
+            className="anim-rise mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]"
             style={{ animationDelay: "80ms" }}
           >
             <span className="inline-flex items-center gap-1.5 text-gold"><ShieldCheck className="h-3.5 w-3.5" /> ЗЗД · ТЗ · ЗУТ</span>
@@ -145,51 +145,13 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             <span className="inline-flex items-center gap-1.5"><FileSignature className="h-3.5 w-3.5 text-gold" /> Е-ПОДПИС</span>
           </div>
 
-          <ul
-            className="anim-rise mx-auto mt-6 grid max-w-3xl gap-2.5 sm:grid-cols-2 md:grid-cols-3 md:mt-7"
-            style={{ animationDelay: "160ms" }}
-          >
-            {[
-              { icon: Bot, to: "/assistant", label: "Правен AI-асистент от ново поколение", desc: "помага ти да преговаряш най-добрите условия." },
-              { icon: FileText, to: "/catalog", label: "Над 600 готови шаблона", desc: "за бизнес, имоти, труд, услуги и семейство." },
-              { icon: ShieldAlert, to: "/console/analysis", label: "Risk Analysis на чужди и собствени документи", desc: "открива клопки, неравноправни клаузи и липсващи защити." },
-              { icon: Languages, to: "/wizard-bilingual", label: "Двуезични договори", desc: "BG / EN / DE / FR в един документ." },
-              { icon: FileSignature, to: "/console/signing", label: "Електронен подпис", desc: "многостранно подписване, папки, споделяне." },
-              { icon: Package, to: "/kits", label: "Комплекти за често срещани казуси", desc: "създай собствен комплект, използвай практично и лесно." },
-            ].map(({ icon: Icon, to, label, desc }) => (
-              <li key={label}>
-                <Link
-                  to={to}
-                  aria-label={`${label} — ${desc}`}
-                  className="group flex h-full items-start gap-3 rounded-lg border border-gold/15 bg-card/40 px-4 py-3 text-left backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-[0_8px_24px_-12px_hsl(var(--gold)/0.45)]"
-                >
-                  <Icon aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
-                  <span className="flex-1 leading-snug">
-                    <span className="block text-sm font-semibold text-foreground sm:text-[15px]">{label}</span>
-                    <span className="block text-xs text-muted-foreground sm:text-sm">{desc}</span>
-                  </span>
-                  <ChevronRight aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-gold/60 opacity-0 transition-opacity group-hover:opacity-100" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-
-          <p
-            className="anim-rise mx-auto mt-4 text-center text-xs font-semibold uppercase tracking-[0.22em] text-gold/80 sm:text-sm"
-            style={{ animationDelay: "200ms" }}
-          >
-            Преговаряй · Създай · Прецизирай · Подпиши
-          </p>
-
-
-
-          {/* Single primary CTA + discreet secondary link */}
+          {/* CTA — visible immediately */}
           <div
-            className="anim-rise mt-6 flex flex-col items-center justify-center gap-3 sm:mt-7"
-            style={{ animationDelay: "240ms" }}
+            className="anim-rise mt-5 flex flex-col items-center justify-center gap-3"
+            style={{ animationDelay: "120ms" }}
           >
             {user ? (
-              <div className="mx-auto w-full max-w-[460px] space-y-2.5 sm:space-y-3">
+              <div className="mx-auto w-full max-w-[460px] space-y-2.5">
                 <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
                   <Link
                     to="/catalog"
@@ -202,7 +164,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
                     to="/build"
                     className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-gold/50 bg-card/60 px-5 py-3 text-[14px] font-semibold text-gold transition-colors hover:bg-gold/10"
                   >
-                    <Bird className="h-[16px] w-[16px]" />
+                    <Wand2 className="h-[16px] w-[16px]" />
                     Изготви документ
                   </Link>
                 </div>
@@ -218,18 +180,18 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
               <div className="relative w-full sm:w-auto">
                 <span
                   aria-hidden="true"
-                  className="pointer-events-none absolute -inset-1 rounded-xl bg-gradient-to-r from-gold/0 via-gold/25 to-gold/0 opacity-35 blur-xl"
+                  className="pointer-events-none absolute -inset-2 rounded-xl bg-gradient-to-r from-gold/0 via-gold/30 to-gold/0 opacity-50 blur-xl"
                 />
                 <Link
                   ref={magneticRef}
                   to="/auth?tab=signup"
                   onClick={(e) => { e.preventDefault(); setTeaserOpen(true); }}
-                  className="btn-gold btn-sheen btn-press relative w-full sm:w-auto normal-case tracking-normal text-[17px] sm:text-[18px] px-10 py-5 sm:px-12 sm:py-5 rounded-xl font-bold shadow-gold will-change-transform"
+                  className="btn-gold btn-sheen btn-press relative w-full sm:w-auto normal-case tracking-normal text-[16px] sm:text-[17px] px-8 py-4 sm:px-10 sm:py-4 rounded-xl font-bold shadow-gold will-change-transform"
                   style={{ transition: "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms, background 200ms" }}
                 >
-                  <Search className="h-[20px] w-[20px]" />
+                  <Search className="h-[18px] w-[18px]" />
                   Започни безплатно
-                  <ArrowRight className="h-[18px] w-[18px] transition-transform duration-300 group-hover:translate-x-1" />
+                  <ArrowRight className="h-[16px] w-[16px] transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
               </div>
             )}
@@ -243,12 +205,48 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             </button>
           </div>
 
+          <p
+            className="anim-rise mx-auto mt-3 text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-gold/80"
+            style={{ animationDelay: "160ms" }}
+          >
+            Преговаряй · Създай · Прецизирай · Подпиши
+          </p>
+
+          <ul
+            className="anim-rise mx-auto mt-5 grid max-w-3xl gap-2 sm:grid-cols-2 md:grid-cols-3 md:mt-6"
+            style={{ animationDelay: "200ms" }}
+          >
+            {[
+              { icon: Bot, to: "/assistant", label: "Правен AI-асистент", desc: "преговаря най-добрите условия." },
+              { icon: FileText, to: "/catalog", label: "Над 600 шаблона", desc: "бизнес, имоти, труд, услуги." },
+              { icon: ShieldAlert, to: "/console/analysis", label: "Risk Analysis", desc: "клопки и неравноправни клаузи." },
+              { icon: Languages, to: "/wizard-bilingual", label: "Двуезични договори", desc: "BG / EN / DE / FR." },
+              { icon: FileSignature, to: "/console/signing", label: "Електронен подпис", desc: "многостранно, споделяне." },
+              { icon: Package, to: "/kits", label: "Комплекти", desc: "готови решения за казуси." },
+            ].map(({ icon: Icon, to, label, desc }) => (
+              <li key={label}>
+                <Link
+                  to={to}
+                  aria-label={`${label} — ${desc}`}
+                  className="group flex h-full items-start gap-2.5 rounded-lg border border-gold/15 bg-card/40 px-3.5 py-2.5 text-left backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-[0_8px_24px_-12px_hsl(var(--gold)/0.45)]"
+                >
+                  <Icon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                  <span className="flex-1 leading-snug">
+                    <span className="block text-sm font-semibold text-foreground">{label}</span>
+                    <span className="block text-xs text-muted-foreground">{desc}</span>
+                  </span>
+                  <ChevronRight aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold/60 opacity-0 transition-opacity group-hover:opacity-100" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+
           {/* ⌘K hint pill */}
           <button
             type="button"
             onClick={openCommand}
             className="anim-rise mt-5 inline-flex items-center gap-2 rounded-full border border-gold/25 bg-card/40 px-3 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-gold/50 hover:text-gold"
-            style={{ animationDelay: "300ms" }}
+            style={{ animationDelay: "260ms" }}
             aria-label="Отвори бързо търсене"
           >
             <Command className="h-3 w-3" />
@@ -258,8 +256,8 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </button>
 
           <p
-            className="anim-rise mt-4 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
-            style={{ animationDelay: "340ms" }}
+            className="anim-rise mt-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+            style={{ animationDelay: "300ms" }}
           >
             БЕЗ ДОБАВЯНЕ НА КАРТА · ПРОФЕСИОНАЛИСТ 12.90 €/МЕС. · ПРОМОКОД <span className="text-gold">FIRST100</span> → −30%
           </p>
