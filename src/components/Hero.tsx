@@ -228,12 +228,12 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
                 <Link
                   to={to}
                   aria-label={`${label} — ${desc}`}
-                  className="group flex h-full items-start gap-2.5 rounded-lg border border-gold/15 bg-card/40 px-3.5 py-2.5 text-left backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-[0_8px_24px_-12px_hsl(var(--gold)/0.45)]"
+                  className="group flex h-full items-start gap-2 rounded-lg border border-gold/15 bg-card/40 px-2.5 py-2 text-left backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-[0_8px_24px_-12px_hsl(var(--gold)/0.45)] sm:gap-2.5 sm:px-3.5 sm:py-2.5"
                 >
                   <Icon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
                   <span className="flex-1 leading-snug">
-                    <span className="block text-sm font-semibold text-foreground">{label}</span>
-                    <span className="block text-xs text-muted-foreground">{desc}</span>
+                    <span className="block text-[12px] font-semibold text-foreground sm:text-sm">{label}</span>
+                    <span className="block text-[10px] text-muted-foreground sm:text-xs">{desc}</span>
                   </span>
                   <ChevronRight aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold/60 opacity-0 transition-opacity group-hover:opacity-100" />
                 </Link>
