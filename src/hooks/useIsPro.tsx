@@ -40,6 +40,7 @@ const DEFAULT_FREE_QUOTA: FreeQuota = {
   correctionsFreeUsed: false,
   signingFreeUsed: false,
   signupAt: null,
+  topupBalance: 0,
 };
 
 export function useIsPro(): ProState {
