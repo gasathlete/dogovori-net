@@ -55,13 +55,13 @@ export function ToolsMenu({ variant = "desktop", onNavigate }: Props) {
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="hidden h-9 items-center gap-1.5 rounded-full border border-gold/25 bg-gold/[0.06] px-4 text-[11px] font-semibold tracking-[0.12em] text-gold transition-colors hover:bg-gold/10 xl:inline-flex"
+          className="group relative hidden items-center gap-1 whitespace-nowrap text-[13px] font-medium tracking-wide text-foreground/75 transition-colors hover:text-gold lg:inline-flex"
         >
-          <CalcIcon className="h-3.5 w-3.5" />
-          ИНСТРУМЕНТИ
-          <ChevronDown className="h-3 w-3 opacity-70" />
+          Инструменти
+          <ChevronDown className="h-3 w-3 opacity-70 transition-transform group-data-[state=open]:rotate-180" />
         </button>
       </PopoverTrigger>
+
       <PopoverContent
         align="end"
         sideOffset={10}
