@@ -693,31 +693,37 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 {streaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
-            {/* Bottom toggle bar — Източници · Мислене · AI избира */}
-            <div className="flex items-center gap-1 border-t border-border/40 px-2 py-1.5">
-              <button
-                type="button"
-                onClick={() => setShowSources((v) => !v)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
-                  showSources ? "bg-gold/15 text-gold" : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-                title="Покажи източници в дясно"
-              >
-                <BookOpen className="h-3 w-3" />
-                <span>Източници</span>
-              </button>
+            {/* Bottom toggle bar — Преговори (action) · Източници · AI избира */}
+            <div className="flex flex-wrap items-center gap-1.5 border-t border-border/40 px-2 py-1.5">
               <button
                 type="button"
                 onClick={() => setNegotiationMode((v) => !v)}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
-                  negotiationMode ? "bg-gold/15 text-gold" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  "group relative inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-all active:scale-[0.97]",
+                  negotiationMode
+                    ? "bg-gradient-to-b from-gold to-gold/80 text-navy shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.55)]"
+                    : "border border-gold/40 bg-gold/[0.06] text-gold hover:bg-gold/15",
                 )}
                 title="Дълбок преговорен анализ"
+                aria-pressed={negotiationMode}
               >
-                <Handshake className="h-3 w-3" />
-                <span>{negotiationMode ? "Преговори" : "Мислене"}</span>
+                <Handshake className="h-3.5 w-3.5" />
+                <span>Режим преговори</span>
+                {negotiationMode && (
+                  <span className="ml-0.5 inline-flex h-1.5 w-1.5 rounded-full bg-navy/70" aria-hidden />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSources((v) => !v)}
+                className={cn(
+                  "hidden sm:inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                  showSources ? "bg-gold/15 text-gold" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+                title="Покажи източници"
+              >
+                <BookOpen className="h-3 w-3" />
+                <span>Източници</span>
               </button>
               <span className="ml-auto inline-flex items-center gap-1 rounded-md bg-muted/30 px-2 py-1 text-[10px] font-medium text-muted-foreground" title="Моделът се избира автоматично">
                 <Crown className="h-2.5 w-2.5 text-gold" />
