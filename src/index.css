@@ -435,6 +435,19 @@
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    position: relative;
+  }
+  .text-accent-gradient::before {
+    content: '';
+    position: absolute;
+    top: 0.05em;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0.4em;
+    height: 0.07em;
+    background: hsl(var(--gold));
+    border-radius: 1px;
+    opacity: 0.8;
   }
 
 
