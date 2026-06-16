@@ -75,7 +75,7 @@ export function Header() {
         </div>
 
         {/* Primary nav — centered column in the header grid, aligns with hero diamond */}
-        <nav className="hidden items-center gap-5 justify-self-center lg:flex xl:gap-7">
+        <nav className="hidden items-center gap-4 justify-self-center lg:flex xl:gap-6">
           {NAV.map((n) => {
             if (n.to === "__tools__") {
               return <ToolsMenu key="tools" variant="desktop" />;
