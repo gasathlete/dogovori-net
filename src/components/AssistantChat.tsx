@@ -503,27 +503,32 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
           </div>
         </ScrollArea>
 
-        {/* Quota card */}
+        {/* Quota card — операции = съобщения */}
         {!isPro && !isTeam && (
           <div className="mt-2 space-y-2">
-            <div className="rounded-xl border border-gold/30 bg-gradient-to-br from-gold/10 to-gold/5 p-3">
-              <div className="mb-2 flex items-center gap-2">
-                <span className="text-base">🎁</span>
-                <div className="min-w-0">
-                  <div className="text-[11px] font-bold text-foreground">Безплатен</div>
-                  <div className="text-[10px] text-muted-foreground">{freeQuota.aiMessagesUsed} / {freeQuota.aiMessagesCap} съобщения</div>
+            <div className="rounded-xl border border-gold/40 bg-gradient-to-br from-gold/15 to-gold/5 p-3 shadow-[0_8px_24px_-12px_hsl(var(--gold)/0.35)]">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-base">🎁</span>
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-bold text-foreground">Безплатни операции</div>
+                    <div className="text-[10px] text-muted-foreground truncate">1 съобщение = 1 операция</div>
+                  </div>
                 </div>
+                <span className="shrink-0 rounded-md bg-gold/15 px-1.5 py-0.5 text-[10px] font-bold text-gold tabular-nums">
+                  {Math.max(0, freeQuota.opsCap - freeQuota.opsUsed)}/{freeQuota.opsCap}
+                </span>
               </div>
-              <div className="h-1 w-full overflow-hidden rounded-full bg-muted/40">
-                <div className="h-full rounded-full bg-gradient-to-r from-gold to-gold/70 transition-all" style={{ width: `${Math.min(100, (freeQuota.aiMessagesUsed / Math.max(1, freeQuota.aiMessagesCap)) * 100)}%` }} />
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/40">
+                <div className="h-full rounded-full bg-gradient-to-r from-gold to-gold/70 transition-all" style={{ width: `${Math.min(100, (freeQuota.opsUsed / Math.max(1, freeQuota.opsCap)) * 100)}%` }} />
               </div>
+              <Link
+                to="/account?tab=subscription"
+                className="mt-2.5 flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-b from-gold to-gold/80 px-3 py-1.5 text-[11px] font-bold text-navy shadow-sm transition-all hover:shadow-[0_6px_16px_-6px_hsl(var(--gold)/0.55)] active:scale-[0.98]"
+              >
+                <Crown className="h-3 w-3" /> Надгради до 100 / мес.
+              </Link>
             </div>
-            <Link
-              to="/plans"
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-gold/40 bg-gold/5 px-3 py-2 text-[11px] font-bold text-gold transition-all hover:bg-gold/15"
-            >
-              <Crown className="h-3 w-3" /> Надгради плана
-            </Link>
           </div>
         )}
       </aside>
