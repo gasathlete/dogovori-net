@@ -149,14 +149,14 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
             onClick={() => goToBilling("entrepreneur", "monthly")}
             className="w-full bg-gradient-gold text-navy hover:shadow-gold"
           >
-            Предприемач — 19.90 € / месец (120 операции, GPT-5)
+            Предприемач — 12.90 € / месец (100 операции)
           </Button>
           <Button
             onClick={() => goToBilling("professional", "monthly")}
             variant="outline"
             className="w-full border-gold/40 hover:bg-gold/10 hover:text-gold"
           >
-            Професионалист — 12.90 € / месец (50 операции)
+            Екип — 10.90 € / място / месец (мин. 3 места · 100 ops/място)
           </Button>
         </div>
 
