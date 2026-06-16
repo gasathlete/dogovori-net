@@ -31,7 +31,7 @@ export function LifeScenarios() {
           id="scenarios-heading"
           className="font-serif text-2xl font-bold leading-[1.15] text-balance sm:text-3xl md:text-4xl lg:text-[40px]"
         >
-          Какво имате нужда, да се догов<span className="text-gold">о</span>ри ?&nbsp;
+          Какво имате нужда, да се догов<span className="text-accent-gradient">о</span>ри ?&nbsp;
         </h2>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
           Изберете ситуация от ежедневието — ще получите комплект от всички нужни документи.
