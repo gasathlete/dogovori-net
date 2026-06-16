@@ -32,7 +32,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
   };
 
   return (
-    <section className="relative overflow-hidden border-b border-border/60 lg:flex lg:min-h-[min(calc(100svh-4rem),680px)] lg:items-center">
+    <section className="relative overflow-hidden border-b border-border/60 lg:flex lg:min-h-[min(calc(100svh-4rem),620px)] lg:items-center">
       <div className="absolute inset-0 bg-gradient-hero opacity-95" />
       <HeroBackdrop />
 
@@ -72,14 +72,14 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
         <div className="h-2 w-2 rotate-45 border border-gold/60 bg-background" />
       </div>
 
-      <div className="container relative w-full pt-4 pb-10 sm:pt-6 sm:pb-12 md:pt-6 md:pb-12 lg:pt-6 lg:pb-10">
+      <div className="container relative w-full pt-3 pb-8 sm:pt-4 sm:pb-10 md:pt-4 md:pb-10 lg:pt-4 lg:pb-8">
         <div className="relative mx-auto max-w-3xl text-center px-0 my-0">
           <div
-            className="anim-rise mx-auto mb-2 flex items-center justify-center sm:mb-3"
+            className="anim-rise mx-auto mb-1.5 flex items-center justify-center sm:mb-2"
             style={{ animationDelay: "0ms" }}
           >
             <div
-              className="relative flex h-14 w-14 items-center justify-center sm:h-16 sm:w-16 md:h-20 md:w-20"
+              className="relative flex h-12 w-12 items-center justify-center sm:h-14 sm:w-14 md:h-16 md:w-16"
               onMouseEnter={showQuote}
               onMouseLeave={hideQuote}
               aria-describedby={visible ? tooltipId : undefined}
@@ -124,7 +124,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </div>
 
           <h1
-            className="anim-rise mx-auto max-w-3xl font-serif text-3xl font-bold leading-[1.1] text-balance sm:text-4xl md:text-5xl lg:text-[56px] lg:leading-[1.05]"
+            className="anim-rise mx-auto max-w-3xl font-serif text-2xl font-bold leading-[1.1] text-balance sm:text-3xl md:text-4xl lg:text-[42px] lg:leading-[1.05]"
             style={{ animationDelay: "0ms" }}
           >
             Д<span className="text-accent-gradient stress-accent">о</span>говори, които{" "}
@@ -133,7 +133,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </h1>
 
           <div
-            className="anim-rise mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]"
+            className="anim-rise mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]"
             style={{ animationDelay: "80ms" }}
           >
             <span className="inline-flex items-center gap-1.5 text-gold"><ShieldCheck className="h-3.5 w-3.5" /> ЗЗД · ТЗ · ЗУТ</span>
@@ -147,7 +147,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
 
           {/* CTA — visible immediately */}
           <div
-            className="anim-rise mt-5 flex flex-col items-center justify-center gap-3"
+            className="anim-rise mt-3 flex flex-col items-center justify-center gap-2"
             style={{ animationDelay: "120ms" }}
           >
             {user ? (
@@ -206,14 +206,14 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </div>
 
           <p
-            className="anim-rise mx-auto mt-3 text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-gold/80"
+            className="anim-rise mx-auto mt-2 text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-gold/80"
             style={{ animationDelay: "160ms" }}
           >
             Преговаряй · Създай · Прецизирай · Подпиши
           </p>
 
           <ul
-            className="anim-rise mx-auto mt-5 grid max-w-3xl gap-2 sm:grid-cols-2 md:grid-cols-3 md:mt-6"
+            className="anim-rise mx-auto mt-3 grid max-w-3xl gap-2 sm:grid-cols-2 md:grid-cols-3 md:mt-4"
             style={{ animationDelay: "200ms" }}
           >
             {[
@@ -245,7 +245,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           <button
             type="button"
             onClick={openCommand}
-            className="anim-rise mt-5 inline-flex items-center gap-2 rounded-full border border-gold/25 bg-card/40 px-3 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-gold/50 hover:text-gold"
+            className="anim-rise mt-3 inline-flex items-center gap-2 rounded-full border border-gold/25 bg-card/40 px-3 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-gold/50 hover:text-gold"
             style={{ animationDelay: "260ms" }}
             aria-label="Отвори бързо търсене"
           >
@@ -256,7 +256,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </button>
 
           <p
-            className="anim-rise mt-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+            className="anim-rise mt-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
             style={{ animationDelay: "300ms" }}
           >
             БЕЗ ДОБАВЯНЕ НА КАРТА · ПРОФЕСИОНАЛИСТ 12.90 €/МЕС. · ПРОМОКОД <span className="text-gold">FIRST100</span> → −30%
