@@ -145,13 +145,43 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             <span className="inline-flex items-center gap-1.5"><FileSignature className="h-3.5 w-3.5 text-gold" /> Е-ПОДПИС</span>
           </div>
 
-          <p
-            className="anim-rise mx-auto mt-5 max-w-2xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg md:mt-6 md:text-xl md:leading-[1.6]"
+          <ul
+            className="anim-rise mx-auto mt-6 grid max-w-3xl gap-2.5 sm:grid-cols-2 md:mt-7"
             style={{ animationDelay: "160ms" }}
           >
-            Индивидуални документи, съобразени със ЗЗД, ТЗ и ЗУТ — с пълен правен риск-анализ. Вътрешен AI-асистент, от ново поколение, който ти помага да договаряш най-добрите условия по твоята сделка.<br />
-            &nbsp; Преговаряй, създай, прецизирай, подпиши.
+            {[
+              { icon: ShieldCheck, to: "/catalog", label: "Документи по ЗЗД, ТЗ и ЗУТ", desc: "съобразени с актуалната българска правна рамка." },
+              { icon: Bot, to: "/assistant", label: "Правен AI-асистент от ново поколение", desc: "помага ти да преговаряш най-добрите условия." },
+              { icon: FileText, to: "/catalog", label: "Над 600 готови шаблона", desc: "за бизнес, имоти, труд, услуги и семейство." },
+              { icon: ShieldAlert, to: "/console/analysis", label: "Risk Analysis на чужди и собствени документи", desc: "открива клопки, неравноправни клаузи и липсващи защити." },
+              { icon: Languages, to: "/wizard-bilingual", label: "Двуезични договори", desc: "BG / EN / DE / FR в един документ." },
+              { icon: FileSignature, to: "/console/signing", label: "Електронен подпис", desc: "многостранно подписване, папки, споделяне." },
+              { icon: Package, to: "/kits", label: "Комплекти за често срещани казуси", desc: "създай собствен комплект — практично и лесно.", wide: true },
+            ].map(({ icon: Icon, to, label, desc, wide }) => (
+              <li key={label} className={wide ? "sm:col-span-2" : undefined}>
+                <Link
+                  to={to}
+                  aria-label={`${label} — ${desc}`}
+                  className="group flex h-full items-start gap-3 rounded-lg border border-gold/15 bg-card/40 px-4 py-3 text-left backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-[0_8px_24px_-12px_hsl(var(--gold)/0.45)]"
+                >
+                  <Icon aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
+                  <span className="flex-1 leading-snug">
+                    <span className="block text-sm font-semibold text-foreground sm:text-[15px]">{label}</span>
+                    <span className="block text-xs text-muted-foreground sm:text-sm">{desc}</span>
+                  </span>
+                  <ChevronRight aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-gold/60 opacity-0 transition-opacity group-hover:opacity-100" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+
+          <p
+            className="anim-rise mx-auto mt-4 text-center text-xs font-semibold uppercase tracking-[0.22em] text-gold/80 sm:text-sm"
+            style={{ animationDelay: "200ms" }}
+          >
+            Преговаряй · Създай · Прецизирай · Подпиши
           </p>
+
 
 
           {/* Single primary CTA + discreet secondary link */}
