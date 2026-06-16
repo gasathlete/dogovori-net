@@ -206,14 +206,14 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </div>
 
           <p
-            className="anim-rise mx-auto mt-2 text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-gold/80"
+            className="anim-rise mx-auto mt-1.5 text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-gold/80 sm:mt-2 sm:text-[11px] sm:tracking-[0.22em]"
             style={{ animationDelay: "160ms" }}
           >
             Преговаряй · Създай · Прецизирай · Подпиши
           </p>
 
           <ul
-            className="anim-rise mx-auto mt-3 grid max-w-3xl gap-2 sm:grid-cols-2 md:grid-cols-3 md:mt-4"
+            className="anim-rise mx-auto mt-2 grid max-w-3xl grid-cols-2 gap-1.5 sm:mt-3 sm:gap-2 md:grid-cols-3 md:mt-4"
             style={{ animationDelay: "200ms" }}
           >
             {[
