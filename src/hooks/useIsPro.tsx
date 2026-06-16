@@ -126,6 +126,7 @@ export function useIsPro(): ProState {
         correctionsFreeUsed: Boolean((q as any)?.corrections_free_used),
         signingFreeUsed: Boolean((q as any)?.free_signing_used),
         signupAt,
+        topupBalance: (q as any)?.topup_ops_balance ?? 0,
       },
     });
   }, [user]);
