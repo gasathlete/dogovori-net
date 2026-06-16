@@ -257,7 +257,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     }
     const g = gate as { ok: boolean; reason?: string; used?: number; cap?: number } | null;
     if (g && g.ok === false) {
-      toast.error("Изчерпани са 15-те безплатни съобщения за този месец. Активирай PRO за неограничен достъп.");
+      toast.error("Изчерпани са безплатните операции за този месец. 1 съобщение = 1 операция. Надгради за 100/мес.");
       await refreshPlan();
       return;
     }
