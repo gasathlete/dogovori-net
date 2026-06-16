@@ -245,7 +245,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           <button
             type="button"
             onClick={openCommand}
-            className="anim-rise mt-5 inline-flex items-center gap-2 rounded-full border border-gold/25 bg-card/40 px-3 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-gold/50 hover:text-gold"
+            className="anim-rise mt-3 inline-flex items-center gap-2 rounded-full border border-gold/25 bg-card/40 px-3 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-gold/50 hover:text-gold"
             style={{ animationDelay: "260ms" }}
             aria-label="Отвори бързо търсене"
           >
@@ -256,7 +256,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </button>
 
           <p
-            className="anim-rise mt-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+            className="anim-rise mt-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
             style={{ animationDelay: "300ms" }}
           >
             БЕЗ ДОБАВЯНЕ НА КАРТА · ПРОФЕСИОНАЛИСТ 12.90 €/МЕС. · ПРОМОКОД <span className="text-gold">FIRST100</span> → −30%
