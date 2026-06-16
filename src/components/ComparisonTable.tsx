@@ -45,7 +45,7 @@ export function ComparisonTable() {
       <div className="mx-auto mb-10 max-w-2xl text-center">
         <div className="eyebrow mb-3 justify-center">Сравнение</div>
         <h2 className="font-serif text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl">
-          Защо Договори.нет, а не алтернативите
+          Договорете Вашата&nbsp; &nbsp; &nbsp; най-добра сделка, още днес.
         </h2>
         <p className="mt-3 text-sm text-muted-foreground sm:text-base">
           Цена, скорост и сигурност в едно — без компромис със закона.
@@ -100,7 +100,7 @@ export function ComparisonTable() {
                 Адвокат
               </th>
               <th className="px-4 py-4 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:px-6">
-                Безплатни PDF
+                НЕПРОВЕРЕН DOC.
               </th>
             </tr>
           </thead>

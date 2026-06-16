@@ -18,9 +18,9 @@ export function PainSolution() {
   return (
     <section className="container py-20 sm:py-24 md:py-28">
       <div className="mx-auto mb-10 max-w-2xl text-center">
-        <div className="eyebrow mb-3 justify-center">Проблем · Решение</div>
+        <div className="eyebrow mb-3 justify-center">&nbsp;· РЕШЕНИЕ</div>
         <h2 className="font-serif text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl">
-          Спрете да губите време и пари за документи
+          Не прави компромиси. Договори своите правила.
         </h2>
         <p className="mt-3 text-sm text-muted-foreground sm:text-base">
           Един абонамент заменя адвокат за стандартни договори, безплатните PDF сайтове и риска от грешки.

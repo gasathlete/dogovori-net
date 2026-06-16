@@ -54,7 +54,7 @@ export function CTABand() {
           <LiveCounter />
           <div className="eyebrow mb-3 justify-center">Готови?</div>
           <h2 className="mx-auto max-w-2xl font-serif text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl">
-            Изгответе своя професионален договор още днес
+            Изгответе своя професионален документ още днес
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
             +600 шаблона · AI анализ на риска · електронен подпис · без скрити такси.

@@ -62,7 +62,7 @@ export function ComplianceSection() {
         <div className="text-center">
           <div className="eyebrow mb-4 justify-center">
             <ShieldCheck className="h-3.5 w-3.5" />
-            Защо да ни се доверите
+            СТРИКТНА ПРАВНА РАМККА
           </div>
           <h2 className="font-serif text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl">
             Съобразено с  -<br />Закон за задълженията и договорите · Търговски закон · ЗУТ
