@@ -62,7 +62,7 @@ export function useIsPro(): ProState {
       supabase
         .from("download_quota")
         .select(
-          "plan, pro_until, monthly_total_used, pro_monthly_used, ai_messages_used, analysis_previews_used, bilingual_previews_used, corrections_free_used, free_signing_used, signup_at, plan_ops_cap",
+          "plan, pro_until, monthly_total_used, pro_monthly_used, ai_messages_used, analysis_previews_used, bilingual_previews_used, corrections_free_used, free_signing_used, signup_at, plan_ops_cap, topup_ops_balance",
         )
         .eq("user_id", user.id)
         .maybeSingle(),
