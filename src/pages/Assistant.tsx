@@ -61,7 +61,7 @@ export default function AssistantPage() {
         <div className="text-right text-xs">
           {!user ? (
             <Link to="/auth" className="inline-flex items-center gap-1 rounded-full bg-gradient-to-b from-gold/90 to-gold/70 px-3 py-1.5 font-semibold text-navy hover:brightness-110">
-              <Sparkles className="h-3.5 w-3.5" /> Регистрация · 5 безпл. операции
+              <Sparkles className="h-3.5 w-3.5" /> Регистрация · 10 безпл. операции
             </Link>
           ) : unlimited ? (
             <span className="text-gold">{remaining}/{cap} операции · този месец</span>
