@@ -524,9 +524,9 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
               </div>
               <Link
                 to="/account?tab=subscription"
-                className="mt-2.5 flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-b from-gold to-gold/80 px-3 py-1.5 text-[11px] font-bold text-navy shadow-sm transition-all hover:shadow-[0_6px_16px_-6px_hsl(var(--gold)/0.55)] active:scale-[0.98]"
+                className="group mt-2.5 flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-b from-gold to-gold/80 px-3 py-1.5 text-[11px] font-bold text-navy shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.5)] transition-all hover:shadow-[0_8px_20px_-6px_hsl(var(--gold)/0.7)] hover:brightness-105 active:scale-[0.98]"
               >
-                <Crown className="h-3 w-3" /> Надгради до 100 / мес.
+                <Crown className="h-3 w-3" /> До 100 / мес.
               </Link>
             </div>
           </div>
