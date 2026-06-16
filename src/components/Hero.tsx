@@ -124,7 +124,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </div>
 
           <h1
-            className="anim-rise mx-auto max-w-3xl font-serif text-3xl font-bold leading-[1.1] text-balance sm:text-4xl md:text-5xl lg:text-[56px] lg:leading-[1.05]"
+            className="anim-rise mx-auto max-w-3xl font-serif text-2xl font-bold leading-[1.1] text-balance sm:text-3xl md:text-4xl lg:text-[42px] lg:leading-[1.05]"
             style={{ animationDelay: "0ms" }}
           >
             Д<span className="text-accent-gradient stress-accent">о</span>говори, които{" "}
@@ -133,7 +133,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </h1>
 
           <div
-            className="anim-rise mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]"
+            className="anim-rise mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]"
             style={{ animationDelay: "80ms" }}
           >
             <span className="inline-flex items-center gap-1.5 text-gold"><ShieldCheck className="h-3.5 w-3.5" /> ЗЗД · ТЗ · ЗУТ</span>
