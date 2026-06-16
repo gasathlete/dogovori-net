@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Plus, Zap, Sparkles, Rocket } from "lucide-react";
+import { Plus, Zap, Sparkles, Rocket, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useStripeCheckout } from "@/hooks/useStripeCheckout";
+import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { useAuth } from "@/hooks/useAuth";
+
 
 export interface TopupPack {
   priceId: "topup_10" | "topup_20" | "topup_50" | "topup_100";
