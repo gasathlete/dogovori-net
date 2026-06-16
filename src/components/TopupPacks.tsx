@@ -33,6 +33,15 @@ export function TopupPacks({ enabled = true, compact = false, className }: Topup
   const { user } = useAuth();
   const [activePack, setActivePack] = useState<TopupPack | null>(null);
 
+  useEffect(() => {
+    if (!activePack) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [activePack]);
+
   const handleBuy = (pack: TopupPack) => {
     if (!enabled || !user) return;
     setActivePack(pack);
