@@ -28,9 +28,9 @@ interface ProState {
 
 const DEFAULT_FREE_QUOTA: FreeQuota = {
   opsUsed: 0,
-  opsCap: 5,
+  opsCap: 3,
   aiMessagesUsed: 0,
-  aiMessagesCap: 15,
+  aiMessagesCap: 3,
   analysisPreviewsUsed: 0,
   analysisPreviewsCap: 1,
   bilingualPreviewsUsed: 0,
@@ -85,10 +85,8 @@ export function useIsPro(): ProState {
     const t: any = tm;
     const isTeam = Boolean(t && t.teams?.status === "active");
     const signupAt: string | null = (q as any)?.signup_at ?? null;
-    const withinFirstMonth =
-      !!signupAt && Date.now() - new Date(signupAt).getTime() < 30 * 24 * 60 * 60 * 1000;
     // Derive cap for paid users from price_id (with grandfathered override),
-    // otherwise free monthly cap.
+    // otherwise free monthly cap (10 ops/mo for registered users).
     const priceId = (sub as any)?.price_id ?? null;
     const isEntrepreneur =
       priceId === "entrepreneur_monthly" || priceId === "entrepreneur_yearly";
@@ -98,9 +96,10 @@ export function useIsPro(): ProState {
     const grandfathered = (q as any)?.plan_ops_cap as number | null;
     let opsCap: number;
     if (isPro) {
-      opsCap = grandfathered ?? (isEntrepreneur ? 120 : isProfessional ? 50 : 50);
+      // Both Предприемач (12.90€) and Екип (10.90€/seat) = 100 ops/mo.
+      opsCap = grandfathered ?? 100;
     } else {
-      opsCap = withinFirstMonth ? 5 : 2;
+      opsCap = 10;
     }
     setState({
       isPro,
