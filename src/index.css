@@ -440,14 +440,14 @@
   .text-accent-gradient::before {
     content: '';
     position: absolute;
-    top: -0.05em;
+    top: 0.02em;
     left: 50%;
     transform: translateX(-50%);
-    width: 0.12em;
-    height: 0.12em;
-    background: hsl(var(--gold));
+    width: 0.1em;
+    height: 0.1em;
+    background: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--gold)) 100%);
     border-radius: 50%;
-    opacity: 0.9;
+    opacity: 0.95;
   }
 
 
