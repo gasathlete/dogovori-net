@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ConsoleProvider, useConsoleShortcuts, useConsoleStore, type ConsoleSection } from "@/hooks/useConsoleStore";
@@ -9,7 +9,7 @@ import { ConsoleCanvas } from "@/components/console/ConsoleCanvas";
 import { ConsoleFooter } from "@/components/console/ConsoleFooter";
 import { Header } from "@/components/Header";
 import { AssistantChat } from "@/components/AssistantChat";
-import { FileText, Upload, Layers, Scale, Plus, LayoutDashboard } from "lucide-react";
+import { FileText, Upload, Layers, Scale, Plus, LayoutDashboard, RotateCw, X } from "lucide-react";
 
 const ASSISTANT_QUICK_LINKS = [
   { to: "/console/dashboard", icon: LayoutDashboard, label: "Табло" },
