@@ -150,17 +150,32 @@ async function handleSubscriptionDeleted(subscription: any, env: StripeEnv) {
 async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   const userId = session.metadata?.userId;
 
-  // 1) Bonus contracts (one-off purchases)
+  // 1) Bonus contracts + top-up ops (one-off purchases)
   if (session.mode === "payment" && userId) {
     try {
       const stripe = createStripeClient(env);
       const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10, expand: ["data.price"] });
       let bonus = 0;
+      const topupMap: Record<string, number> = {
+        topup_10: 10, topup_20: 20, topup_50: 50, topup_100: 100,
+      };
       for (const li of items.data) {
         const price: any = (li as any).price;
         const lookup = price?.lookup_key || price?.metadata?.lovable_external_id;
         if (lookup === "five_operations") bonus += (li.quantity ?? 1) * 5;
         else if (lookup === "single_contract") bonus += li.quantity ?? 1;
+        else if (lookup && topupMap[lookup]) {
+          const ops = topupMap[lookup] * (li.quantity ?? 1);
+          const amountEur = typeof li.amount_total === "number" ? li.amount_total / 100 : null;
+          await getSupabase().rpc("credit_topup_ops", {
+            p_user_id: userId,
+            p_price_id: lookup,
+            p_ops: ops,
+            p_amount: amountEur,
+            p_session_id: session.id,
+            p_environment: env,
+          });
+        }
       }
       if (bonus > 0) {
         const { data: q } = await getSupabase()
@@ -175,9 +190,10 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
           .eq("user_id", userId);
       }
     } catch (e) {
-      console.error("checkout.session.completed bonus handling failed:", e);
+      console.error("checkout.session.completed bonus/topup handling failed:", e);
     }
   }
+
 
   // 1b) Order snapshot — ЗЗП чл. 47/49: фиксираме приетите версии на правните
   // документи и активната цена в момента на покупката (consumer protection

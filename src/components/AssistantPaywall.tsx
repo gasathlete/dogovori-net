@@ -1,22 +1,24 @@
 import { Link } from "react-router-dom";
 import { Bird, Crown, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TopupPacks } from "@/components/TopupPacks";
+import { useIsPro } from "@/hooks/useIsPro";
 
 export function AssistantPaywall() {
+  const { isPro } = useIsPro();
   return (
-    <div className="flex min-h-[400px] items-center justify-center rounded-lg border border-border/60 bg-card/40 p-6">
-      <div className="max-w-md text-center">
+    <div className="space-y-6 rounded-lg border border-border/60 bg-card/40 p-6">
+      <div className="mx-auto max-w-md text-center">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gold/15">
           <Bird className="h-7 w-7 text-gold" />
         </div>
-        <h3 className="mb-2 text-lg font-semibold text-foreground">AI Асистент 24/7</h3>
+        <h3 className="mb-2 text-lg font-semibold text-foreground">Правен AI Асистент</h3>
         <p className="mb-5 text-sm text-muted-foreground">
-          Личен правен помощник, който отговаря на въпроси за договори, закони и платформата —
-          денонощно, на български език.
+          Личен правен помощник за договори, закони и платформата — на български език.
         </p>
         <ul className="mb-6 space-y-2 text-left text-sm text-muted-foreground">
           {[
-            "1 съобщение = 1 операция (5 при регистрация + 2/мес. безплатно)",
+            "1 съобщение = 1 операция (10 безплатни/мес. за регистрирани)",
             "Помощ с попълване на шаблони и клаузи",
             "Общи насоки по ЗЗД, ТЗ, КТ, СК, ЗУТ, GDPR",
             "Платен план: 100 операции/мес.",
@@ -32,10 +34,18 @@ export function AssistantPaywall() {
             <Crown className="h-4 w-4" /> Активирай платен план
           </Link>
         </Button>
-        <p className="mt-3 text-[11px] text-muted-foreground">
-          1 съобщение към AI Асистента = 1 операция от месечния ти лимит.
-        </p>
+      </div>
+
+      <div className="border-t border-border/60 pt-6">
+        <div className="mb-3 text-center">
+          <h4 className="text-sm font-semibold text-foreground">Top-up пакети</h4>
+          <p className="text-xs text-muted-foreground">
+            Зареди допълнителни операции без подновяване.
+          </p>
+        </div>
+        <TopupPacks enabled={isPro} compact />
       </div>
     </div>
   );
 }
+

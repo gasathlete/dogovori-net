@@ -679,21 +679,24 @@ export type Database = {
           batch_id: string
           created_at: string
           id: string
-          session_id: string
+          ops_charged: number
+          session_id: string | null
           user_id: string
         }
         Insert: {
           batch_id: string
           created_at?: string
           id?: string
-          session_id: string
+          ops_charged?: number
+          session_id?: string | null
           user_id: string
         }
         Update: {
           batch_id?: string
           created_at?: string
           id?: string
-          session_id?: string
+          ops_charged?: number
+          session_id?: string | null
           user_id?: string
         }
         Relationships: []

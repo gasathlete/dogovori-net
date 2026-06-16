@@ -15,6 +15,7 @@ export interface FreeQuota {
   correctionsFreeUsed: boolean;
   signingFreeUsed: boolean;
   signupAt: string | null;
+  topupBalance: number;
 }
 
 interface ProState {
@@ -39,6 +40,7 @@ const DEFAULT_FREE_QUOTA: FreeQuota = {
   correctionsFreeUsed: false,
   signingFreeUsed: false,
   signupAt: null,
+  topupBalance: 0,
 };
 
 export function useIsPro(): ProState {
@@ -60,7 +62,7 @@ export function useIsPro(): ProState {
       supabase
         .from("download_quota")
         .select(
-          "plan, pro_until, monthly_total_used, pro_monthly_used, ai_messages_used, analysis_previews_used, bilingual_previews_used, corrections_free_used, free_signing_used, signup_at, plan_ops_cap",
+          "plan, pro_until, monthly_total_used, pro_monthly_used, ai_messages_used, analysis_previews_used, bilingual_previews_used, corrections_free_used, free_signing_used, signup_at, plan_ops_cap, topup_ops_balance",
         )
         .eq("user_id", user.id)
         .maybeSingle(),
@@ -124,6 +126,7 @@ export function useIsPro(): ProState {
         correctionsFreeUsed: Boolean((q as any)?.corrections_free_used),
         signingFreeUsed: Boolean((q as any)?.free_signing_used),
         signupAt,
+        topupBalance: (q as any)?.topup_ops_balance ?? 0,
       },
     });
   }, [user]);

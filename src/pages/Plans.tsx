@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { Seo } from "@/components/Seo";
 import { PlansHeroAnimation } from "@/components/PlansHeroAnimation";
 import { ExpandableCard } from "@/components/ui/ExpandableCard";
+import { TopupPacks } from "@/components/TopupPacks";
 
 import {
   Accordion,
@@ -364,6 +365,23 @@ export default function Plans() {
                   Разгледай каталога
                 </Link>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-t border-border/60 bg-card/30 py-16">
+          <div className="container mx-auto px-4">
+            <div className="mx-auto max-w-3xl text-center">
+              <h2 className="font-serif text-2xl text-foreground sm:text-3xl">
+                Top-up пакети — добави операции към плана си
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+                Еднократно зареждане без подновяване. Налично само за активни абонати.
+                Цените са с ДДС.
+              </p>
+            </div>
+            <div className="mx-auto mt-8 max-w-5xl">
+              <TopupPacks enabled={isAuthed} />
             </div>
           </div>
         </section>

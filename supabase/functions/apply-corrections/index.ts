@@ -89,19 +89,21 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Batch charging: one wave of corrections = 1 analysis op. Repeated apply
-    // of the same batch_id (same wave) is free; the next wave (new batch_id)
-    // charges again. Falls back to a plain analysis charge if the client did
-    // not supply session_id + batch_id.
+    // Stepped wave charging: 1-5 corrections = 1 op, 6-10 = 2, ... ceil(n/5).
+    // Repeated apply with same batch_id returns the cached charge (idempotent).
+    // Falls back to a single op when no batch_id is supplied.
+    const correctionsCount =
+      (Array.isArray(selectedIssues) ? selectedIssues.length : 0) +
+      (Array.isArray(selectedRecommendations) ? selectedRecommendations.length : 0);
     const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: batchCharge, error: batchErr } = await userClient.rpc(
-      "consume_corrections_batch",
-      { _session_id: sessionId ?? null, _batch_id: batchId ?? null },
+      "charge_corrections_wave",
+      { p_user_id: userId, p_batch_id: batchId ?? null, p_count: Math.max(1, correctionsCount) },
     );
     if (batchErr) {
-      console.error("consume_corrections_batch error:", batchErr);
+      console.error("charge_corrections_wave error:", batchErr);
       return new Response(JSON.stringify({ error: "Грешка при проверка на квотата" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -109,7 +111,8 @@ Deno.serve(async (req: Request) => {
     const batchResult = batchCharge as {
       ok: boolean;
       reason?: string;
-      charged?: boolean;
+      ops_charged?: number;
+      cached?: boolean;
     };
     if (!batchResult?.ok) {
       return new Response(
@@ -117,7 +120,8 @@ Deno.serve(async (req: Request) => {
         { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-    const batchCharged = batchResult.charged !== false;
+    const batchCharged = !batchResult.cached;
+
 
     // Illegal content guard
     const guardText = [
