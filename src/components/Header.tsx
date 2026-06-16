@@ -62,7 +62,7 @@ export function Header() {
       )}
     >
 
-      <div className="container flex h-16 items-center justify-between gap-3 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-6">
+      <div className="container flex h-14 items-center justify-between gap-2 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-4">
         {/* Brand */}
         <div className="flex min-w-0 items-center justify-self-start">
           <Link
@@ -75,10 +75,12 @@ export function Header() {
         </div>
 
         {/* Primary nav — centered column in the header grid, aligns with hero diamond */}
-        <nav className="hidden items-center gap-6 justify-self-center lg:flex xl:gap-9">
+        <nav className="hidden items-center gap-5 justify-self-center lg:flex xl:gap-7">
           {NAV.map((n) => {
+            if (n.to === "__tools__") {
+              return <ToolsMenu key="tools" variant="desktop" />;
+            }
             const active = isActive(n.to);
-            const highlight = (n as { highlight?: boolean }).highlight;
             return (
               <Link
                 key={n.to}
@@ -86,23 +88,19 @@ export function Header() {
                 onClick={(e) => handleNav(n.to, e)}
                 className={cn(
                   "group relative whitespace-nowrap text-[13px] font-medium tracking-wide transition-colors",
-                  highlight
-                    ? "rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-gold hover:bg-gold/20"
-                    : active
-                      ? "text-gold"
-                      : "text-foreground/75 hover:text-gold",
+                  active
+                    ? "text-gold"
+                    : "text-foreground/75 hover:text-gold",
                 )}
               >
                 {n.label}
-                {!highlight && (
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      "absolute -bottom-1.5 left-0 h-px bg-gold transition-all duration-300",
-                      active ? "w-full opacity-100" : "w-0 opacity-0 group-hover:w-full group-hover:opacity-60",
-                    )}
-                  />
-                )}
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "absolute -bottom-1.5 left-0 h-px bg-gold transition-all duration-300",
+                    active ? "w-full opacity-100" : "w-0 opacity-0 group-hover:w-full group-hover:opacity-60",
+                  )}
+                />
               </Link>
             );
           })}
@@ -110,9 +108,9 @@ export function Header() {
 
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-3 justify-self-end">
-          <ToolsMenu variant="desktop" />
+        <div className="flex items-center justify-end gap-2 justify-self-end">
           <ThemeToggle className="hidden sm:inline-flex" />
+
 
 
           {showProBadge && (
