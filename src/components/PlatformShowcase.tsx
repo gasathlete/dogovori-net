@@ -658,7 +658,7 @@ export function PlatformShowcase() {
           onTouchEnd={onTouchEnd}
           onTouchCancel={onTouchEnd}
         >
-          <div className="relative mx-auto h-[460px] w-full max-w-6xl sm:h-[580px] md:h-[660px] lg:h-[720px] xl:h-[780px]">
+          <div className="relative mx-auto h-[400px] w-full max-w-6xl sm:h-[500px] md:h-[560px] lg:h-[600px] xl:h-[640px]">
             {SLIDES.map((slide, i) => {
               // shortest signed distance on a ring
               let delta = i - idx;
@@ -669,7 +669,7 @@ export function PlatformShowcase() {
 
               // Responsive offsets — tighter on mobile to avoid edge clipping
               const isMobileVP = vw < 640;
-              const offset = isMobileVP ? 180 : 300;
+              const offset = isMobileVP ? 140 : 240;
               const translateX = delta * offset + (isActive ? dragDx : dragDx * 0.4);
               const rotateY = reducedMotion ? 0 : delta * (isMobileVP ? -22 : -16);
               const scale = abs === 0 ? 1 : abs === 1 ? (isMobileVP ? 0.7 : 0.84) : (isMobileVP ? 0.5 : 0.68);
@@ -692,7 +692,7 @@ export function PlatformShowcase() {
                     }
                     if (!isActive) goTo(i);
                   }}
-                  className="group absolute left-1/2 top-1/2 -ml-[140px] -mt-[200px] block h-[400px] w-[280px] rounded-2xl border border-hairline bg-card/95 text-left shadow-elegant outline-none transition-[transform,opacity,box-shadow] duration-700 ease-[cubic-bezier(.22,1,.36,1)] focus-visible:ring-2 focus-visible:ring-gold/60 sm:h-[560px] sm:w-[460px] sm:-ml-[230px] sm:-mt-[280px] md:h-[640px] md:w-[560px] md:-ml-[280px] md:-mt-[320px] lg:h-[680px] lg:-mt-[340px] xl:h-[740px] xl:-mt-[370px]"
+                  className="group absolute left-1/2 top-1/2 -ml-[120px] -mt-[160px] block h-[320px] w-[240px] rounded-2xl border border-hairline bg-card/95 text-left shadow-elegant outline-none transition-[transform,opacity,box-shadow] duration-700 ease-[cubic-bezier(.22,1,.36,1)] focus-visible:ring-2 focus-visible:ring-gold/60 sm:h-[440px] sm:w-[380px] sm:-ml-[190px] sm:-mt-[220px] md:h-[480px] md:w-[440px] md:-ml-[220px] md:-mt-[240px] lg:h-[520px] lg:-mt-[260px] xl:h-[560px] xl:-mt-[280px]"
                   style={{
                     transform: `translate3d(${translateX}px,0,0) rotateY(${rotateY}deg) scale(${scale})`,
                     opacity,
