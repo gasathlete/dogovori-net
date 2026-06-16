@@ -108,10 +108,15 @@ export function useIsPro(): ProState {
       isEntrepreneur: isPro && isEntrepreneur,
       loading: false,
       freeQuota: {
-        opsUsed: (q as any)?.monthly_total_used ?? 0,
+        opsUsed: isPro
+          ? ((q as any)?.pro_monthly_used ?? 0)
+          : ((q as any)?.monthly_total_used ?? 0),
         opsCap,
-        aiMessagesUsed: (q as any)?.ai_messages_used ?? 0,
-        aiMessagesCap: 15,
+        // 1 AI message = 1 operation — share the same pool.
+        aiMessagesUsed: isPro
+          ? ((q as any)?.pro_monthly_used ?? 0)
+          : ((q as any)?.monthly_total_used ?? 0),
+        aiMessagesCap: opsCap,
         analysisPreviewsUsed: (q as any)?.analysis_previews_used ?? 0,
         analysisPreviewsCap: 1,
         bilingualPreviewsUsed: (q as any)?.bilingual_previews_used ?? 0,
