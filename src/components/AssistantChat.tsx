@@ -664,7 +664,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
               placeholder={negotiationMode ? "Опиши условията за преговори..." : "Задайте правен въпрос"}
               rows={1}
               disabled={streaming}
-              className="min-h-[52px] max-h-[160px] resize-none border-0 bg-transparent px-3.5 py-3 pr-24 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="min-h-[52px] max-h-[160px] resize-none border-0 bg-transparent px-3.5 py-3 pr-[88px] text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             {/* Inline attach + send (top-right of textarea) */}
             <div className="absolute right-2 bottom-2 flex items-center gap-1">
