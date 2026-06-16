@@ -91,17 +91,17 @@ export function TopupPacks({ enabled = true, compact = false, className }: Topup
       )}
       {activePack && user && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-background/80 p-4 backdrop-blur-sm sm:items-center"
           onClick={() => setActivePack(null)}
         >
           <div
-            className="relative w-full max-w-2xl rounded-lg border border-border bg-card p-4 shadow-xl"
+            className="relative my-auto w-full max-w-2xl rounded-lg border border-border bg-card p-4 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               aria-label="Затвори"
               onClick={() => setActivePack(null)}
-              className="absolute right-3 top-3 rounded-full p-1 text-muted-foreground hover:bg-muted"
+              className="absolute right-3 top-3 z-10 rounded-full p-1 text-muted-foreground hover:bg-muted"
             >
               <X className="h-4 w-4" />
             </button>
