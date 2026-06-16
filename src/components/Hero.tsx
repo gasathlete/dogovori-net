@@ -150,13 +150,12 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             style={{ animationDelay: "160ms" }}
           >
             {[
-              { icon: ShieldCheck, to: "/catalog", label: "Документи по ЗЗД, ТЗ и ЗУТ", desc: "съобразени с актуалната българска правна рамка." },
               { icon: Bot, to: "/assistant", label: "Правен AI-асистент от ново поколение", desc: "помага ти да преговаряш най-добрите условия." },
               { icon: FileText, to: "/catalog", label: "Над 600 готови шаблона", desc: "за бизнес, имоти, труд, услуги и семейство." },
               { icon: ShieldAlert, to: "/console/analysis", label: "Risk Analysis на чужди и собствени документи", desc: "открива клопки, неравноправни клаузи и липсващи защити." },
               { icon: Languages, to: "/wizard-bilingual", label: "Двуезични договори", desc: "BG / EN / DE / FR в един документ." },
               { icon: FileSignature, to: "/console/signing", label: "Електронен подпис", desc: "многостранно подписване, папки, споделяне." },
-              { icon: Package, to: "/kits", label: "Комплекти за често срещани казуси", desc: "създай собствен комплект — практично и лесно.", wide: true },
+              { icon: Package, to: "/kits", label: "Документи по ЗЗД, ТЗ и ЗУТ", desc: "съобразени с актуалната българска правна рамка.", wide: true },
             ].map(({ icon: Icon, to, label, desc, wide }) => (
               <li key={label} className={wide ? "sm:col-span-2" : undefined}>
                 <Link
