@@ -1409,6 +1409,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
             partiesB={partiesB}
             fieldValues={fieldValues}
             bilingual={bilingual}
+            bilingualLang={bilingualLang}
             canBilingual={canBilingual}
             documentType={documentType}
             exporting={exporting}
