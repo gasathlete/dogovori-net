@@ -710,3 +710,18 @@
     font-size: 16px !important;
   }
 }
+
+/* Hero "Комплекти" bullet → pulse the LifeScenarios section briefly */
+@keyframes hero-kits-pulse-anim {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--gold) / 0); }
+  40% { box-shadow: 0 0 0 6px hsl(var(--gold) / 0.18); }
+}
+.hero-kits-pulse {
+  border-radius: 1rem;
+  animation: hero-kits-pulse-anim 1.4s ease-out;
+}
+.hero-kits-pulse ul > li > a {
+  transform: translateY(-2px);
+  border-color: hsl(var(--gold) / 0.55) !important;
+  transition: transform 300ms ease, border-color 300ms ease;
+}
