@@ -20,6 +20,7 @@ type Props = {
   partiesB: string;
   fieldValues: Record<string, string>;
   bilingual: boolean;
+  bilingualLang: "en" | "de" | "fr" | "ru" | "es" | "it";
   canBilingual: boolean;
   documentType: DocumentTypeId;
   exporting: "pdf" | "docx" | null;
