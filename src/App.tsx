@@ -202,6 +202,9 @@ const AnimatedRoutes = () => {
     <div key={location.pathname} className="route-fade">
       <Routes location={routedLocation}>
         <Route path="/" element={<Index />} />
+        <Route path="/demo/risk-analysis" element={<RiskAnalysisDemo />} />
+        <Route path="/demo/bilingual" element={<BilingualDemo />} />
+        <Route path="/demo/e-signature" element={<ESignatureDemo />} />
         <Route path="/assistant" element={<Assistant />} />
         <Route path="/assistant/:threadId" element={<Assistant />} />
         <Route path="/wizard/:sectorId" element={<Wizard />} />
