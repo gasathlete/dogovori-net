@@ -39,6 +39,13 @@ import {
   renderPartyIdentifierEn,
   BilingualPreviewNote,
 } from "./liveDraft/bilingualHelpers";
+import {
+  type BilingualLang,
+  STRINGS as LANG_STRINGS,
+  translateTitle as translateTitleLang,
+  translateRole as translateRoleLang,
+  renderPartyIdentifierLang,
+} from "./liveDraft/bilingualLanguages";
 
 function PreviewFadeGate({
   children,
@@ -99,6 +106,7 @@ export function LiveDraft({
   isPro = false,
   docName,
   bilingual = false,
+  bilingualLang = "en",
   documentType,
   onContractChange,
   onDownloadBlank,
@@ -127,6 +135,8 @@ export function LiveDraft({
   docName?: string;
   /** When true, render the pre-generation skeleton in BG/EN two columns. */
   bilingual?: boolean;
+  /** Target language for the right-column skeleton translation. */
+  bilingualLang?: BilingualLang;
   /** Selected document type — drives type-specific skeleton (agreement, notary invitation, etc.). */
   documentType?: DocumentTypeId | string | null;
   onContractChange?: (next: NonNullable<typeof generated>) => void;
@@ -395,6 +405,7 @@ export function LiveDraft({
           clauses={clauses}
           answeredCount={answeredCount}
           bilingual={bilingual}
+          bilingualLang={bilingualLang}
           documentType={documentType}
         />
       </PreviewFadeGate>
@@ -418,6 +429,7 @@ function TemplateDraftOrSkeleton({
   clauses,
   answeredCount,
   bilingual = false,
+  bilingualLang = "en",
   documentType,
 }: {
   docName?: string;
@@ -430,6 +442,7 @@ function TemplateDraftOrSkeleton({
   clauses: Clause[];
   answeredCount: number;
   bilingual?: boolean;
+  bilingualLang?: BilingualLang;
   documentType?: DocumentTypeId | string | null;
 }) {
   const [draftRaw, setDraftRaw] = useState<string | null>(null);
@@ -456,7 +469,8 @@ function TemplateDraftOrSkeleton({
     const [headerParagraph, ...rest] = paragraphs;
 
     if (bilingual) {
-      const titleEn = translateTitleToEn(headerParagraph || documentTitle);
+      const titleEn = translateTitleLang(headerParagraph || documentTitle, bilingualLang);
+      const placeholder = LANG_STRINGS[bilingualLang].placeholder;
       return (
         <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
@@ -472,7 +486,7 @@ function TemplateDraftOrSkeleton({
             <div key={i} className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
               <p className="whitespace-pre-line text-sm leading-relaxed">{p}</p>
               <p className="legal-paper-strong whitespace-pre-line text-sm italic leading-relaxed md:border-l md:pl-6">
-                {BILINGUAL_PLACEHOLDER_EN}
+                {placeholder}
               </p>
             </div>
           ))}
@@ -516,7 +530,8 @@ function TemplateDraftOrSkeleton({
   if (typeSkeleton) {
     const { preambleLines, clauses: typeClauses } = typeSkeleton;
     if (bilingual) {
-      const titleEn = translateTitleToEn(documentTitle);
+      const titleEn = translateTitleLang(documentTitle, bilingualLang);
+      const placeholder = LANG_STRINGS[bilingualLang].placeholder;
       return (
         <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
@@ -535,11 +550,11 @@ function TemplateDraftOrSkeleton({
               ))}
             </div>
             <div className="legal-paper-strong space-y-3 text-sm italic leading-relaxed md:border-l md:pl-6">
-              <p>{BILINGUAL_PLACEHOLDER_EN}</p>
+              <p>{placeholder}</p>
             </div>
           </div>
           {typeClauses.map((c) => {
-            const titleEnC = translateTitleToEn(c.title);
+            const titleEnC = translateTitleLang(c.title, bilingualLang);
             return (
               <section key={c.roman} className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
                 <div>
@@ -549,7 +564,7 @@ function TemplateDraftOrSkeleton({
                 <div className="md:border-l md:pl-6">
                   <h2 className="legal-paper-strong font-serif text-base font-bold uppercase">{c.roman} {titleEnC}</h2>
                   <p className="legal-paper-strong mt-2 whitespace-pre-line text-sm italic leading-relaxed">
-                    {BILINGUAL_PLACEHOLDER_EN}
+                    {placeholder}
                   </p>
                 </div>
               </section>
@@ -593,7 +608,8 @@ function TemplateDraftOrSkeleton({
 
   // Fallback: sector-generic skeleton (запазено поведение)
   if (bilingual) {
-    const titleEn = translateTitleToEn(documentTitle);
+    const titleEn = translateTitleLang(documentTitle, bilingualLang);
+    const S = LANG_STRINGS[bilingualLang];
     return (
       <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
@@ -622,21 +638,21 @@ function TemplateDraftOrSkeleton({
             <p>се сключи настоящият документ за следното:</p>
           </div>
           <div className="legal-paper-strong space-y-3 text-sm italic leading-relaxed md:border-l md:pl-6">
-            <p>Today, [DATE], in [CITY], between:</p>
+            <p>{S.todayInBetween("[DATE]", "[CITY]")}</p>
             <p>
               <strong>1. {partyA}</strong>
-              {renderPartyIdentifierEn(answers.party_a_type)}, hereinafter „<em>{translatePartyRole(sector.parties.a)}</em>", and
+              {renderPartyIdentifierLang(answers.party_a_type, bilingualLang)}, {S.hereinafter} „<em>{translateRoleLang(sector.parties.a, bilingualLang)}</em>", {S.and}
             </p>
             <p>
               <strong>2. {partyB}</strong>
-              {renderPartyIdentifierEn(answers.party_b_type)}, hereinafter „<em>{translatePartyRole(sector.parties.b)}</em>",
+              {renderPartyIdentifierLang(answers.party_b_type, bilingualLang)}, {S.hereinafter} „<em>{translateRoleLang(sector.parties.b, bilingualLang)}</em>",
             </p>
-            <p>have entered into this Agreement as follows:</p>
+            <p>{S.enteredAsFollows}</p>
           </div>
         </div>
 
         {clauses.map((c) => {
-          const titleEn = translateTitleToEn(c.title);
+          const titleEn = translateTitleLang(c.title, bilingualLang);
           return (
             <section key={c.roman} className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
               <div>
@@ -650,7 +666,7 @@ function TemplateDraftOrSkeleton({
                   {c.roman} {titleEn}
                 </h2>
                 <p className="legal-paper-strong mt-2 whitespace-pre-line text-sm italic leading-relaxed">
-                  {BILINGUAL_PLACEHOLDER_EN}
+                  {S.placeholder}
                 </p>
               </div>
             </section>

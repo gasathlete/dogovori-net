@@ -20,6 +20,7 @@ type Props = {
   partiesB: string;
   fieldValues: Record<string, string>;
   bilingual: boolean;
+  bilingualLang: "en" | "de" | "fr" | "ru" | "es" | "it";
   canBilingual: boolean;
   documentType: DocumentTypeId;
   exporting: "pdf" | "docx" | null;
@@ -46,6 +47,7 @@ export function PreviewPane({
   partiesB,
   fieldValues,
   bilingual,
+  bilingualLang,
   canBilingual,
   documentType,
   exporting,
@@ -143,6 +145,7 @@ export function PreviewPane({
             generated={null}
             isPro={isPro}
             bilingual={bilingual && canBilingual}
+            bilingualLang={bilingualLang}
             docName={name}
             documentType={documentType}
           />
