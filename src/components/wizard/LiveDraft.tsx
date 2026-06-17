@@ -429,6 +429,7 @@ function TemplateDraftOrSkeleton({
   clauses,
   answeredCount,
   bilingual = false,
+  bilingualLang = "en",
   documentType,
 }: {
   docName?: string;
@@ -441,6 +442,7 @@ function TemplateDraftOrSkeleton({
   clauses: Clause[];
   answeredCount: number;
   bilingual?: boolean;
+  bilingualLang?: BilingualLang;
   documentType?: DocumentTypeId | string | null;
 }) {
   const [draftRaw, setDraftRaw] = useState<string | null>(null);
