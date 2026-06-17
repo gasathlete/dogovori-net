@@ -530,7 +530,8 @@ function TemplateDraftOrSkeleton({
   if (typeSkeleton) {
     const { preambleLines, clauses: typeClauses } = typeSkeleton;
     if (bilingual) {
-      const titleEn = translateTitleToEn(documentTitle);
+      const titleEn = translateTitleLang(documentTitle, bilingualLang);
+      const placeholder = LANG_STRINGS[bilingualLang].placeholder;
       return (
         <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
@@ -549,11 +550,11 @@ function TemplateDraftOrSkeleton({
               ))}
             </div>
             <div className="legal-paper-strong space-y-3 text-sm italic leading-relaxed md:border-l md:pl-6">
-              <p>{BILINGUAL_PLACEHOLDER_EN}</p>
+              <p>{placeholder}</p>
             </div>
           </div>
           {typeClauses.map((c) => {
-            const titleEnC = translateTitleToEn(c.title);
+            const titleEnC = translateTitleLang(c.title, bilingualLang);
             return (
               <section key={c.roman} className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
                 <div>
@@ -563,7 +564,7 @@ function TemplateDraftOrSkeleton({
                 <div className="md:border-l md:pl-6">
                   <h2 className="legal-paper-strong font-serif text-base font-bold uppercase">{c.roman} {titleEnC}</h2>
                   <p className="legal-paper-strong mt-2 whitespace-pre-line text-sm italic leading-relaxed">
-                    {BILINGUAL_PLACEHOLDER_EN}
+                    {placeholder}
                   </p>
                 </div>
               </section>
