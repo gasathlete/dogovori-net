@@ -39,6 +39,13 @@ import {
   renderPartyIdentifierEn,
   BilingualPreviewNote,
 } from "./liveDraft/bilingualHelpers";
+import {
+  type BilingualLang,
+  STRINGS as LANG_STRINGS,
+  translateTitle as translateTitleLang,
+  translateRole as translateRoleLang,
+  renderPartyIdentifierLang,
+} from "./liveDraft/bilingualLanguages";
 
 function PreviewFadeGate({
   children,
