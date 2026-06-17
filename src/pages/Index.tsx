@@ -43,6 +43,7 @@ const Divider = () => (
 const Index = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [assistantOpen, setAssistantOpen] = useState(false);
 
   useEffect(() => {
     if (location.hash) {
@@ -50,6 +51,12 @@ const Index = () => {
       import("@/lib/scrollToHash").then(({ scrollToHash }) => scrollToHash(id, { updateHash: false }));
     }
   }, [location]);
+
+  useEffect(() => {
+    const onOpen = () => setAssistantOpen(true);
+    window.addEventListener("dogovori:open-assistant", onOpen as EventListener);
+    return () => window.removeEventListener("dogovori:open-assistant", onOpen as EventListener);
+  }, []);
 
   const startInterview = () => {
     navigate("/catalog");
