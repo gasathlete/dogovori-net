@@ -469,7 +469,8 @@ function TemplateDraftOrSkeleton({
     const [headerParagraph, ...rest] = paragraphs;
 
     if (bilingual) {
-      const titleEn = translateTitleToEn(headerParagraph || documentTitle);
+      const titleEn = translateTitleLang(headerParagraph || documentTitle, bilingualLang);
+      const placeholder = LANG_STRINGS[bilingualLang].placeholder;
       return (
         <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
@@ -485,7 +486,7 @@ function TemplateDraftOrSkeleton({
             <div key={i} className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
               <p className="whitespace-pre-line text-sm leading-relaxed">{p}</p>
               <p className="legal-paper-strong whitespace-pre-line text-sm italic leading-relaxed md:border-l md:pl-6">
-                {BILINGUAL_PLACEHOLDER_EN}
+                {placeholder}
               </p>
             </div>
           ))}
