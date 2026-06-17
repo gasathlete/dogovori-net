@@ -145,6 +145,7 @@ export function PreviewPane({
             generated={null}
             isPro={isPro}
             bilingual={bilingual && canBilingual}
+            bilingualLang={bilingualLang}
             docName={name}
             documentType={documentType}
           />
