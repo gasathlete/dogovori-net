@@ -181,6 +181,9 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   const [bilingual, setBilingual] = useState<boolean>(
     presetBilingual || Boolean(persisted?.bilingual),
   );
+  const [bilingualLang, setBilingualLang] = useState<"en" | "de" | "fr" | "ru" | "es" | "it">(
+    (persisted?.bilingualLang as "en" | "de" | "fr" | "ru" | "es" | "it") || "en",
+  );
   const [appendixRefreshTick, setAppendixRefreshTick] = useState(0);
   const [contacts, setContacts] = useState<Array<{ id: string; name: string; type?: string }>>([]);
   const [applyingCorrections, setApplyingCorrections] = useState(false);
