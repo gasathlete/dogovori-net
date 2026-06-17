@@ -960,6 +960,51 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                     </span>
                   </button>
 
+                  {/* Bilingual target language — shown only when bilingual is active */}
+                  {bilingual && canBilingual && (
+                    <div className="rounded-xl border border-gold/30 bg-card/40 p-3">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                          Език на превода
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          Прилага се за дясната колона
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { code: "en" as const, short: "EN", flag: "🇬🇧", label: "Английски" },
+                          { code: "de" as const, short: "DE", flag: "🇩🇪", label: "Немски" },
+                          { code: "fr" as const, short: "FR", flag: "🇫🇷", label: "Френски" },
+                          { code: "ru" as const, short: "RU", flag: "🇷🇺", label: "Руски" },
+                          { code: "es" as const, short: "ES", flag: "🇪🇸", label: "Испански" },
+                          { code: "it" as const, short: "IT", flag: "🇮🇹", label: "Италиански" },
+                        ].map((l) => {
+                          const active = bilingualLang === l.code;
+                          return (
+                            <button
+                              key={l.code}
+                              type="button"
+                              onClick={() => setBilingualLang(l.code)}
+                              aria-pressed={active}
+                              title={l.label}
+                              className={
+                                "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-colors " +
+                                (active
+                                  ? "border-gold bg-gold/15 text-gold"
+                                  : "border-border/60 bg-navy-light/30 text-foreground/80 hover:border-gold/40 hover:text-gold")
+                              }
+                            >
+                              <span aria-hidden>{l.flag}</span>
+                              <span>{l.short}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+
                   {/* Document type — compact dropdown */}
                   <div>
                     <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
