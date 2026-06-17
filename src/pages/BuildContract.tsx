@@ -236,13 +236,13 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         presetSignature,
-        documentType, buildMode, bilingual,
+        documentType, buildMode, bilingual, bilingualLang,
         name, categoryId, categoryOther, partiesA, partiesB,
         fieldValues,
         result, signature, savedDocId,
       }));
     } catch {}
-  }, [presetSignature, documentType, buildMode, bilingual, name, categoryId, categoryOther, partiesA, partiesB, fieldValues, result, signature, savedDocId]);
+  }, [presetSignature, documentType, buildMode, bilingual, bilingualLang, name, categoryId, categoryOther, partiesA, partiesB, fieldValues, result, signature, savedDocId]);
 
   // Force non-Pro/Team users out of bilingual mode.
   useEffect(() => {
