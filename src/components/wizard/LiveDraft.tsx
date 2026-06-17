@@ -405,6 +405,7 @@ export function LiveDraft({
           clauses={clauses}
           answeredCount={answeredCount}
           bilingual={bilingual}
+          bilingualLang={bilingualLang}
           documentType={documentType}
         />
       </PreviewFadeGate>
