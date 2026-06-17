@@ -106,6 +106,7 @@ export function LiveDraft({
   isPro = false,
   docName,
   bilingual = false,
+  bilingualLang = "en",
   documentType,
   onContractChange,
   onDownloadBlank,
@@ -134,6 +135,8 @@ export function LiveDraft({
   docName?: string;
   /** When true, render the pre-generation skeleton in BG/EN two columns. */
   bilingual?: boolean;
+  /** Target language for the right-column skeleton translation. */
+  bilingualLang?: BilingualLang;
   /** Selected document type — drives type-specific skeleton (agreement, notary invitation, etc.). */
   documentType?: DocumentTypeId | string | null;
   onContractChange?: (next: NonNullable<typeof generated>) => void;
