@@ -175,6 +175,7 @@ const Index = () => {
         </Suspense>
         <SeoFooter />
       </main>
+      <FloatingAssistant open={assistantOpen} onOpenChange={setAssistantOpen} />
     </div>
   );
 };
