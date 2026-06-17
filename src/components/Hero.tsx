@@ -216,29 +216,57 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             className="anim-rise mx-auto mt-3 grid max-w-3xl gap-2 sm:grid-cols-2 md:grid-cols-3 md:mt-4"
             style={{ animationDelay: "200ms" }}
           >
-            {[
-              { icon: Bot, to: "/assistant", label: "Правен AI-асистент", desc: "преговаря най-добрите условия." },
+            {([
+              { icon: Bot, action: "assistant", label: "Правен AI-асистент", desc: "преговаря най-добрите условия." },
               { icon: FileText, to: "/catalog", label: "Над 600 шаблона", desc: "бизнес, имоти, труд, услуги." },
-              { icon: ShieldAlert, to: "/console/analysis", label: "Risk Analysis", desc: "клопки и неравноправни клаузи." },
-              { icon: Languages, to: "/wizard-bilingual", label: "Двуезични договори", desc: "BG / EN / DE / FR." },
-              { icon: FileSignature, to: "/console/signing", label: "Електронен подпис", desc: "многостранно, споделяне." },
-              { icon: Package, to: "/kits", label: "Комплекти", desc: "готови решения за казуси." },
-            ].map(({ icon: Icon, to, label, desc }) => (
-              <li key={label}>
-                <Link
-                  to={to}
-                  aria-label={`${label} — ${desc}`}
-                  className="group flex h-full items-start gap-2.5 rounded-lg border border-gold/15 bg-card/40 px-3.5 py-2.5 text-left backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-[0_8px_24px_-12px_hsl(var(--gold)/0.45)]"
-                >
+              { icon: ShieldAlert, to: "/demo/risk-analysis", label: "Risk Analysis", desc: "клопки и неравноправни клаузи." },
+              { icon: Languages, to: "/demo/bilingual", label: "Двуезични договори", desc: "BG / EN / DE / FR." },
+              { icon: FileSignature, to: "/demo/e-signature", label: "Електронен подпис", desc: "многостранно, споделяне." },
+              { icon: Package, action: "kits", label: "Комплекти", desc: "готови решения за казуси." },
+            ] as Array<{ icon: any; to?: string; action?: "assistant" | "kits"; label: string; desc: string }>).map((item) => {
+              const Icon = item.icon;
+              const cls =
+                "group flex h-full w-full items-start gap-2.5 rounded-lg border border-gold/15 bg-card/40 px-3.5 py-2.5 text-left backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-[0_8px_24px_-12px_hsl(var(--gold)/0.45)]";
+              const inner = (
+                <>
                   <Icon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
                   <span className="flex-1 leading-snug">
-                    <span className="block text-sm font-semibold text-foreground">{label}</span>
-                    <span className="block text-xs text-muted-foreground">{desc}</span>
+                    <span className="block text-sm font-semibold text-foreground">{item.label}</span>
+                    <span className="block text-xs text-muted-foreground">{item.desc}</span>
                   </span>
                   <ChevronRight aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold/60 opacity-0 transition-opacity group-hover:opacity-100" />
-                </Link>
-              </li>
-            ))}
+                </>
+              );
+              if (item.action) {
+                const onClick = () => {
+                  if (item.action === "assistant") {
+                    window.dispatchEvent(new CustomEvent("dogovori:open-assistant"));
+                  } else if (item.action === "kits") {
+                    scrollToHash("scenarios");
+                    setTimeout(() => {
+                      const sec = document.getElementById("scenarios");
+                      if (!sec) return;
+                      sec.classList.add("hero-kits-pulse");
+                      setTimeout(() => sec.classList.remove("hero-kits-pulse"), 1600);
+                    }, 350);
+                  }
+                };
+                return (
+                  <li key={item.label}>
+                    <button type="button" onClick={onClick} aria-label={`${item.label} — ${item.desc}`} className={cls}>
+                      {inner}
+                    </button>
+                  </li>
+                );
+              }
+              return (
+                <li key={item.label}>
+                  <Link to={item.to!} aria-label={`${item.label} — ${item.desc}`} className={cls}>
+                    {inner}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
 
           {/* ⌘K hint pill */}

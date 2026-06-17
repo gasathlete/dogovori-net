@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
@@ -7,6 +7,7 @@ import { Seo } from "@/components/Seo";
 import { LazyOnVisible } from "@/components/LazyOnVisible";
 import { SectionSkeleton } from "@/components/SectionSkeleton";
 import { Reveal } from "@/components/Reveal";
+import { FloatingAssistant } from "@/components/FloatingAssistant";
 import { FEATURED_BLANKS } from "@/data/featuredBlanks";
 import { allTemplates } from "@/lib/templateIndex";
 import { buildFaqJsonLd } from "@/data/faqItems";
@@ -42,6 +43,7 @@ const Divider = () => (
 const Index = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [assistantOpen, setAssistantOpen] = useState(false);
 
   useEffect(() => {
     if (location.hash) {
@@ -49,6 +51,12 @@ const Index = () => {
       import("@/lib/scrollToHash").then(({ scrollToHash }) => scrollToHash(id, { updateHash: false }));
     }
   }, [location]);
+
+  useEffect(() => {
+    const onOpen = () => setAssistantOpen(true);
+    window.addEventListener("dogovori:open-assistant", onOpen as EventListener);
+    return () => window.removeEventListener("dogovori:open-assistant", onOpen as EventListener);
+  }, []);
 
   const startInterview = () => {
     navigate("/catalog");
@@ -167,6 +175,7 @@ const Index = () => {
         </Suspense>
         <SeoFooter />
       </main>
+      <FloatingAssistant open={assistantOpen} onOpenChange={setAssistantOpen} />
     </div>
   );
 };
