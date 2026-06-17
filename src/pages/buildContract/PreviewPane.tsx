@@ -47,6 +47,7 @@ export function PreviewPane({
   partiesB,
   fieldValues,
   bilingual,
+  bilingualLang,
   canBilingual,
   documentType,
   exporting,
