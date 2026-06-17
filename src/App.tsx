@@ -133,6 +133,9 @@ const SigningEnvelope = lazy(() => import("./pages/SigningEnvelope.tsx"));
 const Glossary = lazy(() => import("./pages/Glossary.tsx"));
 const GlossaryTerm = lazy(() => import("./pages/GlossaryTerm.tsx"));
 const CompareTemplates = lazy(() => import("./pages/CompareTemplates.tsx"));
+const RiskAnalysisDemo = lazy(() => import("./pages/demo/RiskAnalysisDemo.tsx"));
+const BilingualDemo = lazy(() => import("./pages/demo/BilingualDemo.tsx"));
+const ESignatureDemo = lazy(() => import("./pages/demo/ESignatureDemo.tsx"));
 
 // Defer Sentry boot until the browser is idle so it never competes with hydration / LCP.
 if (typeof window !== "undefined") {
