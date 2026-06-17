@@ -608,7 +608,8 @@ function TemplateDraftOrSkeleton({
 
   // Fallback: sector-generic skeleton (запазено поведение)
   if (bilingual) {
-    const titleEn = translateTitleToEn(documentTitle);
+    const titleEn = translateTitleLang(documentTitle, bilingualLang);
+    const S = LANG_STRINGS[bilingualLang];
     return (
       <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
@@ -637,21 +638,21 @@ function TemplateDraftOrSkeleton({
             <p>се сключи настоящият документ за следното:</p>
           </div>
           <div className="legal-paper-strong space-y-3 text-sm italic leading-relaxed md:border-l md:pl-6">
-            <p>Today, [DATE], in [CITY], between:</p>
+            <p>{S.todayInBetween("[DATE]", "[CITY]")}</p>
             <p>
               <strong>1. {partyA}</strong>
-              {renderPartyIdentifierEn(answers.party_a_type)}, hereinafter „<em>{translatePartyRole(sector.parties.a)}</em>", and
+              {renderPartyIdentifierLang(answers.party_a_type, bilingualLang)}, {S.hereinafter} „<em>{translateRoleLang(sector.parties.a, bilingualLang)}</em>", {S.and}
             </p>
             <p>
               <strong>2. {partyB}</strong>
-              {renderPartyIdentifierEn(answers.party_b_type)}, hereinafter „<em>{translatePartyRole(sector.parties.b)}</em>",
+              {renderPartyIdentifierLang(answers.party_b_type, bilingualLang)}, {S.hereinafter} „<em>{translateRoleLang(sector.parties.b, bilingualLang)}</em>",
             </p>
-            <p>have entered into this Agreement as follows:</p>
+            <p>{S.enteredAsFollows}</p>
           </div>
         </div>
 
         {clauses.map((c) => {
-          const titleEn = translateTitleToEn(c.title);
+          const titleEn = translateTitleLang(c.title, bilingualLang);
           return (
             <section key={c.roman} className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
               <div>
@@ -665,7 +666,7 @@ function TemplateDraftOrSkeleton({
                   {c.roman} {titleEn}
                 </h2>
                 <p className="legal-paper-strong mt-2 whitespace-pre-line text-sm italic leading-relaxed">
-                  {BILINGUAL_PLACEHOLDER_EN}
+                  {S.placeholder}
                 </p>
               </div>
             </section>
