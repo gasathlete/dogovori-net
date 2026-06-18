@@ -116,3 +116,10 @@ for (const f of findings.slice(0, 30)) {
   console.log(`  [${f.severity}] (${f.category}) ${f.scope.padEnd(18)} ${f.documentName}`);
   console.log(`             → ${f.detail}`);
 }
+
+const critical = bySev.CRITICAL ?? 0;
+if (critical > 0) {
+  console.error(`\n❌ Audit failed: ${critical} CRITICAL finding(s).`);
+  process.exit(1);
+}
+console.log(`\n✅ No CRITICAL findings.`);
