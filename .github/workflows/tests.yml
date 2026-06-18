@@ -23,3 +23,6 @@ jobs:
 
       - name: Run unit tests (incl. JSON-LD schema validation)
         run: bun run test
+
+      - name: Wizard full audit (fails on CRITICAL)
+        run: bun run scripts/wizard-full-audit.ts
