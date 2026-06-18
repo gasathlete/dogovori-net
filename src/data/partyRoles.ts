@@ -21,12 +21,29 @@ interface Rule {
   skipIf?: RegExp;
 }
 
+/**
+ * Returns true when the document name describes a unilateral act
+ * (declaration, will, application, complaint, single-party protocol).
+ * These never reach the bilateral signing block and have no "Party B".
+ */
+export function isUnilateralDocument(name: string | null | undefined): boolean {
+  if (!name) return false;
+  const n = name.toLowerCase();
+  return /(деклараци|саморъчно завещани|нотариално завещани|завещани|жалба|оплакване|искане до|сигнал до|нотариална покана|покана за|протокол за бракуване|протокол за инвентаризац|протокол за самооценк|dsa compliance|wada код)/.test(n)
+    || /^\s*(заявление|молба|уведомление|известие)/.test(n);
+}
+
 // Order matters — more specific rules first. The first matching rule wins.
 const RULES: Rule[] = [
+  // Unilateral acts → single party (B left empty by convention).
+  { test: /^\s*(деклараци)/, roles: { a: "Декларатор", b: "" } },
+  { test: /^\s*(саморъчно завещани|нотариално завещани|завещани)/, roles: { a: "Завещател", b: "" } },
+  { test: /^\s*(жалба|оплакване|сигнал до)/, roles: { a: "Жалбоподател", b: "" } },
+  { test: /^\s*(заявление|молба|искане)/, roles: { a: "Заявител", b: "" } },
+  { test: /^\s*(уведомление|известие|нотариална покана|покана за)/, roles: { a: "Уведомител", b: "" } },
+  { test: /^\s*протокол за (бракуване|инвентаризац|самооценк)/, roles: { a: "Съставител", b: "" } },
+
   // Receipt / acknowledgement of received sum, deposit, earnest money, goods, documents.
-  // Издателят (Получател) удостоверява, че е получил X от Платеца (Вносител).
-  // Трябва да е ПРЕДИ покупко-продажба / наем / заем, иначе „Разписка за получен задатък
-  // по предварителен договор за покупко-продажба" се извежда грешно като Продавач/Купувач.
   { test: /^\s*разписка(\s|$)|^\s*протокол за получаване/, roles: { a: "Получател", b: "Платец" } },
 
   // Notarial / pre-contract for property sale → Продавач/Купувач
@@ -64,12 +81,16 @@ const RULES: Rule[] = [
   { test: /(трудов договор|труд|работодател|служител|назначаван)/, roles: { a: "Работодател", b: "Служител" } },
 
   // Civil / services / works
-  { test: /(изработк|изработван|подизпълнен|сервиз|поддръжк|ремонт)/, roles: { a: "Възложител", b: "Изпълнител" } },
+  { test: /(изработк|изработван|подизпълнен|сервиз|поддръжк|ремонт|авторски надзор)/, roles: { a: "Възложител", b: "Изпълнител" } },
   { test: /(консулт|услуг|поръчк|граждански договор)/, roles: { a: "Възложител", b: "Изпълнител" },
-    skipIf: /(превоз|спедиц|комисион|поръчителств)/ },
+    skipIf: /(превоз|спедиц|комисион|поръчителств|куриер|3pl|брокер|посредни)/ },
 
-  // Transport / forwarding / courier
-  { test: /(превоз|спедиц|логист|куриер)/, roles: { a: "Възложител", b: "Превозвач" } },
+  // Forwarding / spedition (must come before generic transport)
+  { test: /(спедиц)/, roles: { a: "Доверител", b: "Спедитор" } },
+  // Courier / 3PL → services
+  { test: /(куриер|3pl)/, roles: { a: "Възложител", b: "Изпълнител" } },
+  // Transport
+  { test: /(превоз|логист)/, roles: { a: "Възложител", b: "Превозвач" } },
 
   // Brokerage / agency / intermediation
   { test: /(брокер|посредни|агентск|представителств)/, roles: { a: "Доверител", b: "Посредник" } },
@@ -158,11 +179,22 @@ export function partiesAreCompatible(
   // party — accept any A label when B is empty; these never reach the
   // bilateral signing block.
   if (!parties.b) return true;
+  if (isUnilateralDocument(documentName ?? "")) return true;
   const expected = inferPartyRoles(documentName);
   if (!expected) return true; // no opinion → trust caller
+  // If inference points to a unilateral role (empty B), accept anything.
+  if (!expected.b) return true;
   const norm = (s: string) => s.toLowerCase().replace(/[^a-zа-я]+/gi, "");
-  const matches = (have: string, want: string) =>
-    norm(have).startsWith(norm(want).slice(0, Math.min(6, norm(want).length)));
+  // Accept compound/synonym labels: "Спедитора/Възложителя" matches "Възложител".
+  const tokens = (s: string) => norm(s).split(/[^a-zа-я]+/i).filter(Boolean).concat(
+    s.toLowerCase().split(/[\/,;]+/).map((p) => norm(p)).filter(Boolean),
+  );
+  const matches = (have: string, want: string) => {
+    const w = norm(want).slice(0, Math.min(6, norm(want).length));
+    if (!w) return false;
+    if (norm(have).includes(w)) return true;
+    return tokens(have).some((t) => t.startsWith(w) || w.startsWith(t.slice(0, Math.min(6, t.length))));
+  };
   const direct = matches(parties.a, expected.a) && matches(parties.b, expected.b);
   const reversed = matches(parties.a, expected.b) && matches(parties.b, expected.a);
   return direct || reversed;
