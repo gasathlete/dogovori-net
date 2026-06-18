@@ -13,6 +13,9 @@
 
 export type PartyRoles = { a: string; b: string };
 
+/** Explicit document classification used by REGISTRY entries and the audit. */
+export type DocumentClass = "unilateral" | "receipt" | "bilateral";
+
 interface Rule {
   /** Regex tested against the lowercased document/contract name. */
   test: RegExp;
@@ -20,6 +23,19 @@ interface Rule {
   /** Optional negative regex — if it matches, the rule is skipped. */
   skipIf?: RegExp;
 }
+
+/**
+ * Returns the explicit document class for a document name. Derived from the
+ * same regex rules that drive role inference so the audit, exporters and
+ * REGISTRY backfill all agree.
+ */
+export function classifyDocument(name: string | null | undefined): DocumentClass {
+  if (!name) return "bilateral";
+  if (isUnilateralDocument(name)) return "unilateral";
+  if (/^\s*разписка(\s|$)|^\s*протокол за получаване/i.test(name)) return "receipt";
+  return "bilateral";
+}
+
 
 /**
  * Returns true when the document name describes a unilateral act
