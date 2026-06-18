@@ -1,5 +1,1 @@
 severity,category,scope,documentName,detail
-"MINOR","duplicate-document","real-estate,real-estate","Договор за краткосрочен наем (Airbnb тип)","документът е дефиниран в 2 сектора"
-"MINOR","duplicate-document","logistics,services","Договор за куриерски услуги","документът е дефиниран в 2 сектора"
-"MINOR","duplicate-document","digital,ip","Договор за прехвърляне на домейн","документът е дефиниран в 2 сектора"
-"MINOR","duplicate-document","ip,ip","NDA – Договор за конфиденциалност","документът е дефиниран в 2 сектора"
