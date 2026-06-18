@@ -318,8 +318,8 @@ Deno.serve(async (req) => {
     ].filter(Boolean).join(" ");
     const activePrompt = await loadActivePromptMeta(admin, "assistant-chat", SYSTEM_PROMPT);
     const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, lastUserMsg, {
-      matchCount: 8,
-      minSimilarity: 0.45,
+      matchCount: 10,
+      minSimilarity: 0.4,
     });
     const systemFinal = legal.hasMatches
       ? `${activePrompt.content}\n\n[КОНТЕКСТ] ${ctxLines}\n\n${legal.promptBlock}`
