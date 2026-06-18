@@ -51,6 +51,9 @@ const GlobalProUpgradeListener = reactLazy(() =>
 const CommandPalette = reactLazy(() =>
   import("@/components/CommandPalette").then((m) => ({ default: m.CommandPalette })),
 );
+const DogovAIBubble = reactLazy(() =>
+  import("@/components/DogovAIBubble").then((m) => ({ default: m.DogovAIBubble })),
+);
 // Sentry init is deferred to idle time below — keeps it off the critical path.
 
 // Lazy-load every route except Index (landing page) so the initial bundle stays light.
@@ -313,6 +316,7 @@ const App = () => (
             <UsernamePrompt />
             <GlobalProUpgradeListener />
             <CommandPalette />
+            <DogovAIBubble />
           </Suspense>
           <Suspense fallback={<RouteFallback />}>
             <AnimatedRoutes />

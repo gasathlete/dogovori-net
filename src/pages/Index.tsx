@@ -7,7 +7,7 @@ import { Seo } from "@/components/Seo";
 import { LazyOnVisible } from "@/components/LazyOnVisible";
 import { SectionSkeleton } from "@/components/SectionSkeleton";
 import { Reveal } from "@/components/Reveal";
-import { FloatingAssistant } from "@/components/FloatingAssistant";
+
 import { FEATURED_BLANKS } from "@/data/featuredBlanks";
 import { allTemplates } from "@/lib/templateIndex";
 import { buildFaqJsonLd } from "@/data/faqItems";
@@ -43,8 +43,6 @@ const Divider = () => (
 const Index = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [assistantOpen, setAssistantOpen] = useState(false);
-
   useEffect(() => {
     if (location.hash) {
       const id = location.hash.replace("#", "");
@@ -52,8 +50,9 @@ const Index = () => {
     }
   }, [location]);
 
+  // Bridge legacy event name to the global DogovAI bubble
   useEffect(() => {
-    const onOpen = () => setAssistantOpen(true);
+    const onOpen = () => window.dispatchEvent(new CustomEvent("dogovai:open"));
     window.addEventListener("dogovori:open-assistant", onOpen as EventListener);
     return () => window.removeEventListener("dogovori:open-assistant", onOpen as EventListener);
   }, []);
@@ -175,7 +174,7 @@ const Index = () => {
         </Suspense>
         <SeoFooter />
       </main>
-      <FloatingAssistant open={assistantOpen} onOpenChange={setAssistantOpen} />
+      
     </div>
   );
 };
