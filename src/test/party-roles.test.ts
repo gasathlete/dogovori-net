@@ -34,6 +34,15 @@ describe("party roles inference", () => {
     });
   });
 
+  it("infers Получател/Платец for receipts (incl. deposit/earnest money)", () => {
+    expect(inferPartyRoles("Разписка за капаро")).toEqual({ a: "Получател", b: "Платец" });
+    expect(inferPartyRoles("Разписка за получен задатък по предварителен договор за покупко-продажба на недвижим имот"))
+      .toEqual({ a: "Получател", b: "Платец" });
+    expect(inferPartyRoles("Разписка за получена сума")).toEqual({ a: "Получател", b: "Платец" });
+    expect(inferPartyRoles("Разписка за получен гаранционен депозит при сключване на договор за наем"))
+      .toEqual({ a: "Получател", b: "Платец" });
+  });
+
   it("flags incompatible party pairs", () => {
     expect(partiesAreCompatible("Договор за покупко-продажба", {
       a: "Наемодател", b: "Наемател",
