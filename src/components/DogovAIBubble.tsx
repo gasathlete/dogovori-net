@@ -388,14 +388,6 @@ export function DogovAIBubble() {
           open && "opacity-0 pointer-events-none translate-y-2",
         )}
       >
-        <img
-          src={dogovaiIcon}
-          alt=""
-          width={32}
-          height={32}
-          loading="lazy"
-          className="h-8 w-8 rounded-full sm:h-9 sm:w-9"
-        />
         <span className="font-serif text-[13px] font-bold tracking-wide text-foreground sm:text-sm">
           DogovaryAI
         </span>
