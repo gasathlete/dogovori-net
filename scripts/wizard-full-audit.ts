@@ -29,10 +29,14 @@ const docCounts = new Map<string, string[]>();
 for (const sector of SECTORS) {
   for (const sw of sector.subWizards ?? []) {
     const docName = sw.contractName || sw.documentName;
-    const parties = sw.parties ?? sector.parties;
+    // Use runtime resolution (enforcePartyRoles applies inference).
+    const resolved = getSubWizard(sector, sw.documentName);
+    const parties = resolved?.parties ?? sw.parties ?? sector.parties;
     docCounts.set(sw.documentName, [...(docCounts.get(sw.documentName) ?? []), sector.id]);
 
-    if (!parties || !parties.a) {
+    if (isUnilateralDocument(docName)) {
+      // single-party doc — no bilateral check needed
+    } else if (!parties || !parties.a) {
       findings.push({ severity: "CRITICAL", category: "missing-parties", scope: sector.id, documentName: docName, detail: "няма дефинирани страни" });
     } else if (!partiesAreCompatible(docName, parties)) {
       const expected = inferPartyRoles(docName);
@@ -54,6 +58,7 @@ for (const sector of SECTORS) {
 
 for (const [docName, entry] of Object.entries(REGISTRY) as Array<[string, any]>) {
   const name = entry.contractName || docName;
+  if (isUnilateralDocument(name)) continue; // unilateral docs don't need parties
   if (!entry.parties || !entry.parties.a || !entry.parties.b) {
     findings.push({ severity: "CRITICAL", category: "missing-parties", scope: "(generated)", documentName: name, detail: "REGISTRY entry без parties.a/b" });
     continue;
