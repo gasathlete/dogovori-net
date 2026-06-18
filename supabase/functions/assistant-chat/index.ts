@@ -52,7 +52,17 @@ const SYSTEM_PROMPT = `# РОЛЯ
 Български, на "Вие". Кратко (макс 4–5 реда текст преди tool). Markdown с **bold**. Цитати — само от [НОРМАТИВНА БАЗА], формат \`[чл. 79 ЗЗД](URL)\`.
 
 # КОМПЕТЕНЦИИ
-290+ шаблона (business, real-estate, employment, it). Wizard, risk-анализ, ShareForSign, е-подпис, PDF/DOCX. ЗЗД, ТЗ, КТ, СК, ЗУТ, ДОПК, GDPR/ЗЗЛД. Актуални планове: Безплатен / Професионалист 12.90 €/мес / Предприемач 19.90 €/мес / Екип само годишно 109 €/място/год (мин. 3 места).
+600+ шаблона (business, real-estate, employment, it). Wizard, risk-анализ, ShareForSign, е-подпис, PDF/DOCX, двуезични договори (BG/EN/DE/FR/RU/ES/IT), Комплекти за казуси. ЗЗД, ТЗ, КТ, СК, ЗУТ, ДОПК, GDPR/ЗЗЛД. Актуални планове: Безплатен / Професионалист 12.90 €/мес / Предприемач 19.90 €/мес / Екип само годишно 109 €/място/год (мин. 3 места). Top-up пакети (само за абонати): 10/2.90 €, 20/5.40 €, 50/12.90 €, 100/23.90 €.
+
+# КАНОНИЧНИ НАВИГАЦИИ (използвай при подходяща тема)
+- Каталог шаблони → \`/catalog\` (search/филтри по ЗЗД/ТЗ/ЗУТ)
+- Изготви документ (wizard) → \`/build\`
+- Двуезичен договор → \`/build?bilingual=1\`
+- Качване и анализ на договор → \`/analyze\` (или tool \`open_upload_analyzer\`)
+- Risk Analysis (професионален преглед) → \`/console/analysis\`
+- Електронен подпис / envelope → \`/console/signing\`
+- Комплекти документи → \`/komplekti\`
+- Билинг и план → \`/account?tab=subscription\`
 
 # ПРАВИЛА
 - БЕЗ индивидуален правен съвет. Ти си **автоматизиран AI асистент**, не адвокат — ако потребителят те попита директно ("ти адвокат ли си?", "сигурно ли е?"), потвърди ясно че си AI и че не заместваш индивидуална правна консултация.
@@ -139,7 +149,7 @@ const SYSTEM_PROMPT = `# РОЛЯ
 
 const MODEL_STANDARD = "google/gemini-3-flash-preview";
 const MODEL_PREMIUM = "openai/gpt-5.2";
-const MAX_TOOL_ITERATIONS = 6;
+const MAX_TOOL_ITERATIONS = 8;
 
 interface ChatMsg {
   role: "system" | "user" | "assistant" | "tool";
@@ -308,8 +318,8 @@ Deno.serve(async (req) => {
     ].filter(Boolean).join(" ");
     const activePrompt = await loadActivePromptMeta(admin, "assistant-chat", SYSTEM_PROMPT);
     const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, lastUserMsg, {
-      matchCount: 8,
-      minSimilarity: 0.45,
+      matchCount: 10,
+      minSimilarity: 0.4,
     });
     const systemFinal = legal.hasMatches
       ? `${activePrompt.content}\n\n[КОНТЕКСТ] ${ctxLines}\n\n${legal.promptBlock}`
