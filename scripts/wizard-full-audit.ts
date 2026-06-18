@@ -13,7 +13,7 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { SECTORS, getSubWizard } from "../src/data/sectors";
 import { REGISTRY } from "../src/data/subWizardsGenerated";
-import { inferPartyRoles, partiesAreCompatible, isUnilateralDocument } from "../src/data/partyRoles";
+import { inferPartyRoles, partiesAreCompatible, isUnilateralDocument, classifyDocument } from "../src/data/partyRoles";
 
 type Finding = {
   severity: "CRITICAL" | "MAJOR" | "MINOR";
