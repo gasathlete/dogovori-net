@@ -23,6 +23,12 @@ interface Rule {
 
 // Order matters — more specific rules first. The first matching rule wins.
 const RULES: Rule[] = [
+  // Receipt / acknowledgement of received sum, deposit, earnest money, goods, documents.
+  // Издателят (Получател) удостоверява, че е получил X от Платеца (Вносител).
+  // Трябва да е ПРЕДИ покупко-продажба / наем / заем, иначе „Разписка за получен задатък
+  // по предварителен договор за покупко-продажба" се извежда грешно като Продавач/Купувач.
+  { test: /^\s*разписка(\s|$)|^\s*протокол за получаване/, roles: { a: "Получател", b: "Платец" } },
+
   // Notarial / pre-contract for property sale → Продавач/Купувач
   { test: /(предварителен|окончателен|нотариал).*(покупко|продажб)/, roles: { a: "Продавач", b: "Купувач" } },
 
