@@ -174,11 +174,22 @@ export function partiesAreCompatible(
   // party — accept any A label when B is empty; these never reach the
   // bilateral signing block.
   if (!parties.b) return true;
+  if (isUnilateralDocument(documentName ?? "")) return true;
   const expected = inferPartyRoles(documentName);
   if (!expected) return true; // no opinion → trust caller
+  // If inference points to a unilateral role (empty B), accept anything.
+  if (!expected.b) return true;
   const norm = (s: string) => s.toLowerCase().replace(/[^a-zа-я]+/gi, "");
-  const matches = (have: string, want: string) =>
-    norm(have).startsWith(norm(want).slice(0, Math.min(6, norm(want).length)));
+  // Accept compound/synonym labels: "Спедитора/Възложителя" matches "Възложител".
+  const tokens = (s: string) => norm(s).split(/[^a-zа-я]+/i).filter(Boolean).concat(
+    s.toLowerCase().split(/[\/,;]+/).map((p) => norm(p)).filter(Boolean),
+  );
+  const matches = (have: string, want: string) => {
+    const w = norm(want).slice(0, Math.min(6, norm(want).length));
+    if (!w) return false;
+    if (norm(have).includes(w)) return true;
+    return tokens(have).some((t) => t.startsWith(w) || w.startsWith(t.slice(0, Math.min(6, t.length))));
+  };
   const direct = matches(parties.a, expected.a) && matches(parties.b, expected.b);
   const reversed = matches(parties.a, expected.b) && matches(parties.b, expected.a);
   return direct || reversed;
