@@ -23,7 +23,14 @@ export interface SubWizard {
   parties?: { a: string; b: string };
   /** Специфични въпроси, които се добавят след категорийните */
   questions: Question[];
+  /**
+   * Explicit document class. When omitted, callers fall back to
+   * `classifyDocument(contractName ?? documentName)` from partyRoles.ts.
+   * Backfilled for every generated REGISTRY entry.
+   */
+  documentClass?: import("./partyRoles").DocumentClass;
 }
+
 
 export interface Sector {
   id: string;
