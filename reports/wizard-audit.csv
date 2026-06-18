@@ -1,9 +1,4 @@
 severity,category,scope,documentName,detail
-"CRITICAL","missing-parties","(generated)","DSA Compliance декларация","REGISTRY entry без parties.a/b"
-"CRITICAL","missing-parties","(generated)","Антидопингова декларация (WADA код)","REGISTRY entry без parties.a/b"
-"CRITICAL","role-mismatch","(generated)","Договор за поръчка с купувач на имот (брокерски)","got {Възложител (Купувач) / Изпълнител (Брокер)}, expected {Доверител / Посредник}"
-"CRITICAL","role-mismatch","(generated)","Договор за поръчка с продавач на имот (брокерски)","got {Възложител / Изпълнител}, expected {Доверител / Посредник}"
-"CRITICAL","role-mismatch","(generated)","Договор за спедиция на международна товарна пратка по шосе","got {Възложител / Превозвач}, expected {Доверител / Спедитор}"
 "MINOR","duplicate-document","real-estate,real-estate","Договор за краткосрочен наем (Airbnb тип)","документът е дефиниран в 2 сектора"
 "MINOR","duplicate-document","logistics,services","Договор за куриерски услуги","документът е дефиниран в 2 сектора"
 "MINOR","duplicate-document","digital,ip","Договор за прехвърляне на домейн","документът е дефиниран в 2 сектора"
