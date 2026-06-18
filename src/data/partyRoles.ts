@@ -21,12 +21,28 @@ interface Rule {
   skipIf?: RegExp;
 }
 
+/**
+ * Returns true when the document name describes a unilateral act
+ * (declaration, will, application, complaint, single-party protocol).
+ * These never reach the bilateral signing block and have no "Party B".
+ */
+export function isUnilateralDocument(name: string | null | undefined): boolean {
+  if (!name) return false;
+  const n = name.toLowerCase();
+  return /^(деклараци|саморъчно завещани|нотариално завещани|завещани|жалба|заявление|молба|оплакване|искане|уведомление|известие|нотариална покана|покана за|протокол за бракуване|протокол за инвентаризац|протокол за самооценк)/.test(n);
+}
+
 // Order matters — more specific rules first. The first matching rule wins.
 const RULES: Rule[] = [
+  // Unilateral acts → single party (B left empty by convention).
+  { test: /^\s*(деклараци)/, roles: { a: "Декларатор", b: "" } },
+  { test: /^\s*(саморъчно завещани|нотариално завещани|завещани)/, roles: { a: "Завещател", b: "" } },
+  { test: /^\s*(жалба|оплакване|сигнал до)/, roles: { a: "Жалбоподател", b: "" } },
+  { test: /^\s*(заявление|молба|искане)/, roles: { a: "Заявител", b: "" } },
+  { test: /^\s*(уведомление|известие|нотариална покана|покана за)/, roles: { a: "Уведомител", b: "" } },
+  { test: /^\s*протокол за (бракуване|инвентаризац|самооценк)/, roles: { a: "Съставител", b: "" } },
+
   // Receipt / acknowledgement of received sum, deposit, earnest money, goods, documents.
-  // Издателят (Получател) удостоверява, че е получил X от Платеца (Вносител).
-  // Трябва да е ПРЕДИ покупко-продажба / наем / заем, иначе „Разписка за получен задатък
-  // по предварителен договор за покупко-продажба" се извежда грешно като Продавач/Купувач.
   { test: /^\s*разписка(\s|$)|^\s*протокол за получаване/, roles: { a: "Получател", b: "Платец" } },
 
   // Notarial / pre-contract for property sale → Продавач/Купувач
