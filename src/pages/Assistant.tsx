@@ -41,47 +41,86 @@ export default function AssistantPage() {
     }
   };
 
+  const usagePct = cap > 0 ? Math.min(100, Math.round((used / cap) * 100)) : 0;
+
   return (
     <div className="flex min-h-dvh flex-col bg-background">
-      {/* Slim header */}
-      <header className="flex items-center justify-between border-b border-border/40 bg-card/40 px-4 py-2 backdrop-blur-sm">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-gold"
-        >
-          <ArrowLeft className="h-4 w-4" /> Назад към сайта
-        </Link>
-        <div className="flex items-center gap-2">
-          <img src="/dogovai-favicon.png" alt="DogovaryAI" className="h-6 w-6 rounded" />
-          <span className="font-serif text-base font-bold">DogovaryAI</span>
-          <span className="rounded border border-gold/40 bg-gold/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-gold">
-            Workspace
-          </span>
-        </div>
-        <div className="text-right text-xs">
-          {!user ? (
-            <Link to="/auth" className="inline-flex items-center gap-1 rounded-full bg-gradient-to-b from-gold/90 to-gold/70 px-3 py-1.5 font-semibold text-navy hover:brightness-110">
-              <Sparkles className="h-3.5 w-3.5" /> Регистрация · 10 безпл. операции
-            </Link>
-          ) : unlimited ? (
-            <span className="text-gold">{remaining}/{cap} операции · този месец</span>
-          ) : (
-            <span className="text-muted-foreground">
-              <strong className="text-foreground">{remaining}</strong> / {cap} безпл. операции ·{" "}
-              <Link to="/account?tab=subscription" className="text-gold hover:underline">Надгради</Link>
-            </span>
-          )}
+      {/* Header */}
+      <header className="sticky top-0 z-30 border-b border-border/50 bg-card/70 backdrop-blur-xl">
+        <div className="container flex items-center justify-between gap-3 py-2.5">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-gold"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Назад към сайта</span>
+          </Link>
+
+          <div className="flex items-center gap-2.5">
+            <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-gold/40 bg-gradient-to-br from-gold/25 to-gold/5">
+              <img
+                src="/dogovai-favicon.png"
+                alt=""
+                className="h-full w-full object-contain p-1"
+                width={36}
+                height={36}
+              />
+              <span
+                aria-hidden
+                className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-emerald-400"
+              />
+            </div>
+            <div className="flex flex-col leading-tight">
+              <span className="font-serif text-base font-bold tracking-tight text-foreground">
+                DogovaryAI
+              </span>
+              <span className="text-[10px] uppercase tracking-[0.18em] text-gold/80">
+                Правен AI · Workspace
+              </span>
+            </div>
+          </div>
+
+          <div className="text-right text-xs">
+            {!user ? (
+              <Link
+                to="/auth"
+                className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-b from-gold to-gold/80 px-3.5 py-1.5 font-semibold text-navy shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.55)] transition-all hover:brightness-110"
+              >
+                <Sparkles className="h-3.5 w-3.5" /> Регистрация · 10 безпл.
+              </Link>
+            ) : unlimited ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 font-medium text-gold">
+                <Sparkles className="h-3 w-3" />
+                {remaining}/{cap} операции
+              </span>
+            ) : (
+              <div className="flex flex-col items-end gap-1">
+                <span className="text-muted-foreground">
+                  <strong className="text-foreground">{remaining}</strong> / {cap} безпл. ·{" "}
+                  <Link to="/account?tab=subscription" className="font-semibold text-gold hover:underline">
+                    Надгради
+                  </Link>
+                </span>
+                <span className="h-1 w-28 overflow-hidden rounded-full bg-muted">
+                  <span
+                    className="block h-full bg-gradient-to-r from-gold to-gold/70 transition-all"
+                    style={{ width: `${usagePct}%` }}
+                  />
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
       {/* Quick links bar */}
-      <div className="border-b border-border/30 bg-muted/20">
-        <div className="container flex flex-wrap gap-2 py-2">
+      <div className="border-b border-border/30 bg-gradient-to-b from-muted/20 to-transparent">
+        <div className="container flex flex-wrap items-center gap-2 py-2.5">
           {QUICK_LINKS.map((q) => (
             <Link
               key={q.to}
               to={q.to}
-              className="group inline-flex items-center gap-2 rounded-lg border border-border/50 bg-card/60 px-3 py-1.5 text-xs text-foreground/80 transition-colors hover:border-gold/50 hover:bg-gold/5 hover:text-gold"
+              className="group inline-flex items-center gap-2 rounded-full border border-border/50 bg-card/60 px-3 py-1.5 text-xs text-foreground/80 transition-all hover:-translate-y-0.5 hover:border-gold/50 hover:bg-gold/5 hover:text-gold hover:shadow-sm"
               title={q.desc}
             >
               <q.icon className="h-3.5 w-3.5 text-gold" />
@@ -90,7 +129,7 @@ export default function AssistantPage() {
           ))}
           <Link
             to="/build?from=dogovaryai"
-            className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-b from-gold/90 to-gold/70 px-3 py-1.5 text-xs font-semibold text-navy hover:brightness-110"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-gradient-to-b from-gold to-gold/80 px-3.5 py-1.5 text-xs font-semibold text-navy shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.55)] transition-all hover:brightness-110"
           >
             <Plus className="h-3.5 w-3.5" /> Нов документ
           </Link>
