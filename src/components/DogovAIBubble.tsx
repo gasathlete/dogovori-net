@@ -380,7 +380,7 @@ export function DogovAIBubble() {
         className={cn(
           "fixed bottom-4 right-4 z-40 sm:bottom-5 sm:right-5",
           "group flex items-center gap-2 rounded-full",
-          "h-11 pl-1.5 pr-3 sm:h-12 sm:pl-2 sm:pr-3.5",
+          "h-11 px-3.5 sm:h-12 sm:px-4",
           "bg-card/55 backdrop-blur-md text-foreground ring-1 ring-gold/30",
           "shadow-lg shadow-navy/10",
           "opacity-70 hover:opacity-100 hover:bg-card/90 hover:ring-gold/60 hover:shadow-gold",
