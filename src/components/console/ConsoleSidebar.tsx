@@ -96,13 +96,13 @@ export function ConsoleSidebar() {
               <img
                 src={it.icon}
                 alt=""
-                width={20}
-                height={20}
+                width={32}
+                height={32}
                 loading="lazy"
                 decoding="async"
                 className={cn(
-                  "relative h-5 w-5 shrink-0 object-contain transition-transform group-hover:scale-110",
-                  active ? "opacity-100" : "opacity-80 group-hover:opacity-100",
+                  "relative h-8 w-8 shrink-0 object-contain transition-transform group-hover:scale-110",
+                  active ? "opacity-100" : "opacity-85 group-hover:opacity-100",
                 )}
               />
               {!collapsed && <span className="relative truncate">{it.label}</span>}
