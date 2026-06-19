@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
-import { FileSignature, CheckCircle2, ShieldCheck, Clock, Users, ArrowRight, Download } from "lucide-react";
+import { FileSignature, CheckCircle2, ShieldCheck, Clock, Users, ArrowRight, Download, Sparkles } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
+import { useAuth } from "@/hooks/useAuth";
 
 const SIGNERS = [
   { name: "Иван Петров", role: "Възложител", email: "ivan@example.bg", at: "17.06.2026 · 10:14", ip: "85.130.x.x" },
