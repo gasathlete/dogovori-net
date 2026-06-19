@@ -84,6 +84,25 @@ export default function MyKitDetailPage() {
     }
   };
 
+  const handleExport = async () => {
+    if (!kit) return;
+    setExporting(true);
+    try {
+      const res = await exportKitMergedPdf(kit.id);
+      triggerPdfDownload(res.bytes, `${kit.title}.pdf`);
+      toast.success(
+        `Изтеглено: ${res.appended} документ(а)${res.skipped ? `, пропуснати ${res.skipped}` : ""}`,
+      );
+    } catch (e: any) {
+      toast.error("Експортът не успя", { description: e?.message });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const isComplete = progress.total > 0 && progress.done === progress.total;
+
+
   return (
     <>
       <Seo title={`${kit.title} | Моят комплект`} description={kit.title} noindex />
@@ -111,13 +130,22 @@ export default function MyKitDetailPage() {
                 </p>
               </div>
               <div className="flex shrink-0 flex-col gap-2">
+                <Button
+                  onClick={handleExport}
+                  disabled={exporting || progress.done === 0}
+                  className="bg-gradient-gold text-navy hover:shadow-gold disabled:opacity-50"
+                  title={progress.done === 0 ? "Първо попълнете поне един документ" : "Изтегли обединено PDF"}
+                >
+                  {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                  Експорт PDF
+                </Button>
                 {tpl && (
                   <Button asChild variant="outline">
                     <Link to={`/komplekti/${tpl.id}`}>Виж шаблона на комплекта</Link>
                   </Button>
                 )}
                 {kit.status !== "complete" && (
-                  <Button onClick={handleComplete} className="bg-gradient-gold text-navy hover:shadow-gold">
+                  <Button onClick={handleComplete} variant="outline">
                     Маркирай като завършен
                   </Button>
                 )}
@@ -127,6 +155,26 @@ export default function MyKitDetailPage() {
                   </Button>
                 )}
               </div>
+            </div>
+
+            {/* Sign hint */}
+            <div className="mt-6">
+              {isComplete ? (
+                <div className="flex items-start gap-3 rounded-lg border border-gold/30 bg-gold/5 p-4">
+                  <PenSquare className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                  <div className="text-sm">
+                    <p className="font-medium text-foreground">Готов за подпис</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Отворете всеки документ от списъка и натиснете „Изпрати за подпис". Всеки запис се
+                      обработва като отделен плик с електронен подпис.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="rounded-lg border border-dashed border-border/60 bg-card/30 p-3 text-xs text-muted-foreground">
+                  За електронен подпис на целия комплект, попълнете всички документи.
+                </p>
+              )}
             </div>
           </div>
         </section>
