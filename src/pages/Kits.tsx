@@ -143,7 +143,7 @@ export default function KitsPage() {
         </section>
 
         {/* Kits grid */}
-        <section className="container py-10">
+        <section id="kits-grid" className="container py-10">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-5">
             {visible.map((kit) => (
               <KitCard key={kit.id} kit={kit} />
