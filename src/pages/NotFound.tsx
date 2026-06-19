@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, Search, MessageSquarePlus } from "lucide-react";
 
 const NotFound = () => {
   const location = useLocation();
