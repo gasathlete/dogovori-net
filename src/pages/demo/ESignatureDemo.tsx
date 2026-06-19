@@ -19,6 +19,9 @@ const STEPS = [
 ];
 
 export default function ESignatureDemo() {
+  const { user } = useAuth();
+  const primaryHref = user ? "/console/signing?autostart=new" : "/auth?redirect=/console/signing";
+  const primaryLabel = user ? "Стартирай envelope сега" : "Започни електронен подпис";
   return (
     <div className="min-h-dvh bg-background">
       <Seo
