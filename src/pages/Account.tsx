@@ -28,6 +28,8 @@ const DocumentsTab = lazy(() => import("./account/DocumentsTab"));
 const FoldersTab = lazy(() => import("./account/FoldersTab"));
 const SubscriptionTab = lazy(() => import("./account/SubscriptionTab"));
 const SettingsTab = lazy(() => import("./account/SettingsTab"));
+const DealsTab = lazy(() => import("./account/DealsTab"));
+
 
 function TabFallback() {
   return (
