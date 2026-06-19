@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut,
-  Bird, Loader2, ArrowLeft, Bell, LayoutDashboard, Briefcase,
+  Bird, Loader2, ArrowLeft, Bell, LayoutDashboard, Briefcase, Package,
 } from "lucide-react";
 
 import { NotificationsTab } from "@/components/NotificationsTab";
@@ -29,6 +29,7 @@ const FoldersTab = lazy(() => import("./account/FoldersTab"));
 const SubscriptionTab = lazy(() => import("./account/SubscriptionTab"));
 const SettingsTab = lazy(() => import("./account/SettingsTab"));
 const DealsTab = lazy(() => import("./account/DealsTab"));
+const KitsTab = lazy(() => import("./account/KitsTab"));
 
 
 function TabFallback() {
@@ -197,6 +198,7 @@ export default function AccountPage() {
             <TabsTrigger value="folders" className="shrink-0 whitespace-nowrap"><FolderOpen className="mr-1 h-3.5 w-3.5" />Папки</TabsTrigger>
             <TabsTrigger value="contacts" className="shrink-0 whitespace-nowrap"><Users className="mr-1 h-3.5 w-3.5" />Контрагенти</TabsTrigger>
             <TabsTrigger value="deals" className="shrink-0 whitespace-nowrap"><Briefcase className="mr-1 h-3.5 w-3.5" />Сделки</TabsTrigger>
+            <TabsTrigger value="kits" className="shrink-0 whitespace-nowrap"><Package className="mr-1 h-3.5 w-3.5" />Комплекти</TabsTrigger>
             <TabsTrigger value="signed" className="shrink-0 whitespace-nowrap"><PenTool className="mr-1 h-3.5 w-3.5" />Подписани</TabsTrigger>
 
             <TabsTrigger value="subscription" className="shrink-0 whitespace-nowrap"><CreditCard className="mr-1 h-3.5 w-3.5" />Абонамент</TabsTrigger>
@@ -244,6 +246,11 @@ export default function AccountPage() {
           <TabsContent value="deals">
             <Suspense fallback={<TabFallback />}>
               <DealsTab />
+            </Suspense>
+          </TabsContent>
+          <TabsContent value="kits">
+            <Suspense fallback={<TabFallback />}>
+              <KitsTab />
             </Suspense>
           </TabsContent>
 

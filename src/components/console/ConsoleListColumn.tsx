@@ -4,7 +4,9 @@ import { useDeals, dealStatusLabel, dealStatusColor, type Deal } from "@/hooks/u
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
-import { Search, Plus, Loader2, FileText, FileUp, Briefcase, Library, Users } from "lucide-react";
+import { Search, Plus, Loader2, FileText, FileUp, Briefcase, Library, Users, Package } from "lucide-react";
+import { listMyKits, type UserKit } from "@/lib/kits";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -564,6 +566,75 @@ function SigningListView() {
   );
 }
 
+function KitsListView() {
+  const { user } = useAuth();
+  const { openTab, state } = useConsoleStore();
+  const navigate = useNavigate();
+  const [items, setItems] = useState<UserKit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+
+  const reload = async () => {
+    if (!user) return;
+    setLoading(true);
+    const all = await listMyKits(user.id);
+    setItems(all);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    let active = true;
+    if (!user) return;
+    (async () => {
+      const all = await listMyKits(user.id);
+      if (active) { setItems(all); setLoading(false); }
+    })();
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // Chronological (newest first) — synced with Профил → Комплекти
+  const rows: Row[] = useMemo(() => {
+    const sorted = [...items].sort(
+      (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+    );
+    const filtered = q
+      ? sorted.filter((k) => k.title.toLowerCase().includes(q.toLowerCase()))
+      : sorted;
+    return filtered.map((k) => ({
+      id: k.id,
+      title: k.title,
+      subtitle: new Date(k.updated_at).toLocaleDateString("bg-BG"),
+      badge: {
+        text:
+          k.status === "complete" ? "готов" :
+          k.status === "archived" ? "архив" : "процес",
+        className:
+          k.status === "complete"
+            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+            : k.status === "archived"
+              ? "border-border/60 bg-muted/30 text-muted-foreground"
+              : "border-amber-500/40 bg-amber-500/10 text-amber-300",
+      },
+    }));
+  }, [items, q]);
+
+  const activeId = state.tabs.find((t) => t.id === state.activeId)?.entityId ?? null;
+
+  return (
+    <ListShell
+      title="Комплекти"
+      loading={loading}
+      rows={rows}
+      activeId={activeId}
+      onSearch={setQ}
+      onCreate={() => navigate("/komplekti")}
+      onOpen={(r) => openTab({ kind: "kit", entityId: r.id, title: r.title })}
+      emptyHint='Изберете готов комплект от каталога или натиснете „Нов".'
+    />
+  );
+}
+
 export function ConsoleListColumn() {
   const { state } = useConsoleStore();
 
@@ -583,6 +654,8 @@ export function ConsoleListColumn() {
         return <AnalysesListView />;
       case "signing":
         return <SigningListView />;
+      case "kits":
+        return <KitsListView />;
       case "dashboard":
       default:
         return (

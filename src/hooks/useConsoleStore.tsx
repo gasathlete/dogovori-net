@@ -23,7 +23,8 @@ export type ConsoleTabKind =
   | "client"
   | "analysis"
   | "wizard"
-  | "signing";
+  | "signing"
+  | "kit";
 
 export interface ConsoleTab {
   id: string;
@@ -48,6 +49,7 @@ export type ConsoleSection =
   | "clients"
   | "analyses"
   | "signing"
+  | "kits"
   | "team";
 
 interface State {

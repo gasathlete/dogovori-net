@@ -21,7 +21,7 @@ const ASSISTANT_QUICK_LINKS = [
 
 const VALID_SECTIONS: ConsoleSection[] = [
   "assistant", "dashboard", "deals", "documents", "uploaded",
-  "templates", "clients", "analyses", "signing", "team",
+  "templates", "clients", "analyses", "signing", "kits", "team",
 ];
 
 function ConsoleShell() {
