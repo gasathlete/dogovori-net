@@ -1899,6 +1899,7 @@ export type Database = {
           id: string
           signature_data_url: string | null
           signature_name: string | null
+          tutorial_seen_at: string | null
           updated_at: string
           vat_number: string | null
         }
@@ -1913,6 +1914,7 @@ export type Database = {
           id: string
           signature_data_url?: string | null
           signature_name?: string | null
+          tutorial_seen_at?: string | null
           updated_at?: string
           vat_number?: string | null
         }
@@ -1927,6 +1929,7 @@ export type Database = {
           id?: string
           signature_data_url?: string | null
           signature_name?: string | null
+          tutorial_seen_at?: string | null
           updated_at?: string
           vat_number?: string | null
         }

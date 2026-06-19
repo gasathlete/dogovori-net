@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ExternalLink, FileUp, Save } from "lucide-react";
+import { Loader2, ExternalLink, FileUp, Save, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useConsoleStore } from "@/hooks/useConsoleStore";
+import { AddToKitDialog } from "@/components/AddToKitDialog";
 
 export function UploadedPane({ uploadedId, tabId }: { uploadedId: string; tabId?: string }) {
   const { setDirty } = useConsoleStore();
@@ -14,6 +15,7 @@ export function UploadedPane({ uploadedId, tabId }: { uploadedId: string; tabId?
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
+  const [kitOpen, setKitOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -83,6 +85,12 @@ export function UploadedPane({ uploadedId, tabId }: { uploadedId: string; tabId?
             {saving ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-2 h-3.5 w-3.5" />}
             Запази
           </Button>
+          <button
+            onClick={() => setKitOpen(true)}
+            className="inline-flex items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-3 py-2 text-sm text-gold hover:bg-gold/20"
+          >
+            <Package className="h-4 w-4" /> Добави в комплект
+          </button>
           <a
             href={`/uploaded/${doc.id}`}
             target="_blank"
@@ -93,6 +101,17 @@ export function UploadedPane({ uploadedId, tabId }: { uploadedId: string; tabId?
           </a>
         </div>
       </div>
+
+      <AddToKitDialog
+        open={kitOpen}
+        onClose={() => setKitOpen(false)}
+        defaultKitTitle={title || doc.original_filename || "Качен документ"}
+        item={{
+          role: "primary",
+          ref_label: title || doc.original_filename || "Качен документ",
+          uploaded_id: doc.id,
+        }}
+      />
 
       <div className="mt-6">
         <label className="mb-1 block text-xs uppercase tracking-wider text-muted-foreground">Текст на документа</label>

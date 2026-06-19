@@ -29,6 +29,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
+import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
 
@@ -309,6 +310,7 @@ const App = () => (
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ScrollToTop />
         <AuthProvider>
+          <OnboardingProvider>
           <Suspense fallback={null}>
             <PaymentTestModeBanner />
             <CookieBanner />
@@ -321,6 +323,7 @@ const App = () => (
           <Suspense fallback={<RouteFallback />}>
             <AnimatedRoutes />
           </Suspense>
+          </OnboardingProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
-import { ArrowRight, CheckCircle2, AlertTriangle, FileText, ChevronRight, Download } from "lucide-react";
+import { ArrowRight, CheckCircle2, AlertTriangle, FileText, ChevronRight, Download, Package } from "lucide-react";
+import { AddToKitDialog } from "@/components/AddToKitDialog";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
@@ -24,6 +27,8 @@ export default function TemplatePage() {
   // Async-load the heavy AI content for this template only.
   const [aiContent, setAiContent] = useState<TemplateContent | undefined>(undefined);
   const [draftText, setDraftText] = useState<string | undefined>(undefined);
+  const [kitOpen, setKitOpen] = useState(false);
+  const { user } = useAuth();
   useEffect(() => {
     let alive = true;
     if (!entry) return;
@@ -327,9 +332,24 @@ export default function TemplatePage() {
                 </div>
               ))}
             </div>
-            <Link to={wizardHref} className="btn-gold btn-sheen mt-6">
-              Изготви документа сега <ArrowRight className="h-4 w-4" />
-            </Link>
+            <div className="mt-6 flex flex-wrap items-center gap-2">
+              <Link to={wizardHref} className="btn-gold btn-sheen">
+                Изготви документа сега <ArrowRight className="h-4 w-4" />
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!user) {
+                    toast.error("Влезте, за да добавите шаблона в свой комплект.");
+                    return;
+                  }
+                  setKitOpen(true);
+                }}
+                className="inline-flex items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-4 py-2 text-sm font-semibold text-gold transition-colors hover:bg-gold/20"
+              >
+                <Package className="h-4 w-4" /> Добави в профила
+              </button>
+            </div>
           </Section>
         )}
 
@@ -441,6 +461,13 @@ export default function TemplatePage() {
           </Link>
         </section>
       </article>
+
+      <AddToKitDialog
+        open={kitOpen}
+        onClose={() => setKitOpen(false)}
+        defaultKitTitle={doc.name}
+        item={{ role: "primary", ref_label: doc.name, planned_doc_name: doc.name }}
+      />
 
       <SeoFooter />
     </div>
