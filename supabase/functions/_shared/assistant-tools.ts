@@ -232,6 +232,8 @@ export function sanitizePath(p: unknown): string | null {
   if (shablonM) return p;
   // /blog/{slug}
   if (/^\/blog\/[a-z0-9\-]+$/i.test(p)) return p;
+  // /console/{subpath} — позволи всички под-страници на workspace конзолата
+  if (/^\/console\/[a-z0-9\-\/]{1,80}(\?.*)?$/.test(p)) return p;
   return null;
 }
 
