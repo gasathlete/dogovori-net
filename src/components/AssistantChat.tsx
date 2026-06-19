@@ -633,7 +633,11 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                     citations={m.citations}
                     toolEvents={m.toolEvents}
                     followups={isLastAssistant ? m.followups : undefined}
-                    onFollowupClick={(t) => sendMessage(t)}
+                    onFollowupClick={(t) =>
+                      sendMessage(
+                        `${t}\n\n[ИЗБРАНО ДЕЙСТВИЕ: продължи с горната задача. Не сменяй темата, освен ако изрично те помоля.]`,
+                      )
+                    }
                   />
                 );
               })}
