@@ -8,6 +8,7 @@ export function TemplatePane({ slug }: { slug: string }) {
   const { openTab } = useConsoleStore();
   const [tpl, setTpl] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [kitOpen, setKitOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
