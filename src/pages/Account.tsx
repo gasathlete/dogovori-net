@@ -2,8 +2,9 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut,
-  Bird, Loader2, ArrowLeft, Bell, LayoutDashboard,
+  Bird, Loader2, ArrowLeft, Bell, LayoutDashboard, Briefcase,
 } from "lucide-react";
+
 import { NotificationsTab } from "@/components/NotificationsTab";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 
