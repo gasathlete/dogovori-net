@@ -52,6 +52,15 @@ const NotFound = () => {
               </Link>
             </Button>
           </div>
+          <p className="mt-6 text-sm text-muted-foreground">
+            Помогни ни — кажи какво очакваше да намериш тук:
+          </p>
+          <Button asChild variant="ghost" size="sm" className="mt-2 text-gold hover:bg-gold/10">
+            <Link to={`/feedback?source=404&path=${encodeURIComponent(location.pathname)}`}>
+              <MessageSquarePlus className="mr-2 h-4 w-4" />
+              Изпрати обратна връзка
+            </Link>
+          </Button>
         </div>
       </main>
       <Footer />
