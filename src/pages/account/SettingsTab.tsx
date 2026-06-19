@@ -345,4 +345,21 @@ function DataResidencyCard({ userId }: { userId: string | null }) {
 }
 
 
+function HelpAndOnboardingCard() {
+  const { openTutorial } = useOnboarding();
+  return (
+    <div className="max-w-lg space-y-3 rounded-xl border border-border/60 bg-gradient-card p-6">
+      <h3 className="flex items-center gap-2 font-serif text-lg font-bold">
+        <PlayCircle className="h-4 w-4 text-gold" /> Помощ и обучение
+      </h3>
+      <p className="text-xs text-muted-foreground">
+        Пусни отново краткото въведение в платформата — 8 стъпки, които показват всички ключови функционалности.
+      </p>
+      <Button onClick={openTutorial} variant="outline" className="border-gold/40">
+        <PlayCircle className="mr-2 h-4 w-4" /> Пусни въведението
+      </Button>
+    </div>
+  );
+}
+
 export default SettingsTab;
