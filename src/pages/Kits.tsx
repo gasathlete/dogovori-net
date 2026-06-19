@@ -61,6 +61,39 @@ export default function KitsPage() {
           </div>
         </section>
 
+        {/* CTA: Create your own kit or browse curated */}
+        <section className="border-b border-border/40 bg-card/40">
+          <div className="container py-6">
+            <div className="flex flex-col items-start gap-4 rounded-xl border border-gold/30 bg-gradient-to-br from-gold/[0.08] to-transparent p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-gold" />
+                  <h2 className="font-serif text-lg font-bold">Създай свой комплект</h2>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Събери своите често използвани документи в един бърз пакет — или разгледай нашите готови сценарии.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {user && (
+                  <Link
+                    to="/console/templates"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-b from-gold to-gold/80 px-4 py-2 text-sm font-bold text-navy shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.55)] transition-all hover:brightness-105"
+                  >
+                    <Package className="h-4 w-4" /> Създай свой комплект
+                  </Link>
+                )}
+                <a
+                  href="#kits-grid"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gold/40 bg-background/40 px-4 py-2 text-sm font-semibold text-gold hover:bg-gold/10"
+                >
+                  Разгледай нашите <ArrowRight className="h-3.5 w-3.5" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* My in-progress kits */}
         {user && myKits.length > 0 && (
           <section className="border-b border-border/40 bg-card/40">
