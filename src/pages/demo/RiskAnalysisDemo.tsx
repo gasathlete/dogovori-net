@@ -54,19 +54,30 @@ export default function RiskAnalysisDemo() {
         </p>
 
         <div className="mt-6 flex flex-wrap gap-3">
+        <div className="mt-6 flex flex-wrap gap-3">
           <Link
-            to="/auth?redirect=/console/analysis"
+            to={primaryHref}
             className="inline-flex items-center gap-2 rounded-lg bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-navy shadow-gold hover:opacity-95"
           >
-            <Lock className="h-4 w-4" /> Анализирайте вашия договор
+            {user ? <Sparkles className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+            {primaryLabel}
             <ArrowRight className="h-4 w-4" />
           </Link>
-          <Link
-            to="/auth"
-            className="inline-flex items-center gap-2 rounded-lg border border-gold/40 px-5 py-2.5 text-sm font-semibold text-gold hover:bg-gold/10"
-          >
-            Регистрация · 10 безплатни операции
-          </Link>
+          {user ? (
+            <Link
+              to="/console"
+              className="inline-flex items-center gap-2 rounded-lg border border-gold/40 px-5 py-2.5 text-sm font-semibold text-gold hover:bg-gold/10"
+            >
+              Към моя Workspace
+            </Link>
+          ) : (
+            <Link
+              to="/auth"
+              className="inline-flex items-center gap-2 rounded-lg border border-gold/40 px-5 py-2.5 text-sm font-semibold text-gold hover:bg-gold/10"
+            >
+              Регистрация · 10 безплатни операции
+            </Link>
+          )}
         </div>
 
         <section className="mt-10 rounded-2xl border border-border/60 bg-card/50 p-5 sm:p-7">
