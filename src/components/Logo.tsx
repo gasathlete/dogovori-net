@@ -6,11 +6,11 @@ export function Logo({ className = "", compact = false }: { className?: string; 
       <img
         src={logoImg}
         alt="Dogovori.net — Архитект на Вашите сделки"
-        width={140}
-        height={36}
+        width={220}
+        height={56}
         loading="eager"
         decoding="async"
-        className="h-7 w-auto select-none drop-shadow-[0_2px_6px_rgba(212,168,76,0.2)] sm:h-8"
+        className="h-11 w-auto select-none drop-shadow-[0_2px_8px_rgba(212,168,76,0.25)] sm:h-12 md:h-14"
       />
       <div className="hidden min-w-0 flex-col leading-none 2xl:flex">
         <span
