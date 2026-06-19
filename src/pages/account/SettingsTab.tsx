@@ -27,7 +27,7 @@ import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { ShareForSignDialog } from "@/components/ShareForSignDialog";
 import { UploadContractDialog } from "@/components/UploadContractDialog";
 import { SignedContractsTab } from "@/components/SignedContractsTab";
-import { ShieldAlert, ShieldCheck, AlertTriangle, PenTool, ChevronRight, KeyRound, Mail, Trash, Sparkles, PlayCircle } from "lucide-react";
+import { ShieldAlert, ShieldCheck, AlertTriangle, PenTool, ChevronRight, KeyRound, Mail, Trash, PlayCircle } from "lucide-react";
 import { useOnboarding } from "@/components/onboarding/OnboardingProvider";
 import { isValidEGN, isValidEIK } from "@/lib/bgValidation";
 import { translateAuthError } from "@/lib/authErrors";
