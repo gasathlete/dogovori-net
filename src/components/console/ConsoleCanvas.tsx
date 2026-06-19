@@ -11,6 +11,7 @@ const ClientPane = lazy(() => import("./panes/ClientPane").then((m) => ({ defaul
 const TemplatePane = lazy(() => import("./panes/TemplatePane").then((m) => ({ default: m.TemplatePane })));
 const AnalysisPane = lazy(() => import("./panes/AnalysisPane").then((m) => ({ default: m.AnalysisPane })));
 const SigningPane = lazy(() => import("./panes/SigningPane").then((m) => ({ default: m.SigningPane })));
+const KitPane = lazy(() => import("./panes/KitPane").then((m) => ({ default: m.KitPane })));
 const GenericPane = lazy(() => import("./panes/GenericPane").then((m) => ({ default: m.GenericPane })));
 
 function PaneRouter({ tab }: { tab: ConsoleTab }) {
@@ -31,6 +32,8 @@ function PaneRouter({ tab }: { tab: ConsoleTab }) {
       return <AnalysisPane analysisId={tab.entityId!} />;
     case "signing":
       return <SigningPane requestId={tab.entityId!} />;
+    case "kit":
+      return <KitPane kitId={tab.entityId!} tabId={tab.id} />;
     default:
       return <GenericPane title={tab.title} />;
   }
