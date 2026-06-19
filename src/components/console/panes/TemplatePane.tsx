@@ -89,7 +89,20 @@ export function TemplatePane({ slug }: { slug: string }) {
         >
           <ExternalLink className="h-4 w-4" /> Преглед в каталог
         </a>
+        <button
+          onClick={() => setKitOpen(true)}
+          className="inline-flex items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-4 py-2 text-sm text-gold hover:bg-gold/20"
+        >
+          <Package className="h-4 w-4" /> Добави в комплект
+        </button>
       </div>
+
+      <AddToKitDialog
+        open={kitOpen}
+        onClose={() => setKitOpen(false)}
+        defaultKitTitle={tpl.name}
+        item={{ role: "primary", ref_label: tpl.name, planned_doc_name: tpl.name }}
+      />
     </div>
   );
 }
