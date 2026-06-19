@@ -178,8 +178,11 @@ export default function AdminPage() {
                     {r.plan === "pro" ? <Badge className="bg-gold text-gold-foreground"><Crown className="h-3 w-3 mr-1" />Pro</Badge> : <Badge variant="outline">Free</Badge>}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{r.pro_until ? new Date(r.pro_until).toLocaleDateString("bg-BG") : "—"}</TableCell>
-                  <TableCell className="text-center">{r.contracts_used}</TableCell>
-                  <TableCell className="text-center">{r.analyses_used}</TableCell>
+                  <TableCell className="text-center">
+                    <div className="font-semibold tabular-nums">{r.ops_monthly}</div>
+                    <div className="text-[10px] text-muted-foreground tabular-nums">общо: {r.ops_total}</div>
+                  </TableCell>
+
                   <TableCell className="text-center">{r.bonus_contracts}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
