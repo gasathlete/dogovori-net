@@ -288,7 +288,7 @@ function UploadedListView() {
 function ClientsListView() {
   const { user } = useAuth();
   const { openTab, state } = useConsoleStore();
-  const [counterparties, setCounterparties] = useState<{ name: string; count: number }[]>([]);
+  const [items, setItems] = useState<{ name: string; count: number; created_at: string; source: "contact" | "deal" }[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
 
@@ -297,20 +297,42 @@ function ClientsListView() {
     let active = true;
     (async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("deals" as any)
-        .select("counterparty");
+      const [contactsRes, dealsRes] = await Promise.all([
+        supabase
+          .from("contacts")
+          .select("name, created_at")
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("deals" as any)
+          .select("counterparty, created_at")
+          .order("created_at", { ascending: false }),
+      ]);
       if (!active) return;
-      const map = new Map<string, number>();
-      ((data as any[]) ?? []).forEach((d) => {
+      const map = new Map<string, { name: string; count: number; created_at: string; source: "contact" | "deal" }>();
+      ((contactsRes.data as any[]) ?? []).forEach((c) => {
+        const name = (c.name ?? "").trim();
+        if (!name) return;
+        const key = name.toLowerCase();
+        map.set(key, { name, count: 0, created_at: c.created_at, source: "contact" });
+      });
+      ((dealsRes.data as any[]) ?? []).forEach((d) => {
         const name = (d.counterparty ?? "").trim();
         if (!name) return;
-        map.set(name, (map.get(name) ?? 0) + 1);
+        const key = name.toLowerCase();
+        const existing = map.get(key);
+        if (existing) {
+          existing.count += 1;
+          // keep the older (contact) created_at if present; otherwise take deal date
+        } else {
+          map.set(key, { name, count: 1, created_at: d.created_at, source: "deal" });
+        }
       });
-      setCounterparties(
-        Array.from(map.entries())
-          .map(([name, count]) => ({ name, count }))
-          .sort((a, b) => b.count - a.count),
+      // Chronological order (newest first) — matches Профил → Контрагенти
+      setItems(
+        Array.from(map.values()).sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        ),
       );
       setLoading(false);
     })();
@@ -321,14 +343,17 @@ function ClientsListView() {
 
   const rows: Row[] = useMemo(() => {
     const filtered = q
-      ? counterparties.filter((c) => c.name.toLowerCase().includes(q.toLowerCase()))
-      : counterparties;
+      ? items.filter((c) => c.name.toLowerCase().includes(q.toLowerCase()))
+      : items;
     return filtered.map((c) => ({
       id: c.name,
       title: c.name,
-      subtitle: `${c.count} ${c.count === 1 ? "сделка" : "сделки"}`,
+      subtitle:
+        c.count > 0
+          ? `${c.count} ${c.count === 1 ? "сделка" : "сделки"}`
+          : "Контрагент · няма сделки",
     }));
-  }, [counterparties, q]);
+  }, [items, q]);
 
   const activeId = state.tabs.find((t) => t.id === state.activeId)?.entityId ?? null;
 
@@ -340,10 +365,11 @@ function ClientsListView() {
       activeId={activeId}
       onSearch={setQ}
       onOpen={(r) => openTab({ kind: "client", entityId: r.id, title: r.title })}
-      emptyHint="Клиентите се появяват автоматично от вашите сделки."
+      emptyHint="Добавете контрагент в Моят профил или създайте сделка."
     />
   );
 }
+
 
 function TemplatesListView() {
   const { openTab, state } = useConsoleStore();
