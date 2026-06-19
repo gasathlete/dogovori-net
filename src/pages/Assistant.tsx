@@ -17,21 +17,23 @@ export default function AssistantPage() {
   const { isPro, isTeam, freeQuota } = useIsPro();
   const { threadId } = useParams<{ threadId?: string }>();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const fromConsole = params.get("from") === "console";
   const cap = freeQuota.aiMessagesCap;
   const used = freeQuota.aiMessagesUsed;
   const remaining = Math.max(0, cap - used);
   const unlimited = isPro || isTeam;
 
   useEffect(() => {
-    document.title = "DogovaryAI · Workspace";
-  }, []);
+    document.title = fromConsole ? "DogovaryAI · Разширен изглед" : "DogovaryAI · Workspace";
+  }, [fromConsole]);
 
-  // Logged-in users → use unified Console workspace
+  // Logged-in users → use unified Console workspace (unless explicitly opened from workspace as "expanded")
   useEffect(() => {
-    if (user) {
+    if (user && !fromConsole) {
       navigate("/console/assistant", { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, fromConsole, navigate]);
 
   const handleThreadChange = (id: string | null) => {
     if (id && id !== threadId) {
