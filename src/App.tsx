@@ -80,6 +80,7 @@ const DocumentPage = lazy(() => import("./pages/Document.tsx"));
 const UploadedContract = lazy(() => import("./pages/UploadedContract.tsx"));
 const Admin = lazy(() => import("./pages/Admin.tsx"));
 const AdminAITraining = lazy(() => import("./pages/AdminAITraining.tsx"));
+const AdminAiSimulation = lazy(() => import("./pages/AdminAiSimulation.tsx"));
 const AdminSubscriptions = lazy(() => import("./pages/AdminSubscriptions.tsx"));
 const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics.tsx"));
 const AdminPrivacy = lazy(() => import("./pages/AdminPrivacy.tsx"));
@@ -244,6 +245,7 @@ const AnimatedRoutes = () => {
         <Route path="/uploaded/:id" element={<ProtectedRoute><UploadedContract /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
         <Route path="/admin/ai-training" element={<ProtectedRoute><AdminAITraining /></ProtectedRoute>} />
+        <Route path="/admin/ai-simulation" element={<ProtectedRoute><AdminAiSimulation /></ProtectedRoute>} />
         <Route path="/admin/subscriptions" element={<ProtectedRoute><AdminSubscriptions /></ProtectedRoute>} />
         <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
         <Route path="/admin/privacy" element={<ProtectedRoute><AdminPrivacy /></ProtectedRoute>} />
