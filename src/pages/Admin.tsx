@@ -28,10 +28,13 @@ type Row = {
   contracts_used: number;
   analyses_used: number;
   bonus_contracts: number;
+  ops_total: number;
+  ops_monthly: number;
   is_moderator: boolean;
   is_admin: boolean;
   created_at: string;
 };
+
 
 export default function AdminPage() {
   const { user, loading } = useAuth();
@@ -157,8 +160,8 @@ export default function AdminPage() {
                 <TableHead>Потребител</TableHead>
                 <TableHead>План</TableHead>
                 <TableHead>Pro до</TableHead>
-                <TableHead className="text-center">Договори</TableHead>
-                <TableHead className="text-center">Анализи</TableHead>
+                <TableHead className="text-center" title="Операции този месец / общо за времето на акаунта. 1 операция = свален договор, свален шаблон, качване+анализ или AI съобщение.">Операции</TableHead>
+
                 <TableHead className="text-center">Бонус</TableHead>
                 <TableHead>Роля</TableHead>
                 <TableHead className="text-right">Действия</TableHead>
@@ -175,8 +178,11 @@ export default function AdminPage() {
                     {r.plan === "pro" ? <Badge className="bg-gold text-gold-foreground"><Crown className="h-3 w-3 mr-1" />Pro</Badge> : <Badge variant="outline">Free</Badge>}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{r.pro_until ? new Date(r.pro_until).toLocaleDateString("bg-BG") : "—"}</TableCell>
-                  <TableCell className="text-center">{r.contracts_used}</TableCell>
-                  <TableCell className="text-center">{r.analyses_used}</TableCell>
+                  <TableCell className="text-center">
+                    <div className="font-semibold tabular-nums">{r.ops_monthly}</div>
+                    <div className="text-[10px] text-muted-foreground tabular-nums">общо: {r.ops_total}</div>
+                  </TableCell>
+
                   <TableCell className="text-center">{r.bonus_contracts}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
@@ -204,8 +210,9 @@ export default function AdminPage() {
                 </TableRow>
               ))}
               {rows.length === 0 && (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Няма резултати</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Няма резултати</TableCell></TableRow>
               )}
+
             </TableBody>
           </Table>
         </div>
