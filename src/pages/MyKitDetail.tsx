@@ -23,6 +23,7 @@ export default function MyKitDetailPage() {
   const { user, loading: authLoading } = useAuth();
   const [kit, setKit] = useState<UserKitWithItems | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
