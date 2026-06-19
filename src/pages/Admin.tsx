@@ -160,8 +160,8 @@ export default function AdminPage() {
                 <TableHead>Потребител</TableHead>
                 <TableHead>План</TableHead>
                 <TableHead>Pro до</TableHead>
-                <TableHead className="text-center">Договори</TableHead>
-                <TableHead className="text-center">Анализи</TableHead>
+                <TableHead className="text-center" title="Операции този месец / общо за времето на акаунта. 1 операция = свален договор, свален шаблон, качване+анализ или AI съобщение.">Операции</TableHead>
+
                 <TableHead className="text-center">Бонус</TableHead>
                 <TableHead>Роля</TableHead>
                 <TableHead className="text-right">Действия</TableHead>
