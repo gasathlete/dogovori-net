@@ -50,13 +50,24 @@ export default function AssistantPage() {
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-border/50 bg-card/70 backdrop-blur-xl">
         <div className="container flex items-center justify-between gap-3 py-2.5">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-gold"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Назад към сайта</span>
-          </Link>
+          {fromConsole ? (
+            <Link
+              to="/console/assistant"
+              className="inline-flex items-center gap-1.5 rounded-md border border-gold/40 bg-gold/10 px-2.5 py-1 text-sm font-medium text-gold transition-colors hover:bg-gold/20"
+              title="Назад към Workspace"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Workspace</span>
+            </Link>
+          ) : (
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-gold"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Назад към сайта</span>
+            </Link>
+          )}
 
           <div className="flex items-center gap-2.5">
             <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-gold/40 bg-gradient-to-br from-gold/25 to-gold/5">
