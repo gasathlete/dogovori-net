@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
-import { Sparkles, FileText, Scale, Upload, Plus, Handshake, Layers, ArrowLeft } from "lucide-react";
+import { Link, useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { Sparkles, FileText, Scale, Upload, Plus, Handshake, Layers, ArrowLeft, MessageSquarePlus } from "lucide-react";
 import { AssistantChat } from "@/components/AssistantChat";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsPro } from "@/hooks/useIsPro";
@@ -17,21 +17,23 @@ export default function AssistantPage() {
   const { isPro, isTeam, freeQuota } = useIsPro();
   const { threadId } = useParams<{ threadId?: string }>();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const fromConsole = params.get("from") === "console";
   const cap = freeQuota.aiMessagesCap;
   const used = freeQuota.aiMessagesUsed;
   const remaining = Math.max(0, cap - used);
   const unlimited = isPro || isTeam;
 
   useEffect(() => {
-    document.title = "DogovaryAI · Workspace";
-  }, []);
+    document.title = fromConsole ? "DogovaryAI · Разширен изглед" : "DogovaryAI · Workspace";
+  }, [fromConsole]);
 
-  // Logged-in users → use unified Console workspace
+  // Logged-in users → use unified Console workspace (unless explicitly opened from workspace as "expanded")
   useEffect(() => {
-    if (user) {
+    if (user && !fromConsole) {
       navigate("/console/assistant", { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, fromConsole, navigate]);
 
   const handleThreadChange = (id: string | null) => {
     if (id && id !== threadId) {
@@ -48,13 +50,24 @@ export default function AssistantPage() {
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-border/50 bg-card/70 backdrop-blur-xl">
         <div className="container flex items-center justify-between gap-3 py-2.5">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-gold"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Назад към сайта</span>
-          </Link>
+          {fromConsole ? (
+            <Link
+              to="/console/assistant"
+              className="inline-flex items-center gap-1.5 rounded-md border border-gold/40 bg-gold/10 px-2.5 py-1 text-sm font-medium text-gold transition-colors hover:bg-gold/20"
+              title="Назад към Workspace"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Workspace</span>
+            </Link>
+          ) : (
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-gold"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Назад към сайта</span>
+            </Link>
+          )}
 
           <div className="flex items-center gap-2.5">
             <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-gold/40 bg-gradient-to-br from-gold/25 to-gold/5">
