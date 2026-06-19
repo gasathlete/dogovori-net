@@ -112,8 +112,21 @@ function ConsoleShell() {
                   </Link>
                 ))}
                 <Link
+                  to="/assistant?from=console"
+                  className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-gold/40 bg-gold/10 px-3 py-1.5 text-xs font-semibold text-gold transition-all hover:bg-gold/20"
+                  title="Отвори DogovaryAI на цял екран"
+                >
+                  <Maximize2 className="h-3.5 w-3.5" /> Разшири
+                </Link>
+                <Link
+                  to="/feedback?source=workspace"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border/60 bg-background/40 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:border-gold/40 hover:text-gold"
+                >
+                  <MessageSquarePlus className="h-3.5 w-3.5" /> Обратна връзка
+                </Link>
+                <Link
                   to="/build?from=dogovaryai"
-                  className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-gradient-to-b from-gold to-gold/80 px-3 py-1.5 text-xs font-bold text-navy shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.55)] transition-all hover:-translate-y-0.5 hover:brightness-105 hover:shadow-[0_8px_22px_-6px_hsl(var(--gold)/0.7)] active:translate-y-0 active:scale-[0.98]"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-gradient-to-b from-gold to-gold/80 px-3 py-1.5 text-xs font-bold text-navy shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.55)] transition-all hover:-translate-y-0.5 hover:brightness-105 hover:shadow-[0_8px_22px_-6px_hsl(var(--gold)/0.7)] active:translate-y-0 active:scale-[0.98]"
                 >
                   <Plus className="h-3.5 w-3.5" /> Нов документ
                 </Link>
