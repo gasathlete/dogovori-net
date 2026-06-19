@@ -309,6 +309,7 @@ const App = () => (
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ScrollToTop />
         <AuthProvider>
+          <OnboardingProvider>
           <Suspense fallback={null}>
             <PaymentTestModeBanner />
             <CookieBanner />
@@ -321,6 +322,7 @@ const App = () => (
           <Suspense fallback={<RouteFallback />}>
             <AnimatedRoutes />
           </Suspense>
+          </OnboardingProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
