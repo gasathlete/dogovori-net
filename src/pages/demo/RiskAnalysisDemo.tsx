@@ -31,7 +31,7 @@ const LEVEL = {
 
 export default function RiskAnalysisDemo() {
   const { user } = useAuth();
-  const primaryHref = user ? "/console/analysis?autostart=upload" : "/auth?redirect=/console/analysis";
+  const primaryHref = user ? "/analyze" : "/auth?redirect=/analyze";
   const primaryLabel = user ? "Започни анализ сега" : "Анализирайте вашия договор";
   return (
     <div className="min-h-dvh bg-background">
@@ -141,7 +141,7 @@ export default function RiskAnalysisDemo() {
             {user ? "Качете вашия документ за анализ" : "Готови ли сте за вашия договор?"}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            {user ? "Един клик — отива директно в Risk Analysis workspace-а Ви." : "10 безплатни операции след регистрация. Без карта."}
+            {user ? "Един клик — отваря директно качването на документ за Risk Analysis." : "10 безплатни операции след регистрация. Без карта."}
           </p>
           <Link
             to={primaryHref}
