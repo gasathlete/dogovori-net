@@ -293,6 +293,8 @@ const AnimatedRoutes = () => {
         <Route path="/rechnik/:slug" element={<GlossaryTerm />} />
         <Route path="/sravni" element={<CompareTemplates />} />
         <Route path="/sravni/:a/vs/:b" element={<CompareTemplates />} />
+        <Route path="/feedback" element={<Feedback />} />
+        <Route path="/admin/feedback" element={<ProtectedRoute><AdminFeedback /></ProtectedRoute>} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
