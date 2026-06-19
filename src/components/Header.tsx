@@ -62,7 +62,7 @@ export function Header() {
       )}
     >
 
-      <div className="container flex h-20 items-center justify-between gap-2 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-4">
+      <div className="container flex h-14 items-center justify-between gap-2 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-4">
         {/* Brand */}
         <div className="flex min-w-0 items-center justify-self-start">
           <Link

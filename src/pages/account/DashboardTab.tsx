@@ -37,24 +37,6 @@ import {
   Tooltip as RTooltip, Legend, AreaChart, Area, LineChart, Line, ReferenceLine,
 } from "recharts";
 import { getUnlockedTiers, getNextTier, REWARD_TIERS } from "@/lib/rewards";
-import icoPlan from "@/assets/icons/ico-plan.png";
-import icoOps from "@/assets/icons/ico-ops.png";
-import icoCreated from "@/assets/icons/ico-created.png";
-import icoDownloaded from "@/assets/icons/ico-downloaded.png";
-import icoUploaded from "@/assets/icons/ico-uploaded.png";
-import icoCorrections from "@/assets/icons/ico-corrections.png";
-
-const TileIcon = ({ src }: { src: string }) => (
-  <img
-    src={src}
-    alt=""
-    width={56}
-    height={56}
-    loading="lazy"
-    decoding="async"
-    className="h-12 w-12 object-contain drop-shadow-[0_4px_12px_rgba(212,168,76,0.45)] sm:h-14 sm:w-14"
-  />
-);
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
@@ -162,7 +144,7 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
       <Card
         title="План"
         value={isPro ? "Предприемач" : "Безплатен"}
-        icon={<TileIcon src={icoPlan} />}
+        icon={<Crown className="h-5 w-5 text-gold" />}
         sub={
           isPro
             ? (() => {
@@ -188,35 +170,35 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
       <Card
         title="Закупени операции"
         value={`${(quota as any)?.bonus_contracts ?? 0}`}
-        icon={<TileIcon src={icoOps} />}
+        icon={<Crown className="h-5 w-5 text-gold" />}
         sub={((quota as any)?.bonus_contracts ?? 0) > 0 ? "Налични за всеки тип · не изтичат" : "Купете пакет от 5 операции"}
         onClick={() => navigate("/account?tab=subscription&checkout=five_operations")}
       />
       <Card
         title="Създадени документи"
         value={`${createdDocs}`}
-        icon={<TileIcon src={icoCreated} />}
+        icon={<Sparkles className="h-5 w-5 text-gold" />}
         sub="Запазени чернови в профила"
         onClick={() => navigate("/account?tab=documents")}
       />
       <Card
         title="Свалени бланки"
         value={`${quota?.templates_used ?? 0}`}
-        icon={<TileIcon src={icoDownloaded} />}
+        icon={<FileText className="h-5 w-5 text-gold" />}
         sub="Лична история на свалените бланки"
         onClick={() => navigate("/downloads/templates")}
       />
       <Card
         title="Качени за анализ"
         value={`${uploadedCount}`}
-        icon={<TileIcon src={icoUploaded} />}
+        icon={<ShieldCheck className="h-5 w-5 text-gold" />}
         sub={`${analysesUsed} извършени анализа`}
         onClick={() => navigate("/account?tab=documents#uploaded")}
       />
       <Card
         title="Автоматични корекции"
         value={`${correctionsCount}`}
-        icon={<TileIcon src={icoCorrections} />}
+        icon={<RefreshCw className="h-5 w-5 text-gold" />}
         sub="Приложени вълни от корекции"
       />
 
