@@ -17,8 +17,11 @@ export interface ToolDef {
  * arbitrary URLs — only known platform routes (sometimes with a slug).
  */
 const NAV_PATHS = [
-  "/", "/catalog", "/build", "/blog", "/account", "/team", "/kits",
-  "/plans", "/auth", "/analyze", "/dashboard", "/console",
+  "/", "/catalog", "/build", "/blog", "/account", "/team", "/kits", "/komplekti",
+  "/plans", "/auth", "/analyze", "/dashboard", "/console", "/console/assistant",
+  "/console/analysis", "/console/signing", "/console/templates", "/console/uploaded",
+  "/console/kits", "/console/contacts", "/console/folders",
+  "/assistant", "/feedback", "/wizard-bilingual",
 ] as const;
 
 const SECTOR_PATHS = ["business", "real-estate", "employment", "it"];
@@ -229,6 +232,8 @@ export function sanitizePath(p: unknown): string | null {
   if (shablonM) return p;
   // /blog/{slug}
   if (/^\/blog\/[a-z0-9\-]+$/i.test(p)) return p;
+  // /console/{subpath} — позволи всички под-страници на workspace конзолата
+  if (/^\/console\/[a-z0-9\-\/]{1,80}(\?.*)?$/.test(p)) return p;
   return null;
 }
 
