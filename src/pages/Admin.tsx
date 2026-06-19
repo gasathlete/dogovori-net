@@ -28,10 +28,13 @@ type Row = {
   contracts_used: number;
   analyses_used: number;
   bonus_contracts: number;
+  ops_total: number;
+  ops_monthly: number;
   is_moderator: boolean;
   is_admin: boolean;
   created_at: string;
 };
+
 
 export default function AdminPage() {
   const { user, loading } = useAuth();
