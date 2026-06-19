@@ -30,6 +30,9 @@ const LEVEL = {
 } as const;
 
 export default function RiskAnalysisDemo() {
+  const { user } = useAuth();
+  const primaryHref = user ? "/console/analysis?autostart=upload" : "/auth?redirect=/console/analysis";
+  const primaryLabel = user ? "Започни анализ сега" : "Анализирайте вашия договор";
   return (
     <div className="min-h-dvh bg-background">
       <Seo
