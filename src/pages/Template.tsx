@@ -332,9 +332,24 @@ export default function TemplatePage() {
                 </div>
               ))}
             </div>
-            <Link to={wizardHref} className="btn-gold btn-sheen mt-6">
-              Изготви документа сега <ArrowRight className="h-4 w-4" />
-            </Link>
+            <div className="mt-6 flex flex-wrap items-center gap-2">
+              <Link to={wizardHref} className="btn-gold btn-sheen">
+                Изготви документа сега <ArrowRight className="h-4 w-4" />
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!user) {
+                    toast.error("Влезте, за да добавите шаблона в свой комплект.");
+                    return;
+                  }
+                  setKitOpen(true);
+                }}
+                className="inline-flex items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-4 py-2 text-sm font-semibold text-gold transition-colors hover:bg-gold/20"
+              >
+                <Package className="h-4 w-4" /> Добави в профила
+              </button>
+            </div>
           </Section>
         )}
 
