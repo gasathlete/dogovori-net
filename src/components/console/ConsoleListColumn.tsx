@@ -129,13 +129,17 @@ function DealsListView() {
   const [q, setQ] = useState("");
 
   const rows: Row[] = useMemo(() => {
+    // Chronological order (newest first) — matches Профил → Сделки
+    const sorted = [...deals].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
     const filtered = q
-      ? deals.filter(
+      ? sorted.filter(
           (d) =>
             d.title.toLowerCase().includes(q.toLowerCase()) ||
             (d.counterparty ?? "").toLowerCase().includes(q.toLowerCase()),
         )
-      : deals;
+      : sorted;
     return filtered.map((d) => ({
       id: d.id,
       title: d.title,
@@ -145,6 +149,7 @@ function DealsListView() {
       badge: { text: dealStatusLabel(d.status), className: dealStatusColor(d.status) },
     }));
   }, [deals, q]);
+
 
   const activeId = state.tabs.find((t) => t.id === state.activeId)?.entityId ?? null;
 
