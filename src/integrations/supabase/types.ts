@@ -237,6 +237,169 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_simulation_patches: {
+        Row: {
+          applied_prompt_id: string | null
+          created_at: string
+          current_content: string | null
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          patch_content: string
+          patch_description: string
+          section_key: string
+          section_title: string | null
+          session_id: string
+          status: string
+        }
+        Insert: {
+          applied_prompt_id?: string | null
+          created_at?: string
+          current_content?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          patch_content: string
+          patch_description: string
+          section_key: string
+          section_title?: string | null
+          session_id: string
+          status?: string
+        }
+        Update: {
+          applied_prompt_id?: string | null
+          created_at?: string
+          current_content?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          patch_content?: string
+          patch_description?: string
+          section_key?: string
+          section_title?: string | null
+          session_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_simulation_patches_applied_prompt_id_fkey"
+            columns: ["applied_prompt_id"]
+            isOneToOne: false
+            referencedRelation: "ai_prompts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_simulation_patches_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_simulation_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_simulation_sessions: {
+        Row: {
+          avg_score: number | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          function_name: string
+          id: string
+          lawyer_model: string
+          max_turns: number
+          prompt_version_id: string | null
+          scenario: string | null
+          status: string
+          turn_count: number
+        }
+        Insert: {
+          avg_score?: number | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          function_name?: string
+          id?: string
+          lawyer_model: string
+          max_turns?: number
+          prompt_version_id?: string | null
+          scenario?: string | null
+          status?: string
+          turn_count?: number
+        }
+        Update: {
+          avg_score?: number | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          function_name?: string
+          id?: string
+          lawyer_model?: string
+          max_turns?: number
+          prompt_version_id?: string | null
+          scenario?: string | null
+          status?: string
+          turn_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_simulation_sessions_prompt_version_id_fkey"
+            columns: ["prompt_version_id"]
+            isOneToOne: false
+            referencedRelation: "ai_prompts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_simulation_turns: {
+        Row: {
+          created_at: string
+          dogovary_response: string
+          dogovary_tools: Json
+          id: string
+          issues: Json
+          lawyer_verdict: string
+          score: number | null
+          session_id: string
+          turn_index: number
+          user_message: string
+        }
+        Insert: {
+          created_at?: string
+          dogovary_response?: string
+          dogovary_tools?: Json
+          id?: string
+          issues?: Json
+          lawyer_verdict?: string
+          score?: number | null
+          session_id: string
+          turn_index: number
+          user_message: string
+        }
+        Update: {
+          created_at?: string
+          dogovary_response?: string
+          dogovary_tools?: Json
+          id?: string
+          issues?: Json
+          lawyer_verdict?: string
+          score?: number | null
+          session_id?: string
+          turn_index?: number
+          user_message?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_simulation_turns_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_simulation_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_training_examples: {
         Row: {
           active: boolean
