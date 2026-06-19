@@ -9,7 +9,7 @@ import { ConsoleCanvas } from "@/components/console/ConsoleCanvas";
 import { ConsoleFooter } from "@/components/console/ConsoleFooter";
 import { Header } from "@/components/Header";
 import { AssistantChat } from "@/components/AssistantChat";
-import { FileText, Upload, Layers, Scale, Plus, LayoutDashboard, RotateCw, X } from "lucide-react";
+import { FileText, Upload, Layers, Scale, Plus, LayoutDashboard, RotateCw, X, Maximize2, MessageSquarePlus } from "lucide-react";
 
 const ASSISTANT_QUICK_LINKS = [
   { to: "/console/dashboard", icon: LayoutDashboard, label: "Табло" },
