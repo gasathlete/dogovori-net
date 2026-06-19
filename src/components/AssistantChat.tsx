@@ -487,16 +487,16 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 <button
                   onClick={(e) => handleDeleteThread(t.id, e)}
                   className={cn(
-                    "shrink-0 rounded px-1 py-0.5 text-[10px] transition-all",
+                    "shrink-0 rounded-md p-1 text-[10px] transition-all",
                     confirmDeleteId === t.id
                       ? "bg-destructive text-destructive-foreground"
-                      : "opacity-60 hover:bg-destructive/10 hover:text-destructive hover:opacity-100 group-hover:opacity-100",
+                      : "text-muted-foreground/80 hover:bg-destructive/15 hover:text-destructive",
                   )}
-                  aria-label={confirmDeleteId === t.id ? "Потвърди триене" : "Изтрий"}
-                  title={confirmDeleteId === t.id ? "Натисни пак за потвърждение" : "Изтрий"}
+                  aria-label={confirmDeleteId === t.id ? "Потвърди триене" : "Изтрий разговор"}
+                  title={confirmDeleteId === t.id ? "Натисни пак за потвърждение" : "Изтрий разговор"}
                   type="button"
                 >
-                  {confirmDeleteId === t.id ? "Потвърди?" : <Trash2 className="h-3 w-3" />}
+                  {confirmDeleteId === t.id ? "Потвърди?" : <Trash2 className="h-3.5 w-3.5" />}
                 </button>
               </div>
             ))}
@@ -660,42 +660,44 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
             "relative rounded-2xl border bg-background/60 transition-all focus-within:border-gold/50 focus-within:ring-2 focus-within:ring-gold/15",
             negotiationMode ? "border-gold/40 bg-gold/[0.03]" : "border-border/50",
           )}>
-            <Textarea
-              ref={textareaRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={negotiationMode ? "Опиши условията за преговори..." : "Задайте правен въпрос"}
-              rows={1}
-              disabled={streaming}
-              className="min-h-[52px] max-h-[160px] resize-none border-0 bg-transparent px-3.5 py-3 pr-[88px] text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-            />
-            {/* Inline attach + send (top-right of textarea) */}
-            <div className="absolute right-2 bottom-2 flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-gold"
-                title="Прикачи PDF/DOCX"
-                aria-label="Прикачи"
-              >
-                <Paperclip className="h-4 w-4" />
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.doc,.docx,.txt"
-                className="hidden"
-                onChange={(e) => handleFiles(e.target.files)}
+            <div className="relative">
+              <Textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={negotiationMode ? "Опиши условията за преговори..." : "Задайте правен въпрос"}
+                rows={1}
+                disabled={streaming}
+                className="min-h-[52px] max-h-[160px] resize-none border-0 bg-transparent px-3.5 py-3 pr-[88px] text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
               />
-              <Button
-                type="submit"
-                size="icon"
-                disabled={!input.trim() || streaming}
-                className="h-8 w-8 shrink-0 rounded-lg bg-gold text-navy hover:bg-gold/90 disabled:opacity-40"
-              >
-                {streaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              </Button>
+              {/* Inline attach + send — scoped to textarea only, no overlap with toggle bar */}
+              <div className="absolute right-2 bottom-2 flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-gold"
+                  title="Прикачи PDF/DOCX"
+                  aria-label="Прикачи"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt"
+                  className="hidden"
+                  onChange={(e) => handleFiles(e.target.files)}
+                />
+                <Button
+                  type="submit"
+                  size="icon"
+                  disabled={!input.trim() || streaming}
+                  className="h-8 w-8 shrink-0 rounded-lg bg-gold text-navy hover:bg-gold/90 disabled:opacity-40"
+                >
+                  {streaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
             {/* Bottom toggle bar — Преговори (action) · Източници · AI избира */}
             <div className="flex flex-wrap items-center gap-1.5 border-t border-border/40 px-2 py-1.5">
