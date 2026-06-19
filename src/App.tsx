@@ -21,7 +21,7 @@ const lazy = <T extends ComponentType<any>>(factory: () => Promise<{ default: T 
       }),
   );
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { detectLocaleFromPath, setLocale, stripLocaleFromPath } from "@/i18n";
 import { HelmetProvider } from "react-helmet-async";
@@ -235,6 +235,8 @@ const AnimatedRoutes = () => {
         <Route path="/plans" element={<Plans />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
+        <Route path="/analyze" element={<ProtectedRoute><Navigate to="/account?tab=documents&action=upload" replace /></ProtectedRoute>} />
+        <Route path="/console/analysis" element={<ProtectedRoute><Navigate to="/analyze" replace /></ProtectedRoute>} />
         <Route path="/console" element={<ProtectedRoute><Console /></ProtectedRoute>} />
         <Route path="/console/:section" element={<ProtectedRoute><Console /></ProtectedRoute>} />
         <Route path="/console/:section/:entityId" element={<ProtectedRoute><Console /></ProtectedRoute>} />
