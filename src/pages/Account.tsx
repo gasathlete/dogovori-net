@@ -2,8 +2,9 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut,
-  Bird, Loader2, ArrowLeft, Bell, LayoutDashboard,
+  Bird, Loader2, ArrowLeft, Bell, LayoutDashboard, Briefcase,
 } from "lucide-react";
+
 import { NotificationsTab } from "@/components/NotificationsTab";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 
@@ -27,6 +28,8 @@ const DocumentsTab = lazy(() => import("./account/DocumentsTab"));
 const FoldersTab = lazy(() => import("./account/FoldersTab"));
 const SubscriptionTab = lazy(() => import("./account/SubscriptionTab"));
 const SettingsTab = lazy(() => import("./account/SettingsTab"));
+const DealsTab = lazy(() => import("./account/DealsTab"));
+
 
 function TabFallback() {
   return (
@@ -193,7 +196,9 @@ export default function AccountPage() {
             <TabsTrigger value="documents" className="shrink-0 whitespace-nowrap"><FileText className="mr-1 h-3.5 w-3.5" />Документи</TabsTrigger>
             <TabsTrigger value="folders" className="shrink-0 whitespace-nowrap"><FolderOpen className="mr-1 h-3.5 w-3.5" />Папки</TabsTrigger>
             <TabsTrigger value="contacts" className="shrink-0 whitespace-nowrap"><Users className="mr-1 h-3.5 w-3.5" />Контрагенти</TabsTrigger>
+            <TabsTrigger value="deals" className="shrink-0 whitespace-nowrap"><Briefcase className="mr-1 h-3.5 w-3.5" />Сделки</TabsTrigger>
             <TabsTrigger value="signed" className="shrink-0 whitespace-nowrap"><PenTool className="mr-1 h-3.5 w-3.5" />Подписани</TabsTrigger>
+
             <TabsTrigger value="subscription" className="shrink-0 whitespace-nowrap"><CreditCard className="mr-1 h-3.5 w-3.5" />Абонамент</TabsTrigger>
             <TabsTrigger value="settings" className="shrink-0 whitespace-nowrap"><SettingsIcon className="mr-1 h-3.5 w-3.5" />Настройки</TabsTrigger>
           </ScrollableTabsList>
@@ -236,6 +241,12 @@ export default function AccountPage() {
           <TabsContent value="signed">
             <SignedContractsTab userId={user?.id ?? ""} />
           </TabsContent>
+          <TabsContent value="deals">
+            <Suspense fallback={<TabFallback />}>
+              <DealsTab />
+            </Suspense>
+          </TabsContent>
+
           <TabsContent value="subscription">
             <Suspense fallback={<TabFallback />}>
               <SubscriptionTab quota={quota} isPro={!!isPro} />
