@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ExternalLink, FileUp, Save } from "lucide-react";
+import { Loader2, ExternalLink, FileUp, Save, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useConsoleStore } from "@/hooks/useConsoleStore";
+import { AddToKitDialog } from "@/components/AddToKitDialog";
 
 export function UploadedPane({ uploadedId, tabId }: { uploadedId: string; tabId?: string }) {
   const { setDirty } = useConsoleStore();
