@@ -220,6 +220,8 @@ function SettingsTab({ profile, setProfile, userId }: {
       {/* EU-only AI данни (Data residency) */}
       <DataResidencyCard userId={user?.id ?? null} />
 
+      {/* Помощ и обучение */}
+      <HelpAndOnboardingCard />
 
       {/* Изтриване на акаунт */}
       <div className="max-w-lg space-y-3 rounded-xl border border-destructive/40 bg-destructive/[0.04] p-6">
