@@ -27,6 +27,8 @@ export default function TemplatePage() {
   // Async-load the heavy AI content for this template only.
   const [aiContent, setAiContent] = useState<TemplateContent | undefined>(undefined);
   const [draftText, setDraftText] = useState<string | undefined>(undefined);
+  const [kitOpen, setKitOpen] = useState(false);
+  const { user } = useAuth();
   useEffect(() => {
     let alive = true;
     if (!entry) return;
