@@ -118,13 +118,17 @@ export default function ESignatureDemo() {
         </section>
 
         <div className="mt-10 rounded-xl border border-gold/30 bg-gradient-to-br from-gold/10 to-transparent p-6 text-center">
-          <h2 className="font-serif text-2xl font-bold">Подпишете първия си документ днес</h2>
-          <p className="mt-2 text-sm text-muted-foreground">10 безплатни операции след регистрация. Без карта.</p>
+          <h2 className="font-serif text-2xl font-bold">
+            {user ? "Стартирайте envelope в Workspace-а" : "Подпишете първия си документ днес"}
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {user ? "Един клик — отива в /console/signing със стартиран нов envelope." : "10 безплатни операции след регистрация. Без карта."}
+          </p>
           <Link
-            to="/auth?redirect=/console/signing"
+            to={primaryHref}
             className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gradient-gold px-6 py-3 text-sm font-semibold text-navy"
           >
-            Започни електронен подпис <ArrowRight className="h-4 w-4" />
+            {user && <Sparkles className="h-4 w-4" />} {primaryLabel} <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </main>
