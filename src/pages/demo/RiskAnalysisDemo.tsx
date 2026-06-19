@@ -54,7 +54,6 @@ export default function RiskAnalysisDemo() {
         </p>
 
         <div className="mt-6 flex flex-wrap gap-3">
-        <div className="mt-6 flex flex-wrap gap-3">
           <Link
             to={primaryHref}
             className="inline-flex items-center gap-2 rounded-lg bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-navy shadow-gold hover:opacity-95"
