@@ -41,7 +41,7 @@ export default function AccountPage() {
   const [params, setParams] = useSearchParams();
   const initialTab = params.get("tab") ?? (params.get("action") === "upload" ? "uploaded" : "dashboard");
   const activeContact = params.get("contact");
-  const autoOpenUpload = params.get("action") === "upload";
+  const [autoOpenUpload] = useState(() => params.get("action") === "upload");
 
   useEffect(() => {
     if (params.get("action") === "upload") {
