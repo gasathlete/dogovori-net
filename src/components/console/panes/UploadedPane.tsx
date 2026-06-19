@@ -15,6 +15,7 @@ export function UploadedPane({ uploadedId, tabId }: { uploadedId: string; tabId?
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
+  const [kitOpen, setKitOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
