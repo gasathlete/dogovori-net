@@ -48,11 +48,11 @@ const TileIcon = ({ src }: { src: string }) => (
   <img
     src={src}
     alt=""
-    width={28}
-    height={28}
+    width={56}
+    height={56}
     loading="lazy"
     decoding="async"
-    className="h-7 w-7 object-contain drop-shadow-[0_2px_6px_rgba(212,168,76,0.35)]"
+    className="h-12 w-12 object-contain drop-shadow-[0_4px_12px_rgba(212,168,76,0.45)] sm:h-14 sm:w-14"
   />
 );
 
