@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Bird,
+  Package,
 } from "lucide-react";
 
 const ITEMS: { id: ConsoleSection; label: string; icon: any }[] = [
@@ -22,6 +23,7 @@ const ITEMS: { id: ConsoleSection; label: string; icon: any }[] = [
   { id: "documents", label: "Документи", icon: FileText },
   { id: "uploaded", label: "Качени", icon: FileUp },
   { id: "templates", label: "Шаблони", icon: Library },
+  { id: "kits", label: "Комплекти", icon: Package },
   { id: "clients", label: "Клиенти", icon: Users },
   { id: "analyses", label: "Анализи", icon: ShieldAlert },
   { id: "signing", label: "Подписи", icon: PenSquare },
