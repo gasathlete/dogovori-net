@@ -140,6 +140,8 @@ const CompareTemplates = lazy(() => import("./pages/CompareTemplates.tsx"));
 const RiskAnalysisDemo = lazy(() => import("./pages/demo/RiskAnalysisDemo.tsx"));
 const BilingualDemo = lazy(() => import("./pages/demo/BilingualDemo.tsx"));
 const ESignatureDemo = lazy(() => import("./pages/demo/ESignatureDemo.tsx"));
+const Feedback = lazy(() => import("./pages/Feedback.tsx"));
+const AdminFeedback = lazy(() => import("./pages/AdminFeedback.tsx"));
 
 // Defer Sentry boot until the browser is idle so it never competes with hydration / LCP.
 if (typeof window !== "undefined") {
