@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Library, ExternalLink, Loader2, Wand2, CheckCircle2 } from "lucide-react";
+import { Library, ExternalLink, Loader2, Wand2, CheckCircle2, Package } from "lucide-react";
 import { useConsoleStore } from "@/hooks/useConsoleStore";
+import { AddToKitDialog } from "@/components/AddToKitDialog";
 
 export function TemplatePane({ slug }: { slug: string }) {
   const { openTab } = useConsoleStore();
