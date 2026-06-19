@@ -487,16 +487,16 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 <button
                   onClick={(e) => handleDeleteThread(t.id, e)}
                   className={cn(
-                    "shrink-0 rounded px-1 py-0.5 text-[10px] transition-all",
+                    "shrink-0 rounded-md p-1 text-[10px] transition-all",
                     confirmDeleteId === t.id
                       ? "bg-destructive text-destructive-foreground"
-                      : "opacity-60 hover:bg-destructive/10 hover:text-destructive hover:opacity-100 group-hover:opacity-100",
+                      : "text-muted-foreground/80 hover:bg-destructive/15 hover:text-destructive",
                   )}
-                  aria-label={confirmDeleteId === t.id ? "Потвърди триене" : "Изтрий"}
-                  title={confirmDeleteId === t.id ? "Натисни пак за потвърждение" : "Изтрий"}
+                  aria-label={confirmDeleteId === t.id ? "Потвърди триене" : "Изтрий разговор"}
+                  title={confirmDeleteId === t.id ? "Натисни пак за потвърждение" : "Изтрий разговор"}
                   type="button"
                 >
-                  {confirmDeleteId === t.id ? "Потвърди?" : <Trash2 className="h-3 w-3" />}
+                  {confirmDeleteId === t.id ? "Потвърди?" : <Trash2 className="h-3.5 w-3.5" />}
                 </button>
               </div>
             ))}
