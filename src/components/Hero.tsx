@@ -219,9 +219,9 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             {([
               { icon: Bot, action: "assistant", label: "Правен AI-асистент", desc: "преговаря най-добрите условия." },
               { icon: FileText, to: "/catalog", label: "Над 600 шаблона", desc: "бизнес, имоти, труд, услуги." },
-              { icon: ShieldAlert, to: user ? "/console/analysis" : "/demo/risk-analysis", label: "Risk Analysis", desc: "клопки и неравноправни клаузи." },
-              { icon: Languages, to: user ? "/build?bilingual=1" : "/demo/bilingual", label: "Двуезични договори", desc: "BG / EN / DE / FR." },
-              { icon: FileSignature, to: user ? "/console/signing" : "/demo/e-signature", label: "Електронен подпис", desc: "многостранно, споделяне." },
+              { icon: ShieldAlert, to: "/demo/risk-analysis", label: "Risk Analysis", desc: "клопки и неравноправни клаузи." },
+              { icon: Languages, to: "/demo/bilingual", label: "Двуезични договори", desc: "BG / EN / DE / FR." },
+              { icon: FileSignature, to: "/demo/e-signature", label: "Електронен подпис", desc: "многостранно, споделяне." },
               { icon: Package, action: "kits", label: "Комплекти", desc: "готови решения за казуси." },
             ] as Array<{ icon: any; to?: string; action?: "assistant" | "kits"; label: string; desc: string }>).map((item) => {
               const Icon = item.icon;
