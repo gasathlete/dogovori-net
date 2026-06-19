@@ -17,8 +17,11 @@ export interface ToolDef {
  * arbitrary URLs — only known platform routes (sometimes with a slug).
  */
 const NAV_PATHS = [
-  "/", "/catalog", "/build", "/blog", "/account", "/team", "/kits",
-  "/plans", "/auth", "/analyze", "/dashboard", "/console",
+  "/", "/catalog", "/build", "/blog", "/account", "/team", "/kits", "/komplekti",
+  "/plans", "/auth", "/analyze", "/dashboard", "/console", "/console/assistant",
+  "/console/analysis", "/console/signing", "/console/templates", "/console/uploaded",
+  "/console/kits", "/console/contacts", "/console/folders",
+  "/assistant", "/feedback", "/wizard-bilingual",
 ] as const;
 
 const SECTOR_PATHS = ["business", "real-estate", "employment", "it"];
