@@ -20,7 +20,7 @@ interface Props {
 }
 
 export function KitPane({ kitId, tabId }: Props) {
-  const { closeTab } = useConsoleStore() as any;
+  const { close } = useConsoleStore();
   const [kit, setKit] = useState<UserKitWithItems | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<"export" | "complete" | "archive" | "delete" | null>(null);
@@ -111,7 +111,7 @@ export function KitPane({ kitId, tabId }: Props) {
     setBusy(null);
     if (ok) {
       toast.success("Изтрит");
-      try { closeTab?.(tabId); } catch {}
+      try { close(tabId); } catch {}
     } else toast.error("Грешка");
   };
 
