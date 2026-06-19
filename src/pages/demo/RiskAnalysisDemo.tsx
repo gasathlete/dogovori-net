@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
-import { ShieldAlert, AlertTriangle, CheckCircle2, ArrowRight, FileText, Lock } from "lucide-react";
+import { ShieldAlert, AlertTriangle, CheckCircle2, ArrowRight, FileText, Lock, Sparkles } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
+import { useAuth } from "@/hooks/useAuth";
 
 const FINDINGS = [
   { level: "high", title: "Неравноправна клауза за едностранно прекратяване",
