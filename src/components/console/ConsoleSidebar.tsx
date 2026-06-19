@@ -1,30 +1,27 @@
 import { useNavigate } from "react-router-dom";
 import { useConsoleStore, type ConsoleSection } from "@/hooks/useConsoleStore";
 import { cn } from "@/lib/utils";
-import {
-  LayoutDashboard,
-  Briefcase,
-  FileText,
-  FileUp,
-  Library,
-  Users,
-  ShieldAlert,
-  PenSquare,
-  ChevronLeft,
-  ChevronRight,
-  Bird,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import icoAssistant from "@/assets/icons/ico-assistant.png";
+import icoDashboard from "@/assets/icons/ico-dashboard.png";
+import icoDeals from "@/assets/icons/ico-deals.png";
+import icoDocuments from "@/assets/icons/ico-documents.png";
+import icoUploaded from "@/assets/icons/ico-uploaded.png";
+import icoTemplates from "@/assets/icons/ico-templates.png";
+import icoClients from "@/assets/icons/ico-clients.png";
+import icoAnalyses from "@/assets/icons/ico-analyses.png";
+import icoSigning from "@/assets/icons/ico-signing.png";
 
-const ITEMS: { id: ConsoleSection; label: string; icon: any }[] = [
-  { id: "assistant", label: "DogovaryAI", icon: Bird },
-  { id: "dashboard", label: "Табло", icon: LayoutDashboard },
-  { id: "deals", label: "Сделки", icon: Briefcase },
-  { id: "documents", label: "Документи", icon: FileText },
-  { id: "uploaded", label: "Качени", icon: FileUp },
-  { id: "templates", label: "Шаблони", icon: Library },
-  { id: "clients", label: "Клиенти", icon: Users },
-  { id: "analyses", label: "Анализи", icon: ShieldAlert },
-  { id: "signing", label: "Подписи", icon: PenSquare },
+const ITEMS: { id: ConsoleSection; label: string; icon: string }[] = [
+  { id: "assistant", label: "DogovaryAI", icon: icoAssistant },
+  { id: "dashboard", label: "Табло", icon: icoDashboard },
+  { id: "deals", label: "Сделки", icon: icoDeals },
+  { id: "documents", label: "Документи", icon: icoDocuments },
+  { id: "uploaded", label: "Качени", icon: icoUploaded },
+  { id: "templates", label: "Шаблони", icon: icoTemplates },
+  { id: "clients", label: "Клиенти", icon: icoClients },
+  { id: "analyses", label: "Анализи", icon: icoAnalyses },
+  { id: "signing", label: "Подписи", icon: icoSigning },
 ];
 
 export function ConsoleSidebar() {
@@ -69,7 +66,6 @@ export function ConsoleSidebar() {
 
       <nav className="relative flex-1 space-y-0.5 px-2 pb-2">
         {ITEMS.map((it) => {
-          const Icon = it.icon;
           const active = state.section === it.id;
           return (
             <button
@@ -84,14 +80,12 @@ export function ConsoleSidebar() {
                   : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
               )}
             >
-              {/* Active gold rail */}
               {active && (
                 <span
                   aria-hidden="true"
                   className="absolute -left-2 top-1.5 bottom-1.5 w-1 rounded-r-full bg-gold shadow-[0_0_12px_hsl(var(--gold)/0.6)] animate-fade-in"
                 />
               )}
-              {/* Hover glow */}
               <span
                 aria-hidden="true"
                 className={cn(
@@ -99,7 +93,18 @@ export function ConsoleSidebar() {
                   active ? "" : "group-hover:opacity-100 bg-gradient-to-r from-gold/[0.04] to-transparent",
                 )}
               />
-              <Icon className={cn("relative h-4 w-4 shrink-0 transition-transform group-hover:scale-110", active && "text-gold")} />
+              <img
+                src={it.icon}
+                alt=""
+                width={20}
+                height={20}
+                loading="lazy"
+                decoding="async"
+                className={cn(
+                  "relative h-5 w-5 shrink-0 object-contain transition-transform group-hover:scale-110",
+                  active ? "opacity-100" : "opacity-80 group-hover:opacity-100",
+                )}
+              />
               {!collapsed && <span className="relative truncate">{it.label}</span>}
             </button>
           );
