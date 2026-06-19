@@ -462,6 +462,13 @@ export default function TemplatePage() {
         </section>
       </article>
 
+      <AddToKitDialog
+        open={kitOpen}
+        onClose={() => setKitOpen(false)}
+        defaultKitTitle={doc.name}
+        item={{ role: "primary", ref_label: doc.name, planned_doc_name: doc.name }}
+      />
+
       <SeoFooter />
     </div>
   );
