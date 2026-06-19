@@ -3489,6 +3489,8 @@ export type Database = {
           email: string
           is_admin: boolean
           is_moderator: boolean
+          ops_monthly: number
+          ops_total: number
           plan: Database["public"]["Enums"]["user_plan"]
           pro_until: string
           user_id: string
