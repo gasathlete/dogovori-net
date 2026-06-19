@@ -223,6 +223,22 @@ function SettingsTab({ profile, setProfile, userId }: {
       {/* Помощ и обучение */}
       <HelpAndOnboardingCard />
 
+      {/* Обратна връзка */}
+      <div className="max-w-lg space-y-3 rounded-xl border border-border/60 bg-gradient-card p-6">
+        <h3 className="flex items-center gap-2 font-serif text-lg font-bold">
+          <MessageSquare className="h-4 w-4 text-gold" /> Обратна връзка
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          Споделете бъг, идея или липсващ шаблон. Четем всяко съобщение.
+        </p>
+        <Button asChild variant="outline" className="border-gold/40">
+          <Link to="/feedback?source=settings">
+            <MessageSquare className="mr-2 h-4 w-4" /> Изпрати обратна връзка
+          </Link>
+        </Button>
+      </div>
+
+
       {/* Изтриване на акаунт */}
       <div className="max-w-lg space-y-3 rounded-xl border border-destructive/40 bg-destructive/[0.04] p-6">
         <h3 className="flex items-center gap-2 font-serif text-lg font-bold text-destructive">
