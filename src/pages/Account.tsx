@@ -241,6 +241,12 @@ export default function AccountPage() {
           <TabsContent value="signed">
             <SignedContractsTab userId={user?.id ?? ""} />
           </TabsContent>
+          <TabsContent value="deals">
+            <Suspense fallback={<TabFallback />}>
+              <DealsTab />
+            </Suspense>
+          </TabsContent>
+
           <TabsContent value="subscription">
             <Suspense fallback={<TabFallback />}>
               <SubscriptionTab quota={quota} isPro={!!isPro} />
