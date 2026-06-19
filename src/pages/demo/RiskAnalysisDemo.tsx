@@ -137,13 +137,17 @@ export default function RiskAnalysisDemo() {
         </section>
 
         <div className="mt-10 rounded-xl border border-gold/30 bg-gradient-to-br from-gold/10 to-transparent p-6 text-center">
-          <h2 className="font-serif text-2xl font-bold">Готови ли сте за вашия договор?</h2>
-          <p className="mt-2 text-sm text-muted-foreground">10 безплатни операции след регистрация. Без карта.</p>
+          <h2 className="font-serif text-2xl font-bold">
+            {user ? "Качете вашия документ за анализ" : "Готови ли сте за вашия договор?"}
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {user ? "Един клик — отива директно в Risk Analysis workspace-а Ви." : "10 безплатни операции след регистрация. Без карта."}
+          </p>
           <Link
-            to="/auth?redirect=/console/analysis"
+            to={primaryHref}
             className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gradient-gold px-6 py-3 text-sm font-semibold text-navy"
           >
-            Анализирайте вашия договор <ArrowRight className="h-4 w-4" />
+            {primaryLabel} <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </main>
