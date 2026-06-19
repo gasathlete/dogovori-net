@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
-import { ArrowRight, CheckCircle2, FileText, Loader2, Package } from "lucide-react";
+import { ArrowRight, CheckCircle2, Download, FileText, Loader2, Package, PenSquare } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
@@ -16,6 +16,7 @@ import {
 import { getKit } from "@/data/documentKits";
 import { allTemplates } from "@/lib/templateIndex";
 import { toast } from "sonner";
+import { exportKitMergedPdf, triggerPdfDownload } from "@/lib/kitExport";
 
 export default function MyKitDetailPage() {
   const { id } = useParams<{ id: string }>();
