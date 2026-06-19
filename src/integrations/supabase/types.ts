@@ -1173,6 +1173,54 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback_submissions: {
+        Row: {
+          admin_notes: string | null
+          body: string
+          category: Database["public"]["Enums"]["feedback_category"]
+          created_at: string
+          email: string | null
+          id: string
+          rating: number | null
+          source_context: Json
+          source_page: string | null
+          status: Database["public"]["Enums"]["feedback_status"]
+          subject: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          body: string
+          category?: Database["public"]["Enums"]["feedback_category"]
+          created_at?: string
+          email?: string | null
+          id?: string
+          rating?: number | null
+          source_context?: Json
+          source_page?: string | null
+          status?: Database["public"]["Enums"]["feedback_status"]
+          subject: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          body?: string
+          category?: Database["public"]["Enums"]["feedback_category"]
+          created_at?: string
+          email?: string | null
+          id?: string
+          rating?: number | null
+          source_context?: Json
+          source_page?: string | null
+          status?: Database["public"]["Enums"]["feedback_status"]
+          subject?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       folders: {
         Row: {
           color: string | null
@@ -3779,6 +3827,8 @@ export type Database = {
         | "closed"
         | "archived"
       document_kind: "contract" | "template"
+      feedback_category: "bug" | "idea" | "template_request" | "ui" | "other"
+      feedback_status: "new" | "triaged" | "done" | "wontfix"
       signer_status:
         | "pending"
         | "notified"
@@ -3938,6 +3988,8 @@ export const Constants = {
         "archived",
       ],
       document_kind: ["contract", "template"],
+      feedback_category: ["bug", "idea", "template_request", "ui", "other"],
+      feedback_status: ["new", "triaged", "done", "wontfix"],
       signer_status: [
         "pending",
         "notified",
