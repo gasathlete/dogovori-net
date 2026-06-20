@@ -16,6 +16,7 @@ interface RunBody {
   dogovaryModel?: string;
   maxTurns?: number;
   withTools?: boolean;
+  resumeSessionId?: string;
 }
 
 function admin() {
