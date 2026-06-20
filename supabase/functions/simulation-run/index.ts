@@ -16,6 +16,7 @@ interface RunBody {
   dogovaryModel?: string;
   maxTurns?: number;
   withTools?: boolean;
+  resumeSessionId?: string;
 }
 
 function admin() {
@@ -225,16 +226,92 @@ Deno.serve(async (req) => {
     }
 
     const body = (await req.json()) as RunBody;
-    const scenario = (body.scenario ?? "").trim().slice(0, 1000);
-    const maxTurns = Math.max(1, Math.min(20, Number(body.maxTurns) || 5));
-    const lawyerModel = body.lawyerModel || "google/gemini-2.5-pro";
-    const dogovaryModelOverride = body.dogovaryModel || null;
-    const withTools = body.withTools !== false;
+    const resumeSessionId = body.resumeSessionId?.trim() || null;
 
-    // Load active prompt + sections
+    // Load active prompt + sections (always needed)
     const meta = await loadActivePromptMeta(sb, "assistant-chat", "");
-    const dogovaryModel = dogovaryModelOverride || meta.model || "google/gemini-3-flash-preview";
 
+    let sessionId: string;
+    let scenario: string;
+    let maxTurns: number;
+    let lawyerModel: string;
+    let dogovaryModel: string;
+    let withTools: boolean;
+    let startIndex = 0;
+    let priorTurns: Array<{ turn_index: number; user_message: string; dogovary_response: string; score: number; lawyer_verdict: string; issues: any }> = [];
+
+    if (resumeSessionId) {
+      const { data: existing, error: exErr } = await sb
+        .from("ai_simulation_sessions")
+        .select("*")
+        .eq("id", resumeSessionId)
+        .maybeSingle();
+      if (exErr || !existing) {
+        return new Response(JSON.stringify({ error: "session_not_found" }), {
+          status: 404, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      if (existing.created_by !== uid) {
+        return new Response(JSON.stringify({ error: "forbidden" }), {
+          status: 403, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      sessionId = existing.id;
+      scenario = (existing.scenario ?? "").toString();
+      maxTurns = Math.max(1, Math.min(20, Number(body.maxTurns) || existing.max_turns || 5));
+      lawyerModel = existing.lawyer_model || body.lawyerModel || "google/gemini-2.5-pro";
+      dogovaryModel = body.dogovaryModel || meta.model || "google/gemini-3-flash-preview";
+      withTools = body.withTools !== false;
+
+      const { data: turnsRows } = await sb
+        .from("ai_simulation_turns")
+        .select("turn_index, user_message, dogovary_response, score, lawyer_verdict, issues")
+        .eq("session_id", sessionId)
+        .order("turn_index", { ascending: true });
+      priorTurns = (turnsRows ?? []) as any;
+      startIndex = priorTurns.length;
+
+      if (startIndex >= maxTurns) {
+        return new Response(JSON.stringify({ error: "already_complete", turns: startIndex, maxTurns }), {
+          status: 409, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+
+      await sb.from("ai_simulation_sessions").update({
+        status: "running",
+        max_turns: maxTurns,
+        error_message: null,
+        completed_at: null,
+      }).eq("id", sessionId);
+    } else {
+      scenario = (body.scenario ?? "").trim().slice(0, 1000);
+      maxTurns = Math.max(1, Math.min(20, Number(body.maxTurns) || 5));
+      lawyerModel = body.lawyerModel || "google/gemini-2.5-pro";
+      dogovaryModel = body.dogovaryModel || meta.model || "google/gemini-3-flash-preview";
+      withTools = body.withTools !== false;
+
+      const { data: session, error: sessErr } = await sb
+        .from("ai_simulation_sessions")
+        .insert({
+          created_by: uid,
+          function_name: "assistant-chat",
+          prompt_version_id: null,
+          scenario: scenario || null,
+          lawyer_model: lawyerModel,
+          max_turns: maxTurns,
+          status: "running",
+        })
+        .select("id")
+        .single();
+      if (sessErr || !session) {
+        return new Response(JSON.stringify({ error: sessErr?.message ?? "session_create_failed" }), {
+          status: 500, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      sessionId = session.id as string;
+    }
+
+    // Re-load prompt version id + sections after session is set
     const { data: promptRow } = await sb
       .from("ai_prompts")
       .select("id")
@@ -258,26 +335,9 @@ Deno.serve(async (req) => {
     }));
     const sectionKeys = sections.filter((s) => s.enabled).map((s) => s.key);
 
-    // Create session
-    const { data: session, error: sessErr } = await sb
-      .from("ai_simulation_sessions")
-      .insert({
-        created_by: uid,
-        function_name: "assistant-chat",
-        prompt_version_id: promptRow?.id ?? null,
-        scenario: scenario || null,
-        lawyer_model: lawyerModel,
-        max_turns: maxTurns,
-        status: "running",
-      })
-      .select("id")
-      .single();
-    if (sessErr || !session) {
-      return new Response(JSON.stringify({ error: sessErr?.message ?? "session_create_failed" }), {
-        status: 500, headers: { ...cors, "Content-Type": "application/json" },
-      });
+    if (!resumeSessionId && promptRow?.id) {
+      await sb.from("ai_simulation_sessions").update({ prompt_version_id: promptRow.id }).eq("id", sessionId);
     }
-    const sessionId = session.id as string;
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -287,15 +347,27 @@ Deno.serve(async (req) => {
         };
 
         try {
-          send("session", { sessionId, scenario, lawyerModel, dogovaryModel, maxTurns });
+          send("session", { sessionId, scenario, lawyerModel, dogovaryModel, maxTurns, resumed: Boolean(resumeSessionId), startIndex });
 
           const dogovaryHistory: Array<{role: string; content: string}> = [];
           const lawyerHistory: Array<{role: string; content: string}> = [];
           const turnSummaries: string[] = [];
           const scores: number[] = [];
 
-          for (let i = 0; i < maxTurns; i++) {
+          // Rehydrate from prior turns (resume mode)
+          for (const t of priorTurns) {
+            dogovaryHistory.push({ role: "user", content: t.user_message });
+            dogovaryHistory.push({ role: "assistant", content: t.dogovary_response });
+            lawyerHistory.push({ role: "assistant", content: t.user_message });
+            lawyerHistory.push({ role: "user", content: `Asst отговори (score ${t.score}/10): ${(t.dogovary_response ?? "").slice(0, 500)}` });
+            scores.push(t.score);
+            turnSummaries.push(`### Ход ${t.turn_index + 1} — score ${t.score}/10\nПотребител: ${t.user_message}\nAsst: ${(t.dogovary_response ?? "").slice(0, 800)}\nВерсия на адвоката: ${t.lawyer_verdict ?? ""}\nПроблеми: ${JSON.stringify(t.issues ?? [])}`);
+            send("turn_done", { turn: t.turn_index, score: t.score, verdict: t.lawyer_verdict, issues: t.issues, replay: true });
+          }
+
+          for (let i = startIndex; i < maxTurns; i++) {
             send("phase", { turn: i, phase: "generating_user_message" });
+
 
             // 1. Lawyer generates user message
             const genMsgs: any[] = [
