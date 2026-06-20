@@ -374,7 +374,21 @@ function HistoryTab() {
   const [resumingId, setResumingId] = useState<string | null>(null);
   const [resumePhase, setResumePhase] = useState<string>("");
   const [extraTurns, setExtraTurns] = useState<Record<string, number>>({});
+  const [activeModel, setActiveModel] = useState<string>("");
+  const [promotingId, setPromotingId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  const loadActiveModel = async () => {
+    const { data } = await supabase
+      .from("ai_prompts")
+      .select("model")
+      .eq("function_name", "assistant-chat")
+      .eq("is_active", true)
+      .order("version", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setActiveModel((data?.model as string | null) || "");
+  };
 
   const load = async () => {
     setBusy(true);
@@ -386,7 +400,29 @@ function HistoryTab() {
     setSessions((data ?? []) as Session[]);
     setBusy(false);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); loadActiveModel(); }, []);
+
+  const promote = async (s: Session) => {
+    if (!s.dogovary_model) { toast.error("Сесията няма записан модел."); return; }
+    if (s.dogovary_model === activeModel) { toast.info("Този модел вече е в продукция."); return; }
+    if (!confirm(`Сменям продукционния модел на DogovaryAI от "${activeModel || "(none)"}" на "${s.dogovary_model}". Промптът остава непроменен. Продължаване?`)) return;
+    setPromotingId(s.id);
+    try {
+      const { error } = await supabase
+        .from("ai_prompts")
+        .update({ model: s.dogovary_model })
+        .eq("function_name", "assistant-chat")
+        .eq("is_active", true);
+      if (error) throw error;
+      toast.success(`Продукционният модел е сменен на ${s.dogovary_model}`);
+      await loadActiveModel();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setPromotingId(null);
+    }
+  };
+
 
   const resume = async (s: Session) => {
     const addExtra = extraTurns[s.id] ?? 0;
