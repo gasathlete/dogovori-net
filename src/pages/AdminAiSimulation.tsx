@@ -16,14 +16,18 @@ import { toast } from "sonner";
 import { ArrowLeft, Loader2, Bot, Scale, Play, Check, X, Sparkles } from "lucide-react";
 import { AdminMFAGuard } from "@/components/admin/AdminMFAGuard";
 
-const LAWYER_MODELS = [
-  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro (силен juge)" },
-  { value: "google/gemini-3.1-pro-preview", label: "Gemini 3.1 Pro" },
-  { value: "google/gemini-3-flash-preview", label: "Gemini 3 Flash (бърз)" },
-  { value: "openai/gpt-5.2", label: "GPT-5.2 (премиум reasoning)" },
+const MODEL_OPTIONS = [
+  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+  { value: "google/gemini-3.1-pro-preview", label: "Gemini 3.1 Pro (preview)" },
+  { value: "google/gemini-3-flash-preview", label: "Gemini 3 Flash (бърз/евтин)" },
+  { value: "google/gemini-3.5-flash", label: "Gemini 3.5 Flash" },
+  { value: "openai/gpt-5.2", label: "GPT-5.2" },
+  { value: "openai/gpt-5.4", label: "GPT-5.4" },
   { value: "openai/gpt-5.4-pro", label: "GPT-5.4 Pro" },
   { value: "openai/gpt-5.5", label: "GPT-5.5" },
+  { value: "openai/gpt-5.5-pro", label: "GPT-5.5 Pro" },
 ];
+const LAWYER_MODELS = MODEL_OPTIONS;
 
 type TurnEvent = {
   turn: number;
@@ -40,6 +44,7 @@ type Session = {
   id: string;
   scenario: string | null;
   lawyer_model: string;
+  dogovary_model: string | null;
   status: string;
   max_turns: number;
   turn_count: number;
@@ -48,6 +53,7 @@ type Session = {
   completed_at: string | null;
   error_message: string | null;
 };
+
 
 type Patch = {
   id: string;
