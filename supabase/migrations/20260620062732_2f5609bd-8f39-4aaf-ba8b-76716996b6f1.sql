@@ -1,0 +1,1 @@
+ALTER TABLE public.ai_simulation_sessions ADD COLUMN IF NOT EXISTS dogovary_model text;

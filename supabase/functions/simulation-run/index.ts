@@ -298,6 +298,7 @@ Deno.serve(async (req) => {
           prompt_version_id: null,
           scenario: scenario || null,
           lawyer_model: lawyerModel,
+          dogovary_model: dogovaryModel,
           max_turns: maxTurns,
           status: "running",
         })

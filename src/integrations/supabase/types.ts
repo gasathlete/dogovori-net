@@ -303,6 +303,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           created_by: string | null
+          dogovary_model: string | null
           error_message: string | null
           function_name: string
           id: string
@@ -318,6 +319,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
+          dogovary_model?: string | null
           error_message?: string | null
           function_name?: string
           id?: string
@@ -333,6 +335,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
+          dogovary_model?: string | null
           error_message?: string | null
           function_name?: string
           id?: string

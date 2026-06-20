@@ -16,14 +16,18 @@ import { toast } from "sonner";
 import { ArrowLeft, Loader2, Bot, Scale, Play, Check, X, Sparkles } from "lucide-react";
 import { AdminMFAGuard } from "@/components/admin/AdminMFAGuard";
 
-const LAWYER_MODELS = [
-  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro (силен juge)" },
-  { value: "google/gemini-3.1-pro-preview", label: "Gemini 3.1 Pro" },
-  { value: "google/gemini-3-flash-preview", label: "Gemini 3 Flash (бърз)" },
-  { value: "openai/gpt-5.2", label: "GPT-5.2 (премиум reasoning)" },
+const MODEL_OPTIONS = [
+  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+  { value: "google/gemini-3.1-pro-preview", label: "Gemini 3.1 Pro (preview)" },
+  { value: "google/gemini-3-flash-preview", label: "Gemini 3 Flash (бърз/евтин)" },
+  { value: "google/gemini-3.5-flash", label: "Gemini 3.5 Flash" },
+  { value: "openai/gpt-5.2", label: "GPT-5.2" },
+  { value: "openai/gpt-5.4", label: "GPT-5.4" },
   { value: "openai/gpt-5.4-pro", label: "GPT-5.4 Pro" },
   { value: "openai/gpt-5.5", label: "GPT-5.5" },
+  { value: "openai/gpt-5.5-pro", label: "GPT-5.5 Pro" },
 ];
+const LAWYER_MODELS = MODEL_OPTIONS;
 
 type TurnEvent = {
   turn: number;
@@ -40,6 +44,7 @@ type Session = {
   id: string;
   scenario: string | null;
   lawyer_model: string;
+  dogovary_model: string | null;
   status: string;
   max_turns: number;
   turn_count: number;
@@ -48,6 +53,7 @@ type Session = {
   completed_at: string | null;
   error_message: string | null;
 };
+
 
 type Patch = {
   id: string;
@@ -123,6 +129,9 @@ export default function AdminAiSimulation() {
 function RunTab() {
   const [scenario, setScenario] = useState("");
   const [lawyerModel, setLawyerModel] = useState("google/gemini-2.5-pro");
+  const [dogovaryModel, setDogovaryModel] = useState<string>("");
+  const [activeModel, setActiveModel] = useState<string>("");
+  const [sameModel, setSameModel] = useState(false);
   const [maxTurns, setMaxTurns] = useState(5);
   const [withTools, setWithTools] = useState(true);
   const [running, setRunning] = useState(false);
@@ -131,6 +140,25 @@ function RunTab() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [doneInfo, setDoneInfo] = useState<{ avgScore: number | null; patchCount: number } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Load active prompt model so default DogovaryAI model matches production
+  useEffect(() => {
+    supabase
+      .from("ai_prompts")
+      .select("model")
+      .eq("function_name", "assistant-chat")
+      .eq("is_active", true)
+      .order("version", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        const m = (data?.model as string | null) || "google/gemini-3-flash-preview";
+        setActiveModel(m);
+        setDogovaryModel(m);
+      });
+  }, []);
+
+  const effectiveDogovaryModel = sameModel ? lawyerModel : dogovaryModel;
 
   const updateTurn = (turn: number, patch: Partial<TurnEvent>) => {
     setTurns((prev) => {
@@ -160,7 +188,7 @@ function RunTab() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ scenario, lawyerModel, maxTurns, withTools }),
+        body: JSON.stringify({ scenario, lawyerModel, dogovaryModel: effectiveDogovaryModel, maxTurns, withTools }),
         signal: ctrl.signal,
       });
       if (!resp.ok || !resp.body) {
@@ -231,9 +259,9 @@ function RunTab() {
           />
           <p className="mt-1 text-[10px] text-muted-foreground">Ако оставите празно, адвокатът сам ще измисля разнообразни тестови сценарии.</p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <Label>Модел на адвоката</Label>
+            <Label>Модел на адвоката (judge)</Label>
             <Select value={lawyerModel} onValueChange={setLawyerModel} disabled={running}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -242,14 +270,33 @@ function RunTab() {
             </Select>
           </div>
           <div>
+            <Label className="flex items-center gap-2">
+              Модел на DogovaryAI
+              {activeModel && <span className="text-[10px] text-muted-foreground">(продукция: {activeModel})</span>}
+            </Label>
+            <Select value={effectiveDogovaryModel} onValueChange={setDogovaryModel} disabled={running || sameModel}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {MODEL_OPTIONS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div>
             <Label>Брой ходове</Label>
             <Input type="number" min={1} max={20} value={maxTurns} onChange={(e) => setMaxTurns(Math.max(1, Math.min(20, parseInt(e.target.value, 10) || 1)))} disabled={running} />
           </div>
           <div className="flex items-end gap-2">
             <Switch checked={withTools} onCheckedChange={setWithTools} disabled={running} />
-            <Label className="text-xs">Включи tools (search_templates, navigate, ...)</Label>
+            <Label className="text-xs">Включи tools</Label>
+          </div>
+          <div className="flex items-end gap-2">
+            <Switch checked={sameModel} onCheckedChange={setSameModel} disabled={running} />
+            <Label className="text-xs">DogovaryAI = адвокат (A/B)</Label>
           </div>
         </div>
+
         <div className="flex gap-2">
           {!running ? (
             <Button onClick={start} className="bg-gold text-gold-foreground hover:bg-gold/90">
@@ -327,7 +374,21 @@ function HistoryTab() {
   const [resumingId, setResumingId] = useState<string | null>(null);
   const [resumePhase, setResumePhase] = useState<string>("");
   const [extraTurns, setExtraTurns] = useState<Record<string, number>>({});
+  const [activeModel, setActiveModel] = useState<string>("");
+  const [promotingId, setPromotingId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  const loadActiveModel = async () => {
+    const { data } = await supabase
+      .from("ai_prompts")
+      .select("model")
+      .eq("function_name", "assistant-chat")
+      .eq("is_active", true)
+      .order("version", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setActiveModel((data?.model as string | null) || "");
+  };
 
   const load = async () => {
     setBusy(true);
@@ -339,7 +400,29 @@ function HistoryTab() {
     setSessions((data ?? []) as Session[]);
     setBusy(false);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); loadActiveModel(); }, []);
+
+  const promote = async (s: Session) => {
+    if (!s.dogovary_model) { toast.error("Сесията няма записан модел."); return; }
+    if (s.dogovary_model === activeModel) { toast.info("Този модел вече е в продукция."); return; }
+    if (!confirm(`Сменям продукционния модел на DogovaryAI от "${activeModel || "(none)"}" на "${s.dogovary_model}". Промптът остава непроменен. Продължаване?`)) return;
+    setPromotingId(s.id);
+    try {
+      const { error } = await supabase
+        .from("ai_prompts")
+        .update({ model: s.dogovary_model })
+        .eq("function_name", "assistant-chat")
+        .eq("is_active", true);
+      if (error) throw error;
+      toast.success(`Продукционният модел е сменен на ${s.dogovary_model}`);
+      await loadActiveModel();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setPromotingId(null);
+    }
+  };
+
 
   const resume = async (s: Session) => {
     const addExtra = extraTurns[s.id] ?? 0;
@@ -404,11 +487,16 @@ function HistoryTab() {
 
   return (
     <div className="mt-4 space-y-3">
-      <Button size="sm" variant="outline" onClick={load} disabled={busy}>{busy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Обнови"}</Button>
+      <div className="flex items-center justify-between gap-2">
+        <Button size="sm" variant="outline" onClick={() => { load(); loadActiveModel(); }} disabled={busy}>{busy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Обнови"}</Button>
+        {activeModel && <span className="text-xs text-muted-foreground">Продукционен модел на DogovaryAI: <strong>{activeModel}</strong></span>}
+      </div>
       {sessions.length === 0 && <p className="text-sm text-muted-foreground">Няма стартирани симулации.</p>}
       {sessions.map((s) => {
         const canResume = (s.status === "running" || s.status === "failed") && s.turn_count < 20;
         const isResuming = resumingId === s.id;
+        const canPromote = s.status === "completed" && s.dogovary_model && s.dogovary_model !== activeModel;
+        const isPromoting = promotingId === s.id;
         return (
           <Card key={s.id} className="p-3">
             <div className="flex items-start justify-between gap-2">
@@ -417,7 +505,8 @@ function HistoryTab() {
                   <Badge variant={s.status === "completed" ? "default" : s.status === "failed" ? "destructive" : "secondary"}>{s.status}</Badge>
                   <span className="text-muted-foreground">{new Date(s.created_at).toLocaleString("bg-BG")}</span>
                   <span className="text-muted-foreground">•</span>
-                  <span>{s.lawyer_model}</span>
+                  <Badge variant="outline" className="text-[10px]">judge: {s.lawyer_model}</Badge>
+                  <Badge variant="outline" className="text-[10px]">bot: {s.dogovary_model || "—"}</Badge>
                   <span className="text-muted-foreground">•</span>
                   <span>{s.turn_count}/{s.max_turns} ходa</span>
                   {s.avg_score !== null && <Badge variant="outline">avg {s.avg_score}/10</Badge>}
@@ -426,9 +515,14 @@ function HistoryTab() {
                 {s.error_message && <div className="mt-1 text-xs text-destructive">{s.error_message}</div>}
                 {isResuming && <div className="mt-2 text-xs text-gold">⟳ {resumePhase}</div>}
               </div>
-              {canResume && (
-                <div className="flex items-center gap-2 shrink-0">
-                  {!isResuming ? (
+              <div className="flex items-center gap-2 shrink-0">
+                {canPromote && (
+                  <Button size="sm" variant="outline" onClick={() => promote(s)} disabled={isPromoting || Boolean(resumingId)} title="Направи този модел продукционен за DogovaryAI">
+                    {isPromoting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />} В продукция
+                  </Button>
+                )}
+                {canResume && (
+                  !isResuming ? (
                     <>
                       <Input
                         type="number"
@@ -445,9 +539,9 @@ function HistoryTab() {
                     </>
                   ) : (
                     <Button size="sm" variant="destructive" onClick={stopResume}>Спри</Button>
-                  )}
-                </div>
-              )}
+                  )
+                )}
+              </div>
             </div>
           </Card>
         );
@@ -455,6 +549,7 @@ function HistoryTab() {
     </div>
   );
 }
+
 
 
 function PatchesTab() {
