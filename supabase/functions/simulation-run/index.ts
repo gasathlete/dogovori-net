@@ -339,7 +339,35 @@ Deno.serve(async (req) => {
       await sb.from("ai_simulation_sessions").update({ prompt_version_id: promptRow.id }).eq("id", sessionId);
     }
 
+    const stream = new ReadableStream({
+      async start(controller) {
+        const enc = new TextEncoder();
+        const send = (event: string, data: any) => {
+          controller.enqueue(enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+        };
+
+        try {
+          send("session", { sessionId, scenario, lawyerModel, dogovaryModel, maxTurns, resumed: Boolean(resumeSessionId), startIndex });
+
+          const dogovaryHistory: Array<{role: string; content: string}> = [];
+          const lawyerHistory: Array<{role: string; content: string}> = [];
+          const turnSummaries: string[] = [];
+          const scores: number[] = [];
+
+          // Rehydrate from prior turns (resume mode)
+          for (const t of priorTurns) {
+            dogovaryHistory.push({ role: "user", content: t.user_message });
+            dogovaryHistory.push({ role: "assistant", content: t.dogovary_response });
+            lawyerHistory.push({ role: "assistant", content: t.user_message });
+            lawyerHistory.push({ role: "user", content: `Asst отговори (score ${t.score}/10): ${(t.dogovary_response ?? "").slice(0, 500)}` });
+            scores.push(t.score);
+            turnSummaries.push(`### Ход ${t.turn_index + 1} — score ${t.score}/10\nПотребител: ${t.user_message}\nAsst: ${(t.dogovary_response ?? "").slice(0, 800)}\nВерсия на адвоката: ${t.lawyer_verdict ?? ""}\nПроблеми: ${JSON.stringify(t.issues ?? [])}`);
+            send("turn_done", { turn: t.turn_index, score: t.score, verdict: t.lawyer_verdict, issues: t.issues, replay: true });
+          }
+
+          for (let i = startIndex; i < maxTurns; i++) {
             send("phase", { turn: i, phase: "generating_user_message" });
+
 
             // 1. Lawyer generates user message
             const genMsgs: any[] = [
