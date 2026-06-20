@@ -487,11 +487,16 @@ function HistoryTab() {
 
   return (
     <div className="mt-4 space-y-3">
-      <Button size="sm" variant="outline" onClick={load} disabled={busy}>{busy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Обнови"}</Button>
+      <div className="flex items-center justify-between gap-2">
+        <Button size="sm" variant="outline" onClick={() => { load(); loadActiveModel(); }} disabled={busy}>{busy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Обнови"}</Button>
+        {activeModel && <span className="text-xs text-muted-foreground">Продукционен модел на DogovaryAI: <strong>{activeModel}</strong></span>}
+      </div>
       {sessions.length === 0 && <p className="text-sm text-muted-foreground">Няма стартирани симулации.</p>}
       {sessions.map((s) => {
         const canResume = (s.status === "running" || s.status === "failed") && s.turn_count < 20;
         const isResuming = resumingId === s.id;
+        const canPromote = s.status === "completed" && s.dogovary_model && s.dogovary_model !== activeModel;
+        const isPromoting = promotingId === s.id;
         return (
           <Card key={s.id} className="p-3">
             <div className="flex items-start justify-between gap-2">
@@ -500,7 +505,8 @@ function HistoryTab() {
                   <Badge variant={s.status === "completed" ? "default" : s.status === "failed" ? "destructive" : "secondary"}>{s.status}</Badge>
                   <span className="text-muted-foreground">{new Date(s.created_at).toLocaleString("bg-BG")}</span>
                   <span className="text-muted-foreground">•</span>
-                  <span>{s.lawyer_model}</span>
+                  <Badge variant="outline" className="text-[10px]">judge: {s.lawyer_model}</Badge>
+                  <Badge variant="outline" className="text-[10px]">bot: {s.dogovary_model || "—"}</Badge>
                   <span className="text-muted-foreground">•</span>
                   <span>{s.turn_count}/{s.max_turns} ходa</span>
                   {s.avg_score !== null && <Badge variant="outline">avg {s.avg_score}/10</Badge>}
@@ -509,9 +515,14 @@ function HistoryTab() {
                 {s.error_message && <div className="mt-1 text-xs text-destructive">{s.error_message}</div>}
                 {isResuming && <div className="mt-2 text-xs text-gold">⟳ {resumePhase}</div>}
               </div>
-              {canResume && (
-                <div className="flex items-center gap-2 shrink-0">
-                  {!isResuming ? (
+              <div className="flex items-center gap-2 shrink-0">
+                {canPromote && (
+                  <Button size="sm" variant="outline" onClick={() => promote(s)} disabled={isPromoting || Boolean(resumingId)} title="Направи този модел продукционен за DogovaryAI">
+                    {isPromoting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />} В продукция
+                  </Button>
+                )}
+                {canResume && (
+                  !isResuming ? (
                     <>
                       <Input
                         type="number"
@@ -528,9 +539,9 @@ function HistoryTab() {
                     </>
                   ) : (
                     <Button size="sm" variant="destructive" onClick={stopResume}>Спри</Button>
-                  )}
-                </div>
-              )}
+                  )
+                )}
+              </div>
             </div>
           </Card>
         );
@@ -538,6 +549,7 @@ function HistoryTab() {
     </div>
   );
 }
+
 
 
 function PatchesTab() {
