@@ -1,93 +1,50 @@
-# План: Симулационна сесия за самообучение на DogovaryAI
+## Защо адвокатът изглежда по-силен
 
-Нов админ модул `/admin/ai-simulation` (под `AdminMFAGuard`), който пуска многоходов диалог между **DogovaryAI** (реалния активен промпт + tools) и **AI-Юрист** (отделен модел от Lovable AI Gateway). Юристът задава въпроси като реален потребител, оценява всеки отговор, открива грешки и в края генерира **patch-предложения** за конкретни секции от системния промпт. Админът преглежда и прилага → автоматично се създава нов draft в `ai_prompts` (`is_active=false`), готов за активиране от съществуващия екран `/admin/ai-training`.
+Три причини, не една:
 
-## Поток
+1. **Различен модел.** DogovaryAI работи с модела, записан в `ai_prompts.model` за `assistant-chat` — на практика `google/gemini-3-flash-preview` (бърз/евтин, default). Адвокатът в симулацията върви на `google/gemini-2.5-pro` (или друг premium от dropdown-а). Pro модел срещу flash — разликата е огромна точно в нюанси на ЗЗД/ТЗ/КТ.
+2. **По-лесна задача.** Адвокатът само **чете** отговора и **съди** срещу системния промпт, който му е подаден като reference. DogovaryAI трябва да **генерира** отговор, да спазва канона (без индивидуален съвет, без чуждо право), да вика правилните tools и да цитира норми. Judge >> Generator при еднакъв модел.
+3. **Без tool overhead.** Адвокатът няма tool calls, JSON-only output, ниска температура → стабилен. DogovaryAI има 5+ tools, multi-iteration loop, по-висока темп.
 
-```text
-┌───────────────────────────────────────────────────────────┐
-│ ADMIN UI: /admin/ai-simulation                           │
-│  [сценарий] [Lawyer модел ▾] [брой ходове 5–20] [Старт]  │
-└──────────────────────────┬────────────────────────────────┘
-                           │ SSE
-                ┌──────────▼─────────┐
-                │ edge: simulation-  │
-                │   run (is_staff)    │
-                └──────┬──────┬───────┘
-                       │      │
-            DogovaryAI │      │ Lawyer (Generator)
-            (реален    │      │ ─ генерира user msg
-             промпт +  │      │
-             tools)    │      │ Lawyer (Judge)
-                       │      │ ─ оценява, namira грешки
-                       ▼      ▼
-              ai_simulation_turns (per-turn запис)
-                       │
-                       ▼ (накрая)
-            Lawyer (Patcher) → ai_simulation_patches
-                       │
-                       ▼ (Приложи от админа)
-            нов draft в ai_prompts + ai_prompt_sections
-                       │
-                       ▼
-            /admin/ai-training → ревю → Активирай
-```
+## Можем ли да го направим бот? Да — на два слоя
 
-## База данни (нова миграция)
+### Слой 1 (симулация): избор на DogovaryAI модел
 
-Три нови таблици, всички `is_staff()`-only:
+В `RunTab` на `/admin/ai-simulation` вече има `dogovaryModel` в body-то на edge функцията, но UI липсва. Добавяме:
 
-- **`ai_simulation_sessions`** — `created_by`, `function_name` (default `assistant-chat`), `prompt_version_id` (FK към `ai_prompts` — кой промпт е тестван), `scenario` (текст от админа), `lawyer_model`, `max_turns`, `status` (`running`/`completed`/`failed`/`aborted`), `avg_score`, `turn_count`, `created_at`, `completed_at`.
-- **`ai_simulation_turns`** — `session_id` FK, `turn_index`, `user_message` (от Lawyer), `dogovary_response`, `dogovary_tools` jsonb (списък от tool_calls), `lawyer_verdict` (markdown), `score 1–10`, `issues` jsonb (`[{section_key, finding, severity}]`), `created_at`.
-- **`ai_simulation_patches`** — `session_id` FK, `section_key`, `patch_description`, `patch_content` (предложено ново съдържание), `status` (`pending`/`applied`/`rejected`), `applied_prompt_id` FK към новия draft, `created_at`, `decided_by`, `decided_at`.
+- Dropdown **"Модел на DogovaryAI"** със същия списък като адвоката (`google/gemini-2.5-pro`, `gemini-3.1-pro-preview`, `openai/gpt-5.4-pro`, и т.н.).
+- Default = текущо активният модел от `ai_prompts` (зареден чрез нов light RPC/select при mount).
+- Чек-бокс **"Същият модел и за двамата"** — бързо A/B: ако адвокатът е pro, нека и ботът е pro; ще покаже дали слабостта е от модел или от промпт.
 
-GRANT-овете и RLS политиките се добавят в същата миграция по правилата на проекта.
+Така админът може **в рамките на 1 симулация** да види дали същият въпрос с Gemini 2.5 Pro / GPT-5.4 дава по-добър отговор.
 
-## Нов edge function: `simulation-run`
+### Слой 2 (продукция): повишаване на модела
 
-`supabase/functions/simulation-run/index.ts` — SSE стрийм с прогрес.
+Ако симулацията потвърди, че по-силен модел оправя нещата, нужен е едноклик за **прехвърляне в продукция**:
 
-**Цикъл за `N` ходове (N = 5..20):**
-1. **Lawyer-Generator** генерира следващото потребителско съобщение (включително edge cases: непълни данни, чужда юрисдикция, спорни клаузи, провокации, опити да накара DogovaryAI да даде индивидуален съвет).
-2. **DogovaryAI** отговаря — извикваме същия Lovable AI Gateway модел като реалния асистент, със същия активен промпт (през `loadActivePromptMeta`), същата tools схема (`toolSchemasFor(FULL_TOOL_NAMES)`) и същия server-tool loop за `search_templates`. Client tools (`navigate`, `ask_clarification`, …) се записват като сигнал — НЕ се изпълняват.
-3. **Lawyer-Judge** оценява отговора: коректност на правни цитати, правилно ползване на tools, халюцинации, липсваща изясняваща стъпка, нарушения на канона. Връща JSON: `{ score, issues[], verdict_markdown }`.
-4. Записва ред в `ai_simulation_turns` и пуска SSE `turn` събитие към админ UI-то.
+- В `HistoryTab` за всяка завършена сесия — бутон **"Направи това модел на продукцията"** (показва се само ако `dogovaryModel ≠ активния модел`).
+- Действие: `UPDATE ai_prompts SET model = <sessionDogovaryModel> WHERE function_name = 'assistant-chat' AND is_active = true`. Без нова версия — само смяна на модела (запазваме промпта непроменен).
+- Confirm dialog с warning за цена/латентност + audit log запис (`logAiAudit`-стил, ако е достъпно от клиента; иначе нова мини edge функция `set-active-prompt-model` с `is_staff` guard).
+- Toast + рефреш.
 
-**Финална фаза:**
-5. **Lawyer-Patcher** получава всички turns + текущите секции на активния промпт и връща структурирани patch-ове по `section_key`. Записва се в `ai_simulation_patches` като `pending`. Сесията се маркира `completed` с осреднен score.
+Бонус (по желание, маркирано в плана като optional): добавяме колонка `premium_model` use — ако вече има `premium_model` поле в `ai_prompts`, можем да го попълним и да маршрутизираме pro потребители към по-силен модел, а free към flash. Това НЕ влиза в този PR — само споменато.
 
-Всяко повикване към gateway-а минава през `logAiAudit()` (като всички останали AI операции в проекта).
+## Засегнати файлове
 
-## UI: `/admin/ai-simulation` (нов `AdminAiSimulation.tsx`)
+- `src/pages/AdminAiSimulation.tsx` — нов dropdown + checkbox в RunTab; бутон "Направи продукционен" в HistoryTab; lookup на активния модел при mount.
+- `supabase/functions/simulation-run/index.ts` — записваме `dogovary_model` в `ai_simulation_sessions` (вече има го като поле? проверка; ако не — нова колонка чрез migration или reuse на `lawyer_model` стил).
+- Нова migration: `ALTER TABLE ai_simulation_sessions ADD COLUMN dogovary_model text;` (за да го показваме в историята и да го промотираме).
+- Нова edge функция `set-active-prompt-model` (~30 реда, `is_staff` guard) или inline supabase update от клиента, ако RLS позволи staff write върху `ai_prompts.model`.
 
-Три таба, добавени към навигацията в `Admin.tsx` (бутон „🥋 AI симулация"):
+## Какво НЕ правим
 
-1. **Нова симулация** — форма (сценарий, Lawyer модел от съществуващия `AVAILABLE_MODELS`, max turns, чек-бокс „включи tools"). Старт → SSE стрийм с live карти за всеки ход: user-съобщение, DogovaryAI отговор (markdown + tool_calls badge), Lawyer-присъда, score badge.
-2. **История** — таблица със сесии (status, средно score, брой ходове, дата, моделът на Lawyer). Click → разгръща всички turns.
-3. **Patch-ове** — групирани по сесия. За всеки patch: section_key, описание, side-by-side diff (текущо vs. предложено). Бутони **Приложи** / **Отхвърли**.
+- Не сменяме модела на продукцията автоматично.
+- Не пипаме промпта/секциите — това е работа на patcher-а от предишната стъпка.
+- Не въвеждаме нов pricing tier / premium routing — само инфраструктура за ръчно повишаване.
 
-**Apply Patch** използва точно същата логика като `saveNewVersion()` от `AdminAITraining.tsx`: клонира секциите на активния промпт, подменя само match-натите `section_key` с `patch_content`, вмъква нов ред в `ai_prompts` с `is_active=false` и `notes="Авто-patch от симулация #<id>"`, плюс свързаните `ai_prompt_sections`. Линкът към новия draft се запазва в `ai_simulation_patches.applied_prompt_id` и в нотификация „Активирай в AI обучение".
+## Резултат
 
-## Архитектурни детайли (техническо)
-
-- **Авторизация**: edge function проверява Bearer JWT → `is_staff` RPC. Без staff → 403.
-- **Симулацията НЕ пише в `assistant_threads`/`assistant_messages`** — изолирана е, за да не замърсява потребителските чатове или метриките.
-- **Tools fidelity**: client-side tools се извличат от `tool_calls` отговора, записват се в `dogovary_tools` (име + args) и Lawyer-Judge получава експлицитна инструкция, че тяхното присъствие/отсъствие е сигнал за оценка (напр. „трябваше да извикаш `ask_clarification`").
-- **Стрийминг**: вътрешните повиквания към gateway-а са `stream: false` (по-просто). Към админ браузъра стриймваме само meta събития (turn-completed).
-- **Cost guard**: всеки turn = ~3 gateway повиквания. Лимитираме max_turns=20 и логваме разхода през съществуващия `logAiAudit`. Показваме броя ходове + модел в историята, за да е видим разходът.
-- **Reuse, не дублиране**: `_shared/prompt-loader.ts`, `_shared/assistant-tools.ts`, `_shared/ai-call.ts`, `_shared/cors.ts` се преизползват — нула дублиран код. Реалният `assistant-chat` остава непроменен.
-
-## Файлове за създаване/промяна
-
-- ➕ нова миграция (3 таблици + GRANT/RLS)
-- ➕ `supabase/functions/simulation-run/index.ts`
-- ➕ `src/pages/AdminAiSimulation.tsx`
-- ✏️ `src/App.tsx` — добавя route `/admin/ai-simulation`
-- ✏️ `src/pages/Admin.tsx` — добавя бутон в навигацията
-
-## Какво НЕ влиза в този план
-
-- Промени по реалния `assistant-chat` (остава непокътнат)
-- Промени по `ai_prompts` схемата (използваме съществуващото поле `is_active`)
-- Авто-активиране на patch-ове без админ одобрение (умишлено — две AI-та не бива да сменят production промпта)
-- Run-on-schedule (cron). Сесиите се стартират ръчно от админа в този MVP. Може да се добави в следваща стъпка.
+След плана админът може да:
+1. Стартира симулация с произволен модел за DogovaryAI (или едновременно за двамата).
+2. Сравни avg score между моделите в History.
+3. С един клик да направи победителя продукционен модел.
