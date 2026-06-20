@@ -129,6 +129,9 @@ export default function AdminAiSimulation() {
 function RunTab() {
   const [scenario, setScenario] = useState("");
   const [lawyerModel, setLawyerModel] = useState("google/gemini-2.5-pro");
+  const [dogovaryModel, setDogovaryModel] = useState<string>("");
+  const [activeModel, setActiveModel] = useState<string>("");
+  const [sameModel, setSameModel] = useState(false);
   const [maxTurns, setMaxTurns] = useState(5);
   const [withTools, setWithTools] = useState(true);
   const [running, setRunning] = useState(false);
@@ -137,6 +140,25 @@ function RunTab() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [doneInfo, setDoneInfo] = useState<{ avgScore: number | null; patchCount: number } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Load active prompt model so default DogovaryAI model matches production
+  useEffect(() => {
+    supabase
+      .from("ai_prompts")
+      .select("model")
+      .eq("function_name", "assistant-chat")
+      .eq("is_active", true)
+      .order("version", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        const m = (data?.model as string | null) || "google/gemini-3-flash-preview";
+        setActiveModel(m);
+        setDogovaryModel(m);
+      });
+  }, []);
+
+  const effectiveDogovaryModel = sameModel ? lawyerModel : dogovaryModel;
 
   const updateTurn = (turn: number, patch: Partial<TurnEvent>) => {
     setTurns((prev) => {
@@ -166,7 +188,7 @@ function RunTab() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ scenario, lawyerModel, maxTurns, withTools }),
+        body: JSON.stringify({ scenario, lawyerModel, dogovaryModel: effectiveDogovaryModel, maxTurns, withTools }),
         signal: ctrl.signal,
       });
       if (!resp.ok || !resp.body) {
