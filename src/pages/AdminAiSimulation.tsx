@@ -259,9 +259,9 @@ function RunTab() {
           />
           <p className="mt-1 text-[10px] text-muted-foreground">Ако оставите празно, адвокатът сам ще измисля разнообразни тестови сценарии.</p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <Label>Модел на адвоката</Label>
+            <Label>Модел на адвоката (judge)</Label>
             <Select value={lawyerModel} onValueChange={setLawyerModel} disabled={running}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -270,14 +270,33 @@ function RunTab() {
             </Select>
           </div>
           <div>
+            <Label className="flex items-center gap-2">
+              Модел на DogovaryAI
+              {activeModel && <span className="text-[10px] text-muted-foreground">(продукция: {activeModel})</span>}
+            </Label>
+            <Select value={effectiveDogovaryModel} onValueChange={setDogovaryModel} disabled={running || sameModel}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {MODEL_OPTIONS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div>
             <Label>Брой ходове</Label>
             <Input type="number" min={1} max={20} value={maxTurns} onChange={(e) => setMaxTurns(Math.max(1, Math.min(20, parseInt(e.target.value, 10) || 1)))} disabled={running} />
           </div>
           <div className="flex items-end gap-2">
             <Switch checked={withTools} onCheckedChange={setWithTools} disabled={running} />
-            <Label className="text-xs">Включи tools (search_templates, navigate, ...)</Label>
+            <Label className="text-xs">Включи tools</Label>
+          </div>
+          <div className="flex items-end gap-2">
+            <Switch checked={sameModel} onCheckedChange={setSameModel} disabled={running} />
+            <Label className="text-xs">DogovaryAI = адвокат (A/B)</Label>
           </div>
         </div>
+
         <div className="flex gap-2">
           {!running ? (
             <Button onClick={start} className="bg-gold text-gold-foreground hover:bg-gold/90">
