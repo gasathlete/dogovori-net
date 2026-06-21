@@ -625,100 +625,89 @@ function PatchesTab() {
   };
   useEffect(() => { load(); }, [filter]);
 
+  const buildDraft = async (p: Patch) => {
+    const { data: active } = await supabase
+      .from("ai_prompts").select("*").eq("function_name", "assistant-chat").eq("is_active", true)
+      .order("version", { ascending: false }).limit(1).maybeSingle();
+    if (!active) throw new Error("Няма активен промпт");
+    const { data: existingSections } = await supabase
+      .from("ai_prompt_sections").select("*").eq("prompt_id", active.id).order("order_idx", { ascending: true });
+    const sections = (existingSections ?? []).map((s: any) => ({
+      section_key: s.section_key, title: s.title, content: s.content, order_idx: s.order_idx, enabled: s.enabled,
+    }));
+    const idx = sections.findIndex((s) => s.section_key === p.section_key);
+    if (idx >= 0) {
+      sections[idx].content = p.patch_content;
+      if (p.section_title) sections[idx].title = p.section_title;
+    } else {
+      sections.push({ section_key: p.section_key, title: p.section_title || p.section_key, content: p.patch_content, order_idx: sections.length, enabled: true });
+    }
+    const { data: latest } = await supabase
+      .from("ai_prompts").select("version").eq("function_name", "assistant-chat")
+      .order("version", { ascending: false }).limit(1).maybeSingle();
+    const nextVersion = ((latest?.version ?? 0) as number) + 1;
+    const assembled = sections.filter((s) => s.enabled).map((s) => s.title ? `# ${s.title}\n${s.content}` : s.content).join("\n\n");
+    const { data: { user: u } } = await supabase.auth.getUser();
+    const { data: inserted, error: iErr } = await supabase.from("ai_prompts").insert({
+      function_name: "assistant-chat", version: nextVersion, content: assembled,
+      notes: `Авто-patch от симулация ${p.session_id.slice(0, 8)} → секция ${p.section_key}`,
+      is_active: false, created_by: u?.id ?? null, model: active.model, premium_model: active.premium_model,
+    }).select("id").single();
+    if (iErr || !inserted) throw iErr ?? new Error("insert_failed");
+    const sectionRows = sections.map((s, i) => ({
+      prompt_id: inserted.id, section_key: s.section_key, title: s.title, content: s.content, order_idx: i, enabled: s.enabled,
+    }));
+    await supabase.from("ai_prompt_sections").insert(sectionRows);
+    return { draftId: inserted.id as string, nextVersion, userId: u?.id ?? null };
+  };
+
   const applyPatch = async (p: Patch) => {
     if (!confirm(`Прилагане на patch към секция "${p.section_key}". Това ще създаде нов draft в AI обучение. Продължаване?`)) return;
     setBusy(true);
     try {
-      // 1. Load active prompt + sections
-      const { data: active } = await supabase
-        .from("ai_prompts")
-        .select("*")
-        .eq("function_name", "assistant-chat")
-        .eq("is_active", true)
-        .order("version", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!active) throw new Error("Няма активен промпт");
-      const { data: existingSections } = await supabase
-        .from("ai_prompt_sections")
-        .select("*")
-        .eq("prompt_id", active.id)
-        .order("order_idx", { ascending: true });
-
-      const sections = (existingSections ?? []).map((s: any) => ({
-        section_key: s.section_key,
-        title: s.title,
-        content: s.content,
-        order_idx: s.order_idx,
-        enabled: s.enabled,
-      }));
-
-      const idx = sections.findIndex((s) => s.section_key === p.section_key);
-      if (idx >= 0) {
-        sections[idx].content = p.patch_content;
-        if (p.section_title) sections[idx].title = p.section_title;
-      } else {
-        sections.push({
-          section_key: p.section_key,
-          title: p.section_title || p.section_key,
-          content: p.patch_content,
-          order_idx: sections.length,
-          enabled: true,
-        });
-      }
-
-      // 2. Latest version
-      const { data: latest } = await supabase
-        .from("ai_prompts")
-        .select("version")
-        .eq("function_name", "assistant-chat")
-        .order("version", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      const nextVersion = ((latest?.version ?? 0) as number) + 1;
-
-      const assembled = sections.filter((s) => s.enabled).map((s) => s.title ? `# ${s.title}\n${s.content}` : s.content).join("\n\n");
-      const { data: { user: u } } = await supabase.auth.getUser();
-      const { data: inserted, error: iErr } = await supabase
-        .from("ai_prompts")
-        .insert({
-          function_name: "assistant-chat",
-          version: nextVersion,
-          content: assembled,
-          notes: `Авто-patch от симулация ${p.session_id.slice(0, 8)} → секция ${p.section_key}`,
-          is_active: false,
-          created_by: u?.id ?? null,
-          model: active.model,
-          premium_model: active.premium_model,
-        })
-        .select("id")
-        .single();
-      if (iErr || !inserted) throw iErr ?? new Error("insert_failed");
-
-      const sectionRows = sections.map((s, i) => ({
-        prompt_id: inserted.id,
-        section_key: s.section_key,
-        title: s.title,
-        content: s.content,
-        order_idx: i,
-        enabled: s.enabled,
-      }));
-      await supabase.from("ai_prompt_sections").insert(sectionRows);
-
+      const { draftId, nextVersion, userId } = await buildDraft(p);
       await supabase.from("ai_simulation_patches").update({
-        status: "applied",
-        applied_prompt_id: inserted.id,
-        decided_by: u?.id ?? null,
-        decided_at: new Date().toISOString(),
+        status: "applied", applied_prompt_id: draftId, decided_by: userId, decided_at: new Date().toISOString(),
       }).eq("id", p.id);
-
       toast.success(`v${nextVersion} draft създаден. Активирай го в "AI обучение".`);
       load();
     } catch (e) {
       toast.error((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
+    } finally { setBusy(false); }
+  };
+
+  const applyWithRegression = async (p: Patch) => {
+    if (!confirm(`Прилагане с регресия: създавам draft + пускам 3 сценария от банката. Ако драфтът регресира спрямо текущия промпт — патчът се отбелязва като 'rejected'. Продължаване?`)) return;
+    setBusy(true);
+    try {
+      const { draftId, nextVersion, userId } = await buildDraft(p);
+      toast.info(`Draft v${nextVersion} създаден. Пускам регресия...`);
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      const resp = await fetch(`https://wkbxojefiovdczkwhved.supabase.co/functions/v1/simulation-regression`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ candidatePromptId: draftId, sampleSize: 3, thresholdDelta: -0.5 }),
+      });
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result?.error || `regression failed (${resp.status})`);
+      const passed = Boolean(result.passed);
+      const delta = result.delta;
+      await (supabase.from("ai_simulation_patches" as any) as any).update({
+        status: passed ? "applied" : "rejected",
+        applied_prompt_id: passed ? draftId : null,
+        decided_by: userId, decided_at: new Date().toISOString(),
+        regression_result: result, regression_passed: passed,
+      }).eq("id", p.id);
+      if (passed) {
+        toast.success(`✅ Регресия мина (Δ=${delta}). Draft v${nextVersion} готов за активиране в "AI обучение".`);
+      } else {
+        toast.error(`❌ Регресия провалена (Δ=${delta}). Draft създаден но патчът е отхвърлен.`);
+      }
+      load();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally { setBusy(false); }
   };
 
   const reject = async (p: Patch) => {
