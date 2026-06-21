@@ -281,7 +281,22 @@ function RunTab() {
     <div className="mt-4 space-y-4">
       <Card className="p-4 space-y-3">
         <div>
-          <Label>Сценарий (по избор)</Label>
+          <Label>Сценарий от банката (по избор)</Label>
+          <Select value={scenarioId || "__none__"} onValueChange={(v) => {
+            const id = v === "__none__" ? "" : v;
+            setScenarioId(id);
+            const found = bank.find((b) => b.id === id);
+            if (found) setScenario(found.scenario_text + (found.expected_behavior ? `\n[Очаквано]: ${found.expected_behavior}` : ""));
+          }} disabled={running}>
+            <SelectTrigger><SelectValue placeholder="-- свободен сценарий --" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">-- свободен / random --</SelectItem>
+              {bank.map((s) => <SelectItem key={s.id} value={s.id}>[{s.category}] {s.title}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Свободен сценарий (или редакция на избрания)</Label>
           <Textarea
             rows={3}
             value={scenario}
@@ -289,7 +304,7 @@ function RunTab() {
             placeholder="Напр. 'Малък бизнес иска трудов договор за счетоводител на 4 часа, в няколко града, с конкурентна клауза.'"
             disabled={running}
           />
-          <p className="mt-1 text-[10px] text-muted-foreground">Ако оставите празно, адвокатът сам ще измисля разнообразни тестови сценарии.</p>
+          <p className="mt-1 text-[10px] text-muted-foreground">Ако оставите празно и без избор от банката, адвокатът сам ще измисля разнообразни тестови сценарии.</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
