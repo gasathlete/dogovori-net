@@ -150,6 +150,8 @@ export default function AdminAiSimulation() {
 
 function RunTab() {
   const [scenario, setScenario] = useState("");
+  const [scenarioId, setScenarioId] = useState<string>("");
+  const [bank, setBank] = useState<Scenario[]>([]);
   const [lawyerModel, setLawyerModel] = useState("google/gemini-2.5-pro");
   const [dogovaryModel, setDogovaryModel] = useState<string>("");
   const [activeModel, setActiveModel] = useState<string>("");
@@ -162,6 +164,14 @@ function RunTab() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [doneInfo, setDoneInfo] = useState<{ avgScore: number | null; patchCount: number } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    (supabase.from("ai_simulation_scenarios" as any) as any)
+      .select("id, title, category, scenario_text, expected_behavior, tags, active")
+      .eq("active", true)
+      .order("category", { ascending: true })
+      .then(({ data }: { data: any }) => setBank((data ?? []) as Scenario[]));
+  }, []);
 
   // Load active prompt model so default DogovaryAI model matches production
   useEffect(() => {
