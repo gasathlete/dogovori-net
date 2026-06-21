@@ -81,16 +81,27 @@ function lawyerJudgePrompt(systemPrompt: string, availableSectionKeys: string[])
 ${systemPrompt.slice(0, 6000)}
 """
 
-Оцени отговора по: правна коректност, цитиране на верни норми (ЗЗД/ТЗ/КТ/ЗУТ), използване на правилните tools (search_templates, ask_clarification, navigate, prefill_build_contract, propose_contract_outline), халюцинации, спазване на канон (без индивидуален съвет, без чуждо право), полезност за потребителя.
+Оцени отговора по 5 критерия (всеки 1-10):
+- legal_accuracy: правна коректност, цитиране на ЗЗД/ТЗ/КТ/ЗУТ
+- tool_usage: правилни tools (search_templates, ask_clarification, navigate, prefill_build_contract, propose_contract_outline) в правилен ред
+- canon_compliance: без индивидуален съвет, без чуждо право, спазване на канона
+- clarity: език, структура, четимост
+- usefulness: помага ли реално на потребителя
 
 Налични секции от промпта за патчване: ${availableSectionKeys.join(", ") || "(няма)"}.
 
-Върни СТРОГО JSON със следната структура:
+Върни СТРОГО JSON:
 {
-  "score": <int 1-10>,
-  "verdict": "<кратък markdown анализ, 3-6 изречения>",
+  "scores": {
+    "legal_accuracy": <1-10>,
+    "tool_usage": <1-10>,
+    "canon_compliance": <1-10>,
+    "clarity": <1-10>,
+    "usefulness": <1-10>
+  },
+  "verdict": "<кратък markdown анализ, 3-6 изречения, фокусиран върху най-слабото измерение>",
   "issues": [
-    { "section_key": "<един от availableSectionKeys или нов smaller_snake_case>", "finding": "<какво е сгрешено>", "severity": "low|medium|high" }
+    { "section_key": "<един от availableSectionKeys или нов snake_case>", "finding": "<какво е сгрешено>", "severity": "low|medium|high", "dimension": "<едно от 5-те измерения>" }
   ]
 }
 
