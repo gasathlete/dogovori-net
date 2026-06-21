@@ -311,6 +311,23 @@ Deno.serve(async (req) => {
       dogovaryModel = body.dogovaryModel || meta.model || "google/gemini-3-flash-preview";
       withTools = body.withTools !== false;
 
+      // Resolve scenarioId from bank → seed scenario text + expected behavior
+      let scenarioId: string | null = body.scenarioId?.trim() || null;
+      if (scenarioId) {
+        const { data: scRow } = await sb
+          .from("ai_simulation_scenarios")
+          .select("scenario_text, expected_behavior, title")
+          .eq("id", scenarioId)
+          .maybeSingle();
+        if (scRow) {
+          const parts = [
+            scRow.scenario_text,
+            scRow.expected_behavior ? `\n[Очаквано поведение от асистента]: ${scRow.expected_behavior}` : "",
+          ].filter(Boolean).join("");
+          scenario = parts.slice(0, 2000);
+        }
+      }
+
       const { data: session, error: sessErr } = await sb
         .from("ai_simulation_sessions")
         .insert({
@@ -318,6 +335,7 @@ Deno.serve(async (req) => {
           function_name: "assistant-chat",
           prompt_version_id: null,
           scenario: scenario || null,
+          scenario_id: scenarioId,
           lawyer_model: lawyerModel,
           dogovary_model: dogovaryModel,
           max_turns: maxTurns,
