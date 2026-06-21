@@ -29,6 +29,15 @@ const MODEL_OPTIONS = [
 ];
 const LAWYER_MODELS = MODEL_OPTIONS;
 
+const RUBRIC = ["legal_accuracy", "tool_usage", "canon_compliance", "clarity", "usefulness"] as const;
+const RUBRIC_LABELS: Record<string, string> = {
+  legal_accuracy: "Право",
+  tool_usage: "Tools",
+  canon_compliance: "Канон",
+  clarity: "Език",
+  usefulness: "Полза",
+};
+
 type TurnEvent = {
   turn: number;
   userMessage?: string;
@@ -38,6 +47,7 @@ type TurnEvent = {
   verdict?: string;
   issues?: any[];
   phase?: string;
+  breakdown?: Record<string, number>;
 };
 
 type Session = {
@@ -52,6 +62,16 @@ type Session = {
   created_at: string;
   completed_at: string | null;
   error_message: string | null;
+};
+
+type Scenario = {
+  id: string;
+  title: string;
+  category: string;
+  scenario_text: string;
+  expected_behavior: string | null;
+  tags: string[];
+  active: boolean;
 };
 
 
