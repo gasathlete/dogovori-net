@@ -443,9 +443,20 @@ Deno.serve(async (req) => {
               response_format: { type: "json_object" },
             });
             const judgeText = String(judgeResp.choices?.[0]?.message?.content ?? "");
-            const parsed = tryParseJson(judgeText) ?? { score: 5, verdict: judgeText.slice(0, 1000), issues: [] };
-            const score = Math.max(1, Math.min(10, parseInt(parsed.score, 10) || 5));
-            const verdict = String(parsed.verdict ?? "").slice(0, 4000);
+            const parsed = tryParseJson(judgeText) ?? {};
+            // Rubric breakdown (new) — also back-compat with legacy "score"
+            const rawScores = (parsed.scores && typeof parsed.scores === "object") ? parsed.scores : null;
+            const breakdown: Record<string, number> = {};
+            for (const dim of RUBRIC_DIMENSIONS) {
+              const v = rawScores?.[dim];
+              const n = Math.max(1, Math.min(10, parseInt(v as any, 10) || 5));
+              breakdown[dim] = n;
+            }
+            const legacyScore = parseInt(parsed.score, 10);
+            const score = isFinite(legacyScore)
+              ? Math.max(1, Math.min(10, legacyScore))
+              : Math.round((Object.values(breakdown).reduce((a, b) => a + b, 0) / RUBRIC_DIMENSIONS.length) * 10) / 10;
+            const verdict = String(parsed.verdict ?? judgeText.slice(0, 1000)).slice(0, 4000);
             const issues = Array.isArray(parsed.issues) ? parsed.issues.slice(0, 10) : [];
             scores.push(score);
 
@@ -461,12 +472,13 @@ Deno.serve(async (req) => {
               dogovary_response: dogText,
               dogovary_tools: dogResp.tools,
               lawyer_verdict: verdict,
-              score,
+              score: Math.round(score),
+              scores_breakdown: breakdown,
               issues,
             });
-            turnSummaries.push(`### Ход ${i + 1} — score ${score}/10\nПотребител: ${userMessage}\nAsst: ${dogText.slice(0, 800)}\nВерсия на адвоката: ${verdict}\nПроблеми: ${JSON.stringify(issues)}`);
+            turnSummaries.push(`### Ход ${i + 1} — score ${score}/10 (breakdown ${JSON.stringify(breakdown)})\nПотребител: ${userMessage}\nAsst: ${dogText.slice(0, 800)}\nВерсия на адвоката: ${verdict}\nПроблеми: ${JSON.stringify(issues)}`);
 
-            send("turn_done", { turn: i, score, verdict, issues });
+            send("turn_done", { turn: i, score, verdict, issues, breakdown });
 
             await sb.from("ai_simulation_sessions").update({ turn_count: i + 1 }).eq("id", sessionId);
           }
