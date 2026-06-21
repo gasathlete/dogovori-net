@@ -254,7 +254,7 @@ function RunTab() {
           else if (evtName === "phase") setPhase(`Ход ${data.turn + 1}: ${data.phase}`);
           else if (evtName === "user_message") updateTurn(data.turn, { userMessage: data.text });
           else if (evtName === "dogovary_response") updateTurn(data.turn, { dogovaryResponse: data.text, tools: data.tools });
-          else if (evtName === "turn_done") updateTurn(data.turn, { score: data.score, verdict: data.verdict, issues: data.issues });
+          else if (evtName === "turn_done") updateTurn(data.turn, { score: data.score, verdict: data.verdict, issues: data.issues, breakdown: data.breakdown });
           else if (evtName === "done") {
             setDoneInfo({ avgScore: data.avgScore, patchCount: data.patchCount });
             setPhase(`готово — ${data.patchCount} patch-а създадени`);
