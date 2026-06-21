@@ -12,12 +12,22 @@ const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 interface RunBody {
   scenario?: string;
+  scenarioId?: string;
   lawyerModel?: string;
   dogovaryModel?: string;
   maxTurns?: number;
   withTools?: boolean;
   resumeSessionId?: string;
 }
+
+const RUBRIC_DIMENSIONS = [
+  "legal_accuracy",
+  "tool_usage",
+  "canon_compliance",
+  "clarity",
+  "usefulness",
+] as const;
+type RubricKey = typeof RUBRIC_DIMENSIONS[number];
 
 function admin() {
   return createClient(
