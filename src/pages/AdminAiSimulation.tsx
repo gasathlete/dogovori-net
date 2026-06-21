@@ -395,12 +395,23 @@ function RunTab() {
             {t.verdict && (
               <div className="rounded border border-blue-500/20 bg-blue-500/5 p-2 text-xs">
                 <div className="mb-1 font-semibold text-muted-foreground">Присъда на адвоката</div>
+                {t.breakdown && (
+                  <div className="mb-2 flex flex-wrap gap-1">
+                    {RUBRIC.map((d) => {
+                      const v = t.breakdown![d];
+                      if (typeof v !== "number") return null;
+                      const color = v >= 8 ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300" : v >= 5 ? "bg-amber-500/20 text-amber-700 dark:text-amber-300" : "bg-red-500/20 text-red-700 dark:text-red-300";
+                      return <span key={d} className={`rounded px-1.5 py-0.5 text-[10px] font-mono ${color}`}>{RUBRIC_LABELS[d]}: {v}</span>;
+                    })}
+                  </div>
+                )}
                 <div className="whitespace-pre-wrap">{t.verdict}</div>
                 {Array.isArray(t.issues) && t.issues.length > 0 && (
                   <div className="mt-2 space-y-1">
                     {t.issues.map((iss: any, i: number) => (
                       <div key={i} className="text-[10px]">
                         <Badge variant="outline" className="mr-1">{iss.section_key}</Badge>
+                        {iss.dimension && <Badge variant="secondary" className="mr-1 text-[9px]">{iss.dimension}</Badge>}
                         <span className="text-muted-foreground">{iss.finding}</span>
                       </div>
                     ))}
