@@ -1,50 +1,82 @@
-## Защо адвокатът изглежда по-силен
 
-Три причини, не една:
+# Оптимизация на AI самообучението (v2)
 
-1. **Различен модел.** DogovaryAI работи с модела, записан в `ai_prompts.model` за `assistant-chat` — на практика `google/gemini-3-flash-preview` (бърз/евтин, default). Адвокатът в симулацията върви на `google/gemini-2.5-pro` (или друг premium от dropdown-а). Pro модел срещу flash — разликата е огромна точно в нюанси на ЗЗД/ТЗ/КТ.
-2. **По-лесна задача.** Адвокатът само **чете** отговора и **съди** срещу системния промпт, който му е подаден като reference. DogovaryAI трябва да **генерира** отговор, да спазва канона (без индивидуален съвет, без чуждо право), да вика правилните tools и да цитира норми. Judge >> Generator при еднакъв модел.
-3. **Без tool overhead.** Адвокатът няма tool calls, JSON-only output, ниска температура → стабилен. DogovaryAI има 5+ tools, multi-iteration loop, по-висока темп.
+Текущата система работи добре: адвокат-генератор → DogovaryAI → адвокат-съдия → patcher. Долу са **7 конкретни подобрения**, групирани по приоритет. Може да изберете кои да направим.
 
-## Можем ли да го направим бот? Да — на два слоя
+## Приоритет 1 — Качество на обратната връзка
 
-### Слой 1 (симулация): избор на DogovaryAI модел
+### 1. Rubric-based scoring (вместо едно число 1–10)
+Вместо `score: 1-10`, съдията връща оценка по **5 измерения**:
+- `legal_accuracy` (цитиране на ЗЗД/ТЗ/КТ/ЗУТ)
+- `tool_usage` (правилни tools, в правилен ред)
+- `canon_compliance` (без индивидуален съвет/чуждо право)
+- `clarity` (език, структура)
+- `usefulness` (помага ли реално)
 
-В `RunTab` на `/admin/ai-simulation` вече има `dogovaryModel` в body-то на edge функцията, но UI липсва. Добавяме:
+Patcher вижда **къде** точно е слаб ботът → таргетирани патчове, не общи.
+Нова колонка `scores_breakdown jsonb` в `ai_simulation_turns`. Avg score = mean per dimension.
 
-- Dropdown **"Модел на DogovaryAI"** със същия списък като адвоката (`google/gemini-2.5-pro`, `gemini-3.1-pro-preview`, `openai/gpt-5.4-pro`, и т.н.).
-- Default = текущо активният модел от `ai_prompts` (зареден чрез нов light RPC/select при mount).
-- Чек-бокс **"Същият модел и за двамата"** — бързо A/B: ако адвокатът е pro, нека и ботът е pro; ще покаже дали слабостта е от модел или от промпт.
+### 2. Scenario bank (вместо free-form scenario поле)
+Таблица `ai_simulation_scenarios`: 20–50 предефинирани сценария от реалния live use (HR увольнение, наем, NDA с чужденец, опит за индивидуален съвет, ЕГН в чата, и т.н.) с очаквано поведение и tags.
+Run tab позволява: "random 5 от категория `canon_violations`" или "регресия върху всички failed-преди сценарии".
+Така тестваме **повтаряемо** — две сесии с един и същ сценарий са сравними.
 
-Така админът може **в рамките на 1 симулация** да види дали същият въпрос с Gemini 2.5 Pro / GPT-5.4 дава по-добър отговор.
+## Приоритет 2 — Регресия и сравнение
 
-### Слой 2 (продукция): повишаване на модела
+### 3. A/B автоматизирано (champion vs challenger)
+Бутон **"Сравни 2 модела/промпта"**: пуска ОДНОВРЕМЕННО 2 сесии (same scenarios, same lawyer) — текущия prod prompt+model срещу кандидата. Side-by-side table с avg scores по rubric. Едва тогава бутонът "В продукция" се появява, ако challenger печели по ≥3 от 5 измерения.
 
-Ако симулацията потвърди, че по-силен модел оправя нещата, нужен е едноклик за **прехвърляне в продукция**:
+### 4. Regression guard преди apply на patch
+В момента patch се прилага директно. Добавяме: при apply на patch → автоматично пуска **mini-regression** (3–5 сценария от bank) върху новия промпт. Ако avg score падне с >0.5 спрямо предишния — патчът се **откатва** автоматично + toast warning. Защита от "patcher разваля канона".
 
-- В `HistoryTab` за всяка завършена сесия — бутон **"Направи това модел на продукцията"** (показва се само ако `dogovaryModel ≠ активния модел`).
-- Действие: `UPDATE ai_prompts SET model = <sessionDogovaryModel> WHERE function_name = 'assistant-chat' AND is_active = true`. Без нова версия — само смяна на модела (запазваме промпта непроменен).
-- Confirm dialog с warning за цена/латентност + audit log запис (`logAiAudit`-стил, ако е достъпно от клиента; иначе нова мини edge функция `set-active-prompt-model` с `is_staff` guard).
-- Toast + рефреш.
+## Приоритет 3 — По-добър patcher
 
-Бонус (по желание, маркирано в плана като optional): добавяме колонка `premium_model` use — ако вече има `premium_model` поле в `ai_prompts`, можем да го попълним и да маршрутизираме pro потребители към по-силен модел, а free към flash. Това НЕ влиза в този PR — само споменато.
+### 5. Few-shot patcher с примери от applied successful patches
+Patcher промптът сега е "blind". Заredим му последните 3 **applied + score-improved** patches като примери (in-context learning). Качество на патчовете расте с историята.
+Изисква: read от `ai_simulation_patches WHERE status='applied'` + JOIN със scores преди/след.
 
-## Засегнати файлове
+### 6. Issue clustering преди patching
+В момента patcher вижда всички issues от 5 хода накуп. Вместо това:
+- Групираме issues по `section_key` + `severity`
+- Patcher работи **по една секция наведнъж** (по-фокусиран промпт, по-малко "smearing")
+- Result: 1–2 high-quality patches вместо 5 разпилени
 
-- `src/pages/AdminAiSimulation.tsx` — нов dropdown + checkbox в RunTab; бутон "Направи продукционен" в HistoryTab; lookup на активния модел при mount.
-- `supabase/functions/simulation-run/index.ts` — записваме `dogovary_model` в `ai_simulation_sessions` (вече има го като поле? проверка; ако не — нова колонка чрез migration или reuse на `lawyer_model` стил).
-- Нова migration: `ALTER TABLE ai_simulation_sessions ADD COLUMN dogovary_model text;` (за да го показваме в историята и да го промотираме).
-- Нова edge функция `set-active-prompt-model` (~30 реда, `is_staff` guard) или inline supabase update от клиента, ако RLS позволи staff write върху `ai_prompts.model`.
+## Приоритет 4 — Cost / скорост
+
+### 7. Two-tier judging
+- "Бърз съдия" (gemini-2.5-flash) минава всичките 5–20 хода → евтино screening
+- "Senior съдия" (gemini-2.5-pro / gpt-5.4-pro) минава само ходовете с score <7 от бързия → задълбочена обратна връзка
+- Намаля cost ~60% за 20-turn сесии, без загуба на качество за слабите ходове.
+
+---
+
+## Бонус (за обсъждане, не в този PR)
+
+- **Adversarial mode**: адвокатът знае текущите слабости от историята и **цели да ги възпроизведе** (instead of random testing).
+- **Auto-schedule**: nightly cron пуска 1 сесия с random scenarios → утрешният прег­лед на patches без ръчно стартиране.
+- **Human-in-the-loop scoring**: бутон "Не съм съгласен със съдията" → ръчна корекция на score → влиза в few-shot към съдийския промпт (RLHF-light).
+
+---
+
+## Препоръка
+
+Започваме с **#1 (rubric) + #2 (scenario bank) + #4 (regression guard)**. Това дава най-голяма стойност с най-малък риск:
+- Rubric → patcher става хирургичен
+- Scenario bank → измерваме напредък във времето
+- Regression guard → защита от регресии при apply
+
+Останалите (#3, #5, #6, #7) — във следващи итерации.
+
+## Засегнати файлове (за избрания минимум #1+#2+#4)
+
+- Нова migration: `ai_simulation_scenarios` (id, title, category, scenario_text, expected_behavior, tags, active), `ai_simulation_turns.scores_breakdown jsonb`, `ai_simulation_sessions.scenario_id uuid`.
+- `supabase/functions/simulation-run/index.ts` — rubric в judge prompt, parse breakdown, optional `scenarioId` body param.
+- Нова edge функция `simulation-regression` (или флаг в `apply-prompt-patch`) — пуска 3-сценарийна регресия и връща pass/fail.
+- `src/pages/AdminAiSimulation.tsx` — Run tab: dropdown за scenario от bank или random; History tab: визуализация на 5-те измерения (radar/badges); Patches tab: бутон "Apply с регресия".
+- Нов админ под-таб **"Сценарии"** за CRUD върху scenario bank.
 
 ## Какво НЕ правим
 
-- Не сменяме модела на продукцията автоматично.
-- Не пипаме промпта/секциите — това е работа на patcher-а от предишната стъпка.
-- Не въвеждаме нов pricing tier / premium routing — само инфраструктура за ръчно повишаване.
-
-## Резултат
-
-След плана админът може да:
-1. Стартира симулация с произволен модел за DogovaryAI (или едновременно за двамата).
-2. Сравни avg score между моделите в History.
-3. С един клик да направи победителя продукционен модел.
+- Не пипаме текущия prod prompt.
+- Не сменяме модели по подразбиране.
+- Не правим auto-apply на patches — apply остава ръчен с regression guard отгоре.

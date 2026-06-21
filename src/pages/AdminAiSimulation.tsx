@@ -29,6 +29,15 @@ const MODEL_OPTIONS = [
 ];
 const LAWYER_MODELS = MODEL_OPTIONS;
 
+const RUBRIC = ["legal_accuracy", "tool_usage", "canon_compliance", "clarity", "usefulness"] as const;
+const RUBRIC_LABELS: Record<string, string> = {
+  legal_accuracy: "Право",
+  tool_usage: "Tools",
+  canon_compliance: "Канон",
+  clarity: "Език",
+  usefulness: "Полза",
+};
+
 type TurnEvent = {
   turn: number;
   userMessage?: string;
@@ -38,6 +47,7 @@ type TurnEvent = {
   verdict?: string;
   issues?: any[];
   phase?: string;
+  breakdown?: Record<string, number>;
 };
 
 type Session = {
@@ -52,6 +62,16 @@ type Session = {
   created_at: string;
   completed_at: string | null;
   error_message: string | null;
+};
+
+type Scenario = {
+  id: string;
+  title: string;
+  category: string;
+  scenario_text: string;
+  expected_behavior: string | null;
+  tags: string[];
+  active: boolean;
 };
 
 
@@ -115,10 +135,12 @@ export default function AdminAiSimulation() {
               <TabsTrigger value="run">Нова симулация</TabsTrigger>
               <TabsTrigger value="history">История</TabsTrigger>
               <TabsTrigger value="patches">Patch-ове</TabsTrigger>
+              <TabsTrigger value="scenarios">Сценарии</TabsTrigger>
             </TabsList>
             <TabsContent value="run"><RunTab /></TabsContent>
             <TabsContent value="history"><HistoryTab /></TabsContent>
             <TabsContent value="patches"><PatchesTab /></TabsContent>
+            <TabsContent value="scenarios"><ScenariosTab /></TabsContent>
           </Tabs>
         </div>
       </div>
@@ -128,6 +150,8 @@ export default function AdminAiSimulation() {
 
 function RunTab() {
   const [scenario, setScenario] = useState("");
+  const [scenarioId, setScenarioId] = useState<string>("");
+  const [bank, setBank] = useState<Scenario[]>([]);
   const [lawyerModel, setLawyerModel] = useState("google/gemini-2.5-pro");
   const [dogovaryModel, setDogovaryModel] = useState<string>("");
   const [activeModel, setActiveModel] = useState<string>("");
@@ -140,6 +164,14 @@ function RunTab() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [doneInfo, setDoneInfo] = useState<{ avgScore: number | null; patchCount: number } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    (supabase.from("ai_simulation_scenarios" as any) as any)
+      .select("id, title, category, scenario_text, expected_behavior, tags, active")
+      .eq("active", true)
+      .order("category", { ascending: true })
+      .then(({ data }: { data: any }) => setBank((data ?? []) as Scenario[]));
+  }, []);
 
   // Load active prompt model so default DogovaryAI model matches production
   useEffect(() => {
@@ -188,7 +220,7 @@ function RunTab() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ scenario, lawyerModel, dogovaryModel: effectiveDogovaryModel, maxTurns, withTools }),
+        body: JSON.stringify({ scenario, scenarioId: scenarioId || undefined, lawyerModel, dogovaryModel: effectiveDogovaryModel, maxTurns, withTools }),
         signal: ctrl.signal,
       });
       if (!resp.ok || !resp.body) {
@@ -222,7 +254,7 @@ function RunTab() {
           else if (evtName === "phase") setPhase(`Ход ${data.turn + 1}: ${data.phase}`);
           else if (evtName === "user_message") updateTurn(data.turn, { userMessage: data.text });
           else if (evtName === "dogovary_response") updateTurn(data.turn, { dogovaryResponse: data.text, tools: data.tools });
-          else if (evtName === "turn_done") updateTurn(data.turn, { score: data.score, verdict: data.verdict, issues: data.issues });
+          else if (evtName === "turn_done") updateTurn(data.turn, { score: data.score, verdict: data.verdict, issues: data.issues, breakdown: data.breakdown });
           else if (evtName === "done") {
             setDoneInfo({ avgScore: data.avgScore, patchCount: data.patchCount });
             setPhase(`готово — ${data.patchCount} patch-а създадени`);
@@ -249,7 +281,22 @@ function RunTab() {
     <div className="mt-4 space-y-4">
       <Card className="p-4 space-y-3">
         <div>
-          <Label>Сценарий (по избор)</Label>
+          <Label>Сценарий от банката (по избор)</Label>
+          <Select value={scenarioId || "__none__"} onValueChange={(v) => {
+            const id = v === "__none__" ? "" : v;
+            setScenarioId(id);
+            const found = bank.find((b) => b.id === id);
+            if (found) setScenario(found.scenario_text + (found.expected_behavior ? `\n[Очаквано]: ${found.expected_behavior}` : ""));
+          }} disabled={running}>
+            <SelectTrigger><SelectValue placeholder="-- свободен сценарий --" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">-- свободен / random --</SelectItem>
+              {bank.map((s) => <SelectItem key={s.id} value={s.id}>[{s.category}] {s.title}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Свободен сценарий (или редакция на избрания)</Label>
           <Textarea
             rows={3}
             value={scenario}
@@ -257,7 +304,7 @@ function RunTab() {
             placeholder="Напр. 'Малък бизнес иска трудов договор за счетоводител на 4 часа, в няколко града, с конкурентна клауза.'"
             disabled={running}
           />
-          <p className="mt-1 text-[10px] text-muted-foreground">Ако оставите празно, адвокатът сам ще измисля разнообразни тестови сценарии.</p>
+          <p className="mt-1 text-[10px] text-muted-foreground">Ако оставите празно и без избор от банката, адвокатът сам ще измисля разнообразни тестови сценарии.</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
@@ -348,12 +395,23 @@ function RunTab() {
             {t.verdict && (
               <div className="rounded border border-blue-500/20 bg-blue-500/5 p-2 text-xs">
                 <div className="mb-1 font-semibold text-muted-foreground">Присъда на адвоката</div>
+                {t.breakdown && (
+                  <div className="mb-2 flex flex-wrap gap-1">
+                    {RUBRIC.map((d) => {
+                      const v = t.breakdown![d];
+                      if (typeof v !== "number") return null;
+                      const color = v >= 8 ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300" : v >= 5 ? "bg-amber-500/20 text-amber-700 dark:text-amber-300" : "bg-red-500/20 text-red-700 dark:text-red-300";
+                      return <span key={d} className={`rounded px-1.5 py-0.5 text-[10px] font-mono ${color}`}>{RUBRIC_LABELS[d]}: {v}</span>;
+                    })}
+                  </div>
+                )}
                 <div className="whitespace-pre-wrap">{t.verdict}</div>
                 {Array.isArray(t.issues) && t.issues.length > 0 && (
                   <div className="mt-2 space-y-1">
                     {t.issues.map((iss: any, i: number) => (
                       <div key={i} className="text-[10px]">
                         <Badge variant="outline" className="mr-1">{iss.section_key}</Badge>
+                        {iss.dimension && <Badge variant="secondary" className="mr-1 text-[9px]">{iss.dimension}</Badge>}
                         <span className="text-muted-foreground">{iss.finding}</span>
                       </div>
                     ))}
@@ -567,100 +625,89 @@ function PatchesTab() {
   };
   useEffect(() => { load(); }, [filter]);
 
+  const buildDraft = async (p: Patch) => {
+    const { data: active } = await supabase
+      .from("ai_prompts").select("*").eq("function_name", "assistant-chat").eq("is_active", true)
+      .order("version", { ascending: false }).limit(1).maybeSingle();
+    if (!active) throw new Error("Няма активен промпт");
+    const { data: existingSections } = await supabase
+      .from("ai_prompt_sections").select("*").eq("prompt_id", active.id).order("order_idx", { ascending: true });
+    const sections = (existingSections ?? []).map((s: any) => ({
+      section_key: s.section_key, title: s.title, content: s.content, order_idx: s.order_idx, enabled: s.enabled,
+    }));
+    const idx = sections.findIndex((s) => s.section_key === p.section_key);
+    if (idx >= 0) {
+      sections[idx].content = p.patch_content;
+      if (p.section_title) sections[idx].title = p.section_title;
+    } else {
+      sections.push({ section_key: p.section_key, title: p.section_title || p.section_key, content: p.patch_content, order_idx: sections.length, enabled: true });
+    }
+    const { data: latest } = await supabase
+      .from("ai_prompts").select("version").eq("function_name", "assistant-chat")
+      .order("version", { ascending: false }).limit(1).maybeSingle();
+    const nextVersion = ((latest?.version ?? 0) as number) + 1;
+    const assembled = sections.filter((s) => s.enabled).map((s) => s.title ? `# ${s.title}\n${s.content}` : s.content).join("\n\n");
+    const { data: { user: u } } = await supabase.auth.getUser();
+    const { data: inserted, error: iErr } = await supabase.from("ai_prompts").insert({
+      function_name: "assistant-chat", version: nextVersion, content: assembled,
+      notes: `Авто-patch от симулация ${p.session_id.slice(0, 8)} → секция ${p.section_key}`,
+      is_active: false, created_by: u?.id ?? null, model: active.model, premium_model: active.premium_model,
+    }).select("id").single();
+    if (iErr || !inserted) throw iErr ?? new Error("insert_failed");
+    const sectionRows = sections.map((s, i) => ({
+      prompt_id: inserted.id, section_key: s.section_key, title: s.title, content: s.content, order_idx: i, enabled: s.enabled,
+    }));
+    await supabase.from("ai_prompt_sections").insert(sectionRows);
+    return { draftId: inserted.id as string, nextVersion, userId: u?.id ?? null };
+  };
+
   const applyPatch = async (p: Patch) => {
     if (!confirm(`Прилагане на patch към секция "${p.section_key}". Това ще създаде нов draft в AI обучение. Продължаване?`)) return;
     setBusy(true);
     try {
-      // 1. Load active prompt + sections
-      const { data: active } = await supabase
-        .from("ai_prompts")
-        .select("*")
-        .eq("function_name", "assistant-chat")
-        .eq("is_active", true)
-        .order("version", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!active) throw new Error("Няма активен промпт");
-      const { data: existingSections } = await supabase
-        .from("ai_prompt_sections")
-        .select("*")
-        .eq("prompt_id", active.id)
-        .order("order_idx", { ascending: true });
-
-      const sections = (existingSections ?? []).map((s: any) => ({
-        section_key: s.section_key,
-        title: s.title,
-        content: s.content,
-        order_idx: s.order_idx,
-        enabled: s.enabled,
-      }));
-
-      const idx = sections.findIndex((s) => s.section_key === p.section_key);
-      if (idx >= 0) {
-        sections[idx].content = p.patch_content;
-        if (p.section_title) sections[idx].title = p.section_title;
-      } else {
-        sections.push({
-          section_key: p.section_key,
-          title: p.section_title || p.section_key,
-          content: p.patch_content,
-          order_idx: sections.length,
-          enabled: true,
-        });
-      }
-
-      // 2. Latest version
-      const { data: latest } = await supabase
-        .from("ai_prompts")
-        .select("version")
-        .eq("function_name", "assistant-chat")
-        .order("version", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      const nextVersion = ((latest?.version ?? 0) as number) + 1;
-
-      const assembled = sections.filter((s) => s.enabled).map((s) => s.title ? `# ${s.title}\n${s.content}` : s.content).join("\n\n");
-      const { data: { user: u } } = await supabase.auth.getUser();
-      const { data: inserted, error: iErr } = await supabase
-        .from("ai_prompts")
-        .insert({
-          function_name: "assistant-chat",
-          version: nextVersion,
-          content: assembled,
-          notes: `Авто-patch от симулация ${p.session_id.slice(0, 8)} → секция ${p.section_key}`,
-          is_active: false,
-          created_by: u?.id ?? null,
-          model: active.model,
-          premium_model: active.premium_model,
-        })
-        .select("id")
-        .single();
-      if (iErr || !inserted) throw iErr ?? new Error("insert_failed");
-
-      const sectionRows = sections.map((s, i) => ({
-        prompt_id: inserted.id,
-        section_key: s.section_key,
-        title: s.title,
-        content: s.content,
-        order_idx: i,
-        enabled: s.enabled,
-      }));
-      await supabase.from("ai_prompt_sections").insert(sectionRows);
-
+      const { draftId, nextVersion, userId } = await buildDraft(p);
       await supabase.from("ai_simulation_patches").update({
-        status: "applied",
-        applied_prompt_id: inserted.id,
-        decided_by: u?.id ?? null,
-        decided_at: new Date().toISOString(),
+        status: "applied", applied_prompt_id: draftId, decided_by: userId, decided_at: new Date().toISOString(),
       }).eq("id", p.id);
-
       toast.success(`v${nextVersion} draft създаден. Активирай го в "AI обучение".`);
       load();
     } catch (e) {
       toast.error((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
+    } finally { setBusy(false); }
+  };
+
+  const applyWithRegression = async (p: Patch) => {
+    if (!confirm(`Прилагане с регресия: създавам draft + пускам 3 сценария от банката. Ако драфтът регресира спрямо текущия промпт — патчът се отбелязва като 'rejected'. Продължаване?`)) return;
+    setBusy(true);
+    try {
+      const { draftId, nextVersion, userId } = await buildDraft(p);
+      toast.info(`Draft v${nextVersion} създаден. Пускам регресия...`);
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      const resp = await fetch(`https://wkbxojefiovdczkwhved.supabase.co/functions/v1/simulation-regression`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ candidatePromptId: draftId, sampleSize: 3, thresholdDelta: -0.5 }),
+      });
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result?.error || `regression failed (${resp.status})`);
+      const passed = Boolean(result.passed);
+      const delta = result.delta;
+      await (supabase.from("ai_simulation_patches" as any) as any).update({
+        status: passed ? "applied" : "rejected",
+        applied_prompt_id: passed ? draftId : null,
+        decided_by: userId, decided_at: new Date().toISOString(),
+        regression_result: result, regression_passed: passed,
+      }).eq("id", p.id);
+      if (passed) {
+        toast.success(`✅ Регресия мина (Δ=${delta}). Draft v${nextVersion} готов за активиране в "AI обучение".`);
+      } else {
+        toast.error(`❌ Регресия провалена (Δ=${delta}). Draft създаден но патчът е отхвърлен.`);
+      }
+      load();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally { setBusy(false); }
   };
 
   const reject = async (p: Patch) => {
@@ -699,7 +746,10 @@ function PatchesTab() {
             </div>
             {p.status === "pending" && (
               <div className="flex gap-1">
-                <Button size="sm" onClick={() => applyPatch(p)} disabled={busy}><Check className="h-3 w-3 mr-1" /> Приложи</Button>
+                <Button size="sm" onClick={() => applyWithRegression(p)} disabled={busy} className="bg-gold text-gold-foreground hover:bg-gold/90" title="Създай draft + автоматична регресия по 3 сценария">
+                  <Sparkles className="h-3 w-3 mr-1" /> С регресия
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => applyPatch(p)} disabled={busy}><Check className="h-3 w-3 mr-1" /> Бързо</Button>
                 <Button size="sm" variant="outline" onClick={() => reject(p)}><X className="h-3 w-3 mr-1" /> Отхвърли</Button>
               </div>
             )}
@@ -713,6 +763,110 @@ function PatchesTab() {
             <div>
               <div className="mb-1 text-[10px] font-semibold uppercase text-gold">Предложено</div>
               <pre className="max-h-60 overflow-auto rounded border border-gold/30 bg-gold/5 p-2 text-[10px] whitespace-pre-wrap">{p.patch_content}</pre>
+            </div>
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function ScenariosTab() {
+  const [list, setList] = useState<Scenario[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState<Partial<Scenario> | null>(null);
+
+  const load = async () => {
+    setBusy(true);
+    const { data } = await (supabase.from("ai_simulation_scenarios" as any) as any)
+      .select("*").order("category", { ascending: true }).order("created_at", { ascending: false });
+    setList((data ?? []) as Scenario[]);
+    setBusy(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const save = async () => {
+    if (!editing?.title?.trim() || !editing?.scenario_text?.trim()) {
+      toast.error("Заглавие и текст са задължителни");
+      return;
+    }
+    const payload = {
+      title: editing.title.trim(),
+      category: (editing.category || "general").trim(),
+      scenario_text: editing.scenario_text.trim(),
+      expected_behavior: editing.expected_behavior?.trim() || null,
+      tags: typeof editing.tags === "string"
+        ? (editing.tags as unknown as string).split(",").map((t) => t.trim()).filter(Boolean)
+        : (editing.tags ?? []),
+      active: editing.active ?? true,
+    };
+    try {
+      if (editing.id) {
+        const { error } = await (supabase.from("ai_simulation_scenarios" as any) as any).update(payload).eq("id", editing.id);
+        if (error) throw error;
+      } else {
+        const { data: { user: u } } = await supabase.auth.getUser();
+        const { error } = await (supabase.from("ai_simulation_scenarios" as any) as any).insert({ ...payload, created_by: u?.id ?? null });
+        if (error) throw error;
+      }
+      toast.success("Записано");
+      setEditing(null);
+      load();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Изтриване?")) return;
+    const { error } = await (supabase.from("ai_simulation_scenarios" as any) as any).delete().eq("id", id);
+    if (error) toast.error(error.message); else { toast.success("Изтрит"); load(); }
+  };
+
+  return (
+    <div className="mt-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <Button size="sm" onClick={() => setEditing({ active: true, category: "general", tags: [] })}>+ Нов сценарий</Button>
+        <Button size="sm" variant="outline" onClick={load} disabled={busy}>{busy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Обнови"}</Button>
+        <span className="ml-auto text-xs text-muted-foreground">Банка от тестови случаи за повтаряемост и регресия</span>
+      </div>
+
+      {editing && (
+        <Card className="p-4 space-y-2 border-gold/40">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Input placeholder="Заглавие" value={editing.title ?? ""} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
+            <Input placeholder="Категория (напр. canon_violations, employment, pii_handling)" value={editing.category ?? ""} onChange={(e) => setEditing({ ...editing, category: e.target.value })} />
+          </div>
+          <Textarea rows={3} placeholder="Текст на сценария — потребителско съобщение / контекст" value={editing.scenario_text ?? ""} onChange={(e) => setEditing({ ...editing, scenario_text: e.target.value })} />
+          <Textarea rows={2} placeholder="Очаквано поведение от асистента (по избор)" value={editing.expected_behavior ?? ""} onChange={(e) => setEditing({ ...editing, expected_behavior: e.target.value })} />
+          <Input placeholder="Тагове (запетая)" value={Array.isArray(editing.tags) ? editing.tags.join(", ") : (editing.tags ?? "")} onChange={(e) => setEditing({ ...editing, tags: e.target.value as any })} />
+          <div className="flex items-center gap-2">
+            <Switch checked={editing.active ?? true} onCheckedChange={(v) => setEditing({ ...editing, active: v })} />
+            <Label className="text-xs">Активен</Label>
+            <div className="ml-auto flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setEditing(null)}>Отказ</Button>
+              <Button size="sm" onClick={save}>Запази</Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {list.length === 0 && <p className="text-sm text-muted-foreground">Няма сценарии.</p>}
+      {list.map((s) => (
+        <Card key={s.id} className={`p-3 ${s.active ? "" : "opacity-60"}`}>
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="outline" className="text-[10px]">{s.category}</Badge>
+                <strong className="text-sm">{s.title}</strong>
+                {s.tags?.map((t) => <Badge key={t} variant="secondary" className="text-[9px]">{t}</Badge>)}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{s.scenario_text}</p>
+              {s.expected_behavior && <p className="mt-0.5 text-[10px] text-blue-600 dark:text-blue-400 line-clamp-1">→ {s.expected_behavior}</p>}
+            </div>
+            <div className="flex gap-1 shrink-0">
+              <Button size="sm" variant="outline" onClick={() => setEditing(s)}>Редакция</Button>
+              <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(s.id)}>Изтрий</Button>
             </div>
           </div>
         </Card>

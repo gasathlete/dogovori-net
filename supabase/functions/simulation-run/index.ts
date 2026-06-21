@@ -12,12 +12,22 @@ const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 interface RunBody {
   scenario?: string;
+  scenarioId?: string;
   lawyerModel?: string;
   dogovaryModel?: string;
   maxTurns?: number;
   withTools?: boolean;
   resumeSessionId?: string;
 }
+
+const RUBRIC_DIMENSIONS = [
+  "legal_accuracy",
+  "tool_usage",
+  "canon_compliance",
+  "clarity",
+  "usefulness",
+] as const;
+type RubricKey = typeof RUBRIC_DIMENSIONS[number];
 
 function admin() {
   return createClient(
@@ -71,16 +81,27 @@ function lawyerJudgePrompt(systemPrompt: string, availableSectionKeys: string[])
 ${systemPrompt.slice(0, 6000)}
 """
 
-Оцени отговора по: правна коректност, цитиране на верни норми (ЗЗД/ТЗ/КТ/ЗУТ), използване на правилните tools (search_templates, ask_clarification, navigate, prefill_build_contract, propose_contract_outline), халюцинации, спазване на канон (без индивидуален съвет, без чуждо право), полезност за потребителя.
+Оцени отговора по 5 критерия (всеки 1-10):
+- legal_accuracy: правна коректност, цитиране на ЗЗД/ТЗ/КТ/ЗУТ
+- tool_usage: правилни tools (search_templates, ask_clarification, navigate, prefill_build_contract, propose_contract_outline) в правилен ред
+- canon_compliance: без индивидуален съвет, без чуждо право, спазване на канона
+- clarity: език, структура, четимост
+- usefulness: помага ли реално на потребителя
 
 Налични секции от промпта за патчване: ${availableSectionKeys.join(", ") || "(няма)"}.
 
-Върни СТРОГО JSON със следната структура:
+Върни СТРОГО JSON:
 {
-  "score": <int 1-10>,
-  "verdict": "<кратък markdown анализ, 3-6 изречения>",
+  "scores": {
+    "legal_accuracy": <1-10>,
+    "tool_usage": <1-10>,
+    "canon_compliance": <1-10>,
+    "clarity": <1-10>,
+    "usefulness": <1-10>
+  },
+  "verdict": "<кратък markdown анализ, 3-6 изречения, фокусиран върху най-слабото измерение>",
   "issues": [
-    { "section_key": "<един от availableSectionKeys или нов smaller_snake_case>", "finding": "<какво е сгрешено>", "severity": "low|medium|high" }
+    { "section_key": "<един от availableSectionKeys или нов snake_case>", "finding": "<какво е сгрешено>", "severity": "low|medium|high", "dimension": "<едно от 5-те измерения>" }
   ]
 }
 
@@ -290,6 +311,23 @@ Deno.serve(async (req) => {
       dogovaryModel = body.dogovaryModel || meta.model || "google/gemini-3-flash-preview";
       withTools = body.withTools !== false;
 
+      // Resolve scenarioId from bank → seed scenario text + expected behavior
+      let scenarioId: string | null = body.scenarioId?.trim() || null;
+      if (scenarioId) {
+        const { data: scRow } = await sb
+          .from("ai_simulation_scenarios")
+          .select("scenario_text, expected_behavior, title")
+          .eq("id", scenarioId)
+          .maybeSingle();
+        if (scRow) {
+          const parts = [
+            scRow.scenario_text,
+            scRow.expected_behavior ? `\n[Очаквано поведение от асистента]: ${scRow.expected_behavior}` : "",
+          ].filter(Boolean).join("");
+          scenario = parts.slice(0, 2000);
+        }
+      }
+
       const { data: session, error: sessErr } = await sb
         .from("ai_simulation_sessions")
         .insert({
@@ -297,6 +335,7 @@ Deno.serve(async (req) => {
           function_name: "assistant-chat",
           prompt_version_id: null,
           scenario: scenario || null,
+          scenario_id: scenarioId,
           lawyer_model: lawyerModel,
           dogovary_model: dogovaryModel,
           max_turns: maxTurns,
@@ -404,9 +443,20 @@ Deno.serve(async (req) => {
               response_format: { type: "json_object" },
             });
             const judgeText = String(judgeResp.choices?.[0]?.message?.content ?? "");
-            const parsed = tryParseJson(judgeText) ?? { score: 5, verdict: judgeText.slice(0, 1000), issues: [] };
-            const score = Math.max(1, Math.min(10, parseInt(parsed.score, 10) || 5));
-            const verdict = String(parsed.verdict ?? "").slice(0, 4000);
+            const parsed = tryParseJson(judgeText) ?? {};
+            // Rubric breakdown (new) — also back-compat with legacy "score"
+            const rawScores = (parsed.scores && typeof parsed.scores === "object") ? parsed.scores : null;
+            const breakdown: Record<string, number> = {};
+            for (const dim of RUBRIC_DIMENSIONS) {
+              const v = rawScores?.[dim];
+              const n = Math.max(1, Math.min(10, parseInt(v as any, 10) || 5));
+              breakdown[dim] = n;
+            }
+            const legacyScore = parseInt(parsed.score, 10);
+            const score = isFinite(legacyScore)
+              ? Math.max(1, Math.min(10, legacyScore))
+              : Math.round((Object.values(breakdown).reduce((a, b) => a + b, 0) / RUBRIC_DIMENSIONS.length) * 10) / 10;
+            const verdict = String(parsed.verdict ?? judgeText.slice(0, 1000)).slice(0, 4000);
             const issues = Array.isArray(parsed.issues) ? parsed.issues.slice(0, 10) : [];
             scores.push(score);
 
@@ -422,12 +472,13 @@ Deno.serve(async (req) => {
               dogovary_response: dogText,
               dogovary_tools: dogResp.tools,
               lawyer_verdict: verdict,
-              score,
+              score: Math.round(score),
+              scores_breakdown: breakdown,
               issues,
             });
-            turnSummaries.push(`### Ход ${i + 1} — score ${score}/10\nПотребител: ${userMessage}\nAsst: ${dogText.slice(0, 800)}\nВерсия на адвоката: ${verdict}\nПроблеми: ${JSON.stringify(issues)}`);
+            turnSummaries.push(`### Ход ${i + 1} — score ${score}/10 (breakdown ${JSON.stringify(breakdown)})\nПотребител: ${userMessage}\nAsst: ${dogText.slice(0, 800)}\nВерсия на адвоката: ${verdict}\nПроблеми: ${JSON.stringify(issues)}`);
 
-            send("turn_done", { turn: i, score, verdict, issues });
+            send("turn_done", { turn: i, score, verdict, issues, breakdown });
 
             await sb.from("ai_simulation_sessions").update({ turn_count: i + 1 }).eq("id", sessionId);
           }

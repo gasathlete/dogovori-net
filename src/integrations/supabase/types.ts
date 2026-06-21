@@ -247,6 +247,8 @@ export type Database = {
           id: string
           patch_content: string
           patch_description: string
+          regression_passed: boolean | null
+          regression_result: Json | null
           section_key: string
           section_title: string | null
           session_id: string
@@ -261,6 +263,8 @@ export type Database = {
           id?: string
           patch_content: string
           patch_description: string
+          regression_passed?: boolean | null
+          regression_result?: Json | null
           section_key: string
           section_title?: string | null
           session_id: string
@@ -275,6 +279,8 @@ export type Database = {
           id?: string
           patch_content?: string
           patch_description?: string
+          regression_passed?: boolean | null
+          regression_result?: Json | null
           section_key?: string
           section_title?: string | null
           session_id?: string
@@ -297,6 +303,45 @@ export type Database = {
           },
         ]
       }
+      ai_simulation_scenarios: {
+        Row: {
+          active: boolean
+          category: string
+          created_at: string
+          created_by: string | null
+          expected_behavior: string | null
+          id: string
+          scenario_text: string
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          expected_behavior?: string | null
+          id?: string
+          scenario_text: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          expected_behavior?: string | null
+          id?: string
+          scenario_text?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_simulation_sessions: {
         Row: {
           avg_score: number | null
@@ -311,6 +356,7 @@ export type Database = {
           max_turns: number
           prompt_version_id: string | null
           scenario: string | null
+          scenario_id: string | null
           status: string
           turn_count: number
         }
@@ -327,6 +373,7 @@ export type Database = {
           max_turns?: number
           prompt_version_id?: string | null
           scenario?: string | null
+          scenario_id?: string | null
           status?: string
           turn_count?: number
         }
@@ -343,6 +390,7 @@ export type Database = {
           max_turns?: number
           prompt_version_id?: string | null
           scenario?: string | null
+          scenario_id?: string | null
           status?: string
           turn_count?: number
         }
@@ -352,6 +400,13 @@ export type Database = {
             columns: ["prompt_version_id"]
             isOneToOne: false
             referencedRelation: "ai_prompts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_simulation_sessions_scenario_id_fkey"
+            columns: ["scenario_id"]
+            isOneToOne: false
+            referencedRelation: "ai_simulation_scenarios"
             referencedColumns: ["id"]
           },
         ]
@@ -365,6 +420,7 @@ export type Database = {
           issues: Json
           lawyer_verdict: string
           score: number | null
+          scores_breakdown: Json | null
           session_id: string
           turn_index: number
           user_message: string
@@ -377,6 +433,7 @@ export type Database = {
           issues?: Json
           lawyer_verdict?: string
           score?: number | null
+          scores_breakdown?: Json | null
           session_id: string
           turn_index: number
           user_message: string
@@ -389,6 +446,7 @@ export type Database = {
           issues?: Json
           lawyer_verdict?: string
           score?: number | null
+          scores_breakdown?: Json | null
           session_id?: string
           turn_index?: number
           user_message?: string
