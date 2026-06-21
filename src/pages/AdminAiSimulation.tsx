@@ -220,7 +220,7 @@ function RunTab() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ scenario, lawyerModel, dogovaryModel: effectiveDogovaryModel, maxTurns, withTools }),
+        body: JSON.stringify({ scenario, scenarioId: scenarioId || undefined, lawyerModel, dogovaryModel: effectiveDogovaryModel, maxTurns, withTools }),
         signal: ctrl.signal,
       });
       if (!resp.ok || !resp.body) {
