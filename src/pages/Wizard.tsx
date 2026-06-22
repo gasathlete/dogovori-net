@@ -711,7 +711,15 @@ export default function WizardPage() {
                   </div>
                 )}
 
-                <div className="mt-8 flex items-center justify-between gap-3">
+                {/* Spacer for mobile sticky action bar */}
+                <div className="h-20 lg:hidden" aria-hidden="true" />
+                <div
+                  className={
+                    // Mobile: fixed at bottom with safe-area. Desktop: inline.
+                    "fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-border/60 bg-background/95 px-4 py-3 pb-safe backdrop-blur-md " +
+                    "lg:static lg:mt-8 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none"
+                  }
+                >
                   <Button
                     variant="ghost"
                     onClick={() => {
@@ -720,7 +728,7 @@ export default function WizardPage() {
                       setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
                     }}
                     disabled={safeIdx === 0}
-                    className="text-muted-foreground hover:text-foreground"
+                    className="h-11 text-muted-foreground hover:text-foreground"
                   >
                     <ArrowLeft className="mr-1 h-4 w-4" /> Назад
                   </Button>
@@ -729,7 +737,7 @@ export default function WizardPage() {
                       onClick={() => { if (!canNext) { setAttemptedNext(true); return; } handleGenerate(); }}
                       disabled={generating}
                       size="lg"
-                      className="bg-gradient-gold text-navy shadow-gold hover:shadow-[0_15px_50px_-10px_hsl(43_55%_54%_/_0.5)]"
+                      className="h-11 bg-gradient-gold text-navy shadow-gold hover:shadow-[0_15px_50px_-10px_hsl(43_55%_54%_/_0.5)]"
                     >
                       {generating ? (
                         <>
@@ -751,7 +759,7 @@ export default function WizardPage() {
                         setStepIdx((i) => i + 1);
                         setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
                       }}
-                      className="bg-gradient-gold text-navy hover:shadow-gold"
+                      className="h-11 bg-gradient-gold text-navy hover:shadow-gold"
                     >
                       Напред <ArrowRight className="ml-1 h-4 w-4" />
                     </Button>

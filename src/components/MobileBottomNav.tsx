@@ -28,13 +28,15 @@ export function MobileBottomNav() {
   const { count: unread } = useUnreadNotifications();
   const visible = useHideOnScroll(10);
 
-  // Hide on admin and signing/full-screen routes
+  // Hide on focused-task and admin/full-screen routes
   const path = location.pathname;
   if (
     path.startsWith("/admin") ||
     path.startsWith("/sign/") ||
     path.startsWith("/signing/") ||
-    path.startsWith("/checkout/")
+    path.startsWith("/checkout/") ||
+    path.startsWith("/wizard") ||
+    path.startsWith("/build")
   ) {
     return null;
   }
