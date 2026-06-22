@@ -123,5 +123,21 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
     else await exportTemplateDOCX(t, watermarkOpts);
   }
 
+  // Engagement: bump streak/daily progress + emit celebration event.
+  try {
+    const { bumpEngagement } = await import("@/hooks/useEngagement");
+    const res = bumpEngagement();
+    window.dispatchEvent(
+      new CustomEvent("dogovari:op-completed", {
+        detail: {
+          variant: p.kind === "template" ? "template" : "download",
+          title: p.title,
+          reachedGoal: res.reachedGoal,
+          streakIncreased: res.streakIncreased,
+        },
+      }),
+    );
+  } catch {}
+
   return { ok: true, saved_document_id: data.saved_document_id, free: data.free };
 }
