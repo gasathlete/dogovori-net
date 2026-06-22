@@ -8,7 +8,7 @@
 //
 // Runs after `vite build`.
 
-import { writeFileSync, readFileSync, mkdirSync, existsSync } from "node:fs";
+import { writeFileSync, readFileSync, mkdirSync, existsSync, readdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { CATALOG } from "../src/data/catalog";
 import { SECTORS } from "../src/data/sectors";
@@ -32,14 +32,32 @@ if (!existsSync(`${DIST}/index.html`)) {
 
 const baseHtml = readFileSync(`${DIST}/index.html`, "utf8");
 
-// Try to load AI-generated rich content if available
-let TEMPLATE_CONTENT: Record<string, any> = {};
+// Load AI-generated rich content per template slug.
+// Source of truth: src/data/templateContent/<slug>.ts — each file exports a
+// `const content: TemplateContent = { ... };` object literal. We parse the
+// JSON object out of each file with a regex (no TS runtime at build time).
+// Without this, /shablon/* SSG pages had no intro/FAQ/requirements and were
+// treated as thin/duplicate content by Google.
+const TEMPLATE_CONTENT: Record<string, any> = {};
 try {
-  const raw = readFileSync(resolve(process.cwd(), "src/data/templateContent.ts"), "utf8");
-  const m = raw.match(/= (\{[\s\S]*\}) as const;/);
-  if (m) TEMPLATE_CONTENT = JSON.parse(m[1]);
-} catch {
-  // optional
+  const dir = resolve(process.cwd(), "src/data/templateContent");
+  if (existsSync(dir)) {
+    const files = readdirSync(dir).filter((f) => f.endsWith(".ts"));
+    for (const f of files) {
+      try {
+        const raw = readFileSync(resolve(dir, f), "utf8");
+        const m = raw.match(/content\s*:\s*TemplateContent\s*=\s*(\{[\s\S]*?\});\s*\n+\s*export\s+default/);
+        if (m) {
+          TEMPLATE_CONTENT[f.replace(/\.ts$/, "")] = JSON.parse(m[1]);
+        }
+      } catch {
+        // skip a broken file rather than failing the whole build
+      }
+    }
+    console.log(`✓ Loaded TEMPLATE_CONTENT for ${Object.keys(TEMPLATE_CONTENT).length} templates`);
+  }
+} catch (e) {
+  console.warn(`⚠ Could not load templateContent dir:`, (e as Error).message);
 }
 
 interface PageMeta {
@@ -101,19 +119,33 @@ function writeRoute(meta: PageMeta) {
   writeFileSync(out, renderPage(meta), "utf8");
 }
 
-function bodyForTemplate(name: string, intro: string, requirements: string[], faq: { q: string; a: string }[]): string {
+function bodyForTemplate(
+  name: string,
+  intro: string,
+  requirements: string[],
+  faq: { q: string; a: string }[],
+  usageCases: string[] = [],
+  mistakes: string[] = [],
+  related: { name: string; slug: string }[] = [],
+  categoryTitle: string = "",
+  categoryId: string = "",
+): string {
   return `
     <main style="font-family:Georgia,serif;max-width:800px;margin:2rem auto;padding:1rem;color:#0f1a30">
-      <nav><a href="/">Начало</a> › <a href="/catalog">Каталог</a> › ${escapeHtml(name)}</nav>
+      <nav><a href="/">Начало</a> › <a href="/catalog">Каталог</a>${categoryId ? ` › <a href="/kategoria/${categoryId}">${escapeHtml(categoryTitle)}</a>` : ""} › ${escapeHtml(name)}</nav>
       <h1>${escapeHtml(name)}</h1>
       <p>${escapeHtml(intro)}</p>
+      ${usageCases.length ? `<h2>Кога се използва</h2><ul>${usageCases.map((u) => `<li>${escapeHtml(u)}</li>`).join("")}</ul>` : ""}
       <h2>Задължителни реквизити</h2>
       <ul>${requirements.map((r) => `<li>${escapeHtml(r)}</li>`).join("")}</ul>
+      ${mistakes.length ? `<h2>Чести грешки</h2><ul>${mistakes.map((m) => `<li>${escapeHtml(m)}</li>`).join("")}</ul>` : ""}
       <h2>Често задавани въпроси</h2>
       ${faq.map((f) => `<section><h3>${escapeHtml(f.q)}</h3><p>${escapeHtml(f.a)}</p></section>`).join("")}
-      <p><a href="/catalog">Виж всички шаблони</a></p>
+      ${related.length ? `<h2>Свързани шаблони</h2><ul>${related.map((r) => `<li><a href="/shablon/${r.slug}">${escapeHtml(r.name)}</a></li>`).join("")}</ul>` : ""}
+      <p><a href="/catalog">Виж всички шаблони</a>${categoryId ? ` · <a href="/kategoria/${categoryId}">Още от категория „${escapeHtml(categoryTitle)}"</a>` : ""} · <a href="/karta">Карта на сайта</a></p>
     </main>`;
 }
+
 
 const pages: PageMeta[] = [];
 
@@ -276,16 +308,32 @@ for (const cat of CATALOG) {
   });
 }
 
-// Templates
-const used = new Set<string>();
+// Templates — precompute slugs first so "Свързани шаблони" can link to siblings.
+const slugByDoc = new Map<string, string>();
+const docsBySlug = new Map<string, { name: string; slug: string; catId: string }>();
+{
+  const usedSlugs = new Set<string>();
+  for (const cat of CATALOG) {
+    for (const doc of cat.documents) {
+      let base = slugify(doc.name) || "shablon";
+      let slug = base;
+      let i = 2;
+      while (usedSlugs.has(slug)) slug = `${base}-${i++}`;
+      usedSlugs.add(slug);
+      slugByDoc.set(`${cat.id}::${doc.name}`, slug);
+      docsBySlug.set(slug, { name: doc.name, slug, catId: cat.id });
+    }
+  }
+}
+
 for (const cat of CATALOG) {
+  // Pool of sibling slugs in same category for "related" links.
+  const siblings = cat.documents
+    .map((d) => ({ name: d.name, slug: slugByDoc.get(`${cat.id}::${d.name}`)! }))
+    .filter(Boolean);
+
   for (const doc of cat.documents) {
-    let base = slugify(doc.name);
-    if (!base) base = "shablon";
-    let slug = base;
-    let i = 2;
-    while (used.has(slug)) slug = `${base}-${i++}`;
-    used.add(slug);
+    const slug = slugByDoc.get(`${cat.id}::${doc.name}`)!;
 
     const ai = TEMPLATE_CONTENT[slug];
     const intro = ai?.intro ?? doc.purpose;
@@ -300,6 +348,10 @@ for (const cat of CATALOG) {
       { q: "Задължителна ли е писмената форма?", a: "ЗЗД допуска и устни договори, но писмената форма е силно препоръчителна за доказване." },
       { q: "Колко струва услугата?", a: "Безплатно за първия документ. Pro абонамент дава неограничен брой договори." },
     ];
+    const usageCases: string[] = Array.isArray(ai?.usageCases) ? ai.usageCases : [];
+    const mistakes: string[] = Array.isArray(ai?.mistakes) ? ai.mistakes : [];
+    // Pick up to 6 sibling templates as related, excluding self.
+    const related = siblings.filter((s) => s.slug !== slug).slice(0, 6);
 
     const articleLd = {
       "@context": "https://schema.org",
@@ -317,7 +369,7 @@ for (const cat of CATALOG) {
       itemListElement: [
         { "@type": "ListItem", position: 1, name: "Начало", item: `${SITE}/` },
         { "@type": "ListItem", position: 2, name: "Каталог", item: `${SITE}/catalog` },
-        { "@type": "ListItem", position: 3, name: cat.title, item: `${SITE}/catalog#${cat.id}` },
+        { "@type": "ListItem", position: 3, name: cat.title, item: `${SITE}/kategoria/${cat.id}` },
         { "@type": "ListItem", position: 4, name: doc.name, item: `${SITE}/shablon/${slug}` },
       ],
     };
@@ -335,12 +387,64 @@ for (const cat of CATALOG) {
       path: `/shablon/${slug}`,
       title: `${doc.name} — образец на български | Dogovori.net`,
       description: (intro.length > 155 ? intro.slice(0, 152) + "…" : intro),
-      bodyHtml: bodyForTemplate(doc.name, intro, requirements, faq),
+      bodyHtml: bodyForTemplate(doc.name, intro, requirements, faq, usageCases, mistakes, related, cat.title, cat.id),
       jsonLd: [breadcrumbsLd, articleLd, faqLd],
       type: "article",
     });
   }
 }
+
+// /sektor/* — sector landing pages. Mirror /kategoria SSG so the 13 sectors
+// stop being orphan client-only routes invisible to crawlers.
+for (const sector of SECTORS) {
+  const sectorCats = CATALOG.filter((c) => c.sectorId === sector.id);
+  const totalSectorDocs = sectorCats.reduce((sum, c) => sum + c.documents.length, 0);
+  const sectorBreadcrumbs = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Начало", item: `${SITE}/` },
+      { "@type": "ListItem", position: 2, name: "Каталог", item: `${SITE}/catalog` },
+      { "@type": "ListItem", position: 3, name: sector.title, item: `${SITE}/sektor/${sector.id}` },
+    ],
+  };
+  const sectorCollection = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `${sector.title} — договори и шаблони`,
+    description: sector.description || sector.subtitle,
+    inLanguage: "bg-BG",
+    url: `${SITE}/sektor/${sector.id}`,
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: totalSectorDocs,
+      itemListElement: sectorCats.slice(0, 30).map((c, idx) => ({
+        "@type": "ListItem",
+        position: idx + 1,
+        url: `${SITE}/kategoria/${c.id}`,
+        name: c.title,
+      })),
+    },
+  };
+  pages.push({
+    path: `/sektor/${sector.id}`,
+    title: `${sector.title} — договори, шаблони и документи | Dogovori.net`,
+    description: (sector.description || sector.subtitle || `Готови договори и документи за сектор ${sector.title} — съобразени с българското право.`).slice(0, 160),
+    bodyHtml: `<main style="font-family:Georgia,serif;max-width:900px;margin:2rem auto;padding:1rem;color:#0f1a30">
+      <nav><a href="/">Начало</a> › <a href="/catalog">Каталог</a> › ${escapeHtml(sector.title)}</nav>
+      <h1>${escapeHtml(sector.title)}</h1>
+      <p>${escapeHtml(sector.subtitle || "")}</p>
+      <p>${escapeHtml(sector.description || `В сектор „${sector.title}" сме събрали готови договори и документи, съобразени с действащото българско законодателство — ЗЗД, ТЗ, КТ, ЗЗП. Общо ${totalSectorDocs} шаблона, разпределени в ${sectorCats.length} категории.`)}</p>
+      <h2>Категории в сектора (${sectorCats.length})</h2>
+      <ul>${sectorCats.map((c) => `<li><a href="/kategoria/${c.id}">${escapeHtml(c.title)}</a> — ${c.documents.length} шаблона</li>`).join("")}</ul>
+      <h2>Популярни шаблони</h2>
+      <ul>${sectorCats.flatMap((c) => c.documents.slice(0, 4).map((d) => `<li><a href="/shablon/${slugByDoc.get(`${c.id}::${d.name}`)}">${escapeHtml(d.name)}</a></li>`)).slice(0, 20).join("")}</ul>
+      <p><a href="/catalog">← Обратно към каталога</a> · <a href="/karta">Карта на сайта</a></p>
+    </main>`,
+    jsonLd: [sectorBreadcrumbs, sectorCollection],
+  });
+}
+
 
 let n = 0;
 for (const p of pages) {

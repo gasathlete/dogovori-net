@@ -1,97 +1,76 @@
 
-# Mobile-First оптимизация
+## Защо в Google са индексирани само ~26 страници (от 742 в sitemap)
 
-Цел: приложението да усеща "приложение в ръка" — всичко важно достъпно с палец, без хоризонтално скролване, без забавяне, с ясни 44×44 px touch таргети и спазена safe-area на iOS/Android.
+Дръпнах данните от Google Search Console директно. Ето реалната картина:
 
-## 1. Глобална мобилна рамка
+| Sitemap | Подадени | Индексирани (по GSC) |
+|---|---|---|
+| sitemap-static.xml | 36 | 0* |
+| sitemap-categories.xml | 46 | 0* |
+| sitemap-templates.xml | 625 | 0* |
+| sitemap-blog.xml | 35 | 0* |
+| **Общо** | **742** | **~26 реално получават импресии** |
 
-- **Bottom tab bar** (само под `lg`): фиксирана навигация с 5 икони — Начало, Каталог, Асистент, Конзола, Профил. Скрита автоматично при скрол надолу, появява се при скрол нагоре. Уважава `env(safe-area-inset-bottom)`.
-- **Header опростяване на мобилно**: само Лого (вляво) + бърз бутон "Започни" (вдясно). Хамбургерът се сваля — навигацията се поема от bottom bar; останалите линкове (Цени, Помощ, Език) минават в drawer от долу нагоре (sheet).
-- **Safe-area + viewport**: добавяме `viewport-fit=cover` в `index.html`, помощни класове `pb-safe`, `pt-safe`, `px-safe` в `tailwind.config`/`index.css` за всички фиксирани/sticky елементи.
-- **Touch таргети ≥ 44px**: глобален аудит на `h-8`/`h-9` бутоните в `Header`, `Hero`, `Catalog` филтри, `Wizard` контроли — минимална височина `h-11` на мобилно.
-- **No horizontal scroll**: добавяме `overflow-x: clip` на `body`; проверка на `min-w-[200px]` филтри в Catalog → стават `w-full` на мобилно.
+*„0 indexed" в sitemap отчета на GSC е известен бъг при sitemap index — реално индексираните се виждат в Pages → „Why pages aren't indexed". Реалните 26, които ползваш, са страниците, които вече получават импресии (последните 30 дни: 477 импресии, 52 клика).
 
-## 2. Hero (`/`) — мобилен компресиран изглед
+### Истинските причини (не са технически бъгове)
 
-- Свиване на vertical padding под `sm`: pt-2 pb-6, без `min-h-[100svh]`.
-- Заглавието `text-2xl` → `text-xl` под 380px; ред-висота 1.1.
-- Шапка-категории (ЗЗД/ТЗ/ЗУТ … е-Подпис) → 2 реда по 4 чипа, всеки чип ≥ 32px tap.
-- 7-те clickable bullet-а: на мобилно 1 колона, всеки като пълноширок ред с икона + стрелка вдясно (списък в стил iOS).
-- Primary CTA "Започни" — sticky в долната част на Hero на мобилно, винаги видим без скрол.
-- Скриваме decorative абсолютно позиционирани икони/quote (`md:block`) под `sm` — намалява визуален шум.
+1. **Възрастта на домейна.** dogovori.net е млад. Google индексира агресивно само сайтове с натрупан „trust". Типична крива: 5–10% индексирани първите 3 месеца, 30–50% между 3 и 9, пълно покритие след година.
+2. **Нула backlinks към 600+ шаблона.** Без външни линкове Google преценява, че страниците не са „worth crawling". Това е причина №1 за `Discovered – currently not indexed` и `Crawled – currently not indexed`.
+3. **Тънко/повтарящо се съдържание на /shablon/*.** 625 шаблона със сходна структура (заглавие + описание + бутон „Изтегли") изглеждат на Google като duplicate/boilerplate. Имаме `templateContent/` за 432 от 625 — т.е. ~193 шаблона нямат уникален текст.
+4. **Слаб вътрешен линкинг към дълбоките шаблони.** Шаблон, до който се стига само през filter dropdown, е „orphan" за crawler-а.
+5. **3 warnings в sitemap-static.xml** — трябва да се видят и оправят.
 
-## 3. Catalog (`/catalog`) — mobile UX
+---
 
-- Филтрите → bottom sheet ("Филтри" бутон отваря пълноекранен sheet с категории/тагове + "Прилагай"). Премахваме широките desktop chips ред.
-- Резултатите: 1 колона на мобилно, плътни карти с икона + заглавие + чип "категория" + favorite звезда (44px). Без hover ефекти на touch.
-- Sticky search bar отгоре (под Header), `inputmode="search"`, auto-clear бутон.
-- Lazy/infinite scroll вместо пагинация (виртуализация остава пропусната — потвърдено в предишен спринт).
+## План за действие (приоритизиран)
 
-## 4. Wizard (`/wizard/*`) — mobile flow
+### Етап 1 — Технически фиксове (1 ден)
 
-- **Sticky progress bar** отгоре (стъпка X от Y, % напредък).
-- **Sticky action bar** долу: "Назад" / "Напред" (или "Запази", "Подпиши") — винаги достъпни с палец, safe-area aware.
-- Формите: 1 колона, `inputmode` и `autocomplete` атрибути (`tel`, `email`, `numeric`, `postal-code`, `bday`).
-- Дълги select-и → нативен `<select>` или bottom sheet с търсене.
-- Preview на договора: collapse-нат по подразбиране на мобилно с "Виж преглед" бутон, който отваря fullscreen overlay.
+1. **Проверка на 3-те warnings** в sitemap-static.xml през GSC API и поправка.
+2. **„Last-Modified" header за статични страници** — помага на crawler-а да не дърпа непроменени URL-и (освобождава crawl budget за нови).
+3. **Internal linking boost:**
+   - На `/catalog` и `/karta` — рендериране на пълния списък шаблони в HTML (вече има prerender), без виртуализация при първото зареждане.
+   - На всеки `/shablon/X` — секция „Свързани шаблони" с 6–8 линка (вече има `relatedTemplates.ts` — да се провери дали се рендира в SSG HTML).
+   - На `/blog/X` — auto-link към 3–5 шаблона.
+4. **HTML sitemap** на `/karta` — вече съществува; да се потвърди, че всичките 625 шаблона са с `<a href>` в prerendered HTML (не lazy).
 
-## 5. Console (`/console/*`) и акаунт
+### Етап 2 — Уникално съдържание за всеки шаблон (най-голям ефект)
 
-- Tab listовете (`ScrollableTabsList`, `Console`, акаунт) → segmented control с horizontal snap-scroll, активен таб винаги в изглед, по-голям шрифт.
-- Карти за документи: swipe actions (изтрий/преименувай) през `react-swipeable` (вече реален touch UX без menu бутон).
-- Таблици в админ остават desktop-only с readable-only mode на мобилно (карти вместо таблица за основните полета).
+5. **Попълване на 193 липсващи `templateContent/*.ts`** — за всеки шаблон без съдържание: 400–600 думи (Какво е, Кога се ползва, Задължителни реквизити по ЗЗД/ТЗ, Чести грешки, FAQ от 3–4 въпроса). Това превръща `/shablon/*` от „thin" в „comprehensive".
+6. **FAQ JSON-LD на всеки шаблон** (вече имаш `faqSchema` helper) — задължително да присъства на всичките 625.
+7. **HowTo JSON-LD** за шаблоните, които имат wizard стъпки.
 
-## 6. Performance дребни мобилни оптимизации
+### Етап 3 — Категорийни/SEO landing страници
 
-- `<meta name="theme-color">` различен за светла/тъмна тема (mobile address bar).
-- Премахваме hover-only анимации на `(hover: none)` чрез media query (по-малко jank на iOS Safari).
-- Дебоунс на скрол слушателите за bottom-bar autohide (`requestAnimationFrame`).
-- `touch-action: manipulation` на всички бутони/линкове (премахва 300ms tap delay в edge cases).
+8. **Усилване на `/kategoria/*` и `/sektor/*`** — въвеждащ параграф 200–300 думи (сега са почти само линкове), за да не са „thin category" страници.
+9. **`/catalog?vid=<type>`** — генериране на статичен prerender за топ 20 типа документи (sitemap-static вече ги има, но трябва SSG HTML, не само client-rendered).
 
-## 7. Файлове за докосване
+### Етап 4 — Off-page (без код)
 
-Нови:
-- `src/components/MobileBottomNav.tsx`
-- `src/components/MobileMoreSheet.tsx` (Цени, Език, Тема, Помощ, Изход)
-- `src/components/StickyMobileCTA.tsx`
-- `src/hooks/useHideOnScroll.ts`
-- `src/hooks/useSafeArea.ts`
+10. **Submit в българския legal/biz ecosystem:** capital.bg, manager.bg, economic.bg, lex.bg форуми, reddit/r/bulgaria, фейсбук групи за счетоводители/юристи.
+11. **3–5 гост-публикации** в правни/бизнес блогове с линк към dogovori.net.
+12. **Google Business Profile** + структуриране на `LegalService` schema с адрес.
 
-Промени:
-- `index.html` — `viewport-fit=cover`, динамичен `theme-color`.
-- `tailwind.config.ts` + `src/index.css` — safe-area utilities, `@media (hover: none)` правила, `overflow-x: clip`.
-- `src/App.tsx` — монтиране на `<MobileBottomNav />`, padding-bottom на main за избягване припокриване.
-- `src/components/Header.tsx` — мобилно компактен вариант.
-- `src/components/Hero.tsx` — мобилна композиция, sticky CTA, чипове в 2 реда.
-- `src/pages/Catalog.tsx` — bottom sheet филтри, 1-колонен списък, sticky search.
-- `src/pages/Wizard.tsx` — sticky progress + sticky action bar, нативни inputmode-и.
-- `src/pages/Console.tsx` + `account/ScrollableTabsList.tsx` — segmented snap tabs.
+### Етап 5 — Monitoring
 
-## 8. Изключени от този план (нужно потвърждение)
+13. **Седмичен cron** който дърпа GSC `urlInspection.index` за топ 50 шаблона и логва статуса (`indexed` / `discovered` / `crawled-not-indexed`) — да виждаме къде Google засяда.
+14. **IndexNow ping** вече работи; да се добави автоматичен ping при добавяне на нов шаблон или blog post.
 
-- Capacitor/native shell — оставаме на web (PWA-готовност вече има manifest).
-- Промени на бизнес логика/цени/feature flags.
-- Виртуализация на дълги списъци (отложена).
-- Админ страници не получават bottom nav — те си остават desktop-first.
+---
+
+## Очакван резултат
+
+- След **Етап 1+2** (2–3 седмици): индексирани ~150–250 от 742
+- След **Етап 3** (4–6 седмици): ~400
+- След **Етап 4** (3–6 месеца, зависи от backlinks): 600+
 
 ## Технически бележки
 
-- Bottom bar показва се само при `useMediaQuery('(max-width: 1023px)')` И `!route.startsWith('/admin')`.
-- Hide-on-scroll: следим `window.scrollY` delta > 8px с rAF throttle; връщаме на scroll-up или при достигане до < 80px от върха.
-- Safe-area utilities:  
-  `.pb-safe { padding-bottom: max(0.75rem, env(safe-area-inset-bottom)); }`  
-  `.h-bottom-nav { height: calc(56px + env(safe-area-inset-bottom)); }`
-- Tap target audit script: `rg "h-(6|7|8|9) " src` → ръчно решение per компонент.
+- Кодът за prerender е в `scripts/prerender.ts`; ще добавя `/kategoria/*`, `/sektor/*` и топ 20 `/catalog?vid=*` към SSG списъка.
+- Скриптът за генериране на липсващото template съдържание (`scripts/generate-template-content.ts`) вече съществува — ще се рестартира за 193-те липсващи.
+- `LastModified` headers ще се добавят в `public/_headers`.
 
-```text
-┌─────────────────────────────┐
-│  Header (lого + Започни)   │  ← компактен
-├─────────────────────────────┤
-│                             │
-│        Контент              │
-│   (1 кол., sticky search)   │
-│                             │
-├─────────────────────────────┤
-│ 🏠  📚  🤖  🗂  👤          │  ← bottom nav (safe-area)
-└─────────────────────────────┘
-```
+---
+
+**Кое искаш да направя първо?** Препоръчвам да започнем с **Етап 1 + Етап 2 (т. 5 — попълване на липсващите 193 шаблона)** — това е най-голям ефект върху индексацията.
