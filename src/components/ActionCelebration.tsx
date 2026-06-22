@@ -67,8 +67,19 @@ export function ActionCelebrationHost() {
 
   useEffect(() => {
     setStateExternal = setState;
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      setStateExternal?.({
+        open: true,
+        variant: (detail.variant as CelebrationVariant) || "download",
+        title: detail.title,
+        nextSteps: detail.nextSteps,
+      });
+    };
+    window.addEventListener("dogovari:op-completed", handler as EventListener);
     return () => {
       setStateExternal = null;
+      window.removeEventListener("dogovari:op-completed", handler as EventListener);
     };
   }, []);
 
