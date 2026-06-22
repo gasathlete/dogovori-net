@@ -12,6 +12,7 @@ import { ToolsMenu } from "@/components/calculators/ToolsMenu";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useFreeJourneyStage } from "@/hooks/useFreeJourneyStage";
 import { trackEvent } from "@/lib/analytics";
+import { prefetchHandlers } from "@/lib/routePrefetch";
 import { Crown } from "lucide-react";
 
 
@@ -86,6 +87,7 @@ export function Header() {
                 key={n.to}
                 to={n.to}
                 onClick={(e) => handleNav(n.to, e)}
+                {...prefetchHandlers(n.to)}
                 className={cn(
                   "group relative whitespace-nowrap text-[13px] font-medium tracking-wide transition-colors",
                   active
@@ -141,6 +143,7 @@ export function Header() {
           {user ? (
             <Link
               to="/account"
+              {...prefetchHandlers("/account")}
               aria-label={unreadCount > 0 ? `Профил (${unreadCount} непрочетени известия)` : "Профил"}
               className="relative inline-flex h-10 items-center gap-2 rounded-lg border border-gold/30 bg-gold/[0.08] px-4 text-[13px] font-semibold tracking-wide text-gold backdrop-blur-sm transition-all hover:border-gold/50 hover:bg-gold/15 hover:shadow-[0_0_12px_hsl(var(--gold)/0.12)]"
             >
@@ -156,6 +159,7 @@ export function Header() {
           ) : (
             <Link
               to="/auth"
+              {...prefetchHandlers("/auth")}
               aria-label="Влезте"
               className="inline-flex h-10 items-center gap-2 rounded-lg bg-gradient-to-b from-gold/90 to-gold/70 px-5 text-[13px] font-bold tracking-wide text-navy shadow-[0_0_16px_hsl(var(--gold)/0.25)] transition-[filter,box-shadow] hover:brightness-110 hover:shadow-[0_0_24px_hsl(var(--gold)/0.35)]"
             >
