@@ -332,7 +332,36 @@ Deno.serve(async (req) => {
 
     const standardModel = activePrompt.model || MODEL_STANDARD;
     const premiumModel = activePrompt.premiumModel || MODEL_PREMIUM;
-    const chatModel = isEntrepreneur ? premiumModel : standardModel;
+
+    // Smart cost-aware router: escalate to premium only when needed.
+    // Settings live in ai_simulation_settings (single row).
+    let routerEnabled = true;
+    let longTurnsThreshold = 6;
+    let modelPrices: Record<string, { in: number; out: number }> = {};
+    try {
+      const { data: settings } = await admin
+        .from("ai_simulation_settings" as any)
+        .select("router_enabled, router_long_turns_threshold, model_prices")
+        .eq("id", true)
+        .maybeSingle();
+      if (settings) {
+        routerEnabled = (settings as any).router_enabled !== false;
+        longTurnsThreshold = (settings as any).router_long_turns_threshold ?? 6;
+        modelPrices = ((settings as any).model_prices ?? {}) as any;
+      }
+    } catch (_) { /* defaults */ }
+
+    const userTurnCount = safeMessages.filter((m: any) => m.role === "user").length;
+    const isHighRisk = chatClassification.risk_level === "high";
+    const isLongConvo = userTurnCount >= longTurnsThreshold;
+    const shouldEscalate = routerEnabled && (isHighRisk || isLongConvo);
+    const chatModel = isEntrepreneur || shouldEscalate ? premiumModel : standardModel;
+    const routerReason = isEntrepreneur
+      ? "plan:entrepreneur"
+      : shouldEscalate
+        ? (isHighRisk ? "risk:high" : `long_convo:${userTurnCount}`)
+        : "default:flash";
+    console.log(`[router] model=${chatModel} reason=${routerReason}`);
     const tools = toolSchemasFor(FULL_TOOL_NAMES);
 
     // Build conversation
@@ -549,6 +578,21 @@ Deno.serve(async (req) => {
             status: lastModelStatus === 200 ? "ok" : "error",
             error_code: lastModelStatus === 200 ? undefined : `http_${lastModelStatus}`,
           });
+
+          // Cost estimation (chars/4 ≈ tokens) → ai_usage with cost_eur for live dashboard.
+          try {
+            const inputChars = convo.reduce((a, m) => a + String(m.content || "").length, 0);
+            const outputChars = fullAssistantText.length;
+            const tIn = Math.ceil(inputChars / 4);
+            const tOut = Math.ceil(outputChars / 4);
+            const price = modelPrices[chatModel];
+            const costEur = price ? +(((tIn / 1000) * price.in) + ((tOut / 1000) * price.out)).toFixed(6) : null;
+            await admin.from("ai_usage").insert({
+              user_id: userId, function_name: "assistant-chat",
+              model: chatModel, tokens_in: tIn, tokens_out: tOut, cost_eur: costEur,
+            });
+          } catch (e) { console.warn("ai_usage cost insert failed", e); }
+
           controller.close();
         }
       },

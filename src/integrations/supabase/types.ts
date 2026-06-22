@@ -411,6 +411,39 @@ export type Database = {
           },
         ]
       }
+      ai_simulation_settings: {
+        Row: {
+          id: boolean
+          max_cost_multiplier: number
+          model_prices: Json
+          router_enabled: boolean
+          router_long_turns_threshold: number
+          rubric_min_uplift_pct: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: boolean
+          max_cost_multiplier?: number
+          model_prices?: Json
+          router_enabled?: boolean
+          router_long_turns_threshold?: number
+          rubric_min_uplift_pct?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: boolean
+          max_cost_multiplier?: number
+          model_prices?: Json
+          router_enabled?: boolean
+          router_long_turns_threshold?: number
+          rubric_min_uplift_pct?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ai_simulation_turns: {
         Row: {
           created_at: string
@@ -505,24 +538,36 @@ export type Database = {
       }
       ai_usage: {
         Row: {
+          cost_eur: number | null
           created_at: string
           function_name: string
           id: string
           ip_hash: string | null
+          model: string | null
+          tokens_in: number | null
+          tokens_out: number | null
           user_id: string | null
         }
         Insert: {
+          cost_eur?: number | null
           created_at?: string
           function_name: string
           id?: string
           ip_hash?: string | null
+          model?: string | null
+          tokens_in?: number | null
+          tokens_out?: number | null
           user_id?: string | null
         }
         Update: {
+          cost_eur?: number | null
           created_at?: string
           function_name?: string
           id?: string
           ip_hash?: string | null
+          model?: string | null
+          tokens_in?: number | null
+          tokens_out?: number | null
           user_id?: string | null
         }
         Relationships: []
