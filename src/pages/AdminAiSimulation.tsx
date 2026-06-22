@@ -693,16 +693,19 @@ function PatchesTab() {
       if (!resp.ok) throw new Error(result?.error || `regression failed (${resp.status})`);
       const passed = Boolean(result.passed);
       const delta = result.delta;
+      const uplift = result.uplift_pct;
+      const justified = result.upgrade_justified;
       await (supabase.from("ai_simulation_patches" as any) as any).update({
         status: passed ? "applied" : "rejected",
         applied_prompt_id: passed ? draftId : null,
         decided_by: userId, decided_at: new Date().toISOString(),
         regression_result: result, regression_passed: passed,
       }).eq("id", p.id);
+      const justifiedStr = justified === null ? "" : justified ? " · 🟢 upgrade оправдан" : " · 🔴 upgrade НЕ е оправдан";
       if (passed) {
-        toast.success(`✅ Регресия мина (Δ=${delta}). Draft v${nextVersion} готов за активиране в "AI обучение".`);
+        toast.success(`✅ Регресия мина (Δ=${delta}, +${uplift ?? 0}%)${justifiedStr}. Draft v${nextVersion} готов.`);
       } else {
-        toast.error(`❌ Регресия провалена (Δ=${delta}). Draft създаден но патчът е отхвърлен.`);
+        toast.error(`❌ Регресия провалена (Δ=${delta}, +${uplift ?? 0}%)${justifiedStr}. Patch отхвърлен.`);
       }
       load();
     } catch (e) {
