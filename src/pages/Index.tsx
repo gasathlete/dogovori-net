@@ -61,10 +61,33 @@ const Index = () => {
     navigate("/catalog");
   };
 
+  // ItemList JSON-LD is built asynchronously after first paint so we never
+  // ship the 260KB catalog JSON in the landing entry chunk.
+  const [slugMap, setSlugMap] = useState<Map<string, string> | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const idle =
+      (window as any).requestIdleCallback ??
+      ((cb: () => void) => setTimeout(cb, 600));
+    const handle = idle(async () => {
+      const { allTemplates } = await import("@/lib/templateIndex");
+      if (cancelled) return;
+      setSlugMap(new Map(allTemplates().map((t) => [t.doc.name, t.slug])));
+    }, { timeout: 4000 });
+    return () => {
+      cancelled = true;
+      const cic = (window as any).cancelIdleCallback;
+      if (cic) cic(handle);
+      else clearTimeout(handle as any);
+    };
+  }, []);
+
   const jsonLd = useMemo(() => {
+    const base: Record<string, unknown>[] = [buildFaqJsonLd()];
+    if (!slugMap) return base;
     const items = FEATURED_BLANKS
       .map((b, i) => {
-        const slug = SLUG_BY_NAME.get(b.docName);
+        const slug = slugMap.get(b.docName);
         if (!slug) return null;
         return {
           "@type": "ListItem",
@@ -80,8 +103,8 @@ const Index = () => {
       name: "Избрани от Договори нет — Топ 5 най-търсени бланки",
       itemListElement: items,
     };
-    return [itemList, buildFaqJsonLd()];
-  }, []);
+    return [itemList, ...base];
+  }, [slugMap]);
 
   return (
     <div className="min-h-dvh">
