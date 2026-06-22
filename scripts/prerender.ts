@@ -119,19 +119,33 @@ function writeRoute(meta: PageMeta) {
   writeFileSync(out, renderPage(meta), "utf8");
 }
 
-function bodyForTemplate(name: string, intro: string, requirements: string[], faq: { q: string; a: string }[]): string {
+function bodyForTemplate(
+  name: string,
+  intro: string,
+  requirements: string[],
+  faq: { q: string; a: string }[],
+  usageCases: string[] = [],
+  mistakes: string[] = [],
+  related: { name: string; slug: string }[] = [],
+  categoryTitle: string = "",
+  categoryId: string = "",
+): string {
   return `
     <main style="font-family:Georgia,serif;max-width:800px;margin:2rem auto;padding:1rem;color:#0f1a30">
-      <nav><a href="/">Начало</a> › <a href="/catalog">Каталог</a> › ${escapeHtml(name)}</nav>
+      <nav><a href="/">Начало</a> › <a href="/catalog">Каталог</a>${categoryId ? ` › <a href="/kategoria/${categoryId}">${escapeHtml(categoryTitle)}</a>` : ""} › ${escapeHtml(name)}</nav>
       <h1>${escapeHtml(name)}</h1>
       <p>${escapeHtml(intro)}</p>
+      ${usageCases.length ? `<h2>Кога се използва</h2><ul>${usageCases.map((u) => `<li>${escapeHtml(u)}</li>`).join("")}</ul>` : ""}
       <h2>Задължителни реквизити</h2>
       <ul>${requirements.map((r) => `<li>${escapeHtml(r)}</li>`).join("")}</ul>
+      ${mistakes.length ? `<h2>Чести грешки</h2><ul>${mistakes.map((m) => `<li>${escapeHtml(m)}</li>`).join("")}</ul>` : ""}
       <h2>Често задавани въпроси</h2>
       ${faq.map((f) => `<section><h3>${escapeHtml(f.q)}</h3><p>${escapeHtml(f.a)}</p></section>`).join("")}
-      <p><a href="/catalog">Виж всички шаблони</a></p>
+      ${related.length ? `<h2>Свързани шаблони</h2><ul>${related.map((r) => `<li><a href="/shablon/${r.slug}">${escapeHtml(r.name)}</a></li>`).join("")}</ul>` : ""}
+      <p><a href="/catalog">Виж всички шаблони</a>${categoryId ? ` · <a href="/kategoria/${categoryId}">Още от категория „${escapeHtml(categoryTitle)}"</a>` : ""} · <a href="/karta">Карта на сайта</a></p>
     </main>`;
 }
+
 
 const pages: PageMeta[] = [];
 
