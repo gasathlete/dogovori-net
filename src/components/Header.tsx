@@ -56,14 +56,18 @@ export function Header() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 border-b transition-colors duration-300",
+        "sticky top-0 z-40 transition-all duration-300",
         scrolled
-          ? "border-gold/15 bg-background shadow-soft"
-          : "border-border/40 bg-background",
+          ? "supports-[backdrop-filter]:bg-background/70 bg-background/95 backdrop-blur-xl border-b border-gold/15 shadow-soft"
+          : "border-b border-border/40 bg-background",
       )}
     >
 
-      <div className="container flex h-14 items-center justify-between gap-2 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-4">
+      <div className={cn(
+        "container flex items-center justify-between gap-2 transition-[height] duration-300 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-4",
+        scrolled ? "h-12" : "h-14",
+      )}>
+
         {/* Brand */}
         <div className="flex min-w-0 items-center justify-self-start">
           <Link

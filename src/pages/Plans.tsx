@@ -100,14 +100,14 @@ export default function Plans() {
             <div
               role="tablist"
               aria-label="Период на фактуриране"
-              className="inline-flex items-center gap-1 rounded-full border border-hairline bg-card/80 p-1 backdrop-blur-md"
+              className="relative inline-flex items-center gap-0 rounded-full border border-hairline bg-card/80 p-1 backdrop-blur-md shadow-soft"
             >
               <button
                 role="tab"
                 aria-selected={billing === "monthly"}
                 onClick={() => setBilling("monthly")}
                 className={cn(
-                  "rounded-full px-5 py-2 text-sm font-medium transition-all",
+                  "relative z-10 rounded-full px-6 py-2 text-sm font-medium transition-all duration-300",
                   billing === "monthly"
                     ? "bg-gradient-gold text-navy shadow-gold"
                     : "text-muted-foreground hover:text-foreground",
@@ -120,19 +120,23 @@ export default function Plans() {
                 aria-selected={billing === "yearly"}
                 onClick={() => setBilling("yearly")}
                 className={cn(
-                  "relative rounded-full px-5 py-2 text-sm font-medium transition-all",
+                  "relative z-10 inline-flex items-center gap-2 rounded-full px-6 py-2 text-sm font-medium transition-all duration-300",
                   billing === "yearly"
                     ? "bg-gradient-gold text-navy shadow-gold"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 Годишно
-                <span className="ml-2 inline-flex rounded-full bg-gold/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gold">
+                <span className={cn(
+                  "inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors",
+                  billing === "yearly" ? "bg-navy/15 text-navy" : "bg-gold/15 text-gold",
+                )}>
                   −17%
                 </span>
               </button>
             </div>
           </div>
+
         </section>
 
         <section className="relative z-10 mx-auto max-w-7xl px-4 pb-12 sm:pb-16">
