@@ -3,6 +3,7 @@ import App from "./App.tsx";
 import "./fonts.ts";
 import "./index.css";
 import "./i18n";
+import { initWebVitalsReporter } from "./lib/webVitalsReporter";
 
 // Strip prerendered JSON-LD blocks before React/Helmet mounts its own copies.
 // Without this, /shablon, /kategoria, /ai, /karta etc. would emit duplicate
@@ -13,3 +14,6 @@ document
   .forEach((el) => el.remove());
 
 createRoot(document.getElementById("root")!).render(<App />);
+
+// Collect Web Vitals on every route — non-blocking, fires on idle.
+initWebVitalsReporter();
