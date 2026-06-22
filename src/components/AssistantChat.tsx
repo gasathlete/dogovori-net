@@ -205,15 +205,38 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     return () => { cancelled = true; };
   }, [activeThreadId]);
 
-  // Auto-scroll
+  // Smart auto-scroll: only follow the bottom if the user is already near the
+  // bottom. Otherwise leave their scroll position alone so they can read
+  // older messages while a new response streams in (Lovable-style).
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, streamingText]);
+    const el = scrollRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const nearBottom = distanceFromBottom < 120;
+    if (nearBottom) {
+      el.scrollTo({ top: el.scrollHeight, behavior: streaming ? "auto" : "smooth" });
+    }
+  }, [messages, streamingText, streaming]);
 
-  // Auto-focus textarea
+  // Auto-resize the textarea up to its max-height as the user types.
   useEffect(() => {
-    if (!streaming) textareaRef.current?.focus();
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = "auto";
+    ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
+  }, [input]);
+
+  // Auto-focus textarea — but NOT on touch devices, where focusing the
+  // textarea pops the on-screen keyboard the moment the chat opens and
+  // pushes the page around. On desktop we keep the snappy keyboard-first
+  // behavior.
+  useEffect(() => {
+    if (streaming) return;
+    const isTouch = typeof window !== "undefined"
+      && (window.matchMedia?.("(hover: none)").matches || "ontouchstart" in window);
+    if (!isTouch) textareaRef.current?.focus();
   }, [streaming, activeThreadId]);
+
 
   const handleNewThread = () => {
     setPersistedActiveThreadId(null);
