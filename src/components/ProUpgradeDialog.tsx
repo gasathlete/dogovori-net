@@ -50,12 +50,12 @@ const TRIGGER_COPY: Record<
   ops_exhausted: {
     title: "Изчерпа безплатните операции за месеца",
     description: () =>
-      "Безплатно: 5 операции при регистрация + 2/месец. 1 съобщение в DogovaryAI = 1 операция. Предприемач дава 100 операции/мес.",
+      "Безплатно: 5 операции при регистрация + 2/месец. 1 съобщение в DogovaryAI = 1 операция. Професионалист дава 50 операции/мес. за 12.90 €, Предприемач — 120 операции/мес. за 19.90 €.",
   },
   ai_limit: {
     title: "Достигна лимита на AI Асистента",
     description: () =>
-      "1 съобщение = 1 операция. Предприемач: 100 операции/мес; Екип: 100/потребител/мес.",
+      "1 съобщение = 1 операция. Професионалист: 50/мес.; Предприемач: 120/мес. + GPT-5; Екип: 100/място/мес.",
   },
   bilingual: {
     title: "Отключи пълните двуезични договори",
@@ -75,18 +75,18 @@ const TRIGGER_COPY: Record<
   generic: {
     title: "Платен план",
     description: () =>
-      "100 операции/мес., неограничен AI Асистент (1 съобщение = 1 операция), двуезични договори и комплекти.",
+      "От 50 до 120 операции/мес., неограничен AI Асистент (1 съобщение = 1 операция), двуезични договори и комплекти.",
   },
 
 };
 
 const FEATURES = [
-  { icon: Zap, label: "100 операции / месец (1 съобщение = 1 операция)" },
-  { icon: Sparkles, label: "Пълен достъп до AI Асистента" },
+  { icon: Zap, label: "50–120 операции / месец (1 съобщение = 1 операция)" },
+  { icon: Sparkles, label: "Неограничен AI Асистент + GPT-5 (Предприемач)" },
   { icon: Crown, label: "Двуезични договори (EN / DE / FR)" },
-  { icon: Check, label: "Неограничени комплекти документи" },
+  { icon: Check, label: "Неограничени комплекти документи и корекции" },
   { icon: Check, label: "Без воден знак на PDF" },
-  { icon: Check, label: "Екип: мин. 3 места · 10.90 €/място/месец" },
+  { icon: Check, label: "Екип: мин. 3 места · 109 €/място/година" },
 ];
 
 export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props) {
@@ -149,14 +149,14 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
             onClick={() => goToBilling("entrepreneur", "monthly")}
             className="w-full bg-gradient-gold text-navy hover:shadow-gold"
           >
-            Предприемач — 12.90 € / месец (100 операции)
+            Предприемач — 19.90 € / месец (120 операции + GPT-5)
           </Button>
           <Button
             onClick={() => goToBilling("professional", "monthly")}
             variant="outline"
             className="w-full border-gold/40 hover:bg-gold/10 hover:text-gold"
           >
-            Екип — 10.90 € / място / месец (мин. 3 места · 100 ops/място)
+            Професионалист — 12.90 € / месец (50 операции)
           </Button>
         </div>
 
