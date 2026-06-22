@@ -196,13 +196,6 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={(e) => { e.preventDefault(); scrollToHash("process"); }}
-              className="story-link text-xs uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold"
-            >
-              Виж демо ↓
-            </button>
           </div>
 
           <p
