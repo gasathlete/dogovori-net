@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 
 export interface TopupPack {
-  priceId: "topup_10" | "topup_20" | "topup_50" | "topup_100";
+  priceId: "topup_5" | "topup_20" | "topup_50" | "topup_100";
   ops: number;
   priceEur: string;
   perOp: string;
@@ -15,7 +15,7 @@ export interface TopupPack {
 }
 
 export const TOPUP_PACKS: TopupPack[] = [
-  { priceId: "topup_10", ops: 10, priceEur: "2.90 €", perOp: "0.29 €/оп.", icon: Plus },
+  { priceId: "topup_5", ops: 5, priceEur: "2.90 €", perOp: "0.58 €/оп.", icon: Plus },
   { priceId: "topup_20", ops: 20, priceEur: "5.40 €", perOp: "0.27 €/оп.", icon: Zap },
   { priceId: "topup_50", ops: 50, priceEur: "12.90 €", perOp: "0.258 €/оп.", icon: Sparkles, badge: "Най-избиран" },
   { priceId: "topup_100", ops: 100, priceEur: "23.90 €", perOp: "0.239 €/оп.", icon: Rocket, badge: "Най-изгоден" },

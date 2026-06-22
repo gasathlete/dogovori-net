@@ -1,76 +1,87 @@
 
-## Защо в Google са индексирани само ~26 страници (от 742 в sitemap)
+# Pricing sweep + Engagement loop
 
-Дръпнах данните от Google Search Console директно. Ето реалната картина:
+## 1. Pricing — единни стойности навсякъде
 
-| Sitemap | Подадени | Индексирани (по GSC) |
-|---|---|---|
-| sitemap-static.xml | 36 | 0* |
-| sitemap-categories.xml | 46 | 0* |
-| sitemap-templates.xml | 625 | 0* |
-| sitemap-blog.xml | 35 | 0* |
-| **Общо** | **742** | **~26 реално получават импресии** |
+Канонични цени (DB вече е чист — sync-ваме само кода и Stripe):
 
-*„0 indexed" в sitemap отчета на GSC е известен бъг при sitemap index — реално индексираните се виждат в Pages → „Why pages aren't indexed". Реалните 26, които ползваш, са страниците, които вече получават импресии (последните 30 дни: 477 импресии, 52 клика).
+| План | Месечно | Годишно | Ops/мес |
+|---|---|---|---|
+| Free | 0 | 0 | 5 при регистрация + 2/мес |
+| Професионалист | 12.90 € | 129 € | 50 |
+| Предприемач | 19.90 € | 199 € | 120 (GPT-5, Premium 24/7) |
+| Екип | — | 109 €/seat/год (min 3 = 327 €/год) | 100/seat |
 
-### Истинските причини (не са технически бъгове)
+Top-up пакети (само за абонати):
+- **Нов:** `topup_5` — 5 ops / 2.90 € (0.58 €/оп.) — иконка `Plus`
+- `topup_20` — 5.40 €, `topup_50` — 12.90 € (Най-избиран), `topup_100` — 23.90 € (Най-изгоден)
+- `topup_10` се **деактивира** в Stripe и премахва от UI
 
-1. **Възрастта на домейна.** dogovori.net е млад. Google индексира агресивно само сайтове с натрупан „trust". Типична крива: 5–10% индексирани първите 3 месеца, 30–50% между 3 и 9, пълно покритие след година.
-2. **Нула backlinks към 600+ шаблона.** Без външни линкове Google преценява, че страниците не са „worth crawling". Това е причина №1 за `Discovered – currently not indexed` и `Crawled – currently not indexed`.
-3. **Тънко/повтарящо се съдържание на /shablon/*.** 625 шаблона със сходна структура (заглавие + описание + бутон „Изтегли") изглеждат на Google като duplicate/boilerplate. Имаме `templateContent/` за 432 от 625 — т.е. ~193 шаблона нямат уникален текст.
-4. **Слаб вътрешен линкинг към дълбоките шаблони.** Шаблон, до който се стига само през filter dropdown, е „orphan" за crawler-а.
-5. **3 warnings в sitemap-static.xml** — трябва да се видят и оправят.
+## 2. Файлове за обновяване
 
----
+**Frontend pricing copy / caps**
+- `src/lib/plansData.ts` — FAQ: премахни „10 оп. — 2.90 €" ред, оправи разликата Проф/Предпр, цени.
+- `src/data/faqItems.ts` — sweep на цените.
+- `src/components/TopupPacks.tsx` — добави `topup_5` най-отпред; премахни `topup_10`.
+- `src/components/AssistantPaywall.tsx` — копи: „5 безплатни + 2/мес.", „Предприемач: 120 операции/мес.".
+- `src/components/ProUpgradeDialog.tsx` — всички 100→според плана (Проф 50, Предпр 120, Екип 100/seat).
+- `src/components/ProConversionToast.tsx`, `src/components/PainSolution.tsx`, `src/components/Hero.tsx` — sync копи.
+- `src/pages/Plans.tsx`, `src/pages/Team.tsx`, `src/pages/account/SubscriptionTab.tsx` — sync статични числа.
+- `src/pages/Template.tsx`, `src/pages/legal/Terms.tsx` — pricing mentions.
+- `src/lib/seo/schemas.ts`, `src/lib/jsonLd.ts` — Product/Offer JSON-LD цени.
+- `src/hooks/useIsPro.tsx` — `opsCap` per tier (Free=2 mo + 5 first month bonus от `signup_at`; Проф=50; Предпр=120; Екип=100). Чете `priceId` за tier resolution (вече има).
+- `src/lib/planTier.ts` — `OPS_CAP` вече e чист, остава.
 
-## План за действие (приоритизиран)
+**Stripe**
+- `payments--create_price` за `topup_5` (290 cents EUR, one-time, qty 1/1, product `topup_pack` или нов `topup_5_pack`).
+- Архивирай `topup_10` (ако е възможно), иначе само skip в UI.
+- Провери yearly цени за professional/entrepreneur (`professional_yearly` = 12900, `entrepreneur_yearly` = 19900). Team yearly per-seat = 10900.
 
-### Етап 1 — Технически фиксове (1 ден)
+**Backend / edge functions**
+- `supabase/functions/payments-webhook/index.ts` — добави `topup_5: 5` в ops-credit мапа; sync price IDs.
+- `supabase/functions/assistant-chat/index.ts` — sync copy за лимити в system prompts.
 
-1. **Проверка на 3-те warnings** в sitemap-static.xml през GSC API и поправка.
-2. **„Last-Modified" header за статични страници** — помага на crawler-а да не дърпа непроменени URL-и (освобождава crawl budget за нови).
-3. **Internal linking boost:**
-   - На `/catalog` и `/karta` — рендериране на пълния списък шаблони в HTML (вече има prerender), без виртуализация при първото зареждане.
-   - На всеки `/shablon/X` — секция „Свързани шаблони" с 6–8 линка (вече има `relatedTemplates.ts` — да се провери дали се рендира в SSG HTML).
-   - На `/blog/X` — auto-link към 3–5 шаблона.
-4. **HTML sitemap** на `/karta` — вече съществува; да се потвърди, че всичките 625 шаблона са с `<a href>` в prerendered HTML (не lazy).
+**Email templates** — `payment-receipt.tsx`, `payment-failed.tsx`: премахни остарели цени.
 
-### Етап 2 — Уникално съдържание за всеки шаблон (най-голям ефект)
+**Templates seed copy** (`src/data/templateDrafts/*`, blog posts) — само там, където цени се споменават в маркетинг блокове, не в самите шаблонни договори (договорите остават legal text). Audit per-file.
 
-5. **Попълване на 193 липсващи `templateContent/*.ts`** — за всеки шаблон без съдържание: 400–600 думи (Какво е, Кога се ползва, Задължителни реквизити по ЗЗД/ТЗ, Чести грешки, FAQ от 3–4 въпроса). Това превръща `/shablon/*` от „thin" в „comprehensive".
-6. **FAQ JSON-LD на всеки шаблон** (вече имаш `faqSchema` helper) — задължително да присъства на всичките 625.
-7. **HowTo JSON-LD** за шаблоните, които имат wizard стъпки.
+**Calculator** `predizvestie-kt.ts` — pricing mention в meta/cta само.
 
-### Етап 3 — Категорийни/SEO landing страници
+## 3. Engagement loop (Lovable-style)
 
-8. **Усилване на `/kategoria/*` и `/sektor/*`** — въвеждащ параграф 200–300 думи (сега са почти само линкове), за да не са „thin category" страници.
-9. **`/catalog?vid=<type>`** — генериране на статичен prerender за топ 20 типа документи (sitemap-static вече ги има, но трябва SSG HTML, не само client-rendered).
+### 3a. Streak + дневен прогрес
+- Нова таблица `user_engagement` (user_id PK, current_streak int, longest_streak int, last_active_date date, daily_goal int default 1, daily_progress int, updated_at).
+- Edge function-less: update в client при всяко успешно op (download/template/upload/AI message) чрез RPC `bump_engagement(p_user uuid)` (SECURITY DEFINER) — increment streak ако `last_active_date = today-1`, reset ако по-старо, no-op ако today.
+- UI компонент `<StreakBadge />` в header (desktop) + `<DailyProgressRing />` в `MobileBottomNav` около профил иконата. При достигане на дневна цел → confetti toast „Streak: N дни!".
 
-### Етап 4 — Off-page (без код)
+### 3b. Контекстни upgrade nudges
+- Refactor `ProConversionToast` → `useContextualNudge()` hook.
+- Триггери:
+  - 1-ва op: toast „Първият договор отнема под 2 мин ⚡" (без upgrade).
+  - 2-ра op: chip „Спести ~4 ч/мес с Професионалист — 12.90 €" (soft, persistent 5s).
+  - Последна op преди cap: dialog с ROI калкулатор „При 50 договора/мес → 12.90 € вместо 80+ €/час адвокат".
+  - Cap reached: `ProUpgradeDialog` с динамичен trigger.
+- Tracker: localStorage `nudge_history_v2` за honor frequency caps (max 1/ден от същия trigger).
 
-10. **Submit в българския legal/biz ecosystem:** capital.bg, manager.bg, economic.bg, lex.bg форуми, reddit/r/bulgaria, фейсбук групи за счетоводители/юристи.
-11. **3–5 гост-публикации** в правни/бизнес блогове с линк към dogovori.net.
-12. **Google Business Profile** + структуриране на `LegalService` schema с адрес.
+### 3c. Empty-state suggestions
+- Нов компонент `<SmartSuggestions context="assistant"|"catalog"|"home" />`.
+- Източник: последни 5 reci_assistant_threads + последни 5 saved_documents + top-3 от relatedTemplates.
+- Render: 3 хоризонтално-скролируеми карти с икона + 1-line CTA. На /assistant заменя placeholder-а в празен чат. На /catalog показва се над grid-а ако `templates_viewed_count = 0`.
+- Server-light: query през съществуващи tables; ако няма история → fallback на curated „first-time" set от 6 шаблона (договор за изработка, NDA, наем, трудов, фактура, пълномощно).
 
-### Етап 5 — Monitoring
+### 3d. Post-action celebration
+- Нов компонент `<ActionCelebration variant="download"|"analyze"|"sign" onNext />`.
+- Trigger след `downloadDocument`, `analyzeContract`, успешен sign.
+- Съдържа:
+  - 2 sec animated checkmark + count-up за общо изработени документи (от `download_quota.monthly_total_used` cumulative).
+  - „Какво следва?" CTA — 2 препоръчани next-step карти (напр. след наем → депозитна разписка + опис на инвентар). Източник: `src/data/relatedTemplates.ts`.
+  - Опционално „Сподели" бутон (clipboard линк към шаблона).
+- Honors `prefers-reduced-motion`.
 
-13. **Седмичен cron** който дърпа GSC `urlInspection.index` за топ 50 шаблона и логва статуса (`indexed` / `discovered` / `crawled-not-indexed`) — да виждаме къде Google засяда.
-14. **IndexNow ping** вече работи; да се добави автоматичен ping при добавяне на нов шаблон или blog post.
+## 4. Тестове / проверка
+- `npm run test` за `pricing.test.ts` и `quota.test.ts` (update fixtures за нови caps).
+- Visual check: /pricing, /, /assistant (paywall), /account?tab=billing (top-ups), /account?tab=subscription.
+- Stripe sandbox: тестов checkout за `topup_5`, `professional_monthly`, `entrepreneur_yearly`, `team_yearly` (qty=3).
 
----
-
-## Очакван резултат
-
-- След **Етап 1+2** (2–3 седмици): индексирани ~150–250 от 742
-- След **Етап 3** (4–6 седмици): ~400
-- След **Етап 4** (3–6 месеца, зависи от backlinks): 600+
-
-## Технически бележки
-
-- Кодът за prerender е в `scripts/prerender.ts`; ще добавя `/kategoria/*`, `/sektor/*` и топ 20 `/catalog?vid=*` към SSG списъка.
-- Скриптът за генериране на липсващото template съдържание (`scripts/generate-template-content.ts`) вече съществува — ще се рестартира за 193-те липсващи.
-- `LastModified` headers ще се добавят в `public/_headers`.
-
----
-
-**Кое искаш да направя първо?** Препоръчвам да започнем с **Етап 1 + Етап 2 (т. 5 — попълване на липсващите 193 шаблона)** — това е най-голям ефект върху индексацията.
+## 5. Памет
+- Update `mem://index.md` Core с новите top-up пакети (5/2.90 + 20/50/100, без 10).

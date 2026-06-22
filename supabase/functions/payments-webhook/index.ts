@@ -157,7 +157,7 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
       const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10, expand: ["data.price"] });
       let bonus = 0;
       const topupMap: Record<string, number> = {
-        topup_10: 10, topup_20: 20, topup_50: 50, topup_100: 100,
+        topup_5: 5, topup_10: 10, topup_20: 20, topup_50: 50, topup_100: 100,
       };
       for (const li of items.data) {
         const price: any = (li as any).price;

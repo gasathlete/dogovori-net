@@ -18,10 +18,10 @@ export function AssistantPaywall() {
         </p>
         <ul className="mb-6 space-y-2 text-left text-sm text-muted-foreground">
           {[
-            "1 съобщение = 1 операция (10 безплатни/мес. за регистрирани)",
+            "1 съобщение = 1 операция (5 при регистрация + 2/мес. безплатно)",
             "Помощ с попълване на шаблони и клаузи",
             "Общи насоки по ЗЗД, ТЗ, КТ, СК, ЗУТ, GDPR",
-            "Платен план: 100 операции/мес.",
+            "Професионалист 12.90 €/мес. — 50 операции · Предприемач 19.90 €/мес. — 120 + GPT-5",
           ].map((f) => (
             <li key={f} className="flex items-start gap-2">
               <Check className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
