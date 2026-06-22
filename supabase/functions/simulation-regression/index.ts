@@ -174,12 +174,42 @@ Deno.serve(async (req) => {
     const baseline = baselinePrompt ? await runSide(baselinePrompt) : null;
 
     const delta = baseline ? Math.round((candidate.overall - baseline.overall) * 100) / 100 : null;
+    const upliftPct = baseline && baseline.overall > 0
+      ? Math.round(((candidate.overall - baseline.overall) / baseline.overall) * 1000) / 10
+      : null;
     const passed = delta === null ? true : delta >= thresholdDelta;
+
+    // Cost-justification: compare candidate vs baseline model cost using ai_simulation_settings.
+    const { data: settings } = await sb
+      .from("ai_simulation_settings")
+      .select("rubric_min_uplift_pct, max_cost_multiplier, model_prices")
+      .eq("id", true)
+      .maybeSingle();
+    const minUpliftPct = Number((settings as any)?.rubric_min_uplift_pct ?? 15);
+    const maxCostMul = Number((settings as any)?.max_cost_multiplier ?? 2);
+    const prices = ((settings as any)?.model_prices ?? {}) as Record<string, { in: number; out: number }>;
+    const candidateModel = body.dogovaryModel || dogovaryModel;
+    const baselineModel = candidateModel; // same model on both sides unless caller overrides
+    const cPrice = prices[candidateModel];
+    const bPrice = prices[baselineModel];
+    const candidateCostPerCall = cPrice ? cPrice.in * 2 + cPrice.out * 1 : null; // proxy: 2k in + 1k out
+    const baselineCostPerCall = bPrice ? bPrice.in * 2 + bPrice.out * 1 : null;
+    const costMultiplier = candidateCostPerCall && baselineCostPerCall ? +(candidateCostPerCall / baselineCostPerCall).toFixed(2) : 1;
+    const upgradeJustified = upliftPct === null
+      ? null
+      : (upliftPct >= minUpliftPct && costMultiplier <= maxCostMul);
 
     return new Response(JSON.stringify({
       passed,
       delta,
+      uplift_pct: upliftPct,
       threshold: thresholdDelta,
+      min_uplift_pct: minUpliftPct,
+      max_cost_multiplier: maxCostMul,
+      cost_multiplier: costMultiplier,
+      candidate_cost_per_call_eur: candidateCostPerCall,
+      baseline_cost_per_call_eur: baselineCostPerCall,
+      upgrade_justified: upgradeJustified,
       candidate,
       baseline,
       scenariosCount: scenarios.length,
