@@ -136,11 +136,13 @@ export default function AdminAiSimulation() {
               <TabsTrigger value="history">История</TabsTrigger>
               <TabsTrigger value="patches">Patch-ове</TabsTrigger>
               <TabsTrigger value="scenarios">Сценарии</TabsTrigger>
+              <TabsTrigger value="settings">Настройки & Cost</TabsTrigger>
             </TabsList>
             <TabsContent value="run"><RunTab /></TabsContent>
             <TabsContent value="history"><HistoryTab /></TabsContent>
             <TabsContent value="patches"><PatchesTab /></TabsContent>
             <TabsContent value="scenarios"><ScenariosTab /></TabsContent>
+            <TabsContent value="settings"><SettingsTab /></TabsContent>
           </Tabs>
         </div>
       </div>
