@@ -15,7 +15,7 @@ import { writeFileSync, readdirSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { CATALOG, TOP_DOCUMENTS } from "../src/data/catalog";
 import { SECTORS } from "../src/data/sectors";
-import { DOCUMENT_TYPES } from "../src/lib/documentReferences";
+
 import { slugify } from "../src/lib/slugify";
 import { CALCULATORS } from "../src/data/calculators";
 
