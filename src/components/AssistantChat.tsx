@@ -682,8 +682,12 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
           )}
         </div>
 
-        {/* Composer */}
-        <form onSubmit={handleSubmit} className="border-t border-border/40 p-3">
+        {/* Composer — sticky-bottom on mobile, sits above iOS safe area.
+            Textarea uses 16px base font so iOS Safari doesn't auto-zoom on focus. */}
+        <form
+          onSubmit={handleSubmit}
+          className="shrink-0 border-t border-border/40 p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]"
+        >
           <div className={cn(
             "relative rounded-2xl border bg-background/60 transition-all focus-within:border-gold/50 focus-within:ring-2 focus-within:ring-gold/15",
             negotiationMode ? "border-gold/40 bg-gold/[0.03]" : "border-border/50",
@@ -697,8 +701,13 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 placeholder={negotiationMode ? "Опиши условията за преговори..." : "Задайте правен въпрос"}
                 rows={1}
                 disabled={streaming}
-                className="min-h-[52px] max-h-[160px] resize-none border-0 bg-transparent px-3.5 py-3 pr-[88px] text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                enterKeyHint="send"
+                autoCorrect="on"
+                autoCapitalize="sentences"
+                className="min-h-[52px] max-h-[160px] resize-none border-0 bg-transparent px-3.5 py-3 pr-[88px] text-base sm:text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                style={{ fontSize: "16px" }}
               />
+
               {/* Inline attach + send — scoped to textarea only, no overlap with toggle bar */}
               <div className="absolute right-2 bottom-2 flex items-center gap-1">
                 <button
