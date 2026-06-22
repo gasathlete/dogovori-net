@@ -621,7 +621,12 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
         </div>
 
         {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5">
+        <div
+          ref={scrollRef}
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-5"
+          style={{ WebkitOverflowScrolling: "touch" as any, overscrollBehavior: "contain" }}
+        >
+
           {isEmpty ? (
             <div className="flex h-full flex-col items-center justify-center">
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-gold/20 to-gold/5 ring-1 ring-gold/20">
