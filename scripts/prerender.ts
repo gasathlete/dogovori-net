@@ -8,7 +8,7 @@
 //
 // Runs after `vite build`.
 
-import { writeFileSync, readFileSync, mkdirSync, existsSync } from "node:fs";
+import { writeFileSync, readFileSync, mkdirSync, existsSync, readdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { CATALOG } from "../src/data/catalog";
 import { SECTORS } from "../src/data/sectors";
@@ -32,14 +32,32 @@ if (!existsSync(`${DIST}/index.html`)) {
 
 const baseHtml = readFileSync(`${DIST}/index.html`, "utf8");
 
-// Try to load AI-generated rich content if available
-let TEMPLATE_CONTENT: Record<string, any> = {};
+// Load AI-generated rich content per template slug.
+// Source of truth: src/data/templateContent/<slug>.ts — each file exports a
+// `const content: TemplateContent = { ... };` object literal. We parse the
+// JSON object out of each file with a regex (no TS runtime at build time).
+// Without this, /shablon/* SSG pages had no intro/FAQ/requirements and were
+// treated as thin/duplicate content by Google.
+const TEMPLATE_CONTENT: Record<string, any> = {};
 try {
-  const raw = readFileSync(resolve(process.cwd(), "src/data/templateContent.ts"), "utf8");
-  const m = raw.match(/= (\{[\s\S]*\}) as const;/);
-  if (m) TEMPLATE_CONTENT = JSON.parse(m[1]);
-} catch {
-  // optional
+  const dir = resolve(process.cwd(), "src/data/templateContent");
+  if (existsSync(dir)) {
+    const files = readdirSync(dir).filter((f) => f.endsWith(".ts"));
+    for (const f of files) {
+      try {
+        const raw = readFileSync(resolve(dir, f), "utf8");
+        const m = raw.match(/content\s*:\s*TemplateContent\s*=\s*(\{[\s\S]*?\});\s*\n+\s*export\s+default/);
+        if (m) {
+          TEMPLATE_CONTENT[f.replace(/\.ts$/, "")] = JSON.parse(m[1]);
+        }
+      } catch {
+        // skip a broken file rather than failing the whole build
+      }
+    }
+    console.log(`✓ Loaded TEMPLATE_CONTENT for ${Object.keys(TEMPLATE_CONTENT).length} templates`);
+  }
+} catch (e) {
+  console.warn(`⚠ Could not load templateContent dir:`, (e as Error).message);
 }
 
 interface PageMeta {
