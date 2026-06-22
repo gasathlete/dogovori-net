@@ -578,6 +578,21 @@ Deno.serve(async (req) => {
             status: lastModelStatus === 200 ? "ok" : "error",
             error_code: lastModelStatus === 200 ? undefined : `http_${lastModelStatus}`,
           });
+
+          // Cost estimation (chars/4 ≈ tokens) → ai_usage with cost_eur for live dashboard.
+          try {
+            const inputChars = convo.reduce((a, m) => a + String(m.content || "").length, 0);
+            const outputChars = fullAssistantText.length;
+            const tIn = Math.ceil(inputChars / 4);
+            const tOut = Math.ceil(outputChars / 4);
+            const price = modelPrices[chatModel];
+            const costEur = price ? +(((tIn / 1000) * price.in) + ((tOut / 1000) * price.out)).toFixed(6) : null;
+            await admin.from("ai_usage").insert({
+              user_id: userId, function_name: "assistant-chat",
+              model: chatModel, tokens_in: tIn, tokens_out: tOut, cost_eur: costEur,
+            });
+          } catch (e) { console.warn("ai_usage cost insert failed", e); }
+
           controller.close();
         }
       },
