@@ -55,13 +55,12 @@ const staticEntries: Entry[] = [
   { loc: "/privacy", changefreq: "yearly", priority: "0.3", lastmod: fileMtime("src/pages/Privacy.tsx") },
   { loc: "/cookies", changefreq: "yearly", priority: "0.3", lastmod: fileMtime("src/pages/Cookies.tsx") },
   { loc: "/refund", changefreq: "yearly", priority: "0.3", lastmod: fileMtime("src/pages/Refund.tsx") },
-  // /catalog?vid=<type> — one entry per document type for SEO landing.
-  ...DOCUMENT_TYPES.map<Entry>((d) => ({
-    loc: `/catalog?vid=${d.id}`,
-    changefreq: "weekly",
-    priority: "0.8",
-    lastmod: catalogDate,
-  })),
+  // NOTE: /catalog?vid=<type> was previously listed here, but query-string
+  // URLs are filtered/deduped by Google ("Alternate page with proper canonical
+  // tag") and produced 3 warnings on sitemap-static.xml. The same browse
+  // intent is served by /kategoria/* and the per-template /shablon/* pages,
+  // both fully SSG-prerendered.
+
   // /tools/<slug> — calculator detail pages.
   ...CALCULATORS.map<Entry>((c) => ({
     loc: `/tools/${c.slug}`,
