@@ -711,6 +711,34 @@
   }
 }
 
+/* ─── Mobile-first utilities ─────────────────────────────────────── */
+html, body { overflow-x: clip; }
+
+/* Safe-area helpers (iOS notch / Android gesture bar) */
+.pb-safe   { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
+.pt-safe   { padding-top:    max(0.5rem, env(safe-area-inset-top)); }
+.pl-safe   { padding-left:   max(0.5rem, env(safe-area-inset-left)); }
+.pr-safe   { padding-right:  max(0.5rem, env(safe-area-inset-right)); }
+.mb-safe   { margin-bottom:  env(safe-area-inset-bottom); }
+
+/* Reserve space at the bottom of the page so MobileBottomNav (h-14 + safe-area)
+   never covers content. Active only below `lg` breakpoint. */
+@media (max-width: 1023px) {
+  body { padding-bottom: calc(3.5rem + env(safe-area-inset-bottom)); }
+}
+
+/* Remove hover-only effects on touch devices — they cause "sticky hover"
+   on iOS Safari and feel laggy. */
+@media (hover: none) {
+  .hover\:-translate-y-0\.5:hover { transform: none !important; }
+  .hover\:shadow-gold:hover       { box-shadow: var(--shadow-soft) !important; }
+}
+
+/* Faster taps — eliminate 300ms delay on legacy mobile browsers */
+button, a, [role="button"], input[type="submit"], input[type="button"] {
+  touch-action: manipulation;
+}
+
 /* Hero "Комплекти" bullet → pulse the LifeScenarios section briefly */
 @keyframes hero-kits-pulse-anim {
   0%, 100% { box-shadow: 0 0 0 0 hsl(var(--gold) / 0); }
