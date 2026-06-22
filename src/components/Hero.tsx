@@ -58,7 +58,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
         <svg
           key={cls}
           aria-hidden="true"
-          className={`pointer-events-none absolute h-10 w-10 text-gold/40 ${cls}`}
+          className={`pointer-events-none absolute hidden h-10 w-10 text-gold/40 sm:block ${cls}`}
         >
           <use href="#hero-corner" />
         </svg>
@@ -266,7 +266,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           <button
             type="button"
             onClick={openCommand}
-            className="anim-rise mt-3 inline-flex items-center gap-2 rounded-full border border-gold/25 bg-card/40 px-3 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-gold/50 hover:text-gold"
+            className="anim-rise mt-3 hidden items-center gap-2 rounded-full border border-gold/25 bg-card/40 px-3 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-gold/50 hover:text-gold sm:inline-flex"
             style={{ animationDelay: "260ms" }}
             aria-label="Отвори бързо търсене"
           >
