@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, BookOpen, Bot, FileText, User as UserIcon, X } from "lucide-react";
+import { Home, BookOpen, FileText, User as UserIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
@@ -8,11 +8,12 @@ import { useHideOnScroll } from "@/hooks/useHideOnScroll";
 import { prefetchHandlers } from "@/lib/routePrefetch";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { AssistantChat } from "@/components/AssistantChat";
+import logoImg from "@/assets/logo-dogovori.webp";
 
 type Item = {
   to?: string;
   label: string;
-  icon: typeof Home;
+  icon?: typeof Home;
   match: (path: string) => boolean;
   action?: "ai";
 };
@@ -26,7 +27,7 @@ const ITEMS: Item[] = [
     match: (p) => p.startsWith("/catalog") || p.startsWith("/kategoria") || p.startsWith("/shablon"),
   },
   { to: "/build", label: "Изготви", icon: FileText, match: (p) => p.startsWith("/build") || p.startsWith("/wizard") },
-  { label: "AI", icon: Bot, match: () => false, action: "ai" },
+  { label: "DogovaryAI", match: () => false, action: "ai" },
   {
     to: "/account",
     label: "Профил",
@@ -34,6 +35,7 @@ const ITEMS: Item[] = [
     match: (p) => p.startsWith("/account") || p.startsWith("/auth"),
   },
 ];
+
 
 export function MobileBottomNav() {
   const location = useLocation();
