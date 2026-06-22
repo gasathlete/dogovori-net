@@ -205,15 +205,38 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     return () => { cancelled = true; };
   }, [activeThreadId]);
 
-  // Auto-scroll
+  // Smart auto-scroll: only follow the bottom if the user is already near the
+  // bottom. Otherwise leave their scroll position alone so they can read
+  // older messages while a new response streams in (Lovable-style).
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, streamingText]);
+    const el = scrollRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const nearBottom = distanceFromBottom < 120;
+    if (nearBottom) {
+      el.scrollTo({ top: el.scrollHeight, behavior: streaming ? "auto" : "smooth" });
+    }
+  }, [messages, streamingText, streaming]);
 
-  // Auto-focus textarea
+  // Auto-resize the textarea up to its max-height as the user types.
   useEffect(() => {
-    if (!streaming) textareaRef.current?.focus();
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = "auto";
+    ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
+  }, [input]);
+
+  // Auto-focus textarea — but NOT on touch devices, where focusing the
+  // textarea pops the on-screen keyboard the moment the chat opens and
+  // pushes the page around. On desktop we keep the snappy keyboard-first
+  // behavior.
+  useEffect(() => {
+    if (streaming) return;
+    const isTouch = typeof window !== "undefined"
+      && (window.matchMedia?.("(hover: none)").matches || "ontouchstart" in window);
+    if (!isTouch) textareaRef.current?.focus();
   }, [streaming, activeThreadId]);
+
 
   const handleNewThread = () => {
     setPersistedActiveThreadId(null);
@@ -598,7 +621,12 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
         </div>
 
         {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5">
+        <div
+          ref={scrollRef}
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-5"
+          style={{ WebkitOverflowScrolling: "touch" as any, overscrollBehavior: "contain" }}
+        >
+
           {isEmpty ? (
             <div className="flex h-full flex-col items-center justify-center">
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-gold/20 to-gold/5 ring-1 ring-gold/20">
@@ -654,8 +682,12 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
           )}
         </div>
 
-        {/* Composer */}
-        <form onSubmit={handleSubmit} className="border-t border-border/40 p-3">
+        {/* Composer — sticky-bottom on mobile, sits above iOS safe area.
+            Textarea uses 16px base font so iOS Safari doesn't auto-zoom on focus. */}
+        <form
+          onSubmit={handleSubmit}
+          className="shrink-0 border-t border-border/40 p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]"
+        >
           <div className={cn(
             "relative rounded-2xl border bg-background/60 transition-all focus-within:border-gold/50 focus-within:ring-2 focus-within:ring-gold/15",
             negotiationMode ? "border-gold/40 bg-gold/[0.03]" : "border-border/50",
@@ -669,8 +701,13 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 placeholder={negotiationMode ? "Опиши условията за преговори..." : "Задайте правен въпрос"}
                 rows={1}
                 disabled={streaming}
-                className="min-h-[52px] max-h-[160px] resize-none border-0 bg-transparent px-3.5 py-3 pr-[88px] text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                enterKeyHint="send"
+                autoCorrect="on"
+                autoCapitalize="sentences"
+                className="min-h-[52px] max-h-[160px] resize-none border-0 bg-transparent px-3.5 py-3 pr-[88px] text-base sm:text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                style={{ fontSize: "16px" }}
               />
+
               {/* Inline attach + send — scoped to textarea only, no overlap with toggle bar */}
               <div className="absolute right-2 bottom-2 flex items-center gap-1">
                 <button

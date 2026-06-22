@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, BookOpen, Bot, FileText, User as UserIcon, X } from "lucide-react";
+import { Home, BookOpen, FileText, User as UserIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
@@ -8,11 +8,12 @@ import { useHideOnScroll } from "@/hooks/useHideOnScroll";
 import { prefetchHandlers } from "@/lib/routePrefetch";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { AssistantChat } from "@/components/AssistantChat";
+import logoImg from "@/assets/logo-dogovori.webp";
 
 type Item = {
   to?: string;
   label: string;
-  icon: typeof Home;
+  icon?: typeof Home;
   match: (path: string) => boolean;
   action?: "ai";
 };
@@ -26,7 +27,7 @@ const ITEMS: Item[] = [
     match: (p) => p.startsWith("/catalog") || p.startsWith("/kategoria") || p.startsWith("/shablon"),
   },
   { to: "/build", label: "Изготви", icon: FileText, match: (p) => p.startsWith("/build") || p.startsWith("/wizard") },
-  { label: "AI", icon: Bot, match: () => false, action: "ai" },
+  { label: "DogovaryAI", match: () => false, action: "ai" },
   {
     to: "/account",
     label: "Профил",
@@ -34,6 +35,7 @@ const ITEMS: Item[] = [
     match: (p) => p.startsWith("/account") || p.startsWith("/auth"),
   },
 ];
+
 
 export function MobileBottomNav() {
   const location = useLocation();
@@ -77,12 +79,20 @@ export function MobileBottomNav() {
                   <button
                     type="button"
                     onClick={() => setAiOpen(true)}
-                    aria-label="Отвори AI асистент"
-                    className="relative flex h-14 w-full flex-col items-center justify-center gap-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-gold/80"
+                    aria-label="Отвори DogovaryAI"
+                    className="relative flex h-14 w-full flex-col items-center justify-center gap-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-gold/80"
                   >
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-b from-gold to-gold/80 text-navy shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.55)]">
-                      <Icon className="h-5 w-5" aria-hidden="true" />
+                    <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-gradient-to-b from-gold to-gold/80 shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.55)] ring-1 ring-gold/40">
+                      <img
+                        src={logoImg}
+                        alt=""
+                        width={28}
+                        height={28}
+                        className="h-7 w-7 object-contain"
+                        aria-hidden="true"
+                      />
                     </span>
+                    <span className="mt-0.5 text-[9px] font-bold tracking-[0.05em] text-gold">DogovaryAI</span>
                   </button>
                 </li>
               );
@@ -102,7 +112,7 @@ export function MobileBottomNav() {
                     active ? "text-gold" : "text-muted-foreground hover:text-gold/80",
                   )}
                 >
-                  <Icon className="h-5 w-5" aria-hidden="true" />
+                  {Icon && <Icon className="h-5 w-5" aria-hidden="true" />}
                   <span>{item.label}</span>
                   {showDot && (
                     <span
@@ -126,13 +136,14 @@ export function MobileBottomNav() {
       <Sheet open={aiOpen} onOpenChange={setAiOpen}>
         <SheetContent
           side="bottom"
-          className="h-[85dvh] max-h-[85dvh] rounded-t-2xl p-0 pb-safe lg:hidden"
+          className="h-[100dvh] max-h-[100dvh] rounded-t-2xl p-0 lg:hidden flex flex-col gap-0"
+          style={{ overscrollBehavior: "contain" }}
         >
-          <div className="flex h-full flex-col">
-            <div className="flex items-center justify-between border-b border-border/50 px-4 py-2.5">
+          <div className="flex h-full min-h-0 flex-col">
+            <div className="flex shrink-0 items-center justify-between border-b border-border/50 px-4 py-2.5 pt-safe">
               <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-b from-gold to-gold/80 text-navy">
-                  <Bot className="h-4 w-4" />
+                <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-gradient-to-b from-gold to-gold/80 ring-1 ring-gold/40">
+                  <img src={logoImg} alt="" width={22} height={22} className="h-5 w-5 object-contain" aria-hidden="true" />
                 </span>
                 <SheetTitle className="text-sm font-semibold">DogovaryAI</SheetTitle>
               </div>
@@ -145,8 +156,8 @@ export function MobileBottomNav() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="flex-1 overflow-hidden">
-              {aiOpen && <AssistantChat threadId={null} onThreadChange={() => {}} />}
+            <div className="flex-1 min-h-0 overflow-hidden">
+              {aiOpen && <AssistantChat threadId={null} onThreadChange={() => {}} embedded compact />}
             </div>
           </div>
         </SheetContent>
@@ -154,3 +165,4 @@ export function MobileBottomNav() {
     </>
   );
 }
+
