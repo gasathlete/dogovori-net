@@ -58,6 +58,9 @@ const DogovAIBubble = reactLazy(() =>
 const MobileBottomNav = reactLazy(() =>
   import("@/components/MobileBottomNav").then((m) => ({ default: m.MobileBottomNav })),
 );
+const ActionCelebrationHost = reactLazy(() =>
+  import("@/components/ActionCelebration").then((m) => ({ default: m.ActionCelebrationHost })),
+);
 // Sentry init is deferred to idle time below — keeps it off the critical path.
 
 // Lazy-load every route except Index (landing page) so the initial bundle stays light.
@@ -331,6 +334,7 @@ const App = () => (
             <CommandPalette />
             <DogovAIBubble />
             <MobileBottomNav />
+            <ActionCelebrationHost />
           </Suspense>
           <Suspense fallback={<RouteFallback />}>
             <AnimatedRoutes />
