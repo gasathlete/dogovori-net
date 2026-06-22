@@ -8,6 +8,7 @@ import { useHideOnScroll } from "@/hooks/useHideOnScroll";
 import { prefetchHandlers } from "@/lib/routePrefetch";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { AssistantChat } from "@/components/AssistantChat";
+import { StreakBadge } from "@/components/StreakBadge";
 const logoImg = "/dogovai-favicon.png";
 
 type Item = {
@@ -112,7 +113,12 @@ export function MobileBottomNav() {
                     active ? "text-gold" : "text-muted-foreground hover:text-gold/80",
                   )}
                 >
-                  {Icon && <Icon className="h-5 w-5" aria-hidden="true" />}
+                  {Icon && (
+                    <span className="relative">
+                      <Icon className="h-5 w-5" aria-hidden="true" />
+                      {item.to === "/account" && user && <StreakBadge variant="mobile" />}
+                    </span>
+                  )}
                   <span>{item.label}</span>
                   {showDot && (
                     <span
