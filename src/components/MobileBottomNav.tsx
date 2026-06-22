@@ -82,13 +82,13 @@ export function MobileBottomNav() {
                     aria-label="Отвори DogovaryAI"
                     className="relative flex h-14 w-full flex-col items-center justify-center gap-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-gold/80"
                   >
-                    <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-gradient-to-b from-gold to-gold/80 shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.55)] ring-1 ring-gold/40">
+                    <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full">
                       <img
                         src={logoImg}
                         alt=""
-                        width={28}
-                        height={28}
-                        className="h-7 w-7 object-contain"
+                        width={36}
+                        height={36}
+                        className="h-9 w-9 rounded-full object-contain"
                         aria-hidden="true"
                       />
                     </span>
