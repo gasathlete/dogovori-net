@@ -8,7 +8,7 @@ import { useHideOnScroll } from "@/hooks/useHideOnScroll";
 import { prefetchHandlers } from "@/lib/routePrefetch";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { AssistantChat } from "@/components/AssistantChat";
-import logoImg from "@/assets/logo-dogovori.webp";
+const logoImg = "/dogovai-favicon.png";
 
 type Item = {
   to?: string;
