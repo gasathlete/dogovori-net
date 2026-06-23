@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Logo } from "./Logo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { revokeCookieConsent } from "@/lib/analytics";
 
 function openCookieSettings() {
@@ -55,15 +56,21 @@ export function Footer() {
           </nav>
         </div>
         <div className="section-divider" />
-        <div className="border-t-0 pt-0 text-center text-[11px] leading-relaxed text-muted-foreground md:text-left">
-          <p>
-            <strong>„Иванов и Милев Пропърти Девелъпмент" ЕООД</strong> · ЕИК 206957326 ·
-            гр. София, ж.к. Стрелбище, бул. България №13, ет. 1, магазин 4 ·
-            <a href="mailto:imdevelopmentoffice@gmail.com" className="ml-1 hover:text-gold">imdevelopmentoffice@gmail.com</a>
-          </p>
-          <p className="mt-2">
-            © {new Date().getFullYear()} Dogovori.net · Изготвените договори са образци, създадени с изкуствен интелект, и не заместват консултация с адвокат.
-          </p>
+        <div className="flex flex-col gap-4 border-t-0 pt-0 text-center text-[11px] leading-relaxed text-muted-foreground md:flex-row md:items-start md:justify-between md:text-left">
+          <div className="flex-1">
+            <p>
+              <strong>„Иванов и Милев Пропърти Девелъпмент" ЕООД</strong> · ЕИК 206957326 ·
+              гр. София, ж.к. Стрелбище, бул. България №13, ет. 1, магазин 4 ·
+              <a href="mailto:imdevelopmentoffice@gmail.com" className="ml-1 hover:text-gold">imdevelopmentoffice@gmail.com</a>
+            </p>
+            <p className="mt-2">
+              © {new Date().getFullYear()} Dogovori.net · Изготвените договори са образци, създадени с изкуствен интелект, и не заместват консултация с адвокат.
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-2 md:justify-end">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">Тема</span>
+            <ThemeToggle />
+          </div>
         </div>
       </div>
     </footer>

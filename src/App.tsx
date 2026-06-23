@@ -52,6 +52,9 @@ const GlobalProUpgradeListener = reactLazy(() =>
 const CommandPalette = reactLazy(() =>
   import("@/components/CommandPalette").then((m) => ({ default: m.CommandPalette })),
 );
+const FloatingCommandTrigger = reactLazy(() =>
+  import("@/components/FloatingCommandTrigger").then((m) => ({ default: m.FloatingCommandTrigger })),
+);
 const DogovAIBubble = reactLazy(() =>
   import("@/components/DogovAIBubble").then((m) => ({ default: m.DogovAIBubble })),
 );
@@ -332,6 +335,7 @@ const App = () => (
             <UsernamePrompt />
             <GlobalProUpgradeListener />
             <CommandPalette />
+            <FloatingCommandTrigger />
             <DogovAIBubble />
             <MobileBottomNav />
             <ActionCelebrationHost />

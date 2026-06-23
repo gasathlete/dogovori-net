@@ -205,10 +205,6 @@ export function Header() {
             <div className="mt-2 border-t border-border/60 pt-2">
               <ToolsMenu variant="mobile" onNavigate={() => setOpen(false)} />
             </div>
-            <div className="mt-2 flex items-center gap-2 border-t border-border/60 pt-3">
-              <ThemeToggle />
-              <span className="text-xs text-muted-foreground">Theme</span>
-            </div>
           </div>
         </nav>
       )}
