@@ -67,6 +67,9 @@ const ActionCelebrationHost = reactLazy(() =>
 const AuthGateModal = reactLazy(() =>
   import("@/components/AuthGateModal").then((m) => ({ default: m.AuthGateModal })),
 );
+const BetaDisclaimerModal = reactLazy(() =>
+  import("@/components/BetaDisclaimerModal").then((m) => ({ default: m.BetaDisclaimerModal })),
+);
 // Sentry init is deferred to idle time below — keeps it off the critical path.
 
 // Lazy-load every route except Index (landing page) so the initial bundle stays light.
