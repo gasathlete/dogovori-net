@@ -141,7 +141,7 @@ export function CookieBanner() {
               Приеми всички
             </Button>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
