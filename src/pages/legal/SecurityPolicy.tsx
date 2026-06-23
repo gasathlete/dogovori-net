@@ -7,7 +7,7 @@ export default function SecurityPolicy() {
       description="Vulnerability Disclosure Policy (VDP) за Dogovori.net съгласно RFC 9116."
       basis={["GDPR чл. 32", "RFC 9116"]}
     >
-      <p className="text-sm text-muted-foreground">Версия: 2026-06-25</p>
+      <p className="text-sm text-muted-foreground">Версия: 2026-09-01</p>
 
       <h2>1. Обхват</h2>
       <p>

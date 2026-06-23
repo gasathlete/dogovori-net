@@ -1,6 +1,6 @@
 # Business Continuity & Disaster Recovery Plan
 
-**Owner:** Owner + DPO  •  **Version:** 2026-06-25  •  **Review:** every 6 months  •  **Drill log:** `/admin/restore-drills` (`tabletop_exercise = true` for tabletop scenarios)
+**Owner:** Owner + DPO  •  **Version:** 2026-09-01  •  **Review:** every 6 months  •  **Drill log:** `/admin/restore-drills` (`tabletop_exercise = true` for tabletop scenarios)
 
 ## Objectives
 - **RTO** (Recovery Time Objective): 4 hours for the customer-facing site, 24 hours for admin tooling.

@@ -1,6 +1,6 @@
 # Personal Data Breach Playbook (GDPR Art. 33–34)
 
-**Owner:** DPO  •  **Version:** 2026-06-25  •  **Tooling:** `/admin/breaches` + `breach_incidents` table
+**Owner:** DPO  •  **Version:** 2026-09-01  •  **Tooling:** `/admin/breaches` + `breach_incidents` table
 
 ## Phase 1 — Detection (T+0)
 Sources: monitoring alerts, support tickets, vendor notification, external researcher (`security.txt`), staff observation.

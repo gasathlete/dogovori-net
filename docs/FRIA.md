@@ -1,6 +1,6 @@
 # Fundamental Rights Impact Assessment (FRIA)
 
-**Reference:** AI Act Art. 27 (voluntary for limited-risk systems)  •  **System:** Dogovori.net  •  **Version:** 2026-06-25  •  **Owner:** DPO  •  **Review:** annual
+**Reference:** AI Act Art. 27 (voluntary for limited-risk systems)  •  **System:** Dogovori.net  •  **Version:** 2026-09-01  •  **Owner:** DPO  •  **Review:** annual
 
 ## 1. Scope of the assessment
 Dogovori.net provides AI-assisted drafting and analysis of Bulgarian civil-law contracts. Although classified as **limited risk** (Art. 50), the platform processes personal data of identifiable individuals and may affect their access to legal services. A voluntary FRIA is maintained.
@@ -71,4 +71,4 @@ After mitigations, residual risk is **acceptable** for a limited-risk system tar
 ## 9. Sign-off
 | Date | Reviewer | Outcome |
 |---|---|---|
-| 2026-06-25 | DPO + Owner | Approved for launch. |
+| 2026-09-01 | DPO + Owner | Approved for launch. |
