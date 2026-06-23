@@ -1,6 +1,6 @@
 # AI Act — Technical Documentation File
 
-**Reference:** Regulation (EU) 2024/1689 (AI Act), Annex IV  •  **System:** Dogovori.net AI assistant  •  **Risk class:** Limited risk (Art. 50) — generative AI subject to transparency obligations  •  **Owner:** DPO  •  **Version:** 2026-06-25  •  **Review:** annual
+**Reference:** Regulation (EU) 2024/1689 (AI Act), Annex IV  •  **System:** Dogovori.net AI assistant  •  **Risk class:** Limited risk (Art. 50) — generative AI subject to transparency obligations  •  **Owner:** DPO  •  **Version:** 2026-09-01  •  **Review:** annual
 
 ## 1. General description (Annex IV §1)
 - **Purpose:** Assist Bulgarian SMEs and consumers in drafting, analysing and correcting civil-law contracts and templates. The AI never produces a *binding legal decision*; output is consultative.
@@ -86,4 +86,4 @@ Not required for limited-risk systems. Will be issued only if classification cha
 ## 14. Change log
 | Date | Change | Author |
 |---|---|---|
-| 2026-06-25 | Initial version, launch baseline. | DPO |
+| 2026-09-01 | Initial version, launch baseline. | DPO |

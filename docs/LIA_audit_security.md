@@ -1,6 +1,6 @@
 # Legitimate Interest Assessment (LIA) — Security & Audit Logging
 
-**Версия:** 2026-06-25  •  **Owner:** DPO  •  **Правно основание:** чл. 6(1)(f) GDPR
+**Версия:** 2026-09-01  •  **Owner:** DPO  •  **Правно основание:** чл. 6(1)(f) GDPR
 
 ## 1. Цел на обработката
 Платформата Dogovori.net поддържа audit и security логове (`audit_log`, `ai_audit_log`, `team_audit_log`, `signing_audit_events`, `restricted_processing_events`, `page_views` с анонимизирани IP), за да:
@@ -59,4 +59,4 @@ LIA се преглежда:
 - При промяна в обхвата на логване;
 - При промяна в правното основание (напр. ново указание на КЗЛД).
 
-Последен преглед: **2026-06-25** (initial). Следващ: **2027-06-25**.
+Последен преглед: **2026-09-01** (initial). Следващ: **2027-09-01**.

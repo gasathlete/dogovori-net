@@ -19,10 +19,10 @@ interface Training {
 }
 
 const REQUIRED_DOCS = [
-  { key: "security_policy", version: "2026-06-25", label: "Security Policy" },
-  { key: "breach_playbook", version: "2026-06-25", label: "Breach Playbook" },
-  { key: "access_policy", version: "2026-06-25", label: "Access Policy" },
-  { key: "ai_act_technical_file", version: "2026-06-25", label: "AI Act Technical File" },
+  { key: "security_policy", version: "2026-09-01", label: "Security Policy" },
+  { key: "breach_playbook", version: "2026-09-01", label: "Breach Playbook" },
+  { key: "access_policy", version: "2026-09-01", label: "Access Policy" },
+  { key: "ai_act_technical_file", version: "2026-09-01", label: "AI Act Technical File" },
 ];
 
 export default function AdminTraining() {
