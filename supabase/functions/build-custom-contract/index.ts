@@ -456,6 +456,7 @@ ${fieldsSection}
     }
 
     const content: string = data.choices?.[0]?.message?.content ?? "";
+    const finishReason: string = data.choices?.[0]?.finish_reason ?? "";
     if (!content || !content.trim()) {
       throw new Error("AI не върна съдържание. Опитайте отново.");
     }
@@ -463,8 +464,11 @@ ${fieldsSection}
     let parsed: { risk: any; contract: any };
     try { parsed = extractJson(content); }
     catch {
-      console.error("JSON parse failed. Content head:", content.slice(0, 800));
-      throw new Error("AI отговорът не може да бъде анализиран като JSON");
+      console.error("JSON parse failed. finish_reason:", finishReason, "Content head:", content.slice(0, 800));
+      const friendly = finishReason === "length"
+        ? "Документът е твърде дълъг и отговорът беше отрязан. Моля опитайте с по-кратко описание или го разделете на части."
+        : "AI отговорът не може да бъде анализиран. Моля опитайте отново.";
+      throw new Error(friendly);
     }
 
     // Unredact AI output so the user sees real names/EGN/IBAN in the final doc.
