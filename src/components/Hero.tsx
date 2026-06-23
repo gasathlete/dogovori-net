@@ -75,7 +75,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
       <div className="container relative w-full pt-3 pb-8 sm:pt-4 sm:pb-10 md:pt-4 md:pb-10 lg:pt-4 lg:pb-8">
         <div className="relative mx-auto max-w-3xl text-center px-0 my-0">
           <div
-            className="anim-rise mx-auto mb-1.5 flex items-center justify-center sm:mb-2"
+            className="anim-rise mx-auto mb-1.5 hidden items-center justify-center sm:mb-2 sm:flex"
             style={{ animationDelay: "0ms" }}
           >
             <div
@@ -122,6 +122,32 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
               )}
             </div>
           </div>
+
+          <h1
+            className="anim-rise mx-auto max-w-3xl font-serif text-[26px] font-bold leading-[1.1] text-balance sm:text-3xl md:text-4xl lg:text-[42px] lg:leading-[1.05]"
+            style={{ animationDelay: "0ms" }}
+          >
+            Договори, които{" "}
+            <em className="not-italic font-serif italic text-gold">намират</em>{" "}
+            Вашите интереси
+          </h1>
+
+          {/* Eyebrow chips — single row, scroll-x on mobile */}
+          <div
+            className="anim-rise mt-2 -mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0"
+            style={{ animationDelay: "80ms" }}
+          >
+            <div className="flex items-center justify-start gap-x-3 gap-y-1.5 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:flex-wrap sm:justify-center sm:whitespace-normal sm:text-[11px]">
+              <span className="inline-flex items-center gap-1.5 text-gold"><ShieldCheck className="h-3.5 w-3.5" /> ЗЗД · ТЗ · ЗУТ</span>
+              <span className="h-3 w-px bg-gold/30" />
+              <span className="inline-flex items-center gap-1.5"><Bird className="h-3.5 w-3.5 text-gold" /> АНАЛИЗ НА РИСКА</span>
+              <span className="h-3 w-px bg-gold/30" />
+              <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-gold" /> &gt;600 ШАБЛОНА</span>
+              <span className="h-3 w-px bg-gold/30" />
+              <span className="inline-flex items-center gap-1.5"><FileSignature className="h-3.5 w-3.5 text-gold" /> Е-ПОДПИС</span>
+            </div>
+          </div>
+
 
           <h1
             className="anim-rise mx-auto max-w-3xl font-serif text-2xl font-bold leading-[1.1] text-balance sm:text-3xl md:text-4xl lg:text-[42px] lg:leading-[1.05]"
