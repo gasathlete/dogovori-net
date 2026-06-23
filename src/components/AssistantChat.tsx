@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsPro } from "@/hooks/useIsPro";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Crown } from "lucide-react";
@@ -60,6 +61,7 @@ function getActiveThreadStorageKey(userId: string) {
 
 export function AssistantChat({ compact = false, embedded = false, threadId: threadIdProp, onThreadChange }: { compact?: boolean; embedded?: boolean; threadId?: string | null; onThreadChange?: (id: string | null) => void } = {}) {
   const { user, session } = useAuth();
+  const requireAuth = useRequireAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const { isPro, isTeam, freeQuota, refresh: refreshPlan } = useIsPro();
@@ -270,7 +272,10 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   };
 
   const sendMessage = async (text: string) => {
-    if (!text.trim() || streaming || !session?.access_token) return;
+    if (!text.trim() || streaming) return;
+    if (!requireAuth({ action: "Изпрати съобщение до DogovaryAI" })) return;
+    if (!session?.access_token) return;
+
 
     // Gate: meter against monthly AI quota (5/mo Free, unlimited PRO/Team).
     const { data: gate, error: gateErr } = await supabase.rpc("consume_ai_message");

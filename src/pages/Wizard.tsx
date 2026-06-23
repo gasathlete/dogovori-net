@@ -29,6 +29,7 @@ import { recordConsents } from "@/lib/consents";
 import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhilishte";
 
 import { useAuth } from "@/hooks/useAuth";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { trackEvent } from "@/lib/analytics";
 
 interface AIResult {
@@ -523,7 +524,9 @@ export default function WizardPage() {
     }
   };
 
+  const requireAuth = useRequireAuth();
   const handleDownloadBlank = async () => {
+    if (!requireAuth({ action: "Изтегли празна бланка" })) return;
     try {
       await ensureAIDisclaimerAccepted();
     } catch {

@@ -22,6 +22,7 @@ import { slugify } from "@/lib/slugify";
 import { ensureAIDisclaimerAccepted } from "@/lib/aiDisclaimerGate";
 import { recordConsents } from "@/lib/consents";
 import { useAuth } from "@/hooks/useAuth";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { getOpSessionId, getOpDocKey } from "@/lib/opSession";
 
 export default function WizardGraphPage() {
@@ -138,7 +139,9 @@ export default function WizardGraphPage() {
       setTimeout(() => setDownloadingBlank(false), 600);
     }
   };
+  const requireAuth = useRequireAuth();
   const handleDownloadBlank = async () => {
+    if (!requireAuth({ action: "Изтегли празна бланка" })) return;
     try { await ensureAIDisclaimerAccepted(); } catch { return; }
     recordConsents([{ consent_type: "ai_disclaimer", granted: true }]).catch(() => undefined);
     await runBlankDownload();

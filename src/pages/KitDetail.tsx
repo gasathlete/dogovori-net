@@ -14,6 +14,7 @@ import { useIsPro } from "@/hooks/useIsPro";
 import { createKitFromTemplate } from "@/lib/kits";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export default function KitDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -44,12 +45,12 @@ export default function KitDetailPage() {
   }, [kit]);
 
   const { isPro, isTeam } = useIsPro();
+  const requireAuth = useRequireAuth();
   const handleStart = async () => {
-    if (!user) {
-      toast.info("Влезте, за да стартирате комплект");
-      navigate(`/auth?next=/komplekti/${kit.id}`);
+    if (!requireAuth({ action: `Стартирай комплект „${kit.title}"`, redirect: `/komplekti/${kit.id}` })) {
       return;
     }
+    if (!user) return;
     // Free users can keep only 1 active kit slot.
     if (!isPro && !isTeam) {
       const { data: slotData } = await supabase.rpc("can_use_kit_slot");
