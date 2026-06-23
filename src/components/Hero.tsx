@@ -209,7 +209,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </p>
 
           <ul
-            className="anim-rise mx-auto mt-3 grid max-w-3xl gap-2 sm:grid-cols-2 md:grid-cols-3 md:mt-4"
+            className="anim-rise mx-auto mt-3 grid max-w-3xl grid-cols-2 gap-2 md:grid-cols-3 md:mt-4"
             style={{ animationDelay: "200ms" }}
           >
             {([
@@ -222,15 +222,15 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             ] as Array<{ icon: any; to?: string; action?: "assistant" | "kits"; label: string; desc: string }>).map((item) => {
               const Icon = item.icon;
               const cls =
-                "group flex h-full w-full items-start gap-2.5 rounded-lg border border-gold/15 bg-card/40 px-3.5 py-2.5 text-left backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-[0_8px_24px_-12px_hsl(var(--gold)/0.45)]";
+                "group flex h-full w-full items-start gap-2 rounded-lg border border-gold/15 bg-card/40 px-2.5 py-2 text-left backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-[0_8px_24px_-12px_hsl(var(--gold)/0.45)] sm:gap-2.5 sm:px-3.5 sm:py-2.5";
               const inner = (
                 <>
                   <Icon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-                  <span className="flex-1 leading-snug">
-                    <span className="block text-sm font-semibold text-foreground">{item.label}</span>
-                    <span className="block text-xs text-muted-foreground">{item.desc}</span>
+                  <span className="min-w-0 flex-1 leading-snug">
+                    <span className="block text-[13px] font-semibold text-foreground sm:text-sm">{item.label}</span>
+                    <span className="hidden text-xs text-muted-foreground sm:block">{item.desc}</span>
                   </span>
-                  <ChevronRight aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold/60 opacity-0 transition-opacity group-hover:opacity-100" />
+                  <ChevronRight aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold/60 transition-transform group-hover:translate-x-0.5" />
                 </>
               );
               if (item.action) {
@@ -265,6 +265,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             })}
           </ul>
 
+
           {/* ⌘K hint pill */}
           <button
             type="button"
@@ -283,8 +284,9 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             className="anim-rise mt-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
             style={{ animationDelay: "300ms" }}
           >
-            БЕЗ ДОБАВЯНЕ НА КАРТА · ПРОФЕСИОНАЛИСТ 12.90 €/МЕС. · ПРОМОКОД <span className="text-gold">FIRST100</span> → −30%
+            Промокод <span className="font-semibold text-gold">FIRST100</span> → −30% за нови клиенти · без карта
           </p>
+
         </div>
       </div>
 
