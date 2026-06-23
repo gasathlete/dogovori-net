@@ -75,7 +75,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
       <div className="container relative w-full pt-3 pb-8 sm:pt-4 sm:pb-10 md:pt-4 md:pb-10 lg:pt-4 lg:pb-8">
         <div className="relative mx-auto max-w-3xl text-center px-0 my-0">
           <div
-            className="anim-rise mx-auto mb-1.5 flex items-center justify-center sm:mb-2"
+            className="anim-rise mx-auto mb-1.5 hidden items-center justify-center sm:mb-2 sm:flex"
             style={{ animationDelay: "0ms" }}
           >
             <div
@@ -124,26 +124,30 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </div>
 
           <h1
-            className="anim-rise mx-auto max-w-3xl font-serif text-2xl font-bold leading-[1.1] text-balance sm:text-3xl md:text-4xl lg:text-[42px] lg:leading-[1.05]"
+            className="anim-rise mx-auto max-w-3xl font-serif text-[26px] font-bold leading-[1.1] text-balance sm:text-3xl md:text-4xl lg:text-[42px] lg:leading-[1.05]"
             style={{ animationDelay: "0ms" }}
           >
             Договори, които{" "}
-            <span className="text-gold">търсят и намират</span>{" "}
+            <em className="not-italic font-serif italic text-gold">намират</em>{" "}
             Вашите интереси
           </h1>
 
+          {/* Eyebrow chips */}
           <div
-            className="anim-rise mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]"
+            className="anim-rise mt-2"
             style={{ animationDelay: "80ms" }}
           >
-            <span className="inline-flex items-center gap-1.5 text-gold"><ShieldCheck className="h-3.5 w-3.5" /> ЗЗД · ТЗ · ЗУТ</span>
-            <span className="h-3 w-px bg-gold/30" />
-            <span className="inline-flex items-center gap-1.5"><Bird className="h-3.5 w-3.5 text-gold" /> АНАЛИЗ НА РИСКА</span>
-            <span className="h-3 w-px bg-gold/30" />
-            <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-gold" /> &gt;600 ШАБЛОНА</span>
-            <span className="h-3 w-px bg-gold/30" />
-            <span className="inline-flex items-center gap-1.5"><FileSignature className="h-3.5 w-3.5 text-gold" /> Е-ПОДПИС</span>
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]">
+              <span className="inline-flex items-center gap-1.5 text-gold"><ShieldCheck className="h-3.5 w-3.5" /> ЗЗД · ТЗ · ЗУТ</span>
+              <span className="h-3 w-px bg-gold/30" />
+              <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-gold" /> &gt;600 ШАБЛОНА</span>
+              <span className="h-3 w-px bg-gold/30" />
+              <span className="inline-flex items-center gap-1.5"><Bird className="h-3.5 w-3.5 text-gold" /> RISK ANALYSIS</span>
+              <span className="h-3 w-px bg-gold/30" />
+              <span className="inline-flex items-center gap-1.5"><FileSignature className="h-3.5 w-3.5 text-gold" /> Е-ПОДПИС</span>
+            </div>
           </div>
+
 
           {/* CTA — visible immediately */}
           <div
@@ -206,7 +210,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </p>
 
           <ul
-            className="anim-rise mx-auto mt-3 grid max-w-3xl gap-2 sm:grid-cols-2 md:grid-cols-3 md:mt-4"
+            className="anim-rise mx-auto mt-3 grid max-w-3xl grid-cols-2 gap-2 md:grid-cols-3 md:mt-4"
             style={{ animationDelay: "200ms" }}
           >
             {([
@@ -219,15 +223,15 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             ] as Array<{ icon: any; to?: string; action?: "assistant" | "kits"; label: string; desc: string }>).map((item) => {
               const Icon = item.icon;
               const cls =
-                "group flex h-full w-full items-start gap-2.5 rounded-lg border border-gold/15 bg-card/40 px-3.5 py-2.5 text-left backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-[0_8px_24px_-12px_hsl(var(--gold)/0.45)]";
+                "group flex h-full w-full items-start gap-2 rounded-lg border border-gold/15 bg-card/40 px-2.5 py-2 text-left backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-[0_8px_24px_-12px_hsl(var(--gold)/0.45)] sm:gap-2.5 sm:px-3.5 sm:py-2.5";
               const inner = (
                 <>
                   <Icon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-                  <span className="flex-1 leading-snug">
-                    <span className="block text-sm font-semibold text-foreground">{item.label}</span>
-                    <span className="block text-xs text-muted-foreground">{item.desc}</span>
+                  <span className="min-w-0 flex-1 leading-snug">
+                    <span className="block text-[13px] font-semibold text-foreground sm:text-sm">{item.label}</span>
+                    <span className="hidden text-xs text-muted-foreground sm:block">{item.desc}</span>
                   </span>
-                  <ChevronRight aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold/60 opacity-0 transition-opacity group-hover:opacity-100" />
+                  <ChevronRight aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold/60 transition-transform group-hover:translate-x-0.5" />
                 </>
               );
               if (item.action) {
@@ -262,6 +266,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             })}
           </ul>
 
+
           {/* ⌘K hint pill */}
           <button
             type="button"
@@ -280,8 +285,9 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             className="anim-rise mt-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
             style={{ animationDelay: "300ms" }}
           >
-            БЕЗ ДОБАВЯНЕ НА КАРТА · ПРОФЕСИОНАЛИСТ 12.90 €/МЕС. · ПРОМОКОД <span className="text-gold">FIRST100</span> → −30%
+            Промокод <span className="font-semibold text-gold">FIRST100</span> → −30% за нови клиенти · без карта
           </p>
+
         </div>
       </div>
 

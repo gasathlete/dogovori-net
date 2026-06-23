@@ -15,12 +15,23 @@ export function SocialProofStrip() {
         .eq("status", "approved")
         .order("display_order", { ascending: false })
         .limit(24);
-      if (!cancelled) setPartners((data as Partner[]) ?? []);
+      if (!cancelled) {
+        // Dedup by normalized name + logo to prevent visible duplicates.
+        const seen = new Set<string>();
+        const unique = ((data as Partner[]) ?? []).filter((p) => {
+          const key = `${(p.name || "").trim().toLowerCase()}|${p.logo_url}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        setPartners(unique);
+      }
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
 
   // Duplicate the list so the marquee loops seamlessly.
   const loop = partners.length > 0 ? [...partners, ...partners] : [];

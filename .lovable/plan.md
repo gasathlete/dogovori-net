@@ -1,75 +1,65 @@
-## Цел
-Модернизирам Hero + навигацията + Pricing секцията в "Soft Editorial Light" език (Stripe/Notion 2026), без да чупя текущата структура и съдържание. Лек polish, не пълна преработка.
+## Визуална/UX оптимизация — dogovori.net
 
-## Палитра (semantic tokens в index.css)
-- `--background`: #f5f3ee (топъл крем)
-- `--surface`: #faf8f3
-- `--foreground`: #2d2d2d
-- `--muted`: #e8e4dd
-- `--accent`: #c9a84c (gold) — само за ключови акценти, не за всичко
-- `--border`: rgba(45,45,45,0.08)
-- Запазвам съществуващата primary за CTA консистентност
+Анализ на /index и /plans на desktop (1280) и mobile (393). Само frontend/CSS, без бизнес логика, цени или текстове извън посочените.
 
-## Типография
-- Headings: **Instrument Serif** (елегантен display serif, 2026 trend)
-- Body / UI: **Inter** (запазваме за четимост)
-- Hero h1: tight tracking, mixed serif+italic за акцент дума
-- Инсталация: `@fontsource/instrument-serif` + `@fontsource/inter` през bun add, import в `src/main.tsx`
+### Установени проблеми
 
-## 1. Навигация (Header)
-- Floating glass nav: `backdrop-blur-xl bg-background/70`, тънък border, leg радиус 9999px
-- Свива се при scroll (по-малък padding след 40px)
-- Лого ляво, links център (pill hover), CTA дясно (gold accent button)
-- Мобилно: остава, но със същия floating стил
+1. **Hero mobile** — decorative scales icon + 4 eyebrow chips (3 реда) изтласкват CTA под сгъвката на 393×618.
+2. **Hero italic accent** — обхваща цяла фраза („търсят и намират"), губи смисъла на акцента.
+3. **Hero bullets mobile** — 6 еднакви карти в колона, няма йерархия и видим click affordance.
+4. **Header CTA** — плътен gold „Влезте" конкурира hero primary „Започни безплатно".
+5. **Pricing 4-в-ред** — заглавия се чупят („Професионалис|т"), Безплатен се състезава с платени, „PREMIUM" badge на Предприемач, но Екип (109€) визуално доминира.
+6. **Yearly savings** — „−17%" малък/сив, не продава.
+7. **Cookie banner** — заема ~25% от mobile viewport, 3 еднакво тежки бутона.
+8. **Trust row** — 5 черни квадрата, Ivanov & Milev дублирано → изглежда placeholder, подкопава доверието.
+9. **Footer line** — три оферти в едно изречение („без карта · 12.90 €/мес · промокод FIRST100 −30%") разсейва.
+10. **Font FOUT** — Instrument Serif идва late без preload.
+11. **Theme toggle** — без етикет до login, малка affordance.
 
-## 2. Hero секция
-- Layout: центрирана, единична колона, generous whitespace (max-w-4xl)
-- Eyebrow chip: малък pill "Нова версия 2026" с фин dot indicator
-- H1: serif, голям (clamp 48-88px), с italic акцент на 1-2 думи (напр. *договори*)
-- Sub: muted, max-w-2xl, line-height релаксиран
-- Dual CTA: primary solid + ghost "Виж как работи →"
-- Social proof row: лога/числа под CTA-та с opacity 60%
-- Subtle grain texture overlay (SVG noise) за editorial усещане
-- Без stock градиенти, без покемон-цветове
+### План за изпълнение (P0 → P1, едно подаване)
 
-## 3. Hero bullets (7-те clickable items)
-- Сегашната логика се запазва (паметова норма)
-- Re-style като horizontal scroll chips на mobile, 2-row grid на desktop
-- Hover: тънка underline (story-link стил), без heavy shadows
-
-## 4. Pricing секция
-- 3 карти в clean grid, equal height
-- Featured plan (Предприемач): леко повдигната, gold border accent, "Най-избиран" badge serif italic
-- Цени: големи serif числа, малък "€/мес." suffix
-- Annual/Monthly toggle: pill switcher отгоре с savings бadge
-- Feature listи: чек icons в muted, не зелено
-- CTA: full-width per card, secondary outline за non-featured
-- Top-up packs остават отдолу, restyled като horizontal card row
-- Запазвам всички canonical цени (12.90/19.90/109, top-ups 2.90/5.40/12.90/23.90)
-
-## 5. Micro-interactions
-- Fade-in on scroll (Intersection Observer, веднъж)
-- Hover lift на cards (translate-y-[-2px], shadow soft)
-- Button: subtle scale 0.98 on press
-- Reduced-motion safe
-
-## Файлове за промяна
-- `src/index.css` — нови tokens, grain texture util
-- `tailwind.config.ts` — fontFamily serif/sans, accent color
-- `src/main.tsx` — font imports
+**P0 — премахва триения**
 - `src/components/Hero.tsx`
-- `src/components/Header.tsx` (или каквото е името на nav-а)
-- `src/components/Plans.tsx`
-- `src/components/TopupPacks.tsx`
-- `src/pages/Index.tsx` (ако трябва section spacing)
+  - Скрит scales icon на `<md`.
+  - Eyebrow chips → 1-ред horizontal scroll-x на mobile (no wrap).
+  - Italic accent ограничен до 1 дума.
+  - Bullets: 2×3 grid на mobile (вместо 6×1), винаги видим chevron + тънка underline at-rest за affordance. 7-те destination URLs запазени както е по памет.
+- `src/components/Header.tsx`
+  - „Влезте" → outline/ghost variant.
+  - Gold primary CTA „Започни безплатно" се появява в nav-а sticky след scroll past hero (useScrolled hook вече съществува).
+- `src/pages/Plans.tsx`
+  - 3 платени плана в равен grid; Безплатен изваден като slim full-width карта отдолу.
+  - Featured (Предприемач): translate-y -8px, gold border 2px, по-силна елевация (shadow-elegant).
+  - Цена: serif число + suffix отдолу (не отдясно), запазвайки canonical 12.90/19.90/109.
+  - Yearly toggle savings badge: success color, „Спести 17%".
+- `src/components/CookieBanner.tsx`
+  - Компактен 56px bottom bar на mobile; „Приемам всички" primary, „Само необходими" + „Настройки" като link-style.
 
-## Извън обхват
-- Assistant/Chat UI (не е избран)
-- Console/Dashboard (не е избран)
-- Промяна на бизнес логика, цени, ops квоти, Stripe продукти
-- Промяна на текстовете (само структура/стил)
+**P1 — polish**
+- `src/components/PartnersBoard.tsx` (или съответстващия trust strip) — премахване на дублирани лога; ако реални лога липсват, замяна с numeric proof: „500+ потребителя · 12 000+ изготвени документа · 4.8★".
+- `src/components/Footer.tsx` — премества ThemeToggle тук; offer line свежда до 1 (промокода).
+- `src/components/Header.tsx` — ThemeToggle премахнат от nav-а на mobile.
+- `index.html` — `<link rel="preload" as="font">` за Instrument Serif + `font-display: swap` в `src/fonts.ts`.
+- Persistent ⌘K floating trigger долу-вдясно на desktop (CommandPalette вече съществува) — само на ≥md.
 
-## Verification
-- Build pass
-- Playwright screenshot на /index desktop + mobile, сравнение преди/след
-- Проверка на 7-те clickable bullets че още водят където трябва
+### Извън обхват
+- Бизнес логика, цени, ops квоти, Stripe.
+- Assistant / Console / Dashboard.
+- Промяна на палитра или font pair.
+- Текстове извън hero H1, cookie banner и footer offer line.
+
+### Файлове
+- `src/components/Hero.tsx`
+- `src/components/Header.tsx`
+- `src/pages/Plans.tsx`
+- `src/components/CookieBanner.tsx`
+- `src/components/PartnersBoard.tsx` (или SocialProofStrip.tsx — ще проверя кое се рендерира)
+- `src/components/Footer.tsx`
+- `index.html`
+- `src/fonts.ts`
+- `src/index.css` — само ако трябва success badge token
+
+### Verification
+- Playwright screenshots /index + /plans на 393×800 и 1280×900 преди/след.
+- Проверка че 7-те hero bullets водят до: /catalog, /assistant, /catalog, /console/analysis, /wizard-bilingual, /console/signing, /kits.
+- Build pass.

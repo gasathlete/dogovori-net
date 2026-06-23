@@ -165,11 +165,12 @@ export function Header() {
               to="/auth"
               {...prefetchHandlers("/auth")}
               aria-label="Влезте"
-              className="inline-flex h-10 items-center gap-2 rounded-lg bg-gradient-to-b from-gold/90 to-gold/70 px-5 text-[13px] font-bold tracking-wide text-navy shadow-[0_0_16px_hsl(var(--gold)/0.25)] transition-[filter,box-shadow] hover:brightness-110 hover:shadow-[0_0_24px_hsl(var(--gold)/0.35)]"
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-gold/40 bg-transparent px-4 text-[13px] font-semibold tracking-wide text-foreground transition-all hover:border-gold hover:bg-gold/10 hover:text-gold"
             >
               <LogIn className="h-4 w-4" />
               <span className="hidden sm:inline">Влезте</span>
             </Link>
+
           )}
           <button
             type="button"

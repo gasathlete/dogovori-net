@@ -129,10 +129,11 @@ export default function Plans() {
                 Годишно
                 <span className={cn(
                   "inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors",
-                  billing === "yearly" ? "bg-navy/15 text-navy" : "bg-gold/15 text-gold",
+                  billing === "yearly" ? "bg-navy text-gold shadow-sm" : "bg-success/15 text-success",
                 )}>
-                  −17%
+                  Спести 17%
                 </span>
+
               </button>
             </div>
           </div>
@@ -140,8 +141,9 @@ export default function Plans() {
         </section>
 
         <section className="relative z-10 mx-auto max-w-7xl px-4 pb-12 sm:pb-16">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 xl:gap-7">
-            {plans.map((plan, idx) => {
+          <div className="grid gap-6 md:grid-cols-3 xl:gap-7">
+            {plans.filter((p) => p.id !== "free").map((plan, idx) => {
+
               const Icon = PLAN_ICON[plan.id];
               const price = billing === "yearly" ? plan.yearly : plan.monthly;
               // Team has no monthly — fall back to yearly with a "годишно" note.
@@ -248,6 +250,40 @@ export default function Plans() {
               );
             })}
           </div>
+
+          {/* Slim free plan row */}
+          {(() => {
+            const free = plans.find((p) => p.id === "free");
+            if (!free) return null;
+            const cta = buildCta("free", billing, isAuthed);
+            return (
+              <div className="mt-6 flex flex-col items-center justify-between gap-4 rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:flex-row sm:p-6">
+                <div className="flex items-start gap-3 sm:items-center">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-foreground/5 text-gold">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-serif text-lg text-foreground">
+                      {free.name} · <span className="text-gold">0 €</span> завинаги
+                    </h3>
+                    <p className="text-xs text-muted-foreground sm:text-sm">
+                      {free.tagline} · 5 операции при регистрация + 2 всеки месец, без карта.
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  to={cta.href}
+                  onClick={() => trackEvent("plans_cta_clicked", { plan: "free", billing, authed: isAuthed })}
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-gold/40 bg-gold/5 px-5 py-2.5 text-sm font-semibold text-gold transition-all hover:border-gold hover:bg-gold/10"
+                >
+                  {cta.label}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            );
+          })()}
+
+
 
           <ExpandableCard
             className="mt-10 rounded-2xl border border-hairline bg-card/70 p-5 backdrop-blur-md sm:mt-14 sm:p-6"
