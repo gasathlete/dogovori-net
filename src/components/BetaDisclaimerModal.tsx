@@ -2,27 +2,44 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sparkles, Handshake, Lock, Gift, MessageSquareQuote, Tag } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 /**
- * BetaDisclaimerModal — shown once on the very first visit to announce the
- * beta period (until the official launch on 2026-09-01) and the perks early
- * users get. Closing it sets a versioned localStorage flag so it never pops
- * up again unless we bump the version key.
+ * BetaDisclaimerModal — shown on the first visit to announce the beta period
+ * (until the official launch on 2026-09-01) and the perks early users get.
+ *
+ * Persistence:
+ *  - `localStorage[STORAGE_KEY]` → permanent ack ("Не ме показвай повече" checked).
+ *  - `sessionStorage[SESSION_KEY]` → suppress for current tab/session only when
+ *    the user closes the modal without checking the box. They'll see it again
+ *    on the next browser session.
+ *  - Bump the version suffix (`_v1`) to re-broadcast after major changes.
  */
 const STORAGE_KEY = "dogovori_beta_ack_v1";
+const SESSION_KEY = "dogovori_beta_ack_session_v1";
 const LAUNCH_DATE = "01.09.2026 г.";
 
 function hasAcknowledged(): boolean {
   try {
-    return typeof window !== "undefined" && !!window.localStorage.getItem(STORAGE_KEY);
+    if (typeof window === "undefined") return true;
+    return (
+      !!window.localStorage.getItem(STORAGE_KEY) ||
+      !!window.sessionStorage.getItem(SESSION_KEY)
+    );
   } catch {
     return true; // Fail-closed: don't pester users when storage is unavailable.
   }
 }
 
-function markAcknowledged() {
+function markAcknowledged(permanent: boolean) {
   try {
-    window.localStorage.setItem(STORAGE_KEY, new Date().toISOString());
+    const ts = new Date().toISOString();
+    if (permanent) {
+      window.localStorage.setItem(STORAGE_KEY, ts);
+    } else {
+      window.sessionStorage.setItem(SESSION_KEY, ts);
+    }
   } catch {
     // ignore
   }
@@ -30,6 +47,7 @@ function markAcknowledged() {
 
 export function BetaDisclaimerModal() {
   const [open, setOpen] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(true);
 
   useEffect(() => {
     if (hasAcknowledged()) return;
@@ -40,7 +58,7 @@ export function BetaDisclaimerModal() {
   }, []);
 
   const close = () => {
-    markAcknowledged();
+    markAcknowledged(dontShowAgain);
     setOpen(false);
   };
 
