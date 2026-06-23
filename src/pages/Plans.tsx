@@ -129,10 +129,11 @@ export default function Plans() {
                 Годишно
                 <span className={cn(
                   "inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors",
-                  billing === "yearly" ? "bg-navy/15 text-navy" : "bg-gold/15 text-gold",
+                  billing === "yearly" ? "bg-navy text-gold shadow-sm" : "bg-success/15 text-success",
                 )}>
-                  −17%
+                  Спести 17%
                 </span>
+
               </button>
             </div>
           </div>
@@ -140,8 +141,9 @@ export default function Plans() {
         </section>
 
         <section className="relative z-10 mx-auto max-w-7xl px-4 pb-12 sm:pb-16">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 xl:gap-7">
-            {plans.map((plan, idx) => {
+          <div className="grid gap-6 md:grid-cols-3 xl:gap-7">
+            {plans.filter((p) => p.id !== "free").map((plan, idx) => {
+
               const Icon = PLAN_ICON[plan.id];
               const price = billing === "yearly" ? plan.yearly : plan.monthly;
               // Team has no monthly — fall back to yearly with a "годишно" note.
