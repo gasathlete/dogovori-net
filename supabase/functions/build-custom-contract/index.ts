@@ -417,6 +417,9 @@ ${fieldsSection}
           { role: "user", content: redactionNote + redacted.redacted },
         ],
         response_format: { type: "json_object" },
+        // Generation + risk analysis JSON can easily exceed default token caps
+        // and the response gets truncated mid-string, breaking JSON.parse.
+        max_tokens: 16000,
       }),
     });
 
