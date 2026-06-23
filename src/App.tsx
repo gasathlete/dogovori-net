@@ -337,6 +337,7 @@ const App = () => (
           <Suspense fallback={null}>
             <PaymentTestModeBanner />
             <CookieBanner />
+            <BetaDisclaimerModal />
             <AIDisclaimerModal />
             <UsernamePrompt />
             <GlobalProUpgradeListener />
