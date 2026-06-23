@@ -142,7 +142,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
               <span className="h-3 w-px bg-gold/30" />
               <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-gold" /> &gt;600 ШАБЛОНА</span>
               <span className="h-3 w-px bg-gold/30" />
-              <span className="inline-flex items-center gap-1.5"><Bird className="h-3.5 w-3.5 text-gold" /> RISK ANALYSIS</span>
+              <span className="inline-flex items-center gap-1.5"><Bird className="h-3.5 w-3.5 text-gold" /> АНАЛИЗ НА РИСКА</span>
               <span className="h-3 w-px bg-gold/30" />
               <span className="inline-flex items-center gap-1.5"><FileSignature className="h-3.5 w-3.5 text-gold" /> Е-ПОДПИС</span>
             </div>
@@ -206,7 +206,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             className="anim-rise mx-auto mt-2 text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-gold/80"
             style={{ animationDelay: "160ms" }}
           >
-            Преговаряй · Създай · Прецизирай · Подпиши
+            ДОГОВАРЯЙ · СЪЗДАЙ · ПРЕЦИЗИРАЙ · ПОДПИШИ
           </p>
 
           <ul
@@ -214,12 +214,12 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             style={{ animationDelay: "200ms" }}
           >
             {([
-              { icon: Bot, action: "assistant", label: "Правен AI-асистент", desc: "преговаря най-добрите условия." },
-              { icon: FileText, to: "/catalog", label: "Над 600 шаблона", desc: "бизнес, имоти, труд, услуги." },
-              { icon: ShieldAlert, to: "/demo/risk-analysis", label: "Risk Analysis", desc: "клопки и неравноправни клаузи." },
+              { icon: Bot, action: "assistant", label: "Правен AI-асистент", desc: "Преговаря най-добрите условия. Обучен модел." },
+              { icon: FileText, to: "/catalog", label: "Над 600 шаблона", desc: "бизнес, имоти, трудови правоотношения, услуги." },
+              { icon: ShieldAlert, to: "/demo/risk-analysis", label: "Анализирай Документ", desc: "за клопки, неравноправни клаузи и други полезни." },
               { icon: Languages, to: "/demo/bilingual", label: "Двуезични договори", desc: "BG / EN / DE / FR." },
-              { icon: FileSignature, to: "/demo/e-signature", label: "Електронен подпис", desc: "многостранно, споделяне." },
-              { icon: Package, action: "kits", label: "Комплекти", desc: "готови решения за казуси." },
+              { icon: FileSignature, to: "/demo/e-signature", label: "Електронен подпис", desc: "чрез dogovori.net" },
+              { icon: Package, action: "kits", label: "Комплекти", desc: "\u00a0Решения за чести казуси." },
             ] as Array<{ icon: any; to?: string; action?: "assistant" | "kits"; label: string; desc: string }>).map((item) => {
               const Icon = item.icon;
               const cls =
