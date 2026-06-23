@@ -14,7 +14,7 @@ export function FloatingCommandTrigger() {
       type="button"
       onClick={open}
       aria-label="Бързо търсене (Ctrl/Cmd + K)"
-      className="hidden md:inline-flex fixed bottom-6 right-6 z-30 items-center gap-2 rounded-full border border-gold/30 bg-background/85 px-4 py-2.5 text-[12px] font-medium text-foreground/80 shadow-soft backdrop-blur-md transition-all hover:border-gold/60 hover:text-gold hover:shadow-elegant"
+      className="hidden md:inline-flex fixed bottom-6 left-6 z-30 items-center gap-2 rounded-full border border-gold/30 bg-background/85 px-4 py-2.5 text-[12px] font-medium text-foreground/80 shadow-soft backdrop-blur-md transition-all hover:border-gold/60 hover:text-gold hover:shadow-elegant"
     >
       <Search className="h-3.5 w-3.5 text-gold" />
       <span>Търсене</span>
