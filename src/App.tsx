@@ -335,6 +335,7 @@ const App = () => (
             <UsernamePrompt />
             <GlobalProUpgradeListener />
             <CommandPalette />
+            <FloatingCommandTrigger />
             <DogovAIBubble />
             <MobileBottomNav />
             <ActionCelebrationHost />
