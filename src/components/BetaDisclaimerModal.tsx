@@ -157,6 +157,20 @@ export function BetaDisclaimerModal() {
           </button>
         </div>
 
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <Checkbox
+            id="beta-dont-show-again"
+            checked={dontShowAgain}
+            onCheckedChange={(v) => setDontShowAgain(v === true)}
+          />
+          <Label
+            htmlFor="beta-dont-show-again"
+            className="cursor-pointer text-xs text-muted-foreground"
+          >
+            Не ме показвай повече
+          </Label>
+        </div>
+
         <p className="mt-3 text-center text-[11px] text-muted-foreground">
           Условията за партньорство и промо-цени важат до {LAUNCH_DATE}
         </p>
