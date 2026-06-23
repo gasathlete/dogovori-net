@@ -18,6 +18,7 @@ import { trackEvent } from "@/lib/analytics";
 import { autoLinkParagraph, createAutoLinkState } from "@/lib/autoLinkBlog";
 import { RELATED_TEMPLATES } from "@/data/relatedTemplates";
 import { getPostBySlug } from "@/lib/blog";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 
 export default function TemplatePage() {
@@ -29,6 +30,7 @@ export default function TemplatePage() {
   const [draftText, setDraftText] = useState<string | undefined>(undefined);
   const [kitOpen, setKitOpen] = useState(false);
   const { user } = useAuth();
+  const requireAuth = useRequireAuth();
   useEffect(() => {
     let alive = true;
     if (!entry) return;
@@ -333,16 +335,21 @@ export default function TemplatePage() {
               ))}
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-2">
-              <Link to={wizardHref} className="btn-gold btn-sheen">
+              <Link
+                to={wizardHref}
+                onClick={(e) => {
+                  if (!requireAuth({ action: `Изготви „${doc.name}"`, redirect: wizardHref })) {
+                    e.preventDefault();
+                  }
+                }}
+                className="btn-gold btn-sheen"
+              >
                 Изготви документа сега <ArrowRight className="h-4 w-4" />
               </Link>
               <button
                 type="button"
                 onClick={() => {
-                  if (!user) {
-                    toast.error("Влезте, за да добавите шаблона в свой комплект.");
-                    return;
-                  }
+                  if (!requireAuth({ action: "Добави шаблона в комплект" })) return;
                   setKitOpen(true);
                 }}
                 className="inline-flex items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-4 py-2 text-sm font-semibold text-gold transition-colors hover:bg-gold/20"
