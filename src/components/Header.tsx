@@ -115,7 +115,8 @@ export function Header() {
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-2 justify-self-end">
-          <ThemeToggle />
+          <ThemeToggle className="hidden lg:inline-flex" />
+
 
 
 
