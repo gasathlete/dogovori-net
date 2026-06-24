@@ -115,7 +115,7 @@ export function Header() {
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-2 justify-self-end">
-          <ThemeToggle className="hidden sm:inline-flex" />
+          <ThemeToggle />
 
 
 
