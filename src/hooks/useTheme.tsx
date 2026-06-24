@@ -12,10 +12,7 @@ function readInitial(): Theme {
     const v = localStorage.getItem(STORAGE_KEY);
     if (v === "light" || v === "dark") return v;
   } catch {}
-  // Follow OS / browser preference when the user has not chosen.
-  try {
-    if (window.matchMedia?.("(prefers-color-scheme: light)").matches) return "light";
-  } catch {}
+  // Default to dark; OS preference is ignored until the user explicitly picks a theme.
   return "dark";
 }
 
