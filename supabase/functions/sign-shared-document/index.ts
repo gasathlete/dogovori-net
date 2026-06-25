@@ -65,10 +65,11 @@ serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { token, signer_name, signature_data_url } = body as {
+    const { token, signer_name, signature_data_url, password } = body as {
       token?: string;
       signer_name?: string;
       signature_data_url?: string;
+      password?: string;
     };
     // SECURITY: only allow PNG/JPEG raster signatures. Reject SVG (XSS via inline
     // <script>/<foreignObject>) and other vector/exotic formats.
