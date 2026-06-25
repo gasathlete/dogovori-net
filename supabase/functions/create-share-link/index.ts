@@ -34,10 +34,11 @@ serve(async (req) => {
     const userId = userData.user.id;
 
     const body = await req.json().catch(() => ({}));
-    const { document_id, uploaded_contract_id, expires_in_days } = body as {
+    const { document_id, uploaded_contract_id, expires_in_days, password } = body as {
       document_id?: string;
       uploaded_contract_id?: string;
       expires_in_days?: number;
+      password?: string;
     };
     const isUploaded = !!uploaded_contract_id && typeof uploaded_contract_id === "string";
     const isDocument = !!document_id && typeof document_id === "string";
