@@ -96,6 +96,24 @@ serve(async (req) => {
     const linkToken = generateToken();
     const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
 
+    // Optional password protection
+    let password_hash: string | null = null;
+    let password_salt: string | null = null;
+    if (typeof password === "string" && password.length > 0) {
+      if (password.length < 4 || password.length > 128) {
+        return new Response(
+          JSON.stringify({ error: "invalid_password", message: "Паролата трябва да е между 4 и 128 символа." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const saltBytes = new Uint8Array(16);
+      crypto.getRandomValues(saltBytes);
+      password_salt = Array.from(saltBytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+      const enc = new TextEncoder().encode(password_salt + password);
+      const digest = await crypto.subtle.digest("SHA-256", enc);
+      password_hash = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+    }
+
     const { data: link, error: linkErr } = await admin
       .from("shared_links")
       .insert({
@@ -104,6 +122,8 @@ serve(async (req) => {
         owner_id: userId,
         token: linkToken,
         expires_at: expiresAt,
+        password_hash,
+        password_salt,
       })
       .select()
       .single();
