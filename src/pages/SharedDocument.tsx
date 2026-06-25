@@ -232,7 +232,46 @@ export default function SharedDocument() {
       </div>
     );
   }
+  if (needsPassword && !doc) {
+    return (
+      <div className="min-h-dvh bg-background">
+        <Seo title="Защитен документ — Dogovori.net" description="Този споделен документ е защитен с парола." canonical="/share" noindex />
+        <div className="container max-w-md py-16">
+          <div className="rounded-2xl border border-gold/30 bg-card/40 p-6 text-center shadow-lg">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gold/15">
+              <Lock className="h-6 w-6 text-gold" />
+            </div>
+            <h1 className="mt-3 font-serif text-xl">Защитен документ</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Собственикът е защитил този линк с парола. Моля, въведете я по-долу.
+            </p>
+            <div className="mt-4 space-y-2 text-left">
+              <Label htmlFor="share-password">Парола</Label>
+              <Input
+                id="share-password"
+                type="password"
+                autoFocus
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") submitPassword(); }}
+                placeholder="••••••••"
+              />
+              <Button
+                onClick={submitPassword}
+                disabled={verifying || password.length < 4}
+                className="w-full bg-gradient-gold text-navy"
+              >
+                {verifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+                Отвори документа
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (!doc) return null;
+
 
   return (
     <div className="min-h-dvh bg-background">
