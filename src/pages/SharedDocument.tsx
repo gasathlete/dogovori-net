@@ -121,33 +121,63 @@ export default function SharedDocument() {
   const [signing, setSigning] = useState(false);
   const [signerName, setSignerName] = useState("");
   const [signatureDataUrl, setSignatureDataUrl] = useState("");
+  const [needsPassword, setNeedsPassword] = useState(false);
+  const [password, setPassword] = useState("");
+  const [verifying, setVerifying] = useState(false);
+
+  const fetchDoc = async (pwd?: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("get-shared-document", {
+        body: pwd ? { token, password: pwd } : { token },
+      });
+      if (error) {
+        const ctx: any = (error as any).context;
+        let body: any = null;
+        try { if (ctx?.json) body = await ctx.json(); } catch {}
+        const code = body?.error ?? "load_failed";
+        if (code === "password_required") {
+          setNeedsPassword(true);
+          setError(null);
+          setDoc(null);
+        } else if (code === "password_invalid") {
+          setNeedsPassword(true);
+          setError(null);
+          toast.error("Грешна парола");
+        } else {
+          setError(code);
+        }
+      } else if (data?.error) {
+        if (data.error === "password_required") {
+          setNeedsPassword(true);
+          setError(null);
+        } else {
+          setError(data.error);
+        }
+      } else {
+        setDoc(data as SharedDoc);
+        setNeedsPassword(false);
+      }
+    } catch {
+      setError("network_error");
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke("get-shared-document", {
-          body: { token },
-        });
-        if (cancelled) return;
-        if (error) {
-          const ctx: any = (error as any).context;
-          let body: any = null;
-          try { if (ctx?.json) body = await ctx.json(); } catch {}
-          setError(body?.error ?? "load_failed");
-        } else if (data?.error) {
-          setError(data.error);
-        } else {
-          setDoc(data as SharedDoc);
-        }
-      } catch {
-        if (!cancelled) setError("network_error");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+      await fetchDoc();
+      if (!cancelled) setLoading(false);
     })();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  const submitPassword = async () => {
+    if (password.length < 4) { toast.error("Въведете паролата"); return; }
+    setVerifying(true);
+    await fetchDoc(password);
+    setVerifying(false);
+  };
 
   const handleSign = async () => {
     if (!signerName.trim()) {
@@ -161,7 +191,12 @@ export default function SharedDocument() {
     setSigning(true);
     try {
       const { data, error } = await supabase.functions.invoke("sign-shared-document", {
-        body: { token, signer_name: signerName.trim(), signature_data_url: signatureDataUrl },
+        body: {
+          token,
+          signer_name: signerName.trim(),
+          signature_data_url: signatureDataUrl,
+          ...(password ? { password } : {}),
+        },
       });
       if (error || data?.error) {
         toast.error("Неуспешен подпис. Моля, опитайте отново.");
