@@ -9,9 +9,11 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     let token = url.searchParams.get("token");
-    if (!token && req.method === "POST") {
+    let providedPassword: string | null = null;
+    if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
-      token = (body as { token?: string }).token ?? null;
+      token = token ?? ((body as { token?: string }).token ?? null);
+      providedPassword = (body as { password?: string }).password ?? null;
     }
     if (!token || token.length < 16) {
       return new Response(JSON.stringify({ error: "invalid_token" }), {
