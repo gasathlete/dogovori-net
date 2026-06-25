@@ -28,7 +28,7 @@ serve(async (req) => {
 
     const { data: link } = await admin
       .from("shared_links")
-      .select("id, document_id, uploaded_contract_id, owner_id, expires_at, viewed_at, signed_at, signer_name, revoked_at, signed_pdf_path")
+      .select("id, document_id, uploaded_contract_id, owner_id, expires_at, viewed_at, signed_at, signer_name, revoked_at, signed_pdf_path, password_hash, password_salt")
       .eq("token", token)
       .maybeSingle();
 
@@ -46,6 +46,25 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "expired" }), {
         status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Password gate (Pro feature)
+    if (link.password_hash && link.password_salt) {
+      if (!providedPassword) {
+        return new Response(
+          JSON.stringify({ error: "password_required", title: "Защитен документ", expires_at: link.expires_at }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const enc = new TextEncoder().encode(link.password_salt + providedPassword);
+      const digest = await crypto.subtle.digest("SHA-256", enc);
+      const hex = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+      if (hex !== link.password_hash) {
+        return new Response(
+          JSON.stringify({ error: "password_invalid", message: "Грешна парола." }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
     }
 
     let payloadResp: Record<string, unknown> = {};
