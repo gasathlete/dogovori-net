@@ -26,6 +26,9 @@ export type ProUpgradeTrigger =
   | "bilingual"
   | "kit_slot"
   | "risk_report"
+  | "bulk_zip"
+  | "protected_share"
+  | "brand_watermark"
   | "generic";
 
 interface Props {
