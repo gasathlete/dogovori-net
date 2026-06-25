@@ -2554,6 +2554,8 @@ export type Database = {
           owner_signature: string | null
           owner_signed_at: string | null
           owner_signer_name: string | null
+          password_hash: string | null
+          password_salt: string | null
           revoked_at: string | null
           signed_at: string | null
           signed_pdf_path: string | null
@@ -2573,6 +2575,8 @@ export type Database = {
           owner_signature?: string | null
           owner_signed_at?: string | null
           owner_signer_name?: string | null
+          password_hash?: string | null
+          password_salt?: string | null
           revoked_at?: string | null
           signed_at?: string | null
           signed_pdf_path?: string | null
@@ -2592,6 +2596,8 @@ export type Database = {
           owner_signature?: string | null
           owner_signed_at?: string | null
           owner_signer_name?: string | null
+          password_hash?: string | null
+          password_salt?: string | null
           revoked_at?: string | null
           signed_at?: string | null
           signed_pdf_path?: string | null

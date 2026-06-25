@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Seo } from "@/components/Seo";
-import { Loader2, ShieldCheck, CheckCircle2, AlertTriangle, PenTool } from "lucide-react";
+import { Loader2, ShieldCheck, CheckCircle2, AlertTriangle, PenTool, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -121,33 +121,63 @@ export default function SharedDocument() {
   const [signing, setSigning] = useState(false);
   const [signerName, setSignerName] = useState("");
   const [signatureDataUrl, setSignatureDataUrl] = useState("");
+  const [needsPassword, setNeedsPassword] = useState(false);
+  const [password, setPassword] = useState("");
+  const [verifying, setVerifying] = useState(false);
+
+  const fetchDoc = async (pwd?: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("get-shared-document", {
+        body: pwd ? { token, password: pwd } : { token },
+      });
+      if (error) {
+        const ctx: any = (error as any).context;
+        let body: any = null;
+        try { if (ctx?.json) body = await ctx.json(); } catch {}
+        const code = body?.error ?? "load_failed";
+        if (code === "password_required") {
+          setNeedsPassword(true);
+          setError(null);
+          setDoc(null);
+        } else if (code === "password_invalid") {
+          setNeedsPassword(true);
+          setError(null);
+          toast.error("Грешна парола");
+        } else {
+          setError(code);
+        }
+      } else if (data?.error) {
+        if (data.error === "password_required") {
+          setNeedsPassword(true);
+          setError(null);
+        } else {
+          setError(data.error);
+        }
+      } else {
+        setDoc(data as SharedDoc);
+        setNeedsPassword(false);
+      }
+    } catch {
+      setError("network_error");
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke("get-shared-document", {
-          body: { token },
-        });
-        if (cancelled) return;
-        if (error) {
-          const ctx: any = (error as any).context;
-          let body: any = null;
-          try { if (ctx?.json) body = await ctx.json(); } catch {}
-          setError(body?.error ?? "load_failed");
-        } else if (data?.error) {
-          setError(data.error);
-        } else {
-          setDoc(data as SharedDoc);
-        }
-      } catch {
-        if (!cancelled) setError("network_error");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+      await fetchDoc();
+      if (!cancelled) setLoading(false);
     })();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  const submitPassword = async () => {
+    if (password.length < 4) { toast.error("Въведете паролата"); return; }
+    setVerifying(true);
+    await fetchDoc(password);
+    setVerifying(false);
+  };
 
   const handleSign = async () => {
     if (!signerName.trim()) {
@@ -161,7 +191,12 @@ export default function SharedDocument() {
     setSigning(true);
     try {
       const { data, error } = await supabase.functions.invoke("sign-shared-document", {
-        body: { token, signer_name: signerName.trim(), signature_data_url: signatureDataUrl },
+        body: {
+          token,
+          signer_name: signerName.trim(),
+          signature_data_url: signatureDataUrl,
+          ...(password ? { password } : {}),
+        },
       });
       if (error || data?.error) {
         toast.error("Неуспешен подпис. Моля, опитайте отново.");
@@ -197,7 +232,46 @@ export default function SharedDocument() {
       </div>
     );
   }
+  if (needsPassword && !doc) {
+    return (
+      <div className="min-h-dvh bg-background">
+        <Seo title="Защитен документ — Dogovori.net" description="Този споделен документ е защитен с парола." canonical="/share" noindex />
+        <div className="container max-w-md py-16">
+          <div className="rounded-2xl border border-gold/30 bg-card/40 p-6 text-center shadow-lg">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gold/15">
+              <Lock className="h-6 w-6 text-gold" />
+            </div>
+            <h1 className="mt-3 font-serif text-xl">Защитен документ</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Собственикът е защитил този линк с парола. Моля, въведете я по-долу.
+            </p>
+            <div className="mt-4 space-y-2 text-left">
+              <Label htmlFor="share-password">Парола</Label>
+              <Input
+                id="share-password"
+                type="password"
+                autoFocus
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") submitPassword(); }}
+                placeholder="••••••••"
+              />
+              <Button
+                onClick={submitPassword}
+                disabled={verifying || password.length < 4}
+                className="w-full bg-gradient-gold text-navy"
+              >
+                {verifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+                Отвори документа
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (!doc) return null;
+
 
   return (
     <div className="min-h-dvh bg-background">
