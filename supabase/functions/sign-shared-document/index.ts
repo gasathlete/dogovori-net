@@ -108,7 +108,7 @@ serve(async (req) => {
 
     const { data: link } = await admin
       .from("shared_links")
-      .select("id, document_id, uploaded_contract_id, owner_id, expires_at, signed_at, revoked_at")
+      .select("id, document_id, uploaded_contract_id, owner_id, expires_at, signed_at, revoked_at, password_hash, password_salt")
       .eq("token", token)
       .maybeSingle();
 
@@ -126,6 +126,22 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "already_signed" }), {
         status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+    // Password gate (Pro feature)
+    if (link.password_hash && link.password_salt) {
+      if (!password) {
+        return new Response(JSON.stringify({ error: "password_required" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const enc = new TextEncoder().encode(link.password_salt + password);
+      const digest = await crypto.subtle.digest("SHA-256", enc);
+      const hex = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+      if (hex !== link.password_hash) {
+        return new Response(JSON.stringify({ error: "password_invalid" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const ipHash = await hashIp(clientIp(req));
