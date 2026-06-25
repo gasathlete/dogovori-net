@@ -139,12 +139,12 @@ serve(async (req) => {
       action: "share_link_created",
       target_type: isUploaded ? "uploaded_contract" : "document",
       target_id: isUploaded ? uploaded_contract_id! : document_id!,
-      metadata: { token_prefix: linkToken.slice(0, 8), expires_at: expiresAt },
+      metadata: { token_prefix: linkToken.slice(0, 8), expires_at: expiresAt, password_protected: !!password_hash },
       ip_hash: await hashIp(clientIp(req)),
     });
 
     return new Response(
-      JSON.stringify({ ok: true, token: linkToken, expires_at: expiresAt, link_id: link.id }),
+      JSON.stringify({ ok: true, token: linkToken, expires_at: expiresAt, link_id: link.id, password_protected: !!password_hash }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
