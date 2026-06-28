@@ -15,7 +15,7 @@ const fileBase = (title: string) =>
     .slice(0, 60) || "Blanka";
 
 
-export async function exportTemplatePDF(t: CompanionTemplate, opts?: WatermarkOpts) {
+export async function exportTemplatePDF(t: CompanionTemplate, opts?: WatermarkOpts & { returnBytes?: boolean }): Promise<Uint8Array | void> {
   const b64 = await loadCyrillicFontB64();
 
   const doc = new jsPDF({ unit: "pt", format: "a4" });
