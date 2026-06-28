@@ -264,6 +264,14 @@ function DocumentsTab({
               {activeContactName ? "Няма договори за този контрагент." : "Тази папка е празна."}
             </div>
           ) : (
+            <>
+              <BulkActionsBar
+                docs={topLevelDocs.map((d) => ({ id: d.id, title: d.title, kind: d.kind, payload: d.payload }))}
+                selectionMode={selectionMode}
+                setSelectionMode={setSelectionMode}
+                selectedIds={selectedIds}
+                setSelectedIds={setSelectedIds}
+              />
             <div className="grid gap-3">
               {topLevelDocs.map((d) => {
                 const childLinks = childrenOfSaved(d.id);
