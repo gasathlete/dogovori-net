@@ -87,6 +87,10 @@ export async function exportTemplatePDF(t: CompanionTemplate, opts?: WatermarkOp
   }
 
   if (opts?.watermark) await applyPdfWatermark(doc, { userTag: opts.userTag });
+  if (opts?.returnBytes) {
+    const ab = doc.output("arraybuffer");
+    return new Uint8Array(ab);
+  }
   doc.save(`${fileBase(t.title)}.pdf`);
 }
 
