@@ -283,6 +283,12 @@ function DocumentsTab({
                   className="block rounded-xl border border-border/60 bg-gradient-card p-4 transition-all hover:border-gold/50 hover:shadow-soft"
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    {selectionMode && (
+                      <BulkRowCheckbox
+                        checked={selectedIds.includes(d.id)}
+                        onChange={(v) => toggleSelected(d.id, v)}
+                      />
+                    )}
                     <div className="min-w-0 flex-1">
                       <div className="break-words font-serif text-base font-bold transition-colors group-hover:text-gold">{d.title}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
