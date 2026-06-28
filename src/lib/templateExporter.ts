@@ -155,5 +155,6 @@ export async function exportTemplateDOCX(t: CompanionTemplate, opts?: WatermarkO
     }],
   });
   const blob = await Packer.toBlob(doc);
+  if (opts?.returnBlob) return blob;
   saveAs(blob, `${fileBase(t.title)}.docx`);
 }
