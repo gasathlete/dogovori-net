@@ -347,6 +347,7 @@ function DocumentsTab({
                 </Link>
               );})}
             </div>
+            </>
           )}
         </section>
       </div>
