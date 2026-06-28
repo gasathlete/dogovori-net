@@ -94,7 +94,7 @@ export async function exportTemplatePDF(t: CompanionTemplate, opts?: WatermarkOp
   doc.save(`${fileBase(t.title)}.pdf`);
 }
 
-export async function exportTemplateDOCX(t: CompanionTemplate, opts?: WatermarkOpts) {
+export async function exportTemplateDOCX(t: CompanionTemplate, opts?: WatermarkOpts & { returnBlob?: boolean }): Promise<Blob | void> {
   const children: Paragraph[] = [];
 
 
