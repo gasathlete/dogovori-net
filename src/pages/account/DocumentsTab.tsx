@@ -72,6 +72,10 @@ function DocumentsTab({
 }) {
   const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name;
   const [busy, setBusy] = useState<string | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const toggleSelected = (id: string, v: boolean) =>
+    setSelectedIds((prev) => (v ? [...prev, id] : prev.filter((x) => x !== id)));
   const hasMobileViewport = typeof window !== "undefined" && window.innerWidth < 640;
 
   // Bundle children: map parent_saved_id → [{ref_label, child_saved_id, child_uploaded_id}]
