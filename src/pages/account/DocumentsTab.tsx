@@ -32,6 +32,7 @@ import { isValidEGN, isValidEIK } from "@/lib/bgValidation";
 import { translateAuthError } from "@/lib/authErrors";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { Seo } from "@/components/Seo";
+import { BulkActionsBar, BulkRowCheckbox } from "@/components/BulkActionsBar";
 import {
   ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, Legend, AreaChart, Area, LineChart, Line, ReferenceLine,
@@ -71,6 +72,10 @@ function DocumentsTab({
 }) {
   const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name;
   const [busy, setBusy] = useState<string | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const toggleSelected = (id: string, v: boolean) =>
+    setSelectedIds((prev) => (v ? [...prev, id] : prev.filter((x) => x !== id)));
   const hasMobileViewport = typeof window !== "undefined" && window.innerWidth < 640;
 
   // Bundle children: map parent_saved_id → [{ref_label, child_saved_id, child_uploaded_id}]
@@ -259,6 +264,14 @@ function DocumentsTab({
               {activeContactName ? "Няма договори за този контрагент." : "Тази папка е празна."}
             </div>
           ) : (
+            <>
+              <BulkActionsBar
+                docs={topLevelDocs.map((d) => ({ id: d.id, title: d.title, kind: d.kind, payload: d.payload }))}
+                selectionMode={selectionMode}
+                setSelectionMode={setSelectionMode}
+                selectedIds={selectedIds}
+                setSelectedIds={setSelectedIds}
+              />
             <div className="grid gap-3">
               {topLevelDocs.map((d) => {
                 const childLinks = childrenOfSaved(d.id);
@@ -270,6 +283,12 @@ function DocumentsTab({
                   className="block rounded-xl border border-border/60 bg-gradient-card p-4 transition-all hover:border-gold/50 hover:shadow-soft"
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    {selectionMode && (
+                      <BulkRowCheckbox
+                        checked={selectedIds.includes(d.id)}
+                        onChange={(v) => toggleSelected(d.id, v)}
+                      />
+                    )}
                     <div className="min-w-0 flex-1">
                       <div className="break-words font-serif text-base font-bold transition-colors group-hover:text-gold">{d.title}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
@@ -334,6 +353,7 @@ function DocumentsTab({
                 </Link>
               );})}
             </div>
+            </>
           )}
         </section>
       </div>

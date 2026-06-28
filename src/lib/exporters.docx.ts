@@ -24,7 +24,7 @@ import { inferPartyRolesGenitive } from "@/data/partyRoles";
 
 export type { GeneratedContract, WatermarkOpts };
 
-export async function exportDOCX(c: GeneratedContract, opts?: WatermarkOpts) {
+export async function exportDOCX(c: GeneratedContract, opts?: WatermarkOpts & { returnBlob?: boolean }): Promise<Blob | void> {
   const children: (Paragraph | Table)[] = [];
 
   const isBilingual = Boolean(
@@ -299,5 +299,6 @@ export async function exportDOCX(c: GeneratedContract, opts?: WatermarkOpts) {
   });
 
   const blob = await Packer.toBlob(doc);
+  if (opts?.returnBlob) return blob;
   saveAs(blob, `${fileBase(c.title)}.docx`);
 }

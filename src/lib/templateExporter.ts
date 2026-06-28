@@ -15,7 +15,7 @@ const fileBase = (title: string) =>
     .slice(0, 60) || "Blanka";
 
 
-export async function exportTemplatePDF(t: CompanionTemplate, opts?: WatermarkOpts) {
+export async function exportTemplatePDF(t: CompanionTemplate, opts?: WatermarkOpts & { returnBytes?: boolean }): Promise<Uint8Array | void> {
   const b64 = await loadCyrillicFontB64();
 
   const doc = new jsPDF({ unit: "pt", format: "a4" });
@@ -87,10 +87,14 @@ export async function exportTemplatePDF(t: CompanionTemplate, opts?: WatermarkOp
   }
 
   if (opts?.watermark) await applyPdfWatermark(doc, { userTag: opts.userTag });
+  if (opts?.returnBytes) {
+    const ab = doc.output("arraybuffer");
+    return new Uint8Array(ab);
+  }
   doc.save(`${fileBase(t.title)}.pdf`);
 }
 
-export async function exportTemplateDOCX(t: CompanionTemplate, opts?: WatermarkOpts) {
+export async function exportTemplateDOCX(t: CompanionTemplate, opts?: WatermarkOpts & { returnBlob?: boolean }): Promise<Blob | void> {
   const children: Paragraph[] = [];
 
 
@@ -151,5 +155,6 @@ export async function exportTemplateDOCX(t: CompanionTemplate, opts?: WatermarkO
     }],
   });
   const blob = await Packer.toBlob(doc);
+  if (opts?.returnBlob) return blob;
   saveAs(blob, `${fileBase(t.title)}.docx`);
 }
