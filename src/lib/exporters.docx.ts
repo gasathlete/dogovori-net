@@ -299,5 +299,6 @@ export async function exportDOCX(c: GeneratedContract, opts?: WatermarkOpts & { 
   });
 
   const blob = await Packer.toBlob(doc);
+  if (opts?.returnBlob) return blob;
   saveAs(blob, `${fileBase(c.title)}.docx`);
 }
