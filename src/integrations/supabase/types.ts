@@ -1328,6 +1328,44 @@ export type Database = {
           },
         ]
       }
+      document_versions: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          saved_document_id: string
+          title: string
+          user_id: string
+          version_no: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload: Json
+          saved_document_id: string
+          title: string
+          user_id: string
+          version_no: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          saved_document_id?: string
+          title?: string
+          user_id?: string
+          version_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_versions_saved_document_id_fkey"
+            columns: ["saved_document_id"]
+            isOneToOne: false
+            referencedRelation: "saved_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       download_quota: {
         Row: {
           ai_messages_used: number
