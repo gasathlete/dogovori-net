@@ -37,6 +37,7 @@ import {
   Tooltip as RTooltip, Legend, AreaChart, Area, LineChart, Line, ReferenceLine,
 } from "recharts";
 import { getUnlockedTiers, getNextTier, REWARD_TIERS } from "@/lib/rewards";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
@@ -140,6 +141,16 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
+
+      <OnboardingChecklist
+        stats={{
+          createdDocs,
+          uploadedCount,
+          contactsCount,
+          foldersCount,
+          isPro,
+        }}
+      />
 
       <Card
         title="План"
