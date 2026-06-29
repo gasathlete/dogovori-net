@@ -13,6 +13,7 @@ import { categorize } from "@/lib/planCategories";
 import { AnalysisRecommendationBanner } from "@/components/funnel/AnalysisRecommendationBanner";
 import { AnchoringStrip } from "@/components/funnel/AnchoringStrip";
 import { FunnelProgress } from "@/components/funnel/FunnelProgress";
+import { RoiCalculator } from "@/components/funnel/RoiCalculator";
 import { markFunnelStep } from "@/lib/funnel";
 import { useEffect } from "react";
 
@@ -453,7 +454,16 @@ export default function Plans() {
             </div>
           </div>
         </section>
+
+        <section className="border-t border-border/60 py-16">
+          <div className="container mx-auto px-4">
+            <div className="mx-auto max-w-3xl">
+              <RoiCalculator />
+            </div>
+          </div>
+        </section>
       </main>
+
 
       <Footer />
     </>
