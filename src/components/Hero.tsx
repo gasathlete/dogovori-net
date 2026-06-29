@@ -8,6 +8,7 @@ import type { BusinessQuote } from "@/lib/businessQuotes";
 import { useMagneticHover } from "@/hooks/useMagneticHover";
 import { TeaserDialog } from "@/components/TeaserDialog";
 import { HeroBackdrop } from "@/components/HeroBackdrop";
+import { ConversationalHeroInput } from "@/components/funnel/ConversationalHeroInput";
 import { useAuth } from "@/hooks/useAuth";
 
 export function Hero({ onStart: _onStart }: { onStart: () => void }) {
@@ -184,21 +185,24 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
                 </Link>
               </div>
             ) : (
-              <div className="relative w-full sm:w-auto">
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute -inset-2 rounded-xl bg-gradient-to-r from-gold/0 via-gold/30 to-gold/0 opacity-50 blur-xl"
-                />
-                <Link
-                  ref={magneticRef}
-                  to="/analiz"
-                  onClick={() => { try { (window as any).plausible?.("funnel_cta_click", { props: { step: 1, label: "Започни безплатно", href: "/analiz" } }); } catch {} }}
-                  className="btn-gold btn-sheen btn-press relative w-full sm:w-auto normal-case tracking-normal text-[16px] sm:text-[17px] px-8 py-4 sm:px-10 sm:py-4 rounded-xl font-bold shadow-gold will-change-transform"
-                  style={{ transition: "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms, background 200ms" }}
-                >
-                  Започни безплатно
-                  <ArrowRight className="h-[16px] w-[16px] transition-transform duration-300 group-hover:translate-x-1" />
-                </Link>
+              <div className="flex w-full flex-col items-center gap-3">
+                <ConversationalHeroInput />
+                <div className="relative w-full sm:w-auto">
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -inset-2 rounded-xl bg-gradient-to-r from-gold/0 via-gold/30 to-gold/0 opacity-50 blur-xl"
+                  />
+                  <Link
+                    ref={magneticRef}
+                    to="/analiz"
+                    onClick={() => { try { (window as any).plausible?.("funnel_cta_click", { props: { step: 1, label: "Започни безплатно", href: "/analiz" } }); } catch {} }}
+                    className="btn-gold btn-sheen btn-press relative w-full sm:w-auto normal-case tracking-normal text-[16px] sm:text-[17px] px-8 py-4 sm:px-10 sm:py-4 rounded-xl font-bold shadow-gold will-change-transform"
+                    style={{ transition: "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms, background 200ms" }}
+                  >
+                    Започни безплатно
+                    <ArrowRight className="h-[16px] w-[16px] transition-transform duration-300 group-hover:translate-x-1" />
+                  </Link>
+                </div>
               </div>
             )}
 
