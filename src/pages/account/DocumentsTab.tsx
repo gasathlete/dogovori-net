@@ -527,6 +527,18 @@ function DocumentsTab({
                         </SelectContent>
                       </Select>
                       {(!d.user_id || !currentUser || d.user_id === currentUser.id) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-10 w-full sm:h-9 sm:w-auto"
+                          disabled={busy === d.id + "dup"}
+                          onClick={() => duplicate(d)}
+                          title="Дублирай документа"
+                        >
+                          {busy === d.id + "dup" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Copy className="mr-1 h-3 w-3" />} Копие
+                        </Button>
+                      )}
+                      {(!d.user_id || !currentUser || d.user_id === currentUser.id) && (
                         <Button size="sm" variant="ghost" className="h-10 w-full p-0 text-destructive sm:h-9 sm:w-9" onClick={() => remove(d.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
