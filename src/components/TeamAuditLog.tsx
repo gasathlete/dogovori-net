@@ -101,16 +101,69 @@ export function TeamAuditLog({ teamId }: { teamId: string }) {
 
   useEffect(() => { load(true); /* eslint-disable-next-line */ }, [teamId, filter]);
 
+  const [exporting, setExporting] = useState<null | "csv" | "pdf">(null);
+  const fetchAllForExport = async (): Promise<AuditExportRow[]> => {
+    const PAGE_SIZE = 200;
+    const all: Entry[] = [];
+    let off = 0;
+    while (off < total + PAGE_SIZE) {
+      const { data, error } = await supabase.functions.invoke("team-members", {
+        body: { teamId, action: "audit-list", limit: PAGE_SIZE, offset: off, actionFilter: filter === "all" ? undefined : filter },
+      });
+      if (error) throw new Error(error.message);
+      const fetched = (data?.entries ?? []) as Entry[];
+      all.push(...fetched);
+      if (fetched.length < PAGE_SIZE) break;
+      off += PAGE_SIZE;
+      if (off > 5000) break; // hard safety cap
+    }
+    return all.map((e) => {
+      const { actor, label, tail } = renderEntry(e);
+      return {
+        created_at: e.created_at,
+        actor,
+        action: label,
+        target: tail,
+        metadata: e.metadata,
+      };
+    });
+  };
+
+  const doExport = async (kind: "csv" | "pdf") => {
+    setExporting(kind);
+    try {
+      const rows = await fetchAllForExport();
+      const stamp = new Date().toISOString().slice(0, 10);
+      if (kind === "csv") exportAuditCsv(rows, `audit-log-${stamp}.csv`);
+      else exportAuditPdf(rows, "Дневник на действията", `audit-log-${stamp}.pdf`);
+      toast.success(`Експортирани ${rows.length} записа`);
+    } catch (e: any) {
+      toast.error(e.message ?? "Грешка при експорт");
+    } finally {
+      setExporting(null);
+    }
+  };
+
   return (
     <div className="rounded-2xl border border-border/60 bg-gradient-card p-6">
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-serif text-xl font-bold">Дневник на действията</h2>
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {FILTER_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {FILTER_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button size="sm" variant="outline" className="h-9 gap-1.5" disabled={exporting !== null} onClick={() => doExport("csv")}>
+            {exporting === "csv" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+            CSV
+          </Button>
+          <Button size="sm" variant="outline" className="h-9 gap-1.5" disabled={exporting !== null} onClick={() => doExport("pdf")}>
+            {exporting === "pdf" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+            PDF
+          </Button>
+        </div>
       </div>
 
       {loading ? (
