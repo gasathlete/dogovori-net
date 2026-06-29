@@ -256,6 +256,33 @@ export function BulkActionsBar({
               {busy === "delete" ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mr-1.5 h-3.5 w-3.5" />}
               Изтрий{ownedSelectedIds.length > 0 ? ` (${ownedSelectedIds.length})` : ""}
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!!busy || ownedSelectedIds.length === 0}
+                  className="h-9"
+                  title={ownedSelectedIds.length === 0 ? "Маркирай свои документи" : `Премести ${ownedSelectedIds.length}`}
+                >
+                  {busy === "move" ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <FolderInput className="mr-1.5 h-3.5 w-3.5" />}
+                  Премести{ownedSelectedIds.length > 0 ? ` (${ownedSelectedIds.length})` : ""}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="max-h-72 w-56 overflow-auto">
+                <DropdownMenuLabel className="text-xs">Избери папка</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => runBulkMove(null)}>
+                  Без папка
+                </DropdownMenuItem>
+                {folders.length > 0 && <DropdownMenuSeparator />}
+                {folders.map((f) => (
+                  <DropdownMenuItem key={f.id} onSelect={() => runBulkMove(f.id)}>
+                    {f.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               size="sm"
               variant="ghost"
