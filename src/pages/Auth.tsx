@@ -31,8 +31,18 @@ export default function AuthPage() {
   const [params] = useSearchParams();
   // Only allow same-origin relative paths to prevent open-redirect attacks.
   // Must start with "/" followed by a non-"/" char (rejects "//evil.com" and "/\evil.com").
-  const rawRedirect = params.get("redirect") || "/account";
+  const rawRedirectParam = params.get("redirect");
+  // Smart funnel routing: if no explicit redirect AND user has a saved
+  // analysis session, send them straight back to /analiz so they get the
+  // dopamine hit of seeing their result unlocked.
+  const hasAnalysisSession =
+    typeof window !== "undefined" &&
+    (sessionStorage.getItem("funnel_analysis_v1") ||
+      localStorage.getItem("funnel_analysis_v1"));
+  const rawRedirect =
+    rawRedirectParam || (hasAnalysisSession ? "/analiz" : "/account");
   const redirect = /^\/[^/\\]/.test(rawRedirect) ? rawRedirect : "/account";
+
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
