@@ -138,6 +138,7 @@ const BlogPost = lazy(() => import("./pages/BlogPost.tsx"));
 const BlogUserPost = lazy(() => import("./pages/BlogUserPost.tsx"));
 const BlogSubmit = lazy(() => import("./pages/BlogSubmit.tsx"));
 const Team = lazy(() => import("./pages/Team.tsx"));
+const TeamSSO = lazy(() => import("./pages/TeamSSO.tsx"));
 const TeamAccept = lazy(() => import("./pages/TeamAccept.tsx"));
 const Contact = lazy(() => import("./pages/Contact.tsx"));
 const Downloads = lazy(() => import("./pages/Downloads.tsx"));
@@ -301,6 +302,7 @@ const AnimatedRoutes = () => {
         <Route path="/blog/:slug" element={<BlogPost />} />
         <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
         <Route path="/team/accept" element={<TeamAccept />} />
+        <Route path="/team/sso" element={<ProtectedRoute><TeamSSO /></ProtectedRoute>} />
         <Route path="/contact/:id" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
         <Route path="/downloads/contracts" element={<ProtectedRoute><Downloads kind="contract" /></ProtectedRoute>} />
         <Route path="/downloads/templates" element={<ProtectedRoute><Downloads kind="template" /></ProtectedRoute>} />

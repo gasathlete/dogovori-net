@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, Users, Plus, ArrowLeft, Lock } from "lucide-react";
+import { Loader2, Users, Plus, ArrowLeft, Lock, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -22,6 +22,7 @@ import { TeamMembersList } from "@/components/TeamMembers";
 import { TeamInvitations } from "@/components/TeamInvitations";
 import { TeamBilling } from "@/components/TeamBilling";
 import { TeamAuditLog } from "@/components/TeamAuditLog";
+import { TeamManagerContact } from "@/components/TeamManagerContact";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getStripeEnvironment } from "@/lib/stripe";
 
@@ -179,7 +180,14 @@ export default function TeamPage() {
                 {team.current_period_end && <> · Подновяване: {new Date(team.current_period_end).toLocaleDateString("bg-BG")}</>}
               </p>
             </div>
-            <Users className="h-8 w-8 shrink-0 text-gold" />
+            <div className="flex shrink-0 flex-col items-end gap-2">
+              <Users className="h-8 w-8 text-gold" />
+              {isAdmin && (
+                <Link to="/team/sso" className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/5 px-3 py-1 text-[11px] font-semibold text-gold hover:bg-gold/10">
+                  <ShieldCheck className="h-3 w-3" /> SSO настройки
+                </Link>
+              )}
+            </div>
           </div>
 
           {usage && (
@@ -343,6 +351,13 @@ export default function TeamPage() {
             </TabsContent>
           )}
         </Tabs>
+
+        <TeamManagerContact
+          teamId={team.team_id}
+          teamName={team.team_name}
+          defaultEmail={user?.email ?? null}
+          defaultName={user?.user_metadata?.full_name ?? null}
+        />
       </main>
       <Footer />
     </>

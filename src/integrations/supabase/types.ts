@@ -2564,6 +2564,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["document_kind"]
           payload: Json
           source_id: string | null
+          tags: string[]
           team_id: string | null
           title: string
           updated_at: string
@@ -2578,6 +2579,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["document_kind"]
           payload: Json
           source_id?: string | null
+          tags?: string[]
           team_id?: string | null
           title: string
           updated_at?: string
@@ -2592,6 +2594,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["document_kind"]
           payload?: Json
           source_id?: string | null
+          tags?: string[]
           team_id?: string | null
           title?: string
           updated_at?: string
@@ -3208,6 +3211,7 @@ export type Database = {
           seat_count: number
           signature_data_url: string | null
           signature_name: string | null
+          sso_config: Json
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -3236,6 +3240,7 @@ export type Database = {
           seat_count?: number
           signature_data_url?: string | null
           signature_name?: string | null
+          sso_config?: Json
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -3264,6 +3269,7 @@ export type Database = {
           seat_count?: number
           signature_data_url?: string | null
           signature_name?: string | null
+          sso_config?: Json
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -3977,6 +3983,7 @@ export type Database = {
           seat_count: number
           signature_data_url: string | null
           signature_name: string | null
+          sso_config: Json
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null

@@ -35,6 +35,7 @@ import { translateAuthError } from "@/lib/authErrors";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { Seo } from "@/components/Seo";
 import { BulkActionsBar, BulkRowCheckbox } from "@/components/BulkActionsBar";
+import { DocFiltersBar, type DocFilterState } from "@/components/DocFilters";
 import { DocumentReminderDialog } from "@/components/DocumentReminderDialog";
 import { DocumentVersionsDialog } from "@/components/DocumentVersionsDialog";
 import { History, CalendarDays, Copy } from "lucide-react";
@@ -55,7 +56,7 @@ type Folder = { id: string; name: string; color: string | null; is_favorites: bo
 type SavedDoc = {
   id: string; title: string; kind: "contract" | "template"; folder_id: string | null;
   contact_id: string | null; payload: any; created_at: string;
-  user_id?: string | null; team_id?: string | null;
+  user_id?: string | null; team_id?: string | null; tags?: string[] | null;
 };
 type Quota = { contracts_used: number; templates_used: number; plan: "free" | "pro"; pro_until: string | null; analyses_used?: number; total_used?: number; monthly_total_used?: number; bonus_contracts?: number; pro_monthly_used?: number; monthly_reset_at?: string | null; pro_period_start?: string | null; signup_at?: string | null };
 type UploadedContract = {
@@ -153,9 +154,38 @@ function DocumentsTab({
   const childSavedIds = new Set(
     links.filter((l) => l.child_saved_id).map((l) => l.child_saved_id as string)
   );
+
+  const [docFilter, setDocFilter] = useState<DocFilterState>({ search: "", tags: [] });
+  const allTags = useMemo(() => {
+    const set = new Set<string>();
+    docs.forEach((d) => (d.tags ?? []).forEach((t) => set.add(t)));
+    return Array.from(set).sort();
+  }, [docs]);
+
   const topLevelDocs = docs
     .filter((d) => !childSavedIds.has(d.id))
-    .filter((d) => (showSharedOnly ? Boolean(d.team_id) : true));
+    .filter((d) => (showSharedOnly ? Boolean(d.team_id) : true))
+    .filter((d) => {
+      if (docFilter.tags.length > 0) {
+        const dt = d.tags ?? [];
+        if (!docFilter.tags.every((t) => dt.includes(t))) return false;
+      }
+      const q = docFilter.search.trim().toLowerCase();
+      if (!q) return true;
+      if (d.title.toLowerCase().includes(q)) return true;
+      if ((d.tags ?? []).some((t) => t.toLowerCase().includes(q))) return true;
+      return false;
+    });
+
+  const updateTags = async (d: SavedDoc, next: string[]) => {
+    const { error } = await supabase
+      .from("saved_documents")
+      .update({ tags: next })
+      .eq("id", d.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Етикетите са обновени");
+    reload();
+  };
 
   const redownload = async (d: SavedDoc, format: "pdf" | "docx") => {
     setBusy(d.id + format);
@@ -190,6 +220,7 @@ function DocumentsTab({
       folder_id: d.folder_id,
       contact_id: d.contact_id,
       payload: d.payload,
+      tags: d.tags ?? [],
     });
     setBusy(null);
     if (error) toast.error(error.message);
@@ -403,6 +434,7 @@ function DocumentsTab({
               </button>
             </div>
           )}
+          <DocFiltersBar state={docFilter} onChange={setDocFilter} allTags={allTags} />
           {topLevelDocs.length === 0 ? (
             <div className="rounded-xl border border-border/60 bg-gradient-card p-10 text-center text-sm text-muted-foreground">
               {activeContactName ? "Няма договори за този контрагент." : "Тази папка е празна."}
@@ -457,6 +489,16 @@ function DocumentsTab({
                           </span>
                         )}
                       </div>
+                      {(d.tags ?? []).length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {(d.tags ?? []).map((t) => (
+                            <span key={t} className="inline-flex items-center rounded-full border border-gold/30 bg-gold/5 px-1.5 py-0.5 text-[10px] text-gold">
+                              #{t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="hidden">{/* keep block structure */}</div>
                       {isBundle && (
                         <div className="mt-2.5 flex flex-wrap gap-1.5" onClick={(e) => e.preventDefault()}>
                           {childLinks.map((l, idx) => {

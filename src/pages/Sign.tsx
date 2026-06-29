@@ -130,6 +130,9 @@ export default function Sign() {
             Покана за подпис до <strong>{signer.name}</strong> ({signer.email})
             {signer.role ? ` — ${signer.role}` : ""}
           </p>
+          <p className="text-xs italic text-muted-foreground/80">
+            EN: Signing invitation for <strong>{signer.name}</strong>. By signing electronically you accept the document as legally binding.
+          </p>
         </header>
 
         <section className="grid md:grid-cols-[1fr_320px] gap-6">

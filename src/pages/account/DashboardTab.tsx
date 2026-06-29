@@ -38,6 +38,7 @@ import {
 } from "recharts";
 import { getUnlockedTiers, getNextTier, REWARD_TIERS } from "@/lib/rewards";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
+import { EntrepreneurWelcomeDialog } from "@/components/EntrepreneurWelcomeDialog";
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
@@ -141,6 +142,7 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
+      <EntrepreneurWelcomeDialog isPro={isPro} />
 
       <OnboardingChecklist
         stats={{
