@@ -214,6 +214,17 @@ export function BulkActionsBar({
             </Button>
             <Button
               size="sm"
+              variant="outline"
+              disabled={!!busy || ownedSelectedIds.length === 0}
+              onClick={runBulkDelete}
+              className="h-9 border-destructive/40 text-destructive hover:bg-destructive/10"
+              title={ownedSelectedIds.length === 0 ? "Маркирай свои документи" : `Изтрий ${ownedSelectedIds.length}`}
+            >
+              {busy === "delete" ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mr-1.5 h-3.5 w-3.5" />}
+              Изтрий{ownedSelectedIds.length > 0 ? ` (${ownedSelectedIds.length})` : ""}
+            </Button>
+            <Button
+              size="sm"
               variant="ghost"
               className="h-9"
               onClick={() => { setSelectionMode(false); setSelectedIds([]); }}
