@@ -5,7 +5,8 @@
  * search_templates RPC, same source as /catalog). Selecting a hit goes to
  * the template page; pressing Enter goes to /catalog?q=…
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Search, Sparkles, Loader2 } from "lucide-react";
 import { trackFunnelEvent } from "@/lib/funnel";
