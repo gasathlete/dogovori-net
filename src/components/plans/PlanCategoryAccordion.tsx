@@ -65,7 +65,7 @@ export function PlanCategoryAccordion({ planId, groups, highlightPlan }: Props) 
               {g.highlight && (
                 <span
                   className={cn(
-                    "hidden xs:inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
+                    "hidden sm:inline-flex shrink-0 max-w-[140px] truncate items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
                     highlightPlan
                       ? "border-gold/40 bg-gold/15 text-gold"
                       : "border-gold/25 bg-gold/10 text-gold/90",
