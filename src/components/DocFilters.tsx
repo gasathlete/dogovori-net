@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Tag as TagIcon, Bookmark, BookmarkPlus, Search, X, Filter } from "lucide-react";
+import { Tag as TagIcon, Bookmark, BookmarkPlus, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
