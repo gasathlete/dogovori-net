@@ -35,6 +35,7 @@ import { translateAuthError } from "@/lib/authErrors";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { Seo } from "@/components/Seo";
 import { BulkActionsBar, BulkRowCheckbox } from "@/components/BulkActionsBar";
+import { DocFiltersBar, type DocFilterState } from "@/components/DocFilters";
 import { DocumentReminderDialog } from "@/components/DocumentReminderDialog";
 import { DocumentVersionsDialog } from "@/components/DocumentVersionsDialog";
 import { History, CalendarDays, Copy } from "lucide-react";
