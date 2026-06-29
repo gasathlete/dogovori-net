@@ -80,6 +80,7 @@ const WizardGraph = lazy(() => import("./pages/WizardGraph.tsx"));
 const WizardReview = lazy(() => import("./pages/WizardReview.tsx"));
 
 const Catalog = lazy(() => import("./pages/Catalog.tsx"));
+const Analyze = lazy(() => import("./pages/Analyze.tsx"));
 const Tools = lazy(() => import("./pages/Tools.tsx"));
 const ToolDetail = lazy(() => import("./pages/ToolDetail.tsx"));
 
@@ -250,8 +251,9 @@ const AnimatedRoutes = () => {
         <Route path="/plans" element={<Plans />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
-        <Route path="/analyze" element={<ProtectedRoute><Navigate to="/account?tab=documents&action=upload" replace /></ProtectedRoute>} />
-        <Route path="/console/analysis" element={<ProtectedRoute><Navigate to="/analyze" replace /></ProtectedRoute>} />
+        <Route path="/analiz" element={<Analyze />} />
+        <Route path="/analyze" element={<Navigate to="/analiz" replace />} />
+        <Route path="/console/analysis" element={<ProtectedRoute><Navigate to="/analiz" replace /></ProtectedRoute>} />
         <Route path="/console" element={<ProtectedRoute><Console /></ProtectedRoute>} />
         <Route path="/console/:section" element={<ProtectedRoute><Console /></ProtectedRoute>} />
         <Route path="/console/:section/:entityId" element={<ProtectedRoute><Console /></ProtectedRoute>} />

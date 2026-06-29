@@ -1,4 +1,5 @@
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { markFunnelStep } from "@/lib/funnel";
 import { Link } from "react-router-dom";
 import { ShieldCheck, Bird, FileText, Search, FileSignature, Command, ArrowRight, FileUp, Wand2, Bot, ShieldAlert, Languages, Package, ChevronRight } from "lucide-react";
 const logoImg = "/logo-dogovori-hero.webp";
@@ -17,6 +18,8 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
   const [teaserOpen, setTeaserOpen] = useState(false);
   const lastIdxRef = useRef<number | undefined>(undefined);
   const magneticRef = useMagneticHover<HTMLAnchorElement>(6);
+
+  useEffect(() => { markFunnelStep(1); }, []);
 
   const showQuote = async () => {
     const { pickRandomQuote } = await import("@/lib/businessQuotes");
@@ -188,13 +191,12 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
                 />
                 <Link
                   ref={magneticRef}
-                  to="/auth?tab=signup"
-                  onClick={(e) => { e.preventDefault(); setTeaserOpen(true); }}
+                  to="/analiz"
+                  onClick={() => { try { (window as any).plausible?.("funnel_cta_click", { props: { step: 1, label: "Започни безплатно", href: "/analiz" } }); } catch {} }}
                   className="btn-gold btn-sheen btn-press relative w-full sm:w-auto normal-case tracking-normal text-[16px] sm:text-[17px] px-8 py-4 sm:px-10 sm:py-4 rounded-xl font-bold shadow-gold will-change-transform"
                   style={{ transition: "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms, background 200ms" }}
                 >
                   Започни безплатно
-
                   <ArrowRight className="h-[16px] w-[16px] transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
               </div>

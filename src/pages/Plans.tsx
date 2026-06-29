@@ -10,6 +10,9 @@ import { TopupPacks } from "@/components/TopupPacks";
 import { PlanCategoryAccordion } from "@/components/plans/PlanCategoryAccordion";
 import { PlanHeroBenefit } from "@/components/plans/PlanHeroBenefit";
 import { categorize } from "@/lib/planCategories";
+import { AnalysisRecommendationBanner } from "@/components/funnel/AnalysisRecommendationBanner";
+import { markFunnelStep } from "@/lib/funnel";
+import { useEffect } from "react";
 
 
 import {
@@ -71,6 +74,8 @@ export default function Plans() {
   const plans = data?.plans ?? [];
   const COMPARISON_ROWS = data?.comparison ?? [];
 
+  useEffect(() => { markFunnelStep(4); }, []);
+
   return (
     <>
       <Seo
@@ -92,6 +97,7 @@ export default function Plans() {
         />
 
         <section className="relative z-10 mx-auto max-w-6xl px-4 pt-2 pb-3 sm:pt-4 sm:pb-6">
+          <AnalysisRecommendationBanner />
           <PlansHeroAnimation />
           <div className="relative mx-auto mt-4 max-w-3xl text-center sm:mt-6">
             <h1 className="font-serif text-4xl leading-[1.1] tracking-tight text-foreground sm:text-5xl md:text-6xl">
