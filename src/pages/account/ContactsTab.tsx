@@ -80,7 +80,6 @@ function ContactsTab({ contacts, docs, reload, onOpenDocs }: {
           variant="outline"
           disabled={contacts.length === 0}
           onClick={() => {
-            const { exportCsv } = require("@/lib/csv");
             exportCsv(
               `kontragenti-${new Date().toISOString().slice(0, 10)}.csv`,
               contacts.map((c) => ({
