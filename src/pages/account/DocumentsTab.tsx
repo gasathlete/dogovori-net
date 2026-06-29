@@ -300,6 +300,11 @@ function DocumentsTab({
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5">
                       <ShareForSignDialog uploadedContractId={u.id} documentTitle={u.title} triggerClassName="h-10 w-full justify-center sm:h-9 sm:w-auto" />
+                      <DocumentReminderDialog
+                        target={{ uploadedContractId: u.id }}
+                        documentTitle={u.title}
+                        onChanged={reloadReminders}
+                      />
                       <Select
                         value={u.folder_id ?? "none"}
                         onValueChange={async (v) => {
