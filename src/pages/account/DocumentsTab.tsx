@@ -488,6 +488,16 @@ function DocumentsTab({
                           </span>
                         )}
                       </div>
+                      {(d.tags ?? []).length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {(d.tags ?? []).map((t) => (
+                            <span key={t} className="inline-flex items-center rounded-full border border-gold/30 bg-gold/5 px-1.5 py-0.5 text-[10px] text-gold">
+                              #{t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="hidden">{/* keep block structure */}</div>
                       {isBundle && (
                         <div className="mt-2.5 flex flex-wrap gap-1.5" onClick={(e) => e.preventDefault()}>
                           {childLinks.map((l, idx) => {
