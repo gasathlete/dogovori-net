@@ -35,10 +35,12 @@ export function BulkActionsBar({
   setSelectionMode,
   selectedIds,
   setSelectedIds,
+  currentUserId,
+  onChanged,
 }: Props) {
   const { isPro } = useIsPro();
   const [paywallOpen, setPaywallOpen] = useState(false);
-  const [busy, setBusy] = useState<BulkFormat | null>(null);
+  const [busy, setBusy] = useState<BulkFormat | "delete" | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
   const selectableIds = useMemo(() => docs.map((d) => d.id), [docs]);
