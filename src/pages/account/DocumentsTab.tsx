@@ -461,7 +461,7 @@ function DocumentsTab({
                   to={`/document/${d.id}`}
                   className="block rounded-xl border border-border/60 bg-gradient-card p-4 transition-all hover:border-gold/50 hover:shadow-soft"
                 >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex flex-col gap-3">
                     {selectionMode && (
                       <BulkRowCheckbox
                         checked={selectedIds.includes(d.id)}
@@ -498,7 +498,7 @@ function DocumentsTab({
                           ))}
                         </div>
                       )}
-                      <div className="hidden">{/* keep block structure */}</div>
+                      
                       {isBundle && (
                         <div className="mt-2.5 flex flex-wrap gap-1.5" onClick={(e) => e.preventDefault()}>
                           {childLinks.map((l, idx) => {
@@ -523,7 +523,7 @@ function DocumentsTab({
                       )}
                     </div>
                     <div
-                      className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5"
+                      className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6"
                       onClick={(e) => e.preventDefault()}
                     >
                       <Button size="sm" variant="outline" className="h-10 w-full sm:h-9 sm:w-auto" disabled={busy === d.id + "pdf"} onClick={() => redownload(d, "pdf")}>
