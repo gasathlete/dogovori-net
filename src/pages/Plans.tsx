@@ -386,8 +386,15 @@ export default function Plans() {
         </section>
 
         <section className="relative z-10 mx-auto max-w-4xl px-4 pb-20">
-          <div className="relative overflow-hidden rounded-3xl border border-gold/40 bg-gradient-to-br from-navy via-navy to-foreground/5 p-8 text-center sm:p-12">
-            <div className="pointer-events-none absolute inset-0 gold-sweep-bg opacity-50" aria-hidden />
+          <div className="relative overflow-hidden rounded-3xl border border-brand/40 bg-gradient-to-br from-brand-dark via-brand-dark to-foreground/5 p-8 text-center sm:p-12">
+            <div
+              className="pointer-events-none absolute inset-0 opacity-60"
+              aria-hidden
+              style={{
+                background:
+                  "radial-gradient(ellipse 60% 80% at 50% 0%, hsl(var(--brand) / 0.45), transparent 70%)",
+              }}
+            />
             <div className="relative z-10">
               <h2 className="font-serif text-2xl text-white sm:text-3xl">
                 {isAuthed ? "Активирай Предприемач сега" : "Регистрирай се за 30 секунди"}
@@ -404,7 +411,7 @@ export default function Plans() {
                       ? "/account?tab=subscription&plan=entrepreneur&billing=monthly&promo=FIRST100"
                       : "/auth?tab=signup&redirect=%2Fplans"
                   }
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-gold px-7 py-3 text-sm font-semibold text-navy shadow-gold transition-all hover:shadow-[0_20px_50px_-15px_hsl(var(--gold)/0.6)]"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-3 text-sm font-semibold text-brand-dark shadow-brand transition-all hover:shadow-[0_20px_50px_-15px_hsl(var(--brand)/0.7)]"
                 >
                   {isAuthed ? "Активирай Предприемач" : "Регистрирай се безплатно"}
                   <ArrowRight className="h-4 w-4" />
