@@ -36,6 +36,8 @@ import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { Seo } from "@/components/Seo";
 import { BulkActionsBar, BulkRowCheckbox } from "@/components/BulkActionsBar";
 import { DocumentReminderDialog } from "@/components/DocumentReminderDialog";
+import { DocumentVersionsDialog } from "@/components/DocumentVersionsDialog";
+import { History } from "lucide-react";
 import { useDocumentReminders, reminderStatus, REMINDER_KIND_LABEL } from "@/hooks/useDocumentReminders";
 import {
   ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid,
