@@ -110,6 +110,48 @@ export function BulkActionsBar({
     }
   };
 
+  const ownedSelectedIds = useMemo(() => {
+    if (!currentUserId) return [] as string[];
+    return selectedIds.filter((id) => {
+      const d = docs.find((x) => x.id === id);
+      // allow when ownership unknown (legacy rows) or matches current user
+      return !d?.user_id || d.user_id === currentUserId;
+    });
+  }, [selectedIds, docs, currentUserId]);
+
+  const runBulkDelete = async () => {
+    if (!selectedIds.length) {
+      toast.info("Избери поне един документ");
+      return;
+    }
+    const skipped = selectedIds.length - ownedSelectedIds.length;
+    if (!ownedSelectedIds.length) {
+      toast.error("Нямаш права да изтриеш избраните документи");
+      return;
+    }
+    if (!confirm(
+      `Сигурни ли сте, че искате да изтриете ${ownedSelectedIds.length} документ${ownedSelectedIds.length === 1 ? "" : "а"}?` +
+      (skipped ? `\n(${skipped} ще бъдат пропуснати — не са ваши)` : ""),
+    )) return;
+    setBusy("delete");
+    try {
+      const { error } = await supabase
+        .from("saved_documents")
+        .delete()
+        .in("id", ownedSelectedIds);
+      if (error) {
+        toast.error("Неуспешно изтриване", { description: error.message });
+      } else {
+        toast.success(`Изтрити ${ownedSelectedIds.length} документ${ownedSelectedIds.length === 1 ? "" : "а"}`);
+        setSelectedIds([]);
+        setSelectionMode(false);
+        onChanged?.();
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-gradient-card p-2.5 sm:p-3">
