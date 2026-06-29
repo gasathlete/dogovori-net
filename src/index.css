@@ -130,6 +130,13 @@
     --gold: 43 51% 48%;
     --gold-light: 43 65% 60%;
     --gold-dark: 43 60% 32%;
+
+    /* Brand emerald — Plans accent (light) */
+    --brand: 152 55% 36%;
+    --brand-light: 150 55% 50%;
+    --brand-dark: 155 65% 24%;
+    --gradient-brand: linear-gradient(135deg, hsl(155 60% 28%) 0%, hsl(150 55% 44%) 100%);
+    --shadow-brand: 0 14px 36px -14px hsl(152 55% 28% / 0.30);
     /* `--navy` kept dark — used as text color on gold backgrounds (`text-navy`). */
     --navy: 0 0% 12%;
     --navy-light: 30 8% 28%;
