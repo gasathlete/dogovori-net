@@ -138,6 +138,7 @@ const BlogPost = lazy(() => import("./pages/BlogPost.tsx"));
 const BlogUserPost = lazy(() => import("./pages/BlogUserPost.tsx"));
 const BlogSubmit = lazy(() => import("./pages/BlogSubmit.tsx"));
 const Team = lazy(() => import("./pages/Team.tsx"));
+const TeamSSO = lazy(() => import("./pages/TeamSSO.tsx"));
 const TeamAccept = lazy(() => import("./pages/TeamAccept.tsx"));
 const Contact = lazy(() => import("./pages/Contact.tsx"));
 const Downloads = lazy(() => import("./pages/Downloads.tsx"));
