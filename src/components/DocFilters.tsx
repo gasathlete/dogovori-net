@@ -142,7 +142,7 @@ export function DocFiltersBar({
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Запазване на изглед</DialogTitle></DialogHeader>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="напр. „Активни договори с Иван"" maxLength={60} autoFocus />
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder='напр. „Активни договори с Иван"' maxLength={60} autoFocus />
           <DialogFooter>
             <Button variant="outline" onClick={() => setSaveOpen(false)}>Отказ</Button>
             <Button onClick={saveView}>Запази</Button>
