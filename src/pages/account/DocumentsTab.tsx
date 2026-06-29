@@ -37,8 +37,9 @@ import { Seo } from "@/components/Seo";
 import { BulkActionsBar, BulkRowCheckbox } from "@/components/BulkActionsBar";
 import { DocumentReminderDialog } from "@/components/DocumentReminderDialog";
 import { DocumentVersionsDialog } from "@/components/DocumentVersionsDialog";
-import { History } from "lucide-react";
+import { History, CalendarDays } from "lucide-react";
 import { useDocumentReminders, reminderStatus, REMINDER_KIND_LABEL } from "@/hooks/useDocumentReminders";
+import { downloadIcs } from "@/lib/ics";
 import {
   ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, Legend, AreaChart, Area, LineChart, Line, ReferenceLine,
@@ -213,9 +214,39 @@ function DocumentsTab({
       <div className={hasMobileViewport ? "space-y-8 pb-20" : "space-y-8"}>
         {upcomingReminders.length > 0 && (
           <section className="rounded-xl border border-gold/30 bg-gold/5 p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-gold">
-              <Bell className="h-4 w-4" />
-              Предстоящи напомняния ({reminders.filter((r) => !r.done_at).length})
+            <div className="mb-2 flex items-center justify-between gap-2 text-sm font-semibold text-gold">
+              <div className="flex items-center gap-2">
+                <Bell className="h-4 w-4" />
+                Предстоящи напомняния ({reminders.filter((r) => !r.done_at).length})
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1.5 border-gold/40 text-[11px] text-gold hover:bg-gold/10"
+                onClick={() => {
+                  const active = reminders.filter((r) => !r.done_at);
+                  if (active.length === 0) {
+                    toast.info("Няма активни напомняния за експорт.");
+                    return;
+                  }
+                  const origin = typeof window !== "undefined" ? window.location.origin : "";
+                  downloadIcs("dogovaryai-reminders", active.map((r) => {
+                    const href = reminderHref(r);
+                    const title = reminderTitle(r);
+                    return {
+                      uid: r.id,
+                      title: `${REMINDER_KIND_LABEL[r.kind]}: ${title}`,
+                      description: r.note ?? `${REMINDER_KIND_LABEL[r.kind]} — ${title}`,
+                      url: href ? `${origin}${href}` : undefined,
+                      dateISO: r.remind_at,
+                    };
+                  }));
+                  toast.success(`Експортирани ${active.length} напомняния (.ics)`);
+                }}
+              >
+                <CalendarDays className="h-3.5 w-3.5" />
+                Експорт .ics
+              </Button>
             </div>
             <ul className="space-y-1.5">
               {upcomingReminders.map((r) => {
