@@ -58,6 +58,30 @@ export function CommandPalette() {
     [open],
   );
 
+  // User-owned records: fetched on open. Lightweight (titles only).
+  const [myDocs, setMyDocs] = useState<Array<{ id: string; title: string }>>([]);
+  const [myContacts, setMyContacts] = useState<Array<{ id: string; name: string }>>([]);
+  const [myDeals, setMyDeals] = useState<Array<{ id: string; title: string }>>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) return;
+      const [docs, contacts, deals] = await Promise.all([
+        supabase.from("saved_documents").select("id,title").order("updated_at", { ascending: false }).limit(25),
+        supabase.from("contacts").select("id,name").is("deleted_at", null).order("updated_at", { ascending: false }).limit(25),
+        supabase.from("deals").select("id,title").order("updated_at", { ascending: false }).limit(25),
+      ]);
+      if (cancelled) return;
+      setMyDocs((docs.data ?? []) as any);
+      setMyContacts((contacts.data ?? []) as any);
+      setMyDeals((deals.data ?? []) as any);
+    })();
+    return () => { cancelled = true; };
+  }, [open]);
+
   const go = (path: string) => {
     setOpen(false);
     navigate(path);
