@@ -150,13 +150,31 @@ function DocumentsTab({
     if (error) toast.error(error.message); else { toast.success("Преместен"); reload(); }
   };
 
+  const toggleShareWithTeam = async (d: SavedDoc) => {
+    if (!team) return;
+    const next = d.team_id ? null : team.team_id;
+    const { error } = await supabase
+      .from("saved_documents")
+      .update({ team_id: next })
+      .eq("id", d.id);
+    if (error) toast.error(error.message);
+    else { toast.success(next ? "Споделено с екипа" : "Спряно споделянето"); reload(); }
+  };
+
   return (
     <div className="grid gap-6 md:grid-cols-[220px_1fr]">
       <aside className="space-y-1 rounded-xl border border-border/60 bg-gradient-card p-3">
-        <button onClick={() => setActiveFolder("all")}
-          className={`w-full rounded-md px-3 py-2 text-left text-sm ${activeFolder === "all" ? "bg-gold/10 text-gold" : "hover:bg-card/60"}`}>
+        <button onClick={() => { setActiveFolder("all"); setShowSharedOnly(false); }}
+          className={`w-full rounded-md px-3 py-2 text-left text-sm ${activeFolder === "all" && !showSharedOnly ? "bg-gold/10 text-gold" : "hover:bg-card/60"}`}>
           Всички ({docs.length})
         </button>
+        {inActiveTeam && (
+          <button onClick={() => { setShowSharedOnly(true); setActiveFolder("all"); }}
+            className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm ${showSharedOnly ? "bg-gold/10 text-gold" : "hover:bg-card/60"}`}>
+            <Users2 className="h-3.5 w-3.5" />
+            Споделени с екипа ({docs.filter((d) => d.team_id).length})
+          </button>
+        )}
         {folders.map((f) => (
           <button key={f.id} onClick={() => setActiveFolder(f.id)}
             className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm ${activeFolder === f.id ? "bg-gold/10 text-gold" : "hover:bg-card/60"}`}>
