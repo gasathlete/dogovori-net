@@ -157,6 +157,8 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
         }}
       />
 
+      <SavingsSnapshot totalOps={totalOps} monthlyOps={last30dOps} />
+
       {user?.id ? <ReferralCard userId={user.id} email={user.email} /> : null}
 
 
