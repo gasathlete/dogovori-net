@@ -63,6 +63,7 @@ type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_
 /* ============================ DASHBOARD ============================ */
 function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analysesDates, correctionsDates, opChargeDates, hasChatAccess, onOpenChat, contactsCount = 0, foldersCount = 0 }: { quota: Quota | null; isPro: boolean; docs: SavedDoc[]; uploadedCount: number; correctionsCount: number; analysesDates: string[]; correctionsDates: string[]; opChargeDates: string[]; hasChatAccess: boolean; onOpenChat: () => void; contactsCount?: number; foldersCount?: number }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const createdDocs = docs.length;
   const analysesUsed = (quota as any)?.analyses_used ?? 0;
   const contractsUsed = quota?.contracts_used ?? 0;
