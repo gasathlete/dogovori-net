@@ -160,6 +160,31 @@ export function BulkActionsBar({
     }
   };
 
+  const runBulkMove = async (folderId: string | null) => {
+    if (!ownedSelectedIds.length) {
+      toast.error("Маркирай свои документи, за да ги преместиш");
+      return;
+    }
+    setBusy("move");
+    try {
+      const { error } = await supabase
+        .from("saved_documents")
+        .update({ folder_id: folderId })
+        .in("id", ownedSelectedIds);
+      if (error) {
+        toast.error("Неуспешно преместване", { description: error.message });
+      } else {
+        const dest = folderId ? (folders.find((f) => f.id === folderId)?.name ?? "папка") : "Без папка";
+        toast.success(`Преместени ${ownedSelectedIds.length} в „${dest}"`);
+        setSelectedIds([]);
+        setSelectionMode(false);
+        onChanged?.();
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-gradient-card p-2.5 sm:p-3">
