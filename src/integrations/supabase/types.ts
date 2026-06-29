@@ -1654,6 +1654,39 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_magnet_subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          magnet_slug: string
+          marketing_consent: boolean
+          name: string | null
+          source: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          magnet_slug: string
+          marketing_consent?: boolean
+          name?: string | null
+          source?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          magnet_slug?: string
+          marketing_consent?: boolean
+          name?: string | null
+          source?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       legal_chunks: {
         Row: {
           article_no: string | null

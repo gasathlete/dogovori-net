@@ -68,6 +68,7 @@ const AuthGateModal = reactLazy(() =>
   import("@/components/AuthGateModal").then((m) => ({ default: m.AuthGateModal })),
 );
 import { BetaDisclaimerModal } from "@/components/BetaDisclaimerModal";
+import { ExitIntentLeadMagnet } from "@/components/funnel/ExitIntentLeadMagnet";
 // Sentry init is deferred to idle time below — keeps it off the critical path.
 
 // Lazy-load every route except Index (landing page) so the initial bundle stays light.
@@ -341,6 +342,7 @@ const App = () => (
             <CookieBanner />
             <BetaDisclaimerModal />
             <AIDisclaimerModal />
+            <ExitIntentLeadMagnet />
             <UsernamePrompt />
             <GlobalProUpgradeListener />
             <CommandPalette />
