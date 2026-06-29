@@ -38,6 +38,7 @@ import {
 } from "recharts";
 import { getUnlockedTiers, getNextTier, REWARD_TIERS } from "@/lib/rewards";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
+import { EntrepreneurWelcomeDialog } from "@/components/EntrepreneurWelcomeDialog";
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
