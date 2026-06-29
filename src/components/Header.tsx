@@ -22,8 +22,11 @@ const NAV = [
   { to: "/catalog", label: "Каталог" },
   { to: "/blog", label: "Блог" },
   { to: "__tools__", label: "Инструменти" },
-  { to: "/plans", label: "Планове" },
 ];
+
+// Secondary link — pricing is no longer a primary CTA in the funnel;
+// users reach /plans through contextual upgrade prompts and the footer.
+const SECONDARY_NAV = [{ to: "/plans", label: "Планове" }];
 
 export function Header() {
   const [open, setOpen] = useState(false);
@@ -115,7 +118,21 @@ export function Header() {
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-2 justify-self-end">
+          {SECONDARY_NAV.map((n) => (
+            <Link
+              key={n.to}
+              to={n.to}
+              {...prefetchHandlers(n.to)}
+              className={cn(
+                "hidden lg:inline-flex text-[12px] font-medium tracking-wide transition-colors px-2",
+                isActive(n.to) ? "text-gold" : "text-foreground/55 hover:text-gold",
+              )}
+            >
+              {n.label}
+            </Link>
+          ))}
           <ThemeToggle className="hidden lg:inline-flex" />
+
 
 
 
@@ -190,7 +207,7 @@ export function Header() {
       {open && (
         <nav className="origin-top animate-accordion-down overflow-hidden border-t border-border/60 bg-background lg:hidden">
           <div className="container flex flex-col py-3">
-            {NAV.map((n) => (
+            {[...NAV, ...SECONDARY_NAV].map((n) => (
               <Link
                 key={n.to}
                 to={n.to}
