@@ -83,9 +83,29 @@ function DocumentsTab({
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showSharedOnly, setShowSharedOnly] = useState(false);
+  const { reminders, reload: reloadReminders } = useDocumentReminders();
   const toggleSelected = (id: string, v: boolean) =>
     setSelectedIds((prev) => (v ? [...prev, id] : prev.filter((x) => x !== id)));
   const hasMobileViewport = typeof window !== "undefined" && window.innerWidth < 640;
+  const upcomingReminders = reminders
+    .filter((r) => !r.done_at)
+    .slice(0, 5);
+  const reminderHref = (r: typeof reminders[number]): string | null => {
+    if (r.saved_document_id) return `/document/${r.saved_document_id}`;
+    if (r.uploaded_contract_id) return `/uploaded/${r.uploaded_contract_id}`;
+    return null;
+  };
+  const reminderTitle = (r: typeof reminders[number]): string => {
+    if (r.saved_document_id) {
+      const d = docs.find((x) => x.id === r.saved_document_id);
+      if (d) return d.title;
+    }
+    if (r.uploaded_contract_id) {
+      const u = uploaded.find((x) => x.id === r.uploaded_contract_id);
+      if (u) return u.title;
+    }
+    return "Документ";
+  };
 
   // Bundle children: map parent_saved_id → [{ref_label, child_saved_id, child_uploaded_id}]
   type LinkRow = {
