@@ -32,6 +32,7 @@ import { isValidEGN, isValidEIK } from "@/lib/bgValidation";
 import { translateAuthError } from "@/lib/authErrors";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { Seo } from "@/components/Seo";
+import { TopupHistoryPanel } from "@/components/account/TopupHistoryPanel";
 import {
   ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, Legend, AreaChart, Area, LineChart, Line, ReferenceLine,
@@ -451,6 +452,9 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
           </div>
         </div>
       )}
+
+      <TopupHistoryPanel />
+
 
       {/* Manual-activation notice when isPro but no Stripe sub */}
       {isPro && !sub && (
