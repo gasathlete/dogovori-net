@@ -20,10 +20,12 @@ export default {
       backgroundImage: {
         'gradient-hero': 'var(--gradient-hero)',
         'gradient-gold': 'var(--gradient-gold)',
+        'gradient-brand': 'var(--gradient-brand)',
         'gradient-card': 'var(--gradient-card)',
       },
       boxShadow: {
         'gold': 'var(--shadow-gold)',
+        'brand': 'var(--shadow-brand)',
         'elegant': 'var(--shadow-elegant)',
         'soft': 'var(--shadow-soft)',
       },
