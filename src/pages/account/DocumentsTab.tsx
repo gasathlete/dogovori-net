@@ -173,6 +173,29 @@ function DocumentsTab({
     if (error) toast.error(error.message); else { toast.success("Изтрит"); reload(); }
   };
 
+  const duplicate = async (d: SavedDoc) => {
+    setBusy(d.id + "dup");
+    const { data: userData } = await supabase.auth.getUser();
+    const uid = userData.user?.id;
+    if (!uid) {
+      setBusy(null);
+      toast.error("Влезте отново в профила");
+      return;
+    }
+    const newTitle = d.title.length > 60 ? `${d.title.slice(0, 60)}… (копие)` : `${d.title} (копие)`;
+    const { error } = await supabase.from("saved_documents").insert({
+      user_id: uid,
+      title: newTitle,
+      kind: d.kind,
+      folder_id: d.folder_id,
+      contact_id: d.contact_id,
+      payload: d.payload,
+    });
+    setBusy(null);
+    if (error) toast.error(error.message);
+    else { toast.success("Дублиран — отворете го от списъка"); reload(); }
+  };
+
   const move = async (id: string, folder_id: string | null) => {
     const { error } = await supabase.from("saved_documents").update({ folder_id }).eq("id", id);
     if (error) toast.error(error.message); else { toast.success("Преместен"); reload(); }
