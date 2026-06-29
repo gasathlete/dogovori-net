@@ -22,6 +22,7 @@ import { TeamMembersList } from "@/components/TeamMembers";
 import { TeamInvitations } from "@/components/TeamInvitations";
 import { TeamBilling } from "@/components/TeamBilling";
 import { TeamAuditLog } from "@/components/TeamAuditLog";
+import { TeamManagerContact } from "@/components/TeamManagerContact";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getStripeEnvironment } from "@/lib/stripe";
 
