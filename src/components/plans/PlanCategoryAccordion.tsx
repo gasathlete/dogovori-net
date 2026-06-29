@@ -11,7 +11,7 @@ interface Props {
   highlightPlan?: boolean;
 }
 
-export function PlanCategoryAccordion({ planId, groups, highlightPlan }: Props) {
+export function PlanCategoryAccordion({ planId, groups }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
 
   const toggle = useCallback(
