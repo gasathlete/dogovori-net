@@ -81,39 +81,47 @@ export default function Plans() {
       <Header />
 
       <main className="relative overflow-hidden bg-background">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-[60vh] gold-sweep-bg opacity-40" aria-hidden />
+        {/* subtle emerald wash */}
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-[55vh] opacity-60"
+          aria-hidden
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 60% at 50% 0%, hsl(var(--brand) / 0.18), transparent 70%)",
+          }}
+        />
 
-        <section className="relative z-10 mx-auto max-w-6xl px-4 pt-0 pb-3 sm:pt-0 sm:pb-6">
+        <section className="relative z-10 mx-auto max-w-6xl px-4 pt-2 pb-3 sm:pt-4 sm:pb-6">
           <PlansHeroAnimation />
-          <div className="relative mx-auto mt-3 max-w-3xl text-center sm:mt-5">
-            <h1 className="font-serif text-4xl leading-tight text-foreground sm:text-5xl md:text-6xl">
+          <div className="relative mx-auto mt-4 max-w-3xl text-center sm:mt-6">
+            <h1 className="font-serif text-4xl leading-[1.1] tracking-tight text-foreground sm:text-5xl md:text-6xl">
               Изберете плана,
               <br />
-              <span className="bg-gradient-to-r from-gold via-gold/80 to-gold bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-brand-dark via-brand to-brand-light bg-clip-text text-transparent">
                 който работи за вас
               </span>
             </h1>
-            <p className="mt-2 text-base text-muted-foreground sm:text-lg">
-              30% отстъпка на месечен · 40% отстъпка на годишен абонамент — за нови клиенти.
+            <p className="mt-3 text-sm text-muted-foreground sm:text-base">
+              30% отстъпка на месечен · 40% отстъпка на годишен — за нови клиенти.
               <br className="hidden sm:block" />
               Без обвързване. ДДС включен. Откажи по всяко време.
             </p>
           </div>
 
-          <div className="mt-5 flex justify-center sm:mt-6">
+          <div className="mt-6 flex justify-center sm:mt-8">
             <div
               role="tablist"
               aria-label="Период на фактуриране"
-              className="relative inline-flex items-center gap-0 rounded-full border border-hairline bg-card/80 p-1 backdrop-blur-md shadow-soft"
+              className="relative inline-flex items-center rounded-full border border-hairline bg-card/80 p-1 backdrop-blur-md shadow-soft"
             >
               <button
                 role="tab"
                 aria-selected={billing === "monthly"}
                 onClick={() => setBilling("monthly")}
                 className={cn(
-                  "relative z-10 rounded-full px-6 py-2 text-sm font-medium transition-all duration-300",
+                  "relative z-10 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
                   billing === "monthly"
-                    ? "bg-gradient-gold text-navy shadow-gold"
+                    ? "bg-gradient-brand text-white shadow-brand"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -124,25 +132,24 @@ export default function Plans() {
                 aria-selected={billing === "yearly"}
                 onClick={() => setBilling("yearly")}
                 className={cn(
-                  "relative z-10 inline-flex items-center gap-2 rounded-full px-6 py-2 text-sm font-medium transition-all duration-300",
+                  "relative z-10 inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
                   billing === "yearly"
-                    ? "bg-gradient-gold text-navy shadow-gold"
+                    ? "bg-gradient-brand text-white shadow-brand"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 Годишно
                 <span className={cn(
                   "inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors",
-                  billing === "yearly" ? "bg-navy text-gold shadow-sm" : "bg-success/15 text-success",
+                  billing === "yearly" ? "bg-white/15 text-white" : "bg-brand/15 text-brand",
                 )}>
-                  Спести 17%
+                  −17%
                 </span>
-
               </button>
             </div>
           </div>
-
         </section>
+
 
         <section className="relative z-10 mx-auto max-w-7xl px-4 pb-12 sm:pb-16">
           <div className="grid gap-6 md:grid-cols-3 xl:gap-7">
