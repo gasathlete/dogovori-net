@@ -1274,6 +1274,57 @@ export type Database = {
           },
         ]
       }
+      document_reminders: {
+        Row: {
+          created_at: string
+          done_at: string | null
+          id: string
+          kind: string
+          note: string | null
+          remind_at: string
+          saved_document_id: string | null
+          uploaded_contract_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          done_at?: string | null
+          id?: string
+          kind?: string
+          note?: string | null
+          remind_at: string
+          saved_document_id?: string | null
+          uploaded_contract_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          done_at?: string | null
+          id?: string
+          kind?: string
+          note?: string | null
+          remind_at?: string
+          saved_document_id?: string | null
+          uploaded_contract_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_reminders_saved_document_id_fkey"
+            columns: ["saved_document_id"]
+            isOneToOne: false
+            referencedRelation: "saved_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_reminders_uploaded_contract_id_fkey"
+            columns: ["uploaded_contract_id"]
+            isOneToOne: false
+            referencedRelation: "uploaded_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       download_quota: {
         Row: {
           ai_messages_used: number
