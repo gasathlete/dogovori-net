@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
-import { CheckSquare, Square, Loader2, FileArchive, X, Trash2 } from "lucide-react";
+import { CheckSquare, Square, Loader2, FileArchive, X, Trash2, FolderInput } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useIsPro } from "@/hooks/useIsPro";
 import { ProUpgradeDialog } from "@/components/ProUpgradeDialog";
@@ -16,6 +19,8 @@ type Doc = {
   user_id?: string | null;
 };
 
+type FolderOpt = { id: string; name: string };
+
 interface Props {
   docs: Doc[];
   /** Controlled selection state (parent owns it so a checkbox can live on each row). */
@@ -25,6 +30,8 @@ interface Props {
   setSelectedIds: (ids: string[]) => void;
   /** Current user id — used to gate bulk delete to documents the user owns. */
   currentUserId?: string | null;
+  /** Folders the user can move selected documents into. */
+  folders?: FolderOpt[];
   /** Called after a successful bulk delete so the parent can refresh its list. */
   onChanged?: () => void;
 }
@@ -36,11 +43,12 @@ export function BulkActionsBar({
   selectedIds,
   setSelectedIds,
   currentUserId,
+  folders = [],
   onChanged,
 }: Props) {
   const { isPro } = useIsPro();
   const [paywallOpen, setPaywallOpen] = useState(false);
-  const [busy, setBusy] = useState<BulkFormat | "delete" | null>(null);
+  const [busy, setBusy] = useState<BulkFormat | "delete" | "move" | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
   const selectableIds = useMemo(() => docs.map((d) => d.id), [docs]);
