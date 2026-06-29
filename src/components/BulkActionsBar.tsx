@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CheckSquare, Square, Loader2, FileArchive, X } from "lucide-react";
+import { CheckSquare, Square, Loader2, FileArchive, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
@@ -13,6 +13,7 @@ type Doc = {
   title: string;
   kind: "contract" | "template";
   payload: unknown;
+  user_id?: string | null;
 };
 
 interface Props {
@@ -22,6 +23,10 @@ interface Props {
   setSelectionMode: (v: boolean) => void;
   selectedIds: string[];
   setSelectedIds: (ids: string[]) => void;
+  /** Current user id — used to gate bulk delete to documents the user owns. */
+  currentUserId?: string | null;
+  /** Called after a successful bulk delete so the parent can refresh its list. */
+  onChanged?: () => void;
 }
 
 export function BulkActionsBar({
@@ -30,10 +35,12 @@ export function BulkActionsBar({
   setSelectionMode,
   selectedIds,
   setSelectedIds,
+  currentUserId,
+  onChanged,
 }: Props) {
   const { isPro } = useIsPro();
   const [paywallOpen, setPaywallOpen] = useState(false);
-  const [busy, setBusy] = useState<BulkFormat | null>(null);
+  const [busy, setBusy] = useState<BulkFormat | "delete" | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
   const selectableIds = useMemo(() => docs.map((d) => d.id), [docs]);
@@ -103,6 +110,48 @@ export function BulkActionsBar({
     }
   };
 
+  const ownedSelectedIds = useMemo(() => {
+    if (!currentUserId) return [] as string[];
+    return selectedIds.filter((id) => {
+      const d = docs.find((x) => x.id === id);
+      // allow when ownership unknown (legacy rows) or matches current user
+      return !d?.user_id || d.user_id === currentUserId;
+    });
+  }, [selectedIds, docs, currentUserId]);
+
+  const runBulkDelete = async () => {
+    if (!selectedIds.length) {
+      toast.info("Избери поне един документ");
+      return;
+    }
+    const skipped = selectedIds.length - ownedSelectedIds.length;
+    if (!ownedSelectedIds.length) {
+      toast.error("Нямаш права да изтриеш избраните документи");
+      return;
+    }
+    if (!confirm(
+      `Сигурни ли сте, че искате да изтриете ${ownedSelectedIds.length} документ${ownedSelectedIds.length === 1 ? "" : "а"}?` +
+      (skipped ? `\n(${skipped} ще бъдат пропуснати — не са ваши)` : ""),
+    )) return;
+    setBusy("delete");
+    try {
+      const { error } = await supabase
+        .from("saved_documents")
+        .delete()
+        .in("id", ownedSelectedIds);
+      if (error) {
+        toast.error("Неуспешно изтриване", { description: error.message });
+      } else {
+        toast.success(`Изтрити ${ownedSelectedIds.length} документ${ownedSelectedIds.length === 1 ? "" : "а"}`);
+        setSelectedIds([]);
+        setSelectionMode(false);
+        onChanged?.();
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-gradient-card p-2.5 sm:p-3">
@@ -162,6 +211,17 @@ export function BulkActionsBar({
             >
               {busy === "docx" ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <FileArchive className="mr-1.5 h-3.5 w-3.5" />}
               ZIP · DOCX
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!!busy || ownedSelectedIds.length === 0}
+              onClick={runBulkDelete}
+              className="h-9 border-destructive/40 text-destructive hover:bg-destructive/10"
+              title={ownedSelectedIds.length === 0 ? "Маркирай свои документи" : `Изтрий ${ownedSelectedIds.length}`}
+            >
+              {busy === "delete" ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mr-1.5 h-3.5 w-3.5" />}
+              Изтрий{ownedSelectedIds.length > 0 ? ` (${ownedSelectedIds.length})` : ""}
             </Button>
             <Button
               size="sm"
