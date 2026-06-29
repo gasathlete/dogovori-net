@@ -456,13 +456,13 @@ function Cell({ value, highlight }: { value: string; highlight?: boolean }) {
     <td
       className={cn(
         "px-3 py-3 text-center text-sm",
-        highlight ? "bg-gold/5 font-medium text-foreground" : "text-foreground/85",
+        highlight ? "bg-brand/5 font-medium text-foreground" : "text-foreground/85",
       )}
     >
       {isNo ? (
         <X className="mx-auto h-4 w-4 text-muted-foreground/60" />
       ) : value === "Да" ? (
-        <Check className={cn("mx-auto h-4 w-4", highlight ? "text-gold" : "text-gold/80")} />
+        <Check className={cn("mx-auto h-4 w-4", highlight ? "text-brand" : "text-brand/80")} />
       ) : (
         value
       )}
