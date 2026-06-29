@@ -315,7 +315,7 @@ export default function Plans() {
                       <th className="py-3 px-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                         Професионалист
                       </th>
-                      <th className="py-3 px-3 text-center text-xs font-semibold uppercase tracking-wider text-gold">
+                      <th className="py-3 px-3 text-center text-xs font-semibold uppercase tracking-wider text-brand">
                         Предприемач
                       </th>
                       <th className="py-3 px-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
