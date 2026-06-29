@@ -200,9 +200,6 @@ const Index = () => {
         <SeoFooter />
       </main>
       <StickyScrollCta />
-      <Suspense fallback={null}>
-        <SocialProofToast />
-      </Suspense>
     </div>
   );
 };
