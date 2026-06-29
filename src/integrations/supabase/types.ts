@@ -1609,6 +1609,39 @@ export type Database = {
         }
         Relationships: []
       }
+      funnel_events: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          path: string | null
+          props: Json
+          session_id: string
+          step: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          path?: string | null
+          props?: Json
+          session_id: string
+          step?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          path?: string | null
+          props?: Json
+          session_id?: string
+          step?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       glossary_terms: {
         Row: {
           body_md: string
