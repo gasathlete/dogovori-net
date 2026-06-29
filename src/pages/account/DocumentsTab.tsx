@@ -393,6 +393,7 @@ function DocumentsTab({
                 selectedIds={selectedIds}
                 setSelectedIds={setSelectedIds}
                 currentUserId={currentUser?.id ?? null}
+                folders={folders.map((f) => ({ id: f.id, name: f.name }))}
                 onChanged={reload}
               />
             <div className="grid gap-3">

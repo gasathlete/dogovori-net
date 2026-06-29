@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
-import { CheckSquare, Square, Loader2, FileArchive, X, Trash2 } from "lucide-react";
+import { CheckSquare, Square, Loader2, FileArchive, X, Trash2, FolderInput } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useIsPro } from "@/hooks/useIsPro";
 import { ProUpgradeDialog } from "@/components/ProUpgradeDialog";
@@ -16,6 +19,8 @@ type Doc = {
   user_id?: string | null;
 };
 
+type FolderOpt = { id: string; name: string };
+
 interface Props {
   docs: Doc[];
   /** Controlled selection state (parent owns it so a checkbox can live on each row). */
@@ -25,6 +30,8 @@ interface Props {
   setSelectedIds: (ids: string[]) => void;
   /** Current user id — used to gate bulk delete to documents the user owns. */
   currentUserId?: string | null;
+  /** Folders the user can move selected documents into. */
+  folders?: FolderOpt[];
   /** Called after a successful bulk delete so the parent can refresh its list. */
   onChanged?: () => void;
 }
@@ -36,11 +43,12 @@ export function BulkActionsBar({
   selectedIds,
   setSelectedIds,
   currentUserId,
+  folders = [],
   onChanged,
 }: Props) {
   const { isPro } = useIsPro();
   const [paywallOpen, setPaywallOpen] = useState(false);
-  const [busy, setBusy] = useState<BulkFormat | "delete" | null>(null);
+  const [busy, setBusy] = useState<BulkFormat | "delete" | "move" | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
   const selectableIds = useMemo(() => docs.map((d) => d.id), [docs]);
@@ -152,6 +160,31 @@ export function BulkActionsBar({
     }
   };
 
+  const runBulkMove = async (folderId: string | null) => {
+    if (!ownedSelectedIds.length) {
+      toast.error("Маркирай свои документи, за да ги преместиш");
+      return;
+    }
+    setBusy("move");
+    try {
+      const { error } = await supabase
+        .from("saved_documents")
+        .update({ folder_id: folderId })
+        .in("id", ownedSelectedIds);
+      if (error) {
+        toast.error("Неуспешно преместване", { description: error.message });
+      } else {
+        const dest = folderId ? (folders.find((f) => f.id === folderId)?.name ?? "папка") : "Без папка";
+        toast.success(`Преместени ${ownedSelectedIds.length} в „${dest}"`);
+        setSelectedIds([]);
+        setSelectionMode(false);
+        onChanged?.();
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-gradient-card p-2.5 sm:p-3">
@@ -223,6 +256,33 @@ export function BulkActionsBar({
               {busy === "delete" ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mr-1.5 h-3.5 w-3.5" />}
               Изтрий{ownedSelectedIds.length > 0 ? ` (${ownedSelectedIds.length})` : ""}
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!!busy || ownedSelectedIds.length === 0}
+                  className="h-9"
+                  title={ownedSelectedIds.length === 0 ? "Маркирай свои документи" : `Премести ${ownedSelectedIds.length}`}
+                >
+                  {busy === "move" ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <FolderInput className="mr-1.5 h-3.5 w-3.5" />}
+                  Премести{ownedSelectedIds.length > 0 ? ` (${ownedSelectedIds.length})` : ""}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="max-h-72 w-56 overflow-auto">
+                <DropdownMenuLabel className="text-xs">Избери папка</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => runBulkMove(null)}>
+                  Без папка
+                </DropdownMenuItem>
+                {folders.length > 0 && <DropdownMenuSeparator />}
+                {folders.map((f) => (
+                  <DropdownMenuItem key={f.id} onSelect={() => runBulkMove(f.id)}>
+                    {f.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               size="sm"
               variant="ghost"
