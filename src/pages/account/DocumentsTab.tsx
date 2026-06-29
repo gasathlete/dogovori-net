@@ -523,7 +523,7 @@ function DocumentsTab({
                       )}
                     </div>
                     <div
-                      className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5"
+                      className="flex flex-wrap items-center gap-1.5 lg:shrink-0 lg:justify-end"
                       onClick={(e) => e.preventDefault()}
                     >
                       <Button size="sm" variant="outline" className="h-10 w-full sm:h-9 sm:w-auto" disabled={busy === d.id + "pdf"} onClick={() => redownload(d, "pdf")}>
