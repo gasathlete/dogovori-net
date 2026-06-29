@@ -93,7 +93,7 @@ export default function AdminFunnel() {
 
   return (
     <>
-      <Seo title="Funnel · Admin" description="Marketing funnel performance" noIndex />
+      <Seo title="Funnel · Admin" description="Marketing funnel performance" noindex />
       <Header />
       <main className="container mx-auto max-w-6xl px-4 py-10">
         <div className="mb-6 flex items-end justify-between gap-3">

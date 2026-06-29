@@ -160,7 +160,7 @@ export function trackFunnelEvent(name: string, props?: Record<string, unknown>) 
         name: String(name).slice(0, 80),
         step: stepNum !== null && stepNum >= 1 && stepNum <= 4 ? stepNum : null,
         path: window.location?.pathname?.slice(0, 200) ?? null,
-        props: (props ?? {}) as Record<string, unknown>,
+        props: JSON.parse(JSON.stringify(props ?? {})),
       });
     });
   } catch {
