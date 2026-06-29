@@ -39,6 +39,7 @@ import {
 import { getUnlockedTiers, getNextTier, REWARD_TIERS } from "@/lib/rewards";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { ReferralCard } from "@/components/funnel/ReferralCard";
+import { SavingsSnapshot } from "@/components/funnel/SavingsSnapshot";
 import { EntrepreneurWelcomeDialog } from "@/components/EntrepreneurWelcomeDialog";
 
 type Contact = {
