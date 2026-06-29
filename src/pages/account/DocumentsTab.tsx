@@ -36,6 +36,8 @@ import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { Seo } from "@/components/Seo";
 import { BulkActionsBar, BulkRowCheckbox } from "@/components/BulkActionsBar";
 import { DocumentReminderDialog } from "@/components/DocumentReminderDialog";
+import { DocumentVersionsDialog } from "@/components/DocumentVersionsDialog";
+import { History } from "lucide-react";
 import { useDocumentReminders, reminderStatus, REMINDER_KIND_LABEL } from "@/hooks/useDocumentReminders";
 import {
   ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid,
@@ -84,6 +86,7 @@ function DocumentsTab({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showSharedOnly, setShowSharedOnly] = useState(false);
   const { reminders, reload: reloadReminders } = useDocumentReminders();
+  const [versionsForDoc, setVersionsForDoc] = useState<{ id: string; title: string } | null>(null);
   const toggleSelected = (id: string, v: boolean) =>
     setSelectedIds((prev) => (v ? [...prev, id] : prev.filter((x) => x !== id)));
   const hasMobileViewport = typeof window !== "undefined" && window.innerWidth < 640;
@@ -436,6 +439,17 @@ function DocumentsTab({
                         documentTitle={d.title}
                         onChanged={reloadReminders}
                       />
+                      {(!d.user_id || !currentUser || d.user_id === currentUser.id) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-10 w-full sm:h-9 sm:w-auto"
+                          onClick={() => setVersionsForDoc({ id: d.id, title: d.title })}
+                          title="История на версиите"
+                        >
+                          <History className="mr-1 h-3 w-3" /> История
+                        </Button>
+                      )}
                       {inActiveTeam && (!d.user_id || !currentUser || d.user_id === currentUser.id) && (
                         <Button
                           size="sm"
@@ -469,6 +483,13 @@ function DocumentsTab({
           )}
         </section>
       </div>
+      <DocumentVersionsDialog
+        open={!!versionsForDoc}
+        onOpenChange={(v) => !v && setVersionsForDoc(null)}
+        documentId={versionsForDoc?.id ?? null}
+        documentTitle={versionsForDoc?.title}
+        onRestored={reload}
+      />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { exportCsv } from "@/lib/csv";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -74,7 +75,42 @@ function ContactsTab({ contacts, docs, reload, onOpenDocs }: {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button
+          variant="outline"
+          disabled={contacts.length === 0}
+          onClick={() => {
+            exportCsv(
+              `kontragenti-${new Date().toISOString().slice(0, 10)}.csv`,
+              contacts.map((c) => ({
+                name: c.name,
+                type: c.type === "individual" ? "Физ. лице" : "Юр. лице",
+                egn: c.egn ?? "",
+                eik: c.eik ?? "",
+                vat_number: c.vat_number ?? "",
+                mol: c.mol ?? "",
+                email: c.email ?? "",
+                phone: c.phone ?? "",
+                address: c.address ?? "",
+                notes: c.notes ?? "",
+              })),
+              [
+                { key: "name", label: "Име" },
+                { key: "type", label: "Тип" },
+                { key: "egn", label: "ЕГН" },
+                { key: "eik", label: "ЕИК" },
+                { key: "vat_number", label: "ДДС №" },
+                { key: "mol", label: "МОЛ" },
+                { key: "email", label: "Имейл" },
+                { key: "phone", label: "Телефон" },
+                { key: "address", label: "Адрес" },
+                { key: "notes", label: "Бележки" },
+              ],
+            );
+          }}
+        >
+          <Download className="mr-1 h-4 w-4" /> Експорт CSV
+        </Button>
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
           <DialogTrigger asChild>
             <Button className="bg-gradient-gold text-navy hover:shadow-gold"><Plus className="mr-1 h-4 w-4" />Нов контрагент</Button>

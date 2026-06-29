@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Briefcase, Loader2, Plus, ExternalLink, Search } from "lucide-react";
+import { Briefcase, Loader2, Plus, ExternalLink, Search, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDeals, dealStatusLabel, dealStatusColor } from "@/hooks/useDeals";
 import { cn } from "@/lib/utils";
+import { exportCsv } from "@/lib/csv";
 
 function formatDate(iso: string) {
   try {
@@ -58,6 +59,34 @@ export default function DealsTab() {
               className="h-9 w-full pl-8 text-xs sm:w-64"
             />
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={ordered.length === 0}
+            onClick={() =>
+              exportCsv(
+                `sdelki-${new Date().toISOString().slice(0, 10)}.csv`,
+                ordered.map((d) => ({
+                  title: d.title,
+                  status: dealStatusLabel(d.status as any),
+                  counterparty: (d as any).counterparty ?? "",
+                  value: (d as any).value ?? "",
+                  currency: (d as any).currency ?? "",
+                  created_at: formatDate(d.created_at),
+                })),
+                [
+                  { key: "title", label: "Заглавие" },
+                  { key: "status", label: "Статус" },
+                  { key: "counterparty", label: "Контрагент" },
+                  { key: "value", label: "Стойност" },
+                  { key: "currency", label: "Валута" },
+                  { key: "created_at", label: "Създадена" },
+                ],
+              )
+            }
+          >
+            <Download className="mr-1 h-3.5 w-3.5" /> CSV
+          </Button>
           <Button asChild variant="outline" size="sm" className="border-gold/60 text-gold hover:bg-gold/10">
             <Link to="/console/deals">
               <ExternalLink className="mr-1 h-3.5 w-3.5" /> Workspace
