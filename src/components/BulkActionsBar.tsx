@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CheckSquare, Square, Loader2, FileArchive, X } from "lucide-react";
+import { CheckSquare, Square, Loader2, FileArchive, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
@@ -13,6 +13,7 @@ type Doc = {
   title: string;
   kind: "contract" | "template";
   payload: unknown;
+  user_id?: string | null;
 };
 
 interface Props {
@@ -22,6 +23,10 @@ interface Props {
   setSelectionMode: (v: boolean) => void;
   selectedIds: string[];
   setSelectedIds: (ids: string[]) => void;
+  /** Current user id — used to gate bulk delete to documents the user owns. */
+  currentUserId?: string | null;
+  /** Called after a successful bulk delete so the parent can refresh its list. */
+  onChanged?: () => void;
 }
 
 export function BulkActionsBar({
