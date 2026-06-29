@@ -289,6 +289,9 @@ export default function SharedDocument() {
         <div className="rounded-xl border border-gold/30 bg-gold/5 p-4 text-xs text-muted-foreground">
           <ShieldCheck className="mr-1 inline h-4 w-4 text-gold" />
           Споделено за преглед и подпис от собственика. Действията са защитени и логнати.
+          <span className="mt-1 block italic opacity-80">
+            EN: Shared for review and e-signature by the owner. All actions are secured and audit-logged.
+          </span>
         </div>
 
         {doc.kind === "uploaded" ? (
