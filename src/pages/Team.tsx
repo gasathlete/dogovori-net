@@ -351,6 +351,13 @@ export default function TeamPage() {
             </TabsContent>
           )}
         </Tabs>
+
+        <TeamManagerContact
+          teamId={team.team_id}
+          teamName={team.team_name}
+          defaultEmail={user?.email ?? null}
+          defaultName={user?.user_metadata?.full_name ?? null}
+        />
       </main>
       <Footer />
     </>
