@@ -390,9 +390,11 @@ function DocumentsTab({
                           {folders.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      <Button size="sm" variant="ghost" className="h-10 w-full p-0 text-destructive sm:h-9 sm:w-9" onClick={() => remove(d.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {(!d.user_id || !currentUser || d.user_id === currentUser.id) && (
+                        <Button size="sm" variant="ghost" className="h-10 w-full p-0 text-destructive sm:h-9 sm:w-9" onClick={() => remove(d.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </Link>
