@@ -17,20 +17,22 @@ export function PlanHeroBenefit({ planId, highlight, className }: Props) {
       className={cn(
         "relative overflow-hidden rounded-2xl border px-4 py-3",
         highlight
-          ? "border-gold/40 bg-gradient-to-br from-gold/10 via-gold/5 to-transparent"
-          : "border-hairline bg-foreground/[0.03]",
+          ? "border-brand/45 bg-gradient-to-br from-brand/12 via-brand/5 to-transparent"
+          : "border-hairline bg-brand/[0.04]",
         className,
       )}
     >
       <div className="flex items-start gap-2.5">
-        <Sparkles
+        <span
           className={cn(
-            "mt-0.5 h-4 w-4 shrink-0",
-            highlight ? "text-gold" : "text-gold/70",
+            "mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg",
+            highlight ? "bg-gradient-brand text-white" : "bg-brand/12 text-brand",
           )}
-        />
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+        </span>
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gold/80">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand">
             Акцент
           </p>
           <p className="mt-0.5 text-sm font-semibold leading-snug text-foreground">

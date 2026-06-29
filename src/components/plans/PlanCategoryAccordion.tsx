@@ -11,7 +11,7 @@ interface Props {
   highlightPlan?: boolean;
 }
 
-export function PlanCategoryAccordion({ planId, groups, highlightPlan }: Props) {
+export function PlanCategoryAccordion({ planId, groups }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
 
   const toggle = useCallback(
@@ -39,8 +39,8 @@ export function PlanCategoryAccordion({ planId, groups, highlightPlan }: Props) 
             className={cn(
               "group/cat rounded-xl border bg-card/40 transition-all duration-200",
               open
-                ? "border-gold/40 shadow-[0_0_0_1px_hsl(var(--gold)/0.15)]"
-                : "border-hairline/70 hover:border-gold/30",
+                ? "border-brand/45 shadow-[0_0_0_1px_hsl(var(--brand)/0.15)]"
+                : "border-hairline/70 hover:border-brand/30",
             )}
           >
             <button
@@ -53,8 +53,8 @@ export function PlanCategoryAccordion({ planId, groups, highlightPlan }: Props) 
                 className={cn(
                   "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
                   open
-                    ? "bg-gradient-gold text-navy"
-                    : "bg-foreground/[0.06] text-gold",
+                    ? "bg-gradient-brand text-white"
+                    : "bg-brand/8 text-brand",
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />
@@ -62,28 +62,14 @@ export function PlanCategoryAccordion({ planId, groups, highlightPlan }: Props) 
               <span className="flex-1 truncate text-[13px] font-medium text-foreground">
                 {g.label}
               </span>
-              {g.highlight && (
-                <span
-                  className={cn(
-                    "hidden sm:inline-flex shrink-0 max-w-[140px] truncate items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
-                    highlightPlan
-                      ? "border-gold/40 bg-gold/15 text-gold"
-                      : "border-gold/25 bg-gold/10 text-gold/90",
-                  )}
-                  title={g.highlight}
-                >
-                  {g.highlight}
-                </span>
-              )}
               <ChevronDown
                 className={cn(
                   "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-300",
-                  open && "rotate-180 text-gold",
+                  open && "rotate-180 text-brand",
                 )}
               />
             </button>
 
-            {/* Animated expand using grid-rows trick */}
             <div
               className={cn(
                 "grid transition-[grid-template-rows] duration-300 ease-out",
@@ -93,11 +79,16 @@ export function PlanCategoryAccordion({ planId, groups, highlightPlan }: Props) 
               <div className="overflow-hidden">
                 {open && (
                   <div className="relative px-3 pb-3">
-                    {/* gold sweep */}
                     <span
                       aria-hidden
-                      className="pointer-events-none absolute left-3 right-3 top-0 h-px bg-gradient-to-r from-transparent via-gold/60 to-transparent animate-[goldSweep_600ms_ease-out]"
+                      className="pointer-events-none absolute left-3 right-3 top-0 h-px bg-gradient-to-r from-transparent via-brand/60 to-transparent animate-[goldSweep_600ms_ease-out]"
                     />
+                    {g.highlight && (
+                      <div className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full border border-brand/35 bg-brand/8 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand">
+                        <span className="h-1 w-1 rounded-full bg-brand" />
+                        <span className="truncate">{g.highlight}</span>
+                      </div>
+                    )}
                     <ul className="mt-2 space-y-1.5">
                       {g.items.map((it, i) => (
                         <li
@@ -105,7 +96,7 @@ export function PlanCategoryAccordion({ planId, groups, highlightPlan }: Props) 
                           className="flex items-start gap-2 text-[13px] text-foreground/90 opacity-0 animate-[planFadeUp_320ms_ease-out_forwards]"
                           style={{ animationDelay: `${i * 45}ms` }}
                         >
-                          <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" />
+                          <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" />
                           <span className="leading-snug">{it}</span>
                         </li>
                       ))}

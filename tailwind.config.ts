@@ -20,10 +20,12 @@ export default {
       backgroundImage: {
         'gradient-hero': 'var(--gradient-hero)',
         'gradient-gold': 'var(--gradient-gold)',
+        'gradient-brand': 'var(--gradient-brand)',
         'gradient-card': 'var(--gradient-card)',
       },
       boxShadow: {
         'gold': 'var(--shadow-gold)',
+        'brand': 'var(--shadow-brand)',
         'elegant': 'var(--shadow-elegant)',
         'soft': 'var(--shadow-soft)',
       },
@@ -32,6 +34,11 @@ export default {
           DEFAULT: "hsl(var(--gold))",
           light: "hsl(var(--gold-light))",
           dark: "hsl(var(--gold-dark))",
+        },
+        brand: {
+          DEFAULT: "hsl(var(--brand))",
+          light: "hsl(var(--brand-light))",
+          dark: "hsl(var(--brand-dark))",
         },
         navy: {
           DEFAULT: "hsl(var(--navy))",
