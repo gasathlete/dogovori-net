@@ -125,10 +125,12 @@ export default function AuthPage() {
       return;
     }
     setBusy(true);
-    const { data, error } = await supabase.auth.signUp({
+    // Magic-link signup — no password. shouldCreateUser:true creates the account
+    // on first click of the email link.
+    const { error } = await supabase.auth.signInWithOtp({
       email,
-      password,
       options: {
+        shouldCreateUser: true,
         emailRedirectTo: window.location.origin + redirect,
         data: { display_name: name },
       },
@@ -136,36 +138,25 @@ export default function AuthPage() {
     setBusy(false);
     if (error) return toast.error("Грешка при регистрация", { description: translateAuthError(error.message) });
 
-    // Record consents (works only when session exists; otherwise silently no-op until verified).
-    if (data?.session) {
-      recordConsents([
-        { consent_type: "terms", granted: true },
-        { consent_type: "privacy", granted: true },
-        { consent_type: "age_18", granted: true },
-        ...(acceptMarketing ? [{ consent_type: "marketing" as const, granted: true }] : []),
-      ]).catch(() => undefined);
+    // Stash consents to record on first sign-in (same pattern as before).
+    try {
+      sessionStorage.setItem(
+        "pending_consents",
+        JSON.stringify({
+          marketing: acceptMarketing,
+          terms: true,
+          privacy: true,
+          age_18: true,
+          display_name: name,
+          ts: Date.now(),
+        }),
+      );
+      sessionStorage.setItem("post_login_redirect", redirect);
+    } catch { /* storage unavailable */ }
 
-      // Send welcome email — requires JWT.
-      supabase.functions.invoke('send-transactional-email', {
-        body: {
-          templateName: 'welcome',
-          recipientEmail: email,
-          idempotencyKey: `welcome-${email}`,
-          templateData: { name },
-        },
-      }).catch((e) => console.warn('welcome email failed', e));
-    } else {
-      // Email-verification flow: stash consents to record after first sign-in.
-      try {
-        sessionStorage.setItem(
-          "pending_consents",
-          JSON.stringify({ marketing: acceptMarketing, ts: Date.now() }),
-        );
-      } catch { /* storage unavailable */ }
-    }
-
-    toast.success("Регистрацията е успешна!");
-    navigate(redirect);
+    toast.success("Провери си имейла", {
+      description: "Изпратихме ти линк за вход — едно цъкване и си вътре.",
+    });
   };
 
   const startGoogleOAuth = async (marketing: boolean) => {
@@ -303,10 +294,8 @@ export default function AuthPage() {
                     </Alert>
                   )}
                 </div>
-                <div>
-                  <Label htmlFor="spw">Парола</Label>
-                  <Input id="spw" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
-                  <p className="mt-1 text-[10px] text-muted-foreground">Минимум 8 символа.</p>
+                <div className="rounded-lg border border-brand/40 bg-brand/[0.06] px-3 py-2 text-[11px] leading-relaxed text-foreground">
+                  <strong>Без парола.</strong> Ще получиш линк в имейла — едно цъкване и си в профила. По-сигурно и по-бързо.
                 </div>
 
                 <div className="space-y-2 rounded-md border border-border/60 bg-card/30 p-3">
@@ -370,7 +359,7 @@ export default function AuthPage() {
                   className="btn-sheen w-full bg-gradient-gold text-navy hover:shadow-gold disabled:opacity-50"
                 >
                   {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Създай профил
+                  Изпрати линк за вход
                 </Button>
                 <p className="text-[10px] leading-relaxed text-muted-foreground">
                   Документите, генерирани от платформата, са образци, създадени с изкуствен интелект, и не представляват правен съвет.
