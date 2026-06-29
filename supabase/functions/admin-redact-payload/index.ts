@@ -5,13 +5,7 @@
 // съдържание се показват на модератор).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { buildCors } from "../_shared/cors.ts";
 
 const EMAIL_RE = /\b[\w.+\-]+@[\w-]+\.[\w.-]+\b/gi;
 const PHONE_RE = /(?:\+?359|0)\s*[\d\s\-()]{7,15}/g;
@@ -58,6 +52,7 @@ function walk<T>(v: T): T {
 }
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {

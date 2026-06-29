@@ -11,12 +11,7 @@
 // Auth: staff-only. Optionally pings SEO_ALERT_WEBHOOK when alert fires.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { buildCors } from "../_shared/cors.ts";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_search_console";
 
@@ -56,6 +51,12 @@ async function queryRange(siteUrl: string, start: string, end: string, lovableKe
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCors(req);
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
@@ -64,7 +65,6 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
     if (!GSC_API_KEY) throw new Error("GOOGLE_SEARCH_CONSOLE_API_KEY missing — connect Google Search Console");
 
-    // Staff-only authorisation
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const authHeader = req.headers.get("Authorization") ?? "";
@@ -83,10 +83,9 @@ Deno.serve(async (req) => {
       : "sc-domain:dogovori.net";
     const alertThreshold: number = Number(body.alertThreshold ?? 10);
 
-    // GSC has ~2 day data lag, so window starts 3 days ago.
     const lag = 3;
     const currentEnd = isoDate(lag);
-    const currentStart = isoDate(lag + 6); // 7-day window
+    const currentStart = isoDate(lag + 6);
     const previousEnd = isoDate(lag + 7);
     const previousStart = isoDate(lag + 13);
 
@@ -100,7 +99,6 @@ Deno.serve(async (req) => {
       : ((current.impressions - previous.impressions) / previous.impressions) * 100;
     const alert = deltaPct <= -alertThreshold;
 
-    // Optional Slack-style webhook ping
     const webhook = Deno.env.get("SEO_ALERT_WEBHOOK");
     if (alert && webhook) {
       try {
@@ -135,10 +133,3 @@ Deno.serve(async (req) => {
     return json({ error: e?.message ?? "internal_error" }, 500);
   }
 });
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
