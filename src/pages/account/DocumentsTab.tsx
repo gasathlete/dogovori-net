@@ -127,7 +127,9 @@ function DocumentsTab({
   const childSavedIds = new Set(
     links.filter((l) => l.child_saved_id).map((l) => l.child_saved_id as string)
   );
-  const topLevelDocs = docs.filter((d) => !childSavedIds.has(d.id));
+  const topLevelDocs = docs
+    .filter((d) => !childSavedIds.has(d.id))
+    .filter((d) => (showSharedOnly ? Boolean(d.team_id) : true));
 
   const redownload = async (d: SavedDoc, format: "pdf" | "docx") => {
     setBusy(d.id + format);
