@@ -433,6 +433,7 @@ function DocumentsTab({
               </button>
             </div>
           )}
+          <DocFiltersBar state={docFilter} onChange={setDocFilter} allTags={allTags} />
           {topLevelDocs.length === 0 ? (
             <div className="rounded-xl border border-border/60 bg-gradient-card p-10 text-center text-sm text-muted-foreground">
               {activeContactName ? "Няма договори за този контрагент." : "Тази папка е празна."}
