@@ -159,7 +159,7 @@ export const PLAN_HERO_BENEFIT: Record<PlanId, { title: string; subtitle: string
     subtitle: "Сваляй пакети документи и споделяй с парола",
   },
   entrepreneur: {
-    title: "AI преговорна стратегия с GPT-5",
+    title: "Всичко от професиналист\u00a0 +\u00a0 \u00a0 \u00a0 \u00a0 \u00a0 AI преговорна стратегия с GPT-5 и още",
     subtitle: "Премиум модел, приоритетна обработка и onboarding",
   },
   team: {
