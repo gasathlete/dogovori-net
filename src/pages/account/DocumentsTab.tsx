@@ -431,6 +431,11 @@ function DocumentsTab({
                         {busy === d.id + "docx" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Download className="mr-1 h-3 w-3" />} DOCX
                       </Button>
                       {d.kind === "contract" && <ShareForSignDialog documentId={d.id} documentTitle={d.title} triggerClassName="h-10 w-full justify-center sm:h-9 sm:w-auto" />}
+                      <DocumentReminderDialog
+                        target={{ savedDocumentId: d.id }}
+                        documentTitle={d.title}
+                        onChanged={reloadReminders}
+                      />
                       {inActiveTeam && (!d.user_id || !currentUser || d.user_id === currentUser.id) && (
                         <Button
                           size="sm"
