@@ -180,7 +180,14 @@ export default function TeamPage() {
                 {team.current_period_end && <> · Подновяване: {new Date(team.current_period_end).toLocaleDateString("bg-BG")}</>}
               </p>
             </div>
-            <Users className="h-8 w-8 shrink-0 text-gold" />
+            <div className="flex shrink-0 flex-col items-end gap-2">
+              <Users className="h-8 w-8 text-gold" />
+              {isAdmin && (
+                <Link to="/team/sso" className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/5 px-3 py-1 text-[11px] font-semibold text-gold hover:bg-gold/10">
+                  <ShieldCheck className="h-3 w-3" /> SSO настройки
+                </Link>
+              )}
+            </div>
           </div>
 
           {usage && (
