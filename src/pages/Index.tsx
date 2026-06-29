@@ -197,7 +197,7 @@ const Index = () => {
         </Suspense>
         <SeoFooter />
       </main>
-      
+      <StickyScrollCta />
     </div>
   );
 };
