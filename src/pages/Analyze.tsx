@@ -13,6 +13,7 @@ import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
 import { FunnelProgress } from "@/components/funnel/FunnelProgress";
 import { PrimaryCTA } from "@/components/funnel/PrimaryCTA";
+import { RoiCalculator } from "@/components/funnel/RoiCalculator";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -383,6 +384,10 @@ function ResultPanel({
         </div>
       </div>
 
+      <div className="mx-auto max-w-3xl pt-2">
+        <RoiCalculator />
+      </div>
+
       <button
         type="button"
         onClick={onRestart}
@@ -393,6 +398,7 @@ function ResultPanel({
     </div>
   );
 }
+
 
 function RiskScoreBadge({ score }: { score: number }) {
   const color =
