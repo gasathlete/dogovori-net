@@ -461,7 +461,7 @@ function DocumentsTab({
                   to={`/document/${d.id}`}
                   className="block rounded-xl border border-border/60 bg-gradient-card p-4 transition-all hover:border-gold/50 hover:shadow-soft"
                 >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     {selectionMode && (
                       <BulkRowCheckbox
                         checked={selectedIds.includes(d.id)}
