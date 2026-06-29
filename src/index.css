@@ -45,6 +45,13 @@
     --gold: 43 55% 54%;
     --gold-light: 43 70% 70%;
     --gold-dark: 43 60% 38%;
+
+    /* Brand emerald — used as accent on Plans/Pricing */
+    --brand: 152 60% 45%;
+    --brand-light: 150 65% 60%;
+    --brand-dark: 155 65% 30%;
+    --gradient-brand: linear-gradient(135deg, hsl(155 65% 32%) 0%, hsl(150 65% 50%) 100%);
+    --shadow-brand: 0 14px 40px -14px hsl(152 60% 38% / 0.45);
     --navy: 220 45% 7%;
     --navy-light: 220 38% 14%;
 
