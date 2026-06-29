@@ -11,12 +11,7 @@
 // Auth: staff-only. Optionally pings SEO_ALERT_WEBHOOK when alert fires.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { buildCors } from "../_shared/cors.ts";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_search_console";
 
@@ -56,6 +51,7 @@ async function queryRange(siteUrl: string, start: string, end: string, lovableKe
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
@@ -132,12 +128,11 @@ Deno.serve(async (req) => {
     });
   } catch (e: any) {
     console.error("gsc-impressions-trend error:", e);
-    return json({ error: e?.message ?? "internal_error" }, 500);
+    return json({ error: e?.message ?? "internal_error" }, 500, corsHeaders);
   }
-});
 
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
+  function json(body: unknown, status = 200, headers = corsHeaders) {
+    return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
