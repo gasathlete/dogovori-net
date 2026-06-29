@@ -1281,6 +1281,7 @@ export type Database = {
           id: string
           kind: string
           note: string | null
+          notified_at: string | null
           remind_at: string
           saved_document_id: string | null
           uploaded_contract_id: string | null
@@ -1292,6 +1293,7 @@ export type Database = {
           id?: string
           kind?: string
           note?: string | null
+          notified_at?: string | null
           remind_at: string
           saved_document_id?: string | null
           uploaded_contract_id?: string | null
@@ -1303,6 +1305,7 @@ export type Database = {
           id?: string
           kind?: string
           note?: string | null
+          notified_at?: string | null
           remind_at?: string
           saved_document_id?: string | null
           uploaded_contract_id?: string | null

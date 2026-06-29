@@ -1,0 +1,1 @@
+ALTER TABLE public.document_reminders ADD COLUMN IF NOT EXISTS notified_at timestamptz; CREATE INDEX IF NOT EXISTS idx_document_reminders_due ON public.document_reminders(remind_at) WHERE done_at IS NULL AND notified_at IS NULL;
