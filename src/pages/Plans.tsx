@@ -356,7 +356,7 @@ export default function Plans() {
               { icon: ShieldCheck, label: "SSL & криптиране" },
             ].map(({ icon: Icon, label }) => (
               <div key={label} className="flex items-center gap-2 text-xs text-foreground/80">
-                <Icon className="h-4 w-4 text-gold" />
+                <Icon className="h-4 w-4 text-brand" />
                 <span>{label}</span>
               </div>
             ))}
