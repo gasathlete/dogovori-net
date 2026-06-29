@@ -74,6 +74,8 @@ export default function Plans() {
   const plans = data?.plans ?? [];
   const COMPARISON_ROWS = data?.comparison ?? [];
 
+  useEffect(() => { markFunnelStep(4); }, []);
+
   return (
     <>
       <Seo

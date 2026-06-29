@@ -1,4 +1,5 @@
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { markFunnelStep } from "@/lib/funnel";
 import { Link } from "react-router-dom";
 import { ShieldCheck, Bird, FileText, Search, FileSignature, Command, ArrowRight, FileUp, Wand2, Bot, ShieldAlert, Languages, Package, ChevronRight } from "lucide-react";
 const logoImg = "/logo-dogovori-hero.webp";
@@ -17,6 +18,8 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
   const [teaserOpen, setTeaserOpen] = useState(false);
   const lastIdxRef = useRef<number | undefined>(undefined);
   const magneticRef = useMagneticHover<HTMLAnchorElement>(6);
+
+  useEffect(() => { markFunnelStep(1); }, []);
 
   const showQuote = async () => {
     const { pickRandomQuote } = await import("@/lib/businessQuotes");
