@@ -1,44 +1,56 @@
 /**
  * ConversationalHeroInput — anonymous Step-1 engagement hook.
  *
- * One field, three chips, one secondary action — designed to convert a
- * passive scroller into an *active* user within 3 seconds. Submitting goes
- * to /catalog?q=…, which is heavily SEO-indexed; chips pre-fill common
- * intents (Наем / Трудов / NDA) and ride straight into Step 2 of the funnel.
- *
- * The primary „Започни безплатно" CTA underneath the Hero still owns the
- * conversion-critical click — this widget is purely about engagement +
- * intent capture (which drives smarter retargeting in Step 4).
+ * Single search field with live, catalog-style suggestions (server-side
+ * search_templates RPC, same source as /catalog). Selecting a hit goes to
+ * the template page; pressing Enter goes to /catalog?q=…
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Sparkles } from "lucide-react";
+import { Search, Sparkles, Loader2 } from "lucide-react";
 import { trackFunnelEvent } from "@/lib/funnel";
-
-const CHIPS: Array<{ q: string; label: string }> = [
-  { q: "договор за наем", label: "Наем" },
-  { q: "трудов договор", label: "Трудов" },
-  { q: "nda конфиденциалност", label: "NDA" },
-  { q: "пълномощно", label: "Пълномощно" },
-];
+import { useTemplateSearch } from "@/hooks/useTemplateSearch";
 
 export function ConversationalHeroInput() {
   const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const wrapRef = useRef<HTMLDivElement>(null);
 
-  const go = (term: string, source: "input" | "chip") => {
+  const { hits, loading } = useTemplateSearch(q, {
+    enabled: q.trim().length >= 2,
+    limit: 6,
+    sort: "relevance",
+  });
+
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  const submit = (term: string) => {
     const trimmed = term.trim();
     if (!trimmed) return;
-    trackFunnelEvent("hero_query_submit", { source, q: trimmed });
+    trackFunnelEvent("hero_query_submit", { source: "input", q: trimmed });
     navigate(`/catalog?q=${encodeURIComponent(trimmed)}`);
   };
 
+  const pickHit = (slug: string, name: string) => {
+    trackFunnelEvent("hero_query_submit", { source: "suggestion", q: name });
+    navigate(`/shablon/${slug}`);
+  };
+
+  const showDropdown = open && q.trim().length >= 2;
+
   return (
-    <div className="mx-auto mt-3 w-full max-w-xl">
+    <div ref={wrapRef} className="relative mx-auto mt-3 w-full max-w-xl">
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          go(q, "input");
+          submit(q);
         }}
         className="group relative flex items-center gap-2 rounded-full border border-gold/40 bg-card/70 px-3 py-2 shadow-soft backdrop-blur-md focus-within:border-gold focus-within:shadow-gold"
       >
@@ -47,7 +59,11 @@ export function ConversationalHeroInput() {
           type="text"
           inputMode="search"
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
           placeholder="Какъв документ ти трябва?"
           aria-label="Какъв документ ти трябва?"
           className="min-w-0 flex-1 bg-transparent text-[14px] text-foreground placeholder:text-muted-foreground/80 focus:outline-none"
@@ -60,18 +76,56 @@ export function ConversationalHeroInput() {
           Намери
         </button>
       </form>
-      <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
-        {CHIPS.map((c) => (
-          <button
-            key={c.q}
-            type="button"
-            onClick={() => go(c.q, "chip")}
-            className="rounded-full border border-gold/25 bg-card/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-gold/60 hover:text-gold"
-          >
-            {c.label}
-          </button>
-        ))}
-      </div>
+
+      {showDropdown && (
+        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 overflow-hidden rounded-2xl border border-gold/30 bg-card/95 shadow-xl backdrop-blur-md">
+          {loading && hits.length === 0 ? (
+            <div className="flex items-center gap-2 px-4 py-3 text-[13px] text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Търсене…
+            </div>
+          ) : hits.length === 0 ? (
+            <button
+              type="button"
+              onClick={() => submit(q)}
+              className="block w-full px-4 py-3 text-left text-[13px] text-muted-foreground hover:bg-gold/10"
+            >
+              Няма съвпадения. Търси „{q}" в каталога →
+            </button>
+          ) : (
+            <ul className="max-h-[60vh] overflow-y-auto">
+              {hits.map((h) => (
+                <li key={h.slug}>
+                  <button
+                    type="button"
+                    onClick={() => pickHit(h.slug, h.name)}
+                    className="flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors hover:bg-gold/10"
+                  >
+                    <Search className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold/70" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[13px] font-medium text-foreground">
+                        {h.name}
+                      </div>
+                      <div className="truncate text-[11px] text-muted-foreground">
+                        {h.category_title}
+                      </div>
+                    </div>
+                  </button>
+                </li>
+              ))}
+              <li>
+                <button
+                  type="button"
+                  onClick={() => submit(q)}
+                  className="block w-full border-t border-border/40 px-4 py-2 text-left text-[12px] font-medium text-gold hover:bg-gold/10"
+                >
+                  Виж всички резултати за „{q}" →
+                </button>
+              </li>
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }
