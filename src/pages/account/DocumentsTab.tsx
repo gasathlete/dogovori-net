@@ -154,9 +154,38 @@ function DocumentsTab({
   const childSavedIds = new Set(
     links.filter((l) => l.child_saved_id).map((l) => l.child_saved_id as string)
   );
+
+  const [docFilter, setDocFilter] = useState<DocFilterState>({ search: "", tags: [] });
+  const allTags = useMemo(() => {
+    const set = new Set<string>();
+    docs.forEach((d) => (d.tags ?? []).forEach((t) => set.add(t)));
+    return Array.from(set).sort();
+  }, [docs]);
+
   const topLevelDocs = docs
     .filter((d) => !childSavedIds.has(d.id))
-    .filter((d) => (showSharedOnly ? Boolean(d.team_id) : true));
+    .filter((d) => (showSharedOnly ? Boolean(d.team_id) : true))
+    .filter((d) => {
+      if (docFilter.tags.length > 0) {
+        const dt = d.tags ?? [];
+        if (!docFilter.tags.every((t) => dt.includes(t))) return false;
+      }
+      const q = docFilter.search.trim().toLowerCase();
+      if (!q) return true;
+      if (d.title.toLowerCase().includes(q)) return true;
+      if ((d.tags ?? []).some((t) => t.toLowerCase().includes(q))) return true;
+      return false;
+    });
+
+  const updateTags = async (d: SavedDoc, next: string[]) => {
+    const { error } = await supabase
+      .from("saved_documents")
+      .update({ tags: next })
+      .eq("id", d.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Етикетите са обновени");
+    reload();
+  };
 
   const redownload = async (d: SavedDoc, format: "pdf" | "docx") => {
     setBusy(d.id + format);
