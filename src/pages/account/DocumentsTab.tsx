@@ -325,6 +325,12 @@ function DocumentsTab({
                             Комплект · {childLinks.length + 1} док.
                           </span>
                         )}
+                        {d.team_id && (
+                          <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-emerald-300">
+                            <Users2 className="h-3 w-3" />
+                            {d.user_id && currentUser && d.user_id !== currentUser.id ? "От екипа" : "Споделено"}
+                          </span>
+                        )}
                         {contactName(d.contact_id) && (
                           <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-gold/30 bg-gold/5 px-2 py-0.5 text-[10px] uppercase tracking-wider text-gold">
                             <Users className="h-3 w-3" /> {contactName(d.contact_id)}
