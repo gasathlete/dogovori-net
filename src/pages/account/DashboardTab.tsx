@@ -142,6 +142,7 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
+      <EntrepreneurWelcomeDialog isPro={isPro} />
 
       <OnboardingChecklist
         stats={{
