@@ -33,6 +33,7 @@ const Testimonials = lazy(() => import("@/components/Testimonials").then((m) => 
 const FAQ = lazy(() => import("@/components/FAQ").then((m) => ({ default: m.FAQ })));
 const ComplianceSection = lazy(() => import("@/components/ComplianceSection").then((m) => ({ default: m.ComplianceSection })));
 const CTABand = lazy(() => import("@/components/CTABand").then((m) => ({ default: m.CTABand })));
+const StickyScrollCta = lazy(() => import("@/components/funnel/StickyScrollCta").then((m) => ({ default: m.StickyScrollCta })));
 
 const Divider = () => (
   <div aria-hidden="true" className="container">
