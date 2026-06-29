@@ -98,6 +98,8 @@ export default {
         "shimmer": { "0%": { backgroundPosition: "-1000px 0" }, "100%": { backgroundPosition: "1000px 0" } },
         "glow": { "0%, 100%": { boxShadow: "0 0 20px hsl(var(--gold) / 0.3)" }, "50%": { boxShadow: "0 0 40px hsl(var(--gold) / 0.5)" } },
         "marquee": { "0%": { transform: "translateX(0)" }, "100%": { transform: "translateX(-50%)" } },
+        "planFadeUp": { "0%": { opacity: "0", transform: "translateY(6px)" }, "100%": { opacity: "1", transform: "translateY(0)" } },
+        "goldSweep": { "0%": { transform: "translateX(-100%)", opacity: "0" }, "40%": { opacity: "1" }, "100%": { transform: "translateX(100%)", opacity: "0" } },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
