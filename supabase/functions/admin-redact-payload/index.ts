@@ -52,6 +52,7 @@ function walk<T>(v: T): T {
 }
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {

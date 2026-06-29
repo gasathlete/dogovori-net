@@ -3,7 +3,8 @@
 // Public endpoint; verify_jwt = false. No streaming, no persistence.
 // Grounded in the legal knowledge base via retrieveLegalContext().
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { buildCors } from "../_shared/cors.ts";
+import { buildCors, clientIp, hashIp } from "../_shared/cors.ts";
+import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { retrieveLegalContext, type LegalCitation } from "../_shared/legal-rag.ts";
 
 const SYSTEM_PROMPT = `# РОЛЯ И ИДЕНТИЧНОСТ
@@ -68,6 +69,24 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const history: ChatMsg[] = Array.isArray(body?.messages) ? body.messages : [];
     const userTurns = history.filter((m) => m.role === "user").length;
+
+    // Server-side IP rate limit: 5 заявки на 24 часа (предотвратява заобикаляне
+    // на client-side history брояча чрез изпращане на по едно съобщение наведнъж).
+    try {
+      const ipHash = await hashIp(clientIp(req));
+      const rl = await checkRateLimit(`anon-chat:${ipHash}`, MAX_MESSAGES, 86400);
+      if (!rl.ok) {
+        return new Response(
+          JSON.stringify({
+            error: "limit_reached",
+            message: "Достигнахте лимита от 5 безплатни съобщения. Регистрирайте се за още 15 безплатни.",
+            retry_after_s: rl.retry_after_s,
+          }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    } catch { /* fail-open ако rate-limit таблицата е недостъпна */ }
+
     if (userTurns > MAX_MESSAGES) {
       return new Response(
         JSON.stringify({
