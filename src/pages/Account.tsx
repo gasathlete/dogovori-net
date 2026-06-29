@@ -207,7 +207,7 @@ export default function AccountPage() {
 
           <TabsContent value="dashboard">
             <Suspense fallback={<TabFallback />}>
-              <Dashboard quota={quota} isPro={!!isPro} docs={docs} uploadedCount={uploaded.length} correctionsCount={correctionsCount} analysesDates={analysesDates} correctionsDates={correctionsDates} opChargeDates={opChargeDates} hasChatAccess={!!isPro || (!!teamForChat && teamForChat.status === "active")} onOpenChat={() => window.dispatchEvent(new Event("dogovai:open"))} />
+              <Dashboard quota={quota} isPro={!!isPro} docs={docs} uploadedCount={uploaded.length} correctionsCount={correctionsCount} analysesDates={analysesDates} correctionsDates={correctionsDates} opChargeDates={opChargeDates} hasChatAccess={!!isPro || (!!teamForChat && teamForChat.status === "active")} onOpenChat={() => window.dispatchEvent(new Event("dogovai:open"))} contactsCount={contacts.length} foldersCount={folders.length} />
             </Suspense>
           </TabsContent>
           <TabsContent value="notifications">

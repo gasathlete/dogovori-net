@@ -37,6 +37,7 @@ import {
   Tooltip as RTooltip, Legend, AreaChart, Area, LineChart, Line, ReferenceLine,
 } from "recharts";
 import { getUnlockedTiers, getNextTier, REWARD_TIERS } from "@/lib/rewards";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
@@ -58,7 +59,7 @@ type UploadedContract = {
 type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_type: string; created_at: string };
 
 /* ============================ DASHBOARD ============================ */
-function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analysesDates, correctionsDates, opChargeDates, hasChatAccess, onOpenChat }: { quota: Quota | null; isPro: boolean; docs: SavedDoc[]; uploadedCount: number; correctionsCount: number; analysesDates: string[]; correctionsDates: string[]; opChargeDates: string[]; hasChatAccess: boolean; onOpenChat: () => void }) {
+function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analysesDates, correctionsDates, opChargeDates, hasChatAccess, onOpenChat, contactsCount = 0, foldersCount = 0 }: { quota: Quota | null; isPro: boolean; docs: SavedDoc[]; uploadedCount: number; correctionsCount: number; analysesDates: string[]; correctionsDates: string[]; opChargeDates: string[]; hasChatAccess: boolean; onOpenChat: () => void; contactsCount?: number; foldersCount?: number }) {
   const navigate = useNavigate();
   const createdDocs = docs.length;
   const analysesUsed = (quota as any)?.analyses_used ?? 0;
@@ -140,6 +141,16 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
+
+      <OnboardingChecklist
+        stats={{
+          createdDocs,
+          uploadedCount,
+          contactsCount,
+          foldersCount,
+          isPro,
+        }}
+      />
 
       <Card
         title="План"

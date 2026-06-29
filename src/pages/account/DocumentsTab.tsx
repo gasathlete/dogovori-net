@@ -37,7 +37,7 @@ import { Seo } from "@/components/Seo";
 import { BulkActionsBar, BulkRowCheckbox } from "@/components/BulkActionsBar";
 import { DocumentReminderDialog } from "@/components/DocumentReminderDialog";
 import { DocumentVersionsDialog } from "@/components/DocumentVersionsDialog";
-import { History, CalendarDays } from "lucide-react";
+import { History, CalendarDays, Copy } from "lucide-react";
 import { useDocumentReminders, reminderStatus, REMINDER_KIND_LABEL } from "@/hooks/useDocumentReminders";
 import { downloadIcs } from "@/lib/ics";
 import {
@@ -171,6 +171,29 @@ function DocumentsTab({
     if (!confirm("Изтриване?")) return;
     const { error } = await supabase.from("saved_documents").delete().eq("id", id);
     if (error) toast.error(error.message); else { toast.success("Изтрит"); reload(); }
+  };
+
+  const duplicate = async (d: SavedDoc) => {
+    setBusy(d.id + "dup");
+    const { data: userData } = await supabase.auth.getUser();
+    const uid = userData.user?.id;
+    if (!uid) {
+      setBusy(null);
+      toast.error("Влезте отново в профила");
+      return;
+    }
+    const newTitle = d.title.length > 60 ? `${d.title.slice(0, 60)}… (копие)` : `${d.title} (копие)`;
+    const { error } = await supabase.from("saved_documents").insert({
+      user_id: uid,
+      title: newTitle,
+      kind: d.kind,
+      folder_id: d.folder_id,
+      contact_id: d.contact_id,
+      payload: d.payload,
+    });
+    setBusy(null);
+    if (error) toast.error(error.message);
+    else { toast.success("Дублиран — отворете го от списъка"); reload(); }
   };
 
   const move = async (id: string, folder_id: string | null) => {
@@ -503,6 +526,18 @@ function DocumentsTab({
                           {folders.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
+                      {(!d.user_id || !currentUser || d.user_id === currentUser.id) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-10 w-full sm:h-9 sm:w-auto"
+                          disabled={busy === d.id + "dup"}
+                          onClick={() => duplicate(d)}
+                          title="Дублирай документа"
+                        >
+                          {busy === d.id + "dup" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Copy className="mr-1 h-3 w-3" />} Копие
+                        </Button>
+                      )}
                       {(!d.user_id || !currentUser || d.user_id === currentUser.id) && (
                         <Button size="sm" variant="ghost" className="h-10 w-full p-0 text-destructive sm:h-9 sm:w-9" onClick={() => remove(d.id)}>
                           <Trash2 className="h-4 w-4" />
