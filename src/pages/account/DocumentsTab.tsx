@@ -498,7 +498,7 @@ function DocumentsTab({
                           ))}
                         </div>
                       )}
-                      <div className="hidden">{/* keep block structure */}</div>
+                      
                       {isBundle && (
                         <div className="mt-2.5 flex flex-wrap gap-1.5" onClick={(e) => e.preventDefault()}>
                           {childLinks.map((l, idx) => {
