@@ -5,7 +5,8 @@
  * search_templates RPC, same source as /catalog). Selecting a hit goes to
  * the template page; pressing Enter goes to /catalog?q=…
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Search, Sparkles, Loader2 } from "lucide-react";
 import { trackFunnelEvent } from "@/lib/funnel";
@@ -16,6 +17,8 @@ export function ConversationalHeroInput() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const wrapRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [pos, setPos] = useState<{ left: number; top: number; width: number } | null>(null);
 
   const { hits, loading } = useTemplateSearch(q, {
     enabled: q.trim().length >= 2,
@@ -30,6 +33,23 @@ export function ConversationalHeroInput() {
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const update = () => {
+      const el = formRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setPos({ left: r.left, top: r.bottom + 6, width: r.width });
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [open, q]);
 
   const submit = (term: string) => {
     const trimmed = term.trim();
@@ -46,8 +66,9 @@ export function ConversationalHeroInput() {
   const showDropdown = open && q.trim().length >= 2;
 
   return (
-    <div ref={wrapRef} className="relative isolate z-40 mx-auto mt-3 w-full max-w-xl">
+    <div ref={wrapRef} className="relative mx-auto mt-3 w-full max-w-xl">
       <form
+        ref={formRef}
         onSubmit={(e) => {
           e.preventDefault();
           submit(q);
@@ -77,8 +98,11 @@ export function ConversationalHeroInput() {
         </button>
       </form>
 
-      {showDropdown && (
-        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-2xl border border-gold/30 bg-card shadow-2xl ring-1 ring-black/5">
+      {showDropdown && pos && typeof document !== "undefined" && createPortal(
+        <div
+          style={{ position: "fixed", left: pos.left, top: pos.top, width: pos.width, zIndex: 9999 }}
+          className="overflow-hidden rounded-2xl border border-gold/30 bg-card shadow-2xl ring-1 ring-black/5"
+        >
           {loading && hits.length === 0 ? (
             <div className="flex items-center gap-2 px-4 py-3 text-[13px] text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -93,7 +117,7 @@ export function ConversationalHeroInput() {
               Няма съвпадения. Търси „{q}" в каталога →
             </button>
           ) : (
-            <ul className="max-h-[60vh] overflow-y-auto">
+            <ul className="max-h-[55vh] overflow-y-auto overscroll-contain">
               {hits.map((h) => (
                 <li key={h.slug}>
                   <button
@@ -124,7 +148,8 @@ export function ConversationalHeroInput() {
               </li>
             </ul>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
