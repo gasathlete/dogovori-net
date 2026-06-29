@@ -22,9 +22,12 @@ import {
   CreditCard,
   Bell,
   Wrench,
+  User as UserIcon,
+  Briefcase,
 } from "lucide-react";
 import { allTemplates, type TemplateEntry } from "@/lib/templateIndex";
 import { CALCULATORS } from "@/data/calculators";
+import { supabase } from "@/integrations/supabase/client";
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
