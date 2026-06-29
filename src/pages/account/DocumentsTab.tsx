@@ -356,11 +356,13 @@ function DocumentsTab({
           ) : (
             <>
               <BulkActionsBar
-                docs={topLevelDocs.map((d) => ({ id: d.id, title: d.title, kind: d.kind, payload: d.payload }))}
+                docs={topLevelDocs.map((d) => ({ id: d.id, title: d.title, kind: d.kind, payload: d.payload, user_id: d.user_id }))}
                 selectionMode={selectionMode}
                 setSelectionMode={setSelectionMode}
                 selectedIds={selectedIds}
                 setSelectedIds={setSelectedIds}
+                currentUserId={currentUser?.id ?? null}
+                onChanged={reload}
               />
             <div className="grid gap-3">
               {topLevelDocs.map((d) => {
