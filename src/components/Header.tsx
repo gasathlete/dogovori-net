@@ -22,7 +22,7 @@ const NAV = [
   { to: "/catalog", label: "Каталог" },
   { to: "/blog", label: "Блог" },
   { to: "__tools__", label: "Инструменти" },
-  { to: "/plans", label: "Цени" },
+  { to: "/plans", label: "Планове" },
 ];
 
 export function Header() {
