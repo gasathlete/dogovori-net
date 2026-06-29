@@ -7,6 +7,8 @@ import { NotificationsTab } from "@/components/NotificationsTab";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 
 import { useTeam } from "@/hooks/useTeam";
+import { useAuth as _useAuthForShare } from "@/hooks/useAuth";
+import { Users2, Share2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +50,7 @@ type Folder = { id: string; name: string; color: string | null; is_favorites: bo
 type SavedDoc = {
   id: string; title: string; kind: "contract" | "template"; folder_id: string | null;
   contact_id: string | null; payload: any; created_at: string;
+  user_id?: string | null; team_id?: string | null;
 };
 type Quota = { contracts_used: number; templates_used: number; plan: "free" | "pro"; pro_until: string | null; analyses_used?: number; total_used?: number; monthly_total_used?: number; bonus_contracts?: number; pro_monthly_used?: number; monthly_reset_at?: string | null; pro_period_start?: string | null; signup_at?: string | null };
 type UploadedContract = {
@@ -71,9 +74,13 @@ function DocumentsTab({
   autoOpenUpload?: boolean;
 }) {
   const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name;
+  const { team } = useTeam();
+  const { user: currentUser } = _useAuthForShare();
+  const inActiveTeam = Boolean(team && team.status === "active");
   const [busy, setBusy] = useState<string | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showSharedOnly, setShowSharedOnly] = useState(false);
   const toggleSelected = (id: string, v: boolean) =>
     setSelectedIds((prev) => (v ? [...prev, id] : prev.filter((x) => x !== id)));
   const hasMobileViewport = typeof window !== "undefined" && window.innerWidth < 640;
@@ -120,7 +127,9 @@ function DocumentsTab({
   const childSavedIds = new Set(
     links.filter((l) => l.child_saved_id).map((l) => l.child_saved_id as string)
   );
-  const topLevelDocs = docs.filter((d) => !childSavedIds.has(d.id));
+  const topLevelDocs = docs
+    .filter((d) => !childSavedIds.has(d.id))
+    .filter((d) => (showSharedOnly ? Boolean(d.team_id) : true));
 
   const redownload = async (d: SavedDoc, format: "pdf" | "docx") => {
     setBusy(d.id + format);
@@ -143,13 +152,31 @@ function DocumentsTab({
     if (error) toast.error(error.message); else { toast.success("Преместен"); reload(); }
   };
 
+  const toggleShareWithTeam = async (d: SavedDoc) => {
+    if (!team) return;
+    const next = d.team_id ? null : team.team_id;
+    const { error } = await supabase
+      .from("saved_documents")
+      .update({ team_id: next })
+      .eq("id", d.id);
+    if (error) toast.error(error.message);
+    else { toast.success(next ? "Споделено с екипа" : "Спряно споделянето"); reload(); }
+  };
+
   return (
     <div className="grid gap-6 md:grid-cols-[220px_1fr]">
       <aside className="space-y-1 rounded-xl border border-border/60 bg-gradient-card p-3">
-        <button onClick={() => setActiveFolder("all")}
-          className={`w-full rounded-md px-3 py-2 text-left text-sm ${activeFolder === "all" ? "bg-gold/10 text-gold" : "hover:bg-card/60"}`}>
+        <button onClick={() => { setActiveFolder("all"); setShowSharedOnly(false); }}
+          className={`w-full rounded-md px-3 py-2 text-left text-sm ${activeFolder === "all" && !showSharedOnly ? "bg-gold/10 text-gold" : "hover:bg-card/60"}`}>
           Всички ({docs.length})
         </button>
+        {inActiveTeam && (
+          <button onClick={() => { setShowSharedOnly(true); setActiveFolder("all"); }}
+            className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm ${showSharedOnly ? "bg-gold/10 text-gold" : "hover:bg-card/60"}`}>
+            <Users2 className="h-3.5 w-3.5" />
+            Споделени с екипа ({docs.filter((d) => d.team_id).length})
+          </button>
+        )}
         {folders.map((f) => (
           <button key={f.id} onClick={() => setActiveFolder(f.id)}
             className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm ${activeFolder === f.id ? "bg-gold/10 text-gold" : "hover:bg-card/60"}`}>
@@ -298,6 +325,12 @@ function DocumentsTab({
                             Комплект · {childLinks.length + 1} док.
                           </span>
                         )}
+                        {d.team_id && (
+                          <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-emerald-300">
+                            <Users2 className="h-3 w-3" />
+                            {d.user_id && currentUser && d.user_id !== currentUser.id ? "От екипа" : "Споделено"}
+                          </span>
+                        )}
                         {contactName(d.contact_id) && (
                           <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-gold/30 bg-gold/5 px-2 py-0.5 text-[10px] uppercase tracking-wider text-gold">
                             <Users className="h-3 w-3" /> {contactName(d.contact_id)}
@@ -338,6 +371,18 @@ function DocumentsTab({
                         {busy === d.id + "docx" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Download className="mr-1 h-3 w-3" />} DOCX
                       </Button>
                       {d.kind === "contract" && <ShareForSignDialog documentId={d.id} documentTitle={d.title} triggerClassName="h-10 w-full justify-center sm:h-9 sm:w-auto" />}
+                      {inActiveTeam && (!d.user_id || !currentUser || d.user_id === currentUser.id) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className={`h-10 w-full sm:h-9 sm:w-auto ${d.team_id ? "border-emerald-400/40 text-emerald-300 hover:bg-emerald-400/10" : ""}`}
+                          onClick={() => toggleShareWithTeam(d)}
+                          title={d.team_id ? "Спри споделянето с екипа" : "Сподели с екипа"}
+                        >
+                          <Share2 className="mr-1 h-3 w-3" />
+                          {d.team_id ? "В екипа" : "Екип"}
+                        </Button>
+                      )}
                       <Select value={d.folder_id ?? "none"} onValueChange={(v) => move(d.id, v === "none" ? null : v)}>
                         <SelectTrigger className="h-10 w-full text-xs sm:h-9 sm:w-32"><SelectValue placeholder="Папка" /></SelectTrigger>
                         <SelectContent>
@@ -345,9 +390,11 @@ function DocumentsTab({
                           {folders.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      <Button size="sm" variant="ghost" className="h-10 w-full p-0 text-destructive sm:h-9 sm:w-9" onClick={() => remove(d.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {(!d.user_id || !currentUser || d.user_id === currentUser.id) && (
+                        <Button size="sm" variant="ghost" className="h-10 w-full p-0 text-destructive sm:h-9 sm:w-9" onClick={() => remove(d.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </Link>
