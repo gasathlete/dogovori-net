@@ -208,6 +208,39 @@ function DocumentsTab({
         ))}
       </aside>
       <div className={hasMobileViewport ? "space-y-8 pb-20" : "space-y-8"}>
+        {upcomingReminders.length > 0 && (
+          <section className="rounded-xl border border-gold/30 bg-gold/5 p-4">
+            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-gold">
+              <Bell className="h-4 w-4" />
+              Предстоящи напомняния ({reminders.filter((r) => !r.done_at).length})
+            </div>
+            <ul className="space-y-1.5">
+              {upcomingReminders.map((r) => {
+                const s = reminderStatus(r);
+                const href = reminderHref(r);
+                const title = reminderTitle(r);
+                const inner = (
+                  <div className="flex items-center justify-between gap-2 rounded-md bg-card/40 px-3 py-2 text-xs hover:bg-card/70">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-medium">{title}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {REMINDER_KIND_LABEL[r.kind]} · {new Date(r.remind_at).toLocaleDateString("bg-BG")}
+                      </div>
+                    </div>
+                    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] uppercase ${s.cls}`}>
+                      {s.label}
+                    </span>
+                  </div>
+                );
+                return (
+                  <li key={r.id}>
+                    {href ? <Link to={href}>{inner}</Link> : inner}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
         {/* ===== Uploaded contracts (own files with AI risk analysis) ===== */}
         <section id="uploaded" className="scroll-mt-24">
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
