@@ -74,9 +74,13 @@ function DocumentsTab({
   autoOpenUpload?: boolean;
 }) {
   const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name;
+  const { team } = useTeam();
+  const { user: currentUser } = _useAuthForShare();
+  const inActiveTeam = Boolean(team && team.status === "active");
   const [busy, setBusy] = useState<string | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showSharedOnly, setShowSharedOnly] = useState(false);
   const toggleSelected = (id: string, v: boolean) =>
     setSelectedIds((prev) => (v ? [...prev, id] : prev.filter((x) => x !== id)));
   const hasMobileViewport = typeof window !== "undefined" && window.innerWidth < 640;
