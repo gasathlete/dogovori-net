@@ -152,12 +152,11 @@ export default function Plans() {
 
 
         <section className="relative z-10 mx-auto max-w-7xl px-4 pb-12 sm:pb-16">
-          <div className="grid gap-6 md:grid-cols-3 xl:gap-7">
+          <div className="grid gap-5 pt-6 md:grid-cols-3 md:gap-6 xl:gap-7">
             {plans.filter((p) => p.id !== "free").map((plan, idx) => {
 
               const Icon = PLAN_ICON[plan.id];
               const price = billing === "yearly" ? plan.yearly : plan.monthly;
-              // Team has no monthly — fall back to yearly with a "годишно" note.
               const effectivePrice = price ?? plan.yearly;
               const teamMonthlyDisabled = plan.id === "team" && billing === "monthly";
               const cta = buildCta(plan.id, billing, isAuthed);
@@ -165,56 +164,55 @@ export default function Plans() {
                 <article
                   key={plan.id}
                   className={cn(
-                    "group relative flex flex-col rounded-3xl border bg-card/85 p-6 backdrop-blur-md transition-all duration-500 hover:-translate-y-1 sm:p-7",
+                    "group relative flex flex-col rounded-3xl border bg-card/85 p-6 backdrop-blur-md transition-all duration-500 hover:-translate-y-0.5 sm:p-7",
                     plan.highlight
-                      ? "border-gold/50 shadow-[0_30px_80px_-40px_hsl(var(--gold)/0.5)] lg:scale-[1.02]"
-                      : "border-hairline hover:border-gold/30",
+                      ? "border-brand/50 shadow-brand ring-1 ring-brand/20"
+                      : "border-hairline hover:border-brand/30",
                   )}
                   style={{ animationDelay: `${idx * 80}ms` }}
                 >
                   {plan.highlight && (
-                    <>
-                      <div className="border-beam absolute inset-0 rounded-3xl" aria-hidden />
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-gold px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-navy shadow-gold">
-                        {plan.badge}
-                      </span>
-                    </>
+                    <span className="absolute -top-3 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-brand px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-brand">
+                      {plan.badge}
+                    </span>
                   )}
 
                   <div className="relative z-10 flex items-center gap-3">
                     <div
                       className={cn(
-                        "flex h-10 w-10 items-center justify-center rounded-xl",
-                        plan.highlight ? "bg-gradient-gold text-navy" : "bg-foreground/5 text-gold",
+                        "flex h-11 w-11 items-center justify-center rounded-2xl",
+                        plan.highlight
+                          ? "bg-gradient-brand text-white shadow-brand"
+                          : "bg-brand/10 text-brand",
                       )}
                     >
                       <Icon className="h-5 w-5" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <h2 className="font-serif text-xl text-foreground">{plan.name}</h2>
-                      <p className="text-xs text-muted-foreground">{plan.tagline}</p>
+                      <p className="truncate text-xs text-muted-foreground">{plan.tagline}</p>
                     </div>
                   </div>
 
                   <div className="relative z-10 mt-6">
                     {effectivePrice && effectivePrice.price > 0 ? (
                       <>
-                        <div className="flex items-baseline gap-1">
-                          <span className="font-serif text-4xl font-semibold text-foreground sm:text-5xl">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="font-serif text-[44px] font-semibold leading-none text-foreground sm:text-5xl">
                             {effectivePrice.price.toFixed(2).replace(/\.00$/, "")}
                           </span>
                           <span className="text-sm text-muted-foreground">{effectivePrice.suffix}</span>
                         </div>
                         {teamMonthlyDisabled && (
-                          <p className="mt-1 text-xs font-medium text-gold">Само годишно</p>
+                          <p className="mt-1.5 text-xs font-medium text-brand">Само годишно</p>
                         )}
                         {effectivePrice.note && (
-                          <p className="mt-1 text-xs text-muted-foreground">{effectivePrice.note}</p>
+                          <p className="mt-1.5 text-xs text-muted-foreground">{effectivePrice.note}</p>
                         )}
                       </>
                     ) : (
                       <div className="flex items-baseline gap-1">
-                        <span className="font-serif text-4xl font-semibold text-foreground sm:text-5xl">
+                        <span className="font-serif text-[44px] font-semibold leading-none text-foreground sm:text-5xl">
                           0
                         </span>
                         <span className="text-sm text-muted-foreground">€ — завинаги</span>
@@ -231,7 +229,7 @@ export default function Plans() {
                     />
                   </div>
 
-                  <div className="relative z-10 mt-7 flex flex-col gap-2">
+                  <div className="relative z-10 mt-auto flex flex-col gap-2 pt-7">
                     <Link
                       to={cta.href}
                       onClick={() =>
@@ -244,8 +242,8 @@ export default function Plans() {
                       className={cn(
                         "group/btn inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-all duration-300",
                         plan.highlight
-                          ? "bg-gradient-gold text-navy shadow-gold hover:shadow-[0_20px_50px_-15px_hsl(var(--gold)/0.6)]"
-                          : "border border-gold/40 bg-gold/5 text-gold hover:border-gold hover:bg-gold/10",
+                          ? "bg-gradient-brand text-white shadow-brand hover:shadow-[0_20px_50px_-15px_hsl(var(--brand)/0.6)]"
+                          : "border border-brand/40 bg-brand/5 text-brand hover:border-brand hover:bg-brand/10",
                       )}
                     >
                       {cta.label}
@@ -270,12 +268,12 @@ export default function Plans() {
             return (
               <div className="mt-6 flex flex-col items-center justify-between gap-4 rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:flex-row sm:p-6">
                 <div className="flex items-start gap-3 sm:items-center">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-foreground/5 text-gold">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
                     <Sparkles className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
                     <h3 className="font-serif text-lg text-foreground">
-                      {free.name} · <span className="text-gold">0 €</span> завинаги
+                      {free.name} · <span className="text-brand">0 €</span> завинаги
                     </h3>
                     <p className="text-xs text-muted-foreground sm:text-sm">
                       {free.tagline} · 5 операции при регистрация + 2 всеки месец, без карта.
@@ -285,7 +283,7 @@ export default function Plans() {
                 <Link
                   to={cta.href}
                   onClick={() => trackEvent("plans_cta_clicked", { plan: "free", billing, authed: isAuthed })}
-                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-gold/40 bg-gold/5 px-5 py-2.5 text-sm font-semibold text-gold transition-all hover:border-gold hover:bg-gold/10"
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-brand/40 bg-brand/5 px-5 py-2.5 text-sm font-semibold text-brand transition-all hover:border-brand hover:bg-brand/10"
                 >
                   {cta.label}
                   <ArrowRight className="h-4 w-4" />
@@ -293,6 +291,8 @@ export default function Plans() {
               </div>
             );
           })()}
+
+
 
 
 
