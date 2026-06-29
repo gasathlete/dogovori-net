@@ -101,10 +101,10 @@ export default function Plans() {
                 който работи за вас
               </span>
             </h1>
-            <p className="mt-3 text-sm text-muted-foreground sm:text-base">
-              30% отстъпка на месечен · 40% отстъпка на годишен — за нови клиенти.
-              <br className="hidden sm:block" />
-              Без обвързване. ДДС включен. Откажи по всяко време.
+            <p className="mt-3 text-sm text-muted-foreground whitespace-pre-line sm:text-base">
+              2 месеца БЕЗПЛАТНО на годишен абонамент.
+              {"\n"}
+              Без обвързване. ДДС включено в цената. Отказ по всяко време.
             </p>
           </div>
 

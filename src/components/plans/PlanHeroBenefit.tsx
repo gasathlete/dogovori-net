@@ -33,7 +33,7 @@ export function PlanHeroBenefit({ planId, highlight, className }: Props) {
         </span>
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand">
-            Акцент
+            АКЦЕНТ&nbsp;
           </p>
           <p className="mt-0.5 text-sm font-semibold leading-snug text-foreground">
             {b.title}
