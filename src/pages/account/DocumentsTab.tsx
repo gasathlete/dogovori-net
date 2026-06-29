@@ -450,6 +450,7 @@ function DocumentsTab({
                           <History className="mr-1 h-3 w-3" /> История
                         </Button>
                       )}
+                      {inActiveTeam && (!d.user_id || !currentUser || d.user_id === currentUser.id) && (
                         <Button
                           size="sm"
                           variant="outline"
