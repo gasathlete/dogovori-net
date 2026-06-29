@@ -86,6 +86,7 @@ function DocumentsTab({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showSharedOnly, setShowSharedOnly] = useState(false);
   const { reminders, reload: reloadReminders } = useDocumentReminders();
+  const [versionsForDoc, setVersionsForDoc] = useState<{ id: string; title: string } | null>(null);
   const toggleSelected = (id: string, v: boolean) =>
     setSelectedIds((prev) => (v ? [...prev, id] : prev.filter((x) => x !== id)));
   const hasMobileViewport = typeof window !== "undefined" && window.innerWidth < 640;
