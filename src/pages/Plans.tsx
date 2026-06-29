@@ -273,7 +273,7 @@ export default function Plans() {
                   </div>
                   <div className="min-w-0">
                     <h3 className="font-serif text-lg text-foreground">
-                      {free.name} · <span className="text-brand">0 €</span> завинаги
+                      {free.name} · <span className="text-brand">0 €</span>&nbsp;основни функции и облекчение за малкия бизнес&nbsp;
                     </h3>
                     <p className="text-xs text-muted-foreground sm:text-sm">
                       {free.tagline} · 5 операции при регистрация + 2 всеки месец, без карта.
