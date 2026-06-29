@@ -22,8 +22,11 @@ const NAV = [
   { to: "/catalog", label: "Каталог" },
   { to: "/blog", label: "Блог" },
   { to: "__tools__", label: "Инструменти" },
-  { to: "/plans", label: "Планове" },
 ];
+
+// Secondary link — pricing is no longer a primary CTA in the funnel;
+// users reach /plans through contextual upgrade prompts and the footer.
+const SECONDARY_NAV = [{ to: "/plans", label: "Планове" }];
 
 export function Header() {
   const [open, setOpen] = useState(false);
