@@ -215,14 +215,14 @@ export default function Plans() {
                     )}
                   </div>
 
-                  <ul className="relative z-10 mt-6 space-y-2.5">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2 text-sm text-foreground/90">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-                        <span className="whitespace-pre-line">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="relative z-10 mt-6 space-y-3">
+                    <PlanHeroBenefit planId={plan.id} highlight={plan.highlight} />
+                    <PlanCategoryAccordion
+                      planId={plan.id}
+                      groups={categorize(plan.features)}
+                      highlightPlan={plan.highlight}
+                    />
+                  </div>
 
                   <div className="relative z-10 mt-7 flex flex-col gap-2">
                     <Link
