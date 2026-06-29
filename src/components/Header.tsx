@@ -118,7 +118,21 @@ export function Header() {
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-2 justify-self-end">
+          {SECONDARY_NAV.map((n) => (
+            <Link
+              key={n.to}
+              to={n.to}
+              {...prefetchHandlers(n.to)}
+              className={cn(
+                "hidden lg:inline-flex text-[12px] font-medium tracking-wide transition-colors px-2",
+                isActive(n.to) ? "text-gold" : "text-foreground/55 hover:text-gold",
+              )}
+            >
+              {n.label}
+            </Link>
+          ))}
           <ThemeToggle className="hidden lg:inline-flex" />
+
 
 
 
