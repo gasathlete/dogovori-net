@@ -37,7 +37,7 @@ import { Seo } from "@/components/Seo";
 import { BulkActionsBar, BulkRowCheckbox } from "@/components/BulkActionsBar";
 import { DocumentReminderDialog } from "@/components/DocumentReminderDialog";
 import { DocumentVersionsDialog } from "@/components/DocumentVersionsDialog";
-import { History, CalendarDays } from "lucide-react";
+import { History, CalendarDays, Copy } from "lucide-react";
 import { useDocumentReminders, reminderStatus, REMINDER_KIND_LABEL } from "@/hooks/useDocumentReminders";
 import { downloadIcs } from "@/lib/ics";
 import {
