@@ -120,6 +120,22 @@ export function getCurrentFunnelStep(): FunnelStep {
   return (v >= 1 && v <= 4 ? v : 1) as FunnelStep;
 }
 
+const SESSION_ID_KEY = "funnel_session_id_v1";
+
+function getFunnelSessionId(): string {
+  if (typeof window === "undefined") return "ssr";
+  try {
+    let id = localStorage.getItem(SESSION_ID_KEY);
+    if (!id) {
+      id = (crypto?.randomUUID?.() ?? `s_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`);
+      localStorage.setItem(SESSION_ID_KEY, id);
+    }
+    return id;
+  } catch {
+    return `s_${Date.now()}`;
+  }
+}
+
 export function trackFunnelEvent(name: string, props?: Record<string, unknown>) {
   trackEvent(name, props);
   try {
@@ -127,6 +143,26 @@ export function trackFunnelEvent(name: string, props?: Record<string, unknown>) 
       (window as any).dataLayer = (window as any).dataLayer || [];
       (window as any).dataLayer.push({ event: name, ...props });
     }
+  } catch {
+    /* ignore */
+  }
+  // Fire-and-forget DB write so the admin dashboard sees real numbers.
+  // Failure is silent — never block the UI on analytics.
+  try {
+    if (typeof window === "undefined") return;
+    const stepNum =
+      typeof props?.step === "number"
+        ? (props.step as number)
+        : null;
+    void import("@/integrations/supabase/client").then(({ supabase }) => {
+      void supabase.from("funnel_events").insert({
+        session_id: getFunnelSessionId(),
+        name: String(name).slice(0, 80),
+        step: stepNum !== null && stepNum >= 1 && stepNum <= 4 ? stepNum : null,
+        path: window.location?.pathname?.slice(0, 200) ?? null,
+        props: (props ?? {}) as Record<string, unknown>,
+      });
+    });
   } catch {
     /* ignore */
   }
