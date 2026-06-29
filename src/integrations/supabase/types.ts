@@ -2407,6 +2407,8 @@ export type Database = {
           issues: Json
           missing_clauses: Json
           model: string
+          negotiation_generated_at: string | null
+          negotiation_strategy: Json | null
           score: number
           summary: string
           text_hash: string
@@ -2420,6 +2422,8 @@ export type Database = {
           issues?: Json
           missing_clauses?: Json
           model: string
+          negotiation_generated_at?: string | null
+          negotiation_strategy?: Json | null
           score: number
           summary?: string
           text_hash?: string
@@ -2433,6 +2437,8 @@ export type Database = {
           issues?: Json
           missing_clauses?: Json
           model?: string
+          negotiation_generated_at?: string | null
+          negotiation_strategy?: Json | null
           score?: number
           summary?: string
           text_hash?: string
