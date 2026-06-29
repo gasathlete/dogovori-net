@@ -14,6 +14,7 @@ import { AnalysisRecommendationBanner } from "@/components/funnel/AnalysisRecomm
 import { AnchoringStrip } from "@/components/funnel/AnchoringStrip";
 import { FunnelProgress } from "@/components/funnel/FunnelProgress";
 import { RoiCalculator } from "@/components/funnel/RoiCalculator";
+import { TrustGuaranteeBar } from "@/components/funnel/TrustGuaranteeBar";
 import { markFunnelStep } from "@/lib/funnel";
 import { useEffect } from "react";
 
@@ -103,6 +104,9 @@ export default function Plans() {
           <FunnelProgress current={4} className="mb-4" />
           <AnalysisRecommendationBanner />
           <AnchoringStrip />
+          <div className="mb-4 sm:mb-6">
+            <TrustGuaranteeBar />
+          </div>
           <PlansHeroAnimation />
           <div className="relative mx-auto mt-4 max-w-3xl text-center sm:mt-6">
             <h1 className="font-serif text-4xl leading-[1.1] tracking-tight text-foreground sm:text-5xl md:text-6xl">
