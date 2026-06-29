@@ -371,6 +371,18 @@ function DocumentsTab({
                         {busy === d.id + "docx" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Download className="mr-1 h-3 w-3" />} DOCX
                       </Button>
                       {d.kind === "contract" && <ShareForSignDialog documentId={d.id} documentTitle={d.title} triggerClassName="h-10 w-full justify-center sm:h-9 sm:w-auto" />}
+                      {inActiveTeam && (!d.user_id || !currentUser || d.user_id === currentUser.id) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className={`h-10 w-full sm:h-9 sm:w-auto ${d.team_id ? "border-emerald-400/40 text-emerald-300 hover:bg-emerald-400/10" : ""}`}
+                          onClick={() => toggleShareWithTeam(d)}
+                          title={d.team_id ? "Спри споделянето с екипа" : "Сподели с екипа"}
+                        >
+                          <Share2 className="mr-1 h-3 w-3" />
+                          {d.team_id ? "В екипа" : "Екип"}
+                        </Button>
+                      )}
                       <Select value={d.folder_id ?? "none"} onValueChange={(v) => move(d.id, v === "none" ? null : v)}>
                         <SelectTrigger className="h-10 w-full text-xs sm:h-9 sm:w-32"><SelectValue placeholder="Папка" /></SelectTrigger>
                         <SelectContent>
