@@ -17,6 +17,8 @@ export function ConversationalHeroInput() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const wrapRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [pos, setPos] = useState<{ left: number; top: number; width: number } | null>(null);
 
   const { hits, loading } = useTemplateSearch(q, {
     enabled: q.trim().length >= 2,
@@ -31,6 +33,23 @@ export function ConversationalHeroInput() {
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const update = () => {
+      const el = formRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setPos({ left: r.left, top: r.bottom + 6, width: r.width });
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [open, q]);
 
   const submit = (term: string) => {
     const trimmed = term.trim();
