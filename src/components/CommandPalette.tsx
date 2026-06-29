@@ -22,9 +22,12 @@ import {
   CreditCard,
   Bell,
   Wrench,
+  User as UserIcon,
+  Briefcase,
 } from "lucide-react";
 import { allTemplates, type TemplateEntry } from "@/lib/templateIndex";
 import { CALCULATORS } from "@/data/calculators";
+import { supabase } from "@/integrations/supabase/client";
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
@@ -54,6 +57,30 @@ export function CommandPalette() {
     () => (open ? allTemplates().slice(0, 200) : []),
     [open],
   );
+
+  // User-owned records: fetched on open. Lightweight (titles only).
+  const [myDocs, setMyDocs] = useState<Array<{ id: string; title: string }>>([]);
+  const [myContacts, setMyContacts] = useState<Array<{ id: string; name: string }>>([]);
+  const [myDeals, setMyDeals] = useState<Array<{ id: string; title: string }>>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) return;
+      const [docs, contacts, deals] = await Promise.all([
+        supabase.from("saved_documents").select("id,title").order("updated_at", { ascending: false }).limit(25),
+        supabase.from("contacts").select("id,name").is("deleted_at", null).order("updated_at", { ascending: false }).limit(25),
+        supabase.from("deals").select("id,title").order("updated_at", { ascending: false }).limit(25),
+      ]);
+      if (cancelled) return;
+      setMyDocs((docs.data ?? []) as any);
+      setMyContacts((contacts.data ?? []) as any);
+      setMyDeals((deals.data ?? []) as any);
+    })();
+    return () => { cancelled = true; };
+  }, [open]);
 
   const go = (path: string) => {
     setOpen(false);
@@ -151,6 +178,60 @@ export function CommandPalette() {
             </CommandGroup>
           </>
         )}
+        {myDocs.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Моите документи">
+              {myDocs.map((d) => (
+                <CommandItem
+                  key={d.id}
+                  value={`doc ${d.title}`}
+                  onSelect={() => go(`/document/${d.id}`)}
+                >
+                  <FileText className="mr-2 h-4 w-4 text-gold/80" />
+                  <span className="flex-1 truncate">{d.title || "Без заглавие"}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+
+        {myContacts.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Контрагенти">
+              {myContacts.map((c) => (
+                <CommandItem
+                  key={c.id}
+                  value={`contact ${c.name}`}
+                  onSelect={() => go(`/account?tab=contacts&open=${c.id}`)}
+                >
+                  <UserIcon className="mr-2 h-4 w-4 text-gold/80" />
+                  <span className="flex-1 truncate">{c.name}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+
+        {myDeals.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Сделки">
+              {myDeals.map((d) => (
+                <CommandItem
+                  key={d.id}
+                  value={`deal ${d.title}`}
+                  onSelect={() => go(`/console/deals?id=${d.id}`)}
+                >
+                  <Briefcase className="mr-2 h-4 w-4 text-gold/80" />
+                  <span className="flex-1 truncate">{d.title || "Без заглавие"}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+
       </CommandList>
     </CommandDialog>
   );
