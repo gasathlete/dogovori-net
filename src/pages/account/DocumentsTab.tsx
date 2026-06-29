@@ -35,6 +35,8 @@ import { translateAuthError } from "@/lib/authErrors";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { Seo } from "@/components/Seo";
 import { BulkActionsBar, BulkRowCheckbox } from "@/components/BulkActionsBar";
+import { DocumentReminderDialog } from "@/components/DocumentReminderDialog";
+import { useDocumentReminders, reminderStatus, REMINDER_KIND_LABEL } from "@/hooks/useDocumentReminders";
 import {
   ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, Legend, AreaChart, Area, LineChart, Line, ReferenceLine,
@@ -81,9 +83,29 @@ function DocumentsTab({
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showSharedOnly, setShowSharedOnly] = useState(false);
+  const { reminders, reload: reloadReminders } = useDocumentReminders();
   const toggleSelected = (id: string, v: boolean) =>
     setSelectedIds((prev) => (v ? [...prev, id] : prev.filter((x) => x !== id)));
   const hasMobileViewport = typeof window !== "undefined" && window.innerWidth < 640;
+  const upcomingReminders = reminders
+    .filter((r) => !r.done_at)
+    .slice(0, 5);
+  const reminderHref = (r: typeof reminders[number]): string | null => {
+    if (r.saved_document_id) return `/document/${r.saved_document_id}`;
+    if (r.uploaded_contract_id) return `/uploaded/${r.uploaded_contract_id}`;
+    return null;
+  };
+  const reminderTitle = (r: typeof reminders[number]): string => {
+    if (r.saved_document_id) {
+      const d = docs.find((x) => x.id === r.saved_document_id);
+      if (d) return d.title;
+    }
+    if (r.uploaded_contract_id) {
+      const u = uploaded.find((x) => x.id === r.uploaded_contract_id);
+      if (u) return u.title;
+    }
+    return "Документ";
+  };
 
   // Bundle children: map parent_saved_id → [{ref_label, child_saved_id, child_uploaded_id}]
   type LinkRow = {
@@ -186,6 +208,39 @@ function DocumentsTab({
         ))}
       </aside>
       <div className={hasMobileViewport ? "space-y-8 pb-20" : "space-y-8"}>
+        {upcomingReminders.length > 0 && (
+          <section className="rounded-xl border border-gold/30 bg-gold/5 p-4">
+            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-gold">
+              <Bell className="h-4 w-4" />
+              Предстоящи напомняния ({reminders.filter((r) => !r.done_at).length})
+            </div>
+            <ul className="space-y-1.5">
+              {upcomingReminders.map((r) => {
+                const s = reminderStatus(r);
+                const href = reminderHref(r);
+                const title = reminderTitle(r);
+                const inner = (
+                  <div className="flex items-center justify-between gap-2 rounded-md bg-card/40 px-3 py-2 text-xs hover:bg-card/70">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-medium">{title}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {REMINDER_KIND_LABEL[r.kind]} · {new Date(r.remind_at).toLocaleDateString("bg-BG")}
+                      </div>
+                    </div>
+                    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] uppercase ${s.cls}`}>
+                      {s.label}
+                    </span>
+                  </div>
+                );
+                return (
+                  <li key={r.id}>
+                    {href ? <Link to={href}>{inner}</Link> : inner}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
         {/* ===== Uploaded contracts (own files with AI risk analysis) ===== */}
         <section id="uploaded" className="scroll-mt-24">
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
@@ -245,6 +300,11 @@ function DocumentsTab({
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5">
                       <ShareForSignDialog uploadedContractId={u.id} documentTitle={u.title} triggerClassName="h-10 w-full justify-center sm:h-9 sm:w-auto" />
+                      <DocumentReminderDialog
+                        target={{ uploadedContractId: u.id }}
+                        documentTitle={u.title}
+                        onChanged={reloadReminders}
+                      />
                       <Select
                         value={u.folder_id ?? "none"}
                         onValueChange={async (v) => {
@@ -371,6 +431,11 @@ function DocumentsTab({
                         {busy === d.id + "docx" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Download className="mr-1 h-3 w-3" />} DOCX
                       </Button>
                       {d.kind === "contract" && <ShareForSignDialog documentId={d.id} documentTitle={d.title} triggerClassName="h-10 w-full justify-center sm:h-9 sm:w-auto" />}
+                      <DocumentReminderDialog
+                        target={{ savedDocumentId: d.id }}
+                        documentTitle={d.title}
+                        onChanged={reloadReminders}
+                      />
                       {inActiveTeam && (!d.user_id || !currentUser || d.user_id === currentUser.id) && (
                         <Button
                           size="sm"
