@@ -483,6 +483,13 @@ function DocumentsTab({
           )}
         </section>
       </div>
+      <DocumentVersionsDialog
+        open={!!versionsForDoc}
+        onOpenChange={(v) => !v && setVersionsForDoc(null)}
+        documentId={versionsForDoc?.id ?? null}
+        documentTitle={versionsForDoc?.title}
+        onRestored={reload}
+      />
     </div>
   );
 }
