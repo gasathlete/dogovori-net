@@ -4,9 +4,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Activity } from "lucide-react";
+import { Activity, Download, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { exportAuditCsv, exportAuditPdf, type AuditExportRow } from "@/lib/auditExport";
 
 type AuditUser = { email: string | null; display_name: string | null; avatar_url: string | null } | null;
 type Entry = {
