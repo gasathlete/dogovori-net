@@ -19,6 +19,7 @@ import { template as illegalContentAlert } from './illegal-content-alert.tsx'
 import { template as signingInvitation } from './signing-invitation.tsx'
 import { template as signingOtp } from './signing-otp.tsx'
 import { template as signingCompleted } from './signing-completed.tsx'
+import { template as reminderDue } from './reminder-due.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'welcome': welcome,
@@ -31,4 +32,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'signing-invitation': signingInvitation,
   'signing-otp': signingOtp,
   'signing-completed': signingCompleted,
+  'reminder-due': reminderDue,
 }
