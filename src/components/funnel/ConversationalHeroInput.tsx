@@ -46,7 +46,7 @@ export function ConversationalHeroInput() {
   const showDropdown = open && q.trim().length >= 2;
 
   return (
-    <div ref={wrapRef} className="relative mx-auto mt-3 w-full max-w-xl">
+    <div ref={wrapRef} className="relative isolate z-40 mx-auto mt-3 w-full max-w-xl">
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -64,8 +64,8 @@ export function ConversationalHeroInput() {
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          placeholder="Какъв документ ти трябва?"
-          aria-label="Какъв документ ти трябва?"
+          placeholder="Търси документ"
+          aria-label="Търси документ"
           className="min-w-0 flex-1 bg-transparent text-[14px] text-foreground placeholder:text-muted-foreground/80 focus:outline-none"
         />
         <button
@@ -78,7 +78,7 @@ export function ConversationalHeroInput() {
       </form>
 
       {showDropdown && (
-        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 overflow-hidden rounded-2xl border border-gold/30 bg-card/95 shadow-xl backdrop-blur-md">
+        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-2xl border border-gold/30 bg-card shadow-2xl ring-1 ring-black/5">
           {loading && hits.length === 0 ? (
             <div className="flex items-center gap-2 px-4 py-3 text-[13px] text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
