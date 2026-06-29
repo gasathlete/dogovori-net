@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ShieldAlert, Loader2, ExternalLink, AlertTriangle, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NegotiationStrategyPanel } from "@/components/NegotiationStrategyPanel";
 
 function scoreColor(score: number) {
   if (score >= 8) return "text-emerald-400 border-emerald-500/40 bg-emerald-500/10";
@@ -113,6 +114,8 @@ export function AnalysisPane({ analysisId }: { analysisId: string }) {
           </ul>
         </section>
       )}
+
+      <NegotiationStrategyPanel analysisId={a.id} initial={a.negotiation_strategy ?? null} />
     </div>
   );
 }

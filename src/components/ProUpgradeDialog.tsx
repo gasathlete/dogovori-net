@@ -29,6 +29,7 @@ export type ProUpgradeTrigger =
   | "bulk_zip"
   | "protected_share"
   | "brand_watermark"
+  | "negotiation_strategy"
   | "generic";
 
 interface Props {
@@ -89,6 +90,11 @@ const TRIGGER_COPY: Record<
     title: "Маркирай PDF с твоето лого",
     description: () =>
       "Качи логото на компанията си и то ще се появява като дискретен фирмен знак в горната част на всеки изтеглен договор — без воден знак на Dogovori.net.",
+  },
+  negotiation_strategy: {
+    title: "Изготви стратегия за преговори (GPT-5)",
+    description: () =>
+      "Предприемач отключва AI стратег: силни позиции, възможни отстъпки, BATNA, готови реплики и контра-клаузи — на база реалния анализ на договора.",
   },
   generic: {
     title: "Платен план",

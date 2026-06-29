@@ -1,0 +1,1 @@
+ALTER TABLE public.risk_analyses ADD COLUMN IF NOT EXISTS negotiation_strategy jsonb, ADD COLUMN IF NOT EXISTS negotiation_generated_at timestamptz;
