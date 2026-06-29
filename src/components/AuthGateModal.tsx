@@ -15,6 +15,7 @@ import {
   ArrowRight,
   X,
 } from "lucide-react";
+import { TrustGuaranteeBar } from "@/components/funnel/TrustGuaranteeBar";
 
 /**
  * Global auth gate modal.
@@ -186,10 +187,13 @@ export function AuthGateModal() {
             </div>
           </div>
 
-          {/* Trust line */}
+          {/* Trust line + guarantees */}
           <div className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-[11px] text-emerald-600 dark:text-emerald-400">
             <ShieldCheck className="h-3.5 w-3.5" />
             <span>10 безплатни операции · без карта · GDPR</span>
+          </div>
+          <div className="mt-3">
+            <TrustGuaranteeBar compact />
           </div>
 
           {/* CTAs */}
