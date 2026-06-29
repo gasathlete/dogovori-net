@@ -439,7 +439,17 @@ function DocumentsTab({
                         documentTitle={d.title}
                         onChanged={reloadReminders}
                       />
-                      {inActiveTeam && (!d.user_id || !currentUser || d.user_id === currentUser.id) && (
+                      {(!d.user_id || !currentUser || d.user_id === currentUser.id) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-10 w-full sm:h-9 sm:w-auto"
+                          onClick={() => setVersionsForDoc({ id: d.id, title: d.title })}
+                          title="История на версиите"
+                        >
+                          <History className="mr-1 h-3 w-3" /> История
+                        </Button>
+                      )}
                         <Button
                           size="sm"
                           variant="outline"
