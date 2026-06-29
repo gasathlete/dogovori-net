@@ -7,6 +7,10 @@ import { Seo } from "@/components/Seo";
 import { PlansHeroAnimation } from "@/components/PlansHeroAnimation";
 import { ExpandableCard } from "@/components/ui/ExpandableCard";
 import { TopupPacks } from "@/components/TopupPacks";
+import { PlanCategoryAccordion } from "@/components/plans/PlanCategoryAccordion";
+import { PlanHeroBenefit } from "@/components/plans/PlanHeroBenefit";
+import { categorize } from "@/lib/planCategories";
+import { useMemo } from "react";
 
 import {
   Accordion,
