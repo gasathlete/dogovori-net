@@ -220,6 +220,7 @@ function DocumentsTab({
       folder_id: d.folder_id,
       contact_id: d.contact_id,
       payload: d.payload,
+      tags: d.tags ?? [],
     });
     setBusy(null);
     if (error) toast.error(error.message);
