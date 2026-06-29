@@ -15,6 +15,7 @@ import {
   ArrowRight,
   X,
 } from "lucide-react";
+import { TrustGuaranteeBar } from "@/components/funnel/TrustGuaranteeBar";
 
 /**
  * Global auth gate modal.
