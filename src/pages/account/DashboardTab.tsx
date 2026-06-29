@@ -39,6 +39,7 @@ import {
 import { getUnlockedTiers, getNextTier, REWARD_TIERS } from "@/lib/rewards";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { ReferralCard } from "@/components/funnel/ReferralCard";
+import { SavingsSnapshot } from "@/components/funnel/SavingsSnapshot";
 import { EntrepreneurWelcomeDialog } from "@/components/EntrepreneurWelcomeDialog";
 
 type Contact = {
@@ -155,6 +156,8 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
           isPro,
         }}
       />
+
+      <SavingsSnapshot totalOps={totalOps} monthlyOps={last30dOps} />
 
       {user?.id ? <ReferralCard userId={user.id} email={user.email} /> : null}
 
