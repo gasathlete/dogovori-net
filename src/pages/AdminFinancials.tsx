@@ -60,18 +60,22 @@ export default function AdminFinancials() {
   };
 
   const exportCsv = () => {
-    const rows = results.flatMap((r) => [
-      { Сценарий: r.name, Метрика: "Активни юзъри", Стойност: scenarios[results.indexOf(r)].active_users },
-      { Сценарий: r.name, Метрика: "MRR нето", Стойност: r.mrr_net.toFixed(2) },
-      { Сценарий: r.name, Метрика: "ARR нето", Стойност: r.arr_net.toFixed(2) },
-      { Сценарий: r.name, Метрика: "AI разход", Стойност: r.ai_cost.toFixed(2) },
-      { Сценарий: r.name, Метрика: "Stripe такси", Стойност: r.stripe_fees.toFixed(2) },
-      { Сценарий: r.name, Метрика: "Фиксирани разходи", Стойност: r.fixed_costs.toFixed(2) },
-      { Сценарий: r.name, Метрика: "Нето печалба", Стойност: r.net_profit.toFixed(2) },
-      { Сценарий: r.name, Метрика: "Gross margin %", Стойност: r.gross_margin_pct.toFixed(1) },
-      { Сценарий: r.name, Метрика: "ARPU", Стойност: r.arpu.toFixed(2) },
+    const rows = results.flatMap((r, idx) => [
+      { scenario: r.name, metric: "Активни юзъри", value: String(scenarios[idx].active_users) },
+      { scenario: r.name, metric: "MRR нето", value: r.mrr_net.toFixed(2) },
+      { scenario: r.name, metric: "ARR нето", value: r.arr_net.toFixed(2) },
+      { scenario: r.name, metric: "AI разход", value: r.ai_cost.toFixed(2) },
+      { scenario: r.name, metric: "Stripe такси", value: r.stripe_fees.toFixed(2) },
+      { scenario: r.name, metric: "Фиксирани разходи", value: r.fixed_costs.toFixed(2) },
+      { scenario: r.name, metric: "Нето печалба", value: r.net_profit.toFixed(2) },
+      { scenario: r.name, metric: "Gross margin %", value: r.gross_margin_pct.toFixed(1) },
+      { scenario: r.name, metric: "ARPU", value: r.arpu.toFixed(2) },
     ]);
-    downloadCsv("dogovaryai-scenarios.csv", toCsv(rows));
+    downloadCsv("dogovaryai-scenarios.csv", toCsv(rows, [
+      { key: "scenario", label: "Сценарий" },
+      { key: "metric", label: "Метрика" },
+      { key: "value", label: "Стойност" },
+    ]));
   };
 
   if (loading || allowed === null) {
