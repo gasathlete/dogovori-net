@@ -307,9 +307,19 @@ export default function AuthPage() {
                     </Alert>
                   )}
                 </div>
-                <div className="rounded-lg border border-brand/40 bg-brand/[0.06] px-3 py-2 text-[11px] leading-relaxed text-foreground">
-                  <strong>Без парола.</strong> Ще получиш линк в имейла — едно цъкване и си в профила. По-сигурно и по-бързо.
+                <div>
+                  <Label htmlFor="spw">Парола</Label>
+                  <Input
+                    id="spw"
+                    type="password"
+                    required
+                    minLength={8}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Минимум 8 символа"
+                  />
                 </div>
+
 
                 <div className="space-y-2 rounded-md border border-border/60 bg-card/30 p-3">
                   <div className="flex items-start gap-2">
