@@ -51,10 +51,18 @@ export function BetaDisclaimerModal() {
 
   useEffect(() => {
     if (hasAcknowledged()) return;
-    // Small delay so the cookie banner appears first and we don't stack two
-    // modal-like surfaces in the same paint frame.
-    const t = window.setTimeout(() => setOpen(true), 600);
-    return () => window.clearTimeout(t);
+    // Avoid stacking on top of the cookie banner (which appears first on
+    // fresh visits). Poll briefly for the banner to disappear before opening.
+    const start = Date.now();
+    const iv = window.setInterval(() => {
+      const cookieBannerOpen = !!document.querySelector('[aria-label="Бисквитки — управление по категории"]');
+      const elapsed = Date.now() - start;
+      if (!cookieBannerOpen || elapsed > 8000) {
+        window.clearInterval(iv);
+        setOpen(true);
+      }
+    }, 400);
+    return () => window.clearInterval(iv);
   }, []);
 
   const close = () => {
@@ -151,7 +159,7 @@ export function BetaDisclaimerModal() {
           </Link>
           <button
             onClick={close}
-            className="mt-1 text-center text-xs text-muted-foreground transition-colors hover:text-gold"
+            className="mt-1 min-h-11 rounded-md py-2 text-center text-xs text-muted-foreground transition-colors hover:text-gold"
           >
             Разгледай първо
           </button>
