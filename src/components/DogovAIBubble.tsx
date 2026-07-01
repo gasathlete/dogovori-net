@@ -481,7 +481,7 @@ export function DogovAIBubble() {
               <button
                 type="button"
                 onClick={goFullExperience}
-                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-gold"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-gold"
                 aria-label="Отвори на цял екран"
                 title="Цял екран (full experience)"
               >
@@ -490,7 +490,7 @@ export function DogovAIBubble() {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
                 aria-label="Затвори"
               >
                 <X className="h-4 w-4" />
