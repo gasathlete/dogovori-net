@@ -134,13 +134,15 @@ export default function AuthPage() {
       toast.error("Моля, потвърдете задължителните полета");
       return;
     }
+    if (password.length < 8) {
+      toast.error("Паролата трябва да е поне 8 символа");
+      return;
+    }
     setBusy(true);
-    // Magic-link signup — no password. shouldCreateUser:true creates the account
-    // on first click of the email link.
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signUp({
       email,
+      password,
       options: {
-        shouldCreateUser: true,
         emailRedirectTo: window.location.origin + redirect,
         data: { display_name: name },
       },
@@ -148,7 +150,7 @@ export default function AuthPage() {
     setBusy(false);
     if (error) return toast.error("Грешка при регистрация", { description: translateAuthError(error.message) });
 
-    // Stash consents to record on first sign-in (same pattern as before).
+    // Stash consents to record on first sign-in.
     try {
       sessionStorage.setItem(
         "pending_consents",
@@ -165,9 +167,10 @@ export default function AuthPage() {
     } catch { /* storage unavailable */ }
 
     toast.success("Провери си имейла", {
-      description: "Изпратихме ти линк за вход — едно цъкване и си вътре.",
+      description: "Изпратихме ти линк за потвърждение на регистрацията.",
     });
   };
+
 
   const startGoogleOAuth = async (marketing: boolean) => {
     setBusy(true);
