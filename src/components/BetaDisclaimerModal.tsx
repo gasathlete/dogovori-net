@@ -159,7 +159,7 @@ export function BetaDisclaimerModal() {
           </Link>
           <button
             onClick={close}
-            className="mt-1 text-center text-xs text-muted-foreground transition-colors hover:text-gold"
+            className="mt-1 min-h-11 rounded-md py-2 text-center text-xs text-muted-foreground transition-colors hover:text-gold"
           >
             Разгледай първо
           </button>
