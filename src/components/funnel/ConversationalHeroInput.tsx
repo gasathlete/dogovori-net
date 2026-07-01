@@ -18,6 +18,7 @@ export function ConversationalHeroInput() {
   const navigate = useNavigate();
   const wrapRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number; width: number } | null>(null);
 
   const { hits, loading } = useTemplateSearch(q, {
