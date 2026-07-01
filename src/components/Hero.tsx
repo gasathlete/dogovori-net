@@ -19,7 +19,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
   const [visible, setVisible] = useState(false);
   const [teaserOpen, setTeaserOpen] = useState(false);
   const lastIdxRef = useRef<number | undefined>(undefined);
-  const magneticRef = useMagneticHover<HTMLAnchorElement>(6);
+  const magneticRef = useMagneticHover<HTMLButtonElement>(6);
 
   useEffect(() => { markFunnelStep(1); }, []);
 
