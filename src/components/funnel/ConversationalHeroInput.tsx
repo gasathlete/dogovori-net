@@ -104,6 +104,7 @@ export function ConversationalHeroInput() {
 
       {showDropdown && pos && typeof document !== "undefined" && createPortal(
         <div
+          ref={dropdownRef}
           style={{ position: "fixed", left: pos.left, top: pos.top, width: pos.width, zIndex: 9999 }}
           className="overflow-hidden rounded-2xl border border-gold/30 bg-card shadow-2xl ring-1 ring-black/5"
         >
