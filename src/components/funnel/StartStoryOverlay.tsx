@@ -204,19 +204,22 @@ export function StartStoryOverlay() {
           if (!isLast) setPaused(false);
         }}
       >
-        {/* Progress bars */}
+        {/* Progress bars — GPU scaleX for buttery-smooth per-frame updates */}
         <div className="pointer-events-none absolute inset-x-3 top-3 z-30 flex gap-1.5">
-          {stories.map((_, i) => (
-            <div key={i} className="h-1 flex-1 overflow-hidden rounded-full bg-white/20">
-              <div
-                className="h-full rounded-full bg-gold transition-[width]"
-                style={{
-                  width: `${i < idx ? 100 : i === idx ? (isLast ? 100 : progress * 100) : 0}%`,
-                  transitionDuration: paused ? "0ms" : "60ms",
-                }}
-              />
-            </div>
-          ))}
+          {stories.map((_, i) => {
+            const scale = i < idx ? 1 : i === idx ? (isLast ? 1 : progress) : 0;
+            return (
+              <div key={i} className="h-1 flex-1 overflow-hidden rounded-full bg-white/20">
+                <div
+                  className="h-full origin-left rounded-full bg-gold will-change-transform"
+                  style={{
+                    transform: `scaleX(${scale})`,
+                    transition: "none",
+                  }}
+                />
+              </div>
+            );
+          })}
         </div>
 
         {/* Close */}
@@ -255,34 +258,51 @@ export function StartStoryOverlay() {
           </>
         )}
 
-        {/* Content */}
-        <div className="relative z-10 flex h-full flex-col justify-between px-6 pt-14 pb-6">
-          <div className="mt-2">
-            <span className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold">
-              {story.icon}
-              {story.kicker ?? "Добре дошли"}
-            </span>
-            <h2
-              key={`h-${idx}`}
-              className="mt-4 animate-in fade-in slide-in-from-bottom-2 font-serif text-[26px] font-bold leading-tight text-white duration-300 sm:text-3xl"
+        {/* Sliding card track — one horizontal flex, GPU translate3d */}
+        <div className="relative z-10 flex h-full flex-col pt-14 pb-6">
+          <div className="relative flex-1 overflow-hidden">
+            <div
+              className="flex h-full will-change-transform"
+              style={{
+                transform: `translate3d(-${idx * 100}%, 0, 0)`,
+                transition: "transform 560ms cubic-bezier(0.22, 1, 0.36, 1)",
+              }}
             >
-              {story.title}
-            </h2>
-            <p
-              key={`p-${idx}`}
-              className="mt-3 animate-in fade-in text-sm leading-relaxed text-white/80 duration-500"
-            >
-              {story.body}
-            </p>
+              {stories.map((s, i) => {
+                const active = i === idx;
+                return (
+                  <div
+                    key={s.id}
+                    className="flex h-full w-full shrink-0 flex-col justify-between px-6"
+                    style={{
+                      opacity: active ? 1 : 0.35,
+                      transition: "opacity 420ms ease-out",
+                    }}
+                    aria-hidden={!active}
+                  >
+                    <div className="mt-2">
+                      <span className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold">
+                        {s.icon}
+                        {s.kicker ?? "Добре дошли"}
+                      </span>
+                      <h2 className="mt-4 font-serif text-[26px] font-bold leading-tight text-white sm:text-3xl">
+                        {s.title}
+                      </h2>
+                      <p className="mt-3 text-sm leading-relaxed text-white/80">
+                        {s.body}
+                      </p>
+                    </div>
+
+                    <div className="my-4">{s.preview}</div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Preview surface */}
-          <div key={`v-${idx}`} className="my-4 animate-in fade-in duration-500">
-            {story.preview}
-          </div>
+          {/* Footer nav — sits below the sliding track, static container */}
+          <div className="mt-2 space-y-3 px-6">
 
-          {/* Footer nav */}
-          <div className="mt-2 space-y-3">
             {isLast ? (
               <div className="space-y-3">
                 {/* Idle → auto-signup countdown bar */}
