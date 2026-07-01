@@ -18,6 +18,7 @@ export function ConversationalHeroInput() {
   const navigate = useNavigate();
   const wrapRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number; width: number } | null>(null);
 
   const { hits, loading } = useTemplateSearch(q, {
@@ -28,7 +29,10 @@ export function ConversationalHeroInput() {
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (wrapRef.current?.contains(t)) return;
+      if (dropdownRef.current?.contains(t)) return;
+      setOpen(false);
     };
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
@@ -100,6 +104,7 @@ export function ConversationalHeroInput() {
 
       {showDropdown && pos && typeof document !== "undefined" && createPortal(
         <div
+          ref={dropdownRef}
           style={{ position: "fixed", left: pos.left, top: pos.top, width: pos.width, zIndex: 9999 }}
           className="overflow-hidden rounded-2xl border border-gold/30 bg-card shadow-2xl ring-1 ring-black/5"
         >
