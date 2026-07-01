@@ -26,7 +26,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { usePlanEntitlements } from "@/hooks/usePlanEntitlements";
+import { useIsPro } from "@/hooks/useIsPro";
 import { trackFunnelEvent } from "@/lib/funnel";
 import { FREE_OP_SUCCESS_EVENT } from "@/hooks/useFreeOpSuccess";
 
