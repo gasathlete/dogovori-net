@@ -171,7 +171,7 @@ export function StartStoryOverlay() {
 
   if (!open || typeof document === "undefined") return null;
 
-  const story = stories[idx];
+  
 
   return createPortal(
     <div
