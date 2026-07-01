@@ -105,10 +105,9 @@ export default function Analyze() {
         />
 
         <section className="container relative mx-auto max-w-3xl px-4">
-
           <header className="text-center">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gold">
-              Стъпка 3 от 4 · Безплатен анализ
+              Безплатен анализ
             </p>
             <h1 className="mt-2 font-serif text-3xl font-bold leading-tight sm:text-4xl md:text-5xl">
               Открий рисковете в твоя договор{" "}
