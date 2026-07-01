@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { FileUp, ClipboardPaste, MessageCircleQuestion, Lock, Loader2, ShieldAlert, Sparkles } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
-import { FunnelProgress } from "@/components/funnel/FunnelProgress";
+
 import { PrimaryCTA } from "@/components/funnel/PrimaryCTA";
 import { RoiCalculator } from "@/components/funnel/RoiCalculator";
 import { cn } from "@/lib/utils";
@@ -105,11 +105,9 @@ export default function Analyze() {
         />
 
         <section className="container relative mx-auto max-w-3xl px-4">
-          <FunnelProgress current={3} className="mb-6" />
-
           <header className="text-center">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gold">
-              Стъпка 3 от 4 · Безплатен анализ
+              Безплатен анализ
             </p>
             <h1 className="mt-2 font-serif text-3xl font-bold leading-tight sm:text-4xl md:text-5xl">
               Открий рисковете в твоя договор{" "}

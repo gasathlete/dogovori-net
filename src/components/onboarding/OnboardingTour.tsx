@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, X, ArrowRight, Check } from "lucide-react";
 import { TUTORIAL_STEPS } from "./tutorialSteps";
+import { trackFunnelEvent } from "@/lib/funnel";
 
 interface Props {
   open: boolean;
@@ -22,10 +23,24 @@ export function OnboardingTour({ open, onClose }: Props) {
     if (open) setIdx(0);
   }, [open]);
 
+  const finish = useCallback(() => {
+    onClose(true);
+    trackFunnelEvent("tutorial_complete");
+    // If the user arrived from the pre-signup story flow (?tour=1), reward
+    // them by routing directly to the Analyze surface — the "Convert" step.
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("tour") === "1") {
+        try { sessionStorage.setItem("dgv:show-analyze-cta", "1"); } catch {}
+        navigate("/analiz");
+      }
+    } catch {}
+  }, [onClose, navigate]);
+
   const next = useCallback(() => {
-    if (isLast) onClose(true);
+    if (isLast) finish();
     else setIdx((i) => Math.min(i + 1, total - 1));
-  }, [isLast, onClose, total]);
+  }, [isLast, finish, total]);
 
   const prev = useCallback(() => setIdx((i) => Math.max(i - 1, 0)), []);
 

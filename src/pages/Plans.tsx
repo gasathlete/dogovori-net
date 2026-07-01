@@ -12,7 +12,7 @@ import { PlanHeroBenefit } from "@/components/plans/PlanHeroBenefit";
 import { categorize } from "@/lib/planCategories";
 import { AnalysisRecommendationBanner } from "@/components/funnel/AnalysisRecommendationBanner";
 import { AnchoringStrip } from "@/components/funnel/AnchoringStrip";
-import { FunnelProgress } from "@/components/funnel/FunnelProgress";
+
 import { RoiCalculator } from "@/components/funnel/RoiCalculator";
 import { TrustGuaranteeBar } from "@/components/funnel/TrustGuaranteeBar";
 import { markFunnelStep } from "@/lib/funnel";
@@ -101,7 +101,6 @@ export default function Plans() {
         />
 
         <section className="relative z-10 mx-auto max-w-6xl px-4 pt-2 pb-3 sm:pt-4 sm:pb-6">
-          <FunnelProgress current={4} className="mb-4" />
           <AnalysisRecommendationBanner />
           <AnchoringStrip />
           <div className="mb-4 sm:mb-6">

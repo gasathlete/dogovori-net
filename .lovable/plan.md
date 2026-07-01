@@ -1,92 +1,84 @@
+## Цел
+Пренаредим потребителското пътуване по фунията Attract → Inform → Convert → Engage, като върнем **предишния story-принцип** при клик на „Започни безплатно":
 
-# План: Приходно-разходни сценарии (Admin)
+```
+Hero „Започни безплатно"
+        ↓
+[Attract]  Story overlay (същите TUTORIAL_STEPS карти в story-режим)
+        ↓
+[Inform]   Регистрация / Magic link  →  Пълен туториал в профила
+        ↓
+[Convert]  „Анализирай собствен документ" (появява се едва след туториал)
+        ↓
+[Engage]   След всяка успешна безплатна операция → рекламен pop-up
+           „Какво може dogovori.net за теб" (Предприемач features)
+```
 
-Нов раздел `/admin/financials` — интерактивен P&L модел с три сценария, базиран на текущите планове и реалните Lovable AI Gateway цени.
+## Ключово решение за stories
+Използваме **същия визуален контент** от `src/components/onboarding/tutorialSteps.tsx` (`TUTORIAL_STEPS`) — това е предишният принцип: kicker + title + body + preview на всяка карта. Единствената разлика е представянето:
+- **Story режим (анонимен, преди регистрация)** = първите 3 стъпки (`intro`, `find`, `build`) в Instagram-style overlay – swipe + tap-to-advance + прогрес-барове отгоре, последна карта завършва с CTA „Създай безплатен акаунт".
+- **Пълен туториал (след вход)** = целият `OnboardingTour` както сега.
 
-## 1. Базови допускания (constants, редактируеми в UI)
+Така потребителят разпознава „предишното стори" (същите карти и preview-та), а туториалът в профила го надгражда.
 
-### Приходи / план (EUR, без ДДС след отделяне на 20%)
-| План | Цена бруто | Нето / месец | Ops/мес |
-|---|---|---|---|
-| Free | 0 | 0 | 2 (+5 еднократно) |
-| Професионалист | 12.90 | 10.75 | 50 |
-| Предприемач | 19.90 | 16.58 | 120 |
-| Екип (3 места) | 327 €/год | 22.71 / мес | 300 (3×100) |
+## Промени
 
-Top-up (нето): 2.42 / 4.50 / 10.75 / 19.92.
+### 1. Премахване на видимия 4-стъпков индикатор
+- `src/components/funnel/FunnelProgress.tsx` → връща `null` (файлът остава за да не чупим импорти).
+- Махаме `<FunnelProgress ... />` от `src/pages/Analyze.tsx` и `src/pages/Plans.tsx`.
 
-### Разход / 1 операция (mix по типове)
-Допускания за tokens средно на op:
-- Изготвяне на договор: ~6k in / 4k out
-- Анализ на качен договор: ~12k in / 3k out + OCR (~0.5 страници)
-- Изтегляне на шаблон: 0 AI
-- AI асистент съобщение: ~2k in / 0.8k out
+### 2. Story overlay при „Започни безплатно" (Attract)
+Нов `src/components/funnel/StartStoryOverlay.tsx`:
+- Fullscreen, тъмен фон, safe-area aware.
+- Горе – 3 прогрес-бара (Instagram-style, авто 4.5s всеки, pause on touch-hold).
+- Всяка „story" рендерира card от `TUTORIAL_STEPS[0..2]` (`intro`, `find`, `build`) – използваме съществуващите `icon`, `title`, `body`, `preview`.
+- Tap ляво/дясно = prev/next; swipe up/down = close; винаги видим X в горен десен ъгъл.
+- Последна карта: голям primary CTA „Създай безплатен акаунт" → `/auth?tab=signup&redirect=/dashboard?tour=1` + secondary „Вход" линк.
+- Trigger: клик на „Започни безплатно" в `Hero.tsx` и `CTABand.tsx` при анонимен user → dispatch `dogovori:start-story`. Влезли user-и минават директно към предишната цел.
+- Global mount в `App.tsx`.
+- LocalStorage guard `dgv:start-story:seen` – не насилва overlay-а ако е гледан преди 24h (клик по CTA винаги го отваря наново, `?skip=1` пропуска).
 
-Цени Gemini Flash / Pro / GPT-5 — четат се от `ai_simulation_settings.model_prices` (вече има админ UI), плюс OCR + embeddings constants. Така една промяна в settings опреснява и сценариите.
+### 3. Туториал → „Анализирай собствен документ" (Convert gate)
+- `OnboardingProvider` вече авто-стартира туториала след първи вход (запазваме).
+- В края на `OnboardingTour` (последна стъпка / „Готово") → dispatch `dogovori:tutorial-complete`; ако URL съдържа `?tour=1` → навигация към `/analiz`.
+- На `/analiz` за прясно завършили туториала показваме подчертан hero CTA „Анализирай собствен документ" (session flag `dgv:show-analyze-cta`).
+- Скриваме „анализирай собствен документ" fold-a от Hero-то за анонимни (per user – идва след туториала).
 
-Routing per план:
-- Free/Професионалист → 100% Gemini 2.5 Flash
-- Предприемач → 60% Gemini Pro + 40% GPT-5
-- Екип → 80% Gemini Pro + 20% GPT-5
+### 4. Post-op рекламен pop-up (Engage)
+Нов `src/components/funnel/EntrepreneurAdPopup.tsx`:
+- Bottom-sheet на mobile / долен-ляв toast-card на desktop, glass ефект, gold акценти.
+- „Какво може dogovori.net за теб" + 6 чип-карти (AI Асистент, Двуезични, Комплекти, Risk Analysis, GPT-5, Приоритет) + CTA „Виж Предприемач →" (`/plans#entrepreneur`).
+- Timing: авто-показване при `dogovori:free-op-success`; **X бутонът disabled първите 3 сек** (circular countdown), после активен; авто-затваряне на 10 сек с thin progress bar отгоре.
+- Frequency cap: max 1 път на сесия, не по-често от 4h (localStorage `dgv:ent-ad:last-shown`).
+- Само за влезли без активен платен план.
 
-### Фиксирани разходи / месец (input полета)
-Lovable hosting & Cloud, домейн, имейл (Resend), Stripe такси (2.9% + 0.30 €), счетоводство, маркетинг бюджет, резерв.
+Нов hook `src/hooks/useFreeOpSuccess.ts` → `emitFreeOpSuccess(opKey)`. Викаме от success handlers на:
+- Download на бланка/договор
+- Upload + analyze
+- AI съобщение в `AssistantChat`
+- Wizard генерация
+(Без промяна на бекенд метъринга.)
 
-## 2. Трите сценария (mix + мащаб)
+### 5. Тракинг
+`plausible` events: `story_view`, `story_complete`, `story_skip`, `tutorial_complete`, `ent_ad_shown`, `ent_ad_cta_click`, `ent_ad_dismissed`. Пишем и в `funnel_events` през existing helper.
 
-| Сценарий | Активни юзъри | Free | Проф. | Предпр. | Екип (мин 3 места) | Top-up attach |
-|---|---|---|---|---|---|---|
-| Консервативен | 500 | 88% | 9% | 2.5% | 0.5% (1 екип) | 5% от платените |
-| Базов | 2 500 | 80% | 14% | 5% | 1% (8 екипа) | 12% |
-| Оптимистичен | 8 000 | 70% | 20% | 8% | 2% (53 екипа) | 22% |
+## Файлове
+**Нови**
+- `src/components/funnel/StartStoryOverlay.tsx`
+- `src/components/funnel/EntrepreneurAdPopup.tsx`
+- `src/hooks/useFreeOpSuccess.ts`
 
-Allowance utilization (% от месечния cap, който реално се изконсумира): 35% / 55% / 70%.
+**Променени**
+- `src/components/funnel/FunnelProgress.tsx` (връща null)
+- `src/pages/Analyze.tsx`, `src/pages/Plans.tsx` (махат FunnelProgress; Analyze – highlight след tutorial)
+- `src/components/Hero.tsx`, `src/components/CTABand.tsx` (Започни безплатно → story)
+- `src/components/onboarding/OnboardingTour.tsx` (finish → dispatch + условна навигация)
+- `src/App.tsx` (mount на overlay + ad popup)
+- Success handlers на 4-те безплатни операции → викат `emitFreeOpSuccess`
 
-## 3. Изчисления
-
-За всеки сценарий:
-1. **MRR нето** = Σ (users × нето цена) + top-up нето.
-2. **AI cost** = Σ за всеки план: ops_used × blended_cost_per_op (в EUR, по token pricing × routing mix) + OCR.
-3. **Stripe fees** = 2.9% × бруто + 0.30 € × брой плащания.
-4. **Gross margin** = (MRR − AI cost − Stripe fees) / MRR.
-5. **Net profit** = Gross − fixed costs.
-6. **Unit economics**: ARPU, COGS/user, contribution margin, payback при CAC=8/15/30 €.
-
-## 4. UI / Компоненти
-
-- `src/pages/AdminFinancials.tsx` — guard през `useUserRole('admin')`.
-- `src/lib/financials/assumptions.ts` — defaults + типове.
-- `src/lib/financials/scenarios.ts` — pure функции `computeScenario(inputs)` (тестваеми с vitest).
-- `src/components/admin/financials/ScenarioCard.tsx` — KPI grid (MRR, ARR, AI cost, Net, Margin %).
-- `src/components/admin/financials/AssumptionsPanel.tsx` — collapsible sliders/inputs за mix, utilization, fixed costs, token cost overrides.
-- `src/components/admin/financials/CostBreakdownTable.tsx` — таблица по план: users, ops, AI €, Stripe €, нетна вноска.
-- `src/components/admin/financials/ScenarioCompareChart.tsx` — bar chart (recharts вече е в проекта) сравняващ трите.
-- Export: бутон „Свали като CSV" (`src/lib/csv.ts` вече съществува).
-
-Routing: добавя се `/admin/financials` в `src/App.tsx` под admin guard; линк в съществуващото admin меню.
-
-## 5. Тестове
-
-`src/test/financials.test.ts` — проверки:
-- Базовият сценарий дава MRR в рамките на ±1% от ръчно сметнатата стойност.
-- При 0 потребители всички разходи = fixed.
-- Промяна на token цена → пропорционална промяна на AI cost.
-
-## 6. Какво НЕ влиза в обхвата
-
-- Без писане в БД — всичко е client-side калкулация.
-- Без промени по публични страници, ценообразуване, Stripe продукти.
-- Без интеграция с реални Stripe/Supabase агрегати (отделна задача — може после да заменим mock-а с `ai_usage` агрегация).
-
-## Очакван резултат (preview числа, ще се валидират в кода)
-
-| | Консервативен | Базов | Оптимистичен |
-|---|---|---|---|
-| MRR нето | ~210 € | ~1 850 € | ~9 400 € |
-| AI cost | ~35 € | ~330 € | ~1 750 € |
-| Stripe fees | ~8 € | ~70 € | ~360 € |
-| Fixed | ~280 € | ~450 € | ~1 100 € |
-| **Net / мес** | **−113 €** | **+1 000 €** | **+6 190 €** |
-| Gross margin | ~80% | ~78% | ~77% |
-
-Числата са илюстративни — точните стойности ще се изчислят от модула при build.
+## Технически детайли
+- Overlay-ите комуникират през `window` CustomEvents (същия pattern като `AuthGateModal`).
+- Story прогрес: `requestAnimationFrame` (плавно), pause on `pointerdown`, resume on `pointerup`.
+- Ad countdown: `useEffect` таймери + SVG stroke-dashoffset за 3s ring + top progress bar за 10s.
+- Всичко ARIA-достъпно: `role="dialog"`, `aria-live` за таймери, focus trap.
+- Motion през `framer-motion` (вече в проекта).
