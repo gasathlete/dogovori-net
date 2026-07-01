@@ -45,31 +45,33 @@ export function CookieBanner() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {!showSettings ? (
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5 sm:flex-nowrap">
-          <Cookie className="h-4 w-4 shrink-0 text-gold" />
-          <p className="min-w-0 flex-1 text-[12px] leading-snug text-foreground">
-            Използваме бисквитки. За аналитика и маркетинг ни е нужно Вашето съгласие.{" "}
-            <Link to="/cookies" className="text-gold underline-offset-2 hover:underline">
-              Научи повече
-            </Link>
-          </p>
-          <div className="flex shrink-0 items-center gap-1.5">
+        <div className="mx-auto max-w-5xl px-4 py-3">
+          <div className="flex items-start gap-2 sm:items-center">
+            <Cookie className="mt-0.5 h-4 w-4 shrink-0 text-gold sm:mt-0" />
+            <p className="min-w-0 flex-1 text-[12px] leading-snug text-foreground">
+              Използваме бисквитки. За аналитика и маркетинг ни е нужно Вашето съгласие.{" "}
+              <Link to="/cookies" className="inline-block py-1 text-gold underline underline-offset-2">
+                Научи повече
+              </Link>
+            </p>
+          </div>
+          <div className="mt-2.5 flex items-center gap-2 sm:mt-0 sm:justify-end">
             <button
               onClick={() => setShowSettings(true)}
-              className="rounded px-2 py-1 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
+              className="min-h-10 rounded-md px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               Настройки
             </button>
             <button
               onClick={onlyNecessary}
-              className="rounded px-2 py-1 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
+              className="min-h-10 rounded-md border border-border/50 px-3 text-[12px] font-medium text-foreground/80 transition-colors hover:bg-muted/40"
             >
               Само необходими
             </button>
             <Button
               size="sm"
               onClick={acceptAll}
-              className="h-8 bg-gradient-gold px-3 text-[12px] text-navy"
+              className="h-10 flex-1 bg-gradient-gold px-3 text-[13px] font-semibold text-navy sm:flex-none"
             >
               Приемам всички
             </Button>
