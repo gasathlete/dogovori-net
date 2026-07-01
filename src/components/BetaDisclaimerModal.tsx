@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Sparkles, Handshake, Lock, Gift, MessageSquareQuote, Tag } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { ArrowRight } from "lucide-react";
 
 /**
  * BetaDisclaimerModal — shown on the first visit to announce the beta period
@@ -12,13 +12,11 @@ import { Label } from "@/components/ui/label";
  * Persistence:
  *  - `localStorage[STORAGE_KEY]` → permanent ack ("Не ме показвай повече" checked).
  *  - `sessionStorage[SESSION_KEY]` → suppress for current tab/session only when
- *    the user closes the modal without checking the box. They'll see it again
- *    on the next browser session.
- *  - Bump the version suffix (`_v1`) to re-broadcast after major changes.
+ *    the user closes the modal without checking the box.
  */
 const STORAGE_KEY = "dogovori_beta_ack_v1";
 const SESSION_KEY = "dogovori_beta_ack_session_v1";
-const LAUNCH_DATE = "01.09.2026 г.";
+const LAUNCH_DATE = "01.09.2026";
 
 function hasAcknowledged(): boolean {
   try {
@@ -28,7 +26,7 @@ function hasAcknowledged(): boolean {
       !!window.sessionStorage.getItem(SESSION_KEY)
     );
   } catch {
-    return true; // Fail-closed: don't pester users when storage is unavailable.
+    return true;
   }
 }
 
@@ -45,6 +43,25 @@ function markAcknowledged(permanent: boolean) {
   }
 }
 
+const HIGHLIGHTS: Array<{ label: string; detail: string }> = [
+  {
+    label: "Фиксирана промо-цена",
+    detail: "До 30% под официалната тарифа, заключена за 12 месеца.",
+  },
+  {
+    label: "10 безплатни операции",
+    detail: "След регистрация — без карта, без ангажимент.",
+  },
+  {
+    label: "Пълен достъп до AI функциите",
+    detail: "Асистент, Risk Analysis, е-Подпис и Комплекти.",
+  },
+  {
+    label: "Пряко участие в roadmap-а",
+    detail: "Обратната ви връзка формира приоритетите ни.",
+  },
+];
+
 export function BetaDisclaimerModal() {
   const [open, setOpen] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(true);
@@ -55,7 +72,9 @@ export function BetaDisclaimerModal() {
     // fresh visits). Poll briefly for the banner to disappear before opening.
     const start = Date.now();
     const iv = window.setInterval(() => {
-      const cookieBannerOpen = !!document.querySelector('[aria-label="Бисквитки — управление по категории"]');
+      const cookieBannerOpen = !!document.querySelector(
+        '[aria-label="Бисквитки — управление по категории"]',
+      );
       const elapsed = Date.now() - start;
       if (!cookieBannerOpen || elapsed > 8000) {
         window.clearInterval(iv);
@@ -77,111 +96,82 @@ export function BetaDisclaimerModal() {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-lg overflow-y-auto border-gold/30 bg-card">
-        <DialogHeader>
-          <div className="mx-auto mb-2 inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-gold">
-            <Sparkles className="h-3.5 w-3.5" /> Beta
+      <DialogContent className="max-h-[92vh] max-w-md overflow-y-auto border-border/60 bg-card p-0 sm:max-w-lg">
+        {/* Header strip */}
+        <div className="flex items-center justify-between border-b border-border/60 px-6 py-4">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-gold" aria-hidden />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+              Beta program
+            </span>
           </div>
-          <DialogTitle className="text-center font-serif text-2xl">
-            Сайтът е в БЕТА
-          </DialogTitle>
-          <DialogDescription className="text-center">
-            Официално пускане: <span className="font-semibold text-gold">{LAUNCH_DATE}</span>
-          </DialogDescription>
-        </DialogHeader>
-
-        <p className="mt-2 text-center text-sm text-muted-foreground">
-          Изграждаме dogovori.net заедно с първите ни потребители. До официалното пускане
-          работим в бета режим — функциите се развиват ежедневно, а ранните потребители
-          получават специални условия.
-        </p>
-
-        <ul className="mt-4 space-y-3 text-sm">
-          <li className="flex items-start gap-3">
-            <Tag className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-            <span>
-              <span className="font-semibold text-foreground">По-ниски цени</span>{" "}
-              <span className="text-muted-foreground">
-                — текущите тарифи са с до 30% под официалните; цената се фиксира за първите 12 месеца.
-              </span>
-            </span>
-          </li>
-          <li className="flex items-start gap-3">
-            <Handshake className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-            <span>
-              <span className="font-semibold text-foreground">Партньорство</span>{" "}
-              <span className="text-muted-foreground">
-                — възможност за включване в партньорската мрежа (лого, препоръки, реферал бонуси).
-              </span>
-            </span>
-          </li>
-          <li className="flex items-start gap-3">
-            <Lock className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-            <span>
-              <span className="font-semibold text-foreground">Достъп до сложни функции</span>{" "}
-              <span className="text-muted-foreground">
-                — AI асистент, Risk Analysis, е-Подпис и Комплекти — всички безплатни операции след регистрация.
-              </span>
-            </span>
-          </li>
-          <li className="flex items-start gap-3">
-            <Gift className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-            <span>
-              <span className="font-semibold text-foreground">10 безплатни операции</span>{" "}
-              <span className="text-muted-foreground">при регистрация — без карта.</span>
-            </span>
-          </li>
-          <li className="flex items-start gap-3">
-            <MessageSquareQuote className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-            <span>
-              <span className="font-semibold text-foreground">Пряка обратна връзка</span>{" "}
-              <span className="text-muted-foreground">
-                — заявките ви влизат директно в roadmap-а.
-              </span>
-            </span>
-          </li>
-        </ul>
-
-        <div className="mt-5 flex flex-col gap-2">
-          <Link
-            to="/auth?tab=signup"
-            onClick={close}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-b from-gold to-gold/80 px-4 py-2.5 text-sm font-semibold text-navy shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.55)] transition-all hover:brightness-110"
-          >
-            <Sparkles className="h-4 w-4" /> Регистрирай се безплатно
-          </Link>
-          <Link
-            to="/#partners"
-            onClick={close}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-gold/40 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-gold/10"
-          >
-            <Handshake className="h-4 w-4" /> Стани партньор
-          </Link>
-          <button
-            onClick={close}
-            className="mt-1 min-h-11 rounded-md py-2 text-center text-xs text-muted-foreground transition-colors hover:text-gold"
-          >
-            Разгледай първо
-          </button>
+          <span className="text-[11px] tabular-nums text-muted-foreground">
+            Launch · {LAUNCH_DATE}
+          </span>
         </div>
 
-        <div className="mt-4 flex items-center justify-center gap-2">
-          <Checkbox
-            id="beta-dont-show-again"
-            checked={dontShowAgain}
-            onCheckedChange={(v) => setDontShowAgain(v === true)}
-          />
-          <Label
-            htmlFor="beta-dont-show-again"
-            className="cursor-pointer text-xs text-muted-foreground"
-          >
-            Не ме показвай повече
-          </Label>
-        </div>
+        {/* Body */}
+        <div className="px-6 pb-6 pt-5">
+          <h2 className="font-serif text-[26px] leading-tight tracking-tight text-foreground">
+            Работим в бета до 1 септември 2026 г.
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            Изграждаме dogovori.net заедно с първите ни потребители. Ранните акаунти
+            получават закотвени условия, приоритет в поддръжката и глас в развитието
+            на продукта.
+          </p>
 
-        <p className="mt-3 text-center text-[11px] text-muted-foreground">
-          Условията за партньорство и промо-цени важат до {LAUNCH_DATE}
-        </p>
+          <dl className="mt-5 divide-y divide-border/60 border-y border-border/60">
+            {HIGHLIGHTS.map((item) => (
+              <div key={item.label} className="grid grid-cols-[1fr_auto] items-start gap-4 py-3">
+                <dt className="text-sm font-medium text-foreground">{item.label}</dt>
+                <dd className="col-span-2 -mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                  {item.detail}
+                </dd>
+              </div>
+            ))}
+          </dl>
+
+          <div className="mt-6 flex flex-col gap-2">
+            <Link
+              to="/auth?tab=signup"
+              onClick={close}
+              className="group inline-flex items-center justify-center gap-2 rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-transform hover:-translate-y-px"
+            >
+              Регистрация — 10 операции безплатно
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+            <button
+              onClick={close}
+              className="inline-flex min-h-11 items-center justify-center rounded-md text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Разгледай първо сайта
+            </button>
+          </div>
+
+          <div className="mt-5 flex items-center justify-between gap-3 border-t border-border/60 pt-4">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="beta-dont-show-again"
+                checked={dontShowAgain}
+                onCheckedChange={(v) => setDontShowAgain(v === true)}
+              />
+              <Label
+                htmlFor="beta-dont-show-again"
+                className="cursor-pointer text-xs text-muted-foreground"
+              >
+                Не показвай отново
+              </Label>
+            </div>
+            <Link
+              to="/#partners"
+              onClick={close}
+              className="text-[11px] font-medium text-muted-foreground underline-offset-4 hover:text-gold hover:underline"
+            >
+              Партньорска програма →
+            </Link>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
