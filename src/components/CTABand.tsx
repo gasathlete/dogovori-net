@@ -4,6 +4,7 @@ import { useDownloadCounts } from "@/hooks/useDownloadCounts";
 import { useCountUp } from "@/hooks/useCountUp";
 import { useMemo, useState } from "react";
 import { TeaserDialog } from "@/components/TeaserDialog";
+import { openStartStory } from "@/components/funnel/StartStoryOverlay";
 import { useAuth } from "@/hooks/useAuth";
 
 function LiveCounter() {
@@ -91,7 +92,7 @@ export function CTABand() {
                 />
                 <button
                   type="button"
-                  onClick={() => setTeaserOpen(true)}
+                  onClick={() => openStartStory()}
                   className="btn-gold btn-sheen btn-press relative w-full sm:w-auto normal-case tracking-normal text-lg sm:text-xl px-12 py-5 sm:px-14 sm:py-6 lg:px-10 lg:py-4 lg:text-lg rounded-xl font-bold shadow-gold"
                 >
                   <ArrowRight className="h-[22px] w-[22px]" /> Започни безплатно
