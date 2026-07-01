@@ -308,8 +308,8 @@ export function StartStoryOverlay() {
                 {/* Idle → auto-signup countdown bar */}
                 <div className="h-0.5 w-full overflow-hidden rounded-full bg-white/10">
                   <div
-                    className="h-full rounded-full bg-gold/70"
-                    style={{ width: `${idleProgress * 100}%`, transition: "width 60ms linear" }}
+                    className="h-full origin-left rounded-full bg-gold/70 will-change-transform"
+                    style={{ transform: `scaleX(${idleProgress})`, transition: "none" }}
                     aria-hidden
                   />
                 </div>
