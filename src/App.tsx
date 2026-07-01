@@ -69,6 +69,12 @@ const AuthGateModal = reactLazy(() =>
 );
 import { BetaDisclaimerModal } from "@/components/BetaDisclaimerModal";
 import { ExitIntentLeadMagnet } from "@/components/funnel/ExitIntentLeadMagnet";
+const StartStoryOverlay = reactLazy(() =>
+  import("@/components/funnel/StartStoryOverlay").then((m) => ({ default: m.StartStoryOverlay })),
+);
+const EntrepreneurAdPopup = reactLazy(() =>
+  import("@/components/funnel/EntrepreneurAdPopup").then((m) => ({ default: m.EntrepreneurAdPopup })),
+);
 // Sentry init is deferred to idle time below — keeps it off the critical path.
 
 // Lazy-load every route except Index (landing page) so the initial bundle stays light.
@@ -355,6 +361,8 @@ const App = () => (
             <MobileBottomNav />
             <ActionCelebrationHost />
             <AuthGateModal />
+            <StartStoryOverlay />
+            <EntrepreneurAdPopup />
           </Suspense>
           <Suspense fallback={<RouteFallback />}>
             <AnimatedRoutes />
