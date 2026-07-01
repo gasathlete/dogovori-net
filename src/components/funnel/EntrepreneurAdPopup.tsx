@@ -48,7 +48,7 @@ const FEATURES: Array<{ icon: any; label: string }> = [
 
 export function EntrepreneurAdPopup() {
   const { user } = useAuth();
-  const entitlements = useSafeEntitlements();
+  const { isPro } = useIsPro();
   const [open, setOpen] = useState(false);
   const [now, setNow] = useState(0);
   const openedAtRef = useRef<number>(0);
@@ -56,14 +56,14 @@ export function EntrepreneurAdPopup() {
   const canShow = useCallback(() => {
     if (!user) return false;
     // Don't advertise Entrepreneur to users who already have a paid plan.
-    if (entitlements?.planId && entitlements.planId !== "free") return false;
+    if (isPro) return false;
     try {
       if (sessionStorage.getItem(SESSION_SHOWN_KEY)) return false;
       const last = Number(localStorage.getItem(LAST_SHOWN_KEY) || "0");
       if (last && Date.now() - last < MIN_INTERVAL_MS) return false;
     } catch {}
     return true;
-  }, [user, entitlements?.planId]);
+  }, [user, isPro]);
 
   const scheduleOpen = useCallback(() => {
     if (!canShow()) return;
@@ -249,14 +249,4 @@ export function EntrepreneurAdPopup() {
     </div>,
     document.body,
   );
-}
-
-/** Wrap the entitlements hook so a missing/loading value doesn't crash the popup. */
-function useSafeEntitlements() {
-  try {
-    // Some routes render without full plan context; guarded with try/catch.
-    return usePlanEntitlements();
-  } catch {
-    return null as any;
-  }
 }
