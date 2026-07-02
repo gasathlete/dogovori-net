@@ -194,9 +194,10 @@ Deno.serve(async (req) => {
     }
 
     // Safety net — ensure CTA is present exactly once at the end.
-    // Match both relative (/auth) and absolute (https://dogovori.net/auth) forms.
+    // A simple substring check catches both relative (/auth) and absolute
+    // (https://dogovori.net/auth) markdown links the model may emit.
     const CTA = '💡 Безплатните съобщения свършват. [Регистрирайте се](/auth) за пълен достъп до DogovaryAI.';
-    const hasCta = /Регистрирайте\s+се[^)]*\]\((?:https?:\/\/[^)]+)?\/auth\b/i.test(reply);
+    const hasCta = /Регистрирайте\s+се/i.test(reply) && /\/auth\b/.test(reply);
     if (!hasCta) {
       reply = `${reply}\n\n${CTA}`;
     }
