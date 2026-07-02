@@ -903,3 +903,52 @@ function scrubBgnLiterals(text: string): string {
     return `${formatted} €`;
   });
 }
+
+// Chunk-boundary safe streaming scrubber.
+// The gateway emits arbitrary chunk splits, which used to cause artefacts:
+//   • "500 лв" split as "500 л" + "в"  → stayed as leva in the UI
+//   • "[S1]" split as "[S" + "1]"     → the marker survived scrubbing
+//   • "<followups>…</followups>"      → tag flashed before chip render
+// This helper buffers the last ~40 chars, hides the followups block entirely,
+// and only emits text that is guaranteed safe from a partial-match perspective.
+function makeStreamScrubber() {
+  let pending = "";
+  let followupsStarted = false;
+  const TAIL = 40;
+
+  const staticScrub = (s: string) =>
+    scrubBgnLiterals(
+      s.replace(/\[\s*S\s*\d{1,2}\s*\]/gi, "")
+        .replace(/\[\s*източник\s*\d{1,2}\s*\]/gi, ""),
+    );
+
+  return {
+    push(chunk: string): string {
+      if (followupsStarted || !chunk) return "";
+      pending += chunk;
+      // 1. Detect the <followups> opening tag and cut everything after it.
+      const openIdx = pending.search(/<followups\b/i);
+      if (openIdx >= 0) {
+        const safe = pending.slice(0, openIdx);
+        pending = "";
+        followupsStarted = true;
+        return staticScrub(safe);
+      }
+      // 2. Hold back if the tail could still form a "<followups" prefix.
+      if (/<[a-z]{0,10}$/i.test(pending)) return "";
+      // 3. Emit everything except the last TAIL chars — which may still contain
+      //    partial BGN literals ("500 л") or "[S" markers waiting for a digit.
+      if (pending.length <= TAIL) return "";
+      const emitLen = pending.length - TAIL;
+      const emit = pending.slice(0, emitLen);
+      pending = pending.slice(emitLen);
+      return staticScrub(emit);
+    },
+    flush(): string {
+      if (followupsStarted) { pending = ""; return ""; }
+      const out = staticScrub(pending);
+      pending = "";
+      return out;
+    },
+  };
+}
