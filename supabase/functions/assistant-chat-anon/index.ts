@@ -176,15 +176,18 @@ Deno.serve(async (req) => {
         .split("||")
         .map((s) => s.trim().replace(/^["'\-•\s]+|["'\s]+$/g, ""))
         .filter((s) => s.length > 0 && s.length <= 80)
+        .filter(isActionableChip)
         .slice(0, 3);
     } else {
       // Fallback: strip any half-open <followups tag left by truncation
       reply = reply.replace(/<followups>[\s\S]*$/i, "").trim();
     }
 
-    // Safety net — ensure CTA is present exactly once at the end
+    // Safety net — ensure CTA is present exactly once at the end.
+    // Match both relative (/auth) and absolute (https://dogovori.net/auth) forms.
     const CTA = '💡 Безплатните съобщения свършват. [Регистрирайте се](/auth) за пълен достъп до DogovaryAI.';
-    if (!/Регистрирайте се.*\(\/auth\)/i.test(reply)) {
+    const hasCta = /Регистрирайте\s+се[^)]*\]\((?:https?:\/\/[^)]+)?\/auth\b/i.test(reply);
+    if (!hasCta) {
       reply = `${reply}\n\n${CTA}`;
     }
 
