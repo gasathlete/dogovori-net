@@ -144,11 +144,16 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
 
 
   return (
-    <div className="grid gap-4 md:grid-cols-3 [&_details.mobile-fold]:md:!block [&_details.mobile-fold>summary]:md:hidden">
+    <div className="grid gap-4 md:grid-cols-3">
       <style>{`
         details.mobile-fold > summary { list-style: none; cursor: pointer; }
         details.mobile-fold > summary::-webkit-details-marker { display: none; }
         details.mobile-fold[open] > summary .chev { transform: rotate(180deg); }
+        @media (min-width: 768px) {
+          details.mobile-fold > summary { display: none !important; }
+          details.mobile-fold > :not(summary) { display: block !important; }
+          details.mobile-fold.md-contents { display: contents !important; }
+        }
       `}</style>
       <EntrepreneurWelcomeDialog isPro={isPro} />
 
