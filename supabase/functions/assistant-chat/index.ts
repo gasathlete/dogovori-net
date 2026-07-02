@@ -513,7 +513,7 @@ Deno.serve(async (req) => {
             //  - strips fake source markers [Sn] / [източник N]
             //  - hides the entire <followups>...</followups> block from the UI so
             //    users never see the raw tag flash before the chip render.
-            const scrubber = makeStreamScrubber();
+            const scrubber = makeStreamScrubber({ citationCount: legal.citations.length });
 
             while (true) {
               const { value, done } = await reader.read();
