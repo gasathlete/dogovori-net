@@ -144,7 +144,12 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
 
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-3 [&_details.mobile-fold]:md:!block [&_details.mobile-fold>summary]:md:hidden">
+      <style>{`
+        details.mobile-fold > summary { list-style: none; cursor: pointer; }
+        details.mobile-fold > summary::-webkit-details-marker { display: none; }
+        details.mobile-fold[open] > summary .chev { transform: rotate(180deg); }
+      `}</style>
       <EntrepreneurWelcomeDialog isPro={isPro} />
 
       <OnboardingChecklist
