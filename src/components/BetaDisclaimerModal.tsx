@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ArrowRight } from "lucide-react";
+
 
 /**
  * BetaDisclaimerModal — shown on the first visit to announce the beta period
@@ -65,8 +66,15 @@ const HIGHLIGHTS: Array<{ label: string; detail: string }> = [
 export function BetaDisclaimerModal() {
   const [open, setOpen] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(true);
+  const location = useLocation();
+
+  // Never show on routes where it can block critical user actions
+  // (login/signup forms, wizard, checkout, account, admin).
+  const BLOCKED_PATHS = ["/auth", "/n/", "/wizard", "/plans", "/account", "/admin", "/analiz"];
+  const isBlockedRoute = BLOCKED_PATHS.some((p) => location.pathname.startsWith(p));
 
   useEffect(() => {
+    if (isBlockedRoute) return;
     if (hasAcknowledged()) return;
     // Avoid stacking on top of the cookie banner (which appears first on
     // fresh visits). Poll briefly for the banner to disappear before opening.
@@ -82,7 +90,8 @@ export function BetaDisclaimerModal() {
       }
     }, 400);
     return () => window.clearInterval(iv);
-  }, []);
+  }, [isBlockedRoute]);
+
 
   const close = () => {
     markAcknowledged(dontShowAgain);
