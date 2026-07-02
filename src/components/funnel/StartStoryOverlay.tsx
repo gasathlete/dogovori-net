@@ -23,8 +23,8 @@ export const START_STORY_EVENT = "dogovori:start-story";
 const SEEN_KEY = "dgv:start-story:seen";
 const STORY_DURATION_MS = 3000; // 3s per card
 const LAST_IDLE_MS = 4000; // 4s idle on last card → auto-signup
-const SIGNUP_HREF = "/auth?tab=signup&redirect=%2Fdashboard%3Ftour%3D1";
-const LOGIN_HREF = "/auth?redirect=%2Fdashboard%3Ftour%3D1";
+const SIGNUP_HREF = "/auth?tab=signup&redirect=%2Faccount%3Ftab%3Ddashboard%26tour%3D1";
+const LOGIN_HREF = "/auth?redirect=%2Faccount%3Ftab%3Ddashboard%26tour%3D1";
 // Most logical 5 out of TUTORIAL_STEPS: intro, find, build, analyse, dogovary.
 const STORY_INDICES = [0, 1, 2, 3, 7] as const;
 
