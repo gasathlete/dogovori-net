@@ -59,6 +59,16 @@ const MAX_MESSAGES = 5;
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
 
+// Filter out pure-theory chips ("Какво е ДДС?", "Какво е НАП?") — they do not
+// drive the user forward in the platform. Keep action-oriented CTAs.
+const PURE_THEORY_RE = /^(какво|защо|кой|къде|кога)\b[^?]*\?\s*$/i;
+function isActionableChip(chip: string): boolean {
+  const c = chip.trim();
+  if (c.length === 0 || c.length > 70) return false;
+  if (PURE_THEORY_RE.test(c)) return false;
+  return true;
+}
+
 Deno.serve(async (req) => {
   const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
