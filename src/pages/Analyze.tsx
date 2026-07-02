@@ -39,7 +39,7 @@ const DOC_KINDS = [
 export default function Analyze() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<Mode>("upload");
+  const [mode, setMode] = useState<Mode>("paste");
   const [docKind, setDocKind] = useState<string>("rent");
   const [pasted, setPasted] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
