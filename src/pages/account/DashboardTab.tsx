@@ -446,11 +446,15 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
           })}
         </div>
       </div>
+      </details>
 
 
-
-
-      <div className="md:col-span-3 rounded-xl border border-border/60 bg-gradient-card p-6">
+      <details className="mobile-fold md-contents md:col-span-3 rounded-xl border border-border/60 bg-gradient-card md:border-0 md:bg-transparent md:rounded-none" open>
+        <summary className="flex items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-foreground">
+          <span className="inline-flex items-center gap-2"><ChevronRight className="chev h-4 w-4 rotate-90 text-gold transition-transform" />Последни документи</span>
+          <span className="text-xs font-normal text-muted-foreground">{docs.length}</span>
+        </summary>
+      <div className="md:col-span-3 rounded-xl border-t border-border/60 bg-gradient-card p-6 md:border md:rounded-xl">
         <h3 className="mb-3 font-serif text-lg font-bold">Последни документи</h3>
 
         {docs.length === 0 ? (
