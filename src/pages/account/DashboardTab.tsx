@@ -269,7 +269,12 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
       </button>
 
 
-      <div className="md:col-span-3 grid gap-4 lg:grid-cols-5">
+      <details className="mobile-fold md-contents md:col-span-3 rounded-xl border border-border/60 bg-gradient-card md:border-0 md:bg-transparent md:rounded-none">
+        <summary className="flex items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-foreground">
+          <span className="inline-flex items-center gap-2"><ChevronRight className="chev h-4 w-4 rotate-90 text-gold transition-transform" />Активност и разпределение</span>
+          <span className="text-xs font-normal text-muted-foreground">графики</span>
+        </summary>
+      <div className="md:col-span-3 grid gap-4 lg:grid-cols-5 border-t border-border/60 p-3 md:border-0 md:p-0">
         <div className="rounded-xl border border-border/60 bg-gradient-card p-4 sm:p-6 lg:col-span-2">
           <div className="mb-4 flex items-baseline justify-between gap-2">
             <h3 className="font-serif text-base sm:text-lg font-bold">Разпределение на операциите</h3>
