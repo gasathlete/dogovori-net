@@ -145,6 +145,16 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
+      <style>{`
+        details.mobile-fold > summary { list-style: none; cursor: pointer; }
+        details.mobile-fold > summary::-webkit-details-marker { display: none; }
+        details.mobile-fold[open] > summary .chev { transform: rotate(180deg); }
+        @media (min-width: 768px) {
+          details.mobile-fold > summary { display: none !important; }
+          details.mobile-fold > :not(summary) { display: block !important; }
+          details.mobile-fold.md-contents { display: contents !important; }
+        }
+      `}</style>
       <EntrepreneurWelcomeDialog isPro={isPro} />
 
       <OnboardingChecklist
@@ -202,26 +212,27 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
         sub="Запазени чернови в профила"
         onClick={() => navigate("/account?tab=documents")}
       />
-      <Card
-        title="Свалени бланки"
-        value={`${quota?.templates_used ?? 0}`}
-        icon={<FileText className="h-5 w-5 text-gold" />}
-        sub="Лична история на свалените бланки"
-        onClick={() => navigate("/downloads/templates")}
-      />
-      <Card
-        title="Качени за анализ"
-        value={`${uploadedCount}`}
-        icon={<ShieldCheck className="h-5 w-5 text-gold" />}
-        sub={`${analysesUsed} извършени анализа`}
-        onClick={() => navigate("/account?tab=documents#uploaded")}
-      />
-      <Card
-        title="Автоматични корекции"
-        value={`${correctionsCount}`}
-        icon={<RefreshCw className="h-5 w-5 text-gold" />}
-        sub="Приложени вълни от корекции"
-      />
+      {/* Mobile: fold the extra 3 stats behind an expandable button */}
+      <details className="mobile-fold md:hidden md:col-span-3 group rounded-xl border border-border/60 bg-gradient-card overflow-hidden">
+        <summary className="flex items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-foreground">
+          <span className="inline-flex items-center gap-2">
+            <ChevronRight className="chev h-4 w-4 rotate-90 text-gold transition-transform" />
+            Още показатели
+          </span>
+          <span className="text-xs font-normal text-muted-foreground">3 карти</span>
+        </summary>
+        <div className="grid grid-cols-1 gap-3 border-t border-border/60 p-3">
+          <Card title="Свалени бланки" value={`${quota?.templates_used ?? 0}`} icon={<FileText className="h-5 w-5 text-gold" />} sub="Лична история на свалените бланки" onClick={() => navigate("/downloads/templates")} />
+          <Card title="Качени за анализ" value={`${uploadedCount}`} icon={<ShieldCheck className="h-5 w-5 text-gold" />} sub={`${analysesUsed} извършени анализа`} onClick={() => navigate("/account?tab=documents#uploaded")} />
+          <Card title="Автоматични корекции" value={`${correctionsCount}`} icon={<RefreshCw className="h-5 w-5 text-gold" />} sub="Приложени вълни от корекции" />
+        </div>
+      </details>
+      {/* Desktop: original three cards */}
+      <div className="hidden md:contents">
+        <Card title="Свалени бланки" value={`${quota?.templates_used ?? 0}`} icon={<FileText className="h-5 w-5 text-gold" />} sub="Лична история на свалените бланки" onClick={() => navigate("/downloads/templates")} />
+        <Card title="Качени за анализ" value={`${uploadedCount}`} icon={<ShieldCheck className="h-5 w-5 text-gold" />} sub={`${analysesUsed} извършени анализа`} onClick={() => navigate("/account?tab=documents#uploaded")} />
+        <Card title="Автоматични корекции" value={`${correctionsCount}`} icon={<RefreshCw className="h-5 w-5 text-gold" />} sub="Приложени вълни от корекции" />
+      </div>
 
       {/* ---------- Workspace CTA (separated) ---------- */}
       <button
@@ -258,7 +269,12 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
       </button>
 
 
-      <div className="md:col-span-3 grid gap-4 lg:grid-cols-5">
+      <details className="mobile-fold md-contents md:col-span-3 rounded-xl border border-border/60 bg-gradient-card md:border-0 md:bg-transparent md:rounded-none">
+        <summary className="flex items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-foreground">
+          <span className="inline-flex items-center gap-2"><ChevronRight className="chev h-4 w-4 rotate-90 text-gold transition-transform" />Активност и разпределение</span>
+          <span className="text-xs font-normal text-muted-foreground">графики</span>
+        </summary>
+      <div className="md:col-span-3 grid gap-4 lg:grid-cols-5 border-t border-border/60 p-3 md:border-0 md:p-0">
         <div className="rounded-xl border border-border/60 bg-gradient-card p-4 sm:p-6 lg:col-span-2">
           <div className="mb-4 flex items-baseline justify-between gap-2">
             <h3 className="font-serif text-base sm:text-lg font-bold">Разпределение на операциите</h3>
@@ -349,11 +365,17 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
           </ResponsiveContainer>
         </div>
       </div>
+      </details>
 
 
 
       {/* ---------- Loyalty rewards ---------- */}
-      <div className="md:col-span-3 rounded-xl border border-gold/40 bg-gradient-card p-4 sm:p-6">
+      <details className="mobile-fold md-contents md:col-span-3 rounded-xl border border-gold/40 bg-gradient-card md:border-0 md:bg-transparent md:rounded-none">
+        <summary className="flex items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-foreground">
+          <span className="inline-flex items-center gap-2"><ChevronRight className="chev h-4 w-4 rotate-90 text-gold transition-transform" />Награди за лоялност</span>
+          <span className="text-xs font-normal text-gold">{activeTier ? `−${activeTier.discountPercent}%` : "заключено"}</span>
+        </summary>
+      <div className="md:col-span-3 rounded-xl border-t border-border/60 bg-gradient-card p-4 sm:p-6 md:border md:border-gold/40 md:rounded-xl">
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
           <div>
             <h3 className="font-serif text-base sm:text-lg font-bold flex items-center gap-2">
@@ -424,11 +446,15 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
           })}
         </div>
       </div>
+      </details>
 
 
-
-
-      <div className="md:col-span-3 rounded-xl border border-border/60 bg-gradient-card p-6">
+      <details className="mobile-fold md-contents md:col-span-3 rounded-xl border border-border/60 bg-gradient-card md:border-0 md:bg-transparent md:rounded-none" open>
+        <summary className="flex items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-foreground">
+          <span className="inline-flex items-center gap-2"><ChevronRight className="chev h-4 w-4 rotate-90 text-gold transition-transform" />Последни документи</span>
+          <span className="text-xs font-normal text-muted-foreground">{docs.length}</span>
+        </summary>
+      <div className="md:col-span-3 rounded-xl border-t border-border/60 bg-gradient-card p-6 md:border md:rounded-xl">
         <h3 className="mb-3 font-serif text-lg font-bold">Последни документи</h3>
 
         {docs.length === 0 ? (
@@ -449,6 +475,7 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
           </ul>
         )}
       </div>
+      </details>
 
       {hasChatAccess && (
         <div className="md:col-span-3 flex flex-col gap-3 rounded-xl border border-gold/40 bg-gradient-card p-4 sm:flex-row sm:items-center sm:justify-between">

@@ -106,15 +106,15 @@ export function BetaDisclaimerModal() {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[92vh] max-w-md overflow-y-auto border-border/60 bg-card p-0 sm:max-w-lg">
-        {/* Header strip */}
-        <div className="flex items-center justify-between border-b border-border/60 px-6 py-4">
+        {/* Header strip — reserve right-side space for the close X */}
+        <div className="flex items-center justify-between gap-3 border-b border-border/60 px-6 py-4 pr-16">
           <div className="flex items-center gap-2">
             <span className="inline-flex h-1.5 w-1.5 rounded-full bg-gold" aria-hidden />
             <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
               Beta program
             </span>
           </div>
-          <span className="text-[11px] tabular-nums text-muted-foreground">
+          <span className="hidden text-[11px] tabular-nums text-muted-foreground sm:inline">
             Launch · {LAUNCH_DATE}
           </span>
         </div>
