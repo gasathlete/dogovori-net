@@ -365,6 +365,7 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
           </ResponsiveContainer>
         </div>
       </div>
+      </details>
 
 
 
