@@ -370,7 +370,12 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
 
 
       {/* ---------- Loyalty rewards ---------- */}
-      <div className="md:col-span-3 rounded-xl border border-gold/40 bg-gradient-card p-4 sm:p-6">
+      <details className="mobile-fold md-contents md:col-span-3 rounded-xl border border-gold/40 bg-gradient-card md:border-0 md:bg-transparent md:rounded-none">
+        <summary className="flex items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-foreground">
+          <span className="inline-flex items-center gap-2"><ChevronRight className="chev h-4 w-4 rotate-90 text-gold transition-transform" />Награди за лоялност</span>
+          <span className="text-xs font-normal text-gold">{activeTier ? `−${activeTier.discountPercent}%` : "заключено"}</span>
+        </summary>
+      <div className="md:col-span-3 rounded-xl border-t border-border/60 bg-gradient-card p-4 sm:p-6 md:border md:border-gold/40 md:rounded-xl">
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
           <div>
             <h3 className="font-serif text-base sm:text-lg font-bold flex items-center gap-2">
