@@ -242,6 +242,24 @@ Deno.serve(async (req) => {
     );
     reply = reply.replace(/\s{2,}/g, " ").trim();
 
+    // Convert stray BGN literals into EUR at fixed rate 1 € = 1,95583 лв.
+    reply = scrubBgnLiterals(reply);
+
+    // Inline-link safety net: if the reply is document-related but has no
+    // dogovori.net or app-relative link, append one before the CTA so the
+    // funnel always has a click target.
+    const isDocTopic = /(договор|шаблон|документ|жалба|молба|пълномощ|анекс|nda|декларация|заявление|иск)/i.test(reply);
+    const hasInlineLink = /\]\((?:https?:\/\/(?:www\.)?dogovori\.net)?\/(catalog|build|shablon\/|sektor\/)/i.test(reply);
+    if (isDocTopic && !hasInlineLink) {
+      const ctaMatch = reply.match(/(💡\s*Безплатните[\s\S]*)$/);
+      const inlineHint = "\n\n👉 [Разгледайте каталога с шаблони](/catalog) или [изгответе документ веднага](/build).";
+      if (ctaMatch) {
+        reply = reply.replace(ctaMatch[1], `${inlineHint}\n\n${ctaMatch[1]}`);
+      } else {
+        reply = `${reply}${inlineHint}`;
+      }
+    }
+
     // Fallback followups — never ship an empty chip strip. Pick generic
     // action-oriented CTAs so the funnel never dead-ends.
     const FILLER = ["Отвори каталога", "Изготви документ", "Регистрирай се за пълен достъп"];
@@ -264,3 +282,23 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+// Convert stray BGN literals into EUR at the official fixed rate.
+const BGN_RATE = 1.95583;
+const BGN_LITERAL_RE = /(\d{1,3}(?:[.\s\u00A0]\d{3})*(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s*(лв\.?|лева|BGN)\b/gi;
+function scrubBgnLiterals(text: string): string {
+  if (!text || !/(лв|лева|BGN)/i.test(text)) return text;
+  return text.replace(BGN_LITERAL_RE, (_m, num: string) => {
+    const normalized = num
+      .replace(/[\s\u00A0]/g, "")
+      .replace(/\.(?=\d{3}(\D|$))/g, "")
+      .replace(",", ".");
+    const n = Number(normalized);
+    if (!isFinite(n) || n <= 0) return `${num} €`;
+    const eur = n / BGN_RATE;
+    const formatted = eur >= 100
+      ? Math.round(eur).toLocaleString("bg-BG")
+      : eur.toFixed(2).replace(".", ",");
+    return `${formatted} €`;
+  });
+}
