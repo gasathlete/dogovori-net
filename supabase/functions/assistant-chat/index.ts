@@ -382,27 +382,46 @@ Deno.serve(async (req) => {
     // ambiguous patterns where it would otherwise misfire (call the wrong tool
     // or ask for clarification when we have enough context).
     const lastLower = lastUserMsg.toLowerCase();
+    // Detect pasted contract-like text even without explicit keywords
+    const longQuotedBlock = /(['"„][^'"„"]{120,}['"""])/.test(lastUserMsg);
+    const multilineLegalBlock = lastUserMsg.length > 400 && /\n/.test(lastUserMsg) &&
+      /(чл\.?\s*\d+|ал\.?\s*\d+|неустой|отговорн|прекрат|страни(те)?\s+се\s+съглас|настоящ(ия|ият)\s+договор)/i.test(lastLower);
     const analysisIntent =
-      /(провер(и|ете)|анализира(й|йте)|прегледа(й|йте)|коректен ли е|валиден ли е|има ли риск|ревизира(й|йте))/i.test(lastUserMsg) &&
-      (/'[^']{40,}'|"[^"]{40,}"|„[^"]{40,}"|клауз|договор|текст/i.test(lastLower));
-    const hasBgn = /\b(лв\.?|лева|BGN)\b/i.test(lastUserMsg);
+      (/(провер(и|ете)|анализира(й|йте)|прегледа(й|йте)|коректен ли е|валиден ли е|има ли риск|ревизира(й|йте))/i.test(lastUserMsg) &&
+        (/'[^']{40,}'|"[^"]{40,}"|„[^"]{40,}"|клауз|договор|текст/i.test(lastLower))) ||
+      longQuotedBlock || multilineLegalBlock;
+    const hasBgn = /\b(лв\.?|лева|BGN|стотинки)\b/i.test(lastUserMsg);
     const hasNumber = /\b\d{2,}\b/.test(lastUserMsg);
     const isBroadLegalQ = /(мрз|минимална\s+(работна\s+)?заплата|ддс|осигуров|дневн(и|о)\s+пар|обезщет|командиров)/i.test(lastLower);
     const isLaborCase = /(уволн|прекратяв(ане|а)\s+на\s+труд|чл\.?\s*32[68]\s*кт|чл\.?\s*71\s*кт|предизвестие|дисциплинарн|съкращ|отпуск\s+по\s+майч|болничен|трудов\s+спор|обезщетение\s+за\s+уволнение)/i.test(lastLower);
+
+    // Guard against endless ask_clarification loops:
+    // count how many of the last 4 assistant turns already asked for clarification.
+    const recentAssistantContents = safeMessages
+      .filter((m: any) => m.role === "assistant")
+      .slice(-4)
+      .map((m: any) => String(m.content || "").toLowerCase());
+    const priorClarificationCount = recentAssistantContents.filter((c: string) =>
+      /уточн|нека уточним|за да е точен документът|моля посочете|моля уточнете/.test(c)
+    ).length;
+    const tooManyClarifications = priorClarificationCount >= 2;
 
     const intentNudges: string[] = [];
     // Baseline behaviour rule that fixes silent tool calls we observed in probes.
     intentNudges.push(
       "❗ ГОВОРИ ПРЕДИ ТУЛ: ВИНАГИ пиши поне 2–3 изречения обяснителен текст ПРЕДИ да извикаш какъвто и да е tool (включително `ask_clarification`, `open_upload_analyzer`, `prefill_build_contract`). Празен отговор + tool call е забранен.",
     );
+    intentNudges.push(
+      "❗ ЕДИН TOOL НА ХОД: В един отговор не викай повече от 1 client tool. Не викай два пъти един и същ tool (`ask_clarification` × 2 = забранено).",
+    );
     if (analysisIntent) {
       intentNudges.push(
-        "❗ АНАЛИЗ НА ДОГОВОР: потребителят иска проверка на конкретен текст. След обяснителните изречения извикай `open_upload_analyzer` — НЕ `ask_clarification`. Целият пайплайн е в /analyze.",
+        "❗ АНАЛИЗ НА ДОГОВОР: потребителят е поставил конкретен текст или иска проверка. След 2–3 обяснителни изречения извикай `open_upload_analyzer` — НЕ `ask_clarification`, НЕ анализирай клауза по клауза в чата. Целият пайплайн (OCR, риск-скор, корекции) е в /analyze.",
       );
     }
     if (hasBgn) {
       intentNudges.push(
-        "❗ ВАЛУТА (СТРИКТНО): в целия отговор НЕ трябва да остане нито едно число, следвано от 'лв.' или 'лева'. Всички суми преизчисли по 1 € = 1,95583 лв. и пиши САМО във вида '767 €' или '≈ 767 €'. Дори в примери и пресмятания използвай евро (напр. '0,1 % на ден върху 767 € = 0,77 € на ден'). НЕ задавай уточняващ въпрос за валута.",
+        "❗ ВАЛУТА (СТРИКТНО): в целия отговор НЕ трябва да остане нито едно число, следвано от 'лв.', 'лева' или 'стотинки'. Всички суми преизчисли по 1 € = 1,95583 лв. и пиши САМО във вида '767 €' или '≈ 767 €'. Дори в примери и пресмятания използвай евро. НЕ задавай уточняващ въпрос за валута.",
       );
     }
     if (hasBgn && hasNumber) {
@@ -418,6 +437,11 @@ Deno.serve(async (req) => {
     if (isLaborCase) {
       intentNudges.push(
         "❗ ТРУДОВ КАЗУС: НЕ казвай 'няма основание в наличната нормативна база' за общи институти от Кодекса на труда. Обясни условно приложимия режим (чл. 328 КТ — прекратяване по инициатива на работодателя с предизвестие; чл. 220 КТ — обезщетение при неспазено предизвестие; чл. 222 КТ — обезщетение при съкращаване; чл. 224 КТ — за неползван отпуск). Цитирай `[КТ, чл. NNN]` и препоръчай `open_upload_analyzer`, ако има връчен документ.",
+      );
+    }
+    if (tooManyClarifications) {
+      intentNudges.push(
+        "❗ СТИГА УТОЧНЕНИЯ: Вече попита ≥2 пъти за уточнение. ЗАБРАНЕНО е ново `ask_clarification`. Продължи с `propose_contract_outline` или `prefill_build_contract` с наличните данни и разумни default-и (маркирай ги [DEFAULT]). Потребителят ще коригира във wizard-a.",
       );
     }
     intentNudges.push(
@@ -502,10 +526,13 @@ Deno.serve(async (req) => {
                 const delta = choice?.delta;
                 if (!delta) continue;
                 if (typeof delta.content === "string" && delta.content.length > 0) {
-                  // Scrub fake source markers like [S1], [S 2], [източник 3] before streaming to the client.
-                  const cleaned = delta.content
-                    .replace(/\[\s*S\s*\d{1,2}\s*\]/gi, "")
-                    .replace(/\[\s*източник\s*\d{1,2}\s*\]/gi, "");
+                  // Scrub fake source markers like [S1], [S 2], [източник 3] before streaming to the client,
+                  // and convert any BGN literals slipping through into EUR (fixed rate 1 € = 1,95583 лв.).
+                  const cleaned = scrubBgnLiterals(
+                    delta.content
+                      .replace(/\[\s*S\s*\d{1,2}\s*\]/gi, "")
+                      .replace(/\[\s*източник\s*\d{1,2}\s*\]/gi, "")
+                  );
                   if (cleaned.length > 0) {
                     textThisTurn += cleaned;
                     enqueue(null, { delta: cleaned });
@@ -533,13 +560,21 @@ Deno.serve(async (req) => {
             }
 
             // We have tool calls. Append assistant message with tool_calls to convo.
+            // Dedupe by function.name — the model sometimes emits the same client tool
+            // twice in one turn (esp. ask_clarification), which spawns duplicate UI cards.
+            const seenNames = new Set<string>();
             const toolCallsArr = Array.from(toolAcc.entries())
               .sort((a, b) => a[0] - b[0])
               .map(([, v]) => ({
                 id: v.id || `tc_${Math.random().toString(36).slice(2)}`,
                 type: "function" as const,
                 function: { name: v.name, arguments: v.args || "{}" },
-              }));
+              }))
+              .filter((tc) => {
+                if (seenNames.has(tc.function.name)) return false;
+                seenNames.add(tc.function.name);
+                return true;
+              });
 
             convo.push({
               role: "assistant",
@@ -576,6 +611,16 @@ Deno.serve(async (req) => {
                 args: safeParse(sc.function.arguments),
                 result,
               });
+              // Nudge model when search returns nothing — otherwise it tends to say
+              // "нямам подходящ шаблон" instead of falling back to prefill/outline.
+              const r = result as any;
+              if (sc.function.name === "search_templates" &&
+                  r && Array.isArray(r.items) && r.items.length === 0) {
+                convo.push({
+                  role: "system",
+                  content: "❗ SEARCH_EMPTY: `search_templates` върна 0 резултата. НЕ казвай на потребителя че нямаш шаблон. Вместо това извикай `propose_contract_outline` с разумна структура за поисканата тема ИЛИ `prefill_build_contract` (documentType='generic') и обясни, че платформата ще генерира договора от нулата чрез wizard-а.",
+                });
+              }
             }
 
             // Forward client tools — but they don't feed back into convo this turn.
@@ -828,3 +873,25 @@ function parseFollowups(raw: string): { cleaned: string; followups: string[] } {
   return { cleaned: raw.replace(FOLLOWUPS_TAG, "").trim(), followups: list };
 }
 
+
+// Convert stray BGN literals into EUR at the official fixed rate.
+// Matches numbers followed by 'лв.', 'лева' or 'BGN' — handles 1.234,56 and 1 234,56 formats.
+const BGN_RATE = 1.95583;
+const BGN_LITERAL_RE = /(\d{1,3}(?:[.\s\u00A0]\d{3})*(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s*(лв\.?|лева|BGN)\b/gi;
+
+function scrubBgnLiterals(text: string): string {
+  if (!text || !/(лв|лева|BGN)/i.test(text)) return text;
+  return text.replace(BGN_LITERAL_RE, (_m, num: string) => {
+    const normalized = num
+      .replace(/[\s\u00A0]/g, "")
+      .replace(/\.(?=\d{3}(\D|$))/g, "") // thousands dot
+      .replace(",", ".");
+    const n = Number(normalized);
+    if (!isFinite(n) || n <= 0) return `${num} €`;
+    const eur = n / BGN_RATE;
+    const formatted = eur >= 100
+      ? Math.round(eur).toLocaleString("bg-BG")
+      : eur.toFixed(2).replace(".", ",");
+    return `${formatted} €`;
+  });
+}
