@@ -241,10 +241,10 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         documentType, buildMode, bilingual, bilingualLang,
         name, categoryId, categoryOther, partiesA, partiesB,
         fieldValues,
-        result, signature, savedDocId,
+        result, signature, savedDocId, stepIdx,
       }));
     } catch {}
-  }, [presetSignature, documentType, buildMode, bilingual, bilingualLang, name, categoryId, categoryOther, partiesA, partiesB, fieldValues, result, signature, savedDocId]);
+  }, [presetSignature, documentType, buildMode, bilingual, bilingualLang, name, categoryId, categoryOther, partiesA, partiesB, fieldValues, result, signature, savedDocId, stepIdx]);
 
   // Force non-Pro/Team users out of bilingual mode.
   useEffect(() => {
