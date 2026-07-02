@@ -445,7 +445,7 @@ export function PlatformShowcase() {
         <svg
           className="absolute inset-x-0 bottom-0 h-[9%] w-full text-gold opacity-45 sm:h-[14%] sm:opacity-55 md:h-[16%] md:opacity-60"
           viewBox="0 0 1600 400"
-          preserveAspectRatio="xMidYEnd slice"
+          preserveAspectRatio="xMidYMid slice"
           fill="none"
           style={{
             maskImage:
