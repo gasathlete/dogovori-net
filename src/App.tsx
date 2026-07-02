@@ -260,6 +260,7 @@ const AnimatedRoutes = () => {
         <Route path="/plans" element={<Plans />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<Navigate to="/account?tab=dashboard" replace />} />
         <Route path="/analiz" element={<Analyze />} />
         <Route path="/analyze" element={<Navigate to="/analiz" replace />} />
         <Route path="/console/analysis" element={<ProtectedRoute><Navigate to="/analiz" replace /></ProtectedRoute>} />
