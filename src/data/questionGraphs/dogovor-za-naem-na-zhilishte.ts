@@ -144,6 +144,7 @@ import { BULK_GRAPHS } from "./_bulk20";
 import { BULK_GRAPHS_PART2 } from "./_bulk20_part2";
 import { BULK_GRAPHS_PART3 } from "./_bulk20_part3";
 import { BULK_GRAPHS_PART4 } from "./_bulk20_part4";
+import { BULK_GRAPHS_PART5 } from "./_bulk20_part5";
 
 /** Registry — extend as more graphs are migrated. */
 export const QUESTION_GRAPHS: Record<string, QuestionGraph> = {
@@ -155,6 +156,7 @@ export const QUESTION_GRAPHS: Record<string, QuestionGraph> = {
   ...BULK_GRAPHS_PART2,
   ...BULK_GRAPHS_PART3,
   ...BULK_GRAPHS_PART4,
+  ...BULK_GRAPHS_PART5,
 };
 
 export function getQuestionGraph(slug: string): QuestionGraph | null {
