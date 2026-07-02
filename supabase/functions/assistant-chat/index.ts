@@ -378,9 +378,41 @@ Deno.serve(async (req) => {
     console.log(`[router] model=${chatModel} reason=${routerReason}`);
     const tools = toolSchemasFor(FULL_TOOL_NAMES);
 
+    // Intent hints — injected as an extra system nudge to steer the model on
+    // ambiguous patterns where it would otherwise misfire (call the wrong tool
+    // or ask for clarification when we have enough context).
+    const lastLower = lastUserMsg.toLowerCase();
+    const analysisIntent =
+      /(провер(и|ете)|анализира(й|йте)|прегледа(й|йте)|коректен ли е|валиден ли е|има ли риск|ревизира(й|йте))/i.test(lastUserMsg) &&
+      (/'[^']{40,}'|"[^"]{40,}"|„[^"]{40,}"|клауз|договор|текст/i.test(lastLower));
+    const hasBgn = /\b(лв\.?|лева|BGN)\b/i.test(lastUserMsg);
+    const isBroadLegalQ = /(мрз|минимална\s+(работна\s+)?заплата|ддс|осигуров|дневн(и|о)\s+пар|обезщет|командиров)/i.test(lastLower);
+
+    const intentNudges: string[] = [];
+    if (analysisIntent) {
+      intentNudges.push(
+        "❗ АНАЛИЗ НА ДОГОВОР: потребителят иска проверка на конкретен текст. Извикай ВЕДНАГА `open_upload_analyzer` (една кратка реплика 1–2 изречения преди tool call-а). НЕ извиквай `ask_clarification` — целият пайплайн е в /analyze.",
+      );
+    }
+    if (hasBgn) {
+      intentNudges.push(
+        "❗ ВАЛУТА: потребителят е използвал 'лв./лева/BGN'. Конвертирай веднага по курс 1 € = 1,95583 лв. и отговори САМО в €. НЕ питай за уточнение на валута.",
+      );
+    }
+    if (isBroadLegalQ) {
+      intentNudges.push(
+        "❗ ЗАКОНОВ ПРАГ/СТАВКА: ако въпросът е за конкретна стойност (МРЗ, ДДС ставка, осигуровки, обезщетения, командировъчни) — НЕ давай числа по памет. Обясни механиката, посочи компетентния акт/орган (ПМС/ДВ/НАП/МТСП/НОИ) и препоръчай сверяване на актуалната стойност за 2026 г.",
+      );
+    }
+    intentNudges.push(
+      "❗ ЦИТАТИ: НИКОГА не пиши маркери от вида [S1], [S2], [източник N]. Използвай САМО реалния кратък цитат `[ЗЗД, чл. 79]`, `[КТ, чл. 328]` и т.н. от [НОРМАТИВНА БАЗА]. Ако секцията е празна — не цитирай.",
+    );
+    const nudgeBlock = intentNudges.join("\n");
+
     // Build conversation
     const convo: ChatMsg[] = [
       { role: "system", content: systemFinal },
+      { role: "system", content: `# INTENT HINTS (за текущия ход)\n${nudgeBlock}` },
       ...safeMessages.map((m: any) => ({ role: m.role, content: m.content })),
     ];
 
@@ -454,8 +486,14 @@ Deno.serve(async (req) => {
                 const delta = choice?.delta;
                 if (!delta) continue;
                 if (typeof delta.content === "string" && delta.content.length > 0) {
-                  textThisTurn += delta.content;
-                  enqueue(null, { delta: delta.content });
+                  // Scrub fake source markers like [S1], [S 2], [източник 3] before streaming to the client.
+                  const cleaned = delta.content
+                    .replace(/\[\s*S\s*\d{1,2}\s*\]/gi, "")
+                    .replace(/\[\s*източник\s*\d{1,2}\s*\]/gi, "");
+                  if (cleaned.length > 0) {
+                    textThisTurn += cleaned;
+                    enqueue(null, { delta: cleaned });
+                  }
                 }
                 if (Array.isArray(delta.tool_calls)) {
                   for (const tc of delta.tool_calls) {
