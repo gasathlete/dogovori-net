@@ -911,22 +911,30 @@ function scrubBgnLiterals(text: string): string {
 //   • "<followups>…</followups>"      → tag flashed before chip render
 // This helper buffers the last ~40 chars, hides the followups block entirely,
 // and only emits text that is guaranteed safe from a partial-match perspective.
-function makeStreamScrubber() {
+// `citationCount` — how many real [НОРМАТИВНА БАЗА] entries the model was given.
+// Markers [S1..S{citationCount}] survive; the rest are stripped as hallucinations.
+function makeStreamScrubber(opts: { citationCount: number } = { citationCount: 0 }) {
   let pending = "";
   let followupsStarted = false;
   const TAIL = 40;
+  const citCount = Math.max(0, opts.citationCount | 0);
+
+  const stripFakeMarker = (marker: string, nStr: string) => {
+    const n = parseInt(nStr, 10);
+    return n >= 1 && n <= citCount ? marker : "";
+  };
 
   const staticScrub = (s: string) =>
     scrubBgnLiterals(
-      s.replace(/\[\s*S\s*\d{1,2}\s*\]/gi, "")
-        .replace(/\[\s*източник\s*\d{1,2}\s*\]/gi, ""),
+      s
+        .replace(/\[\s*S\s*(\d{1,2})\s*\]/gi, (m, n) => stripFakeMarker(m, n))
+        .replace(/\[\s*източник\s*(\d{1,2})\s*\]/gi, (m, n) => stripFakeMarker(m, n)),
     );
 
   return {
     push(chunk: string): string {
       if (followupsStarted || !chunk) return "";
       pending += chunk;
-      // 1. Detect the <followups> opening tag and cut everything after it.
       const openIdx = pending.search(/<followups\b/i);
       if (openIdx >= 0) {
         const safe = pending.slice(0, openIdx);
@@ -934,10 +942,7 @@ function makeStreamScrubber() {
         followupsStarted = true;
         return staticScrub(safe);
       }
-      // 2. Hold back if the tail could still form a "<followups" prefix.
       if (/<[a-z]{0,10}$/i.test(pending)) return "";
-      // 3. Emit everything except the last TAIL chars — which may still contain
-      //    partial BGN literals ("500 л") or "[S" markers waiting for a digit.
       if (pending.length <= TAIL) return "";
       const emitLen = pending.length - TAIL;
       const emit = pending.slice(0, emitLen);
@@ -952,3 +957,28 @@ function makeStreamScrubber() {
     },
   };
 }
+
+// Post-stream sanitiser for persisted assistant text. Idempotent — safe to
+// run on already-scrubbed content. Strips the persistent Gemini hallucination
+// where the model claims "чл. 328 ЗЗД е отменен / не съществува".
+function scrubChl328Hallucination(text: string): string {
+  return text
+    .replace(
+      /(?:^|\s)[^.!?]*чл(?:ен|\.)?\s*328[^.!?]*(?:ЗЗД|Закон\s+за\s+задълженията)[^.!?]*(?:отмен|не\s+същест|няма\s+так)[^.!?]*[.!?]\s*/gi,
+      " ",
+    )
+    .replace(
+      /(?:^|\s)[^.!?]*(?:отмен|не\s+същест)[^.!?]*чл(?:ен|\.)?\s*328[^.!?]*(?:ЗЗД|Закон\s+за\s+задълженията)[^.!?]*[.!?]\s*/gi,
+      " ",
+    )
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+const HIGH_RISK_RE = /(арест|задържан|обвин|наказател|прокурат|полиц|съдебн(о|и)\s+заседание|дело\s+№|заповед\s+за\s+защита|домашн(о|и)\s+насил|отвлич|непълнолетн|малолетн|органи(те)?\s+на\s+ди|детск(а|и)\s+служб)/i;
+const HIGH_RISK_ESCALATION_MARK = /адвокат|правна\s+помощ|национал(на|но)\s+бюро|нбпп/i;
+
+function highRiskBanner(): string {
+  return "⚠️ **Случаят изглежда високорисков.** Препоръчваме незабавна консултация с адвокат — можете да ползвате [Национално бюро за правна помощ](https://nbpp.government.bg) при доходов праг, или частен адвокат. DogovaryAI не заменя правен съветник при висящо производство.";
+}
+
