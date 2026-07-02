@@ -486,8 +486,14 @@ Deno.serve(async (req) => {
                 const delta = choice?.delta;
                 if (!delta) continue;
                 if (typeof delta.content === "string" && delta.content.length > 0) {
-                  textThisTurn += delta.content;
-                  enqueue(null, { delta: delta.content });
+                  // Scrub fake source markers like [S1], [S 2], [източник 3] before streaming to the client.
+                  const cleaned = delta.content
+                    .replace(/\[\s*S\s*\d{1,2}\s*\]/gi, "")
+                    .replace(/\[\s*източник\s*\d{1,2}\s*\]/gi, "");
+                  if (cleaned.length > 0) {
+                    textThisTurn += cleaned;
+                    enqueue(null, { delta: cleaned });
+                  }
                 }
                 if (Array.isArray(delta.tool_calls)) {
                   for (const tc of delta.tool_calls) {
