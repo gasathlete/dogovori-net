@@ -475,6 +475,7 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
           </ul>
         )}
       </div>
+      </details>
 
       {hasChatAccess && (
         <div className="md:col-span-3 flex flex-col gap-3 rounded-xl border border-gold/40 bg-gradient-card p-4 sm:flex-row sm:items-center sm:justify-between">
