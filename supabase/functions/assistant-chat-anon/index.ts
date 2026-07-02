@@ -220,13 +220,21 @@ Deno.serve(async (req) => {
       reply = `${reply}\n\n${CTA}`;
     }
 
-    // Always strip inline [Sn] / [източник N] markers — the UI renders
-    // citations from the structured `citations` array below the message,
-    // so keeping them in the body creates visual noise and encourages the
-    // model to fabricate references.
+    // Selective [Sn] / [източник N] scrubber.
+    // The system prompt ALLOWS [Sn] markers when they refer to real entries in
+    // [НОРМАТИВНА БАЗА]. Blanket stripping (previous behaviour) killed valid
+    // citations and encouraged the model to emit prose without any source.
+    // New rule: keep markers whose index is within `citations.length`, drop the rest.
+    const citCount = citations.length;
     reply = reply
-      .replace(/\s?\[S\d+\]/g, "")
-      .replace(/\s?\[източник\s*\d+\]/gi, "");
+      .replace(/\s?\[S(\d+)\]/g, (_full, nStr) => {
+        const n = parseInt(nStr, 10);
+        return n >= 1 && n <= citCount ? ` [S${n}]` : "";
+      })
+      .replace(/\s?\[източник\s*(\d+)\]/gi, (_full, nStr) => {
+        const n = parseInt(nStr, 10);
+        return n >= 1 && n <= citCount ? ` [източник ${n}]` : "";
+      });
 
     // Aggressive scrubber for a very persistent hallucination in Gemini:
     // "Член 328 от ЗЗД е отменен ... Вероятно имате предвид ... Кодекс на труда".
@@ -244,6 +252,22 @@ Deno.serve(async (req) => {
 
     // Convert stray BGN literals into EUR at fixed rate 1 € = 1,95583 лв.
     reply = scrubBgnLiterals(reply);
+
+    // High-risk escalation banner: when the user mentions arrest, criminal
+    // proceedings, active litigation, restraining orders or child protection
+    // matters, DogovaryAI must NOT try to draft on its own — it must direct
+    // to a licensed lawyer immediately. We inject a one-liner right before
+    // the CTA if the model omitted it.
+    const lastUserContent = safe[safe.length - 1].content.toLowerCase();
+    const isHighRisk = /(арест|задържан|обвин|наказател|прокурат|полиц|съдебн(о|и) заседание|дело\s+№|заповед\s+за\s+защита|домашн(о|и)\s+насил|отвлич|непълнолетн|малолетн|органи(те)?\s+на\s+ди|дети\s+служб)/i.test(lastUserContent);
+    const alreadyEscalates = /адвокат|правна\s+помощ|национална\s+телефонна\s+линия|нбпп/i.test(reply);
+    if (isHighRisk && !alreadyEscalates) {
+      const warning = "⚠️ **Случаят изглежда високорисков.** Препоръчваме незабавна консултация с адвокат — можете да ползвате [Национално бюро за правна помощ](https://nbpp.government.bg) при доходов праг, или частен адвокат. DogovaryAI не заменя правен съветник при висящо производство.";
+      const ctaAnchor = reply.match(/(💡\s*Безплатните[\s\S]*)$/);
+      reply = ctaAnchor
+        ? reply.replace(ctaAnchor[1], `${warning}\n\n${ctaAnchor[1]}`)
+        : `${reply}\n\n${warning}`;
+    }
 
     // Inline-link safety net: if the reply is document-related but has no
     // dogovori.net or app-relative link, append one before the CTA so the
