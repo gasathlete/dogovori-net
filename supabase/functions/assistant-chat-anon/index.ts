@@ -50,14 +50,33 @@ const SYSTEM_PROMPT = `# РОЛЯ И ИДЕНТИЧНОСТ
 # ФОРМАТ НА ОТГОВОРА (задължителен)
 Ред 1..N: отговор.
 Ред N+1: CTA реда по-горе.
-Ред N+2: точно този таг със 3 кратки, релевантни последващи въпроса (до 6 думи всеки, на български, конкретни):
+Ред N+2: точно този таг със 3 кратки, релевантни последващи въпроса (до 6 думи всеки, на български):
 <followups>въпрос 1||въпрос 2||въпрос 3</followups>
+
+**Правила за followups (СТРИКТНО):**
+- Всеки chip трябва да е **действие**, не чиста теория. Започвай с глагол: "Изготви…", "Отвори…", "Покажи…", "Сравни…", "Провери…", "Регистрирай…". Или потребителска формулировка "Мога ли да…", "Искам…".
+- **ЗАБРАНЕНИ** са "Какво е…?", "Какви са…?", "Как работи…?", "Къде да намеря…?" — това е теория, а не движение напред.
+- Ако темата е документ → предложи "Изготви <тип>", "Отвори каталога", "Виж пример".
+- Ако темата е правен въпрос → предложи "Регистрирай се за пълен отговор", "Изготви жалба/възражение", "Провери в каталога".
+
 Никога не пропускай CTA и <followups>. Ако усетиш, че отговорът се удължава — съкрати, за да ги побереш.`;
 
 const MODEL = "google/gemini-2.5-flash";
 const MAX_MESSAGES = 5;
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
+
+// Filter out pure-theory chips ("Какво е ДДС?", "Какво е НАП?") — they do not
+// drive the user forward in the platform. Keep action-oriented CTAs.
+// NOTE: JS regex \b is ASCII-only, so we cannot use it with Cyrillic. Use an
+// explicit trailing whitespace/punct requirement instead.
+const PURE_THEORY_RE = /^(какво|защо|кой|къде|кога|какви|каква|какъв|как)(\s|\?)[^?]*\?\s*$/i;
+function isActionableChip(chip: string): boolean {
+  const c = chip.trim();
+  if (c.length === 0 || c.length > 70) return false;
+  if (PURE_THEORY_RE.test(c)) return false;
+  return true;
+}
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCors(req);
@@ -176,15 +195,19 @@ Deno.serve(async (req) => {
         .split("||")
         .map((s) => s.trim().replace(/^["'\-•\s]+|["'\s]+$/g, ""))
         .filter((s) => s.length > 0 && s.length <= 80)
+        .filter(isActionableChip)
         .slice(0, 3);
     } else {
       // Fallback: strip any half-open <followups tag left by truncation
       reply = reply.replace(/<followups>[\s\S]*$/i, "").trim();
     }
 
-    // Safety net — ensure CTA is present exactly once at the end
+    // Safety net — ensure CTA is present exactly once at the end.
+    // A simple substring check catches both relative (/auth) and absolute
+    // (https://dogovori.net/auth) markdown links the model may emit.
     const CTA = '💡 Безплатните съобщения свършват. [Регистрирайте се](/auth) за пълен достъп до DogovaryAI.';
-    if (!/Регистрирайте се.*\(\/auth\)/i.test(reply)) {
+    const hasCta = /Регистрирайте\s+се/i.test(reply) && /\/auth\b/.test(reply);
+    if (!hasCta) {
       reply = `${reply}\n\n${CTA}`;
     }
 
