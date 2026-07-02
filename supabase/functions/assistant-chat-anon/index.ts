@@ -220,16 +220,27 @@ Deno.serve(async (req) => {
       reply = `${reply}\n\n${CTA}`;
     }
 
-    // Strip fake source citations. Allow [Sn] only when n ∈ [1..citations.length].
-    const maxCit = citations.length;
-    reply = reply.replace(/\s?\[S(\d+)\]/g, (m, n) => {
-      const idx = parseInt(n, 10);
-      return idx >= 1 && idx <= maxCit ? m : "";
-    });
-    reply = reply.replace(/\s?\[източник\s*(\d+)\]/gi, (m, n) => {
-      const idx = parseInt(n, 10);
-      return idx >= 1 && idx <= maxCit ? m : "";
-    });
+    // Always strip inline [Sn] / [източник N] markers — the UI renders
+    // citations from the structured `citations` array below the message,
+    // so keeping them in the body creates visual noise and encourages the
+    // model to fabricate references.
+    reply = reply
+      .replace(/\s?\[S\d+\]/g, "")
+      .replace(/\s?\[източник\s*\d+\]/gi, "");
+
+    // Aggressive scrubber for a very persistent hallucination in Gemini:
+    // "Член 328 от ЗЗД е отменен ... Вероятно имате предвид ... Кодекс на труда".
+    // We delete the whole misleading sentence and let the KT-specific part stand.
+    reply = reply.replace(
+      /(?:^|\s)[^.!?]*чл(?:ен|\.)?\s*328[^.!?]*(?:ЗЗД|Закон\s+за\s+задълженията)[^.!?]*(?:отмен|не\s+същест|няма\s+так)[^.!?]*[.!?]\s*/gi,
+      " ",
+    );
+    // Cover the reverse ordering too ("отменен ... чл. 328 ... ЗЗД").
+    reply = reply.replace(
+      /(?:^|\s)[^.!?]*(?:отмен|не\s+същест)[^.!?]*чл(?:ен|\.)?\s*328[^.!?]*(?:ЗЗД|Закон\s+за\s+задълженията)[^.!?]*[.!?]\s*/gi,
+      " ",
+    );
+    reply = reply.replace(/\s{2,}/g, " ").trim();
 
     // Fallback followups — never ship an empty chip strip. Pick generic
     // action-oriented CTAs so the funnel never dead-ends.
