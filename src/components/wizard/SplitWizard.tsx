@@ -150,16 +150,26 @@ export function SplitWizard({
   const visibleSections = resolved.sections; // already filtered to sections with active qs
   const total = Math.max(visibleSections.length, 1);
 
-  // Persist current section by id so it survives changes in visible set.
-  const [currentSectionId, setCurrentSectionId] = useState<string | null>(
-    () => visibleSections[0]?.id ?? null,
-  );
+  // Persist current section by id so it survives changes in visible set,
+  // page reloads, and — critically — the auth-gate → login → return roundtrip.
+  const sectionPersistKey = `${persistKey}:section`;
+  const [currentSectionId, setCurrentSectionId] = useState<string | null>(() => {
+    try {
+      const raw = localStorage.getItem(sectionPersistKey);
+      if (raw && visibleSections.some((s) => s.id === raw)) return raw;
+    } catch { /* noop */ }
+    return visibleSections[0]?.id ?? null;
+  });
   useEffect(() => {
     if (!visibleSections.length) return;
     if (!currentSectionId || !visibleSections.some((s) => s.id === currentSectionId)) {
       setCurrentSectionId(visibleSections[0].id);
     }
   }, [visibleSections, currentSectionId]);
+  useEffect(() => {
+    if (!currentSectionId) return;
+    try { localStorage.setItem(sectionPersistKey, currentSectionId); } catch { /* noop */ }
+  }, [currentSectionId, sectionPersistKey]);
 
   const stepIdx = Math.max(
     0,
