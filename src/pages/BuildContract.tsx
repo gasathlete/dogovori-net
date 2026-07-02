@@ -188,7 +188,9 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   const [contacts, setContacts] = useState<Array<{ id: string; name: string; type?: string }>>([]);
   const [applyingCorrections, setApplyingCorrections] = useState(false);
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(undefined);
-  const [stepIdx, setStepIdx] = useState<number>(0);
+  const [stepIdx, setStepIdx] = useState<number>(
+    typeof persisted?.stepIdx === "number" ? persisted.stepIdx : 0,
+  );
 
   useEffect(() => {
     const prevSignature = persisted?.presetSignature ?? "";
