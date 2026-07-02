@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
         model: MODEL,
         messages: [{ role: "system", content: systemFinal }, ...safe],
         temperature: 0.3,
-        max_tokens: 500,
+        max_tokens: 1200,
       }),
     });
 
