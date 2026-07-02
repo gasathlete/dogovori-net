@@ -386,26 +386,42 @@ Deno.serve(async (req) => {
       /(провер(и|ете)|анализира(й|йте)|прегледа(й|йте)|коректен ли е|валиден ли е|има ли риск|ревизира(й|йте))/i.test(lastUserMsg) &&
       (/'[^']{40,}'|"[^"]{40,}"|„[^"]{40,}"|клауз|договор|текст/i.test(lastLower));
     const hasBgn = /\b(лв\.?|лева|BGN)\b/i.test(lastUserMsg);
+    const hasNumber = /\b\d{2,}\b/.test(lastUserMsg);
     const isBroadLegalQ = /(мрз|минимална\s+(работна\s+)?заплата|ддс|осигуров|дневн(и|о)\s+пар|обезщет|командиров)/i.test(lastLower);
+    const isLaborCase = /(уволн|прекратяв(ане|а)\s+на\s+труд|чл\.?\s*32[68]\s*кт|чл\.?\s*71\s*кт|предизвестие|дисциплинарн|съкращ|отпуск\s+по\s+майч|болничен|трудов\s+спор|обезщетение\s+за\s+уволнение)/i.test(lastLower);
 
     const intentNudges: string[] = [];
+    // Baseline behaviour rule that fixes silent tool calls we observed in probes.
+    intentNudges.push(
+      "❗ ГОВОРИ ПРЕДИ ТУЛ: ВИНАГИ пиши поне 2–3 изречения обяснителен текст ПРЕДИ да извикаш какъвто и да е tool (включително `ask_clarification`, `open_upload_analyzer`, `prefill_build_contract`). Празен отговор + tool call е забранен.",
+    );
     if (analysisIntent) {
       intentNudges.push(
-        "❗ АНАЛИЗ НА ДОГОВОР: потребителят иска проверка на конкретен текст. Извикай ВЕДНАГА `open_upload_analyzer` (една кратка реплика 1–2 изречения преди tool call-а). НЕ извиквай `ask_clarification` — целият пайплайн е в /analyze.",
+        "❗ АНАЛИЗ НА ДОГОВОР: потребителят иска проверка на конкретен текст. След обяснителните изречения извикай `open_upload_analyzer` — НЕ `ask_clarification`. Целият пайплайн е в /analyze.",
       );
     }
     if (hasBgn) {
       intentNudges.push(
-        "❗ ВАЛУТА: потребителят е използвал 'лв./лева/BGN'. Конвертирай веднага по курс 1 € = 1,95583 лв. и отговори САМО в €. НЕ питай за уточнение на валута.",
+        "❗ ВАЛУТА (СТРИКТНО): в целия отговор НЕ трябва да остане нито едно число, следвано от 'лв.' или 'лева'. Всички суми преизчисли по 1 € = 1,95583 лв. и пиши САМО във вида '767 €' или '≈ 767 €'. Дори в примери и пресмятания използвай евро (напр. '0,1 % на ден върху 767 € = 0,77 € на ден'). НЕ задавай уточняващ въпрос за валута.",
+      );
+    }
+    if (hasBgn && hasNumber) {
+      intentNudges.push(
+        "❗ ЗАБРАНЕНО ПЪРВО ХОД `ask_clarification`, ако потребителят вече е дал числова сума. Първо: (1) конвертирай в €, (2) дай кратка същинска оценка/механика (3–5 изречения), (3) предложи конкретен шаблон с markdown link към https://dogovori.net/…, и ЕДВА ТОГАВА може да питаш за детайли.",
       );
     }
     if (isBroadLegalQ) {
       intentNudges.push(
-        "❗ ЗАКОНОВ ПРАГ/СТАВКА: ако въпросът е за конкретна стойност (МРЗ, ДДС ставка, осигуровки, обезщетения, командировъчни) — НЕ давай числа по памет. Обясни механиката, посочи компетентния акт/орган (ПМС/ДВ/НАП/МТСП/НОИ) и препоръчай сверяване на актуалната стойност за 2026 г.",
+        "❗ ЗАКОНОВ ПРАГ/СТАВКА: НЕ давай числа по памет за МРЗ/ДДС/осигуровки/командировъчни. Обясни механиката, посочи компетентния акт/орган (ПМС/ДВ/НАП/МТСП/НОИ) и препоръчай сверяване за 2026 г. Ако все пак посочваш стойност — задължително добави '(да се свери с актуалния акт за 2026 г.)'.",
+      );
+    }
+    if (isLaborCase) {
+      intentNudges.push(
+        "❗ ТРУДОВ КАЗУС: НЕ казвай 'няма основание в наличната нормативна база' за общи институти от Кодекса на труда. Обясни условно приложимия режим (чл. 328 КТ — прекратяване по инициатива на работодателя с предизвестие; чл. 220 КТ — обезщетение при неспазено предизвестие; чл. 222 КТ — обезщетение при съкращаване; чл. 224 КТ — за неползван отпуск). Цитирай `[КТ, чл. NNN]` и препоръчай `open_upload_analyzer`, ако има връчен документ.",
       );
     }
     intentNudges.push(
-      "❗ ЦИТАТИ: НИКОГА не пиши маркери от вида [S1], [S2], [източник N]. Използвай САМО реалния кратък цитат `[ЗЗД, чл. 79]`, `[КТ, чл. 328]` и т.н. от [НОРМАТИВНА БАЗА]. Ако секцията е празна — не цитирай.",
+      "❗ ЦИТАТИ: НИКОГА не пиши маркери от вида [S1], [S2], [източник N]. Използвай САМО реалния кратък цитат `[ЗЗД, чл. 79]`, `[КТ, чл. 328]` и т.н. Ако нямаш сигурен цитат — пропусни го.",
     );
     const nudgeBlock = intentNudges.join("\n");
 
@@ -565,6 +581,32 @@ Deno.serve(async (req) => {
             // Forward client tools — but they don't feed back into convo this turn.
             // The client will execute them. The model has already produced its
             // user-facing explanation in textThisTurn (per our system prompt).
+            // Fallback: if the model emitted a client tool WITHOUT any accompanying
+            // text (a Gemini quirk that leaves users staring at a blank bubble),
+            // inject a short human-readable preamble matched to the tool name.
+            if (clientCalls.length > 0 && textThisTurn.trim().length === 0) {
+              const firstName = clientCalls[0].function.name;
+              const preamble = (() => {
+                switch (firstName) {
+                  case "open_upload_analyzer":
+                    return "Разбрах — ще Ви пренасоча към анализатора, за да прегледам качения текст и да маркирам рискови клаузи.\n\n";
+                  case "ask_clarification":
+                    return "Имам достатъчно контекст, за да продължа, но първо нека уточним няколко ключови детайла, за да е точен документът:\n\n";
+                  case "prefill_build_contract":
+                    return "Отварям съответния договор с попълнени данни от разговора. Ще можете да прегледате и коригирате всяко поле.\n\n";
+                  case "propose_contract_outline":
+                    return "Ето предложение за структурата на договора според това, което споделихте:\n\n";
+                  case "open_template":
+                    return "Отварям шаблона в каталога, за да можете да прегледате пълния текст.\n\n";
+                  default:
+                    return "Продължавам със следваща стъпка:\n\n";
+                }
+              })();
+              enqueue(null, { delta: preamble });
+              textThisTurn += preamble;
+              fullAssistantText += preamble;
+            }
+
             for (const cc of clientCalls) {
               const rawArgs = safeParse(cc.function.arguments);
               const validated = validateClientToolArgs(cc.function.name, rawArgs);
