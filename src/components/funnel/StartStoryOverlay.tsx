@@ -7,7 +7,7 @@
  *   - Each card auto-advances after ~3s.
  *   - On the last card, auto-advance stops and Back / Next controls appear.
  *   - If the user does not interact for 4s on the last card, we auto-navigate
- *     to /auth?tab=signup&redirect=/dashboard?tour=1 (registration).
+ *     to /auth?tab=signup&redirect=/account?tab=dashboard&tour=1 (registration).
  *   - Tap left/right zones jump to prev/next; hold to pause on non-last cards.
  *   - Global mount in App.tsx. Trigger with `openStartStory()`.
  */
