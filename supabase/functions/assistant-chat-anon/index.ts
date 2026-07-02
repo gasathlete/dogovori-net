@@ -177,6 +177,15 @@ Deno.serve(async (req) => {
         .map((s) => s.trim().replace(/^["'\-•\s]+|["'\s]+$/g, ""))
         .filter((s) => s.length > 0 && s.length <= 80)
         .slice(0, 3);
+    } else {
+      // Fallback: strip any half-open <followups tag left by truncation
+      reply = reply.replace(/<followups>[\s\S]*$/i, "").trim();
+    }
+
+    // Safety net — ensure CTA is present exactly once at the end
+    const CTA = '💡 Безплатните съобщения свършват. [Регистрирайте се](/auth) за пълен достъп до DogovaryAI.';
+    if (!/Регистрирайте се.*\(\/auth\)/i.test(reply)) {
+      reply = `${reply}\n\n${CTA}`;
     }
 
     const remaining = Math.max(0, MAX_MESSAGES - userTurns);
