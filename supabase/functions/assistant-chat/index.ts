@@ -701,7 +701,22 @@ Deno.serve(async (req) => {
             }
             return null;
           })();
-          const { cleaned, followups } = parseFollowups(fullAssistantText);
+          const { cleaned: rawCleaned, followups } = parseFollowups(fullAssistantText);
+          // Belt-and-suspenders post-stream sanitisers (idempotent on already-scrubbed text).
+          let cleaned = scrubBgnLiterals(scrubChl328Hallucination(rawCleaned));
+
+          // High-risk escalation banner — inject once if the case is serious
+          // and the model didn't already recommend a lawyer/НБПП.
+          const isHighRisk = HIGH_RISK_RE.test(lastUserMsg);
+          if (isHighRisk && !HIGH_RISK_ESCALATION_MARK.test(cleaned)) {
+            const banner = highRiskBanner();
+            const bannerDelta = `\n\n${banner}\n`;
+            try {
+              controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ delta: bannerDelta })}\n\n`));
+            } catch { /* ignore */ }
+            cleaned = `${cleaned}\n\n${banner}`.trim();
+          }
+
           const finalFollowups = followups.length >= 2 ? followups : fallbackFollowups(lastToolName);
           try {
             controller.enqueue(new TextEncoder().encode(`event: followups\ndata: ${JSON.stringify({ followups: finalFollowups })}\n\n`));
