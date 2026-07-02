@@ -560,13 +560,21 @@ Deno.serve(async (req) => {
             }
 
             // We have tool calls. Append assistant message with tool_calls to convo.
+            // Dedupe by function.name — the model sometimes emits the same client tool
+            // twice in one turn (esp. ask_clarification), which spawns duplicate UI cards.
+            const seenNames = new Set<string>();
             const toolCallsArr = Array.from(toolAcc.entries())
               .sort((a, b) => a[0] - b[0])
               .map(([, v]) => ({
                 id: v.id || `tc_${Math.random().toString(36).slice(2)}`,
                 type: "function" as const,
                 function: { name: v.name, arguments: v.args || "{}" },
-              }));
+              }))
+              .filter((tc) => {
+                if (seenNames.has(tc.function.name)) return false;
+                seenNames.add(tc.function.name);
+                return true;
+              });
 
             convo.push({
               role: "assistant",
