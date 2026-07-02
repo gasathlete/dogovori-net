@@ -508,6 +508,12 @@ Deno.serve(async (req) => {
             let textThisTurn = "";
             // tool_calls accumulator: index -> { id, name, args (string) }
             const toolAcc: Map<number, { id: string; name: string; args: string }> = new Map();
+            // Buffered scrubber — safe across chunk boundaries:
+            //  - converts BGN literals (лв./лева/BGN) → EUR at 1.95583
+            //  - strips fake source markers [Sn] / [източник N]
+            //  - hides the entire <followups>...</followups> block from the UI so
+            //    users never see the raw tag flash before the chip render.
+            const scrubber = makeStreamScrubber();
 
             while (true) {
               const { value, done } = await reader.read();
@@ -526,13 +532,7 @@ Deno.serve(async (req) => {
                 const delta = choice?.delta;
                 if (!delta) continue;
                 if (typeof delta.content === "string" && delta.content.length > 0) {
-                  // Scrub fake source markers like [S1], [S 2], [източник 3] before streaming to the client,
-                  // and convert any BGN literals slipping through into EUR (fixed rate 1 € = 1,95583 лв.).
-                  const cleaned = scrubBgnLiterals(
-                    delta.content
-                      .replace(/\[\s*S\s*\d{1,2}\s*\]/gi, "")
-                      .replace(/\[\s*източник\s*\d{1,2}\s*\]/gi, "")
-                  );
+                  const cleaned = scrubber.push(delta.content);
                   if (cleaned.length > 0) {
                     textThisTurn += cleaned;
                     enqueue(null, { delta: cleaned });
@@ -549,6 +549,14 @@ Deno.serve(async (req) => {
                   }
                 }
               }
+            }
+
+            // Flush any residual buffered text (last ~40 chars held back to allow
+            // safe cross-chunk scrubbing) before we decide about tool preambles.
+            const tail = scrubber.flush();
+            if (tail.length > 0) {
+              textThisTurn += tail;
+              enqueue(null, { delta: tail });
             }
 
             fullAssistantText += textThisTurn;
