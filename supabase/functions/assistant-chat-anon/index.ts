@@ -61,7 +61,9 @@ interface ChatMsg { role: "user" | "assistant"; content: string }
 
 // Filter out pure-theory chips ("Какво е ДДС?", "Какво е НАП?") — they do not
 // drive the user forward in the platform. Keep action-oriented CTAs.
-const PURE_THEORY_RE = /^(какво|защо|кой|къде|кога)\b[^?]*\?\s*$/i;
+// NOTE: JS regex \b is ASCII-only, so we cannot use it with Cyrillic. Use an
+// explicit trailing whitespace/punct requirement instead.
+const PURE_THEORY_RE = /^(какво|защо|кой|къде|кога|какви|каква|какъв|как)(\s|\?)[^?]*\?\s*$/i;
 function isActionableChip(chip: string): boolean {
   const c = chip.trim();
   if (c.length === 0 || c.length > 70) return false;
