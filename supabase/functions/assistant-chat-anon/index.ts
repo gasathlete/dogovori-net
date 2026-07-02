@@ -220,11 +220,16 @@ Deno.serve(async (req) => {
       reply = `${reply}\n\n${CTA}`;
     }
 
-    // Strip fake source citations like [S1], [S2] that the model may still emit
-    // when the [НОРМАТИВНА БАЗА] block is empty (no RAG hits).
-    if (citations.length === 0) {
-      reply = reply.replace(/\s?\[S\d+\]/g, "").replace(/\s?\[източник\s*\d+\]/gi, "");
-    }
+    // Strip fake source citations. Allow [Sn] only when n ∈ [1..citations.length].
+    const maxCit = citations.length;
+    reply = reply.replace(/\s?\[S(\d+)\]/g, (m, n) => {
+      const idx = parseInt(n, 10);
+      return idx >= 1 && idx <= maxCit ? m : "";
+    });
+    reply = reply.replace(/\s?\[източник\s*(\d+)\]/gi, (m, n) => {
+      const idx = parseInt(n, 10);
+      return idx >= 1 && idx <= maxCit ? m : "";
+    });
 
     // Fallback followups — never ship an empty chip strip. Pick generic
     // action-oriented CTAs so the funnel never dead-ends.
