@@ -581,6 +581,32 @@ Deno.serve(async (req) => {
             // Forward client tools — but they don't feed back into convo this turn.
             // The client will execute them. The model has already produced its
             // user-facing explanation in textThisTurn (per our system prompt).
+            // Fallback: if the model emitted a client tool WITHOUT any accompanying
+            // text (a Gemini quirk that leaves users staring at a blank bubble),
+            // inject a short human-readable preamble matched to the tool name.
+            if (clientCalls.length > 0 && textThisTurn.trim().length === 0) {
+              const firstName = clientCalls[0].function.name;
+              const preamble = (() => {
+                switch (firstName) {
+                  case "open_upload_analyzer":
+                    return "Разбрах — ще Ви пренасоча към анализатора, за да прегледам качения текст и да маркирам рискови клаузи.\n\n";
+                  case "ask_clarification":
+                    return "Имам достатъчно контекст, за да продължа, но първо нека уточним няколко ключови детайла, за да е точен документът:\n\n";
+                  case "prefill_build_contract":
+                    return "Отварям съответния договор с попълнени данни от разговора. Ще можете да прегледате и коригирате всяко поле.\n\n";
+                  case "propose_contract_outline":
+                    return "Ето предложение за структурата на договора според това, което споделихте:\n\n";
+                  case "open_template":
+                    return "Отварям шаблона в каталога, за да можете да прегледате пълния текст.\n\n";
+                  default:
+                    return "Продължавам със следваща стъпка:\n\n";
+                }
+              })();
+              enqueue(null, { delta: preamble });
+              textThisTurn += preamble;
+              fullAssistantText += preamble;
+            }
+
             for (const cc of clientCalls) {
               const rawArgs = safeParse(cc.function.arguments);
               const validated = validateClientToolArgs(cc.function.name, rawArgs);
