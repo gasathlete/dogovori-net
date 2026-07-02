@@ -219,6 +219,23 @@ Deno.serve(async (req) => {
     const hasCta = /Регистрирайте\s+се/i.test(reply) && /\/auth\b/.test(reply);
     if (!hasCta) {
       reply = `${reply}\n\n${CTA}`;
+
+    // Strip fake source citations like [S1], [S2] that the model may still emit
+    // when the [НОРМАТИВНА БАЗА] block is empty (no RAG hits).
+    if (citations.length === 0) {
+      reply = reply.replace(/\s?\[S\d+\]/g, "").replace(/\s?\[източник\s*\d+\]/gi, "");
+    }
+
+    // Fallback followups — never ship an empty chip strip. Pick generic
+    // action-oriented CTAs so the funnel never dead-ends.
+    if (followups.length === 0) {
+      followups = ["Отвори каталога", "Изготви документ", "Регистрирай се за пълен достъп"];
+    } else if (followups.length < 3) {
+      const filler = ["Отвори каталога", "Изготви документ", "Регистрирай се за пълен достъп"];
+      for (const f of filler) {
+        if (followups.length >= 3) break;
+        if (!followups.includes(f)) followups.push(f);
+      }
     }
 
     const remaining = Math.max(0, MAX_MESSAGES - userTurns);
