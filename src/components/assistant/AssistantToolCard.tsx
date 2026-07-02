@@ -64,26 +64,37 @@ export function AssistantToolCard({ event, onSendMessage }: Props) {
 
   if (event.kind === "tool_call") {
     if (event.name === "navigate") {
+      const path = String(event.args?.path ?? "");
+      const abs = path.startsWith("/") ? `https://dogovori.net${path}` : path;
       return (
         <Card title="Навигация" icon={<ArrowRight className="h-3.5 w-3.5 text-gold" />}>
           <p className="text-xs text-foreground">
             {event.args?.reason ? `${event.args.reason} → ` : "Отварям "}
-            <code className="rounded bg-card/60 px-1 py-0.5 text-[10px] text-gold">{event.args?.path}</code>
+            <code className="rounded bg-card/60 px-1 py-0.5 text-[10px] text-gold">{path}</code>
           </p>
+          {path && <ExternalDogovoriLink href={abs} label="Отвори в dogovori.net" />}
         </Card>
       );
     }
     if (event.name === "open_template") {
+      const slug = String(event.args?.slug ?? "");
+      const abs = `https://dogovori.net/shablon/${slug}`;
       return (
         <Card title="Отварям шаблон" icon={<FileText className="h-3.5 w-3.5 text-gold" />}>
           <p className="text-xs text-foreground">
-            Шаблон: <code className="rounded bg-card/60 px-1 py-0.5 text-[10px] text-gold">{event.args?.slug}</code>
+            Шаблон: <code className="rounded bg-card/60 px-1 py-0.5 text-[10px] text-gold">{slug}</code>
           </p>
+          {slug && <ExternalDogovoriLink href={abs} label={`Отвори „${slug}" в dogovori.net`} />}
         </Card>
       );
     }
     if (event.name === "prefill_build_contract") {
       const a = event.args ?? {};
+      const params = new URLSearchParams();
+      if (a.documentType) params.set("documentType", String(a.documentType));
+      if (a.name) params.set("name", String(a.name));
+      if (a.bilingual) params.set("bilingual", "1");
+      const abs = `https://dogovori.net/build${params.toString() ? `?${params.toString()}` : ""}`;
       return (
         <Card title="Стартирам wizard за договор" icon={<Wand2 className="h-3.5 w-3.5 text-gold" />}>
           <ul className="space-y-0.5 text-xs text-foreground">
@@ -95,6 +106,7 @@ export function AssistantToolCard({ event, onSendMessage }: Props) {
             {a.bilingual && <li>• Двуезичен (BG/EN)</li>}
           </ul>
           <p className="mt-1.5 text-[10px] text-muted-foreground">Прегледайте и редактирайте във wizard-а.</p>
+          <ExternalDogovoriLink href={abs} label="Изготви документа в dogovori.net" />
         </Card>
       );
     }
@@ -102,6 +114,7 @@ export function AssistantToolCard({ event, onSendMessage }: Props) {
       return (
         <Card title="Отварям анализатор" icon={<Upload className="h-3.5 w-3.5 text-gold" />}>
           <p className="text-xs text-foreground">Качете PDF или DOCX за анализ.</p>
+          <ExternalDogovoriLink href="https://dogovori.net/analyze" label="Отвори анализатора в dogovori.net" />
         </Card>
       );
     }
