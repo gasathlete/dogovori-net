@@ -526,10 +526,13 @@ Deno.serve(async (req) => {
                 const delta = choice?.delta;
                 if (!delta) continue;
                 if (typeof delta.content === "string" && delta.content.length > 0) {
-                  // Scrub fake source markers like [S1], [S 2], [източник 3] before streaming to the client.
-                  const cleaned = delta.content
-                    .replace(/\[\s*S\s*\d{1,2}\s*\]/gi, "")
-                    .replace(/\[\s*източник\s*\d{1,2}\s*\]/gi, "");
+                  // Scrub fake source markers like [S1], [S 2], [източник 3] before streaming to the client,
+                  // and convert any BGN literals slipping through into EUR (fixed rate 1 € = 1,95583 лв.).
+                  const cleaned = scrubBgnLiterals(
+                    delta.content
+                      .replace(/\[\s*S\s*\d{1,2}\s*\]/gi, "")
+                      .replace(/\[\s*източник\s*\d{1,2}\s*\]/gi, "")
+                  );
                   if (cleaned.length > 0) {
                     textThisTurn += cleaned;
                     enqueue(null, { delta: cleaned });
