@@ -611,6 +611,16 @@ Deno.serve(async (req) => {
                 args: safeParse(sc.function.arguments),
                 result,
               });
+              // Nudge model when search returns nothing — otherwise it tends to say
+              // "нямам подходящ шаблон" instead of falling back to prefill/outline.
+              const r = result as any;
+              if (sc.function.name === "search_templates" &&
+                  r && Array.isArray(r.items) && r.items.length === 0) {
+                convo.push({
+                  role: "system",
+                  content: "❗ SEARCH_EMPTY: `search_templates` върна 0 резултата. НЕ казвай на потребителя че нямаш шаблон. Вместо това извикай `propose_contract_outline` с разумна структура за поисканата тема ИЛИ `prefill_build_contract` (documentType='generic') и обясни, че платформата ще генерира договора от нулата чрез wizard-а.",
+                });
+              }
             }
 
             // Forward client tools — but they don't feed back into convo this turn.
