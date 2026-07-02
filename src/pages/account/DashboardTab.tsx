@@ -207,26 +207,37 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
         sub="Запазени чернови в профила"
         onClick={() => navigate("/account?tab=documents")}
       />
-      <Card
-        title="Свалени бланки"
-        value={`${quota?.templates_used ?? 0}`}
-        icon={<FileText className="h-5 w-5 text-gold" />}
-        sub="Лична история на свалените бланки"
-        onClick={() => navigate("/downloads/templates")}
-      />
-      <Card
-        title="Качени за анализ"
-        value={`${uploadedCount}`}
-        icon={<ShieldCheck className="h-5 w-5 text-gold" />}
-        sub={`${analysesUsed} извършени анализа`}
-        onClick={() => navigate("/account?tab=documents#uploaded")}
-      />
-      <Card
-        title="Автоматични корекции"
-        value={`${correctionsCount}`}
-        icon={<RefreshCw className="h-5 w-5 text-gold" />}
-        sub="Приложени вълни от корекции"
-      />
+      <details className="mobile-fold md:col-span-3 md:contents group rounded-xl border border-border/60 bg-gradient-card">
+        <summary className="flex items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-foreground md:hidden">
+          <span className="inline-flex items-center gap-2">
+            <ChevronRight className="chev h-4 w-4 rotate-90 text-gold transition-transform" />
+            Още показатели
+          </span>
+          <span className="text-xs font-normal text-muted-foreground">3 карти</span>
+        </summary>
+        <div className="col-span-3 grid grid-cols-1 gap-4 border-t border-border/60 p-3 md:contents md:border-0 md:p-0">
+          <Card
+            title="Свалени бланки"
+            value={`${quota?.templates_used ?? 0}`}
+            icon={<FileText className="h-5 w-5 text-gold" />}
+            sub="Лична история на свалените бланки"
+            onClick={() => navigate("/downloads/templates")}
+          />
+          <Card
+            title="Качени за анализ"
+            value={`${uploadedCount}`}
+            icon={<ShieldCheck className="h-5 w-5 text-gold" />}
+            sub={`${analysesUsed} извършени анализа`}
+            onClick={() => navigate("/account?tab=documents#uploaded")}
+          />
+          <Card
+            title="Автоматични корекции"
+            value={`${correctionsCount}`}
+            icon={<RefreshCw className="h-5 w-5 text-gold" />}
+            sub="Приложени вълни от корекции"
+          />
+        </div>
+      </details>
 
       {/* ---------- Workspace CTA (separated) ---------- */}
       <button
