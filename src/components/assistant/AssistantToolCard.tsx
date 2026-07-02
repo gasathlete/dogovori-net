@@ -141,6 +141,20 @@ function Card({ title, icon, children }: { title: string; icon?: React.ReactNode
   );
 }
 
+function ExternalDogovoriLink({ href, label }: { href: string; label: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mt-2 inline-flex items-center gap-1 rounded-md border border-gold/40 bg-gold/10 px-2 py-1 text-[11px] font-medium text-foreground transition-colors hover:border-gold hover:bg-gold/20"
+    >
+      <ExternalLink className="h-3 w-3 text-gold" />
+      {label}
+    </a>
+  );
+}
+
 interface ClarificationQuestion {
   id: string;
   label: string;
