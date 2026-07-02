@@ -44,7 +44,7 @@ const staticEntries: Entry[] = [
   { loc: "/", changefreq: "daily", priority: "1.0", lastmod: fileMtime("src/pages/Index.tsx") },
   { loc: "/catalog", changefreq: "weekly", priority: "0.95", lastmod: catalogDate },
   { loc: "/karta", changefreq: "weekly", priority: "0.9", lastmod: catalogDate },
-  { loc: "/build", changefreq: "weekly", priority: "0.85", lastmod: fileMtime("src/pages/BuildContract.tsx") },
+  // /build е Disallow: в robots.txt (private conversational entry point) — не в sitemap.
   { loc: "/blog", changefreq: "weekly", priority: "0.85", lastmod: fileMtime("src/pages/Blog.tsx") },
   { loc: "/tools", changefreq: "weekly", priority: "0.85", lastmod: calculatorsDate },
   { loc: "/ai", changefreq: "monthly", priority: "0.85", lastmod: fileMtime("src/pages/AIFeatures.tsx") },
