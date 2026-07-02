@@ -319,6 +319,17 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   ];
 
   const goAuth = () => {
+    // Snapshot current state synchronously so nothing typed just before this
+    // navigation is lost across the /auth → return roundtrip.
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        presetSignature,
+        documentType, buildMode, bilingual, bilingualLang,
+        name, categoryId, categoryOther, partiesA, partiesB,
+        fieldValues,
+        result, signature, savedDocId, stepIdx,
+      }));
+    } catch {}
     const dest = window.location.pathname + window.location.search;
     navigate(`/auth?redirect=${encodeURIComponent(dest)}`);
   };
