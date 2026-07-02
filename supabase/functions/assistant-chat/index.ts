@@ -873,3 +873,25 @@ function parseFollowups(raw: string): { cleaned: string; followups: string[] } {
   return { cleaned: raw.replace(FOLLOWUPS_TAG, "").trim(), followups: list };
 }
 
+
+// Convert stray BGN literals into EUR at the official fixed rate.
+// Matches numbers followed by 'лв.', 'лева' or 'BGN' — handles 1.234,56 and 1 234,56 formats.
+const BGN_RATE = 1.95583;
+const BGN_LITERAL_RE = /(\d{1,3}(?:[.\s\u00A0]\d{3})*(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s*(лв\.?|лева|BGN)\b/gi;
+
+function scrubBgnLiterals(text: string): string {
+  if (!text || !/(лв|лева|BGN)/i.test(text)) return text;
+  return text.replace(BGN_LITERAL_RE, (_m, num: string) => {
+    const normalized = num
+      .replace(/[\s\u00A0]/g, "")
+      .replace(/\.(?=\d{3}(\D|$))/g, "") // thousands dot
+      .replace(",", ".");
+    const n = Number(normalized);
+    if (!isFinite(n) || n <= 0) return `${num} €`;
+    const eur = n / BGN_RATE;
+    const formatted = eur >= 100
+      ? Math.round(eur).toLocaleString("bg-BG")
+      : eur.toFixed(2).replace(".", ",");
+    return `${formatted} €`;
+  });
+}
