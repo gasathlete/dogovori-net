@@ -508,6 +508,12 @@ Deno.serve(async (req) => {
             let textThisTurn = "";
             // tool_calls accumulator: index -> { id, name, args (string) }
             const toolAcc: Map<number, { id: string; name: string; args: string }> = new Map();
+            // Buffered scrubber — safe across chunk boundaries:
+            //  - converts BGN literals (лв./лева/BGN) → EUR at 1.95583
+            //  - strips fake source markers [Sn] / [източник N]
+            //  - hides the entire <followups>...</followups> block from the UI so
+            //    users never see the raw tag flash before the chip render.
+            const scrubber = makeStreamScrubber();
 
             while (true) {
               const { value, done } = await reader.read();
@@ -526,13 +532,7 @@ Deno.serve(async (req) => {
                 const delta = choice?.delta;
                 if (!delta) continue;
                 if (typeof delta.content === "string" && delta.content.length > 0) {
-                  // Scrub fake source markers like [S1], [S 2], [източник 3] before streaming to the client,
-                  // and convert any BGN literals slipping through into EUR (fixed rate 1 € = 1,95583 лв.).
-                  const cleaned = scrubBgnLiterals(
-                    delta.content
-                      .replace(/\[\s*S\s*\d{1,2}\s*\]/gi, "")
-                      .replace(/\[\s*източник\s*\d{1,2}\s*\]/gi, "")
-                  );
+                  const cleaned = scrubber.push(delta.content);
                   if (cleaned.length > 0) {
                     textThisTurn += cleaned;
                     enqueue(null, { delta: cleaned });
@@ -549,6 +549,14 @@ Deno.serve(async (req) => {
                   }
                 }
               }
+            }
+
+            // Flush any residual buffered text (last ~40 chars held back to allow
+            // safe cross-chunk scrubbing) before we decide about tool preambles.
+            const tail = scrubber.flush();
+            if (tail.length > 0) {
+              textThisTurn += tail;
+              enqueue(null, { delta: tail });
             }
 
             fullAssistantText += textThisTurn;
@@ -894,4 +902,53 @@ function scrubBgnLiterals(text: string): string {
       : eur.toFixed(2).replace(".", ",");
     return `${formatted} €`;
   });
+}
+
+// Chunk-boundary safe streaming scrubber.
+// The gateway emits arbitrary chunk splits, which used to cause artefacts:
+//   • "500 лв" split as "500 л" + "в"  → stayed as leva in the UI
+//   • "[S1]" split as "[S" + "1]"     → the marker survived scrubbing
+//   • "<followups>…</followups>"      → tag flashed before chip render
+// This helper buffers the last ~40 chars, hides the followups block entirely,
+// and only emits text that is guaranteed safe from a partial-match perspective.
+function makeStreamScrubber() {
+  let pending = "";
+  let followupsStarted = false;
+  const TAIL = 40;
+
+  const staticScrub = (s: string) =>
+    scrubBgnLiterals(
+      s.replace(/\[\s*S\s*\d{1,2}\s*\]/gi, "")
+        .replace(/\[\s*източник\s*\d{1,2}\s*\]/gi, ""),
+    );
+
+  return {
+    push(chunk: string): string {
+      if (followupsStarted || !chunk) return "";
+      pending += chunk;
+      // 1. Detect the <followups> opening tag and cut everything after it.
+      const openIdx = pending.search(/<followups\b/i);
+      if (openIdx >= 0) {
+        const safe = pending.slice(0, openIdx);
+        pending = "";
+        followupsStarted = true;
+        return staticScrub(safe);
+      }
+      // 2. Hold back if the tail could still form a "<followups" prefix.
+      if (/<[a-z]{0,10}$/i.test(pending)) return "";
+      // 3. Emit everything except the last TAIL chars — which may still contain
+      //    partial BGN literals ("500 л") or "[S" markers waiting for a digit.
+      if (pending.length <= TAIL) return "";
+      const emitLen = pending.length - TAIL;
+      const emit = pending.slice(0, emitLen);
+      pending = pending.slice(emitLen);
+      return staticScrub(emit);
+    },
+    flush(): string {
+      if (followupsStarted) { pending = ""; return ""; }
+      const out = staticScrub(pending);
+      pending = "";
+      return out;
+    },
+  };
 }
