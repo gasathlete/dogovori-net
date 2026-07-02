@@ -142,7 +142,7 @@ export function MobileBottomNav() {
       <Sheet open={aiOpen} onOpenChange={setAiOpen}>
         <SheetContent
           side="bottom"
-          className="h-[100dvh] max-h-[100dvh] rounded-t-2xl p-0 lg:hidden flex flex-col gap-0"
+          className="h-[100dvh] max-h-[100dvh] rounded-t-2xl p-0 lg:hidden flex flex-col gap-0 [&>.sheet-close]:hidden"
           style={{ overscrollBehavior: "contain" }}
         >
           <div className="flex h-full min-h-0 flex-col">
