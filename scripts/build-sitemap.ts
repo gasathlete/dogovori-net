@@ -11,10 +11,11 @@
 //
 // Usage: bun run scripts/build-sitemap.ts
 
-import { writeFileSync, readdirSync, statSync } from "node:fs";
+import { writeFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { CATALOG, TOP_DOCUMENTS } from "../src/data/catalog";
 import { SECTORS } from "../src/data/sectors";
+import { FEATURED_BLANKS } from "../src/data/featuredBlanks";
 
 import { slugify } from "../src/lib/slugify";
 import { CALCULATORS } from "../src/data/calculators";
