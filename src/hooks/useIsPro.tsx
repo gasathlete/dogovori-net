@@ -22,6 +22,7 @@ interface ProState {
   isPro: boolean;
   isTeam: boolean;
   isEntrepreneur: boolean;
+  isProfessional: boolean;
   loading: boolean;
   freeQuota: FreeQuota;
   refresh: () => Promise<void>;
@@ -49,13 +50,14 @@ export function useIsPro(): ProState {
     isPro: false,
     isTeam: false,
     isEntrepreneur: false,
+    isProfessional: false,
     loading: true,
     freeQuota: DEFAULT_FREE_QUOTA,
   });
 
   const refresh = useCallback(async () => {
     if (!user) {
-      setState({ isPro: false, isTeam: false, isEntrepreneur: false, loading: false, freeQuota: DEFAULT_FREE_QUOTA });
+      setState({ isPro: false, isTeam: false, isEntrepreneur: false, isProfessional: false, loading: false, freeQuota: DEFAULT_FREE_QUOTA });
       return;
     }
     const [{ data: q }, { data: tm }, { data: sub }] = await Promise.all([
@@ -107,6 +109,7 @@ export function useIsPro(): ProState {
       isPro,
       isTeam,
       isEntrepreneur: isPro && isEntrepreneur,
+      isProfessional: isPro && isProfessional,
       loading: false,
       freeQuota: {
         opsUsed: isPro
