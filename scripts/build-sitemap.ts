@@ -11,10 +11,11 @@
 //
 // Usage: bun run scripts/build-sitemap.ts
 
-import { writeFileSync, readdirSync, statSync } from "node:fs";
+import { writeFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { CATALOG, TOP_DOCUMENTS } from "../src/data/catalog";
 import { SECTORS } from "../src/data/sectors";
+import { FEATURED_BLANKS } from "../src/data/featuredBlanks";
 
 import { slugify } from "../src/lib/slugify";
 import { CALCULATORS } from "../src/data/calculators";
@@ -103,7 +104,9 @@ const categoryEntries: Entry[] = [
   })),
 ];
 
-const templateEntries: Entry[] = [];
+const templateEntriesTop: Entry[] = [];
+const templateEntriesRest: Entry[] = [];
+const featuredNames = new Set(FEATURED_BLANKS.map((f) => f.docName));
 const used = new Set<string>();
 for (const cat of CATALOG) {
   for (const doc of cat.documents) {
@@ -112,13 +115,27 @@ for (const cat of CATALOG) {
     let i = 2;
     while (used.has(slug)) slug = `${base}-${i++}`;
     used.add(slug);
-    const isTop = topNames.has(doc.name) || doc.badge === "TOP";
-    templateEntries.push({
+    const isTop = topNames.has(doc.name) || doc.badge === "TOP" || featuredNames.has(doc.name);
+    // Per-template lastmod from the actual content file mtime when available.
+    // This gives Google real change signals rather than a single shared date,
+    // which helps the crawler prioritize freshly-updated templates instead of
+    // treating the whole /shablon/* set as one bulk update.
+    const contentPath = `src/data/templateContent/${slug}.ts`;
+    const lastmod = existsSync(resolve(process.cwd(), contentPath))
+      ? fileMtime(contentPath)
+      : catalogDate;
+    const entry: Entry = {
       loc: `/shablon/${slug}`,
-      changefreq: "monthly",
-      priority: isTop ? "0.85" : "0.65",
-      lastmod: catalogDate,
-    });
+      changefreq: isTop ? "weekly" : "monthly",
+      // Contrast priorities so Google's crawl budget goes to the top pool
+      // first. Young domain with 700+ URLs was flat-lining at 52 indexed;
+      // making the priority delta sharp (0.9 vs 0.4) is the strongest sitemap
+      // signal we can send.
+      priority: isTop ? "0.9" : "0.4",
+      lastmod,
+    };
+    if (isTop) templateEntriesTop.push(entry);
+    else templateEntriesRest.push(entry);
   }
 }
 
@@ -144,17 +161,21 @@ function writeSitemap(filename: string, entries: Entry[]) {
 
 writeSitemap("sitemap-static.xml", staticEntries);
 writeSitemap("sitemap-categories.xml", categoryEntries);
-writeSitemap("sitemap-templates.xml", templateEntries);
+writeSitemap("sitemap-templates-top.xml", templateEntriesTop);
+writeSitemap("sitemap-templates.xml", templateEntriesRest);
 writeSitemap("sitemap-blog.xml", blogEntries);
 
 // Sitemap index
 const blogLatest = blogEntries.reduce((m, e) => (e.lastmod && e.lastmod > m ? e.lastmod : m), "1970-01-01");
 const staticLatest = staticEntries.reduce((m, e) => (e.lastmod && e.lastmod > m ? e.lastmod : m), "1970-01-01");
 const categoryLatest = [catalogDate, sectorsDate].sort().reverse()[0];
+const topLatest = templateEntriesTop.reduce((m, e) => (e.lastmod && e.lastmod > m ? e.lastmod : m), catalogDate);
+const restLatest = templateEntriesRest.reduce((m, e) => (e.lastmod && e.lastmod > m ? e.lastmod : m), catalogDate);
 const children = [
   { loc: "sitemap-static.xml", lastmod: staticLatest },
   { loc: "sitemap-categories.xml", lastmod: categoryLatest },
-  { loc: "sitemap-templates.xml", lastmod: catalogDate },
+  { loc: "sitemap-templates-top.xml", lastmod: topLatest },
+  { loc: "sitemap-templates.xml", lastmod: restLatest },
   { loc: "sitemap-blog.xml", lastmod: blogLatest },
 ];
 const indexXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -163,9 +184,15 @@ ${children
   .map((c) => `  <sitemap>\n    <loc>${SITE}/${c.loc}</loc>\n    <lastmod>${c.lastmod}</lastmod>\n  </sitemap>`)
   .join("\n")}
 </sitemapindex>
+
 `;
 writeFileSync(resolve(process.cwd(), "public", "sitemap.xml"), indexXml, "utf8");
 console.log(`✓ sitemap.xml (index): ${children.length} child sitemaps`);
 
-const total = staticEntries.length + categoryEntries.length + templateEntries.length + blogEntries.length;
+const total =
+  staticEntries.length +
+  categoryEntries.length +
+  templateEntriesTop.length +
+  templateEntriesRest.length +
+  blogEntries.length;
 console.log(`✓ Total URLs across all sitemaps: ${total}`);
