@@ -40,7 +40,7 @@ import { getUnlockedTiers, getNextTier, REWARD_TIERS } from "@/lib/rewards";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { ReferralCard } from "@/components/funnel/ReferralCard";
 import { SavingsSnapshot } from "@/components/funnel/SavingsSnapshot";
-import { EntrepreneurWelcomeDialog } from "@/components/EntrepreneurWelcomeDialog";
+import { PlanWelcomeDialog } from "@/components/PlanWelcomeDialog";
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
@@ -151,11 +151,15 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
         details.mobile-fold[open] > summary .chev { transform: rotate(180deg); }
         @media (min-width: 768px) {
           details.mobile-fold > summary { display: none !important; }
-          details.mobile-fold > :not(summary) { display: block !important; }
+          /* Only force-display block for wrappers that DON'T use display:contents.
+             For .md-contents the details itself dissolves into its parent grid,
+             so its children must keep their intrinsic display (grid/flex/etc.). */
+          details.mobile-fold:not(.md-contents) > :not(summary) { display: block !important; }
           details.mobile-fold.md-contents { display: contents !important; }
         }
       `}</style>
-      <EntrepreneurWelcomeDialog isPro={isPro} />
+      <PlanWelcomeDialog />
+
 
       <OnboardingChecklist
         stats={{
