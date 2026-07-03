@@ -32,7 +32,7 @@ Deno.test("scrubDoubleCurrency: removes orphan € / € and (BGN) aliases", () 
 });
 
 Deno.test("scrubFakeCitations: keeps valid [S1] within citation count", () => {
-  assertEquals(scrubFakeCitations("Съгласно [S1] и [S2]", 2), "Съгласно [S1] and [S2]".replace("and", "и"));
+  assertEquals(scrubFakeCitations("Съгласно [S1] и [S2]", 2), "Съгласно [S1] и [S2]");
 });
 
 Deno.test("scrubFakeCitations: strips out-of-range markers", () => {
@@ -85,7 +85,7 @@ Deno.test("scrubInjectionEcho: strips 'ignore previous instructions'", () => {
 
 Deno.test("injectHighRiskBanner: injects when arrest keyword present and no lawyer mention", () => {
   const out = injectHighRiskBanner("Отговор.", "Задържаха брат ми, какво да правя?");
-  assertStringIncludes(out, "НБПП" /* via link */.slice(0, 3));
+  assertStringIncludes(out, "Национално бюро за правна помощ");
   assertStringIncludes(out, "адвокат");
 });
 

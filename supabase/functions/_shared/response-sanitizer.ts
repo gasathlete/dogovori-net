@@ -10,8 +10,10 @@
 // ─────────────────────────────────────────────────────────────────────────
 export const BGN_RATE = 1.95583;
 
+// Note: JavaScript `\b` is ASCII-only, so `лв\b` never matches after Cyrillic.
+// We use a Unicode-aware negative lookahead `(?![\p{L}\p{N}])` instead.
 const BGN_LITERAL_RE =
-  /(\d{1,3}(?:[.\s\u00A0]\d{3})*(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s*(лв\.?|лева|BGN)\b/gi;
+  /(\d{1,3}(?:[.\s\u00A0]\d{3})*(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s*(лв\.?|лева|BGN)(?![\p{L}\p{N}])/giu;
 
 export function scrubBgnLiterals(text: string): string {
   if (!text || !/(лв|лева|BGN)/i.test(text)) return text;
@@ -102,8 +104,10 @@ const OUTDATED_YEAR_RE =
 
 export function annotateOutdatedYear(text: string): string {
   if (!text) return text;
-  return text.replace(OUTDATED_YEAR_RE, (m, pre: string, year: string, suf: string) => {
-    // Skip if disclaimer already nearby
+  return text.replace(OUTDATED_YEAR_RE, (m, pre: string, year: string, suf: string, offset: number, full: string) => {
+    // Idempotency: skip if the standard disclaimer already follows.
+    const tail = full.slice(offset + m.length, offset + m.length + 120);
+    if (/историческа\s+справка|сверете\s+актуалната/i.test(tail)) return m;
     if (/историческ|сверете|проверете\s+в\s+ДВ|актуалната\s+стойност/i.test(m)) return m;
     return `${pre}${year}${suf} _(историческа справка — сверете актуалната стойност в ДВ/НАП/МТСП)_`;
   });
