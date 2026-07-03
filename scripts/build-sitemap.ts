@@ -189,5 +189,10 @@ ${children
 writeFileSync(resolve(process.cwd(), "public", "sitemap.xml"), indexXml, "utf8");
 console.log(`✓ sitemap.xml (index): ${children.length} child sitemaps`);
 
-const total = staticEntries.length + categoryEntries.length + templateEntries.length + blogEntries.length;
+const total =
+  staticEntries.length +
+  categoryEntries.length +
+  templateEntriesTop.length +
+  templateEntriesRest.length +
+  blogEntries.length;
 console.log(`✓ Total URLs across all sitemaps: ${total}`);
