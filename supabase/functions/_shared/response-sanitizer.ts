@@ -80,12 +80,14 @@ export function scrubFakeCitations(text: string, citCount: number): string {
 export function scrubChl328Hallucination(text: string): string {
   if (!text) return text;
   return text
+    // Ordering 1: "чл. 328 ... ЗЗД ... отмен/не съществува ..."
     .replace(
-      /(?:^|\s)[^.!?]*чл(?:ен|\.)?\s*328[^.!?]*(?:ЗЗД|Закон\s+за\s+задълженията)[^.!?]*(?:отмен|не\s+същест|няма\s+так)[^.!?]*[.!?]\s*/gi,
+      /(?:^|(?<=\s))[^.!?]{0,80}чл(?:ен|\.)?\s*328[^.!?]{0,80}?(?:ЗЗД|Закон\s+за\s+задълженията)[^.!?]{0,80}?(?:отмен|не\s+същест|няма\s+так)[^.!?]{0,80}[.!?]\s*/gi,
       " ",
     )
+    // Ordering 2: "отмен ... чл. 328 ... ЗЗД ..." — bounded so we don't eat the whole sentence.
     .replace(
-      /(?:^|\s)[^.!?]*(?:отмен|не\s+същест)[^.!?]*чл(?:ен|\.)?\s*328[^.!?]*(?:ЗЗД|Закон\s+за\s+задълженията)[^.!?]*[.!?]\s*/gi,
+      /(?:^|(?<=\s))[^.!?]{0,40}(?:отмен|не\s+същест)[^.!?]{0,60}чл(?:ен|\.)?\s*328[^.!?]{0,60}(?:ЗЗД|Закон\s+за\s+задълженията)[^.!?]{0,20}[.!?]?\s*/gi,
       " ",
     )
     .replace(/\s{2,}/g, " ")
@@ -100,7 +102,7 @@ export function scrubChl328Hallucination(text: string): string {
 // not already present in the surrounding sentence.
 // ─────────────────────────────────────────────────────────────────────────
 const OUTDATED_YEAR_RE =
-  /((?:актуал\w*|по\s+данни|към|съгласно|размер\w*)\s+(?:за\s+|от\s+)?)(202[0-5])(\s*г\.?)/gi;
+  /((?:актуал[\p{L}]*|по\s+данни|към|съгласно|размер[\p{L}]*)\s+(?:за\s+|от\s+)?)(202[0-5])(\s*г\.?)/giu;
 
 export function annotateOutdatedYear(text: string): string {
   if (!text) return text;
@@ -119,8 +121,10 @@ export function annotateOutdatedYear(text: string): string {
 // citations are grounded (they may come from the knowledge base).
 // Matches typical BG format: "Решение № 123/2020 г. ... ВКС/ВАС/ОС".
 // ─────────────────────────────────────────────────────────────────────────
+// Note: `[^!?]{0,300}?` allows internal `.` (e.g. "т.д.", "ВКС, II т.о.")
+// but caps total length so we don't eat neighbouring sentences.
 const CASE_LAW_RE =
-  /Решение\s+№\s*\d+\s*\/\s*(?:19|20)\d{2}\s*г\.[^.!?]*?(?:ВКС|ВАС|ОС|СГС|САС|Апелативен\s+съд)[^.!?]*?[.!?]/gi;
+  /Решение\s+№\s*\d+\s*\/\s*(?:19|20)\d{2}\s*г\.[^!?]{0,300}?(?:ВКС|ВАС|СГС|САС|Апелативен\s+съд|Окръжен\s+съд)[^!?]{0,80}?[.!?]/giu;
 
 export function scrubFakeCaseLaw(text: string, hasCitations: boolean): string {
   if (!text || hasCitations) return text;
@@ -145,8 +149,10 @@ export function scrubInjectionEcho(text: string): string {
 // violence, child protection). Injected once if the model didn't already
 // recommend a lawyer/НБПП.
 // ─────────────────────────────────────────────────────────────────────────
+// Uses word stems (задърж, обвин, наказател…) so we catch inflected forms
+// like "Задържаха", "задържане", "обвинителен акт" etc.
 export const HIGH_RISK_RE =
-  /(арест|задържан|обвин|наказател|прокурат|полиц|съдебн(о|и)\s+заседание|дело\s+№|заповед\s+за\s+защита|домашн(о|и)\s+насил|отвлич|непълнолетн|малолетн|органи(те)?\s+на\s+ди|детск(а|и)\s+служб)/i;
+  /(арест|задърж|обвин|наказател|прокурат|полиц|съдебн(о|и)\s+заседание|дело\s+№|заповед\s+за\s+защита|домашн(о|и)\s+насил|отвлич|непълнолетн|малолетн|органи(те)?\s+на\s+ди|детск(а|и)\s+служб)/i;
 
 export const HIGH_RISK_ESCALATION_MARK =
   /адвокат|правна\s+помощ|национал(на|но)\s+бюро|нбпп/i;
