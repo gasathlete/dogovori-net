@@ -15,8 +15,6 @@ import {
   highRiskBanner,
   makeStreamScrubber,
   sanitizeAssistantReply,
-  scrubBgnLiterals,
-  scrubChl328Hallucination,
 } from "../_shared/response-sanitizer.ts";
 import {
   ASSISTANT_TOOLS,
