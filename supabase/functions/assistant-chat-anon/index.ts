@@ -6,6 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, clientIp, hashIp } from "../_shared/cors.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { retrieveLegalContext, type LegalCitation } from "../_shared/legal-rag.ts";
+import { sanitizeAssistantReply } from "../_shared/response-sanitizer.ts";
 
 const SYSTEM_PROMPT = `# РОЛЯ И ИДЕНТИЧНОСТ
 Ти си официалният AI асистент на **Dogovori.net** — водещата българска платформа за правни документи, договори и бланки. Името ти е **"DogovaryAI"** (или просто Асистентът).
@@ -220,53 +221,29 @@ Deno.serve(async (req) => {
       reply = `${reply}\n\n${CTA}`;
     }
 
-    // Selective [Sn] / [източник N] scrubber.
-    // The system prompt ALLOWS [Sn] markers when they refer to real entries in
-    // [НОРМАТИВНА БАЗА]. Blanket stripping (previous behaviour) killed valid
-    // citations and encouraged the model to emit prose without any source.
-    // New rule: keep markers whose index is within `citations.length`, drop the rest.
-    const citCount = citations.length;
-    reply = reply
-      .replace(/\s?\[S(\d+)\]/g, (_full, nStr) => {
-        const n = parseInt(nStr, 10);
-        return n >= 1 && n <= citCount ? ` [S${n}]` : "";
-      })
-      .replace(/\s?\[източник\s*(\d+)\]/gi, (_full, nStr) => {
-        const n = parseInt(nStr, 10);
-        return n >= 1 && n <= citCount ? ` [източник ${n}]` : "";
+    // Shared sanitizer pipeline (see supabase/functions/_shared/response-sanitizer.ts).
+    // Applies: selective [Sn] scrubbing, чл.328/ЗЗД hallucination removal,
+    // prompt-injection echo strip, fake-case-law strip (when no RAG),
+    // BGN→EUR conversion, double-currency cleanup, outdated-year annotation,
+    // and high-risk escalation banner.
+    const lastUserContent = safe[safe.length - 1].content;
+    // Preserve the CTA position: sanitize the body, then re-attach the CTA
+    // if the sanitizer's high-risk banner would otherwise land after it.
+    const ctaSplit = reply.match(/^([\s\S]*?)(💡\s*Безплатните[\s\S]*)$/);
+    if (ctaSplit) {
+      const [, body, cta] = ctaSplit;
+      const sanitizedBody = sanitizeAssistantReply(body.trim(), {
+        citationCount: citations.length,
+        userMsg: lastUserContent,
+        injectRiskBanner: true,
       });
-
-    // Aggressive scrubber for a very persistent hallucination in Gemini:
-    // "Член 328 от ЗЗД е отменен ... Вероятно имате предвид ... Кодекс на труда".
-    // We delete the whole misleading sentence and let the KT-specific part stand.
-    reply = reply.replace(
-      /(?:^|\s)[^.!?]*чл(?:ен|\.)?\s*328[^.!?]*(?:ЗЗД|Закон\s+за\s+задълженията)[^.!?]*(?:отмен|не\s+същест|няма\s+так)[^.!?]*[.!?]\s*/gi,
-      " ",
-    );
-    // Cover the reverse ordering too ("отменен ... чл. 328 ... ЗЗД").
-    reply = reply.replace(
-      /(?:^|\s)[^.!?]*(?:отмен|не\s+същест)[^.!?]*чл(?:ен|\.)?\s*328[^.!?]*(?:ЗЗД|Закон\s+за\s+задълженията)[^.!?]*[.!?]\s*/gi,
-      " ",
-    );
-    reply = reply.replace(/\s{2,}/g, " ").trim();
-
-    // Convert stray BGN literals into EUR at fixed rate 1 € = 1,95583 лв.
-    reply = scrubBgnLiterals(reply);
-
-    // High-risk escalation banner: when the user mentions arrest, criminal
-    // proceedings, active litigation, restraining orders or child protection
-    // matters, DogovaryAI must NOT try to draft on its own — it must direct
-    // to a licensed lawyer immediately. We inject a one-liner right before
-    // the CTA if the model omitted it.
-    const lastUserContent = safe[safe.length - 1].content.toLowerCase();
-    const isHighRisk = /(арест|задържан|обвин|наказател|прокурат|полиц|съдебн(о|и) заседание|дело\s+№|заповед\s+за\s+защита|домашн(о|и)\s+насил|отвлич|непълнолетн|малолетн|органи(те)?\s+на\s+ди|дети\s+служб)/i.test(lastUserContent);
-    const alreadyEscalates = /адвокат|правна\s+помощ|национална\s+телефонна\s+линия|нбпп/i.test(reply);
-    if (isHighRisk && !alreadyEscalates) {
-      const warning = "⚠️ **Случаят изглежда високорисков.** Препоръчваме незабавна консултация с адвокат — можете да ползвате [Национално бюро за правна помощ](https://nbpp.government.bg) при доходов праг, или частен адвокат. DogovaryAI не заменя правен съветник при висящо производство.";
-      const ctaAnchor = reply.match(/(💡\s*Безплатните[\s\S]*)$/);
-      reply = ctaAnchor
-        ? reply.replace(ctaAnchor[1], `${warning}\n\n${ctaAnchor[1]}`)
-        : `${reply}\n\n${warning}`;
+      reply = `${sanitizedBody}\n\n${cta.trim()}`;
+    } else {
+      reply = sanitizeAssistantReply(reply, {
+        citationCount: citations.length,
+        userMsg: lastUserContent,
+        injectRiskBanner: true,
+      });
     }
 
     // Inline-link safety net: if the reply is document-related but has no
