@@ -711,11 +711,20 @@ Deno.serve(async (req) => {
             return null;
           })();
           const { cleaned: rawCleaned, followups } = parseFollowups(fullAssistantText);
-          // Belt-and-suspenders post-stream sanitisers (idempotent on already-scrubbed text).
-          let cleaned = scrubBgnLiterals(scrubChl328Hallucination(rawCleaned));
+          // Full post-stream sanitiser pipeline (shared with assistant-chat-anon):
+          // strips fake [Sn], чл.328/ЗЗД hallucination, injection echoes, fabricated
+          // case law when no RAG, BGN→€ conversion, double-currency cleanup, and
+          // outdated-year (2020-2025) advisory annotation. Idempotent.
+          // NB: high-risk banner is handled separately below so we can stream it.
+          let cleaned = sanitizeAssistantReply(rawCleaned, {
+            citationCount: legal.citations.length,
+            injectRiskBanner: false,
+          });
 
           // High-risk escalation banner — inject once if the case is serious
-          // and the model didn't already recommend a lawyer/НБПП.
+          // and the model didn't already recommend a lawyer/НБПП. Streamed
+          // as a delta so the client sees it in real time, then appended to
+          // the persisted text.
           const isHighRisk = HIGH_RISK_RE.test(lastUserMsg);
           if (isHighRisk && !HIGH_RISK_ESCALATION_MARK.test(cleaned)) {
             const banner = highRiskBanner();
@@ -725,6 +734,7 @@ Deno.serve(async (req) => {
             } catch { /* ignore */ }
             cleaned = `${cleaned}\n\n${banner}`.trim();
           }
+
 
           const finalFollowups = followups.length >= 2 ? followups : fallbackFollowups(lastToolName);
           try {
