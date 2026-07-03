@@ -10,6 +10,15 @@ import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { retrieveLegalContext } from "../_shared/legal-rag.ts";
 import {
+  HIGH_RISK_ESCALATION_MARK,
+  HIGH_RISK_RE,
+  highRiskBanner,
+  makeStreamScrubber,
+  sanitizeAssistantReply,
+  scrubBgnLiterals,
+  scrubChl328Hallucination,
+} from "../_shared/response-sanitizer.ts";
+import {
   ASSISTANT_TOOLS,
   FULL_TOOL_NAMES,
   execSearchTemplates,
