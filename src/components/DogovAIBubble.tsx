@@ -3,6 +3,7 @@ import { useLocation, Link, useNavigate } from "react-router-dom";
 import { X, Send, Loader2, Sparkles, FileText, Briefcase, ShieldCheck, Scale, ExternalLink, Maximize2, MessageSquare } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { AssistantChat } from "@/components/AssistantChat";
+import { AssistantThinkingStatus } from "@/components/assistant/AssistantThinkingStatus";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
