@@ -78,6 +78,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   const [streamingTools, setStreamingTools] = useState<ToolEvent[]>([]);
   const [negotiationMode, setNegotiationMode] = useState(false);
   const [showSources, setShowSources] = useState(true);
+  const [mobilePane, setMobilePane] = useState<"chat" | "panel">("chat");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
