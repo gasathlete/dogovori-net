@@ -679,7 +679,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 <MessageBubble
                   role="assistant"
                   content={streamingText.replace(/<followups>[\s\S]*?(?:<\/followups>|$)/i, "")}
-                  isStreaming={!streamingText && streamingTools.length === 0}
+                  isStreaming
                   toolEvents={streamingTools}
                   onFollowupClick={(t) => sendMessage(t)}
                 />
