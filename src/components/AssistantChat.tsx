@@ -16,6 +16,7 @@ import { Crown } from "lucide-react";
 
 import { LegalCitations, type LegalCitation } from "@/components/LegalCitations";
 import { AssistantToolCard, type ToolEvent } from "@/components/assistant/AssistantToolCard";
+import { AssistantThinkingStatus } from "@/components/assistant/AssistantThinkingStatus";
 import { resetAssistantDraft } from "@/components/assistant/assistantDraftStore";
 
 interface Msg {
@@ -678,7 +679,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 <MessageBubble
                   role="assistant"
                   content={streamingText.replace(/<followups>[\s\S]*?(?:<\/followups>|$)/i, "")}
-                  isStreaming={!streamingText && streamingTools.length === 0}
+                  isStreaming
                   toolEvents={streamingTools}
                   onFollowupClick={(t) => sendMessage(t)}
                 />
@@ -741,8 +742,11 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 </Button>
               </div>
             </div>
-            {/* Bottom toggle bar — Преговори (action) · Източници · AI избира */}
-            <div className="flex flex-wrap items-center gap-1.5 border-t border-border/40 px-2 py-1.5">
+            {/* Bottom toggle bar — Преговори · Източници. Kept minimal on mobile. */}
+            <div className={cn(
+              "flex flex-wrap items-center gap-1.5 px-2 py-1.5",
+              (compact || embedded) ? "" : "border-t border-border/40",
+            )}>
               <button
                 type="button"
                 onClick={() => setNegotiationMode((v) => !v)}
@@ -773,16 +777,20 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 <BookOpen className="h-3 w-3" />
                 <span>Източници</span>
               </button>
-              <span className="ml-auto inline-flex items-center gap-1 rounded-md bg-muted/30 px-2 py-1 text-[10px] font-medium text-muted-foreground" title="Моделът се избира автоматично">
-                <Crown className="h-2.5 w-2.5 text-gold" />
-                AI избира
-              </span>
+              {!compact && !embedded && (
+                <span className="ml-auto hidden sm:inline-flex items-center gap-1 rounded-md bg-muted/30 px-2 py-1 text-[10px] font-medium text-muted-foreground" title="Моделът се избира автоматично">
+                  <Crown className="h-2.5 w-2.5 text-gold" />
+                  AI избира
+                </span>
+              )}
             </div>
           </div>
-          <p className="mt-1.5 flex items-center justify-center gap-1 text-[10px] text-muted-foreground/60">
-            <AlertCircle className="h-2.5 w-2.5" />
-            Enter за изпращане · Shift+Enter за нов ред · Общи насоки, не правен съвет.
-          </p>
+          {!compact && !embedded && (
+            <p className="mt-1.5 flex items-center justify-center gap-1 text-[10px] text-muted-foreground/60">
+              <AlertCircle className="h-2.5 w-2.5" />
+              Enter за изпращане · Shift+Enter за нов ред · Общи насоки, не правен съвет.
+            </p>
+          )}
         </form>
       </div>
 
@@ -882,54 +890,49 @@ function MessageBubble({ role, content, isStreaming, citations, toolEvents, foll
         <Bird className="h-3 w-3 text-gold" />
       </div>
       <div className="max-w-[85%] flex-1 text-sm text-foreground">
-        {isStreaming && !hasText ? (
-          <div className="flex items-center gap-1.5 py-2 text-muted-foreground">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            <span className="text-xs">Мисля...</span>
-          </div>
-        ) : (
-          <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:mt-3 prose-headings:mb-1 prose-a:text-gold prose-a:no-underline hover:prose-a:underline prose-strong:text-foreground prose-code:text-gold prose-code:bg-card/60 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
-            {hasText && (
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  a: ({ href, children, ...props }) => {
-                    if (href?.startsWith("/")) {
-                      return <Link to={href} className="text-gold hover:underline" {...(props as any)}>{children}</Link>;
-                    }
-                    return <a href={href} target="_blank" rel="noopener noreferrer" className="text-gold hover:underline" {...props}>{children}</a>;
-                  },
-                }}
-              >
-                {content}
-              </ReactMarkdown>
-            )}
-            {toolEvents && toolEvents.length > 0 && (
-              <div className="not-prose space-y-1">
-                {toolEvents.map((ev) => (
-                  <AssistantToolCard key={ev.id} event={ev} onSendMessage={handleToolMessage} />
-                ))}
-              </div>
-            )}
-            {citations && citations.length > 0 && <LegalCitations citations={citations} />}
-            {followups && followups.length > 0 && (
-              <div className="not-prose mt-3 flex flex-wrap gap-2">
-                {followups.map((f, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => onFollowupClick?.(f)}
-                    className="rounded-full border border-gold/40 bg-gold/5 px-3 py-1.5 text-xs text-foreground transition-colors hover:border-gold hover:bg-gold/15"
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+        {isStreaming && (
+          <AssistantThinkingStatus toolEvents={toolEvents} compact />
         )}
+        <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:mt-3 prose-headings:mb-1 prose-a:text-gold prose-a:no-underline hover:prose-a:underline prose-strong:text-foreground prose-code:text-gold prose-code:bg-card/60 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
+          {hasText && (
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                a: ({ href, children, ...props }) => {
+                  if (href?.startsWith("/")) {
+                    return <Link to={href} className="text-gold hover:underline" {...(props as any)}>{children}</Link>;
+                  }
+                  return <a href={href} target="_blank" rel="noopener noreferrer" className="text-gold hover:underline" {...props}>{children}</a>;
+                },
+              }}
+            >
+              {content}
+            </ReactMarkdown>
+          )}
+          {toolEvents && toolEvents.length > 0 && (
+            <div className="not-prose space-y-1">
+              {toolEvents.map((ev) => (
+                <AssistantToolCard key={ev.id} event={ev} onSendMessage={handleToolMessage} />
+              ))}
+            </div>
+          )}
+          {citations && citations.length > 0 && <LegalCitations citations={citations} />}
+          {followups && followups.length > 0 && (
+            <div className="not-prose mt-3 flex flex-wrap gap-2">
+              {followups.map((f, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onFollowupClick?.(f)}
+                  className="rounded-full border border-gold/40 bg-gold/5 px-3 py-1.5 text-xs text-foreground transition-colors hover:border-gold hover:bg-gold/15"
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
-
 }

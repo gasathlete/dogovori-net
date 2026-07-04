@@ -770,3 +770,30 @@ button, a, [role="button"], input[type="submit"], input[type="button"] {
   border-color: hsl(var(--gold) / 0.55) !important;
   transition: transform 300ms ease, border-color 300ms ease;
 }
+
+/* DogovaryAI — animated "thinking" status shimmer.
+   Text flows through a subtle gold→foreground gradient, matching
+   the Lovable-style live status line in the assistant. */
+.thinking-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted-foreground)) 0%,
+    hsl(var(--foreground)) 40%,
+    hsl(var(--gold)) 55%,
+    hsl(var(--foreground)) 70%,
+    hsl(var(--muted-foreground)) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: thinking-shimmer-move 2.2s linear infinite;
+}
+@keyframes thinking-shimmer-move {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thinking-shimmer { animation: none; }
+}
