@@ -56,7 +56,8 @@ export function scrubDoubleCurrency(text: string): string {
     .replace(/[ \t]*\(\s*(?:BGN|лв\.?|лева)\s*\)/gi, "")
     // Collapse only horizontal whitespace runs — preserve newlines so
     // markdown paragraphs/lists survive streaming.
-    .replace(/[ \t]{2,}/g, " ");
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/[ \t]+$/gm, "");
 }
 
 // ─────────────────────────────────────────────────────────────────────────
