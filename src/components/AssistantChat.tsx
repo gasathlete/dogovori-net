@@ -16,6 +16,7 @@ import { Crown } from "lucide-react";
 
 import { LegalCitations, type LegalCitation } from "@/components/LegalCitations";
 import { AssistantToolCard, type ToolEvent } from "@/components/assistant/AssistantToolCard";
+import { AssistantThinkingStatus } from "@/components/assistant/AssistantThinkingStatus";
 import { resetAssistantDraft } from "@/components/assistant/assistantDraftStore";
 
 interface Msg {
