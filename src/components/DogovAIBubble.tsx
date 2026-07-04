@@ -230,8 +230,8 @@ function AnonChat({ resetKey }: { resetKey: number }) {
           </div>
         ))}
         {busy && (
-          <div className="mr-auto flex items-center gap-2 rounded-2xl bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Пиша…
+          <div className="mr-auto flex items-center gap-2 rounded-2xl px-1 py-1 text-sm text-muted-foreground">
+            <AssistantThinkingStatus compact />
           </div>
         )}
 
