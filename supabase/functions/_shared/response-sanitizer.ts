@@ -40,18 +40,24 @@ export function scrubBgnLiterals(text: string): string {
 // ─────────────────────────────────────────────────────────────────────────
 export function scrubDoubleCurrency(text: string): string {
   if (!text) return text;
+  // Fast path: only run replacements if any relevant token is present.
+  // Avoids collapsing whitespace/newlines on unrelated content (breaks markdown).
+  const needsWork = /€\s*[\/|]\s*€|\(\s*(?:BGN|лв\.?|лева)\s*\)|\(\s*[\/|]|[\/|]\s*\)|\(\s*\)/i.test(text);
+  if (!needsWork) return text;
   return text
     // "1000 € / € " or "1000 € /  € "  → "1000 €"
-    .replace(/(\d[\d.,\s]*\s*€)\s*[\/|]\s*€/g, "$1")
+    .replace(/(\d[\d.,\s]*\s*€)[ \t]*[\/|][ \t]*€/g, "$1")
     // "( / 1000 €)" or "(лв. / )" residual
-    .replace(/\(\s*[\/|]\s*/g, "(")
-    .replace(/\s*[\/|]\s*\)/g, ")")
+    .replace(/\([ \t]*[\/|][ \t]*/g, "(")
+    .replace(/[ \t]*[\/|][ \t]*\)/g, ")")
     // orphan "( )" or "()"
-    .replace(/\(\s*\)/g, "")
+    .replace(/\([ \t]*\)/g, "")
     // "€ (BGN)" / "€ (лв.)" — remove parenthetical currency alias
-    .replace(/\s*\(\s*(?:BGN|лв\.?|лева)\s*\)/gi, "")
-    .replace(/\s{2,}/g, " ")
-    .trim();
+    .replace(/[ \t]*\(\s*(?:BGN|лв\.?|лева)\s*\)/gi, "")
+    // Collapse only horizontal whitespace runs — preserve newlines so
+    // markdown paragraphs/lists survive streaming.
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/[ \t]+$/gm, "");
 }
 
 // ─────────────────────────────────────────────────────────────────────────
