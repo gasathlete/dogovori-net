@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Send, Loader2, Plus, Bird, AlertCircle, MessageSquare, Trash2, Handshake, Paperclip, Share2, Download, BookOpen, X } from "lucide-react";
+import { Send, Loader2, Plus, Bird, AlertCircle, MessageSquare, Trash2, Handshake, Paperclip, Share2, Download, BookOpen, X, MessagesSquare, LayoutPanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -78,6 +78,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   const [streamingTools, setStreamingTools] = useState<ToolEvent[]>([]);
   const [negotiationMode, setNegotiationMode] = useState(false);
   const [showSources, setShowSources] = useState(true);
+  const [mobilePane, setMobilePane] = useState<"chat" | "panel">("chat");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -245,6 +246,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     setPersistedActiveThreadId(null);
     setMessages([]);
     setStreamingText("");
+    setMobilePane("chat");
     textareaRef.current?.focus();
   };
 
@@ -474,10 +476,54 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
 
   return (
     <div
-      className={cn("flex gap-3 sm:gap-4", embedded ? "h-full" : compact ? "h-full" : "h-[calc(100dvh-12rem)] min-h-[500px]")}
+      className={cn("flex flex-col", embedded ? "h-full" : compact ? "h-full" : "h-[calc(100dvh-12rem)] min-h-[500px]")}
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
     >
+      {/* Mobile pane switch — Chat | Панел. Visible only under md. */}
+      <div className="md:hidden mb-2 shrink-0 rounded-xl border border-border/50 bg-card/40 p-1 backdrop-blur-sm">
+        <div className="grid grid-cols-2 gap-1">
+          <button
+            type="button"
+            onClick={() => setMobilePane("chat")}
+            className={cn(
+              "inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] font-semibold transition-all",
+              mobilePane === "chat"
+                ? "bg-gradient-to-b from-gold to-gold/80 text-navy shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.5)]"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            aria-pressed={mobilePane === "chat"}
+          >
+            <MessagesSquare className="h-3.5 w-3.5" />
+            <span>Чат</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobilePane("panel")}
+            className={cn(
+              "relative inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] font-semibold transition-all",
+              mobilePane === "panel"
+                ? "bg-gradient-to-b from-gold to-gold/80 text-navy shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.5)]"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            aria-pressed={mobilePane === "panel"}
+          >
+            <LayoutPanelLeft className="h-3.5 w-3.5" />
+            <span>Панел</span>
+            {threads.length > 0 && (
+              <span className={cn(
+                "ml-0.5 inline-flex min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold tabular-nums",
+                mobilePane === "panel" ? "bg-navy/15 text-navy" : "bg-muted text-muted-foreground",
+              )}>
+                {threads.length}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-1 gap-3 sm:gap-4 min-h-0">
+
       {/* Threads sidebar */}
       <aside className={cn("w-64 flex-col rounded-xl border border-border/50 bg-card/30 p-3 backdrop-blur-sm", embedded ? "hidden md:flex" : compact ? "hidden" : "hidden md:flex")}>
         <button
@@ -562,8 +608,169 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
         )}
       </aside>
 
+      {/* Mobile-only panel — visible only when panel switch is active on <md. */}
+      <aside className={cn(
+        "flex-1 flex-col rounded-xl border border-border/50 bg-card/30 p-3 backdrop-blur-sm md:hidden",
+        mobilePane === "panel" ? "flex" : "hidden",
+      )}>
+        <button
+          type="button"
+          onClick={handleNewThread}
+          className="mb-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-gold to-gold/80 px-3 py-2.5 text-sm font-bold text-navy shadow-[0_6px_18px_-6px_hsl(var(--gold)/0.5)] active:scale-[0.98]"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Нов разговор</span>
+        </button>
+
+        {/* Quick actions row */}
+        <div className="mb-3 grid grid-cols-2 gap-1.5">
+          <button
+            type="button"
+            onClick={() => { setNegotiationMode((v) => !v); setMobilePane("chat"); }}
+            className={cn(
+              "inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-semibold transition-colors",
+              negotiationMode
+                ? "bg-gold/90 text-navy"
+                : "border border-gold/40 bg-gold/[0.06] text-gold hover:bg-gold/15",
+            )}
+          >
+            <Handshake className="h-3.5 w-3.5" />
+            <span>Преговори</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowSources((v) => !v)}
+            className={cn(
+              "inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-semibold transition-colors",
+              showSources ? "bg-gold/15 text-gold" : "border border-border/50 text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            <span>Източници</span>
+          </button>
+          {messages.length > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={shareConversation}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border/50 px-2 py-2 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+              >
+                <Share2 className="h-3.5 w-3.5" />
+                <span>Сподели</span>
+              </button>
+              <button
+                type="button"
+                onClick={exportConversation}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border/50 px-2 py-2 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span>Изтегли</span>
+              </button>
+            </>
+          )}
+        </div>
+
+        <div className="mb-1.5 px-1 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/70">
+          {threads.length > 0 ? "Разговори" : "История"}
+        </div>
+        <ScrollArea className="flex-1 -mx-1 px-1">
+          <div className="space-y-0.5">
+            {threads.length === 0 && (
+              <p className="px-2 py-6 text-center text-[11px] text-muted-foreground/70">
+                Все още няма разговори
+              </p>
+            )}
+            {threads.map((t) => (
+              <div
+                key={t.id}
+                onClick={() => { setPersistedActiveThreadId(t.id); setMobilePane("chat"); }}
+                className={cn(
+                  "group relative flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2.5 text-sm transition-all",
+                  activeThreadId === t.id
+                    ? "bg-gold/10 text-foreground"
+                    : "text-muted-foreground hover:bg-card/60 hover:text-foreground",
+                )}
+              >
+                {activeThreadId === t.id && (
+                  <span className="absolute -left-1 top-1.5 bottom-1.5 w-0.5 rounded-r bg-gold shadow-[0_0_8px_hsl(var(--gold)/0.7)]" />
+                )}
+                <MessageSquare className={cn("h-3.5 w-3.5 shrink-0", activeThreadId === t.id ? "text-gold" : "text-muted-foreground/60")} />
+                <span className="flex-1 truncate">{t.title}</span>
+                <button
+                  onClick={(e) => handleDeleteThread(t.id, e)}
+                  className={cn(
+                    "shrink-0 rounded-md p-1.5 transition-all",
+                    confirmDeleteId === t.id
+                      ? "bg-destructive text-destructive-foreground"
+                      : "text-muted-foreground/70 hover:bg-destructive/15 hover:text-destructive",
+                  )}
+                  aria-label="Изтрий разговор"
+                  type="button"
+                >
+                  {confirmDeleteId === t.id ? <span className="text-[10px] font-bold">?</span> : <Trash2 className="h-3.5 w-3.5" />}
+                </button>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+
+        {/* Sources list on mobile panel */}
+        {allCitations.length > 0 && showSources && (
+          <div className="mt-3 border-t border-border/40 pt-3">
+            <div className="mb-1.5 flex items-center justify-between px-1">
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/70">Източници</span>
+              <span className="rounded-full bg-gold/15 px-1.5 py-0.5 text-[10px] font-bold text-gold">{allCitations.length}</span>
+            </div>
+            <ul className="space-y-1.5 text-xs">
+              {allCitations.slice(0, 8).map((c) => (
+                <li key={c.chunk_id} className="rounded-lg border border-border/40 bg-background/40 p-2">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="inline-flex items-center rounded bg-gold/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-gold">
+                      {c.jurisdiction || "BG"}
+                    </span>
+                    {c.official_url && (
+                      <a href={c.official_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-gold hover:underline">
+                        Отвори ↗
+                      </a>
+                    )}
+                  </div>
+                  <div className="mt-1 font-medium text-foreground">{c.short_code || c.title}</div>
+                  <div className="text-[10px] text-muted-foreground/80">{c.citation_label}</div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Quota card */}
+        {!isPro && !isTeam && (
+          <div className="mt-3 rounded-xl border border-gold/40 bg-gradient-to-br from-gold/15 to-gold/5 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="text-[11px] font-bold text-foreground">Безплатни операции</div>
+              <span className="rounded-md bg-gold/15 px-1.5 py-0.5 text-[10px] font-bold text-gold tabular-nums">
+                {Math.max(0, freeQuota.opsCap - freeQuota.opsUsed)}/{freeQuota.opsCap}
+              </span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/40">
+              <div className="h-full rounded-full bg-gradient-to-r from-gold to-gold/70" style={{ width: `${Math.min(100, (freeQuota.opsUsed / Math.max(1, freeQuota.opsCap)) * 100)}%` }} />
+            </div>
+            <Link
+              to="/account?tab=subscription"
+              className="mt-2.5 flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-b from-gold to-gold/80 px-3 py-1.5 text-[11px] font-bold text-navy shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.5)]"
+            >
+              <Crown className="h-3 w-3" /> До 100 / мес.
+            </Link>
+          </div>
+        )}
+      </aside>
+
       {/* Chat panel */}
-      <div className={cn("flex flex-1 flex-col bg-card/30 backdrop-blur-sm min-w-0", embedded ? "rounded-xl border border-border/50 min-h-0" : compact ? "min-h-0" : "rounded-xl border border-border/50")}>
+      <div className={cn(
+        "flex flex-1 flex-col bg-card/30 backdrop-blur-sm min-w-0",
+        embedded ? "rounded-xl border border-border/50 min-h-0" : compact ? "min-h-0" : "rounded-xl border border-border/50",
+        // Hide on mobile when the panel switch is active.
+        mobilePane === "panel" ? "hidden md:flex" : "flex",
+      )}>
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 px-3 py-2">
           <div className="flex min-w-0 items-center gap-2">
@@ -868,6 +1075,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
           </ScrollArea>
         </aside>
       )}
+      </div>
     </div>
   );
 }
