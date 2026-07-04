@@ -246,6 +246,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     setPersistedActiveThreadId(null);
     setMessages([]);
     setStreamingText("");
+    setMobilePane("chat");
     textareaRef.current?.focus();
   };
 
