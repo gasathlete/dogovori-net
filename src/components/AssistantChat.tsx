@@ -476,10 +476,54 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
 
   return (
     <div
-      className={cn("flex gap-3 sm:gap-4", embedded ? "h-full" : compact ? "h-full" : "h-[calc(100dvh-12rem)] min-h-[500px]")}
+      className={cn("flex flex-col", embedded ? "h-full" : compact ? "h-full" : "h-[calc(100dvh-12rem)] min-h-[500px]")}
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
     >
+      {/* Mobile pane switch — Chat | Панел. Visible only under md. */}
+      <div className="md:hidden mb-2 shrink-0 rounded-xl border border-border/50 bg-card/40 p-1 backdrop-blur-sm">
+        <div className="grid grid-cols-2 gap-1">
+          <button
+            type="button"
+            onClick={() => setMobilePane("chat")}
+            className={cn(
+              "inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] font-semibold transition-all",
+              mobilePane === "chat"
+                ? "bg-gradient-to-b from-gold to-gold/80 text-navy shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.5)]"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            aria-pressed={mobilePane === "chat"}
+          >
+            <MessagesSquare className="h-3.5 w-3.5" />
+            <span>Чат</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobilePane("panel")}
+            className={cn(
+              "relative inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] font-semibold transition-all",
+              mobilePane === "panel"
+                ? "bg-gradient-to-b from-gold to-gold/80 text-navy shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.5)]"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            aria-pressed={mobilePane === "panel"}
+          >
+            <LayoutPanelLeft className="h-3.5 w-3.5" />
+            <span>Панел</span>
+            {threads.length > 0 && (
+              <span className={cn(
+                "ml-0.5 inline-flex min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold tabular-nums",
+                mobilePane === "panel" ? "bg-navy/15 text-navy" : "bg-muted text-muted-foreground",
+              )}>
+                {threads.length}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-1 gap-3 sm:gap-4 min-h-0">
+
       {/* Threads sidebar */}
       <aside className={cn("w-64 flex-col rounded-xl border border-border/50 bg-card/30 p-3 backdrop-blur-sm", embedded ? "hidden md:flex" : compact ? "hidden" : "hidden md:flex")}>
         <button
