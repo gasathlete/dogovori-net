@@ -742,8 +742,11 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 </Button>
               </div>
             </div>
-            {/* Bottom toggle bar — Преговори (action) · Източници · AI избира */}
-            <div className="flex flex-wrap items-center gap-1.5 border-t border-border/40 px-2 py-1.5">
+            {/* Bottom toggle bar — Преговори · Източници. Kept minimal on mobile. */}
+            <div className={cn(
+              "flex flex-wrap items-center gap-1.5 px-2 py-1.5",
+              (compact || embedded) ? "" : "border-t border-border/40",
+            )}>
               <button
                 type="button"
                 onClick={() => setNegotiationMode((v) => !v)}
@@ -774,16 +777,20 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 <BookOpen className="h-3 w-3" />
                 <span>Източници</span>
               </button>
-              <span className="ml-auto inline-flex items-center gap-1 rounded-md bg-muted/30 px-2 py-1 text-[10px] font-medium text-muted-foreground" title="Моделът се избира автоматично">
-                <Crown className="h-2.5 w-2.5 text-gold" />
-                AI избира
-              </span>
+              {!compact && !embedded && (
+                <span className="ml-auto hidden sm:inline-flex items-center gap-1 rounded-md bg-muted/30 px-2 py-1 text-[10px] font-medium text-muted-foreground" title="Моделът се избира автоматично">
+                  <Crown className="h-2.5 w-2.5 text-gold" />
+                  AI избира
+                </span>
+              )}
             </div>
           </div>
-          <p className="mt-1.5 flex items-center justify-center gap-1 text-[10px] text-muted-foreground/60">
-            <AlertCircle className="h-2.5 w-2.5" />
-            Enter за изпращане · Shift+Enter за нов ред · Общи насоки, не правен съвет.
-          </p>
+          {!compact && !embedded && (
+            <p className="mt-1.5 flex items-center justify-center gap-1 text-[10px] text-muted-foreground/60">
+              <AlertCircle className="h-2.5 w-2.5" />
+              Enter за изпращане · Shift+Enter за нов ред · Общи насоки, не правен съвет.
+            </p>
+          )}
         </form>
       </div>
 
