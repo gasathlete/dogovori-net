@@ -1075,6 +1075,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
           </ScrollArea>
         </aside>
       )}
+      </div>
     </div>
   );
 }
