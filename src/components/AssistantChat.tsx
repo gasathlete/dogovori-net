@@ -883,54 +883,49 @@ function MessageBubble({ role, content, isStreaming, citations, toolEvents, foll
         <Bird className="h-3 w-3 text-gold" />
       </div>
       <div className="max-w-[85%] flex-1 text-sm text-foreground">
-        {isStreaming && !hasText ? (
-          <div className="flex items-center gap-1.5 py-2 text-muted-foreground">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            <span className="text-xs">Мисля...</span>
-          </div>
-        ) : (
-          <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:mt-3 prose-headings:mb-1 prose-a:text-gold prose-a:no-underline hover:prose-a:underline prose-strong:text-foreground prose-code:text-gold prose-code:bg-card/60 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
-            {hasText && (
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  a: ({ href, children, ...props }) => {
-                    if (href?.startsWith("/")) {
-                      return <Link to={href} className="text-gold hover:underline" {...(props as any)}>{children}</Link>;
-                    }
-                    return <a href={href} target="_blank" rel="noopener noreferrer" className="text-gold hover:underline" {...props}>{children}</a>;
-                  },
-                }}
-              >
-                {content}
-              </ReactMarkdown>
-            )}
-            {toolEvents && toolEvents.length > 0 && (
-              <div className="not-prose space-y-1">
-                {toolEvents.map((ev) => (
-                  <AssistantToolCard key={ev.id} event={ev} onSendMessage={handleToolMessage} />
-                ))}
-              </div>
-            )}
-            {citations && citations.length > 0 && <LegalCitations citations={citations} />}
-            {followups && followups.length > 0 && (
-              <div className="not-prose mt-3 flex flex-wrap gap-2">
-                {followups.map((f, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => onFollowupClick?.(f)}
-                    className="rounded-full border border-gold/40 bg-gold/5 px-3 py-1.5 text-xs text-foreground transition-colors hover:border-gold hover:bg-gold/15"
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+        {isStreaming && (
+          <AssistantThinkingStatus toolEvents={toolEvents} compact />
         )}
+        <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:mt-3 prose-headings:mb-1 prose-a:text-gold prose-a:no-underline hover:prose-a:underline prose-strong:text-foreground prose-code:text-gold prose-code:bg-card/60 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
+          {hasText && (
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                a: ({ href, children, ...props }) => {
+                  if (href?.startsWith("/")) {
+                    return <Link to={href} className="text-gold hover:underline" {...(props as any)}>{children}</Link>;
+                  }
+                  return <a href={href} target="_blank" rel="noopener noreferrer" className="text-gold hover:underline" {...props}>{children}</a>;
+                },
+              }}
+            >
+              {content}
+            </ReactMarkdown>
+          )}
+          {toolEvents && toolEvents.length > 0 && (
+            <div className="not-prose space-y-1">
+              {toolEvents.map((ev) => (
+                <AssistantToolCard key={ev.id} event={ev} onSendMessage={handleToolMessage} />
+              ))}
+            </div>
+          )}
+          {citations && citations.length > 0 && <LegalCitations citations={citations} />}
+          {followups && followups.length > 0 && (
+            <div className="not-prose mt-3 flex flex-wrap gap-2">
+              {followups.map((f, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onFollowupClick?.(f)}
+                  className="rounded-full border border-gold/40 bg-gold/5 px-3 py-1.5 text-xs text-foreground transition-colors hover:border-gold hover:bg-gold/15"
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
-
 }
