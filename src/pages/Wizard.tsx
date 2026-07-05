@@ -767,7 +767,7 @@ export default function WizardPage() {
                   </Button>
                   {isLast ? (
                     <Button
-                      onClick={() => { if (!canNext) { setAttemptedNext(true); return; } handleGenerate(); }}
+                      onClick={() => { if (!canNext) { setAttemptedNext(true); focusFirstEmpty(); return; } handleGenerate(); }}
                       disabled={generating}
                       size="lg"
                       className="h-11 bg-gradient-gold text-navy shadow-gold hover:shadow-[0_15px_50px_-10px_hsl(43_55%_54%_/_0.5)]"
