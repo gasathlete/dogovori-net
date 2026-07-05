@@ -108,6 +108,35 @@ export default function WizardPage() {
   const [applyingCorrections, setApplyingCorrections] = useState(false);
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(persisted?.appliedNotes);
   const [attemptedNext, setAttemptedNext] = useState(false);
+  const questionCardRef = useRef<HTMLDivElement>(null);
+
+  const focusFirstEmpty = () => {
+    requestAnimationFrame(() => {
+      const root = questionCardRef.current;
+      if (!root) return;
+      const candidates = Array.from(
+        root.querySelectorAll<HTMLElement>(
+          'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), [role="combobox"]:not([disabled])',
+        ),
+      );
+      const target =
+        candidates.find((el) => {
+          if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+            return !el.value?.trim();
+          }
+          // Radix Select trigger
+          return el.getAttribute("data-placeholder") != null || !el.textContent?.trim();
+        }) ?? candidates[0];
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => {
+          try { target.focus({ preventScroll: true }); } catch { /* ignore */ }
+        }, 300);
+      } else {
+        root.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    });
+  };
 
   // Filter top-level questions based on conditional logic. За групите — филтрираме самата група
   // ако всички ѝ полета се скрият; вътрешното филтриране на полета става в QuestionField.
