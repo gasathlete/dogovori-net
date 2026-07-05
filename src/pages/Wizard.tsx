@@ -787,7 +787,7 @@ export default function WizardPage() {
                   ) : (
                     <Button
                       onClick={() => {
-                        if (!canNext) { setAttemptedNext(true); return; }
+                        if (!canNext) { setAttemptedNext(true); focusFirstEmpty(); return; }
                         setAttemptedNext(false);
                         setStepIdx((i) => i + 1);
                         setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
