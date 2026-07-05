@@ -706,7 +706,8 @@ export default function WizardPage() {
             />
 
             {!result && current && (
-              <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft animate-fade-in">
+              <div ref={questionCardRef} className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft animate-fade-in">
+
                 <div className="mb-4 flex items-center gap-2 text-xs uppercase tracking-wider text-gold">
                   <span>Въпрос {safeIdx + 1}</span>
                   <span className="text-muted-foreground">/ {total}</span>
