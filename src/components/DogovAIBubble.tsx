@@ -379,7 +379,7 @@ export function DogovAIBubble() {
         aria-label={open ? "Затвори DogovaryAI" : "Отвори DogovaryAI чат"}
         title="DogovaryAI"
         className={cn(
-          "fixed bottom-4 right-4 z-40 sm:bottom-5 sm:right-5",
+          "fixed bottom-20 left-1/2 -translate-x-1/2 z-40 sm:bottom-24",
           "group flex items-center gap-2 rounded-full",
           "h-11 pl-1.5 pr-3 sm:h-12 sm:pl-2 sm:pr-3.5",
           "bg-card/55 backdrop-blur-md text-foreground ring-1 ring-gold/30",
