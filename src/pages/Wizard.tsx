@@ -108,6 +108,35 @@ export default function WizardPage() {
   const [applyingCorrections, setApplyingCorrections] = useState(false);
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(persisted?.appliedNotes);
   const [attemptedNext, setAttemptedNext] = useState(false);
+  const questionCardRef = useRef<HTMLDivElement>(null);
+
+  const focusFirstEmpty = () => {
+    requestAnimationFrame(() => {
+      const root = questionCardRef.current;
+      if (!root) return;
+      const candidates = Array.from(
+        root.querySelectorAll<HTMLElement>(
+          'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), [role="combobox"]:not([disabled])',
+        ),
+      );
+      const target =
+        candidates.find((el) => {
+          if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+            return !el.value?.trim();
+          }
+          // Radix Select trigger
+          return el.getAttribute("data-placeholder") != null || !el.textContent?.trim();
+        }) ?? candidates[0];
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => {
+          try { target.focus({ preventScroll: true }); } catch { /* ignore */ }
+        }, 300);
+      } else {
+        root.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    });
+  };
 
   // Filter top-level questions based on conditional logic. За групите — филтрираме самата група
   // ако всички ѝ полета се скрият; вътрешното филтриране на полета става в QuestionField.
@@ -677,7 +706,8 @@ export default function WizardPage() {
             />
 
             {!result && current && (
-              <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft animate-fade-in">
+              <div ref={questionCardRef} className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft animate-fade-in">
+
                 <div className="mb-4 flex items-center gap-2 text-xs uppercase tracking-wider text-gold">
                   <span>Въпрос {safeIdx + 1}</span>
                   <span className="text-muted-foreground">/ {total}</span>
@@ -737,7 +767,7 @@ export default function WizardPage() {
                   </Button>
                   {isLast ? (
                     <Button
-                      onClick={() => { if (!canNext) { setAttemptedNext(true); return; } handleGenerate(); }}
+                      onClick={() => { if (!canNext) { setAttemptedNext(true); focusFirstEmpty(); return; } handleGenerate(); }}
                       disabled={generating}
                       size="lg"
                       className="h-11 bg-gradient-gold text-navy shadow-gold hover:shadow-[0_15px_50px_-10px_hsl(43_55%_54%_/_0.5)]"
@@ -757,7 +787,7 @@ export default function WizardPage() {
                   ) : (
                     <Button
                       onClick={() => {
-                        if (!canNext) { setAttemptedNext(true); return; }
+                        if (!canNext) { setAttemptedNext(true); focusFirstEmpty(); return; }
                         setAttemptedNext(false);
                         setStepIdx((i) => i + 1);
                         setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
