@@ -407,7 +407,7 @@ export function DogovAIBubble() {
         <div
           role="dialog"
           aria-label="Избери размер на DogovaryAI"
-          className="fixed bottom-20 right-4 z-40 w-[min(320px,calc(100vw-2rem))] rounded-2xl border border-gold/30 bg-card p-3 shadow-2xl sm:bottom-24 sm:right-5"
+          className="fixed bottom-32 left-1/2 -translate-x-1/2 z-40 w-[min(320px,calc(100vw-2rem))] rounded-2xl border border-gold/30 bg-card p-3 shadow-2xl sm:bottom-36"
         >
           <div className="mb-2 flex items-center justify-between">
             <div className="text-xs font-semibold text-foreground">Как да отворя DogovaryAI?</div>
