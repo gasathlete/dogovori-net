@@ -120,7 +120,7 @@ export function PlanWelcomeDialog() {
   const Icon = copy.icon;
 
   const dismiss = () => {
-    try { window.localStorage.setItem(copy.storageKey, "1"); } catch { /* ignore */ }
+    try { window.localStorage.setItem(scopedKey(copy.storageKey), "1"); } catch { /* ignore */ }
     setOpen(false);
   };
 
