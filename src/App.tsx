@@ -22,7 +22,7 @@ const lazy = <T extends ComponentType<any>>(factory: () => Promise<{ default: T 
   );
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { detectLocaleFromPath, setLocale, stripLocaleFromPath } from "@/i18n";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster as Sonner } from "@/components/ui/sonner";
