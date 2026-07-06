@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
 import { markFunnelStep } from "@/lib/funnel";
 import { Link } from "react-router-dom";
 import { ShieldCheck, Bird, FileText, Search, FileSignature, Command, ArrowRight, FileUp, Wand2, Bot, ShieldAlert, Languages, Package, ChevronRight } from "lucide-react";
@@ -6,11 +6,11 @@ const logoImg = "/logo-dogovori-hero.webp";
 import { scrollToHash } from "@/lib/scrollToHash";
 import type { BusinessQuote } from "@/lib/businessQuotes";
 import { useMagneticHover } from "@/hooks/useMagneticHover";
-import { TeaserDialog } from "@/components/TeaserDialog";
 import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { ConversationalHeroInput } from "@/components/funnel/ConversationalHeroInput";
-import { openStartStory } from "@/components/funnel/StartStoryOverlay";
 import { useAuth } from "@/hooks/useAuth";
+
+const TeaserDialog = lazy(() => import("@/components/TeaserDialog").then((m) => ({ default: m.TeaserDialog })));
 
 export function Hero({ onStart: _onStart }: { onStart: () => void }) {
   const { user } = useAuth();
