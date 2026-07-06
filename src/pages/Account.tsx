@@ -243,7 +243,9 @@ export default function AccountPage() {
             </Suspense>
           </TabsContent>
           <TabsContent value="signed">
-            <SignedContractsTab userId={user?.id ?? ""} />
+            <Suspense fallback={<TabFallback />}>
+              <SignedContractsTab userId={user?.id ?? ""} />
+            </Suspense>
           </TabsContent>
           <TabsContent value="deals">
             <Suspense fallback={<TabFallback />}>
