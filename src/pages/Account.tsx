@@ -28,6 +28,8 @@ const SubscriptionTab = lazy(() => import("./account/SubscriptionTab"));
 const SettingsTab = lazy(() => import("./account/SettingsTab"));
 const DealsTab = lazy(() => import("./account/DealsTab"));
 const KitsTab = lazy(() => import("./account/KitsTab"));
+const SignedContractsTab = lazy(() => import("@/components/SignedContractsTab").then((m) => ({ default: m.SignedContractsTab })));
+const NotificationsTab = lazy(() => import("@/components/NotificationsTab").then((m) => ({ default: m.NotificationsTab })));
 
 
 function TabFallback() {
