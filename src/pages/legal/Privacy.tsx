@@ -187,7 +187,7 @@ export default function PrivacyPage() {
         <li>Псевдонимизация на PII преди изпращане към AI модели.</li>
         <li>Rate limiting и prompt-injection защита в edge функциите.</li>
         <li>Sentry monitoring; аудит логове с 12-месечно задържане.</li>
-        <li>Тримесечни restore drills и годишен pentest — вж. <a href="/legal/security-policy">Политика за сигурност</a>.</li>
+        <li>Тримесечни restore drills и годишен pentest — вж. <a href="/legal/security">Политика за сигурност</a>.</li>
       </ul>
 
       <h2>14. Уведомяване при пробив (чл. 33–34 GDPR)</h2>
@@ -216,7 +216,7 @@ export default function PrivacyPage() {
         Ежедневна планирана задача (<code>retention-sweeper</code>) автоматично изтрива
         данни, чиито срокове по т. 5 са изтекли. Записва се одиторска следа само за
         факта на изтриване, без съдържание. Пълни срокове по вид данни — виж{" "}
-        <a href="/legal/retention-policy">Политика за задържане</a>.
+        <a href="/legal/retention">Политика за задържане</a>.
       </p>
 
       <h2>17. Промени в политиката</h2>
