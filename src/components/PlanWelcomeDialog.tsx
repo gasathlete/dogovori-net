@@ -7,6 +7,7 @@ import {
   Zap, Users, LayoutDashboard, PenTool, Languages, BarChart3, LucideIcon,
 } from "lucide-react";
 import { useIsPro } from "@/hooks/useIsPro";
+import { useAuth } from "@/hooks/useAuth";
 
 /**
  * Elegant, "digital" welcome dialog that appears exactly once per user
