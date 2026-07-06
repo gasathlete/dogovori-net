@@ -32,10 +32,8 @@ import { isValidEGN, isValidEIK } from "@/lib/bgValidation";
 import { translateAuthError } from "@/lib/authErrors";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { Seo } from "@/components/Seo";
-import {
-  ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid,
-  Tooltip as RTooltip, Legend, AreaChart, Area, LineChart, Line, ReferenceLine,
-} from "recharts";
+// Recharts is lazy-loaded via DashboardCharts to keep it off the account entry chunk.
+const DashboardCharts = lazy(() => import("./DashboardCharts"));
 import { getUnlockedTiers, getNextTier, REWARD_TIERS } from "@/lib/rewards";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { ReferralCard } from "@/components/funnel/ReferralCard";
