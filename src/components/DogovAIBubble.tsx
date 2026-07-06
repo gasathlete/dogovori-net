@@ -200,17 +200,19 @@ function AnonChat({ resetKey }: { resetKey: number }) {
               )}
             >
               {m.role === "assistant" ? (
-                <ReactMarkdown
-                  components={{
-                    a: ({ href, children }) => (
-                      <a href={href} target={href?.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer">
-                        {children}
-                      </a>
-                    ),
-                  }}
-                >
-                  {m.content}
-                </ReactMarkdown>
+                <Suspense fallback={<span className="whitespace-pre-wrap">{m.content}</span>}>
+                  <ReactMarkdown
+                    components={{
+                      a: ({ href, children }) => (
+                        <a href={href} target={href?.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer">
+                          {children}
+                        </a>
+                      ),
+                    }}
+                  >
+                    {m.content}
+                  </ReactMarkdown>
+                </Suspense>
               ) : (
                 m.content
               )}
