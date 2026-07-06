@@ -63,7 +63,7 @@ export function useFunnelCta(step: FunnelStep): FunnelCta {
       label: "Анализирай документ",
       href: "/analiz",
       variant: "primary",
-      subLabel: "1 операция от безплатния пакет",
+      subLabel: "Остава 1 безплатна · Активирай 7-дневен trial",
     };
   return {
     label: "Активирай Предприемач — 7 дни безплатно",
