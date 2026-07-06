@@ -388,23 +388,7 @@ const App = () => (
         <ScrollToTop />
         <AuthProvider>
           <OnboardingProvider>
-          <Suspense fallback={null}>
-            <PaymentTestModeBanner />
-            <CookieBanner />
-            <BetaDisclaimerModal />
-            <AIDisclaimerModal />
-            <ExitIntentLeadMagnet />
-            <UsernamePrompt />
-            <GlobalProUpgradeListener />
-            <CommandPalette />
-            <FloatingCommandTrigger />
-            <DogovAIBubble />
-            <MobileBottomNav />
-            <ActionCelebrationHost />
-            <AuthGateModal />
-            <StartStoryOverlay />
-            <EntrepreneurAdPopup />
-          </Suspense>
+          <DeferredOverlays />
           <Suspense fallback={<RouteFallback />}>
             <AnimatedRoutes />
           </Suspense>
