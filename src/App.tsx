@@ -22,7 +22,7 @@ const lazy = <T extends ComponentType<any>>(factory: () => Promise<{ default: T 
   );
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { detectLocaleFromPath, setLocale, stripLocaleFromPath } from "@/i18n";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -214,6 +214,46 @@ const RouteFallback = () => (
   </div>
 );
 
+/**
+ * Mount non-critical global overlays (bubbles, banners, exit-intent, etc.)
+ * only after the browser is idle. Keeps the initial paint focused on the
+ * primary route and delays ~15 lazy chunk fetches that used to compete with
+ * the LCP image and route bundle.
+ */
+function DeferredOverlays() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const idle =
+      (window as any).requestIdleCallback ??
+      ((cb: () => void) => setTimeout(cb, 1500));
+    const cancel =
+      (window as any).cancelIdleCallback ?? ((h: number) => clearTimeout(h));
+    const handle = idle(() => setReady(true), { timeout: 3000 });
+    return () => cancel(handle);
+  }, []);
+  if (!ready) return null;
+  return (
+    <Suspense fallback={null}>
+      <PaymentTestModeBanner />
+      <CookieBanner />
+      <BetaDisclaimerModal />
+      <AIDisclaimerModal />
+      <ExitIntentLeadMagnet />
+      <UsernamePrompt />
+      <GlobalProUpgradeListener />
+      <CommandPalette />
+      <FloatingCommandTrigger />
+      <DogovAIBubble />
+      <MobileBottomNav />
+      <ActionCelebrationHost />
+      <AuthGateModal />
+      <StartStoryOverlay />
+      <EntrepreneurAdPopup />
+    </Suspense>
+  );
+}
+
+
 const AnimatedRoutes = () => {
   const location = useLocation();
   const locale = detectLocaleFromPath(location.pathname);
@@ -348,23 +388,7 @@ const App = () => (
         <ScrollToTop />
         <AuthProvider>
           <OnboardingProvider>
-          <Suspense fallback={null}>
-            <PaymentTestModeBanner />
-            <CookieBanner />
-            <BetaDisclaimerModal />
-            <AIDisclaimerModal />
-            <ExitIntentLeadMagnet />
-            <UsernamePrompt />
-            <GlobalProUpgradeListener />
-            <CommandPalette />
-            <FloatingCommandTrigger />
-            <DogovAIBubble />
-            <MobileBottomNav />
-            <ActionCelebrationHost />
-            <AuthGateModal />
-            <StartStoryOverlay />
-            <EntrepreneurAdPopup />
-          </Suspense>
+          <DeferredOverlays />
           <Suspense fallback={<RouteFallback />}>
             <AnimatedRoutes />
           </Suspense>

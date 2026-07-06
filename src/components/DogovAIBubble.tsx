@@ -1,13 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { X, Send, Loader2, Sparkles, FileText, Briefcase, ShieldCheck, Scale, ExternalLink, Maximize2, MessageSquare } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import { AssistantChat } from "@/components/AssistantChat";
+// react-markdown (~40KB gz) is only needed after the first assistant message renders.
+const ReactMarkdown = lazy(() => import("react-markdown"));
+// AssistantChat pulls in the full authenticated chat surface — load only when
+// an authenticated user actually opens the bubble.
+const AssistantChat = lazy(() =>
+  import("@/components/AssistantChat").then((m) => ({ default: m.AssistantChat })),
+);
 import { AssistantThinkingStatus } from "@/components/assistant/AssistantThinkingStatus";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 const dogovaiIcon = "/dogovai-favicon.png";
+
 
 const SIZE_PREF_KEY = "dogovai_size_pref"; // "small" | "full"
 
@@ -194,17 +200,19 @@ function AnonChat({ resetKey }: { resetKey: number }) {
               )}
             >
               {m.role === "assistant" ? (
-                <ReactMarkdown
-                  components={{
-                    a: ({ href, children }) => (
-                      <a href={href} target={href?.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer">
-                        {children}
-                      </a>
-                    ),
-                  }}
-                >
-                  {m.content}
-                </ReactMarkdown>
+                <Suspense fallback={<span className="whitespace-pre-wrap">{m.content}</span>}>
+                  <ReactMarkdown
+                    components={{
+                      a: ({ href, children }) => (
+                        <a href={href} target={href?.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer">
+                          {children}
+                        </a>
+                      ),
+                    }}
+                  >
+                    {m.content}
+                  </ReactMarkdown>
+                </Suspense>
               ) : (
                 m.content
               )}
@@ -514,7 +522,15 @@ export function DogovAIBubble() {
             </div>
           </div>
           <div className="min-h-0 flex-1 overflow-hidden">
-            {open && (user ? <AssistantChat compact key={resetKey} /> : <AnonChat resetKey={resetKey} />)}
+            {open && (
+              user ? (
+                <Suspense fallback={<div className="flex h-full items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-gold" /></div>}>
+                  <AssistantChat compact key={resetKey} />
+                </Suspense>
+              ) : (
+                <AnonChat resetKey={resetKey} />
+              )
+            )}
           </div>
         </div>
       </div>
