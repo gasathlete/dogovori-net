@@ -14,6 +14,7 @@ const DISMISS_KEY = "funnel_sticky_dismissed_v1";
 
 export function StickyScrollCta() {
   const [visible, setVisible] = useState(false);
+  const [ctaBandVisible, setCtaBandVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const cta = useFunnelCta(2);
   const location = useLocation();
@@ -43,16 +44,30 @@ export function StickyScrollCta() {
     };
   }, []);
 
+  // Auto-hide sticky when the CTABand section is on screen (avoid double CTA).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const el = document.getElementById("cta-band");
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setCtaBandVisible(entry.isIntersecting && entry.intersectionRatio >= 0.3),
+      { threshold: [0, 0.3, 0.6] },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [location.pathname]);
+
   // Only show on the landing page
   if (location.pathname !== "/" || dismissed) return null;
+  const shown = visible && !ctaBandVisible;
 
   return (
     <div
-      aria-hidden={!visible}
+      aria-hidden={!shown}
       className={cn(
         "fixed inset-x-2 z-40 mx-auto max-w-md transition-all duration-300",
         "bottom-[calc(env(safe-area-inset-bottom,0)+72px)] md:bottom-4",
-        visible
+        shown
           ? "translate-y-0 opacity-100"
           : "pointer-events-none translate-y-6 opacity-0",
       )}
