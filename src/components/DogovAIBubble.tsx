@@ -522,7 +522,15 @@ export function DogovAIBubble() {
             </div>
           </div>
           <div className="min-h-0 flex-1 overflow-hidden">
-            {open && (user ? <AssistantChat compact key={resetKey} /> : <AnonChat resetKey={resetKey} />)}
+            {open && (
+              user ? (
+                <Suspense fallback={<div className="flex h-full items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-gold" /></div>}>
+                  <AssistantChat compact key={resetKey} />
+                </Suspense>
+              ) : (
+                <AnonChat resetKey={resetKey} />
+              )
+            )}
           </div>
         </div>
       </div>
