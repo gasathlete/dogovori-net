@@ -5,7 +5,6 @@ import {
   Bird, Loader2, ArrowLeft, Bell, LayoutDashboard, Briefcase, Package,
 } from "lucide-react";
 
-import { NotificationsTab } from "@/components/NotificationsTab";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 
 import { useTeam } from "@/hooks/useTeam";
@@ -14,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { SignedContractsTab } from "@/components/SignedContractsTab";
 import { ShieldCheck, PenTool } from "lucide-react";
 import { Seo } from "@/components/Seo";
 
@@ -30,6 +28,8 @@ const SubscriptionTab = lazy(() => import("./account/SubscriptionTab"));
 const SettingsTab = lazy(() => import("./account/SettingsTab"));
 const DealsTab = lazy(() => import("./account/DealsTab"));
 const KitsTab = lazy(() => import("./account/KitsTab"));
+const SignedContractsTab = lazy(() => import("@/components/SignedContractsTab").then((m) => ({ default: m.SignedContractsTab })));
+const NotificationsTab = lazy(() => import("@/components/NotificationsTab").then((m) => ({ default: m.NotificationsTab })));
 
 
 function TabFallback() {
@@ -81,6 +81,7 @@ export default function AccountPage() {
 
   const reload = async () => {
     if (!user) return;
+    const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const [c, f, d, q, p, uc, ra, cb, cbAll, qsc] = await Promise.all([
       supabase.from("contacts").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("folders").select("*").order("is_favorites", { ascending: false }),
@@ -90,8 +91,8 @@ export default function AccountPage() {
       supabase.from("uploaded_contracts").select("id,title,source,folder_id,contact_id,original_filename,storage_path,created_at").order("created_at", { ascending: false }),
       supabase.from("risk_analyses").select("uploaded_contract_id,score,contract_type,created_at").order("created_at", { ascending: false }),
       supabase.from("corrections_batch_charges").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-      supabase.from("corrections_batch_charges").select("created_at").eq("user_id", user.id).order("created_at", { ascending: true }).limit(5000),
-      supabase.from("quota_session_charges").select("created_at").eq("user_id", user.id).order("created_at", { ascending: true }).limit(5000),
+      supabase.from("corrections_batch_charges").select("created_at").eq("user_id", user.id).gte("created_at", since30).order("created_at", { ascending: true }).limit(1000),
+      supabase.from("quota_session_charges").select("created_at").eq("user_id", user.id).gte("created_at", since30).order("created_at", { ascending: true }).limit(1000),
     ]);
     setContacts((c.data as any) ?? []);
     setFolders((f.data as any) ?? []);
@@ -211,7 +212,9 @@ export default function AccountPage() {
             </Suspense>
           </TabsContent>
           <TabsContent value="notifications">
-            <NotificationsTab />
+            <Suspense fallback={<TabFallback />}>
+              <NotificationsTab />
+            </Suspense>
           </TabsContent>
           <TabsContent value="contacts">
             <Suspense fallback={<TabFallback />}>
@@ -241,7 +244,9 @@ export default function AccountPage() {
             </Suspense>
           </TabsContent>
           <TabsContent value="signed">
-            <SignedContractsTab userId={user?.id ?? ""} />
+            <Suspense fallback={<TabFallback />}>
+              <SignedContractsTab userId={user?.id ?? ""} />
+            </Suspense>
           </TabsContent>
           <TabsContent value="deals">
             <Suspense fallback={<TabFallback />}>

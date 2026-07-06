@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
 import { markFunnelStep } from "@/lib/funnel";
 import { Link } from "react-router-dom";
 import { ShieldCheck, Bird, FileText, Search, FileSignature, Command, ArrowRight, FileUp, Wand2, Bot, ShieldAlert, Languages, Package, ChevronRight } from "lucide-react";
@@ -6,11 +6,11 @@ const logoImg = "/logo-dogovori-hero.webp";
 import { scrollToHash } from "@/lib/scrollToHash";
 import type { BusinessQuote } from "@/lib/businessQuotes";
 import { useMagneticHover } from "@/hooks/useMagneticHover";
-import { TeaserDialog } from "@/components/TeaserDialog";
 import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { ConversationalHeroInput } from "@/components/funnel/ConversationalHeroInput";
-import { openStartStory } from "@/components/funnel/StartStoryOverlay";
 import { useAuth } from "@/hooks/useAuth";
+
+const TeaserDialog = lazy(() => import("@/components/TeaserDialog").then((m) => ({ default: m.TeaserDialog })));
 
 export function Hero({ onStart: _onStart }: { onStart: () => void }) {
   const { user } = useAuth();
@@ -198,7 +198,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
                     type="button"
                     onClick={() => {
                       try { (window as any).plausible?.("funnel_cta_click", { props: { step: 1, label: "Започни безплатно", trigger: "story" } }); } catch {}
-                      openStartStory();
+                      import("@/components/funnel/StartStoryOverlay").then((m) => m.openStartStory());
                     }}
                     className="btn-gold btn-sheen btn-press relative w-full sm:w-auto normal-case tracking-normal text-[16px] sm:text-[17px] px-8 py-4 sm:px-10 sm:py-4 rounded-xl font-bold shadow-gold will-change-transform"
                     style={{ transition: "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms, background 200ms" }}
@@ -309,7 +309,11 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
       </div>
 
       <div className="absolute inset-x-0 bottom-0 hairline-x opacity-60" />
-      <TeaserDialog open={teaserOpen} onOpenChange={setTeaserOpen} />
+      {teaserOpen && (
+        <Suspense fallback={null}>
+          <TeaserDialog open={teaserOpen} onOpenChange={setTeaserOpen} />
+        </Suspense>
+      )}
     </section>
   );
 }
