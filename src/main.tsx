@@ -22,7 +22,10 @@ function isChunkLoadError(message: string | undefined): boolean {
   return (
     message.includes("Failed to fetch dynamically imported module") ||
     message.includes("Importing a module script failed") ||
-    message.includes("error loading dynamically imported module")
+    message.includes("error loading dynamically imported module") ||
+    message.includes("module script failed") ||
+    message.includes("Failed to load module script") ||
+    message.includes("Unable to preload CSS")
   );
 }
 function handleStaleChunk(message: string | undefined) {
@@ -32,7 +35,11 @@ function handleStaleChunk(message: string | undefined) {
     if (Date.now() - last < 10_000) return; // avoid reload loops
     sessionStorage.setItem(STALE_RELOAD_KEY, String(Date.now()));
   } catch {}
-  window.location.reload();
+  // Cache-bust so the browser refetches index.html and picks up the new
+  // asset manifest, instead of replaying the stale hashed chunk references.
+  const url = new URL(window.location.href);
+  url.searchParams.set("_r", String(Date.now()));
+  window.location.replace(url.toString());
 }
 window.addEventListener("error", (e) => handleStaleChunk(e?.message));
 window.addEventListener("unhandledrejection", (e) =>
