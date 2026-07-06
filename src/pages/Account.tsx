@@ -5,7 +5,6 @@ import {
   Bird, Loader2, ArrowLeft, Bell, LayoutDashboard, Briefcase, Package,
 } from "lucide-react";
 
-import { NotificationsTab } from "@/components/NotificationsTab";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 
 import { useTeam } from "@/hooks/useTeam";
@@ -14,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { SignedContractsTab } from "@/components/SignedContractsTab";
 import { ShieldCheck, PenTool } from "lucide-react";
 import { Seo } from "@/components/Seo";
 
