@@ -81,6 +81,7 @@ export default function AccountPage() {
 
   const reload = async () => {
     if (!user) return;
+    const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const [c, f, d, q, p, uc, ra, cb, cbAll, qsc] = await Promise.all([
       supabase.from("contacts").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("folders").select("*").order("is_favorites", { ascending: false }),
@@ -90,8 +91,8 @@ export default function AccountPage() {
       supabase.from("uploaded_contracts").select("id,title,source,folder_id,contact_id,original_filename,storage_path,created_at").order("created_at", { ascending: false }),
       supabase.from("risk_analyses").select("uploaded_contract_id,score,contract_type,created_at").order("created_at", { ascending: false }),
       supabase.from("corrections_batch_charges").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-      supabase.from("corrections_batch_charges").select("created_at").eq("user_id", user.id).order("created_at", { ascending: true }).limit(5000),
-      supabase.from("quota_session_charges").select("created_at").eq("user_id", user.id).order("created_at", { ascending: true }).limit(5000),
+      supabase.from("corrections_batch_charges").select("created_at").eq("user_id", user.id).gte("created_at", since30).order("created_at", { ascending: true }).limit(1000),
+      supabase.from("quota_session_charges").select("created_at").eq("user_id", user.id).gte("created_at", since30).order("created_at", { ascending: true }).limit(1000),
     ]);
     setContacts((c.data as any) ?? []);
     setFolders((f.data as any) ?? []);
