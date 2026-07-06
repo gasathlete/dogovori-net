@@ -370,6 +370,16 @@ export function DogovAIBubble() {
   if (loading) return null;
   if (HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) return null;
 
+  // Center at the bottom only inside the wizard fill-in flow on mobile.
+  // Everywhere else (and on desktop) keep the original bottom-right position.
+  const isWizardRoute = pathname.startsWith("/wizard");
+  const bubblePosition = isWizardRoute
+    ? "fixed bottom-20 left-1/2 -translate-x-1/2 sm:bottom-6 sm:left-auto sm:right-6 sm:translate-x-0"
+    : "fixed bottom-6 right-6";
+  const chooserPosition = isWizardRoute
+    ? "fixed bottom-32 left-1/2 -translate-x-1/2 sm:bottom-20 sm:left-auto sm:right-6 sm:translate-x-0"
+    : "fixed bottom-20 right-6";
+
   return (
     <>
       {/* Bubble — translucent at rest, opaque on hover */}
@@ -379,7 +389,8 @@ export function DogovAIBubble() {
         aria-label={open ? "Затвори DogovaryAI" : "Отвори DogovaryAI чат"}
         title="DogovaryAI"
         className={cn(
-          "fixed bottom-20 left-1/2 -translate-x-1/2 z-40 sm:bottom-24",
+          bubblePosition,
+          "z-40",
           "group flex items-center gap-2 rounded-full",
           "h-11 pl-1.5 pr-3 sm:h-12 sm:pl-2 sm:pr-3.5",
           "bg-card/55 backdrop-blur-md text-foreground ring-1 ring-gold/30",
@@ -407,8 +418,12 @@ export function DogovAIBubble() {
         <div
           role="dialog"
           aria-label="Избери размер на DogovaryAI"
-          className="fixed bottom-32 left-1/2 -translate-x-1/2 z-40 w-[min(320px,calc(100vw-2rem))] rounded-2xl border border-gold/30 bg-card p-3 shadow-2xl sm:bottom-36"
+          className={cn(
+            chooserPosition,
+            "z-40 w-[min(320px,calc(100vw-2rem))] rounded-2xl border border-gold/30 bg-card p-3 shadow-2xl",
+          )}
         >
+
           <div className="mb-2 flex items-center justify-between">
             <div className="text-xs font-semibold text-foreground">Как да отворя DogovaryAI?</div>
             <button
