@@ -7,6 +7,7 @@ import {
   Zap, Users, LayoutDashboard, PenTool, Languages, BarChart3, LucideIcon,
 } from "lucide-react";
 import { useIsPro } from "@/hooks/useIsPro";
+import { useAuth } from "@/hooks/useAuth";
 
 /**
  * Elegant, "digital" welcome dialog that appears exactly once per user
@@ -78,36 +79,48 @@ const COPY: Record<PlanKey, PlanCopy> = {
 
 export function PlanWelcomeDialog() {
   const { isPro, isTeam, isEntrepreneur, isProfessional, loading } = useIsPro();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
+
+  // User-scoped storage key so different accounts on same browser each see it once,
+  // and one account never re-sees it after login.
+  const uid = user?.id ?? "anon";
+  const scopedKey = (base: string) => `${base}:u:${uid}`;
 
   // Priority: Team > Entrepreneur > Professional. Only one dialog at a time,
   // and only if the user hasn't already seen this plan's welcome.
   const active = useMemo<PlanKey | null>(() => {
-    if (loading) return null;
+    if (loading || !user) return null;
     if (typeof window === "undefined") return null;
-    const seen = (k: string) => window.localStorage.getItem(k) === "1";
+    const seen = (k: string) => window.localStorage.getItem(scopedKey(k)) === "1";
     if (isTeam && !seen(COPY.team.storageKey)) return "team";
     if (isEntrepreneur && !seen(COPY.entrepreneur.storageKey)) return "entrepreneur";
     if (isProfessional && !seen(COPY.professional.storageKey)) return "professional";
-    // Fallback: legacy users on the old Pro plan without explicit price_id.
     if (isPro && !isTeam && !isEntrepreneur && !isProfessional && !seen(COPY.entrepreneur.storageKey)) {
       return "entrepreneur";
     }
     return null;
-  }, [isPro, isTeam, isEntrepreneur, isProfessional, loading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPro, isTeam, isEntrepreneur, isProfessional, loading, user?.id]);
 
   useEffect(() => {
     if (!active) return;
+    const key = scopedKey(COPY[active].storageKey);
+    // Mark as seen immediately so it never appears twice, even if the user
+    // reloads or navigates away without explicitly dismissing.
+    try { window.localStorage.setItem(key, "1"); } catch { /* ignore */ }
     const t = setTimeout(() => setOpen(true), 500);
     return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
+
 
   if (!active) return null;
   const copy = COPY[active];
   const Icon = copy.icon;
 
   const dismiss = () => {
-    try { window.localStorage.setItem(copy.storageKey, "1"); } catch { /* ignore */ }
+    try { window.localStorage.setItem(scopedKey(copy.storageKey), "1"); } catch { /* ignore */ }
     setOpen(false);
   };
 
