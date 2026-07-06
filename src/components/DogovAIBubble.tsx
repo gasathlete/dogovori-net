@@ -1,13 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { X, Send, Loader2, Sparkles, FileText, Briefcase, ShieldCheck, Scale, ExternalLink, Maximize2, MessageSquare } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import { AssistantChat } from "@/components/AssistantChat";
+// react-markdown (~40KB gz) is only needed after the first assistant message renders.
+const ReactMarkdown = lazy(() => import("react-markdown"));
+// AssistantChat pulls in the full authenticated chat surface — load only when
+// an authenticated user actually opens the bubble.
+const AssistantChat = lazy(() =>
+  import("@/components/AssistantChat").then((m) => ({ default: m.AssistantChat })),
+);
 import { AssistantThinkingStatus } from "@/components/assistant/AssistantThinkingStatus";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 const dogovaiIcon = "/dogovai-favicon.png";
+
 
 const SIZE_PREF_KEY = "dogovai_size_pref"; // "small" | "full"
 
