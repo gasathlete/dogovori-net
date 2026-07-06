@@ -22,7 +22,10 @@ function isChunkLoadError(message: string | undefined): boolean {
   return (
     message.includes("Failed to fetch dynamically imported module") ||
     message.includes("Importing a module script failed") ||
-    message.includes("error loading dynamically imported module")
+    message.includes("error loading dynamically imported module") ||
+    message.includes("module script failed") ||
+    message.includes("Failed to load module script") ||
+    message.includes("Unable to preload CSS")
   );
 }
 function handleStaleChunk(message: string | undefined) {
