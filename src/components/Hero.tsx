@@ -198,7 +198,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
                     type="button"
                     onClick={() => {
                       try { (window as any).plausible?.("funnel_cta_click", { props: { step: 1, label: "Започни безплатно", trigger: "story" } }); } catch {}
-                      openStartStory();
+                      import("@/components/funnel/StartStoryOverlay").then((m) => m.openStartStory());
                     }}
                     className="btn-gold btn-sheen btn-press relative w-full sm:w-auto normal-case tracking-normal text-[16px] sm:text-[17px] px-8 py-4 sm:px-10 sm:py-4 rounded-xl font-bold shadow-gold will-change-transform"
                     style={{ transition: "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms, background 200ms" }}
