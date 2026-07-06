@@ -211,7 +211,9 @@ export default function AccountPage() {
             </Suspense>
           </TabsContent>
           <TabsContent value="notifications">
-            <NotificationsTab />
+            <Suspense fallback={<TabFallback />}>
+              <NotificationsTab />
+            </Suspense>
           </TabsContent>
           <TabsContent value="contacts">
             <Suspense fallback={<TabFallback />}>
