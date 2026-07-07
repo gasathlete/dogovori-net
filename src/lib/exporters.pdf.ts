@@ -264,5 +264,6 @@ export async function exportPDF(
     const ab = doc.output("arraybuffer");
     return new Uint8Array(ab);
   }
-  doc.save(`${fileBase(c.title)}.pdf`);
+  const blob = doc.output("blob");
+  saveAs(blob, `${fileBase(c.title)}.pdf`);
 }
