@@ -14,8 +14,10 @@ export default function ToolDetail() {
   if (!calc) return <Navigate to="/tools" replace />;
 
   const canonical = `/tools/${calc.slug}`;
-  const title = `${calc.shortTitle} – безплатен калкулатор 2026 | Dogovori.net`;
+  // Keep title under ~60 chars: keyword-first, year, brand.
+  const title = `${calc.shortTitle} 2026 – калкулатор | Dogovori.net`;
   const desc = calc.seo.metaDescription;
+  const pageUrl = `https://dogovori.net${canonical}`;
 
   const breadcrumbsLd = {
     "@context": "https://schema.org",
