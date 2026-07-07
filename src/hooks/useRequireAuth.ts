@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { AUTH_GATE_EVENT, type AuthGateDetail } from "@/components/AuthGateModal";
+import { dispatchBuffered } from "@/lib/bufferedEvents";
 
 /**
  * Gate any "operation" (download, upload, AI send, e-sign, …) behind login.
@@ -20,9 +21,7 @@ export function useRequireAuth() {
   return useCallback(
     (detail?: AuthGateDetail) => {
       if (user) return true;
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent(AUTH_GATE_EVENT, { detail: detail ?? {} }));
-      }
+      dispatchBuffered(AUTH_GATE_EVENT, detail ?? {});
       return false;
     },
     [user],

@@ -18,6 +18,7 @@ import { X, ArrowRight, ChevronLeft, ChevronRight, Sparkles } from "lucide-react
 import { TUTORIAL_STEPS } from "@/components/onboarding/tutorialSteps";
 import { trackFunnelEvent } from "@/lib/funnel";
 import { cn } from "@/lib/utils";
+import { dispatchBuffered, drainBufferedEvents } from "@/lib/bufferedEvents";
 
 export const START_STORY_EVENT = "dogovori:start-story";
 const SEEN_KEY = "dgv:start-story:seen";
@@ -47,7 +48,7 @@ export function StartStoryOverlay() {
 
   // Open trigger
   useEffect(() => {
-    const handler = () => {
+    const openStory = () => {
       setIdx(0);
       setProgress(0);
       setIdleProgress(0);
@@ -56,7 +57,11 @@ export function StartStoryOverlay() {
       setOpen(true);
       trackFunnelEvent("story_view", { step: 1 as any, story_idx: 0 });
     };
+    const handler = () => openStory();
     window.addEventListener(START_STORY_EVENT, handler as EventListener);
+    // Replay any dispatches that fired before this overlay mounted
+    // (e.g. hero CTA tapped while the lazy chunk was still loading).
+    drainBufferedEvents(START_STORY_EVENT, () => openStory());
     return () => window.removeEventListener(START_STORY_EVENT, handler as EventListener);
   }, []);
 
@@ -408,5 +413,5 @@ export function StartStoryOverlay() {
  */
 export function openStartStory() {
   if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent(START_STORY_EVENT));
+  dispatchBuffered(START_STORY_EVENT);
 }
