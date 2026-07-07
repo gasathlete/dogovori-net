@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { drainBufferedEvents } from "@/lib/bufferedEvents";
 import { Link, useLocation } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
@@ -42,12 +43,15 @@ export function AuthGateModal() {
   const location = useLocation();
 
   useEffect(() => {
-    const handler = (e: Event) => {
-      const ce = e as CustomEvent<AuthGateDetail>;
-      setDetail(ce.detail || {});
+    const open = (detail: AuthGateDetail) => {
+      setDetail(detail || {});
       setOpen(true);
     };
+    const handler = (e: Event) => open((e as CustomEvent<AuthGateDetail>).detail);
     window.addEventListener(AUTH_GATE_EVENT, handler as EventListener);
+    // Replay any dispatches that happened before this listener mounted
+    // (e.g. a fast click while the overlay chunk was still loading).
+    drainBufferedEvents(AUTH_GATE_EVENT, (d) => open((d as AuthGateDetail) || {}));
     return () => window.removeEventListener(AUTH_GATE_EVENT, handler as EventListener);
   }, []);
 
