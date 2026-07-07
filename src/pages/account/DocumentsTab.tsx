@@ -553,8 +553,29 @@ function DocumentsTab({
                         </div>
                       )}
                     </div>
+                    <div onClick={(e) => e.preventDefault()}>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleExpanded(d.id); }}
+                        aria-expanded={expandedIds.has(d.id)}
+                        aria-controls={`d-actions-${d.id}`}
+                        className="h-9 w-full justify-between gap-2 border-gold/30 text-xs hover:border-gold/60 hover:bg-gold/5 sm:w-auto"
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          <SettingsIcon className="h-3.5 w-3.5" />
+                          Действия
+                        </span>
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform ${expandedIds.has(d.id) ? "rotate-180" : ""}`}
+                        />
+                      </Button>
+                    </div>
+                    {expandedIds.has(d.id) && (
                     <div
-                      className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6"
+                      id={`d-actions-${d.id}`}
+                      className="mt-2 grid grid-cols-2 gap-2 rounded-lg border border-border/50 bg-background/40 p-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6"
                       onClick={(e) => e.preventDefault()}
                     >
                       <Button size="sm" variant="outline" className="h-10 w-full sm:h-9 sm:w-auto" disabled={busy === d.id + "pdf"} onClick={() => redownload(d, "pdf")}>
@@ -617,6 +638,7 @@ function DocumentsTab({
                         </Button>
                       )}
                     </div>
+                    )}
                   </div>
                 </Link>
               );})}
