@@ -91,7 +91,8 @@ export async function exportTemplatePDF(t: CompanionTemplate, opts?: WatermarkOp
     const ab = doc.output("arraybuffer");
     return new Uint8Array(ab);
   }
-  doc.save(`${fileBase(t.title)}.pdf`);
+  const blob = doc.output("blob");
+  saveAs(blob, `${fileBase(t.title)}.pdf`);
 }
 
 export async function exportTemplateDOCX(t: CompanionTemplate, opts?: WatermarkOpts & { returnBlob?: boolean }): Promise<Blob | void> {
