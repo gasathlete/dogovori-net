@@ -50,6 +50,11 @@ export function ensureAIDisclaimerAccepted(): Promise<void> {
       }
     };
     window.addEventListener("ai-disclaimer:resolved", onResolved);
-    window.dispatchEvent(new CustomEvent("ai-disclaimer:request"));
+    // Buffered dispatch — the AIDisclaimerModal drains the buffer on mount,
+    // so a click that fires before the modal chunk has loaded still opens
+    // the dialog instead of being lost.
+    import("@/lib/bufferedEvents").then(({ dispatchBuffered }) =>
+      dispatchBuffered("ai-disclaimer:request"),
+    );
   });
 }

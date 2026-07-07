@@ -4,6 +4,8 @@ import { Bird, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { recordConsents } from "@/lib/consents";
 import { hasAIDisclaimerSession, setAIDisclaimerSession } from "@/lib/aiDisclaimerGate";
+import { drainBufferedEvents } from "@/lib/bufferedEvents";
+import { getOpSessionId } from "@/lib/opSession";
 
 /**
  * Global session-scoped AI disclaimer.
@@ -19,7 +21,6 @@ export function AIDisclaimerModal() {
   useEffect(() => {
     const onRequest = () => {
       if (hasAIDisclaimerSession()) {
-        // Already accepted — short-circuit immediately so the caller proceeds.
         window.dispatchEvent(
           new CustomEvent("ai-disclaimer:resolved", { detail: { accepted: true } }),
         );
@@ -28,6 +29,9 @@ export function AIDisclaimerModal() {
       setOpen(true);
     };
     window.addEventListener("ai-disclaimer:request", onRequest);
+    // Replay any request events that fired before this listener mounted
+    // (e.g. a fast click on "Свали" while the modal chunk was still loading).
+    drainBufferedEvents("ai-disclaimer:request", () => onRequest());
     return () => window.removeEventListener("ai-disclaimer:request", onRequest);
   }, []);
 
@@ -37,7 +41,15 @@ export function AIDisclaimerModal() {
     window.dispatchEvent(
       new CustomEvent("ai-disclaimer:resolved", { detail: { accepted: true } }),
     );
-    recordConsents([{ consent_type: "ai_disclaimer", granted: true }]).catch(() => undefined);
+    recordConsents([{
+      consent_type: "ai_disclaimer",
+      granted: true,
+      metadata: {
+        session_id: getOpSessionId(),
+        accepted_at: new Date().toISOString(),
+        path: typeof window !== "undefined" ? window.location.pathname : null,
+      },
+    }]).catch(() => undefined);
   };
 
   const cancel = () => {
