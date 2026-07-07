@@ -1,26 +1,47 @@
-// Plausible Analytics wrapper. Cookieless, GDPR-friendly.
-// We additionally store granular cookie-category preferences for compliance
-// with CJEU Planet49 (active opt-in per category).
+// Google Analytics 4 wrapper with GDPR-friendly Consent Mode v2.
+// GA is only loaded and allowed to store data AFTER the user grants the
+// "analytics" cookie category via the cookie banner (CJEU Planet49 compliant).
 
 declare global {
   interface Window {
+    dataLayer?: unknown[];
+    gtag?: (...args: unknown[]) => void;
+    // Legacy Plausible shim — some call sites still invoke window.plausible(...).
+    // Kept as a forwarder to gtag so nothing breaks.
     plausible?: (event: string, options?: { props?: Record<string, unknown>; callback?: () => void }) => void;
   }
 }
 
+export const GA_MEASUREMENT_ID = "G-1LV139YG8J";
+
+/* -------------------- Public event API -------------------- */
+
 export function trackEvent(name: string, props?: Record<string, unknown>) {
   if (typeof window === "undefined") return;
   try {
-    if (getCategoryConsent("analytics")) {
-      window.plausible?.(name, props ? { props } : undefined);
-    }
+    if (!getCategoryConsent("analytics")) return;
+    window.gtag?.("event", name, props ?? {});
   } catch {
     // never break the app
   }
 }
 
 export function trackOutbound(url: string) {
-  trackEvent("Outbound Link: Click", { url });
+  trackEvent("outbound_click", { url });
+}
+
+export function gaPageview(path: string) {
+  if (typeof window === "undefined") return;
+  try {
+    if (!getCategoryConsent("analytics")) return;
+    window.gtag?.("event", "page_view", {
+      page_path: path,
+      page_location: window.location.origin + path,
+      page_title: document.title,
+    });
+  } catch {
+    // ignore
+  }
 }
 
 /* -------------------- Cookie categories (granular consent) -------------------- */
@@ -36,7 +57,6 @@ export interface CookiePrefs {
 }
 
 const PREFS_KEY = "cookie-prefs-v2";
-// Legacy single-value key (kept for backward compatibility)
 const LEGACY_KEY = "cookie-consent";
 
 export const COOKIE_POLICY_VERSION = "2026-05-16";
@@ -46,7 +66,6 @@ export function getCookiePrefs(): CookiePrefs | null {
   try {
     const raw = localStorage.getItem(PREFS_KEY);
     if (raw) return JSON.parse(raw) as CookiePrefs;
-    // Migrate legacy "granted/denied" → all-in / necessary-only
     const legacy = localStorage.getItem(LEGACY_KEY);
     if (legacy === "granted" || legacy === "denied") {
       const migrated: CookiePrefs = {
@@ -75,8 +94,8 @@ export function setCookiePrefs(p: Omit<CookiePrefs, "necessary" | "version" | "d
     decided_at: new Date().toISOString(),
   };
   localStorage.setItem(PREFS_KEY, JSON.stringify(full));
-  // keep legacy key in sync for any old code paths
   localStorage.setItem(LEGACY_KEY, full.analytics ? "granted" : "denied");
+  applyConsentMode(full);
   if (full.analytics) initAnalytics();
 }
 
@@ -87,7 +106,7 @@ export function getCategoryConsent(c: CookieCategory): boolean {
   return !!p[c];
 }
 
-/* Back-compat exports (other files import these) */
+/* Back-compat */
 export function getConsent(): "granted" | "denied" | null {
   const p = getCookiePrefs();
   if (!p) return null;
@@ -98,26 +117,83 @@ export function setConsent(value: "granted" | "denied") {
   setCookiePrefs({ analytics: value === "granted", marketing: false });
 }
 
-const PLAUSIBLE_SRC = "https://plausible.io/js/pa-z5GPPMfsUGwp_xLchEXZa.js";
+/* -------------------- GA4 loader + Consent Mode v2 -------------------- */
+
+function ensureGtagStub() {
+  if (typeof window === "undefined") return;
+  window.dataLayer = window.dataLayer || [];
+  if (!window.gtag) {
+    window.gtag = function gtag() {
+      // eslint-disable-next-line prefer-rest-params
+      window.dataLayer!.push(arguments);
+    } as typeof window.gtag;
+  }
+}
+
+function applyConsentMode(p: CookiePrefs | null) {
+  ensureGtagStub();
+  const analytics = p?.analytics ? "granted" : "denied";
+  const marketing = p?.marketing ? "granted" : "denied";
+  try {
+    window.gtag?.("consent", "update", {
+      analytics_storage: analytics,
+      ad_storage: marketing,
+      ad_user_data: marketing,
+      ad_personalization: marketing,
+    });
+  } catch {
+    // ignore
+  }
+}
+
+// Set safe defaults for Consent Mode v2 as early as possible.
+if (typeof window !== "undefined") {
+  ensureGtagStub();
+  try {
+    window.gtag?.("consent", "default", {
+      analytics_storage: "denied",
+      ad_storage: "denied",
+      ad_user_data: "denied",
+      ad_personalization: "denied",
+      security_storage: "granted",
+      wait_for_update: 500,
+    });
+    // Legacy Plausible shim → forward to gtag so existing call sites keep working.
+    if (!window.plausible) {
+      window.plausible = (event, options) => {
+        try {
+          window.gtag?.("event", event, options?.props ?? {});
+        } catch { /* ignore */ }
+      };
+    }
+    // Apply current stored prefs (if any) — matters on subsequent page loads.
+    applyConsentMode(getCookiePrefs());
+  } catch { /* ignore */ }
+}
+
+const GTAG_SRC = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
 
 export function initAnalytics() {
   if (typeof window === "undefined" || typeof document === "undefined") return;
-  // Only load Plausible after explicit analytics consent (cookie banner / settings).
   if (!getCategoryConsent("analytics")) return;
-  if (document.querySelector(`script[src="${PLAUSIBLE_SRC}"]`)) return;
+  ensureGtagStub();
+  applyConsentMode(getCookiePrefs());
+  if (document.querySelector(`script[src="${GTAG_SRC}"]`)) return;
   const s = document.createElement("script");
-  s.src = PLAUSIBLE_SRC;
-  s.defer = true;
+  s.src = GTAG_SRC;
+  s.async = true;
   document.head.appendChild(s);
-  try {
-    window.plausible?.("init" as unknown as string);
-  } catch {
-    // never break the app
-  }
+  window.gtag?.("js", new Date());
+  window.gtag?.("config", GA_MEASUREMENT_ID, {
+    anonymize_ip: true,
+    send_page_view: true,
+    transport_type: "beacon",
+  });
 }
 
 export function revokeCookieConsent() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(PREFS_KEY);
   localStorage.removeItem(LEGACY_KEY);
+  applyConsentMode(null);
 }
