@@ -393,30 +393,54 @@ function DocumentsTab({
                         {score != null ? <><strong>{score}</strong>/10</> : "Без анализ"}
                       </div>
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5">
-                      <ShareForSignDialog uploadedContractId={u.id} documentTitle={u.title} triggerClassName="h-10 w-full justify-center sm:h-9 sm:w-auto" />
-                      <DocumentReminderDialog
-                        target={{ uploadedContractId: u.id }}
-                        documentTitle={u.title}
-                        onChanged={reloadReminders}
-                      />
-                      <Select
-                        value={u.folder_id ?? "none"}
-                        onValueChange={async (v) => {
-                          const { error } = await supabase
-                            .from("uploaded_contracts")
-                            .update({ folder_id: v === "none" ? null : v })
-                            .eq("id", u.id);
-                          if (error) toast.error(error.message);
-                          else { toast.success("Преместен"); reload(); }
-                        }}
+                    <div className="mt-3">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => toggleExpanded(u.id)}
+                        aria-expanded={expandedIds.has(u.id)}
+                        aria-controls={`u-actions-${u.id}`}
+                        className="h-9 w-full justify-between gap-2 border-gold/30 text-xs hover:border-gold/60 hover:bg-gold/5 sm:w-auto"
                       >
-                        <SelectTrigger className="h-10 w-full text-xs sm:h-9 sm:w-32"><SelectValue placeholder="Папка" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">— Без папка —</SelectItem>
-                          {folders.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                        <span className="inline-flex items-center gap-1.5">
+                          <SettingsIcon className="h-3.5 w-3.5" />
+                          Действия
+                        </span>
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform ${expandedIds.has(u.id) ? "rotate-180" : ""}`}
+                        />
+                      </Button>
+                      {expandedIds.has(u.id) && (
+                        <div
+                          id={`u-actions-${u.id}`}
+                          className="mt-2 grid grid-cols-2 gap-2 rounded-lg border border-border/50 bg-background/40 p-2 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5"
+                        >
+                          <ShareForSignDialog uploadedContractId={u.id} documentTitle={u.title} triggerClassName="h-10 w-full justify-center sm:h-9 sm:w-auto" />
+                          <DocumentReminderDialog
+                            target={{ uploadedContractId: u.id }}
+                            documentTitle={u.title}
+                            onChanged={reloadReminders}
+                          />
+                          <Select
+                            value={u.folder_id ?? "none"}
+                            onValueChange={async (v) => {
+                              const { error } = await supabase
+                                .from("uploaded_contracts")
+                                .update({ folder_id: v === "none" ? null : v })
+                                .eq("id", u.id);
+                              if (error) toast.error(error.message);
+                              else { toast.success("Преместен"); reload(); }
+                            }}
+                          >
+                            <SelectTrigger className="h-10 w-full text-xs sm:h-9 sm:w-32"><SelectValue placeholder="Папка" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">— Без папка —</SelectItem>
+                              {folders.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
