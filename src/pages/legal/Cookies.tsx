@@ -18,7 +18,7 @@ const ROWS: Row[] = [
   { name: "wizard-progress-*", provider: "Dogovori.net (localStorage)", purpose: "Запазва прогреса Ви в Wizard, за да не губите въведени данни.", duration: "До ръчно изтриване или завършване на договора", type: "strict" },
   { name: "aiDisclaimerAccepted", provider: "Dogovori.net (sessionStorage)", purpose: "Помни, че сте приели AI дисклеймъра за текущата сесия.", duration: "До затваряне на браузъра", type: "strict" },
   { name: "__stripe_mid, __stripe_sid", provider: "Stripe (Ирландия)", purpose: "Защита от измами по време на плащане.", duration: "1 година / 30 мин", type: "strict" },
-  { name: "plausible_ignore", provider: "Plausible (Естония)", purpose: "Опционална анонимна аналитика (без лични данни, без cross-site tracking).", duration: "Persistent (само при opt-in)", type: "analytics" },
+  { name: "_ga, _ga_1LV139YG8J", provider: "Google Analytics 4 (Google Ireland)", purpose: "Разграничаване на потребители и сесии за анонимизирана уеб аналитика (IP анонимизация, Consent Mode v2).", duration: "до 24 месеца (само при opt-in)", type: "analytics" },
 ];
 
 const TYPE_LABEL: Record<Row["type"], string> = {
