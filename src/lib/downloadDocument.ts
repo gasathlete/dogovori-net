@@ -110,7 +110,7 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
 
   // Make sure the font is ready before we hand off to jsPDF.
     const fontResult = await fontPromise;
-    if (!fontResult.ok) throw fontResult.error;
+    if (fontResult.ok === false) throw fontResult.error;
 
     if (p.kind === "contract") {
       const c = data.payload as GeneratedContract;
