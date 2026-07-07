@@ -15,6 +15,7 @@ import { RangePicker, rangeToBounds, type AnalyticsRange } from "@/components/ad
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from "recharts";
+import { AiDisclaimerConsentsPanel } from "@/components/admin/AiDisclaimerConsentsPanel";
 
 interface PrivacyKpis {
   total_ai_calls: number;
@@ -286,9 +287,13 @@ export default function AdminPrivacy() {
           <BreakdownCard title="Ограничени обработки – категории" rows={breakdown.restricted_category ?? breakdown.illegal_category ?? []} busy={busy} />
         </div>
 
+        <div className="mt-8">
+          <AiDisclaimerConsentsPanel />
+        </div>
+
         <div className="mt-8 text-xs text-muted-foreground space-y-1">
           <p>• Период: {new Date(bounds.from).toLocaleString("bg-BG")} – {new Date(bounds.to).toLocaleString("bg-BG")}</p>
-          <p>• Източници: <code>ai_audit_log</code> (само метаданни), <code>restricted_processing_events</code>.</p>
+          <p>• Източници: <code>ai_audit_log</code> (само метаданни), <code>restricted_processing_events</code>, <code>user_consents</code>.</p>
           <p>• Данните се пазят 12 месеца съгласно политиката за съхранение.</p>
         </div>
       </div>
