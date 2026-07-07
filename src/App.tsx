@@ -237,7 +237,6 @@ function DeferredOverlays() {
       <PaymentTestModeBanner />
       <CookieBanner />
       <BetaDisclaimerModal />
-      <AIDisclaimerModal />
       <ExitIntentLeadMagnet />
       <UsernamePrompt />
       <GlobalProUpgradeListener />
@@ -389,6 +388,7 @@ const App = () => (
           <Suspense fallback={null}>
             <AuthGateModal />
             <StartStoryOverlay />
+            <AIDisclaimerModal />
           </Suspense>
           <DeferredOverlays />
           <Suspense fallback={<RouteFallback />}>
