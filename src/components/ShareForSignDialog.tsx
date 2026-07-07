@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Loader2, Share2, Copy, Check, Lock, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,9 +18,13 @@ interface Props {
   uploadedContractId?: string;
   documentTitle: string;
   triggerClassName?: string;
+  /** Optional custom label for the trigger button (defaults to "Сподели"). */
+  triggerLabel?: string;
+  /** Optional custom icon node for the trigger button. */
+  triggerIcon?: ReactNode;
 }
 
-export function ShareForSignDialog({ documentId, uploadedContractId, documentTitle, triggerClassName }: Props) {
+export function ShareForSignDialog({ documentId, uploadedContractId, documentTitle, triggerClassName, triggerLabel, triggerIcon }: Props) {
   const [open, setOpen] = useState(false);
   const [days, setDays] = useState("7");
   const [loading, setLoading] = useState(false);
@@ -87,7 +91,7 @@ export function ShareForSignDialog({ documentId, uploadedContractId, documentTit
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
         <DialogTrigger asChild>
           <Button size="sm" variant="outline" className={cn(triggerClassName)}>
-            <Share2 className="mr-1 h-3 w-3" /> Сподели
+            {triggerIcon ?? <Share2 className="mr-1 h-3 w-3" />} {triggerLabel ?? "Сподели"}
           </Button>
         </DialogTrigger>
         <DialogContent>
