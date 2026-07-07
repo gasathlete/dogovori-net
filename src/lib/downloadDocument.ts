@@ -67,8 +67,11 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
   // Preload the PDF font in parallel; harmless to start during DOCX exports
   // too because the in-memory cache is shared across the SPA session.
     const fontPromise = needsPdfFont
-      ? import("@/lib/pdfFont").then((m) => m.loadCyrillicFontB64())
-      : Promise.resolve(null);
+      ? import("@/lib/pdfFont")
+        .then((m) => m.loadCyrillicFontB64())
+        .then(() => ({ ok: true as const }))
+        .catch((error) => ({ ok: false as const, error }))
+      : Promise.resolve({ ok: true as const });
 
   // Prefetch only the exporter we actually need, so PDF callers never
   // pay for the docx chunk and vice versa.
@@ -106,7 +109,8 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
       : undefined;
 
   // Make sure the font is ready before we hand off to jsPDF.
-    await fontPromise;
+    const fontResult = await fontPromise;
+    if (!fontResult.ok) throw fontResult.error;
 
     if (p.kind === "contract") {
       const c = data.payload as GeneratedContract;
