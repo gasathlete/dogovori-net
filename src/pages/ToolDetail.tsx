@@ -91,7 +91,7 @@ export default function ToolDetail() {
         title={title}
         description={desc}
         canonical={canonical}
-        jsonLd={[breadcrumbsLd, appLd, faqLd]}
+        jsonLd={[webPageLd, breadcrumbsLd, appLd, howToLd, faqLd]}
       />
       <Header />
 
