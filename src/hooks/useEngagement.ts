@@ -13,6 +13,7 @@ import { useCallback, useEffect, useSyncExternalStore } from "react";
 
 const KEY = "dogovari_engagement_v1";
 const DEFAULT_GOAL = 1;
+const MISSING_RAW = "__missing__";
 
 export interface EngagementState {
   current_streak: number;
@@ -55,17 +56,13 @@ function readRaw(): EngagementState {
   }
 }
 
-function writeRaw(state: EngagementState) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(KEY, JSON.stringify(state));
-  window.dispatchEvent(new CustomEvent("dogovari:engagement-changed"));
-}
+let cachedRaw: string | null = null;
+let cachedDay: string | null = null;
+let cachedSnapshot: EngagementState = DEFAULT_STATE;
 
-function getNormalized(): EngagementState {
-  const s = readRaw();
-  // Reset daily_progress if last_active_date != today
-  if (s.last_active_date && s.last_active_date !== todayStr()) {
-    const gap = daysBetween(s.last_active_date, todayStr());
+function normalizeState(s: EngagementState, today: string): EngagementState {
+  if (s.last_active_date && s.last_active_date !== today) {
+    const gap = daysBetween(s.last_active_date, today);
     if (gap >= 2) {
       // Streak broken
       return { ...s, current_streak: 0, daily_progress: 0 };
@@ -74,6 +71,32 @@ function getNormalized(): EngagementState {
     return { ...s, daily_progress: 0 };
   }
   return s;
+}
+
+function writeRaw(state: EngagementState) {
+  if (typeof window === "undefined") return;
+  const raw = JSON.stringify(state);
+  localStorage.setItem(KEY, raw);
+  cachedRaw = null;
+  window.dispatchEvent(new CustomEvent("dogovari:engagement-changed"));
+}
+
+function getNormalized(): EngagementState {
+  if (typeof window === "undefined") return DEFAULT_STATE;
+  const today = todayStr();
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(KEY) ?? MISSING_RAW;
+  } catch {
+    raw = MISSING_RAW;
+  }
+  if (cachedRaw === raw && cachedDay === today) return cachedSnapshot;
+
+  const next = normalizeState(readRaw(), today);
+  cachedRaw = raw;
+  cachedDay = today;
+  cachedSnapshot = next;
+  return next;
 }
 
 function subscribe(cb: () => void) {
