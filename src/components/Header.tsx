@@ -207,7 +207,9 @@ export function Header() {
       {open && (
         <nav className="origin-top animate-accordion-down overflow-hidden border-t border-border/60 bg-background lg:hidden">
           <div className="container flex flex-col py-3">
-            {[...NAV, ...SECONDARY_NAV].map((n) => (
+            {[...NAV, ...SECONDARY_NAV]
+              .filter((n) => n.to !== "__tools__")
+              .map((n) => (
               <Link
                 key={n.to}
                 to={n.to}
