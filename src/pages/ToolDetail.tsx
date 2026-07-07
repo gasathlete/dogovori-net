@@ -14,8 +14,10 @@ export default function ToolDetail() {
   if (!calc) return <Navigate to="/tools" replace />;
 
   const canonical = `/tools/${calc.slug}`;
-  const title = `${calc.shortTitle} – безплатен калкулатор 2026 | Dogovori.net`;
+  // Keep title under ~60 chars: keyword-first, year, brand.
+  const title = `${calc.shortTitle} 2026 – калкулатор | Dogovori.net`;
   const desc = calc.seo.metaDescription;
+  const pageUrl = `https://dogovori.net${canonical}`;
 
   const breadcrumbsLd = {
     "@context": "https://schema.org",
@@ -39,7 +41,9 @@ export default function ToolDetail() {
     description: calc.description,
     applicationCategory: "FinanceApplication",
     operatingSystem: "Any",
-    url: `https://dogovori.net${canonical}`,
+    url: pageUrl,
+    inLanguage: "bg-BG",
+    isAccessibleForFree: true,
     offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
   };
 
@@ -53,6 +57,32 @@ export default function ToolDetail() {
     })),
   };
 
+  const howToLd = {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: `Как да използвате ${calc.shortTitle}`,
+    description: calc.seo.howItWorks,
+    inLanguage: "bg-BG",
+    totalTime: "PT1M",
+    tool: [{ "@type": "HowToTool", name: calc.title }],
+    step: [
+      { "@type": "HowToStep", position: 1, name: "Въведете данните", text: `Попълнете полетата в ${calc.shortTitle} според вашия случай.` },
+      { "@type": "HowToStep", position: 2, name: "Изчислете", text: "Резултатът се показва автоматично в EUR с подробна разбивка." },
+      { "@type": "HowToStep", position: 3, name: "Проверете правното основание", text: `Основание: ${calc.legalBasis.map((l) => l.label).join(", ")}.` },
+    ],
+  };
+
+  const webPageLd = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: calc.title,
+    description: desc,
+    url: pageUrl,
+    inLanguage: "bg-BG",
+    isPartOf: { "@type": "WebSite", name: "Dogovori.net", url: "https://dogovori.net/" },
+    primaryImageOfPage: undefined,
+  };
+
   const related = CALCULATORS.filter((c) => c.slug !== calc.slug).slice(0, 4);
 
   return (
@@ -61,7 +91,7 @@ export default function ToolDetail() {
         title={title}
         description={desc}
         canonical={canonical}
-        jsonLd={[breadcrumbsLd, appLd, faqLd]}
+        jsonLd={[webPageLd, breadcrumbsLd, appLd, howToLd, faqLd]}
       />
       <Header />
 
