@@ -3872,6 +3872,20 @@ export type Database = {
         Args: { _count: number; _user_id: string }
         Returns: undefined
       }
+      admin_list_ai_disclaimer_consents: {
+        Args: { _limit?: number; _search?: string }
+        Returns: {
+          display_name: string
+          document_version: string
+          email: string
+          granted_at: string
+          metadata: Json
+          path: string
+          session_id: string
+          user_agent: string
+          user_id: string
+        }[]
+      }
       admin_list_subscriptions: {
         Args: {
           _env?: string
