@@ -132,8 +132,8 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             className="anim-rise mx-auto max-w-3xl font-serif text-[26px] font-bold leading-[1.1] text-balance sm:text-3xl md:text-4xl lg:text-[42px] lg:leading-[1.05]"
             style={{ animationDelay: "0ms" }}
           >
-            Договори, които{" "}
-            <em className="not-italic font-serif italic text-gold">намират</em>{" "}
+            Документи и договори, които търсят и{" "}
+            <em className="not-italic font-serif italic text-gold">тнамират</em>{" "}
             Вашите интереси
           </h1>
 
