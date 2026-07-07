@@ -237,7 +237,6 @@ function DeferredOverlays() {
       <PaymentTestModeBanner />
       <CookieBanner />
       <BetaDisclaimerModal />
-      <AIDisclaimerModal />
       <ExitIntentLeadMagnet />
       <UsernamePrompt />
       <GlobalProUpgradeListener />
