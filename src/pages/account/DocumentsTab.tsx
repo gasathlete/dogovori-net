@@ -609,13 +609,9 @@ function DocumentsTab({
                       className="mt-2 grid grid-cols-2 gap-2 rounded-lg border border-border/50 bg-background/40 p-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6"
                       onClick={(e) => e.preventDefault()}
                     >
-                      <Button size="sm" variant="outline" className="h-10 w-full sm:h-9 sm:w-auto" disabled={busy === d.id + "pdf"} onClick={() => redownload(d, "pdf")}>
-                        {busy === d.id + "pdf" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Download className="mr-1 h-3 w-3" />} PDF
-                      </Button>
                       <Button size="sm" variant="outline" className="h-10 w-full sm:h-9 sm:w-auto" disabled={busy === d.id + "docx"} onClick={() => redownload(d, "docx")}>
                         {busy === d.id + "docx" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Download className="mr-1 h-3 w-3" />} DOCX
                       </Button>
-                      {d.kind === "contract" && <ShareForSignDialog documentId={d.id} documentTitle={d.title} triggerClassName="h-10 w-full justify-center sm:h-9 sm:w-auto" />}
                       <DocumentReminderDialog
                         target={{ savedDocumentId: d.id }}
                         documentTitle={d.title}
