@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Bird, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X, MessageSquare, Check, Lock, RefreshCw, Sparkles, Building2, Bell, LayoutDashboard,
+  Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Bird, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X, MessageSquare, Check, Lock, RefreshCw, Sparkles, Building2, Bell, LayoutDashboard, ChevronDown,
 } from "lucide-react";
 import { NotificationsTab } from "@/components/NotificationsTab";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
@@ -89,6 +89,13 @@ function DocumentsTab({
   const [showSharedOnly, setShowSharedOnly] = useState(false);
   const { reminders, reload: reloadReminders } = useDocumentReminders();
   const [versionsForDoc, setVersionsForDoc] = useState<{ id: string; title: string } | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const toggleExpanded = (id: string) =>
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
   const toggleSelected = (id: string, v: boolean) =>
     setSelectedIds((prev) => (v ? [...prev, id] : prev.filter((x) => x !== id)));
   const hasMobileViewport = typeof window !== "undefined" && window.innerWidth < 640;
@@ -386,30 +393,54 @@ function DocumentsTab({
                         {score != null ? <><strong>{score}</strong>/10</> : "Без анализ"}
                       </div>
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5">
-                      <ShareForSignDialog uploadedContractId={u.id} documentTitle={u.title} triggerClassName="h-10 w-full justify-center sm:h-9 sm:w-auto" />
-                      <DocumentReminderDialog
-                        target={{ uploadedContractId: u.id }}
-                        documentTitle={u.title}
-                        onChanged={reloadReminders}
-                      />
-                      <Select
-                        value={u.folder_id ?? "none"}
-                        onValueChange={async (v) => {
-                          const { error } = await supabase
-                            .from("uploaded_contracts")
-                            .update({ folder_id: v === "none" ? null : v })
-                            .eq("id", u.id);
-                          if (error) toast.error(error.message);
-                          else { toast.success("Преместен"); reload(); }
-                        }}
+                    <div className="mt-3">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => toggleExpanded(u.id)}
+                        aria-expanded={expandedIds.has(u.id)}
+                        aria-controls={`u-actions-${u.id}`}
+                        className="h-9 w-full justify-between gap-2 border-gold/30 text-xs hover:border-gold/60 hover:bg-gold/5 sm:w-auto"
                       >
-                        <SelectTrigger className="h-10 w-full text-xs sm:h-9 sm:w-32"><SelectValue placeholder="Папка" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">— Без папка —</SelectItem>
-                          {folders.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                        <span className="inline-flex items-center gap-1.5">
+                          <SettingsIcon className="h-3.5 w-3.5" />
+                          Действия
+                        </span>
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform ${expandedIds.has(u.id) ? "rotate-180" : ""}`}
+                        />
+                      </Button>
+                      {expandedIds.has(u.id) && (
+                        <div
+                          id={`u-actions-${u.id}`}
+                          className="mt-2 grid grid-cols-2 gap-2 rounded-lg border border-border/50 bg-background/40 p-2 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5"
+                        >
+                          <ShareForSignDialog uploadedContractId={u.id} documentTitle={u.title} triggerClassName="h-10 w-full justify-center sm:h-9 sm:w-auto" />
+                          <DocumentReminderDialog
+                            target={{ uploadedContractId: u.id }}
+                            documentTitle={u.title}
+                            onChanged={reloadReminders}
+                          />
+                          <Select
+                            value={u.folder_id ?? "none"}
+                            onValueChange={async (v) => {
+                              const { error } = await supabase
+                                .from("uploaded_contracts")
+                                .update({ folder_id: v === "none" ? null : v })
+                                .eq("id", u.id);
+                              if (error) toast.error(error.message);
+                              else { toast.success("Преместен"); reload(); }
+                            }}
+                          >
+                            <SelectTrigger className="h-10 w-full text-xs sm:h-9 sm:w-32"><SelectValue placeholder="Папка" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">— Без папка —</SelectItem>
+                              {folders.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -522,8 +553,29 @@ function DocumentsTab({
                         </div>
                       )}
                     </div>
+                    <div onClick={(e) => e.preventDefault()}>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleExpanded(d.id); }}
+                        aria-expanded={expandedIds.has(d.id)}
+                        aria-controls={`d-actions-${d.id}`}
+                        className="h-9 w-full justify-between gap-2 border-gold/30 text-xs hover:border-gold/60 hover:bg-gold/5 sm:w-auto"
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          <SettingsIcon className="h-3.5 w-3.5" />
+                          Действия
+                        </span>
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform ${expandedIds.has(d.id) ? "rotate-180" : ""}`}
+                        />
+                      </Button>
+                    </div>
+                    {expandedIds.has(d.id) && (
                     <div
-                      className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6"
+                      id={`d-actions-${d.id}`}
+                      className="mt-2 grid grid-cols-2 gap-2 rounded-lg border border-border/50 bg-background/40 p-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6"
                       onClick={(e) => e.preventDefault()}
                     >
                       <Button size="sm" variant="outline" className="h-10 w-full sm:h-9 sm:w-auto" disabled={busy === d.id + "pdf"} onClick={() => redownload(d, "pdf")}>
@@ -586,6 +638,7 @@ function DocumentsTab({
                         </Button>
                       )}
                     </div>
+                    )}
                   </div>
                 </Link>
               );})}
