@@ -196,12 +196,20 @@ function DocumentsTab({
 
   const redownload = async (d: SavedDoc, format: "pdf" | "docx") => {
     setBusy(d.id + format);
-    const res = await downloadDocument({
-      kind: d.kind, format, title: d.title, payload: d.payload, saved_document_id: d.id,
-    });
-    setBusy(null);
-    if (!res.ok) toast.error("Грешка", { description: res.error });
-    else toast.success("Изтеглен (безплатно)");
+    try {
+      const res = await downloadDocument({
+        kind: d.kind, format, title: d.title, payload: d.payload, saved_document_id: d.id,
+      });
+      if (!res.ok) {
+        if (res.error !== "disclaimer_cancelled") {
+          toast.error("Грешка", { description: res.error });
+        }
+      } else {
+        toast.success("Изтеглен (безплатно)");
+      }
+    } finally {
+      setBusy(null);
+    }
   };
 
   const remove = async (id: string) => {
