@@ -56,6 +56,8 @@ export function trackPageview(path: string) {
     referrer: document.referrer || null,
     utm_source: utm,
   });
+  // Also notify Google Analytics 4 on SPA route changes.
+  gaPageview(path);
 }
 
 let installed = false;
