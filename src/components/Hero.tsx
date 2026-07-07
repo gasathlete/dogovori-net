@@ -133,7 +133,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             style={{ animationDelay: "0ms" }}
           >
             Документи и договори, които търсят и{" "}
-            <em className="not-italic font-serif italic text-gold">тнамират</em>{" "}
+            <em className="not-italic font-serif italic text-gold">намират</em>{" "}
             Вашите интереси
           </h1>
 
