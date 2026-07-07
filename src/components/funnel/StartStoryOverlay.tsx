@@ -18,6 +18,7 @@ import { X, ArrowRight, ChevronLeft, ChevronRight, Sparkles } from "lucide-react
 import { TUTORIAL_STEPS } from "@/components/onboarding/tutorialSteps";
 import { trackFunnelEvent } from "@/lib/funnel";
 import { cn } from "@/lib/utils";
+import { dispatchBuffered, drainBufferedEvents } from "@/lib/bufferedEvents";
 
 export const START_STORY_EVENT = "dogovori:start-story";
 const SEEN_KEY = "dgv:start-story:seen";
