@@ -246,8 +246,6 @@ function DeferredOverlays() {
       <DogovAIBubble />
       <MobileBottomNav />
       <ActionCelebrationHost />
-      <AuthGateModal />
-      <StartStoryOverlay />
       <EntrepreneurAdPopup />
     </Suspense>
   );
@@ -388,6 +386,10 @@ const App = () => (
         <ScrollToTop />
         <AuthProvider>
           <OnboardingProvider>
+          <Suspense fallback={null}>
+            <AuthGateModal />
+            <StartStoryOverlay />
+          </Suspense>
           <DeferredOverlays />
           <Suspense fallback={<RouteFallback />}>
             <AnimatedRoutes />
