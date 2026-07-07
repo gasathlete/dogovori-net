@@ -393,7 +393,16 @@ function DocumentsTab({
                         {score != null ? <><strong>{score}</strong>/10</> : "Без анализ"}
                       </div>
                     </div>
-                    <div className="mt-3">
+                    <div className="mt-3 space-y-2">
+                      <div className="grid grid-cols-1 gap-2">
+                        <ShareForSignDialog
+                          uploadedContractId={u.id}
+                          documentTitle={u.title}
+                          triggerLabel="Подпиши"
+                          triggerIcon={<PenTool className="mr-1 h-3.5 w-3.5" />}
+                          triggerClassName="h-10 w-full justify-center border-gold/50 text-gold hover:bg-gold/10 sm:h-9"
+                        />
+                      </div>
                       <Button
                         type="button"
                         size="sm"
@@ -401,7 +410,7 @@ function DocumentsTab({
                         onClick={() => toggleExpanded(u.id)}
                         aria-expanded={expandedIds.has(u.id)}
                         aria-controls={`u-actions-${u.id}`}
-                        className="h-9 w-full justify-between gap-2 border-gold/30 text-xs hover:border-gold/60 hover:bg-gold/5 sm:w-auto"
+                        className="h-9 w-full justify-between gap-2 border-border/60 text-xs hover:border-gold/60 hover:bg-gold/5 sm:w-auto"
                       >
                         <span className="inline-flex items-center gap-1.5">
                           <SettingsIcon className="h-3.5 w-3.5" />
@@ -414,9 +423,8 @@ function DocumentsTab({
                       {expandedIds.has(u.id) && (
                         <div
                           id={`u-actions-${u.id}`}
-                          className="mt-2 grid grid-cols-2 gap-2 rounded-lg border border-border/50 bg-background/40 p-2 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5"
+                          className="grid grid-cols-2 gap-2 rounded-lg border border-border/50 bg-background/40 p-2 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5"
                         >
-                          <ShareForSignDialog uploadedContractId={u.id} documentTitle={u.title} triggerClassName="h-10 w-full justify-center sm:h-9 sm:w-auto" />
                           <DocumentReminderDialog
                             target={{ uploadedContractId: u.id }}
                             documentTitle={u.title}
