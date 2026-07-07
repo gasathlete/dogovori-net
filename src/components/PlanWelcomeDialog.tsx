@@ -87,28 +87,36 @@ export function PlanWelcomeDialog() {
   const uid = user?.id ?? "anon";
   const scopedKey = (base: string) => `${base}:u:${uid}`;
 
-  // Priority: Team > Entrepreneur > Professional. Only one dialog at a time,
-  // and only if the user hasn't already seen this plan's welcome.
+  // Priority: Team > Entrepreneur > Professional. Only ONE dialog per user,
+  // ever — when a higher tier is shown we also mark all lower-tier keys as
+  // seen so a Team subscriber (who also satisfies isEntrepreneur / isPro)
+  // does not get a second and third welcome popup in a row.
   const active = useMemo<PlanKey | null>(() => {
     if (loading || !user) return null;
     if (typeof window === "undefined") return null;
     const seen = (k: string) => window.localStorage.getItem(scopedKey(k)) === "1";
-    if (isTeam && !seen(COPY.team.storageKey)) return "team";
-    if (isEntrepreneur && !seen(COPY.entrepreneur.storageKey)) return "entrepreneur";
-    if (isProfessional && !seen(COPY.professional.storageKey)) return "professional";
-    if (isPro && !isTeam && !isEntrepreneur && !isProfessional && !seen(COPY.entrepreneur.storageKey)) {
-      return "entrepreneur";
-    }
+    const anySeen =
+      seen(COPY.team.storageKey) ||
+      seen(COPY.entrepreneur.storageKey) ||
+      seen(COPY.professional.storageKey);
+    if (anySeen) return null;
+    if (isTeam) return "team";
+    if (isEntrepreneur) return "entrepreneur";
+    if (isProfessional) return "professional";
+    if (isPro) return "entrepreneur";
     return null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPro, isTeam, isEntrepreneur, isProfessional, loading, user?.id]);
 
   useEffect(() => {
     if (!active) return;
-    const key = scopedKey(COPY[active].storageKey);
-    // Mark as seen immediately so it never appears twice, even if the user
-    // reloads or navigates away without explicitly dismissing.
-    try { window.localStorage.setItem(key, "1"); } catch { /* ignore */ }
+    // Mark THIS plan + every other tier as seen so the dialog can never
+    // appear again for this user on this device, regardless of plan flags.
+    try {
+      window.localStorage.setItem(scopedKey(COPY.team.storageKey), "1");
+      window.localStorage.setItem(scopedKey(COPY.entrepreneur.storageKey), "1");
+      window.localStorage.setItem(scopedKey(COPY.professional.storageKey), "1");
+    } catch { /* ignore */ }
     const t = setTimeout(() => setOpen(true), 500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -126,7 +134,7 @@ export function PlanWelcomeDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && dismiss()}>
-      <DialogContent className="max-w-lg overflow-hidden border-border/60 p-0">
+      <DialogContent className="max-h-[92dvh] w-[calc(100vw-1rem)] max-w-lg overflow-y-auto overflow-x-hidden border-border/60 p-0 sm:w-full">
         {/* Header — animated gradient ring & subtle grid pattern for a "digital" feel */}
         <div className={`relative overflow-hidden bg-gradient-to-br ${copy.accent} px-6 pb-5 pt-8 text-center`}>
           <div
@@ -175,7 +183,7 @@ export function PlanWelcomeDialog() {
         </div>
 
         {/* Actions */}
-        <div className="flex flex-col gap-2 px-6 pb-6 pt-3 sm:flex-row">
+        <div className="flex flex-col gap-2 px-6 pb-[calc(env(safe-area-inset-bottom,0)+1.25rem)] pt-3 sm:flex-row">
           <Button asChild className="flex-1 bg-gradient-gold text-navy hover:shadow-gold">
             <Link to={copy.ctaHref} onClick={dismiss}>
               {copy.ctaLabel} <ArrowRight className="ml-1 h-4 w-4" />
