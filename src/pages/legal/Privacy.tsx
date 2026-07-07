@@ -85,7 +85,7 @@ export default function PrivacyPage() {
         <li><strong>Google LLC</strong> (САЩ) — AI генериране и анализ (модели Gemini). Трансфери на база <a href="https://commission.europa.eu/law/law-topic/data-protection/international-dimension-data-protection/standard-contractual-clauses-scc_en" target="_blank" rel="noopener">SCC</a> + DPF. Входящите данни се <strong>псевдонимизират</strong> преди изпращане към модела (вижте т. 6).</li>
         <li><strong>OpenAI Ireland Ltd.</strong> — резервен AI модел при недостъпност на първичния. Данните не се използват за обучение (Zero Data Retention API).</li>
         <li><strong>Resend Inc.</strong> (САЩ) — изпращане на транзакционен email. SCC + DPF.</li>
-        <li><strong>Plausible Insights OÜ</strong> (Естония, ЕС) — анонимизирана аналитика (без бисквитки и без лични данни) — само при дадено съгласие.</li>
+        <li><strong>Google Ireland Ltd.</strong> (Ирландия, ЕС) — Google Analytics 4 с анонимизирано IP и Consent Mode v2 (SCC + DPF за трансфер към САЩ); зарежда се само след Вашето изрично съгласие.</li>
       </ul>
       <p className="text-xs text-muted-foreground">
         Актуален регистър на подпроцесорите (с дати и регион) — поискайте на email-а на администратора. Уведомяваме при добавяне на нов подпроцесор поне 30 дни предварително.
