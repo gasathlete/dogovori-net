@@ -170,7 +170,7 @@ const ACTIVITIES: Activity[] = [
     legalBasis: "Чл. 6, ал. 1, б. 'е' GDPR — легитимен интерес.",
     subjects: "Посетители на сайта.",
     data: "Хеширан IP, страница, referrer, държава, устройство.",
-    recipients: "Plausible (EU), Sentry (EU, PII scrubbing).",
+    recipients: "Google Ireland Ltd. — GA4 (EU + US, SCC + DPF, anonymize_ip, Consent Mode v2), Sentry (EU, PII scrubbing).",
     retention: "page_views: 13 м. Sentry: 90 дни.",
     measures: "Без бисквитки за tracking, IP-хеш с дневен salt, PII scrubbing.",
     transfer: "Не.",

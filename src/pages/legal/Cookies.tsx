@@ -18,7 +18,7 @@ const ROWS: Row[] = [
   { name: "wizard-progress-*", provider: "Dogovori.net (localStorage)", purpose: "Запазва прогреса Ви в Wizard, за да не губите въведени данни.", duration: "До ръчно изтриване или завършване на договора", type: "strict" },
   { name: "aiDisclaimerAccepted", provider: "Dogovori.net (sessionStorage)", purpose: "Помни, че сте приели AI дисклеймъра за текущата сесия.", duration: "До затваряне на браузъра", type: "strict" },
   { name: "__stripe_mid, __stripe_sid", provider: "Stripe (Ирландия)", purpose: "Защита от измами по време на плащане.", duration: "1 година / 30 мин", type: "strict" },
-  { name: "plausible_ignore", provider: "Plausible (Естония)", purpose: "Опционална анонимна аналитика (без лични данни, без cross-site tracking).", duration: "Persistent (само при opt-in)", type: "analytics" },
+  { name: "_ga, _ga_1LV139YG8J", provider: "Google Analytics 4 (Google Ireland)", purpose: "Разграничаване на потребители и сесии за анонимизирана уеб аналитика (IP анонимизация, Consent Mode v2).", duration: "до 24 месеца (само при opt-in)", type: "analytics" },
 ];
 
 const TYPE_LABEL: Record<Row["type"], string> = {
@@ -66,9 +66,11 @@ export default function CookiesPage() {
       <h3>2.2. Аналитични (opt-in)</h3>
       <p>
         Помагат ни да разберем кои страници се посещават най-често и къде има грешки,
-        за да подобряваме услугата. Използваме <strong>Plausible</strong> — хостван в
-        ЕС, без бисквитки на трети страни и без кръстосано проследяване. Активират се
-        само след Вашето изрично съгласие.
+        за да подобряваме услугата. Използваме <strong>Google Analytics 4</strong>{" "}
+        (Google Ireland Ltd.) с <strong>анонимизирано IP</strong> и{" "}
+        <strong>Consent Mode v2</strong> — скриптът се зарежда{" "}
+        <strong>само след Вашето изрично съгласие</strong>. Трансферите към САЩ са
+        покрити от Data Privacy Framework и стандартни договорни клаузи (SCC).
       </p>
 
       <h3>2.3. Маркетингови (opt-in)</h3>

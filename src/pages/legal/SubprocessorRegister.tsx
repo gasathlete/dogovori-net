@@ -54,10 +54,10 @@ export default function SubprocessorRegisterPage() {
             <td className="py-2 align-top">DPF + SCC</td>
           </tr>
           <tr className="border-b border-border/30">
-            <td className="py-2 pr-3 align-top">Plausible Insights OÜ</td>
-            <td className="py-2 pr-3 align-top">Анонимизирана аналитика (без бисквитки)</td>
-            <td className="py-2 pr-3 align-top">Естония (ЕС)</td>
-            <td className="py-2 align-top">Без лични данни; cookieless</td>
+            <td className="py-2 pr-3 align-top">Google Ireland Ltd. (Google Analytics 4)</td>
+            <td className="py-2 pr-3 align-top">Уеб аналитика (с анонимизирано IP, Consent Mode v2)</td>
+            <td className="py-2 pr-3 align-top">Ирландия (ЕС) + САЩ</td>
+            <td className="py-2 align-top">SCC + DPF; само след opt-in; IP анонимизация</td>
           </tr>
           <tr className="border-b border-border/30">
             <td className="py-2 pr-3 align-top">Sentry (Functional Software Inc.)</td>
