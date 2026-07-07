@@ -4,7 +4,8 @@
  * Performance layers (fastest to slowest):
  *   1. In-memory cache (within a single SPA session)
  *   2. IndexedDB cache (persistent across tabs and page reloads)
- *   3. CDN fetch (jsdelivr → unpkg fallback)
+ *   3. Local bundled font (`/fonts/DejaVuSans.ttf`)
+ *   4. CDN fetch fallback (jsdelivr → unpkg)
  *
  * The first PDF export in a brand-new browser pays the CDN fetch
  * (~750KB). Every subsequent export — even after closing the tab and
@@ -15,6 +16,7 @@ const FONT_VERSION = "dejavu-sans-2.37.0";
 const DB_NAME = "dogovori-pdf-font";
 const STORE = "fonts";
 const SOURCES = [
+  "/fonts/DejaVuSans.ttf",
   "https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.0/ttf/DejaVuSans.ttf",
   "https://unpkg.com/dejavu-fonts-ttf@2.37.0/ttf/DejaVuSans.ttf",
 ];
