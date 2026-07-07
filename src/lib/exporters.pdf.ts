@@ -1,4 +1,5 @@
 import { jsPDF } from "jspdf";
+import { saveAs } from "file-saver";
 import { applyPdfWatermark } from "./watermark";
 import { loadCyrillicFontB64 } from "./pdfFont";
 import {
@@ -263,5 +264,6 @@ export async function exportPDF(
     const ab = doc.output("arraybuffer");
     return new Uint8Array(ab);
   }
-  doc.save(`${fileBase(c.title)}.pdf`);
+  const blob = doc.output("blob");
+  saveAs(blob, `${fileBase(c.title)}.pdf`);
 }
