@@ -1,6 +1,6 @@
 // First-party pageview tracker. Sends to the `track-pageview` edge function on
 // every SPA route change. Gated by the existing analytics cookie consent.
-import { getCategoryConsent } from "@/lib/analytics";
+import { gaPageview, getCategoryConsent } from "@/lib/analytics";
 
 const SESSION_KEY = "pv-session-id";
 const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-pageview`;
@@ -56,6 +56,8 @@ export function trackPageview(path: string) {
     referrer: document.referrer || null,
     utm_source: utm,
   });
+  // Also notify Google Analytics 4 on SPA route changes.
+  gaPageview(path);
 }
 
 let installed = false;

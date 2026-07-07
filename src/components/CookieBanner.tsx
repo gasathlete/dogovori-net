@@ -114,7 +114,7 @@ export function CookieBanner() {
                 />
               </div>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                Plausible (без бисквитки, анонимизирано) — помага да подобрим сайта.
+                Google Analytics 4 (с анонимизирано IP, Consent Mode v2) — помага да подобрим сайта.
               </p>
             </div>
 

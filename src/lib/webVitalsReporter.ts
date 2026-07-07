@@ -37,17 +37,15 @@ export function initWebVitalsReporter(): void {
       const handle = (m: { name: string; value: number; rating: string }) => {
         const row: Row = { name: m.name, value: m.value, rating: m.rating, ts: Date.now() };
         persist(row);
-        const p = (window as any).plausible as
-          | ((event: string, opts?: { props?: Record<string, string> }) => void)
+        const g = (window as any).gtag as
+          | ((cmd: string, event: string, params?: Record<string, unknown>) => void)
           | undefined;
-        if (typeof p === "function") {
-          p("web_vital", {
-            props: {
-              metric: m.name,
-              rating: m.rating,
-              // bucket values to keep cardinality bounded
-              bucket: bucketize(m.name, m.value),
-            },
+        if (typeof g === "function") {
+          g("event", "web_vital", {
+            metric: m.name,
+            rating: m.rating,
+            bucket: bucketize(m.name, m.value),
+            value: Math.round(m.name === "CLS" ? m.value * 1000 : m.value),
           });
         }
       };
