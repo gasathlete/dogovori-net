@@ -561,7 +561,30 @@ function DocumentsTab({
                         </div>
                       )}
                     </div>
-                    <div onClick={(e) => e.preventDefault()}>
+                    <div onClick={(e) => e.preventDefault()} className="space-y-2">
+                      <div className={`grid gap-2 ${d.kind === "contract" ? "grid-cols-2" : "grid-cols-1"}`}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-10 w-full justify-center border-gold/50 text-gold hover:bg-gold/10 sm:h-9"
+                          disabled={busy === d.id + "pdf"}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); redownload(d, "pdf"); }}
+                        >
+                          {busy === d.id + "pdf"
+                            ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                            : <Download className="mr-1 h-3.5 w-3.5" />}
+                          Свали
+                        </Button>
+                        {d.kind === "contract" && (
+                          <ShareForSignDialog
+                            documentId={d.id}
+                            documentTitle={d.title}
+                            triggerLabel="Подпиши"
+                            triggerIcon={<PenTool className="mr-1 h-3.5 w-3.5" />}
+                            triggerClassName="h-10 w-full justify-center border-gold/50 text-gold hover:bg-gold/10 sm:h-9"
+                          />
+                        )}
+                      </div>
                       <Button
                         type="button"
                         size="sm"
@@ -569,7 +592,7 @@ function DocumentsTab({
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleExpanded(d.id); }}
                         aria-expanded={expandedIds.has(d.id)}
                         aria-controls={`d-actions-${d.id}`}
-                        className="h-9 w-full justify-between gap-2 border-gold/30 text-xs hover:border-gold/60 hover:bg-gold/5 sm:w-auto"
+                        className="h-9 w-full justify-between gap-2 border-border/60 text-xs hover:border-gold/60 hover:bg-gold/5 sm:w-auto"
                       >
                         <span className="inline-flex items-center gap-1.5">
                           <SettingsIcon className="h-3.5 w-3.5" />
