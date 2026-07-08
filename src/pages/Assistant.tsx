@@ -153,13 +153,30 @@ export default function AssistantPage() {
       {/* Chat surface — full-height */}
       <main className="flex-1 overflow-hidden">
         <div className="container h-full max-w-6xl py-3">
-          <AssistantChat
-            key={threadId || "new"}
-            threadId={threadId ?? null}
-            onThreadChange={handleThreadChange}
-          />
+          {user && !unlimited && used >= 1 ? (
+            <PaidOnlyOverlay
+              pillar="assistant"
+              headline="AI Асистент — само за платени планове"
+              sub="Пробва демо съобщението. Продължи с неограничен правен чат, цитати и анализ на договори."
+              ctaLabel="Отключи AI Асистента"
+              minHeight="60vh"
+            >
+              <AssistantChat
+                key={threadId || "new"}
+                threadId={threadId ?? null}
+                onThreadChange={handleThreadChange}
+              />
+            </PaidOnlyOverlay>
+          ) : (
+            <AssistantChat
+              key={threadId || "new"}
+              threadId={threadId ?? null}
+              onThreadChange={handleThreadChange}
+            />
+          )}
         </div>
       </main>
+
 
       {/* Footer hint */}
       <footer className="border-t border-border/30 bg-muted/20 px-4 py-2 text-center text-[11px] text-muted-foreground">
