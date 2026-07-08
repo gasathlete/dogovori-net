@@ -56,7 +56,7 @@ export function Testimonials() {
   const row = [...TESTIMONIALS, ...TESTIMONIALS];
 
   return (
-    <section id="testimonials" className="container py-20 sm:py-24 md:py-28">
+    <section id="testimonials" className="container py-12 sm:py-16 md:py-20">
       <div className="mb-10 max-w-2xl md:mb-12">
         <div className="eyebrow mb-3">
           <span className="font-serif text-base font-normal tracking-normal text-gold/60">05</span>

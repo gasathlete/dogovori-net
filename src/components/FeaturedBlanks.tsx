@@ -52,7 +52,7 @@ export function FeaturedBlanks() {
     <section
       id="featured-blanks"
       aria-labelledby="featured-blanks-title"
-      className="container py-20 sm:py-24 md:py-28"
+      className="container py-12 sm:py-16 md:py-20"
     >
       <div className="mb-10 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between md:mb-12">
         <div className="max-w-2xl">

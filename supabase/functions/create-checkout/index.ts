@@ -93,46 +93,48 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ----- FIRST100 promo codes -----
-    // Two coupons share the public code "FIRST100": 30% off monthly subs,
-    // 40% off yearly subs (extra 10% for annual commitment). Restricted to
-    // the matching Stripe Products so the right one applies to the cart.
+    // ----- FIRST100 promo code (20% off, all recurring subs) -----
+    // Uses a versioned coupon ID so old 30%/40% coupons in Stripe are
+    // NOT reused. The coupon is restricted to the current line-item
+    // product so it applies correctly across monthly + yearly.
     // Skipped for one-off purchases (five_operations / single_contract).
     if (isRecurring) {
-      const recurringInterval = price.recurring?.interval; // 'month' | 'year'
       const productId = typeof price.product === "string" ? price.product : (price.product as any)?.id;
       try {
-        for (const tier of [
-          { id: "first100_monthly", percent: 30, interval: "month" as const },
-          { id: "first100_yearly", percent: 40, interval: "year" as const },
-        ]) {
+        const couponId = "first100_20off_v2";
+        try {
+          await stripe.coupons.retrieve(couponId);
+        } catch {
+          await stripe.coupons.create({
+            id: couponId,
+            name: "FIRST100 — 20% off",
+            percent_off: 20,
+            duration: "forever",
+            applies_to: { products: [productId] },
+          });
+        }
+        // Ensure a single public promotion code "FIRST100" points at this coupon.
+        const existing = await stripe.promotionCodes.list({ coupon: couponId, code: "FIRST100", limit: 1 });
+        if (!existing.data.length) {
+          // Deactivate any older FIRST100 promotion codes that still map to
+          // the 30%/40% legacy coupons so customers can't stack outdated ones.
           try {
-            await stripe.coupons.retrieve(tier.id);
-          } catch {
-            await stripe.coupons.create({
-              id: tier.id,
-              name: `FIRST100 — ${tier.percent}% off`,
-              percent_off: tier.percent,
-              duration: "forever",
-              applies_to: { products: [productId] },
-            });
+            const legacy = await stripe.promotionCodes.list({ code: "FIRST100", limit: 20, active: true });
+            for (const pc of legacy.data) {
+              if (pc.coupon.id !== couponId) {
+                await stripe.promotionCodes.update(pc.id, { active: false });
+              }
+            }
+          } catch (deactivateErr) {
+            console.error("FIRST100 legacy deactivation failed (non-fatal):", deactivateErr);
           }
-          // Ensure a single public promotion code "FIRST100" exists per coupon.
-          const existing = await stripe.promotionCodes.list({ coupon: tier.id, code: "FIRST100", limit: 1 });
-          if (!existing.data.length) {
-            await stripe.promotionCodes.create({
-              coupon: tier.id,
-              code: "FIRST100",
-              restrictions: tier.interval === "year"
-                ? { minimum_amount: 0, minimum_amount_currency: "eur" } as any
-                : undefined,
-            });
-          }
+          await stripe.promotionCodes.create({ coupon: couponId, code: "FIRST100" });
         }
       } catch (couponErr) {
         console.error("FIRST100 setup failed (non-fatal):", couponErr);
       }
     }
+
 
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: price.id, quantity: 1 }],

@@ -302,7 +302,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             className="anim-rise mt-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
             style={{ animationDelay: "300ms" }}
           >
-            Промокод <span className="font-semibold text-gold">FIRST100</span> → −30% за нови клиенти · без карта
+            Промокод <span className="font-semibold text-gold">FIRST100</span> → −20% за нови клиенти · без карта
           </p>
 
         </div>

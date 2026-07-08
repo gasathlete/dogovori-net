@@ -16,7 +16,7 @@ const GAINS = [
 
 export function PainSolution() {
   return (
-    <section className="container py-20 sm:py-24 md:py-28">
+    <section className="container py-12 sm:py-16 md:py-20">
       <div className="mx-auto mb-10 max-w-2xl text-center">
         <div className="eyebrow mb-3 justify-center">&nbsp;· РЕШЕНИЕ</div>
         <h2 className="font-serif text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl">

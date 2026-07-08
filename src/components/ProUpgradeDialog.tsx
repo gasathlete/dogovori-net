@@ -155,7 +155,7 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
             Промо код FIRST100
           </div>
           <div className="mt-0.5 text-xs text-muted-foreground">
-            30% отстъпка месечен · 40% отстъпка годишен — за нови абонати
+            20% отстъпка — за нови абонати
           </div>
         </div>
 
