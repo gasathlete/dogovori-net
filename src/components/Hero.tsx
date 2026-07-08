@@ -187,7 +187,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
               </div>
             ) : (
               <div className="flex w-full flex-col items-center gap-3">
-                <ConversationalHeroInput />
+                <HeroSearchLazy />
                 <div className="relative w-full sm:w-auto">
                   <span
                     aria-hidden="true"
