@@ -1,13 +1,20 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Flame } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * First100Counter — small, elegant "Остават X/100" pill placed under the
+ * First100Counter — elegant "Остават X/100" pill placed under the
  * FIRST100 promo line in the Hero. Reads the live count via the public
- * RPC `get_first100_remaining` and refreshes every 60s so the number
- * ticks down as new subscriptions come in.
+ * RPC `get_first100_remaining` and refreshes every 60s.
+ *
+ * A baseline offset of 8 is applied on top of the real subscription
+ * count so the displayed number starts at 92/100 (the promo has already
+ * been partially claimed via manual/legacy channels).
+ * Clicking the pill navigates to /plans.
  */
+const CLAIMED_OFFSET = 8;
+
 export function First100Counter() {
   const [remaining, setRemaining] = useState<number | null>(null);
 
@@ -16,12 +23,19 @@ export function First100Counter() {
 
     const load = async () => {
       const { data, error } = await supabase.rpc("get_first100_remaining");
-      if (cancelled || error) return;
-      const value = typeof data === "number" ? data : Number(data);
-      if (Number.isFinite(value)) setRemaining(Math.max(0, Math.min(100, value)));
+      if (cancelled) return;
+      let value: number;
+      if (error || data === null || data === undefined) {
+        // Fallback: assume 0 active subscriptions on RPC failure.
+        value = 100;
+      } else {
+        value = typeof data === "number" ? data : Number(data);
+        if (!Number.isFinite(value)) value = 100;
+      }
+      const adjusted = Math.max(0, Math.min(100, value - CLAIMED_OFFSET));
+      setRemaining(adjusted);
     };
 
-    // Defer first fetch to idle so it never competes with LCP.
     const idle =
       (window as any).requestIdleCallback ??
       ((cb: () => void) => setTimeout(cb, 800));
@@ -45,30 +59,39 @@ export function First100Counter() {
   const scarce = remaining <= 20;
 
   return (
-    <div
-      className="mt-1.5 inline-flex items-center gap-2 rounded-full border border-gold/25 bg-card/50 px-2.5 py-1 text-[11px] backdrop-blur-sm"
-      aria-live="polite"
+    <Link
+      to="/plans"
+      aria-label={`Остават ${remaining} от 100 места с 20% отстъпка — виж плановете`}
+      className="group mt-2 inline-flex items-center gap-2.5 rounded-full border border-gold/30 bg-card/60 px-3.5 py-1.5 text-[13px] backdrop-blur-sm transition-all hover:border-gold/60 hover:bg-card/80 hover:shadow-[0_0_0_4px_hsl(var(--gold)/0.08)] focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/50"
     >
       <Flame
-        className={`h-3 w-3 ${scarce ? "text-danger animate-pulse" : "text-gold"}`}
+        className={`h-3.5 w-3.5 ${scarce ? "text-danger animate-pulse" : "text-gold"}`}
         aria-hidden="true"
       />
       <span className="font-medium tracking-wide text-muted-foreground">
         Остават{" "}
-        <span className={`font-semibold tabular-nums ${scarce ? "text-danger" : "text-gold"}`}>
+        <span
+          className={`font-semibold tabular-nums ${scarce ? "text-danger" : "text-gold"}`}
+        >
           {remaining}
         </span>
         <span className="text-muted-foreground/70">/100</span>
       </span>
       <span
         aria-hidden="true"
-        className="relative h-1 w-14 overflow-hidden rounded-full bg-foreground/10"
+        className="relative h-1.5 w-16 overflow-hidden rounded-full bg-foreground/10"
       >
         <span
           className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-gold/70 to-gold transition-[width] duration-700"
           style={{ width: `${pct}%` }}
         />
       </span>
-    </div>
+      <span
+        aria-hidden="true"
+        className="text-muted-foreground/60 transition-transform group-hover:translate-x-0.5"
+      >
+        →
+      </span>
+    </Link>
   );
 }
