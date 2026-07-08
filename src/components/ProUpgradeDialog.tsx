@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { trackEvent } from "@/lib/analytics";
+import { trackEvent, trackUpgradeStarted } from "@/lib/analytics";
 
 export type ProUpgradeTrigger =
   | "corrections"
