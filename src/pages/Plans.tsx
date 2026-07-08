@@ -331,16 +331,6 @@ export default function Plans() {
             </div>
           </section>
 
-
-
-
-
-
-
-
-
-
-
           <ExpandableCard
             className="mt-10 rounded-2xl border border-hairline bg-card/70 p-5 backdrop-blur-md sm:mt-14 sm:p-6"
             triggerLabel="Виж пълно сравнение ↓"
