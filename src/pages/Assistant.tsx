@@ -153,7 +153,7 @@ export default function AssistantPage() {
       {/* Chat surface — full-height */}
       <main className="flex-1 overflow-hidden">
         <div className="container h-full max-w-6xl py-3">
-          {user && !unlimited && used >= 1 ? (
+          {user && !unlimited ? (
             <PaidOnlyOverlay
               pillar="assistant"
               headline="AI Асистент — само за платени планове"
