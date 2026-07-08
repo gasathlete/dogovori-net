@@ -503,8 +503,9 @@ export function PlatformShowcase() {
             <line x1="1050" y1="70" x2="1050" y2="38" />
           </g>
         </svg>
+      </div>
 
-        {/* pen/signing motif removed per product decision — kept section calmer */}
+
 
 
 
