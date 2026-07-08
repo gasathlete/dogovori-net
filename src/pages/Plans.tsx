@@ -308,6 +308,33 @@ export default function Plans() {
             <TrustGuaranteeBar />
           </div>
 
+          {/* Top-up packs — placed directly under the free plan */}
+          <section className="mt-10 rounded-2xl border border-hairline bg-card/70 p-5 backdrop-blur-md sm:mt-14 sm:p-6">
+            <div className="mx-auto max-w-3xl text-center">
+              <h2 className="font-serif text-2xl text-foreground sm:text-3xl">
+                Top-up пакети — добави операции към плана си
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+                Еднократно зареждане без подновяване. Налично само за активни абонати.
+                Цените са с ДДС.
+              </p>
+            </div>
+            <div className="mx-auto mt-8 max-w-5xl">
+              <TopupPacks enabled={isAuthed} />
+            </div>
+          </section>
+
+          {/* ROI / savings calculator — directly under top-ups */}
+          <section className="mt-10 rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:mt-14 sm:p-6">
+            <div className="mx-auto max-w-3xl">
+              <RoiCalculator />
+            </div>
+          </section>
+
+
+
+
+
 
 
 
