@@ -80,10 +80,11 @@ function saveAnonStored(s: AnonStored) {
 }
 
 const STARTERS: { icon: typeof FileText; label: string; prompt: string }[] = [
-  { icon: FileText, label: "Намери ми шаблон", prompt: "Какъв шаблон да избера за договор за услуга?" },
-  { icon: Briefcase, label: "Трудов договор", prompt: "Какво трябва да съдържа един трудов договор по КТ?" },
-  { icon: ShieldCheck, label: "Какво е неустойка", prompt: "Какво е неустойка и кога се прилага?" },
-  { icon: Scale, label: "Как работи сайтът", prompt: "Как мога да изготвя договор в dogovori.net?" },
+  {
+    icon: Scale,
+    label: "Как работи Dogovori.Net",
+    prompt: "Как работи Dogovori.Net? Разкажи ми накратко какво мога да правя тук и с какво да започна.",
+  },
 ];
 
 function AnonChat({ resetKey }: { resetKey: number }) {
