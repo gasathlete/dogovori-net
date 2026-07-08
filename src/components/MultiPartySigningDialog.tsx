@@ -90,16 +90,24 @@ export function MultiPartySigningDialog(p: Props) {
               <Link to={`/signing/${createdId}`}><ExternalLink className="h-4 w-4 mr-2" /> Отвори статус</Link>
             </Button>
           </div>
+        ) : !p.isPro ? (
+          // Free users: e-Подпис е само за платени планове.
+          <div className="space-y-4 rounded-lg border border-gold/40 bg-gold/5 p-6 text-center">
+            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-gold/15">
+              <ExternalLink className="h-5 w-5 text-gold" />
+            </div>
+            <div>
+              <h3 className="font-serif text-lg font-bold">e-Подпис — само за платени планове</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Изпращай неограничени заявки за подпис до няколко страни едновременно с Предприемач за 19.90 €/мес.
+              </p>
+            </div>
+            <Button asChild className="w-full bg-gradient-gold text-navy hover:shadow-gold">
+              <Link to="/plans">Виж Предприемач</Link>
+            </Button>
+          </div>
         ) : (
           <div className="space-y-5">
-            {!p.isPro && p.freeAvailable && (
-              <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm">
-                <div className="font-semibold text-emerald-600">🎁 Имате 1 безплатен онлайн подпис</div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Тази заявка ще използва безплатния ви кредит. Следващите изискват платен план.
-                </p>
-              </div>
-            )}
             <div className="space-y-2">
               <Label>Подписващи</Label>
               {signers.map((s, i) => (
@@ -135,7 +143,7 @@ export function MultiPartySigningDialog(p: Props) {
 
         <DialogFooter>
           <Button variant="outline" onClick={() => p.onOpenChange(false)}>Затвори</Button>
-          {!createdId && (
+          {!createdId && p.isPro && (
             <Button onClick={submit} disabled={busy}>
               {busy ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               Създай заявка за подпис
