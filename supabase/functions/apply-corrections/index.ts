@@ -267,6 +267,14 @@ ${answersRedacted}
       function_name: "apply-corrections",
     });
 
+    // Increment free-wave counter for free users (only on fresh, non-cached charge).
+    if (!isPro && batchCharged) {
+      await admin
+        .from("download_quota")
+        .update({ corrections_free_used_count: freeWavesUsed + 1 })
+        .eq("user_id", userId);
+    }
+
     const raw = await aiResp.json();
     const content: string = raw.choices?.[0]?.message?.content ?? "";
     if (!content.trim()) throw new Error("Празен AI отговор");
