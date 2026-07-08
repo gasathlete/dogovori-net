@@ -12,6 +12,8 @@ import { PlanHeroBenefit } from "@/components/plans/PlanHeroBenefit";
 import { categorize } from "@/lib/planCategories";
 import { AnalysisRecommendationBanner } from "@/components/funnel/AnalysisRecommendationBanner";
 import { AnchoringStrip } from "@/components/funnel/AnchoringStrip";
+import { TrustGuaranteeBar } from "@/components/funnel/TrustGuaranteeBar";
+
 
 import { RoiCalculator } from "@/components/funnel/RoiCalculator";
 import { markFunnelStep } from "@/lib/funnel";
@@ -302,7 +304,12 @@ export default function Plans() {
             );
           })()}
 
+          <div className="mt-6 sm:mt-8">
+            <TrustGuaranteeBar />
+          </div>
+
           {/* Top-up packs — placed directly under the free plan */}
+
           <section className="mt-10 rounded-2xl border border-hairline bg-card/70 p-5 backdrop-blur-md sm:mt-14 sm:p-6">
             <div className="mx-auto max-w-3xl text-center">
               <h2 className="font-serif text-2xl text-foreground sm:text-3xl">
