@@ -167,6 +167,21 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
           </div>
         </div>
 
+        <div className="my-2 grid grid-cols-2 gap-1.5">
+          {SCENARIOS.map(({ icon: Icon, label, detail }) => (
+            <div
+              key={label}
+              className="flex items-start gap-1.5 rounded-md border border-border/50 bg-card/40 p-2"
+            >
+              <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" />
+              <div className="min-w-0">
+                <div className="text-[11px] font-semibold leading-tight">{label}</div>
+                <div className="text-[10px] text-muted-foreground">{detail}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
         <ul className="space-y-2">
           {FEATURES.map(({ icon: Icon, label }) => (
             <li key={label} className="flex items-start gap-2 text-sm">
