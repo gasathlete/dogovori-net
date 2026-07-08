@@ -306,6 +306,13 @@ export default function Plans() {
             );
           })()}
 
+          {/* Trust & guarantee strip — reassurance right under the free plan */}
+          <div className="mt-4">
+            <TrustGuaranteeBar />
+          </div>
+
+
+
 
 
 
