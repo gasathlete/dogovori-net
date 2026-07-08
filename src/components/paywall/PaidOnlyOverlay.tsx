@@ -65,6 +65,7 @@ export function PaidOnlyOverlay({
   useEffect(() => {
     if (showOverlay) {
       trackEvent("paywall_shown", { pillar });
+      trackPillarView(pillar);
     }
   }, [showOverlay, pillar]);
 
