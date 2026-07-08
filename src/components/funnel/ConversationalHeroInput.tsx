@@ -25,6 +25,7 @@ export function ConversationalHeroInput() {
     enabled: q.trim().length >= 2,
     limit: 6,
     sort: "relevance",
+    debounceMs: 260,
   });
 
   useEffect(() => {
