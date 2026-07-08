@@ -11,7 +11,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Crown, Sparkles, ArrowRight, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsPro } from "@/hooks/useIsPro";
-import { trackEvent } from "@/lib/analytics";
+import { trackEvent, trackPillarView, trackPillarCta } from "@/lib/analytics";
 import { ProUpgradeDialog, type ProUpgradeTrigger } from "@/components/ProUpgradeDialog";
 import { cn } from "@/lib/utils";
 
