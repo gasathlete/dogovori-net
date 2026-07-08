@@ -93,16 +93,21 @@ function AnonChat({ resetKey }: { resetKey: number }) {
   const [followups, setFollowups] = useState<string[]>(initial?.followups ?? []);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [typing, setTyping] = useState(false);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const typingTimerRef = useRef<number | null>(null);
 
-  // Wipe state when parent forces a reset (idle >30 min).
+  // Wipe state when parent forces a reset (idle >24h).
   useEffect(() => {
     if (resetKey === 0) return;
     setMessages([]);
     setFollowups([]);
     setInput("");
     setBusy(false);
+    setTyping(false);
+    if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
     try { localStorage.removeItem(ANON_STORAGE_KEY); } catch { /* ignore */ }
   }, [resetKey]);
 
@@ -110,17 +115,71 @@ function AnonChat({ resetKey }: { resetKey: number }) {
   const remaining = Math.max(0, ANON_LIMIT - userTurns);
   const limitReached = remaining <= 0;
 
+  // Smart auto-scroll — follow the writing when the user is already near
+  // the bottom; leave them alone if they scrolled up to re-read something.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, busy, followups]);
+    const el = scrollRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (distanceFromBottom < 100) {
+      el.scrollTo({ top: el.scrollHeight, behavior: typing ? "auto" : "smooth" });
+    }
+  }, [messages, busy, followups, typing]);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
+    };
+  }, []);
+
+  // Reveal the assistant reply as if it's being typed — Lovable-style so the
+  // user follows the writing instead of getting a wall of text at once.
+  const streamAssistantReply = (
+    baseMsgs: AnonMsg[],
+    fullReply: string,
+    cits: Citation[],
+    fups: string[],
+  ) => {
+    setTyping(true);
+    // Insert placeholder assistant bubble that will grow.
+    setMessages([...baseMsgs, { role: "assistant", content: "", citations: cits }]);
+    // ~12ms per character = ~80 chars/s. Cap at 30ms per tick with adaptive chunk.
+    const total = fullReply.length;
+    const startAt = performance.now();
+    const durationMs = Math.min(4500, Math.max(600, total * 12));
+    if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
+    typingTimerRef.current = window.setInterval(() => {
+      const pct = Math.min(1, (performance.now() - startAt) / durationMs);
+      const cut = Math.max(1, Math.floor(total * pct));
+      setMessages((prev) => {
+        const copy = [...prev];
+        const last = copy[copy.length - 1];
+        if (last && last.role === "assistant") {
+          copy[copy.length - 1] = { ...last, content: fullReply.slice(0, cut) };
+        }
+        return copy;
+      });
+      if (pct >= 1) {
+        if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
+        typingTimerRef.current = null;
+        const finalMsgs: AnonMsg[] = [
+          ...baseMsgs,
+          { role: "assistant", content: fullReply, citations: cits },
+        ];
+        setFollowups(fups);
+        setTyping(false);
+        saveAnonStored({ messages: finalMsgs, followups: fups, updatedAt: Date.now() });
+      }
+    }, 30);
+  };
+
   const sendText = async (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed || busy || limitReached) return;
+    if (!trimmed || busy || typing || limitReached) return;
     const next: AnonMsg[] = [...messages, { role: "user", content: trimmed }];
     setMessages(next);
     setFollowups([]);
@@ -134,10 +193,7 @@ function AnonChat({ resetKey }: { resetKey: number }) {
       const reply = (data as { reply?: string })?.reply ?? "Извинете, опитайте отново.";
       const fups = ((data as { followups?: string[] })?.followups ?? []).slice(0, 3);
       const cits = ((data as { citations?: Citation[] })?.citations ?? []).slice(0, 3);
-      const finalMsgs: AnonMsg[] = [...next, { role: "assistant", content: reply, citations: cits }];
-      setMessages(finalMsgs);
-      setFollowups(fups);
-      saveAnonStored({ messages: finalMsgs, followups: fups, updatedAt: Date.now() });
+      streamAssistantReply(next, reply, cits, fups);
     } catch {
       const finalMsgs: AnonMsg[] = [
         ...next,
