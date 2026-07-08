@@ -8,7 +8,7 @@
  * is a plain form that submits to /catalog?q=… so it's fully functional
  * even before the upgrade lands.
  */
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Sparkles } from "lucide-react";
 
