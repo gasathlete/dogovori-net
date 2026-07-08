@@ -43,14 +43,17 @@ Deno.serve(async (req: Request) => {
     }
     const userId = userData.user.id;
 
-    // Pro check (free users get one free corrections wave via consume_corrections_batch)
+    // Pro check. Free users get up to 2 free correction waves (per user, lifetime),
+    // tracked via download_quota.corrections_free_used_count.
     const { data: q } = await admin.from("download_quota")
-      .select("plan, pro_until, corrections_free_used")
+      .select("plan, pro_until, corrections_free_used_count")
       .eq("user_id", userId).maybeSingle();
     const isPro = !!q && (q.plan === "pro" || (!!q.pro_until && new Date(q.pro_until) > new Date()));
-    if (!isPro && q?.corrections_free_used) {
-      return new Response(JSON.stringify({ error: "pro_required" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const freeWavesUsed = Number((q as any)?.corrections_free_used_count ?? 0);
+    const FREE_WAVES_ALLOWED = 2;
+    if (!isPro && freeWavesUsed >= FREE_WAVES_ALLOWED) {
+      return new Response(JSON.stringify({ error: "pro_required", code: "free_corrections_exhausted" }), {
+        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -263,6 +266,14 @@ ${answersRedacted}
       user_id: userId,
       function_name: "apply-corrections",
     });
+
+    // Increment free-wave counter for free users (only on fresh, non-cached charge).
+    if (!isPro && batchCharged) {
+      await admin
+        .from("download_quota")
+        .update({ corrections_free_used_count: freeWavesUsed + 1 })
+        .eq("user_id", userId);
+    }
 
     const raw = await aiResp.json();
     const content: string = raw.choices?.[0]?.message?.content ?? "";

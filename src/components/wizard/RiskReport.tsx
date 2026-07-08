@@ -77,18 +77,18 @@ export function RiskReport({
             <Lock className="mt-0.5 h-4 w-4 text-gold" />
             <div>
               <div className="text-sm font-semibold text-foreground">
-                Pro прилага всички препоръки автоматично
+                Прилагаш до 2 безплатни вълни корекции
               </div>
               <p className="text-xs text-muted-foreground">
-                Един клик — корекциите се вписват в договора без да харчиш операция.
+                С Предприемач: неограничени корекции + експорт с track changes.
               </p>
             </div>
           </div>
           <Link
-            to="/account?tab=subscription"
+            to="/plans"
             className="shrink-0 rounded-md bg-gradient-gold px-3 py-1.5 text-xs font-semibold text-navy shadow-gold hover:opacity-90"
           >
-            Активирай Pro
+            Виж Предприемач
           </Link>
         </div>
       )}

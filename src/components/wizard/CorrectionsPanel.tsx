@@ -68,7 +68,7 @@ export function CorrectionsPanel({
             }`}
           >
             {freeWaveAvailable ? <ShieldCheck className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-            {freeWaveAvailable ? "1 безплатна" : "Предприемач"}
+            {freeWaveAvailable ? "Безплатна вълна" : "Предприемач"}
           </span>
         )}
         {open ? (
@@ -111,8 +111,8 @@ export function CorrectionsPanel({
         }`}>
           AI откри <strong className="text-foreground">{issues.length + recommendations.length}</strong> възможни подобрения.
           {freeWaveAvailable
-            ? " Имаш 1 безплатна вълна корекции — приложи я сега, без да харчиш операция."
-            : " С Pro прилагаш всички без да харчиш безплатна операция."}
+            ? " Имаш до 2 безплатни вълни корекции — приложи ги без да харчиш операция."
+            : " С Предприемач прилагаш неограничени корекции."}
         </div>
       )}
 
