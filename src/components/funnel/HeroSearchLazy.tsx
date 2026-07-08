@@ -86,7 +86,7 @@ type LiteProps = {
 };
 
 const LitePlaceholder = (
-  { q, setQ, onFocus, onSubmit, ref }: LiteProps & { ref?: React.Ref<HTMLInputElement> },
+  { q, setQ, onFocus, onSubmit }: LiteProps,
 ) => (
   <div className="relative mx-auto mt-3 w-full max-w-xl">
     <form
