@@ -30,7 +30,7 @@ interface ProState {
 
 const DEFAULT_FREE_QUOTA: FreeQuota = {
   opsUsed: 0,
-  opsCap: 3,
+  opsCap: 5,
   aiMessagesUsed: 0,
   aiMessagesCap: 3,
   analysisPreviewsUsed: 0,
