@@ -32,7 +32,7 @@ export function tierFromPriceId(priceId: string | null | undefined): Tier {
 export const OPS_CAP: Record<Tier, number> = {
   free: 0, // Free has its own dynamic cap (5 first month, then 2)
   professional: 50,
-  entrepreneur: 120,
+  entrepreneur: 100,
   team: 100, // per seat
 };
 

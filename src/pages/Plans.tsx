@@ -415,7 +415,7 @@ export default function Plans() {
               </h2>
               <p className="mt-2 text-sm text-white/80 sm:text-base">
                 {isAuthed
-                  ? "Получи 120 операции/мес, GPT-5 модел, неограничен AI и премиум поддръжка 24/7."
+                  ? "Получи 100 операции/мес, GPT-5 модел, неограничен AI и премиум поддръжка 24/7."
                   : "Безплатен старт: 5 операции + 2 всеки месец. Без карта."}
               </p>
               <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
