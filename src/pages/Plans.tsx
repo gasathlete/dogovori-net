@@ -101,6 +101,7 @@ export default function Plans() {
         />
 
         <section className="relative z-10 mx-auto max-w-6xl px-4 pt-2 pb-3 sm:pt-4 sm:pb-6">
+          <SoftCapPanel />
           <AnalysisRecommendationBanner />
           <PlansHeroAnimation />
           <div className="relative mx-auto mt-4 max-w-3xl text-center sm:mt-6">
