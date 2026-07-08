@@ -14,7 +14,6 @@ import { AnalysisRecommendationBanner } from "@/components/funnel/AnalysisRecomm
 import { AnchoringStrip } from "@/components/funnel/AnchoringStrip";
 
 import { RoiCalculator } from "@/components/funnel/RoiCalculator";
-import { TrustGuaranteeBar } from "@/components/funnel/TrustGuaranteeBar";
 import { markFunnelStep } from "@/lib/funnel";
 import { useEffect } from "react";
 
@@ -302,11 +301,6 @@ export default function Plans() {
               </div>
             );
           })()}
-
-          {/* Trust & guarantee strip — reassurance right under the free plan */}
-          <div className="mt-4">
-            <TrustGuaranteeBar />
-          </div>
 
           {/* Top-up packs — placed directly under the free plan */}
           <section className="mt-10 rounded-2xl border border-hairline bg-card/70 p-5 backdrop-blur-md sm:mt-14 sm:p-6">
