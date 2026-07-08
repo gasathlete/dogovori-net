@@ -4162,6 +4162,7 @@ export type Database = {
         Returns: number
       }
       get_active_prompt: { Args: { _function_name: string }; Returns: string }
+      get_first100_remaining: { Args: never; Returns: number }
       get_post_rating: {
         Args: {
           _post_slug: string

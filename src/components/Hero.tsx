@@ -8,6 +8,7 @@ import type { BusinessQuote } from "@/lib/businessQuotes";
 import { useMagneticHover } from "@/hooks/useMagneticHover";
 import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { HeroSearchLazy } from "@/components/funnel/HeroSearchLazy";
+import { First100Counter } from "@/components/funnel/First100Counter";
 import { useAuth } from "@/hooks/useAuth";
 
 const TeaserDialog = lazy(() => import("@/components/TeaserDialog").then((m) => ({ default: m.TeaserDialog })));
@@ -304,6 +305,10 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           >
             Промокод <span className="font-semibold text-gold">FIRST100</span> → −20% за нови клиенти · без карта
           </p>
+          <div className="anim-rise flex justify-center" style={{ animationDelay: "340ms" }}>
+            <First100Counter />
+          </div>
+
 
         </div>
       </div>
