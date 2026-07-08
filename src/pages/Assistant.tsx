@@ -99,7 +99,7 @@ export default function AssistantPage() {
                 to="/auth"
                 className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-b from-gold to-gold/80 px-3.5 py-1.5 font-semibold text-navy shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.55)] transition-all hover:brightness-110"
               >
-                <Sparkles className="h-3.5 w-3.5" /> Регистрация · 10 безпл.
+                <Sparkles className="h-3.5 w-3.5" /> Регистрация · 5 безпл.
               </Link>
             ) : unlimited ? (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 font-medium text-gold">
