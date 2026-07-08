@@ -54,7 +54,7 @@ const TRIGGER_COPY: Record<
   ops_exhausted: {
     title: "Изчерпа безплатните операции за месеца",
     description: () =>
-      "Безплатно: 5 операции при регистрация + 2/месец. 1 съобщение в DogovaryAI = 1 операция. Професионалист дава 50 операции/мес. за 12.90 €, Предприемач — 120 операции/мес. за 19.90 €.",
+      "Безплатно: 5 операции при регистрация + 2/месец. 1 съобщение в DogovaryAI = 1 операция. Професионалист дава 50 операции/мес. за 12.90 €, Предприемач — 100 операции/мес. за 19.90 €.",
   },
   ai_limit: {
     title: "Достигна лимита на AI Асистента",
@@ -99,13 +99,13 @@ const TRIGGER_COPY: Record<
   generic: {
     title: "Платен план",
     description: () =>
-      "От 50 до 120 операции/мес., неограничен AI Асистент (1 съобщение = 1 операция), двуезични договори и комплекти.",
+      "От 50 до 100 операции/мес., неограничен AI Асистент (1 съобщение = 1 операция), двуезични договори и комплекти.",
   },
 
 };
 
 const FEATURES = [
-  { icon: Zap, label: "50–120 операции / месец (1 съобщение = 1 операция)" },
+  { icon: Zap, label: "50–100 операции / месец (1 съобщение = 1 операция)" },
   { icon: Sparkles, label: "Неограничен AI Асистент + GPT-5 (Предприемач)" },
   { icon: Crown, label: "Двуезични договори (EN / DE / FR)" },
   { icon: Check, label: "Неограничени комплекти документи и корекции" },
@@ -173,7 +173,7 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
             onClick={() => goToBilling("entrepreneur", "monthly")}
             className="w-full bg-gradient-gold text-navy hover:shadow-gold"
           >
-            Предприемач — 19.90 € / месец (120 операции + GPT-5)
+            Предприемач — 19.90 € / месец (100 операции + GPT-5)
           </Button>
           <Button
             onClick={() => goToBilling("professional", "monthly")}

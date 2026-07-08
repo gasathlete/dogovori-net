@@ -40,7 +40,7 @@ export function useProConversionToast() {
         description = "Със следваща операция изчерпваш лимита. Професионалист отключва 50 ops + AI + двуезични за 12.90 €/мес.";
       } else {
         title = "Безплатният лимит е изчерпан";
-        description = "Професионалист 12.90 €/мес (50 ops) или Предприемач 19.90 €/мес (120 ops + GPT-5).";
+        description = "Професионалист 12.90 €/мес (50 ops) или Предприемач 19.90 €/мес (100 ops + GPT-5).";
       }
 
       trackEvent("tease_shown", { channel: "toast", stage, reason });

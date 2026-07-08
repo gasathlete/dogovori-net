@@ -128,7 +128,7 @@ export function softwareApplicationSchema() {
         name: "Предприемач",
         price: "19.90",
         priceCurrency: "EUR",
-        description: "120 operations/month, GPT-5, Premium 24/7 support",
+        description: "100 operations/month, GPT-5, Premium 24/7 support",
         priceSpecification: {
           "@type": "UnitPriceSpecification",
           price: "19.90",

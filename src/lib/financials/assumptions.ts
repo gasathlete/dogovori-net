@@ -33,7 +33,7 @@ export type PlanDef = {
 export const PLANS: Record<PlanKey, PlanDef> = {
   free: { key: "free", label: "Free", gross_monthly_eur: 0, ops_quota: 2, routing: { flash: 1, pro: 0, gpt5: 0 } },
   prof: { key: "prof", label: "Професионалист", gross_monthly_eur: 12.9, ops_quota: 50, routing: { flash: 1, pro: 0, gpt5: 0 } },
-  entrepreneur: { key: "entrepreneur", label: "Предприемач", gross_monthly_eur: 19.9, ops_quota: 120, routing: { flash: 0, pro: 0.6, gpt5: 0.4 } },
+  entrepreneur: { key: "entrepreneur", label: "Предприемач", gross_monthly_eur: 19.9, ops_quota: 100, routing: { flash: 0, pro: 0.6, gpt5: 0.4 } },
   team: { key: "team", label: "Екип (3 места)", gross_monthly_eur: 327 / 12, ops_quota: 300, routing: { flash: 0, pro: 0.8, gpt5: 0.2 }, seats: 3 },
 };
 

@@ -173,7 +173,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   };
 
   const proFeatures = [
-    "От 50 до 120 операции на месец (договори, бланки и анализи)",
+    "От 50 до 100 операции на месец (договори, бланки и анализи)",
     "Двуезични документи (BG/EN) с паралелна колона",
     "Преглед на живо и стъпков Wizard",
     "Интелигентен анализ на качени документи",
@@ -542,7 +542,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
                 <span className="font-serif text-3xl font-bold text-foreground">19.90 €</span>
                 <span className="text-xs text-muted-foreground">/ мес</span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">120 операции/мес · GPT-5 · ДДС вкл.</p>
+              <p className="mt-1 text-xs text-muted-foreground">100 операции/мес · GPT-5 · ДДС вкл.</p>
               <p className="mt-0.5 text-[11px] text-muted-foreground">или 199 €/год (≈ 16.60 €/мес)</p>
               <div className="mt-4 flex flex-col gap-2">
                 <Button
@@ -561,7 +561,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               </div>
               <div className="my-5 h-px bg-gold/15" />
               <ul className="space-y-2.5">
-                <Feature>120 операции / месец</Feature>
+                <Feature>100 операции / месец</Feature>
                 <Feature>Приоритетна AI обработка + GPT-5</Feature>
                 <Feature>Premium поддръжка 24/7</Feature>
                 <Feature>Персонален onboarding</Feature>
