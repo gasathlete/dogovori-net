@@ -20,7 +20,6 @@ export function HeroSearchLazy() {
   const [upgrade, setUpgrade] = useState(false);
   const [q, setQ] = useState("");
   const navigate = useNavigate();
-  const inputRef = useRef<HTMLInputElement>(null);
 
   // Idle-prefetch the full component so first focus feels instant on fast
   // connections, but without blocking initial paint.
