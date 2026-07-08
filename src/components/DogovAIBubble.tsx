@@ -220,7 +220,7 @@ function AnonChat({ resetKey }: { resetKey: number }) {
         </Link>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 space-y-3">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-3 space-y-3">
         {messages.length === 0 && (
           <>
             <div className="rounded-xl border border-gold/30 bg-gradient-to-br from-gold/10 via-card to-card p-3 text-sm">
@@ -229,10 +229,10 @@ function AnonChat({ resetKey }: { resetKey: number }) {
               </div>
               <p className="text-muted-foreground text-[13px] leading-relaxed">
                 Имате <b className="text-foreground">{ANON_LIMIT} безплатни съобщения</b>.
-                Изберете тема или питайте директно:
+                Питайте директно или започнете с това:
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2">
               {STARTERS.map((s) => (
                 <button
                   key={s.label}
