@@ -505,11 +505,6 @@ export function PlatformShowcase() {
         </svg>
       </div>
 
-
-
-
-
-
       <div className="container relative">
         <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-8">
           <div className="mb-3 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-gold">
