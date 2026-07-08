@@ -55,7 +55,7 @@ export function ComplianceSection() {
   // рапортва "Duplicate field FAQPage").
 
   return (
-    <section id="compliance" className="container py-20 sm:py-24 md:py-28">
+    <section id="compliance" className="container py-12 sm:py-16 md:py-20">
       <div className="relative overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-8 shadow-elegant md:p-14">
         <div className="absolute inset-x-0 top-0 hairline-x" />
 
