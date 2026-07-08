@@ -418,7 +418,7 @@ export function PlatformShowcase() {
   return (
     <section
       aria-labelledby="platform-showcase-heading"
-      className="relative overflow-hidden py-20 sm:py-24 md:py-28"
+      className="relative overflow-hidden py-12 sm:py-16 md:py-20"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onKeyDown={onKeyDown}
