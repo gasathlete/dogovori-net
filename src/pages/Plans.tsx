@@ -308,11 +308,28 @@ export default function Plans() {
             <TrustGuaranteeBar />
           </div>
 
+          {/* Top-up packs — placed directly under the free plan */}
+          <section className="mt-10 rounded-2xl border border-hairline bg-card/70 p-5 backdrop-blur-md sm:mt-14 sm:p-6">
+            <div className="mx-auto max-w-3xl text-center">
+              <h2 className="font-serif text-2xl text-foreground sm:text-3xl">
+                Top-up пакети — добави операции към плана си
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+                Еднократно зареждане без подновяване. Налично само за активни абонати.
+                Цените са с ДДС.
+              </p>
+            </div>
+            <div className="mx-auto mt-8 max-w-5xl">
+              <TopupPacks enabled={isAuthed} />
+            </div>
+          </section>
 
-
-
-
-
+          {/* ROI / savings calculator — directly under top-ups */}
+          <section className="mt-10 rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:mt-14 sm:p-6">
+            <div className="mx-auto max-w-3xl">
+              <RoiCalculator />
+            </div>
+          </section>
 
           <ExpandableCard
             className="mt-10 rounded-2xl border border-hairline bg-card/70 p-5 backdrop-blur-md sm:mt-14 sm:p-6"
@@ -381,27 +398,6 @@ export default function Plans() {
           </div>
         </section>
 
-        <section className="relative z-10 mx-auto max-w-3xl px-4 pb-16 sm:pb-24">
-          <h2 className="text-center font-serif text-2xl text-foreground sm:text-3xl">
-            Често задавани въпроси
-          </h2>
-          <Accordion type="single" collapsible className="mt-8 space-y-2">
-            {FAQ.map((item, i) => (
-              <AccordionItem
-                key={i}
-                value={`faq-${i}`}
-                className="rounded-xl border border-hairline bg-card/70 px-4 backdrop-blur-md"
-              >
-                <AccordionTrigger className="text-left text-sm font-medium hover:no-underline">
-                  {item.q}
-                </AccordionTrigger>
-                <AccordionContent className="text-sm text-muted-foreground">
-                  {item.a}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </section>
 
         <section className="relative z-10 mx-auto max-w-4xl px-4 pb-20">
           <div className="relative overflow-hidden rounded-3xl border border-brand/40 bg-gradient-to-br from-brand-dark via-brand-dark to-foreground/5 p-8 text-center sm:p-12">
@@ -445,29 +441,27 @@ export default function Plans() {
           </div>
         </section>
 
-        <section className="border-t border-border/60 bg-card/30 py-16">
-          <div className="container mx-auto px-4">
-            <div className="mx-auto max-w-3xl text-center">
-              <h2 className="font-serif text-2xl text-foreground sm:text-3xl">
-                Top-up пакети — добави операции към плана си
-              </h2>
-              <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-                Еднократно зареждане без подновяване. Налично само за активни абонати.
-                Цените са с ДДС.
-              </p>
-            </div>
-            <div className="mx-auto mt-8 max-w-5xl">
-              <TopupPacks enabled={isAuthed} />
-            </div>
-          </div>
-        </section>
-
-        <section className="border-t border-border/60 py-16">
-          <div className="container mx-auto px-4">
-            <div className="mx-auto max-w-3xl">
-              <RoiCalculator />
-            </div>
-          </div>
+        {/* FAQ moved to the very bottom */}
+        <section className="relative z-10 mx-auto max-w-3xl px-4 py-16 sm:py-24">
+          <h2 className="text-center font-serif text-2xl text-foreground sm:text-3xl">
+            Често задавани въпроси
+          </h2>
+          <Accordion type="single" collapsible className="mt-8 space-y-2">
+            {FAQ.map((item, i) => (
+              <AccordionItem
+                key={i}
+                value={`faq-${i}`}
+                className="rounded-xl border border-hairline bg-card/70 px-4 backdrop-blur-md"
+              >
+                <AccordionTrigger className="text-left text-sm font-medium hover:no-underline">
+                  {item.q}
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground">
+                  {item.a}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </section>
       </main>
 
