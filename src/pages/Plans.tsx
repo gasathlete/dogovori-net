@@ -103,9 +103,6 @@ export default function Plans() {
         <section className="relative z-10 mx-auto max-w-6xl px-4 pt-2 pb-3 sm:pt-4 sm:pb-6">
           <AnalysisRecommendationBanner />
           <AnchoringStrip />
-          <div className="mb-4 sm:mb-6">
-            <TrustGuaranteeBar />
-          </div>
           <PlansHeroAnimation />
           <div className="relative mx-auto mt-4 max-w-3xl text-center sm:mt-6">
             <h1 className="font-serif text-4xl leading-[1.1] tracking-tight text-foreground sm:text-5xl md:text-6xl">
