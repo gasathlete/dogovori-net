@@ -32,7 +32,7 @@ const DEFAULT_FREE_QUOTA: FreeQuota = {
   opsUsed: 0,
   opsCap: 5,
   aiMessagesUsed: 0,
-  aiMessagesCap: 3,
+  aiMessagesCap: 5,
   analysisPreviewsUsed: 0,
   analysisPreviewsCap: 1,
   bilingualPreviewsUsed: 0,
