@@ -12,6 +12,8 @@ import { PlanHeroBenefit } from "@/components/plans/PlanHeroBenefit";
 import { categorize } from "@/lib/planCategories";
 import { AnalysisRecommendationBanner } from "@/components/funnel/AnalysisRecommendationBanner";
 import { AnchoringStrip } from "@/components/funnel/AnchoringStrip";
+import { TrustGuaranteeBar } from "@/components/funnel/TrustGuaranteeBar";
+
 
 import { RoiCalculator } from "@/components/funnel/RoiCalculator";
 import { markFunnelStep } from "@/lib/funnel";
