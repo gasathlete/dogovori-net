@@ -119,6 +119,7 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
 
   const goToBilling = (plan: "professional" | "entrepreneur", billing: "monthly" | "yearly") => {
     trackEvent("paywall_clicked", { trigger, plan, billing });
+    trackUpgradeStarted(`paywall:${trigger}`, plan);
     const returnTo =
       typeof window !== "undefined"
         ? window.location.pathname + window.location.search
@@ -130,6 +131,13 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
     onOpenChange(false);
     navigate(`/account?tab=subscription&plan=${plan}&billing=${billing}&promo=FIRST100${redirect}`);
   };
+
+  const SCENARIOS = [
+    { icon: Zap, label: "Договор за 5 мин.", detail: "Wizard + auto-clauses" },
+    { icon: Sparkles, label: "Risk report ~40 мин. спестени", detail: "Пълен анализ + цитати" },
+    { icon: Crown, label: "e-Подпис в 1 клик", detail: "Проследяване + одит" },
+    { icon: Check, label: "Двуезични с 1 команда", detail: "BG/EN паралелно" },
+  ];
 
   return (
     <Dialog
