@@ -51,18 +51,15 @@ export default function KitDetailPage() {
       return;
     }
     if (!user) return;
-    // Free users can keep only 1 active kit slot.
+    // Kits са само за платени планове — free потребителите виждат paywall.
     if (!isPro && !isTeam) {
-      const { data: slotData } = await supabase.rpc("can_use_kit_slot");
-      const slotOk = (slotData as any)?.ok !== false;
-      if (!slotOk) {
-        toast.error("Безплатен лимит: 1 активен комплект", {
-          description: "Изтрийте съществуващия комплект или надградете до PRO за неограничени.",
-          action: { label: "Виж PRO", onClick: () => navigate("/account?tab=subscription") },
-        });
-        return;
-      }
+      toast.error("Комплекти са само за платени планове", {
+        description: "Активирай Предприемач за неограничени комплекти документи.",
+        action: { label: "Виж Предприемач", onClick: () => navigate("/plans") },
+      });
+      return;
     }
+
     setStarting(true);
     try {
       const created = await createKitFromTemplate(user.id, kit.id);
