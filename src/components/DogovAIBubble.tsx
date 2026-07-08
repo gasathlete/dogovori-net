@@ -559,7 +559,7 @@ export function DogovAIBubble() {
               <div className="leading-tight">
                 <div className="font-serif text-sm font-bold">DogovaryAI</div>
                 <div className="text-[10px] text-muted-foreground">
-                  {user ? "AI правен асистент" : "Безплатен тест · 3 съобщения"}
+                  {user ? "AI правен асистент" : `Безплатен тест · ${ANON_LIMIT} съобщения`}
                 </div>
               </div>
             </div>
