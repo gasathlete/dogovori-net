@@ -98,7 +98,6 @@ const LitePlaceholder = (
     >
       <Search className="ml-1 h-4 w-4 shrink-0 text-gold" aria-hidden="true" />
       <input
-        ref={ref}
         type="text"
         inputMode="search"
         value={q}
