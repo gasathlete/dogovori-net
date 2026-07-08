@@ -360,8 +360,8 @@ export default function Plans() {
                     </tr>
                   </thead>
                   <tbody>
-                    {COMPARISON_ROWS.map((row) => (
-                      <tr key={row.label} className="border-b border-hairline/60">
+                    {COMPARISON_ROWS.map((row, idx) => (
+                      <tr key={`${row.label}-${idx}`} className="border-b border-hairline/60">
                         <td className="py-3 pr-4 text-foreground/90 whitespace-pre-line">{row.label}</td>
                         <Cell value={row.free_value} />
                         <Cell value={row.professional_value} />
