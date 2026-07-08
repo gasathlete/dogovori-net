@@ -30,6 +30,36 @@ export function trackOutbound(url: string) {
   trackEvent("outbound_click", { url });
 }
 
+/* -------------------- Conversion funnel (Стълбове 1-6) -------------------- */
+
+export type PillarKey =
+  | "assistant"
+  | "risk_analysis"
+  | "bilingual"
+  | "signing"
+  | "kits"
+  | "corrections";
+
+/** Fired when a paywall overlay/lock becomes visible for a specific pillar. */
+export function trackPillarView(pillar: PillarKey, extra?: Record<string, unknown>) {
+  trackEvent("pillar_view", { pillar, ...(extra ?? {}) });
+}
+
+/** Fired when the user clicks the CTA in a pillar overlay / soft-cap panel. */
+export function trackPillarCta(pillar: PillarKey, extra?: Record<string, unknown>) {
+  trackEvent("pillar_cta_click", { pillar, ...(extra ?? {}) });
+}
+
+/** Fired when the user actually starts the upgrade flow (opens billing tab). */
+export function trackUpgradeStarted(source: string, plan?: string) {
+  trackEvent("upgrade_started", { source, plan: plan ?? "unknown" });
+}
+
+/** Fired when a subscription is successfully activated (called from CheckoutReturn). */
+export function trackUpgradeCompleted(plan: string, billing: string) {
+  trackEvent("upgrade_completed", { plan, billing });
+}
+
 export function gaPageview(path: string) {
   if (typeof window === "undefined") return;
   try {
