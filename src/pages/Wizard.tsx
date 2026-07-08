@@ -286,11 +286,13 @@ export default function WizardPage() {
 
   useEffect(() => {
     if (!user) { setIsPro(false); setFreeWaveAvailable(false); setContacts([]); return; }
-    supabase.from("download_quota").select("plan, pro_until, corrections_free_used").eq("user_id", user.id).maybeSingle()
+    supabase.from("download_quota").select("plan, pro_until, corrections_free_used_count").eq("user_id", user.id).maybeSingle()
       .then(({ data }) => {
         if (!data) return;
         setIsPro(data.plan === "pro" || (!!data.pro_until && new Date(data.pro_until) > new Date()));
-        setFreeWaveAvailable(!(data as any).corrections_free_used);
+        // Free plan: up to 2 корекционни вълни.
+        const freeWavesUsed = Number((data as any).corrections_free_used_count ?? 0);
+        setFreeWaveAvailable(freeWavesUsed < 2);
       });
     supabase.from("contacts").select("id, name, type").is("deleted_at", null).order("created_at", { ascending: false })
       .then(({ data }) => setContacts((data as any) ?? []));
