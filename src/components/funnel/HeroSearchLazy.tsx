@@ -64,7 +64,6 @@ export function HeroSearchLazy() {
 
   return (
     <LitePlaceholder
-      ref={inputRef}
       q={q}
       setQ={(v) => {
         setQ(v);
