@@ -7,7 +7,7 @@ import { scrollToHash } from "@/lib/scrollToHash";
 import type { BusinessQuote } from "@/lib/businessQuotes";
 import { useMagneticHover } from "@/hooks/useMagneticHover";
 import { HeroBackdrop } from "@/components/HeroBackdrop";
-import { ConversationalHeroInput } from "@/components/funnel/ConversationalHeroInput";
+import { HeroSearchLazy } from "@/components/funnel/HeroSearchLazy";
 import { useAuth } from "@/hooks/useAuth";
 
 const TeaserDialog = lazy(() => import("@/components/TeaserDialog").then((m) => ({ default: m.TeaserDialog })));
