@@ -62,7 +62,7 @@ function loadAnonStored(): AnonStored | null {
     const raw = localStorage.getItem(ANON_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as AnonStored;
-    if (!parsed?.updatedAt || Date.now() - parsed.updatedAt > IDLE_RESET_MS) {
+    if (!parsed?.updatedAt || Date.now() - parsed.updatedAt > ANON_PERSIST_MS) {
       localStorage.removeItem(ANON_STORAGE_KEY);
       return null;
     }
