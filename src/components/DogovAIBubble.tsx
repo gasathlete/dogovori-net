@@ -243,7 +243,7 @@ function AnonChat({ resetKey }: { resetKey: number }) {
                   <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gold/15 text-gold">
                     <s.icon className="h-3.5 w-3.5" />
                   </span>
-                  <span className="font-medium text-foreground">{s.label}</span>
+                  <span className="font-medium text-gold group-hover:underline">{s.label}</span>
                 </button>
               ))}
             </div>
@@ -315,7 +315,7 @@ function AnonChat({ resetKey }: { resetKey: number }) {
                   key={i}
                   type="button"
                   onClick={() => sendText(q)}
-                  className="rounded-full border border-gold/40 bg-gold/5 px-3 py-1 text-[12px] text-foreground transition-colors hover:bg-gold/15 hover:border-gold/70"
+                  className="rounded-full border border-gold/40 bg-gold/5 px-3 py-1 text-[12px] text-gold transition-colors hover:bg-gold/15 hover:border-gold/70 hover:underline"
                 >
                   {q}
                 </button>
@@ -512,19 +512,19 @@ export function DogovAIBubble() {
             <button
               type="button"
               onClick={openSmall}
-              className="flex flex-col items-start gap-1 rounded-lg border border-border/60 bg-background/60 p-3 text-left transition-colors hover:border-gold/60 hover:bg-gold/5"
+              className="group flex flex-col items-start gap-1 rounded-lg border border-border/60 bg-background/60 p-3 text-left transition-colors hover:border-gold/60 hover:bg-gold/5"
             >
               <MessageSquare className="h-4 w-4 text-gold" />
-              <span className="text-xs font-semibold">Малък чат</span>
+              <span className="text-xs font-semibold text-gold group-hover:underline">Малък чат</span>
               <span className="text-[10px] text-muted-foreground">Балонче в ъгъла</span>
             </button>
             <button
               type="button"
               onClick={goFullExperience}
-              className="flex flex-col items-start gap-1 rounded-lg border border-gold/40 bg-gold/10 p-3 text-left transition-colors hover:border-gold hover:bg-gold/20"
+              className="group flex flex-col items-start gap-1 rounded-lg border border-gold/40 bg-gold/10 p-3 text-left transition-colors hover:border-gold hover:bg-gold/20"
             >
               <Maximize2 className="h-4 w-4 text-gold" />
-              <span className="text-xs font-semibold">Цял екран</span>
+              <span className="text-xs font-semibold text-gold group-hover:underline">Цял екран</span>
               <span className="text-[10px] text-muted-foreground">Workspace</span>
             </button>
           </div>
