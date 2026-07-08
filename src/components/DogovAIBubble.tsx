@@ -342,7 +342,9 @@ export function DogovAIBubble() {
     setChooserOpen(true);
   };
 
-  // Reset only the anonymous trial chat after idle timeout.
+  // Anonymous trial persists for 24h (matches server-side per-IP rate limit).
+  // Closing and re-opening the bubble no longer wipes remaining messages —
+  // that behavior confused users into thinking the counter was buggy.
   useEffect(() => {
     if (!open || user) return;
     let last = 0;
@@ -350,7 +352,7 @@ export function DogovAIBubble() {
       const raw = localStorage.getItem(LAST_ACTIVITY_KEY);
       last = raw ? Number(raw) : 0;
     } catch { /* ignore */ }
-    if (!last || Date.now() - last > IDLE_RESET_MS) {
+    if (last && Date.now() - last > ANON_PERSIST_MS) {
       try {
         localStorage.removeItem(ANON_STORAGE_KEY);
         localStorage.removeItem(LAST_ACTIVITY_KEY);
