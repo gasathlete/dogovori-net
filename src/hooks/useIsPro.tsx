@@ -30,9 +30,9 @@ interface ProState {
 
 const DEFAULT_FREE_QUOTA: FreeQuota = {
   opsUsed: 0,
-  opsCap: 3,
+  opsCap: 5,
   aiMessagesUsed: 0,
-  aiMessagesCap: 3,
+  aiMessagesCap: 5,
   analysisPreviewsUsed: 0,
   analysisPreviewsCap: 1,
   bilingualPreviewsUsed: 0,
@@ -100,11 +100,18 @@ export function useIsPro(): ProState {
     const grandfathered = (q as any)?.plan_ops_cap as number | null;
     let opsCap: number;
     if (isPro) {
-      // Both Предприемач (12.90€) and Екип (10.90€/seat) = 100 ops/mo.
-      opsCap = grandfathered ?? 100;
+      // Предприемач (19.90€) = 100 ops/mo, Професионалист (12.90€) = 50 ops/mo,
+      // Екип (109€/seat/год.) = 100 ops/seat/mo. Grandfathered override wins.
+      if (grandfathered != null) opsCap = grandfathered;
+      else if (isProfessional) opsCap = 50;
+      else opsCap = 100;
     } else {
-      opsCap = 10;
+      // Free plan: 5 ops през първите 30 дни от регистрацията, после 2/мес.
+      const signupTs = signupAt ? new Date(signupAt).getTime() : Date.now();
+      const withinFirstMonth = Date.now() - signupTs < 30 * 24 * 60 * 60 * 1000;
+      opsCap = withinFirstMonth ? 5 : 2;
     }
+
     setState({
       isPro,
       isTeam,

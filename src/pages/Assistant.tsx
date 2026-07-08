@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Link, useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Sparkles, FileText, Scale, Upload, Plus, Handshake, Layers, ArrowLeft, MessageSquarePlus } from "lucide-react";
 import { AssistantChat } from "@/components/AssistantChat";
+import { PaidOnlyOverlay } from "@/components/paywall/PaidOnlyOverlay";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsPro } from "@/hooks/useIsPro";
 
@@ -99,7 +100,7 @@ export default function AssistantPage() {
                 to="/auth"
                 className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-b from-gold to-gold/80 px-3.5 py-1.5 font-semibold text-navy shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.55)] transition-all hover:brightness-110"
               >
-                <Sparkles className="h-3.5 w-3.5" /> Регистрация · 10 безпл.
+                <Sparkles className="h-3.5 w-3.5" /> Регистрация · 5 безпл.
               </Link>
             ) : unlimited ? (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 font-medium text-gold">
@@ -152,13 +153,30 @@ export default function AssistantPage() {
       {/* Chat surface — full-height */}
       <main className="flex-1 overflow-hidden">
         <div className="container h-full max-w-6xl py-3">
-          <AssistantChat
-            key={threadId || "new"}
-            threadId={threadId ?? null}
-            onThreadChange={handleThreadChange}
-          />
+          {user && !unlimited && used >= 1 ? (
+            <PaidOnlyOverlay
+              pillar="assistant"
+              headline="AI Асистент — само за платени планове"
+              sub="Пробва демо съобщението. Продължи с неограничен правен чат, цитати и анализ на договори."
+              ctaLabel="Отключи AI Асистента"
+              minHeight="60vh"
+            >
+              <AssistantChat
+                key={threadId || "new"}
+                threadId={threadId ?? null}
+                onThreadChange={handleThreadChange}
+              />
+            </PaidOnlyOverlay>
+          ) : (
+            <AssistantChat
+              key={threadId || "new"}
+              threadId={threadId ?? null}
+              onThreadChange={handleThreadChange}
+            />
+          )}
         </div>
       </main>
+
 
       {/* Footer hint */}
       <footer className="border-t border-border/30 bg-muted/20 px-4 py-2 text-center text-[11px] text-muted-foreground">

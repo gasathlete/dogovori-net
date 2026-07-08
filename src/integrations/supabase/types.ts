@@ -1375,6 +1375,7 @@ export type Database = {
           bonus_contracts: number
           contracts_used: number
           corrections_free_used: boolean
+          corrections_free_used_count: number
           features_reset_at: string
           free_signing_used: boolean
           monthly_contracts_used: number
@@ -1401,6 +1402,7 @@ export type Database = {
           bonus_contracts?: number
           contracts_used?: number
           corrections_free_used?: boolean
+          corrections_free_used_count?: number
           features_reset_at?: string
           free_signing_used?: boolean
           monthly_contracts_used?: number
@@ -1427,6 +1429,7 @@ export type Database = {
           bonus_contracts?: number
           contracts_used?: number
           corrections_free_used?: boolean
+          corrections_free_used_count?: number
           features_reset_at?: string
           free_signing_used?: boolean
           monthly_contracts_used?: number
@@ -3843,6 +3846,7 @@ export type Database = {
           bonus_contracts: number
           contracts_used: number
           corrections_free_used: boolean
+          corrections_free_used_count: number
           features_reset_at: string
           free_signing_used: boolean
           monthly_contracts_used: number
@@ -4161,6 +4165,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      free_ops_cap: { Args: { _user_id: string }; Returns: number }
       get_active_prompt: { Args: { _function_name: string }; Returns: string }
       get_first100_remaining: { Args: never; Returns: number }
       get_post_rating: {
