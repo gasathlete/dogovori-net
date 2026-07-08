@@ -408,27 +408,6 @@ export default function Plans() {
           </div>
         </section>
 
-        <section className="relative z-10 mx-auto max-w-3xl px-4 pb-16 sm:pb-24">
-          <h2 className="text-center font-serif text-2xl text-foreground sm:text-3xl">
-            Често задавани въпроси
-          </h2>
-          <Accordion type="single" collapsible className="mt-8 space-y-2">
-            {FAQ.map((item, i) => (
-              <AccordionItem
-                key={i}
-                value={`faq-${i}`}
-                className="rounded-xl border border-hairline bg-card/70 px-4 backdrop-blur-md"
-              >
-                <AccordionTrigger className="text-left text-sm font-medium hover:no-underline">
-                  {item.q}
-                </AccordionTrigger>
-                <AccordionContent className="text-sm text-muted-foreground">
-                  {item.a}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </section>
 
         <section className="relative z-10 mx-auto max-w-4xl px-4 pb-20">
           <div className="relative overflow-hidden rounded-3xl border border-brand/40 bg-gradient-to-br from-brand-dark via-brand-dark to-foreground/5 p-8 text-center sm:p-12">
