@@ -12,6 +12,7 @@ import { PlanHeroBenefit } from "@/components/plans/PlanHeroBenefit";
 import { categorize } from "@/lib/planCategories";
 import { AnalysisRecommendationBanner } from "@/components/funnel/AnalysisRecommendationBanner";
 import { TrustGuaranteeBar } from "@/components/funnel/TrustGuaranteeBar";
+import { SoftCapPanel } from "@/components/paywall/SoftCapPanel";
 
 
 import { RoiCalculator } from "@/components/funnel/RoiCalculator";
