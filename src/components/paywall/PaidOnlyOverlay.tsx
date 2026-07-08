@@ -11,7 +11,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Crown, Sparkles, ArrowRight, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsPro } from "@/hooks/useIsPro";
-import { trackEvent } from "@/lib/analytics";
+import { trackEvent, trackPillarView, trackPillarCta } from "@/lib/analytics";
 import { ProUpgradeDialog, type ProUpgradeTrigger } from "@/components/ProUpgradeDialog";
 import { cn } from "@/lib/utils";
 
@@ -65,6 +65,7 @@ export function PaidOnlyOverlay({
   useEffect(() => {
     if (showOverlay) {
       trackEvent("paywall_shown", { pillar });
+      trackPillarView(pillar);
     }
   }, [showOverlay, pillar]);
 
@@ -109,6 +110,7 @@ export function PaidOnlyOverlay({
               size="sm"
               onClick={() => {
                 trackEvent("paywall_cta_click", { pillar });
+                trackPillarCta(pillar);
                 setOpen(true);
               }}
               className="mt-5 w-full bg-gradient-gold text-navy hover:shadow-gold"

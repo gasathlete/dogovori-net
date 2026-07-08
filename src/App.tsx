@@ -75,6 +75,9 @@ const StartStoryOverlay = reactLazy(() =>
 const EntrepreneurAdPopup = reactLazy(() =>
   import("@/components/funnel/EntrepreneurAdPopup").then((m) => ({ default: m.EntrepreneurAdPopup })),
 );
+const FreeWelcomeDialog = reactLazy(() =>
+  import("@/components/paywall/FreeWelcomeDialog").then((m) => ({ default: m.FreeWelcomeDialog })),
+);
 // Sentry init is deferred to idle time below — keeps it off the critical path.
 
 // Lazy-load every route except Index (landing page) so the initial bundle stays light.
@@ -246,6 +249,7 @@ function DeferredOverlays() {
       <MobileBottomNav />
       <ActionCelebrationHost />
       <EntrepreneurAdPopup />
+      <FreeWelcomeDialog />
     </Suspense>
   );
 }

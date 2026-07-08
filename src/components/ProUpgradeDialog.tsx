@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { trackEvent } from "@/lib/analytics";
+import { trackEvent, trackUpgradeStarted } from "@/lib/analytics";
 
 export type ProUpgradeTrigger =
   | "corrections"
@@ -119,6 +119,7 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
 
   const goToBilling = (plan: "professional" | "entrepreneur", billing: "monthly" | "yearly") => {
     trackEvent("paywall_clicked", { trigger, plan, billing });
+    trackUpgradeStarted(`paywall:${trigger}`, plan);
     const returnTo =
       typeof window !== "undefined"
         ? window.location.pathname + window.location.search
@@ -130,6 +131,13 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
     onOpenChange(false);
     navigate(`/account?tab=subscription&plan=${plan}&billing=${billing}&promo=FIRST100${redirect}`);
   };
+
+  const SCENARIOS = [
+    { icon: Zap, label: "Договор за 5 мин.", detail: "Wizard + auto-clauses" },
+    { icon: Sparkles, label: "Risk report ~40 мин. спестени", detail: "Пълен анализ + цитати" },
+    { icon: Crown, label: "e-Подпис в 1 клик", detail: "Проследяване + одит" },
+    { icon: Check, label: "Двуезични с 1 команда", detail: "BG/EN паралелно" },
+  ];
 
   return (
     <Dialog
@@ -157,6 +165,21 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
           <div className="mt-0.5 text-xs text-muted-foreground">
             20% отстъпка — за нови абонати
           </div>
+        </div>
+
+        <div className="my-2 grid grid-cols-2 gap-1.5">
+          {SCENARIOS.map(({ icon: Icon, label, detail }) => (
+            <div
+              key={label}
+              className="flex items-start gap-1.5 rounded-md border border-border/50 bg-card/40 p-2"
+            >
+              <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" />
+              <div className="min-w-0">
+                <div className="text-[11px] font-semibold leading-tight">{label}</div>
+                <div className="text-[10px] text-muted-foreground">{detail}</div>
+              </div>
+            </div>
+          ))}
         </div>
 
         <ul className="space-y-2">
