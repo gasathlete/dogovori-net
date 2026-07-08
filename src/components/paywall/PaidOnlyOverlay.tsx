@@ -110,6 +110,7 @@ export function PaidOnlyOverlay({
               size="sm"
               onClick={() => {
                 trackEvent("paywall_cta_click", { pillar });
+                trackPillarCta(pillar);
                 setOpen(true);
               }}
               className="mt-5 w-full bg-gradient-gold text-navy hover:shadow-gold"
