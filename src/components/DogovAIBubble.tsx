@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
-import { X, Send, Loader2, Sparkles, FileText, Briefcase, ShieldCheck, Scale, ExternalLink, Maximize2, MessageSquare } from "lucide-react";
+import { X, Send, Loader2, Sparkles, FileText, Scale, ExternalLink, Maximize2, MessageSquare } from "lucide-react";
 // react-markdown (~40KB gz) is only needed after the first assistant message renders.
 const ReactMarkdown = lazy(() => import("react-markdown"));
 // AssistantChat pulls in the full authenticated chat surface — load only when
@@ -26,7 +26,10 @@ const SIZE_PREF_KEY = "dogovai_size_pref"; // "small" | "full"
 
 const HIDDEN_PREFIXES = ["/assistant", "/console", "/signing", "/share", "/checkout"];
 const ANON_LIMIT = 5;
-const IDLE_RESET_MS = 30 * 60 * 1000; // 30 minutes
+// Persist anonymous trial across close/re-open. Server enforces 5/24h per IP,
+// so the client counter should not silently reset when the user closes the
+// bubble — it caused confusion ("тестовете се рестартират").
+const ANON_PERSIST_MS = 24 * 60 * 60 * 1000; // 24h — matches server IP limit
 const ANON_STORAGE_KEY = "dogovai_anon_chat_v2";
 const LAST_ACTIVITY_KEY = "dogovai_last_activity_v2";
 const LEGACY_KEYS = ["dogovai_anon_chat", "dogovai_anon_chat_v1", "dogovai_last_activity"];
@@ -59,7 +62,7 @@ function loadAnonStored(): AnonStored | null {
     const raw = localStorage.getItem(ANON_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as AnonStored;
-    if (!parsed?.updatedAt || Date.now() - parsed.updatedAt > IDLE_RESET_MS) {
+    if (!parsed?.updatedAt || Date.now() - parsed.updatedAt > ANON_PERSIST_MS) {
       localStorage.removeItem(ANON_STORAGE_KEY);
       return null;
     }
@@ -77,10 +80,11 @@ function saveAnonStored(s: AnonStored) {
 }
 
 const STARTERS: { icon: typeof FileText; label: string; prompt: string }[] = [
-  { icon: FileText, label: "Намери ми шаблон", prompt: "Какъв шаблон да избера за договор за услуга?" },
-  { icon: Briefcase, label: "Трудов договор", prompt: "Какво трябва да съдържа един трудов договор по КТ?" },
-  { icon: ShieldCheck, label: "Какво е неустойка", prompt: "Какво е неустойка и кога се прилага?" },
-  { icon: Scale, label: "Как работи сайтът", prompt: "Как мога да изготвя договор в dogovori.net?" },
+  {
+    icon: Scale,
+    label: "Как работи Dogovori.Net",
+    prompt: "Как работи Dogovori.Net? Разкажи ми накратко какво мога да правя тук и с какво да започна.",
+  },
 ];
 
 function AnonChat({ resetKey }: { resetKey: number }) {
@@ -89,16 +93,21 @@ function AnonChat({ resetKey }: { resetKey: number }) {
   const [followups, setFollowups] = useState<string[]>(initial?.followups ?? []);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [typing, setTyping] = useState(false);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const typingTimerRef = useRef<number | null>(null);
 
-  // Wipe state when parent forces a reset (idle >30 min).
+  // Wipe state when parent forces a reset (idle >24h).
   useEffect(() => {
     if (resetKey === 0) return;
     setMessages([]);
     setFollowups([]);
     setInput("");
     setBusy(false);
+    setTyping(false);
+    if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
     try { localStorage.removeItem(ANON_STORAGE_KEY); } catch { /* ignore */ }
   }, [resetKey]);
 
@@ -106,17 +115,71 @@ function AnonChat({ resetKey }: { resetKey: number }) {
   const remaining = Math.max(0, ANON_LIMIT - userTurns);
   const limitReached = remaining <= 0;
 
+  // Smart auto-scroll — follow the writing when the user is already near
+  // the bottom; leave them alone if they scrolled up to re-read something.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, busy, followups]);
+    const el = scrollRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (distanceFromBottom < 100) {
+      el.scrollTo({ top: el.scrollHeight, behavior: typing ? "auto" : "smooth" });
+    }
+  }, [messages, busy, followups, typing]);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
+    };
+  }, []);
+
+  // Reveal the assistant reply as if it's being typed — Lovable-style so the
+  // user follows the writing instead of getting a wall of text at once.
+  const streamAssistantReply = (
+    baseMsgs: AnonMsg[],
+    fullReply: string,
+    cits: Citation[],
+    fups: string[],
+  ) => {
+    setTyping(true);
+    // Insert placeholder assistant bubble that will grow.
+    setMessages([...baseMsgs, { role: "assistant", content: "", citations: cits }]);
+    // ~12ms per character = ~80 chars/s. Cap at 30ms per tick with adaptive chunk.
+    const total = fullReply.length;
+    const startAt = performance.now();
+    const durationMs = Math.min(4500, Math.max(600, total * 12));
+    if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
+    typingTimerRef.current = window.setInterval(() => {
+      const pct = Math.min(1, (performance.now() - startAt) / durationMs);
+      const cut = Math.max(1, Math.floor(total * pct));
+      setMessages((prev) => {
+        const copy = [...prev];
+        const last = copy[copy.length - 1];
+        if (last && last.role === "assistant") {
+          copy[copy.length - 1] = { ...last, content: fullReply.slice(0, cut) };
+        }
+        return copy;
+      });
+      if (pct >= 1) {
+        if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
+        typingTimerRef.current = null;
+        const finalMsgs: AnonMsg[] = [
+          ...baseMsgs,
+          { role: "assistant", content: fullReply, citations: cits },
+        ];
+        setFollowups(fups);
+        setTyping(false);
+        saveAnonStored({ messages: finalMsgs, followups: fups, updatedAt: Date.now() });
+      }
+    }, 30);
+  };
+
   const sendText = async (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed || busy || limitReached) return;
+    if (!trimmed || busy || typing || limitReached) return;
     const next: AnonMsg[] = [...messages, { role: "user", content: trimmed }];
     setMessages(next);
     setFollowups([]);
@@ -130,10 +193,7 @@ function AnonChat({ resetKey }: { resetKey: number }) {
       const reply = (data as { reply?: string })?.reply ?? "Извинете, опитайте отново.";
       const fups = ((data as { followups?: string[] })?.followups ?? []).slice(0, 3);
       const cits = ((data as { citations?: Citation[] })?.citations ?? []).slice(0, 3);
-      const finalMsgs: AnonMsg[] = [...next, { role: "assistant", content: reply, citations: cits }];
-      setMessages(finalMsgs);
-      setFollowups(fups);
-      saveAnonStored({ messages: finalMsgs, followups: fups, updatedAt: Date.now() });
+      streamAssistantReply(next, reply, cits, fups);
     } catch {
       const finalMsgs: AnonMsg[] = [
         ...next,
@@ -160,7 +220,7 @@ function AnonChat({ resetKey }: { resetKey: number }) {
         </Link>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 space-y-3">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-3 space-y-3">
         {messages.length === 0 && (
           <>
             <div className="rounded-xl border border-gold/30 bg-gradient-to-br from-gold/10 via-card to-card p-3 text-sm">
@@ -169,10 +229,10 @@ function AnonChat({ resetKey }: { resetKey: number }) {
               </div>
               <p className="text-muted-foreground text-[13px] leading-relaxed">
                 Имате <b className="text-foreground">{ANON_LIMIT} безплатни съобщения</b>.
-                Изберете тема или питайте директно:
+                Питайте директно или започнете с това:
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2">
               {STARTERS.map((s) => (
                 <button
                   key={s.label}
@@ -339,7 +399,9 @@ export function DogovAIBubble() {
     setChooserOpen(true);
   };
 
-  // Reset only the anonymous trial chat after idle timeout.
+  // Anonymous trial persists for 24h (matches server-side per-IP rate limit).
+  // Closing and re-opening the bubble no longer wipes remaining messages —
+  // that behavior confused users into thinking the counter was buggy.
   useEffect(() => {
     if (!open || user) return;
     let last = 0;
@@ -347,7 +409,7 @@ export function DogovAIBubble() {
       const raw = localStorage.getItem(LAST_ACTIVITY_KEY);
       last = raw ? Number(raw) : 0;
     } catch { /* ignore */ }
-    if (!last || Date.now() - last > IDLE_RESET_MS) {
+    if (last && Date.now() - last > ANON_PERSIST_MS) {
       try {
         localStorage.removeItem(ANON_STORAGE_KEY);
         localStorage.removeItem(LAST_ACTIVITY_KEY);
@@ -497,7 +559,7 @@ export function DogovAIBubble() {
               <div className="leading-tight">
                 <div className="font-serif text-sm font-bold">DogovaryAI</div>
                 <div className="text-[10px] text-muted-foreground">
-                  {user ? "AI правен асистент" : "Безплатен тест · 3 съобщения"}
+                  {user ? "AI правен асистент" : `Безплатен тест · ${ANON_LIMIT} съобщения`}
                 </div>
               </div>
             </div>
