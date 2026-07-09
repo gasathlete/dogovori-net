@@ -357,6 +357,10 @@ Deno.serve(async (req) => {
       matchCount: 10,
       minSimilarity: 0.4,
     });
+    const uniqueActs = new Set(
+      legal.chunks.map((c) => c.short_code).filter(Boolean),
+    ).size;
+    const chunkCount = legal.chunks.length;
     const systemFinal = legal.hasMatches
       ? `${activePrompt.content}\n\n[КОНТЕКСТ] ${ctxLines}\n\n${legal.promptBlock}`
       : `${activePrompt.content}\n\n[КОНТЕКСТ] ${ctxLines}\n\n[НОРМАТИВНА БАЗА] Няма намерени релевантни нормативни извадки.`;
