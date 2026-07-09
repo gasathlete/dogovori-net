@@ -505,7 +505,7 @@ function AnonChat({ resetKey }: { resetKey: number }) {
             Изчерпахте {ANON_LIMIT}-те безплатни съобщения.
           </p>
           <p className="mb-3 text-xs text-muted-foreground">
-            Регистрирайте се и получете още 15 безплатни съобщения, шаблони и анализи.
+            Регистрирайте се и получавайте <b className="text-foreground">5 + 2 безплатни съобщения всеки месец</b>, шаблони и анализи.
           </p>
           <Link
             to="/auth"
