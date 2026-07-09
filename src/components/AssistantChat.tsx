@@ -19,6 +19,12 @@ import { AssistantToolCard, type ToolEvent } from "@/components/assistant/Assist
 import { AssistantThinkingStatus } from "@/components/assistant/AssistantThinkingStatus";
 import { resetAssistantDraft } from "@/components/assistant/assistantDraftStore";
 
+export interface ProgressStep {
+  step: string;
+  label: string;
+  status: "active" | "done";
+}
+
 interface Msg {
   id: string;
   role: "user" | "assistant";
@@ -26,6 +32,20 @@ interface Msg {
   citations?: LegalCitation[];
   toolEvents?: ToolEvent[];
   followups?: string[];
+  progress?: ProgressStep[];
+}
+
+// Wrap inline legal citations like [ЗЗД, чл. 79] / [КТ, чл. 328, ал. 1] /
+// [ТР № 4/2013 ОСГТК ВКС] / [Решение № 173 от 2009 г. на ВКС] in backticks
+// so ReactMarkdown renders them as <code> — which our prose styles color gold.
+const CITATION_RE = /\[((?:[А-ЯA-Z][^\[\]\n]{0,120}?(?:чл\.?\s*\d+[а-яА-Я]?|Решение\s*№|ТР\s*№|GDPR|приложим\s+общ\s+режим)[^\[\]\n]{0,120}?))\]/g;
+function highlightCitations(md: string): string {
+  if (!md) return md;
+  // Skip lines inside fenced code blocks.
+  const parts = md.split(/(```[\s\S]*?```)/g);
+  return parts
+    .map((p, i) => (i % 2 === 1 ? p : p.replace(CITATION_RE, (_m, inner) => `\`[${inner}]\``)))
+    .join("");
 }
 
 const FOLLOWUPS_RE = /<followups>([\s\S]*?)<\/followups>/i;
@@ -76,6 +96,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   const [streaming, setStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const [streamingTools, setStreamingTools] = useState<ToolEvent[]>([]);
+  const [streamingProgress, setStreamingProgress] = useState<ProgressStep[]>([]);
   const [negotiationMode, setNegotiationMode] = useState(false);
   const [showSources, setShowSources] = useState(true);
   const [mobilePane, setMobilePane] = useState<"chat" | "panel">("chat");
@@ -305,6 +326,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     setStreaming(true);
     setStreamingText("");
     setStreamingTools([]);
+    setStreamingProgress([]);
 
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`;
     try {
@@ -338,6 +360,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       let receivedThreadId: string | null = null;
       let receivedCitations: LegalCitation[] = [];
       let receivedFollowups: string[] = [];
+      const accProgress: ProgressStep[] = [];
 
       while (true) {
         const { value, done } = await reader.read();
@@ -363,6 +386,17 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
             if (Array.isArray(parsed.citations)) receivedCitations = parsed.citations;
           } else if (eventType === "error") {
             toast.error(parsed.message || "AI грешка");
+          } else if (eventType === "progress") {
+            const step = String(parsed.step || "");
+            const label = String(parsed.label || "");
+            const status = parsed.status === "done" ? "done" : "active";
+            const existingIdx = accProgress.findIndex((s) => s.step === step);
+            if (existingIdx >= 0) {
+              accProgress[existingIdx] = { step, label, status };
+            } else {
+              accProgress.push({ step, label, status });
+            }
+            setStreamingProgress([...accProgress]);
           } else if (eventType === "followups") {
             if (Array.isArray(parsed.followups)) receivedFollowups = parsed.followups;
           } else if (eventType === "tool_result") {
@@ -396,6 +430,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       setMessages([...newMessages, assistantMsg]);
       setStreamingText("");
       setStreamingTools([]);
+      setStreamingProgress([]);
       if (receivedThreadId && receivedThreadId !== activeThreadId) {
         setPersistedActiveThreadId(receivedThreadId);
       }
@@ -888,6 +923,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                   content={streamingText.replace(/<followups>[\s\S]*?(?:<\/followups>|$)/i, "")}
                   isStreaming
                   toolEvents={streamingTools}
+                  progress={streamingProgress}
                   onFollowupClick={(t) => sendMessage(t)}
                 />
               )}
@@ -1080,7 +1116,27 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   );
 }
 
-function MessageBubble({ role, content, isStreaming, citations, toolEvents, followups, onFollowupClick }: { role: "user" | "assistant"; content: string; isStreaming?: boolean; citations?: LegalCitation[]; toolEvents?: ToolEvent[]; followups?: string[]; onFollowupClick?: (text: string) => void }) {
+function ReasoningTrace({ steps }: { steps: ProgressStep[] }) {
+  if (!steps || steps.length === 0) return null;
+  return (
+    <ul className="mb-3 space-y-1.5 text-sm">
+      {steps.map((s) => (
+        <li key={s.step} className="flex items-start gap-2">
+          {s.status === "done" ? (
+            <span className="mt-0.5 text-muted-foreground" aria-hidden>✓</span>
+          ) : (
+            <Loader2 className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin text-gold" aria-hidden />
+          )}
+          <span className={s.status === "done" ? "text-muted-foreground" : "text-gold font-medium"}>
+            {s.label}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function MessageBubble({ role, content, isStreaming, citations, toolEvents, followups, progress, onFollowupClick }: { role: "user" | "assistant"; content: string; isStreaming?: boolean; citations?: LegalCitation[]; toolEvents?: ToolEvent[]; followups?: string[]; progress?: ProgressStep[]; onFollowupClick?: (text: string) => void }) {
   const handleToolMessage = onFollowupClick;
   if (role === "user") {
     return (
@@ -1092,16 +1148,20 @@ function MessageBubble({ role, content, isStreaming, citations, toolEvents, foll
     );
   }
   const hasText = content && content.trim().length > 0;
+  const hasActiveProgress = (progress ?? []).some((p) => p.status === "active");
+  const showProgress = !!isStreaming && !!progress && progress.length > 0 && (!hasText || hasActiveProgress);
+  const renderedContent = hasText ? highlightCitations(content) : "";
   return (
     <div className="flex gap-2.5">
       <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-gold/20 to-gold/5 ring-1 ring-gold/20">
         <Bird className="h-3 w-3 text-gold" />
       </div>
       <div className="max-w-[85%] flex-1 text-sm text-foreground">
-        {isStreaming && (
+        {showProgress && <ReasoningTrace steps={progress!} />}
+        {isStreaming && !showProgress && (
           <AssistantThinkingStatus toolEvents={toolEvents} compact />
         )}
-        <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:mt-3 prose-headings:mb-1 prose-a:text-gold prose-a:no-underline hover:prose-a:underline prose-strong:text-foreground prose-code:text-gold prose-code:bg-card/60 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
+        <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:mt-3 prose-headings:mb-1 prose-a:text-gold prose-a:no-underline hover:prose-a:underline prose-strong:text-foreground prose-code:text-gold prose-code:bg-transparent prose-code:font-normal prose-code:px-0 prose-code:py-0 prose-code:before:content-none prose-code:after:content-none">
           {hasText && (
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
@@ -1114,7 +1174,7 @@ function MessageBubble({ role, content, isStreaming, citations, toolEvents, foll
                 },
               }}
             >
-              {content}
+              {renderedContent}
             </ReactMarkdown>
           )}
           {toolEvents && toolEvents.length > 0 && (
