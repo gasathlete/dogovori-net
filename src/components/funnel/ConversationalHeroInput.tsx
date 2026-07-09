@@ -96,6 +96,7 @@ export function ConversationalHeroInput({ initialQuery = "", autoFocus = false }
       >
         <Search className="ml-1 h-4 w-4 shrink-0 text-gold" aria-hidden="true" />
         <input
+          ref={inputRef}
           type="text"
           inputMode="search"
           value={q}
