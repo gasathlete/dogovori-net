@@ -132,6 +132,11 @@ export const ASSISTANT_TOOLS: Record<string, ToolDef> = {
               type: "string",
               description: "1 кратко изречение какво вече разбираме (напр. 'Трудов договор за счетоводител')."
             },
+            mode: {
+              type: "string",
+              enum: ["legal_case", "document_build"],
+              description: "legal_case за правен казус/спор; document_build за изграждане на документ."
+            },
             questions: {
               type: "array",
               maxItems: 5,

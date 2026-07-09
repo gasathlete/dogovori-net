@@ -166,6 +166,7 @@ interface ClarificationQuestion {
 
 function ClarificationCard({ args, onSendMessage }: { args: any; onSendMessage?: (text: string) => void }) {
   const contextSummary: string = args?.contextSummary ?? "";
+  const mode: "legal_case" | "document_build" = args?.mode === "legal_case" ? "legal_case" : "document_build";
   const questions: ClarificationQuestion[] = Array.isArray(args?.questions) ? args.questions : [];
   const draft = useAssistantDraft();
   const [answers, setAnswers] = useState<Record<string, string>>(() => {
@@ -192,6 +193,12 @@ function ClarificationCard({ args, onSendMessage }: { args: any; onSendMessage?:
 
     setSubmitted(true);
     const lines = filled.map(({ q, v }) => `- ${q.label}: ${v}`);
+    if (mode === "legal_case") {
+      onSendMessage?.(
+        `Ето уточненията по казуса:\n${lines.join("\n")}\n\nПродължи с дълъг структуриран правен отговор: кратко въведение, номерирани точки с **удебелени ключови термини**, практически стъпки и секция „Кога адвокат“. Добавяй инлайн цитат в квадратни скоби след всяко правно твърдение. Без повече уточняващи въпроси, освен ако има непосредствен риск за безопасността.`,
+      );
+      return;
+    }
     onSendMessage?.(
       `Ето отговорите ми:\n${lines.join("\n")}\n\nПродължи директно с план на клаузите (propose_contract_outline) — без повече въпроси.`,
     );
@@ -241,7 +248,9 @@ function ClarificationCard({ args, onSendMessage }: { args: any; onSendMessage?:
         disabled={submitted}
         className="mt-3 h-7 bg-gold text-navy hover:bg-gold/90 text-xs"
       >
-        {submitted ? "Записано — продължавам с плана" : "Изпрати и продължи"}
+        {submitted
+          ? mode === "legal_case" ? "Записано — подготвям отговора" : "Записано — продължавам с плана"
+          : mode === "legal_case" ? "Изпрати и получи отговор" : "Изпрати и продължи"}
       </Button>
 
       {/* Live draft preview reflecting current answers across all cards. */}

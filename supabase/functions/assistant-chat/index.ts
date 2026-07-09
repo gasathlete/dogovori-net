@@ -186,12 +186,143 @@ const SYSTEM_PROMPT = `# РОЛЯ
 const MODEL_STANDARD = "google/gemini-3-flash-preview";
 const MODEL_PREMIUM = "openai/gpt-5.2";
 const MAX_TOOL_ITERATIONS = 8;
+const LEGAL_ANSWER_MAX_TOKENS = 4096;
 
 interface ChatMsg {
   role: "system" | "user" | "assistant" | "tool";
   content: string | null;
   tool_calls?: Array<{ id: string; type: "function"; function: { name: string; arguments: string } }>;
   tool_call_id?: string;
+}
+
+function makeCitation(citations: any[], userMsg: string): string {
+  const first = (citations || []).find((c) => c?.short_code || c?.citation_label);
+  if (first?.short_code && first?.article_no) {
+    const paragraph = first.paragraph_no ? `, ал. ${String(first.paragraph_no).replace(/^ал\.\s*/i, "")}` : "";
+    return `[${first.short_code}, чл. ${first.article_no}${paragraph}]`;
+  }
+  if (first?.citation_label) {
+    const label = String(first.citation_label).replace(/^\[|\]$/g, "").slice(0, 120);
+    return `[${label}]`;
+  }
+  const lower = userMsg.toLowerCase();
+  if (/домашн|насил|заповед\s+за\s+защита|зздн/.test(lower)) return "[приложим общ режим по ЗЗДН]";
+  if (/уволн|работодател|работник|трудов|предизвест|кт\b/.test(lower)) return "[приложим общ режим по КТ]";
+  if (/прокурат|полици|обвин|наказател|нк\b|нпк\b/.test(lower)) return "[приложим общ режим по НК/НПК]";
+  if (/развод|издръжк|родител|семеен|ск\b/.test(lower)) return "[приложим общ режим по СК]";
+  return "[приложим общ режим по българското право]";
+}
+
+function hasInlineLegalCitation(text: string): boolean {
+  return /\[(?:[А-ЯA-Z]{2,}|Регламент|GDPR|ТР\s*№|Решение\s*№|приложим\s+общ\s+режим)[^\]\n]{0,120}\]/.test(text);
+}
+
+function needsLegalAnswerRepair(text: string): boolean {
+  const citationCount = (text.match(/\[(?:[А-ЯA-Z]{2,}|Регламент|GDPR|ТР\s*№|Решение\s*№|приложим\s+общ\s+режим)[^\]\n]{0,120}\]/g) || []).length;
+  return !/^\s*1[.)]\s+/m.test(text)
+    || !/\*\*[^*]{3,}\*\*/.test(text)
+    || !/Практически/i.test(text)
+    || !/Кога\s+адвокат/i.test(text)
+    || citationCount < 3;
+}
+
+function normalizeLegalAnswerFallback(text: string, userMsg: string, citations: any[]): string {
+  const citation = makeCitation(citations, userMsg);
+  const body = text.replace(/\(Обща информация,\s*не правен съвет\.\)/i, "").trim();
+  if (!body) return body;
+  if (!/^\s*1[.)]\s+/m.test(body)) {
+    return [
+      `Накратко: отговорът зависи от конкретните факти, но описаният казус следва да се разглежда през приложимия български правен режим. По-долу е структурирана ориентация по най-важните разклонения ${citation}`,
+      `1. **Приложим правен режим.** ${body} ${hasInlineLegalCitation(body) ? "" : citation}`.trim(),
+      `2. **Фактите определят защитата.** Най-важно е дали вече има официално действие — сигнал, призовка, молба, заповед или връчен документ — защото това променя сроковете и доказателствата ${citation}`,
+      `3. **Доказателствата са ключови.** Запазете писмени съобщения, документи, свидетели и всяка официална кореспонденция, без да редактирате оригиналите ${citation}`,
+      `4. **Не поемайте признания прибързано.** Ако има полиция, прокуратура, съд или насрещна претенция, първо поискайте писмено основанието и сроковете, преди да давате подробни обяснения ${citation}`,
+      `\nПрактически:\n- **Съберете доказателства** в оригинален вид.\n- **Проверете сроковете** по всеки връчен документ.\n- **Не подписвайте** признания или споразумения без преглед.\n- **Подгответе кратка хронология** с дати, участници и документи.`,
+      `\nКога адвокат\nПотърсете адвокат веднага при призовка, заповед, наказателен елемент, риск за дете/семейна среда, запор, съдебен срок или ако отсрещната страна вече има адвокат ${citation}`,
+      "\n(Обща информация, не правен съвет.)",
+    ].join("\n\n");
+  }
+  if (hasInlineLegalCitation(body)) return `${body}\n\n(Обща информация, не правен съвет.)`.replace(/(?:\n\s*){3,}/g, "\n\n");
+  const cited = body.split("\n").map((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || /^#{1,6}\s|^Практически:?$|^Кога\s+адвокат/i.test(trimmed)) return line;
+    if (/\[[^\]]+\]\s*$/.test(trimmed)) return line;
+    if (/^(?:[-*]|\d+[.)])\s+/.test(trimmed) || /прав|закон|съд|срок|доказател|жалб|молб|отговорност|защит|договор|претенц/i.test(trimmed)) {
+      return `${line} ${citation}`;
+    }
+    return line;
+  }).join("\n");
+  return `${cited}\n\n(Обща информация, не правен съвет.)`.replace(/(?:\n\s*){3,}/g, "\n\n");
+}
+
+async function repairLegalAnswer(params: {
+  apiKey: string;
+  model: string;
+  question: string;
+  draft: string;
+  legalPromptBlock: string;
+  citations: any[];
+}): Promise<string | null> {
+  const citation = makeCitation(params.citations, params.question);
+  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${params.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: params.model,
+      temperature: 0.2,
+      max_tokens: LEGAL_ANSWER_MAX_TOKENS,
+      messages: [
+        {
+          role: "system",
+          content: `Ти редактираш отговор на български правен AI асистент. Върни САМО финалния отговор. Форматът е задължителен: 1) кратко въведение 2–3 изречения; 2) номериран списък 5–10 точки, всяка с **удебелена теза**; 3) секция "Практически:" с bullet точки; 4) секция "Кога адвокат". Всяко правно твърдение завършва с инлайн цитат в квадратни скоби. Ако няма точен член, използвай ${citation}. Не измисляй несигурни членове. Завърши с "(Обща информация, не правен съвет.)".`,
+        },
+        { role: "system", content: params.legalPromptBlock.slice(0, 5000) },
+        { role: "user", content: `Въпрос/уточнения:\n${params.question}\n\nЧернова за преработване:\n${params.draft}` },
+      ],
+    }),
+  });
+  if (!resp.ok) return null;
+  const data = await resp.json().catch(() => null);
+  const text = data?.choices?.[0]?.message?.content;
+  return typeof text === "string" && text.trim() ? text.trim() : null;
+}
+
+function buildLegalCaseClarificationArgs(userMsg: string): any {
+  const lower = userMsg.toLowerCase();
+  if (/домашн|насил|заповед\s+за\s+защита|зздн|заплашв/.test(lower)) {
+    return {
+      mode: "legal_case",
+      contextSummary: "За да насоча правилно по ЗЗДН/НК, трябва да уточним риска и дали вече има официални действия.",
+      questions: [
+        { id: "official_action", label: "Има ли вече официално действие?", type: "choice", required: true, options: ["Само заплахи/конфликт", "Подаден е сигнал", "Получих призовка", "Има молба/заповед за защита"] },
+        { id: "evidence", label: "Имате ли доказателства?", type: "choice", required: true, options: ["Съобщения/чат", "Свидетели", "Медицински документ", "Нямам доказателства"] },
+        { id: "urgency", label: "Има ли непосредствен риск?", type: "choice", required: true, options: ["Да, днес/сега", "Има риск, но не спешно", "Не", "Не съм сигурен/сигурна"] },
+      ],
+    };
+  }
+  if (/уволн|работодател|работник|трудов|предизвест|дисциплинар|съкращ/.test(lower)) {
+    return {
+      mode: "legal_case",
+      contextSummary: "За точен трудов отговор трябва да уточним документа, срока и основанието.",
+      questions: [
+        { id: "document_received", label: "Връчен ли е писмен документ?", type: "choice", required: true, options: ["Да — заповед/предизвестие", "Само устно", "Получих проект", "Не"] },
+        { id: "ground", label: "Какво основание е посочено?", type: "choice", required: true, options: ["Съкращаване", "Дисциплинарно", "По взаимно съгласие", "Не е ясно"] },
+        { id: "deadline", label: "Има ли срок за реакция?", type: "choice", required: true, options: ["Да — до 7 дни", "Да — до 1 месец", "Не виждам срок", "Не знам"] },
+      ],
+    };
+  }
+  return {
+    mode: "legal_case",
+    contextSummary: "За да отговоря като правен казус, трябва да уточним процедурата, доказателствата и риска.",
+    questions: [
+      { id: "stage", label: "На какъв етап е казусът?", type: "choice", required: true, options: ["Само спор/заплаха", "Има официален документ", "Има подадена жалба/иск", "Има съд/орган"] },
+      { id: "goal", label: "Каква е целта Ви?", type: "choice", required: true, options: ["Да се защитя", "Да подам жалба/искане", "Да отговоря писмено", "Да преценя риска"] },
+      { id: "documents", label: "Имате ли документи/доказателства?", type: "choice", required: true, options: ["Да — писмени", "Да — свидетели", "Само устни факти", "Не съм сигурен/сигурна"] },
+    ],
+  };
 }
 
 Deno.serve(async (req) => {
@@ -481,12 +612,17 @@ Deno.serve(async (req) => {
       m.role === "assistant" &&
       /уточн|нека уточним|моля посочете|моля уточнете/i.test(String(m.content || ""))
     );
-    if (legalCaseIntent && !docBuildIntent && !priorClarifiedInThread && !analysisIntent) {
+    const userProvidedLegalClarifications = safeMessages.some((m: any) =>
+      m.role === "user" && /Ето\s+уточненията\s+по\s+казуса|Продължи\s+с\s+дълъг\s+структуриран\s+правен\s+отговор/i.test(String(m.content || ""))
+    );
+    const needsForcedLegalClarification = legalCaseIntent && !docBuildIntent && !priorClarifiedInThread && !userProvidedLegalClarifications && !analysisIntent;
+    if (needsForcedLegalClarification) {
       intentNudges.push(
         "❗ РЕЖИМ A (ПРАВЕН КАЗУС): Потребителят описва казус/спор, не иска шаблон. ЗАДЪЛЖИТЕЛЕН ПЪРВИ ХОД: `ask_clarification` с 2–3 (макс 3) кратки въпроса, всеки с `type: \"choice\"` и 3–5 стойности в `options` (напр. „Има ли вече официално действие срещу Вас?\" → [\"Само заплашва, че ще подаде жалба или иск\", \"Подаден е сигнал в полицията/прокуратурата\", \"Получих призовка или ме търсят за обяснения\", \"Получих заповед/молба за защита от домашно насилие\"]). НЕ давай дълъг отговор в този ход. Преди tool call-а напиши 1–2 изречения „Не е ясно дали…", които оправдават уточненията.",
       );
     }
-    if ((legalCaseIntent || priorClarifiedInThread) && !docBuildIntent) {
+    const needsStructuredLegalAnswer = (legalCaseIntent || priorClarifiedInThread || userProvidedLegalClarifications) && !docBuildIntent && !needsForcedLegalClarification;
+    if (needsStructuredLegalAnswer) {
       intentNudges.push(
         "❗ STRUCTURED_ANSWER (задължителен формат след получени уточнения): (1) 2–3 въвеждащи изречения обобщаващи разбирането; (2) НОМЕРИРАН списък 5–10 точки, всяка започваща с **удебелена теза**, следвана от 2–4 обяснителни изречения; (3) BULLET списък „Практически:" с 3–6 повелителни съвета (**bold** ключови действия); (4) 1–2 изречения „Кога адвокат" с конкретни маркери. Използвай **bold** обилно за ключови термини (напр. **домашно насилие**, **лека телесна повреда**, **заповед за защита**).",
       );
