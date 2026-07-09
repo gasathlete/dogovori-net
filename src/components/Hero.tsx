@@ -215,7 +215,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             {!user && (
               <p className="mt-1 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
                 <ShieldCheck className="h-3 w-3 text-emerald-500" />
-                Без карта · 10 безплатни операции · GDPR
+                Без карта · 5 безплатни операции · GDPR
               </p>
             )}
           </div>

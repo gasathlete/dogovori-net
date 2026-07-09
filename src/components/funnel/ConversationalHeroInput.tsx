@@ -12,14 +12,28 @@ import { Search, Sparkles, Loader2 } from "lucide-react";
 import { trackFunnelEvent } from "@/lib/funnel";
 import { useTemplateSearch } from "@/hooks/useTemplateSearch";
 
-export function ConversationalHeroInput() {
-  const [q, setQ] = useState("");
+type Props = { initialQuery?: string; autoFocus?: boolean };
+
+export function ConversationalHeroInput({ initialQuery = "", autoFocus = false }: Props = {}) {
+  const [q, setQ] = useState(initialQuery);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const wrapRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number; width: number } | null>(null);
+
+  useEffect(() => {
+    if (autoFocus && inputRef.current) {
+      const el = inputRef.current;
+      el.focus();
+      const len = el.value.length;
+      try { el.setSelectionRange(len, len); } catch { /* noop */ }
+      if (initialQuery.trim().length >= 2) setOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { hits, loading } = useTemplateSearch(q, {
     enabled: q.trim().length >= 2,
@@ -82,6 +96,7 @@ export function ConversationalHeroInput() {
       >
         <Search className="ml-1 h-4 w-4 shrink-0 text-gold" aria-hidden="true" />
         <input
+          ref={inputRef}
           type="text"
           inputMode="search"
           value={q}

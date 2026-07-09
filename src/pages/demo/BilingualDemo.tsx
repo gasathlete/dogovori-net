@@ -87,7 +87,7 @@ export default function BilingualDemo() {
 
         <div className="mt-10 rounded-xl border border-gold/30 bg-gradient-to-br from-gold/10 to-transparent p-6 text-center">
           <h2 className="font-serif text-2xl font-bold">Готов за международния си партньор?</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Двуезични шаблони · 600+ в каталога · 10 безплатни операции.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Двуезични шаблони · 600+ в каталога · 5 безплатни операции.</p>
           <div className="mt-4 flex flex-wrap justify-center gap-3">
             <Link to="/build?bilingual=1" className="inline-flex items-center gap-2 rounded-lg bg-gradient-gold px-6 py-3 text-sm font-semibold text-navy">
               Създай документ <ArrowRight className="h-4 w-4" />

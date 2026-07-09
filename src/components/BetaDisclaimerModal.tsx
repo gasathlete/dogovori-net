@@ -50,7 +50,7 @@ const HIGHLIGHTS: Array<{ label: string; detail: string }> = [
     detail: "До 30% под официалната тарифа, заключена за 12 месеца.",
   },
   {
-    label: "10 безплатни операции",
+    label: "5 безплатни операции",
     detail: "След регистрация — без карта, без ангажимент.",
   },
   {
@@ -147,7 +147,7 @@ export function BetaDisclaimerModal() {
               onClick={close}
               className="group inline-flex items-center justify-center gap-2 rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-transform hover:-translate-y-px"
             >
-              Регистрация — 10 операции безплатно
+              Регистрация — 5 операции безплатно
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
             <button
