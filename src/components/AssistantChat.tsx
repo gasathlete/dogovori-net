@@ -19,6 +19,12 @@ import { AssistantToolCard, type ToolEvent } from "@/components/assistant/Assist
 import { AssistantThinkingStatus } from "@/components/assistant/AssistantThinkingStatus";
 import { resetAssistantDraft } from "@/components/assistant/assistantDraftStore";
 
+export interface ProgressStep {
+  step: string;
+  label: string;
+  status: "active" | "done";
+}
+
 interface Msg {
   id: string;
   role: "user" | "assistant";
@@ -26,6 +32,20 @@ interface Msg {
   citations?: LegalCitation[];
   toolEvents?: ToolEvent[];
   followups?: string[];
+  progress?: ProgressStep[];
+}
+
+// Wrap inline legal citations like [ЗЗД, чл. 79] / [КТ, чл. 328, ал. 1] /
+// [ТР № 4/2013 ОСГТК ВКС] / [Решение № 173 от 2009 г. на ВКС] in backticks
+// so ReactMarkdown renders them as <code> — which our prose styles color gold.
+const CITATION_RE = /\[((?:[А-ЯA-Z][^\[\]\n]{0,120}?(?:чл\.?\s*\d+[а-яА-Я]?|Решение\s*№|ТР\s*№|GDPR|приложим\s+общ\s+режим)[^\[\]\n]{0,120}?))\]/g;
+function highlightCitations(md: string): string {
+  if (!md) return md;
+  // Skip lines inside fenced code blocks.
+  const parts = md.split(/(```[\s\S]*?```)/g);
+  return parts
+    .map((p, i) => (i % 2 === 1 ? p : p.replace(CITATION_RE, (_m, inner) => `\`[${inner}]\``)))
+    .join("");
 }
 
 const FOLLOWUPS_RE = /<followups>([\s\S]*?)<\/followups>/i;
