@@ -52,7 +52,16 @@ type Citation = {
   jurisdiction: "BG" | "EU";
   similarity: number;
 };
-type AnonMsg = { role: "user" | "assistant"; content: string; citations?: Citation[] };
+type AnonClarificationQuestion = {
+  id: string;
+  label: string;
+  options: string[];
+};
+type AnonClarification = {
+  contextSummary: string;
+  questions: AnonClarificationQuestion[];
+};
+type AnonMsg = { role: "user" | "assistant"; content: string; citations?: Citation[]; clarification?: AnonClarification };
 
 type AnonStored = { messages: AnonMsg[]; followups: string[]; updatedAt: number };
 
@@ -87,6 +96,111 @@ const STARTERS: { icon: typeof FileText; label: string; prompt: string }[] = [
   },
 ];
 
+type AnonProgressStep = { step: string; label: string; status: "active" | "done" };
+
+const ANON_PROGRESS_TEMPLATE: Array<{ step: string; label: string }> = [
+  { step: "analyze", label: "Анализ на въпроса" },
+  { step: "sources", label: "Проверка на приложими източници" },
+  { step: "rank", label: "Подреждане на най-важните правни въпроси" },
+  { step: "generate", label: "Генериране на структуриран отговор" },
+];
+
+function isAnonLegalCasePrompt(text: string) {
+  return /(съди|съдят|заплашв|призовк|производств|обвин|разследв|жалба\s+срещу|подадена\s+жалба|нарушен|нападн|насил|развод|издръжк|запор|глоб|дискриминац|тормоз|мобинг|имам\s+ли\s+право|могат\s+ли\s+да|какво\s+да\s+правя|какви\s+са\s+ми\s+правата|какво\s+ми\s+грози|как\s+да\s+се\s+защит|заповед\s+за\s+защита|домашно\s+насилие)/i.test(text)
+    && !/(изготв(и|ете)|направ(и|ете)|създа(й|йте)|попълн(и|ете)|шаблон|бланк)/i.test(text);
+}
+
+function buildAnonLegalClarification(text: string): AnonClarification {
+  const lower = text.toLowerCase();
+  if (/домашн|насил|заповед\s+за\s+защита|зздн|заплашв/.test(lower)) {
+    return {
+      contextSummary: "За да насоча правилно по ЗЗДН/НК, уточнете тези три неща:",
+      questions: [
+        { id: "official_action", label: "1. Има ли официално действие?", options: ["Само заплахи", "Подаден е сигнал", "Получих призовка", "Има заповед/молба"] },
+        { id: "evidence", label: "2. Имате ли доказателства?", options: ["Съобщения", "Свидетели", "Медицински документ", "Нямам"] },
+        { id: "urgency", label: "3. Има ли непосредствен риск?", options: ["Да", "Има риск, но не днес", "Не", "Не съм сигурен/сигурна"] },
+      ],
+    };
+  }
+  if (/уволн|работодател|работник|трудов|предизвест|дисциплинар|съкращ/.test(lower)) {
+    return {
+      contextSummary: "За да отговоря точно по трудов казус, уточнете:",
+      questions: [
+        { id: "document", label: "1. Връчен ли е документ?", options: ["Заповед/предизвестие", "Само устно", "Проект", "Не"] },
+        { id: "ground", label: "2. Какво основание е посочено?", options: ["Съкращаване", "Дисциплинарно", "Взаимно съгласие", "Не е ясно"] },
+        { id: "deadline", label: "3. Има ли срок за реакция?", options: ["До 7 дни", "До 1 месец", "Няма", "Не знам"] },
+      ],
+    };
+  }
+  return {
+    contextSummary: "За да дам полезен правен отговор, уточнете:",
+    questions: [
+      { id: "stage", label: "1. На какъв етап е казусът?", options: ["Само спор", "Има документ", "Има жалба/иск", "Има орган/съд"] },
+      { id: "goal", label: "2. Каква е целта Ви?", options: ["Да се защитя", "Да подам жалба", "Да отговоря писмено", "Да преценя риска"] },
+      { id: "documents", label: "3. Имате ли доказателства?", options: ["Писмени", "Свидетели", "Само устно", "Не съм сигурен/сигурна"] },
+    ],
+  };
+}
+
+function AnonProgressTrace({ steps }: { steps: AnonProgressStep[] }) {
+  if (steps.length === 0) return null;
+  return (
+    <ul className="space-y-1 rounded-xl border border-gold/20 bg-gold/5 p-2 text-[11px]">
+      {steps.map((s) => (
+        <li key={s.step} className="flex items-start gap-1.5">
+          {s.status === "done" ? <span className="text-muted-foreground">✓</span> : <Loader2 className="mt-0.5 h-3 w-3 animate-spin text-gold" />}
+          <span className={s.status === "done" ? "text-muted-foreground" : "font-medium text-gold"}>{s.label}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function AnonClarificationCard({ clarification, onSubmit }: { clarification: AnonClarification; onSubmit: (text: string) => void }) {
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const hasAnyAnswer = clarification.questions.some((q) => answers[q.id]);
+  const submit = () => {
+    if (!hasAnyAnswer) return;
+    const lines = clarification.questions.map((q) => `- ${q.label.replace(/^\d+\.\s*/, "")}: ${answers[q.id] || "Неуточнено"}`);
+    onSubmit(`Ето уточненията по казуса:\n${lines.join("\n")}\n\nПродължи с дълъг структуриран правен отговор с номерирани точки, **удебелени ключови термини**, практически стъпки и инлайн цитати в квадратни скоби след всяко правно твърдение.`);
+  };
+  return (
+    <div className="not-prose mt-2 rounded-xl border border-gold/30 bg-gold/5 p-2.5">
+      <p className="mb-2 text-xs text-muted-foreground">{clarification.contextSummary}</p>
+      <div className="space-y-2">
+        {clarification.questions.map((q) => (
+          <div key={q.id}>
+            <div className="mb-1 text-[11px] font-semibold text-foreground">{q.label}</div>
+            <div className="flex flex-wrap gap-1">
+              {q.options.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: opt }))}
+                  className={cn(
+                    "rounded-full border px-2 py-1 text-[10px] transition-colors",
+                    answers[q.id] === opt ? "border-gold bg-gold/15 text-foreground" : "border-border/60 bg-background/40 text-muted-foreground hover:border-gold/50",
+                  )}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        disabled={!hasAnyAnswer}
+        onClick={submit}
+        className="mt-3 rounded-md bg-gold px-3 py-1.5 text-[11px] font-semibold text-navy disabled:opacity-40"
+      >
+        Изпрати и получи отговор
+      </button>
+    </div>
+  );
+}
+
 function AnonChat({ resetKey }: { resetKey: number }) {
   const initial = resetKey === 0 ? loadAnonStored() : null;
   const [messages, setMessages] = useState<AnonMsg[]>(initial?.messages ?? []);
@@ -94,6 +208,7 @@ function AnonChat({ resetKey }: { resetKey: number }) {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [typing, setTyping] = useState(false);
+  const [progressSteps, setProgressSteps] = useState<AnonProgressStep[]>([]);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -107,6 +222,7 @@ function AnonChat({ resetKey }: { resetKey: number }) {
     setInput("");
     setBusy(false);
     setTyping(false);
+    setProgressSteps([]);
     if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
     try { localStorage.removeItem(ANON_STORAGE_KEY); } catch { /* ignore */ }
   }, [resetKey]);
@@ -184,7 +300,36 @@ function AnonChat({ resetKey }: { resetKey: number }) {
     setMessages(next);
     setFollowups([]);
     setInput("");
+
+    const alreadyAskedClarification = messages.some((m) => m.role === "assistant" && !!m.clarification)
+      || /^Ето\s+уточненията\s+по\s+казуса/i.test(trimmed);
+    if (isAnonLegalCasePrompt(trimmed) && !alreadyAskedClarification) {
+      const clarification = buildAnonLegalClarification(trimmed);
+      const assistant: AnonMsg = {
+        role: "assistant",
+        content: "Преди да дам правен отговор, трябва да уточним няколко факта. Те променят приложимия режим, сроковете и това дали говорим за превенция, защита или вече започнала процедура.",
+        clarification,
+      };
+      const finalMsgs = [...next, assistant];
+      setMessages(finalMsgs);
+      saveAnonStored({ messages: finalMsgs, followups: [], updatedAt: Date.now() });
+      requestAnimationFrame(() => inputRef.current?.focus());
+      return;
+    }
+
     setBusy(true);
+    setProgressSteps([]);
+    ANON_PROGRESS_TEMPLATE.forEach((step, index) => {
+      window.setTimeout(() => {
+        setProgressSteps((prev) => {
+          const without = prev.filter((p) => p.step !== step.step);
+          return [...without, { ...step, status: "active" }];
+        });
+      }, index * 220);
+      window.setTimeout(() => {
+        setProgressSteps((prev) => prev.map((p) => p.step === step.step ? { ...p, status: "done" } : p));
+      }, index * 220 + 180);
+    });
     try {
       const { data, error } = await supabase.functions.invoke("assistant-chat-anon", {
         body: { messages: next },
@@ -204,6 +349,7 @@ function AnonChat({ resetKey }: { resetKey: number }) {
       saveAnonStored({ messages: finalMsgs, followups: [], updatedAt: Date.now() });
     } finally {
       setBusy(false);
+      setProgressSteps([]);
       requestAnimationFrame(() => inputRef.current?.focus());
     }
   };
@@ -283,6 +429,9 @@ function AnonChat({ resetKey }: { resetKey: number }) {
                   >
                     {m.content}
                   </ReactMarkdown>
+                  {m.clarification && (
+                    <AnonClarificationCard clarification={m.clarification} onSubmit={sendText} />
+                  )}
                 </Suspense>
               ) : (
                 m.content
@@ -309,7 +458,8 @@ function AnonChat({ resetKey }: { resetKey: number }) {
           </div>
         ))}
         {busy && (
-          <div className="mr-auto flex items-center gap-2 rounded-2xl px-1 py-1 text-sm text-muted-foreground">
+          <div className="mr-auto max-w-[92%] space-y-2 rounded-2xl px-1 py-1 text-sm text-muted-foreground">
+            <AnonProgressTrace steps={progressSteps} />
             <AssistantThinkingStatus compact />
           </div>
         )}

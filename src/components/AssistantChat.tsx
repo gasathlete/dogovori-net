@@ -399,6 +399,9 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
             setStreamingProgress([...accProgress]);
           } else if (eventType === "followups") {
             if (Array.isArray(parsed.followups)) receivedFollowups = parsed.followups;
+          } else if (eventType === "final_text") {
+            accText = String(parsed.content || "");
+            setStreamingText(accText);
           } else if (eventType === "tool_result") {
             const ev: ToolEvent = { kind: "tool_result", id: parsed.id, name: parsed.name, args: parsed.args, result: parsed.result };
             accTools.push(ev);
@@ -426,6 +429,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
         citations: receivedCitations,
         toolEvents: accTools.length > 0 ? accTools : undefined,
         followups: finalFollowups,
+        progress: accProgress.length > 0 ? accProgress : undefined,
       };
       setMessages([...newMessages, assistantMsg]);
       setStreamingText("");
@@ -908,6 +912,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                     content={m.content}
                     citations={m.citations}
                     toolEvents={m.toolEvents}
+                    progress={m.progress}
                     followups={isLastAssistant ? m.followups : undefined}
                     onFollowupClick={(t) =>
                       sendMessage(
@@ -1149,7 +1154,7 @@ function MessageBubble({ role, content, isStreaming, citations, toolEvents, foll
   }
   const hasText = content && content.trim().length > 0;
   const hasActiveProgress = (progress ?? []).some((p) => p.status === "active");
-  const showProgress = !!isStreaming && !!progress && progress.length > 0 && (!hasText || hasActiveProgress);
+  const showProgress = !!progress && progress.length > 0 && (isStreaming ? (!hasText || hasActiveProgress) : true);
   const renderedContent = hasText ? highlightCitations(content) : "";
   return (
     <div className="flex gap-2.5">
