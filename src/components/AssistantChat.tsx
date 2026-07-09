@@ -360,6 +360,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       let receivedThreadId: string | null = null;
       let receivedCitations: LegalCitation[] = [];
       let receivedFollowups: string[] = [];
+      const accProgress: ProgressStep[] = [];
 
       while (true) {
         const { value, done } = await reader.read();
