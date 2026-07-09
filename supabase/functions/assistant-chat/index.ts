@@ -1091,6 +1091,7 @@ function validateClientToolArgs(name: string, args: any): { ok: true; args: any 
   }
   if (name === "ask_clarification") {
     const ctx = typeof args.contextSummary === "string" ? args.contextSummary.slice(0, 240) : "";
+    const mode = args.mode === "legal_case" ? "legal_case" : "document_build";
     const qs = Array.isArray(args.questions) ? args.questions : [];
     const cleaned = qs.slice(0, 5).map((q: any, i: number) => ({
       id: typeof q?.id === "string" ? q.id.slice(0, 40).replace(/[^a-z0-9_]/gi, "_") : `q_${i}`,
@@ -1101,7 +1102,7 @@ function validateClientToolArgs(name: string, args: any): { ok: true; args: any 
       required: q?.required === true,
     })).filter((q: any) => q.label);
     if (cleaned.length === 0) return { ok: false, reason: "no valid questions" };
-    return { ok: true, args: { contextSummary: ctx, questions: cleaned } };
+    return { ok: true, args: { contextSummary: ctx, mode, questions: cleaned } };
   }
   if (name === "propose_contract_outline") {
     const title = typeof args.title === "string" ? args.title.slice(0, 160) : "";
