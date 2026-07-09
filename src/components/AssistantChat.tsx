@@ -1116,7 +1116,27 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   );
 }
 
-function MessageBubble({ role, content, isStreaming, citations, toolEvents, followups, onFollowupClick }: { role: "user" | "assistant"; content: string; isStreaming?: boolean; citations?: LegalCitation[]; toolEvents?: ToolEvent[]; followups?: string[]; onFollowupClick?: (text: string) => void }) {
+function ReasoningTrace({ steps }: { steps: ProgressStep[] }) {
+  if (!steps || steps.length === 0) return null;
+  return (
+    <ul className="mb-3 space-y-1.5 text-sm">
+      {steps.map((s) => (
+        <li key={s.step} className="flex items-start gap-2">
+          {s.status === "done" ? (
+            <span className="mt-0.5 text-muted-foreground" aria-hidden>✓</span>
+          ) : (
+            <Loader2 className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin text-gold" aria-hidden />
+          )}
+          <span className={s.status === "done" ? "text-muted-foreground" : "text-gold font-medium"}>
+            {s.label}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function MessageBubble({ role, content, isStreaming, citations, toolEvents, followups, progress, onFollowupClick }: { role: "user" | "assistant"; content: string; isStreaming?: boolean; citations?: LegalCitation[]; toolEvents?: ToolEvent[]; followups?: string[]; progress?: ProgressStep[]; onFollowupClick?: (text: string) => void }) {
   const handleToolMessage = onFollowupClick;
   if (role === "user") {
     return (
@@ -1128,16 +1148,20 @@ function MessageBubble({ role, content, isStreaming, citations, toolEvents, foll
     );
   }
   const hasText = content && content.trim().length > 0;
+  const hasActiveProgress = (progress ?? []).some((p) => p.status === "active");
+  const showProgress = !!isStreaming && !!progress && progress.length > 0 && (!hasText || hasActiveProgress);
+  const renderedContent = hasText ? highlightCitations(content) : "";
   return (
     <div className="flex gap-2.5">
       <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-gold/20 to-gold/5 ring-1 ring-gold/20">
         <Bird className="h-3 w-3 text-gold" />
       </div>
       <div className="max-w-[85%] flex-1 text-sm text-foreground">
-        {isStreaming && (
+        {showProgress && <ReasoningTrace steps={progress!} />}
+        {isStreaming && !showProgress && (
           <AssistantThinkingStatus toolEvents={toolEvents} compact />
         )}
-        <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:mt-3 prose-headings:mb-1 prose-a:text-gold prose-a:no-underline hover:prose-a:underline prose-strong:text-foreground prose-code:text-gold prose-code:bg-card/60 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
+        <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:mt-3 prose-headings:mb-1 prose-a:text-gold prose-a:no-underline hover:prose-a:underline prose-strong:text-foreground prose-code:text-gold prose-code:bg-transparent prose-code:font-normal prose-code:px-0 prose-code:py-0 prose-code:before:content-none prose-code:after:content-none">
           {hasText && (
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
@@ -1150,7 +1174,7 @@ function MessageBubble({ role, content, isStreaming, citations, toolEvents, foll
                 },
               }}
             >
-              {content}
+              {renderedContent}
             </ReactMarkdown>
           )}
           {toolEvents && toolEvents.length > 0 && (
