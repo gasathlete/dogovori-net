@@ -174,6 +174,21 @@ Deno.serve(async (req) => {
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
+    } catch {
+      // Fallback: ако IP rate limit не сработи, разчитаме на client-side брояча
+      if (userTurns >= MAX_MESSAGES) {
+        return new Response(
+          JSON.stringify({
+            error: "limit_reached",
+            message: "Достигнахте лимита от 5 безплатни съобщения. Регистрирайте се и получавайте 5 + 2 безплатни съобщения всеки месец.",
+            retry_after_s: 86400,
+          }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+
+
 
     const safe: ChatMsg[] = history
       .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
