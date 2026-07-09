@@ -96,6 +96,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   const [streaming, setStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const [streamingTools, setStreamingTools] = useState<ToolEvent[]>([]);
+  const [streamingProgress, setStreamingProgress] = useState<ProgressStep[]>([]);
   const [negotiationMode, setNegotiationMode] = useState(false);
   const [showSources, setShowSources] = useState(true);
   const [mobilePane, setMobilePane] = useState<"chat" | "panel">("chat");
