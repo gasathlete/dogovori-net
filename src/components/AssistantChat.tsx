@@ -923,6 +923,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                   content={streamingText.replace(/<followups>[\s\S]*?(?:<\/followups>|$)/i, "")}
                   isStreaming
                   toolEvents={streamingTools}
+                  progress={streamingProgress}
                   onFollowupClick={(t) => sendMessage(t)}
                 />
               )}
