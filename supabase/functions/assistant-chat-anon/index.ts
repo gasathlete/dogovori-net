@@ -168,19 +168,7 @@ Deno.serve(async (req) => {
         return new Response(
           JSON.stringify({
             error: "limit_reached",
-            message: "Достигнахте лимита от 5 безплатни съобщения. Регистрирайте се за още 15 безплатни.",
-            retry_after_s: rl.retry_after_s,
-          }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-    } catch { /* fail-open ако rate-limit таблицата е недостъпна */ }
-
-    if (userTurns > MAX_MESSAGES) {
-      return new Response(
-        JSON.stringify({
-          error: "limit_reached",
-          message: "Достигнахте лимита от 5 безплатни съобщения. Регистрирайте се за още 15 безплатни.",
+            message: "Достигнахте лимита от 5 безплатни съобщения. Регистрирайте се и получавайте 5 + 2 безплатни съобщения всеки месец.",
         }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
