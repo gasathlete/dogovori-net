@@ -3,21 +3,17 @@ import { Link, useLocation } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { ArrowRight } from "lucide-react";
-
+import { ArrowRight, Sparkles, Gift, Zap, Users, ShieldCheck } from "lucide-react";
 
 /**
- * BetaDisclaimerModal — shown on the first visit to announce the beta period
- * (until the official launch on 2026-09-01) and the perks early users get.
- *
- * Persistence:
- *  - `localStorage[STORAGE_KEY]` → permanent ack ("Не ме показвай повече" checked).
- *  - `sessionStorage[SESSION_KEY]` → suppress for current tab/session only when
- *    the user closes the modal without checking the box.
+ * BetaDisclaimerModal — shown ~10s after the first visit to announce the beta
+ * period (until the official launch on 2026-09-01) and the perks early users
+ * get. The delay avoids ambushing the visitor the moment the page loads.
  */
 const STORAGE_KEY = "dogovori_beta_ack_v1";
 const SESSION_KEY = "dogovori_beta_ack_session_v1";
 const LAUNCH_DATE = "01.09.2026";
+const APPEAR_DELAY_MS = 10_000;
 
 function hasAcknowledged(): boolean {
   try {
@@ -44,20 +40,32 @@ function markAcknowledged(permanent: boolean) {
   }
 }
 
-const HIGHLIGHTS: Array<{ label: string; detail: string }> = [
+type Highlight = {
+  icon: typeof Gift;
+  label: string;
+  detail: string;
+  badge?: string;
+};
+
+const HIGHLIGHTS: Highlight[] = [
   {
+    icon: Gift,
     label: "Фиксирана промо-цена",
     detail: "До 30% под официалната тарифа, заключена за 12 месеца.",
+    badge: "−30%",
   },
   {
+    icon: Zap,
     label: "5 безплатни операции",
     detail: "След регистрация — без карта, без ангажимент.",
   },
   {
+    icon: ShieldCheck,
     label: "Пълен достъп до AI функциите",
     detail: "Асистент, Risk Analysis, е-Подпис и Комплекти.",
   },
   {
+    icon: Users,
     label: "Пряко участие в roadmap-а",
     detail: "Обратната ви връзка формира приоритетите ни.",
   },
@@ -76,22 +84,31 @@ export function BetaDisclaimerModal() {
   useEffect(() => {
     if (isBlockedRoute) return;
     if (hasAcknowledged()) return;
-    // Avoid stacking on top of the cookie banner (which appears first on
-    // fresh visits). Poll briefly for the banner to disappear before opening.
-    const start = Date.now();
-    const iv = window.setInterval(() => {
-      const cookieBannerOpen = !!document.querySelector(
-        '[aria-label="Бисквитки — управление по категории"]',
-      );
-      const elapsed = Date.now() - start;
-      if (!cookieBannerOpen || elapsed > 8000) {
-        window.clearInterval(iv);
-        setOpen(true);
-      }
-    }, 400);
-    return () => window.clearInterval(iv);
-  }, [isBlockedRoute]);
 
+    let timeoutId: number | null = null;
+    let intervalId: number | null = null;
+
+    // Wait ~10s so we don't ambush the user on first paint. After the delay,
+    // still poll briefly so we don't stack on top of the cookie banner.
+    timeoutId = window.setTimeout(() => {
+      const start = Date.now();
+      intervalId = window.setInterval(() => {
+        const cookieBannerOpen = !!document.querySelector(
+          '[aria-label="Бисквитки — управление по категории"]',
+        );
+        const elapsed = Date.now() - start;
+        if (!cookieBannerOpen || elapsed > 8000) {
+          if (intervalId) window.clearInterval(intervalId);
+          setOpen(true);
+        }
+      }, 400);
+    }, APPEAR_DELAY_MS);
+
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+      if (intervalId) window.clearInterval(intervalId);
+    };
+  }, [isBlockedRoute]);
 
   const close = () => {
     markAcknowledged(dontShowAgain);
@@ -105,47 +122,70 @@ export function BetaDisclaimerModal() {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-md overflow-y-auto border-border/60 bg-card p-0 sm:max-w-lg">
-        {/* Header strip — reserve right-side space for the close X */}
-        <div className="flex items-center justify-between gap-3 border-b border-border/60 px-6 py-4 pr-16">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-gold" aria-hidden />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-              Beta program
-            </span>
+      <DialogContent className="max-h-[92vh] max-w-md overflow-hidden border-border/60 bg-card p-0 sm:max-w-lg">
+        {/* Decorative gradient header */}
+        <div className="relative overflow-hidden border-b border-border/60 bg-gradient-to-br from-gold/15 via-card to-card px-6 pt-6 pb-5 pr-16">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-gold/20 blur-3xl"
+          />
+          <div className="relative">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold">
+                <Sparkles className="h-3 w-3" aria-hidden />
+                Beta program
+              </span>
+              <span className="hidden text-[11px] tabular-nums text-muted-foreground sm:inline">
+                Launch · {LAUNCH_DATE}
+              </span>
+            </div>
+            <h2 className="mt-3 font-serif text-[26px] leading-tight tracking-tight text-foreground">
+              Работим в бета до 1 септември 2026 г.
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Изграждаме dogovori.net заедно с първите ни потребители. Ранните акаунти
+              получават закотвени условия и глас в развитието на продукта.
+            </p>
           </div>
-          <span className="hidden text-[11px] tabular-nums text-muted-foreground sm:inline">
-            Launch · {LAUNCH_DATE}
-          </span>
         </div>
 
-        {/* Body */}
-        <div className="px-6 pb-6 pt-5">
-          <h2 className="font-serif text-[26px] leading-tight tracking-tight text-foreground">
-            Работим в бета до 1 септември 2026 г.
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Изграждаме dogovori.net заедно с първите ни потребители. Ранните акаунти
-            получават закотвени условия, приоритет в поддръжката и глас в развитието
-            на продукта.
-          </p>
-
-          <dl className="mt-5 divide-y divide-border/60 border-y border-border/60">
-            {HIGHLIGHTS.map((item) => (
-              <div key={item.label} className="grid grid-cols-[1fr_auto] items-start gap-4 py-3">
-                <dt className="text-sm font-medium text-foreground">{item.label}</dt>
-                <dd className="col-span-2 -mt-1 text-[13px] leading-relaxed text-muted-foreground">
-                  {item.detail}
-                </dd>
-              </div>
+        {/* Body — highlight grid */}
+        <div className="px-6 pt-5 pb-6">
+          <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            {HIGHLIGHTS.map(({ icon: Icon, label, detail, badge }) => (
+              <li
+                key={label}
+                className="group relative rounded-lg border border-border/60 bg-background/40 p-3 transition-colors hover:border-gold/40 hover:bg-gold/[0.04]"
+              >
+                <div className="flex items-start gap-2.5">
+                  <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-gold/30 bg-gold/10 text-gold">
+                    <Icon className="h-3.5 w-3.5" aria-hidden />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-[13px] font-semibold leading-tight text-foreground">
+                        {label}
+                      </p>
+                      {badge && (
+                        <span className="rounded-sm bg-gold/15 px-1.5 py-0.5 text-[9px] font-bold text-gold">
+                          {badge}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-[11.5px] leading-snug text-muted-foreground">
+                      {detail}
+                    </p>
+                  </div>
+                </div>
+              </li>
             ))}
-          </dl>
+          </ul>
 
-          <div className="mt-6 flex flex-col gap-2">
+          <div className="mt-5 flex flex-col gap-2">
             <Link
               to="/auth?tab=signup"
               onClick={close}
-              className="group inline-flex items-center justify-center gap-2 rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-transform hover:-translate-y-px"
+              className="group inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-gold to-gold/80 px-4 py-2.5 text-sm font-semibold text-navy shadow-gold transition-transform hover:-translate-y-px"
             >
               Регистрация — 5 операции безплатно
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
