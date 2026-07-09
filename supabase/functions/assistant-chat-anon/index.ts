@@ -54,6 +54,9 @@ const SYSTEM_PROMPT = `# РОЛЯ И ИДЕНТИЧНОСТ
 # ДЪЛЖИНА (АНОНИМЕН РЕЖИМ)
 Кратко и структурирано: **до ~180 думи** основен текст. Ако темата изисква изброяване (клаузи, документи, стъпки) — до 6 къси булети от по 1 ред. Никога не отговаряй с дълги параграфи, за да остане място за CTA и последващите въпроси.
 
+# ПРАВЕН КАЗУС С УТОЧНЕНИЯ
+Ако последното съобщение започва с "Ето уточненията по казуса", отговори по-дълбоко и структурирано: 2–3 въвеждащи изречения; 5–8 номерирани точки, всяка започва с **удебелена теза**; секция "Практически:" с 3–5 действия; секция "Кога адвокат". Всяко правно твърдение завършва с инлайн цитат в квадратни скоби, напр. `[ЗЗДН, чл. 5]` или `[приложим общ режим по ЗЗДН]` ако няма точен член.
+
 # CTA (задължително в края, ПРЕДИ <followups>)
 *"💡 Безплатните съобщения свършват. [Регистрирайте се](/auth) за пълен достъп до DogovaryAI."*
 
@@ -75,6 +78,51 @@ const MODEL = "google/gemini-2.5-flash";
 const MAX_MESSAGES = 5;
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
+
+function makeFallbackCitation(citations: LegalCitation[], userMsg: string): string {
+  const first = citations.find((c) => c.short_code || c.citation_label);
+  if (first?.short_code && first?.article_no) {
+    const paragraph = first.paragraph_no ? `, ал. ${String(first.paragraph_no).replace(/^ал\.\s*/i, "")}` : "";
+    return `[${first.short_code}, чл. ${first.article_no}${paragraph}]`;
+  }
+  if (first?.citation_label) return `[${String(first.citation_label).replace(/^\[|\]$/g, "").slice(0, 120)}]`;
+  const lower = userMsg.toLowerCase();
+  if (/домашн|насил|заповед\s+за\s+защита|зздн/.test(lower)) return "[приложим общ режим по ЗЗДН]";
+  if (/уволн|работодател|работник|трудов|предизвест/.test(lower)) return "[приложим общ режим по КТ]";
+  if (/прокурат|полици|обвин|наказател/.test(lower)) return "[приложим общ режим по НК/НПК]";
+  return "[приложим общ режим по българското право]";
+}
+
+function needsLegalRepair(text: string): boolean {
+  const citations = (text.match(/\[(?:[А-ЯA-Z]{2,}|GDPR|ТР\s*№|Решение\s*№|приложим\s+общ\s+режим)[^\]\n]{0,120}\]/g) || []).length;
+  return !/^\s*1[.)]\s+/m.test(text) || !/\*\*[^*]{3,}\*\*/.test(text) || !/Практически/i.test(text) || !/Кога\s+адвокат/i.test(text) || citations < 3;
+}
+
+function forceAnonLegalStructure(text: string, userMsg: string, citations: LegalCitation[]): string {
+  const citation = makeFallbackCitation(citations, userMsg);
+  const body = text.replace(/\(Обща информация,\s*не правен съвет\.\)/i, "").trim();
+  if (!body) return body;
+  if (/^\s*1[.)]\s+/m.test(body)) {
+    const cited = body.split("\n").map((line) => {
+      const trimmed = line.trim();
+      if (!trimmed || /\[[^\]]+\]\s*$/.test(trimmed) || /^#{1,6}\s|^Практически:?$|^Кога\s+адвокат/i.test(trimmed)) return line;
+      if (/^(?:[-*]|\d+[.)])\s+/.test(trimmed) || /прав|закон|съд|срок|доказател|жалб|молб|отговорност|защит/i.test(trimmed)) return `${line} ${citation}`;
+      return line;
+    }).join("\n");
+    return `${cited}\n\n(Обща информация, не правен съвет.)`;
+  }
+  return [
+    `Накратко: казусът зависи от фактите и от това дали вече има официална процедура. Следващото е обща правна ориентация по най-вероятния приложим режим ${citation}`,
+    `1. **Първо се гледа етапът на казуса.** Ако има сигнал, призовка, молба или заповед, сроковете и доказателствата стават решаващи ${citation}`,
+    `2. **Доказателствата са централни.** Запазете съобщения, документи, свидетели и медицински/служебни бележки в оригинален вид ${citation}`,
+    `3. **Не действайте само устно.** При спор или заплаха поискайте писмено основание и пазете хронология на събитията ${citation}`,
+    `4. **Не подписвайте прибързано.** Всеки документ, признание или споразумение може да има процесуални последици ${citation}`,
+    `5. **Оценете риска.** Ако има непосредствена опасност, съд, полиция, прокуратура или срок за реакция, случаят вече не е само информационен ${citation}`,
+    `\nПрактически:\n- **Направете хронология** с дати и участници.\n- **Съберете доказателства** без редакции.\n- **Проверете сроковете** по връчените документи.\n- **Не отговаряйте импулсивно** в чат/телефон.`,
+    `\nКога адвокат\nПотърсете адвокат при призовка, заповед, наказателен елемент, риск за дете/семейство, съдебен срок или ако отсрещната страна вече има адвокат ${citation}`,
+    "\n(Обща информация, не правен съвет.)",
+  ].join("\n\n");
+}
 
 // Filter out pure-theory chips ("Какво е ДДС?", "Какво е НАП?") — they do not
 // drive the user forward in the platform. Keep action-oriented CTAs.
@@ -170,6 +218,8 @@ Deno.serve(async (req) => {
     }
 
     const systemFinal = `${SYSTEM_PROMPT}\n\n${promptBlock}`;
+    const lastUserForMode = safe[safe.length - 1].content;
+    const clarifiedLegalCase = /Ето\s+уточненията\s+по\s+казуса|структуриран\s+правен\s+отговор/i.test(lastUserForMode);
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -181,7 +231,7 @@ Deno.serve(async (req) => {
         model: MODEL,
         messages: [{ role: "system", content: systemFinal }, ...safe],
         temperature: 0.3,
-        max_tokens: 1200,
+        max_tokens: clarifiedLegalCase ? 2400 : 1200,
       }),
     });
 
@@ -240,6 +290,14 @@ Deno.serve(async (req) => {
       reply = `${sanitizedBody}\n\n${cta.trim()}`;
     } else {
       reply = sanitizeAssistantReply(reply, {
+        citationCount: citations.length,
+        userMsg: lastUserContent,
+        injectRiskBanner: true,
+      });
+    }
+
+    if (clarifiedLegalCase && needsLegalRepair(reply)) {
+      reply = sanitizeAssistantReply(forceAnonLegalStructure(reply, lastUserContent, citations), {
         citationCount: citations.length,
         userMsg: lastUserContent,
         injectRiskBanner: true,
