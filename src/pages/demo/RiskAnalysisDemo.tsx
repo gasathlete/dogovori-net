@@ -141,7 +141,7 @@ export default function RiskAnalysisDemo() {
             {user ? "Качете вашия документ за анализ" : "Готови ли сте за вашия договор?"}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            {user ? "Един клик — отваря директно качването на документ за Risk Analysis." : "10 безплатни операции след регистрация. Без карта."}
+            {user ? "Един клик — отваря директно качването на документ за Risk Analysis." : "5 безплатни операции след регистрация. Без карта."}
           </p>
           <Link
             to={primaryHref}
