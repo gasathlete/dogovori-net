@@ -386,6 +386,17 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
             if (Array.isArray(parsed.citations)) receivedCitations = parsed.citations;
           } else if (eventType === "error") {
             toast.error(parsed.message || "AI грешка");
+          } else if (eventType === "progress") {
+            const step = String(parsed.step || "");
+            const label = String(parsed.label || "");
+            const status = parsed.status === "done" ? "done" : "active";
+            const existingIdx = accProgress.findIndex((s) => s.step === step);
+            if (existingIdx >= 0) {
+              accProgress[existingIdx] = { step, label, status };
+            } else {
+              accProgress.push({ step, label, status });
+            }
+            setStreamingProgress([...accProgress]);
           } else if (eventType === "followups") {
             if (Array.isArray(parsed.followups)) receivedFollowups = parsed.followups;
           } else if (eventType === "tool_result") {
