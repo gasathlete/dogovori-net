@@ -158,10 +158,10 @@ function AnonProgressTrace({ steps }: { steps: AnonProgressStep[] }) {
 
 function AnonClarificationCard({ clarification, onSubmit }: { clarification: AnonClarification; onSubmit: (text: string) => void }) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const complete = clarification.questions.every((q) => answers[q.id]);
+  const hasAnyAnswer = clarification.questions.some((q) => answers[q.id]);
   const submit = () => {
-    if (!complete) return;
-    const lines = clarification.questions.map((q) => `- ${q.label.replace(/^\d+\.\s*/, "")}: ${answers[q.id]}`);
+    if (!hasAnyAnswer) return;
+    const lines = clarification.questions.map((q) => `- ${q.label.replace(/^\d+\.\s*/, "")}: ${answers[q.id] || "Неуточнено"}`);
     onSubmit(`Ето уточненията по казуса:\n${lines.join("\n")}\n\nПродължи с дълъг структуриран правен отговор с номерирани точки, **удебелени ключови термини**, практически стъпки и инлайн цитати в квадратни скоби след всяко правно твърдение.`);
   };
   return (
@@ -191,7 +191,7 @@ function AnonClarificationCard({ clarification, onSubmit }: { clarification: Ano
       </div>
       <button
         type="button"
-        disabled={!complete}
+        disabled={!hasAnyAnswer}
         onClick={submit}
         className="mt-3 rounded-md bg-gold px-3 py-1.5 text-[11px] font-semibold text-navy disabled:opacity-40"
       >
