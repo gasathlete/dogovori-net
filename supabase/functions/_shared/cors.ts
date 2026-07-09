@@ -6,6 +6,7 @@ const ALLOWED_ORIGINS = new Set([
   "https://www.dogovori.net",
   "https://contract-architect-ai.lovable.app",
   "https://id-preview--6b2da12e-e1d6-4f97-8549-b632fb66ddd1.lovable.app",
+  "http://localhost:8080",
 ]);
 
 const ALLOWED_HOST_SUFFIXES = [".lovable.app", ".lovableproject.com", ".lovable.dev"];
