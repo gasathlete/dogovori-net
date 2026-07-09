@@ -326,6 +326,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     setStreaming(true);
     setStreamingText("");
     setStreamingTools([]);
+    setStreamingProgress([]);
 
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`;
     try {
