@@ -74,7 +74,7 @@ export default function RiskAnalysisDemo() {
               to="/auth"
               className="inline-flex items-center gap-2 rounded-lg border border-gold/40 px-5 py-2.5 text-sm font-semibold text-gold hover:bg-gold/10"
             >
-              Регистрация · 10 безплатни операции
+              Регистрация · 5 безплатни операции
             </Link>
           )}
         </div>
