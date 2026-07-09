@@ -430,6 +430,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       setMessages([...newMessages, assistantMsg]);
       setStreamingText("");
       setStreamingTools([]);
+      setStreamingProgress([]);
       if (receivedThreadId && receivedThreadId !== activeThreadId) {
         setPersistedActiveThreadId(receivedThreadId);
       }
