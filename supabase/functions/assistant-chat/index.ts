@@ -673,6 +673,40 @@ Deno.serve(async (req) => {
           enqueue("progress", { step: p.step, label: p.label, status: "done" });
         }
 
+        if (needsForcedLegalClarification) {
+          const clarificationArgs = buildLegalCaseClarificationArgs(lastUserMsg);
+          const preamble = "Преди да дам правен отговор, трябва да уточним няколко факта. Те променят приложимия режим, сроковете и това дали говорим за превенция, защита или вече започнала процедура.\n\n";
+          enqueue(null, { delta: preamble });
+          enqueue("tool_call", {
+            id: `tc_legal_${crypto.randomUUID()}`,
+            name: "ask_clarification",
+            args: clarificationArgs,
+          });
+          const finalFollowups = ["Отговори на въпросите", "Опиши документите", "Посочи спешността"];
+          enqueue("followups", { followups: finalFollowups });
+          if (activeThreadId) {
+            await admin.from("assistant_messages").insert({
+              thread_id: activeThreadId,
+              role: "assistant",
+              content: preamble,
+            });
+            await admin.from("assistant_threads")
+              .update({ updated_at: new Date().toISOString() })
+              .eq("id", activeThreadId);
+          }
+          await logAiAudit({
+            user_id: userId,
+            operation: "assistant-chat",
+            model: "forced-clarification",
+            classification: chatClassification,
+            redaction_applied: false,
+            status: "ok",
+          });
+          enqueue("progress", { step: "done", label: "Готово", status: "done" });
+          controller.close();
+          return;
+        }
+
         let fullAssistantText = "";
         let iterations = 0;
         let lastModelStatus = 200;
@@ -689,6 +723,7 @@ Deno.serve(async (req) => {
               body: JSON.stringify({
                 model: chatModel,
                 stream: true,
+                max_tokens: needsStructuredLegalAnswer ? LEGAL_ANSWER_MAX_TOKENS : undefined,
                 tools,
                 messages: convo,
               }),
@@ -917,6 +952,31 @@ Deno.serve(async (req) => {
             injectRiskBanner: false,
           });
 
+          if (needsStructuredLegalAnswer && needsLegalAnswerRepair(cleaned)) {
+            try {
+              controller.enqueue(new TextEncoder().encode(
+                `event: progress\ndata: ${JSON.stringify({ step: "repair", label: "Проверявам структурата и правните цитати", status: "active" })}\n\n`
+              ));
+            } catch { /* ignore */ }
+            const repaired = await repairLegalAnswer({
+              apiKey: LOVABLE_API_KEY,
+              model: premiumModel,
+              question: lastUserMsg,
+              draft: cleaned,
+              legalPromptBlock: legal.hasMatches ? legal.promptBlock : "[НОРМАТИВНА БАЗА] Няма намерени релевантни нормативни извадки.",
+              citations: legal.citations,
+            }).catch(() => null);
+            cleaned = sanitizeAssistantReply(
+              normalizeLegalAnswerFallback(repaired || cleaned, lastUserMsg, legal.citations),
+              { citationCount: legal.citations.length, injectRiskBanner: false },
+            );
+            try {
+              controller.enqueue(new TextEncoder().encode(
+                `event: progress\ndata: ${JSON.stringify({ step: "repair", label: "Проверих структурата и правните цитати", status: "done" })}\n\n`
+              ));
+            } catch { /* ignore */ }
+          }
+
           // High-risk escalation banner — inject once if the case is serious
           // and the model didn't already recommend a lawyer/НБПП. Streamed
           // as a delta so the client sees it in real time, then appended to
@@ -933,6 +993,11 @@ Deno.serve(async (req) => {
 
 
           const finalFollowups = followups.length >= 2 ? followups : fallbackFollowups(lastToolName);
+          if (cleaned.trim() && cleaned.trim() !== rawCleaned.trim()) {
+            try {
+              controller.enqueue(new TextEncoder().encode(`event: final_text\ndata: ${JSON.stringify({ content: cleaned })}\n\n`));
+            } catch { /* ignore */ }
+          }
           try {
             controller.enqueue(new TextEncoder().encode(`event: followups\ndata: ${JSON.stringify({ followups: finalFollowups })}\n\n`));
           } catch { /* ignore */ }
