@@ -169,10 +169,11 @@ Deno.serve(async (req) => {
           JSON.stringify({
             error: "limit_reached",
             message: "Достигнахте лимита от 5 безплатни съобщения. Регистрирайте се и получавайте 5 + 2 безплатни съобщения всеки месец.",
-        }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+            retry_after_s: rl.retryAfter ?? 86400,
+          }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
 
     const safe: ChatMsg[] = history
       .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
