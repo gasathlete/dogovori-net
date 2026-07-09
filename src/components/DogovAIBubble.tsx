@@ -263,11 +263,22 @@ function AnonChat({ resetKey }: { resetKey: number }) {
                 <Suspense fallback={<span className="whitespace-pre-wrap">{m.content}</span>}>
                   <ReactMarkdown
                     components={{
-                      a: ({ href, children }) => (
-                        <a href={href} target={href?.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer">
-                          {children}
-                        </a>
-                      ),
+                      a: ({ href, children }) => {
+                        const isExternal = href?.startsWith("http");
+                        const className = "text-gold underline-offset-4 hover:underline";
+                        if (isExternal) {
+                          return (
+                            <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+                              {children}
+                            </a>
+                          );
+                        }
+                        return (
+                          <Link to={href ?? "#"} className={className}>
+                            {children}
+                          </Link>
+                        );
+                      },
                     }}
                   >
                     {m.content}
