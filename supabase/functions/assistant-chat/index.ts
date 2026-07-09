@@ -834,6 +834,11 @@ Deno.serve(async (req) => {
             });
           } catch (e) { console.warn("ai_usage cost insert failed", e); }
 
+          try {
+            controller.enqueue(new TextEncoder().encode(
+              `event: progress\ndata: ${JSON.stringify({ step: "done", label: "Готово", status: "done" })}\n\n`
+            ));
+          } catch { /* ignore */ }
           controller.close();
         }
       },
