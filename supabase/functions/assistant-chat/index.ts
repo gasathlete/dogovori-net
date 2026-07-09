@@ -516,6 +516,27 @@ Deno.serve(async (req) => {
 
         enqueue("meta", { threadId: activeThreadId, citations: legal.citations });
 
+        // --- Visible reasoning progress trace (competitor parity) ---
+        // Steps stream one-by-one so the user sees the assistant "working".
+        // The RAG has already run; we replay the pipeline as visible steps.
+        const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+        const foundLabel = legal.hasMatches
+          ? `Намерих ${uniqueActs} нормативни акта и ${chunkCount} релевантни извадки`
+          : "Няма конкретни съвпадения в базата — ще отговоря на общ режим";
+        const progressSteps: Array<{ step: string; label: string; delay: number }> = [
+          { step: "analyze",  label: "Анализ на въпроса", delay: 250 },
+          { step: "sources",  label: "Прецених какви източници са необходими", delay: 300 },
+          { step: "search",   label: "Подготвих фрази и ключови думи за търсене", delay: 300 },
+          { step: "found",    label: foundLabel, delay: 350 },
+          { step: "rank",     label: "Преценявам кои източници са най-относими", delay: 300 },
+          { step: "generate", label: "Генерирам отговор въз основа на намерените източници", delay: 200 },
+        ];
+        for (const p of progressSteps) {
+          enqueue("progress", { step: p.step, label: p.label, status: "active" });
+          await sleep(p.delay);
+          enqueue("progress", { step: p.step, label: p.label, status: "done" });
+        }
+
         let fullAssistantText = "";
         let iterations = 0;
         let lastModelStatus = 200;
