@@ -168,26 +168,37 @@ function AnonClarificationCard({ clarification, onSubmit }: { clarification: Ano
     <div className="not-prose mt-2 rounded-xl border border-gold/30 bg-gold/5 p-2.5">
       <p className="mb-2 text-xs text-muted-foreground">{clarification.contextSummary}</p>
       <div className="space-y-2">
-        {clarification.questions.map((q) => (
-          <div key={q.id}>
-            <div className="mb-1 text-[11px] font-semibold text-foreground">{q.label}</div>
-            <div className="flex flex-wrap gap-1">
-              {q.options.map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: opt }))}
-                  className={cn(
-                    "rounded-full border px-2 py-1 text-[10px] transition-colors",
-                    answers[q.id] === opt ? "border-gold bg-gold/15 text-foreground" : "border-border/60 bg-background/40 text-muted-foreground hover:border-gold/50",
-                  )}
-                >
-                  {opt}
-                </button>
-              ))}
+        {clarification.questions.map((q) => {
+          const currentValue = answers[q.id] ?? "";
+          const isPickedOption = q.options.includes(currentValue);
+          return (
+            <div key={q.id}>
+              <div className="mb-1 text-[11px] font-semibold text-foreground">{q.label}</div>
+              <div className="flex flex-wrap gap-1">
+                {q.options.map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: opt }))}
+                    className={cn(
+                      "rounded-full border px-2 py-1 text-[10px] transition-colors",
+                      currentValue === opt ? "border-gold bg-gold/15 text-foreground" : "border-border/60 bg-background/40 text-muted-foreground hover:border-gold/50",
+                    )}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="text"
+                value={isPickedOption ? "" : currentValue}
+                onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                placeholder="Или свой отговор…"
+                className="mt-1.5 w-full rounded-md border border-border/60 bg-background/40 px-2 py-1 text-[11px] text-foreground placeholder:text-muted-foreground/70 focus:border-gold focus:outline-none"
+              />
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <button
         type="button"

@@ -208,39 +208,43 @@ function ClarificationCard({ args, onSendMessage }: { args: any; onSendMessage?:
     <Card title="Уточняващи въпроси" icon={<HelpCircle className="h-3.5 w-3.5 text-gold" />}>
       {contextSummary && <p className="mb-2 text-xs text-muted-foreground">{contextSummary}</p>}
       <div className="space-y-2.5">
-        {questions.map((q) => (
-          <div key={q.id}>
-            <Label className="text-xs">{q.label}{q.required && <span className="text-destructive"> *</span>}</Label>
-            {q.type === "choice" && q.options ? (
-              <div className="mt-1 flex flex-wrap gap-1">
-                {q.options.map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    disabled={submitted}
-                    onClick={() => setAnswers((a) => ({ ...a, [q.id]: opt }))}
-                    className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
-                      answers[q.id] === opt
-                        ? "border-gold bg-gold/15 text-foreground"
-                        : "border-border/60 bg-background/40 text-muted-foreground hover:border-gold/40"
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            ) : (
+        {questions.map((q) => {
+          const hasOptions = q.type === "choice" && q.options && q.options.length > 0;
+          const currentValue = answers[q.id] ?? "";
+          const isPickedOption = hasOptions && q.options!.includes(currentValue);
+          return (
+            <div key={q.id}>
+              <Label className="text-xs">{q.label}{q.required && <span className="text-destructive"> *</span>}</Label>
+              {hasOptions && (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {q.options!.map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      disabled={submitted}
+                      onClick={() => setAnswers((a) => ({ ...a, [q.id]: opt }))}
+                      className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                        currentValue === opt
+                          ? "border-gold bg-gold/15 text-foreground"
+                          : "border-border/60 bg-background/40 text-muted-foreground hover:border-gold/40"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              )}
               <Input
                 type={q.type === "number" ? "number" : q.type === "date" ? "date" : "text"}
-                value={answers[q.id] ?? ""}
+                value={isPickedOption ? "" : currentValue}
                 onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
-                placeholder={q.placeholder ?? ""}
+                placeholder={hasOptions ? "Или свой отговор…" : (q.placeholder ?? "")}
                 disabled={submitted}
                 className="mt-1 h-8 text-xs"
               />
-            )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
       <Button
         size="sm"
