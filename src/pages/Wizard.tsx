@@ -1006,21 +1006,29 @@ export default function WizardPage() {
                 <span className="text-xs text-muted-foreground">Актуализация в реално време</span>
               )}
             </div>
-            <LiveDraft
-              sector={sector}
-              answers={answers}
-              generated={result?.contract}
-              signature={result ? signature : undefined}
-              isPro={isPro}
-              docName={docName}
-              bilingual={bilingualMode}
-              onContractChange={(next) => {
-                if (!result) return;
-                setResult({ ...result, contract: { ...result.contract, ...next } });
-                setSavedDocId(undefined); // invalidate saved version
-              }}
-              onDownloadBlank={handleDownloadBlank}
-            />
+            {(() => {
+              const draft = (
+                <LiveDraft
+                  sector={sector}
+                  answers={answers}
+                  generated={result?.contract}
+                  signature={result ? signature : undefined}
+                  isPro={isPro}
+                  docName={docName}
+                  bilingual={bilingualMode}
+                  onContractChange={(next) => {
+                    if (!result) return;
+                    setResult({ ...result, contract: { ...result.contract, ...next } });
+                    setSavedDocId(undefined);
+                  }}
+                  onDownloadBlank={handleDownloadBlank}
+                />
+              );
+              const shouldBlur = !!result && !!user && !docAccess.loading && !docAccess.canDownload;
+              return shouldBlur
+                ? <BlurredPreviewOverlay onUnlock={() => setShowPaywall(true)}>{draft}</BlurredPreviewOverlay>
+                : draft;
+            })()}
 
           </section>
         </div>
