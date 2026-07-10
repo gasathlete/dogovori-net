@@ -473,7 +473,10 @@ export default function WizardReviewPage() {
         doc_key: slug,
       });
       if (!res.ok) {
-        if (res.error === "quota_exceeded") {
+        if (res.error === "strict_paywall") {
+          trackEvent("strict_paywall_shown", { doc_key: slug, format, source: "server" });
+          setPaywallOpen(true);
+        } else if (res.error === "quota_exceeded") {
           toast.error("Изчерпан безплатен лимит", {
             description:
               "Купете единичен договор за 1.90€ или активирайте платен план — прогресът е запазен.",
