@@ -272,9 +272,10 @@ export default function TemplatePage() {
               <Link to={wizardHref} className="btn-gold btn-sheen">
                 Създай за 2 минути <ArrowRight className="h-4 w-4" />
               </Link>
-            <Link to="/catalog" className="btn-ghost-gold normal-case tracking-normal">
-              Виж всички шаблони
-            </Link>
+              <Link to="/catalog" className="btn-ghost-gold normal-case tracking-normal">
+                Виж всички шаблони
+              </Link>
+            </div>
           </div>
 
           <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground anim-rise" style={{ animationDelay: "320ms" }}>
