@@ -328,6 +328,12 @@ export default function WizardPage() {
       goAuth();
       return;
     }
+    // Strict document paywall — free users must subscribe or unlock (0.40€).
+    if (!docAccess.canDownload) {
+      trackEvent("strict_paywall_shown", { source: `download_${format}`, doc_key: docKey });
+      setShowPaywall(true);
+      return;
+    }
     setExporting(format);
     try {
       // Build polished signature parties from group_parties answers (A, B + extras).
