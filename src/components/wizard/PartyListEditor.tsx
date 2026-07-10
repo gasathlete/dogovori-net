@@ -90,18 +90,15 @@ export function PartyListEditor({ rows, onChange, contacts = [], placeholder, ad
 
   return (
     <div className="space-y-2">
+      <div className="rounded-lg border border-gold/20 bg-gold/5 p-2.5 text-[11px] leading-snug text-muted-foreground">
+        <strong className="text-foreground">Не събираме лични данни.</strong> Изберете само вида на страната.
+        Имена, ЕГН/ЕИК, адреси и др. ще попълните локално във вашия документ след сваляне —
+        Договори.нет не съхранява и не изпраща тези данни.
+      </div>
       {list.map((row, idx) => (
-        <div key={idx} className="space-y-1.5 rounded-lg border border-border/50 bg-card/30 p-2.5">
-          <Input
-            value={row.name}
-            onChange={(e) => update(idx, { name: e.target.value })}
-            placeholder={placeholder ?? "Име / Фирма, ЕИК… (по избор)"}
-            className="h-9 bg-input/60 text-sm"
-          />
-          <p className="-mt-1 text-[10px] text-muted-foreground">
-            Може да оставите празно — но изберете тип по-долу.
-          </p>
-          <div className="flex items-center justify-between gap-2">
+        <div key={idx} className="flex items-center justify-between gap-2 rounded-lg border border-border/50 bg-card/30 p-2.5">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Страна {idx + 1}:</span>
             <div className="inline-flex gap-1 rounded-md border border-border/60 bg-card/40 p-0.5">
               {TYPES.map((t) => {
                 const active = row.type === t.id;
@@ -123,56 +120,34 @@ export function PartyListEditor({ rows, onChange, contacts = [], placeholder, ad
                 );
               })}
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => remove(idx)}
-              disabled={list.length <= 1}
-              className="h-8 w-8 text-muted-foreground hover:text-destructive disabled:opacity-30"
-              aria-label="Премахни"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+            <span className="hidden text-[10px] italic text-muted-foreground sm:inline">
+              {TYPES.find((t) => t.id === row.type)?.full}
+            </span>
           </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => remove(idx)}
+            disabled={list.length <= 1}
+            className="h-8 w-8 text-muted-foreground hover:text-destructive disabled:opacity-30"
+            aria-label="Премахни"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
         </div>
       ))}
 
-      <div className="flex flex-wrap items-center gap-1.5">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={add}
-          className="h-8 border-dashed border-gold/40 text-xs text-gold hover:bg-gold/10 hover:text-gold"
-        >
-          <Plus className="mr-1 h-3.5 w-3.5" />
-          {addLabel}
-        </Button>
-        {contacts.length > 0 ? (
-          <Select onValueChange={pickContact}>
-            <SelectTrigger className="h-8 w-auto gap-1 bg-input/60 px-2 text-xs">
-              <UserPlus className="h-3.5 w-3.5 text-gold" />
-              <SelectValue placeholder="От контрагенти" />
-            </SelectTrigger>
-            <SelectContent>
-              {contacts.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <a
-            href={`/account?tab=contacts&redirect=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname + window.location.search : "")}`}
-            className="inline-flex h-8 items-center gap-1 rounded-md border border-dashed border-gold/40 px-2 text-xs text-gold hover:bg-gold/10"
-          >
-            <UserPlus className="h-3.5 w-3.5" />
-            Добави контрагент
-          </a>
-        )}
-      </div>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={add}
+        className="h-8 border-dashed border-gold/40 text-xs text-gold hover:bg-gold/10 hover:text-gold"
+      >
+        <Plus className="mr-1 h-3.5 w-3.5" />
+        {addLabel}
+      </Button>
     </div>
   );
 }
