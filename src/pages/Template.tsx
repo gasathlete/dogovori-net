@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
-import { ArrowRight, CheckCircle2, AlertTriangle, FileText, ChevronRight, Download, Package } from "lucide-react";
+import { ArrowRight, CheckCircle2, AlertTriangle, FileText, ChevronRight, Download, Package, Sparkles } from "lucide-react";
 import { AddToKitDialog } from "@/components/AddToKitDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
