@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
-import { ArrowRight, CheckCircle2, AlertTriangle, FileText, ChevronRight, Download, Package } from "lucide-react";
+import { ArrowRight, CheckCircle2, AlertTriangle, FileText, ChevronRight, Download, Package, Sparkles } from "lucide-react";
 import { AddToKitDialog } from "@/components/AddToKitDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -263,13 +263,19 @@ export default function TemplatePage() {
           </h1>
           <p className="mt-5 text-balance text-base leading-relaxed text-muted-foreground md:text-lg anim-rise" style={{ animationDelay: "160ms" }}>{doc.purpose}</p>
 
-          <div className="mt-7 flex flex-wrap gap-3 anim-rise" style={{ animationDelay: "240ms" }}>
-            <Link to={wizardHref} className="btn-gold btn-sheen">
-              Създай за 2 минути <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link to="/catalog" className="btn-ghost-gold normal-case tracking-normal">
-              Виж всички шаблони
-            </Link>
+          <div className="mt-7 flex flex-col items-start gap-2 anim-rise" style={{ animationDelay: "240ms" }}>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/10 px-2.5 py-1 text-[11px] font-medium text-gold">
+              <Sparkles className="h-3 w-3" />
+              По-прецизно от бланка
+            </span>
+            <div className="flex flex-wrap gap-3">
+              <Link to={wizardHref} className="btn-gold btn-sheen">
+                Създай за 2 минути <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link to="/catalog" className="btn-ghost-gold normal-case tracking-normal">
+                Виж всички шаблони
+              </Link>
+            </div>
           </div>
 
           <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground anim-rise" style={{ animationDelay: "320ms" }}>
