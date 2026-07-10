@@ -371,8 +371,14 @@ export default function WizardPage() {
         source_id: sector.id,
         contact_id: contactId || undefined,
         saved_document_id: savedDocId,
+        doc_key: docKey,
       });
       if (!res.ok) {
+        if (res.error === "strict_paywall") {
+          trackEvent("strict_paywall_shown", { source: `download_${format}`, doc_key: docKey });
+          setShowPaywall(true);
+          return;
+        }
         if (res.error === "quota_exceeded") {
           toast.error("Изчерпан безплатен лимит", {
             description: "Купете единичен договор за 1.90€ или активирайте платен план — прогресът е запазен.",
