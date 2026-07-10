@@ -31,6 +31,9 @@ import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhili
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { trackEvent } from "@/lib/analytics";
+import { useDocumentAccess } from "@/hooks/useDocumentAccess";
+import { StrictDocumentPaywall } from "@/components/wizard/StrictDocumentPaywall";
+import { BlurredPreviewOverlay } from "@/components/wizard/BlurredPreviewOverlay";
 
 interface AIResult {
   risk: {
@@ -283,6 +286,14 @@ export default function WizardPage() {
   const goAuth = () => navigate(`/auth?redirect=${encodeURIComponent(wizardHref)}`);
   const goSubscription = () =>
     navigate(`/account?tab=subscription&redirect=${encodeURIComponent(wizardHref)}`);
+  // Stable document key for strict-unlock lookups (user-scoped, cross-session).
+  const docKey = useMemo(() => {
+    const base = docName ?? baseSector?.contractName ?? baseSector?.id ?? "doc";
+    return `${baseSector?.id ?? "sector"}::${slugify(base)}`;
+  }, [baseSector, docName]);
+  const docAccess = useDocumentAccess(docKey);
+  const [showPaywall, setShowPaywall] = useState(false);
+
 
   useEffect(() => {
     if (!user) { setIsPro(false); setFreeWaveAvailable(false); setContacts([]); return; }
@@ -315,6 +326,12 @@ export default function WizardPage() {
     if (!user) {
       toast.error("Влезте в профила си", { description: "Прогресът е запазен — ще се възстанови след вход." });
       goAuth();
+      return;
+    }
+    // Strict document paywall — free users must subscribe or unlock (0.40€).
+    if (!docAccess.canDownload) {
+      trackEvent("strict_paywall_shown", { source: `download_${format}`, doc_key: docKey });
+      setShowPaywall(true);
       return;
     }
     setExporting(format);
@@ -354,8 +371,14 @@ export default function WizardPage() {
         source_id: sector.id,
         contact_id: contactId || undefined,
         saved_document_id: savedDocId,
+        doc_key: docKey,
       });
       if (!res.ok) {
+        if (res.error === "strict_paywall") {
+          trackEvent("strict_paywall_shown", { source: `download_${format}`, doc_key: docKey });
+          setShowPaywall(true);
+          return;
+        }
         if (res.error === "quota_exceeded") {
           toast.error("Изчерпан безплатен лимит", {
             description: "Купете единичен договор за 1.90€ или активирайте платен план — прогресът е запазен.",
@@ -983,25 +1006,42 @@ export default function WizardPage() {
                 <span className="text-xs text-muted-foreground">Актуализация в реално време</span>
               )}
             </div>
-            <LiveDraft
-              sector={sector}
-              answers={answers}
-              generated={result?.contract}
-              signature={result ? signature : undefined}
-              isPro={isPro}
-              docName={docName}
-              bilingual={bilingualMode}
-              onContractChange={(next) => {
-                if (!result) return;
-                setResult({ ...result, contract: { ...result.contract, ...next } });
-                setSavedDocId(undefined); // invalidate saved version
-              }}
-              onDownloadBlank={handleDownloadBlank}
-            />
+            {(() => {
+              const draft = (
+                <LiveDraft
+                  sector={sector}
+                  answers={answers}
+                  generated={result?.contract}
+                  signature={result ? signature : undefined}
+                  isPro={isPro}
+                  docName={docName}
+                  bilingual={bilingualMode}
+                  onContractChange={(next) => {
+                    if (!result) return;
+                    setResult({ ...result, contract: { ...result.contract, ...next } });
+                    setSavedDocId(undefined);
+                  }}
+                  onDownloadBlank={handleDownloadBlank}
+                />
+              );
+              const shouldBlur = !!result && !!user && !docAccess.loading && !docAccess.canDownload;
+              return shouldBlur
+                ? <BlurredPreviewOverlay onUnlock={() => setShowPaywall(true)}>{draft}</BlurredPreviewOverlay>
+                : draft;
+            })()}
 
           </section>
         </div>
       </main>
+
+      <StrictDocumentPaywall
+        open={showPaywall}
+        onOpenChange={setShowPaywall}
+        docKey={docKey}
+        sectorId={sector?.id}
+        docName={docName ?? sector?.contractName}
+        wizardHref={wizardHref}
+      />
     </div>
   );
 }

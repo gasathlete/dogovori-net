@@ -150,6 +150,37 @@ async function handleSubscriptionDeleted(subscription: any, env: StripeEnv) {
 async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   const userId = session.metadata?.userId;
 
+  // 0) Strict document one-off unlock (0.40€ per (user, doc_key), valid 24h).
+  if (
+    session.mode === "payment" &&
+    userId &&
+    session.metadata?.type === "strict_doc_unlock" &&
+    session.metadata?.doc_key
+  ) {
+    try {
+      const amountTotal = session.amount_total;
+      const paid = typeof amountTotal === "number" ? amountTotal / 100 : 0.40;
+      await getSupabase()
+        .from("strict_doc_unlocks")
+        .upsert(
+          {
+            user_id: userId,
+            doc_key: session.metadata.doc_key,
+            sector_id: session.metadata.sector_id || null,
+            doc_name: session.metadata.doc_name || null,
+            paid_price_eur: paid,
+            stripe_session_id: session.id,
+            environment: env,
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          },
+          { onConflict: "user_id,doc_key" },
+        );
+    } catch (e) {
+      console.error("strict_doc_unlocks insert failed:", e);
+    }
+  }
+
+
   // 1) Bonus contracts + top-up ops (one-off purchases)
   if (session.mode === "payment" && userId) {
     try {
