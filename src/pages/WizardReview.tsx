@@ -26,11 +26,15 @@ import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
 import { ContractPreview } from "@/components/wizard/ContractPreview";
 import { AppendixSuggestions } from "@/components/wizard/AppendixSuggestions";
+import { BlurredPreviewOverlay } from "@/components/wizard/BlurredPreviewOverlay";
+import { StrictDocumentPaywall } from "@/components/wizard/StrictDocumentPaywall";
+import { useDocumentAccess } from "@/hooks/useDocumentAccess";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { MultiPartySigningDialog } from "@/components/MultiPartySigningDialog";
 import { ProValueCard } from "@/components/ProValueCard";
 import { FreeOpsChip } from "@/components/FreeOpsChip";
 import { useProConversionToast } from "@/components/ProConversionToast";
+import { trackEvent } from "@/lib/analytics";
 
 import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhilishte";
 import { useAuth } from "@/hooks/useAuth";
