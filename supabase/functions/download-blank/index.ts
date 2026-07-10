@@ -22,6 +22,7 @@ import {
 import { buildCors } from "../_shared/cors.ts";
 import { getDocumentTypeSpec, inferDocumentType } from "../_shared/document-types.ts";
 import { buildBlankStoragePath } from "../_shared/blank-key.ts";
+import { getDraftText, parseDraftToBlankPayload } from "../_shared/draft-resolver.ts";
 
 
 const SYSTEM_PROMPT = `Ти си български правен архитект с 20+ години практика. Генерираш ПРАЗНИ БЛАНКИ (шаблони) на български юридически език (ЗЗД, ТЗ, ЗУТ, ГПК, КТ, ЗННД).
