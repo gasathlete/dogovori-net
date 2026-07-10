@@ -1033,6 +1033,15 @@ export default function WizardPage() {
           </section>
         </div>
       </main>
+
+      <StrictDocumentPaywall
+        open={showPaywall}
+        onOpenChange={setShowPaywall}
+        docKey={docKey}
+        sectorId={sector?.id}
+        docName={docName ?? sector?.contractName}
+        wizardHref={wizardHref}
+      />
     </div>
   );
 }
