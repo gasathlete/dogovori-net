@@ -26,11 +26,15 @@ import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
 import { ContractPreview } from "@/components/wizard/ContractPreview";
 import { AppendixSuggestions } from "@/components/wizard/AppendixSuggestions";
+import { BlurredPreviewOverlay } from "@/components/wizard/BlurredPreviewOverlay";
+import { StrictDocumentPaywall } from "@/components/wizard/StrictDocumentPaywall";
+import { useDocumentAccess } from "@/hooks/useDocumentAccess";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { MultiPartySigningDialog } from "@/components/MultiPartySigningDialog";
 import { ProValueCard } from "@/components/ProValueCard";
 import { FreeOpsChip } from "@/components/FreeOpsChip";
 import { useProConversionToast } from "@/components/ProConversionToast";
+import { trackEvent } from "@/lib/analytics";
 
 import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhilishte";
 import { useAuth } from "@/hooks/useAuth";
@@ -108,6 +112,8 @@ export default function WizardReviewPage() {
   const [folders, setFolders] = useState<Array<{ id: string; name: string; is_favorites: boolean }>>([]);
   const [saving, setSaving] = useState(false);
   const [autoSaved, setAutoSaved] = useState(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const docAccess = useDocumentAccess(slug);
 
 
   const reviewHref = `/wizard-graph/${slug}/review`;
@@ -408,6 +414,12 @@ export default function WizardReviewPage() {
       goAuth();
       return;
     }
+    // Strict document paywall — free users must unlock or upgrade first.
+    if (!docAccess.loading && !docAccess.canDownload) {
+      trackEvent("strict_paywall_shown", { doc_key: slug, format });
+      setPaywallOpen(true);
+      return;
+    }
     setExporting(format);
     try {
       // Build a polished signature block from graph `party_list` answers.
@@ -461,7 +473,10 @@ export default function WizardReviewPage() {
         doc_key: slug,
       });
       if (!res.ok) {
-        if (res.error === "quota_exceeded") {
+        if (res.error === "strict_paywall") {
+          trackEvent("strict_paywall_shown", { doc_key: slug, format, source: "server" });
+          setPaywallOpen(true);
+        } else if (res.error === "quota_exceeded") {
           toast.error("Изчерпан безплатен лимит", {
             description:
               "Купете единичен договор за 1.90€ или активирайте платен план — прогресът е запазен.",
@@ -865,12 +880,26 @@ export default function WizardReviewPage() {
                           </Button>
                         </div>
                       </div>
-                      <ContractPreview
-                        contract={result.contract}
-                        onChange={(next) => {
-                          setResult({ ...result, contract: next });
-                        }}
-                      />
+                      {docAccess.canDownload || docAccess.loading ? (
+                        <ContractPreview
+                          contract={result.contract}
+                          onChange={(next) => {
+                            setResult({ ...result, contract: next });
+                          }}
+                        />
+                      ) : (
+                        <BlurredPreviewOverlay
+                          onUnlock={() => {
+                            trackEvent("strict_paywall_shown", { doc_key: slug, source: "preview_cta" });
+                            setPaywallOpen(true);
+                          }}
+                        >
+                          <ContractPreview
+                            contract={result.contract}
+                            onChange={() => { /* locked */ }}
+                          />
+                        </BlurredPreviewOverlay>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -884,6 +913,15 @@ export default function WizardReviewPage() {
                   freeAvailable={signingFreeAvailable}
                   onCreated={refreshQuota}
                 />
+                <StrictDocumentPaywall
+                  open={paywallOpen}
+                  onOpenChange={setPaywallOpen}
+                  docKey={slug ?? ""}
+                  sectorId={slug}
+                  docName={graph.title}
+                  wizardHref={reviewHref}
+                />
+
               </div>
             );
           })()}
