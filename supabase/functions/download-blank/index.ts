@@ -383,67 +383,75 @@ Deno.serve(async (req: Request) => {
       .eq("document_name", documentName)
       .maybeSingle();
 
-    // Cache version prefix. `v6` fixes the safeKey collision bug — earlier
-    // versions stripped Cyrillic and mapped every blank in a sector to the
-    // same Storage object. `v6` uses BG→Latin transliteration + an 8-char
-    // SHA-1 suffix per (sector, document) to guarantee uniqueness.
-    // Bilingual blanks live under a separate namespace.
-    const CACHE_VERSION = isBilingual ? "v6-bilingual" : "v6";
+    // Cache version prefix. Bumped to v7 so we invalidate legacy AI-only
+    // blanks and start serving the pre-authored drafts (when available) —
+    // this guarantees the downloaded blank matches the /shablon preview.
+    // `-draft` = pre-authored source, plain AI cache is separate.
+    // Pre-authored drafts do NOT support bilingual output yet — those fall
+    // back to the AI path below.
+    const preAuthored = !isBilingual ? getDraftText(documentName) : null;
+    const CACHE_VERSION = isBilingual
+      ? "v7-bilingual"
+      : preAuthored
+        ? "v7-draft"
+        : "v7";
     const existingPath = existing?.storage_path as string | undefined;
     let storagePath: string | undefined =
       existingPath && existingPath.startsWith(`${CACHE_VERSION}/`) ? existingPath : undefined;
 
-    // 3) If missing, generate via AI Gateway, upload, index.
+    // 3) If missing, use pre-authored draft when available, else generate via AI.
     if (!storagePath) {
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
+      let blank: BlankPayload;
 
-      // Match the document type so the AI doesn't render every blank as a contract.
-      const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName));
-      const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Специфика за този вид документ (${docTypeSpec.label}) ---\n${docTypeSpec.systemAddendum}${isBilingual ? BILINGUAL_ADDENDUM : ""}`;
+      if (preAuthored) {
+        blank = parseDraftToBlankPayload(preAuthored) as BlankPayload;
+      } else {
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+        if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
-      const userPrompt = `Сектор: ${sectorTitle || sectorId}\nВид документ: ${docTypeSpec.label}\nКонкретен документ: ${documentName}\n\nГенерирай професионална българска правна БЛАНКА (празен шаблон) за този КОНКРЕТЕН ВИД документ. Спазвай структурата за „${docTypeSpec.label}" — не я смесвай с друг вид документ.${isBilingual ? "\n\nЗАДЪЛЖИТЕЛНО: добави паралелен английски превод в полетата title_en, preamble_en, closing_en и в clauses[].title_en/body_en (виж системния промпт за билингвален режим)." : ""}`;
+        // Match the document type so the AI doesn't render every blank as a contract.
+        const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName));
+        const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Специфика за този вид документ (${docTypeSpec.label}) ---\n${docTypeSpec.systemAddendum}${isBilingual ? BILINGUAL_ADDENDUM : ""}`;
 
-      const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          // First-time blank generation is cached forever per (sector, document) —
-          // worth investing in higher quality. gemini-2.5-pro produces more
-          // legally precise wording and respects per-document-type structure.
-          model: "google/gemini-2.5-pro",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          response_format: { type: "json_object" },
-        }),
-      });
+        const userPrompt = `Сектор: ${sectorTitle || sectorId}\nВид документ: ${docTypeSpec.label}\nКонкретен документ: ${documentName}\n\nГенерирай професионална българска правна БЛАНКА (празен шаблон) за този КОНКРЕТЕН ВИД документ. Спазвай структурата за „${docTypeSpec.label}" — не я смесвай с друг вид документ.${isBilingual ? "\n\nЗАДЪЛЖИТЕЛНО: добави паралелен английски превод в полетата title_en, preamble_en, closing_en и в clauses[].title_en/body_en (виж системния промпт за билингвален режим)." : ""}`;
 
-      if (aiRes.status === 429) {
-
-        return new Response(JSON.stringify({ error: "AI лимитът е достигнат. Опитайте след малко." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-pro",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+            response_format: { type: "json_object" },
+          }),
         });
-      }
-      if (aiRes.status === 402) {
-        return new Response(JSON.stringify({ error: "Изчерпан AI кредит. Опитайте по-късно." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (!aiRes.ok) {
-        const errText = await aiRes.text();
-        throw new Error(`AI Gateway: ${aiRes.status} ${errText}`);
-      }
 
-      const aiJson = await aiRes.json();
-      const raw = aiJson?.choices?.[0]?.message?.content ?? "";
-      const blank = extractJson(raw);
+        if (aiRes.status === 429) {
+          return new Response(JSON.stringify({ error: "AI лимитът е достигнат. Опитайте след малко." }), {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (aiRes.status === 402) {
+          return new Response(JSON.stringify({ error: "Изчерпан AI кредит. Опитайте по-късно." }), {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (!aiRes.ok) {
+          const errText = await aiRes.text();
+          throw new Error(`AI Gateway: ${aiRes.status} ${errText}`);
+        }
+
+        const aiJson = await aiRes.json();
+        const raw = aiJson?.choices?.[0]?.message?.content ?? "";
+        blank = extractJson(raw);
+      }
 
       const docxBytes = await buildDocx(blank, isBilingual);
       storagePath = await buildBlankStoragePath(CACHE_VERSION, sectorId, documentName);
