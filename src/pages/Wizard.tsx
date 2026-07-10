@@ -31,6 +31,9 @@ import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhili
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { trackEvent } from "@/lib/analytics";
+import { useDocumentAccess } from "@/hooks/useDocumentAccess";
+import { StrictDocumentPaywall } from "@/components/wizard/StrictDocumentPaywall";
+import { BlurredPreviewOverlay } from "@/components/wizard/BlurredPreviewOverlay";
 
 interface AIResult {
   risk: {
@@ -283,6 +286,14 @@ export default function WizardPage() {
   const goAuth = () => navigate(`/auth?redirect=${encodeURIComponent(wizardHref)}`);
   const goSubscription = () =>
     navigate(`/account?tab=subscription&redirect=${encodeURIComponent(wizardHref)}`);
+  // Stable document key for strict-unlock lookups (user-scoped, cross-session).
+  const docKey = useMemo(() => {
+    const base = docName ?? baseSector?.contractName ?? baseSector?.id ?? "doc";
+    return `${baseSector?.id ?? "sector"}::${slugify(base)}`;
+  }, [baseSector, docName]);
+  const docAccess = useDocumentAccess(docKey);
+  const [showPaywall, setShowPaywall] = useState(false);
+
 
   useEffect(() => {
     if (!user) { setIsPro(false); setFreeWaveAvailable(false); setContacts([]); return; }
