@@ -55,6 +55,7 @@ interface AIResult {
     level: RiskLevel;
     score: number;
     summary: string;
+    strengths?: string[];
     issues: RiskIssue[];
     recommendations: string[];
   };
