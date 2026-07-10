@@ -8,41 +8,50 @@ interface Props {
 }
 
 /**
- * Wraps preview content and blurs the middle ~40% band, leaving header and
- * signature area readable. Purely presentational — actual content isn't
- * downloaded until the user clears the paywall.
+ * Wraps preview content with a smooth vertical gradient blur (readable at the
+ * top and bottom, obscured through the middle band) and a CTA chip that stays
+ * pinned to the viewport as the user scrolls through the preview.
  */
 export function BlurredPreviewOverlay({ children, onUnlock }: Props) {
   return (
     <div className="relative">
-      {/* underlying preview stays in the DOM (accessible for Pro users' state) */}
+      {/* underlying preview — kept in DOM but non-interactive */}
       <div className="pointer-events-none select-none">{children}</div>
 
-      {/* blur mask in the middle band */}
+      {/* Gradient blur veil: soft at top/bottom, dense in the middle.
+          Achieved via backdrop-blur + a mask that fades the veil in/out. */}
       <div
         aria-hidden
-        className="absolute inset-x-0 top-[22%] bottom-[22%] backdrop-blur-md bg-background/25"
+        className="absolute inset-0 backdrop-blur-lg bg-background/10"
+        style={{
+          WebkitMaskImage:
+            "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 12%, rgba(0,0,0,0.85) 32%, rgba(0,0,0,1) 50%, rgba(0,0,0,0.85) 68%, rgba(0,0,0,0.15) 88%, transparent 100%)",
+          maskImage:
+            "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 12%, rgba(0,0,0,0.85) 32%, rgba(0,0,0,1) 50%, rgba(0,0,0,0.85) 68%, rgba(0,0,0,0.15) 88%, transparent 100%)",
+        }}
       />
 
-      {/* CTA chip centered */}
-      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex items-center justify-center px-4">
-        <div className="max-w-md w-full rounded-2xl border border-gold/40 bg-background/95 shadow-xl p-5 text-center backdrop-blur">
-          <div className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-medium text-gold mb-3">
-            <Lock className="h-3.5 w-3.5" />
-            Стриктен документ — превюто е замъглено
+      {/* Sticky CTA — remains centered in viewport while user scrolls */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="sticky top-1/2 -translate-y-1/2 flex items-center justify-center px-4 py-8">
+          <div className="pointer-events-auto max-w-md w-full rounded-2xl border border-gold/40 bg-background/95 shadow-2xl p-5 text-center backdrop-blur">
+            <div className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-medium text-gold mb-3">
+              <Lock className="h-3.5 w-3.5" />
+              Стриктен документ
+            </div>
+            <h3 className="text-lg font-semibold mb-1">
+              Вашият документ е готов
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Финалният текст е защитен. Отключете, за да прегледате и свалите.
+            </p>
+            {onUnlock && (
+              <Button onClick={onUnlock} className="w-full gap-2">
+                <Sparkles className="h-4 w-4" />
+                Отключи Стриктен документ
+              </Button>
+            )}
           </div>
-          <h3 className="text-lg font-semibold mb-1">
-            Вашият документ е готов
-          </h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Финалният текст е защитен. Отключете, за да прегледате и свалите.
-          </p>
-          {onUnlock && (
-            <Button onClick={onUnlock} className="w-full gap-2">
-              <Sparkles className="h-4 w-4" />
-              Отключи Стриктен документ
-            </Button>
-          )}
         </div>
       </div>
     </div>
