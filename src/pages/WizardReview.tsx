@@ -55,6 +55,7 @@ interface AIResult {
     level: RiskLevel;
     score: number;
     summary: string;
+    strengths?: string[];
     issues: RiskIssue[];
     recommendations: string[];
   };
@@ -714,7 +715,7 @@ export default function WizardReviewPage() {
                         <div className="text-left">
                           <div className="font-serif text-base font-bold">Подробен риск анализ</div>
                           <div className="text-xs text-muted-foreground">
-                            {(result.risk.issues?.length ?? 0)} слаби места · {(result.risk.recommendations?.length ?? 0)} препоръки
+                            {(result.risk.strengths?.length ?? 0)} силни страни · {(result.risk.issues?.length ?? 0)} слаби места · {(result.risk.recommendations?.length ?? 0)} следващи стъпки
                           </div>
                         </div>
                         <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform data-[state=open]:rotate-180" />
@@ -725,6 +726,7 @@ export default function WizardReviewPage() {
                             level={result.risk.level}
                             issues={result.risk.issues || []}
                             recommendations={result.risk.recommendations || []}
+                            strengths={result.risk.strengths || []}
                             isPro={isPro}
                           />
                         </div>
