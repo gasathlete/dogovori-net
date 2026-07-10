@@ -333,14 +333,26 @@ ${docTypeSpec.systemAddendum}
     }
 
     // Unredact AI output so the user sees real names/EGN/IBAN in the final doc.
+    // Walk the parsed object and replace placeholders directly in string leaves
+    // to avoid JSON round-trip issues when original values contain control chars.
     if (Object.keys(mergedMapping).length > 0) {
       try {
-        const restored = JSON.parse(unredact(JSON.stringify(parsed), mergedMapping));
-        parsed = restored;
+        const walk = (v: unknown): unknown => {
+          if (typeof v === "string") return unredact(v, mergedMapping);
+          if (Array.isArray(v)) return v.map(walk);
+          if (v && typeof v === "object") {
+            const out: Record<string, unknown> = {};
+            for (const [k, val] of Object.entries(v as Record<string, unknown>)) out[k] = walk(val);
+            return out;
+          }
+          return v;
+        };
+        parsed = walk(parsed);
       } catch (e) {
         console.error("unredact failed:", e);
       }
     }
+
 
     // Defensive: ensure bilingual flag is set on contract when requested,
     // so exporters render BG/EN two-column layout reliably.
