@@ -880,12 +880,26 @@ export default function WizardReviewPage() {
                           </Button>
                         </div>
                       </div>
-                      <ContractPreview
-                        contract={result.contract}
-                        onChange={(next) => {
-                          setResult({ ...result, contract: next });
-                        }}
-                      />
+                      {docAccess.canDownload || docAccess.loading ? (
+                        <ContractPreview
+                          contract={result.contract}
+                          onChange={(next) => {
+                            setResult({ ...result, contract: next });
+                          }}
+                        />
+                      ) : (
+                        <BlurredPreviewOverlay
+                          onUnlock={() => {
+                            trackEvent("strict_paywall_shown", { doc_key: slug, source: "preview_cta" });
+                            setPaywallOpen(true);
+                          }}
+                        >
+                          <ContractPreview
+                            contract={result.contract}
+                            onChange={() => { /* locked */ }}
+                          />
+                        </BlurredPreviewOverlay>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -899,6 +913,15 @@ export default function WizardReviewPage() {
                   freeAvailable={signingFreeAvailable}
                   onCreated={refreshQuota}
                 />
+                <StrictDocumentPaywall
+                  open={paywallOpen}
+                  onOpenChange={setPaywallOpen}
+                  docKey={slug ?? ""}
+                  sectorId={slug}
+                  docName={graph.title}
+                  wizardHref={reviewHref}
+                />
+
               </div>
             );
           })()}
