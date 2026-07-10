@@ -132,10 +132,32 @@ serve(async (req) => {
       });
     }
 
+    // --- Strict Document paywall ---------------------------------------
+    // Wizard-generated contracts are "Стриктни документи" — reserved for
+    // paid users OR users who bought a one-off unlock (0.40€). If the user
+    // is not Pro, look for an active unlock for this specific (user, doc_key).
+    // If none, return `strict_paywall` BEFORE consuming any free ops.
+    // Templates and other kinds go through the normal quota path.
+    let strictUnlockActive = false;
+    if (kind === "contract" && !isPro && doc_key) {
+      const { data: unlock } = await admin
+        .from("strict_doc_unlocks")
+        .select("id, expires_at")
+        .eq("user_id", userId)
+        .eq("doc_key", doc_key)
+        .gt("expires_at", new Date().toISOString())
+        .maybeSingle();
+      strictUnlockActive = !!unlock;
+      if (!strictUnlockActive) {
+        return new Response(
+          JSON.stringify({ error: "strict_paywall", kind, doc_key }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+
     // Atomic quota consumption — must run via a USER-scoped client so that
-    // auth.uid() resolves inside the SECURITY DEFINER RPC. Using the admin
-    // (service role) client would make auth.uid() NULL and the function would
-    // raise 'unauthenticated'.
+    // auth.uid() resolves inside the SECURITY DEFINER RPC.
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -144,21 +166,9 @@ serve(async (req) => {
     // If client supplied a session_id + doc_key, route through the session-aware
     // RPC so that repeat actions on the same document in the same browser tab
     // do not double-charge. Otherwise fall back to plain consume_quota.
+    // When a strict-unlock is active, we skip quota consumption entirely.
     const useSession = !!session_id && !!doc_key;
-    const { data: consumed, error: consumeErr } = useSession
-      ? await userClient.rpc("consume_quota_session", {
-          _kind: kind,
-          _doc_key: doc_key,
-          _session_id: session_id,
-        })
-      : await userClient.rpc("consume_quota", { _kind: kind });
-    if (consumeErr) {
-      return new Response(JSON.stringify({ error: consumeErr.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const quotaResult = consumed as {
+    let quotaResult: {
       ok: boolean;
       reason?: string;
       used_bonus?: boolean;
@@ -166,14 +176,32 @@ serve(async (req) => {
       charged?: boolean;
       reused_session_charge?: boolean;
     };
-    if (!quotaResult?.ok) {
-      return new Response(
-        JSON.stringify({ error: "quota_exceeded", kind, limit: 1 }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    if (strictUnlockActive) {
+      quotaResult = { ok: true, is_pro: false, charged: false, used_bonus: false };
+    } else {
+      const { data: consumed, error: consumeErr } = useSession
+        ? await userClient.rpc("consume_quota_session", {
+            _kind: kind,
+            _doc_key: doc_key,
+            _session_id: session_id,
+          })
+        : await userClient.rpc("consume_quota", { _kind: kind });
+      if (consumeErr) {
+        return new Response(JSON.stringify({ error: consumeErr.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      quotaResult = consumed as typeof quotaResult;
+      if (!quotaResult?.ok) {
+        return new Response(
+          JSON.stringify({ error: "quota_exceeded", kind, limit: 1 }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
     }
     const useBonus = !!quotaResult.used_bonus;
-    const charged = quotaResult.charged !== false; // default true for legacy path
+    const charged = quotaResult.charged !== false && !strictUnlockActive;
 
     const { data: saved, error: saveErr } = await admin
       .from("saved_documents")
