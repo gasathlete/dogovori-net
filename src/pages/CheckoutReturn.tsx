@@ -11,7 +11,11 @@ import { trackEvent } from "@/lib/analytics";
 export default function CheckoutReturn() {
   const [params] = useSearchParams();
   const sessionId = params.get("session_id");
-  const redirectTo = params.get("redirect") || "";
+  const type = params.get("type") || "";
+  const resumeFromSession = (() => {
+    try { return sessionStorage.getItem("wizard:resume") || ""; } catch { return ""; }
+  })();
+  const redirectTo = params.get("redirect") || (type === "strict_unlock" ? resumeFromSession : "");
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -26,6 +30,19 @@ export default function CheckoutReturn() {
 
     const tick = async () => {
       attempts++;
+      if (type === "strict_unlock") {
+        const { data: unlock } = await supabase
+          .from("strict_doc_unlocks")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("stripe_session_id", sessionId)
+          .maybeSingle();
+        if (cancelled) return;
+        if (unlock) setReadyAt("ready");
+        else if (attempts >= 12) setReadyAt("timeout");
+        else setTimeout(tick, 1500);
+        return;
+      }
       const { data: q } = await supabase
         .from("download_quota")
         .select("plan, pro_until, bonus_contracts")
@@ -44,7 +61,7 @@ export default function CheckoutReturn() {
     };
     tick();
     return () => { cancelled = true; };
-  }, [user, sessionId]);
+  }, [user, sessionId, type]);
 
   // Auto-redirect back to wizard once the purchase is reflected.
   useEffect(() => {
