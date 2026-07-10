@@ -107,7 +107,7 @@ export default function AdminPage() {
     if (!Number.isFinite(count) || count <= 0) { toast.error("Невалиден брой"); return; }
     const { error } = await supabase.rpc("admin_add_bonus_contracts", { _user_id: bonusDialog.row.user_id, _count: count });
     if (error) { toast.error(error.message); return; }
-    toast.success(`+${count} бонус договора`);
+    toast.success(`+${count} бонус операции (важат за всички типове и планове)`);
     setBonusDialog(null);
     load(search);
   };
@@ -251,9 +251,12 @@ export default function AdminPage() {
 
       <Dialog open={!!bonusDialog} onOpenChange={(o) => !o && setBonusDialog(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Добави бонус договори</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Добави бонус операции</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{bonusDialog?.row.email}</p>
+            <p className="text-xs text-muted-foreground">
+              Бонусите са универсални — важат за договори, шаблони и анализи, и се използват след изчерпване на месечния лимит, независимо от плана (Безплатен / Професионалист / Предприемач).
+            </p>
             <Input type="number" min={1} value={bonusDialog?.count ?? ""} onChange={(e) => bonusDialog && setBonusDialog({ ...bonusDialog, count: e.target.value })} />
           </div>
           <DialogFooter>
