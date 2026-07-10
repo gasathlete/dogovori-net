@@ -82,8 +82,8 @@ Deno.serve(async (req: Request) => {
       .gte("created_at", since)
       .filter(userId ? "user_id" : "ip_hash", "eq", userId ?? ipHash);
 
-    // Tighter free-tier rate limits: anonymous must sign in; free users get 5/24h.
-    const limit = userId ? 5 : 0;
+    // Free-tier rate limits: anonymous get 1/24h (taste), logged-in free 5/24h.
+    const limit = userId ? 5 : 1;
     if ((count ?? 0) >= limit) {
       return new Response(
         JSON.stringify({
