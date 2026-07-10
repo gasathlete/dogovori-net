@@ -256,20 +256,24 @@ export default function WizardReviewPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result, user]);
 
-  // Generate a new wizard session for a referenced appendix and route there.
+  // Open the split-view workspace with the current contract as parent context
+  // and a linked-document kind (appendix / annex / …) on the right.
   const handleCreateAppendix = (ref: AppendixReference) => {
-    const title = ref.label;
+    if (!result?.contract || !slug) return;
+    const kind = ref.kind === "annex" ? "annex" : "appendix";
     try {
       sessionStorage.setItem(
-        `appendix:prefill:${slug}`,
-        JSON.stringify({ kind: ref.kind, number: ref.number, label: title, parent_slug: slug }),
+        `workspace:parent:${slug}`,
+        JSON.stringify({ slug, contract: result.contract }),
       );
     } catch { /* noop */ }
-    toast.success(`Стартираме ${title}`, {
-      description: "Изберете шаблон, който отговаря на приложението.",
+    toast.success(`Отваряме работно пространство за ${ref.label}`, {
+      description: "Основният договор остава вляво, новият документ — вдясно.",
     });
-    navigate(`/catalog?appendix=${encodeURIComponent(title)}&parent=${encodeURIComponent(slug ?? "")}`);
+    const q = ref.number ? `?n=${encodeURIComponent(ref.number)}` : "";
+    navigate(`/workspace/${encodeURIComponent(slug)}/${kind}${q}`);
   };
+
 
 
   const handleSaveToProfile = async () => {
