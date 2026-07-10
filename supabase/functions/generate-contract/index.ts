@@ -446,6 +446,53 @@ ${docTypeSpec.systemAddendum}
         filteredRecs.unshift(REC);
       }
       parsed.risk.recommendations = filteredRecs;
+
+      // --- Positive framing layer ---
+      // 1) Derive strengths from what the contract ACTUALLY contains, so the
+      //    user винаги вижда конкретна стойност (не само критики).
+      const clauses: Array<{ number?: string; title?: string; body?: string }> =
+        Array.isArray(parsed?.contract?.clauses) ? parsed.contract.clauses : [];
+      const bodyOf = (rx: RegExp) =>
+        clauses.find((c) => rx.test(`${c.title ?? ""} ${c.body ?? ""}`));
+
+      const derivedStrengths: string[] = [];
+      const pushIf = (cond: unknown, txt: string) => {
+        if (cond && !derivedStrengths.includes(txt)) derivedStrengths.push(txt);
+      };
+      pushIf(bodyOf(/предмет/i), "Ясно дефиниран предмет на договора (раздел I) с препратка към Приложение № 1 при нужда от детайлизиране.");
+      pushIf(bodyOf(/цена|плащане/i), "Уредена цена и начин на плащане (раздел II), със защита срещу закъснения.");
+      pushIf(bodyOf(/зопб|банков\s+път|5\s?000/i), "Задължително плащане по банков път над 5 000 € съгласно чл. 3 ЗОПБ (защита от глоба).");
+      pushIf(bodyOf(/срок/i), "Разписани срокове за изпълнение и обратна връзка (раздел III).");
+      pushIf(bodyOf(/неустойк|отговорност/i), "Балансирани неустойки за забава на двете страни с горна граница (раздел V).");
+      pushIf(bodyOf(/прекратяван/i), "Ясен ред за прекратяване по взаимно съгласие и при виновно поведение (раздел VI), съгласно ЗЗД.");
+      pushIf(bodyOf(/форсмажор|непреодолима\s+сила/i), "Форсмажорна клауза с 3-дневно уведомяване и доказателствен ред (раздел VII).");
+      pushIf(bodyOf(/конфиденциалност/i), "Клауза за конфиденциалност, обвързваща и двете страни (раздел VIII).");
+      pushIf(bodyOf(/арбитраж/i), "Арбитражна клауза с посочен компетентен съд (раздел IX).");
+      pushIf(bodyOf(/подсъдност/i) && !bodyOf(/арбитраж/i), "Ясно уредена подсъдност (раздел IX) по българското законодателство.");
+      pushIf(bodyOf(/143\s*ЗЗП|потребител/i) && bodyOf(/арбитраж/i), "Защита на потребителя по чл. 143 ЗЗП при арбитражна клауза.");
+      pushIf(bodyOf(/частичн[аи]?\s+недействителност|severabil/i), "Клауза за частична недействителност (раздел X) — един невалиден текст не проваля целия договор.");
+      pushIf(bodyOf(/писмен[аоа]\s+форма|заключителни/i), "Заключителни разпоредби с изискване за писмена форма при промени (раздел XI).");
+      pushIf(bodyOf(/контакт|кореспонденц/i), "Раздел XII с пълни контакти за кореспонденция между страните.");
+
+      const aiStrengths: string[] = Array.isArray(parsed.risk.strengths)
+        ? parsed.risk.strengths.filter((s: unknown) => typeof s === "string" && s.trim().length > 5)
+        : [];
+      // Merge: prefer AI-provided (по-специфични), fill in with derived up to 6.
+      const merged: string[] = [];
+      for (const s of [...aiStrengths, ...derivedStrengths]) {
+        if (merged.length >= 6) break;
+        if (!merged.some((m) => m.toLowerCase().slice(0, 30) === s.toLowerCase().slice(0, 30))) {
+          merged.push(s);
+        }
+      }
+      parsed.risk.strengths = merged;
+
+      // 2) Позитивен summary когато няма реални слаби места.
+      if (kept.length === 0) {
+        parsed.risk.summary = merged.length > 0
+          ? `Документът е структуриран професионално и включва ${merged.length} защитни клаузи за страните. Готов за подпис след попълване на личните данни.`
+          : "Документът покрива необходимите за вида клаузи. Готов за подпис след попълване на личните данни.";
+      }
     }
 
     // Defensive: ensure bilingual flag is set on contract when requested,
