@@ -356,6 +356,71 @@ ${docTypeSpec.systemAddendum}
     }
 
 
+    // Post-process risk analysis: strip issues that penalize us for the
+    // document's own intended structure or for missing personal data (which
+    // the user fills locally after download — Договори.нет never collects it).
+    // This is a deterministic guardrail; the model prompt already instructs
+    // the same but occasionally ignores it.
+    if (parsed?.risk) {
+      const FORBIDDEN_PATTERNS = [
+        /структуриран\s+като\s+стандартен/i,
+        /стандартен\s+договор/i,
+        /не\s+покрива\s+спецификата/i,
+        /специфик[аи]т[аеи].*(платформ|airbnb|booking|uber|glovo|upwork|fiverr)/i,
+        /(платформ|airbnb|booking|uber|glovo|upwork|fiverr).*(специфик|особен)/i,
+        /липсват?\s+(ключови\s+)?данни\s+за\s+(страни|имен|адрес|егн|еик|iban|контакт)/i,
+        /(липсва|липсват|непопълнен[иа]?)\s+(имен[аеи]|егн|еик|адрес|iban|контакт|описани[ея]|дата)/i,
+        /(имена|егн|еик|адрес|iban|контакти|описание)\s+на\s+(страни|имота|обекта|услугата)?\s*(липсва|липсват|не\s+са\s+посочени|не\s+са\s+попълнени)/i,
+        /плейсхолдър/i,
+        /квадратни\s+скоби/i,
+      ];
+      const isForbidden = (txt: string) =>
+        FORBIDDEN_PATTERNS.some((rx) => rx.test(txt));
+
+      const originalIssues: Array<{ severity?: string; title?: string; detail?: string }> =
+        Array.isArray(parsed.risk.issues) ? parsed.risk.issues : [];
+      const kept = originalIssues.filter(
+        (i) => !isForbidden(`${i?.title ?? ""} ${i?.detail ?? ""}`),
+      );
+      parsed.risk.issues = kept;
+
+      // Same filter on summary — replace with neutral text if it mentioned
+      // forbidden reasons.
+      if (typeof parsed.risk.summary === "string" && isForbidden(parsed.risk.summary)) {
+        parsed.risk.summary =
+          "Документът покрива необходимите за вида клаузи. Попълнете личните данни от Вашето устройство след сваляне.";
+      }
+
+      // Recompute severity based only on remaining real issues.
+      const sevWeight = (s?: string) =>
+        s === "high" ? 30 : s === "medium" ? 15 : s === "low" ? 5 : 0;
+      const computed = kept.reduce((sum, i) => sum + sevWeight(i.severity), 0);
+
+      // If model reported high risk but issues we kept are minor, downgrade.
+      const hasHigh = kept.some((i) => i.severity === "high");
+      const hasMedium = kept.some((i) => i.severity === "medium");
+      const newLevel: "low" | "medium" | "high" =
+        hasHigh ? "high" : hasMedium ? "medium" : "low";
+
+      // Cap score: no real issues → ≤25; only low → ≤40; medium → ≤60; high → keep.
+      let capped = typeof parsed.risk.score === "number" ? parsed.risk.score : computed;
+      if (!hasHigh && !hasMedium) capped = Math.min(capped, 25);
+      else if (!hasHigh) capped = Math.min(capped, 60);
+      parsed.risk.score = Math.max(0, Math.min(100, Math.round(capped)));
+      parsed.risk.level = newLevel;
+
+      // Ensure the "fill in personal data locally" recommendation is present
+      // exactly once, without being an issue.
+      const REC = "Попълнете личните данни (имена, ЕГН/ЕИК, адреси, IBAN, контакти) от Вашето устройство след сваляне — Договори.нет работи съобразно изискванията за предпазване от разкриване на чувствителни лични данни.";
+      const recs: string[] = Array.isArray(parsed.risk.recommendations)
+        ? parsed.risk.recommendations.filter((r: unknown) => typeof r === "string")
+        : [];
+      if (!recs.some((r) => r.includes("Попълнете личните данни"))) {
+        recs.unshift(REC);
+      }
+      parsed.risk.recommendations = recs;
+    }
+
     // Defensive: ensure bilingual flag is set on contract when requested,
     // so exporters render BG/EN two-column layout reliably.
     if (isBilingual && parsed?.contract) {
