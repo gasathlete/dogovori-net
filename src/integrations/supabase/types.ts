@@ -3036,6 +3036,45 @@ export type Database = {
         }
         Relationships: []
       }
+      strict_doc_unlocks: {
+        Row: {
+          created_at: string
+          doc_key: string
+          doc_name: string | null
+          environment: string
+          expires_at: string
+          id: string
+          paid_price_eur: number
+          sector_id: string | null
+          stripe_session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          doc_key: string
+          doc_name?: string | null
+          environment?: string
+          expires_at?: string
+          id?: string
+          paid_price_eur?: number
+          sector_id?: string | null
+          stripe_session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          doc_key?: string
+          doc_name?: string | null
+          environment?: string
+          expires_at?: string
+          id?: string
+          paid_price_eur?: number
+          sector_id?: string | null
+          stripe_session_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
