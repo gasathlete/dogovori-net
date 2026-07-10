@@ -319,7 +319,7 @@ function GeneratePanel({
         <Textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Напр. „Опис на движимо имущество в апартамента — легло, диван, хладилник…" или „Анекс за удължаване на срока с 6 месеца"."
+          placeholder='Напр. „Опис на движимо имущество в апартамента — легло, диван, хладилник…“ или „Анекс за удължаване на срока с 6 месеца“.'
           rows={4}
           className="resize-none"
         />
