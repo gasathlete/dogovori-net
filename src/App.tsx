@@ -88,6 +88,7 @@ const BuildContract = lazy(() => import("./pages/BuildContract.tsx"));
 const WizardBilingual = lazy(() => import("./pages/WizardBilingual.tsx"));
 const WizardGraph = lazy(() => import("./pages/WizardGraph.tsx"));
 const WizardReview = lazy(() => import("./pages/WizardReview.tsx"));
+const DocumentWorkspace = lazy(() => import("./pages/DocumentWorkspace.tsx"));
 
 const Catalog = lazy(() => import("./pages/Catalog.tsx"));
 const Analyze = lazy(() => import("./pages/Analyze.tsx"));
@@ -284,6 +285,7 @@ const AnimatedRoutes = () => {
         <Route path="/wizard-bilingual/:sectorId" element={<WizardBilingual />} />
         <Route path="/wizard-graph/:slug" element={<WizardGraph />} />
         <Route path="/wizard-graph/:slug/review" element={<WizardReview />} />
+        <Route path="/workspace/:slug/:kind" element={<DocumentWorkspace />} />
 
         <Route path="/catalog" element={<Catalog />} />
         <Route path="/tools" element={<Tools />} />
