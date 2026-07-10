@@ -432,13 +432,16 @@ ${docTypeSpec.systemAddendum}
       // Ensure the "fill in personal data locally" recommendation is present
       // exactly once, without being an issue.
       const REC = "Попълнете личните данни (имена, ЕГН/ЕИК, адреси, IBAN, контакти) от Вашето устройство след сваляне — Договори.нет работи съобразно изискванията за предпазване от разкриване на чувствителни лични данни.";
-      const recs: string[] = Array.isArray(parsed.risk.recommendations)
+      const rawRecs: string[] = Array.isArray(parsed.risk.recommendations)
         ? parsed.risk.recommendations.filter((r: unknown) => typeof r === "string")
         : [];
-      if (!recs.some((r) => r.includes("Попълнете личните данни"))) {
-        recs.unshift(REC);
+      // Filter recommendations that match forbidden patterns too — те критикуват
+      // нашата структура/потребителските отговори, не реални правни рискове.
+      const filteredRecs = rawRecs.filter((r) => !isForbidden(r));
+      if (!filteredRecs.some((r) => r.includes("Попълнете личните данни"))) {
+        filteredRecs.unshift(REC);
       }
-      parsed.risk.recommendations = recs;
+      parsed.risk.recommendations = filteredRecs;
     }
 
     // Defensive: ensure bilingual flag is set on contract when requested,
