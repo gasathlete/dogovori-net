@@ -112,6 +112,8 @@ export default function WizardReviewPage() {
   const [folders, setFolders] = useState<Array<{ id: string; name: string; is_favorites: boolean }>>([]);
   const [saving, setSaving] = useState(false);
   const [autoSaved, setAutoSaved] = useState(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const docAccess = useDocumentAccess(slug);
 
 
   const reviewHref = `/wizard-graph/${slug}/review`;
