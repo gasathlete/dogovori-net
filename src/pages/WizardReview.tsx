@@ -414,6 +414,12 @@ export default function WizardReviewPage() {
       goAuth();
       return;
     }
+    // Strict document paywall — free users must unlock or upgrade first.
+    if (!docAccess.loading && !docAccess.canDownload) {
+      trackEvent("strict_paywall_shown", { doc_key: slug, format });
+      setPaywallOpen(true);
+      return;
+    }
     setExporting(format);
     try {
       // Build a polished signature block from graph `party_list` answers.
