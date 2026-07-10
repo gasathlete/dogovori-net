@@ -107,7 +107,7 @@ export default function AdminPage() {
     if (!Number.isFinite(count) || count <= 0) { toast.error("Невалиден брой"); return; }
     const { error } = await supabase.rpc("admin_add_bonus_contracts", { _user_id: bonusDialog.row.user_id, _count: count });
     if (error) { toast.error(error.message); return; }
-    toast.success(`+${count} бонус договора`);
+    toast.success(`+${count} бонус операции (важат за всички типове и планове)`);
     setBonusDialog(null);
     load(search);
   };
