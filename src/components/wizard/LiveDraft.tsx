@@ -708,15 +708,27 @@ function TemplateDraftOrSkeleton({
           Днес, [ДАТА], в гр. [ГРАД], между:
         </p>
         <p className="mt-3 text-sm leading-relaxed">
-          <strong>1. {partyA}</strong>
+          <strong>1. {partyA}{renderPartyTypeBadge(answers.party_a_type)}</strong>
           {renderPartyIdentifier(answers.party_a_type)}, наричан по-долу „
           <em>{sector.parties.a}</em>", и
         </p>
+        {extraAtypes.map((t, i) => (
+          <p key={`a-extra-${i}`} className="mt-2 text-sm leading-relaxed">
+            <strong>1.{i + 2} [{sector.parties.a}]{renderPartyTypeBadge(t)}</strong>
+            {renderPartyIdentifier(t)}, наричан по-долу „<em>{sector.parties.a}</em>", и
+          </p>
+        ))}
         <p className="mt-2 text-sm leading-relaxed">
-          <strong>2. {partyB}</strong>
+          <strong>2. {partyB}{renderPartyTypeBadge(answers.party_b_type)}</strong>
           {renderPartyIdentifier(answers.party_b_type)}, наричан по-долу „
           <em>{sector.parties.b}</em>",
         </p>
+        {extraBtypes.map((t, i) => (
+          <p key={`b-extra-${i}`} className="mt-2 text-sm leading-relaxed">
+            <strong>2.{i + 2} [{sector.parties.b}]{renderPartyTypeBadge(t)}</strong>
+            {renderPartyIdentifier(t)}, наричан по-долу „<em>{sector.parties.b}</em>",
+          </p>
+        ))}
         <p className="mt-3 text-sm leading-relaxed">
           се сключи настоящият документ за следното:
         </p>
