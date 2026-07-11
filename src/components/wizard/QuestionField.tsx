@@ -231,14 +231,14 @@ export function QuestionField(props: Props) {
   const { q, value, onChange, answers = {}, onAnswerChange, compact = false, contacts = [], invalid = false } = props;
   const invalidRing = invalid ? "border-destructive ring-1 ring-destructive" : "";
 
-  // Специален custom рендер за групата „Страни по договора“ — само форма (без имена / ЕГН),
+  // Специален custom рендер за групи от страни — само правно-организационна форма (без имена / ЕГН),
   // с възможност за добавяне на повече от една страна във всяка роля.
-  if (q.type === "group" && q.id === "group_parties" && q.fields && q.fields.length >= 2) {
-    const aField = q.fields.find((f) => f.id === "party_a_type");
-    const bField = q.fields.find((f) => f.id === "party_b_type");
-    const roleA = aField ? roleFromLabel(aField.label) : "Страна А";
-    const roleB = bField ? roleFromLabel(bField.label) : "Страна Б";
-    const showB = !!bField;
+  // Поддържа както класическите party_a_type/party_b_type полета, така и
+  // произволни party-полета, идващи от graph-адаптера (field.type === "party").
+  if (q.type === "group" && (q.id === "group_parties" || q.id.startsWith("group_parties_")) && q.fields && q.fields.length >= 1) {
+    // Всички полета в такава група се третират като страни; „_extra“ полетата се
+    // управляват вътрешно от PartyBlock, така че ги филтрираме тук.
+    const partyFields = q.fields.filter((f) => !f.id.endsWith("_extra"));
     return (
       <div className="space-y-5">
         <div>
@@ -248,24 +248,20 @@ export function QuestionField(props: Props) {
           </Label>
           {q.help && <p className="mt-1 text-xs text-muted-foreground">{q.help}</p>}
         </div>
-        {aField && (
-          <PartyBlock
-            role={roleA}
-            typeId="party_a_type"
-            extraId="party_a_extra"
-            answers={answers}
-            onAnswerChange={onAnswerChange ?? (() => {})}
-          />
-        )}
-        {showB && (
-          <PartyBlock
-            role={roleB}
-            typeId="party_b_type"
-            extraId="party_b_extra"
-            answers={answers}
-            onAnswerChange={onAnswerChange ?? (() => {})}
-          />
-        )}
+        {partyFields.map((f) => {
+          const role = roleFromLabel(f.label);
+          const extraId = f.id.endsWith("_type") ? f.id.replace(/_type$/, "_extra") : `${f.id}_extra`;
+          return (
+            <PartyBlock
+              key={f.id}
+              role={role}
+              typeId={f.id}
+              extraId={extraId}
+              answers={answers}
+              onAnswerChange={onAnswerChange ?? (() => {})}
+            />
+          );
+        })}
       </div>
     );
   }

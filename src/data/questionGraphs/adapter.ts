@@ -122,18 +122,36 @@ function toWizardQuestion(graph: QuestionGraph, q: QuestionNode): Question {
 export function adaptGraphToWizardQuestions(graph: QuestionGraph): Question[] {
   const out: Question[] = [];
   for (const section of graph.sections) {
-    const sectionQs = graph.questions
-      .filter((q) => q.section === section.id)
-      .map((q) => toWizardQuestion(graph, q));
+    const sectionQs = graph.questions.filter((q) => q.section === section.id);
     if (sectionQs.length === 0) continue;
 
-    // Group container — hides itself when every field's `showIf` resolves false.
+    // Ако секцията съдържа само party_list полета — рендираме я със специалния
+    // блок за страни (кликаеми ФЛ / ЮЛ / ЕТ), а не като текстови полета.
+    const partyOnly = sectionQs.every((q) => q.field_type === "party_list");
+    if (partyOnly) {
+      const partyFields: Question[] = sectionQs.map((q) => ({
+        id: q.id,
+        label: q.label,
+        type: "text", // не се използва — PartyBlock рендира собствен UI
+        required: q.required_when === "true",
+      }));
+      out.push({
+        id: `group_parties_${section.id}`,
+        label: section.title,
+        help: section.description ?? "Посочете само правно-организационната форма. Имена, ЕГН и други лични данни не се събират.",
+        type: "group",
+        fields: partyFields,
+      });
+      continue;
+    }
+
+    const mapped = sectionQs.map((q) => toWizardQuestion(graph, q));
     out.push({
       id: `graph_group_${section.id}`,
       label: section.title,
       help: section.description,
       type: "group",
-      fields: sectionQs,
+      fields: mapped,
     });
   }
   return out;
