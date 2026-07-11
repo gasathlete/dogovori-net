@@ -12,6 +12,8 @@ interface RefineDraftBoxProps {
   onRefined: (next: GeneratedContract, summary: string, changed: string[]) => void;
   onNeedAuth?: () => void;
   onQuotaExceeded?: () => void;
+  heading?: string;
+  subheading?: string;
 }
 
 const EXAMPLES = [
@@ -31,6 +33,8 @@ export function RefineDraftBox({
   onRefined,
   onNeedAuth,
   onQuotaExceeded,
+  heading = "Забелязахте пропуск? AI ще го коригира за секунди.",
+  subheading = "Опишете какво липсва или е грешно. AI ще редактира САМО нужното, без да разваля останалия текст.",
 }: RefineDraftBoxProps) {
   const [feedback, setFeedback] = useState("");
   const [busy, setBusy] = useState(false);
