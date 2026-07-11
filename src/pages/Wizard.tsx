@@ -251,6 +251,8 @@ export default function WizardPage() {
       const payload = data as AIResult;
       if (bilingualMode && payload.contract) payload.contract.bilingual = true;
       setResult(payload);
+      // Trigger AI disclaimer once per session on first document creation.
+      ensureAIDisclaimerAccepted().catch(() => {});
       toast.success("Договорът е готов", { description: "Прегледайте Краен Договор отдясно." });
     } catch (e: any) {
       if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) return;
