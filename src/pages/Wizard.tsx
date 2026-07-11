@@ -27,6 +27,8 @@ import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard
 import { ensureAIDisclaimerAccepted } from "@/lib/aiDisclaimerGate";
 import { recordConsents } from "@/lib/consents";
 import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhilishte";
+import { adaptGraphToWizardQuestions } from "@/data/questionGraphs/adapter";
+import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
