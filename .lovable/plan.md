@@ -1,92 +1,74 @@
 ## Цел
-
-Дребни, точни подобрения — без нови зависимости, без пренаписвания. Две паралелни пътеки: **скорост навсякъде** и **позитивен/конструктивен UX** в Wizard, Preview/Finalize, Account и AI Assistant/Analysis.
-
----
-
-## Част 1 — Скорост (реални печалби, минимален риск)
-
-### 1.1 Изчистване на „замърсени" импорти в Account табовете
-При по-раншното разцепване на `Account.tsx` в отделни tab файлове са останали копирани импорти, които табовете **не използват**. Всеки такъв таб днес влачи `recharts` (~200KB min+gz) и други модули само за да съществува импортът.
-
-Файлове за изчистване (потвърдено, че `recharts` не се използва в JSX):
-- `src/pages/account/ContactsTab.tsx`
-- `src/pages/account/DocumentsTab.tsx`
-- `src/pages/account/FoldersTab.tsx`
-- `src/pages/account/SubscriptionTab.tsx`
-- `src/pages/account/SettingsTab.tsx`
-- `src/pages/account/ScrollableTabsList.tsx`
-
-За всеки: премахване на неизползваните импорти (`recharts`, а и остатъчните `isValidEGN/isValidEIK`, `REWARD_TIERS` и т.н., ако не се ползват в конкретния файл — ще проверя пофайлово преди пипване).
-
-Очакван ефект: `recharts` остава само в `DashboardCharts.tsx` (както си е замислено) и се зарежда чак когато потребителят отвори Dashboard таба. Всички останали Account табове стават значително по-леки при първо влизане.
-
-### 1.2 Landing (Index) — леки подобрения
-- Обединяване на съседните `LazyOnVisible` секции да не reserve-ват прекалено голяма минимална височина (някои са 500–560px и предизвикват излишно висока „идеална" височина при бавно свързване).
-- Първата секция след Hero (`SocialProofStrip`) — да не е lazy: тя е малка (120px) и лежи във viewport-а на мобилно => сваля LCP-риск от layout shift.
-
-### 1.3 Prefetch на топ 3 маршрута от Hero CTA
-`prefetchHandlers("/catalog")` и `/wizard` вече съществуват. Ще ги закача на основните Hero CTA бутони, ако още не са — така първият клик отваря маршрута без чакане на chunk.
-
-### 1.4 Lucide импорти (микро)
-В засегнатите Account табове ще уеднаквя lucide импортите до само реално ползваните икони. Дребен, но безплатен tree-shake бонус.
-
-**Никакви нови библиотеки, никакви config промени, никакви route промени.**
+1. Изчистване на грешката "Edge Function returned a non-2xx status code" (най-често прикрит 429 rate-limit — `supabase.functions.invoke` хвърля преди да прочетем `data.error`).
+2. Пълно премахване на разделянето между обикновен уизард (`/wizard/*`) и динамичен graph уизард (`/wizard-graph/*`). Оригиналният UI на `Wizard.tsx` става единственият.
+3. Динамичните `QuestionGraph` дефиниции стават източник на **разширени + условни под-въпроси** за конкретния документ, но се сервират през същия wizard интерфейс, същия `generate-contract`, същия `apply-corrections` flow.
 
 ---
 
-## Част 2 — Позитивен/конструктивен UX (същият дух като новия анализ)
+## Част 1 — Fix на генерирането (веднага, преди рефактора)
 
-Малки, локални промени в микрокопито и празните състояния. Никаква нова бизнес логика.
+**Проблем:** `WizardReview.tsx` (и Wizard.tsx) правят `supabase.functions.invoke(...)`. Когато функцията върне 4xx/5xx (напр. 429 при hit на 5/24h лимита), клиентът получава `FunctionsHttpError: Edge Function returned a non-2xx status code` **преди** да прочете `data.error`. Toast-ът показва generic съобщение, а не полезното "Достигнахте дневния лимит…".
 
-### 2.1 Wizard стъпки и валидации (`src/pages/Wizard.tsx`, компоненти на стъпките)
-- Съобщенията при валидация да казват **какво да поправи** вместо „грешка": напр. „ЕГН е 10 цифри — липсват още N" вместо „Невалидно ЕГН".
-- Toast при преход към следваща стъпка — кратък окуражителен ред („Стъпка X от Y готова ✓") без да блокира UI.
-- Помощен hint под сложните полета (когато има такъв в graph-а) — консистентен стил, без нови компоненти.
-
-### 2.2 Preview / Finalize (`src/pages/WizardReview.tsx`, `src/pages/buildContract/*`)
-- Заглавието над риск-панела остава каквото е за случаите с проблеми; за 0 issues + N strengths — по-топло: „Документът е готов за подпис — N защитни клаузи откриха се вътре."
-- „Следващи стъпки" секцията да има подредба: първо действията, свързани със самия документ (свали PDF/DOCX, изпрати за подпис), после препоръчани следващи документи (приложение, протокол и т.н.) чрез вече съществуващия `linked-document-kinds`.
-
-### 2.3 Account / Dashboard (`src/pages/account/DashboardTab.tsx`, `DashboardCharts.tsx`)
-- Празно състояние на графиката („Все още нямате извършени операции.") → окуражително + ясно първо действие: бутон „Създай първия си документ" водещ към `/catalog`.
-- Празно състояние в „Документи" — вече е добро; ще добавя малък второстепенен CTA към „Анализ на съществуващ договор".
-- Дребна поправка: заменяне на общото „Зареждане…" spinner-ите с по-конкретно „Подготвяме документите ви…" / „Изчисляваме операциите ви…".
-
-### 2.4 AI Assistant / Analysis (`src/pages/console/*` или еквивалент)
-- Прилагане на **същия positive framing patch** като в `generate-contract`: когато няма issues → summary в конструктивен тон; винаги да показва „силни страни" секция (същия UI компонент `RiskReport`, който вече го поддържа).
-- Empty state на асистента: 3 кратки примерни въпроса-„чипа" (напр. „Обясни ми клауза за неустойка", „Какво да включа в NDA?", „Провери договора ми за рискове") — не като новa функционалност, а като статични бутончета, които пращат prompt.
+**Fix:**
+- Универсален helper `invokeWithError()` в `src/lib/invokeEdgeFunction.ts` който:
+  1. При `FunctionsHttpError` вади response body (`await err.context.json()`), връща `{ data, error }` в познатия формат.
+  2. Разпознава `code: "rate_limited"`, `"quota_exceeded"`, `"needs_confirmation"` и връща структурно.
+- Замяна на `supabase.functions.invoke("generate-contract"...)` и `"apply-corrections"` call-сайтовете в `WizardReview.tsx` и `Wizard.tsx` с новия helper.
+- Toast-овете вече ще показват реалната причина ("Достигнахте дневния лимит от 5 генерации. Опитайте утре или вземете Pro").
 
 ---
 
-## Технически бележки
+## Част 2 — Разширение на обикновения Wizard с условни под-въпроси
 
-- Всички промени са локални във файловете, изброени по-горе. Няма промени в схемата, RLS, edge функциите (освен ако при 2.4 се наложи същия prompt patch като `generate-contract` — ще се направи по образец на вече проверения).
-- Zero new dependencies. Zero route/config промени.
-- Верификация:
-  - `bunx tsgo` за типовете след почистването на импортите.
-  - Ръчна проверка в preview на Account (табовете да зареждат бързо и без грешки), Wizard (валидация текстове), Review (positive framing при чист анализ).
+`Wizard.tsx` работи с `SectorConfig.questions: WizardQuestion[]` (плосък списък). Ще добавим опционално поле `showIf?: (answers) => boolean` (или JSON правило `{ dependsOn, equals }`) на съществуващия `WizardQuestion` тип.
 
-## Извън обхват
+**Промени:**
+- `src/types/wizard.ts` (или където е `WizardQuestion`): добавяме `showIf?: { dependsOn: string; equals?: string | string[]; notEmpty?: boolean }`.
+- `Wizard.tsx` `buildQuestions()`: филтрира въпросите преди рендера през текущите `answers`. Скритите въпроси не участват във валидацията и в брояча за прогреса.
+- Progress bar и "Стъпка X от Y" се преизчисляват динамично от **видимите** въпроси.
 
-- Пренаписване на роутинг / code-splitting стратегия.
-- Промени в pricing/quota/операции.
-- Ново съдържание, нови страници, нови модели.
-- Промяна на дизайн-система/цветове/шрифтове.
+Това е точно "динамични под-въпроси според отговор" — реализирано в оригиналния UI, без нов routing/компонент.
 
-## Обобщение на файловете за пипване
+---
 
-Скорост:
-- `src/pages/account/ContactsTab.tsx`
-- `src/pages/account/DocumentsTab.tsx`
-- `src/pages/account/FoldersTab.tsx`
-- `src/pages/account/SubscriptionTab.tsx`
-- `src/pages/account/SettingsTab.tsx`
-- `src/pages/account/ScrollableTabsList.tsx`
-- `src/pages/Index.tsx` (малки корекции по LazyOnVisible/prefetch)
+## Част 3 — Миграция на `QuestionGraph` към същия wizard
 
-UX:
-- `src/pages/Wizard.tsx` + компоненти на стъпки (само микрокопи)
-- `src/pages/WizardReview.tsx`
-- `src/pages/account/DashboardTab.tsx`, `src/pages/account/DashboardCharts.tsx`
-- Assistant/Analysis страници (същия positive-framing patch като `generate-contract`)
+Съществуващите 5 файла в `src/data/questionGraphs/` (`dogovor-za-izrabotka.ts`, `dogovor-za-naem-na-zhilishte.ts`, `grazhdanski-dogovor-dogovor-za-uslugi.ts`, `nda-dogovor-za-konfidentsialnost.ts` + `_bulk20*`) съдържат по-задълбочени въпроси. Ще ги превърнем в `SubWizardConfig` overrides.
+
+**Стъпки:**
+- Нов адаптер `src/data/questionGraphs/adapter.ts`: `graphToSubWizardQuestions(graph)` → плосък списък `WizardQuestion[]` с `showIf` правила изведени от `graph.branches` / `graph.nextIf`.
+- В `getSubWizard(sector, docName)` (или на подобно място): ако има graph за този slug, използвай неговите въпроси вместо/като добавка към базовите. **Едно правило**: graph = разширен набор за конкретен документ, не отделен flow.
+- `WizardReview.tsx` логиката (analysis + corrections) вече ще идва от единия wizard — тя вече вика `generate-contract` и `apply-corrections`, същите функции които обикновеният ползва. Няма разделение.
+
+---
+
+## Част 4 — Премахване на `/wizard-graph` route
+
+- В `Wizard.tsx` вече има redirect към `/wizard-graph` (ред 66-69) — **обръщаме го**: `/wizard-graph/:slug` → `Navigate` към `/wizard/:sectorId?doc=...` (с mapping през `CATALOG`).
+- Изтриваме компонентите `src/pages/WizardGraph.tsx`, `src/pages/WizardReview.tsx` (graph-версията) — тяхната логика вече живее в `Wizard.tsx`.
+- `SplitWizard.tsx`, `GraphQuestionField.tsx` — маркирани за изтриване, ако няма други референции извън тях самите.
+- Route дефиницията в `App.tsx` за `/wizard-graph/*` става `<Navigate to="/wizard/..." replace />` за backward compat на споделени линкове.
+- Корекциите **вече** ще минават през същия `apply-corrections` от единия wizard — разделение отпада автоматично.
+
+---
+
+## Технически детайли (за реф.)
+
+Файлове за промяна:
+- **Нов:** `src/lib/invokeEdgeFunction.ts`, `src/data/questionGraphs/adapter.ts`
+- **Промени:** `src/pages/Wizard.tsx`, `src/pages/WizardReview.tsx` (legacy graph-version изтрит), `src/App.tsx` (route redirect), `src/types/wizard.ts` (или еквивалент — `showIf`), `src/data/sectors.ts` / catalog за mapping slug↔sector.
+- **Изтрити:** `src/pages/WizardGraph.tsx`, `src/pages/WizardReview.tsx` (ако е само за graph — иначе се преправя).
+- **Запазени:** `src/data/questionGraphs/*.ts` (превърнати през адаптера — без пренаписване на съдържанието).
+
+Backend: **никакви промени** в edge функциите — цялата унификация е клиентска. `generate-contract`, `apply-corrections`, `download-blank` вече работят с единия payload формат.
+
+Тестов план:
+1. Отваряме документ **с** graph (напр. "Договор за наем на жилище") — виждаме условните под-въпроси в оригиналния UI, генерирането минава.
+2. Отваряме документ **без** graph (напр. "Разписка за получена сума") — работи както преди.
+3. Правим корекция → пуска се `apply-corrections` → нова версия идва (същият flow за двата типа).
+4. Отваряме стар линк `/wizard-graph/dogovor-za-naem-na-zhilishte` → redirect към новия route без загуба на прогрес.
+
+---
+
+## Обхват
+~6-8 файла променени, ~2 изтрити, 2 нови. Няма database миграции, няма нови edge функции, няма нови зависимости. Backward compat за стари линкове чрез redirect.
