@@ -30,6 +30,7 @@ import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhili
 import { adaptGraphToWizardQuestions } from "@/data/questionGraphs/adapter";
 import { parseExtraPartyTypes } from "@/components/wizard/liveDraft/clauseBuilders";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
+import { RefineDraftBox } from "@/components/wizard/RefineDraftBox";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
@@ -1028,9 +1029,23 @@ export default function WizardPage() {
                 />
               );
               const shouldBlur = !!result && !!user && !docAccess.loading && !docAccess.canDownload;
+              const withRefine = result?.contract && !shouldBlur ? (
+                <>
+                  <RefineDraftBox
+                    contract={result.contract}
+                    answers={answers}
+                    onRefined={(next) => {
+                      setResult({ ...result, contract: { ...result.contract, ...next } });
+                      setSavedDocId(undefined);
+                    }}
+                    onNeedAuth={() => goAuth()}
+                  />
+                  {draft}
+                </>
+              ) : draft;
               return shouldBlur
                 ? <BlurredPreviewOverlay onUnlock={() => setShowPaywall(true)}>{draft}</BlurredPreviewOverlay>
-                : draft;
+                : withRefine;
             })()}
 
           </section>

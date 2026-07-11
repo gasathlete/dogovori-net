@@ -3,6 +3,8 @@ project_id = "wkbxojefiovdczkwhved"
 [functions]
   [functions.apply-corrections]
     verify_jwt = false
+  [functions.refine-contract]
+    verify_jwt = false
   [functions.auth-email-hook]
     verify_jwt = false
   [functions.create-checkout]
