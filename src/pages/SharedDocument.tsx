@@ -121,6 +121,9 @@ export default function SharedDocument() {
   const [signing, setSigning] = useState(false);
   const [signerName, setSignerName] = useState("");
   const [signatureDataUrl, setSignatureDataUrl] = useState("");
+  const [sigMethod, setSigMethod] = useState<"drawn" | "uploaded" | "qes">("drawn");
+  const [qesFile, setQesFile] = useState<File | null>(null);
+  const [qesFileBase64, setQesFileBase64] = useState<string | null>(null);
   const [needsPassword, setNeedsPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [verifying, setVerifying] = useState(false);
@@ -179,13 +182,49 @@ export default function SharedDocument() {
     setVerifying(false);
   };
 
+  const makeQesPlaceholderPng = (text: string): string => {
+    const c = document.createElement("canvas");
+    c.width = 600; c.height = 200;
+    const ctx = c.getContext("2d")!;
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.strokeStyle = "#0a0a1a"; ctx.lineWidth = 2;
+    ctx.strokeRect(6, 6, c.width - 12, c.height - 12);
+    ctx.fillStyle = "#0a0a1a";
+    ctx.font = "bold 22px serif";
+    ctx.fillText("Подписано с КЕП (QES)", 20, 50);
+    ctx.font = "16px serif";
+    ctx.fillText(text.slice(0, 60), 20, 90);
+    ctx.font = "14px serif";
+    ctx.fillText(new Date().toLocaleString("bg-BG"), 20, 130);
+    ctx.fillText("Файлът е приложен към заявката.", 20, 160);
+    return c.toDataURL("image/png");
+  };
+
+  const onQesFileChange = async (f: File | null) => {
+    setQesFile(f);
+    setQesFileBase64(null);
+    setSignatureDataUrl("");
+    if (!f) return;
+    if (f.size > 15 * 1024 * 1024) { toast.error("Файлът е твърде голям (макс 15MB)"); return; }
+    const buf = await f.arrayBuffer();
+    let bin = "";
+    const bytes = new Uint8Array(buf);
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    setQesFileBase64(btoa(bin));
+    setSignatureDataUrl(makeQesPlaceholderPng(`${f.name}`));
+  };
+
   const handleSign = async () => {
     if (!signerName.trim()) {
       toast.error("Въведете името си");
       return;
     }
+    if (sigMethod === "qes" && (!qesFile || !qesFileBase64)) {
+      toast.error("Прикачете подписания файл с КЕП");
+      return;
+    }
     if (!signatureDataUrl) {
-      toast.error("Подпишете в полето");
+      toast.error(sigMethod === "uploaded" ? "Качете изображение с подпис" : "Подпишете в полето");
       return;
     }
     setSigning(true);
@@ -195,6 +234,10 @@ export default function SharedDocument() {
           token,
           signer_name: signerName.trim(),
           signature_data_url: signatureDataUrl,
+          signature_method: sigMethod,
+          qes_file_base64: sigMethod === "qes" ? qesFileBase64 : null,
+          qes_file_name: sigMethod === "qes" ? qesFile?.name : null,
+          qes_file_mime: sigMethod === "qes" ? (qesFile?.type || "application/octet-stream") : null,
           ...(password ? { password } : {}),
         },
       });
@@ -208,6 +251,7 @@ export default function SharedDocument() {
       setSigning(false);
     }
   };
+
 
   if (loading) {
     return (
