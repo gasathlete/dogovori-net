@@ -1,72 +1,92 @@
-
-# Workspace за свързани документи (Приложение 1, ППР, Анекс и др.)
-
 ## Цел
 
-Когато генерираният договор споменава приложение или друг препоръчан документ (Приложение 1 — опис на имущество, Приемо-предавателен протокол, Анекс, Декларация, Пълномощно и др.), потребителят да може да отвори **split-view workspace**:
+Дребни, точни подобрения — без нови зависимости, без пренаписвания. Две паралелни пътеки: **скорост навсякъде** и **позитивен/конструктивен UX** в Wizard, Preview/Finalize, Account и AI Assistant/Analysis.
 
-- **Ляв панел** — вече създаденият основен документ (read-only preview).
-- **Десен панел** — новият документ, който трябва да се създаде, с бутон **„Изготви документ"** който подава контекста от левия документ към AI.
+---
 
-## Потребителски поток
+## Част 1 — Скорост (реални печалби, минимален риск)
 
-1. В `WizardReview` (след генериране) под договора се показва секция **„Свързани документи"** — чипове/карти за всеки открит референс (Приложение 1, ППР, Декларация…).
-2. Клик върху карта → навигация към `/workspace/:parentDocId/:childKind` (нов route).
-3. Workspace-ът зарежда левия панел от `saved_documents` (или ако е гост — от sessionStorage snapshot), десният показва:
-   - Заглавие на предложения документ,
-   - Кратко обяснение защо е нужен,
-   - Prefilled полета извлечени от родителския договор (страни, дата, предмет, референтен номер),
-   - Бутон **„Изготви документ"** → извиква `generate-linked-document` edge функция.
-4. След генериране десният панел показва готовия документ с action bar (Свали / Запази / Отвори в wizard).
-5. Готовите свързани документи се записват в `saved_documents` с `parent_document_id` за да могат да се преоткриват от workspace-a.
+### 1.1 Изчистване на „замърсени" импорти в Account табовете
+При по-раншното разцепване на `Account.tsx` в отделни tab файлове са останали копирани импорти, които табовете **не използват**. Всеки такъв таб днес влачи `recharts` (~200KB min+gz) и други модули само за да съществува импортът.
 
-## Технически детайли
+Файлове за изчистване (потвърдено, че `recharts` не се използва в JSX):
+- `src/pages/account/ContactsTab.tsx`
+- `src/pages/account/DocumentsTab.tsx`
+- `src/pages/account/FoldersTab.tsx`
+- `src/pages/account/SubscriptionTab.tsx`
+- `src/pages/account/SettingsTab.tsx`
+- `src/pages/account/ScrollableTabsList.tsx`
 
-### Backend
+За всеки: премахване на неизползваните импорти (`recharts`, а и остатъчните `isValidEGN/isValidEIK`, `REWARD_TIERS` и т.н., ако не се ползват в конкретния файл — ще проверя пофайлово преди пипване).
 
-- **Нова колона в `saved_documents`**: `parent_document_id uuid null` + `linked_kind text null` (напр. `"appendix_1"`, `"handover_protocol"`, `"annex"`, `"declaration"`, `"power_of_attorney"`).
-- **Нова edge функция `detect-linked-documents`** (или интегрирано в `generate-contract`): след като договорът е генериран, малък AI pass извлича масив `linked_documents: [{kind, title, reason, prefill}]` — това се връща заедно с `risk` и `contract`.
-- **Нова edge функция `generate-linked-document`**:
-  - Вход: `parent_document_id` (или сериализиран parent body), `kind`, `overrides`.
-  - Системен промпт специфичен за вида (Приложение 1 — таблица с описание/състояние/бр./ст-ст; ППР — дати, страни, състояние; Анекс — препратка към клауза от основния договор и т.н.).
-  - Използва контекст от родителя (страни, дата на сключване, референции към членове) и връща същата JSON схема `{contract:{title, preamble, clauses, closing}}`.
-  - Същата GDPR/redaction/rate-limit/quota логика като `generate-contract` (1 op).
+Очакван ефект: `recharts` остава само в `DashboardCharts.tsx` (както си е замислено) и се зарежда чак когато потребителят отвори Dashboard таба. Всички останали Account табове стават значително по-леки при първо влизане.
 
-### Frontend
+### 1.2 Landing (Index) — леки подобрения
+- Обединяване на съседните `LazyOnVisible` секции да не reserve-ват прекалено голяма минимална височина (някои са 500–560px и предизвикват излишно висока „идеална" височина при бавно свързване).
+- Първата секция след Hero (`SocialProofStrip`) — да не е lazy: тя е малка (120px) и лежи във viewport-а на мобилно => сваля LCP-риск от layout shift.
 
-- **Нов route** `src/pages/DocumentWorkspace.tsx`:
-  - Layout: `ResizablePanelGroup` с два панела (`shadcn/ui` resizable).
-  - Ляв: `<ContractPreview readOnly>` заредено от родител.
-  - Десен: празно състояние с описание + бутон „Изготви документ"; след генериране — `<ContractPreview>` с action bar.
-  - Sticky header със заглавието на родителя и breadcrumb.
-  - Mobile fallback: tabs вместо split.
-- **Нов компонент `LinkedDocumentsSection`** в `WizardReview` — рендерира чиповете с иконки и кратко описание.
-- **Каталог на видовете** `src/lib/linked-document-kinds.ts` — статичен списък с label/description/icon/systemPromptId за всеки поддържан вид (appendix_1, handover_protocol, annex, declaration, power_of_attorney, invoice_template, notice).
-- **Хук `useLinkedDocuments(parentId)`** — зарежда родителя + децата от `saved_documents`.
+### 1.3 Prefetch на топ 3 маршрута от Hero CTA
+`prefetchHandlers("/catalog")` и `/wizard` вече съществуват. Ще ги закача на основните Hero CTA бутони, ако още не са — така първият клик отваря маршрута без чакане на chunk.
 
-### Гости (без акаунт)
+### 1.4 Lucide импорти (микро)
+В засегнатите Account табове ще уеднаквя lucide импортите до само реално ползваните икони. Дребен, но безплатен tree-shake бонус.
 
-- За гости parent-ът се държи в `sessionStorage` под `dogovorinet:draft:<slug>`; детето също се държи в session до момент на сваляне (paywall / login).
+**Никакви нови библиотеки, никакви config промени, никакви route промени.**
 
-### Билинг
+---
 
-- Всяко генериране на свързан документ = 1 op (същата логика като основното `generate-contract`).
-- В workspace UI-а показваме „Ще използва 1 операция" преди клик.
+## Част 2 — Позитивен/конструктивен UX (същият дух като новия анализ)
 
-## Извън обхвата (за по-късно)
+Малки, локални промени в микрокопито и празните състояния. Никаква нова бизнес логика.
 
-- Едновременно редактиране (real-time collab).
-- Автоматично свързване на подписи (signing) на всички документи в workspace-a — само линкове засега.
-- Bulk export на всички свързани документи в ZIP — отделна задача.
+### 2.1 Wizard стъпки и валидации (`src/pages/Wizard.tsx`, компоненти на стъпките)
+- Съобщенията при валидация да казват **какво да поправи** вместо „грешка": напр. „ЕГН е 10 цифри — липсват още N" вместо „Невалидно ЕГН".
+- Toast при преход към следваща стъпка — кратък окуражителен ред („Стъпка X от Y готова ✓") без да блокира UI.
+- Помощен hint под сложните полета (когато има такъв в graph-а) — консистентен стил, без нови компоненти.
 
-## Файлове за създаване/промяна
+### 2.2 Preview / Finalize (`src/pages/WizardReview.tsx`, `src/pages/buildContract/*`)
+- Заглавието над риск-панела остава каквото е за случаите с проблеми; за 0 issues + N strengths — по-топло: „Документът е готов за подпис — N защитни клаузи откриха се вътре."
+- „Следващи стъпки" секцията да има подредба: първо действията, свързани със самия документ (свали PDF/DOCX, изпрати за подпис), после препоръчани следващи документи (приложение, протокол и т.н.) чрез вече съществуващия `linked-document-kinds`.
 
-- `supabase/migrations/<ts>_add_linked_documents.sql` — колони + индекс.
-- `supabase/functions/generate-contract/index.ts` — добавя `linked_documents` в отговора (small extra AI pass или част от съществуващия JSON schema).
-- `supabase/functions/generate-linked-document/index.ts` — нова функция.
-- `src/lib/linked-document-kinds.ts` — каталог.
-- `src/hooks/useLinkedDocuments.ts` — data hook.
-- `src/pages/DocumentWorkspace.tsx` — нов route.
-- `src/components/wizard/LinkedDocumentsSection.tsx` — секция в review.
-- `src/pages/WizardReview.tsx` — вгражда секцията.
-- `src/App.tsx` — регистрира новия route.
+### 2.3 Account / Dashboard (`src/pages/account/DashboardTab.tsx`, `DashboardCharts.tsx`)
+- Празно състояние на графиката („Все още нямате извършени операции.") → окуражително + ясно първо действие: бутон „Създай първия си документ" водещ към `/catalog`.
+- Празно състояние в „Документи" — вече е добро; ще добавя малък второстепенен CTA към „Анализ на съществуващ договор".
+- Дребна поправка: заменяне на общото „Зареждане…" spinner-ите с по-конкретно „Подготвяме документите ви…" / „Изчисляваме операциите ви…".
+
+### 2.4 AI Assistant / Analysis (`src/pages/console/*` или еквивалент)
+- Прилагане на **същия positive framing patch** като в `generate-contract`: когато няма issues → summary в конструктивен тон; винаги да показва „силни страни" секция (същия UI компонент `RiskReport`, който вече го поддържа).
+- Empty state на асистента: 3 кратки примерни въпроса-„чипа" (напр. „Обясни ми клауза за неустойка", „Какво да включа в NDA?", „Провери договора ми за рискове") — не като новa функционалност, а като статични бутончета, които пращат prompt.
+
+---
+
+## Технически бележки
+
+- Всички промени са локални във файловете, изброени по-горе. Няма промени в схемата, RLS, edge функциите (освен ако при 2.4 се наложи същия prompt patch като `generate-contract` — ще се направи по образец на вече проверения).
+- Zero new dependencies. Zero route/config промени.
+- Верификация:
+  - `bunx tsgo` за типовете след почистването на импортите.
+  - Ръчна проверка в preview на Account (табовете да зареждат бързо и без грешки), Wizard (валидация текстове), Review (positive framing при чист анализ).
+
+## Извън обхват
+
+- Пренаписване на роутинг / code-splitting стратегия.
+- Промени в pricing/quota/операции.
+- Ново съдържание, нови страници, нови модели.
+- Промяна на дизайн-система/цветове/шрифтове.
+
+## Обобщение на файловете за пипване
+
+Скорост:
+- `src/pages/account/ContactsTab.tsx`
+- `src/pages/account/DocumentsTab.tsx`
+- `src/pages/account/FoldersTab.tsx`
+- `src/pages/account/SubscriptionTab.tsx`
+- `src/pages/account/SettingsTab.tsx`
+- `src/pages/account/ScrollableTabsList.tsx`
+- `src/pages/Index.tsx` (малки корекции по LazyOnVisible/prefetch)
+
+UX:
+- `src/pages/Wizard.tsx` + компоненти на стъпки (само микрокопи)
+- `src/pages/WizardReview.tsx`
+- `src/pages/account/DashboardTab.tsx`, `src/pages/account/DashboardCharts.tsx`
+- Assistant/Analysis страници (същия positive-framing patch като `generate-contract`)
