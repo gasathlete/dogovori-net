@@ -4,7 +4,7 @@ import { useDeals, dealStatusLabel, dealStatusColor, type Deal } from "@/hooks/u
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
-import { Search, Plus, Loader2, FileText, FileUp, Briefcase, Library, Users, Package } from "lucide-react";
+import { Search, Plus, Loader2, FileText, FileUp, Briefcase, Library, Users, Package } from "@/icons";
 import { listMyKits, type UserKit } from "@/lib/kits";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";

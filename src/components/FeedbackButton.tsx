@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { MessageSquarePlus } from "lucide-react";
+import { MessageSquarePlus } from "@/icons";
 import { cn } from "@/lib/utils";
 
 interface Props {

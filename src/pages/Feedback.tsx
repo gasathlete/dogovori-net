@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Bug, Lightbulb, FileQuestion, Layout, MessageSquarePlus, Star, Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Bug, Lightbulb, FileQuestion, Layout, MessageSquarePlus, Star, Loader2, ArrowLeft, CheckCircle2 } from "@/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";

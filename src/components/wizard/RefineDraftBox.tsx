@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, Loader2, Check, AlertCircle, ChevronDown } from "lucide-react";
+import { Sparkles, Loader2, Check, AlertCircle, ChevronDown } from "@/icons";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";

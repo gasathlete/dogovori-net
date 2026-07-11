@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Briefcase, Loader2, Plus, ExternalLink, Search, Download } from "lucide-react";
+import { Briefcase, Loader2, Plus, ExternalLink, Search, Download } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDeals, dealStatusLabel, dealStatusColor } from "@/hooks/useDeals";

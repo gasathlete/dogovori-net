@@ -11,7 +11,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, TrendingUp, AlertCircle } from "lucide-react";
+import { Loader2, TrendingUp, AlertCircle } from "@/icons";
 
 type Row = {
   id: string;

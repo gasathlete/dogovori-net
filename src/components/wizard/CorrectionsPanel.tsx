@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Loader2, ShieldCheck, Lock, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, ShieldCheck, Lock, CheckCircle2, ChevronDown, ChevronUp } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { RiskIssue } from "./RiskReport";

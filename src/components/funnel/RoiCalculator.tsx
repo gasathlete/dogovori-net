@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Calculator, TrendingUp, Sparkles } from "lucide-react";
+import { Calculator, TrendingUp, Sparkles } from "@/icons";
 import { Link } from "react-router-dom";
 
 /**

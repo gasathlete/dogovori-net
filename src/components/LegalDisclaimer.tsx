@@ -1,5 +1,5 @@
 import { useState, useEffect, type ReactNode } from "react";
-import { Info, AlertTriangle, ShieldAlert, X } from "lucide-react";
+import { Info, AlertTriangle, ShieldAlert, X } from "@/icons";
 import { cn } from "@/lib/utils";
 
 type Variant = "subtle" | "warning" | "danger";

@@ -24,7 +24,7 @@ import {
   Zap,
   Crown,
   Sparkles,
-} from "lucide-react";
+} from "@/icons";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsPro } from "@/hooks/useIsPro";
 import { trackFunnelEvent } from "@/lib/funnel";

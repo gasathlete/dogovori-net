@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Loader2, FileDown, FileText, Save, FileSignature } from "lucide-react";
+import { Loader2, FileDown, FileText, Save, FileSignature } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { RiskMeter } from "@/components/wizard/RiskMeter";
 import { RiskReport } from "@/components/wizard/RiskReport";

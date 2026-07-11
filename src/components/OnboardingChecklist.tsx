@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Circle, ChevronRight, X, Sparkles } from "lucide-react";
+import { Check, Circle, ChevronRight, X, Sparkles } from "@/icons";
 import { Button } from "@/components/ui/button";
 
 export interface OnboardingStats {

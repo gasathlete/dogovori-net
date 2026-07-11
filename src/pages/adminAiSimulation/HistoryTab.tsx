@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Play, Sparkles } from "lucide-react";
+import { Loader2, Play, Sparkles } from "@/icons";
 import type { Session } from "./_shared";
 
 export default function HistoryTab() {

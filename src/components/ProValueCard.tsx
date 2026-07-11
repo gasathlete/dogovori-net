@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { Crown, Sparkles, Trophy, Zap, ArrowRight } from "lucide-react";
+import { Crown, Sparkles, Trophy, Zap, ArrowRight } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { useFreeJourneyStage } from "@/hooks/useFreeJourneyStage";
 import { ProUpgradeDialog, type ProUpgradeTrigger } from "@/components/ProUpgradeDialog";

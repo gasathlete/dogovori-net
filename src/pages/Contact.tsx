@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, FileText, Users, Mail, Phone, MapPin, Loader2, ShieldCheck, ShieldAlert, AlertTriangle } from "lucide-react";
+import { ArrowLeft, FileText, Users, Mail, Phone, MapPin, Loader2, ShieldCheck, ShieldAlert, AlertTriangle } from "@/icons";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";

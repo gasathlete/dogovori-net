@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Sparkles, FileWarning } from "lucide-react";
+import { ArrowLeft, Loader2, Sparkles, FileWarning } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";

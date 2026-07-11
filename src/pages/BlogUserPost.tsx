@@ -3,7 +3,7 @@ import { Link, useParams, Navigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
-import { ChevronRight, Loader2, User } from "lucide-react";
+import { ChevronRight, Loader2, User } from "@/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { BlogRatingAndComments } from "@/components/BlogRatingAndComments";
 

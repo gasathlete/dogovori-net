@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, Sparkles, Gift, Zap, Users, ShieldCheck } from "lucide-react";
+import { ArrowRight, Sparkles, Gift, Zap, Users, ShieldCheck } from "@/icons";
 
 /**
  * BetaDisclaimerModal — shown ~10s after the first visit to announce the beta

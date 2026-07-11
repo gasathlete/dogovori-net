@@ -14,7 +14,7 @@ import {
   ShieldAlert,
   Wand2,
   PenSquare,
-} from "lucide-react";
+} from "@/icons";
 import {
   DropdownMenu,
   DropdownMenuContent,

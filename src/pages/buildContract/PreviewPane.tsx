@@ -1,4 +1,4 @@
-import { FileText, FileDown, Loader2, Printer } from "lucide-react";
+import { FileText, FileDown, Loader2, Printer } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { DetectedReferencesBanner } from "@/components/DetectedReferencesBanner";
 import { LiveDraft } from "@/components/wizard/LiveDraft";

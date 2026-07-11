@@ -1,4 +1,4 @@
-import { X, Check, FileUp, FileSignature, ArrowRight } from "lucide-react";
+import { X, Check, FileUp, FileSignature, ArrowRight } from "@/icons";
 import { Link } from "react-router-dom";
 
 const PAINS = [

@@ -7,7 +7,7 @@ import {
   FolderArchive,
   BookOpen,
   ChevronDown,
-} from "lucide-react";
+} from "@/icons";
 
 const STEPS = [
   {

@@ -5,7 +5,7 @@
  * плюс 3 варианта за upgrade.
  */
 import { Link } from "react-router-dom";
-import { Crown, Sparkles, Info, ArrowRight, Clock } from "lucide-react";
+import { Crown, Sparkles, Info, ArrowRight, Clock } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { useIsPro } from "@/hooks/useIsPro";
 import { trackEvent } from "@/lib/analytics";

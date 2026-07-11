@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
   Loader2, Package, FileText, CheckCircle2, Download, PenSquare,
   ExternalLink, ArrowRight, Trash2, Archive,
-} from "lucide-react";
+} from "@/icons";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {

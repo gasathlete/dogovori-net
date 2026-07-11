@@ -1,4 +1,4 @@
-import { ShieldCheck, CreditCard, RotateCcw, Lock, Headphones } from "lucide-react";
+import { ShieldCheck, CreditCard, RotateCcw, Lock, Headphones } from "@/icons";
 
 type Item = { icon: React.ComponentType<{ className?: string }>; title: string; sub: string };
 

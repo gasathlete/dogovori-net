@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { FileSignature, CheckCircle2, ShieldCheck, Clock, Users, ArrowRight, Download, Sparkles } from "lucide-react";
+import { FileSignature, CheckCircle2, ShieldCheck, Clock, Users, ArrowRight, Download, Sparkles } from "@/icons";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";

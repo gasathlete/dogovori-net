@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FileText, ExternalLink, Wand2, Upload, ArrowRight, HelpCircle, ListChecks, Check, FileEdit } from "lucide-react";
+import { FileText, ExternalLink, Wand2, Upload, ArrowRight, HelpCircle, ListChecks, Check, FileEdit } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { X, ArrowRight, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { X, ArrowRight, ChevronLeft, ChevronRight, Sparkles } from "@/icons";
 import { TUTORIAL_STEPS } from "@/components/onboarding/tutorialSteps";
 import { trackFunnelEvent } from "@/lib/funnel";
 import { cn } from "@/lib/utils";

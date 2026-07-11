@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Info, Gavel, ExternalLink } from "lucide-react";
+import { Info, Gavel, ExternalLink } from "@/icons";
 
 export interface ArbitrationValue {
   enabled: boolean;

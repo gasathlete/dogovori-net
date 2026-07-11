@@ -1,4 +1,4 @@
-import { Check, X, Minus } from "lucide-react";
+import { Check, X, Minus } from "@/icons";
 
 type Cell = "yes" | "no" | "partial" | string;
 

@@ -1,4 +1,4 @@
-import { AlertTriangle, AlertCircle, Info, Lightbulb, Lock, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, AlertCircle, Info, Lightbulb, Lock, ShieldCheck, CheckCircle2 } from "@/icons";
 import { Link } from "react-router-dom";
 import type { RiskLevel } from "./RiskMeter";
 

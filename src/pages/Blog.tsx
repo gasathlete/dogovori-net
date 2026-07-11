@@ -6,7 +6,7 @@ import { breadcrumbSchema } from "@/lib/jsonLd";
 import { ALL_POSTS, getAllCategories } from "@/lib/blog";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Pencil, User, Loader2 } from "lucide-react";
+import { Pencil, User, Loader2 } from "@/icons";
 
 interface UserArticleRow {
   id: string;

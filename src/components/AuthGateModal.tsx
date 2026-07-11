@@ -15,7 +15,7 @@ import {
   Package,
   ArrowRight,
   X,
-} from "lucide-react";
+} from "@/icons";
 import { TrustGuaranteeBar } from "@/components/funnel/TrustGuaranteeBar";
 
 /**

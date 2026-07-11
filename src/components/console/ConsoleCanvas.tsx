@@ -1,7 +1,7 @@
 import { lazy, Suspense, useMemo } from "react";
 import { useConsoleStore, type ConsoleTab } from "@/hooks/useConsoleStore";
 import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/icons";
 
 const DashboardPane = lazy(() => import("./panes/DashboardPane").then((m) => ({ default: m.DashboardPane })));
 const DealPane = lazy(() => import("./panes/DealPane").then((m) => ({ default: m.DealPane })));

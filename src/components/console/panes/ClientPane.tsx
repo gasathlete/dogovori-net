@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useConsoleStore } from "@/hooks/useConsoleStore";
-import { Users, Briefcase, Loader2 } from "lucide-react";
+import { Users, Briefcase, Loader2 } from "@/icons";
 
 export function ClientPane({ counterparty }: { counterparty: string }) {
   const { openTab } = useConsoleStore();

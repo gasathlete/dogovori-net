@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Search, ExternalLink, Filter, TrendingDown, TrendingUp, AlertTriangle } from "lucide-react";
+import { Loader2, RefreshCw, Search, ExternalLink, Filter, TrendingDown, TrendingUp, AlertTriangle } from "@/icons";
 
 type ImpressionsTrend = {
   alert: boolean;

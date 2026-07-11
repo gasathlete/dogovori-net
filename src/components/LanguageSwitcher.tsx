@@ -1,5 +1,5 @@
 // Compact BG/EN language switcher used in the header.
-import { Languages } from "lucide-react";
+import { Languages } from "@/icons";
 import { useState, useRef, useEffect } from "react";
 import { useLocale } from "@/i18n/useLocale";
 import { cn } from "@/lib/utils";

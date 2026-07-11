@@ -2,13 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Bird, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X, MessageSquare, Check, Lock, RefreshCw, Sparkles, Building2, Bell, LayoutDashboard, ChevronDown,
-} from "lucide-react";
+} from "@/icons";
 import { NotificationsTab } from "@/components/NotificationsTab";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 
 import { useTeam } from "@/hooks/useTeam";
 import { useAuth as _useAuthForShare } from "@/hooks/useAuth";
-import { Users2, Share2 } from "lucide-react";
+import { Users2, Share2 } from "@/icons";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,7 @@ import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { ShareForSignDialog } from "@/components/ShareForSignDialog";
 import { UploadContractDialog } from "@/components/UploadContractDialog";
 import { SignedContractsTab } from "@/components/SignedContractsTab";
-import { ShieldAlert, ShieldCheck, AlertTriangle, PenTool, ChevronRight, KeyRound, Mail, Trash } from "lucide-react";
+import { ShieldAlert, ShieldCheck, AlertTriangle, PenTool, ChevronRight, KeyRound, Mail, Trash } from "@/icons";
 import { isValidEGN, isValidEIK } from "@/lib/bgValidation";
 import { translateAuthError } from "@/lib/authErrors";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
@@ -38,7 +38,7 @@ import { BulkActionsBar, BulkRowCheckbox } from "@/components/BulkActionsBar";
 import { DocFiltersBar, type DocFilterState } from "@/components/DocFilters";
 import { DocumentReminderDialog } from "@/components/DocumentReminderDialog";
 import { DocumentVersionsDialog } from "@/components/DocumentVersionsDialog";
-import { History, CalendarDays, Copy } from "lucide-react";
+import { History, CalendarDays, Copy } from "@/icons";
 import { useDocumentReminders, reminderStatus, REMINDER_KIND_LABEL } from "@/hooks/useDocumentReminders";
 import { downloadIcs } from "@/lib/ics";
 import { getUnlockedTiers, getNextTier, REWARD_TIERS } from "@/lib/rewards";

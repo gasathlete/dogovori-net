@@ -24,7 +24,7 @@ import {
   Layers,
   Wrench,
   ArrowRight,
-} from "lucide-react";
+} from "@/icons";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsPro } from "@/hooks/useIsPro";
 import { trackEvent } from "@/lib/analytics";

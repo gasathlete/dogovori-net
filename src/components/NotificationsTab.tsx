@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Check, ExternalLink, Loader2, Megaphone, FileText } from "lucide-react";
+import { Bell, Check, ExternalLink, Loader2, Megaphone, FileText } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";

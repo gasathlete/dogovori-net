@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Send, Loader2, Plus, Bird, AlertCircle, MessageSquare, Trash2, Handshake, Paperclip, Share2, Download, BookOpen, X, MessagesSquare, LayoutPanelLeft } from "lucide-react";
+import { Send, Loader2, Plus, Bird, AlertCircle, MessageSquare, Trash2, Handshake, Paperclip, Share2, Download, BookOpen, X, MessagesSquare, LayoutPanelLeft } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -12,7 +12,7 @@ import { useIsPro } from "@/hooks/useIsPro";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Crown } from "lucide-react";
+import { Crown } from "@/icons";
 
 import { LegalCitations, type LegalCitation } from "@/components/LegalCitations";
 import { AssistantToolCard, type ToolEvent } from "@/components/assistant/AssistantToolCard";

@@ -1,7 +1,7 @@
 // Reusable rating + comments block for both core blog posts and user articles.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Star, Loader2, Trash2, MessageSquare } from "lucide-react";
+import { Star, Loader2, Trash2, MessageSquare } from "@/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";

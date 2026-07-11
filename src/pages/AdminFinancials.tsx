@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Coins, Loader2, Download, RotateCcw, TrendingUp } from "lucide-react";
+import { ArrowLeft, Coins, Loader2, Download, RotateCcw, TrendingUp } from "@/icons";
 import {
   Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";

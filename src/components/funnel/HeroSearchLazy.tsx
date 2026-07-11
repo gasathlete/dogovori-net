@@ -9,7 +9,7 @@
  */
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Sparkles } from "lucide-react";
+import { Search, Sparkles } from "@/icons";
 
 const ConversationalHeroInput = lazy(() =>
   import("./ConversationalHeroInput").then((m) => ({ default: m.ConversationalHeroInput })),

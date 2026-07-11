@@ -1,4 +1,4 @@
-import { ShieldAlert, ShieldCheck, ShieldQuestion } from "lucide-react";
+import { ShieldAlert, ShieldCheck, ShieldQuestion } from "@/icons";
 import { cn } from "@/lib/utils";
 
 export type RiskLevel = "low" | "medium" | "high" | "unknown";

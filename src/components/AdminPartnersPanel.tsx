@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { Check, Loader2, Plus, Trash2, X, ExternalLink } from "lucide-react";
+import { Check, Loader2, Plus, Trash2, X, ExternalLink } from "@/icons";
 
 type Partner = {
   id: string;

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import * as Icons from "lucide-react";
-import { Calculator as CalcIcon, ArrowRight, ChevronRight, GitCompare, Wrench } from "lucide-react";
+import * as Icons from "@/icons";
+import { Calculator as CalcIcon, ArrowRight, ChevronRight, GitCompare, Wrench } from "@/icons";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";

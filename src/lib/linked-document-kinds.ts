@@ -3,7 +3,7 @@
  * parent contract inside the split-view workspace.
  */
 
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "@/icons";
 import {
   FileText,
   ClipboardList,
@@ -11,7 +11,7 @@ import {
   ScrollText,
   Stamp,
   Bell,
-} from "lucide-react";
+} from "@/icons";
 
 export type LinkedDocKind =
   | "appendix"

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Clock, Euro, TrendingUp, Share2, Sparkles } from "lucide-react";
+import { Clock, Euro, TrendingUp, Share2, Sparkles } from "@/icons";
 import { trackFunnelEvent } from "@/lib/funnel";
 import { toast } from "sonner";
 

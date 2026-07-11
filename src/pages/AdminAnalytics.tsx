@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, BarChart3, Loader2 } from "lucide-react";
+import { ArrowLeft, BarChart3, Loader2 } from "@/icons";
 import { toast } from "sonner";
 import { RangePicker, rangeToBounds, type AnalyticsRange } from "@/components/admin/analytics/RangePicker";
 import { KpiCards, type Kpis } from "@/components/admin/analytics/KpiCards";

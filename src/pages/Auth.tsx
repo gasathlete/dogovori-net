@@ -10,13 +10,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/icons";
 import { translateAuthError } from "@/lib/authErrors";
 import { recordConsents } from "@/lib/consents";
 import { Seo } from "@/components/Seo";
 import { GoogleConsentDialog } from "@/components/auth/GoogleConsentDialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "@/icons";
 
 const RISKY_BG_EMAIL_DOMAINS = ["abv.bg", "mail.bg", "dir.bg"];
 function isRiskyBgEmail(value: string): boolean {

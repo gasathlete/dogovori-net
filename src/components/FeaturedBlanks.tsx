@@ -1,5 +1,5 @@
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
-import { Sparkles, ArrowRight, Download, FileText, TrendingUp, CheckCircle2 } from "lucide-react";
+import { Sparkles, ArrowRight, Download, FileText, TrendingUp, CheckCircle2 } from "@/icons";
 import { FEATURED_BLANKS } from "@/data/featuredBlanks";
 import { allTemplates } from "@/lib/templateIndex";
 import { useMemo } from "react";

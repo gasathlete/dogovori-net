@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Activity, Download, FileText, Loader2 } from "lucide-react";
+import { Activity, Download, FileText, Loader2 } from "@/icons";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { exportAuditCsv, exportAuditPdf, type AuditExportRow } from "@/lib/auditExport";

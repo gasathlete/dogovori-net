@@ -5,7 +5,7 @@
  */
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, ArrowRight, X } from "lucide-react";
+import { Sparkles, ArrowRight, X } from "@/icons";
 import { loadAnalysisSession, type AnalysisSession } from "@/lib/funnel";
 
 const PLAN_LABEL: Record<AnalysisSession["recommendedPlan"], string> = {

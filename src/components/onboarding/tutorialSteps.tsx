@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import {
   Search, FileText, ShieldCheck, PenLine, Package, Upload, FolderTree, MessageSquare, Sparkles,
-} from "lucide-react";
+} from "@/icons";
 
 // Small preview snippets — visual approximations of the real product surfaces.
 // Kept lightweight (no real data fetches) so the modal opens instantly.

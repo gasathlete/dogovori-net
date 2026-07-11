@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   Crown, Sparkles, ArrowRight, Check, MessageSquare, ShieldCheck,
   Zap, Users, LayoutDashboard, PenTool, Languages, BarChart3, LucideIcon,
-} from "lucide-react";
+} from "@/icons";
 import { useIsPro } from "@/hooks/useIsPro";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";

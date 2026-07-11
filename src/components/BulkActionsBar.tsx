@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CheckSquare, Square, Loader2, FileArchive, X, Trash2, FolderInput } from "lucide-react";
+import { CheckSquare, Square, Loader2, FileArchive, X, Trash2, FolderInput } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {

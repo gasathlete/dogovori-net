@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Play, Pause, Square, Download, Flame } from "lucide-react";
+import { Loader2, Play, Pause, Square, Download, Flame } from "@/icons";
 import { buildBlankTasks, type BlankTask } from "@/lib/blankCatalog";
 import { toast } from "sonner";
 

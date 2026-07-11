@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { Sparkles } from "@/icons";
 import { cn } from "@/lib/utils";
 import type { PlanId } from "@/hooks/usePlans";
 import { PLAN_HERO_BENEFIT } from "@/lib/planCategories";

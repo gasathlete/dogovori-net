@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Loader2, ShieldCheck, AlertTriangle, Eye, Activity,
   FileWarning, Cpu, UserCheck,
-} from "lucide-react";
+} from "@/icons";
 import { toast } from "sonner";
 import { RangePicker, rangeToBounds, type AnalyticsRange } from "@/components/admin/analytics/RangePicker";
 import {

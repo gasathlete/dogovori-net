@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, FileUp, Loader2, Trash2, ExternalLink } from "lucide-react";
+import { FileText, FileUp, Loader2, Trash2, ExternalLink } from "@/icons";
 import { toast } from "sonner";
 
 const STATUSES: DealStatus[] = ["draft", "negotiating", "signing", "active", "closed", "archived"];

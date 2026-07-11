@@ -8,7 +8,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { Search, Sparkles, Loader2 } from "lucide-react";
+import { Search, Sparkles, Loader2 } from "@/icons";
 import { trackFunnelEvent } from "@/lib/funnel";
 import { useTemplateSearch } from "@/hooks/useTemplateSearch";
 

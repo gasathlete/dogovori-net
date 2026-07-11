@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Seo } from "@/components/Seo";
 import { toast } from "sonner";
 import { SignaturePad } from "@/components/SignaturePad";
-import { Loader2, CheckCircle2, AlertCircle, XCircle, Download } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, XCircle, Download } from "@/icons";
 import { downloadSignedPdf } from "@/lib/signedPdfAssembler";
 
 interface Peer { id: string; name: string; role: string | null; order_idx: number; status: string; signed_at: string | null }

@@ -8,7 +8,7 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { allTemplates, getTemplateBySlug, type TemplateEntry } from "@/lib/templateIndex";
-import { CheckCircle2, XCircle, ArrowRight } from "lucide-react";
+import { CheckCircle2, XCircle, ArrowRight } from "@/icons";
 
 function rows(a: TemplateEntry, b: TemplateEntry) {
   return [

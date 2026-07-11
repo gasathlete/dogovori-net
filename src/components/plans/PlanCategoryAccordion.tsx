@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Check } from "@/icons";
 import { cn } from "@/lib/utils";
 import type { CategoryGroup } from "@/lib/planCategories";
 import { trackEvent } from "@/lib/analytics";

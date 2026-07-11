@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { prefetchHandlers } from "@/components/PrefetchLink";
-import { ArrowLeft, ArrowRight, Loader2, FileDown, FileText, Save, Wand2, Sparkles, Zap, Briefcase, Scale, ChevronDown, Check, Languages, ShieldCheck, FileSignature, Lightbulb, Printer } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, FileDown, FileText, Save, Wand2, Sparkles, Zap, Briefcase, Scale, ChevronDown, Check, Languages, ShieldCheck, FileSignature, Lightbulb, Printer } from "@/icons";
 import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -43,10 +43,10 @@ import { mergeParentWithAppendices } from "@/lib/appendixMerger";
 import { Seo } from "@/components/Seo";
 import { trackEvent } from "@/lib/analytics";
 import { PartyListEditor, parseParties, serializeParties } from "@/components/wizard/PartyListEditor";
-import { Lock } from "lucide-react";
+import { Lock } from "@/icons";
 import { findSimilarTemplates, type SimilarTemplate } from "@/lib/templateSimilarity";
 import { Link } from "react-router-dom";
-import { Info, X } from "lucide-react";
+import { Info, X } from "@/icons";
 
 
 

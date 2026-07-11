@@ -8,7 +8,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileUp, ClipboardPaste, MessageCircleQuestion, Lock, Loader2, ShieldAlert, Sparkles } from "lucide-react";
+import { FileUp, ClipboardPaste, MessageCircleQuestion, Lock, Loader2, ShieldAlert, Sparkles } from "@/icons";
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
 

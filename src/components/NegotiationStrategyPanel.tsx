@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Handshake, Loader2, Sparkles, Target, ShieldCheck, MessageSquareQuote, ListChecks, RefreshCw } from "lucide-react";
+import { Handshake, Loader2, Sparkles, Target, ShieldCheck, MessageSquareQuote, ListChecks, RefreshCw } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsPro } from "@/hooks/useIsPro";

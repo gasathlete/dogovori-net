@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import * as Icons from "lucide-react";
-import { Calculator as CalcIcon, ChevronDown, ArrowRight } from "lucide-react";
+import * as Icons from "@/icons";
+import { Calculator as CalcIcon, ChevronDown, ArrowRight } from "@/icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CALCULATORS } from "@/data/calculators";
 

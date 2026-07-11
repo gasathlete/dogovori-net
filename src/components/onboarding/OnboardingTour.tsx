@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, X, ArrowRight, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, ArrowRight, Check } from "@/icons";
 import { TUTORIAL_STEPS } from "./tutorialSteps";
 import { trackFunnelEvent } from "@/lib/funnel";
 

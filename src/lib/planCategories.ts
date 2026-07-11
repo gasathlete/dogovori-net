@@ -1,4 +1,4 @@
-import { Brain, FileText, Shield, Zap, Users, LifeBuoy, Sparkles, type LucideIcon } from "lucide-react";
+import { Brain, FileText, Shield, Zap, Users, LifeBuoy, Sparkles, type LucideIcon } from "@/icons";
 import type { PlanId } from "@/hooks/usePlans";
 
 export type CategoryId =

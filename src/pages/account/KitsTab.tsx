@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Package, Loader2, Plus, ExternalLink, Search, CheckCircle2, Archive, Clock,
-} from "lucide-react";
+} from "@/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
