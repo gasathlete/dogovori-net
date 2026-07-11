@@ -312,6 +312,26 @@ export default function WizardPage() {
   }, [baseSector, docName]);
   const docAccess = useDocumentAccess(docKey);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+
+  /**
+   * Beta-only nudge: after the user completes a meaningful action on a
+   * generated document (save / download), softly ask for feedback. Capped to
+   * ≤3 shows per user with a min-hours cooldown between them.
+   */
+  const maybeAskForFeedback = (trigger: "save" | "download" | "manual") => {
+    if (trigger === "manual") {
+      setFeedbackOpen(true);
+      return;
+    }
+    if (!result) return;
+    if (!shouldShowWizardFeedbackPrompt(!!user)) return;
+    markWizardFeedbackPromptShown();
+    // Small delay so the success toast lands first.
+    window.setTimeout(() => setFeedbackOpen(true), 900);
+  };
+
+
 
 
   useEffect(() => {
