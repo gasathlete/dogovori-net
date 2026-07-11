@@ -166,6 +166,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
                 <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
                   <Link
                     to="/catalog"
+                    {...prefetchHandlers("/catalog")}
                     className="btn-gold btn-press w-full normal-case tracking-normal text-[14px] px-5 py-3"
                   >
                     <Search className="h-[16px] w-[16px]" />
@@ -173,6 +174,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
                   </Link>
                   <Link
                     to="/build"
+                    {...prefetchHandlers("/build")}
                     className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-gold/50 bg-card/60 px-5 py-3 text-[14px] font-semibold text-gold transition-colors hover:bg-gold/10"
                   >
                     <Wand2 className="h-[16px] w-[16px]" />
@@ -181,6 +183,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
                 </div>
                 <Link
                   to="/account?tab=documents&action=upload"
+                  {...prefetchHandlers("/account")}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-gold/50 bg-card/60 px-5 py-3 text-[14px] font-semibold text-gold transition-colors hover:bg-gold/10"
                 >
                   <FileUp className="h-[16px] w-[16px]" />
