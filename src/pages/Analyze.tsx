@@ -16,6 +16,7 @@ import { PrimaryCTA } from "@/components/funnel/PrimaryCTA";
 import { RoiCalculator } from "@/components/funnel/RoiCalculator";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsPro } from "@/hooks/useIsPro";
 import {
   loadAnalysisSession,
   markFunnelStep,
