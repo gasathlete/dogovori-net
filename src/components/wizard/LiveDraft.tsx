@@ -451,6 +451,10 @@ function TemplateDraftOrSkeleton({
 }) {
   const [draftRaw, setDraftRaw] = useState<string | null>(null);
   const [resolved, setResolved] = useState(false);
+  // Реактивни списъци с типовете на допълнителните страни — LiveDraft ги
+  // пре-рендерира на всяка промяна в +Add селектите за ФЛ/ЮЛ/ЕТ.
+  const extraAtypes = parseExtraPartyTypes(answers.party_a_extra);
+  const extraBtypes = parseExtraPartyTypes(answers.party_b_extra);
 
   useEffect(() => {
     let cancelled = false;
