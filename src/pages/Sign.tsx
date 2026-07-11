@@ -250,10 +250,74 @@ export default function Sign() {
                   <label className="text-sm font-medium block mb-1">Имена</label>
                   <Input value={name} onChange={(e) => setName(e.target.value)} />
                 </div>
-                <div>
-                  <label className="text-sm font-medium block mb-1">Подпис</label>
-                  <SignaturePad onCapture={setSignature} />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium block">Метод на подпис</label>
+                  <div className="grid grid-cols-3 gap-1 rounded-md border border-border/60 bg-muted/40 p-1 text-xs">
+                    {([
+                      { k: "drawn", l: "Начертай" },
+                      { k: "uploaded", l: "Качи изображение" },
+                      { k: "qes", l: "КЕП / QES файл" },
+                    ] as const).map((o) => (
+                      <button
+                        key={o.k}
+                        type="button"
+                        onClick={() => { setSigMethod(o.k); setSignature(null); }}
+                        className={`px-2 py-1.5 rounded ${sigMethod === o.k ? "bg-background shadow-sm font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+                      >
+                        {o.l}
+                      </button>
+                    ))}
+                  </div>
+
+                  {sigMethod === "drawn" && <SignaturePad onCapture={setSignature} />}
+
+                  {sigMethod === "uploaded" && (
+                    <div className="space-y-2">
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (!f) { setSignature(null); return; }
+                          if (f.size > 1_000_000) { toast.error("Изображението е твърде голямо (макс 1MB)"); return; }
+                          const r = new FileReader();
+                          r.onload = () => setSignature(String(r.result));
+                          r.readAsDataURL(f);
+                        }}
+                        className="block w-full text-xs"
+                      />
+                      {signature && (
+                        <img src={signature} alt="Качен подпис" className="max-h-32 border rounded bg-white p-2" />
+                      )}
+                      <p className="text-[11px] text-muted-foreground">
+                        Приемат се PNG / JPEG. Препоръчително — прозрачен фон, черно мастило.
+                      </p>
+                    </div>
+                  )}
+
+                  {sigMethod === "qes" && (
+                    <div className="space-y-2">
+                      <input
+                        type="file"
+                        accept=".pdf,.p7s,.p7m,.asice,.asics,.sce,.scs,.xml"
+                        onChange={(e) => onQesFileChange(e.target.files?.[0] ?? null)}
+                        className="block w-full text-xs"
+                      />
+                      {qesFile && (
+                        <div className="text-xs text-muted-foreground">
+                          Прикачен: <span className="font-medium text-foreground">{qesFile.name}</span> ({Math.round(qesFile.size / 1024)} KB)
+                        </div>
+                      )}
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        Подпишете документа с Вашия КЕП (Borica, Evrotrust, InfoNotary, StampIT и др.)
+                        във външно приложение и качете подписания файл (PDF с вграден подпис, .p7s,
+                        .asice и т.н.). Файлът се пази като доказателство към заявката и се появява
+                        в одитната следа.
+                      </p>
+                    </div>
+                  )}
                 </div>
+
                 <div>
                   <label className="text-sm font-medium block mb-1">
                     Код от имейла {debugCode ? <span className="text-xs text-amber-600">(dev: {debugCode})</span> : null}
