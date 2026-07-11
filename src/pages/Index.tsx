@@ -119,10 +119,8 @@ const Index = () => {
       <Header />
       <main className="route-fade">
         <Hero onStart={startInterview} />
+        <SocialProofStrip />
         <Suspense fallback={<SectionSkeleton />}>
-          <LazyOnVisible minHeight={120}>
-            <SocialProofStrip />
-          </LazyOnVisible>
 
           <LazyOnVisible minHeight={420}>
             <Reveal>
