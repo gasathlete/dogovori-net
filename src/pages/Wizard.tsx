@@ -421,7 +421,7 @@ export default function WizardPage() {
     setApplyingCorrections(true);
     try {
       const { getOpSessionId, newOpBatchId } = await import("@/lib/opSession");
-      const { data, error } = await supabase.functions.invoke("apply-corrections", {
+      const { data, error } = await invokeEdgeFunction<{ error?: string; risk?: AIResult["risk"]; contract?: AIResult["contract"]; applied?: string[] }>("apply-corrections", {
         body: {
           contract: result.contract,
           risk: result.risk,
