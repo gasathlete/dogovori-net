@@ -86,8 +86,7 @@ const Template = lazy(() => import("./pages/Template.tsx"));
 const Wizard = lazy(() => import("./pages/Wizard.tsx"));
 const BuildContract = lazy(() => import("./pages/BuildContract.tsx"));
 const WizardBilingual = lazy(() => import("./pages/WizardBilingual.tsx"));
-const WizardGraph = lazy(() => import("./pages/WizardGraph.tsx"));
-const WizardReview = lazy(() => import("./pages/WizardReview.tsx"));
+const WizardGraphRedirect = lazy(() => import("./pages/WizardGraphRedirect.tsx"));
 const DocumentWorkspace = lazy(() => import("./pages/DocumentWorkspace.tsx"));
 
 const Catalog = lazy(() => import("./pages/Catalog.tsx"));
@@ -283,8 +282,8 @@ const AnimatedRoutes = () => {
         <Route path="/wizard/:sectorId" element={<Wizard />} />
         <Route path="/build" element={<BuildContract />} />
         <Route path="/wizard-bilingual/:sectorId" element={<WizardBilingual />} />
-        <Route path="/wizard-graph/:slug" element={<WizardGraph />} />
-        <Route path="/wizard-graph/:slug/review" element={<WizardReview />} />
+        <Route path="/wizard-graph/:slug" element={<WizardGraphRedirect />} />
+        <Route path="/wizard-graph/:slug/review" element={<WizardGraphRedirect />} />
         <Route path="/workspace/:slug/:kind" element={<DocumentWorkspace />} />
 
         <Route path="/catalog" element={<Catalog />} />
