@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useIsPro } from "@/hooks/useIsPro";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Elegant, "digital" welcome dialog that appears exactly once per user
