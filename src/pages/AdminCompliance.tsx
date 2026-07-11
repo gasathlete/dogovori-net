@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AdminMFAGuard } from "@/components/admin/AdminMFAGuard";
-import { ArrowLeft, Loader2, ClipboardCheck, ExternalLink, Save, Plus } from "lucide-react";
+import { ArrowLeft, Loader2, ClipboardCheck, ExternalLink, Save, Plus } from "@/icons";
 import { toast } from "sonner";
 
 type Framework = "GDPR" | "AI_ACT" | "SOC2" | "ISO27001";

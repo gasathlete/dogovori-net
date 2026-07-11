@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, PenTool, Download, CheckCircle2, Clock, ShieldCheck } from "lucide-react";
+import { Loader2, PenTool, Download, CheckCircle2, Clock, ShieldCheck } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

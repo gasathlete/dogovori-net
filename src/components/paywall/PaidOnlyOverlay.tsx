@@ -8,7 +8,7 @@
  *   </PaidOnlyOverlay>
  */
 import { useEffect, useState, type ReactNode } from "react";
-import { Crown, Sparkles, ArrowRight, Lock } from "lucide-react";
+import { Crown, Sparkles, ArrowRight, Lock } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { useIsPro } from "@/hooks/useIsPro";
 import { trackEvent, trackPillarView, trackPillarCta } from "@/lib/analytics";

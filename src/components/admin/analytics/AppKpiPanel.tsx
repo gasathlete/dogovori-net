@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserPlus, Activity, CreditCard, TrendingUp } from "lucide-react";
+import { UserPlus, Activity, CreditCard, TrendingUp } from "@/icons";
 
 export type AppKpis = { signups: number; ops: number; paid_conversions: number; conversion_rate: number };
 

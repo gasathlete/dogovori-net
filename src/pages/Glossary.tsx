@@ -6,7 +6,7 @@ import { Seo } from "@/components/Seo";
 import { breadcrumbSchema } from "@/lib/jsonLd";
 import { Header } from "@/components/Header";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/icons";
 
 interface Term { slug: string; term: string; short_definition: string }
 

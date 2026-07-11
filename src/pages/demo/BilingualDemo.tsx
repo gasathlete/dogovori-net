@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Languages, ArrowRight, FileText, Library } from "lucide-react";
+import { Languages, ArrowRight, FileText, Library } from "@/icons";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Sparkles, Receipt } from "lucide-react";
+import { Sparkles, Receipt } from "@/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getStripeEnvironment } from "@/lib/stripe";

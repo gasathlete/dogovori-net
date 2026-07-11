@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { SECTOR_META as SECTORS } from "@/data/sectorsMeta";
-import * as Icons from "lucide-react";
-import { ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
+import * as Icons from "@/icons";
+import { ArrowRight, ChevronDown, ChevronUp } from "@/icons";
 import { SECTOR_IMAGES } from "@/lib/sectorImages";
 import { prefetchHandlers } from "@/components/PrefetchLink";
 

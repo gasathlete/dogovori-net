@@ -8,7 +8,7 @@
  */
 
 import { useNavigate } from "react-router-dom";
-import { Check, Crown, Sparkles, Zap } from "lucide-react";
+import { Check, Crown, Sparkles, Zap } from "@/icons";
 import {
   Dialog,
   DialogContent,

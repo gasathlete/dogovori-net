@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Zap, Sparkles, Rocket, X } from "lucide-react";
+import { Plus, Zap, Sparkles, Rocket, X } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { useAuth } from "@/hooks/useAuth";

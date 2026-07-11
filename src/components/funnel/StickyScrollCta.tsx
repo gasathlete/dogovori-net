@@ -5,7 +5,7 @@
  */
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { X, ArrowRight } from "lucide-react";
+import { X, ArrowRight } from "@/icons";
 import { useFunnelCta } from "@/hooks/useFunnelCta";
 import { trackFunnelEvent } from "@/lib/funnel";
 import { cn } from "@/lib/utils";

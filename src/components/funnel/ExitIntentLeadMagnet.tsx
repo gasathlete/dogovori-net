@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Download, Loader2, X, BookOpen, Mail } from "lucide-react";
+import { Download, Loader2, X, BookOpen, Mail } from "@/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { trackFunnelEvent } from "@/lib/funnel";

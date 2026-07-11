@@ -1,6 +1,6 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ShieldCheck, Scale, Gavel, FileCheck2 } from "lucide-react";
+import { ShieldCheck, Scale, Gavel, FileCheck2 } from "@/icons";
 
 const BADGE_INFO: Record<string, string> = {
   "ЗЗД": "Закон за задълженията и договорите — задължителна правна рамка за всички облигационни отношения в България.",

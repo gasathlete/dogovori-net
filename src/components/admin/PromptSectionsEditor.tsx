@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { ChevronDown, ChevronRight, ArrowUp, ArrowDown, Trash2, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, ArrowUp, ArrowDown, Trash2, Plus } from "@/icons";
 
 export type PromptSection = {
   id?: string;

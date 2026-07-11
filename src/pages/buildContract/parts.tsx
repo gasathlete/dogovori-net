@@ -1,4 +1,4 @@
-import { Zap, Briefcase, Scale } from "lucide-react";
+import { Zap, Briefcase, Scale } from "@/icons";
 import { Label } from "@/components/ui/label";
 import type { RiskLevel } from "@/components/wizard/RiskMeter";
 import type { RiskIssue } from "@/components/wizard/RiskReport";

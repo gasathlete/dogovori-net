@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import * as Icons from "lucide-react";
-import { ExternalLink } from "lucide-react";
+import * as Icons from "@/icons";
+import { ExternalLink } from "@/icons";
 import type { Calculator, CalcResult, Field } from "@/data/calculators/types";
 
 interface Props {

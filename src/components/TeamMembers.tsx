@@ -14,7 +14,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Crown, LogOut, MoreVertical, Shield, UserMinus, Users } from "lucide-react";
+import { Crown, LogOut, MoreVertical, Shield, UserMinus, Users } from "@/icons";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 

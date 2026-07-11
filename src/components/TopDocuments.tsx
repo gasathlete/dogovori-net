@@ -1,6 +1,6 @@
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { TOP_DOCUMENTS } from "@/data/catalog";
-import { ArrowRight, Bird, Crown } from "lucide-react";
+import { ArrowRight, Bird, Crown } from "@/icons";
 import { useDownloadCounts } from "@/hooks/useDownloadCounts";
 import { slugify } from "@/lib/slugify";
 import { useCountUp } from "@/hooks/useCountUp";

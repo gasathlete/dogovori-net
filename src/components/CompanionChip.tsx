@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ProtectedContent } from "@/components/ProtectedContent";
-import { FileDown, FileText, Loader2, Eye } from "lucide-react";
+import { FileDown, FileText, Loader2, Eye } from "@/icons";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Bird, Crown, Check } from "lucide-react";
+import { Bird, Crown, Check } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { TopupPacks } from "@/components/TopupPacks";
 import { useIsPro } from "@/hooks/useIsPro";

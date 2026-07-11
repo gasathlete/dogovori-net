@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, Trash2, Crown, ArrowLeft, Upload } from "lucide-react";
+import { Loader2, Plus, Trash2, Crown, ArrowLeft, Upload } from "@/icons";
 import { toast } from "sonner";
 
 const CATEGORIES = [

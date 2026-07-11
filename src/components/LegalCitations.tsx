@@ -1,4 +1,4 @@
-import { BookOpen, ExternalLink } from "lucide-react";
+import { BookOpen, ExternalLink } from "@/icons";
 import { cn } from "@/lib/utils";
 
 export interface LegalCitation {

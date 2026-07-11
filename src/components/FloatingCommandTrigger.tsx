@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Search } from "@/icons";
 
 /**
  * Persistent floating ⌘K trigger (desktop only).

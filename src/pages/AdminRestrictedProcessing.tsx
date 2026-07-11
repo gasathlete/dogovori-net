@@ -15,7 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Loader2, ShieldAlert, Trash2, RefreshCw,
-} from "lucide-react";
+} from "@/icons";
 import { toast } from "sonner";
 
 interface EventRow {

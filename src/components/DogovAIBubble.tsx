@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
-import { X, Send, Loader2, Sparkles, FileText, Scale, ExternalLink, Maximize2, MessageSquare } from "lucide-react";
+import { X, Send, Loader2, Sparkles, FileText, Scale, ExternalLink, Maximize2, MessageSquare } from "@/icons";
 // react-markdown (~40KB gz) is only needed after the first assistant message renders.
 const ReactMarkdown = lazy(() => import("react-markdown"));
 // AssistantChat pulls in the full authenticated chat surface — load only when

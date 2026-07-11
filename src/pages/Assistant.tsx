@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link, useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Sparkles, FileText, Scale, Upload, Plus, Handshake, Layers, ArrowLeft, MessageSquarePlus } from "lucide-react";
+import { Sparkles, FileText, Scale, Upload, Plus, Handshake, Layers, ArrowLeft, MessageSquarePlus } from "@/icons";
 import { AssistantChat } from "@/components/AssistantChat";
 import { PaidOnlyOverlay } from "@/components/paywall/PaidOnlyOverlay";
 import { useAuth } from "@/hooks/useAuth";

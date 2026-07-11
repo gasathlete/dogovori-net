@@ -3,7 +3,7 @@
  * against an external high-water mark („средна цена адвокат: ~290 €").
  * Classic decoy/anchoring pattern — proven 12–20 % lift on perceived value.
  */
-import { Scale } from "lucide-react";
+import { Scale } from "@/icons";
 
 export function AnchoringStrip() {
   return (

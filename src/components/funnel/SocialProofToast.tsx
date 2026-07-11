@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, X } from "lucide-react";
+import { CheckCircle2, X } from "@/icons";
 
 /**
  * SocialProofToast — auto-rotating "live activity" notifications.

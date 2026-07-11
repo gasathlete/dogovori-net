@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Bot, Scale, Play } from "lucide-react";
+import { Bot, Scale, Play } from "@/icons";
 import {
   MODEL_OPTIONS,
   LAWYER_MODELS,

@@ -9,7 +9,7 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import * as Icons from "lucide-react";
+import * as Icons from "@/icons";
 import {
   FileText,
   ArrowRight,
@@ -24,7 +24,7 @@ import {
   Wrench,
   User as UserIcon,
   Briefcase,
-} from "lucide-react";
+} from "@/icons";
 import { allTemplates, type TemplateEntry } from "@/lib/templateIndex";
 import { CALCULATORS } from "@/data/calculators";
 import { supabase } from "@/integrations/supabase/client";

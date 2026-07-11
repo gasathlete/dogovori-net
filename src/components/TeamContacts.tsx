@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Loader2, Plus, Trash2, Search, Upload, Pencil, X } from "lucide-react";
+import { Loader2, Plus, Trash2, Search, Upload, Pencil, X } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

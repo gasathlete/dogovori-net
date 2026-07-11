@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { PenSquare, Loader2, ExternalLink, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { PenSquare, Loader2, ExternalLink, CheckCircle2, Clock, XCircle } from "@/icons";
 import { cn } from "@/lib/utils";
 
 function statusBadge(status: string) {

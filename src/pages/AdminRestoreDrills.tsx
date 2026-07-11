@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AdminMFAGuard } from "@/components/admin/AdminMFAGuard";
-import { ArrowLeft, Loader2, Plus, DatabaseBackup, Save, PlayCircle } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, DatabaseBackup, Save, PlayCircle } from "@/icons";
 import { toast } from "sonner";
 
 interface Step { id: string; label: string; done: boolean; }

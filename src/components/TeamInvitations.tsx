@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, RefreshCw, X, Loader2, Inbox } from "lucide-react";
+import { Mail, RefreshCw, X, Loader2, Inbox } from "@/icons";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 

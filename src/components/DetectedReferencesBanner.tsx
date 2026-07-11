@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FileText, Upload, Wand2, Check } from "lucide-react";
+import { FileText, Upload, Wand2, Check } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { detectReferences, type DetectedReference } from "@/lib/documentReferences";
 import { listActiveChildren, type ActiveChildLink } from "@/lib/documentLinks";

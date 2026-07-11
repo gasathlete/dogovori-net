@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ShieldAlert, Loader2, ExternalLink, AlertTriangle, Info } from "lucide-react";
+import { ShieldAlert, Loader2, ExternalLink, AlertTriangle, Info } from "@/icons";
 import { cn } from "@/lib/utils";
 import { NegotiationStrategyPanel } from "@/components/NegotiationStrategyPanel";
 

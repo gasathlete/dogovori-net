@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Gift, Copy, Check, Share2, Sparkles } from "lucide-react";
+import { Gift, Copy, Check, Share2, Sparkles } from "@/icons";
 import { toast } from "sonner";
 
 /**

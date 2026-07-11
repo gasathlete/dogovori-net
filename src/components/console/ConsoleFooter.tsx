@@ -1,6 +1,6 @@
 import { useConsoleStore } from "@/hooks/useConsoleStore";
 import { useIsPro } from "@/hooks/useIsPro";
-import { Sparkles, Keyboard } from "lucide-react";
+import { Sparkles, Keyboard } from "@/icons";
 
 export function ConsoleFooter() {
   const { state } = useConsoleStore();

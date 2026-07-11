@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, FileSearch, Check, Trash2 } from "lucide-react";
+import { Loader2, FileSearch, Check, Trash2 } from "@/icons";
 import { anonymizePayload } from "@/lib/anonymize";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 

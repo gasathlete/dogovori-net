@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
-import { Check, ArrowRight, Sparkles } from "lucide-react";
+import { Check, ArrowRight, Sparkles } from "@/icons";
 import { useEngagement } from "@/hooks/useEngagement";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

@@ -3,7 +3,7 @@ import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { getPostBySlug, getRelatedPosts } from "@/lib/blog";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight } from "@/icons";
 import { BlogRatingAndComments } from "@/components/BlogRatingAndComments";
 import { autoLinkParagraph, createAutoLinkState, type AutoLinkState } from "@/lib/autoLinkBlog";
 

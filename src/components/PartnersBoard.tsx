@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PartnerSubmitDialog } from "./PartnerSubmitDialog";
-import { Handshake } from "lucide-react";
+import { Handshake } from "@/icons";
 
 type Partner = {
   id: string;

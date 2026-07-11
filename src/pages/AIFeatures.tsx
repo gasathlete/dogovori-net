@@ -28,7 +28,7 @@ import {
   Lock,
   ArrowRight,
   Map as MapIcon,
-} from "lucide-react";
+} from "@/icons";
 
 // Step + FAQ datasets live in src/lib/seo/schemas.ts so they can be reused by
 // the prerender script and unit-tested in CI.

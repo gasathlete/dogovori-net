@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Loader2, Share2, Copy, Check, Lock, Crown } from "lucide-react";
+import { Loader2, Share2, Copy, Check, Lock, Crown } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

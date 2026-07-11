@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Seo } from "@/components/Seo";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, Clock, Copy, Loader2, Download } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Copy, Loader2, Download } from "@/icons";
 import { toast } from "sonner";
 import { downloadSignedPdf } from "@/lib/signedPdfAssembler";
 

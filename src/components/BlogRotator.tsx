@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, BookOpen } from "lucide-react";
+import { ArrowRight, BookOpen } from "@/icons";
 import { ALL_POSTS } from "@/lib/blog";
 
 const ROTATE_MS = 10_000;

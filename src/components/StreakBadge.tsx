@@ -2,7 +2,7 @@
  * StreakBadge — компактен индикатор за дневен streak + прогрес.
  * Показва се в header (desktop) и около профил иконата в mobile nav.
  */
-import { Flame } from "lucide-react";
+import { Flame } from "@/icons";
 import { useEngagement } from "@/hooks/useEngagement";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";

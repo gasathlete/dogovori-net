@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Download, FileText, Info, Loader2 } from "lucide-react";
+import { ArrowLeft, Download, FileText, Info, Loader2 } from "@/icons";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";

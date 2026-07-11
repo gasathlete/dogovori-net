@@ -1,4 +1,4 @@
-import { Lock, Sparkles } from "lucide-react";
+import { Lock, Sparkles } from "@/icons";
 import { Button } from "@/components/ui/button";
 import type { ReactNode } from "react";
 

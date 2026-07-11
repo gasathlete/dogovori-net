@@ -4,7 +4,7 @@
  * one as a separate document.
  */
 
-import { FilePlus2, Paperclip } from "lucide-react";
+import { FilePlus2, Paperclip } from "@/icons";
 import { Button } from "@/components/ui/button";
 import type { AppendixReference } from "@/lib/detectAppendixReferences";
 

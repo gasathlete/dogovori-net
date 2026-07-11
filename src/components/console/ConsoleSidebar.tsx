@@ -14,7 +14,7 @@ import {
   ChevronRight,
   Bird,
   Package,
-} from "lucide-react";
+} from "@/icons";
 
 const ITEMS: { id: ConsoleSection; label: string; icon: any }[] = [
   { id: "assistant", label: "DogovaryAI", icon: Bird },

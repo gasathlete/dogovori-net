@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Flame } from "lucide-react";
+import { Flame } from "@/icons";
 import { supabase } from "@/integrations/supabase/client";
 
 /**

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
-import * as Icons from "lucide-react";
-import { ArrowRight, CheckCircle2, FileText, Loader2, Package, Play, Sparkles } from "lucide-react";
+import * as Icons from "@/icons";
+import { ArrowRight, CheckCircle2, FileText, Loader2, Package, Play, Sparkles } from "@/icons";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";

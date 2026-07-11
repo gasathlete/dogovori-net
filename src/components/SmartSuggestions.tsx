@@ -12,7 +12,7 @@ import {
   UserCheck,
   ArrowRight,
   type LucideIcon,
-} from "lucide-react";
+} from "@/icons";
 import { cn } from "@/lib/utils";
 
 interface SuggestionCard {

@@ -4,7 +4,7 @@
  */
 
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles } from "@/icons";
 import { useFreeJourneyStage } from "@/hooks/useFreeJourneyStage";
 import { ProUpgradeDialog } from "@/components/ProUpgradeDialog";
 import { trackEvent } from "@/lib/analytics";

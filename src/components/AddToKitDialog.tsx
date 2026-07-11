@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Package, Plus } from "lucide-react";
+import { Loader2, Package, Plus } from "@/icons";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

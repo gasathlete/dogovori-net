@@ -1,5 +1,5 @@
 import { LegalLayout } from "./LegalLayout";
-import { Mail, Shield, AlertTriangle, Building2, MessageSquare, Scale } from "lucide-react";
+import { Mail, Shield, AlertTriangle, Building2, MessageSquare, Scale } from "@/icons";
 
 const EMAIL = "imdevelopmentoffice@gmail.com";
 const COMPANY = "„Иванов и Милев Пропърти Девелъпмент“ ЕООД";

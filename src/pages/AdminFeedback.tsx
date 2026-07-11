@@ -10,7 +10,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Star, MessageSquare } from "lucide-react";
+import { ArrowLeft, Loader2, Star, MessageSquare } from "@/icons";
 
 type Row = {
   id: string;

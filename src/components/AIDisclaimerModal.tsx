@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bird, X } from "lucide-react";
+import { Bird, X } from "@/icons";
 import { Checkbox } from "@/components/ui/checkbox";
 import { recordConsents } from "@/lib/consents";
 import { hasAIDisclaimerSession, setAIDisclaimerSession } from "@/lib/aiDisclaimerGate";

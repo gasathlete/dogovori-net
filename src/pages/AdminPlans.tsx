@@ -4,7 +4,7 @@
  * "АКТУАЛНИ ПЛАНОВЕ И ЦЕНИ (auto)" section in every active AI prompt.
  */
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Save, Trash2, ArrowLeft } from "lucide-react";
+import { Loader2, Plus, Save, Trash2, ArrowLeft } from "@/icons";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";

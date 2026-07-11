@@ -2,7 +2,7 @@
 // Tiers are computed purely from the user's lifetime op count; unlocked tiers
 // stay unlocked. Add new tiers here — UI and checkout pick them up automatically.
 
-import { Crown, Gem, Trophy, Sparkles, type LucideIcon } from "lucide-react";
+import { Crown, Gem, Trophy, Sparkles, type LucideIcon } from "@/icons";
 
 export type RewardTier = {
   id: string;

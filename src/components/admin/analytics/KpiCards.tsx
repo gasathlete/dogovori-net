@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Eye, MousePointerClick, Clock } from "lucide-react";
+import { Users, Eye, MousePointerClick, Clock } from "@/icons";
 
 export type Kpis = { visitors: number; pageviews: number; bounce_rate: number; avg_duration_ms: number };
 

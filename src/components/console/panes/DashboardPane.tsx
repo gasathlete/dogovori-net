@@ -17,7 +17,7 @@ import {
   ScrollText,
   Shield,
   UploadCloud,
-} from "lucide-react";
+} from "@/icons";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 

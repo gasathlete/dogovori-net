@@ -21,7 +21,7 @@ import {
   Share2,
   ListChecks,
   PenLine,
-} from "lucide-react";
+} from "@/icons";
 
 type FeatureSlide = {
   id: string;
