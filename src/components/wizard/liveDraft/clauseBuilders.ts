@@ -9,10 +9,40 @@ export type Clause = { roman: string; title: string; body: string };
 export function renderPartyIdentifier(type?: string): string {
   if (!type) return "";
   const t = type.toLowerCase();
-  if (t.includes("физическо")) return ", ЕГН [........]";
+  if (t.includes("физическо") || t === "фл") return ", ЕГН [........]";
   if (t.includes("ет") || t.includes("самоосигуряващо")) return ", ЕИК [........], представляван от [МОЛ]";
-  if (t.includes("юридическо")) return ", ЕИК/Булстат [........], представлявано от [МОЛ], ДДС № [........]";
+  if (t.includes("юридическо") || t === "юл") return ", ЕИК/Булстат [........], представлявано от [МОЛ], ДДС № [........]";
   return ` — ${type}`;
+}
+
+/**
+ * Кратък маркер за типа (ФЛ/ЮЛ/ЕТ) — показва се до името на страната в
+ * заглавния ред „1. [Заемодател] (ФЛ), ЕГН …". Помага на потребителя веднага
+ * да види избора си, преди да е готов финалният документ.
+ */
+export function renderPartyTypeBadge(type?: string): string {
+  if (!type) return "";
+  const t = type.toLowerCase().trim();
+  if (t === "фл" || t.includes("физическо")) return " (ФЛ)";
+  if (t === "ет" || t.includes("самоосигуряващо")) return " (ЕТ)";
+  if (t === "юл" || t.includes("юридическо")) return " (ЮЛ)";
+  return "";
+}
+
+/**
+ * Разбива стойност от поле `party_a_extra` / `party_b_extra` на списък от
+ * типове. Поддържа стария формат „Име | Тип" (взима само последната част) и
+ * новия — само тип на ред.
+ */
+export function parseExtraPartyTypes(raw: string | undefined | null): string[] {
+  if (!raw) return [];
+  return raw
+    .split("\n")
+    .map((line) => {
+      const parts = line.split("|").map((s) => s.trim());
+      return parts[parts.length - 1] || "";
+    })
+    .filter((t) => t.length > 0);
 }
 
 export const CURRENCY = "€";

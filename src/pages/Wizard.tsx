@@ -28,6 +28,7 @@ import { ensureAIDisclaimerAccepted } from "@/lib/aiDisclaimerGate";
 import { recordConsents } from "@/lib/consents";
 import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhilishte";
 import { adaptGraphToWizardQuestions } from "@/data/questionGraphs/adapter";
+import { parseExtraPartyTypes } from "@/components/wizard/liveDraft/clauseBuilders";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -345,21 +346,13 @@ export default function WizardPage() {
     try {
       // Изграждаме списък със страни само по РОЛЯ и ФОРМА — без имена / ЕГН / лични данни.
       // Имената се попълват от потребителя офлайн в готовия документ (placeholder-и).
-      const parseExtraTypes = (raw: string): string[] =>
-        (raw || "")
-          .split("\n")
-          .map((line) => {
-            const parts = line.split("|").map((s) => s.trim());
-            return parts[parts.length - 1] || "";
-          })
-          .filter((t) => t.length > 0);
       const roleA = sector.parties?.a || "СТРАНА А";
       const roleB = sector.parties?.b || "СТРАНА Б";
       const partiesArr = [
         { role: roleA, name: "", type: answers.party_a_type },
         { role: roleB, name: "", type: answers.party_b_type },
-        ...parseExtraTypes(answers.party_a_extra || "").map((type) => ({ role: roleA, name: "", type })),
-        ...parseExtraTypes(answers.party_b_extra || "").map((type) => ({ role: roleB, name: "", type })),
+        ...parseExtraPartyTypes(answers.party_a_extra).map((type) => ({ role: roleA, name: "", type })),
+        ...parseExtraPartyTypes(answers.party_b_extra).map((type) => ({ role: roleB, name: "", type })),
       ].filter((p) => !!p.type);
 
       const sigPayload: SignatureInfo = {

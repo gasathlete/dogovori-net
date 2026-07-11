@@ -21,6 +21,8 @@ import { buildTypeSkeleton, isOneSidedType } from "@/lib/typeSkeletons";
 import {
   type Clause,
   renderPartyIdentifier,
+  renderPartyTypeBadge,
+  parseExtraPartyTypes,
   CURRENCY,
   BASE_CLOSING,
   buildGenericClauses,
@@ -447,6 +449,10 @@ function TemplateDraftOrSkeleton({
 }) {
   const [draftRaw, setDraftRaw] = useState<string | null>(null);
   const [resolved, setResolved] = useState(false);
+  // Реактивни списъци с типовете на допълнителните страни — LiveDraft ги
+  // пре-рендерира на всяка промяна в +Add селектите за ФЛ/ЮЛ/ЕТ.
+  const extraAtypes = parseExtraPartyTypes(answers.party_a_extra);
+  const extraBtypes = parseExtraPartyTypes(answers.party_b_extra);
 
   useEffect(() => {
     let cancelled = false;
@@ -626,15 +632,27 @@ function TemplateDraftOrSkeleton({
           <div className="space-y-3 text-sm leading-relaxed">
             <p>Днес, [ДАТА], в гр. [ГРАД], между:</p>
             <p>
-              <strong>1. {partyA}</strong>
+              <strong>1. {partyA}{renderPartyTypeBadge(answers.party_a_type)}</strong>
               {renderPartyIdentifier(answers.party_a_type)}, наричан по-долу „
               <em>{sector.parties.a}</em>", и
             </p>
+            {extraAtypes.map((t, i) => (
+              <p key={`a-extra-${i}`}>
+                <strong>1.{i + 2} [{sector.parties.a}]{renderPartyTypeBadge(t)}</strong>
+                {renderPartyIdentifier(t)}, наричан по-долу „<em>{sector.parties.a}</em>", и
+              </p>
+            ))}
             <p>
-              <strong>2. {partyB}</strong>
+              <strong>2. {partyB}{renderPartyTypeBadge(answers.party_b_type)}</strong>
               {renderPartyIdentifier(answers.party_b_type)}, наричан по-долу „
               <em>{sector.parties.b}</em>",
             </p>
+            {extraBtypes.map((t, i) => (
+              <p key={`b-extra-${i}`}>
+                <strong>2.{i + 2} [{sector.parties.b}]{renderPartyTypeBadge(t)}</strong>
+                {renderPartyIdentifier(t)}, наричан по-долу „<em>{sector.parties.b}</em>",
+              </p>
+            ))}
             <p>се сключи настоящият документ за следното:</p>
           </div>
           <div className="legal-paper-strong space-y-3 text-sm italic leading-relaxed md:border-l md:pl-6">
@@ -690,15 +708,27 @@ function TemplateDraftOrSkeleton({
           Днес, [ДАТА], в гр. [ГРАД], между:
         </p>
         <p className="mt-3 text-sm leading-relaxed">
-          <strong>1. {partyA}</strong>
+          <strong>1. {partyA}{renderPartyTypeBadge(answers.party_a_type)}</strong>
           {renderPartyIdentifier(answers.party_a_type)}, наричан по-долу „
           <em>{sector.parties.a}</em>", и
         </p>
+        {extraAtypes.map((t, i) => (
+          <p key={`a-extra-${i}`} className="mt-2 text-sm leading-relaxed">
+            <strong>1.{i + 2} [{sector.parties.a}]{renderPartyTypeBadge(t)}</strong>
+            {renderPartyIdentifier(t)}, наричан по-долу „<em>{sector.parties.a}</em>", и
+          </p>
+        ))}
         <p className="mt-2 text-sm leading-relaxed">
-          <strong>2. {partyB}</strong>
+          <strong>2. {partyB}{renderPartyTypeBadge(answers.party_b_type)}</strong>
           {renderPartyIdentifier(answers.party_b_type)}, наричан по-долу „
           <em>{sector.parties.b}</em>",
         </p>
+        {extraBtypes.map((t, i) => (
+          <p key={`b-extra-${i}`} className="mt-2 text-sm leading-relaxed">
+            <strong>2.{i + 2} [{sector.parties.b}]{renderPartyTypeBadge(t)}</strong>
+            {renderPartyIdentifier(t)}, наричан по-долу „<em>{sector.parties.b}</em>",
+          </p>
+        ))}
         <p className="mt-3 text-sm leading-relaxed">
           се сключи настоящият документ за следното:
         </p>
