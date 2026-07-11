@@ -4316,6 +4316,15 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      submit_wizard_feedback: {
+        Args: {
+          _body: string
+          _rating: number
+          _source_context?: Json
+          _subject?: string
+        }
+        Returns: Json
+      }
       sync_plans_into_prompts: { Args: never; Returns: undefined }
       unaccent: { Args: { "": string }; Returns: string }
       unaccent_or_lower: { Args: { _t: string }; Returns: string }
