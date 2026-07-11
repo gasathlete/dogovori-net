@@ -65,12 +65,23 @@ serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { token, signer_name, signature_data_url, password } = body as {
+    const {
+      token, signer_name, signature_data_url, password,
+      signature_method,
+      qes_file_base64, qes_file_name, qes_file_mime,
+    } = body as {
       token?: string;
       signer_name?: string;
       signature_data_url?: string;
       password?: string;
+      signature_method?: "drawn" | "uploaded" | "qes";
+      qes_file_base64?: string;
+      qes_file_name?: string;
+      qes_file_mime?: string;
     };
+    const method: "drawn" | "uploaded" | "qes" =
+      signature_method === "uploaded" || signature_method === "qes" ? signature_method : "drawn";
+
     // SECURITY: only allow PNG/JPEG raster signatures. Reject SVG (XSS via inline
     // <script>/<foreignObject>) and other vector/exotic formats.
     const SIG_RE = /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/;
@@ -100,6 +111,13 @@ serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    if (method === "qes" && (!qes_file_base64 || qes_file_base64.length > 22_000_000)) {
+      return new Response(JSON.stringify({ error: "invalid_qes_file" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
 
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -185,6 +203,31 @@ serve(async (req) => {
       }
     }
 
+    // Upload QES file to private bucket if provided.
+    let qesPath: string | null = null;
+    let qesSize: number | null = null;
+    if (method === "qes" && qes_file_base64) {
+      try {
+        const bytes = Uint8Array.from(atob(qes_file_base64), (c) => c.charCodeAt(0));
+        qesSize = bytes.byteLength;
+        const safeName = (qes_file_name || "signature.bin").replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 80);
+        qesPath = `${link.owner_id}/qes/${link.id}-${Date.now()}-${safeName}`;
+        const { error: upQesErr } = await admin.storage
+          .from("qes-signatures")
+          .upload(qesPath, bytes, {
+            contentType: qes_file_mime || "application/octet-stream",
+            upsert: false,
+          });
+        if (upQesErr) {
+          console.error("qes upload failed", upQesErr);
+          qesPath = null;
+          qesSize = null;
+        }
+      } catch (err) {
+        console.error("qes decode failed", err);
+      }
+    }
+
     const { error: upErr } = await admin
       .from("shared_links")
       .update({
@@ -193,8 +236,14 @@ serve(async (req) => {
         signer_name: cleanName,
         signer_ip_hash: ipHash,
         signed_pdf_path: signedPdfPath,
+        signature_method: method,
+        qes_file_path: qesPath,
+        qes_file_name: qesPath ? (qes_file_name ?? null) : null,
+        qes_file_mime: qesPath ? (qes_file_mime ?? null) : null,
+        qes_file_size: qesSize,
       })
       .eq("id", link.id);
+
 
     if (upErr) {
       return new Response(JSON.stringify({ error: upErr.message }), {

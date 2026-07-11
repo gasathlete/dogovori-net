@@ -2726,7 +2726,12 @@ export type Database = {
           owner_signer_name: string | null
           password_hash: string | null
           password_salt: string | null
+          qes_file_mime: string | null
+          qes_file_name: string | null
+          qes_file_path: string | null
+          qes_file_size: number | null
           revoked_at: string | null
+          signature_method: string | null
           signed_at: string | null
           signed_pdf_path: string | null
           signed_signature: string | null
@@ -2747,7 +2752,12 @@ export type Database = {
           owner_signer_name?: string | null
           password_hash?: string | null
           password_salt?: string | null
+          qes_file_mime?: string | null
+          qes_file_name?: string | null
+          qes_file_path?: string | null
+          qes_file_size?: number | null
           revoked_at?: string | null
+          signature_method?: string | null
           signed_at?: string | null
           signed_pdf_path?: string | null
           signed_signature?: string | null
@@ -2768,7 +2778,12 @@ export type Database = {
           owner_signer_name?: string | null
           password_hash?: string | null
           password_salt?: string | null
+          qes_file_mime?: string | null
+          qes_file_name?: string | null
+          qes_file_path?: string | null
+          qes_file_size?: number | null
           revoked_at?: string | null
+          signature_method?: string | null
           signed_at?: string | null
           signed_pdf_path?: string | null
           signed_signature?: string | null

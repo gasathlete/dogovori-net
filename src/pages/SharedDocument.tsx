@@ -121,6 +121,9 @@ export default function SharedDocument() {
   const [signing, setSigning] = useState(false);
   const [signerName, setSignerName] = useState("");
   const [signatureDataUrl, setSignatureDataUrl] = useState("");
+  const [sigMethod, setSigMethod] = useState<"drawn" | "uploaded" | "qes">("drawn");
+  const [qesFile, setQesFile] = useState<File | null>(null);
+  const [qesFileBase64, setQesFileBase64] = useState<string | null>(null);
   const [needsPassword, setNeedsPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [verifying, setVerifying] = useState(false);
@@ -179,13 +182,49 @@ export default function SharedDocument() {
     setVerifying(false);
   };
 
+  const makeQesPlaceholderPng = (text: string): string => {
+    const c = document.createElement("canvas");
+    c.width = 600; c.height = 200;
+    const ctx = c.getContext("2d")!;
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.strokeStyle = "#0a0a1a"; ctx.lineWidth = 2;
+    ctx.strokeRect(6, 6, c.width - 12, c.height - 12);
+    ctx.fillStyle = "#0a0a1a";
+    ctx.font = "bold 22px serif";
+    ctx.fillText("Подписано с КЕП (QES)", 20, 50);
+    ctx.font = "16px serif";
+    ctx.fillText(text.slice(0, 60), 20, 90);
+    ctx.font = "14px serif";
+    ctx.fillText(new Date().toLocaleString("bg-BG"), 20, 130);
+    ctx.fillText("Файлът е приложен към заявката.", 20, 160);
+    return c.toDataURL("image/png");
+  };
+
+  const onQesFileChange = async (f: File | null) => {
+    setQesFile(f);
+    setQesFileBase64(null);
+    setSignatureDataUrl("");
+    if (!f) return;
+    if (f.size > 15 * 1024 * 1024) { toast.error("Файлът е твърде голям (макс 15MB)"); return; }
+    const buf = await f.arrayBuffer();
+    let bin = "";
+    const bytes = new Uint8Array(buf);
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    setQesFileBase64(btoa(bin));
+    setSignatureDataUrl(makeQesPlaceholderPng(`${f.name}`));
+  };
+
   const handleSign = async () => {
     if (!signerName.trim()) {
       toast.error("Въведете името си");
       return;
     }
+    if (sigMethod === "qes" && (!qesFile || !qesFileBase64)) {
+      toast.error("Прикачете подписания файл с КЕП");
+      return;
+    }
     if (!signatureDataUrl) {
-      toast.error("Подпишете в полето");
+      toast.error(sigMethod === "uploaded" ? "Качете изображение с подпис" : "Подпишете в полето");
       return;
     }
     setSigning(true);
@@ -195,6 +234,10 @@ export default function SharedDocument() {
           token,
           signer_name: signerName.trim(),
           signature_data_url: signatureDataUrl,
+          signature_method: sigMethod,
+          qes_file_base64: sigMethod === "qes" ? qesFileBase64 : null,
+          qes_file_name: sigMethod === "qes" ? qesFile?.name : null,
+          qes_file_mime: sigMethod === "qes" ? (qesFile?.type || "application/octet-stream") : null,
           ...(password ? { password } : {}),
         },
       });
@@ -208,6 +251,7 @@ export default function SharedDocument() {
       setSigning(false);
     }
   };
+
 
   if (loading) {
     return (
@@ -342,7 +386,76 @@ export default function SharedDocument() {
                 <Input id="signer" value={signerName} maxLength={120}
                   onChange={(e) => setSignerName(e.target.value)} placeholder="Иван Иванов Иванов" />
               </div>
-              <SignaturePad onCapture={setSignatureDataUrl} />
+              <div className="space-y-2">
+                <Label>Метод на подпис</Label>
+                <div className="grid grid-cols-3 gap-1 rounded-md border border-border/60 bg-muted/40 p-1 text-xs">
+                  {([
+                    { k: "drawn", l: "Начертай" },
+                    { k: "uploaded", l: "Качи изображение" },
+                    { k: "qes", l: "КЕП / QES файл" },
+                  ] as const).map((o) => (
+                    <button
+                      key={o.k}
+                      type="button"
+                      onClick={() => {
+                        setSigMethod(o.k);
+                        setSignatureDataUrl("");
+                        setQesFile(null);
+                        setQesFileBase64(null);
+                      }}
+                      className={`px-2 py-1.5 rounded ${sigMethod === o.k ? "bg-background shadow-sm font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {o.l}
+                    </button>
+                  ))}
+                </div>
+
+                {sigMethod === "drawn" && <SignaturePad onCapture={setSignatureDataUrl} />}
+
+                {sigMethod === "uploaded" && (
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) { setSignatureDataUrl(""); return; }
+                        if (f.size > 1_000_000) { toast.error("Изображението е твърде голямо (макс 1MB)"); return; }
+                        const r = new FileReader();
+                        r.onload = () => setSignatureDataUrl(String(r.result));
+                        r.readAsDataURL(f);
+                      }}
+                      className="block w-full text-xs"
+                    />
+                    {signatureDataUrl && (
+                      <img src={signatureDataUrl} alt="Качен подпис" className="max-h-32 border rounded bg-white p-2" />
+                    )}
+                    <p className="text-[11px] text-muted-foreground">
+                      Приемат се PNG / JPEG. Препоръчително — прозрачен фон, черно мастило.
+                    </p>
+                  </div>
+                )}
+
+                {sigMethod === "qes" && (
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      accept=".pdf,.p7s,.p7m,.asice,.asics,.sce,.scs,.xml"
+                      onChange={(e) => onQesFileChange(e.target.files?.[0] ?? null)}
+                      className="block w-full text-xs"
+                    />
+                    {qesFile && (
+                      <div className="text-xs text-muted-foreground">
+                        Прикачен: <span className="font-medium text-foreground">{qesFile.name}</span> ({Math.round(qesFile.size / 1024)} KB)
+                      </div>
+                    )}
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Подпишете документа с Вашия КЕП (Borica, Evrotrust, InfoNotary, StampIT и др.)
+                      във външно приложение и качете подписания файл. Файлът се пази като доказателство.
+                    </p>
+                  </div>
+                )}
+              </div>
               <Button onClick={handleSign} disabled={signing} className="bg-gradient-gold text-navy">
                 {signing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PenTool className="mr-2 h-4 w-4" />}
                 Подпиши документа
