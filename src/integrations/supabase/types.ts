@@ -2850,6 +2850,10 @@ export type Database = {
           otp_attempts: number
           otp_code_hash: string | null
           otp_expires_at: string | null
+          qes_file_mime: string | null
+          qes_file_name: string | null
+          qes_file_path: string | null
+          qes_file_size: number | null
           representative_declaration: boolean
           request_id: string
           role: string | null
@@ -2857,6 +2861,7 @@ export type Database = {
           ses_equivalence_text_version: string | null
           sign_token: string
           signature_data_url: string | null
+          signature_method: string
           signature_name: string | null
           signed_at: string | null
           signer_capacity: string | null
@@ -2880,6 +2885,10 @@ export type Database = {
           otp_attempts?: number
           otp_code_hash?: string | null
           otp_expires_at?: string | null
+          qes_file_mime?: string | null
+          qes_file_name?: string | null
+          qes_file_path?: string | null
+          qes_file_size?: number | null
           representative_declaration?: boolean
           request_id: string
           role?: string | null
@@ -2887,6 +2896,7 @@ export type Database = {
           ses_equivalence_text_version?: string | null
           sign_token: string
           signature_data_url?: string | null
+          signature_method?: string
           signature_name?: string | null
           signed_at?: string | null
           signer_capacity?: string | null
@@ -2910,6 +2920,10 @@ export type Database = {
           otp_attempts?: number
           otp_code_hash?: string | null
           otp_expires_at?: string | null
+          qes_file_mime?: string | null
+          qes_file_name?: string | null
+          qes_file_path?: string | null
+          qes_file_size?: number | null
           representative_declaration?: boolean
           request_id?: string
           role?: string | null
@@ -2917,6 +2931,7 @@ export type Database = {
           ses_equivalence_text_version?: string | null
           sign_token?: string
           signature_data_url?: string | null
+          signature_method?: string
           signature_name?: string | null
           signed_at?: string | null
           signer_capacity?: string | null

@@ -145,6 +145,10 @@ serve(async (req) => {
         eik,
         signer_capacity,
         representative_declaration_accepted,
+        signature_method,
+        qes_file_base64,
+        qes_file_name,
+        qes_file_mime,
       } = body as {
         signature_data_url?: string; signer_name?: string; otp_code?: string;
         ses_equivalence_accepted?: boolean;
@@ -152,14 +156,26 @@ serve(async (req) => {
         eik?: string | null;
         signer_capacity?: string | null;
         representative_declaration_accepted?: boolean;
+        signature_method?: "drawn" | "uploaded" | "qes";
+        qes_file_base64?: string;
+        qes_file_name?: string;
+        qes_file_mime?: string;
       };
+      const method: "drawn" | "uploaded" | "qes" =
+        signature_method === "uploaded" || signature_method === "qes" ? signature_method : "drawn";
+
       const SIG_RE = /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/;
-      if (!signature_data_url || !SIG_RE.test(signature_data_url) || !signer_name?.trim()) {
+      if (!signer_name?.trim()) {
         return new Response(JSON.stringify({ error: "invalid_signature" }), {
           status: 400, headers: { ...cors, "Content-Type": "application/json" },
         });
       }
-      if (signature_data_url.length > 500_000) {
+      if (!signature_data_url || !SIG_RE.test(signature_data_url)) {
+        return new Response(JSON.stringify({ error: "invalid_signature" }), {
+          status: 400, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      if (signature_data_url.length > 1_500_000) {
         return new Response(JSON.stringify({ error: "signature_too_large" }), {
           status: 413, headers: { ...cors, "Content-Type": "application/json" },
         });
@@ -182,6 +198,54 @@ serve(async (req) => {
           });
         }
       }
+
+      // QES upload — validate & store the qualified signature file (server-side)
+      let qesPath: string | null = null;
+      let qesSize: number | null = null;
+      let qesCleanName: string | null = null;
+      let qesCleanMime: string | null = null;
+      if (method === "qes") {
+        if (!qes_file_base64 || !qes_file_name) {
+          return new Response(JSON.stringify({ error: "qes_file_required" }), {
+            status: 400, headers: { ...cors, "Content-Type": "application/json" },
+          });
+        }
+        const ALLOWED_EXT = /\.(pdf|p7s|p7m|asice|asics|sce|scs|xml)$/i;
+        if (!ALLOWED_EXT.test(qes_file_name)) {
+          return new Response(JSON.stringify({ error: "qes_file_type" }), {
+            status: 400, headers: { ...cors, "Content-Type": "application/json" },
+          });
+        }
+        let bytes: Uint8Array;
+        try {
+          const bin = atob(qes_file_base64);
+          bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        } catch {
+          return new Response(JSON.stringify({ error: "qes_file_invalid" }), {
+            status: 400, headers: { ...cors, "Content-Type": "application/json" },
+          });
+        }
+        if (bytes.byteLength > 15 * 1024 * 1024) {
+          return new Response(JSON.stringify({ error: "qes_file_too_large" }), {
+            status: 413, headers: { ...cors, "Content-Type": "application/json" },
+          });
+        }
+        qesCleanName = qes_file_name.replace(/[^\w.\-]+/g, "_").slice(0, 160);
+        qesCleanMime = (qes_file_mime ?? "application/octet-stream").slice(0, 100);
+        qesSize = bytes.byteLength;
+        const objectPath = `${env.id}/${signer.id}/${Date.now()}_${qesCleanName}`;
+        const up = await admin.storage.from("qes-signatures").upload(objectPath, bytes, {
+          contentType: qesCleanMime, upsert: false,
+        });
+        if (up.error) {
+          return new Response(JSON.stringify({ error: "qes_upload_failed" }), {
+            status: 500, headers: { ...cors, "Content-Type": "application/json" },
+          });
+        }
+        qesPath = objectPath;
+      }
+
       // OTP must be verified within this call (or skip if there isn't one yet — strict mode)
       if (!signer.otp_code_hash) {
         return new Response(JSON.stringify({ error: "otp_required" }), {
@@ -201,6 +265,11 @@ serve(async (req) => {
         signed_at: now,
         signature_data_url,
         signature_name: cleanName,
+        signature_method: method,
+        qes_file_path: qesPath,
+        qes_file_name: qesCleanName,
+        qes_file_size: qesSize,
+        qes_file_mime: qesCleanMime,
         signer_ip_hash: ipHash,
         signer_user_agent: ua,
         ses_equivalence_accepted: true,
@@ -214,8 +283,10 @@ serve(async (req) => {
 
       await admin.from("signing_audit_events").insert({
         request_id: env.id, signer_id: signer.id, event_type: "signed",
-        ip_hash: ipHash, user_agent: ua, metadata: { signer_name: cleanName },
+        ip_hash: ipHash, user_agent: ua,
+        metadata: { signer_name: cleanName, signature_method: method, qes_file_name: qesCleanName },
       });
+
 
       // Update envelope status
       const { data: allSigners } = await admin.from("signing_request_signers")
