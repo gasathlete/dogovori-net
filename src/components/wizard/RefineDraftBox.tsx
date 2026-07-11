@@ -36,6 +36,7 @@ export function RefineDraftBox({
   const [busy, setBusy] = useState(false);
   const [lastSummary, setLastSummary] = useState<string | null>(null);
   const [lastChanged, setLastChanged] = useState<string[]>([]);
+  const [expanded, setExpanded] = useState(false);
 
   const submit = async () => {
     const text = feedback.trim();
