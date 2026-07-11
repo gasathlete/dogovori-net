@@ -1029,6 +1029,18 @@ export default function WizardPage() {
             {(() => {
               const draft = (
                 <LiveDraft
+                  sector={sector}
+                  answers={answers}
+                  generated={result?.contract}
+                  signature={result ? signature : undefined}
+                  isPro={isPro}
+                  docName={docName}
+                  bilingual={bilingualMode}
+                  onContractChange={(next) => {
+                    if (!result) return;
+                    setResult({ ...result, contract: { ...result.contract, ...next } });
+                    setSavedDocId(undefined);
+                  }}
                   onDownloadBlank={handleDownloadBlank}
                 />
               );
