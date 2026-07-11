@@ -69,8 +69,37 @@ export default function Sign() {
     if (data?.ok) { setOtpSent(true); setDebugCode(data.debug_code); toast.success("Код за потвърждение е изпратен на имейла"); }
     else toast.error(data?.error ?? "Грешка");
   }
+  function makeQesPlaceholderPng(text: string): string {
+    const c = document.createElement("canvas");
+    c.width = 600; c.height = 200;
+    const ctx = c.getContext("2d")!;
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.strokeStyle = "#0a0a1a"; ctx.lineWidth = 2;
+    ctx.strokeRect(6, 6, c.width - 12, c.height - 12);
+    ctx.fillStyle = "#0a0a1a";
+    ctx.font = "bold 22px serif";
+    ctx.fillText("Подписано с КЕП (QES)", 20, 50);
+    ctx.font = "16px serif";
+    ctx.fillText(text.slice(0, 60), 20, 90);
+    ctx.font = "14px serif";
+    ctx.fillText(new Date().toLocaleString("bg-BG"), 20, 130);
+    ctx.fillText("Файлът е приложен към заявката.", 20, 160);
+    return c.toDataURL("image/png");
+  }
+
+  async function onQesFileChange(f: File | null) {
+    setQesFile(f);
+    setQesFileBase64(null);
+    if (!f) return;
+    if (f.size > 15 * 1024 * 1024) { toast.error("Файлът е твърде голям (макс 15MB)"); return; }
+    const buf = await f.arrayBuffer();
+    let bin = "";
+    const bytes = new Uint8Array(buf);
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    setQesFileBase64(btoa(bin));
+  }
+
   async function doSign() {
-    if (!signature) { toast.error("Моля, подпишете"); return; }
     if (!name.trim()) { toast.error("Моля, въведете име"); return; }
     if (!otpCode.trim()) { toast.error("Въведете кода от имейла"); return; }
     if (!sesAccepted) { toast.error("Моля, потвърдете правната сила на електронния подпис"); return; }
@@ -81,22 +110,36 @@ export default function Sign() {
       if (!signerCapacity.trim()) { toast.error("Посочете качеството, в което подписвате"); return; }
       if (!repDeclaration) { toast.error("Декларирайте представителната власт"); return; }
     }
+
+    let sigDataUrl = signature;
+    if (sigMethod === "qes") {
+      if (!qesFile || !qesFileBase64) { toast.error("Прикачете подписания файл с КЕП"); return; }
+      sigDataUrl = makeQesPlaceholderPng(`${name.trim()} — ${qesFile.name}`);
+    } else {
+      if (!sigDataUrl) { toast.error(sigMethod === "uploaded" ? "Качете изображение с подпис" : "Моля, подпишете"); return; }
+    }
+
     setBusy(true);
     const { data } = await supabase.functions.invoke("signer-action", {
       body: {
         token, action: "sign",
-        signature_data_url: signature, signer_name: name, otp_code: otpCode,
+        signature_data_url: sigDataUrl, signer_name: name, otp_code: otpCode,
         ses_equivalence_accepted: sesAccepted,
         signs_as_legal_entity: signsAsEntity,
         eik: signsAsEntity ? eik.trim() : null,
         signer_capacity: signsAsEntity ? signerCapacity.trim() : null,
         representative_declaration_accepted: signsAsEntity ? repDeclaration : false,
+        signature_method: sigMethod,
+        qes_file_base64: sigMethod === "qes" ? qesFileBase64 : null,
+        qes_file_name: sigMethod === "qes" ? qesFile?.name : null,
+        qes_file_mime: sigMethod === "qes" ? (qesFile?.type || "application/octet-stream") : null,
       },
     });
     setBusy(false);
     if (data?.ok) { toast.success("Подписано успешно"); load(); }
     else toast.error(data?.error ?? "Грешка");
   }
+
   async function doDecline() {
     setBusy(true);
     const { data } = await supabase.functions.invoke("signer-action", {
