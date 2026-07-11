@@ -1013,21 +1013,22 @@ export default function WizardPage() {
                 <span className="text-xs text-muted-foreground">Актуализация в реално време</span>
               )}
             </div>
-            {(() => {
-              const draft = (
-                <LiveDraft
-                  sector={sector}
+            {result?.contract && (
+              <div className="mb-4">
+                <RefineDraftBox
+                  contract={result.contract}
                   answers={answers}
-                  generated={result?.contract}
-                  signature={result ? signature : undefined}
-                  isPro={isPro}
-                  docName={docName}
-                  bilingual={bilingualMode}
-                  onContractChange={(next) => {
-                    if (!result) return;
+                  onRefined={(next) => {
                     setResult({ ...result, contract: { ...result.contract, ...next } });
                     setSavedDocId(undefined);
                   }}
+                  onNeedAuth={() => goAuth()}
+                />
+              </div>
+            )}
+            {(() => {
+              const draft = (
+                <LiveDraft
                   onDownloadBlank={handleDownloadBlank}
                 />
               );
