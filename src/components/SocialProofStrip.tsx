@@ -1,37 +1,32 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 type Partner = { id: string; name: string; logo_url: string; website_url?: string | null };
 
+async function fetchApprovedPartners(): Promise<Partner[]> {
+  const { data } = await supabase
+    .from("partners")
+    .select("id,name,logo_url,website_url")
+    .eq("status", "approved")
+    .order("display_order", { ascending: false })
+    .limit(24);
+  const seen = new Set<string>();
+  return ((data as Partner[]) ?? []).filter((p) => {
+    const key = `${(p.name || "").trim().toLowerCase()}|${p.logo_url}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function SocialProofStrip() {
-  const [partners, setPartners] = useState<Partner[]>([]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase
-        .from("partners")
-        .select("id,name,logo_url,website_url")
-        .eq("status", "approved")
-        .order("display_order", { ascending: false })
-        .limit(24);
-      if (!cancelled) {
-        // Dedup by normalized name + logo to prevent visible duplicates.
-        const seen = new Set<string>();
-        const unique = ((data as Partner[]) ?? []).filter((p) => {
-          const key = `${(p.name || "").trim().toLowerCase()}|${p.logo_url}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-        setPartners(unique);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
+  // Public, near-static list. Cache aggressively — same data for every visitor.
+  const { data: partners = [] } = useQuery({
+    queryKey: ["public-partners"],
+    queryFn: fetchApprovedPartners,
+    staleTime: 30 * 60_000,
+    gcTime: 60 * 60_000,
+  });
 
   // Duplicate the list so the marquee loops seamlessly.
   const loop = partners.length > 0 ? [...partners, ...partners] : [];
