@@ -152,6 +152,173 @@ export default function AdminPerf() {
           </table>
         </div>
       </section>
+
+      <LoadtestHistorySection />
     </div>
   );
 }
+
+// -----------------------------------------------------------------------------
+// Load-test history
+// -----------------------------------------------------------------------------
+
+type LoadtestRun = {
+  ts: number;
+  label: string;
+  vus: number;
+  duration_ms: number;
+  http_reqs: number;
+  http_req_failed_rate: number;
+  http_req_duration_p95: number;
+  http_req_duration_avg: number;
+  notes?: string;
+};
+
+const LOADTEST_KEY = "dogovori:loadtest-history";
+
+function readLoadtestHistory(): LoadtestRun[] {
+  try {
+    const arr = JSON.parse(localStorage.getItem(LOADTEST_KEY) || "[]");
+    if (!Array.isArray(arr)) return [];
+    return arr as LoadtestRun[];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Local-storage backed history of k6 load-test runs. Paste the JSON that
+ * `k6 run --summary-export=... scripts/loadtest/mixed.k6.js` produces (or the
+ * minimal shape above) and it renders as a comparable timeline. Keeping this
+ * client-side means no extra table on the DB and no cost when unused.
+ */
+function LoadtestHistorySection() {
+  const [runs, setRuns] = useState<LoadtestRun[]>(() => readLoadtestHistory());
+  const [raw, setRaw] = useState("");
+  const [label, setLabel] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+
+  const persist = (next: LoadtestRun[]) => {
+    setRuns(next);
+    try {
+      localStorage.setItem(LOADTEST_KEY, JSON.stringify(next));
+    } catch {}
+  };
+
+  const importJson = () => {
+    setErr(null);
+    let parsed: any;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      setErr("Невалиден JSON");
+      return;
+    }
+    // Accept either the raw k6 summary export or the compact shape above.
+    const m = parsed?.metrics ?? {};
+    const run: LoadtestRun = {
+      ts: Date.now(),
+      label: label.trim() || `Run ${new Date().toLocaleString()}`,
+      vus: Number(m?.vus_max?.max ?? parsed?.vus ?? 0),
+      duration_ms: Number(parsed?.state?.testRunDurationMs ?? parsed?.duration_ms ?? 0),
+      http_reqs: Number(m?.http_reqs?.count ?? parsed?.http_reqs ?? 0),
+      http_req_failed_rate: Number(m?.http_req_failed?.rate ?? parsed?.http_req_failed_rate ?? 0),
+      http_req_duration_p95: Number(m?.http_req_duration?.["p(95)"] ?? parsed?.http_req_duration_p95 ?? 0),
+      http_req_duration_avg: Number(m?.http_req_duration?.avg ?? parsed?.http_req_duration_avg ?? 0),
+      notes: parsed?.notes,
+    };
+    persist([run, ...runs].slice(0, 50));
+    setRaw("");
+    setLabel("");
+  };
+
+  const clearAll = () => persist([]);
+
+  const failColor = (rate: number) =>
+    rate < 0.005 ? "text-emerald-500" : rate < 0.02 ? "text-amber-500" : "text-red-500";
+
+  return (
+    <section className="mt-10">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Load-test history</h2>
+          <p className="text-xs text-muted-foreground">
+            Paste the JSON summary from{" "}
+            <code className="rounded bg-muted px-1">k6 run --summary-export=...</code>{" "}
+            (scripts/loadtest/mixed.k6.js) to track how each optimisation moves p95 / error rate.
+          </p>
+        </div>
+        {runs.length > 0 && (
+          <button
+            onClick={clearAll}
+            className="rounded-md border border-border px-3 py-1 text-xs hover:bg-muted"
+          >
+            Clear history
+          </button>
+        )}
+      </div>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+        <input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="Label (e.g. after-indexes, baseline, batched-pageviews)"
+          className="rounded-md border border-border bg-card px-3 py-2 text-sm"
+        />
+        <button
+          onClick={importJson}
+          disabled={!raw.trim()}
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-40"
+        >
+          Add run
+        </button>
+      </div>
+      <textarea
+        value={raw}
+        onChange={(e) => setRaw(e.target.value)}
+        placeholder='Paste k6 --summary-export JSON here…'
+        rows={5}
+        className="mt-2 w-full rounded-md border border-border bg-card p-2 font-mono text-xs"
+      />
+      {err && <div className="mt-1 text-xs text-red-500">{err}</div>}
+
+      {runs.length === 0 ? (
+        <div className="mt-4 rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+          No runs recorded yet. Follow scripts/loadtest/README.md to produce a summary JSON.
+        </div>
+      ) : (
+        <div className="mt-4 overflow-x-auto rounded-lg border border-border">
+          <table className="w-full text-xs">
+            <thead className="bg-muted/40 text-left">
+              <tr>
+                <th className="p-2">When</th>
+                <th className="p-2">Label</th>
+                <th className="p-2 text-right">VUs</th>
+                <th className="p-2 text-right">Requests</th>
+                <th className="p-2 text-right">p95 dur</th>
+                <th className="p-2 text-right">avg dur</th>
+                <th className="p-2 text-right">Fail %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {runs.map((r) => (
+                <tr key={r.ts} className="border-t border-border">
+                  <td className="p-2 whitespace-nowrap">{new Date(r.ts).toLocaleString()}</td>
+                  <td className="p-2 font-medium">{r.label}</td>
+                  <td className="p-2 text-right">{r.vus || "—"}</td>
+                  <td className="p-2 text-right">{r.http_reqs.toLocaleString()}</td>
+                  <td className="p-2 text-right">{Math.round(r.http_req_duration_p95)} ms</td>
+                  <td className="p-2 text-right">{Math.round(r.http_req_duration_avg)} ms</td>
+                  <td className={`p-2 text-right ${failColor(r.http_req_failed_rate)}`}>
+                    {(r.http_req_failed_rate * 100).toFixed(2)}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+

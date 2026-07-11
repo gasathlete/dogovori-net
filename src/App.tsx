@@ -20,7 +20,7 @@ const lazy = <T extends ComponentType<any>>(factory: () => Promise<{ default: T 
         throw err;
       }),
   );
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { detectLocaleFromPath, setLocale, stripLocaleFromPath } from "@/i18n";
@@ -200,16 +200,10 @@ if (typeof window !== "undefined" && location.pathname !== "/ai" && location.pat
   }
 }
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60_000,
-      gcTime: 5 * 60_000,
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-});
+// The QueryClient is the shared cache for React Query. It lives in a
+// dedicated module so imperative helpers (e.g. useQuota's fetchQuotaCached /
+// invalidateQuota) can hit the exact same client outside a component tree.
+import { queryClient } from "@/lib/queryClient";
 
 const RouteFallback = () => (
   <div className="flex min-h-dvh items-center justify-center bg-background">

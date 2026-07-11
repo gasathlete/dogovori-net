@@ -43,6 +43,8 @@ export default function CheckoutReturn() {
         else setTimeout(tick, 1500);
         return;
       }
+      // Bypass the React Query cache here — we're polling for a purchase to
+      // land, so a fresh read on each tick is the whole point.
       const { data: q } = await supabase
         .from("download_quota")
         .select("plan, pro_until, bonus_contracts")

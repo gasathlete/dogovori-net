@@ -60,11 +60,11 @@ export default function DocumentPage() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [{ data: row, error }, { data: cs }, { data: fs }, { data: q }] = await Promise.all([
+      const [{ data: row, error }, { data: cs }, { data: fs }, q] = await Promise.all([
         supabase.from("saved_documents").select("*").eq("id", id).maybeSingle(),
         supabase.from("contacts").select("id, name").order("created_at", { ascending: false }),
         supabase.from("folders").select("id, name, is_favorites").order("is_favorites", { ascending: false }),
-        supabase.from("download_quota").select("plan, pro_until").eq("user_id", user.id).maybeSingle(),
+        (await import("@/hooks/useQuota")).fetchQuotaCached(user.id),
       ]);
       if (cancelled) return;
       if (error || !row) {

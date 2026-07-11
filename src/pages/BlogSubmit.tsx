@@ -5,6 +5,7 @@ import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchQuotaCached } from "@/hooks/useQuota";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,11 +46,10 @@ export default function BlogSubmit() {
 
   useEffect(() => {
     if (!user) { setIsPro(null); return; }
-    supabase.from("download_quota").select("plan, pro_until").eq("user_id", user.id).maybeSingle()
-      .then(({ data }) => {
-        const pro = data?.plan === "pro" || (!!data?.pro_until && new Date(data.pro_until) > new Date());
-        setIsPro(pro);
-      });
+    fetchQuotaCached(user.id).then((data) => {
+      const pro = data?.plan === "pro" || (!!data?.pro_until && new Date(data.pro_until) > new Date());
+      setIsPro(pro);
+    });
   }, [user?.id]);
 
   const wordCount = (() => {

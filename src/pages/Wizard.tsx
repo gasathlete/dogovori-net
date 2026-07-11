@@ -305,8 +305,8 @@ export default function WizardPage() {
 
   useEffect(() => {
     if (!user) { setIsPro(false); setFreeWaveAvailable(false); setContacts([]); return; }
-    supabase.from("download_quota").select("plan, pro_until, corrections_free_used_count").eq("user_id", user.id).maybeSingle()
-      .then(({ data }) => {
+    import("@/hooks/useQuota").then(({ fetchQuotaCached }) => fetchQuotaCached(user.id))
+      .then((data) => {
         if (!data) return;
         setIsPro(data.plan === "pro" || (!!data.pro_until && new Date(data.pro_until) > new Date()));
         // Free plan: up to 2 корекционни вълни.

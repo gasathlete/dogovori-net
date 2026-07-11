@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchQuotaCached } from "@/hooks/useQuota";
 import { toast } from "sonner";
 import { downloadDocument } from "@/lib/downloadDocument";
 
@@ -50,7 +51,7 @@ export default function Downloads({ kind }: { kind: "contract" | "template" }) {
     //    they have no matching audit_log event, so legacy downloads (pre-audit
     //    instrumentation) and template saves still show up.
     // 3) download_quota counter so we can explain any historical-only difference.
-    const [logsRes, savedRes, quotaRes] = await Promise.all([
+    const [logsRes, savedRes, quotaRow] = await Promise.all([
       supabase
         .from("audit_log")
         .select("id,target_id,action,created_at,metadata")
@@ -65,12 +66,10 @@ export default function Downloads({ kind }: { kind: "contract" | "template" }) {
         .eq("kind", kind)
         .order("created_at", { ascending: false })
         .limit(500),
-      supabase
-        .from("download_quota")
-        .select("contracts_used,templates_used")
-        .eq("user_id", user.id)
-        .maybeSingle(),
+      fetchQuotaCached(user.id),
     ]);
+    const quotaRes = { data: quotaRow };
+
 
     if (logsRes.error) {
       setLoading(false);

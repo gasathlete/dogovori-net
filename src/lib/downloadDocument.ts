@@ -128,6 +128,15 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
       else await exportTemplateDOCX(t, watermarkOpts);
     }
 
+  // Quota just changed on the server — invalidate the shared cache so the
+  // next mount of useIsPro / useQuota / useDocumentAccess reads fresh values.
+    try {
+      const [{ invalidateQuota }] = await Promise.all([import("@/hooks/useQuota")]);
+      invalidateQuota(session.user.id);
+    } catch {}
+
+
+
   // Engagement: bump streak/daily progress + emit celebration event.
     try {
       const { bumpEngagement } = await import("@/hooks/useEngagement");
