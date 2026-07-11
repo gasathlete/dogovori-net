@@ -30,6 +30,7 @@ import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhili
 import { adaptGraphToWizardQuestions } from "@/data/questionGraphs/adapter";
 import { parseExtraPartyTypes } from "@/components/wizard/liveDraft/clauseBuilders";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
+import { RefineDraftBox } from "@/components/wizard/RefineDraftBox";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
