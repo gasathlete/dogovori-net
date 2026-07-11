@@ -86,8 +86,7 @@ const Template = lazy(() => import("./pages/Template.tsx"));
 const Wizard = lazy(() => import("./pages/Wizard.tsx"));
 const BuildContract = lazy(() => import("./pages/BuildContract.tsx"));
 const WizardBilingual = lazy(() => import("./pages/WizardBilingual.tsx"));
-const WizardGraph = lazy(() => import("./pages/WizardGraph.tsx"));
-const WizardReview = lazy(() => import("./pages/WizardReview.tsx"));
+const WizardGraphRedirect = lazy(() => import("./pages/WizardGraphRedirect.tsx"));
 const DocumentWorkspace = lazy(() => import("./pages/DocumentWorkspace.tsx"));
 
 const Catalog = lazy(() => import("./pages/Catalog.tsx"));
