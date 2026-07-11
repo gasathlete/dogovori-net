@@ -283,8 +283,8 @@ const AnimatedRoutes = () => {
         <Route path="/wizard/:sectorId" element={<Wizard />} />
         <Route path="/build" element={<BuildContract />} />
         <Route path="/wizard-bilingual/:sectorId" element={<WizardBilingual />} />
-        <Route path="/wizard-graph/:slug" element={<WizardGraph />} />
-        <Route path="/wizard-graph/:slug/review" element={<WizardReview />} />
+        <Route path="/wizard-graph/:slug" element={<WizardGraphRedirect />} />
+        <Route path="/wizard-graph/:slug/review" element={<WizardGraphRedirect />} />
         <Route path="/workspace/:slug/:kind" element={<DocumentWorkspace />} />
 
         <Route path="/catalog" element={<Catalog />} />
