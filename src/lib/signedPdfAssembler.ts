@@ -23,16 +23,7 @@ export interface SignedEnvelopeInput {
   envelopeId?: string;
 }
 
-function snapshotToText(snap: unknown): string {
-  if (typeof snap === "string") return snap;
-  if (snap && typeof snap === "object") {
-    const s: any = snap;
-    if (typeof s.body === "string") return s.body;
-    if (typeof s.text === "string") return s.text;
-    return JSON.stringify(s, null, 2);
-  }
-  return String(snap ?? "");
-}
+import { snapshotToPlainText as snapshotToText } from "./signingSnapshotToText";
 
 export async function buildSignedPdfBlob(env: SignedEnvelopeInput, signatures: SignedSignature[]): Promise<Blob> {
   const { jsPDF } = await import("jspdf");
