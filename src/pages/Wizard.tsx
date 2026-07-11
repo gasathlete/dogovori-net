@@ -343,25 +343,28 @@ export default function WizardPage() {
     }
     setExporting(format);
     try {
-      // Build polished signature parties from group_parties answers (A, B + extras).
-      const parseExtras = (raw: string) =>
+      // Изграждаме списък със страни само по РОЛЯ и ФОРМА — без имена / ЕГН / лични данни.
+      // Имената се попълват от потребителя офлайн в готовия документ (placeholder-и).
+      const parseExtraTypes = (raw: string): string[] =>
         (raw || "")
           .split("\n")
-          .map((l) => {
-            const [name = "", type = ""] = l.split("|").map((s) => s.trim());
-            return { name, type };
+          .map((line) => {
+            const parts = line.split("|").map((s) => s.trim());
+            return parts[parts.length - 1] || "";
           })
-          .filter((r) => r.name || r.type);
+          .filter((t) => t.length > 0);
+      const roleA = sector.parties?.a || "СТРАНА А";
+      const roleB = sector.parties?.b || "СТРАНА Б";
       const partiesArr = [
-        { role: sector.parties?.a || "СТРАНА А", name: answers.party_a_name || "", type: answers.party_a_type },
-        { role: sector.parties?.b || "СТРАНА Б", name: answers.party_b_name || "", type: answers.party_b_type },
-        ...parseExtras(answers.party_a_extra || "").map((r) => ({ role: sector.parties?.a || "СТРАНА А", name: r.name, type: r.type })),
-        ...parseExtras(answers.party_b_extra || "").map((r) => ({ role: sector.parties?.b || "СТРАНА Б", name: r.name, type: r.type })),
-      ].filter((p) => p.name || p.type);
+        { role: roleA, name: "", type: answers.party_a_type },
+        { role: roleB, name: "", type: answers.party_b_type },
+        ...parseExtraTypes(answers.party_a_extra || "").map((type) => ({ role: roleA, name: "", type })),
+        ...parseExtraTypes(answers.party_b_extra || "").map((type) => ({ role: roleB, name: "", type })),
+      ].filter((p) => !!p.type);
 
       const sigPayload: SignatureInfo = {
-        name_a: signature.name_a || answers.party_a_name || "",
-        name_b: signature.name_b || answers.party_b_name || "",
+        name_a: signature.name_a || "",
+        name_b: signature.name_b || "",
         city: signature.city,
         date: signature.date,
         image_a: isPro ? signature.image_a : undefined,
