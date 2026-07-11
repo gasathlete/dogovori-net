@@ -38,6 +38,14 @@ import { trackEvent } from "@/lib/analytics";
 import { useDocumentAccess } from "@/hooks/useDocumentAccess";
 import { StrictDocumentPaywall } from "@/components/wizard/StrictDocumentPaywall";
 import { BlurredPreviewOverlay } from "@/components/wizard/BlurredPreviewOverlay";
+import {
+  WizardFeedbackPrompt,
+  shouldShowWizardFeedbackPrompt,
+  markWizardFeedbackPromptShown,
+} from "@/components/wizard/WizardFeedbackPrompt";
+import { FeedbackButton } from "@/components/FeedbackButton";
+import { MessageSquarePlus } from "@/icons";
+
 
 interface AIResult {
   risk: {
