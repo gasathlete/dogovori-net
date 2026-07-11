@@ -20,7 +20,7 @@ const lazy = <T extends ComponentType<any>>(factory: () => Promise<{ default: T 
         throw err;
       }),
   );
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { detectLocaleFromPath, setLocale, stripLocaleFromPath } from "@/i18n";
