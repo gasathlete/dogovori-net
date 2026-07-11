@@ -1975,30 +1975,28 @@ export function buildQuestions(sector: Sector, sub?: SubWizard): Question[] {
   const head = sectorQuestions.slice(0, sectorQuestions.length - tailLen);
   const tail = sectorQuestions.slice(sectorQuestions.length - tailLen);
 
-  // head[0..5] са partiesQuestions (6 полета: name/type/extra за А и Б). Останалите head са категорийни специфики.
-  const partyFields = head.slice(0, 6);
-  const sectorSpecifics = head.slice(6);
+  // head[0..3] са partiesQuestions (4 полета: type/extra за А и Б — БЕЗ имена и лични данни).
+  const partyFields = head.slice(0, 4);
+  const sectorSpecifics = head.slice(4);
   const subSpecifics = sub?.questions ?? [];
 
   const out: Question[] = [];
 
-  // 1) Страни (или само декларатор за декларации)
+  // 1) Страни (или само декларатор за декларации) — питаме само за правна форма.
   if (declaration) {
-    // Само декларатор — преименуваме labels и оставяме party_a_*, скриваме B.
     const declarantFields: Question[] = partyFields
       .filter((f) => f.id.startsWith("party_a_"))
       .map((f) => {
-        if (f.id === "party_a_name") return { ...f, label: "Наименование / имена на декларатора" };
         if (f.id === "party_a_type") return { ...f, label: "Деклараторът е:" };
-        if (f.id === "party_a_extra") return { ...f, label: "Допълнителни декларатори (по желание)", help: "Ако декларацията е подписана от повече от един декларатор — добавете ги по един на ред: „Име | Тип“." };
+        if (f.id === "party_a_extra") return { ...f, label: "Допълнителни декларатори (по желание)", help: "Ако декларацията е подписана от повече от един декларатор — добавете правната им форма (без имена)." };
         return f;
       });
     if (declarantFields.length > 0) {
-      out.push(group("group_parties", "Декларатор", declarantFields, "Попълнете данните на лицето, което подава декларацията."));
+      out.push(group("group_parties", "Декларатор", declarantFields, "Посочете само правно-организационната форма. Имена, ЕГН и други лични данни не се събират."));
     }
   } else {
     if (partyFields.length > 0) {
-      out.push(group("group_parties", "Страни по договора", partyFields, "Попълнете данните и за двете страни."));
+      out.push(group("group_parties", "Страни по договора", partyFields, "Посочете само правно-организационната форма за всяка страна. Имена, ЕГН и други лични данни не се събират."));
     }
   }
 
