@@ -36,12 +36,18 @@ export default function Sign() {
   const [declineMode, setDeclineMode] = useState(false);
   const [reason, setReason] = useState("");
 
+  // Signature method: drawn (canvas), uploaded (image), qes (qualified e-signature file)
+  const [sigMethod, setSigMethod] = useState<"drawn" | "uploaded" | "qes">("drawn");
+  const [qesFile, setQesFile] = useState<File | null>(null);
+  const [qesFileBase64, setQesFileBase64] = useState<string | null>(null);
+
   // ZEDEUU / ZET — explicit SES-equivalence consent + optional legal-entity capacity.
   const [sesAccepted, setSesAccepted] = useState(false);
   const [signsAsEntity, setSignsAsEntity] = useState(false);
   const [eik, setEik] = useState("");
   const [signerCapacity, setSignerCapacity] = useState("");
   const [repDeclaration, setRepDeclaration] = useState(false);
+
 
   async function load() {
     setLoading(true);
