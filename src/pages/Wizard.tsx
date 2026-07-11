@@ -1080,6 +1080,21 @@ export default function WizardPage() {
                 : draft;
             })()}
 
+            {/* Beta: compact feedback CTA — visible only after the document is generated */}
+            {result && user && (
+              <div className="mt-3 flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => maybeAskForFeedback("manual")}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/5 px-3 py-1.5 text-[11px] font-medium text-gold transition-colors hover:border-gold/60 hover:bg-gold/10"
+                  title="Оставете обратна връзка за преживяването — +2 операции"
+                >
+                  <MessageSquarePlus className="h-3.5 w-3.5" aria-hidden />
+                  Обратна връзка · <span className="font-semibold">+2 операции</span>
+                </button>
+              </div>
+            )}
+
           </section>
         </div>
       </main>
@@ -1091,6 +1106,16 @@ export default function WizardPage() {
         sectorId={sector?.id}
         docName={docName ?? sector?.contractName}
         wizardHref={wizardHref}
+      />
+
+      <WizardFeedbackPrompt
+        open={feedbackOpen}
+        onOpenChange={setFeedbackOpen}
+        context={{
+          docName: docName ?? sector?.contractName,
+          sectorId: sector?.id,
+          docKey,
+        }}
       />
     </div>
   );
