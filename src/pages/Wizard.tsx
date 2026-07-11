@@ -251,6 +251,8 @@ export default function WizardPage() {
       const payload = data as AIResult;
       if (bilingualMode && payload.contract) payload.contract.bilingual = true;
       setResult(payload);
+      // Trigger AI disclaimer once per session on first document creation.
+      ensureAIDisclaimerAccepted().catch(() => {});
       toast.success("Договорът е готов", { description: "Прегледайте Краен Договор отдясно." });
     } catch (e: any) {
       if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) return;
@@ -878,6 +880,20 @@ export default function WizardPage() {
 
                 <ArbitrationSelector value={arbitration} onChange={setArbitration} />
 
+                {result.contract && (
+                  <RefineDraftBox
+                    contract={result.contract}
+                    answers={answers}
+                    heading="Допълнителни уточнения"
+                    subheading="Не забелязахте важен въпрос за Вашия документ? Дайте допълнителни насоки — системата е готова да ги включи."
+                    onRefined={(next) => {
+                      setResult({ ...result, contract: { ...result.contract, ...next } });
+                      setSavedDocId(undefined);
+                    }}
+                    onNeedAuth={() => goAuth()}
+                  />
+                )}
+
                 <SignatureBlock
                   isPro={isPro}
                   defaultPartyA=""
@@ -1029,23 +1045,9 @@ export default function WizardPage() {
                 />
               );
               const shouldBlur = !!result && !!user && !docAccess.loading && !docAccess.canDownload;
-              const withRefine = result?.contract && !shouldBlur ? (
-                <>
-                  <RefineDraftBox
-                    contract={result.contract}
-                    answers={answers}
-                    onRefined={(next) => {
-                      setResult({ ...result, contract: { ...result.contract, ...next } });
-                      setSavedDocId(undefined);
-                    }}
-                    onNeedAuth={() => goAuth()}
-                  />
-                  {draft}
-                </>
-              ) : draft;
               return shouldBlur
                 ? <BlurredPreviewOverlay onUnlock={() => setShowPaywall(true)}>{draft}</BlurredPreviewOverlay>
-                : withRefine;
+                : draft;
             })()}
 
           </section>
