@@ -139,8 +139,8 @@ export function BetaDisclaimerModal() {
                 Launch · {LAUNCH_DATE}
               </span>
             </div>
-            <h2 className="mt-2.5 font-serif text-[20px] leading-tight tracking-tight text-foreground sm:text-[24px]">
-              Работим в бета до 1 септември 2026 г.
+            <h2 className="mt-2.5 text-balance font-serif text-[20px] leading-tight tracking-tight text-foreground sm:text-[24px]">
+              Работим в бета до 1&nbsp;септември 2026&nbsp;г.
             </h2>
             <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
               Изграждаме dogovori.net заедно с първите ни потребители. Ранните акаунти
