@@ -162,6 +162,11 @@ export default function AdminFeedbackPage() {
                         От: {r.source_context?.source_label || r.source_page}
                       </Badge>
                     )}
+                    {Number(r.source_context?.awarded_ops ?? 0) > 0 && (
+                      <Badge variant="outline" className="border-emerald-500/40 text-emerald-400">
+                        🎁 +{r.source_context.awarded_ops} ops
+                      </Badge>
+                    )}
                     {r.rating && (
                       <span className="inline-flex items-center gap-0.5 text-xs text-gold">
                         <Star className="h-3 w-3" fill="currentColor" /> {r.rating}/5
