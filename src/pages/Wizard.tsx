@@ -331,6 +331,40 @@ export default function WizardPage() {
     window.setTimeout(() => setFeedbackOpen(true), 900);
   };
 
+  // Exit-intent: when the user has a generated document and moves the mouse
+  // toward the tab bar (desktop) OR hides the tab (mobile fallback), softly
+  // ask for feedback. Uses the same capping/cooldown rules as save/download.
+  useEffect(() => {
+    if (!result) return;
+    if (feedbackOpen) return;
+    let triggered = false;
+    const fire = () => {
+      if (triggered) return;
+      if (!shouldShowWizardFeedbackPrompt(!!user)) return;
+      triggered = true;
+      markWizardFeedbackPromptShown();
+      setFeedbackOpen(true);
+    };
+    const onMouseOut = (e: MouseEvent) => {
+      // Only when the cursor leaves through the top edge and to no related element.
+      if (e.relatedTarget || (e as any).toElement) return;
+      if (e.clientY > 12) return;
+      fire();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") fire();
+    };
+    document.addEventListener("mouseout", onMouseOut);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("mouseout", onMouseOut);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [result, feedbackOpen, user]);
+
+
+
+
 
 
 
