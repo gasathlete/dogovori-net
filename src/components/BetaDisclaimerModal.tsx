@@ -122,35 +122,35 @@ export function BetaDisclaimerModal() {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-md overflow-hidden border-border/60 bg-card p-0 sm:max-w-lg">
+      <DialogContent className="flex max-h-[92vh] max-w-md flex-col overflow-hidden border-border/60 bg-card p-0 sm:max-w-lg">
         {/* Decorative gradient header */}
-        <div className="relative overflow-hidden border-b border-border/60 bg-gradient-to-br from-gold/15 via-card to-card px-6 pt-6 pb-5 pr-16">
+        <div className="relative shrink-0 overflow-hidden border-b border-border/60 bg-gradient-to-br from-gold/15 via-card to-card px-5 pt-5 pb-4 pr-14 sm:px-6 sm:pt-6 sm:pb-5 sm:pr-16">
           <div
             aria-hidden
-            className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-gold/20 blur-3xl"
+            className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-gold/20 blur-3xl"
           />
           <div className="relative">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold">
                 <Sparkles className="h-3 w-3" aria-hidden />
                 Beta program
               </span>
-              <span className="hidden text-[11px] tabular-nums text-muted-foreground sm:inline">
+              <span className="text-[11px] tabular-nums text-muted-foreground">
                 Launch · {LAUNCH_DATE}
               </span>
             </div>
-            <h2 className="mt-3 font-serif text-[26px] leading-tight tracking-tight text-foreground">
+            <h2 className="mt-2.5 font-serif text-[20px] leading-tight tracking-tight text-foreground sm:text-[24px]">
               Работим в бета до 1 септември 2026 г.
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
               Изграждаме dogovori.net заедно с първите ни потребители. Ранните акаунти
               получават закотвени условия и глас в развитието на продукта.
             </p>
           </div>
         </div>
 
-        {/* Body — highlight grid */}
-        <div className="px-6 pt-5 pb-6">
+        {/* Body — highlight grid (scrollable if viewport is short) */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-4 pb-5 sm:px-6 sm:pt-5 sm:pb-6">
           <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {HIGHLIGHTS.map(({ icon: Icon, label, detail, badge }) => (
               <li
@@ -162,7 +162,7 @@ export function BetaDisclaimerModal() {
                     <Icon className="h-3.5 w-3.5" aria-hidden />
                   </span>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <p className="text-[13px] font-semibold leading-tight text-foreground">
                         {label}
                       </p>
