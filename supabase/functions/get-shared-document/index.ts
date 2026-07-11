@@ -108,7 +108,7 @@ serve(async (req) => {
         mime_type: uc.mime_type,
         original_url,
         signed_pdf_url,
-        extracted_text: uc.source === "paste" ? uc.extracted_text : null,
+        extracted_text: uc.extracted_text ?? null,
       };
     } else {
       const { data: doc } = await admin
