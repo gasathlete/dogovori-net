@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { fetchQuotaCached } from "@/hooks/useQuota";
 
 export interface FreeQuota {
   opsUsed: number;
@@ -62,7 +63,7 @@ export function useIsPro(): ProState {
     }
     const [q, { data: tm }, { data: sub }] = await Promise.all([
       // Shared cache: repeated mounts of useIsPro across the tree share one row.
-      (await import("@/hooks/useQuota")).fetchQuotaCached(user.id),
+      fetchQuotaCached(user.id),
       supabase
         .from("team_members")
         .select("team_id, teams!inner(status)")
