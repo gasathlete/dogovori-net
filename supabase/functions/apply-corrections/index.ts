@@ -283,10 +283,28 @@ ${answersRedacted}
     if (!content.trim()) throw new Error("Празен AI отговор");
     const parsed = extractJson(content);
 
-    // Unredact AI output before returning.
+    // Unredact AI output so the user sees real names/EGN/IBAN in the final doc.
+    // Walk the parsed object and replace placeholders directly in string leaves
+    // to avoid JSON round-trip issues when original values contain control chars.
     if (Object.keys(redaction.mapping).length > 0) {
-      const restored = JSON.parse(unredact(JSON.stringify(parsed), redaction.mapping));
-      Object.assign(parsed, restored);
+      try {
+        const walk = (v: unknown): unknown => {
+          if (typeof v === "string") return unredact(v, redaction.mapping);
+          if (Array.isArray(v)) return v.map(walk);
+          if (v && typeof v === "object") {
+            const out: Record<string, unknown> = {};
+            for (const [k, val] of Object.entries(v as Record<string, unknown>)) out[k] = walk(val);
+            return out;
+          }
+          return v;
+        };
+        const restored = walk(parsed);
+        if (restored && typeof restored === "object" && !Array.isArray(restored)) {
+          Object.assign(parsed, restored as Record<string, unknown>);
+        }
+      } catch (e) {
+        console.error("unredact failed:", e);
+      }
     }
 
     await logAiAudit({
