@@ -62,13 +62,15 @@ export default function AdminFeedbackPage() {
     let q = supabase.from("feedback_submissions").select("*").order("created_at", { ascending: false }).limit(200);
     if (filter !== "all") q = q.eq("status", filter);
     if (catFilter !== "all") q = q.eq("category", catFilter);
+    if (sourceFilter === "wizard") q = q.eq("source_page", "wizard");
+    else if (sourceFilter === "other") q = q.neq("source_page", "wizard");
     const { data, error } = await q;
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     setRows((data as Row[]) ?? []);
   };
 
-  useEffect(() => { if (allowed) load(); }, [allowed, filter, catFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (allowed) load(); }, [allowed, filter, catFilter, sourceFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateStatus = async (id: string, status: Row["status"]) => {
     const { error } = await supabase.from("feedback_submissions").update({ status, updated_at: new Date().toISOString() }).eq("id", id);
