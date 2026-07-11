@@ -99,6 +99,7 @@ const Sector = lazy(() => import("./pages/Sector.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.tsx"));
 const OAuthConsent = lazy(() => import("./pages/OAuthConsent.tsx"));
+const Connect = lazy(() => import("./pages/Connect.tsx"));
 
 const Account = lazy(() => import("./pages/Account.tsx"));
 const Console = lazy(() => import("./pages/Console.tsx"));
