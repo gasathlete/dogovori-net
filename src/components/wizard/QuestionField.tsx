@@ -22,98 +22,70 @@ type Props = {
 
 const TYPE_OPTIONS = ["Юридическо лице", "Физическо лице", "ЕТ / Самоосигуряващо се"];
 
-/** Парсва party_X_extra текст във формат „Име | Тип“ на ред. */
-function parseExtras(raw: string): Array<{ name: string; type: string }> {
+/**
+ * Парсва списък с типове на допълнителни страни. Поддържа два формата:
+ * - нов: един тип на ред (напр. „Юридическо лице“)
+ * - стар (backward compat): „Име | Тип“ — от него взимаме само типа, името се игнорира,
+ *   защото на тази стъпка не събираме лични данни.
+ */
+export function parseExtraPartyTypes(raw: string): string[] {
   if (!raw?.trim()) return [];
-  return raw.split("\n").map((line) => {
-    const [name = "", type = ""] = line.split("|").map((s) => s.trim());
-    return { name, type };
-  });
+  return raw
+    .split("\n")
+    .map((line) => {
+      const parts = line.split("|").map((s) => s.trim());
+      const candidate = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+      return candidate || "";
+    })
+    .filter((t) => t.length > 0 || true) // запазваме и празни редове, за да не „скача“ броят
+    .map((t) => (TYPE_OPTIONS.includes(t) ? t : (t || "")));
 }
 
-function serializeExtras(rows: Array<{ name: string; type: string }>): string {
-  if (rows.length === 0) return "";
-  return rows.map((r) => `${r.name} | ${r.type}`).join("\n");
+function serializeExtraTypes(types: string[]): string {
+  return types.join("\n");
 }
 
-/** Извлича чистото име на ролята от label „Наименование на Възложителя“ → „Възложителя“. */
+/** Извлича чистото име на ролята от label „Възложителя е:“ → „Възложителя“. */
 function roleFromLabel(label: string): string {
-  return label.replace(/^Наименование на\s+/i, "").trim();
+  return label.replace(/\s*е:\s*$/i, "").trim();
 }
 
 function PartyBlock({
   role,
-  nameId,
   typeId,
   extraId,
   answers,
   onAnswerChange,
-  contacts,
 }: {
   role: string;
-  nameId: string;
   typeId: string;
   extraId: string;
   answers: Record<string, string>;
   onAnswerChange: (id: string, v: string) => void;
-  contacts: Contact[];
 }) {
-  const extras = useMemo(() => parseExtras(answers[extraId] ?? ""), [answers, extraId]);
+  const extras = useMemo(() => parseExtraPartyTypes(answers[extraId] ?? ""), [answers, extraId]);
 
-  const updateExtras = (next: Array<{ name: string; type: string }>) => {
-    onAnswerChange(extraId, serializeExtras(next));
+  const updateExtras = (next: string[]) => {
+    onAnswerChange(extraId, serializeExtraTypes(next));
   };
 
-  const addExtra = () => updateExtras([...extras, { name: "", type: "" }]);
+  const addExtra = () => updateExtras([...extras, ""]);
   const removeExtra = (idx: number) => updateExtras(extras.filter((_, i) => i !== idx));
-  const setExtra = (idx: number, patch: Partial<{ name: string; type: string }>) =>
-    updateExtras(extras.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
-
-  const pickContact = (contactId: string) => {
-    const c = contacts.find((x) => x.id === contactId);
-    if (!c) return;
-    onAnswerChange(nameId, c.name);
-    if (c.type) {
-      const mapped = c.type === "individual" ? "Физическо лице" : "Юридическо лице";
-      onAnswerChange(typeId, mapped);
-    }
-  };
+  const setExtra = (idx: number, type: string) =>
+    updateExtras(extras.map((r, i) => (i === idx ? type : r)));
 
   return (
     <div className="space-y-4 rounded-lg border border-border/50 bg-card/30 p-4 md:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm font-semibold text-foreground">{role}</div>
-        {contacts.length > 0 && (
-          <div className="flex flex-1 items-center gap-2 sm:flex-initial">
-            <Select onValueChange={pickContact}>
-              <SelectTrigger className="h-9 w-full bg-input/60 text-xs sm:w-auto sm:min-w-[200px]">
-                <UserPlus className="mr-1.5 h-3.5 w-3.5 text-gold" />
-                <SelectValue placeholder="Избери от контрагенти" />
-              </SelectTrigger>
-              <SelectContent>
-                {contacts.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <ShieldCheck className="h-3.5 w-3.5 text-gold" />
+          Не събираме имена или ЕГН
+        </div>
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs font-medium text-muted-foreground">Наименование</Label>
-        <Input
-          value={answers[nameId] ?? ""}
-          onChange={(e) => onAnswerChange(nameId, e.target.value)}
-          placeholder="ЕООД „Пример“ / Иван Иванов"
-          className="bg-input/60 text-base"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label className="text-xs font-medium text-muted-foreground">Тип</Label>
+        <Label className="text-xs font-medium text-muted-foreground">Правно-организационна форма</Label>
         <div className="grid gap-2 sm:grid-cols-3">
           {TYPE_OPTIONS.map((opt) => {
             const selected = answers[typeId] === opt;
@@ -138,19 +110,13 @@ function PartyBlock({
       {extras.length > 0 && (
         <div className="space-y-2 border-t border-border/40 pt-3">
           <Label className="text-xs font-medium text-muted-foreground">
-            Допълнителни {role.toLowerCase()}
+            Допълнителни {role.toLowerCase()} — само форма
           </Label>
-          {extras.map((row, idx) => (
-            <div key={idx} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto_auto]">
-              <Input
-                value={row.name}
-                onChange={(e) => setExtra(idx, { name: e.target.value })}
-                placeholder="Име / фирма"
-                className="bg-input/60 text-sm"
-              />
-              <Select value={row.type} onValueChange={(v) => setExtra(idx, { type: v })}>
-                <SelectTrigger className="h-10 w-full bg-input/60 text-xs sm:w-[180px]">
-                  <SelectValue placeholder="Тип" />
+          {extras.map((type, idx) => (
+            <div key={idx} className="grid grid-cols-[1fr_auto] gap-2">
+              <Select value={type} onValueChange={(v) => setExtra(idx, v)}>
+                <SelectTrigger className="h-10 w-full bg-input/60 text-xs">
+                  <SelectValue placeholder="Изберете форма" />
                 </SelectTrigger>
                 <SelectContent>
                   {TYPE_OPTIONS.map((opt) => (
@@ -182,7 +148,7 @@ function PartyBlock({
         className="border-dashed border-gold/40 text-gold hover:bg-gold/10 hover:text-gold"
       >
         <Plus className="mr-1.5 h-3.5 w-3.5" />
-        Добави {role}
+        Добави още един {role.toLowerCase()}
       </Button>
     </div>
   );
