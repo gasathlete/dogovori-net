@@ -217,7 +217,7 @@ export default function WizardPage() {
     try {
       const flatQs = flattenQuestions(visibleQuestions);
       const arbitrationCourt = arbitration.enabled ? getCourtById(arbitration.courtId) : undefined;
-      const { data, error } = await supabase.functions.invoke("generate-contract", {
+      const { data, error } = await invokeEdgeFunction<AIResult & { error?: string; code?: string; requires_login?: boolean }>("generate-contract", {
         body: {
           sector: sector.title,
           contractName: sector.contractName,
@@ -234,14 +234,17 @@ export default function WizardPage() {
           bilingual: bilingualMode,
         },
       });
-      if (error) throw error;
-      if (!data || data.error) {
-        if (data?.requires_login) {
-          toast.error(data.error);
-          setTimeout(() => navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`), 1200);
-          return;
-        }
-        throw new Error(data?.error || "Неуспешно създаване");
+      if (data?.code === "quota_exceeded") {
+        toast.error("Изчерпан безплатен лимит", { description: data.error || "Активирайте платен план или закупете пакет операции." });
+        return;
+      }
+      if (data?.requires_login) {
+        toast.error(data.error || "Влезте, за да продължите");
+        setTimeout(() => navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`), 1200);
+        return;
+      }
+      if (error || !data || (data as { error?: string }).error) {
+        throw new Error((data as { error?: string })?.error || error?.message || "Неуспешно създаване");
       }
       const payload = data as AIResult;
       if (bilingualMode && payload.contract) payload.contract.bilingual = true;
