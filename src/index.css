@@ -797,3 +797,14 @@ button, a, [role="button"], input[type="submit"], input[type="button"] {
 @media (prefers-reduced-motion: reduce) {
   .thinking-shimmer { animation: none; }
 }
+
+/* Dogovori Icons — global stroke normalization.
+ * Unifies visual weight across ALL Lucide + custom icons to our brand
+ * standard (1.75). CSS overrides the SVG stroke-width presentation attribute.
+ * Escape hatch: add class "icon-native-stroke" to opt out on a per-icon basis. */
+svg.lucide {
+  stroke-width: 1.75;
+}
+svg.lucide.icon-native-stroke {
+  stroke-width: 2;
+}
