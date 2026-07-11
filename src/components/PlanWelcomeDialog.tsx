@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useIsPro } from "@/hooks/useIsPro";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Elegant, "digital" welcome dialog that appears exactly once per user
@@ -83,9 +84,12 @@ export function PlanWelcomeDialog() {
   const [open, setOpen] = useState(false);
 
   // User-scoped storage key so different accounts on same browser each see it once,
-  // and one account never re-sees it after login.
+  // and one account never re-sees it after login. Also persisted to the user's
+  // auth metadata (`plan_welcome_seen_at`) so the dialog shows only once per
+  // profile — across devices/browsers/reinstalls, not just per localStorage.
   const uid = user?.id ?? "anon";
   const scopedKey = (base: string) => `${base}:u:${uid}`;
+  const profileSeen = Boolean((user?.user_metadata as any)?.plan_welcome_seen_at);
 
   // Priority: Team > Entrepreneur > Professional. Only ONE dialog per user,
   // ever — when a higher tier is shown we also mark all lower-tier keys as
@@ -94,6 +98,7 @@ export function PlanWelcomeDialog() {
   const active = useMemo<PlanKey | null>(() => {
     if (loading || !user) return null;
     if (typeof window === "undefined") return null;
+    if (profileSeen) return null;
     const seen = (k: string) => window.localStorage.getItem(scopedKey(k)) === "1";
     const anySeen =
       seen(COPY.team.storageKey) ||
@@ -106,7 +111,7 @@ export function PlanWelcomeDialog() {
     if (isPro) return "entrepreneur";
     return null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPro, isTeam, isEntrepreneur, isProfessional, loading, user?.id]);
+  }, [isPro, isTeam, isEntrepreneur, isProfessional, loading, user?.id, profileSeen]);
 
   useEffect(() => {
     if (!active) return;
@@ -117,6 +122,10 @@ export function PlanWelcomeDialog() {
       window.localStorage.setItem(scopedKey(COPY.entrepreneur.storageKey), "1");
       window.localStorage.setItem(scopedKey(COPY.professional.storageKey), "1");
     } catch { /* ignore */ }
+    // Persist across devices: write to the user's auth metadata once.
+    supabase.auth
+      .updateUser({ data: { plan_welcome_seen_at: new Date().toISOString(), plan_welcome_plan: active } })
+      .catch(() => undefined);
     const t = setTimeout(() => setOpen(true), 500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
