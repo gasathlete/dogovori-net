@@ -880,19 +880,6 @@ export default function WizardPage() {
 
                 <ArbitrationSelector value={arbitration} onChange={setArbitration} />
 
-                {result.contract && (
-                  <RefineDraftBox
-                    contract={result.contract}
-                    answers={answers}
-                    heading="Допълнителни уточнения"
-                    subheading="Не забелязахте важен въпрос за Вашия документ? Дайте допълнителни насоки — системата е готова да ги включи."
-                    onRefined={(next) => {
-                      setResult({ ...result, contract: { ...result.contract, ...next } });
-                      setSavedDocId(undefined);
-                    }}
-                    onNeedAuth={() => goAuth()}
-                  />
-                )}
 
                 <SignatureBlock
                   isPro={isPro}
@@ -1026,6 +1013,19 @@ export default function WizardPage() {
                 <span className="text-xs text-muted-foreground">Актуализация в реално време</span>
               )}
             </div>
+            {result?.contract && (
+              <div className="mb-4">
+                <RefineDraftBox
+                  contract={result.contract}
+                  answers={answers}
+                  onRefined={(next) => {
+                    setResult({ ...result, contract: { ...result.contract, ...next } });
+                    setSavedDocId(undefined);
+                  }}
+                  onNeedAuth={() => goAuth()}
+                />
+              </div>
+            )}
             {(() => {
               const draft = (
                 <LiveDraft
