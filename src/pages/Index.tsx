@@ -20,7 +20,7 @@ import { buildFaqJsonLd } from "@/data/faqItems";
 //  Hero → SocialProofStrip → PainSolution → PlatformShowcase → FeaturedBlanks
 //  → LifeScenarios → ComparisonTable → Testimonials → Process → FAQ
 //  → ComplianceSection → CTABand → SeoFooter
-const SocialProofStrip = lazy(() => import("@/components/SocialProofStrip").then((m) => ({ default: m.SocialProofStrip })));
+import { SocialProofStrip } from "@/components/SocialProofStrip";
 
 
 const PainSolution = lazy(() => import("@/components/PainSolution").then((m) => ({ default: m.PainSolution })));
