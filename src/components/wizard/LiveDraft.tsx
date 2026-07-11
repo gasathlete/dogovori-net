@@ -21,6 +21,8 @@ import { buildTypeSkeleton, isOneSidedType } from "@/lib/typeSkeletons";
 import {
   type Clause,
   renderPartyIdentifier,
+  renderPartyTypeBadge,
+  parseExtraPartyTypes,
   CURRENCY,
   BASE_CLOSING,
   buildGenericClauses,
