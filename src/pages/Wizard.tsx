@@ -880,19 +880,6 @@ export default function WizardPage() {
 
                 <ArbitrationSelector value={arbitration} onChange={setArbitration} />
 
-                {result.contract && (
-                  <RefineDraftBox
-                    contract={result.contract}
-                    answers={answers}
-                    heading="Допълнителни уточнения"
-                    subheading="Не забелязахте важен въпрос за Вашия документ? Дайте допълнителни насоки — системата е готова да ги включи."
-                    onRefined={(next) => {
-                      setResult({ ...result, contract: { ...result.contract, ...next } });
-                      setSavedDocId(undefined);
-                    }}
-                    onNeedAuth={() => goAuth()}
-                  />
-                )}
 
                 <SignatureBlock
                   isPro={isPro}
