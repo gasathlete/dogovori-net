@@ -28,6 +28,7 @@ export function Footer() {
           <nav className="grid w-full grid-cols-2 gap-x-5 gap-y-2 text-xs text-muted-foreground sm:flex sm:w-auto sm:flex-wrap md:justify-end md:max-w-[min(880px,70%)]">
             <Link to="/feedback?source=footer" className="font-semibold text-gold transition-colors hover:text-gold/80 sm:whitespace-nowrap">💬 Обратна връзка</Link>
             <Link to="/ai" className="transition-colors hover:text-gold sm:whitespace-nowrap">AI анализ</Link>
+            <Link to="/connect" className="transition-colors hover:text-gold sm:whitespace-nowrap">Свържи AI асистент</Link>
             <Link to="/karta" className="transition-colors hover:text-gold sm:whitespace-nowrap">Карта на сайта</Link>
             <Link to="/provider-info" className="transition-colors hover:text-gold sm:whitespace-nowrap">За доставчика</Link>
             <Link to="/terms" className="transition-colors hover:text-gold sm:whitespace-nowrap">Общи условия</Link>
