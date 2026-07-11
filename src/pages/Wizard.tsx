@@ -511,6 +511,7 @@ export default function WizardPage() {
       if (error || data?.error) throw new Error(data?.error || error?.message || "Грешка");
       setSavedDocId(data.saved_document_id);
       toast.success("Запазено в профила", { description: "Документи → Всички" });
+      maybeAskForFeedback("save");
     } catch (e: any) {
       toast.error("Грешка при запазване", { description: String(e?.message ?? e) });
     } finally {
