@@ -1,0 +1,139 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.1",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://wkbxojefiovdczkwhved.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "dogovori-net-mcp",
+      "version": "0.1.0",
+      "title": "Dogovori.net"
+    },
+    "tools": [
+      {
+        "name": "search_templates",
+        "title": "Search legal templates",
+        "description": "Searches the public catalog of Bulgarian legal document templates by keyword. Returns slug, name, category and purpose so the user can navigate to /shablon/<slug> or start a wizard.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "description": "Keyword to match against template name/purpose/category (Bulgarian or English)."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 25,
+              "default": 10,
+              "description": "Maximum results (1-25)."
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_my_documents",
+        "title": "List my saved documents",
+        "description": "Lists the signed-in user's saved legal documents (contracts, blanks, uploads) with id, title, kind and last-updated timestamp. Newest first.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "description": "Maximum number of documents to return (1-50, default 20)."
+            },
+            "search": {
+              "type": "string",
+              "description": "Optional case-insensitive substring to filter document titles."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_my_document",
+        "title": "Get one of my documents",
+        "description": "Fetches the full content of one of the signed-in user's saved documents by id. Returns title, kind, and the JSON payload with clauses/fields.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID of the saved document (use list_my_documents to find it)."
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_my_contacts",
+        "title": "List my contacts",
+        "description": "Lists the signed-in user's saved contacts (individuals and companies used as counterparties in documents). Optional search filter on name/EIK/email.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "description": "Max results (1-100)."
+            },
+            "search": {
+              "type": "string",
+              "description": "Optional substring to filter by name, EIK or email."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
