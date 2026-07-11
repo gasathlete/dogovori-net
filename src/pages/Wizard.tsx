@@ -427,6 +427,7 @@ export default function WizardPage() {
       toast.success(format === "pdf" ? "PDF изтеглен" : "DOCX изтеглен", {
         description: res.free ? "Повторно сваляне (безплатно)" : "Запазен в Документи → Всички",
       });
+      maybeAskForFeedback("download");
     } catch (e: any) {
       toast.error("Грешка при експорт", { description: String(e?.message ?? e) });
     } finally {
