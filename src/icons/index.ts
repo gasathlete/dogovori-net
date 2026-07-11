@@ -24,5 +24,22 @@ export { Handshake } from "./Handshake";
 export { BookOpen } from "./BookOpen";
 export { Crown } from "./Crown";
 
+// Wave 2
+export { Bird } from "./Bird";
+export { Bot } from "./Bot";
+export { Zap } from "./Zap";
+export { Lock } from "./Lock";
+export { Bell } from "./Bell";
+export { Package } from "./Package";
+export { Gift } from "./Gift";
+export { Users } from "./Users";
+export { Star } from "./Star";
+export { Trophy } from "./Trophy";
+export { Rocket } from "./Rocket";
+export { PenTool } from "./PenTool";
+export { Stamp } from "./Stamp";
+export { Feather } from "./Feather";
+export { Search } from "./Search";
+
 export type { IconProps } from "./createIcon";
 export { createIcon } from "./createIcon";
