@@ -119,7 +119,7 @@ export function RefineDraftBox({
             aria-controls="refine-draft-body"
           >
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-sm font-semibold">Забелязахте пропуск? AI ще го коригира за секунди.</h3>
+              <h3 className="text-sm font-semibold">{heading}</h3>
               <span className="rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-gold">
                 1 операция
               </span>
@@ -134,7 +134,7 @@ export function RefineDraftBox({
             className={`overflow-hidden transition-all duration-250 ease-in-out ${expanded ? "mt-3 max-h-[600px] opacity-100" : "max-h-0 opacity-0"}`}
           >
             <p className="text-xs text-muted-foreground">
-              Опишете какво липсва или е грешно. AI ще редактира САМО нужното, без да разваля останалия текст.
+              {subheading}
             </p>
 
             <Textarea
