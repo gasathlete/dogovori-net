@@ -41,10 +41,6 @@ import { DocumentVersionsDialog } from "@/components/DocumentVersionsDialog";
 import { History, CalendarDays, Copy } from "lucide-react";
 import { useDocumentReminders, reminderStatus, REMINDER_KIND_LABEL } from "@/hooks/useDocumentReminders";
 import { downloadIcs } from "@/lib/ics";
-import {
-  ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid,
-  Tooltip as RTooltip, Legend, AreaChart, Area, LineChart, Line, ReferenceLine,
-} from "recharts";
 import { getUnlockedTiers, getNextTier, REWARD_TIERS } from "@/lib/rewards";
 
 type Contact = {

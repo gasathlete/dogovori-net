@@ -55,7 +55,16 @@ export default function DashboardCharts({
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <p className="py-12 text-center text-sm text-muted-foreground">Все още нямате извършени операции.</p>
+          <div className="py-10 text-center">
+            <p className="text-sm text-muted-foreground">Все още нямате извършени операции.</p>
+            <p className="mt-1 text-xs text-muted-foreground/80">Създайте първия си документ — статистиката ще се появи автоматично.</p>
+            <a
+              href="/catalog"
+              className="mt-4 inline-flex items-center justify-center gap-2 rounded-md border border-gold/50 bg-gold/10 px-4 py-2 text-[13px] font-semibold text-gold transition-colors hover:bg-gold/20"
+            >
+              Създай първия си документ
+            </a>
+          </div>
         )}
       </div>
 

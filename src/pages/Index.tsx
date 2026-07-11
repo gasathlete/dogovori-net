@@ -20,7 +20,7 @@ import { buildFaqJsonLd } from "@/data/faqItems";
 //  Hero → SocialProofStrip → PainSolution → PlatformShowcase → FeaturedBlanks
 //  → LifeScenarios → ComparisonTable → Testimonials → Process → FAQ
 //  → ComplianceSection → CTABand → SeoFooter
-const SocialProofStrip = lazy(() => import("@/components/SocialProofStrip").then((m) => ({ default: m.SocialProofStrip })));
+import { SocialProofStrip } from "@/components/SocialProofStrip";
 
 
 const PainSolution = lazy(() => import("@/components/PainSolution").then((m) => ({ default: m.PainSolution })));
@@ -119,10 +119,8 @@ const Index = () => {
       <Header />
       <main className="route-fade">
         <Hero onStart={startInterview} />
+        <SocialProofStrip />
         <Suspense fallback={<SectionSkeleton />}>
-          <LazyOnVisible minHeight={120}>
-            <SocialProofStrip />
-          </LazyOnVisible>
 
           <LazyOnVisible minHeight={420}>
             <Reveal>
