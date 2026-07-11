@@ -32,10 +32,6 @@ import { isValidEGN, isValidEIK } from "@/lib/bgValidation";
 import { translateAuthError } from "@/lib/authErrors";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { Seo } from "@/components/Seo";
-import {
-  ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid,
-  Tooltip as RTooltip, Legend, AreaChart, Area, LineChart, Line, ReferenceLine,
-} from "recharts";
 import { getUnlockedTiers, getNextTier, REWARD_TIERS } from "@/lib/rewards";
 
 export type Contact = {
