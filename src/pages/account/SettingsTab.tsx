@@ -219,6 +219,22 @@ function SettingsTab({ profile, setProfile, userId }: {
       {/* Помощ и обучение */}
       <HelpAndOnboardingCard />
 
+      {/* AI асистент (MCP) */}
+      <div className="max-w-lg space-y-3 rounded-xl border border-border/60 bg-gradient-card p-6">
+        <h3 className="flex items-center gap-2 font-serif text-lg font-bold">
+          <Sparkles className="h-4 w-4 text-gold" /> Свържи AI асистент
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          Използвай ChatGPT или Claude, за да работиш с твоите документи, шаблони
+          и контакти — под твоя акаунт, чрез сигурен OAuth вход.
+        </p>
+        <Button asChild variant="outline" className="border-gold/40">
+          <Link to="/connect">
+            <Sparkles className="mr-2 h-4 w-4" /> Инструкции за свързване
+          </Link>
+        </Button>
+      </div>
+
       {/* Обратна връзка */}
       <div className="max-w-lg space-y-3 rounded-xl border border-border/60 bg-gradient-card p-6">
         <h3 className="flex items-center gap-2 font-serif text-lg font-bold">
