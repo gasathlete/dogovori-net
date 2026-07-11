@@ -132,6 +132,14 @@ export default function AdminFeedbackPage() {
               <SelectItem value="other">💬 Друго</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={sourceFilter} onValueChange={(v) => setSourceFilter(v as any)}>
+            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Всички източници</SelectItem>
+              <SelectItem value="wizard">🧙 От Wizard (документ)</SelectItem>
+              <SelectItem value="other">Всички други</SelectItem>
+            </SelectContent>
+          </Select>
           <Button onClick={load} variant="outline" size="sm" disabled={busy}>
             {busy && <Loader2 className="mr-2 h-3 w-3 animate-spin" />} Опресни
           </Button>
