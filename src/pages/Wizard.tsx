@@ -1029,9 +1029,23 @@ export default function WizardPage() {
                 />
               );
               const shouldBlur = !!result && !!user && !docAccess.loading && !docAccess.canDownload;
+              const withRefine = result?.contract && !shouldBlur ? (
+                <>
+                  <RefineDraftBox
+                    contract={result.contract}
+                    answers={answers}
+                    onRefined={(next) => {
+                      setResult({ ...result, contract: { ...result.contract, ...next } });
+                      setSavedDocId(undefined);
+                    }}
+                    onNeedAuth={() => goAuth()}
+                  />
+                  {draft}
+                </>
+              ) : draft;
               return shouldBlur
                 ? <BlurredPreviewOverlay onUnlock={() => setShowPaywall(true)}>{draft}</BlurredPreviewOverlay>
-                : draft;
+                : withRefine;
             })()}
 
           </section>
