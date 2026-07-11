@@ -63,12 +63,6 @@ export default function WizardPage() {
   // bilingual wizard when the URL is *not* already flagged as bilingual.
   useEffect(() => {
     if (!sectorId || !docName || bilingualMode) return;
-    // Prefer the new dynamic graph wizard whenever a migrated graph exists.
-    const graphSlug = slugify(docName);
-    if (getQuestionGraph(graphSlug)) {
-      navigate(`/wizard-graph/${graphSlug}`, { replace: true });
-      return;
-    }
     const isBilingual = CATALOG.some(
       (cat) => cat.sectorId === sectorId && cat.documents.some((d) => d.name === docName && d.bilingual),
     );
@@ -80,13 +74,21 @@ export default function WizardPage() {
 
   const sector = useMemo(() => {
     if (!baseSector) return undefined;
+    // If this document has a rich QuestionGraph, feed those (deeper, conditional)
+    // questions into the classic wizard renderer instead of the default set.
+    // Both flows converge into the same generate-contract / apply-corrections
+    // pipeline downstream — no separate UI, no separate logic.
+    const graph = docName ? getQuestionGraph(slugify(docName)) : null;
+    const questions = graph
+      ? adaptGraphToWizardQuestions(graph)
+      : buildQuestions(baseSector, subWizard);
     return {
       ...baseSector,
       contractName: subWizard?.contractName || baseSector.contractName,
       parties: subWizard?.parties || baseSector.parties,
-      questions: buildQuestions(baseSector, subWizard),
+      questions,
     };
-  }, [baseSector, subWizard]);
+  }, [baseSector, subWizard, docName]);
 
   const storageKey = useMemo(
     () => (baseSector ? `wizard:${baseSector.id}:${docName ?? "_"}` : null),
