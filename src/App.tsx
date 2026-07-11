@@ -298,6 +298,7 @@ const AnimatedRoutes = () => {
         <Route path="/plans" element={<Plans />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
+        <Route path="/connect" element={<Connect />} />
 
         <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
         <Route path="/dashboard" element={<Navigate to="/account?tab=dashboard" replace />} />
