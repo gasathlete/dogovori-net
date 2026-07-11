@@ -236,9 +236,9 @@ export function QuestionField(props: Props) {
   // Поддържа както класическите party_a_type/party_b_type полета, така и
   // произволни party-полета, идващи от graph-адаптера (field.type === "party").
   if (q.type === "group" && (q.id === "group_parties" || q.id.startsWith("group_parties_")) && q.fields && q.fields.length >= 1) {
-    const partyFields = q.fields.filter(
-      (f) => f.id.endsWith("_type") || (f as { type?: string }).type === "party",
-    );
+    // Всички полета в такава група се третират като страни; „_extra“ полетата се
+    // управляват вътрешно от PartyBlock, така че ги филтрираме тук.
+    const partyFields = q.fields.filter((f) => !f.id.endsWith("_extra"));
     return (
       <div className="space-y-5">
         <div>
