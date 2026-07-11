@@ -799,12 +799,11 @@ button, a, [role="button"], input[type="submit"], input[type="button"] {
 }
 
 /* Dogovori Icons — global stroke normalization.
- * Unifies visual weight across ALL Lucide + custom icons to our brand
- * standard (1.75). CSS overrides the SVG stroke-width presentation attribute.
- * Escape hatch: add class "icon-native-stroke" to opt out on a per-icon basis. */
-svg.lucide {
+ * Only Lucide icons rendered with the default stroke-width="2" attribute get
+ * softened to our brand weight (1.75). Any component that passes an explicit
+ * strokeWidth prop (e.g. 1.6 in Process.tsx, 2.5 for emphasis) is left alone.
+ * Escape hatch: add class "icon-native-stroke" to force Lucide's default. */
+svg.lucide[stroke-width="2"]:not(.icon-native-stroke) {
   stroke-width: 1.75;
 }
-svg.lucide.icon-native-stroke {
-  stroke-width: 2;
-}
+
