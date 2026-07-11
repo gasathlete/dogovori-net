@@ -82,11 +82,11 @@ export default function AccountPage() {
   const reload = async () => {
     if (!user) return;
     const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const [c, f, d, q, p, uc, ra, cb, cbAll, qsc] = await Promise.all([
+    const [c, f, d, qRow, p, uc, ra, cb, cbAll, qsc] = await Promise.all([
       supabase.from("contacts").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("folders").select("*").order("is_favorites", { ascending: false }),
       supabase.from("saved_documents").select("*").order("created_at", { ascending: false }),
-      supabase.from("download_quota").select("*").eq("user_id", user.id).maybeSingle(),
+      (await import("@/hooks/useQuota")).fetchQuotaCached(user.id),
       supabase.from("profiles").select("display_name, company, vat_number").eq("id", user.id).maybeSingle(),
       supabase.from("uploaded_contracts").select("id,title,source,folder_id,contact_id,original_filename,storage_path,created_at").order("created_at", { ascending: false }),
       supabase.from("risk_analyses").select("uploaded_contract_id,score,contract_type,created_at").order("created_at", { ascending: false }),
@@ -97,7 +97,7 @@ export default function AccountPage() {
     setContacts((c.data as any) ?? []);
     setFolders((f.data as any) ?? []);
     setDocs((d.data as any) ?? []);
-    setQuota((q.data as any) ?? null);
+    setQuota((qRow as any) ?? null);
     if (p.data) setProfile(p.data as any);
     setUploaded((uc.data as any) ?? []);
     setCorrectionsCount((cb as any)?.count ?? 0);
