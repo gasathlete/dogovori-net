@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { SignaturePad } from "@/components/SignaturePad";
 import { Loader2, CheckCircle2, AlertCircle, XCircle, Download } from "@/icons";
 import { downloadSignedPdf } from "@/lib/signedPdfAssembler";
+import { snapshotToPlainText } from "@/lib/signingSnapshotToText";
 
 interface Peer { id: string; name: string; role: string | null; order_idx: number; status: string; signed_at: string | null }
 interface Envelope { id: string; title: string; document_snapshot: any; status: string; order_mode: string; expires_at: string }
@@ -165,9 +166,7 @@ export default function Sign() {
 
   const alreadySigned = signer.status === "signed";
   const alreadyDeclined = signer.status === "declined";
-  const docText = typeof env.document_snapshot === "string"
-    ? env.document_snapshot
-    : (env.document_snapshot?.body || JSON.stringify(env.document_snapshot, null, 2));
+  const docText = snapshotToPlainText(env.document_snapshot);
 
   return (
     <div className="min-h-dvh bg-background">
