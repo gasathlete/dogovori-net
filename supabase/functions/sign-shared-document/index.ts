@@ -65,12 +65,23 @@ serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { token, signer_name, signature_data_url, password } = body as {
+    const {
+      token, signer_name, signature_data_url, password,
+      signature_method,
+      qes_file_base64, qes_file_name, qes_file_mime,
+    } = body as {
       token?: string;
       signer_name?: string;
       signature_data_url?: string;
       password?: string;
+      signature_method?: "drawn" | "uploaded" | "qes";
+      qes_file_base64?: string;
+      qes_file_name?: string;
+      qes_file_mime?: string;
     };
+    const method: "drawn" | "uploaded" | "qes" =
+      signature_method === "uploaded" || signature_method === "qes" ? signature_method : "drawn";
+
     // SECURITY: only allow PNG/JPEG raster signatures. Reject SVG (XSS via inline
     // <script>/<foreignObject>) and other vector/exotic formats.
     const SIG_RE = /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/;
@@ -100,6 +111,13 @@ serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    if (method === "qes" && (!qes_file_base64 || qes_file_base64.length > 22_000_000)) {
+      return new Response(JSON.stringify({ error: "invalid_qes_file" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
 
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
