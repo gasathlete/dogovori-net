@@ -339,23 +339,60 @@ export default function SharedDocument() {
         </div>
 
         {doc.kind === "uploaded" ? (
-          <div className="overflow-hidden rounded-xl border border-border/60 bg-card/40">
-            {doc.source === "paste" ? (
-              <pre className="max-h-[70vh] overflow-auto whitespace-pre-wrap p-6 font-sans text-sm leading-relaxed text-foreground/90">
-                {doc.extracted_text}
-              </pre>
-            ) : doc.original_url ? (
-              <iframe
-                src={doc.original_url}
-                title={doc.title}
-                className="h-[75vh] w-full bg-white"
-              />
-            ) : (
-              <div className="p-6 text-sm text-muted-foreground">Оригиналният файл не е наличен.</div>
+          <div className="space-y-3">
+            <div className="overflow-hidden rounded-xl border border-border/60 bg-card/40">
+              {doc.extracted_text ? (
+                <pre className="max-h-[70vh] overflow-auto whitespace-pre-wrap p-6 font-sans text-sm leading-relaxed text-foreground/90">
+                  {doc.extracted_text}
+                </pre>
+              ) : doc.original_url ? (
+                <iframe
+                  src={doc.original_url}
+                  title={doc.title}
+                  className="h-[75vh] w-full bg-white"
+                />
+              ) : (
+                <div className="p-6 text-sm text-muted-foreground">Съдържанието на документа не е налично.</div>
+              )}
+            </div>
+            {doc.original_url && (
+              <a
+                href={doc.original_url}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex items-center gap-2 text-xs text-gold underline-offset-4 hover:underline"
+              >
+                Отвори оригиналния файл
+              </a>
             )}
           </div>
         ) : (
           <ContractView payload={doc.payload} />
+        )}
+
+        {!doc.signed_at && signatureDataUrl && (
+          <div className="rounded-xl border-2 border-dashed border-gold/60 bg-gold/5 p-5">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gold">
+              Преглед на подписа върху документа
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm">
+                <div className="font-serif text-base">{signerName || "Име на подписващия"}</div>
+                <div className="text-xs text-muted-foreground">
+                  Дата: {new Date().toLocaleString("bg-BG")}
+                  {sigMethod === "qes" && qesFile ? ` · КЕП файл: ${qesFile.name}` : ""}
+                </div>
+              </div>
+              <img
+                src={signatureDataUrl}
+                alt="Преглед на подпис"
+                className="max-h-24 rounded-md border border-border/60 bg-white p-2"
+              />
+            </div>
+            <p className="mt-3 text-[11px] text-muted-foreground">
+              Това е визуализация на подписа върху финалния PDF. Натиснете „Подпиши документа“ за да финализирате.
+            </p>
+          </div>
         )}
 
         {doc.signed_at ? (
