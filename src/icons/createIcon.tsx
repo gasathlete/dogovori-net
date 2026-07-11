@@ -1,4 +1,4 @@
-import { forwardRef, memo, type SVGProps } from "react";
+import { forwardRef, type SVGProps } from "react";
 
 /**
  * Lucide-compatible icon factory for the Dogovori icon set.
@@ -53,5 +53,5 @@ export function createIcon(name: string, children: React.ReactNode) {
     },
   );
   Component.displayName = name;
-  return memo(Component);
+  return Component;
 }
