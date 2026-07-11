@@ -38,6 +38,14 @@ import { trackEvent } from "@/lib/analytics";
 import { useDocumentAccess } from "@/hooks/useDocumentAccess";
 import { StrictDocumentPaywall } from "@/components/wizard/StrictDocumentPaywall";
 import { BlurredPreviewOverlay } from "@/components/wizard/BlurredPreviewOverlay";
+import {
+  WizardFeedbackPrompt,
+  shouldShowWizardFeedbackPrompt,
+  markWizardFeedbackPromptShown,
+} from "@/components/wizard/WizardFeedbackPrompt";
+import { MessageSquarePlus } from "@/icons";
+
+
 
 interface AIResult {
   risk: {
@@ -304,6 +312,26 @@ export default function WizardPage() {
   }, [baseSector, docName]);
   const docAccess = useDocumentAccess(docKey);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+
+  /**
+   * Beta-only nudge: after the user completes a meaningful action on a
+   * generated document (save / download), softly ask for feedback. Capped to
+   * ≤3 shows per user with a min-hours cooldown between them.
+   */
+  const maybeAskForFeedback = (trigger: "save" | "download" | "manual") => {
+    if (trigger === "manual") {
+      setFeedbackOpen(true);
+      return;
+    }
+    if (!result) return;
+    if (!shouldShowWizardFeedbackPrompt(!!user)) return;
+    markWizardFeedbackPromptShown();
+    // Small delay so the success toast lands first.
+    window.setTimeout(() => setFeedbackOpen(true), 900);
+  };
+
+
 
 
   useEffect(() => {
@@ -399,6 +427,7 @@ export default function WizardPage() {
       toast.success(format === "pdf" ? "PDF изтеглен" : "DOCX изтеглен", {
         description: res.free ? "Повторно сваляне (безплатно)" : "Запазен в Документи → Всички",
       });
+      maybeAskForFeedback("download");
     } catch (e: any) {
       toast.error("Грешка при експорт", { description: String(e?.message ?? e) });
     } finally {
@@ -483,6 +512,7 @@ export default function WizardPage() {
       if (error || data?.error) throw new Error(data?.error || error?.message || "Грешка");
       setSavedDocId(data.saved_document_id);
       toast.success("Запазено в профила", { description: "Документи → Всички" });
+      maybeAskForFeedback("save");
     } catch (e: any) {
       toast.error("Грешка при запазване", { description: String(e?.message ?? e) });
     } finally {
@@ -1050,6 +1080,21 @@ export default function WizardPage() {
                 : draft;
             })()}
 
+            {/* Beta: compact feedback CTA — visible only after the document is generated */}
+            {result && user && (
+              <div className="mt-3 flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => maybeAskForFeedback("manual")}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/5 px-3 py-1.5 text-[11px] font-medium text-gold transition-colors hover:border-gold/60 hover:bg-gold/10"
+                  title="Оставете обратна връзка за преживяването — +2 операции"
+                >
+                  <MessageSquarePlus className="h-3.5 w-3.5" aria-hidden />
+                  Обратна връзка · <span className="font-semibold">+2 операции</span>
+                </button>
+              </div>
+            )}
+
           </section>
         </div>
       </main>
@@ -1061,6 +1106,16 @@ export default function WizardPage() {
         sectorId={sector?.id}
         docName={docName ?? sector?.contractName}
         wizardHref={wizardHref}
+      />
+
+      <WizardFeedbackPrompt
+        open={feedbackOpen}
+        onOpenChange={setFeedbackOpen}
+        context={{
+          docName: docName ?? sector?.contractName,
+          sectorId: sector?.id,
+          docKey,
+        }}
       />
     </div>
   );

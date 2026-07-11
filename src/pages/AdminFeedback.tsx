@@ -49,6 +49,7 @@ export default function AdminFeedbackPage() {
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState<"all" | Row["status"]>("all");
   const [catFilter, setCatFilter] = useState<"all" | Row["category"]>("all");
+  const [sourceFilter, setSourceFilter] = useState<"all" | "wizard" | "other">("all");
 
   useEffect(() => {
     if (loading) return;
@@ -61,13 +62,15 @@ export default function AdminFeedbackPage() {
     let q = supabase.from("feedback_submissions").select("*").order("created_at", { ascending: false }).limit(200);
     if (filter !== "all") q = q.eq("status", filter);
     if (catFilter !== "all") q = q.eq("category", catFilter);
+    if (sourceFilter === "wizard") q = q.eq("source_page", "wizard");
+    else if (sourceFilter === "other") q = q.neq("source_page", "wizard");
     const { data, error } = await q;
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     setRows((data as Row[]) ?? []);
   };
 
-  useEffect(() => { if (allowed) load(); }, [allowed, filter, catFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (allowed) load(); }, [allowed, filter, catFilter, sourceFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateStatus = async (id: string, status: Row["status"]) => {
     const { error } = await supabase.from("feedback_submissions").update({ status, updated_at: new Date().toISOString() }).eq("id", id);
@@ -129,6 +132,14 @@ export default function AdminFeedbackPage() {
               <SelectItem value="other">💬 Друго</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={sourceFilter} onValueChange={(v) => setSourceFilter(v as any)}>
+            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Всички източници</SelectItem>
+              <SelectItem value="wizard">🧙 От Wizard (документ)</SelectItem>
+              <SelectItem value="other">Всички други</SelectItem>
+            </SelectContent>
+          </Select>
           <Button onClick={load} variant="outline" size="sm" disabled={busy}>
             {busy && <Loader2 className="mr-2 h-3 w-3 animate-spin" />} Опресни
           </Button>
@@ -149,6 +160,11 @@ export default function AdminFeedbackPage() {
                     {r.source_page && (
                       <Badge variant="outline" className="border-gold/30 text-gold">
                         От: {r.source_context?.source_label || r.source_page}
+                      </Badge>
+                    )}
+                    {Number(r.source_context?.awarded_ops ?? 0) > 0 && (
+                      <Badge variant="outline" className="border-emerald-500/40 text-emerald-400">
+                        🎁 +{r.source_context.awarded_ops} ops
                       </Badge>
                     )}
                     {r.rating && (
