@@ -98,6 +98,8 @@ const Category = lazy(() => import("./pages/Category.tsx"));
 const Sector = lazy(() => import("./pages/Sector.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.tsx"));
+const OAuthConsent = lazy(() => import("./pages/OAuthConsent.tsx"));
+
 const Account = lazy(() => import("./pages/Account.tsx"));
 const Console = lazy(() => import("./pages/Console.tsx"));
 const DocumentPage = lazy(() => import("./pages/Document.tsx"));
@@ -295,6 +297,8 @@ const AnimatedRoutes = () => {
         <Route path="/auth" element={<Auth />} />
         <Route path="/plans" element={<Plans />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
+
         <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
         <Route path="/dashboard" element={<Navigate to="/account?tab=dashboard" replace />} />
         <Route path="/analiz" element={<Analyze />} />
