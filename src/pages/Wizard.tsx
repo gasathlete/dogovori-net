@@ -331,11 +331,14 @@ export default function WizardPage() {
     window.setTimeout(() => setFeedbackOpen(true), 900);
   };
 
-  // Exit-intent: when the user has a generated document and moves the mouse
-  // toward the tab bar (desktop) OR hides the tab (mobile fallback), softly
-  // ask for feedback. Uses the same capping/cooldown rules as save/download.
+  // Exit-intent: when the user has meaningful progress (answers or a generated
+  // draft) but hasn't saved successfully, softly ask for feedback on leave.
+  // Triggers: mouseleave via top edge (desktop), tab hidden (mobile), and
+  // back-navigation (popstate). Uses the same capping/cooldown rules.
+  const hasUnsavedProgress =
+    !savedDocId && (!!result || Object.keys(answers || {}).length > 0);
   useEffect(() => {
-    if (!result) return;
+    if (!hasUnsavedProgress) return;
     if (feedbackOpen) return;
     let triggered = false;
     const fire = () => {
@@ -346,7 +349,6 @@ export default function WizardPage() {
       setFeedbackOpen(true);
     };
     const onMouseOut = (e: MouseEvent) => {
-      // Only when the cursor leaves through the top edge and to no related element.
       if (e.relatedTarget || (e as any).toElement) return;
       if (e.clientY > 12) return;
       fire();
@@ -354,13 +356,29 @@ export default function WizardPage() {
     const onVisibility = () => {
       if (document.visibilityState === "hidden") fire();
     };
+    // Push a sentinel state so a single Back press triggers popstate without
+    // actually leaving the page; if the user presses Back again, they leave.
+    try { window.history.pushState({ wizardExitGuard: true }, ""); } catch {}
+    const onPopState = () => fire();
+    const onBeforeUnload = () => {
+      // Best-effort: on tab close we can't show a modal, but we can still
+      // mark the shown counter so the next visit shows the request early.
+      if (!triggered && shouldShowWizardFeedbackPrompt(!!user)) {
+        markWizardFeedbackPromptShown();
+      }
+    };
     document.addEventListener("mouseout", onMouseOut);
     document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("popstate", onPopState);
+    window.addEventListener("beforeunload", onBeforeUnload);
     return () => {
       document.removeEventListener("mouseout", onMouseOut);
       document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("popstate", onPopState);
+      window.removeEventListener("beforeunload", onBeforeUnload);
     };
-  }, [result, feedbackOpen, user]);
+  }, [hasUnsavedProgress, feedbackOpen, user]);
+
 
 
 
