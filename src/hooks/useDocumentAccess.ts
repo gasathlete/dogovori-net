@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { fetchQuotaCached } from "@/hooks/useQuota";
 
 interface DocumentAccessState {
   loading: boolean;
@@ -14,6 +15,9 @@ interface DocumentAccessState {
  * Returns access status for wizard-generated ("strict") contracts.
  * Free users must either be Pro or have an active strict_doc_unlocks row
  * for this specific docKey. Anonymous users always canDownload = false.
+ *
+ * The quota lookup goes through the shared React Query cache — mounting this
+ * hook on the same page as useIsPro no longer duplicates the DB round-trip.
  */
 export function useDocumentAccess(docKey: string | undefined): DocumentAccessState {
   const { user } = useAuth();
@@ -32,12 +36,8 @@ export function useDocumentAccess(docKey: string | undefined): DocumentAccessSta
         setLoading(false);
         return;
       }
-      const [{ data: quota }, unlockRes] = await Promise.all([
-        supabase
-          .from("download_quota")
-          .select("plan, pro_until")
-          .eq("user_id", user.id)
-          .maybeSingle(),
+      const [quota, unlockRes] = await Promise.all([
+        fetchQuotaCached(user.id),
         docKey
           ? supabase
               .from("strict_doc_unlocks")
@@ -69,3 +69,4 @@ export function useDocumentAccess(docKey: string | undefined): DocumentAccessSta
     refresh: () => setTick((t) => t + 1),
   };
 }
+

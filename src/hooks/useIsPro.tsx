@@ -60,14 +60,9 @@ export function useIsPro(): ProState {
       setState({ isPro: false, isTeam: false, isEntrepreneur: false, isProfessional: false, loading: false, freeQuota: DEFAULT_FREE_QUOTA });
       return;
     }
-    const [{ data: q }, { data: tm }, { data: sub }] = await Promise.all([
-      supabase
-        .from("download_quota")
-        .select(
-          "plan, pro_until, monthly_total_used, pro_monthly_used, ai_messages_used, analysis_previews_used, bilingual_previews_used, corrections_free_used, free_signing_used, signup_at, plan_ops_cap, topup_ops_balance",
-        )
-        .eq("user_id", user.id)
-        .maybeSingle(),
+    const [q, { data: tm }, { data: sub }] = await Promise.all([
+      // Shared cache: repeated mounts of useIsPro across the tree share one row.
+      (await import("@/hooks/useQuota")).fetchQuotaCached(user.id),
       supabase
         .from("team_members")
         .select("team_id, teams!inner(status)")
