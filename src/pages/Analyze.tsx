@@ -16,6 +16,7 @@ import { PrimaryCTA } from "@/components/funnel/PrimaryCTA";
 import { RoiCalculator } from "@/components/funnel/RoiCalculator";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsPro } from "@/hooks/useIsPro";
 import {
   loadAnalysisSession,
   markFunnelStep,
@@ -38,12 +39,21 @@ const DOC_KINDS = [
 
 export default function Analyze() {
   const { user } = useAuth();
+  const { isPro, isTeam, loading: proLoading } = useIsPro();
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("paste");
   const [docKind, setDocKind] = useState<string>("rent");
   const [pasted, setPasted] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [session, setSession] = useState<AnalysisSession | null>(null);
+
+  // Paid users (Предприемач / Професионалист / Екип) shouldn't see the marketing
+  // teaser — send them straight to the real upload+analysis flow in their account.
+  useEffect(() => {
+    if (!proLoading && user && (isPro || isTeam)) {
+      navigate("/account?tab=documents&action=upload", { replace: true });
+    }
+  }, [proLoading, user, isPro, isTeam, navigate]);
 
   useEffect(() => {
     markFunnelStep(3);
