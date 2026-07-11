@@ -886,8 +886,8 @@ export default function WizardPage() {
 
                 <SignatureBlock
                   isPro={isPro}
-                  defaultPartyA={answers.party_a_name}
-                  defaultPartyB={answers.party_b_name}
+                  defaultPartyA=""
+                  defaultPartyB=""
                   value={signature}
                   onChange={setSignature}
                 />
