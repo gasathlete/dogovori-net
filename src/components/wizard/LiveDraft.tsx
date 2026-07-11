@@ -146,6 +146,8 @@ export function LiveDraft({
 }) {
   const partyA = answers.party_a_name || `[${sector.parties.a}]`;
   const partyB = answers.party_b_name || `[${sector.parties.b}]`;
+  const extraAtypes = parseExtraPartyTypes(answers.party_a_extra);
+  const extraBtypes = parseExtraPartyTypes(answers.party_b_extra);
   const sigA = signature?.name_a || partyA;
   const sigB = signature?.name_b || partyB;
   const [editing, setEditing] = useState(false);
@@ -628,15 +630,27 @@ function TemplateDraftOrSkeleton({
           <div className="space-y-3 text-sm leading-relaxed">
             <p>Днес, [ДАТА], в гр. [ГРАД], между:</p>
             <p>
-              <strong>1. {partyA}</strong>
+              <strong>1. {partyA}{renderPartyTypeBadge(answers.party_a_type)}</strong>
               {renderPartyIdentifier(answers.party_a_type)}, наричан по-долу „
               <em>{sector.parties.a}</em>", и
             </p>
+            {extraAtypes.map((t, i) => (
+              <p key={`a-extra-${i}`}>
+                <strong>1.{i + 2} [{sector.parties.a}]{renderPartyTypeBadge(t)}</strong>
+                {renderPartyIdentifier(t)}, наричан по-долу „<em>{sector.parties.a}</em>", и
+              </p>
+            ))}
             <p>
-              <strong>2. {partyB}</strong>
+              <strong>2. {partyB}{renderPartyTypeBadge(answers.party_b_type)}</strong>
               {renderPartyIdentifier(answers.party_b_type)}, наричан по-долу „
               <em>{sector.parties.b}</em>",
             </p>
+            {extraBtypes.map((t, i) => (
+              <p key={`b-extra-${i}`}>
+                <strong>2.{i + 2} [{sector.parties.b}]{renderPartyTypeBadge(t)}</strong>
+                {renderPartyIdentifier(t)}, наричан по-долу „<em>{sector.parties.b}</em>",
+              </p>
+            ))}
             <p>се сключи настоящият документ за следното:</p>
           </div>
           <div className="legal-paper-strong space-y-3 text-sm italic leading-relaxed md:border-l md:pl-6">
