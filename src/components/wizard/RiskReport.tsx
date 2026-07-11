@@ -54,7 +54,11 @@ export function RiskReport({
 
       <div>
         <h3 className="font-serif text-lg font-bold">
-          {issues.length === 0 ? "Няма установени слаби места" : "Идентифицирани слаби места"}
+          {issues.length === 0
+            ? (strengths && strengths.length > 0
+              ? `Документът е готов за подпис — ${strengths.length} защитни клаузи в него`
+              : "Няма установени слаби места")
+            : "Идентифицирани слаби места"}
         </h3>
         <p className="text-xs text-muted-foreground">
           {issues.length === 0
