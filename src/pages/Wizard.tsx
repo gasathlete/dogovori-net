@@ -43,8 +43,8 @@ import {
   shouldShowWizardFeedbackPrompt,
   markWizardFeedbackPromptShown,
 } from "@/components/wizard/WizardFeedbackPrompt";
-import { FeedbackButton } from "@/components/FeedbackButton";
 import { MessageSquarePlus } from "@/icons";
+
 
 
 interface AIResult {
