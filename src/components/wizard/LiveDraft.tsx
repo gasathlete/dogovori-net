@@ -146,8 +146,6 @@ export function LiveDraft({
 }) {
   const partyA = answers.party_a_name || `[${sector.parties.a}]`;
   const partyB = answers.party_b_name || `[${sector.parties.b}]`;
-  const extraAtypes = parseExtraPartyTypes(answers.party_a_extra);
-  const extraBtypes = parseExtraPartyTypes(answers.party_b_extra);
   const sigA = signature?.name_a || partyA;
   const sigB = signature?.name_b || partyB;
   const [editing, setEditing] = useState(false);
