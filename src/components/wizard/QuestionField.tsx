@@ -231,12 +231,14 @@ export function QuestionField(props: Props) {
   const { q, value, onChange, answers = {}, onAnswerChange, compact = false, contacts = [], invalid = false } = props;
   const invalidRing = invalid ? "border-destructive ring-1 ring-destructive" : "";
 
-  // Специален custom рендер за групата „Страни по договора“ — с „+ Добави“ и контрагенти.
-  if (q.type === "group" && q.id === "group_parties" && q.fields && q.fields.length >= 4) {
-    const aField = q.fields.find((f) => f.id === "party_a_name");
-    const bField = q.fields.find((f) => f.id === "party_b_name");
+  // Специален custom рендер за групата „Страни по договора“ — само форма (без имена / ЕГН),
+  // с възможност за добавяне на повече от една страна във всяка роля.
+  if (q.type === "group" && q.id === "group_parties" && q.fields && q.fields.length >= 2) {
+    const aField = q.fields.find((f) => f.id === "party_a_type");
+    const bField = q.fields.find((f) => f.id === "party_b_type");
     const roleA = aField ? roleFromLabel(aField.label) : "Страна А";
     const roleB = bField ? roleFromLabel(bField.label) : "Страна Б";
+    const showB = !!bField;
     return (
       <div className="space-y-5">
         <div>
@@ -246,24 +248,24 @@ export function QuestionField(props: Props) {
           </Label>
           {q.help && <p className="mt-1 text-xs text-muted-foreground">{q.help}</p>}
         </div>
-        <PartyBlock
-          role={roleA}
-          nameId="party_a_name"
-          typeId="party_a_type"
-          extraId="party_a_extra"
-          answers={answers}
-          onAnswerChange={onAnswerChange ?? (() => {})}
-          contacts={contacts}
-        />
-        <PartyBlock
-          role={roleB}
-          nameId="party_b_name"
-          typeId="party_b_type"
-          extraId="party_b_extra"
-          answers={answers}
-          onAnswerChange={onAnswerChange ?? (() => {})}
-          contacts={contacts}
-        />
+        {aField && (
+          <PartyBlock
+            role={roleA}
+            typeId="party_a_type"
+            extraId="party_a_extra"
+            answers={answers}
+            onAnswerChange={onAnswerChange ?? (() => {})}
+          />
+        )}
+        {showB && (
+          <PartyBlock
+            role={roleB}
+            typeId="party_b_type"
+            extraId="party_b_extra"
+            answers={answers}
+            onAnswerChange={onAnswerChange ?? (() => {})}
+          />
+        )}
       </div>
     );
   }
