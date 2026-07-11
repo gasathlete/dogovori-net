@@ -59,6 +59,49 @@ Deno.serve(async (req: Request) => {
     // Cap at 12 pages to keep latency/cost sane (≈ first 12 pages of a contract).
     const pages = images.slice(0, 12);
 
+    // Ценообразуване: OCR на първите 3 страници е включен в цената на
+    // анализа (analyze-contract зарежда 1 операция). Всяка следваща
+    // страница струва +1 операция, за да покрие реалната AI vision цена.
+    // Резервираме допълнителните операции ПРЕДИ да пуснем OCR — така
+    // потребителят вижда ясен 402 вместо да похарчим API за нищо.
+    const FREE_OCR_PAGES = 3;
+    const extraOps = Math.max(0, pages.length - FREE_OCR_PAGES);
+    if (extraOps > 0) {
+      const userClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: auth } } },
+      );
+      for (let i = 0; i < extraOps; i++) {
+        const { data: q, error: qErr } = await userClient.rpc(
+          "consume_quota",
+          { _kind: "analysis" },
+        );
+        if (qErr) {
+          console.error("ocr extra-op consume_quota error:", qErr);
+          return new Response(
+            JSON.stringify({ error: "Грешка при резервиране на квота за OCR." }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        if (!(q as any)?.ok) {
+          return new Response(
+            JSON.stringify({
+              error:
+                `OCR на ${pages.length} страници изисква ${extraOps} допълнителни ` +
+                `операции (първите ${FREE_OCR_PAGES} страници са безплатни). ` +
+                `Балансът Ви не е достатъчен — добавете топ-ъп или намалете броя страници.`,
+              code: "ocr_quota_exceeded",
+              pages: pages.length,
+              free_pages: FREE_OCR_PAGES,
+              extra_ops_required: extraOps,
+            }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+      }
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "LOVABLE_API_KEY липсва" }), {

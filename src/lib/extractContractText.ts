@@ -163,7 +163,11 @@ async function extractPdf(file: File, onProgress?: ExtractProgress): Promise<str
     throw new Error("Не успяхме да рендираме PDF страниците за OCR. Опитайте Word файл или поставете текста ръчно.");
   }
 
-  onProgress?.(`OCR на ${images.length} страници (може да отнеме до минута)...`);
+  const extraOps = Math.max(0, images.length - 3);
+  const priceNote = extraOps > 0
+    ? ` (първите 3 страници са включени, +${extraOps} доп. операции)`
+    : " (включено в анализа)";
+  onProgress?.(`OCR на ${images.length} страници${priceNote} — може да отнеме до минута...`);
 
   const { data, error } = await supabase.functions.invoke("ocr-contract", {
     body: { images },
