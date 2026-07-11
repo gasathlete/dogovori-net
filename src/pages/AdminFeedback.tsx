@@ -49,6 +49,7 @@ export default function AdminFeedbackPage() {
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState<"all" | Row["status"]>("all");
   const [catFilter, setCatFilter] = useState<"all" | Row["category"]>("all");
+  const [sourceFilter, setSourceFilter] = useState<"all" | "wizard" | "other">("all");
 
   useEffect(() => {
     if (loading) return;
