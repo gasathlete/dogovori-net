@@ -4237,6 +4237,7 @@ export type Database = {
       free_ops_cap: { Args: { _user_id: string }; Returns: number }
       get_active_prompt: { Args: { _function_name: string }; Returns: string }
       get_first100_remaining: { Args: never; Returns: number }
+      get_first90_remaining: { Args: never; Returns: number }
       get_post_rating: {
         Args: {
           _post_slug: string
@@ -4247,6 +4248,7 @@ export type Database = {
           rating_count: number
         }[]
       }
+      get_registered_users_count: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
