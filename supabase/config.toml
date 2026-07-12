@@ -37,6 +37,9 @@ project_id = "wkbxojefiovdczkwhved"
     verify_jwt = false
   [functions.suggest-followup-questions]
     verify_jwt = false
+  [functions.admin-create-brandguardian]
+    verify_jwt = false
+
 
 [functions.send-transactional-email]
 verify_jwt = true
