@@ -1,28 +1,29 @@
 import { createIcon } from "./createIcon";
 
 /**
- * Dogovori Bird — reimagined as a friendly little owl (бухалче).
- * Round head, tufted ears, two big eyes, small beak, plump body,
- * feet perched on a branch. Keeps the "bird" name for drop-in compatibility.
+ * Dogovori Bird — a simple, friendly owl (бухалче).
+ * Clean silhouette: rounded body + head in one shape, two dot eyes,
+ * a small triangle beak. Reads instantly at 16–24px.
  */
 export const Bird = createIcon(
   "bird",
   <>
+    {/* Body + head silhouette */}
+    <path d="M4.5 12a7.5 7.5 0 0 1 15 0v4a5.5 5.5 0 0 1-11 0Z" />
     {/* Ear tufts */}
-    <path d="M7.5 5 6 2.5" />
-    <path d="M16.5 5 18 2.5" />
-    {/* Head + body silhouette (single continuous shape) */}
-    <path d="M5 8.5a7 7 0 0 1 14 0v2.2a6 6 0 0 1-1 3.3l.6 3a1 1 0 0 1-1 1.2h-1.4l-1-1.6a6 6 0 0 1-6.4 0L7.8 18H6.4a1 1 0 0 1-1-1.2l.6-3A6 6 0 0 1 5 10.7Z" />
-    {/* Eyes — big owl eyes */}
-    <circle cx="9" cy="10" r="1.8" />
-    <circle cx="15" cy="10" r="1.8" />
-    <circle cx="9" cy="10" r=".5" fill="currentColor" />
-    <circle cx="15" cy="10" r=".5" fill="currentColor" />
+    <path d="M6.5 6 5 3.5" />
+    <path d="M17.5 6 19 3.5" />
+    {/* Eye rings */}
+    <circle cx="9.5" cy="11" r="1.6" />
+    <circle cx="14.5" cy="11" r="1.6" />
+    {/* Pupils */}
+    <circle cx="9.5" cy="11" r=".5" fill="currentColor" />
+    <circle cx="14.5" cy="11" r=".5" fill="currentColor" />
     {/* Beak */}
-    <path d="M11 12.5h2l-1 1.5Z" />
-    {/* Feet on branch */}
-    <path d="M4 21h16" />
-    <path d="M10 18.5v2M14 18.5v2" />
+    <path d="M11.2 13.5h1.6L12 15Z" />
+    {/* Feet */}
+    <path d="M10 21v-1.2" />
+    <path d="M14 21v-1.2" />
   </>,
 );
 export default Bird;
