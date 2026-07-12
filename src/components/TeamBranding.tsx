@@ -109,7 +109,7 @@ export function TeamBranding({ teamId, isAdmin }: { teamId: string; isAdmin: boo
         {/* Лого */}
         <div className="grid gap-4 sm:grid-cols-[120px_1fr]">
           <div className="flex h-[120px] w-[120px] items-center justify-center rounded-lg border border-border/60 bg-background/50 overflow-hidden">
-            {team.logo_url ? <img src={team.logo_url} alt="Лого" className="max-h-full max-w-full object-contain" /> : <span className="text-xs text-muted-foreground">Лого</span>}
+            {team.logo_url ? <img loading="lazy" decoding="async" src={team.logo_url} alt="Лого" className="max-h-full max-w-full object-contain" /> : <span className="text-xs text-muted-foreground">Лого</span>}
           </div>
           <div className="space-y-2">
             <Label>Лого на фирмата (PNG/JPG, до 2 MB)</Label>
@@ -194,7 +194,7 @@ export function TeamBranding({ teamId, isAdmin }: { teamId: string; isAdmin: boo
           </div>
           {team.signature_data_url && (
             <div className="sm:col-span-2 flex items-center gap-3">
-              <img src={team.signature_data_url} alt="Подпис" className="h-16 rounded border border-border/60 bg-background/50 px-3" />
+              <img loading="lazy" decoding="async" src={team.signature_data_url} alt="Подпис" className="h-16 rounded border border-border/60 bg-background/50 px-3" />
               <Button variant="ghost" size="sm" onClick={() => update({ signature_data_url: null })}>Премахни</Button>
             </div>
           )}
@@ -205,7 +205,7 @@ export function TeamBranding({ teamId, isAdmin }: { teamId: string; isAdmin: boo
           <div className="rounded-lg border-2 border-dashed border-border/60 p-4">
             <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Преглед на бланката</div>
             <div className="flex items-start justify-between gap-4 border-b-2 pb-3" style={{ borderColor: team.brand_color || "#c9a84c" }}>
-              {team.logo_url && <img src={team.logo_url} alt="" className="h-14 object-contain" />}
+              {team.logo_url && <img loading="lazy" decoding="async" src={team.logo_url} alt="" className="h-14 object-contain" />}
               <div className="text-right text-xs leading-tight">
                 <div className="font-bold text-sm" style={{ color: team.brand_color || undefined }}>{team.name}</div>
                 {team.company_eik && <div>ЕИК: {team.company_eik}{team.company_vat ? ` · ДДС: ${team.company_vat}` : ""}</div>}

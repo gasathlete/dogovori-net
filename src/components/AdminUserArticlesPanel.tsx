@@ -182,7 +182,7 @@ export function AdminUserArticlesPanel() {
           <DialogHeader><DialogTitle>{preview?.title}</DialogTitle></DialogHeader>
           {preview && (
             <article className="space-y-4 text-sm">
-              <img src={preview.image_url} alt="" className="aspect-[16/9] w-full rounded-lg object-cover" />
+              <img loading="lazy" decoding="async" src={preview.image_url} alt="" className="aspect-[16/9] w-full rounded-lg object-cover" />
               <p className="italic text-muted-foreground">{preview.summary}</p>
               <p className="whitespace-pre-line">{preview.intro}</p>
               {(preview.sections ?? []).map((s, i) => (

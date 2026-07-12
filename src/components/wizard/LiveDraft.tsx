@@ -359,7 +359,7 @@ export function LiveDraft({
           <div className="mt-8 grid grid-cols-2 gap-8 text-center text-xs">
             <div>
               {signature?.image_a ? (
-                <img src={signature.image_a} alt="Подпис А" className="mx-auto h-14 object-contain" />
+                <img loading="lazy" decoding="async" src={signature.image_a} alt="Подпис А" className="mx-auto h-14 object-contain" />
               ) : (
                 <div className="h-14" />
               )}
@@ -368,7 +368,7 @@ export function LiveDraft({
             </div>
             <div>
               {signature?.image_b ? (
-                <img src={signature.image_b} alt="Подпис Б" className="mx-auto h-14 object-contain" />
+                <img loading="lazy" decoding="async" src={signature.image_b} alt="Подпис Б" className="mx-auto h-14 object-contain" />
               ) : (
                 <div className="h-14" />
               )}

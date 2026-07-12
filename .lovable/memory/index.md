@@ -7,3 +7,7 @@ Free plan scope: каталог + wizard/build (свободно разглеж�
 Top-up packs (subscribers only): topup_5 2.90 €, topup_20 5.40 €, topup_50 12.90 € (Най-избиран), topup_100 23.90 € (Най-изгоден). Legacy topup_10 is deprecated — removed from UI.
 Operation metering: 1 op = (download contract) | (download template) | (upload+analyze incl. auto-corrections wave). Same (session_id, doc_key) reused in tab = free. Each new corrections wave (new batch_id) = 1 op.
 Engagement loop v1 (client-side, localStorage): `useEngagement` hook + `bumpEngagement()` on every successful op. `StreakBadge` (header/mobile), `ActionCelebrationHost` mounted in App.tsx listens for `dogovari:op-completed` CustomEvent, `SmartSuggestions` for empty states.
+Every new feature MUST follow `docs/PERFORMANCE_A11Y_STANDARDS.md`: lazy routes + PrefetchLink + LazyOnVisible, `<img>` with alt+loading=lazy+decoding=async+dimensions, design tokens only (no text-white/bg-black/text-gray-*/hardcoded hex), aria-label on icon buttons, `h-dvh` not `h-screen`, singleton queryClient, RLS+GRANTs+indexes per migration.
+
+## Memories
+- [Performance & A11y standards](mem://performance-a11y-standards) — Global rules for every integration; full doc at docs/PERFORMANCE_A11Y_STANDARDS.md

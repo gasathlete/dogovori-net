@@ -120,7 +120,7 @@ export function AdminPartnersPanel() {
             {rows.map((p) => (
               <TableRow key={p.id}>
                 <TableCell>
-                  <img src={p.logo_url} alt={p.name} className="h-10 w-auto max-w-[120px] object-contain" />
+                  <img loading="lazy" decoding="async" src={p.logo_url} alt={p.name} className="h-10 w-auto max-w-[120px] object-contain" />
                 </TableCell>
                 <TableCell className="font-medium">{p.name}</TableCell>
                 <TableCell>
