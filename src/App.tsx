@@ -91,6 +91,7 @@ const DocumentWorkspace = lazy(() => import("./pages/DocumentWorkspace.tsx"));
 
 const Catalog = lazy(() => import("./pages/Catalog.tsx"));
 const Analyze = lazy(() => import("./pages/Analyze.tsx"));
+const ProcessStep = lazy(() => import("./pages/ProcessStep.tsx"));
 const Tools = lazy(() => import("./pages/Tools.tsx"));
 const ToolDetail = lazy(() => import("./pages/ToolDetail.tsx"));
 
@@ -271,6 +272,7 @@ const AnimatedRoutes = () => {
     <div key={location.pathname} className="route-fade">
       <Routes location={routedLocation}>
         <Route path="/" element={<Index />} />
+        <Route path="/proces/:slug" element={<ProcessStep />} />
         <Route path="/demo/risk-analysis" element={<RiskAnalysisDemo />} />
         <Route path="/demo/bilingual" element={<BilingualDemo />} />
         <Route path="/demo/e-signature" element={<ESignatureDemo />} />
