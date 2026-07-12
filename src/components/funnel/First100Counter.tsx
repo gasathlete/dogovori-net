@@ -4,12 +4,13 @@ import { Flame } from "@/icons";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * First100Counter — elegant "Остават X/90" pill placed under the
+ * First100Counter — elegant "Остават X/100" pill placed under the
  * FIRST100 promo line in the Hero. Reads the live count via the public
- * RPC `get_first90_remaining` (90 minus real active paid users + teams)
+ * RPC `get_first90_remaining` (100 minus a 10-seat marketing seed minus
+ * real active paid users + teams — including admin-granted subscriptions)
  * and refreshes every 60s. Clicking the pill navigates to /plans.
  */
-const TOTAL_SEATS = 90;
+const TOTAL_SEATS = 100;
 
 export function First100Counter() {
   const [remaining, setRemaining] = useState<number | null>(null);
