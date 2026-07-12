@@ -89,5 +89,27 @@ export { Briefcase } from "./Briefcase";
 export { Home } from "./Home";
 export { Info } from "./Info";
 
+// Wave 4 — additional refined coverage.
+export { EyeOff } from "./EyeOff";
+export { Calendar } from "./Calendar";
+export { Phone } from "./Phone";
+export { MapPin } from "./MapPin";
+export { Link } from "./Link";
+export { Globe } from "./Globe";
+export { Cloud } from "./Cloud";
+export { AlertCircle } from "./AlertCircle";
+export { CheckCircle } from "./CheckCircle";
+export { Trash } from "./Trash";
+export { Edit } from "./Edit";
+export { Save } from "./Save";
+export { RefreshCcw } from "./RefreshCcw";
+export { Filter } from "./Filter";
+export { ShoppingCart } from "./ShoppingCart";
+export { Wallet } from "./Wallet";
+export { BadgeCheck } from "./BadgeCheck";
+export { Building } from "./Building";
+export { Image } from "./Image";
+export { Sliders } from "./Sliders";
+
 export type { IconProps } from "./createIcon";
 export { createIcon } from "./createIcon";
