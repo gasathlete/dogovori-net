@@ -339,8 +339,34 @@ ${docTypeSpec.systemAddendum}
     let parsed;
     try { parsed = extractJson(content); }
     catch (err) {
-      console.error("JSON parse failed. Content head:", content.slice(0, 800));
-      throw new Error("AI отговорът не може да бъде анализиран като JSON");
+      console.error("JSON parse failed on first attempt. Content head:", content.slice(0, 800));
+      // Retry once: ask the model to repair its previous output into strict JSON.
+      try {
+        const repairResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: route.model,
+            messages: [
+              { role: "system", content: "Ти си JSON repair asistant. Върни СТРОГО валиден JSON обект без markdown, без коментари, без обяснения. Запази цялото съдържание и структура от входа, само поправи синтактичните грешки (unescaped кавички, control chars, липсващи скоби, trailing запетаи, отрязан край)." },
+              { role: "user", content: `Поправи следния почти-JSON и върни валиден JSON обект:\n\n${content}` },
+            ],
+            response_format: { type: "json_object" },
+          }),
+        });
+        if (repairResp.ok) {
+          const repairData = await repairResp.json();
+          const repairContent: string = repairData.choices?.[0]?.message?.content ?? "";
+          if (repairContent && repairContent.trim()) {
+            parsed = extractJson(repairContent);
+          }
+        }
+      } catch (repairErr) {
+        console.error("JSON repair retry failed:", repairErr);
+      }
+      if (!parsed) {
+        throw new Error("AI отговорът не може да бъде анализиран като JSON. Моля опитайте отново.");
+      }
     }
 
     // Unredact AI output so the user sees real names/EGN/IBAN in the final doc.
