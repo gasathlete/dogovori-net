@@ -48,14 +48,14 @@ export function First100Counter() {
 
   if (remaining === null) return null;
 
-  const taken = 100 - remaining;
-  const pct = Math.max(4, Math.min(100, taken));
-  const scarce = remaining <= 20;
+  const taken = TOTAL_SEATS - remaining;
+  const pct = Math.max(4, Math.min(100, (taken / TOTAL_SEATS) * 100));
+  const scarce = remaining <= 18;
 
   return (
     <Link
       to="/plans"
-      aria-label={`Остават ${remaining} от 100 места с 20% отстъпка — виж плановете`}
+      aria-label={`Остават ${remaining} от ${TOTAL_SEATS} места с 20% отстъпка — виж плановете`}
       className="group mt-2 inline-flex items-center gap-2.5 rounded-full border border-gold/30 bg-card/60 px-3.5 py-1.5 text-[13px] backdrop-blur-sm transition-all hover:border-gold/60 hover:bg-card/80 hover:shadow-[0_0_0_4px_hsl(var(--gold)/0.08)] focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/50"
     >
       <Flame
@@ -69,7 +69,7 @@ export function First100Counter() {
         >
           {remaining}
         </span>
-        <span className="text-muted-foreground/70">/100</span>
+        <span className="text-muted-foreground/70">/{TOTAL_SEATS}</span>
       </span>
       <span
         aria-hidden="true"
