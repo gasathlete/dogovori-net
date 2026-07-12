@@ -23,7 +23,7 @@ export {
   Euro, FileArchive, FileCheck2, FileDown, FileEdit, FilePlus2,
   FileQuestion, FileSearch, FileUp, FileWarning, Flame,
   FolderInput, FolderOpen, FolderTree, Gem, GitCompare, GripVertical,
-  Headphones, HelpCircle, History, Inbox, KeyRound, Keyboard,
+  HelpCircle, History, Inbox, KeyRound, Keyboard,
   Languages, Layers, Layout, LayoutDashboard, LayoutPanelLeft, Library,
   LifeBuoy, Lightbulb, ListChecks, Loader2, LogIn, LogOut,
   Maximize2, Megaphone, Menu, MessageSquare, MessageSquarePlus,
