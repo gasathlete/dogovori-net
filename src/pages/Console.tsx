@@ -7,8 +7,10 @@ import { ConsoleListColumn } from "@/components/console/ConsoleListColumn";
 import { ConsoleTabBar } from "@/components/console/ConsoleTabBar";
 import { ConsoleCanvas } from "@/components/console/ConsoleCanvas";
 import { ConsoleFooter } from "@/components/console/ConsoleFooter";
+import { ConsoleMobileShell } from "@/components/console/ConsoleMobileShell";
 import { Header } from "@/components/Header";
 import { AssistantChat } from "@/components/AssistantChat";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { FileText, Upload, Layers, Scale, Plus, LayoutDashboard, RotateCw, X, Maximize2, MessageSquarePlus } from "@/icons";
 
 const ASSISTANT_QUICK_LINKS = [
@@ -28,6 +30,7 @@ function ConsoleShell() {
   useConsoleShortcuts();
   const { state, setSection, toggleSidebar } = useConsoleStore();
   const { section: sectionParam } = useParams<{ section?: string }>();
+  const isMobile = useIsMobile();
   const isAssistant = state.section === "assistant";
   const [rotateHintDismissed, setRotateHintDismissed] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -70,7 +73,18 @@ function ConsoleShell() {
     setRotateHintDismissed(true);
     try { window.sessionStorage.setItem("console-rotate-hint-dismissed", "1"); } catch {}
   };
-  const showRotateHint = isPortraitMobile && !rotateHintDismissed;
+  const showRotateHint = isPortraitMobile && !rotateHintDismissed && !isMobile;
+
+  if (isMobile) {
+    return (
+      <div className="flex h-dvh flex-col bg-background">
+        <Header />
+        <div className="flex flex-1 overflow-hidden">
+          <ConsoleMobileShell />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
