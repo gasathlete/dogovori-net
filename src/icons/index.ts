@@ -111,5 +111,27 @@ export { Building } from "./Building";
 export { Image } from "./Image";
 export { Sliders } from "./Sliders";
 
+// Wave 5 — additional refined coverage.
+export { ArrowUpRight } from "./ArrowUpRight";
+export { ArrowDownRight } from "./ArrowDownRight";
+export { ChevronsUpDown } from "./ChevronsUpDown";
+export { Percent } from "./Percent";
+export { Hash } from "./Hash";
+export { AtSign } from "./AtSign";
+export { Heart } from "./Heart";
+export { ThumbsUp } from "./ThumbsUp";
+export { ThumbsDown } from "./ThumbsDown";
+export { Play2 } from "./Play2";
+export { Volume2 } from "./Volume2";
+export { VolumeX } from "./VolumeX";
+export { Mic } from "./Mic";
+export { Camera } from "./Camera";
+export { QrCode } from "./QrCode";
+export { Fingerprint } from "./Fingerprint";
+export { Sigma } from "./Sigma";
+export { BookMarked } from "./BookMarked";
+export { Tags } from "./Tags";
+export { Award } from "./Award";
+
 export type { IconProps } from "./createIcon";
 export { createIcon } from "./createIcon";
