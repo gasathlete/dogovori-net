@@ -1,76 +1,96 @@
 
-# План: Собствен иконен пакет "Dogovori Icons" в стил Lucide
+# Мобилен workspace — концепция и план
 
-## Цел
-Един унифициран, професионален иконен пакет, който отговаря на визуалната тема на сайта (правен/корпоративен минимализъм, тънки линии, спокойна тежест), напълно съвместим с Lucide API, така че замяната става с една смяна на import — без счупвания.
+## Диагноза (какво не работи сега)
 
-## 1. Дизайн език на иконките
-- Технически: SVG 24×24, viewBox `0 0 24 24`, `stroke="currentColor"`, `stroke-width=1.75` (леко по-фино от Lucide 2 = по-"легално"/премиум усещане), `stroke-linecap="round"`, `stroke-linejoin="round"`, `fill="none"`.
-- Геометрия: изчистени вертикали, симетрия, лека засечка където символизира "печат/документ/подпис".
-- Акценти: 1–2 иконки могат да имат тънък золотист "accent stroke" (за AI/премиум), реализиран чрез CSS клас `.icon-accent` — не hardcode цвят.
-- Пълна съвместимост с `size`, `color`, `strokeWidth`, `className` props — същия интерфейс като `lucide-react`.
+Текущият `/console` е строго 3‑колонен layout, наследен от desktop:
+`ConsoleSidebar (56–224px)` + `ConsoleListColumn (~280px)` + `ConsoleCanvas + TabBar + Footer`.
 
-## 2. Архитектура (нулев риск от грешки при замяна)
-Създаваме собствена библиотека `src/icons/` която експортира компоненти със **същите имена** като текущите Lucide иконки, които заместваме.
+На 393px:
+- И трите колони се стискат едновременно → sidebar показва иконки, а надписите "Табло/Сделки/Документи" се пречупват вертикално буква под буква.
+- `ConsoleTabBar` е хоризонтален списък с pill‑ове, който също не се събира и се препокрива с action бутоните вдясно.
+- Появява се "завъртете екрана" банер — това е симптом, не решение.
+- List column и Canvas се борят за същите ~150px ширина → текст се орязва и презастъпва.
 
+Ключово: на mobile не искаме "миниатюрен desktop". Искаме **един панел наведнъж** с ясен начин за превключване.
+
+## Концепция: 3 swipeable сегмента
+
+Мобилният workspace се превръща в **swipe‑деки** от 3 панела, съответстващи на трите естествени сегмента на работния процес:
+
+```text
+ ┌───────────────────────────────────────┐
+ │  Header (dogovori.net)                │
+ ├───────────────────────────────────────┤
+ │                                       │
+ │           Активен панел               │
+ │        (пълна ширина на екрана)       │
+ │                                       │
+ │        ← swipe наляво/надясно →       │
+ │                                       │
+ ├───────────────────────────────────────┤
+ │  [ Раздели ] [ Списък ] [ Работа ]    │ ← segmented control
+ └───────────────────────────────────────┘
 ```
-src/icons/
-  ├── createIcon.tsx        // фабрика, идентичен API на lucide-react
-  ├── index.ts              // re-export на всички
-  ├── Sparkles.tsx
-  ├── ShieldCheck.tsx
-  ├── FileSignature.tsx
-  ├── Scale.tsx
-  ├── Gavel.tsx
-  ├── Handshake.tsx
-  ├── Wand2.tsx
-  └── ... (само тези, които решим да заменим)
-```
 
-Замяната в компонент е едноредова:
-```diff
-- import { Sparkles, ShieldCheck } from "lucide-react";
-+ import { Sparkles, ShieldCheck } from "@/icons";
-```
-Ако някоя иконка още не е направена — `@/icons` пре-експортира липсващите от `lucide-react` като fallback, така сайтът никога не се чупи по време на постепенна миграция.
+Трите сегмента:
 
-## 3. Фази на изпълнение
+1. **Раздели** — вертикален списък на секциите (Табло, Сделки, Документи, Качени, Шаблони, Комплекти, Клиенти, Анализи, Подписи, DogovaryAI). Пълна ширина, иконка + етикет на един ред, tap‑target ≥ 44px. Заменя стиснатия `ConsoleSidebar`.
+2. **Списък** — редовете на текущата секция (`ConsoleListColumn` съдържанието), пълна ширина, търсачка отгоре, "Нов" бутон закачен горе вдясно. Tap на ред → автоматично прехвърля към сегмент 3.
+3. **Работа** — активният таб (`ConsoleCanvas`). Отгоре — компактен таб‑switcher (виж по‑долу). Празно състояние: "Изберете елемент от Списък".
 
-### Фаза A — Инфраструктура (без визуални промени)
-1. `createIcon` фабрика с Lucide-съвместим API.
-2. `src/icons/index.ts` с fallback re-export от `lucide-react` (`export * from "lucide-react"`), после селективен override с наши.
-3. Кратко README със стандарта.
+Навигация между сегменти:
+- Хоризонтален swipe (touch gesture) — основен път.
+- Segmented control долу — fallback + винаги видим индикатор къде си.
+- Автоматичен преход: избор на секция → сегмент 2; избор на ред → сегмент 3.
+- Бутон "назад" на устройството / горе вляво стрелка → сегмент назад преди exit.
 
-### Фаза B — Първи пакет (топ 10 най-видими)
-Кандидати за първа вълна (най-често срещаните + водещите за марката):
-1. **Sparkles** — AI корекции / асистент (най-виден)
-2. **Wand2** — генерация
-3. **ShieldCheck** — сигурност / е-подпис
-4. **Scale** — право / ЗЗД
-5. **Gavel** — правни решения
-6. **FileSignature** — подписване
-7. **FileText** — документ
-8. **Handshake** — комплекти / сделки
-9. **BookOpen** — библиотека / шаблони
-10. **Crown** — премиум план
+## Мобилен таб‑switcher (замяна на `ConsoleTabBar`)
 
-За всяка: ръчно SVG в стил описан в §1. Без AI-генерирани растерни изображения — това са векторни икони, ще ги начертая директно като path данни, за да са пиксел-остри и с еднаква тежест.
+Хоризонталните pill табове са проблемни на 393px. Замяна с **compact "tab dock"** в горната лента на сегмент 3:
 
-### Фаза C — Постепенна замяна
-- Един PR/промяна = един файл, само смяна на import path.
-- Визуална проверка чрез Playwright screenshot на страниците, където се появяват (Hero, Wizard, Assistant, Console).
+- Показва **активния таб** като етикет + иконка + брой (`Документи · 4`).
+- Tap → отваря bottom‑sheet със списък на всички отворени табове (иконка, заглавие, dirty индикатор, X за затваряне, pin toggle).
+- Swipe надолу от tab dock → същият sheet.
+- Long‑press на ред в сегмент "Списък" → context menu (Отвори в нов таб / Закачи).
 
-### Фаза D (по желание) — Разширение
-Втора вълна (още 10–15): `Bot, Zap, Lock, Bell, Sparkle-alt, Package, Gift, Users, Search, Download` и т.н. Правим я само след одобрение на Фаза B.
+Това премахва хоризонталния scroll с pill‑ове и вертикалния текст, и дава ясен overview.
 
-## 4. Какво НЕ правя в този план
-- Не пипам емоджитата (флагчета 🇬🇧🇩🇪…, ⚖ в текст) — те са Unicode и не са част от Lucide подмяната. Ако искате и тях да заменим с SVG, това е отделен план.
-- Не сменям цветовете на съществуващите места — иконките наследяват `currentColor` както досега.
-- Не бутам admin панела в тази вълна (по-нисък приоритет, вътрешен изглед).
+## Долен segmented control
 
-## 5. Въпроси за одобрение преди старт на билд
-1. **Тежест на щриха**: 1.75 (леко по-фина, по-премиум) или 2 (идентично на Lucide)?
-2. **Първа вълна**: одобрявате ли списъка от 10 иконки в Фаза B, или искате друг набор?
-3. **Златен акцент** за Sparkles/Wand2/Crown (много дискретна втора линия в `hsl(var(--gold))`) — да или не?
+- 3 равни бутона: **Раздели / Списък / Работа**.
+- Active state: gold underline + solid label; inactive: muted.
+- Badge на "Работа" когато има dirty табове.
+- Sticky, `env(safe-area-inset-bottom)` за iOS home indicator.
+- Скрива се при scroll надолу (използваме съществуващия `useHideOnScroll`), показва се при scroll нагоре — за да не яде vertical space при четене на дълъг документ.
 
-След вашия отговор превключвам в build mode и пускам Фаза A + B наведнъж.
+## Assistant (DogovaryAI) частен случай
+
+Когато активната секция е `assistant`, сегмент 2 = чат панел на пълна ширина, сегмент 3 = quick‑actions (Създай документ, Анализ, Шаблони, Комплекти) като голяма grid‑мрежа вместо стиснат horizontal scroll bar. Сегмент 1 остава навигация.
+
+## Технически детайли
+
+- Breakpoint: `< 768px` (`useIsMobile`) → mobile shell. `≥ 768px` → съществуващият 3‑колонен layout остава непроменен.
+- Нов компонент `ConsoleMobileShell.tsx` в `src/components/console/` — рендерира трите сегмента и segmented control.
+- Swipe: използваме native CSS `scroll-snap` върху horizontal flex контейнер (`scroll-snap-type: x mandatory`, всеки панел `scroll-snap-align: start; width: 100dvw`). Без нова dependency, GPU‑ускорено, поддържа momentum на iOS.
+- `useConsoleStore` разширяваме с `mobilePanel: "nav" | "list" | "work"` + `setMobilePanel(panel)`. Съществуващите `setSection` / `openTab` тригерират автоматичен преход към следващия сегмент само когато `isMobile`.
+- `Console.tsx`: замяна на текущия mobile fallback (banner "завъртете екрана") с `{isMobile ? <ConsoleMobileShell /> : <DesktopShell />}`. Rotate hint премахнат.
+- Нов `MobileTabDock.tsx` + `MobileTabsSheet.tsx` (използва shadcn `Sheet` от `side="bottom"`).
+- Sidebar collapse логиката (`sidebarCollapsed` auto‑set на mobile) става ирелевантна за mobile — оставяме както е за safety при resize desktop→mobile.
+- Touch targets ≥ 44px, `h-dvh` за пълна височина, всички цветове през дизайн токени (`text-foreground`, `bg-card`, `gold` accent). Без hardcoded hex.
+- Пълна съвместимост с всички съществуващи Pane компоненти (`DealPane`, `DocumentPane` и т.н.) — те получават пълна ширина на екрана без промяна.
+
+## Извън обхват (за отделна итерация)
+
+- Пренаписване на самите Pane компоненти за mobile (само shell‑ът се променя сега; ако конкретен pane има вътрешни презастъпвания, ще ги адресираме отделно).
+- Промяна на desktop поведението.
+- Offline / PWA install prompt.
+
+## Deliverables
+
+1. `src/components/console/ConsoleMobileShell.tsx` — нов shell с 3 scroll‑snap панела.
+2. `src/components/console/MobileSegmentedControl.tsx` — долен switcher с hide‑on‑scroll.
+3. `src/components/console/MobileTabDock.tsx` + `MobileTabsSheet.tsx` — заместник на `ConsoleTabBar` на mobile.
+4. `src/hooks/useConsoleStore.tsx` — добавка на `mobilePanel` state + auto‑advance при `setSection`/`openTab`.
+5. `src/pages/Console.tsx` — branch по `useIsMobile()`, премахване на rotate‑hint банера.
+6. Ръчна verification: screenshots на 393×618 през Playwright — навигация, отваряне на ред, swipe между сегменти, tab sheet.
