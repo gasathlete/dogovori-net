@@ -40,6 +40,8 @@ export {
   Tag, Target, Trash, Trash2, TrendingDown, TrendingUp,
   Upload, User, UserCheck, UserMinus, UserPlus, Users2,
   Wrench, X, XCircle,
+  BrainCircuit, Folder, ClipboardList, FolderArchive, Pin, PinOff,
+  UploadCloud, GitCompareArrows, Map,
 } from "./wrapped";
 
 // ...then override with our custom, brand-matched icons.
