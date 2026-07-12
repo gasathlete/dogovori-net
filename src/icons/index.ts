@@ -155,5 +155,26 @@ export { Layers2 } from "./Layers2";
 export { Workflow } from "./Workflow";
 export { Puzzle } from "./Puzzle";
 
+// Wave 7 — media, devices, connectivity, extras.
+export { Palette } from "./Palette";
+export { Rss } from "./Rss";
+export { Newspaper } from "./Newspaper";
+export { Coffee } from "./Coffee";
+export { Leaf } from "./Leaf";
+export { Flag } from "./Flag";
+export { Anchor } from "./Anchor";
+export { LifeRing } from "./LifeRing";
+export { Gauge } from "./Gauge";
+export { Cog } from "./Cog";
+export { Database } from "./Database";
+export { Server } from "./Server";
+export { Wifi } from "./Wifi";
+export { Smartphone } from "./Smartphone";
+export { Laptop } from "./Laptop";
+export { Monitor } from "./Monitor";
+export { MousePointer } from "./MousePointer";
+export { Rocket2 } from "./Rocket2";
+export { Bolt } from "./Bolt";
+
 export type { IconProps } from "./createIcon";
 export { createIcon } from "./createIcon";
