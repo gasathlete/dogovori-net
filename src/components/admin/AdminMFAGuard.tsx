@@ -146,7 +146,7 @@ export function AdminMFAGuard({ children }: { children: ReactNode }) {
           {!recoveryShown && !hasMfa && qr && (
             <div className="space-y-3">
               <div className="flex justify-center rounded-lg bg-white p-4">
-                <img src={qr} alt="MFA QR код" className="h-48 w-48" />
+                <img loading="lazy" decoding="async" src={qr} alt="MFA QR код" className="h-48 w-48" />
               </div>
               {secret && (
                 <div className="text-xs text-muted-foreground">

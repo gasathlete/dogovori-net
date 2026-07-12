@@ -121,7 +121,7 @@ export default function BlogUserPost() {
           </header>
 
           <figure className="mb-10 overflow-hidden rounded-xl border border-border/50">
-            <img src={post.image_url} alt={post.title} className="aspect-[16/9] w-full object-cover" />
+            <img loading="lazy" decoding="async" src={post.image_url} alt={post.title} className="aspect-[16/9] w-full object-cover" />
           </figure>
 
           <div className="prose prose-invert max-w-none text-pretty">

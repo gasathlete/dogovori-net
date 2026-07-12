@@ -146,7 +146,7 @@ export function SignatureBlock({ isPro, defaultPartyA, defaultPartyB, value, onC
                 <div className="mt-3">
                   {img ? (
                     <div className="relative rounded-md border border-border/50 bg-white p-2">
-                      <img src={img} alt="Подпис" className="mx-auto h-16 object-contain" />
+                      <img loading="lazy" decoding="async" src={img} alt="Подпис" className="mx-auto h-16 object-contain" />
                       <Button
                         size="sm"
                         variant="ghost"

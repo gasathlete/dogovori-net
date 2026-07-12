@@ -177,7 +177,7 @@ export default function BlogSubmit() {
             <div className="mt-2 flex items-start gap-4">
               <label className="flex h-32 w-48 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-border/60 bg-card/30 text-muted-foreground hover:border-gold/50">
                 {imagePreview ? (
-                  <img src={imagePreview} alt="preview" className="h-full w-full rounded-lg object-cover" />
+                  <img loading="lazy" decoding="async" src={imagePreview} alt="preview" className="h-full w-full rounded-lg object-cover" />
                 ) : (
                   <div className="flex flex-col items-center gap-1 text-xs"><Upload className="h-5 w-5" /> Качи</div>
                 )}

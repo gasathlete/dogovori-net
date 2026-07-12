@@ -465,7 +465,7 @@ export default function SharedDocument() {
                       className="block w-full text-xs"
                     />
                     {signatureDataUrl && (
-                      <img src={signatureDataUrl} alt="Качен подпис" className="max-h-32 border rounded bg-white p-2" />
+                      <img loading="lazy" decoding="async" src={signatureDataUrl} alt="Качен подпис" className="max-h-32 border rounded bg-white p-2" />
                     )}
                     <p className="text-[11px] text-muted-foreground">
                       Приемат се PNG / JPEG. Препоръчително — прозрачен фон, черно мастило.

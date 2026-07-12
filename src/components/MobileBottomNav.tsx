@@ -149,7 +149,7 @@ export function MobileBottomNav() {
             <div className="flex shrink-0 items-center justify-between border-b border-border/50 px-4 py-2.5 pt-safe">
               <div className="flex items-center gap-2">
                 <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-gradient-to-b from-gold to-gold/80 ring-1 ring-gold/40">
-                  <img src={logoImg} alt="" width={22} height={22} className="h-5 w-5 object-contain" aria-hidden="true" />
+                  <img loading="lazy" decoding="async" src={logoImg} alt="" width={22} height={22} className="h-5 w-5 object-contain" aria-hidden="true" />
                 </span>
                 <SheetTitle className="text-sm font-semibold">DogovaryAI</SheetTitle>
               </div>

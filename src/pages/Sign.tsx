@@ -286,7 +286,7 @@ export default function Sign() {
                         className="block w-full text-xs"
                       />
                       {signature && (
-                        <img src={signature} alt="Качен подпис" className="max-h-32 border rounded bg-white p-2" />
+                        <img loading="lazy" decoding="async" src={signature} alt="Качен подпис" className="max-h-32 border rounded bg-white p-2" />
                       )}
                       <p className="text-[11px] text-muted-foreground">
                         Приемат се PNG / JPEG. Препоръчително — прозрачен фон, черно мастило.
