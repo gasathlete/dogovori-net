@@ -8,8 +8,41 @@
  * so partial migration is always safe — the app never breaks.
  */
 
-// Fallback: re-export everything from lucide-react first...
-export * from "lucide-react";
+// Re-export the LucideIcon type so consumers can type icon props uniformly.
+// Icon values themselves come from `./wrapped` (auto-wrapped lucide icons)
+// and the hand-crafted overrides below.
+export type { LucideIcon } from "lucide-react";
+
+// Bulk wrappers: apply Dogovori default stroke weight (1.75) to lucide icons
+// that aren't hand-drawn. Named re-exports so they take precedence over the
+// `export * from "lucide-react"` above (avoids ambiguous-export errors).
+export {
+  Activity, AlertCircle, AlertTriangle, Archive, ArrowDown, ArrowLeft,
+  ArrowRight, ArrowUp, BarChart3, Bookmark, BookmarkPlus, Brain,
+  Briefcase, Bug, Building2, Calculator, CalendarDays, Check,
+  CheckCircle2, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
+  Circle, ClipboardCheck, ClipboardPaste, Clock, Coins, Command,
+  Compass, Cookie, Copy, Cpu, CreditCard, DatabaseBackup,
+  Dot, Download, Euro, ExternalLink, Eye, FileArchive,
+  FileCheck2, FileDown, FileEdit, FilePlus2, FileQuestion, FileSearch,
+  FileUp, FileWarning, Filter, Flame, FolderInput, FolderOpen,
+  FolderTree, Gem, GitCompare, GripVertical, Headphones, HelpCircle,
+  History, Home, Inbox, Info, KeyRound, Keyboard,
+  Languages, Layers, Layout, LayoutDashboard, LayoutPanelLeft, Library,
+  LifeBuoy, Lightbulb, ListChecks, Loader2, LogIn, LogOut,
+  Mail, MapPin, Maximize2, Megaphone, Menu, MessageSquare,
+  MessageSquarePlus, MessageSquareQuote, MessagesSquare, Minus, Moon, MoreHorizontal,
+  MoreVertical, MousePointerClick, PanelLeft, Paperclip, Pause, Pen,
+  PenLine, PenSquare, Pencil, Phone, Play, PlayCircle,
+  Plus, Printer, Quote, Receipt, RefreshCw, RotateCcw,
+  RotateCw, Save, ScrollText, Send, Settings, Share2,
+  Shield, ShieldAlert, ShieldOff, ShieldQuestion, Square, Sun,
+  Tag, Target, Trash, Trash2, TrendingDown, TrendingUp,
+  Upload, User, UserCheck, UserMinus, UserPlus, Users2,
+  Wrench, X, XCircle,
+  BrainCircuit, Folder, ClipboardList, FolderArchive, Pin, PinOff,
+  UploadCloud, GitCompareArrows, Map,
+} from "./wrapped";
 
 // ...then override with our custom, brand-matched icons.
 // These take precedence over the lucide-react re-exports above.
