@@ -225,10 +225,26 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </div>
 
           <p
-            className="anim-rise mx-auto mt-2 text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-gold/80"
+            className="anim-rise mx-auto mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-gold/80"
             style={{ animationDelay: "160ms" }}
+            aria-label="Четирите стъпки на процеса"
           >
-            ДОГОВАРЯЙ · СЪЗДАЙ · ПРЕЦИЗИРАЙ · ПОДПИШИ
+            {[
+              { slug: "dogovaryay", label: "ДОГОВАРЯЙ" },
+              { slug: "sazday", label: "СЪЗДАЙ" },
+              { slug: "pretsiziray", label: "ПРЕЦИЗИРАЙ" },
+              { slug: "podpishi", label: "ПОДПИШИ" },
+            ].map((s, i, arr) => (
+              <span key={s.slug} className="inline-flex items-center gap-2">
+                <Link
+                  to={`/proces/${s.slug}`}
+                  className="rounded px-1 py-0.5 text-gold/80 underline-offset-4 transition-colors hover:text-gold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
+                >
+                  {s.label}
+                </Link>
+                {i < arr.length - 1 && <span aria-hidden="true" className="text-gold/40">·</span>}
+              </span>
+            ))}
           </p>
 
           <ul
