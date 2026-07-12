@@ -133,5 +133,27 @@ export { BookMarked } from "./BookMarked";
 export { Tags } from "./Tags";
 export { Award } from "./Award";
 
+// Wave 6 — brand, finance, docs, workflow.
+export { Banknote } from "./Banknote";
+export { PiggyBank } from "./PiggyBank";
+export { ChartLine } from "./ChartLine";
+export { PieChart } from "./PieChart";
+export { Bookmark2 } from "./Bookmark2";
+export { FileLock } from "./FileLock";
+export { FilePen } from "./FilePen";
+export { FolderPlus } from "./FolderPlus";
+export { Signature } from "./Signature";
+export { Scroll } from "./Scroll";
+export { Notebook } from "./Notebook";
+export { Landmark } from "./Landmark";
+export { IdCard } from "./IdCard";
+export { Timer } from "./Timer";
+export { Hourglass } from "./Hourglass";
+export { Sparkle } from "./Sparkle";
+export { CircleDollar } from "./CircleDollar";
+export { Layers2 } from "./Layers2";
+export { Workflow } from "./Workflow";
+export { Puzzle } from "./Puzzle";
+
 export type { IconProps } from "./createIcon";
 export { createIcon } from "./createIcon";
