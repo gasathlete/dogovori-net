@@ -97,15 +97,3 @@ export function getDisplayCount(counts: Map<string, number>, slug: string): numb
   const real = counts.get(slug) ?? 0;
   return baselineForSlug(slug) + real;
 }
-
-export function useDownloadCounts(): Map<string, number> {
-  const [counts, setCounts] = useState<Map<string, number>>(() => cache ?? new Map());
-  useEffect(() => {
-    let cancelled = false;
-    if (!cache) {
-      loadCounts().then((m) => { if (!cancelled) setCounts(m); });
-    }
-    return () => { cancelled = true; };
-  }, []);
-  return counts;
-}
