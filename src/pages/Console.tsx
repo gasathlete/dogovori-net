@@ -30,6 +30,7 @@ function ConsoleShell() {
   useConsoleShortcuts();
   const { state, setSection, toggleSidebar } = useConsoleStore();
   const { section: sectionParam } = useParams<{ section?: string }>();
+  const isMobile = useIsMobile();
   const isAssistant = state.section === "assistant";
   const [rotateHintDismissed, setRotateHintDismissed] = useState(() => {
     if (typeof window === "undefined") return true;
