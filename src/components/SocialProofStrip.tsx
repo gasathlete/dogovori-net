@@ -39,7 +39,7 @@ export function SocialProofStrip() {
     >
       <div className="container py-8 sm:py-10">
         <p className="mb-6 text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-          БЪЛГАРСКА ПЛАТФОРМА, ИЗПОЛЗВАНА ОТ 500+ ПРЕДПРИЕМАЧИ, АДВОКАТИ, СЧЕТОВОДИТЕЛИ У НАС И В ЧУЖБИНА
+          БЪЛГАРСКА ПЛАТФОРМА, ИЗПОЛЗВАНА ОТ <span className="tabular-nums text-foreground">{registeredUsers}</span>+ ПРЕДПРИЕМАЧИ, АДВОКАТИ, СЧЕТОВОДИТЕЛИ У НАС И В ЧУЖБИНА
         </p>
 
         {loop.length > 0 && (
