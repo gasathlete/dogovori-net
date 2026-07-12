@@ -8,10 +8,10 @@
  * so partial migration is always safe — the app never breaks.
  */
 
-// Fallback: re-export everything from lucide-react first (types + long tail
-// of icons that aren't hand-crafted or bulk-wrapped). Named re-exports below
-// override the barrel — that's how partial migration stays safe.
-export * from "lucide-react";
+// Re-export the LucideIcon type so consumers can type icon props uniformly.
+// Icon values themselves come from `./wrapped` (auto-wrapped lucide icons)
+// and the hand-crafted overrides below.
+export type { LucideIcon } from "lucide-react";
 
 // Bulk wrappers: apply Dogovori default stroke weight (1.75) to lucide icons
 // that aren't hand-drawn. Named re-exports so they take precedence over the
