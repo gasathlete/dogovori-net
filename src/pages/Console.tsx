@@ -7,8 +7,10 @@ import { ConsoleListColumn } from "@/components/console/ConsoleListColumn";
 import { ConsoleTabBar } from "@/components/console/ConsoleTabBar";
 import { ConsoleCanvas } from "@/components/console/ConsoleCanvas";
 import { ConsoleFooter } from "@/components/console/ConsoleFooter";
+import { ConsoleMobileShell } from "@/components/console/ConsoleMobileShell";
 import { Header } from "@/components/Header";
 import { AssistantChat } from "@/components/AssistantChat";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { FileText, Upload, Layers, Scale, Plus, LayoutDashboard, RotateCw, X, Maximize2, MessageSquarePlus } from "@/icons";
 
 const ASSISTANT_QUICK_LINKS = [
