@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useConsoleStore } from "@/hooks/useConsoleStore";
 import { useDeals, dealStatusLabel, dealStatusColor, type Deal } from "@/hooks/useDeals";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
-import { Search, Plus, Loader2, FileText, FileUp, Briefcase, Library, Users, Package } from "@/icons";
+import { Search, Plus, Loader2, FileText, FileUp, Briefcase, Library, Users, Package, PenSquare } from "@/icons";
 import { listMyKits, type UserKit } from "@/lib/kits";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { SendForSignatureDialog } from "@/components/SendForSignatureDialog";
 import { toast } from "sonner";
 
 interface Row {
@@ -21,6 +23,8 @@ interface Row {
 function ListShell({
   title,
   onCreate,
+  createLabel,
+  createIcon: CreateIcon = Plus,
   onSearch,
   loading,
   rows,
@@ -30,6 +34,8 @@ function ListShell({
 }: {
   title: string;
   onCreate?: () => void;
+  createLabel?: string;
+  createIcon?: any;
   onSearch: (q: string) => void;
   loading: boolean;
   rows: Row[];
@@ -50,7 +56,7 @@ function ListShell({
             className="h-7 bg-gold/15 px-2 text-gold hover:bg-gold/25"
             variant="ghost"
           >
-            <Plus className="mr-1 h-3.5 w-3.5" /> Нов
+            <CreateIcon className="mr-1 h-3.5 w-3.5" /> {createLabel ?? "Нов"}
           </Button>
         )}
       </div>
@@ -509,27 +515,38 @@ function SigningListView() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [sendOpen, setSendOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const reload = async () => {
+    if (!user) return;
+    setLoading(true);
+    const { data } = await supabase
+      .from("signing_requests")
+      .select("id, title, status, created_at")
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    setItems(data ?? []);
+    setLoading(false);
+  };
 
   useEffect(() => {
     if (!user) return;
-    let active = true;
-    (async () => {
-      setLoading(true);
-      const { data } = await supabase
-        .from("signing_requests")
-        .select("id, title, status, created_at")
-        .eq("owner_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (active) {
-        setItems(data ?? []);
-        setLoading(false);
-      }
-    })();
-    return () => {
-      active = false;
-    };
+    void reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Deep-link support: /console/signing?send=1 auto-opens the picker
+  // (used by the Hero → "Подпиши" CTA).
+  useEffect(() => {
+    if (searchParams.get("send") === "1") {
+      setSendOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete("send");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const rows: Row[] = useMemo(() => {
     const filtered = q
@@ -554,15 +571,25 @@ function SigningListView() {
   const activeId = state.tabs.find((t) => t.id === state.activeId)?.entityId ?? null;
 
   return (
-    <ListShell
-      title="Подписи"
-      loading={loading}
-      rows={rows}
-      activeId={activeId}
-      onSearch={setQ}
-      onOpen={(r) => openTab({ kind: "signing", entityId: r.id, title: r.title })}
-      emptyHint="Няма изпратени заявки за подпис."
-    />
+    <>
+      <ListShell
+        title="Подписи"
+        loading={loading}
+        rows={rows}
+        activeId={activeId}
+        onSearch={setQ}
+        onCreate={() => setSendOpen(true)}
+        createLabel="Изпрати за подпис"
+        createIcon={PenSquare}
+        onOpen={(r) => openTab({ kind: "signing", entityId: r.id, title: r.title })}
+        emptyHint="Няма изпратени заявки за подпис."
+      />
+      <SendForSignatureDialog
+        open={sendOpen}
+        onOpenChange={setSendOpen}
+        onCreated={reload}
+      />
+    </>
   );
 }
 

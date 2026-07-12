@@ -129,7 +129,7 @@ const STEPS: Record<StepKey, StepDef> = {
       "Добави имейлите на страните и реда на подписване.",
       "Получаваш подписания PDF с печат и одит-доказателство."
     ],
-    featureHref: "/console/signing",
+    featureHref: "/console/signing?send=1",
     featureLabel: "Отвори електронния подпис",
     authedCtaLabel: "Изпрати за подпис",
     prev: "pretsiziray",
