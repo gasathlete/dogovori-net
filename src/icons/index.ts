@@ -176,5 +176,26 @@ export { MousePointer } from "./MousePointer";
 export { Rocket2 } from "./Rocket2";
 export { Bolt } from "./Bolt";
 
+// Wave 8 — nature, weather, transport, animals.
+export { Cat } from "./Cat";
+export { Dog } from "./Dog";
+export { Fish } from "./Fish";
+export { Rabbit } from "./Rabbit";
+export { Tree } from "./Tree";
+export { Mountain } from "./Mountain";
+export { Sun2 } from "./Sun2";
+export { Umbrella } from "./Umbrella";
+export { Snowflake } from "./Snowflake";
+export { Droplet } from "./Droplet";
+export { Flame2 } from "./Flame2";
+export { Battery } from "./Battery";
+export { Plug } from "./Plug";
+export { Bluetooth } from "./Bluetooth";
+export { Bike } from "./Bike";
+export { Car } from "./Car";
+export { Truck } from "./Truck";
+export { Plane } from "./Plane";
+export { Ship } from "./Ship";
+
 export type { IconProps } from "./createIcon";
 export { createIcon } from "./createIcon";
