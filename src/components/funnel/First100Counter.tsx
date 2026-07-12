@@ -4,16 +4,12 @@ import { Flame } from "@/icons";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * First100Counter — elegant "Остават X/100" pill placed under the
+ * First100Counter — elegant "Остават X/90" pill placed under the
  * FIRST100 promo line in the Hero. Reads the live count via the public
- * RPC `get_first100_remaining` and refreshes every 60s.
- *
- * A baseline offset of 8 is applied on top of the real subscription
- * count so the displayed number starts at 92/100 (the promo has already
- * been partially claimed via manual/legacy channels).
- * Clicking the pill navigates to /plans.
+ * RPC `get_first90_remaining` (90 minus real active paid users + teams)
+ * and refreshes every 60s. Clicking the pill navigates to /plans.
  */
-const CLAIMED_OFFSET = 8;
+const TOTAL_SEATS = 90;
 
 export function First100Counter() {
   const [remaining, setRemaining] = useState<number | null>(null);
@@ -22,18 +18,16 @@ export function First100Counter() {
     let cancelled = false;
 
     const load = async () => {
-      const { data, error } = await supabase.rpc("get_first100_remaining");
+      const { data, error } = await supabase.rpc("get_first90_remaining");
       if (cancelled) return;
       let value: number;
       if (error || data === null || data === undefined) {
-        // Fallback: assume 0 active subscriptions on RPC failure.
-        value = 100;
+        value = TOTAL_SEATS;
       } else {
         value = typeof data === "number" ? data : Number(data);
-        if (!Number.isFinite(value)) value = 100;
+        if (!Number.isFinite(value)) value = TOTAL_SEATS;
       }
-      const adjusted = Math.max(0, Math.min(100, value - CLAIMED_OFFSET));
-      setRemaining(adjusted);
+      setRemaining(Math.max(0, Math.min(TOTAL_SEATS, value)));
     };
 
     const idle =
