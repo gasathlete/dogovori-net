@@ -38,6 +38,8 @@ project_id = "wkbxojefiovdczkwhved"
   [functions.suggest-followup-questions]
     verify_jwt = false
 
+
+
 [functions.send-transactional-email]
 verify_jwt = true
 
