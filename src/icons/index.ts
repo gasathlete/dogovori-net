@@ -23,7 +23,7 @@ export {
   Euro, FileArchive, FileCheck2, FileDown, FileEdit, FilePlus2,
   FileQuestion, FileSearch, FileUp, FileWarning, Flame,
   FolderInput, FolderOpen, FolderTree, Gem, GitCompare, GripVertical,
-  Headphones, HelpCircle, History, Inbox, KeyRound, Keyboard,
+  HelpCircle, History, Inbox, KeyRound, Keyboard,
   Languages, Layers, Layout, LayoutDashboard, LayoutPanelLeft, Library,
   LifeBuoy, Lightbulb, ListChecks, Loader2, LogIn, LogOut,
   Maximize2, Megaphone, Menu, MessageSquare, MessageSquarePlus,
@@ -196,6 +196,27 @@ export { Car } from "./Car";
 export { Truck } from "./Truck";
 export { Plane } from "./Plane";
 export { Ship } from "./Ship";
+
+// Wave 9 — food, education, health, media, play.
+export { Bone } from "./Bone";
+export { Cake } from "./Cake";
+export { Pizza } from "./Pizza";
+export { Utensils } from "./Utensils";
+export { GraduationCap } from "./GraduationCap";
+export { School } from "./School";
+export { Hospital } from "./Hospital";
+export { Stethoscope } from "./Stethoscope";
+export { Pill } from "./Pill";
+export { Music } from "./Music";
+export { Headphones } from "./Headphones";
+export { Video } from "./Video";
+export { Radio } from "./Radio";
+export { Podcast } from "./Podcast";
+export { Ticket } from "./Ticket";
+export { Gamepad } from "./Gamepad";
+export { Dice } from "./Dice";
+export { Trophy2 } from "./Trophy2";
+export { Medal } from "./Medal";
 
 export type { IconProps } from "./createIcon";
 export { createIcon } from "./createIcon";
