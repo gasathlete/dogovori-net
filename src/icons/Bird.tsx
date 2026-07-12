@@ -1,29 +1,26 @@
 import { createIcon } from "./createIcon";
 
 /**
- * Dogovori Bird — a simple, friendly owl (бухалче).
- * Clean silhouette: rounded body + head in one shape, two dot eyes,
- * a small triangle beak. Reads instantly at 16–24px.
+ * Dogovori Bird — a cute, friendly little owl (бухалче).
+ * Soft round body, gentle sleepy eyes (arcs, not staring circles),
+ * a tiny curved beak. No sharp features, reads as friendly at any size.
  */
 export const Bird = createIcon(
   "bird",
   <>
-    {/* Body + head silhouette */}
-    <path d="M4.5 12a7.5 7.5 0 0 1 15 0v4a5.5 5.5 0 0 1-11 0Z" />
-    {/* Ear tufts */}
-    <path d="M6.5 6 5 3.5" />
-    <path d="M17.5 6 19 3.5" />
-    {/* Eye rings */}
-    <circle cx="9.5" cy="11" r="1.6" />
-    <circle cx="14.5" cy="11" r="1.6" />
-    {/* Pupils */}
-    <circle cx="9.5" cy="11" r=".5" fill="currentColor" />
-    <circle cx="14.5" cy="11" r=".5" fill="currentColor" />
-    {/* Beak */}
-    <path d="M11.2 13.5h1.6L12 15Z" />
-    {/* Feet */}
-    <path d="M10 21v-1.2" />
-    <path d="M14 21v-1.2" />
+    {/* Rounded body */}
+    <path d="M5 11a7 7 0 0 1 14 0v5a5 5 0 0 1-10 0v-1" />
+    <path d="M5 11v4a4 4 0 0 0 4 4" />
+    {/* Small ear tufts — soft, not spikes */}
+    <path d="M7.5 5.5c.3-.8.9-1.3 1.6-1.4" />
+    <path d="M16.5 5.5c-.3-.8-.9-1.3-1.6-1.4" />
+    {/* Sleepy happy eyes (arcs, closed-ish) */}
+    <path d="M8.5 11.5c.4-.6 1-1 1.7-1s1.3.4 1.7 1" />
+    <path d="M12.1 11.5c.4-.6 1-1 1.7-1s1.3.4 1.7 1" />
+    {/* Tiny beak */}
+    <path d="M11.6 13.5c.2.3.6.3.8 0" />
+    {/* Little wing hint */}
+    <path d="M8.5 15c1 .6 2 .8 3 .8" />
   </>,
 );
 export default Bird;
