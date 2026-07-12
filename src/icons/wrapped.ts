@@ -138,3 +138,13 @@ export const Users2 = wrapLucide(L.Users2, "users2");
 export const Wrench = wrapLucide(L.Wrench, "wrench");
 export const X = wrapLucide(L.X, "x");
 export const XCircle = wrapLucide(L.XCircle, "x-circle");
+
+export const BrainCircuit = wrapLucide(L.BrainCircuit, "brain-circuit");
+export const Folder = wrapLucide(L.Folder, "folder");
+export const ClipboardList = wrapLucide(L.ClipboardList, "clipboard-list");
+export const FolderArchive = wrapLucide(L.FolderArchive, "folder-archive");
+export const Pin = wrapLucide(L.Pin, "pin");
+export const PinOff = wrapLucide(L.PinOff, "pin-off");
+export const UploadCloud = wrapLucide(L.UploadCloud, "upload-cloud");
+export const GitCompareArrows = wrapLucide(L.GitCompareArrows, "git-compare-arrows");
+export const Map = wrapLucide(L.Map, "map");
