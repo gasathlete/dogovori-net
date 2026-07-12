@@ -73,7 +73,7 @@ function ConsoleShell() {
   const showRotateHint = isPortraitMobile && !rotateHintDismissed;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-dvh flex-col bg-background">
       <Header />
       {showRotateHint && (
         <div className="flex items-center gap-2 border-b border-gold/30 bg-gold/10 px-3 py-2 text-[12px] text-foreground md:hidden">

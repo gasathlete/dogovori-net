@@ -120,7 +120,7 @@ export default function DocumentWorkspacePage() {
   const Icon = spec.icon;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       {/* Sticky header */}
       <header className="sticky top-0 z-30 border-b border-border/60 bg-card/90 backdrop-blur">
         <div className="mx-auto flex max-w-[1600px] items-center gap-3 px-4 py-3">
