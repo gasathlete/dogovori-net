@@ -73,7 +73,18 @@ function ConsoleShell() {
     setRotateHintDismissed(true);
     try { window.sessionStorage.setItem("console-rotate-hint-dismissed", "1"); } catch {}
   };
-  const showRotateHint = isPortraitMobile && !rotateHintDismissed;
+  const showRotateHint = isPortraitMobile && !rotateHintDismissed && !isMobile;
+
+  if (isMobile) {
+    return (
+      <div className="flex h-dvh flex-col bg-background">
+        <Header />
+        <div className="flex flex-1 overflow-hidden">
+          <ConsoleMobileShell />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
