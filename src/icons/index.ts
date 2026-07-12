@@ -15,24 +15,24 @@ export type { LucideIcon } from "lucide-react";
 // Bulk wrappers: apply Dogovori default stroke weight (1.75) to lucide icons
 // that aren't hand-drawn.
 export {
-  Activity, AlertCircle, AlertTriangle, Archive, ArrowDown, ArrowUp,
+  Activity, AlertTriangle, Archive, ArrowDown, ArrowUp,
   BarChart3, Bookmark, BookmarkPlus, Brain, Bug, Building2,
   Calculator, CheckCircle2, CheckSquare, ChevronDown, ChevronLeft, ChevronRight,
   ChevronUp, Circle, ClipboardCheck, ClipboardPaste, Clock, Coins,
   Command, Compass, Cookie, Cpu, DatabaseBackup, Dot,
   Euro, FileArchive, FileCheck2, FileDown, FileEdit, FilePlus2,
-  FileQuestion, FileSearch, FileUp, FileWarning, Filter, Flame,
+  FileQuestion, FileSearch, FileUp, FileWarning, Flame,
   FolderInput, FolderOpen, FolderTree, Gem, GitCompare, GripVertical,
   Headphones, HelpCircle, History, Inbox, KeyRound, Keyboard,
   Languages, Layers, Layout, LayoutDashboard, LayoutPanelLeft, Library,
   LifeBuoy, Lightbulb, ListChecks, Loader2, LogIn, LogOut,
-  MapPin, Maximize2, Megaphone, Menu, MessageSquare, MessageSquarePlus,
+  Maximize2, Megaphone, Menu, MessageSquare, MessageSquarePlus,
   MessageSquareQuote, MessagesSquare, Minus, Moon, MoreHorizontal, MoreVertical,
   MousePointerClick, PanelLeft, Paperclip, Pause, Pen, PenLine,
-  PenSquare, Pencil, Phone, Play, PlayCircle, Printer,
-  Quote, Receipt, RefreshCw, RotateCcw, RotateCw, Save,
+  PenSquare, Pencil, Play, PlayCircle, Printer,
+  Quote, Receipt, RefreshCw, RotateCcw, RotateCw,
   ScrollText, Share2, Shield, ShieldAlert, ShieldOff, ShieldQuestion,
-  Square, Sun, Tag, Target, Trash, Trash2,
+  Square, Sun, Tag, Target, Trash2,
   TrendingDown, TrendingUp, User, UserCheck, UserMinus, UserPlus,
   Users2, Wrench, XCircle,
   BrainCircuit, Folder, ClipboardList, FolderArchive, Pin, PinOff,
@@ -88,6 +88,28 @@ export { CalendarDays } from "./CalendarDays";
 export { Briefcase } from "./Briefcase";
 export { Home } from "./Home";
 export { Info } from "./Info";
+
+// Wave 4 — additional refined coverage.
+export { EyeOff } from "./EyeOff";
+export { Calendar } from "./Calendar";
+export { Phone } from "./Phone";
+export { MapPin } from "./MapPin";
+export { Link } from "./Link";
+export { Globe } from "./Globe";
+export { Cloud } from "./Cloud";
+export { AlertCircle } from "./AlertCircle";
+export { CheckCircle } from "./CheckCircle";
+export { Trash } from "./Trash";
+export { Edit } from "./Edit";
+export { Save } from "./Save";
+export { RefreshCcw } from "./RefreshCcw";
+export { Filter } from "./Filter";
+export { ShoppingCart } from "./ShoppingCart";
+export { Wallet } from "./Wallet";
+export { BadgeCheck } from "./BadgeCheck";
+export { Building } from "./Building";
+export { Image } from "./Image";
+export { Sliders } from "./Sliders";
 
 export type { IconProps } from "./createIcon";
 export { createIcon } from "./createIcon";
