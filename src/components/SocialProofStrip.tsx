@@ -19,6 +19,13 @@ async function fetchApprovedPartners(): Promise<Partner[]> {
   });
 }
 
+async function fetchRegisteredUsers(): Promise<number> {
+  const { data, error } = await supabase.rpc("get_registered_users_count");
+  if (error || data === null || data === undefined) return 100;
+  const n = typeof data === "number" ? data : Number(data);
+  return Number.isFinite(n) ? Math.max(100, n) : 100;
+}
+
 export function SocialProofStrip() {
   // Public, near-static list. Cache aggressively — same data for every visitor.
   const { data: partners = [] } = useQuery({
@@ -26,6 +33,13 @@ export function SocialProofStrip() {
     queryFn: fetchApprovedPartners,
     staleTime: 30 * 60_000,
     gcTime: 60 * 60_000,
+  });
+
+  const { data: registeredUsers = 100 } = useQuery({
+    queryKey: ["public-registered-users-count"],
+    queryFn: fetchRegisteredUsers,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
   });
 
   // Duplicate the list so the marquee loops seamlessly.
