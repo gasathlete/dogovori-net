@@ -15,7 +15,7 @@ import { slugify } from "@/lib/slugify";
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, type DocumentTypeId } from "@/lib/documentReferences";
 import { inferDocumentType } from "@/lib/documentTypeInference";
 import { QUESTION_GRAPHS } from "@/data/questionGraphs/dogovor-za-naem-na-zhilishte";
-import { useDownloadCounts } from "@/hooks/useDownloadCounts";
+import { useDownloadCounts, getDisplayCount } from "@/hooks/useDownloadCounts";
 import { useTemplateSearch } from "@/hooks/useTemplateSearch";
 import { SECTOR_META } from "@/data/sectorsMeta";
 import { SECTOR_IMAGES } from "@/lib/sectorImages";
@@ -578,7 +578,7 @@ function CategoryDocs({ cat, forceExpanded, downloadCounts }: { cat: any; forceE
             {visible.map((doc: any) => {
               const docSlug = slugify(doc.name);
               const hasDynamic = DYNAMIC_SLUGS.has(docSlug);
-              const downloads = downloadCounts.get(docSlug) ?? 0;
+              const downloads = getDisplayCount(downloadCounts, docSlug);
               const wizardHref = hasDynamic
                 ? `/wizard-graph/${docSlug}`
                 : doc.bilingual
@@ -647,7 +647,7 @@ function CategoryDocs({ cat, forceExpanded, downloadCounts }: { cat: any; forceE
           {visible.map((doc: any) => {
             const docSlug = slugify(doc.name);
             const hasDynamic = DYNAMIC_SLUGS.has(docSlug);
-            const downloads = downloadCounts.get(docSlug) ?? 0;
+            const downloads = getDisplayCount(downloadCounts, docSlug);
             return (
               <Link
                 key={doc.name}
@@ -847,7 +847,7 @@ function SectorCatalogGrid({
                   {preview.map(({ doc, cat }) => {
                     const docSlug = slugify(doc.name);
                     const hasDynamic = DYNAMIC_SLUGS.has(docSlug);
-                    const downloads = downloadCounts.get(docSlug) ?? 0;
+                    const downloads = getDisplayCount(downloadCounts, docSlug);
                     const wizardHref = hasDynamic
                       ? `/wizard-graph/${docSlug}`
                       : doc.bilingual
