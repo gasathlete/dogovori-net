@@ -9,6 +9,7 @@ import { Seo } from "@/components/Seo";
 import { toast } from "sonner";
 import { SignaturePad } from "@/components/SignaturePad";
 import { Loader2, CheckCircle2, AlertCircle, XCircle, Download } from "@/icons";
+import { Checkbox } from "@/components/ui/checkbox";
 import { downloadSignedPdf } from "@/lib/signedPdfAssembler";
 import { snapshotToPlainText } from "@/lib/signingSnapshotToText";
 
@@ -325,12 +326,11 @@ export default function Sign() {
                 </div>
 
                 {/* ZEDEUU чл. 13, ал. 4 — equivalence-to-handwritten consent */}
-                <label className="flex items-start gap-2 text-xs leading-relaxed cursor-pointer rounded-md border border-border/60 bg-card/40 p-3">
-                  <input
-                    type="checkbox"
-                    className="mt-0.5"
+                <label className="flex items-start gap-3 text-xs leading-relaxed cursor-pointer rounded-md border border-border/60 bg-card/40 p-3">
+                  <Checkbox
+                    className="mt-0.5 shrink-0"
                     checked={sesAccepted}
-                    onChange={(e) => setSesAccepted(e.target.checked)}
+                    onCheckedChange={(v) => setSesAccepted(v === true)}
                   />
                   <span>
                     Съгласявам се този електронен подпис (усъвършенстван електронен
@@ -340,11 +340,11 @@ export default function Sign() {
                   </span>
                 </label>
 
-                <label className="flex items-center gap-2 text-xs cursor-pointer">
-                  <input
-                    type="checkbox"
+                <label className="flex items-center gap-3 text-xs cursor-pointer">
+                  <Checkbox
+                    className="shrink-0"
                     checked={signsAsEntity}
-                    onChange={(e) => setSignsAsEntity(e.target.checked)}
+                    onCheckedChange={(v) => setSignsAsEntity(v === true)}
                   />
                   Подписвам от името на юридическо лице
                 </label>
@@ -370,12 +370,11 @@ export default function Sign() {
                         <option value="other">Друго</option>
                       </select>
                     </div>
-                    <label className="flex items-start gap-2 text-xs leading-relaxed cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="mt-0.5"
+                    <label className="flex items-start gap-3 text-xs leading-relaxed cursor-pointer">
+                      <Checkbox
+                        className="mt-0.5 shrink-0"
                         checked={repDeclaration}
-                        onChange={(e) => setRepDeclaration(e.target.checked)}
+                        onCheckedChange={(v) => setRepDeclaration(v === true)}
                       />
                       <span>
                         Декларирам, че имам представителна власт да обвържа юридическото
