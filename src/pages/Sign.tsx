@@ -9,6 +9,7 @@ import { Seo } from "@/components/Seo";
 import { toast } from "sonner";
 import { SignaturePad } from "@/components/SignaturePad";
 import { Loader2, CheckCircle2, AlertCircle, XCircle, Download } from "@/icons";
+import { Checkbox } from "@/components/ui/checkbox";
 import { downloadSignedPdf } from "@/lib/signedPdfAssembler";
 import { snapshotToPlainText } from "@/lib/signingSnapshotToText";
 
