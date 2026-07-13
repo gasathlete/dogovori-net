@@ -370,12 +370,11 @@ export default function Sign() {
                         <option value="other">Друго</option>
                       </select>
                     </div>
-                    <label className="flex items-start gap-2 text-xs leading-relaxed cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="mt-0.5"
+                    <label className="flex items-start gap-3 text-xs leading-relaxed cursor-pointer">
+                      <Checkbox
+                        className="mt-0.5 shrink-0"
                         checked={repDeclaration}
-                        onChange={(e) => setRepDeclaration(e.target.checked)}
+                        onCheckedChange={(v) => setRepDeclaration(v === true)}
                       />
                       <span>
                         Декларирам, че имам представителна власт да обвържа юридическото
