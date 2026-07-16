@@ -149,8 +149,8 @@ serve(async (req) => {
 
     // Owner display name for invitation
     const { data: ownerProfile } = await admin.from("profiles")
-      .select("full_name, email").eq("id", userId).maybeSingle();
-    const ownerName = (ownerProfile as any)?.full_name || u.user.email || "";
+      .select("display_name").eq("id", userId).maybeSingle();
+    const ownerName = (ownerProfile as any)?.display_name || u.user.email || "";
 
     const appBase = (Deno.env.get("APP_BASE_URL") || "https://dogovori.net").replace(/\/+$/, "");
     // Send invitations: all signers if parallel, else only first in sequential mode.
