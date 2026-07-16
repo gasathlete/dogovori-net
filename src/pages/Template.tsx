@@ -152,7 +152,7 @@ export default function TemplatePage() {
         "@type": "ListItem",
         position: 3,
         name: category.title,
-        item: `https://dogovori.net/catalog#${category.id}`,
+        item: `https://dogovori.net/kategoria/${category.id}`,
       },
       { "@type": "ListItem", position: 4, name: doc.name, item: `https://dogovori.net${canonical}` },
     ],
@@ -233,7 +233,7 @@ export default function TemplatePage() {
           <ChevronRight className="h-3 w-3" />
           <Link to="/catalog" className="hover:text-gold">Каталог</Link>
           <ChevronRight className="h-3 w-3" />
-          <Link to={`/catalog#${category.id}`} className="hover:text-gold">{category.title}</Link>
+          <Link to={`/kategoria/${category.id}`} className="hover:text-gold">{category.title}</Link>
           <ChevronRight className="h-3 w-3" />
           <span className="truncate text-foreground/70">{doc.name}</span>
         </nav>
