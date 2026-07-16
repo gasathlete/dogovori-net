@@ -105,6 +105,7 @@ const categoryEntries: Entry[] = [
 ];
 
 const templateEntriesTop: Entry[] = [];
+const templateEntriesRich: Entry[] = [];
 const templateEntriesRest: Entry[] = [];
 const featuredNames = new Set(FEATURED_BLANKS.map((f) => f.docName));
 const used = new Set<string>();
@@ -117,27 +118,31 @@ for (const cat of CATALOG) {
     used.add(slug);
     const isTop = topNames.has(doc.name) || doc.badge === "TOP" || featuredNames.has(doc.name);
     // Per-template lastmod from the actual content file mtime when available.
-    // This gives Google real change signals rather than a single shared date,
-    // which helps the crawler prioritize freshly-updated templates instead of
-    // treating the whole /shablon/* set as one bulk update.
+    // This gives Google real change signals rather than a single shared date.
     const contentPath = `src/data/templateContent/${slug}.ts`;
-    const lastmod = existsSync(resolve(process.cwd(), contentPath))
-      ? fileMtime(contentPath)
-      : catalogDate;
+    const hasRichContent = existsSync(resolve(process.cwd(), contentPath));
+    const lastmod = hasRichContent ? fileMtime(contentPath) : catalogDate;
+    // Three-tier priority sends a much stronger crawl-budget signal than the
+    // previous binary top/rest split. On a young domain with 600+ URLs where
+    // the whole rest-tier was pooled at 0.4, Google flagged 564 as
+    // "Discovered — not indexed". Elevating templates that have unique
+    // intro/FAQ/HowTo content (src/data/templateContent/<slug>.ts) to 0.7
+    // separates them from the ~92 fallback-only templates, and Google's
+    // crawler prioritizes URLs with clearly different priority signals.
+    const priority = isTop ? "0.9" : hasRichContent ? "0.7" : "0.4";
+    const changefreq = isTop ? "weekly" : hasRichContent ? "weekly" : "monthly";
     const entry: Entry = {
       loc: `/shablon/${slug}`,
-      changefreq: isTop ? "weekly" : "monthly",
-      // Contrast priorities so Google's crawl budget goes to the top pool
-      // first. Young domain with 700+ URLs was flat-lining at 52 indexed;
-      // making the priority delta sharp (0.9 vs 0.4) is the strongest sitemap
-      // signal we can send.
-      priority: isTop ? "0.9" : "0.4",
+      changefreq,
+      priority,
       lastmod,
     };
     if (isTop) templateEntriesTop.push(entry);
+    else if (hasRichContent) templateEntriesRich.push(entry);
     else templateEntriesRest.push(entry);
   }
 }
+
 
 // ---------- writers ----------
 function renderUrlset(entries: Entry[]): string {
@@ -162,6 +167,7 @@ function writeSitemap(filename: string, entries: Entry[]) {
 writeSitemap("sitemap-static.xml", staticEntries);
 writeSitemap("sitemap-categories.xml", categoryEntries);
 writeSitemap("sitemap-templates-top.xml", templateEntriesTop);
+writeSitemap("sitemap-templates-rich.xml", templateEntriesRich);
 writeSitemap("sitemap-templates.xml", templateEntriesRest);
 writeSitemap("sitemap-blog.xml", blogEntries);
 
@@ -170,11 +176,13 @@ const blogLatest = blogEntries.reduce((m, e) => (e.lastmod && e.lastmod > m ? e.
 const staticLatest = staticEntries.reduce((m, e) => (e.lastmod && e.lastmod > m ? e.lastmod : m), "1970-01-01");
 const categoryLatest = [catalogDate, sectorsDate].sort().reverse()[0];
 const topLatest = templateEntriesTop.reduce((m, e) => (e.lastmod && e.lastmod > m ? e.lastmod : m), catalogDate);
+const richLatest = templateEntriesRich.reduce((m, e) => (e.lastmod && e.lastmod > m ? e.lastmod : m), catalogDate);
 const restLatest = templateEntriesRest.reduce((m, e) => (e.lastmod && e.lastmod > m ? e.lastmod : m), catalogDate);
 const children = [
   { loc: "sitemap-static.xml", lastmod: staticLatest },
   { loc: "sitemap-categories.xml", lastmod: categoryLatest },
   { loc: "sitemap-templates-top.xml", lastmod: topLatest },
+  { loc: "sitemap-templates-rich.xml", lastmod: richLatest },
   { loc: "sitemap-templates.xml", lastmod: restLatest },
   { loc: "sitemap-blog.xml", lastmod: blogLatest },
 ];
@@ -193,6 +201,8 @@ const total =
   staticEntries.length +
   categoryEntries.length +
   templateEntriesTop.length +
+  templateEntriesRich.length +
   templateEntriesRest.length +
   blogEntries.length;
 console.log(`✓ Total URLs across all sitemaps: ${total}`);
+
