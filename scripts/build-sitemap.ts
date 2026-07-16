@@ -167,6 +167,7 @@ function writeSitemap(filename: string, entries: Entry[]) {
 writeSitemap("sitemap-static.xml", staticEntries);
 writeSitemap("sitemap-categories.xml", categoryEntries);
 writeSitemap("sitemap-templates-top.xml", templateEntriesTop);
+writeSitemap("sitemap-templates-rich.xml", templateEntriesRich);
 writeSitemap("sitemap-templates.xml", templateEntriesRest);
 writeSitemap("sitemap-blog.xml", blogEntries);
 
@@ -175,11 +176,13 @@ const blogLatest = blogEntries.reduce((m, e) => (e.lastmod && e.lastmod > m ? e.
 const staticLatest = staticEntries.reduce((m, e) => (e.lastmod && e.lastmod > m ? e.lastmod : m), "1970-01-01");
 const categoryLatest = [catalogDate, sectorsDate].sort().reverse()[0];
 const topLatest = templateEntriesTop.reduce((m, e) => (e.lastmod && e.lastmod > m ? e.lastmod : m), catalogDate);
+const richLatest = templateEntriesRich.reduce((m, e) => (e.lastmod && e.lastmod > m ? e.lastmod : m), catalogDate);
 const restLatest = templateEntriesRest.reduce((m, e) => (e.lastmod && e.lastmod > m ? e.lastmod : m), catalogDate);
 const children = [
   { loc: "sitemap-static.xml", lastmod: staticLatest },
   { loc: "sitemap-categories.xml", lastmod: categoryLatest },
   { loc: "sitemap-templates-top.xml", lastmod: topLatest },
+  { loc: "sitemap-templates-rich.xml", lastmod: richLatest },
   { loc: "sitemap-templates.xml", lastmod: restLatest },
   { loc: "sitemap-blog.xml", lastmod: blogLatest },
 ];
@@ -198,6 +201,8 @@ const total =
   staticEntries.length +
   categoryEntries.length +
   templateEntriesTop.length +
+  templateEntriesRich.length +
   templateEntriesRest.length +
   blogEntries.length;
 console.log(`✓ Total URLs across all sitemaps: ${total}`);
+
