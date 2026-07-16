@@ -152,7 +152,7 @@ export default function TemplatePage() {
         "@type": "ListItem",
         position: 3,
         name: category.title,
-        item: `https://dogovori.net/catalog#${category.id}`,
+        item: `https://dogovori.net/kategoria/${category.id}`,
       },
       { "@type": "ListItem", position: 4, name: doc.name, item: `https://dogovori.net${canonical}` },
     ],
