@@ -312,8 +312,8 @@ serve(async (req) => {
         const { data: ownerAuth } = await admin.auth.admin.getUserById(env.owner_id);
         const ownerEmail = ownerAuth?.user?.email;
         const { data: ownerProfile } = await admin.from("profiles")
-          .select("full_name").eq("id", env.owner_id).maybeSingle();
-        const ownerName = (ownerProfile as any)?.full_name || "";
+          .select("display_name").eq("id", env.owner_id).maybeSingle();
+        const ownerName = (ownerProfile as any)?.display_name || "";
         if (ownerEmail) {
           admin.functions.invoke("send-transactional-email", {
             body: {
