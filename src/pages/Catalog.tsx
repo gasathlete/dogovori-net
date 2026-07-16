@@ -875,12 +875,20 @@ function SectorCatalogGrid({
                             )}
                           </div>
                           <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{doc.purpose}</p>
-                          {downloads > 0 && (
-                            <div className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground/80">
-                              <Download className="h-2.5 w-2.5" />
-                              {downloads.toLocaleString("bg-BG")} сваляния
-                            </div>
-                          )}
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground/80">
+                            <Link
+                              to={`/kategoria/${(cat as any).id}`}
+                              className="inline-flex items-center gap-1 rounded-sm border border-border/50 bg-background/40 px-1.5 py-0.5 uppercase tracking-wider transition-colors hover:border-gold/40 hover:text-gold"
+                            >
+                              {(cat as any).title}
+                            </Link>
+                            {downloads > 0 && (
+                              <span className="inline-flex items-center gap-1">
+                                <Download className="h-2.5 w-2.5" />
+                                {downloads.toLocaleString("bg-BG")} сваляния
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <Link
                           to={wizardHref}
