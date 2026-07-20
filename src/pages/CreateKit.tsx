@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Package, Search, Loader2, Plus, ArrowRight, Wand2, CheckCircle2, ExternalLink, X,
   FileText, Upload,
