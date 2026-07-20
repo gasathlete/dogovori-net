@@ -153,6 +153,38 @@ export default function CreateKitPage() {
     }
   };
 
+  const handleAddExisting = async (doc: ExistingDoc) => {
+    setAddingExistingId(doc.id);
+    try {
+      const k = await ensureKit();
+      if (!k) return;
+      const dup = items.some(
+        (it) => (doc.kind === "saved" ? it.saved_id : it.uploaded_id) === doc.id,
+      );
+      if (dup) {
+        toast.info("Този документ вече е в комплекта");
+        return;
+      }
+      const role: UserKitItem["role"] = items.length === 0 ? "primary" : "companion";
+      const added = await addItemToKit({
+        kit_id: k.id,
+        role,
+        ref_label: doc.title,
+        saved_id: doc.kind === "saved" ? doc.id : undefined,
+        uploaded_id: doc.kind === "uploaded" ? doc.id : undefined,
+        planned_doc_name: doc.title,
+      });
+      if (added) {
+        setItems((prev) => [...prev, added]);
+        toast.success(`Добавен в комплекта: ${doc.title}`);
+      } else {
+        toast.error("Не успяхме да добавим документа");
+      }
+    } finally {
+      setAddingExistingId(null);
+    }
+  };
+
   const refreshItems = async () => {
     if (!kit) return;
     const full = await getKitWithItems(kit.id);
