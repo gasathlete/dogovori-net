@@ -181,5 +181,66 @@ export async function setKitStatus(
   return !error;
 }
 
+/** Rename a kit. Returns true on success. */
+export async function renameKit(id: string, title: string): Promise<boolean> {
+  const clean = title.trim();
+  if (!clean) return false;
+  const { error } = await supabase
+    .from("document_kits")
+    .update({ title: clean, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) {
+    console.error("renameKit failed:", error);
+    return false;
+  }
+  return true;
+}
+
+/** Remove a single item from a kit. */
+export async function removeItemFromKit(itemId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("document_kit_items")
+    .delete()
+    .eq("id", itemId);
+  if (error) {
+    console.error("removeItemFromKit failed:", error);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Returns true if ANY item in the kit already has a signing request
+ * (draft/sent/completed). Used to lock edits once the kit has been sent
+ * for signature.
+ */
+export async function kitHasSigningRequests(items: UserKitItem[]): Promise<boolean> {
+  const savedIds = items.map((i) => i.saved_id).filter(Boolean) as string[];
+  const uploadedIds = items.map((i) => i.uploaded_id).filter(Boolean) as string[];
+  if (savedIds.length === 0 && uploadedIds.length === 0) return false;
+
+  const checks: Promise<number>[] = [];
+  if (savedIds.length) {
+    checks.push(
+      supabase
+        .from("signing_requests")
+        .select("id", { count: "exact", head: true })
+        .in("saved_document_id", savedIds)
+        .then((r) => r.count ?? 0),
+    );
+  }
+  if (uploadedIds.length) {
+    checks.push(
+      supabase
+        .from("signing_requests")
+        .select("id", { count: "exact", head: true })
+        .in("uploaded_contract_id", uploadedIds)
+        .then((r) => r.count ?? 0),
+    );
+  }
+  const results = await Promise.all(checks);
+  return results.some((c) => c > 0);
+}
+
 export { DOCUMENT_KITS };
 export type { DocumentKit, KitItem };
