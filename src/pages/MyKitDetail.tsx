@@ -320,11 +320,17 @@ function ItemColumn({
   items,
   templatesIndex,
   kitId,
+  editable,
+  onRemove,
+  removingId,
 }: {
   label: string;
   items: UserKitItem[];
   templatesIndex: Map<string, { slug: string }>;
   kitId: string;
+  editable: boolean;
+  onRemove: (itemId: string) => void;
+  removingId: string | null;
 }) {
   if (items.length === 0) return null;
   return (
@@ -337,6 +343,7 @@ function ItemColumn({
           const name = it.planned_doc_name || it.ref_label;
           const t = name ? templatesIndex.get(name) : undefined;
           const done = !!(it.saved_id || it.uploaded_id);
+          const removing = removingId === it.id;
           const inner = (
             <>
               <div className="flex items-start gap-3">
@@ -358,18 +365,34 @@ function ItemColumn({
             </>
           );
           return (
-            <li key={it.id}>
+            <li key={it.id} className="relative">
               {t ? (
                 <Link
                   to={`/shablon/${t.slug}?kit=${kitId}`}
-                  className="group flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card/40 px-3 py-3 transition-colors hover:border-gold/40 hover:bg-card/70"
+                  className="group flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card/40 px-3 py-3 pr-10 transition-colors hover:border-gold/40 hover:bg-card/70"
                 >
                   {inner}
                 </Link>
               ) : (
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card/40 px-3 py-3 opacity-70">
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card/40 px-3 py-3 pr-10 opacity-70">
                   {inner}
                 </div>
+              )}
+              {editable && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onRemove(it.id);
+                  }}
+                  disabled={removing}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                  title="Премахни от комплекта"
+                  aria-label="Премахни от комплекта"
+                >
+                  {removing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                </button>
               )}
             </li>
           );
