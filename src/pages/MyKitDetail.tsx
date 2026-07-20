@@ -6,6 +6,7 @@ import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsPro } from "@/hooks/useIsPro";
 import {
   getKitWithItems,
   kitProgress,
@@ -17,13 +18,16 @@ import { getKit } from "@/data/documentKits";
 import { allTemplates } from "@/lib/templateIndex";
 import { toast } from "sonner";
 import { exportKitMergedPdf, triggerPdfDownload } from "@/lib/kitExport";
+import { KitBulkSigningDialog } from "@/components/KitBulkSigningDialog";
 
 export default function MyKitDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user, loading: authLoading } = useAuth();
+  const { isPro } = useIsPro();
   const [kit, setKit] = useState<UserKitWithItems | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [bulkSignOpen, setBulkSignOpen] = useState(false);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -139,6 +143,16 @@ export default function MyKitDetailPage() {
                   {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                   Експорт PDF
                 </Button>
+                <Button
+                  onClick={() => setBulkSignOpen(true)}
+                  disabled={kit.items.every((i) => !i.saved_id && !i.uploaded_id)}
+                  variant="outline"
+                  className="border-gold/60 text-gold hover:bg-gold/10"
+                  title="Създай заявки за подпис за всички готови документи наведнъж"
+                >
+                  <PenSquare className="mr-2 h-4 w-4" />
+                  Изпрати комплекта за подпис
+                </Button>
                 {tpl && (
                   <Button asChild variant="outline">
                     <Link to={`/komplekti/${tpl.id}`}>Виж шаблона на комплекта</Link>
@@ -187,6 +201,13 @@ export default function MyKitDetailPage() {
           </div>
         </section>
       </main>
+      <KitBulkSigningDialog
+        open={bulkSignOpen}
+        onOpenChange={setBulkSignOpen}
+        kitTitle={kit.title}
+        items={kit.items}
+        isPro={isPro}
+      />
       <SeoFooter />
     </>
   );
