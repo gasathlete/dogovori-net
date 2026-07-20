@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
-import { ArrowRight, CheckCircle2, Download, FileText, Loader2, Package, PenSquare } from "@/icons";
+import { ArrowRight, CheckCircle2, Download, FileText, Loader2, Package, PenSquare, Plus, X, Pencil, Lock } from "@/icons";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsPro } from "@/hooks/useIsPro";
 import {
   getKitWithItems,
   kitProgress,
   setKitStatus,
+  renameKit,
+  removeItemFromKit,
+  kitHasSigningRequests,
   type UserKitItem,
   type UserKitWithItems,
 } from "@/lib/kits";
