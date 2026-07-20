@@ -201,6 +201,13 @@ export default function MyKitDetailPage() {
           </div>
         </section>
       </main>
+      <KitBulkSigningDialog
+        open={bulkSignOpen}
+        onOpenChange={setBulkSignOpen}
+        kitTitle={kit.title}
+        items={kit.items}
+        isPro={isPro}
+      />
       <SeoFooter />
     </>
   );
