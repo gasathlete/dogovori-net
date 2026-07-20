@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
-import { ArrowRight, CheckCircle2, Download, FileText, Loader2, Package, PenSquare, Plus, X, Pencil, Lock } from "@/icons";
+import { ArrowRight, CheckCircle2, Download, FileText, Loader2, Package, PenSquare, Plus, X, Lock } from "@/icons";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
