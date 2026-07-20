@@ -77,7 +77,7 @@ export default function KitsPage() {
               <div className="flex flex-wrap gap-2">
                 {user && (
                   <Link
-                    to="/console/templates"
+                    to="/komplekti/nov"
                     className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-b from-gold to-gold/80 px-4 py-2 text-sm font-bold text-navy shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.55)] transition-all hover:brightness-105"
                   >
                     <Package className="h-4 w-4" /> Създай свой комплект

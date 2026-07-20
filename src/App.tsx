@@ -164,6 +164,7 @@ const AIFeatures = lazy(() => import("./pages/AIFeatures.tsx"));
 const Kits = lazy(() => import("./pages/Kits.tsx"));
 const KitDetail = lazy(() => import("./pages/KitDetail.tsx"));
 const MyKitDetail = lazy(() => import("./pages/MyKitDetail.tsx"));
+const CreateKit = lazy(() => import("./pages/CreateKit.tsx"));
 const Sign = lazy(() => import("./pages/Sign.tsx"));
 const SigningEnvelope = lazy(() => import("./pages/SigningEnvelope.tsx"));
 const Glossary = lazy(() => import("./pages/Glossary.tsx"));
@@ -290,6 +291,7 @@ const AnimatedRoutes = () => {
         <Route path="/tools/:slug" element={<ToolDetail />} />
 
         <Route path="/komplekti" element={<Kits />} />
+        <Route path="/komplekti/nov" element={<ProtectedRoute><CreateKit /></ProtectedRoute>} />
         <Route path="/komplekti/moi/:id" element={<ProtectedRoute><MyKitDetail /></ProtectedRoute>} />
         <Route path="/komplekti/:slug" element={<KitDetail />} />
         <Route path="/karta" element={<SiteMap />} />

@@ -655,7 +655,7 @@ function KitsListView() {
       rows={rows}
       activeId={activeId}
       onSearch={setQ}
-      onCreate={() => navigate("/komplekti")}
+      onCreate={() => navigate("/komplekti/nov")}
       onOpen={(r) => openTab({ kind: "kit", entityId: r.id, title: r.title })}
       emptyHint='Изберете готов комплект от каталога или натиснете „Нов".'
     />
