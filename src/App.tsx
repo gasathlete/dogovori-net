@@ -291,6 +291,7 @@ const AnimatedRoutes = () => {
         <Route path="/tools/:slug" element={<ToolDetail />} />
 
         <Route path="/komplekti" element={<Kits />} />
+        <Route path="/komplekti/nov" element={<ProtectedRoute><CreateKit /></ProtectedRoute>} />
         <Route path="/komplekti/moi/:id" element={<ProtectedRoute><MyKitDetail /></ProtectedRoute>} />
         <Route path="/komplekti/:slug" element={<KitDetail />} />
         <Route path="/karta" element={<SiteMap />} />
