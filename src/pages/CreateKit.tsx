@@ -38,11 +38,14 @@ interface ExistingDoc {
 export default function CreateKitPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const [searchParams] = useSearchParams();
+  const existingKitId = searchParams.get("kit");
 
   const [title, setTitle] = useState("");
   const [kit, setKit] = useState<UserKit | null>(null);
   const [items, setItems] = useState<UserKitItem[]>([]);
   const [creating, setCreating] = useState(false);
+  const [loadingKit, setLoadingKit] = useState(false);
   const [addingSlug, setAddingSlug] = useState<string | null>(null);
 
   const [q, setQ] = useState("");
@@ -50,6 +53,24 @@ export default function CreateKitPage() {
     limit: 25,
     enabled: q.trim().length > 0,
   });
+
+  // Load pre-existing kit (edit mode: adding more docs to an already-created kit)
+  useEffect(() => {
+    if (!existingKitId || !user) return;
+    let cancelled = false;
+    setLoadingKit(true);
+    getKitWithItems(existingKitId)
+      .then((k) => {
+        if (cancelled || !k) return;
+        setKit(k);
+        setTitle(k.title);
+        setItems(k.items);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingKit(false);
+      });
+    return () => { cancelled = true; };
+  }, [existingKitId, user?.id]);
 
   // Existing documents from profile
   const [existing, setExisting] = useState<ExistingDoc[]>([]);
