@@ -2,19 +2,30 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import {
   Package, Search, Loader2, Plus, ArrowRight, Wand2, CheckCircle2, ExternalLink, X,
+  FileText, Upload,
 } from "@/icons";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useTemplateSearch, type TemplateSearchHit } from "@/hooks/useTemplateSearch";
 import {
   addItemToKit, createKit, getKitWithItems,
   type UserKit, type UserKitItem,
 } from "@/lib/kits";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+interface ExistingDoc {
+  id: string;
+  title: string;
+  kind: "saved" | "uploaded";
+  subtitle?: string;
+  created_at: string;
+}
 
 /**
  * Създай нов комплект — flow:
