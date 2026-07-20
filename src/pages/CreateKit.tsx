@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Package, Search, Loader2, Plus, ArrowRight, Wand2, CheckCircle2, ExternalLink, X,
   FileText, Upload,
@@ -38,11 +38,14 @@ interface ExistingDoc {
 export default function CreateKitPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const [searchParams] = useSearchParams();
+  const existingKitId = searchParams.get("kit");
 
   const [title, setTitle] = useState("");
   const [kit, setKit] = useState<UserKit | null>(null);
   const [items, setItems] = useState<UserKitItem[]>([]);
   const [creating, setCreating] = useState(false);
+  const [loadingKit, setLoadingKit] = useState(false);
   const [addingSlug, setAddingSlug] = useState<string | null>(null);
 
   const [q, setQ] = useState("");
@@ -50,6 +53,24 @@ export default function CreateKitPage() {
     limit: 25,
     enabled: q.trim().length > 0,
   });
+
+  // Load pre-existing kit (edit mode: adding more docs to an already-created kit)
+  useEffect(() => {
+    if (!existingKitId || !user) return;
+    let cancelled = false;
+    setLoadingKit(true);
+    getKitWithItems(existingKitId)
+      .then((k) => {
+        if (cancelled || !k) return;
+        setKit(k);
+        setTitle(k.title);
+        setItems(k.items);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingKit(false);
+      });
+    return () => { cancelled = true; };
+  }, [existingKitId, user?.id]);
 
   // Existing documents from profile
   const [existing, setExisting] = useState<ExistingDoc[]>([]);
@@ -210,17 +231,20 @@ export default function CreateKitPage() {
             <nav className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
               <Link to="/komplekti" className="hover:text-gold">Комплекти</Link>
               <span>/</span>
-              <span className="text-foreground">Нов</span>
+              <span className="text-foreground">{existingKitId ? "Добави документ" : "Нов"}</span>
             </nav>
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <Package className="h-5 w-5 text-gold" />
-                  <h1 className="font-serif text-2xl font-bold sm:text-3xl">Създай свой комплект</h1>
+                  <h1 className="font-serif text-2xl font-bold sm:text-3xl">
+                    {existingKitId ? "Добави документи в комплекта" : "Създай свой комплект"}
+                  </h1>
                 </div>
                 <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                  Задайте име и добавете документи чрез търсачката. Бутонът „Изготви документ"
-                  създава комплекта (ако още не е) и отваря съветника за избрания шаблон.
+                  {existingKitId
+                    ? "Търсете шаблон или изберете от съществуващите си документи, за да ги добавите."
+                    : 'Задайте име и добавете документи чрез търсачката. Бутонът „Изготви документ" създава комплекта (ако още не е) и отваря съветника за избрания шаблон.'}
                 </p>
               </div>
               {kit && (
