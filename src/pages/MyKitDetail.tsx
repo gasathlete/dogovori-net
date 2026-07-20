@@ -23,9 +23,11 @@ import { KitBulkSigningDialog } from "@/components/KitBulkSigningDialog";
 export default function MyKitDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user, loading: authLoading } = useAuth();
+  const { isPro } = useIsPro();
   const [kit, setKit] = useState<UserKitWithItems | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [bulkSignOpen, setBulkSignOpen] = useState(false);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
