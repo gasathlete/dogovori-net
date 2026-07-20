@@ -32,6 +32,11 @@ export default function MyKitDetailPage() {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [bulkSignOpen, setBulkSignOpen] = useState(false);
+  const [signedLocked, setSignedLocked] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [savingTitle, setSavingTitle] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -41,7 +46,13 @@ export default function MyKitDetailPage() {
     if (!id) return;
     setLoading(true);
     getKitWithItems(id)
-      .then((k) => setKit(k))
+      .then(async (k) => {
+        setKit(k);
+        if (k) {
+          const locked = await kitHasSigningRequests(k.items);
+          setSignedLocked(locked);
+        }
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
