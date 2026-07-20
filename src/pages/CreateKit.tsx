@@ -51,6 +51,61 @@ export default function CreateKitPage() {
     enabled: q.trim().length > 0,
   });
 
+  // Existing documents from profile
+  const [existing, setExisting] = useState<ExistingDoc[]>([]);
+  const [loadingExisting, setLoadingExisting] = useState(false);
+  const [existingQ, setExistingQ] = useState("");
+  const [addingExistingId, setAddingExistingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      setLoadingExisting(true);
+      try {
+        const [{ data: saved }, { data: uploads }] = await Promise.all([
+          supabase.from("saved_documents")
+            .select("id,title,kind,created_at")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(100),
+          supabase.from("uploaded_contracts")
+            .select("id,title,original_filename,created_at")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(100),
+        ]);
+        if (cancelled) return;
+        const rows: ExistingDoc[] = [
+          ...(saved || []).map((r: any) => ({
+            id: r.id,
+            title: r.title || "Без заглавие",
+            kind: "saved" as const,
+            subtitle: r.kind ? String(r.kind) : undefined,
+            created_at: r.created_at,
+          })),
+          ...(uploads || []).map((r: any) => ({
+            id: r.id,
+            title: r.title || r.original_filename || "Качен документ",
+            kind: "uploaded" as const,
+            subtitle: r.original_filename,
+            created_at: r.created_at,
+          })),
+        ].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+        setExisting(rows);
+      } finally {
+        if (!cancelled) setLoadingExisting(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  const filteredExisting = useMemo(() => {
+    const needle = existingQ.trim().toLowerCase();
+    if (!needle) return existing;
+    return existing.filter((d) => d.title.toLowerCase().includes(needle));
+  }, [existing, existingQ]);
+
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" }); }, []);
 
   if (!authLoading && !user) {
