@@ -167,7 +167,7 @@ export default function CreateKitPage() {
                   <Input
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
-                    placeholder="напр. „наем офис", „NDA", „трудов договор"…"
+                    placeholder='напр. „наем офис", „NDA", „трудов договор"…'
                     className="h-11 pl-9 pr-9"
                     autoFocus
                   />
