@@ -143,6 +143,16 @@ export default function MyKitDetailPage() {
                   {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                   Експорт PDF
                 </Button>
+                <Button
+                  onClick={() => setBulkSignOpen(true)}
+                  disabled={kit.items.every((i) => !i.saved_id && !i.uploaded_id)}
+                  variant="outline"
+                  className="border-gold/60 text-gold hover:bg-gold/10"
+                  title="Създай заявки за подпис за всички готови документи наведнъж"
+                >
+                  <PenSquare className="mr-2 h-4 w-4" />
+                  Изпрати комплекта за подпис
+                </Button>
                 {tpl && (
                   <Button asChild variant="outline">
                     <Link to={`/komplekti/${tpl.id}`}>Виж шаблона на комплекта</Link>
