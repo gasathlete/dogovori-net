@@ -6,6 +6,7 @@ import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsPro } from "@/hooks/useIsPro";
 import {
   getKitWithItems,
   kitProgress,
@@ -17,6 +18,7 @@ import { getKit } from "@/data/documentKits";
 import { allTemplates } from "@/lib/templateIndex";
 import { toast } from "sonner";
 import { exportKitMergedPdf, triggerPdfDownload } from "@/lib/kitExport";
+import { KitBulkSigningDialog } from "@/components/KitBulkSigningDialog";
 
 export default function MyKitDetailPage() {
   const { id } = useParams<{ id: string }>();
