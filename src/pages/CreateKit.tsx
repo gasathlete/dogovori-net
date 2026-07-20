@@ -2,19 +2,30 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import {
   Package, Search, Loader2, Plus, ArrowRight, Wand2, CheckCircle2, ExternalLink, X,
+  FileText, Upload,
 } from "@/icons";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useTemplateSearch, type TemplateSearchHit } from "@/hooks/useTemplateSearch";
 import {
   addItemToKit, createKit, getKitWithItems,
   type UserKit, type UserKitItem,
 } from "@/lib/kits";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+interface ExistingDoc {
+  id: string;
+  title: string;
+  kind: "saved" | "uploaded";
+  subtitle?: string;
+  created_at: string;
+}
 
 /**
  * Създай нов комплект — flow:
@@ -39,6 +50,61 @@ export default function CreateKitPage() {
     limit: 25,
     enabled: q.trim().length > 0,
   });
+
+  // Existing documents from profile
+  const [existing, setExisting] = useState<ExistingDoc[]>([]);
+  const [loadingExisting, setLoadingExisting] = useState(false);
+  const [existingQ, setExistingQ] = useState("");
+  const [addingExistingId, setAddingExistingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      setLoadingExisting(true);
+      try {
+        const [{ data: saved }, { data: uploads }] = await Promise.all([
+          supabase.from("saved_documents")
+            .select("id,title,kind,created_at")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(100),
+          supabase.from("uploaded_contracts")
+            .select("id,title,original_filename,created_at")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(100),
+        ]);
+        if (cancelled) return;
+        const rows: ExistingDoc[] = [
+          ...(saved || []).map((r: any) => ({
+            id: r.id,
+            title: r.title || "Без заглавие",
+            kind: "saved" as const,
+            subtitle: r.kind ? String(r.kind) : undefined,
+            created_at: r.created_at,
+          })),
+          ...(uploads || []).map((r: any) => ({
+            id: r.id,
+            title: r.title || r.original_filename || "Качен документ",
+            kind: "uploaded" as const,
+            subtitle: r.original_filename,
+            created_at: r.created_at,
+          })),
+        ].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+        setExisting(rows);
+      } finally {
+        if (!cancelled) setLoadingExisting(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  const filteredExisting = useMemo(() => {
+    const needle = existingQ.trim().toLowerCase();
+    if (!needle) return existing;
+    return existing.filter((d) => d.title.toLowerCase().includes(needle));
+  }, [existing, existingQ]);
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" }); }, []);
 
@@ -84,6 +150,38 @@ export default function CreateKitPage() {
       navigate(`/shablon/${hit.slug}?kit=${k.id}`);
     } finally {
       setAddingSlug(null);
+    }
+  };
+
+  const handleAddExisting = async (doc: ExistingDoc) => {
+    setAddingExistingId(doc.id);
+    try {
+      const k = await ensureKit();
+      if (!k) return;
+      const dup = items.some(
+        (it) => (doc.kind === "saved" ? it.saved_id : it.uploaded_id) === doc.id,
+      );
+      if (dup) {
+        toast.info("Този документ вече е в комплекта");
+        return;
+      }
+      const role: UserKitItem["role"] = items.length === 0 ? "primary" : "companion";
+      const added = await addItemToKit({
+        kit_id: k.id,
+        role,
+        ref_label: doc.title,
+        saved_id: doc.kind === "saved" ? doc.id : undefined,
+        uploaded_id: doc.kind === "uploaded" ? doc.id : undefined,
+        planned_doc_name: doc.title,
+      });
+      if (added) {
+        setItems((prev) => [...prev, added]);
+        toast.success(`Добавен в комплекта: ${doc.title}`);
+      } else {
+        toast.error("Не успяхме да добавим документа");
+      }
+    } finally {
+      setAddingExistingId(null);
     }
   };
 
@@ -158,103 +256,217 @@ export default function CreateKitPage() {
                 )}
               </div>
 
-              <div className="rounded-xl border border-border/60 bg-card/40 p-4">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">
-                  Търси шаблон
-                </label>
-                <div className="relative mt-2">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    placeholder='напр. „наем офис", „NDA", „трудов договор"…'
-                    className="h-11 pl-9 pr-9"
-                    autoFocus
-                  />
-                  {q && (
-                    <button
-                      type="button"
-                      onClick={() => setQ("")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
-                      aria-label="Изчисти търсенето"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-                {canSearch && (
-                  <p className="mt-2 text-[11px] text-muted-foreground">
-                    {loading ? "Търсене…" : `${total} резултата`}
-                  </p>
-                )}
-              </div>
+              <Tabs defaultValue="templates" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="templates" className="gap-1.5">
+                    <Wand2 className="h-3.5 w-3.5" /> От шаблон
+                  </TabsTrigger>
+                  <TabsTrigger value="existing" className="gap-1.5">
+                    <FileText className="h-3.5 w-3.5" /> От моите документи
+                    {existing.length > 0 && (
+                      <span className="ml-1 rounded-full bg-muted px-1.5 text-[10px] text-muted-foreground">
+                        {existing.length}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
 
-              {/* Results */}
-              {!canSearch ? (
-                <div className="rounded-xl border border-dashed border-border/60 bg-card/30 p-10 text-center">
-                  <Search className="mx-auto mb-3 h-8 w-8 text-muted-foreground/60" />
-                  <p className="text-sm text-muted-foreground">
-                    Започнете да пишете, за да намерите шаблони от каталога.
-                  </p>
-                </div>
-              ) : loading && hits.length === 0 ? (
-                <div className="flex justify-center py-10">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : hits.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-border/60 bg-card/30 p-10 text-center">
-                  <p className="text-sm text-muted-foreground">Няма намерени шаблони.</p>
-                </div>
-              ) : (
-                <ul className="divide-y divide-border/40 overflow-hidden rounded-xl border border-border/60 bg-card/30">
-                  {hits.map((hit) => {
-                    const added = items.some((it) => it.planned_doc_name === hit.name);
-                    const busy = addingSlug === hit.slug || creating;
-                    return (
-                      <li key={hit.slug} className="p-4 transition-colors hover:bg-muted/20">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="min-w-0">
-                            <div className="text-[10px] font-semibold uppercase tracking-wider text-gold/80">
-                              {hit.category_title}
+                {/* Tab: From template */}
+                <TabsContent value="templates" className="mt-4 space-y-4">
+                  <div className="rounded-xl border border-border/60 bg-card/40 p-4">
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">
+                      Търси шаблон
+                    </label>
+                    <div className="relative mt-2">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={q}
+                        onChange={(e) => setQ(e.target.value)}
+                        placeholder='напр. „наем офис", „NDA", „трудов договор"…'
+                        className="h-11 pl-9 pr-9"
+                        autoFocus
+                      />
+                      {q && (
+                        <button
+                          type="button"
+                          onClick={() => setQ("")}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+                          aria-label="Изчисти търсенето"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    {canSearch && (
+                      <p className="mt-2 text-[11px] text-muted-foreground">
+                        {loading ? "Търсене…" : `${total} резултата`}
+                      </p>
+                    )}
+                  </div>
+
+                  {!canSearch ? (
+                    <div className="rounded-xl border border-dashed border-border/60 bg-card/30 p-10 text-center">
+                      <Search className="mx-auto mb-3 h-8 w-8 text-muted-foreground/60" />
+                      <p className="text-sm text-muted-foreground">
+                        Започнете да пишете, за да намерите шаблони от каталога.
+                      </p>
+                    </div>
+                  ) : loading && hits.length === 0 ? (
+                    <div className="flex justify-center py-10">
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : hits.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-border/60 bg-card/30 p-10 text-center">
+                      <p className="text-sm text-muted-foreground">Няма намерени шаблони.</p>
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-border/40 overflow-hidden rounded-xl border border-border/60 bg-card/30">
+                      {hits.map((hit) => {
+                        const added = items.some((it) => it.planned_doc_name === hit.name);
+                        const busy = addingSlug === hit.slug || creating;
+                        return (
+                          <li key={hit.slug} className="p-4 transition-colors hover:bg-muted/20">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="min-w-0">
+                                <div className="text-[10px] font-semibold uppercase tracking-wider text-gold/80">
+                                  {hit.category_title}
+                                </div>
+                                <h3 className="mt-0.5 line-clamp-1 text-sm font-medium text-foreground">
+                                  {hit.name}
+                                </h3>
+                                {hit.purpose && (
+                                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                                    {hit.purpose}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex shrink-0 items-center gap-2">
+                                <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-gold">
+                                  <Link to={`/shablon/${hit.slug}`} target="_blank" rel="noopener noreferrer">
+                                    <ExternalLink className="mr-1 h-3.5 w-3.5" /> Преглед
+                                  </Link>
+                                </Button>
+                                <Button
+                                  onClick={() => handleGenerate(hit)}
+                                  disabled={busy}
+                                  size="sm"
+                                  className="bg-gradient-gold text-navy hover:shadow-gold disabled:opacity-50"
+                                >
+                                  {busy ? (
+                                    <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                                  ) : added ? (
+                                    <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                                  ) : (
+                                    <Wand2 className="mr-1 h-3.5 w-3.5" />
+                                  )}
+                                  {added ? "Изготви отново" : "Изготви документ"}
+                                </Button>
+                              </div>
                             </div>
-                            <h3 className="mt-0.5 line-clamp-1 text-sm font-medium text-foreground">
-                              {hit.name}
-                            </h3>
-                            {hit.purpose && (
-                              <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                                {hit.purpose}
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex shrink-0 items-center gap-2">
-                            <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-gold">
-                              <Link to={`/shablon/${hit.slug}`} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="mr-1 h-3.5 w-3.5" /> Преглед
-                              </Link>
-                            </Button>
-                            <Button
-                              onClick={() => handleGenerate(hit)}
-                              disabled={busy}
-                              size="sm"
-                              className="bg-gradient-gold text-navy hover:shadow-gold disabled:opacity-50"
-                            >
-                              {busy ? (
-                                <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                              ) : added ? (
-                                <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                              ) : (
-                                <Wand2 className="mr-1 h-3.5 w-3.5" />
-                              )}
-                              {added ? "Изготви отново" : "Изготви документ"}
-                            </Button>
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </TabsContent>
+
+                {/* Tab: From my existing documents */}
+                <TabsContent value="existing" className="mt-4 space-y-4">
+                  <div className="rounded-xl border border-border/60 bg-card/40 p-4">
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">
+                      Търси в моите документи
+                    </label>
+                    <div className="relative mt-2">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={existingQ}
+                        onChange={(e) => setExistingQ(e.target.value)}
+                        placeholder="Заглавие на документ…"
+                        className="h-11 pl-9 pr-9"
+                      />
+                      {existingQ && (
+                        <button
+                          type="button"
+                          onClick={() => setExistingQ("")}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+                          aria-label="Изчисти търсенето"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      {loadingExisting ? "Зареждане…" : `${filteredExisting.length} документа`}
+                    </p>
+                  </div>
+
+                  {loadingExisting ? (
+                    <div className="flex justify-center py-10">
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : filteredExisting.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-border/60 bg-card/30 p-10 text-center">
+                      <FileText className="mx-auto mb-3 h-8 w-8 text-muted-foreground/60" />
+                      <p className="text-sm text-muted-foreground">
+                        {existing.length === 0
+                          ? "Все още нямате запазени или качени документи."
+                          : "Няма съвпадения."}
+                      </p>
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-border/40 overflow-hidden rounded-xl border border-border/60 bg-card/30">
+                      {filteredExisting.map((doc) => {
+                        const added = items.some(
+                          (it) => (doc.kind === "saved" ? it.saved_id : it.uploaded_id) === doc.id,
+                        );
+                        const busy = addingExistingId === doc.id || creating;
+                        return (
+                          <li key={`${doc.kind}:${doc.id}`} className="p-4 transition-colors hover:bg-muted/20">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-gold/80">
+                                  {doc.kind === "uploaded" ? (
+                                    <><Upload className="h-3 w-3" /> Качен</>
+                                  ) : (
+                                    <><FileText className="h-3 w-3" /> Запазен</>
+                                  )}
+                                  {doc.subtitle && (
+                                    <span className="text-muted-foreground normal-case tracking-normal">
+                                      · {doc.subtitle}
+                                    </span>
+                                  )}
+                                </div>
+                                <h3 className="mt-0.5 line-clamp-1 text-sm font-medium text-foreground">
+                                  {doc.title}
+                                </h3>
+                              </div>
+                              <div className="flex shrink-0 items-center gap-2">
+                                <Button
+                                  onClick={() => handleAddExisting(doc)}
+                                  disabled={busy || added}
+                                  size="sm"
+                                  className="bg-gradient-gold text-navy hover:shadow-gold disabled:opacity-50"
+                                >
+                                  {busy ? (
+                                    <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                                  ) : added ? (
+                                    <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                                  ) : (
+                                    <Plus className="mr-1 h-3.5 w-3.5" />
+                                  )}
+                                  {added ? "Добавен" : "Добави в комплекта"}
+                                </Button>
+                              </div>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </TabsContent>
+              </Tabs>
             </div>
+
 
             {/* Right: kit summary */}
             <aside className="space-y-3 lg:sticky lg:top-24 lg:self-start">
