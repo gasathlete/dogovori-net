@@ -222,20 +222,24 @@ export async function kitHasSigningRequests(items: UserKitItem[]): Promise<boole
   const checks: Promise<number>[] = [];
   if (savedIds.length) {
     checks.push(
-      supabase
-        .from("signing_requests")
-        .select("id", { count: "exact", head: true })
-        .in("saved_document_id", savedIds)
-        .then((r) => r.count ?? 0),
+      (async () => {
+        const r = await supabase
+          .from("signing_requests")
+          .select("id", { count: "exact", head: true })
+          .in("saved_document_id", savedIds);
+        return r.count ?? 0;
+      })(),
     );
   }
   if (uploadedIds.length) {
     checks.push(
-      supabase
-        .from("signing_requests")
-        .select("id", { count: "exact", head: true })
-        .in("uploaded_contract_id", uploadedIds)
-        .then((r) => r.count ?? 0),
+      (async () => {
+        const r = await supabase
+          .from("signing_requests")
+          .select("id", { count: "exact", head: true })
+          .in("uploaded_contract_id", uploadedIds);
+        return r.count ?? 0;
+      })(),
     );
   }
   const results = await Promise.all(checks);
