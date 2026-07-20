@@ -231,17 +231,20 @@ export default function CreateKitPage() {
             <nav className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
               <Link to="/komplekti" className="hover:text-gold">Комплекти</Link>
               <span>/</span>
-              <span className="text-foreground">Нов</span>
+              <span className="text-foreground">{existingKitId ? "Добави документ" : "Нов"}</span>
             </nav>
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <Package className="h-5 w-5 text-gold" />
-                  <h1 className="font-serif text-2xl font-bold sm:text-3xl">Създай свой комплект</h1>
+                  <h1 className="font-serif text-2xl font-bold sm:text-3xl">
+                    {existingKitId ? "Добави документи в комплекта" : "Създай свой комплект"}
+                  </h1>
                 </div>
                 <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                  Задайте име и добавете документи чрез търсачката. Бутонът „Изготви документ"
-                  създава комплекта (ако още не е) и отваря съветника за избрания шаблон.
+                  {existingKitId
+                    ? "Търсете шаблон или изберете от съществуващите си документи, за да ги добавите."
+                    : "Задайте име и добавете документи чрез търсачката. Бутонът „Изготви документ" създава комплекта (ако още не е) и отваря съветника за избрания шаблон."}
                 </p>
               </div>
               {kit && (
