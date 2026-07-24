@@ -52,9 +52,7 @@ const GlobalProUpgradeListener = reactLazy(() =>
 const CommandPalette = reactLazy(() =>
   import("@/components/CommandPalette").then((m) => ({ default: m.CommandPalette })),
 );
-const FloatingCommandTrigger = reactLazy(() =>
-  import("@/components/FloatingCommandTrigger").then((m) => ({ default: m.FloatingCommandTrigger })),
-);
+// FloatingCommandTrigger removed — Cmd/Ctrl+K still opens the CommandPalette globally.
 const DogovAIBubble = reactLazy(() =>
   import("@/components/DogovAIBubble").then((m) => ({ default: m.DogovAIBubble })),
 );
@@ -243,7 +241,8 @@ function DeferredOverlays() {
       <UsernamePrompt />
       <GlobalProUpgradeListener />
       <CommandPalette />
-      <FloatingCommandTrigger />
+      {/* Only one floating helper — the DogovAI bubble. Removed FloatingCommandTrigger
+          to avoid stacking with the bubble/sticky CTA and reduce visual clutter. */}
       <DogovAIBubble />
       <MobileBottomNav />
       <ActionCelebrationHost />

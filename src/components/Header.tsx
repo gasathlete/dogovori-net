@@ -7,26 +7,21 @@ import { scrollToHash } from "@/lib/scrollToHash";
 import { useScrolled } from "@/hooks/useScrolled";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { cn } from "@/lib/utils";
-import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ToolsMenu } from "@/components/calculators/ToolsMenu";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useFreeJourneyStage } from "@/hooks/useFreeJourneyStage";
-import { trackEvent } from "@/lib/analytics";
 import { prefetchHandlers } from "@/lib/routePrefetch";
-import { Crown } from "@/icons";
 
-
-
+// Ordered from most-searched to least-searched. Kept intentionally short.
 const NAV = [
   { to: "/build", label: "Изготви документ" },
   { to: "/catalog", label: "Каталог" },
-  { to: "/blog", label: "Блог" },
   { to: "__tools__", label: "Инструменти" },
+  { to: "/blog", label: "Блог" },
 ];
 
-// Secondary link — pricing is no longer a primary CTA in the funnel;
-// users reach /plans through contextual upgrade prompts and the footer.
-const SECONDARY_NAV = [{ to: "/plans", label: "Планове" }];
+// Off-header links — surfaced only inside the mobile menu and via contextual
+// upgrade prompts. Not shown on the desktop bar to keep it uncluttered.
+const RESOURCES = [{ to: "/plans", label: "Планове" }];
 
 export function Header() {
   const [open, setOpen] = useState(false);
@@ -35,8 +30,6 @@ export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const scrolled = useScrolled(8);
-  const { isPro, stage, opsLeft } = useFreeJourneyStage();
-  const showProBadge = !isPro && stage >= 2;
 
   const handleNav = (to: string, e: React.MouseEvent) => {
     if (!to.includes("#")) return;
@@ -65,13 +58,13 @@ export function Header() {
           : "border-b border-border/40 bg-background",
       )}
     >
-
-      <div className={cn(
-        "container flex items-center justify-between gap-2 transition-[height] duration-300 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-4",
-        scrolled ? "h-12" : "h-14",
-      )}>
-
-        {/* Brand */}
+      <div
+        className={cn(
+          "container flex items-center justify-between gap-3 transition-[height] duration-300 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-6",
+          scrolled ? "h-14" : "h-16",
+        )}
+      >
+        {/* Zone 1 — Brand */}
         <div className="flex min-w-0 items-center justify-self-start">
           <Link
             to="/"
@@ -82,8 +75,8 @@ export function Header() {
           </Link>
         </div>
 
-        {/* Primary nav — centered column in the header grid, aligns with hero diamond */}
-        <nav className="hidden items-center gap-4 justify-self-center lg:flex xl:gap-6">
+        {/* Zone 2 — Primary product navigation (centered) */}
+        <nav className="hidden items-center gap-5 justify-self-center lg:flex xl:gap-7">
           {NAV.map((n) => {
             if (n.to === "__tools__") {
               return <ToolsMenu key="tools" variant="desktop" />;
@@ -96,78 +89,40 @@ export function Header() {
                 onClick={(e) => handleNav(n.to, e)}
                 {...prefetchHandlers(n.to)}
                 className={cn(
-                  "group relative whitespace-nowrap text-[13px] font-medium tracking-wide transition-colors",
-                  active
-                    ? "text-gold"
-                    : "text-foreground/75 hover:text-gold",
+                  "whitespace-nowrap text-[13px] font-medium tracking-wide transition-colors",
+                  active ? "text-gold" : "text-foreground/75 hover:text-gold",
                 )}
               >
                 {n.label}
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "absolute -bottom-1.5 left-0 h-px bg-gold transition-all duration-300",
-                    active ? "w-full opacity-100" : "w-0 opacity-0 group-hover:w-full group-hover:opacity-60",
-                  )}
-                />
               </Link>
             );
           })}
         </nav>
 
-
-        {/* Actions */}
+        {/* Zone 3 — Utility (helpers + account), separated by a hairline */}
         <div className="flex items-center justify-end gap-2 justify-self-end">
-          {SECONDARY_NAV.map((n) => (
-            <Link
-              key={n.to}
-              to={n.to}
-              {...prefetchHandlers(n.to)}
-              className={cn(
-                "hidden lg:inline-flex text-[12px] font-medium tracking-wide transition-colors px-2",
-                isActive(n.to) ? "text-gold" : "text-foreground/55 hover:text-gold",
-              )}
-            >
-              {n.label}
-            </Link>
-          ))}
-          <ThemeToggle className="hidden lg:inline-flex" />
+          {/* Helpers subgroup */}
+          <div className="hidden items-center gap-1 lg:flex">
+            <ThemeToggle />
+          </div>
 
+          {/* Divider between helpers and account */}
+          <span
+            aria-hidden="true"
+            className="mx-1 hidden h-5 w-px bg-border/60 lg:block"
+          />
 
-
-
-
-          {showProBadge && (
-            <button
-              type="button"
-              onClick={() => {
-                trackEvent("tease_clicked", { channel: "header_badge", stage });
-                window.dispatchEvent(
-                  new CustomEvent("dogovori:open-pro-dialog", {
-                    detail: { trigger: stage === 3 ? "ops_exhausted" : "generic" },
-                  }),
-                );
-              }}
-              className={cn(
-                "hidden md:inline-flex h-10 items-center gap-1.5 rounded-lg border px-3 text-[12px] font-semibold uppercase tracking-wider backdrop-blur-sm transition-all",
-                stage === 3
-                  ? "border-red-400/50 bg-red-500/10 text-red-200 hover:bg-red-500/20"
-                  : "border-gold/30 bg-gold/10 text-gold hover:border-gold/50 hover:bg-gold/20 hover:shadow-[0_0_12px_hsl(var(--gold)/0.12)]",
-              )}
-              aria-label="Надгради до Предприемач"
-            >
-              <Crown className="h-4 w-4" />
-              {stage === 3 ? "Лимит · Надгради" : `${opsLeft} безпл.`}
-            </button>
-          )}
-
-          {/* <LanguageSwitcher className="hidden sm:block" /> */}
+          {/* Account subgroup */}
           {user ? (
             <Link
               to="/account"
               {...prefetchHandlers("/account")}
-              aria-label={unreadCount > 0 ? `Профил (${unreadCount} непрочетени известия)` : "Профил"}
-              className="relative inline-flex h-10 items-center gap-2 rounded-lg border border-gold/30 bg-gold/[0.08] px-4 text-[13px] font-semibold tracking-wide text-gold backdrop-blur-sm transition-all hover:border-gold/50 hover:bg-gold/15 hover:shadow-[0_0_12px_hsl(var(--gold)/0.12)]"
+              aria-label={
+                unreadCount > 0
+                  ? `Профил (${unreadCount} непрочетени известия)`
+                  : "Профил"
+              }
+              className="relative inline-flex h-10 items-center gap-2 rounded-lg border border-gold/30 bg-gold/[0.08] px-4 text-[13px] font-semibold tracking-wide text-gold transition-colors hover:border-gold/50 hover:bg-gold/15"
             >
               <UserIcon className="h-4 w-4" />
               <span className="hidden sm:inline">Профил</span>
@@ -183,51 +138,81 @@ export function Header() {
               to="/auth"
               {...prefetchHandlers("/auth")}
               aria-label="Влезте"
-              className="inline-flex h-10 items-center gap-2 rounded-lg border border-gold/40 bg-transparent px-4 text-[13px] font-semibold tracking-wide text-foreground transition-all hover:border-gold hover:bg-gold/10 hover:text-gold"
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-gold/40 bg-transparent px-4 text-[13px] font-semibold tracking-wide text-foreground transition-colors hover:border-gold hover:bg-gold/10 hover:text-gold"
             >
               <LogIn className="h-4 w-4" />
               <span className="hidden sm:inline">Влезте</span>
             </Link>
-
           )}
+
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Затвори менюто" : "Отвори менюто"}
             aria-expanded={open}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border/60 bg-card/40 text-foreground backdrop-blur-sm transition-colors hover:border-gold/50 hover:text-gold lg:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border/60 bg-card/40 text-foreground transition-colors hover:border-gold/50 hover:text-gold lg:hidden"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
-
-
         </div>
       </div>
 
       {open && (
         <nav className="origin-top animate-accordion-down overflow-hidden border-t border-border/60 bg-background lg:hidden">
-          <div className="container flex flex-col py-3">
-            {[...NAV, ...SECONDARY_NAV]
-              .filter((n) => n.to !== "__tools__")
-              .map((n) => (
-              <Link
-                key={n.to}
-                to={n.to}
-                onClick={(e) => {
-                  setOpen(false);
-                  handleNav(n.to, e);
-                }}
-                className="rounded-md px-3 py-3 text-sm text-muted-foreground transition-colors hover:bg-gold/5 hover:text-gold"
-              >
-                {n.label}
-              </Link>
-            ))}
-            <div className="mt-2 border-t border-border/60 pt-2">
-              <ToolsMenu variant="mobile" onNavigate={() => setOpen(false)} />
+          <div className="container flex flex-col gap-4 py-4">
+            {/* Group 1 — Продукт */}
+            <div>
+              <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/70">
+                Продукт
+              </p>
+              <div className="flex flex-col">
+                {NAV.filter((n) => n.to !== "__tools__").map((n) => (
+                  <Link
+                    key={n.to}
+                    to={n.to}
+                    onClick={(e) => {
+                      setOpen(false);
+                      handleNav(n.to, e);
+                    }}
+                    className="rounded-md px-3 py-2.5 text-sm text-foreground/80 transition-colors hover:bg-gold/5 hover:text-gold"
+                  >
+                    {n.label}
+                  </Link>
+                ))}
+                <div className="mt-1">
+                  <ToolsMenu variant="mobile" onNavigate={() => setOpen(false)} />
+                </div>
+              </div>
             </div>
-            <div className="mt-2 flex items-center justify-between rounded-md border border-border/60 bg-card/40 px-3 py-2">
-              <span className="text-sm text-muted-foreground">Тема</span>
-              <ThemeToggle />
+
+            {/* Group 2 — Ресурси */}
+            <div>
+              <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/70">
+                Ресурси
+              </p>
+              <div className="flex flex-col">
+                {RESOURCES.map((n) => (
+                  <Link
+                    key={n.to}
+                    to={n.to}
+                    onClick={() => setOpen(false)}
+                    className="rounded-md px-3 py-2.5 text-sm text-foreground/80 transition-colors hover:bg-gold/5 hover:text-gold"
+                  >
+                    {n.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Group 3 — Настройки */}
+            <div>
+              <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/70">
+                Настройки
+              </p>
+              <div className="flex items-center justify-between rounded-md border border-border/60 bg-card/40 px-3 py-2">
+                <span className="text-sm text-muted-foreground">Тема</span>
+                <ThemeToggle />
+              </div>
             </div>
           </div>
         </nav>
@@ -235,4 +220,3 @@ export function Header() {
     </header>
   );
 }
-
