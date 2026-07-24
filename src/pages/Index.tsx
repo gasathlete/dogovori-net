@@ -21,6 +21,7 @@ import { buildFaqJsonLd } from "@/data/faqItems";
 //  → LifeScenarios → ComparisonTable → Testimonials → Process → FAQ
 //  → ComplianceSection → CTABand → SeoFooter
 import { SocialProofStrip } from "@/components/SocialProofStrip";
+import { PlatformCapabilities } from "@/components/PlatformCapabilities";
 
 
 const PainSolution = lazy(() => import("@/components/PainSolution").then((m) => ({ default: m.PainSolution })));
@@ -119,6 +120,7 @@ const Index = () => {
       <Header />
       <main className="route-fade">
         <Hero onStart={startInterview} />
+        <PlatformCapabilities />
         <SocialProofStrip />
         <Suspense fallback={<SectionSkeleton />}>
 
