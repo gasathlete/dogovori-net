@@ -17,9 +17,9 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
   useEffect(() => { markFunnelStep(1); }, []);
 
   return (
-    <section className="relative overflow-hidden border-b border-border/60 lg:flex lg:min-h-[min(calc(100svh-4rem),580px)] lg:items-center">
+    <section className="relative overflow-hidden lg:flex lg:min-h-[min(calc(100svh-4rem),580px)] lg:items-center">
       <HeroVideoBackdrop />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-hero opacity-40" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-hero opacity-25" />
 
       {/* Corner filigree — only two diagonally opposite corners, not four */}
       <svg aria-hidden="true" width="0" height="0" className="absolute" style={{ position: "absolute" }}>
