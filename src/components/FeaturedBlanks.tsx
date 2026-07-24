@@ -121,15 +121,15 @@ export function FeaturedBlanks() {
                   expandedContent={
                     <ul className="space-y-1.5 rounded-md border border-hairline bg-card/40 p-3 text-[11px] leading-relaxed text-muted-foreground">
                       <li className="flex gap-1.5">
-                        <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-gold/80" />
+                        <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600 dark:text-gold/80" />
                         <span><span className="text-foreground/80 font-semibold">Кога: </span>{details.when}</span>
                       </li>
                       <li className="flex gap-1.5">
-                        <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-gold/80" />
+                        <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600 dark:text-gold/80" />
                         <span><span className="text-foreground/80 font-semibold">Кой подписва: </span>{details.signer}</span>
                       </li>
                       <li className="flex gap-1.5">
-                        <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-gold/80" />
+                        <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600 dark:text-gold/80" />
                         <span><span className="text-foreground/80 font-semibold">Срок: </span>{details.term}</span>
                       </li>
                     </ul>
