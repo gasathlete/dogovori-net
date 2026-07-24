@@ -36,13 +36,16 @@ export function CTABand() {
   return (
     <section id="cta-band" className="container py-12 sm:py-16 md:py-20">
       <div
-        className="cta-dark-scope gold-sweep-bg relative overflow-hidden rounded-2xl border border-gold/30 px-6 py-12 text-center sm:px-10 sm:py-14 md:px-16 md:py-16"
+        className="gold-sweep-bg relative overflow-hidden rounded-2xl border border-gold/30 bg-card px-6 py-12 text-center text-foreground sm:px-10 sm:py-14 md:px-16 md:py-16"
         style={{
-          background:
-            "var(--gradient-fine-noise), linear-gradient(135deg, hsl(220 50% 9%) 0%, hsl(220 42% 12%) 60%, hsl(43 35% 18%) 100%)",
-          boxShadow: "var(--shadow-elegant), inset 0 1px 0 hsl(43 55% 54% / 0.12)",
+          boxShadow: "var(--shadow-elegant), var(--shadow-inset-line)",
         }}
       >
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-70"
+          style={{ background: "var(--gradient-radial)" }}
+        />
         <div className="absolute inset-x-0 top-0 hairline-x" />
         <div className="absolute inset-x-0 bottom-0 hairline-x opacity-60" />
 
@@ -50,6 +53,7 @@ export function CTABand() {
         <span className="pointer-events-none absolute right-4 top-4 h-3 w-3 border-r border-t border-gold/50" />
         <span className="pointer-events-none absolute left-4 bottom-4 h-3 w-3 border-l border-b border-gold/50" />
         <span className="pointer-events-none absolute right-4 bottom-4 h-3 w-3 border-r border-b border-gold/50" />
+
 
         <div className="relative z-10">
           <LiveCounter />
