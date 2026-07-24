@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Star, Loader2, ImagePlus, X } from "@/icons";
+import { Star, Loader2, Camera, X } from "@/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -207,7 +207,7 @@ export function WriteReviewDialog({ open, onOpenChange, onSubmitted }: Props) {
                 onClick={() => fileInputRef.current?.click()}
                 className="flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-full border-2 border-dashed border-hairline text-xs text-muted-foreground transition-colors hover:border-gold/60 hover:text-foreground"
               >
-                <ImagePlus className="h-5 w-5" />
+                <Camera className="h-5 w-5" />
                 Качете
               </button>
             )}
