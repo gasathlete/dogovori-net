@@ -18,7 +18,11 @@ export function PainSolution() {
   return (
     <section className="container py-12 sm:py-16 md:py-20">
       <div className="mx-auto mb-10 max-w-2xl text-center">
-        <div className="eyebrow mb-3 justify-center">&nbsp;· РЕШЕНИЕ</div>
+        <div className="eyebrow mb-3 justify-center">
+          <span className="font-serif text-base font-normal tracking-normal text-gold/60">01</span>
+          <span className="h-px w-6 bg-gold/40" />
+          РЕШЕНИЕ
+        </div>
         <h2 className="font-serif text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl">
           Не прави компромиси. Договори своите правила.
         </h2>
