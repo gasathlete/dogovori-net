@@ -20,6 +20,7 @@ interface Props {
   kitTitle: string;
   items: UserKitItem[];
   isPro?: boolean;
+  alreadySent?: boolean;
   onCreated?: () => void;
 }
 
