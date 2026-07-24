@@ -169,9 +169,6 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
         }}
       />
 
-      <SavingsSnapshot totalOps={totalOps} monthlyOps={last30dOps} />
-
-      {user?.id ? <ReferralCard userId={user.id} email={user.email} /> : null}
 
 
       <Card
@@ -269,6 +266,11 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
           </div>
         </div>
       </button>
+
+      <SavingsSnapshot totalOps={totalOps} monthlyOps={last30dOps} />
+
+      {user?.id ? <ReferralCard userId={user.id} email={user.email} /> : null}
+
 
 
       <details className="mobile-fold md-contents md:col-span-3 rounded-xl border border-border/60 bg-gradient-card md:border-0 md:bg-transparent md:rounded-none">
