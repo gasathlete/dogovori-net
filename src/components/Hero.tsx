@@ -64,7 +64,9 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             </div>
           </div>
 
-          <h1 className="mx-auto max-w-3xl font-serif text-[28px] font-bold leading-[1.1] text-balance sm:text-3xl md:text-4xl lg:text-[44px] lg:leading-[1.05]">
+          <h1
+            className="mx-auto max-w-3xl font-serif text-[28px] font-bold leading-[1.1] text-balance sm:text-3xl md:text-4xl lg:text-[44px] lg:leading-[1.05] [text-shadow:0_1px_0_hsl(var(--background)/0.5)]"
+          >
             Документи и договори, които търсят и{" "}
             <em className="not-italic font-serif italic text-gold">намират</em>{" "}
             Вашите интереси
@@ -153,7 +155,7 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
                 <li key={s.slug} className="inline-flex items-center gap-1.5 sm:gap-2">
                   <Link
                     to={`/proces/${s.slug}`}
-                    className="inline-flex items-center rounded-full border border-gold/30 bg-card/40 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-gold/90 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-gold/70 hover:bg-gold/15 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 sm:text-[12px]"
+                    className="inline-flex items-center rounded-full border border-gold/30 bg-card/40 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-gold/90 shadow-sm backdrop-blur-sm transition-colors hover:border-gold/60 hover:bg-gold/10 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 sm:text-[12px]"
                   >
                     {s.label}
                   </Link>

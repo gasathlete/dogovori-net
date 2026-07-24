@@ -23,9 +23,8 @@ export function PlatformCapabilities() {
   return (
     <section
       aria-labelledby="platform-capabilities-title"
-      className="relative border-b border-border/50 bg-background py-14 sm:py-20"
+      className="relative border-b border-border/50 bg-gradient-to-b from-background to-card/40 py-14 sm:py-20"
     >
-      <div className="absolute inset-x-0 top-0 hairline-x opacity-70" />
 
       <div className="container">
         <div className="mx-auto max-w-2xl text-center">
