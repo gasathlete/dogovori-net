@@ -274,7 +274,7 @@ export default function CreateKitPage() {
                   disabled={!!kit}
                 />
                 {kit && (
-                  <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-emerald-300">
+                  <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-300">
                     <CheckCircle2 className="h-3 w-3" /> Комплектът е създаден
                   </p>
                 )}
