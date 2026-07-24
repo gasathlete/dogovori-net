@@ -2,6 +2,9 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import { Star, Quote, MessageSquarePlus } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import viktoriyaPhoto from "@/assets/testimonials/viktoriya.jpg";
+import ivanPhoto from "@/assets/testimonials/ivan.jpg";
+import danielPhoto from "@/assets/testimonials/daniel.jpg";
 
 const WriteReviewDialog = lazy(() =>
   import("@/components/WriteReviewDialog").then((m) => ({ default: m.WriteReviewDialog })),
@@ -25,7 +28,7 @@ const FALLBACK: Testimonial[] = [
     name: "Виктория Йорданова",
     role: "Практикуващ учител и маркетолог",
     rating: 5,
-    photo_url: null,
+    photo_url: viktoriyaPhoto,
     initials: "ВЙ",
   },
   {
@@ -35,7 +38,7 @@ const FALLBACK: Testimonial[] = [
     name: "Иван Стойнов",
     role: "Консултант недвижими имоти",
     rating: 5,
-    photo_url: null,
+    photo_url: ivanPhoto,
     initials: "ИС",
   },
   {
@@ -45,7 +48,7 @@ const FALLBACK: Testimonial[] = [
     name: "Даниел Милев",
     role: "Управител, агенция за имоти",
     rating: 5,
-    photo_url: null,
+    photo_url: danielPhoto,
     initials: "ДМ",
   },
 ];
