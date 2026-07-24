@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Menu, X, User as UserIcon, LogIn } from "@/icons";
+import { useState, useRef, useEffect } from "react";
+import { Menu, X, User as UserIcon, LogIn, ChevronDown } from "@/icons";
 import { Logo } from "./Logo";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,11 +25,21 @@ const RESOURCES = [{ to: "/plans", label: "Планове" }];
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const [guestOpen, setGuestOpen] = useState(false);
+  const guestRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { count: unreadCount } = useUnreadNotifications();
   const navigate = useNavigate();
   const location = useLocation();
   const scrolled = useScrolled(8);
+
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      if (guestRef.current && !guestRef.current.contains(e.target as Node)) setGuestOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
 
   const handleNav = (to: string, e: React.MouseEvent) => {
     if (!to.includes("#")) return;
@@ -134,15 +144,60 @@ export function Header() {
               )}
             </Link>
           ) : (
-            <Link
-              to="/auth"
-              {...prefetchHandlers("/auth")}
-              aria-label="Влезте"
-              className="inline-flex h-10 items-center gap-2 rounded-lg border border-gold/40 bg-transparent px-4 text-[13px] font-semibold tracking-wide text-foreground transition-colors hover:border-gold hover:bg-gold/10 hover:text-gold"
-            >
-              <LogIn className="h-4 w-4" />
-              <span className="hidden sm:inline">Влезте</span>
-            </Link>
+            <div ref={guestRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setGuestOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={guestOpen}
+                aria-label="Влезте"
+                className="inline-flex h-10 items-center gap-2 rounded-lg border border-gold/40 bg-transparent px-4 text-[13px] font-semibold tracking-wide text-foreground transition-colors hover:border-gold hover:bg-gold/10 hover:text-gold"
+              >
+                <LogIn className="h-4 w-4" />
+                <span className="hidden sm:inline">Влезте</span>
+                <ChevronDown
+                  className={cn(
+                    "h-3.5 w-3.5 transition-transform",
+                    guestOpen && "rotate-180",
+                  )}
+                />
+              </button>
+              {guestOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-lg"
+                >
+                  <Link
+                    to="/auth"
+                    role="menuitem"
+                    onClick={() => setGuestOpen(false)}
+                    {...prefetchHandlers("/auth")}
+                    className="block px-4 py-2.5 text-sm hover:bg-accent"
+                  >
+                    Вход
+                  </Link>
+                  <Link
+                    to="/auth?mode=signup"
+                    role="menuitem"
+                    onClick={() => setGuestOpen(false)}
+                    {...prefetchHandlers("/auth")}
+                    className="block px-4 py-2.5 text-sm hover:bg-accent"
+                  >
+                    Регистрация
+                  </Link>
+                  <div className="my-1 h-px bg-border/60" />
+                  <Link
+                    to="/plans"
+                    role="menuitem"
+                    onClick={() => setGuestOpen(false)}
+                    {...prefetchHandlers("/plans")}
+                    className="block px-4 py-2.5 text-sm hover:bg-accent"
+                  >
+                    Планове и цени
+                  </Link>
+                </div>
+              )}
+            </div>
           )}
 
           <button
