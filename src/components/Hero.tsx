@@ -2,10 +2,9 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { markFunnelStep } from "@/lib/funnel";
 import { Link } from "react-router-dom";
 import { prefetchHandlers } from "@/components/PrefetchLink";
-import { ShieldCheck, Bird, FileText, Search, FileSignature, ArrowRight, FileUp, Wand2, Bot, ShieldAlert, Languages, Package, ChevronRight } from "@/icons";
+import { ShieldCheck, Bird, FileText, Search, FileSignature, ArrowRight, FileUp, Wand2 } from "@/icons";
 const logoImg = "/logo-dogovori-hero.webp";
-import { scrollToHash } from "@/lib/scrollToHash";
-import { HeroBackdrop } from "@/components/HeroBackdrop";
+import { HeroVideoBackdrop } from "@/components/HeroVideoBackdrop";
 import { First100Counter } from "@/components/funnel/First100Counter";
 import { useAuth } from "@/hooks/useAuth";
 
