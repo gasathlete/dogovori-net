@@ -1,131 +1,49 @@
-## Цел
+# Плавна визуална връзка около hero видеото
 
-1. Визуално разделяне на текущия Херо на **два сегмента**:
-   - Горен (същински Херо) — завършва с кликабилната лента `ДОГОВАРЯЙ · СЪЗДАЙ · ПРЕЦИЗИРАЙ · ПОДПИШИ`.
-   - Долен — 6-те функционални плочки (Правен AI-асистент, 600 шаблона, Анализ, Двуезични, Е-подпис, Комплекти) като **самостоятелна секция** с eyebrow и заглавие.
-2. Фоново **видео** в Хероя — cinematic loop, autoplay + muted + loop, затъмнен overlay, respect `prefers-reduced-motion`.
+Целта е видеото в Hero да не се усеща като отделен блок, а като естествено начало на страницата — със същата цветова палитра, същите шрифтове и меки преходи към следващите секции. Всичко остава четимо и „леко".
 
----
+## 1) Hero — по-мека наслойка над видеото
+Файл: `src/components/HeroVideoBackdrop.tsx`
 
-## 1. Разделяне на секциите
+- Заменям силния тъмен градиент (`from-navy/75 via-navy/55 to-navy/85`) с двуслойна композиция в тона на сайта:
+  - основен слой: `bg-gradient-to-b from-background/85 via-background/60 to-background` — така долният край на видеото се „стапя" в цвета на следващата секция;
+  - топъл акцент: много лек `gold/8%` радиален highlight в горната третина, за да свърже видеото със златистите UI акценти (chip-ове, ъглови орнаменти, CTA);
+  - винетка сваля от 40% на ~25%, за да остане усещането „леко".
+- Добавям тънка долна пелена (SVG или градиент маска) с височина ~72px, която прелива от прозрачно към `hsl(var(--background))`, за да няма ръб между видео секцията и `PlatformCapabilities`.
 
-**`src/components/Hero.tsx`** — оставя само:
-- Лого badge
-- H1 + eyebrow chips
-- Primary CTA (Започни безплатно / 3-те tile-а за логнати)
-- 4-те стъпки (ДОГОВАРЯЙ · СЪЗДАЙ · ПРЕЦИЗИРАЙ · ПОДПИШИ)
-- Промокод + First100Counter
+## 2) Hero съдържание — шрифтова и цветова хармония
+Файл: `src/components/Hero.tsx`
 
-4-те стъпки се засилват визуално, така че да е ясно, че са кликабъл:
-- По-голям тъч таргет (px-3 py-1.5 вместо px-1 py-0.5)
-- Тънка граница `border border-gold/25` + `rounded-full`
-- Hover: `bg-gold/10 border-gold/60`
-- Chevron/ръка индикатор липсва — само subtle underline при hover
-- ARIA `role="list"` за групата, всеки item `<Link>` към `/proces/<slug>`
-- Между тях `·` разделител в `text-gold/30`
+- H1 остава `font-serif`, но заглавието получава лек `text-shadow` (`0 1px 0 hsl(var(--background)/0.4)`) само върху видео фона, за да е ясно четимо без да натежава.
+- Eyebrow chips, промо реда и process chips минават на **единна типографска стълбица**: eyebrow/uppercase 10–11px `tracking-[0.18em]`, body 13–14px, всичко в `text-foreground/80` или `text-muted-foreground` — премахваме смесицата от `text-gold`, `text-muted-foreground` и `text-gold/90` в един ред.
+- Process chips (Договаряй · Създай · Прецизирай · Подпиши): държим `border-gold/30` и `text-gold/90`, но hover-ът става по-мек (`hover:bg-gold/10` вместо `/15`) и без вертикално преместване — само лек `ring` при focus, за да не подскачат.
+- Единствен primary CTA („Започни безплатно" / трите tile-а за логнати) запазва златистия accent — той е фокусната точка на секцията, останалото се държи по-неутрално.
 
-**Нов компонент `src/components/PlatformCapabilities.tsx`** — 6-те плочки се преместват тук:
-- Eyebrow: `КАКВО ПРАВИ ПЛАТФОРМАТА`
-- H2: `Шест инструмента, един работен процес`
-- Кратък intro параграф (1 изречение)
-- Grid: `sm:grid-cols-2 lg:grid-cols-3`, по-големи плочки (px-5 py-4), с иконка в кръг, тайтъл, описание в 2 реда
-- Спазва tokens (`bg-card/40`, `border-gold/15`, hover `border-gold/40`)
-- Секцията е с `py-16 sm:py-20`, hairline divider отгоре и отдолу
+## 3) Преход Hero → следваща секция
+Файл: `src/pages/Index.tsx`, `src/components/PlatformCapabilities.tsx` (визуално)
 
-**`src/pages/Index.tsx`** — вмъква `<PlatformCapabilities />` **веднага след `<Hero />`, преди `<SocialProofStrip />`**.
+- Премахвам `border-b` от Hero секцията — преходът се поема от градиентния fade в точка 1.
+- `PlatformCapabilities` получава фонов градиент `bg-gradient-to-b from-background to-card/40`, така секцията започва в същия тон, в който Hero завършва.
+- Между Hero и `PlatformCapabilities` не слагаме `Divider` — първата „хартиена" линия се появява едва преди `PainSolution`.
 
----
+## 4) Общи tokens за „плавност"
+Файл: `src/index.css`
 
-## 2. Фоново видео
+- Добавям една utility клас `.section-soft-top` (маска-градиент 64–80px от прозрачно към `background`) — reusable за секции, които идват след visual-heavy блок (Hero, PlatformShowcase).
+- Добавям CSS променлива `--hero-veil` и я използвам в `HeroVideoBackdrop`, за да може бъдещо ъпдейт на тона на видеото да се прави от едно място.
+- Уеднаквявам `--radius` използване в chip-овете (`rounded-full` за process, `rounded-md` за action tiles) — вече е така, само документираме.
 
-**Generation** — през `videogen--generate_video`:
-- **Prompt**: cinematic slow-motion close-up of an elegant fountain pen signing a document on a dark walnut desk, warm gold light glinting on the paper edge, soft parallax dust particles, shallow depth of field, luxurious editorial mood, muted navy background, no text, no faces
-- **Resolution**: 1080p
-- **Aspect ratio**: 16:9
-- **Duration**: 5s (ще loop-ва)
-- **camera_fixed**: true (по-стабилно, без резки движения)
-- **Target**: `src/assets/hero-bg-video.mp4`
+## 5) Достъпност и производителност
+- Overlay-ите пазят контраст ≥ 4.5:1 върху текст (проверка след смяната на градиента; при нужда се вдига `background/60` → `/70` в средния слой).
+- `prefers-reduced-motion` fallback вече показва poster — новите overlay-и работят и над него.
+- Никакви нови DOM възли извън `HeroVideoBackdrop` (без нов JS) — промените са само CSS/tokens.
 
-Плюс **poster image** през `imagegen--generate_image` (същия стил, 1920x1080, `.jpg`) — за fallback и за `poster` атрибута.
+## Технически детайли
+- Промени в 4 файла: `HeroVideoBackdrop.tsx`, `Hero.tsx`, `PlatformCapabilities.tsx`, `index.css`. `Index.tsx` — само махане на един `Divider`, ако присъства между Hero и PlatformCapabilities.
+- Няма промени в бекенд, роутинг, бизнес логика или compilation surface.
+- Верификация: `tsgo` typecheck + бърза Playwright снимка на `/` за визуална проверка на прехода.
 
-**Компонент `src/components/HeroVideoBackdrop.tsx`**:
-```tsx
-- <video autoPlay muted loop playsInline preload="metadata" poster={poster}>
-- Абсолютно позициониран, object-cover, w-full h-full
-- z-index под съдържанието, над HeroBackdrop
-- Detect prefers-reduced-motion → рендерира само <img> с poster
-- Detect mobile (≤640px) → optional: показва само poster (по-леко за battery/data)
-    → ще активираме това само ако видеото се окаже >1MB след optimization
-- Overlay: <div class="absolute inset-0 bg-gradient-to-b from-navy/70 via-navy/50 to-navy/80" />
-- Втори overlay слой: съществуващият bg-gradient-hero остава отгоре с opacity-70
-- Всичко е aria-hidden
-```
-
-**Интеграция в `Hero.tsx`**:
-- Замяна на `<HeroBackdrop />` с `<HeroVideoBackdrop />` (HeroBackdrop остава като SVG слой отгоре, ако допринася за визията)
-- Текстовете получават `drop-shadow-sm` за четимост върху видеото
-- Layer order (отдолу нагоре):
-  1. `<video>` / poster
-  2. Dark navy gradient overlay (40-60%)
-  3. Съществуващ `bg-gradient-hero` (намалена opacity)
-  4. HeroBackdrop SVG декорация
-  5. Съдържание
-
-**Performance guardrails**:
-- `preload="metadata"` (не `auto`) — не тегли пълния файл преди visible
-- `IntersectionObserver`: пауза при scroll извън viewport
-- Ако файлът е >2MB след compression: пре-обработка с `ffmpeg` (CRF 28, target 1-2MB)
-- Poster image винаги се вижда докато видеото зарежда
-
----
-
-## Technical details
-
-### Файлове (create/edit)
-- ✏️ `src/components/Hero.tsx` — премахва 6-те плочки, засилва 4-те стъпки, ползва `HeroVideoBackdrop`
-- ✏️ `src/pages/Index.tsx` — импорт + рендер на `PlatformCapabilities` след Hero
-- 🆕 `src/components/PlatformCapabilities.tsx` — 6-те плочки в собствена секция
-- 🆕 `src/components/HeroVideoBackdrop.tsx` — видео слой + reduced-motion fallback
-- 🆕 `src/assets/hero-bg-video.mp4` — генерирано видео
-- 🆕 `src/assets/hero-bg-poster.jpg` — poster/fallback image
-
-### ASCII layout
-
-```text
-┌─────────────────────────────────────────┐
-│ HERO (с фоново видео)                  │
-│  ┌──┐                                  │
-│  │🦉│                                  │
-│  └──┘                                  │
-│  H1: Документи и договори...           │
-│  [chips]                               │
-│  [ Започни безплатно → ]               │
-│  ─────────────────────────────         │
-│  ⟨ДОГОВАРЯЙ⟩·⟨СЪЗДАЙ⟩·⟨ПРЕЦ.⟩·⟨ПОДП.⟩  │  ← кликабъл, chip-style
-│  [промокод + брояч]                    │
-└─────────────────────────────────────────┘
-   ═══════════ hairline ════════════
-┌─────────────────────────────────────────┐
-│ КАКВО ПРАВИ ПЛАТФОРМАТА                │
-│ Шест инструмента, един работен процес  │
-│                                        │
-│  [AI-асистент] [600 шаблона] [Анализ]  │
-│  [Двуезични]   [Е-подпис]    [Компл.]  │
-└─────────────────────────────────────────┘
-```
-
-### Не докосвам
-- `SocialProofStrip`, `PainSolution`, останалите секции в `Index.tsx`
-- `Header.tsx` (променен в предишен turn)
-- Business logic — само визуална реорганизация + фоново видео
-
----
-
-## Стъпки за изпълнение
-
-1. Генерирай видеото (`videogen`) и poster (`imagegen`).
-2. Създай `HeroVideoBackdrop.tsx` с reduced-motion + IntersectionObserver logic.
-3. Създай `PlatformCapabilities.tsx` от 6-те плочки.
-4. Изчисти `Hero.tsx` — премахни плочките, засили 4-те стъпки, интегрирай видео backdrop.
-5. Обнови `Index.tsx` — вмъкни `PlatformCapabilities` след Hero.
-6. Проверка: typecheck + визуален преглед в preview (desktop + mobile).
+## Извън обхват
+- Смяна на самото видео/poster.
+- Промени в Header, footer или други секции надолу по страницата.
+- Нови компоненти или анимации извън изброените CSS преходи.

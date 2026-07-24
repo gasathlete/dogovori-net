@@ -65,10 +65,14 @@ export function HeroVideoBackdrop() {
         />
       )}
 
-      {/* Darken for text legibility */}
-      <div className="absolute inset-0 bg-gradient-to-b from-navy/75 via-navy/55 to-navy/85" />
-      {/* Subtle radial vignette */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--navy)/0.4)_100%)]" />
+      {/* Main veil — tuned to the page background so the video melts into the next section */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/55 to-background" />
+      {/* Warm gold highlight tying the video to the site's accent palette */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(var(--gold)/0.10),transparent_55%)]" />
+      {/* Soft vignette — lighter than before so the composition still feels airy */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background)/0.25)_100%)]" />
+      {/* Bottom fade — bridges the hero into the following section without a hard edge */}
+      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-background" />
     </div>
   );
 }
