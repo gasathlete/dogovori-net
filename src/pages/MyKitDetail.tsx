@@ -237,13 +237,13 @@ export default function MyKitDetailPage() {
                 </Button>
                 <Button
                   onClick={() => setBulkSignOpen(true)}
-                  disabled={kit.items.every((i) => !i.saved_id && !i.uploaded_id)}
+                  disabled={signedLocked || kit.items.every((i) => !i.saved_id && !i.uploaded_id)}
                   variant="outline"
                   className="border-gold/60 text-gold hover:bg-gold/10"
-                  title="Създай заявки за подпис за всички готови документи наведнъж"
+                  title={signedLocked ? "Комплектът вече е изпратен за подпис" : "Създай заявки за подпис за всички готови документи наведнъж"}
                 >
                   <PenSquare className="mr-2 h-4 w-4" />
-                  Изпрати комплекта за подпис
+                  {signedLocked ? "Изпратен за подпис" : "Изпрати комплекта за подпис"}
                 </Button>
                 {tpl && (
                   <Button asChild variant="outline">
