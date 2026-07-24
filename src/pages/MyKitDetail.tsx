@@ -309,6 +309,11 @@ export default function MyKitDetailPage() {
         kitTitle={kit.title}
         items={kit.items}
         isPro={isPro}
+        alreadySent={signedLocked}
+        onCreated={async () => {
+          const locked = await kitHasSigningRequests(kit.items);
+          setSignedLocked(locked);
+        }}
       />
       <SeoFooter />
     </>
