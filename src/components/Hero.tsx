@@ -18,8 +18,8 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
 
   return (
     <section className="relative overflow-hidden border-b border-border/60 lg:flex lg:min-h-[min(calc(100svh-4rem),580px)] lg:items-center">
-      <div className="absolute inset-0 bg-gradient-hero opacity-95" />
-      <HeroBackdrop />
+      <HeroVideoBackdrop />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-hero opacity-40" />
 
       {/* Corner filigree — only two diagonally opposite corners, not four */}
       <svg aria-hidden="true" width="0" height="0" className="absolute" style={{ position: "absolute" }}>
