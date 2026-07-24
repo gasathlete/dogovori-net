@@ -243,7 +243,8 @@ function DeferredOverlays() {
       <UsernamePrompt />
       <GlobalProUpgradeListener />
       <CommandPalette />
-      <FloatingCommandTrigger />
+      {/* Only one floating helper — the DogovAI bubble. Removed FloatingCommandTrigger
+          to avoid stacking with the bubble/sticky CTA and reduce visual clutter. */}
       <DogovAIBubble />
       <MobileBottomNav />
       <ActionCelebrationHost />
