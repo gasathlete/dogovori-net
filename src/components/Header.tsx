@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Menu, X, User as UserIcon, LogIn } from "@/icons";
+import { useState, useRef, useEffect } from "react";
+import { Menu, X, User as UserIcon, LogIn, ChevronDown } from "@/icons";
 import { Logo } from "./Logo";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
