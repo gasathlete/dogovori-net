@@ -234,6 +234,32 @@
   /* Hard-coded HSL navy gradients in inline styles can be addressed where used;
      here we tame any leftover dark backdrops on landing decorations. */
   html.light [class*="bg-[radial-gradient"][class*="navy"] { background-image: none; }
+
+  /* Locally re-assert dark tokens for surfaces that stay dark by design
+     (e.g. CTA band with hardcoded navy gradient). Keeps text/muted/hairline
+     legible regardless of the active site theme. */
+  .cta-dark-scope {
+    --background: 220 45% 7%;
+    --foreground: 42 35% 92%;
+    --card: 220 42% 10%;
+    --card-foreground: 42 35% 92%;
+    --muted: 220 30% 14%;
+    --muted-foreground: 42 18% 72%;
+    --border: 220 30% 22%;
+    --primary: 43 55% 54%;
+    --primary-foreground: 220 45% 7%;
+    color: hsl(var(--foreground));
+  }
+  .cta-dark-scope .bg-card,
+  .cta-dark-scope .bg-card\/40,
+  .cta-dark-scope .bg-card\/50,
+  .cta-dark-scope .bg-card\/60,
+  .cta-dark-scope .bg-card\/70,
+  .cta-dark-scope .bg-card\/80 {
+    background-image: none;
+    background-color: hsl(var(--card) / 0.6);
+    box-shadow: none;
+  }
 }
 
 
