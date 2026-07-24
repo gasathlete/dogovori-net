@@ -233,7 +233,7 @@
 
   /* Hard-coded HSL navy gradients in inline styles can be addressed where used;
      here we tame any leftover dark backdrops on landing decorations. */
-  html.light [class*="bg-[radial-gradient"] { background-image: none; }
+  html.light [class*="bg-[radial-gradient"][class*="navy"] { background-image: none; }
 }
 
 
