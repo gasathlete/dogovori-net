@@ -69,7 +69,7 @@ export function PainSolution() {
           <ul className="space-y-4">
             {GAINS.map((g) => (
               <li key={g} className="flex items-start gap-3">
-                <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-gold/40 bg-gold/15 text-gold">
+                <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/15 text-emerald-600 dark:border-gold/40 dark:bg-gold/15 dark:text-gold">
                   <Check className="h-3.5 w-3.5" />
                 </span>
                 <span className="text-sm leading-relaxed text-foreground sm:text-[15px]">{g}</span>
