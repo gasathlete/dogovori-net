@@ -33,7 +33,7 @@ const Testimonials = lazy(() => import("@/components/Testimonials").then((m) => 
 const FAQ = lazy(() => import("@/components/FAQ").then((m) => ({ default: m.FAQ })));
 const ComplianceSection = lazy(() => import("@/components/ComplianceSection").then((m) => ({ default: m.ComplianceSection })));
 const CTABand = lazy(() => import("@/components/CTABand").then((m) => ({ default: m.CTABand })));
-const StickyScrollCta = lazy(() => import("@/components/funnel/StickyScrollCta").then((m) => ({ default: m.StickyScrollCta })));
+// StickyScrollCta removed — DogovAIBubble is the single persistent floating helper on the landing.
 const SocialProofToast = lazy(() => import("@/components/funnel/SocialProofToast").then((m) => ({ default: m.SocialProofToast })));
 
 const Divider = () => (
