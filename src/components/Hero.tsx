@@ -2,10 +2,9 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { markFunnelStep } from "@/lib/funnel";
 import { Link } from "react-router-dom";
 import { prefetchHandlers } from "@/components/PrefetchLink";
-import { ShieldCheck, Bird, FileText, Search, FileSignature, ArrowRight, FileUp, Wand2, Bot, ShieldAlert, Languages, Package, ChevronRight } from "@/icons";
+import { ShieldCheck, Bird, FileText, Search, FileSignature, ArrowRight, FileUp, Wand2 } from "@/icons";
 const logoImg = "/logo-dogovori-hero.webp";
-import { scrollToHash } from "@/lib/scrollToHash";
-import { HeroBackdrop } from "@/components/HeroBackdrop";
+import { HeroVideoBackdrop } from "@/components/HeroVideoBackdrop";
 import { First100Counter } from "@/components/funnel/First100Counter";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -19,8 +18,8 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
 
   return (
     <section className="relative overflow-hidden border-b border-border/60 lg:flex lg:min-h-[min(calc(100svh-4rem),580px)] lg:items-center">
-      <div className="absolute inset-0 bg-gradient-hero opacity-95" />
-      <HeroBackdrop />
+      <HeroVideoBackdrop />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-hero opacity-40" />
 
       {/* Corner filigree — only two diagonally opposite corners, not four */}
       <svg aria-hidden="true" width="0" height="0" className="absolute" style={{ position: "absolute" }}>
@@ -136,77 +135,36 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             )}
           </div>
 
-          {/* Process steps — one restrained line */}
-          <p
-            className="mx-auto mt-8 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-gold/80"
+          {/* Process steps — clickable chips ending the Hero */}
+          <nav
             aria-label="Четирите стъпки на процеса"
+            className="mt-9"
           >
-            {[
-              { slug: "dogovaryay", label: "ДОГОВАРЯЙ" },
-              { slug: "sazday", label: "СЪЗДАЙ" },
-              { slug: "pretsiziray", label: "ПРЕЦИЗИРАЙ" },
-              { slug: "podpishi", label: "ПОДПИШИ" },
-            ].map((s, i, arr) => (
-              <span key={s.slug} className="inline-flex items-center gap-2">
-                <Link
-                  to={`/proces/${s.slug}`}
-                  className="rounded px-1 py-0.5 text-gold/80 underline-offset-4 transition-colors hover:text-gold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
-                >
-                  {s.label}
-                </Link>
-                {i < arr.length - 1 && <span aria-hidden="true" className="text-gold/40">·</span>}
-              </span>
-            ))}
-          </p>
-
-          {/* Feature tiles — kept but tightened */}
-          <ul className="mx-auto mt-6 grid max-w-3xl grid-cols-2 gap-2 md:grid-cols-3">
-            {([
-              { icon: Bot, action: "assistant", label: "Правен AI-асистент", desc: "Преговаря най-добрите условия." },
-              { icon: FileText, to: "/catalog", label: "Над 600 шаблона", desc: "Бизнес, имоти, труд, услуги." },
-              { icon: ShieldAlert, to: "/demo/risk-analysis", label: "Анализ на документ", desc: "Клопки и неравноправни клаузи." },
-              { icon: Languages, to: "/demo/bilingual", label: "Двуезични договори", desc: "BG / EN / DE / FR." },
-              { icon: FileSignature, to: "/demo/e-signature", label: "Електронен подпис", desc: "Директно от dogovori.net." },
-              { icon: Package, action: "kits", label: "Комплекти", desc: "Решения за чести казуси." },
-            ] as Array<{ icon: any; to?: string; action?: "assistant" | "kits"; label: string; desc: string }>).map((item) => {
-              const Icon = item.icon;
-              const cls =
-                "group flex h-full w-full items-start gap-2.5 rounded-lg border border-gold/15 bg-card/40 px-3 py-2.5 text-left transition-colors hover:border-gold/40 hover:bg-card/60";
-              const inner = (
-                <>
-                  <Icon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-                  <span className="min-w-0 flex-1 leading-snug">
-                    <span className="block text-[13px] font-semibold text-foreground sm:text-sm">{item.label}</span>
-                    <span className="hidden text-xs text-muted-foreground sm:block">{item.desc}</span>
-                  </span>
-                  <ChevronRight aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold/60" />
-                </>
-              );
-              if (item.action) {
-                const onClick = () => {
-                  if (item.action === "assistant") {
-                    window.dispatchEvent(new CustomEvent("dogovori:open-assistant"));
-                  } else if (item.action === "kits") {
-                    scrollToHash("scenarios");
-                  }
-                };
-                return (
-                  <li key={item.label}>
-                    <button type="button" onClick={onClick} aria-label={`${item.label} — ${item.desc}`} className={cls}>
-                      {inner}
-                    </button>
-                  </li>
-                );
-              }
-              return (
-                <li key={item.label}>
-                  <Link to={item.to!} aria-label={`${item.label} — ${item.desc}`} className={cls}>
-                    {inner}
+            <ul
+              role="list"
+              className="mx-auto flex max-w-2xl flex-wrap items-center justify-center gap-x-1.5 gap-y-2 sm:gap-x-2"
+            >
+              {[
+                { slug: "dogovaryay", label: "Договаряй" },
+                { slug: "sazday", label: "Създай" },
+                { slug: "pretsiziray", label: "Прецизирай" },
+                { slug: "podpishi", label: "Подпиши" },
+              ].map((s, i, arr) => (
+                <li key={s.slug} className="inline-flex items-center gap-1.5 sm:gap-2">
+                  <Link
+                    to={`/proces/${s.slug}`}
+                    className="inline-flex items-center rounded-full border border-gold/30 bg-card/40 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-gold/90 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-gold/70 hover:bg-gold/15 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 sm:text-[12px]"
+                  >
+                    {s.label}
                   </Link>
+                  {i < arr.length - 1 && (
+                    <span aria-hidden="true" className="text-gold/40">·</span>
+                  )}
                 </li>
-              );
-            })}
-          </ul>
+              ))}
+            </ul>
+          </nav>
+
 
           {/* Promo + counter in one restrained row */}
           <div className="mt-6 flex flex-col items-center gap-1.5">

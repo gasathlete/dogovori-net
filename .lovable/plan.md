@@ -1,131 +1,131 @@
+## Цел
 
-# План: намаляване на „AI‑изписаност" на сайта
-
-Одитът показва три конкретни проблема. Ще ги адресираме таргетирано, без да чупим бекенд, SEO/GEO и логики. Основен принцип: **по-малко елементи на екран, повече йерархия, повече въздух.**
-
----
-
-## 1) Хедър — групиране и разделяне
-
-Файл: `src/components/Header.tsx`
-
-Проблем: смесени навигация, помощни линкове, тема, teaser badge, профил/вход и мобилно меню без визуален ред. „Планове" стои като второстепенен линк точно до основната навигация и създава конкуренция.
-
-Промени:
-
-- Три ясни зони в grid-a: **[Brand] · [Nav] · [Utility]**.
-- **Nav (център)** остава само с продуктови линкове: „Изготви документ", „Каталог", „Инструменти", „Блог" (по този ред — от най-търсеното към най-редкото).
-- **Utility (дясно)** се разделя с фин вертикален разделител `w-px h-5 bg-border/60` на две подгрупи:
-  - Помощни: `ThemeToggle`, `LanguageSwitcher` (когато е активен).
-  - Акаунт: **само** „Профил" / „Влезте". Изнасяме теми като Crown badge и „Планове" от хедъра.
-- **„Планове"** се изнася в мобилното меню + футър + контекстни upgrade prompt-ове (както е коментирано в кода вече). В десктоп хедъра не се показва.
-- **Crown teaser (`showProBadge`)** — премахваме от хедъра. Остава като плаваща chip‑нотификация само когато `stage===3` (лимит), не като постоянен елемент.
-- **Мобилно меню**: подредено с подсекции — „Продукт", „Ресурси", „Акаунт" (h5 надпис `text-[10px] uppercase tracking-[0.18em] text-muted-foreground`), с отстъпи между групите.
-- Височина: увеличаваме `h-14 → h-16` (scrolled `h-12 → h-14`) — повече дъх около елементите, по-малко „сместено" усещане.
-- Убираме „hover underline animation" (сегашния `absolute -bottom-1.5` span). Заместваме с обикновен `text-gold` при active + `hover:text-gold` — без микроанимации, които допълнително „шумят".
+1. Визуално разделяне на текущия Херо на **два сегмента**:
+   - Горен (същински Херо) — завършва с кликабилната лента `ДОГОВАРЯЙ · СЪЗДАЙ · ПРЕЦИЗИРАЙ · ПОДПИШИ`.
+   - Долен — 6-те функционални плочки (Правен AI-асистент, 600 шаблона, Анализ, Двуезични, Е-подпис, Комплекти) като **самостоятелна секция** с eyebrow и заглавие.
+2. Фоново **видео** в Хероя — cinematic loop, autoplay + muted + loop, затъмнен overlay, respect `prefers-reduced-motion`.
 
 ---
 
-## 2) Hero — един главен CTA, по-малко блокове
+## 1. Разделяне на секциите
 
-Файл: `src/components/Hero.tsx`
+**`src/components/Hero.tsx`** — оставя само:
+- Лого badge
+- H1 + eyebrow chips
+- Primary CTA (Започни безплатно / 3-те tile-а за логнати)
+- 4-те стъпки (ДОГОВАРЯЙ · СЪЗДАЙ · ПРЕЦИЗИРАЙ · ПОДПИШИ)
+- Промокод + First100Counter
 
-Проблем: 8+ визуални блока в героя (лого‑цитат, h1, eyebrow chips, primary CTA, микро‑trust, 4‑step процес, 6 карти, ⌘K pill, промокод, First100Counter). CTA-та се застъпват — HeroSearch, „Започни безплатно", tile grid и StickyScrollCta се борят за клика.
+4-те стъпки се засилват визуално, така че да е ясно, че са кликабъл:
+- По-голям тъч таргет (px-3 py-1.5 вместо px-1 py-0.5)
+- Тънка граница `border border-gold/25` + `rounded-full`
+- Hover: `bg-gold/10 border-gold/60`
+- Chevron/ръка индикатор липсва — само subtle underline при hover
+- ARIA `role="list"` за групата, всеки item `<Link>` към `/proces/<slug>`
+- Между тях `·` разделител в `text-gold/30`
 
-Промени:
+**Нов компонент `src/components/PlatformCapabilities.tsx`** — 6-те плочки се преместват тук:
+- Eyebrow: `КАКВО ПРАВИ ПЛАТФОРМАТА`
+- H2: `Шест инструмента, един работен процес`
+- Кратък intro параграф (1 изречение)
+- Grid: `sm:grid-cols-2 lg:grid-cols-3`, по-големи плочки (px-5 py-4), с иконка в кръг, тайтъл, описание в 2 реда
+- Спазва tokens (`bg-card/40`, `border-gold/15`, hover `border-gold/40`)
+- Секцията е с `py-16 sm:py-20`, hairline divider отгоре и отдолу
 
-**За неавтентикирани (guest):**
-
-- Оставяме: h1 + eyebrow chips (една линия) + **един** primary CTA „Започни безплатно" + микро‑trust ред + First100Counter.
-- Премахваме `HeroSearchLazy` от героя (пренасяме в отделна тясна лента точно **под** героя — не пред primary CTA). Търсенето не бива да се конкурира с primary action.
-- Премахваме ⌘K pill от героя (остава `CommandPalette` глобално, достъпен с клавишна комбинация; hint отива във футъра/помощта).
-- Премахваме `magneticHover`, `btn-sheen`, glow blur зад CTA — CTA-то си остава изразително чрез размер и контраст, без ефекти, които изглеждат AI‑прекалени.
-- Скриваме „Промокод FIRST100 → −20%" в един ред заедно с First100Counter (не отделен параграф).
-- 6-те карти („Правен AI‑асистент", „600 шаблона", …) остават **отделна** секция **под** героя, не в него. Виж §3.
-
-**За автентикирани:**
-
-- Оставяме 3-те action бутона (Намери / Изготви / Качи), но ги стилизираме еднакво (три равни secondary tiles). Днес „Намери документ" е `btn-gold`, другите два са outline — създава фалшива йерархия. Правим ги равностойни.
-
-**Ефект:** героят става ~40% по-нисък и има единичен фокус.
-
----
-
-## 3) Landing sections — ритъм и въздух
-
-Файл: `src/pages/Index.tsx` + отделните секции
-
-Проблем: 11 lazy секции една след друга, всяка с плътен текст, без визуални „почивки". Читателят не намира точки за отдих.
-
-Промени:
-
-- **Пренареждаме** реда на секциите с логиката „проблем → решение → доказателство → детайл → покана":
-  1. Hero
-  2. SocialProofStrip
-  3. **PainSolution** (проблемът — вдига се нагоре)
-  4. **LifeScenarios** (комплекти — визуален блок с иконки)
-  5. **PlatformShowcase** (как работи, ключови продукти)
-  6. **FeaturedBlanks** (доказателство: реални шаблони)
-  7. **Process** (4 стъпки)
-  8. **Testimonials**
-  9. **ComparisonTable** (детайл — за скептици, по-надолу)
-  10. **ComplianceSection**
-  11. FAQ
-  12. CTABand
-- **Ритъм**: чередуваме тъмни и по-леки повърхности през `bg-background` ↔ `bg-card/30` секции. Гарантира визуална граница без нови разделители.
-- **Вертикален spacing**: всяка секция да ползва `py-16 md:py-24` (сега част от секциите ползват `py-12`). Уеднаквяваме.
-- **Type rhythm за параграфи**: `max-w-[62ch]`, `leading-relaxed`, `text-base md:text-lg` за основния description текст. Никакви параграфи над 4 реда без визуален break (икона, чертa, sub‑heading).
-- **Section header pattern** (унифициран за всички секции): eyebrow (uppercase tracking-[0.22em] text-gold/80 text-[10px]) → h2 (font-serif) → един лийд параграф ≤ 2 реда. Всичко останало отива в под‑блокове с buffer.
-- Заглавието `SeoFooter` съдържа обилен текст — маркираме за отделна ревизия (не в този план — само span‑поставяне на междинни sub‑headings и bullet групи вместо стени).
+**`src/pages/Index.tsx`** — вмъква `<PlatformCapabilities />` **веднага след `<Hero />`, преди `<SocialProofStrip />`**.
 
 ---
 
-## 4) Премахване на конкуриращи се плаващи елементи
+## 2. Фоново видео
 
-Проблем: `StickyScrollCta` + `DogovAIBubble` + `FloatingCommandTrigger` + мобилен `MobileBottomNav` + евентуален cookie banner — всички са едновременно на екрана.
+**Generation** — през `videogen--generate_video`:
+- **Prompt**: cinematic slow-motion close-up of an elegant fountain pen signing a document on a dark walnut desk, warm gold light glinting on the paper edge, soft parallax dust particles, shallow depth of field, luxurious editorial mood, muted navy background, no text, no faces
+- **Resolution**: 1080p
+- **Aspect ratio**: 16:9
+- **Duration**: 5s (ще loop-ва)
+- **camera_fixed**: true (по-стабилно, без резки движения)
+- **Target**: `src/assets/hero-bg-video.mp4`
 
-Промени (файлове: `src/pages/Index.tsx`, `src/components/DogovAIBubble.tsx`, `src/components/FloatingCommandTrigger.tsx`, `src/components/funnel/StickyScrollCta.tsx`):
+Плюс **poster image** през `imagegen--generate_image` (същия стил, 1920x1080, `.jpg`) — за fallback и за `poster` атрибута.
 
-- **Правило на един плаващ елемент**: в даден момент показваме **максимум един** floating CTA/bubble.
-  - Приоритет: `DogovAIBubble` (продуктова стойност) > `StickyScrollCta` (маркетинг) > `FloatingCommandTrigger` (utility).
-- `StickyScrollCta` се показва **само** ако `DogovAIBubble` е свит и потребителят е guest, след scroll > 60% от героя.
-- `FloatingCommandTrigger` премахваме от landing (командата остава достъпна с `Cmd+K` глобално; hint се локализира в SeoFooter секцията „Полезно").
-- Мобилно: скриваме `StickyScrollCta` когато `MobileBottomNav` е активен.
+**Компонент `src/components/HeroVideoBackdrop.tsx`**:
+```tsx
+- <video autoPlay muted loop playsInline preload="metadata" poster={poster}>
+- Абсолютно позициониран, object-cover, w-full h-full
+- z-index под съдържанието, над HeroBackdrop
+- Detect prefers-reduced-motion → рендерира само <img> с poster
+- Detect mobile (≤640px) → optional: показва само poster (по-леко за battery/data)
+    → ще активираме това само ако видеото се окаже >1MB след optimization
+- Overlay: <div class="absolute inset-0 bg-gradient-to-b from-navy/70 via-navy/50 to-navy/80" />
+- Втори overlay слой: съществуващият bg-gradient-hero остава отгоре с opacity-70
+- Всичко е aria-hidden
+```
+
+**Интеграция в `Hero.tsx`**:
+- Замяна на `<HeroBackdrop />` с `<HeroVideoBackdrop />` (HeroBackdrop остава като SVG слой отгоре, ако допринася за визията)
+- Текстовете получават `drop-shadow-sm` за четимост върху видеото
+- Layer order (отдолу нагоре):
+  1. `<video>` / poster
+  2. Dark navy gradient overlay (40-60%)
+  3. Съществуващ `bg-gradient-hero` (намалена opacity)
+  4. HeroBackdrop SVG декорация
+  5. Съдържание
+
+**Performance guardrails**:
+- `preload="metadata"` (не `auto`) — не тегли пълния файл преди visible
+- `IntersectionObserver`: пауза при scroll извън viewport
+- Ако файлът е >2MB след compression: пре-обработка с `ffmpeg` (CRF 28, target 1-2MB)
+- Poster image винаги се вижда докато видеото зарежда
 
 ---
 
-## 5) Микро‑чистка на визуален „шум"
+## Technical details
 
-Тези детайли колективно създават усещане за „AI‑генериран лукс":
+### Файлове (create/edit)
+- ✏️ `src/components/Hero.tsx` — премахва 6-те плочки, засилва 4-те стъпки, ползва `HeroVideoBackdrop`
+- ✏️ `src/pages/Index.tsx` — импорт + рендер на `PlatformCapabilities` след Hero
+- 🆕 `src/components/PlatformCapabilities.tsx` — 6-те плочки в собствена секция
+- 🆕 `src/components/HeroVideoBackdrop.tsx` — видео слой + reduced-motion fallback
+- 🆕 `src/assets/hero-bg-video.mp4` — генерирано видео
+- 🆕 `src/assets/hero-bg-poster.jpg` — poster/fallback image
 
-- Премахваме `btn-sheen` и magnetic hover от героя (виж §2).
-- Намаляваме честотата на glow/blur ефекти: остават **само** на CTABand и на един избран hero елемент, никъде другаде.
-- `Reveal` анимациите на всяка секция да имат `threshold: 0.15` и `duration: 400ms` (сега вероятно е по-агресивно). Никакви stagger‑и вътре в секцията, само на entry.
-- Corner filigree в героя (4-те SVG ъгъла) → оставяме **само** горен‑ляв и долу‑десен. Четирите ъгъла едновременно създават усещане за декор „заради декора".
-- В `Hero.tsx` премахваме анимираните dashed rings около логото и tick marks (0/90/180/270 spans) — оставяме само чистото лого върху дискретен gold border.
+### ASCII layout
+
+```text
+┌─────────────────────────────────────────┐
+│ HERO (с фоново видео)                  │
+│  ┌──┐                                  │
+│  │🦉│                                  │
+│  └──┘                                  │
+│  H1: Документи и договори...           │
+│  [chips]                               │
+│  [ Започни безплатно → ]               │
+│  ─────────────────────────────         │
+│  ⟨ДОГОВАРЯЙ⟩·⟨СЪЗДАЙ⟩·⟨ПРЕЦ.⟩·⟨ПОДП.⟩  │  ← кликабъл, chip-style
+│  [промокод + брояч]                    │
+└─────────────────────────────────────────┘
+   ═══════════ hairline ════════════
+┌─────────────────────────────────────────┐
+│ КАКВО ПРАВИ ПЛАТФОРМАТА                │
+│ Шест инструмента, един работен процес  │
+│                                        │
+│  [AI-асистент] [600 шаблона] [Анализ]  │
+│  [Двуезични]   [Е-подпис]    [Компл.]  │
+└─────────────────────────────────────────┘
+```
+
+### Не докосвам
+- `SocialProofStrip`, `PainSolution`, останалите секции в `Index.tsx`
+- `Header.tsx` (променен в предишен turn)
+- Business logic — само визуална реорганизация + фоново видео
 
 ---
 
-## 6) Технически детайли
+## Стъпки за изпълнение
 
-- Не пипаме бекенд, edge functions, схеми, RLS, SEO‑мета, JSON‑LD, sitemap.
-- Не пипаме роутинга и функциите на CTA-тата — само тяхната йерархия/присъствие.
-- Всички промени са в: `src/components/Header.tsx`, `src/components/Hero.tsx`, `src/pages/Index.tsx`, и в CSS‑секциите на изброените компоненти (нови padding/typography класове от Tailwind — без нови токъни).
-- След промените: `bun run build` + `bun test` + визуален преглед на desktop + mobile viewports.
-
----
-
-## Извън обхвата на този план (за отделен tour)
-
-- Дълбок редизайн на `SeoFooter`, `PlatformShowcase`, `ComparisonTable` — те имат гъст съдържателен текст, който заслужава отделна ревизия за информационна архитектура, не козметика.
-- Ревизия на `/plans`, `/build`, `/catalog` за същия принцип „по-малко елементи на екран".
-
----
-
-## Резултат след прилагане
-
-- Хедърът има 3 ясни зони, без застъпване „Планове/Профил/Crown badge".
-- Героят има един неоспорим фокус (CTA), ~40% по-нисък.
-- Всяка секция има унифициран ритъм и точки за отдих; текстовете не са ленти.
-- В даден момент е активен най-много един плаващ CTA.
-- Сайтът чете като продукт на човешки екип, не като auto‑generated бранд книга.
+1. Генерирай видеото (`videogen`) и poster (`imagegen`).
+2. Създай `HeroVideoBackdrop.tsx` с reduced-motion + IntersectionObserver logic.
+3. Създай `PlatformCapabilities.tsx` от 6-те плочки.
+4. Изчисти `Hero.tsx` — премахни плочките, засили 4-те стъпки, интегрирай видео backdrop.
+5. Обнови `Index.tsx` — вмъкни `PlatformCapabilities` след Hero.
+6. Проверка: typecheck + визуален преглед в preview (desktop + mobile).
