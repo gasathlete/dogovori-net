@@ -25,11 +25,21 @@ const RESOURCES = [{ to: "/plans", label: "Планове" }];
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const [guestOpen, setGuestOpen] = useState(false);
+  const guestRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { count: unreadCount } = useUnreadNotifications();
   const navigate = useNavigate();
   const location = useLocation();
   const scrolled = useScrolled(8);
+
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      if (guestRef.current && !guestRef.current.contains(e.target as Node)) setGuestOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
 
   const handleNav = (to: string, e: React.MouseEvent) => {
     if (!to.includes("#")) return;
