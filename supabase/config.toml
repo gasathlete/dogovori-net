@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.assistant-chat-anon]
 verify_jwt = false
+
+[functions.list-home-testimonials]
+verify_jwt = false
