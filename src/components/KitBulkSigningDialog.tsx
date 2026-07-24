@@ -20,6 +20,7 @@ interface Props {
   kitTitle: string;
   items: UserKitItem[];
   isPro?: boolean;
+  alreadySent?: boolean;
   onCreated?: () => void;
 }
 
@@ -57,27 +58,47 @@ export function KitBulkSigningDialog(p: Props) {
   );
   const skipped = p.items.length - eligible.length;
 
+  const [alreadySignedCount, setAlreadySignedCount] = useState(0);
+
   useEffect(() => {
     if (!p.open) return;
     setResults(null);
-    if (eligible.length === 0) { setPrepared([]); return; }
+    if (eligible.length === 0) { setPrepared([]); setAlreadySignedCount(0); return; }
     let alive = true;
     (async () => {
       setLoading(true);
       const savedIds = eligible.map((i) => i.saved_id).filter(Boolean) as string[];
       const uploadedIds = eligible.map((i) => i.uploaded_id).filter(Boolean) as string[];
-      const [savedRes, uploadRes] = await Promise.all([
+      // Check which of these already have a signing_request — skip them to avoid duplicate envelopes.
+      const [existingSavedRes, existingUpRes] = await Promise.all([
         savedIds.length
-          ? supabase.from("saved_documents").select("id,title,payload").in("id", savedIds)
+          ? supabase.from("signing_requests").select("saved_document_id").in("saved_document_id", savedIds)
           : Promise.resolve({ data: [] as any[] }),
         uploadedIds.length
-          ? supabase.from("uploaded_contracts").select("id,title,original_filename,extracted_text").in("id", uploadedIds)
+          ? supabase.from("signing_requests").select("uploaded_contract_id").in("uploaded_contract_id", uploadedIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+      const sentSaved = new Set((existingSavedRes.data ?? []).map((r: any) => r.saved_document_id).filter(Boolean));
+      const sentUp = new Set((existingUpRes.data ?? []).map((r: any) => r.uploaded_contract_id).filter(Boolean));
+      const toProcess = eligible.filter((i) =>
+        !(i.saved_id && sentSaved.has(i.saved_id)) && !(i.uploaded_id && sentUp.has(i.uploaded_id))
+      );
+      const alreadyCount = eligible.length - toProcess.length;
+
+      const filteredSavedIds = toProcess.map((i) => i.saved_id).filter(Boolean) as string[];
+      const filteredUpIds = toProcess.map((i) => i.uploaded_id).filter(Boolean) as string[];
+      const [savedRes, uploadRes] = await Promise.all([
+        filteredSavedIds.length
+          ? supabase.from("saved_documents").select("id,title,payload").in("id", filteredSavedIds)
+          : Promise.resolve({ data: [] as any[] }),
+        filteredUpIds.length
+          ? supabase.from("uploaded_contracts").select("id,title,original_filename,extracted_text").in("id", filteredUpIds)
           : Promise.resolve({ data: [] as any[] }),
       ]);
       if (!alive) return;
       const savedMap = new Map((savedRes.data ?? []).map((r: any) => [r.id, r]));
       const upMap = new Map((uploadRes.data ?? []).map((r: any) => [r.id, r]));
-      const rows: Prepared[] = eligible.map((it) => {
+      const rows: Prepared[] = toProcess.map((it) => {
         if (it.saved_id) {
           const r = savedMap.get(it.saved_id);
           return {
@@ -98,6 +119,7 @@ export function KitBulkSigningDialog(p: Props) {
         };
       });
       setPrepared(rows);
+      setAlreadySignedCount(alreadyCount);
       setLoading(false);
     })();
     return () => { alive = false; };
@@ -196,7 +218,9 @@ export function KitBulkSigningDialog(p: Props) {
           </div>
         ) : prepared.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
-            Няма документи, готови за подпис. Първо попълнете или качете документи в комплекта.
+            {alreadySignedCount > 0
+              ? "Всички готови документи вече са изпратени за подпис. За да изпратите отново, отворете съответната заявка."
+              : "Няма документи, готови за подпис. Първо попълнете или качете документи в комплекта."}
           </div>
         ) : (
           <div className="space-y-5">
@@ -205,6 +229,11 @@ export function KitBulkSigningDialog(p: Props) {
               <ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-muted-foreground">
                 {prepared.map((r) => <li key={r.item.id} className="line-clamp-1">{r.title}</li>)}
               </ul>
+              {alreadySignedCount > 0 && (
+                <p className="mt-2 text-[11px] text-amber-400">
+                  {alreadySignedCount} документ(а) вече имат активна заявка и ще бъдат пропуснати.
+                </p>
+              )}
               {skipped > 0 && (
                 <p className="mt-2 text-[11px] text-amber-400">
                   {skipped} елемент(а) без готов документ ще бъдат пропуснати.
