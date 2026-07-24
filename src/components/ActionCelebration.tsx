@@ -118,7 +118,7 @@ export function ActionCelebrationHost() {
               !reduceMotion && "animate-in zoom-in-50 duration-500",
             )}
           >
-            <Check className="h-5 w-5 text-gold" strokeWidth={3} />
+            <Check className="h-5 w-5 text-emerald-600 dark:text-gold" strokeWidth={3} />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
