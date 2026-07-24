@@ -218,7 +218,9 @@ export function KitBulkSigningDialog(p: Props) {
           </div>
         ) : prepared.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
-            Няма документи, готови за подпис. Първо попълнете или качете документи в комплекта.
+            {alreadySignedCount > 0
+              ? "Всички готови документи вече са изпратени за подпис. За да изпратите отново, отворете съответната заявка."
+              : "Няма документи, готови за подпис. Първо попълнете или качете документи в комплекта."}
           </div>
         ) : (
           <div className="space-y-5">
@@ -227,6 +229,11 @@ export function KitBulkSigningDialog(p: Props) {
               <ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-muted-foreground">
                 {prepared.map((r) => <li key={r.item.id} className="line-clamp-1">{r.title}</li>)}
               </ul>
+              {alreadySignedCount > 0 && (
+                <p className="mt-2 text-[11px] text-amber-400">
+                  {alreadySignedCount} документ(а) вече имат активна заявка и ще бъдат пропуснати.
+                </p>
+              )}
               {skipped > 0 && (
                 <p className="mt-2 text-[11px] text-amber-400">
                   {skipped} елемент(а) без готов документ ще бъдат пропуснати.
