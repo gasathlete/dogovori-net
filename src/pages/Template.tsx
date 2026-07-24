@@ -279,10 +279,10 @@ export default function TemplatePage() {
           </div>
 
           <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground anim-rise" style={{ animationDelay: "320ms" }}>
-            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-gold" /> Съобразен със ЗЗД/ТЗ/КТ</li>
-            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-gold" /> PDF и DOCX експорт</li>
-            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-gold" /> Готов за 2 минути</li>
-            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-gold" /> Добавен в лична, защитена база данни</li>
+            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> Съобразен със ЗЗД/ТЗ/КТ</li>
+            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> PDF и DOCX експорт</li>
+            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> Готов за 2 минути</li>
+            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> Добавен в лична, защитена база данни</li>
           </ul>
         </header>
 
@@ -375,7 +375,7 @@ export default function TemplatePage() {
           <ul className="space-y-2">
             {usageCases.map((u, i) => (
               <li key={i} className="flex gap-3 text-sm text-muted-foreground">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-gold" />
                 <span>{u}</span>
               </li>
             ))}
@@ -386,7 +386,7 @@ export default function TemplatePage() {
           <ul className="space-y-2">
             {requirements.map((r, i) => (
               <li key={i} className="flex gap-3 text-sm text-muted-foreground">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-gold" />
                 <span>{r}</span>
               </li>
             ))}

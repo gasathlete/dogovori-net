@@ -24,7 +24,7 @@ export function AssistantPaywall() {
             "Професионалист 12.90 €/мес. — 50 операции · Предприемач 19.90 €/мес. — 100 + GPT-5",
           ].map((f) => (
             <li key={f} className="flex items-start gap-2">
-              <Check className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+              <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-gold" />
               <span>{f}</span>
             </li>
           ))}

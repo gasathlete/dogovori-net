@@ -106,9 +106,9 @@ export function StrictDocumentPaywall({
                 </div>
                 <div className="text-2xl font-bold mb-1">12,90 €<span className="text-sm font-normal text-muted-foreground">/мес</span></div>
                 <ul className="text-xs text-muted-foreground space-y-1 mb-3 flex-1">
-                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-gold mt-0.5" />100 операции/месец</li>
-                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-gold mt-0.5" />Всички Стриктни документи</li>
-                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-gold mt-0.5" />AI асистент & анализ</li>
+                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />100 операции/месец</li>
+                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />Всички Стриктни документи</li>
+                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />AI асистент & анализ</li>
                 </ul>
                 <Button variant="default" size="sm" className="w-full" onClick={goPlans}>
                   Виж планове
@@ -122,9 +122,9 @@ export function StrictDocumentPaywall({
                 </div>
                 <div className="text-2xl font-bold mb-1">от 32,70 €<span className="text-sm font-normal text-muted-foreground">/мес</span></div>
                 <ul className="text-xs text-muted-foreground space-y-1 mb-3 flex-1">
-                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-gold mt-0.5" />От 3 места нагоре</li>
-                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-gold mt-0.5" />100 операции/място/месец</li>
-                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-gold mt-0.5" />Споделени папки & подпис</li>
+                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />От 3 места нагоре</li>
+                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />100 операции/място/месец</li>
+                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />Споделени папки & подпис</li>
                 </ul>
                 <Button variant="outline" size="sm" className="w-full" onClick={goPlans}>
                   Виж планове

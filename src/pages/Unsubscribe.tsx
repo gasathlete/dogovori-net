@@ -71,7 +71,7 @@ export default function Unsubscribe() {
           )}
           {state === "done" && (
             <>
-              <CheckCircle2 className="h-10 w-10 text-gold mx-auto" />
+              <CheckCircle2 className="h-10 w-10 text-emerald-600 dark:text-gold mx-auto" />
               <p>Отписани сте успешно. Повече няма да получавате нашите имейли.</p>
               <Button asChild variant="outline"><Link to="/">Към dogovori.net</Link></Button>
             </>
