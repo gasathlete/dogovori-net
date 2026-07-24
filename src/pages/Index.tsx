@@ -122,16 +122,18 @@ const Index = () => {
         <SocialProofStrip />
         <Suspense fallback={<SectionSkeleton />}>
 
+          {/* Проблем → решение → доказателство → детайл → покана */}
+
           <LazyOnVisible minHeight={420}>
             <Reveal>
-              <LifeScenarios />
+              <PainSolution />
             </Reveal>
           </LazyOnVisible>
           <Divider />
 
           <LazyOnVisible minHeight={420}>
             <Reveal>
-              <FeaturedBlanks />
+              <LifeScenarios />
             </Reveal>
           </LazyOnVisible>
           <Divider />
@@ -143,23 +145,16 @@ const Index = () => {
           </LazyOnVisible>
           <Divider />
 
+          <LazyOnVisible minHeight={420}>
+            <Reveal>
+              <FeaturedBlanks />
+            </Reveal>
+          </LazyOnVisible>
+          <Divider />
+
           <LazyOnVisible minHeight={400}>
             <Reveal>
               <Process />
-            </Reveal>
-          </LazyOnVisible>
-          <Divider />
-
-          <LazyOnVisible minHeight={500}>
-            <Reveal>
-              <ComparisonTable />
-            </Reveal>
-          </LazyOnVisible>
-          <Divider />
-
-          <LazyOnVisible minHeight={420}>
-            <Reveal>
-              <PainSolution />
             </Reveal>
           </LazyOnVisible>
           <Divider />
@@ -171,16 +166,19 @@ const Index = () => {
           </LazyOnVisible>
           <Divider />
 
+          <LazyOnVisible minHeight={500}>
+            <Reveal>
+              <ComparisonTable />
+            </Reveal>
+          </LazyOnVisible>
+          <Divider />
+
           <LazyOnVisible minHeight={400}>
             <Reveal>
               <ComplianceSection />
             </Reveal>
           </LazyOnVisible>
           <Divider />
-
-
-
-
 
           <LazyOnVisible minHeight={500}>
             <Reveal>
@@ -197,7 +195,6 @@ const Index = () => {
         </Suspense>
         <SeoFooter />
       </main>
-      <StickyScrollCta />
     </div>
   );
 };
