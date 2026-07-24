@@ -36,7 +36,7 @@ export function CTABand() {
   return (
     <section id="cta-band" className="container py-12 sm:py-16 md:py-20">
       <div
-        className="gold-sweep-bg relative overflow-hidden rounded-2xl border border-gold/30 px-6 py-12 text-center sm:px-10 sm:py-14 md:px-16 md:py-16"
+        className="dark gold-sweep-bg relative overflow-hidden rounded-2xl border border-gold/30 px-6 py-12 text-center text-foreground sm:px-10 sm:py-14 md:px-16 md:py-16"
         style={{
           background:
             "var(--gradient-fine-noise), linear-gradient(135deg, hsl(220 50% 9%) 0%, hsl(220 42% 12%) 60%, hsl(43 35% 18%) 100%)",
