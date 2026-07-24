@@ -1690,6 +1690,51 @@ export type Database = {
         }
         Relationships: []
       }
+      home_testimonials: {
+        Row: {
+          created_at: string
+          id: string
+          is_admin_added: boolean
+          is_approved: boolean
+          name: string
+          photo_url: string
+          position: number
+          quote: string
+          rating: number
+          role: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_admin_added?: boolean
+          is_approved?: boolean
+          name: string
+          photo_url: string
+          position?: number
+          quote: string
+          rating?: number
+          role?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_admin_added?: boolean
+          is_approved?: boolean
+          name?: string
+          photo_url?: string
+          position?: number
+          quote?: string
+          rating?: number
+          role?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       lead_magnet_subscribers: {
         Row: {
           created_at: string
