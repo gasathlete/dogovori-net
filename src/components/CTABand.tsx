@@ -1,5 +1,5 @@
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
-import { ArrowRight, Search, Wand2, FileUp } from "@/icons";
+import { ArrowRight, Search, FileUp } from "@/icons";
 import { useDownloadCounts } from "@/hooks/useDownloadCounts";
 import { useCountUp } from "@/hooks/useCountUp";
 import { useMemo, useState } from "react";
@@ -65,27 +65,25 @@ export function CTABand() {
             +600 шаблона · AI анализ на риска · електронен подпис · без скрити такси.
           </p>
           {user ? (
-            <div className="mx-auto mt-8 w-full max-w-[460px] space-y-2.5 sm:space-y-3">
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
-                <Link
-                  to="/catalog"
-                  className="btn-gold btn-sheen btn-press w-full normal-case tracking-normal text-[14px] px-5 py-3"
-                >
-                  <Search className="h-[16px] w-[16px]" /> Намери документ
+            <div className="mx-auto mt-8 flex w-full max-w-[460px] flex-col items-center gap-3">
+              <Link
+                to="/start"
+                className="btn-gold btn-sheen btn-press w-full normal-case tracking-normal text-[15px] px-6 py-3.5"
+              >
+                <ArrowRight className="h-[16px] w-[16px]" /> Започни документ
+              </Link>
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[12px] text-muted-foreground">
+                <Link to="/catalog" className="inline-flex items-center gap-1.5 hover:text-gold">
+                  <Search className="h-3.5 w-3.5" /> Разгледай шаблоните
                 </Link>
+                <span className="hidden h-3 w-px bg-border sm:inline-block" />
                 <Link
-                  to="/build"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-gold/50 bg-card/60 px-5 py-3 text-[14px] font-semibold text-gold transition-colors hover:bg-gold/10"
+                  to="/account?tab=documents&action=upload"
+                  className="inline-flex items-center gap-1.5 hover:text-gold"
                 >
-                  <Wand2 className="h-[16px] w-[16px]" /> Изготви документ
+                  <FileUp className="h-3.5 w-3.5" /> Качи за анализ
                 </Link>
               </div>
-              <Link
-                to="/account?tab=documents&action=upload"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-gold/50 bg-card/60 px-5 py-3 text-[14px] font-semibold text-gold transition-colors hover:bg-gold/10"
-              >
-                <FileUp className="h-[16px] w-[16px]" /> Качи документ за анализ
-              </Link>
             </div>
           ) : (
             <div className="mt-8 flex flex-col items-center justify-center gap-3">

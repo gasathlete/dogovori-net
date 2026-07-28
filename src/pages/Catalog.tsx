@@ -202,6 +202,7 @@ export default function CatalogPage() {
                 onCompositionUpdate={() => setOpen(true)}
                 onFocus={() => setOpen(true)}
                 onBlur={() => setTimeout(() => setOpen(false), 150)}
+                autoFocus
                 placeholder="Търсете: NDA, наем, ремонт, фактура…"
                 className="h-14 border-gold/30 bg-card/70 pl-11 text-base text-foreground backdrop-blur transition-colors focus-visible:border-gold/60"
               />
@@ -263,6 +264,25 @@ export default function CatalogPage() {
                   Няма съвпадения за „{query}"
                 </div>
               )}
+            </div>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                Често търсено
+              </span>
+              {["наем", "трудов договор", "NDA", "пълномощно", "заем", "фактура"].map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => {
+                    setQuery(q);
+                    setShowAll(false);
+                    setOpen(true);
+                  }}
+                  className="rounded-full border border-border/60 bg-card/60 px-3 py-1.5 text-xs text-foreground/85 transition-colors hover:border-gold/50 hover:text-gold"
+                >
+                  {q}
+                </button>
+              ))}
             </div>
           </div>
         </div>

@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { markFunnelStep } from "@/lib/funnel";
 import { Link } from "react-router-dom";
 import { prefetchHandlers } from "@/components/PrefetchLink";
-import { ShieldCheck, Bird, FileText, Search, FileSignature, ArrowRight, FileUp, Wand2 } from "@/icons";
+import { ShieldCheck, Bird, FileText, Search, FileSignature, ArrowRight, FileUp } from "@/icons";
 const logoImg = "/logo-dogovori-hero.webp";
 import { HeroVideoBackdrop } from "@/components/HeroVideoBackdrop";
 import { First100Counter } from "@/components/funnel/First100Counter";
@@ -88,32 +88,25 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           {/* Single primary CTA */}
           <div className="mt-7 flex flex-col items-center gap-3">
             {user ? (
-              // Three equal action tiles for signed-in users
-              <div className="mx-auto grid w-full max-w-[560px] grid-cols-1 gap-2.5 sm:grid-cols-3">
+              // One primary action; everything else is a secondary text link.
+              <div className="mx-auto flex w-full max-w-[560px] flex-col items-center gap-3">
                 <Link
-                  to="/catalog"
-                  {...prefetchHandlers("/catalog")}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-gold/50 bg-card/60 px-4 py-3 text-[14px] font-semibold text-gold transition-colors hover:bg-gold/10"
+                  to="/start"
+                  {...prefetchHandlers("/start")}
+                  className="btn-gold btn-press inline-flex items-center gap-2 rounded-xl px-8 py-4 text-[16px] font-bold normal-case tracking-normal sm:text-[17px] sm:px-10"
                 >
-                  <Search className="h-[16px] w-[16px]" />
-                  Намери
+                  Започни документ
+                  <ArrowRight className="h-[16px] w-[16px]" />
                 </Link>
-                <Link
-                  to="/build"
-                  {...prefetchHandlers("/build")}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-gold/50 bg-card/60 px-4 py-3 text-[14px] font-semibold text-gold transition-colors hover:bg-gold/10"
-                >
-                  <Wand2 className="h-[16px] w-[16px]" />
-                  Изготви
-                </Link>
-                <Link
-                  to="/account?tab=documents&action=upload"
-                  {...prefetchHandlers("/account")}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-gold/50 bg-card/60 px-4 py-3 text-[14px] font-semibold text-gold transition-colors hover:bg-gold/10"
-                >
-                  <FileUp className="h-[16px] w-[16px]" />
-                  Качи за анализ
-                </Link>
+                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[12px] text-muted-foreground">
+                  <Link to="/catalog" {...prefetchHandlers("/catalog")} className="inline-flex items-center gap-1.5 hover:text-gold">
+                    <Search className="h-3.5 w-3.5" /> Разгледай шаблоните
+                  </Link>
+                  <span className="hidden h-3 w-px bg-border sm:inline-block" />
+                  <Link to="/account?tab=documents&action=upload" {...prefetchHandlers("/account")} className="inline-flex items-center gap-1.5 hover:text-gold">
+                    <FileUp className="h-3.5 w-3.5" /> Качи за анализ
+                  </Link>
+                </div>
               </div>
             ) : (
               <button
