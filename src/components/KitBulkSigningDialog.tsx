@@ -151,8 +151,11 @@ export function KitBulkSigningDialog(p: Props) {
         },
       });
       if (error || data?.error) {
-        out.push({ itemId: row.item.id, title: row.title, error: data?.error ?? error?.message ?? "Грешка" });
+        const reason = data?.error ?? error?.message ?? "Грешка";
+        trackSign("fail", { source: "kit_bulk", doc_key: row.title, reason: String(reason).slice(0, 120) });
+        out.push({ itemId: row.item.id, title: row.title, error: reason });
       } else {
+        trackSign("requested", { source: "kit_bulk", doc_key: row.title, signers: signers.length, order_mode: orderMode });
         out.push({ itemId: row.item.id, title: row.title, requestId: data.request.id });
       }
       setResults([...out]);
