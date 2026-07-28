@@ -169,8 +169,11 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
       );
     } catch {}
 
+    trackDownload("success", { ...fnProps, free: !!data.free });
     return { ok: true, saved_document_id: data.saved_document_id, free: data.free };
   } catch (e) {
-    return { ok: false, error: String((e as Error)?.message ?? e), status: 0 };
+    const msg = String((e as Error)?.message ?? e);
+    trackDownload("fail", { ...fnProps, reason: msg.slice(0, 120) });
+    return { ok: false, error: msg, status: 0 };
   }
 }
