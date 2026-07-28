@@ -156,11 +156,12 @@ export default function AdminFunnel() {
         <div className="mb-6 flex items-end justify-between gap-3">
           <div>
             <h1 className="font-serif text-3xl text-foreground sm:text-4xl">
-              Funnel Dashboard
+              Фуния и конверсии
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Landing → Educate → Analyze → Convert · {stats.totalSessions.toLocaleString("bg-BG")} уникални сесии
+              Къде спират хората по пътя към подписан документ · {stats.totalSessions.toLocaleString("bg-BG")} уникални сесии
             </p>
+
           </div>
           <div className="inline-flex rounded-xl border border-border/60 bg-card p-1">
             {(["7d", "30d"] as const).map((w) => (
