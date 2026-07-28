@@ -430,6 +430,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     const interval = setInterval(() => setGenStepIdx((i) => (i + 1) % GEN_STEPS.length), 5000);
     try {
       trackEvent("build_contract_started", { category: categoryLabel, documentType });
+      trackGenerate("started", { source: "build", doc_key: documentType, category: categoryLabel });
       const customFields = schema.fields.map((f) => ({
         key: f.key, label: f.label, value: (fieldValues[f.key] ?? "").trim(),
       }));
