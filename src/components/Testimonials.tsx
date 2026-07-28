@@ -5,6 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import viktoriyaPhoto from "@/assets/testimonials/viktoriya.jpg";
 import ivanPhoto from "@/assets/testimonials/ivan.jpg";
 import danielPhoto from "@/assets/testimonials/daniel.jpg";
+import georgiPhoto from "@/assets/testimonials/georgi.jpg";
+import elenaPhoto from "@/assets/testimonials/elena.jpg";
+import petarPhoto from "@/assets/testimonials/petar.jpg";
+import mariyaPhoto from "@/assets/testimonials/mariya.jpg";
 
 const WriteReviewDialog = lazy(() =>
   import("@/components/WriteReviewDialog").then((m) => ({ default: m.WriteReviewDialog })),
