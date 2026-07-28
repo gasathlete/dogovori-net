@@ -139,6 +139,7 @@ export default function StartPage() {
                 <Link
                   key={s.id}
                   to={s.kitId ? `/komplekti/${s.kitId}` : (s.href ?? "/komplekti")}
+                  onClick={() => trackDocStart({ source: "start_scenario", doc_key: s.id })}
                   className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/60 px-3.5 py-2 text-sm text-foreground/85 transition-colors hover:border-gold/50 hover:text-gold"
                 >
                   <Layers className="h-3.5 w-3.5 text-gold" />
