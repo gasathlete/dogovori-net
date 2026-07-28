@@ -42,6 +42,7 @@ import { downloadDocument } from "@/lib/downloadDocument";
 import { mergeParentWithAppendices } from "@/lib/appendixMerger";
 import { Seo } from "@/components/Seo";
 import { trackEvent } from "@/lib/analytics";
+import { trackDocStart, trackGenerate } from "@/lib/docFunnel";
 import { PartyListEditor, parseParties, serializeParties } from "@/components/wizard/PartyListEditor";
 import { Lock } from "@/icons";
 import { findSimilarTemplates, type SimilarTemplate } from "@/lib/templateSimilarity";
