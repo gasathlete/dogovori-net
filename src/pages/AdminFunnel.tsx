@@ -44,7 +44,7 @@ export default function AdminFunnel() {
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
     supabase
       .from("funnel_events")
-      .select("id, session_id, step, name, path, created_at")
+      .select("id, session_id, step, name, path, created_at, props")
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(10000)
