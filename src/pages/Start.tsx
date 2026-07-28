@@ -13,6 +13,7 @@ import { Seo } from "@/components/Seo";
 import { useAuth } from "@/hooks/useAuth";
 import { LIFE_SCENARIOS } from "@/data/lifeScenarios";
 import { ArrowRight, Search, Sparkles, FileUp, Layers } from "@/icons";
+import { trackDocStart } from "@/lib/docFunnel";
 
 const UPLOAD_ROUTE = "/account?tab=documents&action=upload";
 
