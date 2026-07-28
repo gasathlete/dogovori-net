@@ -131,6 +131,7 @@ export function UploadContractDialog({
 
     try {
       setBusy(true);
+      trackDocStart({ source: "upload_analyze", doc_key: tab });
       setPhase("Обработка на текста...");
 
       let text = "";
