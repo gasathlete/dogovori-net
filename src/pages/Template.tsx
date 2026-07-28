@@ -268,13 +268,16 @@ export default function TemplatePage() {
               <Sparkles className="h-3 w-3" />
               По-прецизно от бланка
             </span>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col items-start gap-2">
               <Link to={wizardHref} className="btn-gold btn-sheen">
-                Създай за 2 минути <ArrowRight className="h-4 w-4" />
+                Изготви за 3 минути <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link to="/catalog" className="btn-ghost-gold normal-case tracking-normal">
-                Виж всички шаблони
-              </Link>
+              <p className="text-[12px] text-muted-foreground">
+                Водени въпроси · преглед преди плащане ·{" "}
+                <Link to="/catalog" className="hover:text-gold hover:underline">
+                  или виж всички шаблони
+                </Link>
+              </p>
             </div>
           </div>
 
