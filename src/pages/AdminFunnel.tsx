@@ -13,6 +13,8 @@ import { Seo } from "@/components/Seo";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, TrendingUp, AlertCircle } from "@/icons";
 
+import { DOC_STAGES, DOC_STAGE_LABELS, type DocStage } from "@/lib/docFunnel";
+
 type Row = {
   id: string;
   session_id: string;
@@ -20,9 +22,11 @@ type Row = {
   name: string;
   path: string | null;
   created_at: string;
+  props: Record<string, unknown> | null;
 };
 
 type Window = "7d" | "30d";
+
 
 const STEP_LABELS = ["Landing", "Educate", "Analyze", "Convert"];
 
