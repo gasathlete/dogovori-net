@@ -247,10 +247,12 @@ export default function WizardPage() {
         },
       });
       if (data?.code === "quota_exceeded") {
+        trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: "quota_exceeded" });
         toast.error("Изчерпан безплатен лимит", { description: data.error || "Активирайте платен план или закупете пакет операции." });
         return;
       }
       if (data?.requires_login) {
+        trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: "requires_login" });
         toast.error(data.error || "Влезте, за да продължите");
         setTimeout(() => navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`), 1200);
         return;
@@ -261,12 +263,15 @@ export default function WizardPage() {
       const payload = data as AIResult;
       if (bilingualMode && payload.contract) payload.contract.bilingual = true;
       setResult(payload);
+      trackGenerate("success", { doc_key: docKey, source: "wizard" });
       // Trigger AI disclaimer once per session on first document creation.
       ensureAIDisclaimerAccepted().catch(() => {});
       toast.success("Договорът е готов", { description: "Прегледайте Краен Договор отдясно." });
     } catch (e: any) {
+      const emsg = String(e?.message || e);
+      trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: emsg.slice(0, 120) });
       if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) return;
-      const msg = String(e?.message || e);
+      const msg = emsg;
       if (msg.includes("429")) toast.error("Достигнат е лимитът. Опитайте след малко.");
       else if (msg.includes("402")) toast.error("Изчерпан лимит на системата. Опитайте по-късно.");
       else toast.error("Възникна грешка", { description: msg });
