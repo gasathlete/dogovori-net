@@ -187,19 +187,203 @@ export default function AdminFunnel() {
           </div>
         ) : (
           <div className="grid gap-6">
-            {/* Funnel */}
+            {/* KPI strip — какво значи това за бизнеса */}
+            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                {
+                  label: "Старт → Подпис",
+                  value: `${stats.e2e}%`,
+                  hint: `${stats.docCounts[4].toLocaleString("bg-BG")} подписа от ${stats.docCounts[0].toLocaleString("bg-BG")} старта`,
+                },
+                {
+                  label: "Старт → Сваляне",
+                  value: `${stats.toDownload}%`,
+                  hint: "потребители с готов документ",
+                },
+                {
+                  label: "Най-голямо изтичане",
+                  value:
+                    stats.worstIdx >= 0
+                      ? `−${stats.worstPct}%`
+                      : "—",
+                  hint:
+                    stats.worstIdx >= 0
+                      ? `${DOC_STAGE_LABELS[DOC_STAGES[stats.worstIdx]]} → ${DOC_STAGE_LABELS[DOC_STAGES[stats.worstIdx + 1]]} · ${stats.worstLoss.toLocaleString("bg-BG")} сесии`
+                      : "няма отпадания",
+                  tone: "warn" as const,
+                },
+                {
+                  label: "Водеща входна точка",
+                  value: stats.topSource ? String(stats.topSource[0]) : "—",
+                  hint: stats.topSource
+                    ? `${stats.topSource[1].toLocaleString("bg-BG")} старта`
+                    : "няма данни",
+                },
+              ].map((kpi) => (
+                <div
+                  key={kpi.label}
+                  className="rounded-2xl border border-border/60 bg-card p-4 shadow-soft"
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    {kpi.label}
+                  </p>
+                  <p
+                    className={`mt-2 truncate font-serif text-3xl ${
+                      kpi.tone === "warn" ? "text-destructive" : "text-foreground"
+                    }`}
+                    title={kpi.value}
+                  >
+                    {kpi.value}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">{kpi.hint}</p>
+                </div>
+              ))}
+            </section>
+
+            {/* Документна фуния — хоризонтална, с изтичане между етапите */}
             <section className="rounded-2xl border border-border/60 bg-card p-6">
-              <h2 className="mb-4 font-serif text-lg text-foreground">Conversion фуния</h2>
+              <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h2 className="font-serif text-lg text-foreground">Документна фуния</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Пътят до готов и подписан документ · уникални сесии
+                  </p>
+                </div>
+                <span className="rounded-full border border-border/60 px-2.5 py-1 text-[11px] text-muted-foreground">
+                  {win === "7d" ? "последни 7 дни" : "последни 30 дни"}
+                </span>
+              </div>
+
+              <ol className="space-y-2">
+                {DOC_STAGES.map((stage, i) => {
+                  const c = stats.docCounts[i];
+                  const base = stats.docCounts[0] || 1;
+                  const widthPct = Math.max(2, Math.round((c / base) * 100));
+                  const shareOfStart = Math.round((c / base) * 100);
+                  const drop = i < DOC_STAGES.length - 1 ? stats.docDrop[i] : 0;
+                  return (
+                    <li key={stage}>
+                      <div className="flex items-center gap-3">
+                        <span className="w-6 shrink-0 font-mono text-[11px] text-muted-foreground">
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline justify-between gap-3">
+                            <span className="text-sm font-medium text-foreground">
+                              {DOC_STAGE_LABELS[stage]}
+                            </span>
+                            <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                              {c.toLocaleString("bg-BG")}
+                              <span className="ml-2 text-foreground/80">{shareOfStart}%</span>
+                            </span>
+                          </div>
+                          <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-muted">
+                            <div
+                              className="h-full rounded-full bg-gradient-gold transition-all duration-500"
+                              style={{ width: `${widthPct}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      {i < DOC_STAGES.length - 1 && (
+                        <div className="ml-9 flex items-center gap-2 py-1.5 text-[11px]">
+                          <span className="text-muted-foreground">
+                            преминават {stats.docConv[i + 1]}%
+                          </span>
+                          {drop > 0 && (
+                            <span className="text-destructive">
+                              · отпадат {drop.toLocaleString("bg-BG")}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+
+              <div className="mt-6 grid gap-6 md:grid-cols-2">
+                <div>
+                  <div className="mb-3 flex items-baseline justify-between">
+                    <h3 className="text-sm font-semibold text-foreground">Топ причини за провал</h3>
+                    <span className="font-mono text-[11px] text-muted-foreground">
+                      {stats.failTotal.toLocaleString("bg-BG")} общо
+                    </span>
+                  </div>
+                  {stats.topFails.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-border/60 p-4 text-xs text-muted-foreground">
+                      Няма регистрирани провали в този период.
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {stats.topFails.map(([reason, count]) => (
+                        <li key={reason}>
+                          <div className="flex items-center justify-between gap-3 text-xs">
+                            <span className="truncate text-muted-foreground" title={reason}>
+                              {reason}
+                            </span>
+                            <span className="font-mono font-semibold text-destructive">{count}</span>
+                          </div>
+                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                            <div
+                              className="h-full rounded-full bg-destructive/70"
+                              style={{ width: `${Math.round((count / stats.topFails[0][1]) * 100)}%` }}
+                            />
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div>
+                  <div className="mb-3 flex items-baseline justify-between">
+                    <h3 className="text-sm font-semibold text-foreground">Входни точки</h3>
+                    <span className="font-mono text-[11px] text-muted-foreground">старт събития</span>
+                  </div>
+                  {stats.topSources.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-border/60 p-4 text-xs text-muted-foreground">
+                      Няма данни за входни точки.
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {stats.topSources.map(([src, count]) => (
+                        <li key={src}>
+                          <div className="flex items-center justify-between gap-3 text-xs">
+                            <code className="truncate font-mono text-foreground">{src}</code>
+                            <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                              {count.toLocaleString("bg-BG")}
+                            </span>
+                          </div>
+                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                            <div
+                              className="h-full rounded-full bg-emerald-500/70"
+                              style={{ width: `${Math.round((count / stats.topSources[0][1]) * 100)}%` }}
+                            />
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* Маркетинг фуния (страници) */}
+            <section className="rounded-2xl border border-border/60 bg-card p-6">
+              <h2 className="mb-1 font-serif text-lg text-foreground">Маркетинг фуния</h2>
+              <p className="mb-4 text-xs text-muted-foreground">
+                Landing → Educate → Analyze → Convert · % спрямо предходната стъпка
+              </p>
               <div className="grid gap-3 sm:grid-cols-4">
                 {STEP_LABELS.map((label, i) => {
                   const c = stats.counts[i];
                   const pct = stats.conv[i];
-                  const widthPct = stats.counts[0] > 0 ? Math.max(8, Math.round((c / stats.counts[0]) * 100)) : 8;
+                  const widthPct = stats.counts[0] > 0 ? Math.max(4, Math.round((c / stats.counts[0]) * 100)) : 4;
                   return (
                     <div key={label} className="rounded-xl border border-border/40 bg-background/60 p-4">
                       <div className="flex items-baseline justify-between">
                         <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                          Step {i + 1}
+                          {label}
                         </span>
                         <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                           {pct}%
@@ -208,92 +392,15 @@ export default function AdminFunnel() {
                       <div className="mt-1 font-serif text-2xl text-foreground">
                         {c.toLocaleString("bg-BG")}
                       </div>
-                      <div className="mt-1 text-xs text-muted-foreground">{label}</div>
                       <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-emerald-500"
-                          style={{ width: `${widthPct}%` }}
-                        />
+                        <div className="h-full rounded-full bg-emerald-500" style={{ width: `${widthPct}%` }} />
                       </div>
                     </div>
                   );
                 })}
               </div>
-              <p className="mt-3 text-[11px] text-muted-foreground">
-                % спрямо предходната стъпка · уникални сесии.
-              </p>
             </section>
 
-            {/* Документна фуния */}
-            <section className="rounded-2xl border border-border/60 bg-card p-6">
-              <h2 className="mb-1 font-serif text-lg text-foreground">Документна фуния</h2>
-              <p className="mb-4 text-xs text-muted-foreground">
-                Старт → Попълване → Генериране → Сваляне → Подпис · уникални сесии
-              </p>
-              <div className="grid gap-3 sm:grid-cols-5">
-                {DOC_STAGES.map((stage, i) => {
-                  const c = stats.docCounts[i];
-                  const widthPct = stats.docCounts[0] > 0 ? Math.max(6, Math.round((c / stats.docCounts[0]) * 100)) : 6;
-                  return (
-                    <div key={stage} className="rounded-xl border border-border/40 bg-background/60 p-4">
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                          {i + 1}
-                        </span>
-                        <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                          {stats.docConv[i]}%
-                        </span>
-                      </div>
-                      <div className="mt-1 font-serif text-2xl text-foreground">
-                        {c.toLocaleString("bg-BG")}
-                      </div>
-                      <div className="mt-1 text-xs text-muted-foreground">{DOC_STAGE_LABELS[stage]}</div>
-                      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
-                        <div className="h-full rounded-full bg-gold" style={{ width: `${widthPct}%` }} />
-                      </div>
-                      {i < DOC_STAGES.length - 1 && stats.docDrop[i] > 0 && (
-                        <p className="mt-2 text-[10px] text-destructive">
-                          отпадат {stats.docDrop[i].toLocaleString("bg-BG")}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="mt-6 grid gap-6 md:grid-cols-2">
-                <div>
-                  <h3 className="mb-2 text-sm font-semibold text-foreground">Топ причини за провал</h3>
-                  {stats.topFails.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Няма регистрирани провали.</p>
-                  ) : (
-                    <div className="divide-y divide-border/40">
-                      {stats.topFails.map(([reason, count]) => (
-                        <div key={reason} className="flex items-center justify-between gap-3 py-2 text-sm">
-                          <span className="truncate text-xs text-muted-foreground" title={reason}>{reason}</span>
-                          <span className="font-mono text-xs font-semibold text-destructive">{count}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <h3 className="mb-2 text-sm font-semibold text-foreground">Входни точки</h3>
-                  {stats.topSources.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Няма данни.</p>
-                  ) : (
-                    <div className="divide-y divide-border/40">
-                      {stats.topSources.map(([src, count]) => (
-                        <div key={src} className="flex items-center justify-between gap-3 py-2 text-sm">
-                          <code className="font-mono text-xs text-foreground">{src}</code>
-                          <span className="font-mono text-xs font-semibold text-emerald-600 dark:text-emerald-400">{count}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </section>
 
 
 
