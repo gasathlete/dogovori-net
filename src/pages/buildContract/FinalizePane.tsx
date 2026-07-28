@@ -78,15 +78,32 @@ export function FinalizePane({
       />
 
       <div className="rounded-xl border border-gold/30 bg-gradient-card p-6 shadow-soft">
-        <h3 className="mb-1 font-serif text-lg font-bold">Финализиране</h3>
+        <h3 className="mb-1 font-serif text-lg font-bold">Готово. Какво следва?</h3>
         <p className="mb-4 text-xs text-muted-foreground">
-          Експорт, подпис и запис в профила — както при шаблонните договори.
+          Документът е готов за подпис. Може и просто да го изтеглите.
         </p>
-        <div className="flex flex-col gap-2 sm:flex-row">
+
+        {/* Primary next step */}
+        <Button
+          onClick={() => setSignDialogOpen(true)}
+          className="w-full bg-gradient-gold text-navy hover:shadow-gold"
+        >
+          <FileSignature className="mr-2 h-4 w-4" />
+          Изпрати за подпис
+          {!isPro && signingFreeAvailable && (
+            <span className="ml-2 inline-flex items-center rounded-full border border-navy/25 bg-navy/10 px-2 py-0.5 text-[10px] font-semibold">
+              1 безплатна
+            </span>
+          )}
+        </Button>
+
+        {/* Secondary — downloads */}
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
           <Button
             onClick={() => onExport("pdf")}
             disabled={!!exporting}
-            className="flex-1 bg-gradient-gold text-navy hover:shadow-gold"
+            variant="outline"
+            className="flex-1 border-border/60 hover:bg-muted/40"
           >
             {exporting === "pdf" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
             Свали PDF
@@ -95,38 +112,35 @@ export function FinalizePane({
             onClick={() => onExport("docx")}
             disabled={!!exporting}
             variant="outline"
-            className="flex-1 border-gold/40 hover:bg-gold/10 hover:text-gold"
+            className="flex-1 border-border/60 hover:bg-muted/40"
           >
             {exporting === "docx" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
             Свали DOCX
           </Button>
         </div>
-        <Button
-          onClick={onSaveToProfile}
-          disabled={saving || !!savedDocId}
-          variant="outline"
-          className="mt-2 w-full border-gold/40 hover:bg-gold/10 hover:text-gold"
-        >
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          {savedDocId ? "Запазено в профила" : "Запази в профила"}
-        </Button>
-        <Button
-          onClick={() => setSignDialogOpen(true)}
-          variant="outline"
-          className="mt-2 w-full border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10"
-        >
-          <FileSignature className="mr-2 h-4 w-4" />
-          Експорт за онлайн подпис
-          {!isPro && signingFreeAvailable && (
-            <span className="ml-2 inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
-              1 безплатна
-            </span>
-          )}
-        </Button>
+
+        {/* Save status — auto-saved for signed-in users */}
+        {savedDocId ? (
+          <p className="mt-3 flex items-center gap-1.5 text-[12px] text-emerald-600">
+            <Save className="h-3.5 w-3.5" />
+            Автоматично запазено в профила
+          </p>
+        ) : (
+          <Button
+            onClick={onSaveToProfile}
+            disabled={saving}
+            variant="ghost"
+            className="mt-3 w-full text-xs text-muted-foreground hover:text-gold"
+          >
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Запази в профила
+          </Button>
+        )}
+
         <Button
           variant="ghost"
           onClick={onResetAll}
-          className="mt-3 w-full text-xs text-muted-foreground hover:text-gold"
+          className="mt-1 w-full text-xs text-muted-foreground hover:text-gold"
         >
           Започни нов договор
         </Button>
