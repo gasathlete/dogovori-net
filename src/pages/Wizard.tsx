@@ -35,7 +35,7 @@ import { RefineDraftBox } from "@/components/wizard/RefineDraftBox";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { trackEvent } from "@/lib/analytics";
-import { trackDocStart, trackGenerate } from "@/lib/docFunnel";
+import { trackDocStart, trackGenerate, trackFillStep } from "@/lib/docFunnel";
 import { useDocumentAccess } from "@/hooks/useDocumentAccess";
 import { StrictDocumentPaywall } from "@/components/wizard/StrictDocumentPaywall";
 import { BlurredPreviewOverlay } from "@/components/wizard/BlurredPreviewOverlay";
