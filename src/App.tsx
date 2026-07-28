@@ -88,6 +88,7 @@ const WizardGraphRedirect = lazy(() => import("./pages/WizardGraphRedirect.tsx")
 const DocumentWorkspace = lazy(() => import("./pages/DocumentWorkspace.tsx"));
 
 const Catalog = lazy(() => import("./pages/Catalog.tsx"));
+const Start = lazy(() => import("./pages/Start.tsx"));
 const Analyze = lazy(() => import("./pages/Analyze.tsx"));
 const ProcessStep = lazy(() => import("./pages/ProcessStep.tsx"));
 const Tools = lazy(() => import("./pages/Tools.tsx"));
