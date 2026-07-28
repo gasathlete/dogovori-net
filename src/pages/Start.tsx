@@ -13,6 +13,7 @@ import { Seo } from "@/components/Seo";
 import { useAuth } from "@/hooks/useAuth";
 import { LIFE_SCENARIOS } from "@/data/lifeScenarios";
 import { ArrowRight, Search, Sparkles, FileUp, Layers } from "@/icons";
+import { trackDocStart } from "@/lib/docFunnel";
 
 const UPLOAD_ROUTE = "/account?tab=documents&action=upload";
 
@@ -102,6 +103,7 @@ export default function StartPage() {
               <li key={intent.id}>
                 <Link
                   to={hrefFor(intent)}
+                  onClick={() => trackDocStart({ source: "start", intent: intent.id })}
                   className="group flex h-full flex-col rounded-xl border border-border/60 bg-card p-6 text-left shadow-soft transition-all hover:-translate-y-0.5 hover:border-gold/50 hover:shadow-gold/20"
                 >
                   <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gold/30 bg-gold/10 text-gold">
@@ -137,6 +139,7 @@ export default function StartPage() {
                 <Link
                   key={s.id}
                   to={s.kitId ? `/komplekti/${s.kitId}` : (s.href ?? "/komplekti")}
+                  onClick={() => trackDocStart({ source: "start_scenario", doc_key: s.id })}
                   className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/60 px-3.5 py-2 text-sm text-foreground/85 transition-colors hover:border-gold/50 hover:text-gold"
                 >
                   <Layers className="h-3.5 w-3.5 text-gold" />

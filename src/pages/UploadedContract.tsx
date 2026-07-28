@@ -22,6 +22,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/clipboard";
 import { SensitiveDataWarning } from "@/components/SensitiveDataWarning";
+import { trackGenerate } from "@/lib/docFunnel";
 import {
   parseSensitiveResponse,
   isConfirmationRequired,
@@ -160,6 +161,7 @@ export default function UploadedContractPage() {
   const runAnalyze = async (userConfirmed: boolean) => {
     if (!id) return;
     setAnalyzing(true);
+    trackGenerate("started", { source: "reanalyze" });
     const { data, error } = await supabase.functions.invoke("analyze-contract", {
       body: { uploadedContractId: id, userConfirmed },
     });
@@ -167,6 +169,7 @@ export default function UploadedContractPage() {
     if (error || (data as any)?.error) {
       const sensitive = await parseSensitiveResponse(error, data);
       if (isSpecialCategoryBlocked(sensitive)) {
+        trackGenerate("fail", { source: "reanalyze", reason: "sensitive_blocked" });
         setSensitiveClass(sensitive!.classification ?? null);
         setSensitiveBlocked(true);
         setPendingAction(null);
@@ -174,20 +177,27 @@ export default function UploadedContractPage() {
         return;
       }
       if (isConfirmationRequired(sensitive)) {
+        trackGenerate("fail", { source: "reanalyze", reason: "confirmation_required" });
         setSensitiveClass(sensitive!.classification ?? null);
         setSensitiveBlocked(false);
         setPendingAction("analyze");
         setSensitiveOpen(true);
         return;
       }
-      if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(error)) return;
+      if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(error)) {
+        trackGenerate("fail", { source: "reanalyze", reason: "blocked_content" });
+        return;
+      }
       const msg = (data as any)?.error ?? error?.message ?? "Грешка";
+      trackGenerate("fail", { source: "reanalyze", reason: String(msg).slice(0, 80) });
       toast.error(msg);
       return;
     }
+    trackGenerate("success", { source: "reanalyze" });
     toast.success("Анализът е обновен");
     load();
   };
+
 
   const reanalyze = () => runAnalyze(false);
 

@@ -17,6 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { extractTextFromFile, sha256Hex, type ExtractSource } from "@/lib/extractContractText";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
+import { trackDocStart, trackGenerate } from "@/lib/docFunnel";
 
 type Folder = { id: string; name: string; is_favorites: boolean };
 type Contact = { id: string; name: string };
@@ -130,6 +131,7 @@ export function UploadContractDialog({
 
     try {
       setBusy(true);
+      trackDocStart({ source: "upload_analyze", doc_key: tab });
       setPhase("Обработка на текста...");
 
       let text = "";
@@ -192,16 +194,19 @@ export function UploadContractDialog({
 
       setPhase("Риск анализ...");
       setAnalyzing(true);
+      trackGenerate("started", { source: "upload_analyze", doc_key: tab });
       const { data: aData, error: aErr } = await supabase.functions.invoke("analyze-contract", {
         body: { uploadedContractId: newId },
       });
       setAnalyzing(false);
       if (aErr) {
         if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(aErr)) {
+          trackGenerate("fail", { source: "upload_analyze", reason: "blocked_content" });
           onUploaded(); setOpen(false); navigate(`/uploaded/${newId}`);
           return;
         }
         const msg = (aErr as any)?.context?.responseText || aErr.message;
+        trackGenerate("fail", { source: "upload_analyze", reason: String(msg).slice(0, 80) });
         toast.error("Грешка при анализа", { description: msg });
         onUploaded();
         setOpen(false);
@@ -209,6 +214,7 @@ export function UploadContractDialog({
         return;
       }
       if ((aData as any)?.error) {
+        trackGenerate("fail", { source: "upload_analyze", reason: String((aData as any).error).slice(0, 80) });
         toast.error((aData as any).error);
         onUploaded();
         setOpen(false);
@@ -216,13 +222,16 @@ export function UploadContractDialog({
         return;
       }
 
+      trackGenerate("success", { source: "upload_analyze", doc_key: tab });
       toast.success("Готово! Анализът е изготвен.");
       reset();
       setOpen(false);
       onUploaded();
       navigate(`/uploaded/${newId}`);
     } catch (e: any) {
+      trackGenerate("fail", { source: "upload_analyze", reason: String(e?.message ?? "unknown").slice(0, 80) });
       toast.error(e?.message ?? "Грешка");
+
     } finally {
       setBusy(false);
       setPhase("");
