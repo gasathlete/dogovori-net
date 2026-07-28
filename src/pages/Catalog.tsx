@@ -265,6 +265,25 @@ export default function CatalogPage() {
                 </div>
               )}
             </div>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                Често търсено
+              </span>
+              {["наем", "трудов договор", "NDA", "пълномощно", "заем", "фактура"].map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => {
+                    setQuery(q);
+                    setShowAll(false);
+                    setOpen(true);
+                  }}
+                  className="rounded-full border border-border/60 bg-card/60 px-3 py-1.5 text-xs text-foreground/85 transition-colors hover:border-gold/50 hover:text-gold"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
         <div className="absolute inset-x-0 bottom-0 hairline-x opacity-60" />
