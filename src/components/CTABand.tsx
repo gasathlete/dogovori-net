@@ -1,5 +1,5 @@
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
-import { ArrowRight, Search, Wand2, FileUp } from "@/icons";
+import { ArrowRight, Search, FileUp } from "@/icons";
 import { useDownloadCounts } from "@/hooks/useDownloadCounts";
 import { useCountUp } from "@/hooks/useCountUp";
 import { useMemo, useState } from "react";
