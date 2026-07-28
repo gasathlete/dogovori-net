@@ -1692,6 +1692,8 @@ export type Database = {
       }
       home_testimonials: {
         Row: {
+          about: string | null
+          consent_public: boolean
           created_at: string
           id: string
           is_admin_added: boolean
@@ -1706,6 +1708,8 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          about?: string | null
+          consent_public?: boolean
           created_at?: string
           id?: string
           is_admin_added?: boolean
@@ -1720,6 +1724,8 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          about?: string | null
+          consent_public?: boolean
           created_at?: string
           id?: string
           is_admin_added?: boolean
