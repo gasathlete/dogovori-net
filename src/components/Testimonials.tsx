@@ -5,6 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import viktoriyaPhoto from "@/assets/testimonials/viktoriya.jpg";
 import ivanPhoto from "@/assets/testimonials/ivan.jpg";
 import danielPhoto from "@/assets/testimonials/daniel.jpg";
+import georgiPhoto from "@/assets/testimonials/georgi.jpg";
+import elenaPhoto from "@/assets/testimonials/elena.jpg";
+import petarPhoto from "@/assets/testimonials/petar.jpg";
+import mariyaPhoto from "@/assets/testimonials/mariya.jpg";
 
 const WriteReviewDialog = lazy(() =>
   import("@/components/WriteReviewDialog").then((m) => ({ default: m.WriteReviewDialog })),
@@ -50,6 +54,46 @@ const FALLBACK: Testimonial[] = [
     rating: 5,
     photo_url: danielPhoto,
     initials: "ДМ",
+  },
+  {
+    id: "seed-4",
+    quote:
+      "Работя с подизпълнители и все някой се бавеше с подписа. Пращам линк, човекът подписва от телефона си и до вечерта имам всичко в архива.",
+    name: "Георги Тодоров",
+    role: "Собственик, строителна фирма",
+    rating: 5,
+    photo_url: georgiPhoto,
+    initials: "ГТ",
+  },
+  {
+    id: "seed-5",
+    quote:
+      "Преди плащах по 80 € на юрист за всеки типов договор. Сега ги правя сама за 10 минути и пращам за преглед само по-сложните.",
+    name: "Елена Проданова",
+    role: "Управител, счетоводна кантора",
+    rating: 5,
+    photo_url: elenaPhoto,
+    initials: "ЕП",
+  },
+  {
+    id: "seed-6",
+    quote:
+      "Скептичен бях, честно. Но качих стар наемен договор за проверка и системата ми показа три клаузи, които бяха в моя вреда. Оправих ги преди подписване.",
+    name: "Петър Дачев",
+    role: "Наемодател и частен инвеститор",
+    rating: 5,
+    photo_url: petarPhoto,
+    initials: "ПД",
+  },
+  {
+    id: "seed-7",
+    quote:
+      "Като фрийлансър никога не съм имала нормален договор с клиент. Сега всеки проект тръгва с подписан документ и авансът идва без спорове.",
+    name: "Мария Динева",
+    role: "Графичен дизайнер, на свободна практика",
+    rating: 5,
+    photo_url: mariyaPhoto,
+    initials: "МД",
   },
 ];
 
