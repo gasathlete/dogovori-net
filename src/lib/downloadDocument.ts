@@ -3,6 +3,7 @@ import type { GeneratedContract } from "@/lib/exporters";
 import type { CompanionTemplate } from "@/data/companionTemplates";
 import { ensureAIDisclaimerAccepted } from "@/lib/aiDisclaimerGate";
 import { getOpSessionId, getOpDocKey } from "@/lib/opSession";
+import { trackDownload } from "@/lib/docFunnel";
 
 export type DownloadKind = "contract" | "template";
 export type DownloadFormat = "pdf" | "docx";
