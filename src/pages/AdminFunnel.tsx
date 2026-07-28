@@ -120,7 +120,7 @@ export default function AdminFunnel() {
 
     const totalSessions = new Set(rows.map((r) => r.session_id)).size;
 
-    return { counts, conv, topEvents, days, maxDay, totalSessions };
+    return { counts, conv, topEvents, days, maxDay, totalSessions, docCounts, docConv, docDrop, topFails, topSources };
   }, [rows]);
 
   return (
