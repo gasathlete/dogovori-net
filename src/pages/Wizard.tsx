@@ -221,6 +221,7 @@ export default function WizardPage() {
       return;
     }
     setGenerating(true);
+    trackGenerate("started", { doc_key: docKey, source: "wizard" });
     setGenStepIdx(0);
     const interval = setInterval(() => {
       setGenStepIdx((i) => (i + 1) % GEN_STEPS.length);
