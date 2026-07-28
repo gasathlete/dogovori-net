@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
+import { trackSign } from "@/lib/docFunnel";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, ExternalLink } from "@/icons";
 import { Link } from "react-router-dom";
@@ -60,6 +61,7 @@ export function MultiPartySigningDialog(p: Props) {
     setBusy(false);
     if (error || data?.error) {
       const code = data?.error ?? error?.message;
+      trackSign("fail", { source: "multi_party", doc_key: p.title, reason: String(code ?? "unknown").slice(0, 120) });
       if (code === "pro_required") {
         toast.error("Безплатният онлайн подпис вече е използван", {
           description: "Активирайте Pro за неограничен брой заявки за подпис.",
@@ -70,6 +72,7 @@ export function MultiPartySigningDialog(p: Props) {
       return;
     }
     setCreatedId(data.request.id);
+    trackSign("requested", { source: "multi_party", doc_key: p.title, signers: signers.length, order_mode: orderMode });
     p.onCreated?.();
     toast.success(
       !p.isPro && p.freeAvailable

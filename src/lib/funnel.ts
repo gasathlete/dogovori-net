@@ -154,15 +154,20 @@ export function trackFunnelEvent(name: string, props?: Record<string, unknown>) 
       typeof props?.step === "number"
         ? (props.step as number)
         : null;
-    void import("@/integrations/supabase/client").then(({ supabase }) => {
-      void supabase.from("funnel_events").insert({
-        session_id: getFunnelSessionId(),
-        name: String(name).slice(0, 80),
-        step: stepNum !== null && stepNum >= 1 && stepNum <= 4 ? stepNum : null,
-        path: window.location?.pathname?.slice(0, 200) ?? null,
-        props: JSON.parse(JSON.stringify(props ?? {})),
-      });
-    });
+    void import("@/integrations/supabase/client").then(({ supabase }) =>
+      // NB: PostgREST builders are lazy thenables — `void builder` never runs.
+      // The explicit .then() is what actually dispatches the request.
+      supabase
+        .from("funnel_events")
+        .insert({
+          session_id: getFunnelSessionId(),
+          name: String(name).slice(0, 80),
+          step: stepNum !== null && stepNum >= 1 && stepNum <= 4 ? stepNum : null,
+          path: window.location?.pathname?.slice(0, 200) ?? null,
+          props: JSON.parse(JSON.stringify(props ?? {})),
+        })
+        .then(() => undefined, () => undefined),
+    );
   } catch {
     /* ignore */
   }

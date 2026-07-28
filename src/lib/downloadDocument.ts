@@ -3,6 +3,7 @@ import type { GeneratedContract } from "@/lib/exporters";
 import type { CompanionTemplate } from "@/data/companionTemplates";
 import { ensureAIDisclaimerAccepted } from "@/lib/aiDisclaimerGate";
 import { getOpSessionId, getOpDocKey } from "@/lib/opSession";
+import { trackDownload } from "@/lib/docFunnel";
 
 export type DownloadKind = "contract" | "template";
 export type DownloadFormat = "pdf" | "docx";
@@ -13,6 +14,8 @@ interface DownloadParams {
   title: string;
   payload: GeneratedContract | CompanionTemplate;
   source_id?: string;
+  /** Откъде тръгва свалянето: wizard, build, catalog, workspace, kit… */
+  analytics_source?: string;
   contact_id?: string;
   folder_id?: string;
   saved_document_id?: string;
@@ -29,9 +32,16 @@ export interface DownloadResult {
 }
 
 export async function downloadDocument(p: DownloadParams): Promise<DownloadResult> {
+  const fnProps = {
+    doc_key: p.doc_key || p.source_id || p.title,
+    source: p.analytics_source ?? "unknown",
+    kind: p.kind,
+    format: p.format,
+  };
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
+      trackDownload("fail", { ...fnProps, reason: "auth_required" });
       return { ok: false, error: "auth_required", status: 401 };
     }
 
@@ -39,6 +49,7 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
     try {
       await ensureAIDisclaimerAccepted();
     } catch {
+      trackDownload("fail", { ...fnProps, reason: "disclaimer_cancelled" });
       return { ok: false, error: "disclaimer_cancelled", status: 0 };
     }
 
@@ -95,11 +106,16 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
       try {
         if (ctx && typeof ctx.json === "function") body = await ctx.json();
       } catch {}
-      if (body?.error === "quota_exceeded") return { ok: false, error: "quota_exceeded", status: 402 };
+      if (body?.error === "quota_exceeded") {
+        trackDownload("fail", { ...fnProps, reason: "quota_exceeded" });
+        return { ok: false, error: "quota_exceeded", status: 402 };
+      }
+      trackDownload("fail", { ...fnProps, reason: String(error.message || error).slice(0, 120) });
       return { ok: false, error: String(error.message || error), status: ctx?.status };
     }
 
     if (data?.error) {
+      trackDownload("fail", { ...fnProps, reason: String(data.error).slice(0, 120) });
       return { ok: false, error: String(data.error) };
     }
 
@@ -153,8 +169,11 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
       );
     } catch {}
 
+    trackDownload("success", { ...fnProps, free: !!data.free });
     return { ok: true, saved_document_id: data.saved_document_id, free: data.free };
   } catch (e) {
-    return { ok: false, error: String((e as Error)?.message ?? e), status: 0 };
+    const msg = String((e as Error)?.message ?? e);
+    trackDownload("fail", { ...fnProps, reason: msg.slice(0, 120) });
+    return { ok: false, error: msg, status: 0 };
   }
 }

@@ -45,6 +45,7 @@ export function CompanionChip({ name }: Props) {
     setBusy(format);
     try {
       const res = await downloadDocument({
+        analytics_source: "companion_chip",
         kind: "template",
         format,
         title: tpl.title,

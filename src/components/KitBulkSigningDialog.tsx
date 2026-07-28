@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
+import { trackSign } from "@/lib/docFunnel";
 import { toast } from "sonner";
 import { CheckCircle2, ExternalLink, Loader2, Plus, Trash2, AlertCircle } from "@/icons";
 import type { UserKitItem } from "@/lib/kits";
@@ -151,8 +152,11 @@ export function KitBulkSigningDialog(p: Props) {
         },
       });
       if (error || data?.error) {
-        out.push({ itemId: row.item.id, title: row.title, error: data?.error ?? error?.message ?? "Грешка" });
+        const reason = data?.error ?? error?.message ?? "Грешка";
+        trackSign("fail", { source: "kit_bulk", doc_key: row.title, reason: String(reason).slice(0, 120) });
+        out.push({ itemId: row.item.id, title: row.title, error: reason });
       } else {
+        trackSign("requested", { source: "kit_bulk", doc_key: row.title, signers: signers.length, order_mode: orderMode });
         out.push({ itemId: row.item.id, title: row.title, requestId: data.request.id });
       }
       setResults([...out]);

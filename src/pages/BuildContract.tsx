@@ -42,6 +42,7 @@ import { downloadDocument } from "@/lib/downloadDocument";
 import { mergeParentWithAppendices } from "@/lib/appendixMerger";
 import { Seo } from "@/components/Seo";
 import { trackEvent } from "@/lib/analytics";
+import { trackDocStart, trackGenerate } from "@/lib/docFunnel";
 import { PartyListEditor, parseParties, serializeParties } from "@/components/wizard/PartyListEditor";
 import { Lock } from "@/icons";
 import { findSimilarTemplates, type SimilarTemplate } from "@/lib/templateSimilarity";
@@ -253,6 +254,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
 
   useEffect(() => {
     trackEvent("build_contract_open");
+    trackDocStart({ source: "build" });
   }, []);
 
   // Apply preset category from URL when navigating in from a sector page.
@@ -428,6 +430,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     const interval = setInterval(() => setGenStepIdx((i) => (i + 1) % GEN_STEPS.length), 5000);
     try {
       trackEvent("build_contract_started", { category: categoryLabel, documentType });
+      trackGenerate("started", { source: "build", doc_key: documentType, category: categoryLabel });
       const customFields = schema.fields.map((f) => ({
         key: f.key, label: f.label, value: (fieldValues[f.key] ?? "").trim(),
       }));
@@ -483,10 +486,13 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       }
       setResult(data as AIResult);
       trackEvent("build_contract_generated", { category: categoryLabel });
+      trackGenerate("success", { source: "build", doc_key: documentType, category: categoryLabel });
       toast.success("Договорът е готов", { description: "Прегледайте резултата отдясно." });
     } catch (e: any) {
+      const emsg = String(e?.message || e);
+      trackGenerate("fail", { source: "build", doc_key: documentType, reason: emsg.slice(0, 120) });
       if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) return;
-      const msg = String(e?.message || e);
+      const msg = emsg;
       if (msg.includes("429")) toast.error("Достигнат е лимитът. Опитайте след малко.");
       else if (msg.includes("402")) toast.error("Изчерпан лимит на системата. Опитайте по-късно.");
       else toast.error("Възникна грешка", { description: msg });
@@ -591,6 +597,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       const finalTitle = (name || result.contract.title).trim() || result.contract.title;
       const contractWithSig: GeneratedContract = { ...result.contract, title: finalTitle, signature: sigPayload };
       const res = await downloadDocument({
+        analytics_source: "build",
         kind: "contract",
         format,
         title: finalTitle,

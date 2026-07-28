@@ -13,6 +13,8 @@ import { Seo } from "@/components/Seo";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, TrendingUp, AlertCircle } from "@/icons";
 
+import { DOC_STAGES, DOC_STAGE_LABELS, type DocStage } from "@/lib/docFunnel";
+
 type Row = {
   id: string;
   session_id: string;
@@ -20,9 +22,11 @@ type Row = {
   name: string;
   path: string | null;
   created_at: string;
+  props: Record<string, unknown> | null;
 };
 
 type Window = "7d" | "30d";
+
 
 const STEP_LABELS = ["Landing", "Educate", "Analyze", "Convert"];
 
@@ -40,7 +44,7 @@ export default function AdminFunnel() {
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
     supabase
       .from("funnel_events")
-      .select("id, session_id, step, name, path, created_at")
+      .select("id, session_id, step, name, path, created_at, props")
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(10000)
@@ -86,9 +90,37 @@ export default function AdminFunnel() {
     const days = [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0]));
     const maxDay = days.reduce((m, [, v]) => Math.max(m, v), 1);
 
+    // ---- Документна фуния (props.dstage) ----
+    const stageSessions: Record<DocStage, Set<string>> = {
+      start: new Set(), fill: new Set(), generate: new Set(), download: new Set(), sign: new Set(),
+    };
+    const failReasons = new Map<string, number>();
+    const bySource = new Map<string, number>();
+    for (const r of rows) {
+      const props = (r.props ?? {}) as Record<string, unknown>;
+      const stage = props.dstage as DocStage | undefined;
+      if (!stage || !(stage in stageSessions)) continue;
+      const outcome = props.outcome as string | undefined;
+      // Само успешните действия броим като „достигнат етап“.
+      if (outcome !== "fail" && outcome !== "declined") stageSessions[stage].add(r.session_id);
+      if (outcome === "fail") {
+        const reason = String(props.reason ?? "неизвестна");
+        failReasons.set(`${stage}: ${reason}`, (failReasons.get(`${stage}: ${reason}`) ?? 0) + 1);
+      }
+      if (stage === "start") {
+        const src = String(props.source ?? "unknown");
+        bySource.set(src, (bySource.get(src) ?? 0) + 1);
+      }
+    }
+    const docCounts = DOC_STAGES.map((s) => stageSessions[s].size);
+    const docConv = docCounts.map((c, i) => (i === 0 ? 100 : docCounts[i - 1] > 0 ? Math.round((c / docCounts[i - 1]) * 100) : 0));
+    const docDrop = docCounts.map((c, i) => Math.max(0, c - (docCounts[i + 1] ?? 0)));
+    const topFails = [...failReasons.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+    const topSources = [...bySource.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
+
     const totalSessions = new Set(rows.map((r) => r.session_id)).size;
 
-    return { counts, conv, topEvents, days, maxDay, totalSessions };
+    return { counts, conv, topEvents, days, maxDay, totalSessions, docCounts, docConv, docDrop, topFails, topSources };
   }, [rows]);
 
   return (
@@ -166,6 +198,79 @@ export default function AdminFunnel() {
                 % спрямо предходната стъпка · уникални сесии.
               </p>
             </section>
+
+            {/* Документна фуния */}
+            <section className="rounded-2xl border border-border/60 bg-card p-6">
+              <h2 className="mb-1 font-serif text-lg text-foreground">Документна фуния</h2>
+              <p className="mb-4 text-xs text-muted-foreground">
+                Старт → Попълване → Генериране → Сваляне → Подпис · уникални сесии
+              </p>
+              <div className="grid gap-3 sm:grid-cols-5">
+                {DOC_STAGES.map((stage, i) => {
+                  const c = stats.docCounts[i];
+                  const widthPct = stats.docCounts[0] > 0 ? Math.max(6, Math.round((c / stats.docCounts[0]) * 100)) : 6;
+                  return (
+                    <div key={stage} className="rounded-xl border border-border/40 bg-background/60 p-4">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                          {i + 1}
+                        </span>
+                        <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                          {stats.docConv[i]}%
+                        </span>
+                      </div>
+                      <div className="mt-1 font-serif text-2xl text-foreground">
+                        {c.toLocaleString("bg-BG")}
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">{DOC_STAGE_LABELS[stage]}</div>
+                      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div className="h-full rounded-full bg-gold" style={{ width: `${widthPct}%` }} />
+                      </div>
+                      {i < DOC_STAGES.length - 1 && stats.docDrop[i] > 0 && (
+                        <p className="mt-2 text-[10px] text-destructive">
+                          отпадат {stats.docDrop[i].toLocaleString("bg-BG")}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-6 grid gap-6 md:grid-cols-2">
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold text-foreground">Топ причини за провал</h3>
+                  {stats.topFails.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Няма регистрирани провали.</p>
+                  ) : (
+                    <div className="divide-y divide-border/40">
+                      {stats.topFails.map(([reason, count]) => (
+                        <div key={reason} className="flex items-center justify-between gap-3 py-2 text-sm">
+                          <span className="truncate text-xs text-muted-foreground" title={reason}>{reason}</span>
+                          <span className="font-mono text-xs font-semibold text-destructive">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold text-foreground">Входни точки</h3>
+                  {stats.topSources.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Няма данни.</p>
+                  ) : (
+                    <div className="divide-y divide-border/40">
+                      {stats.topSources.map(([src, count]) => (
+                        <div key={src} className="flex items-center justify-between gap-3 py-2 text-sm">
+                          <code className="font-mono text-xs text-foreground">{src}</code>
+                          <span className="font-mono text-xs font-semibold text-emerald-600 dark:text-emerald-400">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+
+
 
             {/* Daily volume */}
             <section className="rounded-2xl border border-border/60 bg-card p-6">
