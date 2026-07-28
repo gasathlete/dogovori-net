@@ -486,10 +486,13 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       }
       setResult(data as AIResult);
       trackEvent("build_contract_generated", { category: categoryLabel });
+      trackGenerate("success", { source: "build", doc_key: documentType, category: categoryLabel });
       toast.success("Договорът е готов", { description: "Прегледайте резултата отдясно." });
     } catch (e: any) {
+      const emsg = String(e?.message || e);
+      trackGenerate("fail", { source: "build", doc_key: documentType, reason: emsg.slice(0, 120) });
       if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) return;
-      const msg = String(e?.message || e);
+      const msg = emsg;
       if (msg.includes("429")) toast.error("Достигнат е лимитът. Опитайте след малко.");
       else if (msg.includes("402")) toast.error("Изчерпан лимит на системата. Опитайте по-късно.");
       else toast.error("Възникна грешка", { description: msg });
