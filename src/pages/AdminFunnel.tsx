@@ -120,8 +120,33 @@ export default function AdminFunnel() {
 
     const totalSessions = new Set(rows.map((r) => r.session_id)).size;
 
-    return { counts, conv, topEvents, days, maxDay, totalSessions, docCounts, docConv, docDrop, topFails, topSources };
+    // ---- KPI обобщения за маркетинг ----
+    const e2e = docCounts[0] > 0 ? Math.round((docCounts[4] / docCounts[0]) * 1000) / 10 : 0;
+    const toDownload = docCounts[0] > 0 ? Math.round((docCounts[3] / docCounts[0]) * 1000) / 10 : 0;
+    // Най-голямото изтичане между два съседни етапа.
+    let worstIdx = -1;
+    let worstLoss = 0;
+    for (let i = 0; i < DOC_STAGES.length - 1; i++) {
+      const loss = docDrop[i];
+      if (loss > worstLoss) {
+        worstLoss = loss;
+        worstIdx = i;
+      }
+    }
+    const worstPct =
+      worstIdx >= 0 && docCounts[worstIdx] > 0
+        ? Math.round((worstLoss / docCounts[worstIdx]) * 100)
+        : 0;
+    const topSource = topSources[0] ?? null;
+    const failTotal = [...failReasons.values()].reduce((a, b) => a + b, 0);
+
+    return {
+      counts, conv, topEvents, days, maxDay, totalSessions,
+      docCounts, docConv, docDrop, topFails, topSources,
+      e2e, toDownload, worstIdx, worstLoss, worstPct, topSource, failTotal,
+    };
   }, [rows]);
+
 
   return (
     <>
