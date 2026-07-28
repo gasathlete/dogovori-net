@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
 
     const { data: rows, error } = await admin
       .from("home_testimonials")
-      .select("id,name,role,quote,rating,photo_url,position,created_at")
+      .select("id,name,role,about,quote,rating,photo_url,position,created_at")
       .eq("is_approved", true)
       .order("position", { ascending: false })
       .order("created_at", { ascending: false })

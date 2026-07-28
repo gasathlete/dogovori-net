@@ -1,6 +1,7 @@
 import { useEffect, useState, lazy, Suspense } from "react";
 import { Star, Quote, MessageSquarePlus } from "@/icons";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import viktoriyaPhoto from "@/assets/testimonials/viktoriya.jpg";
 import ivanPhoto from "@/assets/testimonials/ivan.jpg";
@@ -18,6 +19,7 @@ type Testimonial = {
   id: string;
   name: string;
   role: string | null;
+  about?: string | null;
   quote: string;
   rating: number;
   photo_url: string | null;
@@ -27,6 +29,8 @@ type Testimonial = {
 const FALLBACK: Testimonial[] = [
   {
     id: "seed-1",
+    about:
+      "Преподавам и паралелно движа маркетинг проекти на свободна практика. Всеки нов клиент означава нов договор — затова ми трябваше нещо бързо и коректно.",
     quote:
       "За 3 минути изготвих NDA, който нашият юрист одобри без корекции. Сериозно подобри ежедневието ни.",
     name: "Виктория Йорданова",
@@ -37,6 +41,8 @@ const FALLBACK: Testimonial[] = [
   },
   {
     id: "seed-2",
+    about:
+      "Работя с купувачи и наемодатели от 8 години. Ежедневно преглеждам предварителни договори и анекси, където детайлът решава всичко.",
     quote:
       "AI анализът хвана пропуск в неустойката, който щеше да ми струва скъпо. Препоръчвам на всеки фрийлансър.",
     name: "Иван Стойнов",
@@ -47,6 +53,8 @@ const FALLBACK: Testimonial[] = [
   },
   {
     id: "seed-3",
+    about:
+      "Управлявам агенция с 12 брокера. Държим целия документооборот на едно място — от оферта до подписан договор.",
     quote:
       "Управляваме всички договори през платформата. Електронният подпис и архивът ни пестят часове седмично.",
     name: "Даниел Милев",
@@ -57,6 +65,8 @@ const FALLBACK: Testimonial[] = [
   },
   {
     id: "seed-4",
+    about:
+      "Строя жилищни сгради с екипи от подизпълнители. Всеки обект е десетки договори, анекси и протоколи.",
     quote:
       "Работя с подизпълнители и все някой се бавеше с подписа. Пращам линк, човекът подписва от телефона си и до вечерта имам всичко в архива.",
     name: "Георги Тодоров",
@@ -67,6 +77,8 @@ const FALLBACK: Testimonial[] = [
   },
   {
     id: "seed-5",
+    about:
+      "Кантората ни обслужва над 60 малки фирми. Типовите договори за клиентите ни бяха постоянен разход и забавяне.",
     quote:
       "Преди плащах по 80 € на юрист за всеки типов договор. Сега ги правя сама за 10 минути и пращам за преглед само по-сложните.",
     name: "Елена Проданова",
@@ -77,6 +89,8 @@ const FALLBACK: Testimonial[] = [
   },
   {
     id: "seed-6",
+    about:
+      "Отдавам под наем няколко апартамента и инвестирам в имоти. Научен съм да чета клаузите, преди да подпиша.",
     quote:
       "Скептичен бях, честно. Но качих стар наемен договор за проверка и системата ми показа три клаузи, които бяха в моя вреда. Оправих ги преди подписване.",
     name: "Петър Дачев",
@@ -87,6 +101,8 @@ const FALLBACK: Testimonial[] = [
   },
   {
     id: "seed-7",
+    about:
+      "Правя брандинг и уеб дизайн за малки бизнеси. Работя сама, без юрист зад гърба си.",
     quote:
       "Като фрийлансър никога не съм имала нормален договор с клиент. Сега всеки проект тръгва с подписан документ и авансът идва без спорове.",
     name: "Мария Динева",
@@ -106,23 +122,102 @@ function initialsOf(name: string) {
     .join("");
 }
 
-function TestimonialCard({ t }: { t: Testimonial }) {
+function Stars({ rating, size = "h-5 w-5" }: { rating: number; size?: string }) {
+  return (
+    <div className="flex items-center gap-1 text-gold" aria-label={`Оценка ${rating} от 5`}>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Star
+          key={i}
+          className={
+            i < rating
+              ? `${size} fill-gold text-gold drop-shadow-[0_0_6px_hsl(var(--gold)/0.45)]`
+              : `${size} text-muted-foreground/30`
+          }
+          strokeWidth={i < rating ? 0 : 1.5}
+        />
+      ))}
+    </div>
+  );
+}
+
+function TestimonialDetail({
+  t,
+  open,
+  onOpenChange,
+}: {
+  t: Testimonial | null;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  if (!t) return null;
   const initials = t.initials ?? initialsOf(t.name);
   return (
-    <figure className="group relative flex w-[320px] shrink-0 flex-col rounded-xl surface-elevated p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/45 sm:w-[360px] sm:p-7 lg:w-[400px] xl:w-[440px]">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl">
+        <DialogTitle className="sr-only">{`Мнение от ${t.name}`}</DialogTitle>
+        <DialogDescription className="sr-only">Пълно мнение и кратко представяне на автора.</DialogDescription>
+
+        <div className="flex items-center gap-4">
+          {t.photo_url ? (
+            <img
+              src={t.photo_url}
+              alt={t.name}
+              className="h-20 w-20 shrink-0 rounded-full border border-gold/35 object-cover sm:h-24 sm:w-24"
+            />
+          ) : (
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-gold/30 bg-gold/10 font-serif text-lg font-bold text-gold sm:h-24 sm:w-24">
+              {initials}
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="font-serif text-lg font-bold text-foreground">{t.name}</div>
+            {t.role && (
+              <div className="mt-0.5 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                {t.role}
+              </div>
+            )}
+            <div className="mt-2">
+              <Stars rating={t.rating} size="h-4 w-4" />
+            </div>
+          </div>
+        </div>
+
+        <blockquote className="relative mt-5 rounded-xl border border-gold/20 bg-gold/[0.04] p-5">
+          <Quote className="absolute right-4 top-4 h-7 w-7 text-gold/20" />
+          <p className="font-serif text-base leading-relaxed text-foreground sm:text-lg">
+            „{t.quote}"
+          </p>
+        </blockquote>
+
+        {t.about && (
+          <div className="mt-4">
+            <div className="eyebrow mb-2 text-[10px]">За мен / За нас</div>
+            <p className="text-sm leading-relaxed text-muted-foreground">{t.about}</p>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function TestimonialCard({ t, onOpen }: { t: Testimonial; onOpen: (t: Testimonial) => void }) {
+  const initials = t.initials ?? initialsOf(t.name);
+  return (
+    <figure
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(t)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen(t);
+        }
+      }}
+      aria-label={`Виж пълното мнение от ${t.name}`}
+      className="group relative flex cursor-pointer w-[320px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold shrink-0 flex-col rounded-xl surface-elevated p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/45 sm:w-[360px] sm:p-7 lg:w-[400px] xl:w-[440px]">
       <Quote className="absolute right-5 top-5 h-7 w-7 text-gold/15 transition-colors duration-300 group-hover:text-gold/30" />
-      <div className="mb-4 flex items-center gap-1 text-gold" aria-label={`Оценка ${t.rating} от 5`}>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Star
-            key={i}
-            className={
-              i < t.rating
-                ? "h-5 w-5 fill-gold text-gold drop-shadow-[0_0_6px_hsl(var(--gold)/0.45)]"
-                : "h-5 w-5 text-muted-foreground/30"
-            }
-            strokeWidth={i < t.rating ? 0 : 1.5}
-          />
-        ))}
+      <div className="mb-4">
+        <Stars rating={t.rating} />
       </div>
       <blockquote className="flex-1 text-sm leading-relaxed text-foreground sm:text-base">
         „{t.quote}"
@@ -140,13 +235,16 @@ function TestimonialCard({ t }: { t: Testimonial }) {
             {initials}
           </div>
         )}
-        <div>
+        <div className="min-w-0">
           <div className="font-serif text-sm font-bold text-foreground">{t.name}</div>
           {t.role && (
             <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
               {t.role}
             </div>
           )}
+          <div className="mt-1 text-[11px] text-gold/80 opacity-0 transition-opacity group-hover:opacity-100">
+            Виж повече →
+          </div>
         </div>
       </figcaption>
     </figure>
@@ -156,6 +254,7 @@ function TestimonialCard({ t }: { t: Testimonial }) {
 export function Testimonials() {
   const [items, setItems] = useState<Testimonial[]>(FALLBACK);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [active, setActive] = useState<Testimonial | null>(null);
 
   const load = async () => {
     try {
@@ -202,7 +301,7 @@ export function Testimonials() {
       >
         <div className="marquee-track flex w-max gap-5">
           {row.map((t, i) => (
-            <TestimonialCard key={`${t.id}-${i}`} t={t} />
+            <TestimonialCard key={`${t.id}-${i}`} t={t} onOpen={setActive} />
           ))}
         </div>
       </div>
@@ -221,6 +320,8 @@ export function Testimonials() {
           Всяко ревю преминава кратък преглед преди публикуване.
         </p>
       </div>
+
+      <TestimonialDetail t={active} open={!!active} onOpenChange={(v) => !v && setActive(null)} />
 
       {reviewOpen && (
         <Suspense fallback={null}>
