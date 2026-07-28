@@ -14,6 +14,8 @@ interface DownloadParams {
   title: string;
   payload: GeneratedContract | CompanionTemplate;
   source_id?: string;
+  /** Откъде тръгва свалянето: wizard, build, catalog, workspace, kit… */
+  analytics_source?: string;
   contact_id?: string;
   folder_id?: string;
   saved_document_id?: string;
