@@ -106,11 +106,16 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
       try {
         if (ctx && typeof ctx.json === "function") body = await ctx.json();
       } catch {}
-      if (body?.error === "quota_exceeded") return { ok: false, error: "quota_exceeded", status: 402 };
+      if (body?.error === "quota_exceeded") {
+        trackDownload("fail", { ...fnProps, reason: "quota_exceeded" });
+        return { ok: false, error: "quota_exceeded", status: 402 };
+      }
+      trackDownload("fail", { ...fnProps, reason: String(error.message || error).slice(0, 120) });
       return { ok: false, error: String(error.message || error), status: ctx?.status };
     }
 
     if (data?.error) {
+      trackDownload("fail", { ...fnProps, reason: String(data.error).slice(0, 120) });
       return { ok: false, error: String(data.error) };
     }
 
