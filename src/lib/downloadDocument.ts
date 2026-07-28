@@ -32,9 +32,16 @@ export interface DownloadResult {
 }
 
 export async function downloadDocument(p: DownloadParams): Promise<DownloadResult> {
+  const fnProps = {
+    doc_key: p.doc_key || p.source_id || p.title,
+    source: p.analytics_source ?? "unknown",
+    kind: p.kind,
+    format: p.format,
+  };
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
+      trackDownload("fail", { ...fnProps, reason: "auth_required" });
       return { ok: false, error: "auth_required", status: 401 };
     }
 
@@ -42,6 +49,7 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
     try {
       await ensureAIDisclaimerAccepted();
     } catch {
+      trackDownload("fail", { ...fnProps, reason: "disclaimer_cancelled" });
       return { ok: false, error: "disclaimer_cancelled", status: 0 };
     }
 
