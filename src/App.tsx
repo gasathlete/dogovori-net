@@ -288,6 +288,7 @@ const AnimatedRoutes = () => {
         <Route path="/workspace/:slug/:kind" element={<DocumentWorkspace />} />
 
         <Route path="/catalog" element={<Catalog />} />
+        <Route path="/start" element={<Start />} />
         <Route path="/tools" element={<Tools />} />
         <Route path="/tools/:slug" element={<ToolDetail />} />
 
