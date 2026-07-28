@@ -22,6 +22,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/clipboard";
 import { SensitiveDataWarning } from "@/components/SensitiveDataWarning";
+import { trackGenerate } from "@/lib/docFunnel";
 import {
   parseSensitiveResponse,
   isConfirmationRequired,
