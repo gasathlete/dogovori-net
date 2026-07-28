@@ -202,6 +202,7 @@ export default function CatalogPage() {
                 onCompositionUpdate={() => setOpen(true)}
                 onFocus={() => setOpen(true)}
                 onBlur={() => setTimeout(() => setOpen(false), 150)}
+                autoFocus
                 placeholder="Търсете: NDA, наем, ремонт, фактура…"
                 className="h-14 border-gold/30 bg-card/70 pl-11 text-base text-foreground backdrop-blur transition-colors focus-visible:border-gold/60"
               />
