@@ -194,6 +194,7 @@ function DocumentsTab({
     setBusy(d.id + format);
     try {
       const res = await downloadDocument({
+        analytics_source: "workspace_documents",
         kind: d.kind, format, title: d.title, payload: d.payload, saved_document_id: d.id,
       });
       if (!res.ok) {

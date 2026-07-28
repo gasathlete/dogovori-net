@@ -96,6 +96,7 @@ export default function DocumentPage() {
     setExporting(format);
     try {
       const res = await downloadDocument({
+        analytics_source: "document_page",
         kind: "contract",
         format,
         title: title || contract.title,

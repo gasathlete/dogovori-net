@@ -597,6 +597,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       const finalTitle = (name || result.contract.title).trim() || result.contract.title;
       const contractWithSig: GeneratedContract = { ...result.contract, title: finalTitle, signature: sigPayload };
       const res = await downloadDocument({
+        analytics_source: "build",
         kind: "contract",
         format,
         title: finalTitle,

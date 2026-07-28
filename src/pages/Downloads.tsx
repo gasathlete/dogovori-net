@@ -133,6 +133,7 @@ export default function Downloads({ kind }: { kind: "contract" | "template" }) {
     }
     setBusy(ev.id + format);
     const res = await downloadDocument({
+      analytics_source: "downloads",
       kind: ev.doc.kind,
       format,
       title: ev.doc.title,

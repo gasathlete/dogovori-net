@@ -458,6 +458,7 @@ export default function WizardPage() {
       const finalTitle = (customTitle || result.contract.title).trim() || result.contract.title;
       const contractWithSig: GeneratedContract = { ...result.contract, title: finalTitle, signature: sigPayload };
       const res = await downloadDocument({
+        analytics_source: "wizard",
         kind: "contract",
         format,
         title: finalTitle,
