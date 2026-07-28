@@ -139,8 +139,14 @@ export default function Sign() {
       },
     });
     setBusy(false);
-    if (data?.ok) { toast.success("Подписано успешно"); load(); }
-    else toast.error(data?.error ?? "Грешка");
+    if (data?.ok) {
+      trackSign("signed", { source: "sign_link", method: sigMethod });
+      toast.success("Подписано успешно");
+      load();
+    } else {
+      trackSign("fail", { source: "sign_link", method: sigMethod, reason: String(data?.error ?? "unknown").slice(0, 120) });
+      toast.error(data?.error ?? "Грешка");
+    }
   }
 
   async function doDecline() {
@@ -149,8 +155,13 @@ export default function Sign() {
       body: { token, action: "decline", reason },
     });
     setBusy(false);
-    if (data?.ok) { toast.success("Отказано"); load(); }
-    else toast.error(data?.error ?? "Грешка");
+    if (data?.ok) {
+      trackSign("declined", { source: "sign_link" });
+      toast.success("Отказано");
+      load();
+    } else {
+      toast.error(data?.error ?? "Грешка");
+    }
   }
 
   if (loading) return <div className="min-h-dvh grid place-items-center"><Loader2 className="h-6 w-6 animate-spin text-gold" /></div>;
