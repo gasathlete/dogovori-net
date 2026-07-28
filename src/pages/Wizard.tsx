@@ -911,6 +911,7 @@ export default function WizardPage() {
                       onClick={() => {
                         if (!canNext) { setAttemptedNext(true); focusFirstEmpty(); return; }
                         setAttemptedNext(false);
+                        trackFillStep(stepIdx + 1, total, { doc_key: docName, source: "wizard" });
                         setStepIdx((i) => i + 1);
                         setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
                       }}
