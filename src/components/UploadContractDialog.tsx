@@ -17,6 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { extractTextFromFile, sha256Hex, type ExtractSource } from "@/lib/extractContractText";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
+import { trackDocStart, trackGenerate } from "@/lib/docFunnel";
 
 type Folder = { id: string; name: string; is_favorites: boolean };
 type Contact = { id: string; name: string };
