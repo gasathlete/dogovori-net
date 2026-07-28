@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
+import { trackSign } from "@/lib/docFunnel";
 import { toast } from "sonner";
 import { CheckCircle2, ExternalLink, Loader2, Plus, Trash2, AlertCircle } from "@/icons";
 import type { UserKitItem } from "@/lib/kits";
