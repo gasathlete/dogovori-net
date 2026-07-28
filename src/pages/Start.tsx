@@ -103,6 +103,7 @@ export default function StartPage() {
               <li key={intent.id}>
                 <Link
                   to={hrefFor(intent)}
+                  onClick={() => trackDocStart({ source: "start", intent: intent.id })}
                   className="group flex h-full flex-col rounded-xl border border-border/60 bg-card p-6 text-left shadow-soft transition-all hover:-translate-y-0.5 hover:border-gold/50 hover:shadow-gold/20"
                 >
                   <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gold/30 bg-gold/10 text-gold">
