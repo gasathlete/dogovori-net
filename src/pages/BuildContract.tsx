@@ -254,6 +254,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
 
   useEffect(() => {
     trackEvent("build_contract_open");
+    trackDocStart({ source: "build" });
   }, []);
 
   // Apply preset category from URL when navigating in from a sector page.
