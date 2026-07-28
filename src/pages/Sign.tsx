@@ -12,6 +12,7 @@ import { Loader2, CheckCircle2, AlertCircle, XCircle, Download } from "@/icons";
 import { Checkbox } from "@/components/ui/checkbox";
 import { downloadSignedPdf } from "@/lib/signedPdfAssembler";
 import { snapshotToPlainText } from "@/lib/signingSnapshotToText";
+import { trackSign } from "@/lib/docFunnel";
 
 interface Peer { id: string; name: string; role: string | null; order_idx: number; status: string; signed_at: string | null }
 interface Envelope { id: string; title: string; document_snapshot: any; status: string; order_mode: string; expires_at: string }
