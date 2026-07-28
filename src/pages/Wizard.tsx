@@ -416,6 +416,7 @@ export default function WizardPage() {
   // Track wizard_start once on mount.
   useEffect(() => {
     trackEvent("wizard_start", { sectorId, doc: docName });
+    trackDocStart({ doc_key: docName, source: "wizard", sector: sectorId });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
