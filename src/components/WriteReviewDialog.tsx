@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Star, Loader2, Camera, X } from "@/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,6 +17,7 @@ const BUCKET = "home-testimonials";
 const schema = z.object({
   name: z.string().trim().min(2, "Името е задължително").max(80),
   role: z.string().trim().max(80).optional(),
+  about: z.string().trim().max(300, "Описанието е твърде дълго (max 300)").optional(),
   quote: z
     .string()
     .trim()
@@ -37,17 +39,19 @@ export function WriteReviewDialog({ open, onOpenChange, onSubmitted }: Props) {
 
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
+  const [about, setAbout] = useState("");
   const [quote, setQuote] = useState("");
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!open) {
-      setName(""); setRole(""); setQuote(""); setRating(5);
-      setPhoto(null); setPhotoPreview(null);
+      setName(""); setRole(""); setAbout(""); setQuote(""); setRating(5);
+      setPhoto(null); setPhotoPreview(null); setConsent(false);
     }
   }, [open]);
 
@@ -78,7 +82,11 @@ export function WriteReviewDialog({ open, onOpenChange, onSubmitted }: Props) {
       toast.error("Моля, добавете снимка — тя е задължителна");
       return;
     }
-    const parsed = schema.safeParse({ name, role: role || undefined, quote, rating });
+    if (!consent) {
+      toast.error("Моля, потвърдете съгласието за публикуване");
+      return;
+    }
+    const parsed = schema.safeParse({ name, role: role || undefined, about: about || undefined, quote, rating });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Невалидни данни");
       return;
@@ -99,6 +107,8 @@ export function WriteReviewDialog({ open, onOpenChange, onSubmitted }: Props) {
         user_id: user.id,
         name: parsed.data.name,
         role: parsed.data.role ?? null,
+        about: parsed.data.about ?? null,
+        consent_public: true,
         quote: parsed.data.quote,
         rating: parsed.data.rating,
         photo_url: key,
@@ -172,6 +182,19 @@ export function WriteReviewDialog({ open, onOpenChange, onSubmitted }: Props) {
           </div>
 
           <div>
+            <Label htmlFor="rev-about">За мен / За нас (незадължително)</Label>
+            <Textarea
+              id="rev-about"
+              value={about}
+              onChange={(e) => setAbout(e.target.value)}
+              maxLength={300}
+              rows={3}
+              placeholder="С какво се занимавате, откога ползвате платформата, какъв тип документи изготвяте…"
+            />
+            <div className="mt-1 text-right text-xs text-muted-foreground">{about.length}/300</div>
+          </div>
+
+          <div>
             <Label htmlFor="rev-quote">Вашето мнение</Label>
             <Textarea
               id="rev-quote"
@@ -221,9 +244,22 @@ export function WriteReviewDialog({ open, onOpenChange, onSubmitted }: Props) {
           </div>
         </div>
 
+        <div className="mt-4 flex items-start gap-3 rounded-lg border border-hairline bg-muted/30 p-3">
+          <Checkbox
+            id="rev-consent"
+            checked={consent}
+            onCheckedChange={(v) => setConsent(v === true)}
+            className="mt-0.5"
+          />
+          <Label htmlFor="rev-consent" className="text-xs font-normal leading-relaxed text-muted-foreground">
+            Съгласявам се въведената от мен информация (име, роля, описание, снимка и мнение) да бъде
+            публикувана публично на сайта.
+          </Label>
+        </div>
+
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>Отказ</Button>
-          <Button onClick={submit} disabled={busy}>
+          <Button onClick={submit} disabled={busy || !consent}>
             {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Изпрати ревю
           </Button>
