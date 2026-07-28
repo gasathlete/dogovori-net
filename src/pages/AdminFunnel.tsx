@@ -90,6 +90,34 @@ export default function AdminFunnel() {
     const days = [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0]));
     const maxDay = days.reduce((m, [, v]) => Math.max(m, v), 1);
 
+    // ---- Документна фуния (props.dstage) ----
+    const stageSessions: Record<DocStage, Set<string>> = {
+      start: new Set(), fill: new Set(), generate: new Set(), download: new Set(), sign: new Set(),
+    };
+    const failReasons = new Map<string, number>();
+    const bySource = new Map<string, number>();
+    for (const r of rows) {
+      const props = (r.props ?? {}) as Record<string, unknown>;
+      const stage = props.dstage as DocStage | undefined;
+      if (!stage || !(stage in stageSessions)) continue;
+      const outcome = props.outcome as string | undefined;
+      // Само успешните действия броим като „достигнат етап“.
+      if (outcome !== "fail" && outcome !== "declined") stageSessions[stage].add(r.session_id);
+      if (outcome === "fail") {
+        const reason = String(props.reason ?? "неизвестна");
+        failReasons.set(`${stage}: ${reason}`, (failReasons.get(`${stage}: ${reason}`) ?? 0) + 1);
+      }
+      if (stage === "start") {
+        const src = String(props.source ?? "unknown");
+        bySource.set(src, (bySource.get(src) ?? 0) + 1);
+      }
+    }
+    const docCounts = DOC_STAGES.map((s) => stageSessions[s].size);
+    const docConv = docCounts.map((c, i) => (i === 0 ? 100 : docCounts[i - 1] > 0 ? Math.round((c / docCounts[i - 1]) * 100) : 0));
+    const docDrop = docCounts.map((c, i) => Math.max(0, c - (docCounts[i + 1] ?? 0)));
+    const topFails = [...failReasons.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+    const topSources = [...bySource.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
+
     const totalSessions = new Set(rows.map((r) => r.session_id)).size;
 
     return { counts, conv, topEvents, days, maxDay, totalSessions };
