@@ -58,23 +58,28 @@ export function extractJson(s: string): any {
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
   try { return JSON.parse(cleaned); } catch {}
   // Last-resort: repair a response truncated mid-string / mid-escape (max_tokens),
-  // then balance braces/brackets. Without this the whole generation fails.
-  const balance = (src: string) => {
-    let inStr = false, esc = false, braces = 0, brackets = 0;
+  // then close the open containers in the correct nesting order.
+  const scan = (src: string) => {
+    let inStr = false, esc = false;
+    const stack: string[] = [];
     for (const c of src) {
       if (esc) { esc = false; continue; }
       if (c === "\\") { esc = true; continue; }
       if (c === '"') { inStr = !inStr; continue; }
       if (inStr) continue;
-      if (c === "{") braces++; else if (c === "}") braces--;
-      else if (c === "[") brackets++; else if (c === "]") brackets--;
+      if (c === "{") stack.push("}");
+      else if (c === "[") stack.push("]");
+      else if (c === "}" || c === "]") stack.pop();
     }
-    return { inStr, braces, brackets };
+    return { inStr, closers: stack.reverse().join("") };
   };
 
-  let { inStr, braces, brackets } = balance(cleaned);
+  const close = (src: string) => {
+    const { inStr, closers } = scan(src);
+    return inStr ? null : src.replace(/,\s*$/, "") + closers;
+  };
 
-  if (inStr) {
+  if (scan(cleaned).inStr) {
     // Drop an incomplete trailing escape sequence, e.g. `...\` or `...\u00`,
     // which would otherwise swallow the closing quote we add.
     cleaned = cleaned.replace(/\\u[0-9a-fA-F]{0,3}$/, "").replace(/(^|[^\\])((?:\\\\)*)\\$/, "$1$2");
@@ -82,7 +87,7 @@ export function extractJson(s: string): any {
   }
 
   // Remove trailing fragments the truncation left behind: a dangling comma,
-  // or a key with no (complete) value such as `"detail":` / `"detail": "x",`.
+  // or a key with no value such as `"detail":`.
   let prev = "";
   while (prev !== cleaned) {
     prev = cleaned;
@@ -92,26 +97,22 @@ export function extractJson(s: string): any {
       .replace(/,\s*$/, "");
   }
 
-  ({ braces, brackets } = balance(cleaned));
-  while (brackets-- > 0) cleaned += "]";
-  while (braces-- > 0) cleaned += "}";
+  const closed = close(cleaned);
+  if (closed) {
+    try { return JSON.parse(closed); } catch {}
+  }
 
-  try { return JSON.parse(cleaned); } catch {}
-
-  // Still broken: walk back to the last structurally closed object/array so the
-  // caller gets partial-but-valid data instead of a hard failure.
+  // Still broken: walk back to the last structurally valid point so the caller
+  // gets partial-but-valid data instead of a hard failure.
   for (let i = cleaned.length - 1; i > 0; i--) {
     const c = cleaned[i];
-    if (c !== "}" && c !== "]") continue;
-    let candidate = cleaned.slice(0, i + 1).replace(/,\s*$/, "");
-    const b = balance(candidate);
-    if (b.inStr) continue;
-    let { braces: nb, brackets: nk } = b;
-    while (nk-- > 0) candidate += "]";
-    while (nb-- > 0) candidate += "}";
+    if (c !== "}" && c !== "]" && c !== '"' && !/[0-9]/.test(c)) continue;
+    const candidate = close(cleaned.slice(0, i + 1));
+    if (!candidate) continue;
     try { return JSON.parse(candidate); } catch { /* keep scanning */ }
   }
 
   return JSON.parse(cleaned);
+
 
 }
