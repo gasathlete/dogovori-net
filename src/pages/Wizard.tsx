@@ -1022,6 +1022,15 @@ export default function WizardPage() {
 
             {result && (
               <div className="space-y-5 animate-fade-in">
+                <DocumentValueCard
+                  documentTitle={customTitle || result.contract.title}
+                  needsAuth={!user}
+                  canDownload={!!user && !docAccess.loading && docAccess.canDownload}
+                  busy={exporting === "pdf"}
+                  onDownload={() => handleExport("pdf")}
+                  onRegister={() => goAuth()}
+                />
+
                 <CorrectionsPanel
                   isPro={isPro}
                   freeWaveAvailable={freeWaveAvailable}
