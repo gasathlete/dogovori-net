@@ -194,6 +194,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   const [signDialogOpen, setSignDialogOpen] = useState(false);
   const canStrict = isPro || isTeam;
   const canBilingual = isPro || isTeam;
+  const handleEnterFocusNext = useEnterFocusNext();
+
   const [bilingual, setBilingual] = useState<boolean>(
     presetBilingual || Boolean(persisted?.bilingual),
   );
