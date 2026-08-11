@@ -46,7 +46,7 @@ export const AUDIENCE_COPY: Record<Audience, AudienceCopy> = {
     heroHeadline: {
       lead: "Договори, които защитават",
       accent: "фирмата",
-      tail: "ти — без адвокат за всеки документ",
+      tail: " ти — без адвокат за всеки документ",
     },
     heroSub:
       "От 12.90 €/мес. — по-малко от един обяд, повече спокойствие за целия екип.",

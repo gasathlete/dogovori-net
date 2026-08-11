@@ -20,7 +20,7 @@ export function RoiDialog({
             Колко спестяваш с Dogovori.net?
           </DialogTitle>
         </DialogHeader>
-        <RoiCalculator className="border-0 bg-transparent p-0" />
+        <RoiCalculator hideHeader className="border-0 bg-transparent p-0" />
       </DialogContent>
     </Dialog>
   );

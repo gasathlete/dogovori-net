@@ -20,7 +20,13 @@ import { trackEvent } from "@/lib/analytics";
 const LAWYER_AVG_EUR = 145;
 const PLAN_EUR = 12.9;
 
-export function RoiCalculator({ className = "" }: { className?: string }) {
+export function RoiCalculator({
+  className = "",
+  hideHeader = false,
+}: {
+  className?: string;
+  hideHeader?: boolean;
+}) {
   const { audience, copy } = useAudience();
   const [docs, setDocs] = useState(4);
   const [fee, setFee] = useState(LAWYER_AVG_EUR);
@@ -54,6 +60,7 @@ export function RoiCalculator({ className = "" }: { className?: string }) {
         className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl"
       />
 
+      {!hideHeader && (
       <header className="mb-6 flex items-center gap-3">
         <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-500">
           <Calculator className="h-5 w-5" />
@@ -63,13 +70,14 @@ export function RoiCalculator({ className = "" }: { className?: string }) {
             id="roi-calc-title"
             className="font-serif text-xl tracking-tight text-foreground sm:text-2xl"
           >
-            Колко спестяваш с DogovaryAI?
+            Колко спестяваш с Dogovori.net?
           </h3>
           <p className="text-xs text-muted-foreground sm:text-sm">
             Премести плъзгачите спрямо твоята практика.
           </p>
         </div>
       </header>
+      )}
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <AudienceToggle size="sm" />
@@ -159,7 +167,7 @@ export function RoiCalculator({ className = "" }: { className?: string }) {
           strike
         />
         <Stat
-          label="DogovaryAI / месец"
+          label="Dogovori.net / месец"
           value={fmt(PLAN_EUR)}
           tone="muted"
         />
