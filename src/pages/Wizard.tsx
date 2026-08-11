@@ -215,6 +215,9 @@ export default function WizardPage() {
   const progress = result ? 100 : ((safeIdx + (current && isAnswered(current) ? 1 : 0)) / total) * 100;
   const canNext = current ? !current.required || isAnswered(current) : false;
   const isLast = safeIdx === total - 1;
+  /** Кратко име на текущата стъпка за индикатора „Стъпка X от N: …“. */
+  const stepLabel = (current?.label ?? "").replace(/\s*[:?]\s*$/, "").slice(0, 48);
+
 
   const GEN_STEPS = [
     "Проверяваме въведената информация…",
