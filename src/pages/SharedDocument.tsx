@@ -130,6 +130,20 @@ export default function SharedDocument() {
   const [password, setPassword] = useState("");
   const [verifying, setVerifying] = useState(false);
 
+  // Прегледът на КЕП картата следва въведеното име в реално време.
+  useEffect(() => {
+    if (sigMethod !== "qes" || !qesFile) return;
+    setSignatureDataUrl(
+      makeAttachedSignatureCardPng({
+        signerName: signerName.trim(),
+        fileName: qesFile.name,
+        sha256: qesSha256,
+      }),
+    );
+  }, [signerName, sigMethod, qesFile, qesSha256]);
+
+
+
   const fetchDoc = async (pwd?: string) => {
     try {
       const { data, error } = await supabase.functions.invoke("get-shared-document", {
@@ -219,12 +233,20 @@ export default function SharedDocument() {
       return;
     }
     setSigning(true);
+    // За КЕП картата се преизгражда с актуалното име, за да не остане стар надпис.
+    const finalSignatureDataUrl = sigMethod === "qes" && qesFile
+      ? makeAttachedSignatureCardPng({
+          signerName: signerName.trim(),
+          fileName: qesFile.name,
+          sha256: qesSha256,
+        })
+      : signatureDataUrl;
     try {
       const { data, error } = await supabase.functions.invoke("sign-shared-document", {
         body: {
           token,
           signer_name: signerName.trim(),
-          signature_data_url: signatureDataUrl,
+          signature_data_url: finalSignatureDataUrl,
           signature_method: sigMethod,
           qes_file_base64: sigMethod === "qes" ? qesFileBase64 : null,
           qes_file_name: sigMethod === "qes" ? qesFile?.name : null,
