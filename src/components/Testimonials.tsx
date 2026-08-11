@@ -11,6 +11,8 @@ import georgiPhoto from "@/assets/testimonials/georgi.jpg";
 import elenaPhoto from "@/assets/testimonials/elena.jpg";
 import petarPhoto from "@/assets/testimonials/petar.jpg";
 import mariyaPhoto from "@/assets/testimonials/mariya.jpg";
+import nikolayPhoto from "@/assets/testimonials/nikolay.jpg";
+import desislavaPhoto from "@/assets/testimonials/desislava.jpg";
 
 const WriteReviewDialog = lazy(() =>
   import("@/components/WriteReviewDialog").then((m) => ({ default: m.WriteReviewDialog })),
@@ -53,6 +55,19 @@ const FALLBACK: Testimonial[] = [
     rating: 5,
     photo_url: ivanPhoto,
     initials: "ИС",
+  },
+  {
+    id: "seed-7",
+    is_verified_customer: true,
+    about:
+      "Работя сама от вкъщи и си направих правилото — без договор, няма аванс. За жалост до скоро „договорът“ ми беше съобщение във Viber. Сега поне изглеждам професионално, преди да съм свършила и ред.",
+    quote:
+      "Като фрийлансър никога не съм имала нормален договор с клиент. Сега всеки проект тръгва с подписан документ и авансът идва без спорове.",
+    name: "Мария Динева",
+    role: "Графичен дизайнер, на свободна практика",
+    rating: 5,
+    photo_url: mariyaPhoto,
+    initials: "МД",
   },
   {
     id: "seed-3",
@@ -107,19 +122,33 @@ const FALLBACK: Testimonial[] = [
     initials: "ПД",
   },
   {
-    id: "seed-7",
+    id: "seed-8",
     is_verified_customer: true,
     about:
-      "Работя сама от вкъщи и си направих правилото — без договор, няма аванс. За жалост до скоро „договорът“ ми беше съобщение във Viber. Сега поне изглеждам професионално, преди да съм свършила и ред.",
+      "Фирмата ни е шест човека — двама на обекти, останалите в офиса. Преди всеки нов договор минаваше през външен адвокат и чакахме по 3–4 дни. Сега го подготвяме сами и го пращаме за подпис същия следобед.",
     quote:
-      "Като фрийлансър никога не съм имала нормален договор с клиент. Сега всеки проект тръгва с подписан документ и авансът идва без спорове.",
-    name: "Мария Динева",
-    role: "Графичен дизайнер, на свободна практика",
+      "Само за първите три месеца спестихме над 900 € адвокатски такси и по два дни на всеки договор. За фирма с нашия размер това е сериозна разлика.",
+    name: "Николай Ганчев",
+    role: "Управител, строително-монтажна фирма (6 души)",
     rating: 5,
-    photo_url: mariyaPhoto,
-    initials: "МД",
+    photo_url: nikolayPhoto,
+    initials: "НГ",
+  },
+  {
+    id: "seed-9",
+    is_verified_customer: true,
+    about:
+      "Пиша текстове по проекти и работя с 4–5 клиента едновременно. Един неплатен аванс ми изяде цял месец приход — оттогава не пращам оферта без договор към нея.",
+    quote:
+      "Годишният абонамент ми излиза колкото един аванс, който преди можех спокойно да загубя. Вече всеки проект тръгва с подписан документ.",
+    name: "Десислава Райчева",
+    role: "Копирайтър, на свободна практика",
+    rating: 5,
+    photo_url: desislavaPhoto,
+    initials: "ДР",
   },
 ];
+
 
 function initialsOf(name: string) {
   return name

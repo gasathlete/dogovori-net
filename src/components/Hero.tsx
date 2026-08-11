@@ -7,12 +7,19 @@ const logoImg = "/logo-dogovori-hero.webp";
 import { HeroVideoBackdrop } from "@/components/HeroVideoBackdrop";
 import { First100Counter } from "@/components/funnel/First100Counter";
 import { useAuth } from "@/hooks/useAuth";
+import { useAudience } from "@/hooks/useAudience";
+import { AudienceToggle } from "@/components/funnel/AudienceToggle";
+import { trackEvent } from "@/lib/analytics";
+
+const RoiDialog = lazy(() => import("@/components/funnel/RoiDialog").then((m) => ({ default: m.RoiDialog })));
 
 const TeaserDialog = lazy(() => import("@/components/TeaserDialog").then((m) => ({ default: m.TeaserDialog })));
 
 export function Hero({ onStart: _onStart }: { onStart: () => void }) {
   const { user } = useAuth();
+  const { audience, copy } = useAudience();
   const [teaserOpen, setTeaserOpen] = useState(false);
+  const [roiOpen, setRoiOpen] = useState(false);
 
   useEffect(() => { markFunnelStep(1); }, []);
 
@@ -67,10 +74,20 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           <h1
             className="mx-auto max-w-3xl font-serif text-[28px] font-bold leading-[1.1] text-balance sm:text-3xl md:text-4xl lg:text-[44px] lg:leading-[1.05] [text-shadow:0_1px_0_hsl(var(--background)/0.5)]"
           >
-            Документи и договори, които търсят и{" "}
-            <em className="not-italic font-serif italic text-gold">намират</em>{" "}
-            Вашите интереси
+            {copy.heroHeadline.lead}{" "}
+            <em className="not-italic font-serif italic text-gold">
+              {copy.heroHeadline.accent}
+            </em>
+            {copy.heroHeadline.tail}
           </h1>
+
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+            {copy.heroSub}
+          </p>
+
+          <div className="mt-4 flex justify-center">
+            <AudienceToggle size="sm" />
+          </div>
 
           {/* Eyebrow chips — one line of trust cues */}
           <div className="mt-4">
@@ -122,6 +139,17 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
               </button>
             )}
 
+            <button
+              type="button"
+              onClick={() => {
+                trackEvent("roi_dialog_opened", { audience, source: "hero" });
+                setRoiOpen(true);
+              }}
+              className="story-link text-[12px] font-semibold text-muted-foreground transition-colors hover:text-gold"
+            >
+              Виж колко спестяваш
+            </button>
+
             {!user && (
               <p className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
                 <ShieldCheck className="h-3 w-3 text-emerald-500" />
@@ -172,6 +200,12 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
       </div>
 
       
+      {roiOpen && (
+        <Suspense fallback={null}>
+          <RoiDialog open={roiOpen} onOpenChange={setRoiOpen} />
+        </Suspense>
+      )}
+
       {teaserOpen && (
         <Suspense fallback={null}>
           <TeaserDialog open={teaserOpen} onOpenChange={setTeaserOpen} />

@@ -52,7 +52,7 @@ export function SocialProofStrip() {
   const loop = partners.length > 0 ? [...partners, ...partners] : [];
 
   const metrics: { value: string; label: string }[] = [
-    { value: `${registeredUsers}+`, label: "регистрирани профила" },
+    { value: `${registeredUsers}+`, label: "фирми и специалисти" },
     ...(TEMPLATES_COUNT > 0 ? [{ value: `${TEMPLATES_COUNT}`, label: "готови шаблона" }] : []),
     ...(SECTORS_COUNT > 0 ? [{ value: `${SECTORS_COUNT}`, label: "правни сектора" }] : []),
   ];
@@ -73,7 +73,8 @@ export function SocialProofStrip() {
           <p className="max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground sm:text-base">
             Използвана от{" "}
             <span className="font-semibold tabular-nums text-foreground">{registeredUsers}+</span>{" "}
-            предприемачи, адвокати и счетоводители у нас и в чужбина.
+            малки фирми, специалисти на свободна практика, адвокати и счетоводители
+            у нас и в чужбина.
           </p>
         </div>
 

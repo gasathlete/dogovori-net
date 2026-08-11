@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { trackEvent, trackUpgradeStarted } from "@/lib/analytics";
+import { useAudience } from "@/hooks/useAudience";
+
 
 export type ProUpgradeTrigger =
   | "corrections"
@@ -139,11 +141,13 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
     { icon: Check, label: "Двуезични с 1 команда", detail: "BG/EN паралелно" },
   ];
 
+  const { copy: audienceCopy, audience } = useAudience();
+
   return (
     <Dialog
       open={open}
       onOpenChange={(v) => {
-        if (v) trackEvent("paywall_shown", { trigger });
+        if (v) trackEvent("paywall_shown", { trigger, audience });
         onOpenChange(v);
       }}
     >
@@ -157,6 +161,15 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
             {copy.description(context)}
           </DialogDescription>
         </DialogHeader>
+
+        <div className="my-2 rounded-lg border border-emerald-500/25 bg-emerald-500/[0.07] p-3 text-center">
+          <div className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+            {audienceCopy.valueLine}
+          </div>
+          <div className="mt-0.5 text-[10px] text-muted-foreground">
+            Един такъв документ при адвокат = 150–290 €. Тук — {audienceCopy.priceFrame.toLowerCase()}.
+          </div>
+        </div>
 
         <div className="my-2 rounded-lg border border-gold/30 bg-gold/5 p-3 text-center">
           <div className="text-[10px] font-bold uppercase tracking-wider text-gold">

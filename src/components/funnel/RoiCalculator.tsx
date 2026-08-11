@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
 import { Calculator, TrendingUp, Sparkles } from "@/icons";
 import { Link } from "react-router-dom";
+import { useAudience } from "@/hooks/useAudience";
+import { AudienceToggle } from "@/components/funnel/AudienceToggle";
+import { trackEvent } from "@/lib/analytics";
 
 /**
  * ROI Calculator — CRO-focused funnel widget.
@@ -17,7 +20,14 @@ import { Link } from "react-router-dom";
 const LAWYER_AVG_EUR = 145;
 const PLAN_EUR = 12.9;
 
-export function RoiCalculator({ className = "" }: { className?: string }) {
+export function RoiCalculator({
+  className = "",
+  hideHeader = false,
+}: {
+  className?: string;
+  hideHeader?: boolean;
+}) {
+  const { audience, copy } = useAudience();
   const [docs, setDocs] = useState(4);
   const [fee, setFee] = useState(LAWYER_AVG_EUR);
 
@@ -50,6 +60,7 @@ export function RoiCalculator({ className = "" }: { className?: string }) {
         className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl"
       />
 
+      {!hideHeader && (
       <header className="mb-6 flex items-center gap-3">
         <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-500">
           <Calculator className="h-5 w-5" />
@@ -59,13 +70,43 @@ export function RoiCalculator({ className = "" }: { className?: string }) {
             id="roi-calc-title"
             className="font-serif text-xl tracking-tight text-foreground sm:text-2xl"
           >
-            Колко спестяваш с DogovaryAI?
+            Колко спестяваш с Dogovori.net?
           </h3>
           <p className="text-xs text-muted-foreground sm:text-sm">
             Премести плъзгачите спрямо твоята практика.
           </p>
         </div>
       </header>
+      )}
+
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        <AudienceToggle size="sm" />
+        {copy.roiPresets.map((preset) => {
+          const active = docs === preset.docs && fee === preset.fee;
+          return (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => {
+                setDocs(preset.docs);
+                setFee(preset.fee);
+                trackEvent("roi_preset_selected", {
+                  audience,
+                  preset: preset.label,
+                });
+              }}
+              className={[
+                "rounded-full border px-3 py-1 text-[11px] font-medium transition-colors",
+                active
+                  ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "border-border/70 text-muted-foreground hover:border-emerald-500/40 hover:text-foreground",
+              ].join(" ")}
+            >
+              {preset.label}
+            </button>
+          );
+        })}
+      </div>
 
       <div className="grid gap-6 sm:grid-cols-2">
         <label className="block">
@@ -126,7 +167,7 @@ export function RoiCalculator({ className = "" }: { className?: string }) {
           strike
         />
         <Stat
-          label="DogovaryAI / месец"
+          label="Dogovori.net / месец"
           value={fmt(PLAN_EUR)}
           tone="muted"
         />
@@ -141,7 +182,7 @@ export function RoiCalculator({ className = "" }: { className?: string }) {
       <div className="mt-4 flex flex-col items-start justify-between gap-3 rounded-2xl bg-emerald-500/[0.08] p-4 sm:flex-row sm:items-center">
         <p className="text-sm text-foreground sm:text-base">
           <Sparkles className="mr-1 inline h-4 w-4 text-emerald-500" />
-          На година това са{" "}
+          {copy.valueLine} · на година това са{" "}
           <strong className="font-semibold text-emerald-600 dark:text-emerald-400">
             {fmt(yearly)}
           </strong>{" "}
@@ -154,6 +195,7 @@ export function RoiCalculator({ className = "" }: { className?: string }) {
               (window as any).plausible?.("funnel_cta_click", {
                 props: {
                   step: 4,
+                  audience,
                   label: "ROI калкулатор",
                   href: "/auth?mode=signup",
                   yearly: Math.round(yearly),
