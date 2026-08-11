@@ -127,6 +127,7 @@ const AdminPlans = lazy(() => import("./pages/AdminPlans.tsx"));
 const AdminPerf = lazy(() => import("./pages/AdminPerf.tsx"));
 const AdminFunnel = lazy(() => import("./pages/AdminFunnel.tsx"));
 const AdminMetrics = lazy(() => import("./pages/AdminMetrics.tsx"));
+const AdminGrowthBrief = lazy(() => import("./pages/AdminGrowthBrief.tsx"));
 const AdminFinancials = lazy(() => import("./pages/AdminFinancials.tsx"));
 const CheckoutReturn = lazy(() => import("./pages/CheckoutReturn.tsx"));
 const Plans = lazy(() => import("./pages/Plans.tsx"));
