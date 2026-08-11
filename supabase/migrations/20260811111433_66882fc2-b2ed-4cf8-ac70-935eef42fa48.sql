@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plan_welcome_seen_at timestamptz, ADD COLUMN IF NOT EXISTS plan_welcome_plan text;

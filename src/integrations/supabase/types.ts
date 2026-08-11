@@ -2438,6 +2438,8 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          plan_welcome_plan: string | null
+          plan_welcome_seen_at: string | null
           signature_data_url: string | null
           signature_name: string | null
           tutorial_seen_at: string | null
@@ -2453,6 +2455,8 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id: string
+          plan_welcome_plan?: string | null
+          plan_welcome_seen_at?: string | null
           signature_data_url?: string | null
           signature_name?: string | null
           tutorial_seen_at?: string | null
@@ -2468,6 +2472,8 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          plan_welcome_plan?: string | null
+          plan_welcome_seen_at?: string | null
           signature_data_url?: string | null
           signature_name?: string | null
           tutorial_seen_at?: string | null

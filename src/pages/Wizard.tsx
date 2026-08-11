@@ -445,8 +445,8 @@ export default function WizardPage() {
     try {
       // Изграждаме списък със страни само по РОЛЯ и ФОРМА — без имена / ЕГН / лични данни.
       // Имената се попълват от потребителя офлайн в готовия документ (placeholder-и).
-      const roleA = sector.parties?.a || "СТРАНА А";
-      const roleB = sector.parties?.b || "СТРАНА Б";
+      const roleA = subWizard?.parties?.a || sector.parties?.a || "СТРАНА А";
+      const roleB = subWizard?.parties?.b || sector.parties?.b || "СТРАНА Б";
       const partiesArr = [
         { role: roleA, name: "", type: answers.party_a_type },
         { role: roleB, name: "", type: answers.party_b_type },

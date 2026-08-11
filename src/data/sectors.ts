@@ -1976,7 +1976,24 @@ export function buildQuestions(sector: Sector, sub?: SubWizard): Question[] {
   const tail = sectorQuestions.slice(sectorQuestions.length - tailLen);
 
   // head[0..3] са partiesQuestions (4 полета: type/extra за А и Б — БЕЗ имена и лични данни).
-  const partyFields = head.slice(0, 4);
+  // ВАЖНО: етикетите идват от секторния default, който често е грешен за
+  // конкретния документ (напр. „Възложителя/Изпълнителя“ при договор за заем).
+  // Затова ги пренаписваме с ролите на sub-wizard-а (вече минали през
+  // enforcePartyRoles → keyword-инференцията в partyRoles.ts).
+  const docRoles = sub?.parties ?? sector.parties;
+  const relabelParty = (f: Question): Question => {
+    if (!docRoles) return f;
+    const role = f.id.startsWith("party_a_") ? docRoles.a : docRoles.b;
+    if (f.id.endsWith("_type")) return { ...f, label: `${role} е:` };
+    if (f.id.endsWith("_extra"))
+      return {
+        ...f,
+        label: `Допълнителни ${role} (по желание)`,
+        help: `Ако ${role} са повече от един — добавете тип за всеки допълнителен (само форма, без имена).`,
+      };
+    return f;
+  };
+  const partyFields = head.slice(0, 4).map(relabelParty);
   const sectorSpecifics = head.slice(4);
   const subSpecifics = sub?.questions ?? [];
 
