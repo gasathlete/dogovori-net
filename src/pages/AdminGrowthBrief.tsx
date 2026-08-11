@@ -95,6 +95,9 @@ export default function AdminGrowthBrief() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  /** Насока/промпт от оператора — влиза в разсъждението за следващата итерация. */
+  const [operatorPrompt, setOperatorPrompt] = useState("");
+
 
   const loadHistory = useCallback(async () => {
     setLoading(true);
