@@ -244,7 +244,7 @@ export default function Plans() {
                     )}
                   </div>
 
-                  {effectivePrice && effectivePrice.price > 0 && (
+                  {plan.highlight && effectivePrice && effectivePrice.price > 0 && (
                     <div className="relative z-10 mt-3 space-y-1 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2 text-left">
                       <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                         {copy.priceFrame}
