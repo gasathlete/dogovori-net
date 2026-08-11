@@ -6,6 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, ShieldCheck } from "@/icons";
+import { getFieldHint } from "@/lib/fieldHints";
+import { FieldHint } from "@/components/wizard/FieldHint";
+
 
 type Contact = { id: string; name: string; type?: string };
 
