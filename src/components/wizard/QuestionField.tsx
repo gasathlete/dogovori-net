@@ -297,17 +297,21 @@ export function QuestionField(props: Props) {
     );
   }
 
+  const legalHint = getFieldHint(q.id, q.label);
   const labelEl = compact ? (
     <Label className="text-sm font-medium text-foreground">
       {q.label}
       {q.required && <span className="ml-1 text-gold">*</span>}
+      {legalHint && <FieldHint hint={legalHint} />}
     </Label>
   ) : (
     <Label className="font-serif text-lg leading-snug text-foreground">
       {q.label}
       {q.required && <span className="ml-1 text-gold">*</span>}
+      {legalHint && <FieldHint hint={legalHint} />}
     </Label>
   );
+
 
   return (
     <div className="space-y-3">
