@@ -891,7 +891,23 @@ export default function WizardPage() {
             />
 
             {!result && current && (
-              <div ref={questionCardRef} className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft animate-fade-in">
+              <div
+                ref={questionCardRef}
+                onKeyDown={(e) => {
+                  // Enter → следващото празно поле; ако няма такова и стъпката е
+                  // валидна, продължаваме напред.
+                  if (e.key !== "Enter") return;
+                  const moved = handleEnterFocusNext(e);
+                  if (!moved && canNext && !isLast) {
+                    setAttemptedNext(false);
+                    trackFillStep(stepIdx + 1, total, { doc_key: docName, source: "wizard" });
+                    setStepIdx((i) => i + 1);
+                    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
+                  }
+                }}
+                className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft animate-fade-in"
+              >
+
 
                 <div className="mb-4 flex items-center gap-2 text-xs uppercase tracking-wider text-gold">
                   <span>Въпрос {safeIdx + 1}</span>
