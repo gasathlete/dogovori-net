@@ -33,6 +33,13 @@ import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhili
 import { adaptGraphToWizardQuestions } from "@/data/questionGraphs/adapter";
 import { parseExtraPartyTypes } from "@/components/wizard/liveDraft/clauseBuilders";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
+import { SensitiveDataWarning } from "@/components/SensitiveDataWarning";
+import {
+  parseSensitiveResponse,
+  isConfirmationRequired,
+  isSpecialCategoryBlocked,
+  type ClassificationSummary,
+} from "@/lib/aiSensitiveData";
 import { RefineDraftBox } from "@/components/wizard/RefineDraftBox";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -124,6 +131,10 @@ export default function WizardPage() {
   const [stepIdx, setStepIdx] = useState<number>(persisted?.stepIdx ?? 0);
   const [generating, setGenerating] = useState(false);
   const [genStepIdx, setGenStepIdx] = useState(0);
+  // Диалог за лични / чувствителни данни (GDPR потвърждение преди генериране).
+  const [sensitiveOpen, setSensitiveOpen] = useState(false);
+  const [sensitiveBlocked, setSensitiveBlocked] = useState(false);
+  const [sensitiveClass, setSensitiveClass] = useState<ClassificationSummary | null>(null);
   const [result, setResult] = useState<AIResult | null>(persisted?.result ?? null);
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
   const [applyingCorrections, setApplyingCorrections] = useState(false);
@@ -1206,6 +1217,18 @@ export default function WizardPage() {
         sectorId={sector?.id}
         docName={docName ?? sector?.contractName}
         wizardHref={wizardHref}
+      />
+
+      <SensitiveDataWarning
+        open={sensitiveOpen}
+        onClose={() => setSensitiveOpen(false)}
+        onConfirm={() => {
+          setSensitiveOpen(false);
+          void handleGenerate(true);
+        }}
+        classification={sensitiveClass}
+        blocked={sensitiveBlocked}
+        operationLabel="създаване на документа"
       />
 
       <WizardFeedbackPrompt
