@@ -838,12 +838,20 @@ export default function WizardPage() {
               <a href="/ai" className="hidden underline-offset-2 hover:text-gold hover:underline md:inline">Как работи AI</a>
               <a href="/karta" className="hidden underline-offset-2 hover:text-gold hover:underline md:inline">Карта на сайта</a>
               <span className="hidden md:inline">·</span>
-              <span>{result ? "Готово" : `Стъпка ${safeIdx + 1} от ${total}`}</span>
+              <span>
+                {result ? "Готово" : `Стъпка ${safeIdx + 1} от ${total}`}
+                {!result && stepLabel && (
+                  <span className="hidden text-foreground sm:inline">: {stepLabel}</span>
+                )}
+              </span>
             </div>
           </div>
           <Progress value={progress} className="h-1.5 bg-secondary" />
         </div>
       </div>
+
+      <OpsHintBar isPro={isPro} />
+
 
       {/* Blank-template download — always available, before answering questions */}
       <div className="border-b border-border/40 bg-card/30">
