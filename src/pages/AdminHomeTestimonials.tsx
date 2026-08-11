@@ -361,7 +361,7 @@ export default function AdminHomeTestimonialsPage() {
                     size="sm"
                     variant={r.is_verified_customer ? "secondary" : "outline"}
                     onClick={() => toggleVerified(r)}
-                    title="Отметка „Проверен клиент""
+                    title="Отметка „Проверен клиент“"
                   >
                     <BadgeCheck className="mr-1 h-4 w-4" />
                     {r.is_verified_customer ? "Проверен" : "Провери"}
