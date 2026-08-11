@@ -79,9 +79,12 @@ Deno.serve(async (req: Request) => {
 
     // Класификация + редакция преди изпращане към модела (без лични данни).
     const classification = classifyDocumentBeforeAI(documentText);
+    // Ревизията е контролен слой — държим я на по-силен модел от генерирането.
     const route = routeModel("analyze-contract", classification, {
-      promptLength: documentText.length,
+      promptLength: Math.max(documentText.length, 6001),
+      preferredModel: "google/gemini-2.5-pro",
     });
+
     if (!route.allowed) {
       return new Response(
         JSON.stringify({ error: "Ревизията е блокирана от политиката за данни", code: route.blockedReason }),
