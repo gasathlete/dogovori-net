@@ -91,7 +91,7 @@ export function SocialProofStrip() {
                       width={160}
                       height={160}
                       {...({ fetchpriority: "low" } as any)}
-                      className="proof-logo-img h-full w-full object-cover"
+                      className="proof-logo-img h-full w-full rounded-xl object-cover"
 
                     />
                   </div>
