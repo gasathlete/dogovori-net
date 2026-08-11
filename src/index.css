@@ -789,7 +789,7 @@
     mask-image: linear-gradient(90deg, transparent, hsl(0 0% 0%) 10%, hsl(0 0% 0%) 90%, transparent);
   }
   .partners-marquee__track {
-    animation: marquee-x 70s linear infinite;
+    animation: marquee-x 90s linear infinite;
     will-change: transform;
   }
   .partners-marquee:hover .partners-marquee__track,
