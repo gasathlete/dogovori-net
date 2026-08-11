@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { type GeneratedContract } from "@/lib/exporters";
+import { SensitiveDataWarning } from "@/components/SensitiveDataWarning";
+import {
+  parseSensitiveResponse,
+  isConfirmationRequired,
+  isSpecialCategoryBlocked,
+  type ClassificationSummary,
+} from "@/lib/aiSensitiveData";
 
 interface RefineDraftBoxProps {
   contract: GeneratedContract;
@@ -41,8 +48,12 @@ export function RefineDraftBox({
   const [lastSummary, setLastSummary] = useState<string | null>(null);
   const [lastChanged, setLastChanged] = useState<string[]>([]);
   const [expanded, setExpanded] = useState(false);
+  // Диалог за лични / чувствителни данни (GDPR потвърждение преди AI редакция).
+  const [sensitiveOpen, setSensitiveOpen] = useState(false);
+  const [sensitiveBlocked, setSensitiveBlocked] = useState(false);
+  const [sensitiveClass, setSensitiveClass] = useState<ClassificationSummary | null>(null);
 
-  const submit = async () => {
+  const submit = async (userConfirmed = false) => {
     const text = feedback.trim();
     if (!text) return;
     if (text.length > 1500) {
@@ -66,10 +77,24 @@ export function RefineDraftBox({
           feedback: text,
           answers,
           batch_id: newOpBatchId(),
+          userConfirmed,
         },
       });
       if (error || data?.error) {
         const code = data?.code || "";
+        const sensitive = await parseSensitiveResponse(error, data);
+        if (isSpecialCategoryBlocked(sensitive)) {
+          setSensitiveClass(sensitive?.classification ?? null);
+          setSensitiveBlocked(true);
+          setSensitiveOpen(true);
+          return;
+        }
+        if (isConfirmationRequired(sensitive) || data?.error === "needs_confirmation") {
+          setSensitiveClass(sensitive?.classification ?? null);
+          setSensitiveBlocked(false);
+          setSensitiveOpen(true);
+          return;
+        }
         if (data?.error === "Unauthorized" || code === "unauthorized") {
           toast.error("Влезте в профила си, за да ползвате AI редакцията.");
           onNeedAuth?.();
