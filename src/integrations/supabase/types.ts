@@ -1690,6 +1690,51 @@ export type Database = {
         }
         Relationships: []
       }
+      growth_briefs: {
+        Row: {
+          created_at: string
+          headline: string | null
+          id: string
+          model: string | null
+          period: Database["public"]["Enums"]["growth_period"]
+          prompt_md: string | null
+          reasoning: string | null
+          snapshot: Json
+          source: string
+          top_actions: Json
+          window_from: string
+          window_to: string
+        }
+        Insert: {
+          created_at?: string
+          headline?: string | null
+          id?: string
+          model?: string | null
+          period: Database["public"]["Enums"]["growth_period"]
+          prompt_md?: string | null
+          reasoning?: string | null
+          snapshot?: Json
+          source?: string
+          top_actions?: Json
+          window_from: string
+          window_to: string
+        }
+        Update: {
+          created_at?: string
+          headline?: string | null
+          id?: string
+          model?: string | null
+          period?: Database["public"]["Enums"]["growth_period"]
+          prompt_md?: string | null
+          reasoning?: string | null
+          snapshot?: Json
+          source?: string
+          top_actions?: Json
+          window_from?: string
+          window_to?: string
+        }
+        Relationships: []
+      }
       home_testimonials: {
         Row: {
           about: string | null
@@ -4337,6 +4382,7 @@ export type Database = {
         }[]
       }
       get_registered_users_count: { Args: never; Returns: number }
+      growth_snapshot: { Args: { _from: string; _to: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -4478,6 +4524,7 @@ export type Database = {
       document_kind: "contract" | "template"
       feedback_category: "bug" | "idea" | "template_request" | "ui" | "other"
       feedback_status: "new" | "triaged" | "done" | "wontfix"
+      growth_period: "daily" | "weekly" | "monthly" | "yearly"
       signer_status:
         | "pending"
         | "notified"
@@ -4639,6 +4686,7 @@ export const Constants = {
       document_kind: ["contract", "template"],
       feedback_category: ["bug", "idea", "template_request", "ui", "other"],
       feedback_status: ["new", "triaged", "done", "wontfix"],
+      growth_period: ["daily", "weekly", "monthly", "yearly"],
       signer_status: [
         "pending",
         "notified",
