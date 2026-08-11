@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { OpsHintBar } from "@/components/wizard/OpsHintBar";
+import { DocumentValueCard } from "@/components/wizard/DocumentValueCard";
+import { useEnterFocusNext } from "@/hooks/useEnterFocusNext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { prefetchHandlers } from "@/components/PrefetchLink";
 import { ArrowLeft, ArrowRight, Loader2, FileDown, FileText, Save, Wand2, Sparkles, Zap, Briefcase, Scale, ChevronDown, Check, Languages, ShieldCheck, FileSignature, Lightbulb, Printer } from "@/icons";
