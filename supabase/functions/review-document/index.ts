@@ -155,10 +155,22 @@ Deno.serve(async (req: Request) => {
         : "needs_fixes",
       confidence: Math.max(0, Math.min(100, Number(parsed.confidence) || 0)),
       summary: typeof parsed.summary === "string" ? parsed.summary : "",
-      checks: arr(parsed.checks).slice(0, 12),
-      missing_requisites: arr(parsed.missing_requisites).filter((x) => typeof x === "string"),
+      checks: arr(parsed.checks).slice(0, 12).filter((c) => {
+        // При отложено попълване на лични данни скриваме "fail" само заради тях.
+        if (!ignorePersonalData) return true;
+        const rec = c as Record<string, unknown>;
+        if (String(rec.status) !== "fail") return true;
+        return !isPersonalField(`${rec.label ?? ""} ${rec.note ?? ""}`);
+      }),
+      missing_requisites: arr(parsed.missing_requisites)
+        .filter((x) => typeof x === "string")
+        .filter((x) => !ignorePersonalData || !isPersonalField(x as string)),
       contradictions: arr(parsed.contradictions).slice(0, 10),
-      unfilled_fields: arr(parsed.unfilled_fields).filter((x) => typeof x === "string").slice(0, 20),
+      unfilled_fields: arr(parsed.unfilled_fields)
+        .filter((x) => typeof x === "string")
+        .filter((x) => !ignorePersonalData || !isPersonalField(x as string))
+        .slice(0, 20),
+
       legal_basis: arr(parsed.legal_basis).slice(0, 12),
       model: route.model,
       reviewed_at: new Date().toISOString(),
