@@ -208,6 +208,42 @@ export default function AdminGrowthBrief() {
           </div>
         </div>
 
+        {/* Промпт от оператора → влиза в разсъждението за следващата итерация */}
+        <section className="mb-6 rounded-2xl border border-hairline bg-card/60 p-5">
+          <label htmlFor="operator-prompt" className="font-serif text-base text-foreground">
+            Изпълнение на добавен промпт
+          </label>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Поставете тук промпта или насоката, по която работим сега (напр. изпълнените задачи от
+            последния бриф или нов приоритет). Моделът ще я вземе предвид, ще отчете какво вече е
+            направено и ще продължи разсъжденията за следващата итерация.
+          </p>
+          <Textarea
+            id="operator-prompt"
+            value={operatorPrompt}
+            onChange={(e) => setOperatorPrompt(e.target.value)}
+            rows={5}
+            placeholder="Напр.: Изпълнени са прогрес индикатор в wizard, правни tooltips, ROI карта след генериране и микро-индикатор за операции. Продължи анализа оттук."
+            className="mt-3 bg-background/60 text-sm"
+          />
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button onClick={generate} disabled={generating} size="sm">
+              {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Brain className="mr-2 h-4 w-4" />}
+              Разсъждавай за следващата стъпка
+            </Button>
+            {operatorPrompt && (
+              <Button variant="ghost" size="sm" onClick={() => setOperatorPrompt("")}>
+                Изчисти
+              </Button>
+            )}
+            <span className="text-[11px] text-muted-foreground">
+              Период: {PERIODS.find((p) => p.key === period)?.label}
+            </span>
+          </div>
+        </section>
+
+
+
         {err && (
           <div className="mb-6 flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger">
             <AlertCircle className="mt-0.5 h-4 w-4" /> {err}
