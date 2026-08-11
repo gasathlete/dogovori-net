@@ -79,20 +79,19 @@ export function SocialProofStrip() {
 
         {loop.length > 0 && (
           <div className="partners-marquee group relative">
-            <div className="partners-marquee__track flex w-max gap-4 py-2 sm:gap-5">
+            <div className="partners-marquee__track flex w-max gap-6 py-3 sm:gap-8">
               {loop.map((p, i) => {
                 const card = (
-                  <div className="proof-logo-card flex aspect-square h-28 w-28 items-center justify-center rounded-2xl p-2 sm:h-32 sm:w-32">
+                  <div className="proof-logo-card flex aspect-square h-36 w-36 items-center justify-center rounded-2xl p-3 sm:h-44 sm:w-44">
                     <img
                       src={p.logo_url}
                       alt={p.name}
                       loading="lazy"
                       decoding="async"
-                      width={160}
-                      height={160}
+                      width={200}
+                      height={200}
                       {...({ fetchpriority: "low" } as any)}
                       className="proof-logo-img h-full w-full rounded-xl object-cover"
-
                     />
                   </div>
                 );
