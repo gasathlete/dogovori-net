@@ -377,6 +377,8 @@ const AnimatedRoutes = () => {
         <Route path="/feedback" element={<Feedback />} />
         <Route path="/admin/feedback" element={<ProtectedRoute><AdminFeedback /></ProtectedRoute>} />
         <Route path="/admin/home-testimonials" element={<ProtectedRoute><AdminHomeTestimonials /></ProtectedRoute>} />
+        <Route path="/moite-revyuta" element={<MyReviews />} />
+
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
