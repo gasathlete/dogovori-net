@@ -1698,11 +1698,15 @@ export type Database = {
           id: string
           is_admin_added: boolean
           is_approved: boolean
+          is_verified_customer: boolean
           name: string
+          order_ref: string | null
           photo_url: string
           position: number
           quote: string
           rating: number
+          rejection_reason: string | null
+          reviewed_at: string | null
           role: string | null
           updated_at: string
           user_id: string | null
@@ -1714,11 +1718,15 @@ export type Database = {
           id?: string
           is_admin_added?: boolean
           is_approved?: boolean
+          is_verified_customer?: boolean
           name: string
+          order_ref?: string | null
           photo_url: string
           position?: number
           quote: string
           rating?: number
+          rejection_reason?: string | null
+          reviewed_at?: string | null
           role?: string | null
           updated_at?: string
           user_id?: string | null
@@ -1730,11 +1738,15 @@ export type Database = {
           id?: string
           is_admin_added?: boolean
           is_approved?: boolean
+          is_verified_customer?: boolean
           name?: string
+          order_ref?: string | null
           photo_url?: string
           position?: number
           quote?: string
           rating?: number
+          rejection_reason?: string | null
+          reviewed_at?: string | null
           role?: string | null
           updated_at?: string
           user_id?: string | null
