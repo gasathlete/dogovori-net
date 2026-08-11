@@ -124,17 +124,31 @@ export default function AdminFinancials() {
       <div className="container py-8 space-y-8">
         <div className="flex items-center gap-3 flex-wrap">
           <Button asChild variant="ghost" size="sm"><Link to="/admin"><ArrowLeft className="h-4 w-4 mr-1" /> Admin</Link></Button>
-          <h1 className="text-3xl font-bold flex items-center gap-2"><Coins className="h-7 w-7 text-emerald-500" /> Финансови сценарии</h1>
+          <h1 className="text-3xl font-bold flex items-center gap-2"><Coins className="h-7 w-7 text-emerald-500" /> Финанси</h1>
+        </div>
+
+        <Tabs defaultValue="audit" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="audit">Месечен одит (реални данни)</TabsTrigger>
+            <TabsTrigger value="scenarios">Сценарии</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="audit" className="space-y-6">
+            <MonthlyAudit />
+          </TabsContent>
+
+          <TabsContent value="scenarios" className="space-y-8">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm text-muted-foreground">
+            Основен лост: <strong className="text-emerald-500">conversion rate</strong>. Промените се запазват локално в браузъра.
+          </p>
           <Button onClick={reset} variant="ghost" size="sm" className="ml-auto"><RotateCcw className="h-4 w-4 mr-1" /> Reset</Button>
           <Button onClick={exportCsv} variant="outline" size="sm"><Download className="h-4 w-4 mr-1" /> CSV</Button>
         </div>
 
-        <p className="text-sm text-muted-foreground -mt-4">
-          Основен лост: <strong className="text-emerald-500">conversion rate</strong>. Промените се запазват локално в браузъра.
-        </p>
-
         {/* Scenario cards */}
         <div className="grid gap-6 xl:grid-cols-3">
+
           {results.map((r, i) => {
             const s = scenarios[i];
             return (
