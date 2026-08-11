@@ -469,6 +469,7 @@ export default function WizardPage() {
         doc_key: docKey,
       });
       if (!res.ok) {
+        if (res.error === "disclaimer_cancelled" || res.error === "unfilled_placeholders") return;
         if (res.error === "strict_paywall") {
           trackEvent("strict_paywall_shown", { source: `download_${format}`, doc_key: docKey });
           setShowPaywall(true);

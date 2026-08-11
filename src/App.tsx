@@ -43,6 +43,9 @@ const CookieBanner = reactLazy(() =>
 const AIDisclaimerModal = reactLazy(() =>
   import("@/components/AIDisclaimerModal").then((m) => ({ default: m.AIDisclaimerModal })),
 );
+const UnfilledPlaceholdersModal = reactLazy(() =>
+  import("@/components/UnfilledPlaceholdersModal").then((m) => ({ default: m.UnfilledPlaceholdersModal })),
+);
 const UsernamePrompt = reactLazy(() =>
   import("@/components/auth/UsernamePrompt").then((m) => ({ default: m.UsernamePrompt })),
 );
@@ -405,6 +408,7 @@ const App = () => (
             <AuthGateModal />
             <StartStoryOverlay />
             <AIDisclaimerModal />
+            <UnfilledPlaceholdersModal />
           </Suspense>
           <DeferredOverlays />
           <Suspense fallback={<RouteFallback />}>

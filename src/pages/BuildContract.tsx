@@ -607,6 +607,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         doc_key: savedDocId || `build:${categoryId}:${finalTitle}`,
       });
       if (!res.ok) {
+        if (res.error === "disclaimer_cancelled" || res.error === "unfilled_placeholders") return;
         if (res.error === "quota_exceeded") {
           toast.error("Изчерпан безплатен лимит", {
             description: "Купете единичен документ за 1.90€ или активирайте платен план.",

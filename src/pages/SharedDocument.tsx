@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
+import { sha256Hex, makeAttachedSignatureCardPng } from "@/lib/attachedSignatureCard";
 
 type SharedDoc = {
   title: string;
@@ -124,6 +125,7 @@ export default function SharedDocument() {
   const [sigMethod, setSigMethod] = useState<"drawn" | "uploaded" | "qes">("drawn");
   const [qesFile, setQesFile] = useState<File | null>(null);
   const [qesFileBase64, setQesFileBase64] = useState<string | null>(null);
+  const [qesSha256, setQesSha256] = useState<string | null>(null);
   const [needsPassword, setNeedsPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [verifying, setVerifying] = useState(false);
@@ -182,27 +184,10 @@ export default function SharedDocument() {
     setVerifying(false);
   };
 
-  const makeQesPlaceholderPng = (text: string): string => {
-    const c = document.createElement("canvas");
-    c.width = 600; c.height = 200;
-    const ctx = c.getContext("2d")!;
-    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
-    ctx.strokeStyle = "#0a0a1a"; ctx.lineWidth = 2;
-    ctx.strokeRect(6, 6, c.width - 12, c.height - 12);
-    ctx.fillStyle = "#0a0a1a";
-    ctx.font = "bold 22px serif";
-    ctx.fillText("Подписано с КЕП (QES)", 20, 50);
-    ctx.font = "16px serif";
-    ctx.fillText(text.slice(0, 60), 20, 90);
-    ctx.font = "14px serif";
-    ctx.fillText(new Date().toLocaleString("bg-BG"), 20, 130);
-    ctx.fillText("Файлът е приложен към заявката.", 20, 160);
-    return c.toDataURL("image/png");
-  };
-
   const onQesFileChange = async (f: File | null) => {
     setQesFile(f);
     setQesFileBase64(null);
+    setQesSha256(null);
     setSignatureDataUrl("");
     if (!f) return;
     if (f.size > 15 * 1024 * 1024) { toast.error("Файлът е твърде голям (макс 15MB)"); return; }
@@ -211,8 +196,14 @@ export default function SharedDocument() {
     const bytes = new Uint8Array(buf);
     for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
     setQesFileBase64(btoa(bin));
-    setSignatureDataUrl(makeQesPlaceholderPng(`${f.name}`));
+    let hash: string | null = null;
+    try { hash = await sha256Hex(f); } catch { hash = null; }
+    setQesSha256(hash);
+    setSignatureDataUrl(
+      makeAttachedSignatureCardPng({ signerName: signerName.trim() || "—", fileName: f.name, sha256: hash }),
+    );
   };
+
 
   const handleSign = async () => {
     if (!signerName.trim()) {
@@ -220,7 +211,7 @@ export default function SharedDocument() {
       return;
     }
     if (sigMethod === "qes" && (!qesFile || !qesFileBase64)) {
-      toast.error("Прикачете подписания файл с КЕП");
+      toast.error("Прикачете файла с подписа");
       return;
     }
     if (!signatureDataUrl) {
@@ -380,7 +371,7 @@ export default function SharedDocument() {
                 <div className="font-serif text-base">{signerName || "Име на подписващия"}</div>
                 <div className="text-xs text-muted-foreground">
                   Дата: {new Date().toLocaleString("bg-BG")}
-                  {sigMethod === "qes" && qesFile ? ` · КЕП файл: ${qesFile.name}` : ""}
+                  {sigMethod === "qes" && qesFile ? ` · приложен файл: ${qesFile.name}` : ""}
                 </div>
               </div>
               <img
@@ -429,7 +420,7 @@ export default function SharedDocument() {
                   {([
                     { k: "drawn", l: "Начертай" },
                     { k: "uploaded", l: "Качи изображение" },
-                    { k: "qes", l: "КЕП / QES файл" },
+                    { k: "qes", l: "Прикачи файл с подпис" },
                   ] as const).map((o) => (
                     <button
                       key={o.k}
@@ -482,14 +473,22 @@ export default function SharedDocument() {
                       className="block w-full text-xs"
                     />
                     {qesFile && (
-                      <div className="text-xs text-muted-foreground">
-                        Прикачен: <span className="font-medium text-foreground">{qesFile.name}</span> ({Math.round(qesFile.size / 1024)} KB)
+                      <div className="text-xs text-muted-foreground space-y-0.5">
+                        <div>
+                          Прикачен: <span className="font-medium text-foreground">{qesFile.name}</span> ({Math.round(qesFile.size / 1024)} KB)
+                        </div>
+                        {qesSha256 && (
+                          <div className="font-mono text-[10px] break-all">SHA-256: {qesSha256}</div>
+                        )}
                       </div>
                     )}
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Подпишете документа с Вашия КЕП (Borica, Evrotrust, InfoNotary, StampIT и др.)
-                      във външно приложение и качете подписания файл. Файлът се пази като доказателство.
+                      Ако сте подписали документа с квалифициран електронен подпис във външно
+                      приложение, качете подписания файл. <strong className="text-foreground">Платформата
+                      не проверява сертификата и обвързаността му с документа</strong> — файлът се пази
+                      като приложено доказателство заедно със SHA-256 отпечатъка си.
                     </p>
+
                   </div>
                 )}
               </div>
@@ -499,7 +498,7 @@ export default function SharedDocument() {
               </Button>
               <p className="text-[11px] text-muted-foreground">
                 С натискане потвърждавате, че сте оторизиран да подпишете и приемате условията.
-                Електронният подпис няма стойност на квалифициран електронен подпис (КЕП).
+                Това е обикновен електронен подпис по ЗЕДЕУУ — платформата не издава и не проверява квалифициран електронен подпис (КЕП).
               </p>
             </div>
           </div>
