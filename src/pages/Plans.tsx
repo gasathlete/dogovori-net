@@ -84,7 +84,27 @@ export default function Plans() {
   const plans = data?.plans ?? [];
   const COMPARISON_ROWS = data?.comparison ?? [];
 
-  useEffect(() => { markFunnelStep(4); trackPlansView("plans_page"); }, []);
+  // Предварително избран план (напр. идване от готов документ: /plans?plan=entrepreneur&from=document).
+  const [searchParams] = useSearchParams();
+  const preselected = searchParams.get("plan");
+  const fromSource = searchParams.get("from");
+
+  useEffect(() => {
+    markFunnelStep(4);
+    trackPlansView(fromSource ? `plans_page_${fromSource}` : "plans_page");
+  }, [fromSource]);
+
+  useEffect(() => {
+    if (!preselected || isLoading) return;
+    const el = document.getElementById(`plan-${preselected}`);
+    if (!el) return;
+    const t = window.setTimeout(
+      () => el.scrollIntoView({ behavior: "smooth", block: "center" }),
+      250,
+    );
+    return () => window.clearTimeout(t);
+  }, [preselected, isLoading]);
+
 
   return (
     <>
