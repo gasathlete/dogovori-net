@@ -124,8 +124,13 @@ export default function AdminGrowthBrief() {
     setErr(null);
     try {
       const { data, error } = await supabase.functions.invoke("growth-brief", {
-        body: { period, source: "manual" },
+        body: {
+          period,
+          source: "manual",
+          operator_prompt: operatorPrompt.trim() || undefined,
+        },
       });
+
       if (error) throw new Error(error.message);
       const brief = (data as { brief?: Brief; error?: string })?.brief;
       if (!brief) throw new Error((data as { error?: string })?.error ?? "Неуспешно генериране");
