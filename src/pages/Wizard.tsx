@@ -13,6 +13,7 @@ import { QuestionField } from "@/components/wizard/QuestionField";
 import { LiveDraft } from "@/components/wizard/LiveDraft";
 import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
 import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
+import { AIReviewCard } from "@/components/wizard/AIReviewCard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
@@ -961,6 +962,11 @@ export default function WizardPage() {
                     isPro={isPro}
                   />
                 </div>
+
+                <AIReviewCard
+                  contract={result.contract}
+                  documentType={docName ?? sector.contractName}
+                />
 
                 {/* Cash payment disclaimer — shown when any answer mentions cash. */}
                 {Object.values(answers).some((v) =>
