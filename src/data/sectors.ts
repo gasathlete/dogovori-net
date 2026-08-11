@@ -1963,6 +1963,65 @@ export function isNonContractDoc(documentName?: string | null): boolean {
   return /учредителен акт|дружествен договор|устав|правилник|протокол|решение|заповед|покана|уведомление|известие(?! за)|оферта|меморандум|политика|указание|спецификация|term\s*sheet|\bsafe\b|convertible\s*note|esop|опции за дялове|жалба|справка|удостоверение|приемо-предавателен|сертификат|анкета|фактура|кредитно известие|дебитно известие|складова разписка|товарителница|коносамент|приложение|анекс(?! към)|разписка|констативен/i.test(documentName);
 }
 
+/* ===================== Тематична релевантност на секторните въпроси =====================
+ * Секторните въпроси ("Условия по договора") са писани за ОСНОВНИЯ документ на сектора
+ * (напр. „Договор за наем“ при Недвижими имоти). При sub-wizard от друга тематика
+ * (напр. „Договор за заем“ в Счетоводство) те стават неотносими и подвеждат както
+ * потребителя, така и AI генерацията. Затова филтрираме по тема, като запазваме
+ * само универсалните търговски условия (стойност, плащане, срок, ДДС, валута).
+ */
+const DOC_TOPICS: Array<[string, RegExp]> = [
+  ["lease", /наем|аренда|пренаем|лизинг/i],
+  ["sale", /покупко|продажб|продаж|изкупуван|доставк|замяна/i],
+  ["construction", /смр|строител|строеж|ремонт|проектиран|обект|надзор|акт 1[0-9]|гаранционна карта/i],
+  ["loan", /заем|кредит|разсрочен|финансиран/i],
+  ["security", /залог|ипотек|поръчител|гаранц|запис на заповед|цесия/i],
+  ["services", /услуг|изработк|консултант|абонамент|поддръжк|мандат|посреднич/i],
+  ["employment", /труд|назначав|длъжностн|граждански договор|стаж|управлени на дружество/i],
+  ["ip", /авторск|лиценз|интелектуалн|ноу-хау|търговска марка|патент|софтуер|it|saas|уеб|хостинг|разработка/i],
+  ["nda", /конфиденциал|неразкриван|поверителн|\bnda\b/i],
+  ["transport", /превоз|транспорт|спедиц|логист|товарителниц|куриер|3pl|incoterms|внос|износ/i],
+  ["accounting", /счетоводн|финансов одит|данъчн|тро|ведомост|заплат|фактур/i],
+  ["marketing", /реклам|маркетинг|инфлуенсър|\bpr\b|съдържание|seo|ppc|google ads|social media|smm/i],
+  ["insurance", /застрахов/i],
+  ["agri", /земедел|агро|животновъд|реколт|ветеринар|залесяван|горск|механизац|мляко/i],
+  ["franchise", /франчайз|дистрибут|дилър|комисион|консигнац/i],
+  ["corporate", /дружествен|съдружни|акции|дялов|учредител|общо събрание|устав/i],
+  ["hr-data", /gdpr|лични данни|обработващ/i],
+];
+
+function topicsOf(name?: string | null): Set<string> {
+  const out = new Set<string>();
+  if (!name) return out;
+  for (const [topic, re] of DOC_TOPICS) if (re.test(name)) out.add(topic);
+  return out;
+}
+
+/** Универсални търговски условия — валидни за практически всеки договор. */
+const UNIVERSAL_TERM_RE =
+  /стойност|цена|сума|възнаграждени|плащан|аванс|разсроч|валута|ддс|фактур|срок|период|дата|начало|краен/i;
+
+function isUniversalTerm(q: Question): boolean {
+  return UNIVERSAL_TERM_RE.test(q.label) || /^(value|total|amount|price|sum|fee|payment|advance|currency|vat|term|term_months|duration|start_date|end_date|deadline)/.test(q.id);
+}
+
+/**
+ * Връща секторните въпроси, относими към конкретния документ.
+ * Ако темата на документа е несъвместима с темата на основния секторен договор,
+ * запазваме само универсалните условия.
+ */
+export function filterSectorSpecifics(sector: Sector, sub: SubWizard | undefined, specifics: Question[]): Question[] {
+  if (!sub) return specifics;
+  const docName = sub.contractName ?? sub.documentName;
+  const docTopics = topicsOf(docName);
+  const sectorTopics = new Set([...topicsOf(sector.contractName), ...topicsOf(sector.title), ...topicsOf(sector.subtitle)]);
+  if (docTopics.size === 0 || sectorTopics.size === 0) return specifics;
+  let shared = false;
+  for (const t of docTopics) if (sectorTopics.has(t)) shared = true;
+  if (shared) return specifics;
+  return specifics.filter(isUniversalTerm);
+}
+
 /** Връща обединените въпроси за wizard, базирани на sector + (по избор) sub-wizard.
  *  Автоматично групира свързани полета в "карти", за да намали броя стъпки до ~6-10.
  *  За декларации/молби/пълномощни и корпоративни/едностранни актове —
@@ -1994,7 +2053,7 @@ export function buildQuestions(sector: Sector, sub?: SubWizard): Question[] {
     return f;
   };
   const partyFields = head.slice(0, 4).map(relabelParty);
-  const sectorSpecifics = head.slice(4);
+  const sectorSpecifics = filterSectorSpecifics(sector, sub, head.slice(4));
   const subSpecifics = sub?.questions ?? [];
 
   const out: Question[] = [];
