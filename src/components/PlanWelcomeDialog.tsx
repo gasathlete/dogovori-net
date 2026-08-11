@@ -82,14 +82,33 @@ export function PlanWelcomeDialog() {
   const { isPro, isTeam, isEntrepreneur, isProfessional, loading } = useIsPro();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
+  const [profileSeen, setProfileSeen] = useState<boolean | null>(null);
 
   // User-scoped storage key so different accounts on same browser each see it once,
-  // and one account never re-sees it after login. Also persisted to the user's
-  // auth metadata (`plan_welcome_seen_at`) so the dialog shows only once per
-  // profile — across devices/browsers/reinstalls, not just per localStorage.
+  // and one account never re-sees it after login. The durable record lives in
+  // `profiles.plan_welcome_seen_at` (auth user_metadata writes are unreliable),
+  // so the dialog shows only once per profile — across devices and browsers.
   const uid = user?.id ?? "anon";
   const scopedKey = (base: string) => `${base}:u:${uid}`;
-  const profileSeen = Boolean((user?.user_metadata as any)?.plan_welcome_seen_at);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user) {
+      setProfileSeen(null);
+      return;
+    }
+    supabase
+      .from("profiles")
+      .select("plan_welcome_seen_at")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setProfileSeen(Boolean(data?.plan_welcome_seen_at));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   // Priority: Team > Entrepreneur > Professional. Only ONE dialog per user,
   // ever — when a higher tier is shown we also mark all lower-tier keys as
@@ -98,7 +117,8 @@ export function PlanWelcomeDialog() {
   const active = useMemo<PlanKey | null>(() => {
     if (loading || !user) return null;
     if (typeof window === "undefined") return null;
-    if (profileSeen) return null;
+    // Wait for the durable check before deciding.
+    if (profileSeen === null || profileSeen === true) return null;
     const seen = (k: string) => window.localStorage.getItem(scopedKey(k)) === "1";
     const anySeen =
       seen(COPY.team.storageKey) ||
@@ -114,7 +134,7 @@ export function PlanWelcomeDialog() {
   }, [isPro, isTeam, isEntrepreneur, isProfessional, loading, user?.id, profileSeen]);
 
   useEffect(() => {
-    if (!active) return;
+    if (!active || !user) return;
     // Mark THIS plan + every other tier as seen so the dialog can never
     // appear again for this user on this device, regardless of plan flags.
     try {
@@ -122,14 +142,18 @@ export function PlanWelcomeDialog() {
       window.localStorage.setItem(scopedKey(COPY.entrepreneur.storageKey), "1");
       window.localStorage.setItem(scopedKey(COPY.professional.storageKey), "1");
     } catch { /* ignore */ }
-    // Persist across devices: write to the user's auth metadata once.
-    supabase.auth
-      .updateUser({ data: { plan_welcome_seen_at: new Date().toISOString(), plan_welcome_plan: active } })
-      .catch(() => undefined);
+    // Persist across devices in the user's own profile row.
+    supabase
+      .from("profiles")
+      .update({ plan_welcome_seen_at: new Date().toISOString(), plan_welcome_plan: active })
+      .eq("id", user.id)
+      .then(() => undefined);
+
     const t = setTimeout(() => setOpen(true), 500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
+
 
 
   if (!active) return null;
