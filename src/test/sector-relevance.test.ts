@@ -9,7 +9,7 @@ const find = (sectorId: string, docName: string) => {
 
 describe("тематична релевантност на секторните въпроси", () => {
   it("договор за заем не показва счетоводни секторни въпроси", () => {
-    const labels = find("accounting", "Договор за заем на парични средства");
+    const labels = find("finance", "Договор за заем на парични средства");
     expect(labels.some((l) => l.includes("обем документи"))).toBe(false);
     expect(labels.some((l) => l.includes("месечна такса"))).toBe(false);
   });
@@ -21,7 +21,7 @@ describe("тематична релевантност на секторните 
   });
 
   it("универсалните условия (стойност/срок) не се изрязват", () => {
-    const labels = find("it", "Data Processing Agreement (DPA по GDPR)").concat(
+    const labels = find("digital", "Data Processing Agreement (DPA по GDPR)").concat(
       find("services", "Договор за консултантски услуги"),
     );
     expect(labels.length).toBeGreaterThan(0);
