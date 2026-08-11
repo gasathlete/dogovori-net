@@ -175,6 +175,8 @@ const ESignatureDemo = lazy(() => import("./pages/demo/ESignatureDemo.tsx"));
 const Feedback = lazy(() => import("./pages/Feedback.tsx"));
 const AdminFeedback = lazy(() => import("./pages/AdminFeedback.tsx"));
 const AdminHomeTestimonials = lazy(() => import("./pages/AdminHomeTestimonials.tsx"));
+const MyReviews = lazy(() => import("./pages/MyReviews.tsx"));
+
 
 // Defer Sentry boot until the browser is idle so it never competes with hydration / LCP.
 if (typeof window !== "undefined") {
@@ -377,6 +379,8 @@ const AnimatedRoutes = () => {
         <Route path="/feedback" element={<Feedback />} />
         <Route path="/admin/feedback" element={<ProtectedRoute><AdminFeedback /></ProtectedRoute>} />
         <Route path="/admin/home-testimonials" element={<ProtectedRoute><AdminHomeTestimonials /></ProtectedRoute>} />
+        <Route path="/moite-revyuta" element={<MyReviews />} />
+
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

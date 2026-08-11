@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Star, Trash2, CheckCircle2, Plus, Camera, X } from "@/icons";
+import { ArrowLeft, Loader2, Star, Trash2, CheckCircle2, Plus, Camera, X, BadgeCheck } from "@/icons";
 
 type Row = {
   id: string;
@@ -22,6 +22,9 @@ type Row = {
   photo_url: string;
   is_approved: boolean;
   is_admin_added: boolean;
+  is_verified_customer: boolean;
+  order_ref: string | null;
+  rejection_reason: string | null;
   position: number;
   created_at: string;
 };
@@ -215,9 +218,32 @@ export default function AdminHomeTestimonialsPage() {
   useEffect(() => { if (allowed) load(); }, [allowed, filter]); // eslint-disable-line
 
   const approve = async (id: string) => {
-    const { error } = await supabase.from("home_testimonials").update({ is_approved: true }).eq("id", id);
+    const { error } = await supabase
+      .from("home_testimonials")
+      .update({ is_approved: true, rejection_reason: null, reviewed_at: new Date().toISOString() })
+      .eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("Одобрено");
+    load();
+  };
+  const reject = async (id: string) => {
+    const reason = prompt("Причина за отказа (вижда се от автора):");
+    if (reason === null) return;
+    const { error } = await supabase
+      .from("home_testimonials")
+      .update({ is_approved: false, rejection_reason: reason.trim() || null, reviewed_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Отказано — авторът вижда причината");
+    load();
+  };
+  const toggleVerified = async (row: Row) => {
+    const { error } = await supabase
+      .from("home_testimonials")
+      .update({ is_verified_customer: !row.is_verified_customer })
+      .eq("id", row.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(!row.is_verified_customer ? "Маркирано като проверен клиент" : "Отметката е премахната");
     load();
   };
   const unapprove = async (id: string) => {
@@ -301,18 +327,45 @@ export default function AdminHomeTestimonialsPage() {
                         <Badge variant="outline">Чака</Badge>
                       )}
                       {r.is_admin_added && <Badge variant="outline">Админ</Badge>}
+                      {r.is_verified_customer && (
+                        <Badge variant="secondary" className="border-gold/30 bg-gold/10 text-gold">
+                          <BadgeCheck className="mr-1 h-3.5 w-3.5" /> Проверен клиент
+                        </Badge>
+                      )}
                     </div>
                     {r.role && <div className="text-xs text-muted-foreground">{r.role}</div>}
                     <div className="mt-1"><StarRow n={r.rating} /></div>
                   </div>
                 </div>
                 <p className="mb-3 text-sm leading-relaxed">„{r.quote}"</p>
+                {r.order_ref && (
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    Референция от автора: <span className="text-foreground">{r.order_ref}</span>
+                  </p>
+                )}
+                {r.rejection_reason && (
+                  <p className="mb-3 rounded-lg border border-destructive/30 bg-destructive/5 p-2 text-xs text-destructive">
+                    Отказано: {r.rejection_reason}
+                  </p>
+                )}
                 <div className="flex items-center gap-2 border-t border-hairline pt-3">
                   {r.is_approved ? (
                     <Button size="sm" variant="outline" onClick={() => unapprove(r.id)}>Скрий</Button>
                   ) : (
-                    <Button size="sm" onClick={() => approve(r.id)}><CheckCircle2 className="mr-1 h-4 w-4" />Одобри</Button>
+                    <>
+                      <Button size="sm" onClick={() => approve(r.id)}><CheckCircle2 className="mr-1 h-4 w-4" />Одобри</Button>
+                      <Button size="sm" variant="outline" onClick={() => reject(r.id)}>Откажи</Button>
+                    </>
                   )}
+                  <Button
+                    size="sm"
+                    variant={r.is_verified_customer ? "secondary" : "outline"}
+                    onClick={() => toggleVerified(r)}
+                    title="Отметка „Проверен клиент“"
+                  >
+                    <BadgeCheck className="mr-1 h-4 w-4" />
+                    {r.is_verified_customer ? "Проверен" : "Провери"}
+                  </Button>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <span>Ред:</span>
                     <Input

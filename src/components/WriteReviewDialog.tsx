@@ -24,6 +24,7 @@ const schema = z.object({
     .min(10, "Мнението трябва да е поне 10 символа")
     .max(600, "Мнението е твърде дълго (max 600)"),
   rating: z.number().int().min(1).max(5),
+  order_ref: z.string().trim().max(120).optional(),
 });
 
 interface Props {
@@ -45,13 +46,14 @@ export function WriteReviewDialog({ open, onOpenChange, onSubmitted }: Props) {
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [orderRef, setOrderRef] = useState("");
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setName(""); setRole(""); setAbout(""); setQuote(""); setRating(5);
-      setPhoto(null); setPhotoPreview(null); setConsent(false);
+      setPhoto(null); setPhotoPreview(null); setConsent(false); setOrderRef("");
     }
   }, [open]);
 
@@ -86,7 +88,7 @@ export function WriteReviewDialog({ open, onOpenChange, onSubmitted }: Props) {
       toast.error("Моля, потвърдете съгласието за публикуване");
       return;
     }
-    const parsed = schema.safeParse({ name, role: role || undefined, about: about || undefined, quote, rating });
+    const parsed = schema.safeParse({ name, role: role || undefined, about: about || undefined, quote, rating, order_ref: orderRef || undefined });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Невалидни данни");
       return;
@@ -108,6 +110,8 @@ export function WriteReviewDialog({ open, onOpenChange, onSubmitted }: Props) {
         name: parsed.data.name,
         role: parsed.data.role ?? null,
         about: parsed.data.about ?? null,
+        order_ref: parsed.data.order_ref ?? null,
+        is_verified_customer: false,
         consent_public: true,
         quote: parsed.data.quote,
         rating: parsed.data.rating,
@@ -117,7 +121,10 @@ export function WriteReviewDialog({ open, onOpenChange, onSubmitted }: Props) {
       });
       if (insErr) throw insErr;
 
-      toast.success("Благодарим! Вашето ревю е изпратено за преглед.");
+      toast.success("Благодарим! Ревюто чака одобрение от екипа.", {
+        description: "Следете статуса в „Моите ревюта“.",
+        action: { label: "Виж статуса", onClick: () => navigate("/moite-revyuta") },
+      });
       onOpenChange(false);
       onSubmitted?.();
     } catch (e: any) {
@@ -205,6 +212,21 @@ export function WriteReviewDialog({ open, onOpenChange, onSubmitted }: Props) {
               placeholder="Какво харесахте? Как ви помогна платформата?"
             />
             <div className="mt-1 text-right text-xs text-muted-foreground">{quote.length}/600</div>
+          </div>
+
+          <div>
+            <Label htmlFor="rev-order">Код на поръчка / документ (по избор)</Label>
+            <Input
+              id="rev-order"
+              value={orderRef}
+              onChange={(e) => setOrderRef(e.target.value)}
+              maxLength={120}
+              placeholder="напр. номер на поръчка или име на изготвен документ"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Ако посочите код на поръчка или изготвен документ, екипът може да добави отметка „Проверен клиент" към
+              ревюто ви.
+            </p>
           </div>
 
           <div>
