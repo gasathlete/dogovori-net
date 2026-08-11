@@ -183,10 +183,17 @@ function TestimonialDetail({
                 {t.role}
               </div>
             )}
+            {t.is_verified_customer && (
+              <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-gold/35 bg-gold/10 px-2.5 py-1 text-[11px] font-medium text-gold">
+                <BadgeCheck className="h-3.5 w-3.5" />
+                Проверен клиент
+              </div>
+            )}
             <div className="mt-2">
               <Stars rating={t.rating} size="h-4 w-4" />
             </div>
           </div>
+
         </div>
 
         <blockquote className="relative mt-5 rounded-xl border border-gold/20 bg-gold/[0.04] p-5">
