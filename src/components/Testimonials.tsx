@@ -1,5 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from "react";
-import { Star, Quote, MessageSquarePlus } from "@/icons";
+import { Star, Quote, MessageSquarePlus, BadgeCheck, Clock } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +24,7 @@ type Testimonial = {
   rating: number;
   photo_url: string | null;
   initials?: string;
+  is_verified_customer?: boolean;
 };
 
 const FALLBACK: Testimonial[] = [
@@ -41,6 +42,7 @@ const FALLBACK: Testimonial[] = [
   },
   {
     id: "seed-2",
+    is_verified_customer: true,
     about:
       "Осем години прехвърлям имоти от ръка на ръка. Виждал съм какво може една объркана клауза — и затова вече не вярвам на „стандартните“ шаблони от интернет.",
     quote:
@@ -53,6 +55,7 @@ const FALLBACK: Testimonial[] = [
   },
   {
     id: "seed-3",
+    is_verified_customer: true,
     about:
       "Агенцията ни расте и това е хубав проблем, но документите не могат да растат с нас. Търсих нещо, което да ползват и най-младите брокери, без да ги пускам в Word-ове с червени корекции.",
     quote:
@@ -65,6 +68,7 @@ const FALLBACK: Testimonial[] = [
   },
   {
     id: "seed-4",
+    is_verified_customer: true,
     about:
       "Строителният бизнес не прощава бавене. Ако договорът се бави с два дни, обектът спира. След като започнах да пращам линкове за подпис, вече не гоня хора по телефона.",
     quote:
@@ -77,6 +81,7 @@ const FALLBACK: Testimonial[] = [
   },
   {
     id: "seed-5",
+    is_verified_customer: true,
     about:
       "В кантората сме трима и обслужваме стотици фирми. Клиентите идват за счетоводство, но честно казано, много от тях ни питат и за договори. Просто няма време за всичко.",
     quote:
@@ -89,6 +94,7 @@ const FALLBACK: Testimonial[] = [
   },
   {
     id: "seed-6",
+    is_verified_customer: true,
     about:
       "Имам няколко апартамента под наем и купувам още. Не съм юрист, но вече съм достатъчно изгорял, за да знам: чети, преди да подпишеш. Дори и да мислиш, че вече си го чел.",
     quote:
@@ -101,6 +107,7 @@ const FALLBACK: Testimonial[] = [
   },
   {
     id: "seed-7",
+    is_verified_customer: true,
     about:
       "Работя сама от вкъщи и си направих правилото — без договор, няма аванс. За жалост до скоро „договорът“ ми беше съобщение във Viber. Сега поне изглеждам професионално, преди да съм свършила и ред.",
     quote:
