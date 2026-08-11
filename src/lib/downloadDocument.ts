@@ -53,6 +53,16 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
       return { ok: false, error: "disclaimer_cancelled", status: 0 };
     }
 
+    // Quality gate: never silently export a document that still contains
+    // unfilled placeholders ([...], {{...}}, ______).
+    try {
+      await ensurePlaceholdersReviewed(p.payload);
+    } catch {
+      trackDownload("fail", { ...fnProps, reason: "unfilled_placeholders" });
+      return { ok: false, error: "unfilled_placeholders", status: 0 };
+    }
+
+
   // Kick off all three work streams in parallel:
   //   1. Edge function call (network round-trip)
   //   2. Dynamic import of the heavy exporter chunk (jspdf or docx)
