@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   contractToPlainText, reviewDocument, type DocumentReview,
 } from "@/lib/documentReview";
+import { isPersonalDataPlaceholder } from "@/lib/placeholderGate";
 
 /**
  * „Автоматична AI ревизия" — втори независим проход върху готовия документ.
@@ -23,6 +24,11 @@ interface Props {
   documentType?: string;
   /** Стартира ревизията автоматично при монтиране (по подразбиране: да). */
   auto?: boolean;
+  /**
+   * Потребителят е потвърдил, че ще попълни личните данни след сваляне —
+   * ревизията анализира само генерираното съдържание.
+   */
+  ignorePersonalData?: boolean;
 }
 
 const VERDICT = {
@@ -52,7 +58,7 @@ const STATUS_ICON = {
   fail: { Icon: AlertTriangle, cls: "text-danger" },
 } as const;
 
-export function AIReviewCard({ contract, documentType, auto = true }: Props) {
+export function AIReviewCard({ contract, documentType, auto = true, ignorePersonalData = false }: Props) {
   const [loading, setLoading] = useState(false);
   const [review, setReview] = useState<DocumentReview | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +72,7 @@ export function AIReviewCard({ contract, documentType, auto = true }: Props) {
       documentText: text,
       documentTitle: contract.title,
       documentType,
+      ignorePersonalData,
     });
     if (r) setReview(r);
     else setError(e);
@@ -79,7 +86,21 @@ export function AIReviewCard({ contract, documentType, auto = true }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auto]);
 
+  // Промяната на отметката за лични данни променя обхвата на ревизията —
+  // презареждаме резултата, за да не остават вече неприложими пропуски.
+  useEffect(() => {
+    if (!started.current || loading) return;
+    void run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ignorePersonalData]);
+
   const v = review ? VERDICT[review.verdict] ?? VERDICT.needs_fixes : null;
+
+  // Защитен филтър и на клиента: при потвърдена отметка полетата за лични
+  // данни не се показват като пропуски.
+  const visibleUnfilled = (review?.unfilled_fields ?? []).filter(
+    (f) => !ignorePersonalData || !isPersonalDataPlaceholder(f),
+  );
 
   return (
     <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft">
@@ -183,9 +204,9 @@ export function AIReviewCard({ contract, documentType, auto = true }: Props) {
             </Block>
           )}
 
-          {review.unfilled_fields.length > 0 && (
+          {visibleUnfilled.length > 0 && (
             <Block title="Непопълнени полета" tone="warning">
-              {review.unfilled_fields.map((f, i) => (
+              {visibleUnfilled.map((f, i) => (
                 <li key={i}><code className="text-[11px]">{f}</code></li>
               ))}
             </Block>

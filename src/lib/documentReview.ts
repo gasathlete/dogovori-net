@@ -63,6 +63,8 @@ export async function reviewDocument(input: {
   documentText: string;
   documentTitle?: string;
   documentType?: string;
+  /** Не отчитай непопълнени полета за лични данни — ще се вписват локално. */
+  ignorePersonalData?: boolean;
 }): Promise<{ review: DocumentReview | null; error: string | null }> {
   const { data, error } = await invokeEdgeFunction<DocumentReview & { error?: string }>(
     "review-document",
