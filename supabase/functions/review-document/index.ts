@@ -1,0 +1,154 @@
+// Edge function: AI ревизия (втори проход) на вече генериран документ.
+//
+// Целта е техническо качество: независим модел преглежда готовия текст и
+// връща СТРУКТУРИРАН одит — липсващи задължителни реквизити, вътрешни
+// противоречия, непопълнени полета и приложими правни основания.
+// Не пренаписва документа и не начислява операция — това е контролен слой
+// върху generate-contract.
+import { buildCors } from "../_shared/cors.ts";
+import { extractJson } from "../_shared/json.ts";
+import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
+import { redactForAI } from "../_shared/redact.ts";
+import { routeModel } from "../_shared/model-router.ts";
+import { logAiAudit } from "../_shared/ai-call.ts";
+
+const SYSTEM_PROMPT = `Ти си независим български правен ревизор (втори проход). Получаваш ГОТОВ документ и правиш техническа ревизия. НЕ пренаписваш текста.
+
+Проверяваш строго и конкретно:
+1. Задължителни реквизити за вида документ (страни, предмет, цена/възнаграждение, срок, дата и място, подписи, приложения).
+2. Вътрешни противоречия и несъответствия между клаузите (различни срокове, суми, наименования на страните, номерация).
+3. Непопълнени полета — всякакви [ ... ], {{ ... }}, ______ или XXXX.
+4. Приложими правни основания — конкретни членове (ЗЗД, ТЗ, КТ, ЗЗП, ЗУТ, ЗОПБ, ЗЗЛД/GDPR), които документът реално задейства.
+
+Връщай СТРОГО валиден JSON (без markdown ограждания):
+{
+  "verdict": "ready"|"needs_fixes"|"blocked",
+  "confidence": 0-100,
+  "summary": "1-2 изречения, професионален тон",
+  "checks": [
+    {"id":"kratko_id","label":"Проверка на …","status":"pass"|"warn"|"fail","note":"конкретна констатация"}
+  ],
+  "missing_requisites": ["конкретен липсващ реквизит"],
+  "contradictions": [{"detail":"в какво се противоречат","where":"Чл. X / Чл. Y"}],
+  "unfilled_fields": ["текст на непопълненото поле, както се среща в документа"],
+  "legal_basis": [{"act":"ЗЗД","article":"чл. 79","why":"защо е приложим"}]
+}
+
+Правила: минимум 6 и максимум 12 записа в "checks". Без стилистични мнения за тона и езика. Без правни съвети към конкретен казус — само технически констатации по документа. Ако нищо не липсва, върни празни масиви и verdict "ready".`;
+
+Deno.serve(async (req: Request) => {
+  const corsHeaders = buildCors(req);
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  try {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("Липсва конфигурация за AI");
+
+    const body = await req.json().catch(() => ({}));
+    const documentTitle: string = String(body.documentTitle ?? "Документ").slice(0, 300);
+    const documentType: string = String(body.documentType ?? "").slice(0, 200);
+    const documentText: string = String(body.documentText ?? "");
+
+    if (documentText.trim().length < 80) {
+      return new Response(
+        JSON.stringify({ error: "Документът е твърде кратък за ревизия" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Класификация + редакция преди изпращане към модела (без лични данни).
+    const classification = classifyDocumentBeforeAI(documentText);
+    const route = routeModel("analyze-contract", classification, {
+      promptLength: documentText.length,
+    });
+    if (!route.allowed) {
+      return new Response(
+        JSON.stringify({ error: "Ревизията е блокирана от политиката за данни", code: route.blockedReason }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const safeText = route.redactionRequired
+      ? redactForAI(documentText).redacted
+      : documentText;
+
+    const userPrompt = [
+      `Вид документ: ${documentType || "неуточнен"}`,
+      `Заглавие: ${documentTitle}`,
+      "",
+      "ТЕКСТ НА ДОКУМЕНТА:",
+      safeText.slice(0, 60000),
+    ].join("\n");
+
+    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: route.model,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
+
+    if (!aiResp.ok) {
+      await logAiAudit({
+        user_id: null, operation: "analyze-contract", model: route.model, classification,
+        redaction_applied: route.redactionRequired,
+        status: "error", error_code: `http_${aiResp.status}`,
+      });
+      if (aiResp.status === 429) {
+        return new Response(JSON.stringify({ error: "Достигнат е лимитът. Опитайте след малко." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if (aiResp.status === 402) {
+        return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      throw new Error("AI грешка при ревизия");
+    }
+
+    const data = await aiResp.json();
+    const content: string = data.choices?.[0]?.message?.content ?? "";
+    if (!content.trim()) throw new Error("AI не върна съдържание");
+
+    const parsed = extractJson(content) as Record<string, unknown>;
+
+    // Нормализация — UI-ът разчита на стабилна форма.
+    const arr = (v: unknown) => (Array.isArray(v) ? v : []);
+    const review = {
+      verdict: ["ready", "needs_fixes", "blocked"].includes(String(parsed.verdict))
+        ? String(parsed.verdict)
+        : "needs_fixes",
+      confidence: Math.max(0, Math.min(100, Number(parsed.confidence) || 0)),
+      summary: typeof parsed.summary === "string" ? parsed.summary : "",
+      checks: arr(parsed.checks).slice(0, 12),
+      missing_requisites: arr(parsed.missing_requisites).filter((x) => typeof x === "string"),
+      contradictions: arr(parsed.contradictions).slice(0, 10),
+      unfilled_fields: arr(parsed.unfilled_fields).filter((x) => typeof x === "string").slice(0, 20),
+      legal_basis: arr(parsed.legal_basis).slice(0, 12),
+      model: route.model,
+      reviewed_at: new Date().toISOString(),
+    };
+
+    await logAiAudit({
+      user_id: null, operation: "analyze-contract", model: route.model, classification,
+      redaction_applied: route.redactionRequired, status: "ok",
+      tokens_in: data?.usage?.prompt_tokens,
+      tokens_out: data?.usage?.completion_tokens,
+    });
+
+    return new Response(JSON.stringify(review), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    console.error("review-document error:", e);
+    return new Response(
+      JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+});
