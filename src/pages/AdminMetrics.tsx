@@ -101,13 +101,13 @@ export default function AdminMetrics() {
   const qualityIndex = useMemo(() => {
     if (!data) return 0;
     const q = data.quality;
-    const parts = [
-      q.avg_review_score || 0,
-      q.clean_review_rate || 0,
-      100 - (q.generate_fail_rate || 0),
-      q.signing_requests > 0 ? q.signing_completion_rate : 100,
-    ];
-    return Math.round(parts.reduce((a, b) => a + b, 0) / parts.length);
+    // Метрики без данни се пропускат, за да не изкривяват индекса надолу.
+    const parts: number[] = [];
+    if (q.reviews > 0) parts.push(q.avg_review_score, q.clean_review_rate);
+    if (q.generate_started > 0) parts.push(100 - q.generate_fail_rate);
+    if (q.signing_requests > 0) parts.push(q.signing_completion_rate);
+    if (parts.length === 0) return 0;
+    return Math.round(parts.reduce((x, y) => x + y, 0) / parts.length);
   }, [data]);
 
   const a = data?.activation;
