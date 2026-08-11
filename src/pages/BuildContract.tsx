@@ -883,7 +883,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                   Попълнете каквото знаете. <span className="text-gold">Празните полета</span> се попълват от Нашата Система&nbsp; с пазарно-стандартни клаузи. Готов документ до 2 минути.
                 </p>
 
-                <div className="space-y-4">
+                <div className="space-y-4" onKeyDown={handleEnterFocusNext}>
                   {/* Stepper */}
                   <div className="rounded-xl border border-border/60 bg-navy-light/40 px-4 py-3">
                     <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-[0.18em]">
