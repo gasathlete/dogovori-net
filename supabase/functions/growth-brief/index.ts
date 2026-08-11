@@ -146,6 +146,9 @@ Deno.serve(async (req: Request) => {
       ? (rawPeriod as Period)
       : "daily";
     const source = String(body?.source ?? "manual") === "cron" ? "cron" : "manual";
+    // Насока от оператора (админ панел): вече изпълнени задачи или нов приоритет.
+    const operatorPrompt = String(body?.operator_prompt ?? "").slice(0, 8000).trim();
+
 
     const days = PERIOD_DAYS[period];
     const to = new Date();
