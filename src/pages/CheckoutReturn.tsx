@@ -7,6 +7,7 @@ import { CheckCircle2, Loader2 } from "@/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { trackEvent } from "@/lib/analytics";
+import { trackUpgradeCompleted } from "@/lib/metrics";
 
 export default function CheckoutReturn() {
   const [params] = useSearchParams();
@@ -69,6 +70,7 @@ export default function CheckoutReturn() {
   useEffect(() => {
     if (readyAt === "ready") {
       trackEvent("purchase_complete", { sessionId: sessionId ?? undefined });
+      trackUpgradeCompleted(typeof type === "string" ? type : undefined);
       if (redirectTo) {
         const t = setTimeout(() => navigate(redirectTo), 1500);
         return () => clearTimeout(t);

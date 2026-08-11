@@ -3,6 +3,7 @@ import type { GeneratedContract } from "@/lib/exporters";
 import type { CompanionTemplate } from "@/data/companionTemplates";
 import { ensureAIDisclaimerAccepted } from "@/lib/aiDisclaimerGate";
 import { ensurePlaceholdersReviewed } from "@/lib/placeholderGate";
+import { trackPlaceholderBlock } from "@/lib/metrics";
 import { getOpSessionId, getOpDocKey } from "@/lib/opSession";
 import { trackDownload } from "@/lib/docFunnel";
 
@@ -58,7 +59,9 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
     // unfilled placeholders ([...], {{...}}, ______).
     try {
       await ensurePlaceholdersReviewed(p.payload);
-    } catch {
+    } catch (gateErr) {
+      const blocked = (gateErr as { placeholders?: unknown[] })?.placeholders?.length ?? 0;
+      trackPlaceholderBlock(blocked, p.doc_key || p.source_id, false);
       trackDownload("fail", { ...fnProps, reason: "unfilled_placeholders" });
       return { ok: false, error: "unfilled_placeholders", status: 0 };
     }

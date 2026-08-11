@@ -4380,6 +4380,17 @@ export type Database = {
           text_rank: number
         }[]
       }
+      metrics_event_timeseries: {
+        Args: { _bucket: string; _from: string; _to: string }
+        Returns: {
+          bucket: string
+          checkouts: number
+          downloads: number
+          starts: number
+          upgrades: number
+        }[]
+      }
+      metrics_overview: { Args: { _from: string; _to: string }; Returns: Json }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -4390,6 +4401,7 @@ export type Database = {
         Returns: number
       }
       my_team_ids: { Args: never; Returns: string[] }
+      purge_old_funnel_events: { Args: never; Returns: undefined }
       rate_limit_check: {
         Args: { _key: string; _max: number; _window_s: number }
         Returns: Json
