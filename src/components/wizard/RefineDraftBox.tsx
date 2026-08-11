@@ -194,7 +194,7 @@ export function RefineDraftBox({
               <span className="text-[11px] text-muted-foreground">
                 {feedback.length}/1500 · Ctrl/⌘ + Enter за изпращане
               </span>
-              <Button size="sm" onClick={submit} disabled={busy || !feedback.trim()} className="bg-gold text-primary-foreground hover:bg-gold/90">
+              <Button size="sm" onClick={() => void submit()} disabled={busy || !feedback.trim()} className="bg-gold text-primary-foreground hover:bg-gold/90">
                 {busy ? (
                   <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Коригирам…</>
                 ) : (
