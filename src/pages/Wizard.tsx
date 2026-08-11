@@ -147,6 +147,8 @@ export default function WizardPage() {
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(persisted?.appliedNotes);
   const [attemptedNext, setAttemptedNext] = useState(false);
   const questionCardRef = useRef<HTMLDivElement>(null);
+  const handleEnterFocusNext = useEnterFocusNext();
+
 
   const focusFirstEmpty = () => {
     requestAnimationFrame(() => {
