@@ -391,91 +391,50 @@ ${docTypeSpec.systemAddendum}
     }
 
 
-    // Post-process risk analysis: strip issues that penalize us for the
-    // document's own intended structure or for missing personal data (which
-    // the user fills locally after download — Договори.нет never collects it).
-    // This is a deterministic guardrail; the model prompt already instructs
-    // the same but occasionally ignores it.
+    // Post-process risk analysis.
+    // ВАЖНО: реалните юридически бележки НЕ се филтрират и оценката НЕ се
+    // занижава. Отстраняват се само чисто стилистични мнения за тона/езика
+    // на документа, които не са правен риск.
     if (parsed?.risk) {
-      const FORBIDDEN_PATTERNS = [
-        // Old rules — structure & personal data
-        /структуриран\s+като\s+стандартен/i,
-        /стандартен\s+договор/i,
-        /не\s+покрива\s+спецификата/i,
-        /специфик[аи]т[аеи].*(платформ|airbnb|booking|uber|glovo|upwork|fiverr)/i,
-        /(платформ|airbnb|booking|uber|glovo|upwork|fiverr).*(специфик|особен)/i,
-        /липсват?\s+(ключови\s+)?данни\s+за\s+(страни|имен|адрес|егн|еик|iban|контакт)/i,
-        /(липсва|липсват|непопълнен[иа]?)\s+(имен[аеи]|егн|еик|адрес|iban|контакт|описани[ея]|дата|град|място)/i,
-        /(имена|егн|еик|адрес|iban|контакти|описание|дата|град)\s+на\s+(страни|имота|обекта|услугата)?\s*(липсва|липсват|не\s+са\s+посочени|не\s+са\s+попълнени)/i,
-        /плейсхолдър/i,
-        /квадратни\s+скоби/i,
-        // New: don't fault user's brief answers or the doc's level of detail
-        /(твърде|прекалено)\s+общ/i,
-        /недефиниран\s+(обхват|предмет|срок)/i,
-        /(липсват?|недостатъчно)\s+(детайли|конкретика|специфик|подробности|уточнения)/i,
-        /недостатъчно\s+(детайлизиран|конкретен|специфичен|разписан)/i,
-        /общо\s+(описан|формулиран|дефиниран)/i,
-        /(липсва|липсват)\s+(конкретни|специфични|детайлни)\s+/i,
-        /(липсва|липсват)\s+(процедура|график|техническ[оа]\s+задани|спецификаци|приложение)/i,
-        /препоръчително\s+е\s+да\s+се\s+(добави|включи|детайлизира|уточни|дефинира|разпише|конкретизира)/i,
-        /(би|може)\s+да\s+(е|бъде)\s+по[- ]?(подробн|детайлн|конкретн)/i,
-        /не\s+описва\s+(конкретн|детайлн|специфичн)/i,
-        /(липсват?|не\s+са\s+уредени)\s+(правата|задълженията)\s+(извън|на\s+страните)/i,
-        /(попълнете|уредете|детайлизирайте|добавете|конкретизирайте|разпишете|включете|дефинирайте).*(договор|документ|раздел|клауза|обхват|срок|цена|прав[аи]|задължени|процедур|приложени|специфик)/i,
-        /(добавете|включете)\s+(специфичн|конкретн|детайлн)/i,
+      const STYLE_ONLY_PATTERNS = [
+        /стил(ът|а)?\s+(на\s+)?(текста|документа)/i,
+        /(езикът|формулировките)\s+(е|са)\s+(твърде\s+)?(официал|сух|тежк)/i,
+        /(шрифт|форматиране|оформление|типограф)/i,
+        /(твърде|прекалено)\s+(дълг|кратк)\s+(изречени|абзац)/i,
       ];
-      const isForbidden = (txt: string) =>
-        FORBIDDEN_PATTERNS.some((rx) => rx.test(txt));
+      const isStyleOnly = (txt: string) =>
+        STYLE_ONLY_PATTERNS.some((rx) => rx.test(txt));
 
       const originalIssues: Array<{ severity?: string; title?: string; detail?: string }> =
         Array.isArray(parsed.risk.issues) ? parsed.risk.issues : [];
       const kept = originalIssues.filter(
-        (i) => !isForbidden(`${i?.title ?? ""} ${i?.detail ?? ""}`),
+        (i) => !isStyleOnly(`${i?.title ?? ""} ${i?.detail ?? ""}`),
       );
       parsed.risk.issues = kept;
 
-      // Same filter on summary — replace with neutral text if it mentioned
-      // forbidden reasons.
-      if (typeof parsed.risk.summary === "string" && isForbidden(parsed.risk.summary)) {
-        parsed.risk.summary =
-          "Документът покрива необходимите за вида клаузи. Попълнете личните данни от Вашето устройство след сваляне.";
-      }
-
-      // Recompute severity based only on remaining real issues.
+      // Level/score се изчисляват от реално оставените бележки, без таван.
       const sevWeight = (s?: string) =>
         s === "high" ? 30 : s === "medium" ? 15 : s === "low" ? 5 : 0;
       const computed = kept.reduce((sum, i) => sum + sevWeight(i.severity), 0);
-
-      // If model reported high risk but issues we kept are minor, downgrade.
       const hasHigh = kept.some((i) => i.severity === "high");
       const hasMedium = kept.some((i) => i.severity === "medium");
-      const newLevel: "low" | "medium" | "high" =
-        hasHigh ? "high" : hasMedium ? "medium" : "low";
+      parsed.risk.level = hasHigh ? "high" : hasMedium ? "medium" : "low";
+      const score = typeof parsed.risk.score === "number" ? parsed.risk.score : computed;
+      parsed.risk.score = Math.max(0, Math.min(100, Math.round(Math.max(score, computed))));
 
-      // Cap score: no real issues → ≤25; only low → ≤40; medium → ≤60; high → keep.
-      let capped = typeof parsed.risk.score === "number" ? parsed.risk.score : computed;
-      if (!hasHigh && !hasMedium) capped = Math.min(capped, 25);
-      else if (!hasHigh) capped = Math.min(capped, 60);
-      parsed.risk.score = Math.max(0, Math.min(100, Math.round(capped)));
-      parsed.risk.level = newLevel;
-
-      // Ensure the "fill in personal data locally" recommendation is present
-      // exactly once, without being an issue.
-      const REC = "Попълнете личните данни (имена, ЕГН/ЕИК, адреси, IBAN, контакти) от Вашето устройство след сваляне — Договори.нет работи съобразно изискванията за предпазване от разкриване на чувствителни лични данни.";
+      // Препоръката за попълване на личните данни локално остава — платформата
+      // не събира и не съхранява лични данни.
+      const REC = "Попълнете личните данни (имена, ЕГН/ЕИК, адреси, IBAN, контакти) от Вашето устройство след сваляне — Договори.нет не събира и не съхранява лични данни.";
       const rawRecs: string[] = Array.isArray(parsed.risk.recommendations)
         ? parsed.risk.recommendations.filter((r: unknown) => typeof r === "string")
         : [];
-      // Filter recommendations that match forbidden patterns too — те критикуват
-      // нашата структура/потребителските отговори, не реални правни рискове.
-      const filteredRecs = rawRecs.filter((r) => !isForbidden(r));
-      if (!filteredRecs.some((r) => r.includes("Попълнете личните данни"))) {
-        filteredRecs.unshift(REC);
+      if (!rawRecs.some((r) => r.includes("Попълнете личните данни"))) {
+        rawRecs.unshift(REC);
       }
-      parsed.risk.recommendations = filteredRecs;
+      parsed.risk.recommendations = rawRecs;
 
-      // --- Positive framing layer ---
-      // 1) Derive strengths from what the contract ACTUALLY contains, so the
-      //    user винаги вижда конкретна стойност (не само критики).
+      // Силните страни се извеждат от реалното съдържание на документа, за да
+      // има и обективна положителна информация — без да се крият бележките.
       const clauses: Array<{ number?: string; title?: string; body?: string }> =
         Array.isArray(parsed?.contract?.clauses) ? parsed.contract.clauses : [];
       const bodyOf = (rx: RegExp) =>
@@ -485,25 +444,21 @@ ${docTypeSpec.systemAddendum}
       const pushIf = (cond: unknown, txt: string) => {
         if (cond && !derivedStrengths.includes(txt)) derivedStrengths.push(txt);
       };
-      pushIf(bodyOf(/предмет/i), "Ясно дефиниран предмет на договора (раздел I) с препратка към Приложение № 1 при нужда от детайлизиране.");
-      pushIf(bodyOf(/цена|плащане/i), "Уредена цена и начин на плащане (раздел II), със защита срещу закъснения.");
-      pushIf(bodyOf(/зопб|банков\s+път|5\s?000/i), "Задължително плащане по банков път над 5 000 € съгласно чл. 3 ЗОПБ (защита от глоба).");
-      pushIf(bodyOf(/срок/i), "Разписани срокове за изпълнение и обратна връзка (раздел III).");
-      pushIf(bodyOf(/неустойк|отговорност/i), "Балансирани неустойки за забава на двете страни с горна граница (раздел V).");
-      pushIf(bodyOf(/прекратяван/i), "Ясен ред за прекратяване по взаимно съгласие и при виновно поведение (раздел VI), съгласно ЗЗД.");
-      pushIf(bodyOf(/форсмажор|непреодолима\s+сила/i), "Форсмажорна клауза с 3-дневно уведомяване и доказателствен ред (раздел VII).");
-      pushIf(bodyOf(/конфиденциалност/i), "Клауза за конфиденциалност, обвързваща и двете страни (раздел VIII).");
-      pushIf(bodyOf(/арбитраж/i), "Арбитражна клауза с посочен компетентен съд (раздел IX).");
-      pushIf(bodyOf(/подсъдност/i) && !bodyOf(/арбитраж/i), "Ясно уредена подсъдност (раздел IX) по българското законодателство.");
-      pushIf(bodyOf(/143\s*ЗЗП|потребител/i) && bodyOf(/арбитраж/i), "Защита на потребителя по чл. 143 ЗЗП при арбитражна клауза.");
-      pushIf(bodyOf(/частичн[аи]?\s+недействителност|severabil/i), "Клауза за частична недействителност (раздел X) — един невалиден текст не проваля целия договор.");
-      pushIf(bodyOf(/писмен[аоа]\s+форма|заключителни/i), "Заключителни разпоредби с изискване за писмена форма при промени (раздел XI).");
-      pushIf(bodyOf(/контакт|кореспонденц/i), "Раздел XII с пълни контакти за кореспонденция между страните.");
+      pushIf(bodyOf(/предмет/i), "Дефиниран предмет на договора.");
+      pushIf(bodyOf(/цена|плащане/i), "Уредена цена и начин на плащане.");
+      pushIf(bodyOf(/зопб|банков\s+път|5\s?000/i), "Плащане по банков път над 5 000 € съгласно чл. 3 ЗОПБ.");
+      pushIf(bodyOf(/срок/i), "Разписани срокове за изпълнение.");
+      pushIf(bodyOf(/неустойк|отговорност/i), "Уредени неустойки и отговорност на страните.");
+      pushIf(bodyOf(/прекратяван/i), "Ред за прекратяване съгласно ЗЗД.");
+      pushIf(bodyOf(/форсмажор|непреодолима\s+сила/i), "Клауза за непреодолима сила.");
+      pushIf(bodyOf(/конфиденциалност/i), "Клауза за конфиденциалност.");
+      pushIf(bodyOf(/арбитраж|подсъдност/i), "Уредена подсъдност/арбитраж.");
+      pushIf(bodyOf(/частичн[аи]?\s+недействителност|severabil/i), "Клауза за частична недействителност.");
+      pushIf(bodyOf(/писмен[аоа]\s+форма|заключителни/i), "Изискване за писмена форма при изменения.");
 
       const aiStrengths: string[] = Array.isArray(parsed.risk.strengths)
         ? parsed.risk.strengths.filter((s: unknown) => typeof s === "string" && s.trim().length > 5)
         : [];
-      // Merge: prefer AI-provided (по-специфични), fill in with derived up to 6.
       const merged: string[] = [];
       for (const s of [...aiStrengths, ...derivedStrengths]) {
         if (merged.length >= 6) break;
@@ -512,13 +467,6 @@ ${docTypeSpec.systemAddendum}
         }
       }
       parsed.risk.strengths = merged;
-
-      // 2) Позитивен summary когато няма реални слаби места.
-      if (kept.length === 0) {
-        parsed.risk.summary = merged.length > 0
-          ? `Документът е структуриран професионално и включва ${merged.length} защитни клаузи за страните. Готов за подпис след попълване на личните данни.`
-          : "Документът покрива необходимите за вида клаузи. Готов за подпис след попълване на личните данни.";
-      }
     }
 
     // Defensive: ensure bilingual flag is set on contract when requested,

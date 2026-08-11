@@ -13,6 +13,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { downloadSignedPdf } from "@/lib/signedPdfAssembler";
 import { snapshotToPlainText } from "@/lib/signingSnapshotToText";
 import { trackSign } from "@/lib/docFunnel";
+import { sha256Hex, makeAttachedSignatureCardPng } from "@/lib/attachedSignatureCard";
+
 
 interface Peer { id: string; name: string; role: string | null; order_idx: number; status: string; signed_at: string | null }
 interface Envelope { id: string; title: string; document_snapshot: any; status: string; order_mode: string; expires_at: string }
@@ -39,10 +41,12 @@ export default function Sign() {
   const [declineMode, setDeclineMode] = useState(false);
   const [reason, setReason] = useState("");
 
-  // Signature method: drawn (canvas), uploaded (image), qes (qualified e-signature file)
+  // Signature method: drawn (canvas), uploaded (image), qes (attached signed file — not validated)
   const [sigMethod, setSigMethod] = useState<"drawn" | "uploaded" | "qes">("drawn");
   const [qesFile, setQesFile] = useState<File | null>(null);
   const [qesFileBase64, setQesFileBase64] = useState<string | null>(null);
+  const [qesSha256, setQesSha256] = useState<string | null>(null);
+
 
   // ZEDEUU / ZET — explicit SES-equivalence consent + optional legal-entity capacity.
   const [sesAccepted, setSesAccepted] = useState(false);
@@ -72,27 +76,10 @@ export default function Sign() {
     if (data?.ok) { setOtpSent(true); setDebugCode(data.debug_code); toast.success("Код за потвърждение е изпратен на имейла"); }
     else toast.error(data?.error ?? "Грешка");
   }
-  function makeQesPlaceholderPng(text: string): string {
-    const c = document.createElement("canvas");
-    c.width = 600; c.height = 200;
-    const ctx = c.getContext("2d")!;
-    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
-    ctx.strokeStyle = "#0a0a1a"; ctx.lineWidth = 2;
-    ctx.strokeRect(6, 6, c.width - 12, c.height - 12);
-    ctx.fillStyle = "#0a0a1a";
-    ctx.font = "bold 22px serif";
-    ctx.fillText("Подписано с КЕП (QES)", 20, 50);
-    ctx.font = "16px serif";
-    ctx.fillText(text.slice(0, 60), 20, 90);
-    ctx.font = "14px serif";
-    ctx.fillText(new Date().toLocaleString("bg-BG"), 20, 130);
-    ctx.fillText("Файлът е приложен към заявката.", 20, 160);
-    return c.toDataURL("image/png");
-  }
-
   async function onQesFileChange(f: File | null) {
     setQesFile(f);
     setQesFileBase64(null);
+    setQesSha256(null);
     if (!f) return;
     if (f.size > 15 * 1024 * 1024) { toast.error("Файлът е твърде голям (макс 15MB)"); return; }
     const buf = await f.arrayBuffer();
@@ -100,7 +87,9 @@ export default function Sign() {
     const bytes = new Uint8Array(buf);
     for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
     setQesFileBase64(btoa(bin));
+    try { setQesSha256(await sha256Hex(f)); } catch { setQesSha256(null); }
   }
+
 
   async function doSign() {
     if (!name.trim()) { toast.error("Моля, въведете име"); return; }
@@ -116,8 +105,12 @@ export default function Sign() {
 
     let sigDataUrl = signature;
     if (sigMethod === "qes") {
-      if (!qesFile || !qesFileBase64) { toast.error("Прикачете подписания файл с КЕП"); return; }
-      sigDataUrl = makeQesPlaceholderPng(`${name.trim()} — ${qesFile.name}`);
+      if (!qesFile || !qesFileBase64) { toast.error("Прикачете файла с подписа"); return; }
+      sigDataUrl = makeAttachedSignatureCardPng({
+        signerName: name.trim(),
+        fileName: qesFile.name,
+        sha256: qesSha256,
+      });
     } else {
       if (!sigDataUrl) { toast.error(sigMethod === "uploaded" ? "Качете изображение с подпис" : "Моля, подпишете"); return; }
     }
@@ -268,7 +261,7 @@ export default function Sign() {
                     {([
                       { k: "drawn", l: "Начертай" },
                       { k: "uploaded", l: "Качи изображение" },
-                      { k: "qes", l: "КЕП / QES файл" },
+                      { k: "qes", l: "Прикачи файл с подпис" },
                     ] as const).map((o) => (
                       <button
                         key={o.k}
@@ -316,16 +309,25 @@ export default function Sign() {
                         className="block w-full text-xs"
                       />
                       {qesFile && (
-                        <div className="text-xs text-muted-foreground">
-                          Прикачен: <span className="font-medium text-foreground">{qesFile.name}</span> ({Math.round(qesFile.size / 1024)} KB)
+                        <div className="text-xs text-muted-foreground space-y-0.5">
+                          <div>
+                            Прикачен: <span className="font-medium text-foreground">{qesFile.name}</span> ({Math.round(qesFile.size / 1024)} KB)
+                          </div>
+                          {qesSha256 && (
+                            <div className="font-mono text-[10px] break-all">SHA-256: {qesSha256}</div>
+                          )}
                         </div>
                       )}
                       <p className="text-[11px] text-muted-foreground leading-relaxed">
-                        Подпишете документа с Вашия КЕП (Borica, Evrotrust, InfoNotary, StampIT и др.)
-                        във външно приложение и качете подписания файл (PDF с вграден подпис, .p7s,
-                        .asice и т.н.). Файлът се пази като доказателство към заявката и се появява
-                        в одитната следа.
+                        Ако сте подписали документа с квалифициран електронен подпис във външно
+                        приложение, качете подписания файл (PDF с вграден подпис, .p7s, .asice и др.).
+                        <strong className="text-foreground"> Платформата не проверява сертификата,
+                        веригата на доверие и обвързаността на файла с документа</strong> — той се
+                        пази като приложено доказателство и се записва в одитната следа заедно с
+                        SHA-256 отпечатъка си. Върху документа се отбелязва името на файла и
+                        отпечатъкът, без твърдение за квалифициран подпис.
                       </p>
+
                     </div>
                   )}
                 </div>
@@ -345,10 +347,10 @@ export default function Sign() {
                     onCheckedChange={(v) => setSesAccepted(v === true)}
                   />
                   <span>
-                    Съгласявам се този електронен подпис (усъвършенстван електронен
-                    подпис по смисъла на Регламент (ЕС) 910/2014 — eIDAS) да има
-                    правната сила на саморъчен подпис между страните по този документ
-                    (чл. 13, ал. 4 ЗЕДЕУУ).
+                    Съгласявам се този <strong>обикновен електронен подпис</strong> (по смисъла на
+                    Регламент (ЕС) 910/2014 и ЗЕДЕУУ) да има правната сила на саморъчен подпис
+                    между страните по този документ (чл. 13, ал. 4 ЗЕДЕУУ). Платформата не издава
+                    и не проверява квалифициран електронен подпис.
                   </span>
                 </label>
 
