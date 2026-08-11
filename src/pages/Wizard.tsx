@@ -33,6 +33,13 @@ import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhili
 import { adaptGraphToWizardQuestions } from "@/data/questionGraphs/adapter";
 import { parseExtraPartyTypes } from "@/components/wizard/liveDraft/clauseBuilders";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
+import { SensitiveDataWarning } from "@/components/SensitiveDataWarning";
+import {
+  parseSensitiveResponse,
+  isConfirmationRequired,
+  isSpecialCategoryBlocked,
+  type ClassificationSummary,
+} from "@/lib/aiSensitiveData";
 import { RefineDraftBox } from "@/components/wizard/RefineDraftBox";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -124,6 +131,11 @@ export default function WizardPage() {
   const [stepIdx, setStepIdx] = useState<number>(persisted?.stepIdx ?? 0);
   const [generating, setGenerating] = useState(false);
   const [genStepIdx, setGenStepIdx] = useState(0);
+  // Диалог за лични / чувствителни данни (GDPR потвърждение преди генериране).
+  const [sensitiveOpen, setSensitiveOpen] = useState(false);
+  const [sensitiveBlocked, setSensitiveBlocked] = useState(false);
+  const [sensitiveClass, setSensitiveClass] = useState<ClassificationSummary | null>(null);
+  const [correctionsPending, setCorrectionsPending] = useState<CorrectionsSelection | null>(null);
   const [result, setResult] = useState<AIResult | null>(persisted?.result ?? null);
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
   const [applyingCorrections, setApplyingCorrections] = useState(false);
@@ -212,7 +224,7 @@ export default function WizardPage() {
     "Финализираме документа — почти готово…",
   ];
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (userConfirmed = false) => {
     // Require login before generating. Wizard state is already persisted to
     // localStorage on every change, so the user returns to the same step.
     if (!authUser) {
@@ -232,7 +244,7 @@ export default function WizardPage() {
     try {
       const flatQs = flattenQuestions(visibleQuestions);
       const arbitrationCourt = arbitration.enabled ? getCourtById(arbitration.courtId) : undefined;
-      const { data, error } = await invokeEdgeFunction<AIResult & { error?: string; code?: string; requires_login?: boolean }>("generate-contract", {
+      const { data, error } = await invokeEdgeFunction<AIResult & { error?: string; code?: string; requires_login?: boolean; classification?: ClassificationSummary }>("generate-contract", {
         body: {
           sector: sector.title,
           contractName: sector.contractName,
@@ -247,6 +259,7 @@ export default function WizardPage() {
             courtLink: arbitrationCourt?.website ?? arbitration.customLink,
           } : { enabled: false },
           bilingual: bilingualMode,
+          userConfirmed,
         },
       });
       if (data?.code === "quota_exceeded") {
@@ -258,6 +271,23 @@ export default function WizardPage() {
         trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: "requires_login" });
         toast.error(data.error || "Влезте, за да продължите");
         setTimeout(() => navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`), 1200);
+        return;
+      }
+      // Лични / чувствителни данни: сървърът иска изрично потвърждение или
+      // блокира операцията. Показваме диалога вместо суров текст на грешка.
+      const sensitive = await parseSensitiveResponse(error, data);
+      if (isSpecialCategoryBlocked(sensitive)) {
+        trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: "sensitive_blocked" });
+        setSensitiveClass(sensitive?.classification ?? null);
+        setSensitiveBlocked(true);
+        setSensitiveOpen(true);
+        return;
+      }
+      if (isConfirmationRequired(sensitive) || data?.error === "needs_confirmation") {
+        trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: "needs_confirmation" });
+        setSensitiveClass(sensitive?.classification ?? data?.classification ?? null);
+        setSensitiveBlocked(false);
+        setSensitiveOpen(true);
         return;
       }
       if (error || !data || (data as { error?: string }).error) {
@@ -505,7 +535,7 @@ export default function WizardPage() {
     }
   };
 
-  const handleApplyCorrections = async (sel: CorrectionsSelection) => {
+  const handleApplyCorrections = async (sel: CorrectionsSelection, correctionsConfirmed = false) => {
     if (!result) return;
     if (!user) {
       toast.error("Влезте в профила си", { description: "Прогресът е запазен." });
@@ -528,9 +558,25 @@ export default function WizardPage() {
           answers,
           session_id: getOpSessionId(),
           batch_id: newOpBatchId(),
+          userConfirmed: correctionsConfirmed,
         },
       });
       if (error || data?.error) {
+        const sensitive = await parseSensitiveResponse(error, data);
+        if (isSpecialCategoryBlocked(sensitive)) {
+          setSensitiveClass(sensitive?.classification ?? null);
+          setSensitiveBlocked(true);
+          setCorrectionsPending(sel);
+          setSensitiveOpen(true);
+          return;
+        }
+        if (isConfirmationRequired(sensitive) || data?.error === "needs_confirmation") {
+          setSensitiveClass(sensitive?.classification ?? null);
+          setSensitiveBlocked(false);
+          setCorrectionsPending(sel);
+          setSensitiveOpen(true);
+          return;
+        }
         if (data?.error === "pro_required") {
           toast.error("Нужен е платен план", {
             description: "Прогресът е запазен.",
@@ -1188,6 +1234,24 @@ export default function WizardPage() {
         sectorId={sector?.id}
         docName={docName ?? sector?.contractName}
         wizardHref={wizardHref}
+      />
+
+      <SensitiveDataWarning
+        open={sensitiveOpen}
+        onClose={() => {
+          setSensitiveOpen(false);
+          setCorrectionsPending(null);
+        }}
+        onConfirm={() => {
+          setSensitiveOpen(false);
+          const pending = correctionsPending;
+          setCorrectionsPending(null);
+          if (pending) void handleApplyCorrections(pending, true);
+          else void handleGenerate(true);
+        }}
+        classification={sensitiveClass}
+        blocked={sensitiveBlocked}
+        operationLabel={correctionsPending ? "корекция на документа" : "създаване на документа"}
       />
 
       <WizardFeedbackPrompt

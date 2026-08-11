@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { type GeneratedContract } from "@/lib/exporters";
+import { SensitiveDataWarning } from "@/components/SensitiveDataWarning";
+import {
+  parseSensitiveResponse,
+  isConfirmationRequired,
+  isSpecialCategoryBlocked,
+  type ClassificationSummary,
+} from "@/lib/aiSensitiveData";
 
 interface RefineDraftBoxProps {
   contract: GeneratedContract;
@@ -41,8 +48,12 @@ export function RefineDraftBox({
   const [lastSummary, setLastSummary] = useState<string | null>(null);
   const [lastChanged, setLastChanged] = useState<string[]>([]);
   const [expanded, setExpanded] = useState(false);
+  // Диалог за лични / чувствителни данни (GDPR потвърждение преди AI редакция).
+  const [sensitiveOpen, setSensitiveOpen] = useState(false);
+  const [sensitiveBlocked, setSensitiveBlocked] = useState(false);
+  const [sensitiveClass, setSensitiveClass] = useState<ClassificationSummary | null>(null);
 
-  const submit = async () => {
+  const submit = async (userConfirmed = false) => {
     const text = feedback.trim();
     if (!text) return;
     if (text.length > 1500) {
@@ -66,10 +77,24 @@ export function RefineDraftBox({
           feedback: text,
           answers,
           batch_id: newOpBatchId(),
+          userConfirmed,
         },
       });
       if (error || data?.error) {
         const code = data?.code || "";
+        const sensitive = await parseSensitiveResponse(error, data);
+        if (isSpecialCategoryBlocked(sensitive)) {
+          setSensitiveClass(sensitive?.classification ?? null);
+          setSensitiveBlocked(true);
+          setSensitiveOpen(true);
+          return;
+        }
+        if (isConfirmationRequired(sensitive) || data?.error === "needs_confirmation") {
+          setSensitiveClass(sensitive?.classification ?? null);
+          setSensitiveBlocked(false);
+          setSensitiveOpen(true);
+          return;
+        }
         if (data?.error === "Unauthorized" || code === "unauthorized") {
           toast.error("Влезте в профила си, за да ползвате AI редакцията.");
           onNeedAuth?.();
@@ -169,7 +194,7 @@ export function RefineDraftBox({
               <span className="text-[11px] text-muted-foreground">
                 {feedback.length}/1500 · Ctrl/⌘ + Enter за изпращане
               </span>
-              <Button size="sm" onClick={submit} disabled={busy || !feedback.trim()} className="bg-gold text-primary-foreground hover:bg-gold/90">
+              <Button size="sm" onClick={() => void submit()} disabled={busy || !feedback.trim()} className="bg-gold text-primary-foreground hover:bg-gold/90">
                 {busy ? (
                   <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Коригирам…</>
                 ) : (
@@ -200,6 +225,18 @@ export function RefineDraftBox({
           </div>
         </div>
       </div>
+
+      <SensitiveDataWarning
+        open={sensitiveOpen}
+        onClose={() => setSensitiveOpen(false)}
+        onConfirm={() => {
+          setSensitiveOpen(false);
+          void submit(true);
+        }}
+        classification={sensitiveClass}
+        blocked={sensitiveBlocked}
+        operationLabel="AI редакция на документа"
+      />
     </div>
   );
 }

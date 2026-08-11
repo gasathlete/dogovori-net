@@ -33,6 +33,7 @@ interface Overview {
     reviews: number; avg_review_score: number; clean_review_rate: number;
     placeholder_blocks: number; corrections_applied: number;
     generate_started: number; generate_fail: number; generate_fail_rate: number;
+    generate_blocked: number; generate_blocked_rate: number;
     signing_requests: number; signing_completed: number; signing_failed: number; signing_completion_rate: number;
     feedback_total: number; feedback_bugs: number; feedback_avg_rating: number;
   };
@@ -228,11 +229,17 @@ export default function AdminMetrics() {
                 />
                 <Kpi label="Чисти документи" value={data.quality.clean_review_rate} suffix="%" hint="без открити пропуски" />
                 <Kpi
-                  label="Провали при генериране"
+                  label="Технически провали"
                   value={data.quality.generate_fail_rate}
                   suffix="%"
-                  hint={`${data.quality.generate_fail} от ${data.quality.generate_started}`}
+                  hint={`${data.quality.generate_fail} от ${data.quality.generate_started} опита`}
                   tone={data.quality.generate_fail_rate <= 5 ? "good" : data.quality.generate_fail_rate <= 15 ? "warn" : "bad"}
+                />
+                <Kpi
+                  label="Прекъснати от преграда"
+                  value={data.quality.generate_blocked_rate}
+                  suffix="%"
+                  hint={`${data.quality.generate_blocked} × потвърждение / лимит / вход`}
                 />
                 <Kpi label="Блокирани експорти" value={data.quality.placeholder_blocks} hint="непопълнени полета" />
                 <Kpi label="Приложени корекции" value={data.quality.corrections_applied} />

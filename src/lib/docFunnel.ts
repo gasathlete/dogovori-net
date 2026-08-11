@@ -56,11 +56,35 @@ export function trackFillStep(stepIdx: number, total: number, props?: DocFunnelP
   });
 }
 
+/**
+ * Причини, при които генерирането е спряно от продуктова преграда
+ * (потвърждение, лимит, вход, чувствително съдържание), а НЕ от техническа грешка.
+ * Отчитат се като `doc_generate_blocked`, за да не изкривяват процента реални провали.
+ */
+const GATE_REASONS = [
+  "needs_confirmation",
+  "confirmation_required",
+  "quota_exceeded",
+  "requires_login",
+  "sensitive_blocked",
+  "blocked_content",
+  "illegal_content",
+  "placeholder",
+];
+
+export function isGateReason(reason?: string): boolean {
+  if (!reason) return false;
+  const r = reason.toLowerCase();
+  return GATE_REASONS.some((g) => r.includes(g));
+}
+
 export function trackGenerate(
-  outcome: "started" | "success" | "fail",
+  outcome: "started" | "success" | "fail" | "blocked",
   props?: DocFunnelProps,
 ) {
-  trackDocEvent(`doc_generate_${outcome}`, "generate", { outcome, ...(props ?? {}) });
+  // Прегради → blocked, дори когато call site-ът е подал "fail".
+  const resolved = outcome === "fail" && isGateReason(props?.reason) ? "blocked" : outcome;
+  trackDocEvent(`doc_generate_${resolved}`, "generate", { outcome: resolved, ...(props ?? {}) });
 }
 
 export function trackDownload(

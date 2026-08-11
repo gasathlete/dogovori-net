@@ -19,6 +19,13 @@ import { PreviewPane } from "./buildContract/PreviewPane";
 import { FinalizePane } from "./buildContract/FinalizePane";
 
 import { Header } from "@/components/Header";
+import { SensitiveDataWarning } from "@/components/SensitiveDataWarning";
+import {
+  parseSensitiveResponse,
+  isConfirmationRequired,
+  isSpecialCategoryBlocked,
+  type ClassificationSummary,
+} from "@/lib/aiSensitiveData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -166,6 +173,11 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
 
   const [generating, setGenerating] = useState(false);
   const [genStepIdx, setGenStepIdx] = useState(0);
+  // Диалог за лични / чувствителни данни (GDPR потвърждение преди генериране).
+  const [sensitiveOpen, setSensitiveOpen] = useState(false);
+  const [sensitiveBlocked, setSensitiveBlocked] = useState(false);
+  const [sensitiveClass, setSensitiveClass] = useState<ClassificationSummary | null>(null);
+  const [correctionsPending, setCorrectionsPending] = useState<CorrectionsSelection | null>(null);
   const [result, setResult] = useState<AIResult | null>(persisted?.result ?? null);
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
   const [signature, setSignature] = useState<SignatureData>(
@@ -401,7 +413,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   };
   const currentMissing = attemptedNext && !canGoNext ? missingForStep(safeStepIdx) : [];
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (userConfirmed = false) => {
     const docDef = getDocumentType(documentType);
     if (!name.trim()) { toast.error("Въведете заглавие на документа"); return; }
     if (!categoryId) { toast.error("Изберете категория"); return; }
@@ -457,8 +469,25 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
           prices: get("prices"),
           obligations: get("obligations"),
           other: get("other"),
+          userConfirmed,
         },
       });
+      // Лични / чувствителни данни → диалог за потвърждение вместо сурова грешка.
+      const sensitive = await parseSensitiveResponse(error, data);
+      if (isSpecialCategoryBlocked(sensitive)) {
+        trackGenerate("fail", { source: "build", doc_key: documentType, reason: "sensitive_blocked" });
+        setSensitiveClass(sensitive?.classification ?? null);
+        setSensitiveBlocked(true);
+        setSensitiveOpen(true);
+        return;
+      }
+      if (isConfirmationRequired(sensitive) || (data as { error?: string })?.error === "needs_confirmation") {
+        trackGenerate("fail", { source: "build", doc_key: documentType, reason: "needs_confirmation" });
+        setSensitiveClass(sensitive?.classification ?? null);
+        setSensitiveBlocked(false);
+        setSensitiveOpen(true);
+        return;
+      }
       if (error) {
         const msg = String((error as any)?.message || error);
         // Edge functions return non-2xx as an Error from supabase-js. Try to extract context.
@@ -655,7 +684,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     }
   };
 
-  const handleApplyCorrections = async (sel: CorrectionsSelection) => {
+  const handleApplyCorrections = async (sel: CorrectionsSelection, correctionsConfirmed = false) => {
     if (!result) return;
     if (!user) {
       toast.error("Влезте в профила си", { description: "Прогресът е запазен." });
@@ -678,9 +707,25 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
           answers: syntheticAnswers,
           session_id: getOpSessionId(),
           batch_id: newOpBatchId(),
+          userConfirmed: correctionsConfirmed,
         },
       });
       if (error || data?.error) {
+        const sensitive = await parseSensitiveResponse(error, data);
+        if (isSpecialCategoryBlocked(sensitive)) {
+          setSensitiveClass(sensitive?.classification ?? null);
+          setSensitiveBlocked(true);
+          setCorrectionsPending(sel);
+          setSensitiveOpen(true);
+          return;
+        }
+        if (isConfirmationRequired(sensitive) || data?.error === "needs_confirmation") {
+          setSensitiveClass(sensitive?.classification ?? null);
+          setSensitiveBlocked(false);
+          setCorrectionsPending(sel);
+          setSensitiveOpen(true);
+          return;
+        }
         if (data?.error === "pro_required") {
           toast.error("Нужен е платен план", {
             description: "Прогресът е запазен.",
@@ -1447,6 +1492,24 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
           />
         </div>
       </main>
+
+      <SensitiveDataWarning
+        open={sensitiveOpen}
+        onClose={() => {
+          setSensitiveOpen(false);
+          setCorrectionsPending(null);
+        }}
+        onConfirm={() => {
+          setSensitiveOpen(false);
+          const pending = correctionsPending;
+          setCorrectionsPending(null);
+          if (pending) void handleApplyCorrections(pending, true);
+          else void handleGenerate(true);
+        }}
+        classification={sensitiveClass}
+        blocked={sensitiveBlocked}
+        operationLabel={correctionsPending ? "корекция на документа" : "изготвяне на документа"}
+      />
     </div>
   );
 }
