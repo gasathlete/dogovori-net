@@ -41,7 +41,9 @@ const SYSTEM_PROMPT = `Ти си независим български прав�
 - цитирай САМО членове, за които си сигурен, че съществуват и са относими; при съмнение не цитирай нищо (по-добре празен масив, отколкото измислен член);
 - без стилистични мнения за тона и езика; без правни съвети по конкретен казус — само технически констатации по документа;
 - "confidence" под 70, ако има съществено съмнение по формата или действителността;
-- ако нищо не липсва, върни празни масиви и verdict "ready".`;
+- ако нищо не липсва, върни празни масиви и verdict "ready";
+- КРИТИЧНО: в текстовите стойности НЕ използвай двойни кавички. Наименования пиши без кавички или с единични (Алфа ООД / 'Алфа' ООД), за да е JSON-ът винаги валиден.`;
+
 
 // Полета, които потребителят попълва локално след сваляне (лични/идентификационни данни).
 const PERSONAL_HINTS = [
@@ -114,21 +116,26 @@ Deno.serve(async (req: Request) => {
       safeText.slice(0, 60000),
     ].filter(Boolean).join("\n");
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: route.model,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
+    const callModel = async (messages: Array<{ role: string; content: string }>) => {
+      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: route.model,
+          messages,
+          response_format: { type: "json_object" },
+        }),
+      });
+      return r;
+    };
+
+    const aiResp = await callModel([
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: userPrompt },
+    ]);
 
     if (!aiResp.ok) {
       await logAiAudit({
@@ -149,7 +156,26 @@ Deno.serve(async (req: Request) => {
     const content: string = data.choices?.[0]?.message?.content ?? "";
     if (!content.trim()) throw new Error("AI не върна съдържание");
 
-    const parsed = extractJson(content) as Record<string, unknown>;
+    // Моделът понякога връща невалиден JSON (неескейпнати кавички в note/detail).
+    // Един поправящ проход, вместо 500 към потребителя.
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = extractJson(content) as Record<string, unknown>;
+    } catch (_parseErr) {
+      const repair = await callModel([
+        {
+          role: "system",
+          content:
+            'Ти си JSON поправящ инструмент. Върни САМО валиден JSON обект със същото съдържание. Ескейпни всички кавички в стойностите или ги замени с единични. Без markdown, без коментари, без текст извън JSON.',
+        },
+        { role: "user", content: content.slice(0, 60000) },
+      ]);
+      if (!repair.ok) throw new Error("AI върна невалиден JSON при ревизия");
+      const repairData = await repair.json();
+      const repaired: string = repairData.choices?.[0]?.message?.content ?? "";
+      parsed = extractJson(repaired) as Record<string, unknown>;
+    }
+
 
     // Нормализация — UI-ът разчита на стабилна форма.
     const arr = (v: unknown) => (Array.isArray(v) ? v : []);
