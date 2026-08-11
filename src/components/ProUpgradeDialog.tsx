@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { trackEvent, trackUpgradeStarted } from "@/lib/analytics";
+import { useAudience } from "@/hooks/useAudience";
+
 
 export type ProUpgradeTrigger =
   | "corrections"
