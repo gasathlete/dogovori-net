@@ -331,6 +331,7 @@ const AnimatedRoutes = () => {
         <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
         <Route path="/admin/funnel" element={<ProtectedRoute><AdminFunnel /></ProtectedRoute>} />
         <Route path="/admin/metrics" element={<ProtectedRoute><AdminMetrics /></ProtectedRoute>} />
+        <Route path="/admin/growth-brief" element={<ProtectedRoute><AdminGrowthBrief /></ProtectedRoute>} />
         <Route path="/admin/privacy" element={<ProtectedRoute><AdminPrivacy /></ProtectedRoute>} />
         <Route path="/admin/privacy/illegal" element={<ProtectedRoute><AdminIllegalContent /></ProtectedRoute>} />
         <Route path="/admin/pentest" element={<ProtectedRoute><AdminPenTest /></ProtectedRoute>} />
