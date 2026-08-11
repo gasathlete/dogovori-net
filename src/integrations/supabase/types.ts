@@ -4008,6 +4008,25 @@ export type Database = {
         Args: { _count: number; _user_id: string }
         Returns: undefined
       }
+      admin_financial_audit: {
+        Args: { _months?: number }
+        Returns: {
+          active_paid: number
+          active_teams: number
+          ai_calls: number
+          ai_cost_eur: number
+          ai_tokens_in: number
+          ai_tokens_out: number
+          month: string
+          new_signups: number
+          ops_analysis: number
+          ops_contract: number
+          ops_corrections: number
+          ops_template: number
+          ops_total: number
+          team_seats: number
+        }[]
+      }
       admin_list_ai_disclaimer_consents: {
         Args: { _limit?: number; _search?: string }
         Returns: {

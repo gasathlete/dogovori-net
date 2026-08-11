@@ -16,9 +16,11 @@ const SYSTEM_PROMPT = `Ти си независим български прав�
 
 Проверяваш строго и конкретно:
 1. Задължителни реквизити за вида документ (страни, предмет, цена/възнаграждение, срок, дата и място, подписи, приложения).
-2. Вътрешни противоречия и несъответствия между клаузите (различни срокове, суми, наименования на страните, номерация).
-3. Непопълнени полета — всякакви [ ... ], {{ ... }}, ______ или XXXX.
-4. Приложими правни основания — конкретни членове (ЗЗД, ТЗ, КТ, ЗЗП, ЗУТ, ЗОПБ, ЗЗЛД/GDPR), които документът реално задейства.
+2. ФОРМА И ДЕЙСТВИТЕЛНОСТ — задължителна проверка при всеки документ: изисква ли законът писмена форма, нотариална заверка на подписите и/или на съдържанието, вписване в регистър (Търговски регистър, Имотен регистър), одобрение от орган. Ако документът твърди обратното на закона (например че прехвърляне на дружествени дялове не се вписва в Търговския регистър или не изисква нотариално удостоверяване по чл. 129, ал. 2 ТЗ), това е "fail" и задължително влиза в "contradictions".
+3. Вътрешни противоречия и несъответствия между клаузите (различни срокове, суми, валути, наименования на страните, номерация).
+4. Валута и стойности — смесване на лева и евро, номинал на дялове, дължими суми без основание.
+5. Непопълнени полета — всякакви [ ... ], {{ ... }}, ______ или XXXX.
+6. Приложими правни основания — конкретни членове (ЗЗД, ТЗ, КТ, ЗЗП, ЗУТ, ЗОПБ, ЗЗЛД/GDPR), които документът реално задейства.
 
 Връщай СТРОГО валиден JSON (без markdown ограждания):
 {
@@ -34,7 +36,25 @@ const SYSTEM_PROMPT = `Ти си независим български прав�
   "legal_basis": [{"act":"ЗЗД","article":"чл. 79","why":"защо е приложим"}]
 }
 
-Правила: минимум 6 и максимум 12 записа в "checks". Без стилистични мнения за тона и езика. Без правни съвети към конкретен казус — само технически констатации по документа. Ако нищо не липсва, върни празни масиви и verdict "ready".`;
+Правила:
+- минимум 6 и максимум 12 записа в "checks"; винаги включвай проверка с id "forma_i_deystvitelnost";
+- цитирай САМО членове, за които си сигурен, че съществуват и са относими; при съмнение не цитирай нищо (по-добре празен масив, отколкото измислен член);
+- без стилистични мнения за тона и езика; без правни съвети по конкретен казус — само технически констатации по документа;
+- "confidence" под 70, ако има съществено съмнение по формата или действителността;
+- ако нищо не липсва, върни празни масиви и verdict "ready".`;
+
+// Полета, които потребителят попълва локално след сваляне (лични/идентификационни данни).
+const PERSONAL_HINTS = [
+  "име", "имена", "егн", "лнч", "еик", "булстат", "адрес", "седалище", "иban", "iban",
+  "сметка", "телефон", "имейл", "email", "лична карта", "паспорт", "дата", "град",
+  "представител", "мол", "подпис", "ддс",
+];
+
+function isPersonalField(text: string): boolean {
+  const t = text.toLowerCase();
+  return PERSONAL_HINTS.some((h) => t.includes(h));
+}
+
 
 Deno.serve(async (req: Request) => {
   const corsHeaders = buildCors(req);
@@ -59,9 +79,13 @@ Deno.serve(async (req: Request) => {
 
     // Класификация + редакция преди изпращане към модела (без лични данни).
     const classification = classifyDocumentBeforeAI(documentText);
+    // Ревизията е контролен слой — държим я на по-силен модел от генерирането,
+    // но не на "pro" (латентността разваля UX-а в уизарда).
     const route = routeModel("analyze-contract", classification, {
-      promptLength: documentText.length,
+      promptLength: Math.max(documentText.length, 6001),
     });
+
+
     if (!route.allowed) {
       return new Response(
         JSON.stringify({ error: "Ревизията е блокирана от политиката за данни", code: route.blockedReason }),
@@ -135,10 +159,22 @@ Deno.serve(async (req: Request) => {
         : "needs_fixes",
       confidence: Math.max(0, Math.min(100, Number(parsed.confidence) || 0)),
       summary: typeof parsed.summary === "string" ? parsed.summary : "",
-      checks: arr(parsed.checks).slice(0, 12),
-      missing_requisites: arr(parsed.missing_requisites).filter((x) => typeof x === "string"),
+      checks: arr(parsed.checks).slice(0, 12).filter((c) => {
+        // При отложено попълване на лични данни скриваме "fail" само заради тях.
+        if (!ignorePersonalData) return true;
+        const rec = c as Record<string, unknown>;
+        if (String(rec.status) !== "fail") return true;
+        return !isPersonalField(`${rec.label ?? ""} ${rec.note ?? ""}`);
+      }),
+      missing_requisites: arr(parsed.missing_requisites)
+        .filter((x) => typeof x === "string")
+        .filter((x) => !ignorePersonalData || !isPersonalField(x as string)),
       contradictions: arr(parsed.contradictions).slice(0, 10),
-      unfilled_fields: arr(parsed.unfilled_fields).filter((x) => typeof x === "string").slice(0, 20),
+      unfilled_fields: arr(parsed.unfilled_fields)
+        .filter((x) => typeof x === "string")
+        .filter((x) => !ignorePersonalData || !isPersonalField(x as string))
+        .slice(0, 20),
+
       legal_basis: arr(parsed.legal_basis).slice(0, 12),
       model: route.model,
       reviewed_at: new Date().toISOString(),
