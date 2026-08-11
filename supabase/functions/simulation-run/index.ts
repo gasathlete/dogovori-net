@@ -5,6 +5,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildCors } from "../_shared/cors.ts";
+import { extractJson } from "../_shared/json.ts";
 import { loadActivePromptMeta } from "../_shared/prompt-loader.ts";
 import { toolSchemasFor, FULL_TOOL_NAMES, isServerTool, execSearchTemplates } from "../_shared/assistant-tools.ts";
 
@@ -56,13 +57,8 @@ async function callGateway(apiKey: string, body: Record<string, unknown>) {
 
 function tryParseJson(text: string): any | null {
   if (!text) return null;
-  // Strip ```json fences
-  const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
-  try { return JSON.parse(cleaned); } catch { /* fallthrough */ }
-  // Try to find first {...}
-  const m = cleaned.match(/\{[\s\S]*\}$/);
-  if (m) { try { return JSON.parse(m[0]); } catch { /* ignore */ } }
-  return null;
+  // Shared tolerant parser (fences, control chars, truncated-mid-string output).
+  try { return extractJson(text); } catch { return null; }
 }
 
 const LAWYER_GENERATOR_PROMPT = `Ти си опитен български адвокат, който тества AI асистент за договорно право (Dogovori.net).
@@ -170,7 +166,7 @@ async function runDogovaryTurn(
     for (const tc of toolCalls) {
       const name = tc.function?.name;
       let args: any = {};
-      try { args = JSON.parse(tc.function?.arguments ?? "{}"); } catch { /* ignore */ }
+      args = tryParseJson(tc.function?.arguments ?? "{}") ?? {};
       collectedTools.push({ name, args });
 
       if (isServerTool(name)) {

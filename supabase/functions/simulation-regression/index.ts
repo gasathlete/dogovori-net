@@ -4,6 +4,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildCors } from "../_shared/cors.ts";
+import { extractJson } from "../_shared/json.ts";
 import { toolSchemasFor, FULL_TOOL_NAMES, isServerTool, execSearchTemplates } from "../_shared/assistant-tools.ts";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -24,11 +25,9 @@ async function gw(apiKey: string, body: Record<string, unknown>) {
 }
 
 function tryJson(t: string): any | null {
-  const c = t.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
-  try { return JSON.parse(c); } catch { /* */ }
-  const m = c.match(/\{[\s\S]*\}$/);
-  if (m) try { return JSON.parse(m[0]); } catch { /* */ }
-  return null;
+  if (!t) return null;
+  // Shared tolerant parser (fences, control chars, truncated-mid-string output).
+  try { return extractJson(t); } catch { return null; }
 }
 
 async function runBot(apiKey: string, sb: any, systemPrompt: string, model: string, userMsg: string) {
@@ -45,7 +44,7 @@ async function runBot(apiKey: string, sb: any, systemPrompt: string, model: stri
     for (const tc of tcs) {
       const name = tc.function?.name;
       let args: any = {};
-      try { args = JSON.parse(tc.function?.arguments ?? "{}"); } catch { /* */ }
+      args = tryJson(tc.function?.arguments ?? "{}") ?? {};
       collectedTools.push({ name, args });
       let result: any = { simulated: true };
       if (isServerTool(name)) {

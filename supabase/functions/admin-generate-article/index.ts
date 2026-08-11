@@ -3,6 +3,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
+import { extractJson } from "../_shared/json.ts";
 
 const TEXT_MODEL = "google/gemini-2.5-pro";
 const IMAGE_MODEL = "google/gemini-2.5-flash-image";
@@ -84,7 +85,8 @@ async function generateText(input: AdminInput, apiKey: string, system: string): 
   const text = data.choices?.[0]?.message?.content;
   if (!text) return null;
   try {
-    return JSON.parse(text) as ArticleJson;
+    // Tolerant parse: fences, control chars, truncated-mid-string responses.
+    return extractJson(text) as ArticleJson;
   } catch {
     return null;
   }

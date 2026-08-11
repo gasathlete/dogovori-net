@@ -4,6 +4,7 @@
 // open_template) to the browser through a custom SSE event.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
+import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt, loadActivePromptMeta } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
@@ -841,7 +842,7 @@ Deno.serve(async (req) => {
             for (const sc of serverCalls) {
               let result: unknown;
               try {
-                const args = JSON.parse(sc.function.arguments || "{}");
+                const args = safeParse(sc.function.arguments || "{}");
                 if (sc.function.name === "search_templates") {
                   result = await execSearchTemplates(admin, args);
                 } else {
@@ -1065,7 +1066,8 @@ Deno.serve(async (req) => {
 });
 
 function safeParse(s: string): any {
-  try { return JSON.parse(s || "{}"); } catch { return {}; }
+  // Tolerant: tool-call argument JSON can arrive truncated mid-string.
+  try { return extractJson(s || "{}"); } catch { return {}; }
 }
 
 function validateClientToolArgs(name: string, args: any): { ok: true; args: any } | { ok: false; reason: string } {
