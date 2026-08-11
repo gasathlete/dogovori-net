@@ -7,6 +7,7 @@ import {
   contractToPlainText, reviewDocument, type DocumentReview,
 } from "@/lib/documentReview";
 import { isPersonalDataPlaceholder } from "@/lib/placeholderGate";
+import { trackQualityReview, trackQualityReviewFail } from "@/lib/metrics";
 
 /**
  * „Автоматична AI ревизия" — втори независим проход върху готовия документ.
@@ -74,8 +75,23 @@ export function AIReviewCard({ contract, documentType, auto = true, ignorePerson
       documentType,
       ignorePersonalData,
     });
-    if (r) setReview(r);
-    else setError(e);
+    if (r) {
+      setReview(r);
+      trackQualityReview(
+        {
+          verdict: r.verdict,
+          checksPass: (r.checks ?? []).filter((c) => c.status === "pass").length,
+          checksTotal: (r.checks ?? []).length,
+          missing: (r.missing_requisites ?? []).length,
+          contradictions: (r.contradictions ?? []).length,
+          unfilled: (r.unfilled_fields ?? []).length,
+        },
+        documentType,
+      );
+    } else {
+      setError(e);
+      trackQualityReviewFail("review_error");
+    }
     setLoading(false);
   };
 

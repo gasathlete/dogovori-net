@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 import { FAQ } from "@/lib/plansData";
 import { usePlans, type Billing, type PlanId } from "@/hooks/usePlans";
 import { trackEvent } from "@/lib/analytics";
+import { trackPlansView, trackCheckoutStarted } from "@/lib/metrics";
 
 const PLAN_ICON: Record<PlanId, React.ComponentType<{ className?: string }>> = {
   free: Sparkles,
@@ -83,7 +84,7 @@ export default function Plans() {
   const plans = data?.plans ?? [];
   const COMPARISON_ROWS = data?.comparison ?? [];
 
-  useEffect(() => { markFunnelStep(4); }, []);
+  useEffect(() => { markFunnelStep(4); trackPlansView("plans_page"); }, []);
 
   return (
     <>
@@ -268,12 +269,15 @@ export default function Plans() {
                     <Link
                       to={cta.href}
                       onClick={() =>
-                        trackEvent("plans_cta_clicked", {
-                          plan: plan.id,
-                          billing,
-                          authed: isAuthed,
-                          audience,
-                        })
+                        {
+                          trackEvent("plans_cta_clicked", {
+                            plan: plan.id,
+                            billing,
+                            authed: isAuthed,
+                            audience,
+                          });
+                          if (plan.id !== "free") trackCheckoutStarted(plan.id, billing, "plans_card");
+                        }
                       }
                       className={cn(
                         "group/btn inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-all duration-300",
