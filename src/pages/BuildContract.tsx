@@ -431,11 +431,6 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         return;
       }
     }
-    if (!user) {
-      toast.info("Влезте, за да изградите документа", { description: "Прогресът ви е запазен." });
-      goAuth();
-      return;
-    }
 
     setGenerating(true);
     setGenStepIdx(0);

@@ -48,6 +48,7 @@ import { trackEvent } from "@/lib/analytics";
 import { trackDocStart, trackGenerate, trackFillStep } from "@/lib/docFunnel";
 import { useDocumentAccess } from "@/hooks/useDocumentAccess";
 import { StrictDocumentPaywall } from "@/components/wizard/StrictDocumentPaywall";
+import { AnonymousPreviewNotice } from "@/components/wizard/AnonymousPreviewNotice";
 import { BlurredPreviewOverlay } from "@/components/wizard/BlurredPreviewOverlay";
 import {
   WizardFeedbackPrompt,
@@ -1163,7 +1164,10 @@ export default function WizardPage() {
                 <span className="text-xs text-muted-foreground">Актуализация в реално време</span>
               )}
             </div>
-            {result?.contract && (
+            {result?.contract && !user && (
+              <AnonymousPreviewNotice onRegister={() => goAuth()} />
+            )}
+            {result?.contract && user && (
               <div className="mb-4">
                 <RefineDraftBox
                   contract={result.contract}
