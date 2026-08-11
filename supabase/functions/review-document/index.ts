@@ -57,7 +57,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Класификация + редакция преди изпращане към модела (без лични данни).
-    const classification = await classifyDocumentBeforeAI(documentText);
+    const classification = classifyDocumentBeforeAI(documentText);
     const route = routeModel("analyze-contract", classification, {
       promptLength: documentText.length,
     });
@@ -69,7 +69,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const safeText = route.redactionRequired
-      ? redactForAI(documentText).text
+      ? redactForAI(documentText).redacted
       : documentText;
 
     const userPrompt = [
@@ -98,7 +98,7 @@ Deno.serve(async (req: Request) => {
 
     if (!aiResp.ok) {
       await logAiAudit({
-        operation: "analyze-contract", model: route.model, classification,
+        user_id: null, operation: "analyze-contract", model: route.model, classification,
         redaction_applied: route.redactionRequired,
         status: "error", error_code: `http_${aiResp.status}`,
       });
@@ -135,7 +135,7 @@ Deno.serve(async (req: Request) => {
     };
 
     await logAiAudit({
-      operation: "analyze-contract", model: route.model, classification,
+      user_id: null, operation: "analyze-contract", model: route.model, classification,
       redaction_applied: route.redactionRequired, status: "ok",
       tokens_in: data?.usage?.prompt_tokens,
       tokens_out: data?.usage?.completion_tokens,
