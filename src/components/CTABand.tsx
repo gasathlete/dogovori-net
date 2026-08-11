@@ -6,6 +6,8 @@ import { useMemo, useState } from "react";
 import { TeaserDialog } from "@/components/TeaserDialog";
 import { openStartStory } from "@/components/funnel/StartStoryOverlay";
 import { useAuth } from "@/hooks/useAuth";
+import { useAudience } from "@/hooks/useAudience";
+import { AudienceToggle } from "@/components/funnel/AudienceToggle";
 
 function LiveCounter() {
   const counts = useDownloadCounts();
@@ -32,6 +34,7 @@ function LiveCounter() {
 
 export function CTABand() {
   const { user } = useAuth();
+  const { copy } = useAudience();
   const [teaserOpen, setTeaserOpen] = useState(false);
   return (
     <section id="cta-band" className="container py-12 sm:py-16 md:py-20">
@@ -59,11 +62,17 @@ export function CTABand() {
           <LiveCounter />
           <div className="eyebrow mb-3 justify-center">Готови?</div>
           <h2 className="mx-auto max-w-2xl font-serif text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl">
-            Изгответе своя професионален документ още днес
+            {copy.ctaHeadline}
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+            {copy.ctaExample}
+          </p>
+          <p className="mx-auto mt-2 max-w-xl text-[12px] text-muted-foreground">
             +600 шаблона · AI анализ на риска · електронен подпис · без скрити такси.
           </p>
+          <div className="mt-5 flex justify-center">
+            <AudienceToggle size="sm" />
+          </div>
           {user ? (
             <div className="mx-auto mt-8 flex w-full max-w-[460px] flex-col items-center gap-3">
               <Link

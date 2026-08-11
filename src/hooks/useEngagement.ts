@@ -9,7 +9,7 @@
  * Без DB зависимости — синхронизира се между tab-ове чрез `storage` event.
  * При login може да се мигрира към server-side таблица.
  */
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const KEY = "dogovari_engagement_v1";
 const DEFAULT_GOAL = 1;
@@ -142,9 +142,12 @@ export function bumpEngagement(): {
 }
 
 export function useEngagement(): EngagementState {
-  const state = useSyncExternalStore(subscribe, getNormalized, () => DEFAULT_STATE);
-  // On mount, normalize once so stale daily_progress flushes.
+  const [state, setState] = useState<EngagementState>(DEFAULT_STATE);
+
   useEffect(() => {
+    const sync = () => setState(getNormalized());
+    sync();
+    // On mount, normalize once so stale daily_progress flushes.
     const normalized = getNormalized();
     const raw = readRaw();
     if (
@@ -153,9 +156,12 @@ export function useEngagement(): EngagementState {
     ) {
       writeRaw(normalized);
     }
+    return subscribe(sync);
   }, []);
+
   return state;
 }
+
 
 /** Hook за компоненти, които искат да emit-ват op-и. */
 export function useBumpEngagement() {

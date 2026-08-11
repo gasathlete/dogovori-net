@@ -16,6 +16,8 @@ import { SoftCapPanel } from "@/components/paywall/SoftCapPanel";
 
 
 import { RoiCalculator } from "@/components/funnel/RoiCalculator";
+import { AudienceToggle } from "@/components/funnel/AudienceToggle";
+import { useAudience } from "@/hooks/useAudience";
 import { markFunnelStep } from "@/lib/funnel";
 import { useEffect } from "react";
 
@@ -73,6 +75,7 @@ function buildCta(planId: PlanId, billing: Billing, isAuthed: boolean): {
 export default function Plans() {
   const { user } = useAuth();
   const isAuthed = Boolean(user);
+  const { audience, copy } = useAudience();
   const [billing, setBilling] = useState<Billing>("monthly");
 
   const { data, isLoading } = usePlans();
@@ -120,7 +123,8 @@ export default function Plans() {
             </p>
           </div>
 
-          <div className="mt-6 flex justify-center sm:mt-8">
+          <div className="mt-6 flex flex-col items-center gap-3 sm:mt-8">
+            <AudienceToggle size="sm" />
             <div
               role="tablist"
               aria-label="Период на фактуриране"
@@ -185,7 +189,7 @@ export default function Plans() {
                 >
                   {plan.highlight && (
                     <span className="absolute -top-3 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-brand px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-brand">
-                      {plan.badge}
+                      {plan.id === "entrepreneur" ? copy.planBadge : plan.badge}
                     </span>
                   )}
 
@@ -232,6 +236,17 @@ export default function Plans() {
                     )}
                   </div>
 
+                  {effectivePrice && effectivePrice.price > 0 && (
+                    <div className="relative z-10 mt-3 space-y-1 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2 text-left">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                        {copy.priceFrame}
+                      </p>
+                      <p className="text-[12px] leading-snug text-muted-foreground">
+                        {copy.valueLine}
+                      </p>
+                    </div>
+                  )}
+
                   <div className="relative z-10 mt-6 space-y-3">
                     <PlanHeroBenefit planId={plan.id} highlight={plan.highlight} />
                     <PlanCategoryAccordion
@@ -249,6 +264,7 @@ export default function Plans() {
                           plan: plan.id,
                           billing,
                           authed: isAuthed,
+                          audience,
                         })
                       }
                       className={cn(
@@ -263,7 +279,7 @@ export default function Plans() {
                     </Link>
                     {!isAuthed && plan.id !== "free" && (
                       <p className="text-center text-[11px] text-muted-foreground">
-                        Първо регистрация — после плащане
+                        Безплатна регистрация · плащане само ако продължиш
                       </p>
                     )}
                   </div>
@@ -294,7 +310,7 @@ export default function Plans() {
                 </div>
                 <Link
                   to={cta.href}
-                  onClick={() => trackEvent("plans_cta_clicked", { plan: "free", billing, authed: isAuthed })}
+                  onClick={() => trackEvent("plans_cta_clicked", { plan: "free", billing, authed: isAuthed, audience })}
                   className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-brand/40 bg-brand/5 px-5 py-2.5 text-sm font-semibold text-brand transition-all hover:border-brand hover:bg-brand/10"
                 >
                   {cta.label}
@@ -307,6 +323,13 @@ export default function Plans() {
           <div className="mt-6 sm:mt-8">
             <TrustGuaranteeBar />
           </div>
+
+          {/* ROI / savings calculator — directly under the pricing cards */}
+          <section className="mt-10 rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:mt-14 sm:p-6">
+            <div className="mx-auto max-w-3xl">
+              <RoiCalculator />
+            </div>
+          </section>
 
           {/* Top-up packs — placed directly under the free plan */}
 
@@ -325,12 +348,6 @@ export default function Plans() {
             </div>
           </section>
 
-          {/* ROI / savings calculator — directly under top-ups */}
-          <section className="mt-10 rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:mt-14 sm:p-6">
-            <div className="mx-auto max-w-3xl">
-              <RoiCalculator />
-            </div>
-          </section>
 
           <ExpandableCard
             className="mt-10 rounded-2xl border border-hairline bg-card/70 p-5 backdrop-blur-md sm:mt-14 sm:p-6"
