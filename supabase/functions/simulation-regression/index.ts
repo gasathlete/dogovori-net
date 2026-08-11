@@ -44,7 +44,7 @@ async function runBot(apiKey: string, sb: any, systemPrompt: string, model: stri
     for (const tc of tcs) {
       const name = tc.function?.name;
       let args: any = {};
-      try { args = JSON.parse(tc.function?.arguments ?? "{}"); } catch { /* */ }
+      args = tryJson(tc.function?.arguments ?? "{}") ?? {};
       collectedTools.push({ name, args });
       let result: any = { simulated: true };
       if (isServerTool(name)) {

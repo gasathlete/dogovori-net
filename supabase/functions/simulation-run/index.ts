@@ -166,7 +166,7 @@ async function runDogovaryTurn(
     for (const tc of toolCalls) {
       const name = tc.function?.name;
       let args: any = {};
-      try { args = JSON.parse(tc.function?.arguments ?? "{}"); } catch { /* ignore */ }
+      args = tryParseJson(tc.function?.arguments ?? "{}") ?? {};
       collectedTools.push({ name, args });
 
       if (isServerTool(name)) {
