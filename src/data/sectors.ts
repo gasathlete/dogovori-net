@@ -1973,7 +1973,7 @@ export function isNonContractDoc(documentName?: string | null): boolean {
 const DOC_TOPICS: Array<[string, RegExp]> = [
   ["lease", /наем|аренда|пренаем|лизинг/i],
   ["sale", /покупко|продажб|продаж|изкупуван|доставк|замяна/i],
-  ["construction", /смр|строител|ремонт|проектиран|строителен надзор|обект/i],
+  ["construction", /смр|строител|строеж|ремонт|проектиран|обект|акт 1[0-9]|гаранционна карта/i],
   ["loan", /заем|кредит|разсрочен|финансиран/i],
   ["security", /залог|ипотек|поръчител|гаранц|запис на заповед|цесия/i],
   ["services", /услуг|изработк|консултант|абонамент|поддръжк|мандат|посреднич/i],
@@ -2014,7 +2014,7 @@ export function filterSectorSpecifics(sector: Sector, sub: SubWizard | undefined
   if (!sub) return specifics;
   const docName = sub.contractName ?? sub.documentName;
   const docTopics = topicsOf(docName);
-  const sectorTopics = topicsOf(sector.contractName);
+  const sectorTopics = new Set([...topicsOf(sector.contractName), ...topicsOf(sector.title), ...topicsOf(sector.subtitle)]);
   if (docTopics.size === 0 || sectorTopics.size === 0) return specifics;
   let shared = false;
   for (const t of docTopics) if (sectorTopics.has(t)) shared = true;
