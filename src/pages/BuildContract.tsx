@@ -838,7 +838,10 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         </div>
       </div>
 
+      <OpsHintBar isPro={isPro} />
+
       <main className="container py-6 md:py-8">
+
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* LEFT — form */}
           <section className="space-y-5">
