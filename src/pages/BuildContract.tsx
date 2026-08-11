@@ -1434,7 +1434,22 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
             )}
 
             {result && (
+              <DocumentValueCard
+                documentTitle={result.contract?.title || name}
+                needsAuth={!user}
+                canDownload={
+                  !!user &&
+                  (isPro || isTeam || freeQuota.topupBalance > 0 || freeQuota.opsUsed < freeQuota.opsCap)
+                }
+                busy={exporting === "pdf"}
+                onDownload={() => handleExport("pdf")}
+                onRegister={goAuth}
+              />
+            )}
+
+            {result && (
               <FinalizePane
+
                 result={result}
                 isPro={isPro}
                 freeWaveAvailable={freeWaveAvailable}
