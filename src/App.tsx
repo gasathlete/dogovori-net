@@ -408,6 +408,7 @@ const App = () => (
             <AuthGateModal />
             <StartStoryOverlay />
             <AIDisclaimerModal />
+            <UnfilledPlaceholdersModal />
           </Suspense>
           <DeferredOverlays />
           <Suspense fallback={<RouteFallback />}>
