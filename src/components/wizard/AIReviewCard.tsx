@@ -245,12 +245,12 @@ export function AIReviewCard({ contract, documentType, auto = true, ignorePerson
   );
 }
 
-const Block = React.forwardRef<
+const Block = forwardRef<
   HTMLDivElement,
   {
     title: string;
     tone: "warning" | "danger";
-    children: React.ReactNode;
+    children: ReactNode;
   }
 >(function Block({ title, tone, children }, ref) {
   const cls =
