@@ -208,14 +208,17 @@ export default function Plans() {
               return (
                 <article
                   key={plan.id}
+                  id={`plan-${plan.id}`}
                   className={cn(
-                    "group relative flex flex-col rounded-3xl border bg-card/85 p-6 backdrop-blur-md transition-all duration-500 hover:-translate-y-0.5 sm:p-7",
+                    "group relative flex flex-col scroll-mt-28 rounded-3xl border bg-card/85 p-6 backdrop-blur-md transition-all duration-500 hover:-translate-y-0.5 sm:p-7",
                     plan.highlight
                       ? "border-brand/50 shadow-brand ring-1 ring-brand/20"
                       : "border-hairline hover:border-brand/30",
+                    preselected === plan.id && "border-brand ring-2 ring-brand/40",
                   )}
                   style={{ animationDelay: `${idx * 80}ms` }}
                 >
+
                   {plan.highlight && (
                     <span className="absolute -top-3 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-brand px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-brand">
                       {plan.id === "entrepreneur" ? copy.planBadge : plan.badge}
