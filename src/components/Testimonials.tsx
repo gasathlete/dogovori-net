@@ -1,5 +1,6 @@
 import { useEffect, useState, lazy, Suspense } from "react";
 import { Star, Quote, MessageSquarePlus, BadgeCheck, Clock } from "@/icons";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -209,6 +210,14 @@ function TestimonialDetail({
             <p className="text-sm leading-relaxed text-muted-foreground">{t.about}</p>
           </div>
         )}
+
+        {t.is_verified_customer && (
+          <p className="mt-4 flex items-start gap-2 border-t border-hairline pt-3 text-[11px] leading-relaxed text-muted-foreground">
+            <BadgeCheck className="mt-px h-3.5 w-3.5 shrink-0 text-gold" />
+            Отметката „Проверен клиент" се поставя след като авторът е посочил код на поръчка или изготвен документ в
+            платформата и екипът го е потвърдил.
+          </p>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -250,7 +259,15 @@ function TestimonialCard({ t, onOpen }: { t: Testimonial; onOpen: (t: Testimonia
           </div>
         )}
         <div className="min-w-0">
-          <div className="font-serif text-sm font-bold text-foreground">{t.name}</div>
+          <div className="flex items-center gap-1.5">
+            <span className="font-serif text-sm font-bold text-foreground">{t.name}</span>
+            {t.is_verified_customer && (
+              <span title="Проверен клиент" className="inline-flex items-center text-gold">
+                <BadgeCheck className="h-4 w-4" />
+                <span className="sr-only">Проверен клиент</span>
+              </span>
+            )}
+          </div>
           {t.role && (
             <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
               {t.role}
@@ -331,8 +348,15 @@ export function Testimonials() {
           Напишете ревю
         </Button>
         <p className="text-xs text-muted-foreground">
-          Всяко ревю преминава кратък преглед преди публикуване.
+          Всяко ревю преминава модерация от екипа преди публикуване.
         </p>
+        <Link
+          to="/moite-revyuta"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-gold underline-offset-4 hover:underline"
+        >
+          <Clock className="h-3.5 w-3.5" />
+          Статус на моето ревю
+        </Link>
       </div>
 
       <TestimonialDetail t={active} open={!!active} onOpenChange={(v) => !v && setActive(null)} />
