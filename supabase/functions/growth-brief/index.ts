@@ -84,6 +84,11 @@ async function authorize(req: Request, corsHeaders: Record<string, string>): Pro
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
   if (!token) return deny(401, "unauthorized");
 
+  // Cron: сравняваме директно със service ключа (той може да е в новия
+  // sb_secret_* формат, който getClaims не валидира като JWT).
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (serviceKey && token === serviceKey) return null;
+
   const anon = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,
