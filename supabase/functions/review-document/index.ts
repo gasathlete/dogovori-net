@@ -79,11 +79,12 @@ Deno.serve(async (req: Request) => {
 
     // Класификация + редакция преди изпращане към модела (без лични данни).
     const classification = classifyDocumentBeforeAI(documentText);
-    // Ревизията е контролен слой — държим я на по-силен модел от генерирането.
+    // Ревизията е контролен слой — държим я на по-силен модел от генерирането,
+    // но не на "pro" (латентността разваля UX-а в уизарда).
     const route = routeModel("analyze-contract", classification, {
       promptLength: Math.max(documentText.length, 6001),
-      preferredModel: "google/gemini-2.5-pro",
     });
+
 
     if (!route.allowed) {
       return new Response(
