@@ -49,6 +49,10 @@ import { trackDocStart, trackGenerate, trackFillStep } from "@/lib/docFunnel";
 import { useDocumentAccess } from "@/hooks/useDocumentAccess";
 import { StrictDocumentPaywall } from "@/components/wizard/StrictDocumentPaywall";
 import { AnonymousPreviewNotice } from "@/components/wizard/AnonymousPreviewNotice";
+import { OpsHintBar } from "@/components/wizard/OpsHintBar";
+import { DocumentValueCard } from "@/components/wizard/DocumentValueCard";
+import { useEnterFocusNext } from "@/hooks/useEnterFocusNext";
+
 import { BlurredPreviewOverlay } from "@/components/wizard/BlurredPreviewOverlay";
 import {
   WizardFeedbackPrompt,
