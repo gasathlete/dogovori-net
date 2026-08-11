@@ -316,8 +316,11 @@ export default function AdminFinancials() {
             VAT 20% inclusive, Stripe 2.9% + 0.30 €. LTV = (ARPU × gross margin) / churn. Payback = CAC / (ARPU × gross margin).
           </p>
         </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
+
   );
 }
 
