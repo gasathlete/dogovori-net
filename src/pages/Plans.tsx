@@ -17,6 +17,7 @@ import { SoftCapPanel } from "@/components/paywall/SoftCapPanel";
 
 import { RoiCalculator } from "@/components/funnel/RoiCalculator";
 import { AudienceToggle } from "@/components/funnel/AudienceToggle";
+import { First100Counter } from "@/components/funnel/First100Counter";
 import { useAudience } from "@/hooks/useAudience";
 import { markFunnelStep } from "@/lib/funnel";
 import { useEffect } from "react";
@@ -121,6 +122,13 @@ export default function Plans() {
               {"\n"}
               Без обвързване. ДДС включено в цената. Отказ по всяко време.
             </p>
+          </div>
+
+          <div className="mt-4 flex flex-col items-center gap-2">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              Промокод <span className="font-semibold text-brand">FIRST100</span> → −20% за нови клиенти
+            </p>
+            <First100Counter />
           </div>
 
           <div className="mt-6 flex flex-col items-center gap-3 sm:mt-8">
