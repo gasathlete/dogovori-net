@@ -225,6 +225,18 @@ export function RefineDraftBox({
           </div>
         </div>
       </div>
+
+      <SensitiveDataWarning
+        open={sensitiveOpen}
+        onClose={() => setSensitiveOpen(false)}
+        onConfirm={() => {
+          setSensitiveOpen(false);
+          void submit(true);
+        }}
+        classification={sensitiveClass}
+        blocked={sensitiveBlocked}
+        operationLabel="AI редакция на документа"
+      />
     </div>
   );
 }
