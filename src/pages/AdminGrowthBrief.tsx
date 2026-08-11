@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, AlertCircle, Brain, Copy, Download, Clock, TrendingUp } from "@/icons";
@@ -95,6 +96,9 @@ export default function AdminGrowthBrief() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  /** Насока/промпт от оператора — влиза в разсъждението за следващата итерация. */
+  const [operatorPrompt, setOperatorPrompt] = useState("");
+
 
   const loadHistory = useCallback(async () => {
     setLoading(true);
@@ -121,8 +125,13 @@ export default function AdminGrowthBrief() {
     setErr(null);
     try {
       const { data, error } = await supabase.functions.invoke("growth-brief", {
-        body: { period, source: "manual" },
+        body: {
+          period,
+          source: "manual",
+          operator_prompt: operatorPrompt.trim() || undefined,
+        },
       });
+
       if (error) throw new Error(error.message);
       const brief = (data as { brief?: Brief; error?: string })?.brief;
       if (!brief) throw new Error((data as { error?: string })?.error ?? "Неуспешно генериране");
@@ -199,6 +208,42 @@ export default function AdminGrowthBrief() {
             </Button>
           </div>
         </div>
+
+        {/* Промпт от оператора → влиза в разсъждението за следващата итерация */}
+        <section className="mb-6 rounded-2xl border border-hairline bg-card/60 p-5">
+          <label htmlFor="operator-prompt" className="font-serif text-base text-foreground">
+            Изпълнение на добавен промпт
+          </label>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Поставете тук промпта или насоката, по която работим сега (напр. изпълнените задачи от
+            последния бриф или нов приоритет). Моделът ще я вземе предвид, ще отчете какво вече е
+            направено и ще продължи разсъжденията за следващата итерация.
+          </p>
+          <Textarea
+            id="operator-prompt"
+            value={operatorPrompt}
+            onChange={(e) => setOperatorPrompt(e.target.value)}
+            rows={5}
+            placeholder="Напр.: Изпълнени са прогрес индикатор в wizard, правни tooltips, ROI карта след генериране и микро-индикатор за операции. Продължи анализа оттук."
+            className="mt-3 bg-background/60 text-sm"
+          />
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button onClick={generate} disabled={generating} size="sm">
+              {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Brain className="mr-2 h-4 w-4" />}
+              Разсъждавай за следващата стъпка
+            </Button>
+            {operatorPrompt && (
+              <Button variant="ghost" size="sm" onClick={() => setOperatorPrompt("")}>
+                Изчисти
+              </Button>
+            )}
+            <span className="text-[11px] text-muted-foreground">
+              Период: {PERIODS.find((p) => p.key === period)?.label}
+            </span>
+          </div>
+        </section>
+
+
 
         {err && (
           <div className="mb-6 flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger">

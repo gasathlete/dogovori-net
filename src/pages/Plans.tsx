@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Check, X, ArrowRight, Sparkles, ShieldCheck, Users, Zap, Crown, Loader2 } from "@/icons";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -84,7 +84,27 @@ export default function Plans() {
   const plans = data?.plans ?? [];
   const COMPARISON_ROWS = data?.comparison ?? [];
 
-  useEffect(() => { markFunnelStep(4); trackPlansView("plans_page"); }, []);
+  // Предварително избран план (напр. идване от готов документ: /plans?plan=entrepreneur&from=document).
+  const [searchParams] = useSearchParams();
+  const preselected = searchParams.get("plan");
+  const fromSource = searchParams.get("from");
+
+  useEffect(() => {
+    markFunnelStep(4);
+    trackPlansView(fromSource ? `plans_page_${fromSource}` : "plans_page");
+  }, [fromSource]);
+
+  useEffect(() => {
+    if (!preselected || isLoading) return;
+    const el = document.getElementById(`plan-${preselected}`);
+    if (!el) return;
+    const t = window.setTimeout(
+      () => el.scrollIntoView({ behavior: "smooth", block: "center" }),
+      250,
+    );
+    return () => window.clearTimeout(t);
+  }, [preselected, isLoading]);
+
 
   return (
     <>
@@ -188,14 +208,17 @@ export default function Plans() {
               return (
                 <article
                   key={plan.id}
+                  id={`plan-${plan.id}`}
                   className={cn(
-                    "group relative flex flex-col rounded-3xl border bg-card/85 p-6 backdrop-blur-md transition-all duration-500 hover:-translate-y-0.5 sm:p-7",
+                    "group relative flex flex-col scroll-mt-28 rounded-3xl border bg-card/85 p-6 backdrop-blur-md transition-all duration-500 hover:-translate-y-0.5 sm:p-7",
                     plan.highlight
                       ? "border-brand/50 shadow-brand ring-1 ring-brand/20"
                       : "border-hairline hover:border-brand/30",
+                    preselected === plan.id && "border-brand ring-2 ring-brand/40",
                   )}
                   style={{ animationDelay: `${idx * 80}ms` }}
                 >
+
                   {plan.highlight && (
                     <span className="absolute -top-3 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-brand px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-brand">
                       {plan.id === "entrepreneur" ? copy.planBadge : plan.badge}

@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { OpsHintBar } from "@/components/wizard/OpsHintBar";
+import { DocumentValueCard } from "@/components/wizard/DocumentValueCard";
+import { useEnterFocusNext } from "@/hooks/useEnterFocusNext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { prefetchHandlers } from "@/components/PrefetchLink";
 import { ArrowLeft, ArrowRight, Loader2, FileDown, FileText, Save, Wand2, Sparkles, Zap, Briefcase, Scale, ChevronDown, Check, Languages, ShieldCheck, FileSignature, Lightbulb, Printer } from "@/icons";
@@ -191,6 +194,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   const [signDialogOpen, setSignDialogOpen] = useState(false);
   const canStrict = isPro || isTeam;
   const canBilingual = isPro || isTeam;
+  const handleEnterFocusNext = useEnterFocusNext();
+
   const [bilingual, setBilingual] = useState<boolean>(
     presetBilingual || Boolean(persisted?.bilingual),
   );
@@ -838,7 +843,10 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         </div>
       </div>
 
+      <OpsHintBar isPro={isPro} />
+
       <main className="container py-6 md:py-8">
+
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* LEFT — form */}
           <section className="space-y-5">
@@ -877,7 +885,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                   Попълнете каквото знаете. <span className="text-gold">Празните полета</span> се попълват от Нашата Система&nbsp; с пазарно-стандартни клаузи. Готов документ до 2 минути.
                 </p>
 
-                <div className="space-y-4">
+                <div className="space-y-4" onKeyDown={handleEnterFocusNext}>
                   {/* Stepper */}
                   <div className="rounded-xl border border-border/60 bg-navy-light/40 px-4 py-3">
                     <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-[0.18em]">
@@ -1428,7 +1436,22 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
             )}
 
             {result && (
+              <DocumentValueCard
+                documentTitle={result.contract?.title || name}
+                needsAuth={!user}
+                canDownload={
+                  !!user &&
+                  (isPro || isTeam || freeQuota.topupBalance > 0 || freeQuota.opsUsed < freeQuota.opsCap)
+                }
+                busy={exporting === "pdf"}
+                onDownload={() => handleExport("pdf")}
+                onRegister={goAuth}
+              />
+            )}
+
+            {result && (
               <FinalizePane
+
                 result={result}
                 isPro={isPro}
                 freeWaveAvailable={freeWaveAvailable}

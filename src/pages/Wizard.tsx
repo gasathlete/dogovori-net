@@ -49,6 +49,10 @@ import { trackDocStart, trackGenerate, trackFillStep } from "@/lib/docFunnel";
 import { useDocumentAccess } from "@/hooks/useDocumentAccess";
 import { StrictDocumentPaywall } from "@/components/wizard/StrictDocumentPaywall";
 import { AnonymousPreviewNotice } from "@/components/wizard/AnonymousPreviewNotice";
+import { OpsHintBar } from "@/components/wizard/OpsHintBar";
+import { DocumentValueCard } from "@/components/wizard/DocumentValueCard";
+import { useEnterFocusNext } from "@/hooks/useEnterFocusNext";
+
 import { BlurredPreviewOverlay } from "@/components/wizard/BlurredPreviewOverlay";
 import {
   WizardFeedbackPrompt,
@@ -143,6 +147,8 @@ export default function WizardPage() {
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(persisted?.appliedNotes);
   const [attemptedNext, setAttemptedNext] = useState(false);
   const questionCardRef = useRef<HTMLDivElement>(null);
+  const handleEnterFocusNext = useEnterFocusNext();
+
 
   const focusFirstEmpty = () => {
     requestAnimationFrame(() => {
@@ -215,6 +221,9 @@ export default function WizardPage() {
   const progress = result ? 100 : ((safeIdx + (current && isAnswered(current) ? 1 : 0)) / total) * 100;
   const canNext = current ? !current.required || isAnswered(current) : false;
   const isLast = safeIdx === total - 1;
+  /** Кратко име на текущата стъпка за индикатора „Стъпка X от N: …“. */
+  const stepLabel = (current?.label ?? "").replace(/\s*[:?]\s*$/, "").slice(0, 48);
+
 
   const GEN_STEPS = [
     "Проверяваме въведената информация…",
@@ -835,12 +844,20 @@ export default function WizardPage() {
               <a href="/ai" className="hidden underline-offset-2 hover:text-gold hover:underline md:inline">Как работи AI</a>
               <a href="/karta" className="hidden underline-offset-2 hover:text-gold hover:underline md:inline">Карта на сайта</a>
               <span className="hidden md:inline">·</span>
-              <span>{result ? "Готово" : `Стъпка ${safeIdx + 1} от ${total}`}</span>
+              <span>
+                {result ? "Готово" : `Стъпка ${safeIdx + 1} от ${total}`}
+                {!result && stepLabel && (
+                  <span className="hidden text-foreground sm:inline">: {stepLabel}</span>
+                )}
+              </span>
             </div>
           </div>
           <Progress value={progress} className="h-1.5 bg-secondary" />
         </div>
       </div>
+
+      <OpsHintBar isPro={isPro} />
+
 
       {/* Blank-template download — always available, before answering questions */}
       <div className="border-b border-border/40 bg-card/30">
@@ -876,7 +893,23 @@ export default function WizardPage() {
             />
 
             {!result && current && (
-              <div ref={questionCardRef} className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft animate-fade-in">
+              <div
+                ref={questionCardRef}
+                onKeyDown={(e) => {
+                  // Enter → следващото празно поле; ако няма такова и стъпката е
+                  // валидна, продължаваме напред.
+                  if (e.key !== "Enter") return;
+                  const moved = handleEnterFocusNext(e);
+                  if (!moved && canNext && !isLast) {
+                    setAttemptedNext(false);
+                    trackFillStep(stepIdx + 1, total, { doc_key: docName, source: "wizard" });
+                    setStepIdx((i) => i + 1);
+                    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
+                  }
+                }}
+                className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft animate-fade-in"
+              >
+
 
                 <div className="mb-4 flex items-center gap-2 text-xs uppercase tracking-wider text-gold">
                   <span>Въпрос {safeIdx + 1}</span>
@@ -989,6 +1022,15 @@ export default function WizardPage() {
 
             {result && (
               <div className="space-y-5 animate-fade-in">
+                <DocumentValueCard
+                  documentTitle={customTitle || result.contract.title}
+                  needsAuth={!user}
+                  canDownload={!!user && !docAccess.loading && docAccess.canDownload}
+                  busy={exporting === "pdf"}
+                  onDownload={() => handleExport("pdf")}
+                  onRegister={() => goAuth()}
+                />
+
                 <CorrectionsPanel
                   isPro={isPro}
                   freeWaveAvailable={freeWaveAvailable}

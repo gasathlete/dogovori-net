@@ -146,6 +146,9 @@ Deno.serve(async (req: Request) => {
       ? (rawPeriod as Period)
       : "daily";
     const source = String(body?.source ?? "manual") === "cron" ? "cron" : "manual";
+    // Насока от оператора (админ панел): вече изпълнени задачи или нов приоритет.
+    const operatorPrompt = String(body?.operator_prompt ?? "").slice(0, 8000).trim();
+
 
     const days = PERIOD_DAYS[period];
     const to = new Date();
@@ -173,7 +176,15 @@ Deno.serve(async (req: Request) => {
       "",
       "ДАННИ (JSON, агрегирани, без лични данни):",
       JSON.stringify(snapshot),
+      ...(operatorPrompt
+        ? [
+            "",
+            "НАСОКА ОТ ОПЕРАТОРА (промпт, по който работим в момента — третирай описаните задачи като ВЕЧЕ ИЗПЪЛНЕНИ, не ги предлагай повторно; отчети очаквания им ефект и продължи разсъжденията към следващата итерация):",
+            operatorPrompt,
+          ]
+        : []),
     ].join("\n");
+
 
     // Дълга заявка → стриймваме и консумираме сървърно, за да не ни отреже таймаут.
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
