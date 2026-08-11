@@ -5,6 +5,7 @@
 //  - is idempotent: skips when a valid cache entry already exists
 //  - returns 200 with { status: "failed", error } on AI failure (so batch can continue)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
+import { extractJson as extractJsonShared } from "../_shared/json.ts";
 import {
   Document,
   Packer,
@@ -65,8 +66,9 @@ interface BlankPayload {
 }
 
 function extractJson(raw: string): BlankPayload {
-  const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
-  return JSON.parse(cleaned) as BlankPayload;
+  // Shared tolerant parser: recovers from markdown fences, control chars and
+  // responses truncated mid-string by the model's token limit.
+  return extractJsonShared(raw) as BlankPayload;
 }
 
 function paragraphsFromText(text: string, opts: { bold?: boolean; size?: number; align?: typeof AlignmentType[keyof typeof AlignmentType] } = {}): Paragraph[] {
