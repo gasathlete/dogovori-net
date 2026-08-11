@@ -122,7 +122,7 @@ export function WriteReviewDialog({ open, onOpenChange, onSubmitted }: Props) {
       if (insErr) throw insErr;
 
       toast.success("Благодарим! Ревюто чака одобрение от екипа.", {
-        description: "Следете статуса в „Моите ревюта".",
+        description: "Следете статуса в „Моите ревюта“.",
         action: { label: "Виж статуса", onClick: () => navigate("/moite-revyuta") },
       });
       onOpenChange(false);
