@@ -88,10 +88,11 @@ export function SocialProofStrip() {
                       alt={p.name}
                       loading="lazy"
                       decoding="async"
-                      width={200}
-                      height={80}
+                      width={160}
+                      height={160}
                       {...({ fetchpriority: "low" } as any)}
-                      className="proof-logo-img h-[88%] w-[90%] object-contain"
+                      className="proof-logo-img h-full w-full object-cover"
+
                     />
                   </div>
                 );
