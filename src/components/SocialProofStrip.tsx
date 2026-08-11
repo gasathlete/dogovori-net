@@ -79,7 +79,7 @@ export function SocialProofStrip() {
 
         {loop.length > 0 && (
           <div className="partners-marquee group relative">
-            <div className="partners-marquee__track flex w-max gap-3 py-1 sm:gap-4">
+            <div className="partners-marquee__track flex w-max gap-4 py-2 sm:gap-5">
               {loop.map((p, i) => {
                 const card = (
                   <div className="proof-logo-card flex h-20 w-40 items-center justify-center rounded-2xl px-3 sm:h-24 sm:w-48">
