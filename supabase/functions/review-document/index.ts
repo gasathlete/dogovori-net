@@ -48,6 +48,7 @@ Deno.serve(async (req: Request) => {
     const documentTitle: string = String(body.documentTitle ?? "Документ").slice(0, 300);
     const documentType: string = String(body.documentType ?? "").slice(0, 200);
     const documentText: string = String(body.documentText ?? "");
+    const ignorePersonalData: boolean = body.ignorePersonalData === true;
 
     if (documentText.trim().length < 80) {
       return new Response(
@@ -72,13 +73,22 @@ Deno.serve(async (req: Request) => {
       ? redactForAI(documentText).redacted
       : documentText;
 
+    const scopeNote = ignorePersonalData
+      ? [
+          "ОБХВАТ: Потребителят ще попълни личните и идентификационните данни локално след сваляне.",
+          "Затова НЕ отчитай като пропуск или липсващ реквизит непопълнени полета за имена, ЕГН/ЛНЧ, ЕИК/Булстат, адреси, седалище, IBAN/банкова сметка, телефон, имейл, лична карта, дата, град, представител и подпис.",
+          "Върни празен масив \"unfilled_fields\" за такива полета и анализирай САМО генерираното съдържание — структура, клаузи, вътрешна логика и правни основания.",
+        ].join("\n")
+      : "";
+
     const userPrompt = [
+      scopeNote,
       `Вид документ: ${documentType || "неуточнен"}`,
       `Заглавие: ${documentTitle}`,
       "",
       "ТЕКСТ НА ДОКУМЕНТА:",
       safeText.slice(0, 60000),
-    ].join("\n");
+    ].filter(Boolean).join("\n");
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

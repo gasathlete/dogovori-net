@@ -13,7 +13,9 @@ import { QuestionField } from "@/components/wizard/QuestionField";
 import { LiveDraft } from "@/components/wizard/LiveDraft";
 import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
 import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
+import { getFillLaterPersonalData } from "@/lib/placeholderGate";
 import { AIReviewCard } from "@/components/wizard/AIReviewCard";
+import { FillLaterPersonalData } from "@/components/wizard/FillLaterPersonalData";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
@@ -290,6 +292,11 @@ export default function WizardPage() {
     persisted?.signature ?? { name_a: "", name_b: "", city: "", date: "" }
   );
   const [customTitle, setCustomTitle] = useState<string>(persisted?.customTitle ?? "");
+  // „Ще попълня личните данни, когато сваля" — изключва полетата за лични
+  // данни от export-гейта и от обхвата на автоматичната AI ревизия.
+  const [fillLaterPersonal, setFillLaterPersonal] = useState<boolean>(
+    () => getFillLaterPersonalData(),
+  );
   const [contactId, setContactId] = useState<string>(persisted?.contactId ?? "");
   const [contacts, setContacts] = useState<Array<{ id: string; name: string; type?: string }>>([]);
   const [arbitration, setArbitration] = useState<ArbitrationValue>(
@@ -963,9 +970,15 @@ export default function WizardPage() {
                   />
                 </div>
 
+                <FillLaterPersonalData
+                  value={fillLaterPersonal}
+                  onChange={setFillLaterPersonal}
+                />
+
                 <AIReviewCard
                   contract={result.contract}
                   documentType={docName ?? sector.contractName}
+                  ignorePersonalData={fillLaterPersonal}
                 />
 
                 {/* Cash payment disclaimer — shown when any answer mentions cash. */}
