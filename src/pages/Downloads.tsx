@@ -141,7 +141,10 @@ export default function Downloads({ kind }: { kind: "contract" | "template" }) {
       saved_document_id: ev.doc.id,
     });
     setBusy(null);
-    if (!res.ok) toast.error("Грешка", { description: res.error });
+    if (!res.ok) {
+      if (res.error === "disclaimer_cancelled" || res.error === "unfilled_placeholders") return;
+      toast.error("Грешка", { description: res.error });
+    }
     else toast.success("Изтеглен (безплатно)");
   };
 

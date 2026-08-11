@@ -54,6 +54,7 @@ export function CompanionChip({ name }: Props) {
         saved_document_id: savedId,
       });
       if (!res.ok) {
+        if (res.error === "disclaimer_cancelled" || res.error === "unfilled_placeholders") return;
         if (res.error === "quota_exceeded") {
           toast.error("Изчерпан безплатен лимит", {
             description: "Преминете към платен план за повече бланки.",

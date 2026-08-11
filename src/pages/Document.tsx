@@ -104,6 +104,7 @@ export default function DocumentPage() {
         saved_document_id: doc.id,
       });
       if (!res.ok) {
+        if (res.error === "disclaimer_cancelled" || res.error === "unfilled_placeholders") return;
         toast.error("Грешка при експорт", { description: res.error });
         return;
       }
