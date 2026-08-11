@@ -89,10 +89,22 @@ async function authorize(req: Request, corsHeaders: Record<string, string>): Pro
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   if (serviceKey && token === serviceKey) return null;
 
+  // Cron: споделен ключ, съхранен само в базата (vault). Стойността никога
+  // не излиза извън сървъра — сравнението се прави в базата.
+  if (!token.includes(".")) {
+    try {
+      const { data: okCron } = await adminClient().rpc("verify_cron_secret", {
+        _secret: token,
+      });
+      if (okCron === true) return null;
+    } catch { /* продължаваме към потребителска проверка */ }
+  }
+
   const anon = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,
   );
+
 
   try {
     const { data, error } = await anon.auth.getClaims(token);
