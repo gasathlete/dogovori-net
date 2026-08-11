@@ -135,6 +135,7 @@ export default function WizardPage() {
   const [sensitiveOpen, setSensitiveOpen] = useState(false);
   const [sensitiveBlocked, setSensitiveBlocked] = useState(false);
   const [sensitiveClass, setSensitiveClass] = useState<ClassificationSummary | null>(null);
+  const [correctionsPending, setCorrectionsPending] = useState<CorrectionsSelection | null>(null);
   const [result, setResult] = useState<AIResult | null>(persisted?.result ?? null);
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
   const [applyingCorrections, setApplyingCorrections] = useState(false);
@@ -534,7 +535,7 @@ export default function WizardPage() {
     }
   };
 
-  const handleApplyCorrections = async (sel: CorrectionsSelection) => {
+  const handleApplyCorrections = async (sel: CorrectionsSelection, correctionsConfirmed = false) => {
     if (!result) return;
     if (!user) {
       toast.error("Влезте в профила си", { description: "Прогресът е запазен." });
@@ -1237,14 +1238,20 @@ export default function WizardPage() {
 
       <SensitiveDataWarning
         open={sensitiveOpen}
-        onClose={() => setSensitiveOpen(false)}
+        onClose={() => {
+          setSensitiveOpen(false);
+          setCorrectionsPending(null);
+        }}
         onConfirm={() => {
           setSensitiveOpen(false);
-          void handleGenerate(true);
+          const pending = correctionsPending;
+          setCorrectionsPending(null);
+          if (pending) void handleApplyCorrections(pending, true);
+          else void handleGenerate(true);
         }}
         classification={sensitiveClass}
         blocked={sensitiveBlocked}
-        operationLabel="създаване на документа"
+        operationLabel={correctionsPending ? "корекция на документа" : "създаване на документа"}
       />
 
       <WizardFeedbackPrompt

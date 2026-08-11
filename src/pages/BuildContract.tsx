@@ -177,6 +177,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   const [sensitiveOpen, setSensitiveOpen] = useState(false);
   const [sensitiveBlocked, setSensitiveBlocked] = useState(false);
   const [sensitiveClass, setSensitiveClass] = useState<ClassificationSummary | null>(null);
+  const [correctionsPending, setCorrectionsPending] = useState<CorrectionsSelection | null>(null);
   const [result, setResult] = useState<AIResult | null>(persisted?.result ?? null);
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
   const [signature, setSignature] = useState<SignatureData>(
@@ -683,7 +684,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     }
   };
 
-  const handleApplyCorrections = async (sel: CorrectionsSelection) => {
+  const handleApplyCorrections = async (sel: CorrectionsSelection, correctionsConfirmed = false) => {
     if (!result) return;
     if (!user) {
       toast.error("Влезте в профила си", { description: "Прогресът е запазен." });
@@ -1494,14 +1495,20 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
 
       <SensitiveDataWarning
         open={sensitiveOpen}
-        onClose={() => setSensitiveOpen(false)}
+        onClose={() => {
+          setSensitiveOpen(false);
+          setCorrectionsPending(null);
+        }}
         onConfirm={() => {
           setSensitiveOpen(false);
-          void handleGenerate(true);
+          const pending = correctionsPending;
+          setCorrectionsPending(null);
+          if (pending) void handleApplyCorrections(pending, true);
+          else void handleGenerate(true);
         }}
         classification={sensitiveClass}
         blocked={sensitiveBlocked}
-        operationLabel="изготвяне на документа"
+        operationLabel={correctionsPending ? "корекция на документа" : "изготвяне на документа"}
       />
     </div>
   );
