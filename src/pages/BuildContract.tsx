@@ -706,9 +706,25 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
           answers: syntheticAnswers,
           session_id: getOpSessionId(),
           batch_id: newOpBatchId(),
+          userConfirmed: correctionsConfirmed,
         },
       });
       if (error || data?.error) {
+        const sensitive = await parseSensitiveResponse(error, data);
+        if (isSpecialCategoryBlocked(sensitive)) {
+          setSensitiveClass(sensitive?.classification ?? null);
+          setSensitiveBlocked(true);
+          setCorrectionsPending(sel);
+          setSensitiveOpen(true);
+          return;
+        }
+        if (isConfirmationRequired(sensitive) || data?.error === "needs_confirmation") {
+          setSensitiveClass(sensitive?.classification ?? null);
+          setSensitiveBlocked(false);
+          setCorrectionsPending(sel);
+          setSensitiveOpen(true);
+          return;
+        }
         if (data?.error === "pro_required") {
           toast.error("Нужен е платен план", {
             description: "Прогресът е запазен.",
