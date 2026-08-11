@@ -156,5 +156,5 @@
 - Нов lightweight hook за роля (`useAudience`) с localStorage персистенция и два copy набора; без нови таблици.
 - Файлове, които ще се пипат: `Hero.tsx`, `CTABand.tsx`, `Plans.tsx`, `RoiCalculator.tsx`, `AnchoringStrip.tsx`, `Testimonials.tsx`, `useEngagement.ts`, `ActionCelebration.tsx`.
 - Няма нужда от нови таблици или edge functions.
-
 - Всички промени са frontend/copy/UX.
+
