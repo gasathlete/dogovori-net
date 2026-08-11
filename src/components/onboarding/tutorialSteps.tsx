@@ -201,7 +201,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     body: 'Готови пакети документи за чести ситуации — или групирайте свои чрез „Добави в комплект" на всеки шаблон.',
     icon: <Package className="h-5 w-5" />,
     preview: <KitsPreview />,
-    cta: { label: "Виж комплектите", href: "/kits" },
+    cta: { label: "Виж комплектите", href: "/komplekti" },
   },
   {
     id: "upload",
