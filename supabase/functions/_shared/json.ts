@@ -57,24 +57,61 @@ export function extractJson(s: string): any {
     .replace(/,\s*]/g, "]")
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
   try { return JSON.parse(cleaned); } catch {}
-  // Last-resort: close an unterminated string, then balance braces/brackets.
-  // LLM responses get truncated mid-string when max_tokens is hit — without
-  // this recovery the entire document generation fails.
-  let inString = false;
-  let escape = false;
-  let braces = 0, brackets = 0;
-  for (const c of cleaned) {
-    if (escape) { escape = false; continue; }
-    if (c === "\\") { escape = true; continue; }
-    if (c === '"') { inString = !inString; continue; }
-    if (inString) continue;
-    if (c === "{") braces++; else if (c === "}") braces--;
-    else if (c === "[") brackets++; else if (c === "]") brackets--;
+  // Last-resort: repair a response truncated mid-string / mid-escape (max_tokens),
+  // then balance braces/brackets. Without this the whole generation fails.
+  const balance = (src: string) => {
+    let inStr = false, esc = false, braces = 0, brackets = 0;
+    for (const c of src) {
+      if (esc) { esc = false; continue; }
+      if (c === "\\") { esc = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (c === "{") braces++; else if (c === "}") braces--;
+      else if (c === "[") brackets++; else if (c === "]") brackets--;
+    }
+    return { inStr, braces, brackets };
+  };
+
+  let { inStr, braces, brackets } = balance(cleaned);
+
+  if (inStr) {
+    // Drop an incomplete trailing escape sequence, e.g. `...\` or `...\u00`,
+    // which would otherwise swallow the closing quote we add.
+    cleaned = cleaned.replace(/\\u[0-9a-fA-F]{0,3}$/, "").replace(/(^|[^\\])((?:\\\\)*)\\$/, "$1$2");
+    cleaned += '"';
   }
-  if (inString) cleaned += '"';
-  // Drop a dangling trailing comma created by the truncation.
-  cleaned = cleaned.replace(/,\s*$/g, "");
+
+  // Remove trailing fragments the truncation left behind: a dangling comma,
+  // or a key with no (complete) value such as `"detail":` / `"detail": "x",`.
+  let prev = "";
+  while (prev !== cleaned) {
+    prev = cleaned;
+    cleaned = cleaned
+      .replace(/,\s*$/, "")
+      .replace(/"(?:[^"\\]|\\.)*"\s*:\s*$/, "")
+      .replace(/,\s*$/, "");
+  }
+
+  ({ braces, brackets } = balance(cleaned));
   while (brackets-- > 0) cleaned += "]";
   while (braces-- > 0) cleaned += "}";
+
+  try { return JSON.parse(cleaned); } catch {}
+
+  // Still broken: walk back to the last structurally closed object/array so the
+  // caller gets partial-but-valid data instead of a hard failure.
+  for (let i = cleaned.length - 1; i > 0; i--) {
+    const c = cleaned[i];
+    if (c !== "}" && c !== "]") continue;
+    let candidate = cleaned.slice(0, i + 1).replace(/,\s*$/, "");
+    const b = balance(candidate);
+    if (b.inStr) continue;
+    let { braces: nb, brackets: nk } = b;
+    while (nk-- > 0) candidate += "]";
+    while (nb-- > 0) candidate += "}";
+    try { return JSON.parse(candidate); } catch { /* keep scanning */ }
+  }
+
   return JSON.parse(cleaned);
+
 }
