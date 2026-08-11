@@ -130,6 +130,20 @@ export default function SharedDocument() {
   const [password, setPassword] = useState("");
   const [verifying, setVerifying] = useState(false);
 
+  // Прегледът на КЕП картата следва въведеното име в реално време.
+  useEffect(() => {
+    if (sigMethod !== "qes" || !qesFile) return;
+    setSignatureDataUrl(
+      makeAttachedSignatureCardPng({
+        signerName: signerName.trim(),
+        fileName: qesFile.name,
+        sha256: qesSha256,
+      }),
+    );
+  }, [signerName, sigMethod, qesFile, qesSha256]);
+
+
+
   const fetchDoc = async (pwd?: string) => {
     try {
       const { data, error } = await supabase.functions.invoke("get-shared-document", {
