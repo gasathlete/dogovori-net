@@ -82,7 +82,7 @@ export function SocialProofStrip() {
             <div className="partners-marquee__track flex w-max gap-4 py-2 sm:gap-5">
               {loop.map((p, i) => {
                 const card = (
-                  <div className="proof-logo-card flex h-20 w-40 items-center justify-center rounded-2xl px-3 sm:h-24 sm:w-48">
+                  <div className="proof-logo-card flex h-28 w-52 items-center justify-center rounded-2xl px-4 sm:h-32 sm:w-64">
                     <img
                       src={p.logo_url}
                       alt={p.name}
