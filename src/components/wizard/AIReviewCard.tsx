@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   AlertTriangle, BadgeCheck, Bot, CheckCircle2, Info, RefreshCcw, Scale, Sparkles,
 } from "@/icons";
@@ -245,23 +245,22 @@ export function AIReviewCard({ contract, documentType, auto = true, ignorePerson
   );
 }
 
-function Block({
-  title,
-  tone,
-  children,
-}: {
-  title: string;
-  tone: "warning" | "danger";
-  children: React.ReactNode;
-}) {
+const Block = forwardRef<
+  HTMLDivElement,
+  {
+    title: string;
+    tone: "warning" | "danger";
+    children: ReactNode;
+  }
+>(function Block({ title, tone, children }, ref) {
   const cls =
     tone === "danger"
       ? "border-danger/30 bg-danger/5 text-danger"
       : "border-warning/30 bg-warning/5 text-warning";
   return (
-    <div className={`rounded-lg border p-4 ${cls}`}>
+    <div ref={ref} className={`rounded-lg border p-4 ${cls}`}>
       <h4 className="mb-2 text-sm font-semibold">{title}</h4>
       <ul className="ml-4 list-disc space-y-1 text-xs text-muted-foreground">{children}</ul>
     </div>
   );
-}
+});

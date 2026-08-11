@@ -19,7 +19,7 @@ const FACTORIES: Record<string, () => Promise<unknown>> = {
   "/auth": () => import("@/pages/Auth.tsx"),
   "/account": () => import("@/pages/Account.tsx"),
   "/assistant": () => import("@/pages/Assistant.tsx"),
-  "/kits": () => import("@/pages/Kits.tsx"),
+  "/komplekti": () => import("@/pages/Kits.tsx"),
   "/console": () => import("@/pages/Console.tsx"),
   "/tools": () => import("@/pages/Tools.tsx"),
 };

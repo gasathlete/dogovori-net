@@ -67,11 +67,11 @@ export default function ROPA() {
 
       <h2>4. Свързани документи</h2>
       <ul>
-        <li><a href="/legal/privacy">Политика за поверителност</a></li>
+        <li><a href="/privacy">Политика за поверителност</a></li>
         <li><a href="/legal/retention">Политика за съхранение</a></li>
         <li><a href="/legal/subprocessors">Регистър на подпроцесорите</a></li>
         <li><a href="/legal/ai-processing">AI обработка</a></li>
-        <li><a href="/legal/dpa">Споразумение за обработка на данни (DPA)</a></li>
+        <li><a href="/dpa">Споразумение за обработка на данни (DPA)</a></li>
       </ul>
     </LegalLayout>
   );
