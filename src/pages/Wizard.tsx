@@ -48,6 +48,7 @@ import { trackEvent } from "@/lib/analytics";
 import { trackDocStart, trackGenerate, trackFillStep } from "@/lib/docFunnel";
 import { useDocumentAccess } from "@/hooks/useDocumentAccess";
 import { StrictDocumentPaywall } from "@/components/wizard/StrictDocumentPaywall";
+import { AnonymousPreviewNotice } from "@/components/wizard/AnonymousPreviewNotice";
 import { BlurredPreviewOverlay } from "@/components/wizard/BlurredPreviewOverlay";
 import {
   WizardFeedbackPrompt,
@@ -225,16 +226,8 @@ export default function WizardPage() {
   ];
 
   const handleGenerate = async (userConfirmed = false) => {
-    // Require login before generating. Wizard state is already persisted to
-    // localStorage on every change, so the user returns to the same step.
-    if (!authUser) {
-      const dest = window.location.pathname + window.location.search;
-      toast.info("Влезте, за да създадете договора", {
-        description: "Прогресът ви е запазен и ще продължи след вход.",
-      });
-      navigate(`/auth?redirect=${encodeURIComponent(dest)}`);
-      return;
-    }
+    // Anonymous visitors may generate a read-only preview (server enforces a
+    // 1/24h taste limit). Login is required only for save/export/signing.
     setGenerating(true);
     trackGenerate("started", { doc_key: docKey, source: "wizard" });
     setGenStepIdx(0);
@@ -1171,7 +1164,10 @@ export default function WizardPage() {
                 <span className="text-xs text-muted-foreground">Актуализация в реално време</span>
               )}
             </div>
-            {result?.contract && (
+            {result?.contract && !user && (
+              <AnonymousPreviewNotice onRegister={() => goAuth()} />
+            )}
+            {result?.contract && user && (
               <div className="mb-4">
                 <RefineDraftBox
                   contract={result.contract}
