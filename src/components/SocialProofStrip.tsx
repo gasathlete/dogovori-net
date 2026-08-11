@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { CATALOG } from "@/data/catalog";
+import { SECTORS } from "@/data/sectors";
 
 type Partner = { id: string; name: string; logo_url: string; website_url?: string | null };
 
@@ -26,6 +28,10 @@ async function fetchRegisteredUsers(): Promise<number> {
   return Number.isFinite(n) ? Math.max(100, n) : 100;
 }
 
+/** Брой шаблони в каталога — статична стойност, изчислена веднъж при зареждане. */
+const TEMPLATES_COUNT = CATALOG.reduce((sum, c) => sum + (c.documents?.length ?? 0), 0);
+const SECTORS_COUNT = SECTORS.length;
+
 export function SocialProofStrip() {
   // Public, near-static list. Cache aggressively — same data for every visitor.
   const { data: partners = [] } = useQuery({
@@ -45,27 +51,38 @@ export function SocialProofStrip() {
   // Duplicate the list so the marquee loops seamlessly.
   const loop = partners.length > 0 ? [...partners, ...partners] : [];
 
+  const metrics: { value: string; label: string }[] = [
+    { value: `${registeredUsers}+`, label: "регистрирани профила" },
+    ...(TEMPLATES_COUNT > 0 ? [{ value: `${TEMPLATES_COUNT}`, label: "готови шаблона" }] : []),
+    ...(SECTORS_COUNT > 0 ? [{ value: `${SECTORS_COUNT}`, label: "правни сектора" }] : []),
+  ];
+
   return (
-    <section
-      id="partners"
-      aria-label="Партньори"
-      className="border-y border-border/40 bg-card/20"
-    >
-      <div className="container py-8 sm:py-10">
-        <p className="mb-6 text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-          БЪЛГАРСКА ПЛАТФОРМА, ИЗПОЛЗВАНА ОТ <span className="tabular-nums text-foreground">{registeredUsers}</span>+ ПРЕДПРИЕМАЧИ, АДВОКАТИ, СЧЕТОВОДИТЕЛИ У НАС И В ЧУЖБИНА
-        </p>
+    <section id="partners" aria-label="Партньори" className="proof-band relative isolate">
+      <div className="container relative py-10 sm:py-14">
+        {/* Eyebrow: live индикатор + акцентиран брояч */}
+        <div className="mb-8 flex flex-col items-center gap-3 text-center">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/60 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground backdrop-blur-sm">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold/70" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gold" />
+            </span>
+            Българска платформа
+          </span>
+
+          <p className="max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground sm:text-base">
+            Използвана от{" "}
+            <span className="font-semibold tabular-nums text-foreground">{registeredUsers}+</span>{" "}
+            предприемачи, адвокати и счетоводители у нас и в чужбина.
+          </p>
+        </div>
 
         {loop.length > 0 && (
-          <div className="partners-marquee group relative overflow-hidden">
-            {/* edge fades */}
-            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-background to-transparent sm:w-24" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-background to-transparent sm:w-24" />
-
-            <div className="partners-marquee__track flex w-max gap-4 sm:gap-5">
+          <div className="partners-marquee group relative">
+            <div className="partners-marquee__track flex w-max gap-3 py-1 sm:gap-4">
               {loop.map((p, i) => {
                 const card = (
-                  <div className="flex h-24 w-44 items-center justify-center rounded-xl border border-border/60 bg-card/80 px-3 shadow-[0_1px_0_0_hsl(var(--border)/0.6),0_8px_24px_-12px_hsl(var(--background)/0.6)] backdrop-blur-sm transition-colors duration-200 hover:border-gold/50 sm:h-28 sm:w-52">
+                  <div className="proof-logo-card flex h-20 w-40 items-center justify-center rounded-2xl px-3 sm:h-24 sm:w-48">
                     <img
                       src={p.logo_url}
                       alt={p.name}
@@ -74,7 +91,7 @@ export function SocialProofStrip() {
                       width={200}
                       height={80}
                       {...({ fetchpriority: "low" } as any)}
-                      className="h-[80%] w-[80%] object-contain"
+                      className="proof-logo-img h-[78%] w-[80%] object-contain"
                     />
                   </div>
                 );
@@ -86,7 +103,7 @@ export function SocialProofStrip() {
                     rel="noopener noreferrer nofollow"
                     title={p.name}
                     aria-label={p.name}
-                    className="shrink-0"
+                    className="shrink-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
                   >
                     {card}
                   </a>
@@ -98,6 +115,20 @@ export function SocialProofStrip() {
               })}
             </div>
           </div>
+        )}
+
+        {metrics.length > 0 && (
+          <dl className="mx-auto mt-8 grid max-w-2xl grid-cols-3 divide-x divide-border/50 rounded-2xl border border-border/50 bg-card/40 py-4 backdrop-blur-sm">
+            {metrics.map((m) => (
+              <div key={m.label} className="flex flex-col items-center gap-0.5 px-2">
+                <dt className="sr-only">{m.label}</dt>
+                <dd className="font-serif text-xl tabular-nums text-foreground sm:text-2xl">{m.value}</dd>
+                <span className="text-center text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                  {m.label}
+                </span>
+              </div>
+            ))}
+          </dl>
         )}
       </div>
     </section>
