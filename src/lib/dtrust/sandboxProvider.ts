@@ -39,6 +39,37 @@ export class SandboxSignatureProvider implements SignatureProvider {
   private store = new Map<string, SandboxRecord>();
   private seq = 0;
 
+  /** Ключ за демонстрационна персистенция в браузъра (не се ползва в тестове). */
+  private readonly storageKey = "dtrust_sandbox_v1";
+
+  constructor() {
+    this.load();
+  }
+
+  private load() {
+    try {
+      const raw = globalThis.localStorage?.getItem(this.storageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Record<string, SandboxRecord>;
+      for (const [k, v] of Object.entries(parsed)) this.store.set(k, v);
+      this.seq = this.store.size;
+    } catch {
+      /* демонстрационната персистенция е best-effort */
+    }
+  }
+
+  private persist() {
+    try {
+      if (!globalThis.localStorage) return;
+      globalThis.localStorage.setItem(
+        this.storageKey,
+        JSON.stringify(Object.fromEntries(this.store)),
+      );
+    } catch {
+      /* без значение за логиката */
+    }
+  }
+
   /** Подписващи с този домейн симулират „вече има сертификат“. */
   private readonly certifiedHint = "certified";
 
@@ -62,6 +93,7 @@ export class SandboxSignatureProvider implements SignatureProvider {
         input.level === "qualified" ? `CN=${input.signer.name}, O=DTrust Sandbox` : undefined,
     };
     this.store.set(providerRequestId, { input, result, polls: 0 });
+    this.persist();
     return result;
   }
 
@@ -81,6 +113,7 @@ export class SandboxSignatureProvider implements SignatureProvider {
         signatureB64: b64(`PAdES:${rec.input.documentHash}:${signedAt}`),
         timestampB64: b64(`TSA:${signedAt}`),
       };
+      this.persist();
     }
     return rec.result;
   }
