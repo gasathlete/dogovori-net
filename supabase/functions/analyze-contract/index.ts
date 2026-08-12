@@ -419,7 +419,7 @@ ${payloadText}
     const data = await aiResp.json();
     const content: string = data.choices?.[0]?.message?.content ?? "";
     let parsed: any = null;
-    try { parsed = content.trim() ? extractJson(content) : null; } catch { parsed = null; }
+    try { parsed = content.trim() ? extractJson(content, { fn: "analyze-contract" }) : null; } catch { parsed = null; }
 
     // Quality safeguard: if flash-lite returned suspiciously empty results
     // (no issues AND no missing clauses) on a non-trivial contract, escalate
@@ -436,7 +436,7 @@ ${payloadText}
           const fData = await flashResp.json();
           const fContent: string = fData.choices?.[0]?.message?.content ?? "";
           try {
-            const reparsed = fContent.trim() ? extractJson(fContent) : null;
+            const reparsed = fContent.trim() ? extractJson(fContent, { fn: "analyze-contract", stage: "fallback" }) : null;
             if (reparsed) parsed = reparsed;
           } catch { /* keep lite result */ }
         }
@@ -451,7 +451,7 @@ ${payloadText}
       if (proResp.ok) {
         const proData = await proResp.json();
         const proContent: string = proData.choices?.[0]?.message?.content ?? "";
-        try { parsed = proContent.trim() ? extractJson(proContent) : null; } catch { parsed = null; }
+        try { parsed = proContent.trim() ? extractJson(proContent, { fn: "analyze-contract", stage: "pro" }) : null; } catch { parsed = null; }
       }
     }
 

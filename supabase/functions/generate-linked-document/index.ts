@@ -190,7 +190,7 @@ ${parentText}
 
     let parsed;
     try {
-      parsed = extractJson(content);
+      parsed = extractJson(content, { fn: "generate-linked-document" });
     } catch {
       throw new Error("AI отговорът не може да бъде анализиран като JSON");
     }

@@ -1067,7 +1067,7 @@ Deno.serve(async (req) => {
 
 function safeParse(s: string): any {
   // Tolerant: tool-call argument JSON can arrive truncated mid-string.
-  try { return extractJson(s || "{}"); } catch { return {}; }
+  try { return extractJson(s || "{}", { report: false }); } catch { return {}; }
 }
 
 function validateClientToolArgs(name: string, args: any): { ok: true; args: any } | { ok: false; reason: string } {

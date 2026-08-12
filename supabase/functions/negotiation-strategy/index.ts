@@ -167,7 +167,7 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
     }
     const data = await resp.json();
     const raw = data?.choices?.[0]?.message?.content ?? "";
-    const strategy = extractJson(raw);
+    const strategy = extractJson(raw, { fn: "negotiation-strategy" });
     if (!strategy || typeof strategy !== "object") {
       return new Response(JSON.stringify({ error: "parse_failed" }), {
         status: 502,

@@ -233,7 +233,7 @@ ${scopeNote}
     const raw = await aiResp.json();
     const content: string = raw.choices?.[0]?.message?.content ?? "";
     if (!content.trim()) throw new Error("Празен AI отговор");
-    const parsed = extractJson(content);
+    const parsed = extractJson(content, { fn: "correct-uploaded" });
 
     // Unredact AI output before returning to user.
     if (Object.keys(redaction.mapping).length > 0) {

@@ -58,7 +58,7 @@ async function callGateway(apiKey: string, body: Record<string, unknown>) {
 function tryParseJson(text: string): any | null {
   if (!text) return null;
   // Shared tolerant parser (fences, control chars, truncated-mid-string output).
-  try { return extractJson(text); } catch { return null; }
+  try { return extractJson(text, { report: false }); } catch { return null; }
 }
 
 const LAWYER_GENERATOR_PROMPT = `Ти си опитен български адвокат, който тества AI асистент за договорно право (Dogovori.net).

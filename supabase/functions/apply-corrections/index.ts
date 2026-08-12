@@ -281,7 +281,7 @@ ${answersRedacted}
     const raw = await aiResp.json();
     const content: string = raw.choices?.[0]?.message?.content ?? "";
     if (!content.trim()) throw new Error("Празен AI отговор");
-    const parsed = extractJson(content);
+    const parsed = extractJson(content, { fn: "apply-corrections" });
 
     // Unredact AI output so the user sees real names/EGN/IBAN in the final doc.
     // Walk the parsed object and replace placeholders directly in string leaves

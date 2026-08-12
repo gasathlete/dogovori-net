@@ -217,7 +217,7 @@ ${answersStr}
     const raw = await aiResp.json();
     const content: string = raw.choices?.[0]?.message?.content ?? "";
     if (!content.trim()) throw new Error("Празен AI отговор");
-    const parsed = extractJson(content) as {
+    const parsed = extractJson(content, { fn: "refine-contract" }) as {
       contract?: unknown;
       changed_clause_numbers?: string[];
       change_summary?: string;

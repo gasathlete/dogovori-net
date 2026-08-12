@@ -337,7 +337,7 @@ ${docTypeSpec.systemAddendum}
     }
 
     let parsed;
-    try { parsed = extractJson(content); }
+    try { parsed = extractJson(content, { fn: "generate-contract" }); }
     catch (err) {
       console.error("JSON parse failed on first attempt. Content head:", content.slice(0, 800));
       // Retry once: ask the model to repair its previous output into strict JSON.
@@ -358,7 +358,7 @@ ${docTypeSpec.systemAddendum}
           const repairData = await repairResp.json();
           const repairContent: string = repairData.choices?.[0]?.message?.content ?? "";
           if (repairContent && repairContent.trim()) {
-            parsed = extractJson(repairContent);
+            parsed = extractJson(repairContent, { fn: "generate-contract", stage: "repair" });
           }
         }
       } catch (repairErr) {
