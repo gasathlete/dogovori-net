@@ -144,10 +144,19 @@ export function Header() {
               )}
             </Link>
           ) : (
-            <div ref={guestRef} className="relative">
+            <div
+              ref={guestRef}
+              className="relative"
+              onMouseEnter={() => setGuestOpen(true)}
+              onMouseLeave={() => setGuestOpen(false)}
+            >
               <button
                 type="button"
                 onClick={() => setGuestOpen((v) => !v)}
+                onFocus={() => setGuestOpen(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setGuestOpen(false);
+                }}
                 aria-haspopup="menu"
                 aria-expanded={guestOpen}
                 aria-label="Влезте"
