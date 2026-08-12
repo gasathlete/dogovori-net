@@ -60,7 +60,7 @@ function buildCta(planId: PlanId, billing: Billing, isAuthed: boolean): {
     const target = `/team`;
     return isAuthed
       ? { href: target, label: "Създай екип" }
-      : { href: `/auth?tab=signup&redirect=${encodeURIComponent(target)}&intent=plan_team`, label: "Регистрирай се за Екип" };
+      : { href: `/auth?tab=signup&redirect=${encodeURIComponent(target)}&intent=plan_team`, label: "Създай екип" };
   }
   const target = `/account?tab=subscription&plan=${planId}&billing=${billing}&promo=FIRST100`;
   const planLabel = planId === "entrepreneur" ? "Предприемач" : "Професионалист";
@@ -73,9 +73,10 @@ function buildCta(planId: PlanId, billing: Billing, isAuthed: boolean): {
   const redirect = encodeURIComponent(target);
   return {
     href: `/auth?tab=signup&redirect=${redirect}&intent=plan_${planId}`,
-    label: `Регистрирай се за ${planLabel}`,
+    label: `Избери ${planLabel}`,
   };
 }
+
 
 export default function Plans() {
   const { user } = useAuth();
