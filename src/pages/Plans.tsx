@@ -550,7 +550,7 @@ export default function Plans() {
           <div className="grid grid-cols-2 gap-3 rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:grid-cols-4 sm:p-6">
             {[
               { icon: ShieldCheck, label: "GDPR съвместим" },
-              { icon: ShieldCheck, label: "ЗЗД, ТЗ,  ЗУТ, GDPR, EIDAS, ЗЕДЕУУ " },
+              { icon: ShieldCheck, label: "ЗЗД, ТЗ, ЗУТ, eIDAS, ЗЕДЕУУ" },
               { icon: ShieldCheck, label: "ДДС фактура" },
               { icon: ShieldCheck, label: "SSL & криптиране" },
             ].map(({ icon: Icon, label }) => (
