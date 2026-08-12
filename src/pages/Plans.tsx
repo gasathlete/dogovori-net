@@ -151,12 +151,13 @@ export default function Plans() {
               </p>
             </div>
 
-            <div className="mt-5 flex flex-col items-center gap-2">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                Промокод <span className="font-semibold text-brand">FIRST100</span> → −20% за нови клиенти
+            <div className="mt-5 flex flex-col items-center gap-2 text-center">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground sm:tracking-[0.18em]">
+                Промокод <span className="font-semibold text-brand">FIRST100</span> · −20% за нови клиенти
               </p>
               <First100Counter />
             </div>
+
 
             <div className="mt-6 flex flex-col items-center gap-3 sm:mt-8">
               <AudienceToggle size="sm" />
