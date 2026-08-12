@@ -433,20 +433,22 @@ export default function Plans() {
             if (!free) return null;
             const cta = buildCta("free", billing, isAuthed);
             return (
-              <div className="mt-6 flex flex-col items-center justify-between gap-4 rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:flex-row sm:p-6">
+              <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:p-6">
                 <div className="flex items-start gap-3 sm:items-center">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
                     <Sparkles className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-serif text-lg text-foreground">
-                      {free.name} · <span className="text-brand">0 €</span> — основни функции за малкия бизнес
+                    <h3 className="font-serif text-lg leading-tight text-foreground">
+                      {free.name} · <span className="text-brand">0 €</span>
                     </h3>
-                    <p className="text-xs text-muted-foreground sm:text-sm">
-                      {free.tagline} · 5 операции при регистрация + 2 всеки месец, без карта.
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                      Основни функции за малкия бизнес · 5 операции при регистрация + 2 всеки месец,
+                      без карта.
                     </p>
                   </div>
                 </div>
+
                 <Link
                   to={cta.href}
                   onClick={() => trackEvent("plans_cta_clicked", { plan: "free", billing, authed: isAuthed, audience })}
