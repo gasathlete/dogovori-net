@@ -82,6 +82,8 @@ export default function Plans() {
   const isAuthed = Boolean(user);
   const { audience, copy } = useAudience();
   const [billing, setBilling] = useState<Billing>("monthly");
+  // План, препоръчан от скалиращия слайдер — акцентира съответната карта.
+  const [recommended, setRecommended] = useState<PlanId | null>(null);
 
   const { data, isLoading } = usePlans();
   const plans = data?.plans ?? [];
