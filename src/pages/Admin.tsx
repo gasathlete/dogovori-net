@@ -130,6 +130,7 @@ export default function AdminPage() {
           <Button asChild variant="outline" size="sm" className="ml-auto border-gold/40"><Link to="/admin/analytics">📊 Analytics</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/metrics">🎯 Growth &amp; Quality</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-brand/40"><Link to="/admin/growth-brief">🧠 Режим разсъждение</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link to="/admin/ai-json">🧩 Неуспешни AI отговори</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-emerald-500/40"><Link to="/admin/financials">💰 Финанси</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/perf">⚡ Performance</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/privacy">🛡️ Privacy</Link></Button>

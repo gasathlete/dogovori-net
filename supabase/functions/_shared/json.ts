@@ -1,3 +1,4 @@
+import { logAiParseFailure } from "./jsonDiagnostics.ts";
 // Shared helper: tolerant JSON extraction from LLM responses.
 // Strips markdown fences, escapes literal control chars inside strings,
 // removes trailing commas, and balances braces/brackets.
@@ -42,7 +43,27 @@ function escapeControlCharsInStrings(input: string): string {
   return out;
 }
 
-export function extractJson(s: string): any {
+export interface ExtractJsonCtx {
+  /** Име на edge функцията — за админ панела. */
+  fn?: string;
+  model?: string | null;
+  stage?: string;
+  /** По подразбиране провалите се логват; изключи за "best effort" опити. */
+  report?: boolean;
+}
+
+export function extractJson(s: string, ctx?: ExtractJsonCtx): any {
+  try {
+    return extractJsonInner(s);
+  } catch (err) {
+    if (ctx?.report !== false) {
+      logAiParseFailure({ fn: ctx?.fn, model: ctx?.model, stage: ctx?.stage, raw: s, error: err });
+    }
+    throw err;
+  }
+}
+
+function extractJsonInner(s: string): any {
   let cleaned = s.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
   const start = cleaned.search(/[\{\[]/);
   const openCh = start !== -1 ? cleaned[start] : "";

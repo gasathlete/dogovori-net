@@ -160,7 +160,7 @@ Deno.serve(async (req: Request) => {
     // Един поправящ проход, вместо 500 към потребителя.
     let parsed: Record<string, unknown>;
     try {
-      parsed = extractJson(content) as Record<string, unknown>;
+      parsed = extractJson(content, { fn: "review-document" }) as Record<string, unknown>;
     } catch (_parseErr) {
       const repair = await callModel([
         {
@@ -173,7 +173,7 @@ Deno.serve(async (req: Request) => {
       if (!repair.ok) throw new Error("AI върна невалиден JSON при ревизия");
       const repairData = await repair.json();
       const repaired: string = repairData.choices?.[0]?.message?.content ?? "";
-      parsed = extractJson(repaired) as Record<string, unknown>;
+      parsed = extractJson(repaired, { fn: "review-document", stage: "repair" }) as Record<string, unknown>;
     }
 
 

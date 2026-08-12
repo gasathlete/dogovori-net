@@ -239,7 +239,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const parsed = extractJson(text) as
+    const parsed = extractJson(text, { fn: "growth-brief" }) as
       | { headline?: string; reasoning?: string; prompt_md?: string; top_actions?: unknown[] }
       | null;
 

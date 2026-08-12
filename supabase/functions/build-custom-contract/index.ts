@@ -474,7 +474,7 @@ ${fieldsSection}
     }
 
     let parsed: { risk: any; contract: any };
-    try { parsed = extractJson(content); }
+    try { parsed = extractJson(content, { fn: "build-custom-contract" }); }
     catch {
       console.error("JSON parse failed. finish_reason:", finishReason, "Content head:", content.slice(0, 800));
       const friendly = finishReason === "length"
@@ -564,7 +564,7 @@ async function anonymiseAndStoreBlank(
   if (!content.trim()) return;
 
   let blank: any;
-  try { blank = extractJson(content); } catch (e) { console.error("anon parse:", e); return; }
+  try { blank = extractJson(content, { fn: "build-custom-contract" }); } catch (e) { console.error("anon parse:", e); return; }
 
   // Hash on the anonymised text to dedupe similar blanks.
   const text = [blank.title, blank.preamble, ...(blank.clauses ?? []).map((c: any) => `${c.number} ${c.title} ${c.body}`), blank.closing].join("\n");

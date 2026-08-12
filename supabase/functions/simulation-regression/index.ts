@@ -27,7 +27,7 @@ async function gw(apiKey: string, body: Record<string, unknown>) {
 function tryJson(t: string): any | null {
   if (!t) return null;
   // Shared tolerant parser (fences, control chars, truncated-mid-string output).
-  try { return extractJson(t); } catch { return null; }
+  try { return extractJson(t, { report: false }); } catch { return null; }
 }
 
 async function runBot(apiKey: string, sb: any, systemPrompt: string, model: string, userMsg: string) {
