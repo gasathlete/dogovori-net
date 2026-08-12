@@ -141,7 +141,7 @@ describe("регресия: всички edge функции ползват об
         if (e.isDirectory()) await walk(p);
         else if (e.name.endsWith(".ts")) {
           const src = await fs.readFile(p, "utf8");
-          const re = /JSON\.parse\(\s*(content|raw|text|aiText|completion|message\.content|choice[^)]*content)[^)]*\)/g;
+          const re = /JSON\.parse\(\s*(?:content|raw|text|aiText|aiContent|completion|message\.content)\s*\)/g;
           if (re.test(src)) offenders.push(path.relative(root, p));
         }
       }
