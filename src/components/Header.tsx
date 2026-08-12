@@ -144,10 +144,19 @@ export function Header() {
               )}
             </Link>
           ) : (
-            <div ref={guestRef} className="relative">
+            <div
+              ref={guestRef}
+              className="relative"
+              onMouseEnter={() => setGuestOpen(true)}
+              onMouseLeave={() => setGuestOpen(false)}
+            >
               <button
                 type="button"
                 onClick={() => setGuestOpen((v) => !v)}
+                onFocus={() => setGuestOpen(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setGuestOpen(false);
+                }}
                 aria-haspopup="menu"
                 aria-expanded={guestOpen}
                 aria-label="Влезте"
@@ -163,9 +172,13 @@ export function Header() {
                 />
               </button>
               {guestOpen && (
+                <div className="absolute right-0 top-full h-2 w-56" aria-hidden="true" />
+              )}
+              {guestOpen && (
                 <div
                   role="menu"
-                  className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-lg"
+                  className="absolute right-0 top-full z-50 w-56 overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-lg"
+                  style={{ marginTop: 8 }}
                 >
                   <Link
                     to="/auth"
