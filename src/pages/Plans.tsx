@@ -129,71 +129,143 @@ export default function Plans() {
         <section className="relative z-10 mx-auto max-w-6xl px-4 pt-2 pb-3 sm:pt-4 sm:pb-6">
           <SoftCapPanel />
           <AnalysisRecommendationBanner />
-          <PlansHeroAnimation />
-          <div className="relative mx-auto mt-4 max-w-3xl text-center sm:mt-6">
-            <h1 className="font-serif text-4xl leading-[1.1] tracking-tight text-foreground sm:text-5xl md:text-6xl">
-              Изберете плана,
-              <br />
-              <span className="bg-gradient-to-r from-brand-dark via-brand to-brand-light bg-clip-text text-transparent">
-                който работи за вас
-              </span>
-            </h1>
-            <p className="mt-3 text-sm text-muted-foreground whitespace-pre-line sm:text-base">
-              2 месеца БЕЗПЛАТНО на годишен абонамент.
-              {"\n"}
-              Без обвързване. ДДС включено в цената. Отказ по всяко време.
-            </p>
-          </div>
 
-          <div className="mt-4 flex flex-col items-center gap-2">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              Промокод <span className="font-semibold text-brand">FIRST100</span> → −20% за нови клиенти
-            </p>
-            <First100Counter />
-          </div>
-
-          <div className="mt-6 flex flex-col items-center gap-3 sm:mt-8">
-            <AudienceToggle size="sm" />
-            <div
-              role="tablist"
-              aria-label="Период на фактуриране"
-              className="relative inline-flex items-center rounded-full border border-hairline bg-card/80 p-1 backdrop-blur-md shadow-soft"
-            >
-              <button
-                role="tab"
-                aria-selected={billing === "monthly"}
-                onClick={() => setBilling("monthly")}
-                className={cn(
-                  "relative z-10 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
-                  billing === "monthly"
-                    ? "bg-gradient-brand text-white shadow-brand"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Месечно
-              </button>
-              <button
-                role="tab"
-                aria-selected={billing === "yearly"}
-                onClick={() => setBilling("yearly")}
-                className={cn(
-                  "relative z-10 inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
-                  billing === "yearly"
-                    ? "bg-gradient-brand text-white shadow-brand"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Годишно
-                <span className={cn(
-                  "inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors",
-                  billing === "yearly" ? "bg-white/15 text-white" : "bg-brand/15 text-brand",
-                )}>
-                  −17%
+          <PlansAuroraHero kicker="Планове и цени" className="mt-3">
+            <div className="relative mx-auto max-w-3xl text-center">
+              <h1 className="font-serif text-4xl leading-[1.1] tracking-tight text-foreground sm:text-5xl md:text-6xl">
+                Изберете плана,
+                <br />
+                <span className="bg-gradient-to-r from-brand-dark via-brand to-brand-light bg-clip-text text-transparent">
+                  който работи за вас
                 </span>
-              </button>
+              </h1>
+              <p className="mt-3 text-sm text-muted-foreground whitespace-pre-line sm:text-base">
+                2 месеца БЕЗПЛАТНО на годишен абонамент.
+                {"\n"}
+                Без обвързване. ДДС включено в цената. Отказ по всяко време.
+              </p>
             </div>
-          </div>
+
+            <div className="mt-5 flex flex-col items-center gap-2">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                Промокод <span className="font-semibold text-brand">FIRST100</span> → −20% за нови клиенти
+              </p>
+              <First100Counter />
+            </div>
+
+            <div className="mt-6 flex flex-col items-center gap-3 sm:mt-8">
+              <AudienceToggle size="sm" />
+              <div
+                role="tablist"
+                aria-label="Период на фактуриране"
+                className="relative inline-flex items-center rounded-full border border-hairline bg-card/80 p-1 backdrop-blur-md shadow-soft"
+              >
+                <button
+                  role="tab"
+                  aria-selected={billing === "monthly"}
+                  onClick={() => setBilling("monthly")}
+                  className={cn(
+                    "relative z-10 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
+                    billing === "monthly"
+                      ? "bg-gradient-brand text-white shadow-brand"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Месечно
+                </button>
+                <button
+                  role="tab"
+                  aria-selected={billing === "yearly"}
+                  onClick={() => setBilling("yearly")}
+                  className={cn(
+                    "relative z-10 inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
+                    billing === "yearly"
+                      ? "bg-gradient-brand text-white shadow-brand"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Годишно
+                  <span className={cn(
+                    "inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors",
+                    billing === "yearly" ? "bg-white/15 text-white" : "bg-brand/15 text-brand",
+                  )}>
+                    −17%
+                  </span>
+                </button>
+              </div>
+            </div>
+          </PlansAuroraHero>
         </section>
+
+        {/* Скалиращ слайдер — препоръка според обема */}
+        <section className="relative z-10 mx-auto max-w-7xl px-4 pb-4 sm:pb-6">
+          <PlanScaleSlider
+            plans={plans}
+            billing={billing}
+            isAuthed={isAuthed}
+            onRecommend={setRecommended}
+          />
+        </section>
+
+        {/* 01 — Проблемът */}
+        <PlanStoryStage
+          index="01"
+          title="Един пропуснат текст в договора струва повече от годишен абонамент"
+          subtitle="Липсваща клауза за неустойка, грешни реквизити или неподписано приложение — всяко от тях се плаща по-скъпо от целия ви план."
+        >
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[
+              {
+                t: "90 € и 3 дни",
+                d: "средно за изготвяне на един стандартен договор при външен юрист.",
+              },
+              {
+                t: "Липсващи реквизити",
+                d: "най-честата причина документ да не бъде признат пред институция или банка.",
+              },
+              {
+                t: "Хартия и подписи",
+                d: "срещи, сканиране и разминаващи се версии вместо един проследим документ.",
+              },
+            ].map((it) => (
+              <div
+                key={it.t}
+                className="rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md"
+              >
+                <p className="font-serif text-lg text-foreground">{it.t}</p>
+                <p className="mt-1.5 text-sm text-muted-foreground">{it.d}</p>
+              </div>
+            ))}
+          </div>
+        </PlanStoryStage>
+
+        {/* 02 — Решението */}
+        <PlanStoryStage
+          index="02"
+          title="Четири стъпки от идея до подписан документ"
+          subtitle="Един поток, който платформата води вместо вас — без правен жаргон и без празни полета."
+        >
+          <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { n: "Шаблон", d: "Изберете от 600+ проверени образеца по ЗЗД, ТЗ, КТ, ЗУТ." },
+              { n: "Попълване", d: "Насочени въпроси с правни подсказки на всяко поле." },
+              { n: "AI преглед", d: "Проверка за рискови и липсващи клаузи преди изтегляне." },
+              { n: "Подпис", d: "Електронен подпис, КЕП или качен подпис — с проследимост." },
+            ].map((s, i) => (
+              <li
+                key={s.n}
+                className="relative rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md transition-colors hover:border-brand/40"
+              >
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
+                  Стъпка {i + 1}
+                </span>
+                <p className="mt-1.5 font-serif text-lg text-foreground">{s.n}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{s.d}</p>
+              </li>
+            ))}
+          </ol>
+        </PlanStoryStage>
+
 
 
         <section className="relative z-10 mx-auto max-w-7xl px-4 pb-12 sm:pb-16">
