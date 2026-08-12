@@ -9,6 +9,9 @@ import { ExpandableCard } from "@/components/ui/ExpandableCard";
 import { TopupPacks } from "@/components/TopupPacks";
 import { PlanCategoryAccordion } from "@/components/plans/PlanCategoryAccordion";
 import { PlanHeroBenefit } from "@/components/plans/PlanHeroBenefit";
+import { PlansAuroraHero } from "@/components/plans/PlansAuroraHero";
+import { PlanScaleSlider } from "@/components/plans/PlanScaleSlider";
+import { PlanStoryStage } from "@/components/plans/PlanStoryStage";
 import { categorize } from "@/lib/planCategories";
 import { AnalysisRecommendationBanner } from "@/components/funnel/AnalysisRecommendationBanner";
 import { TrustGuaranteeBar } from "@/components/funnel/TrustGuaranteeBar";
@@ -79,6 +82,8 @@ export default function Plans() {
   const isAuthed = Boolean(user);
   const { audience, copy } = useAudience();
   const [billing, setBilling] = useState<Billing>("monthly");
+  // План, препоръчан от скалиращия слайдер — акцентира съответната карта.
+  const [recommended, setRecommended] = useState<PlanId | null>(null);
 
   const { data, isLoading } = usePlans();
   const plans = data?.plans ?? [];
@@ -129,75 +134,152 @@ export default function Plans() {
         <section className="relative z-10 mx-auto max-w-6xl px-4 pt-2 pb-3 sm:pt-4 sm:pb-6">
           <SoftCapPanel />
           <AnalysisRecommendationBanner />
-          <PlansHeroAnimation />
-          <div className="relative mx-auto mt-4 max-w-3xl text-center sm:mt-6">
-            <h1 className="font-serif text-4xl leading-[1.1] tracking-tight text-foreground sm:text-5xl md:text-6xl">
-              Изберете плана,
-              <br />
-              <span className="bg-gradient-to-r from-brand-dark via-brand to-brand-light bg-clip-text text-transparent">
-                който работи за вас
-              </span>
-            </h1>
-            <p className="mt-3 text-sm text-muted-foreground whitespace-pre-line sm:text-base">
-              2 месеца БЕЗПЛАТНО на годишен абонамент.
-              {"\n"}
-              Без обвързване. ДДС включено в цената. Отказ по всяко време.
-            </p>
-          </div>
 
-          <div className="mt-4 flex flex-col items-center gap-2">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              Промокод <span className="font-semibold text-brand">FIRST100</span> → −20% за нови клиенти
-            </p>
-            <First100Counter />
-          </div>
-
-          <div className="mt-6 flex flex-col items-center gap-3 sm:mt-8">
-            <AudienceToggle size="sm" />
-            <div
-              role="tablist"
-              aria-label="Период на фактуриране"
-              className="relative inline-flex items-center rounded-full border border-hairline bg-card/80 p-1 backdrop-blur-md shadow-soft"
-            >
-              <button
-                role="tab"
-                aria-selected={billing === "monthly"}
-                onClick={() => setBilling("monthly")}
-                className={cn(
-                  "relative z-10 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
-                  billing === "monthly"
-                    ? "bg-gradient-brand text-white shadow-brand"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Месечно
-              </button>
-              <button
-                role="tab"
-                aria-selected={billing === "yearly"}
-                onClick={() => setBilling("yearly")}
-                className={cn(
-                  "relative z-10 inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
-                  billing === "yearly"
-                    ? "bg-gradient-brand text-white shadow-brand"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Годишно
-                <span className={cn(
-                  "inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors",
-                  billing === "yearly" ? "bg-white/15 text-white" : "bg-brand/15 text-brand",
-                )}>
-                  −17%
+          <PlansAuroraHero kicker="Планове и цени" className="mt-3">
+            <div className="relative mx-auto max-w-3xl text-center">
+              <h1 className="font-serif text-4xl leading-[1.1] tracking-tight text-foreground sm:text-5xl md:text-6xl">
+                Изберете плана,
+                <br />
+                <span className="bg-gradient-to-r from-brand-dark via-brand to-brand-light bg-clip-text text-transparent">
+                  който работи за вас
                 </span>
-              </button>
+              </h1>
+              <p className="mt-3 text-sm text-muted-foreground whitespace-pre-line sm:text-base">
+                2 месеца БЕЗПЛАТНО на годишен абонамент.
+                {"\n"}
+                Без обвързване. ДДС включено в цената. Отказ по всяко време.
+              </p>
             </div>
-          </div>
+
+            <div className="mt-5 flex flex-col items-center gap-2">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                Промокод <span className="font-semibold text-brand">FIRST100</span> → −20% за нови клиенти
+              </p>
+              <First100Counter />
+            </div>
+
+            <div className="mt-6 flex flex-col items-center gap-3 sm:mt-8">
+              <AudienceToggle size="sm" />
+              <div
+                role="tablist"
+                aria-label="Период на фактуриране"
+                className="relative inline-flex items-center rounded-full border border-hairline bg-card/80 p-1 backdrop-blur-md shadow-soft"
+              >
+                <button
+                  role="tab"
+                  aria-selected={billing === "monthly"}
+                  onClick={() => setBilling("monthly")}
+                  className={cn(
+                    "relative z-10 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
+                    billing === "monthly"
+                      ? "bg-gradient-brand text-white shadow-brand"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Месечно
+                </button>
+                <button
+                  role="tab"
+                  aria-selected={billing === "yearly"}
+                  onClick={() => setBilling("yearly")}
+                  className={cn(
+                    "relative z-10 inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
+                    billing === "yearly"
+                      ? "bg-gradient-brand text-white shadow-brand"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Годишно
+                  <span className={cn(
+                    "inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors",
+                    billing === "yearly" ? "bg-white/15 text-white" : "bg-brand/15 text-brand",
+                  )}>
+                    −17%
+                  </span>
+                </button>
+              </div>
+            </div>
+          </PlansAuroraHero>
         </section>
 
+        {/* Скалиращ слайдер — препоръка според обема */}
+        <section className="relative z-10 mx-auto max-w-7xl px-4 pb-4 sm:pb-6">
+          <PlanScaleSlider
+            plans={plans}
+            billing={billing}
+            isAuthed={isAuthed}
+            onRecommend={setRecommended}
+          />
+        </section>
 
-        <section className="relative z-10 mx-auto max-w-7xl px-4 pb-12 sm:pb-16">
-          <div className="grid gap-5 pt-6 md:grid-cols-3 md:gap-6 xl:gap-7">
+        {/* 01 — Проблемът */}
+        <PlanStoryStage
+          index="01"
+          title="Един пропуснат текст в договора струва повече от годишен абонамент"
+          subtitle="Липсваща клауза за неустойка, грешни реквизити или неподписано приложение — всяко от тях се плаща по-скъпо от целия ви план."
+        >
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[
+              {
+                t: "90 € и 3 дни",
+                d: "средно за изготвяне на един стандартен договор при външен юрист.",
+              },
+              {
+                t: "Липсващи реквизити",
+                d: "най-честата причина документ да не бъде признат пред институция или банка.",
+              },
+              {
+                t: "Хартия и подписи",
+                d: "срещи, сканиране и разминаващи се версии вместо един проследим документ.",
+              },
+            ].map((it) => (
+              <div
+                key={it.t}
+                className="rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md"
+              >
+                <p className="font-serif text-lg text-foreground">{it.t}</p>
+                <p className="mt-1.5 text-sm text-muted-foreground">{it.d}</p>
+              </div>
+            ))}
+          </div>
+        </PlanStoryStage>
+
+        {/* 02 — Решението */}
+        <PlanStoryStage
+          index="02"
+          title="Четири стъпки от идея до подписан документ"
+          subtitle="Един поток, който платформата води вместо вас — без правен жаргон и без празни полета."
+        >
+          <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { n: "Шаблон", d: "Изберете от 600+ проверени образеца по ЗЗД, ТЗ, КТ, ЗУТ." },
+              { n: "Попълване", d: "Насочени въпроси с правни подсказки на всяко поле." },
+              { n: "AI преглед", d: "Проверка за рискови и липсващи клаузи преди изтегляне." },
+              { n: "Подпис", d: "Електронен подпис, КЕП или качен подпис — с проследимост." },
+            ].map((s, i) => (
+              <li
+                key={s.n}
+                className="relative rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md transition-colors hover:border-brand/40"
+              >
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
+                  Стъпка {i + 1}
+                </span>
+                <p className="mt-1.5 font-serif text-lg text-foreground">{s.n}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{s.d}</p>
+              </li>
+            ))}
+          </ol>
+        </PlanStoryStage>
+
+        {/* 03 — Плановете */}
+        <PlanStoryStage
+          index="03"
+          id="plan-cards"
+          title="Плановете"
+          subtitle="Едни и същи документи и качество във всеки план — различава се само обемът и дълбочината на AI поддръжката."
+          className="pb-12 sm:pb-16"
+        >
+          <div className="grid gap-5 md:grid-cols-3 md:gap-6 xl:gap-7">
             {plans.filter((p) => p.id !== "free").map((plan, idx) => {
 
               const Icon = PLAN_ICON[plan.id];
@@ -205,19 +287,33 @@ export default function Plans() {
               const effectivePrice = price ?? plan.yearly;
               const teamMonthlyDisabled = plan.id === "team" && billing === "monthly";
               const cta = buildCta(plan.id, billing, isAuthed);
+              const isRecommended = recommended === plan.id;
               return (
                 <article
                   key={plan.id}
                   id={`plan-${plan.id}`}
                   className={cn(
-                    "group relative flex flex-col scroll-mt-28 rounded-3xl border bg-card/85 p-6 backdrop-blur-md transition-all duration-500 hover:-translate-y-0.5 sm:p-7",
+                    "group relative flex flex-col scroll-mt-28 overflow-hidden rounded-3xl border bg-card/85 p-6 backdrop-blur-md transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_28px_60px_-30px_hsl(var(--brand)/0.45)] sm:p-7",
                     plan.highlight
                       ? "border-brand/50 shadow-brand ring-1 ring-brand/20"
                       : "border-hairline hover:border-brand/30",
+                    isRecommended && "border-brand ring-2 ring-brand/40",
                     preselected === plan.id && "border-brand ring-2 ring-brand/40",
                   )}
                   style={{ animationDelay: `${idx * 80}ms` }}
                 >
+                  {/* Sheen при hover */}
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 skew-x-12 bg-gradient-to-r from-transparent via-foreground/[0.07] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-hover:motion-safe:animate-[sheen_1.6s_ease-out]"
+                  />
+
+                  {isRecommended && (
+                    <span className="absolute right-4 top-4 z-20 rounded-full border border-brand/40 bg-brand/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand">
+                      За вашия обем
+                    </span>
+                  )}
+
 
                   {plan.highlight && (
                     <span className="absolute -top-3 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-brand px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-brand">
@@ -358,17 +454,25 @@ export default function Plans() {
           <div className="mt-6 sm:mt-8">
             <TrustGuaranteeBar />
           </div>
+        </PlanStoryStage>
 
-          {/* ROI / savings calculator — directly under the pricing cards */}
-          <section className="mt-10 rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:mt-14 sm:p-6">
+        {/* 04 — Възвръщаемостта */}
+        <PlanStoryStage
+          index="04"
+          title="Възвръщаемостта — черно на бяло"
+          subtitle="Изчислете колко ви струва текущият начин на работа и след колко документа планът се изплаща."
+        >
+          <div className="rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:p-6">
             <div className="mx-auto max-w-3xl">
               <RoiCalculator />
             </div>
-          </section>
+          </div>
+        </PlanStoryStage>
 
-          {/* Top-up packs — placed directly under the free plan */}
+        <section className="relative z-10 mx-auto max-w-7xl px-4 pb-12 sm:pb-16">
+          {/* Top-up пакети */}
+          <section className="rounded-2xl border border-hairline bg-card/70 p-5 backdrop-blur-md sm:p-6">
 
-          <section className="mt-10 rounded-2xl border border-hairline bg-card/70 p-5 backdrop-blur-md sm:mt-14 sm:p-6">
             <div className="mx-auto max-w-3xl text-center">
               <h2 className="font-serif text-2xl text-foreground sm:text-3xl">
                 Top-up пакети — добави операции към плана си

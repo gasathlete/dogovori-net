@@ -107,6 +107,23 @@ export default {
         "marquee": { "0%": { transform: "translateX(0)" }, "100%": { transform: "translateX(-50%)" } },
         "planFadeUp": { "0%": { opacity: "0", transform: "translateY(6px)" }, "100%": { opacity: "1", transform: "translateY(0)" } },
         "goldSweep": { "0%": { transform: "translateX(-100%)", opacity: "0" }, "40%": { opacity: "1" }, "100%": { transform: "translateX(100%)", opacity: "0" } },
+        "auroraDrift": {
+          "0%, 100%": { transform: "translate3d(0, 0, 0) scale(1)" },
+          "33%": { transform: "translate3d(6%, -4%, 0) scale(1.08)" },
+          "66%": { transform: "translate3d(-5%, 5%, 0) scale(1.04)" },
+        },
+        "auroraDriftAlt": {
+          "0%, 100%": { transform: "translate3d(0, 0, 0) scale(1.05)" },
+          "40%": { transform: "translate3d(-7%, 6%, 0) scale(1)" },
+          "75%": { transform: "translate3d(5%, -5%, 0) scale(1.1)" },
+        },
+        "sheen": {
+          "0%": { transform: "translateX(0) skewX(12deg)", opacity: "0" },
+          "12%": { opacity: "1" },
+          "45%": { transform: "translateX(420%) skewX(12deg)", opacity: "0" },
+          "100%": { transform: "translateX(420%) skewX(12deg)", opacity: "0" },
+        },
+        "revealUp": { "0%": { opacity: "0", transform: "translateY(18px)" }, "100%": { opacity: "1", transform: "translateY(0)" } },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
