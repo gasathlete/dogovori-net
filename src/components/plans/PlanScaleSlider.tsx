@@ -60,13 +60,15 @@ export function PlanScaleSlider({ plans, billing, isAuthed, onRecommend }: Props
           };
     }
     const target = `/account?tab=subscription&plan=${rec.planId}&billing=${billing}&promo=FIRST100`;
+    const name = rec.plan?.name ?? "";
     return isAuthed
-      ? { href: target, label: `Активирай ${rec.plan?.name ?? ""}`.trim() }
+      ? { href: target, label: `Активирай ${name}`.trim() }
       : {
           href: `/auth?tab=signup&redirect=${encodeURIComponent(target)}&intent=plan_${rec.planId}`,
-          label: `Регистрирай се за ${rec.plan?.name ?? ""}`.trim(),
+          label: `Избери ${name}`.trim(),
         };
   }, [rec.planId, rec.plan, billing, isAuthed]);
+
 
   const handleChange = (value: number[]) => {
     const next = value[0] ?? 1;
