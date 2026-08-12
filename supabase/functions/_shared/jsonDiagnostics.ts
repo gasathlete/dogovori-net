@@ -26,6 +26,16 @@ export interface JsonBreak {
   missingClosers: string;
 }
 
+/** Достъп до Deno env, без да чупи typecheck-а на фронтенда. */
+function envGet(name: string): string | undefined {
+  const g = globalThis as unknown as { Deno?: { env?: { get(n: string): string | undefined } } };
+  try {
+    return g.Deno?.env?.get(name);
+  } catch {
+    return undefined;
+  }
+}
+
 function offsetFromError(err: unknown): number | null {
   const msg = err instanceof Error ? err.message : String(err);
   const m = msg.match(/position (\d+)/i);
@@ -110,13 +120,13 @@ export function logAiParseFailure(ctx: {
   repairAttempted?: boolean;
 }): void {
   try {
-    const url = Deno.env.get("SUPABASE_URL");
-    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const url = envGet("SUPABASE_URL");
+    const key = envGet("SUPABASE_SERVICE_ROLE_KEY");
     if (!url || !key) return;
 
     const d = diagnoseJson(ctx.raw ?? "", ctx.error);
     const body = {
-      fn: ctx.fn ?? Deno.env.get("SB_FUNCTION_NAME") ?? "unknown",
+      fn: ctx.fn ?? envGet("SB_FUNCTION_NAME") ?? "unknown",
       model: ctx.model ?? null,
       stage: ctx.stage ?? "parse",
       error_message: String(ctx.error instanceof Error ? ctx.error.message : ctx.error).slice(0, 500),
