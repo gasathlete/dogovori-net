@@ -172,9 +172,13 @@ export function Header() {
                 />
               </button>
               {guestOpen && (
+                <div className="absolute right-0 top-full h-2 w-56" aria-hidden="true" />
+              )}
+              {guestOpen && (
                 <div
                   role="menu"
-                  className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-lg"
+                  className="absolute right-0 top-full z-50 w-56 overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-lg"
+                  style={{ marginTop: 8 }}
                 >
                   <Link
                     to="/auth"
