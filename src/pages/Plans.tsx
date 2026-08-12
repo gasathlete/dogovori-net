@@ -454,17 +454,25 @@ export default function Plans() {
           <div className="mt-6 sm:mt-8">
             <TrustGuaranteeBar />
           </div>
+        </PlanStoryStage>
 
-          {/* ROI / savings calculator — directly under the pricing cards */}
-          <section className="mt-10 rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:mt-14 sm:p-6">
+        {/* 04 — Възвръщаемостта */}
+        <PlanStoryStage
+          index="04"
+          title="Възвръщаемостта — черно на бяло"
+          subtitle="Изчислете колко ви струва текущият начин на работа и след колко документа планът се изплаща."
+        >
+          <div className="rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:p-6">
             <div className="mx-auto max-w-3xl">
               <RoiCalculator />
             </div>
-          </section>
+          </div>
+        </PlanStoryStage>
 
-          {/* Top-up packs — placed directly under the free plan */}
+        <section className="relative z-10 mx-auto max-w-7xl px-4 pb-12 sm:pb-16">
+          {/* Top-up пакети */}
+          <section className="rounded-2xl border border-hairline bg-card/70 p-5 backdrop-blur-md sm:p-6">
 
-          <section className="mt-10 rounded-2xl border border-hairline bg-card/70 p-5 backdrop-blur-md sm:mt-14 sm:p-6">
             <div className="mx-auto max-w-3xl text-center">
               <h2 className="font-serif text-2xl text-foreground sm:text-3xl">
                 Top-up пакети — добави операции към плана си
