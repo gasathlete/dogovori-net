@@ -60,7 +60,7 @@ function buildCta(planId: PlanId, billing: Billing, isAuthed: boolean): {
     const target = `/team`;
     return isAuthed
       ? { href: target, label: "Създай екип" }
-      : { href: `/auth?tab=signup&redirect=${encodeURIComponent(target)}&intent=plan_team`, label: "Регистрирай се за Екип" };
+      : { href: `/auth?tab=signup&redirect=${encodeURIComponent(target)}&intent=plan_team`, label: "Създай екип" };
   }
   const target = `/account?tab=subscription&plan=${planId}&billing=${billing}&promo=FIRST100`;
   const planLabel = planId === "entrepreneur" ? "Предприемач" : "Професионалист";
@@ -73,9 +73,10 @@ function buildCta(planId: PlanId, billing: Billing, isAuthed: boolean): {
   const redirect = encodeURIComponent(target);
   return {
     href: `/auth?tab=signup&redirect=${redirect}&intent=plan_${planId}`,
-    label: `Регистрирай се за ${planLabel}`,
+    label: `Избери ${planLabel}`,
   };
 }
+
 
 export default function Plans() {
   const { user } = useAuth();
@@ -151,12 +152,13 @@ export default function Plans() {
               </p>
             </div>
 
-            <div className="mt-5 flex flex-col items-center gap-2">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                Промокод <span className="font-semibold text-brand">FIRST100</span> → −20% за нови клиенти
+            <div className="mt-5 flex flex-col items-center gap-2 text-center">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground sm:tracking-[0.18em]">
+                Промокод <span className="font-semibold text-brand">FIRST100</span> · −20% за нови клиенти
               </p>
               <First100Counter />
             </div>
+
 
             <div className="mt-6 flex flex-col items-center gap-3 sm:mt-8">
               <AudienceToggle size="sm" />
@@ -302,29 +304,34 @@ export default function Plans() {
                   )}
                   style={{ animationDelay: `${idx * 80}ms` }}
                 >
-                  {/* Sheen при hover */}
+                  {/* Sheen при hover — клипва се в собствен слой, за да не реже бейджовете */}
                   <span
                     aria-hidden
-                    className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 skew-x-12 bg-gradient-to-r from-transparent via-foreground/[0.07] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-hover:motion-safe:animate-[sheen_1.6s_ease-out]"
-                  />
+                    className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl"
+                  >
+                    <span className="absolute inset-y-0 -left-1/3 w-1/3 skew-x-12 bg-gradient-to-r from-transparent via-foreground/[0.07] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-hover:motion-safe:animate-[sheen_1.6s_ease-out]" />
+                  </span>
 
-                  {isRecommended && (
-                    <span className="absolute right-4 top-4 z-20 rounded-full border border-brand/40 bg-brand/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand">
-                      За вашия обем
-                    </span>
-                  )}
-
-
-                  {plan.highlight && (
-                    <span className="absolute -top-3 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-brand px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-brand">
-                      {plan.id === "entrepreneur" ? copy.planBadge : plan.badge}
-                    </span>
+                  {/* Един ред бейджове — без наслагване върху рамката */}
+                  {(plan.highlight || isRecommended) && (
+                    <div className="relative z-10 mb-4 flex flex-wrap items-center gap-2">
+                      {plan.highlight && (
+                        <span className="inline-flex rounded-full bg-gradient-brand px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white shadow-brand">
+                          {plan.id === "entrepreneur" ? copy.planBadge : plan.badge}
+                        </span>
+                      )}
+                      {isRecommended && (
+                        <span className="inline-flex rounded-full border border-brand/40 bg-brand/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand">
+                          За вашия обем
+                        </span>
+                      )}
+                    </div>
                   )}
 
                   <div className="relative z-10 flex items-center gap-3">
                     <div
                       className={cn(
-                        "flex h-11 w-11 items-center justify-center rounded-2xl",
+                        "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
                         plan.highlight
                           ? "bg-gradient-brand text-white shadow-brand"
                           : "bg-brand/10 text-brand",
@@ -333,10 +340,11 @@ export default function Plans() {
                       <Icon className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
-                      <h2 className="font-serif text-xl text-foreground">{plan.name}</h2>
+                      <h2 className="font-serif text-xl leading-tight text-foreground">{plan.name}</h2>
                       <p className="truncate text-xs text-muted-foreground">{plan.tagline}</p>
                     </div>
                   </div>
+
 
                   <div className="relative z-10 mt-6">
                     {effectivePrice && effectivePrice.price > 0 ? (
@@ -425,20 +433,22 @@ export default function Plans() {
             if (!free) return null;
             const cta = buildCta("free", billing, isAuthed);
             return (
-              <div className="mt-6 flex flex-col items-center justify-between gap-4 rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:flex-row sm:p-6">
+              <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:p-6">
                 <div className="flex items-start gap-3 sm:items-center">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
                     <Sparkles className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-serif text-lg text-foreground">
-                      {free.name} · <span className="text-brand">0 €</span>&nbsp;основни функции и облекчение за малкия бизнес&nbsp;
+                    <h3 className="font-serif text-lg leading-tight text-foreground">
+                      {free.name} · <span className="text-brand">0 €</span>
                     </h3>
-                    <p className="text-xs text-muted-foreground sm:text-sm">
-                      {free.tagline} · 5 операции при регистрация + 2 всеки месец, без карта.
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                      Основни функции за малкия бизнес · 5 операции при регистрация + 2 всеки месец,
+                      без карта.
                     </p>
                   </div>
                 </div>
+
                 <Link
                   to={cta.href}
                   onClick={() => trackEvent("plans_cta_clicked", { plan: "free", billing, authed: isAuthed, audience })}
@@ -543,7 +553,7 @@ export default function Plans() {
           <div className="grid grid-cols-2 gap-3 rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:grid-cols-4 sm:p-6">
             {[
               { icon: ShieldCheck, label: "GDPR съвместим" },
-              { icon: ShieldCheck, label: "ЗЗД, ТЗ,  ЗУТ, GDPR, EIDAS, ЗЕДЕУУ " },
+              { icon: ShieldCheck, label: "ЗЗД, ТЗ, ЗУТ, eIDAS, ЗЕДЕУУ" },
               { icon: ShieldCheck, label: "ДДС фактура" },
               { icon: ShieldCheck, label: "SSL & криптиране" },
             ].map(({ icon: Icon, label }) => (

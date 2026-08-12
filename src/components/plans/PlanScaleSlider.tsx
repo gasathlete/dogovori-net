@@ -60,13 +60,15 @@ export function PlanScaleSlider({ plans, billing, isAuthed, onRecommend }: Props
           };
     }
     const target = `/account?tab=subscription&plan=${rec.planId}&billing=${billing}&promo=FIRST100`;
+    const name = rec.plan?.name ?? "";
     return isAuthed
-      ? { href: target, label: `Активирай ${rec.plan?.name ?? ""}`.trim() }
+      ? { href: target, label: `Активирай ${name}`.trim() }
       : {
           href: `/auth?tab=signup&redirect=${encodeURIComponent(target)}&intent=plan_${rec.planId}`,
-          label: `Регистрирай се за ${rec.plan?.name ?? ""}`.trim(),
+          label: `Избери ${name}`.trim(),
         };
   }, [rec.planId, rec.plan, billing, isAuthed]);
+
 
   const handleChange = (value: number[]) => {
     const next = value[0] ?? 1;
@@ -147,10 +149,10 @@ export function PlanScaleSlider({ plans, billing, isAuthed, onRecommend }: Props
             </div>
           </div>
 
-          <dl className="mt-6 grid grid-cols-3 gap-3">
+          <dl className="mt-6 grid grid-cols-3 gap-2 sm:gap-3">
             <div className="rounded-xl border border-hairline bg-background/50 px-3 py-2.5">
               <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                Цена / документ
+                € / документ
               </dt>
               <dd className="mt-1 text-sm font-semibold text-foreground tabular-nums">
                 {rec.planId === "free" ? "0 €" : eur(rec.perDocEur)}
@@ -158,7 +160,7 @@ export function PlanScaleSlider({ plans, billing, isAuthed, onRecommend }: Props
             </div>
             <div className="rounded-xl border border-hairline bg-background/50 px-3 py-2.5">
               <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                Включени операции
+                Операции
               </dt>
               <dd className="mt-1 text-sm font-semibold text-foreground tabular-nums">
                 {rec.opsCap ?? "—"}
@@ -166,13 +168,14 @@ export function PlanScaleSlider({ plans, billing, isAuthed, onRecommend }: Props
             </div>
             <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.07] px-3 py-2.5">
               <dt className="text-[10px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                Спестявате / мес.
+                Икономия
               </dt>
               <dd className="mt-1 text-sm font-semibold text-foreground tabular-nums">
                 {eur(rec.savedEur, 0)}
               </dd>
             </div>
           </dl>
+
           <p className="mt-2 text-[11px] text-muted-foreground">
             Изчислено при {eur(LAWYER_DOC_COST_EUR, 0)} средно за изготвяне на един документ от
             юрист. ДДС включено.
