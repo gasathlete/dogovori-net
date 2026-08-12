@@ -302,29 +302,34 @@ export default function Plans() {
                   )}
                   style={{ animationDelay: `${idx * 80}ms` }}
                 >
-                  {/* Sheen при hover */}
+                  {/* Sheen при hover — клипва се в собствен слой, за да не реже бейджовете */}
                   <span
                     aria-hidden
-                    className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 skew-x-12 bg-gradient-to-r from-transparent via-foreground/[0.07] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-hover:motion-safe:animate-[sheen_1.6s_ease-out]"
-                  />
+                    className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl"
+                  >
+                    <span className="absolute inset-y-0 -left-1/3 w-1/3 skew-x-12 bg-gradient-to-r from-transparent via-foreground/[0.07] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-hover:motion-safe:animate-[sheen_1.6s_ease-out]" />
+                  </span>
 
-                  {isRecommended && (
-                    <span className="absolute right-4 top-4 z-20 rounded-full border border-brand/40 bg-brand/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand">
-                      За вашия обем
-                    </span>
-                  )}
-
-
-                  {plan.highlight && (
-                    <span className="absolute -top-3 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-brand px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-brand">
-                      {plan.id === "entrepreneur" ? copy.planBadge : plan.badge}
-                    </span>
+                  {/* Един ред бейджове — без наслагване върху рамката */}
+                  {(plan.highlight || isRecommended) && (
+                    <div className="relative z-10 mb-4 flex flex-wrap items-center gap-2">
+                      {plan.highlight && (
+                        <span className="inline-flex rounded-full bg-gradient-brand px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white shadow-brand">
+                          {plan.id === "entrepreneur" ? copy.planBadge : plan.badge}
+                        </span>
+                      )}
+                      {isRecommended && (
+                        <span className="inline-flex rounded-full border border-brand/40 bg-brand/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand">
+                          За вашия обем
+                        </span>
+                      )}
+                    </div>
                   )}
 
                   <div className="relative z-10 flex items-center gap-3">
                     <div
                       className={cn(
-                        "flex h-11 w-11 items-center justify-center rounded-2xl",
+                        "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
                         plan.highlight
                           ? "bg-gradient-brand text-white shadow-brand"
                           : "bg-brand/10 text-brand",
@@ -333,10 +338,11 @@ export default function Plans() {
                       <Icon className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
-                      <h2 className="font-serif text-xl text-foreground">{plan.name}</h2>
+                      <h2 className="font-serif text-xl leading-tight text-foreground">{plan.name}</h2>
                       <p className="truncate text-xs text-muted-foreground">{plan.tagline}</p>
                     </div>
                   </div>
+
 
                   <div className="relative z-10 mt-6">
                     {effectivePrice && effectivePrice.price > 0 ? (
