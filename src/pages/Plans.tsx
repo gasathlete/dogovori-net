@@ -271,10 +271,15 @@ export default function Plans() {
           </ol>
         </PlanStoryStage>
 
-
-
-        <section className="relative z-10 mx-auto max-w-7xl px-4 pb-12 sm:pb-16">
-          <div className="grid gap-5 pt-6 md:grid-cols-3 md:gap-6 xl:gap-7">
+        {/* 03 — Плановете */}
+        <PlanStoryStage
+          index="03"
+          id="plan-cards"
+          title="Плановете"
+          subtitle="Едни и същи документи и качество във всеки план — различава се само обемът и дълбочината на AI поддръжката."
+          className="pb-12 sm:pb-16"
+        >
+          <div className="grid gap-5 md:grid-cols-3 md:gap-6 xl:gap-7">
             {plans.filter((p) => p.id !== "free").map((plan, idx) => {
 
               const Icon = PLAN_ICON[plan.id];
@@ -282,19 +287,33 @@ export default function Plans() {
               const effectivePrice = price ?? plan.yearly;
               const teamMonthlyDisabled = plan.id === "team" && billing === "monthly";
               const cta = buildCta(plan.id, billing, isAuthed);
+              const isRecommended = recommended === plan.id;
               return (
                 <article
                   key={plan.id}
                   id={`plan-${plan.id}`}
                   className={cn(
-                    "group relative flex flex-col scroll-mt-28 rounded-3xl border bg-card/85 p-6 backdrop-blur-md transition-all duration-500 hover:-translate-y-0.5 sm:p-7",
+                    "group relative flex flex-col scroll-mt-28 overflow-hidden rounded-3xl border bg-card/85 p-6 backdrop-blur-md transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_28px_60px_-30px_hsl(var(--brand)/0.45)] sm:p-7",
                     plan.highlight
                       ? "border-brand/50 shadow-brand ring-1 ring-brand/20"
                       : "border-hairline hover:border-brand/30",
+                    isRecommended && "border-brand ring-2 ring-brand/40",
                     preselected === plan.id && "border-brand ring-2 ring-brand/40",
                   )}
                   style={{ animationDelay: `${idx * 80}ms` }}
                 >
+                  {/* Sheen при hover */}
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 skew-x-12 bg-gradient-to-r from-transparent via-foreground/[0.07] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-hover:motion-safe:animate-[sheen_1.6s_ease-out]"
+                  />
+
+                  {isRecommended && (
+                    <span className="absolute right-4 top-4 z-20 rounded-full border border-brand/40 bg-brand/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand">
+                      За вашия обем
+                    </span>
+                  )}
+
 
                   {plan.highlight && (
                     <span className="absolute -top-3 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-brand px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-brand">
