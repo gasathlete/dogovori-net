@@ -93,6 +93,7 @@ export class SandboxSignatureProvider implements SignatureProvider {
         input.level === "qualified" ? `CN=${input.signer.name}, O=DTrust Sandbox` : undefined,
     };
     this.store.set(providerRequestId, { input, result, polls: 0 });
+    this.persist();
     return result;
   }
 
@@ -112,6 +113,7 @@ export class SandboxSignatureProvider implements SignatureProvider {
         signatureB64: b64(`PAdES:${rec.input.documentHash}:${signedAt}`),
         timestampB64: b64(`TSA:${signedAt}`),
       };
+      this.persist();
     }
     return rec.result;
   }
