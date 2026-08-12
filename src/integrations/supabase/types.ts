@@ -79,6 +79,57 @@ export type Database = {
           },
         ]
       }
+      ai_parse_failures: {
+        Row: {
+          break_context: string | null
+          break_kind: string | null
+          break_offset: number | null
+          created_at: string
+          error_message: string | null
+          fn: string
+          id: string
+          missing_closers: string | null
+          model: string | null
+          raw_length: number | null
+          raw_tail: string | null
+          repair_attempted: boolean
+          stage: string
+          suggestion: string | null
+        }
+        Insert: {
+          break_context?: string | null
+          break_kind?: string | null
+          break_offset?: number | null
+          created_at?: string
+          error_message?: string | null
+          fn: string
+          id?: string
+          missing_closers?: string | null
+          model?: string | null
+          raw_length?: number | null
+          raw_tail?: string | null
+          repair_attempted?: boolean
+          stage?: string
+          suggestion?: string | null
+        }
+        Update: {
+          break_context?: string | null
+          break_kind?: string | null
+          break_offset?: number | null
+          created_at?: string
+          error_message?: string | null
+          fn?: string
+          id?: string
+          missing_closers?: string | null
+          model?: string | null
+          raw_length?: number | null
+          raw_tail?: string | null
+          repair_attempted?: boolean
+          stage?: string
+          suggestion?: string | null
+        }
+        Relationships: []
+      }
       ai_post_market_metrics: {
         Row: {
           blocked_count: number
