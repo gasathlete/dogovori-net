@@ -20,8 +20,11 @@ import { buildFaqJsonLd } from "@/data/faqItems";
 //  Hero → SocialProofStrip → PainSolution → PlatformShowcase → FeaturedBlanks
 //  → LifeScenarios → ComparisonTable → Testimonials → Process → FAQ
 //  → ComplianceSection → CTABand → SeoFooter
-import { SocialProofStrip } from "@/components/SocialProofStrip";
 import { PlatformCapabilities } from "@/components/PlatformCapabilities";
+
+// SocialProofStrip е под първия екран — държим го извън entry chunk-а.
+const SocialProofStrip = lazy(() => import("@/components/SocialProofStrip").then((m) => ({ default: m.SocialProofStrip })));
+
 
 
 const PainSolution = lazy(() => import("@/components/PainSolution").then((m) => ({ default: m.PainSolution })));
