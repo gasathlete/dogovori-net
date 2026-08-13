@@ -1027,7 +1027,9 @@ export default function WizardPage() {
                   needsAuth={!user}
                   canDownload={!!user && !docAccess.loading && docAccess.canDownload}
                   busy={exporting === "pdf"}
+                  busyDocx={exporting === "docx"}
                   onDownload={() => handleExport("pdf")}
+                  onDownloadDocx={() => handleExport("docx")}
                   onRegister={() => goAuth()}
                 />
 
