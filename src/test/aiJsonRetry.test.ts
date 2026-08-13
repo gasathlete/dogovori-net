@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { parseAiJsonWithRetry } from "./ai-json-retry.ts";
+import { parseAiJsonWithRetry } from "../../supabase/functions/_shared/ai-json-retry.ts";
 
 const base = {
   messages: [
