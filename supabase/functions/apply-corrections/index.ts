@@ -7,6 +7,7 @@ import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { redactForAI, unredact } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
+import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш съществуващ договор (в JSON) и списък от ИЗБРАНИ препоръки/слаби места, които трябва да коригираш в текста.
 Запази всички останали клаузи, формат, номерация и стил. Промени САМО това, което е необходимо, за да адресираш избраните препоръки. Където е нужно — добави нови клаузи или алинеи в съответния раздел (или нов раздел "Допълнителни защитни клаузи").
@@ -27,6 +28,7 @@ const DAILY_CORRECTION_LIMIT = 50;
 
 
 Deno.serve(async (req: Request) => {
+  const correlationId = getCorrelationId(req);
   const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -40,7 +42,7 @@ Deno.serve(async (req: Request) => {
     const { data: userData, error: userErr } = await admin.auth.getUser(token);
     if (userErr || !userData?.user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
     }
     const userId = userData.user.id;
@@ -55,7 +57,7 @@ Deno.serve(async (req: Request) => {
     const FREE_WAVES_ALLOWED = 2;
     if (!isPro && freeWavesUsed >= FREE_WAVES_ALLOWED) {
       return new Response(JSON.stringify({ error: "pro_required", code: "free_corrections_exhausted" }), {
-        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
     }
 
@@ -73,7 +75,7 @@ Deno.serve(async (req: Request) => {
           error: `Достигнахте дневния лимит от ${DAILY_CORRECTION_LIMIT} AI корекции. Опитайте отново след 24 часа.`,
           code: "rate_limited",
         }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
 
@@ -90,7 +92,7 @@ Deno.serve(async (req: Request) => {
 
     if (!contract || (selectedIssues.length === 0 && selectedRecommendations.length === 0)) {
       return new Response(JSON.stringify({ error: "Нищо за коригиране" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
     }
 
@@ -110,7 +112,7 @@ Deno.serve(async (req: Request) => {
     if (batchErr) {
       console.error("charge_corrections_wave error:", batchErr);
       return new Response(JSON.stringify({ error: "Грешка при проверка на квотата" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
     }
     const batchResult = batchCharge as {
@@ -122,7 +124,7 @@ Deno.serve(async (req: Request) => {
     if (!batchResult?.ok) {
       return new Response(
         JSON.stringify({ error: "quota_exceeded", reason: batchResult?.reason }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
     const batchCharged = !batchResult.cached;
@@ -178,7 +180,7 @@ Deno.serve(async (req: Request) => {
           contains_special_category_data: classification.contains_special_category_data,
           reasons: classification.reasons,
         },
-      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 422, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
     }
 
     if (route.requireConfirmation) {
@@ -195,7 +197,7 @@ Deno.serve(async (req: Request) => {
           pii_counts: classification.pii_counts,
           reasons: classification.reasons,
         },
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
     }
 
     const contractJsonStr = JSON.stringify(contract);
@@ -257,8 +259,8 @@ ${answersRedacted}
         classification, redaction_applied: route.redactionRequired,
         status: "error", error_code: `http_${aiResp.status}`,
       });
-      if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Достигнат е лимитът. Опитайте по-късно." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (aiResp.status === 402) return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Достигнат е лимитът. Опитайте по-късно." }), { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
+      if (aiResp.status === 402) return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI." }), { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
       const t = await aiResp.text();
       console.error("AI gateway:", aiResp.status, t);
       throw new Error("AI грешка");
@@ -290,6 +292,7 @@ ${answersRedacted}
       model: route.model,
       apiKey: LOVABLE_API_KEY,
       fn: "apply-corrections",
+      correlationId,
       regenerateAttempts: 1,
     })).parsed;
 
@@ -326,12 +329,12 @@ ${answersRedacted}
     });
 
     return new Response(JSON.stringify(parsed), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("apply-corrections error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });
   }
 });

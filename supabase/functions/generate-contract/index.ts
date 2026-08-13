@@ -11,6 +11,7 @@ import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { redactForAI, unredact } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
+import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
 
 
 const SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ). Използваш правилните понятия (Възложител/Изпълнител, Наемодател/Наемател, Продавач/Купувач, Страните, Настоящият Договор).
@@ -58,6 +59,7 @@ const SYSTEM_PROMPT = `Ти си български правен архитек�
 Номерация: римска за раздели, "Чл. N." за членове, "(1),(2)" за алинеи. Парични суми в посочената от потребителя валута (по подразбиране евро €). Липсващи данни → плейсхолдъри в [квадратни скоби].`;
 
 Deno.serve(async (req: Request) => {
+  const correlationId = getCorrelationId(req);
   const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -102,7 +104,7 @@ Deno.serve(async (req: Request) => {
           code: "rate_limited",
           requires_login: !userId,
         }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
 
@@ -193,11 +195,11 @@ Deno.serve(async (req: Request) => {
             error: "Изчерпан е безплатният ви лимит. Активирайте Pro за неограничени анализи.",
             code: "quota_exceeded",
           }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
         );
       }
       return new Response(JSON.stringify(cachedRow.payload), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
     }
 
@@ -235,7 +237,7 @@ Deno.serve(async (req: Request) => {
           contains_special_category_data: classification.contains_special_category_data,
           reasons: classification.reasons,
         },
-      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 422, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
     }
     if (route.requireConfirmation) {
       return new Response(JSON.stringify({
@@ -248,7 +250,7 @@ Deno.serve(async (req: Request) => {
           pii_counts: classification.pii_counts,
           reasons: classification.reasons,
         },
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
     }
 
     const redactedParties = route.redactionRequired
@@ -304,10 +306,10 @@ ${docTypeSpec.systemAddendum}
         status: "error", error_code: `http_${aiResp.status}`,
       });
       if (aiResp.status === 429) {
-        return new Response(JSON.stringify({ error: "Достигнат е лимитът. Моля опитайте след малко." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "Достигнат е лимитът. Моля опитайте след малко." }), { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
       }
       if (aiResp.status === 402) {
-        return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI. Моля заредете акаунта." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI. Моля заредете акаунта." }), { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
       }
       const t = await aiResp.text();
       console.error("AI gateway:", aiResp.status, t);
@@ -349,6 +351,7 @@ ${docTypeSpec.systemAddendum}
         model: route.model,
         apiKey: LOVABLE_API_KEY,
         fn: "generate-contract",
+      correlationId,
         regenerateAttempts: 1,
         validate: (p: any) => !!p && typeof p === "object",
       });
@@ -484,19 +487,19 @@ ${docTypeSpec.systemAddendum}
           error: "Изчерпан е безплатният ви лимит. Активирайте Pro за неограничени анализи.",
           code: "quota_exceeded",
         }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
 
     return new Response(JSON.stringify(parsed), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });
 
   } catch (e) {
     console.error("generate-contract error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
     );
   }
 });

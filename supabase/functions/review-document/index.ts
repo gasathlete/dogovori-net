@@ -10,6 +10,7 @@ import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { redactForAI } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
+import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
 
 const SYSTEM_PROMPT = `Ти си независим български правен ревизор (втори проход). Получаваш ГОТОВ документ и правиш техническа ревизия. НЕ пренаписваш текста.
 
@@ -58,6 +59,7 @@ function isPersonalField(text: string): boolean {
 
 
 Deno.serve(async (req: Request) => {
+  const correlationId = getCorrelationId(req);
   const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -74,7 +76,7 @@ Deno.serve(async (req: Request) => {
     if (documentText.trim().length < 80) {
       return new Response(
         JSON.stringify({ error: "Документът е твърде кратък за ревизия" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
 
@@ -90,7 +92,7 @@ Deno.serve(async (req: Request) => {
     if (!route.allowed) {
       return new Response(
         JSON.stringify({ error: "Ревизията е блокирана от политиката за данни", code: route.blockedReason }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 422, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
 
@@ -143,10 +145,10 @@ Deno.serve(async (req: Request) => {
         status: "error", error_code: `http_${aiResp.status}`,
       });
       if (aiResp.status === 429) {
-        return new Response(JSON.stringify({ error: "Достигнат е лимитът. Опитайте след малко." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "Достигнат е лимитът. Опитайте след малко." }), { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
       }
       if (aiResp.status === 402) {
-        return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI." }), { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
       }
       throw new Error("AI грешка при ревизия");
     }
@@ -167,6 +169,7 @@ Deno.serve(async (req: Request) => {
       model: route.model,
       apiKey: LOVABLE_API_KEY,
       fn: "review-document",
+      correlationId,
       regenerateAttempts: 1,
     })).parsed as Record<string, unknown>;
 
@@ -209,13 +212,13 @@ Deno.serve(async (req: Request) => {
     });
 
     return new Response(JSON.stringify(review), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("review-document error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
     );
   }
 });
