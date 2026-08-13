@@ -45,3 +45,26 @@ export const prefetchHandlers = (path: string) => ({
   onFocus: () => prefetchRoute(path),
   onTouchStart: () => prefetchRoute(path),
 });
+
+/**
+ * Warms the most likely next route(s) when the main thread is idle.
+ *
+ * Skipped on data-saver / slow connections, so мобилните потребители с лимит
+ * не плащат за спекулативен трафик. Връща cleanup функция.
+ */
+export function prefetchOnIdle(paths: string[], delay = 2000): () => void {
+  if (typeof window === "undefined") return () => {};
+  const conn = (navigator as any).connection;
+  if (conn?.saveData) return () => {};
+  if (/(^|-)(2g|slow-2g)$/.test(String(conn?.effectiveType ?? ""))) return () => {};
+
+  const ric =
+    (window as any).requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, delay));
+  const handle = ric(() => paths.forEach(prefetchRoute), { timeout: delay + 2000 });
+  return () => {
+    const cic = (window as any).cancelIdleCallback;
+    if (cic) cic(handle);
+    else clearTimeout(handle as any);
+  };
+}
+

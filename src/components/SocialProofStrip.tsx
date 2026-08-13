@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { CATALOG } from "@/data/catalog";
-import { SECTORS } from "@/data/sectors";
+// Леки константи вместо целия CATALOG/SECTORS (~1 MB JSON) — виж src/data/catalogCounts.ts
+import { TEMPLATES_COUNT, SECTORS_COUNT } from "@/data/catalogCounts";
+
 
 type Partner = { id: string; name: string; logo_url: string; website_url?: string | null };
 
@@ -28,9 +29,8 @@ async function fetchRegisteredUsers(): Promise<number> {
   return Number.isFinite(n) ? Math.max(100, n) : 100;
 }
 
-/** Брой шаблони в каталога — статична стойност, изчислена веднъж при зареждане. */
-const TEMPLATES_COUNT = CATALOG.reduce((sum, c) => sum + (c.documents?.length ?? 0), 0);
-const SECTORS_COUNT = SECTORS.length;
+
+
 
 export function SocialProofStrip() {
   // Public, near-static list. Cache aggressively — same data for every visitor.

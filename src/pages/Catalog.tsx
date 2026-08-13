@@ -14,14 +14,18 @@ import { allTemplates } from "@/lib/templateIndex";
 import { slugify } from "@/lib/slugify";
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, type DocumentTypeId } from "@/lib/documentReferences";
 import { inferDocumentType } from "@/lib/documentTypeInference";
-import { QUESTION_GRAPHS } from "@/data/questionGraphs/dogovor-za-naem-na-zhilishte";
+import { DYNAMIC_GRAPH_SLUG_SET } from "@/data/questionGraphs/slugs.generated";
 import { useDownloadCounts, getDisplayCount } from "@/hooks/useDownloadCounts";
 import { useTemplateSearch } from "@/hooks/useTemplateSearch";
 import { SECTOR_META } from "@/data/sectorsMeta";
 import { SECTOR_IMAGES } from "@/lib/sectorImages";
 
-/** Slugs that have a registered dynamic question graph (Sprint 1+2). */
-const DYNAMIC_SLUGS: Set<string> = new Set(Object.keys(QUESTION_GRAPHS));
+/**
+ * Slugs that have a registered dynamic question graph (Sprint 1+2).
+ * Идва от лек генериран списък — самите графи се зареждат само в Wizard-а.
+ */
+const DYNAMIC_SLUGS = DYNAMIC_GRAPH_SLUG_SET;
+
 
 
 export default function CatalogPage() {

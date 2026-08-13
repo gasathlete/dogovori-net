@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { prefetchOnIdle } from "@/lib/routePrefetch";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { SeoFooter } from "@/components/SeoFooter";
@@ -20,8 +21,11 @@ import { buildFaqJsonLd } from "@/data/faqItems";
 //  Hero → SocialProofStrip → PainSolution → PlatformShowcase → FeaturedBlanks
 //  → LifeScenarios → ComparisonTable → Testimonials → Process → FAQ
 //  → ComplianceSection → CTABand → SeoFooter
-import { SocialProofStrip } from "@/components/SocialProofStrip";
 import { PlatformCapabilities } from "@/components/PlatformCapabilities";
+
+// SocialProofStrip е под първия екран — държим го извън entry chunk-а.
+const SocialProofStrip = lazy(() => import("@/components/SocialProofStrip").then((m) => ({ default: m.SocialProofStrip })));
+
 
 
 const PainSolution = lazy(() => import("@/components/PainSolution").then((m) => ({ default: m.PainSolution })));
@@ -52,6 +56,12 @@ const Index = () => {
       import("@/lib/scrollToHash").then(({ scrollToHash }) => scrollToHash(id, { updateHash: false }));
     }
   }, [location]);
+
+  // Warm the most likely next routes when the main thread is idle
+  // (skipped on data-saver / slow connections).
+  useEffect(() => prefetchOnIdle(["/catalog", "/plans"]), []);
+
+
 
   // Bridge legacy event name to the global DogovAI bubble
   useEffect(() => {
@@ -121,7 +131,13 @@ const Index = () => {
       <main className="route-fade">
         <Hero onStart={startInterview} />
         <PlatformCapabilities />
-        <SocialProofStrip />
+        <LazyOnVisible minHeight={360}>
+          <Suspense fallback={<SectionSkeleton />}>
+            <SocialProofStrip />
+          </Suspense>
+        </LazyOnVisible>
+
+
         <Suspense fallback={<SectionSkeleton />}>
 
           {/* Проблем → решение → доказателство → детайл → покана */}
