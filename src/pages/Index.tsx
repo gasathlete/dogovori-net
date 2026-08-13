@@ -56,6 +56,12 @@ const Index = () => {
     }
   }, [location]);
 
+  // Warm the most likely next routes when the main thread is idle
+  // (skipped on data-saver / slow connections).
+  useEffect(() => prefetchOnIdle(["/catalog", "/plans"]), []);
+
+
+
   // Bridge legacy event name to the global DogovAI bubble
   useEffect(() => {
     const onOpen = () => window.dispatchEvent(new CustomEvent("dogovai:open"));
