@@ -474,6 +474,7 @@ export default function Plans() {
         >
           <div className="rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:p-6">
             <div className="mx-auto max-w-3xl">
+              <RoiSavingsBanner className="mb-5" />
               <RoiCalculator />
             </div>
           </div>
