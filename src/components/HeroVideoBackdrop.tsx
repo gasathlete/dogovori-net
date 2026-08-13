@@ -87,6 +87,9 @@ export function HeroVideoBackdrop() {
             width={1920}
             height={1080}
             decoding="async"
+            loading="eager"
+            {...({ fetchpriority: "high" } as any)}
+
           />
         ) : (
           <video
