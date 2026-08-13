@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { prefetchOnIdle } from "@/lib/routePrefetch";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { SeoFooter } from "@/components/SeoFooter";
