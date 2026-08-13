@@ -482,6 +482,11 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         return;
       }
       if (isConfirmationRequired(sensitive) || (data as { error?: string })?.error === "needs_confirmation") {
+        // Автоматично потвърждение — без блокиращ диалог за потребителя.
+        if (!userConfirmed) {
+          void handleGenerate(true);
+          return;
+        }
         trackGenerate("fail", { source: "build", doc_key: documentType, reason: "needs_confirmation" });
         setSensitiveClass(sensitive?.classification ?? null);
         setSensitiveBlocked(false);
