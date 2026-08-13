@@ -1,4 +1,5 @@
 import { logAiParseFailure } from "./jsonDiagnostics.ts";
+import { logAiOutput } from "./ai-log.ts";
 // Shared helper: tolerant JSON extraction from LLM responses.
 // Strips markdown fences, escapes literal control chars inside strings,
 // removes trailing commas, and balances braces/brackets.
@@ -113,7 +114,7 @@ function extractJsonInner(s: string, trace: { final?: string } = {}): any {
   {
     let cur = cleaned;
     for (let attempt = 0; attempt < 60; attempt++) {
-      try { return JSON.parse(cur); } catch (e) {
+      try { return P(cur); } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         const m = msg.match(/position (\d+)/i);
         if (!m) break;
@@ -169,7 +170,7 @@ function extractJsonInner(s: string, trace: { final?: string } = {}): any {
 
   const closed = close(cleaned);
   if (closed) {
-    try { return JSON.parse(closed); } catch {}
+    try { return P(closed); } catch {}
   }
 
   // Still broken: walk back to the last structurally valid point so the caller
@@ -179,10 +180,10 @@ function extractJsonInner(s: string, trace: { final?: string } = {}): any {
     if (c !== "}" && c !== "]" && c !== '"' && !/[0-9]/.test(c)) continue;
     const candidate = close(cleaned.slice(0, i + 1));
     if (!candidate) continue;
-    try { return JSON.parse(candidate); } catch { /* keep scanning */ }
+    try { return P(candidate); } catch { /* keep scanning */ }
   }
 
-  return JSON.parse(cleaned);
+  return P(cleaned);
 
 
 }
