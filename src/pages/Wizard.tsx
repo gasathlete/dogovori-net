@@ -909,6 +909,17 @@ export default function WizardPage() {
               summary={result?.risk.summary}
             />
 
+            {personalDataNotice && (
+              <div className="flex items-start gap-2 rounded-lg border border-border/60 bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground animate-fade-in">
+                <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-gold" aria-hidden />
+                <span>
+                  Документът съдържа лични данни. Обработваме ги само за изготвянето му, в
+                  съответствие с GDPR — не е нужно допълнително потвърждение.
+                </span>
+              </div>
+            )}
+
+
             {!result && current && (
               <div
                 ref={questionCardRef}
