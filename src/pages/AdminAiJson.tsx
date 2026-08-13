@@ -29,6 +29,8 @@ interface Failure {
   missing_closers: string | null;
   repair_attempted: boolean;
   raw_tail: string | null;
+  correlation_id: string | null;
+  attempts: number | null;
 }
 
 const KIND_LABEL: Record<string, string> = {
@@ -94,6 +96,7 @@ export default function AdminAiJson() {
         (r) =>
           `- [${new Date(r.created_at).toLocaleString("bg-BG")}] ${r.fn} / ${r.stage}` +
           ` · модел: ${r.model ?? "n/a"} · дължина: ${r.raw_length ?? "?"}` +
+          `${r.correlation_id ? ` · cid: ${r.correlation_id}` : ""}` +
           ` · offset: ${r.break_offset ?? "?"} · причина: ${KIND_LABEL[r.break_kind ?? "unknown"] ?? r.break_kind}` +
           `\n  Корекция: ${r.suggestion ?? "—"}` +
           `\n  Контекст: \`${(r.break_context ?? "").slice(0, 200).replace(/`/g, "'")}\``,
@@ -220,6 +223,14 @@ export default function AdminAiJson() {
                       <span className="text-xs text-muted-foreground">
                         offset {r.break_offset ?? "?"} / {r.raw_length ?? "?"}
                       </span>
+                      {r.correlation_id && (
+                        <span className="font-mono text-[10px] text-muted-foreground">
+                          cid {r.correlation_id.slice(0, 8)}
+                        </span>
+                      )}
+                      {r.attempts != null && (
+                        <span className="text-[11px] text-muted-foreground">{r.attempts} опита</span>
+                      )}
                       <span className="ml-auto text-[11px] text-muted-foreground">
                         {new Date(r.created_at).toLocaleString("bg-BG")}
                       </span>
