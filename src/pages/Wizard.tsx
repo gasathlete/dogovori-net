@@ -195,6 +195,37 @@ export default function WizardPage() {
     });
   }, [sector, answers]);
 
+  // Интелигентни стойности по подразбиране — попълват се веднъж при първо
+  // отваряне (днешна дата за полета за дата, София за населено място), за да
+  // намалим ръчното въвеждане в началото на формата.
+  const defaultsApplied = useRef(false);
+  useEffect(() => {
+    if (defaultsApplied.current || !sector) return;
+    defaultsApplied.current = true;
+    const today = new Date().toISOString().slice(0, 10);
+    const flat = flattenQuestions(sector.questions);
+    const patch: Record<string, string> = {};
+    for (const f of flat) {
+      const key = `${f.id} ${f.label ?? ""}`.toLowerCase();
+      if (f.type === "date" && /дата|срок.*от|date/.test(key)) {
+        patch[f.id] = today;
+      } else if (
+        (f.type === "text" || f.type === "select" || f.type === "radio") &&
+        /(^|_)(city|town)|град|населено място|местоположение|сключен в/.test(key) &&
+        (!f.options || f.options.includes("София"))
+      ) {
+        patch[f.id] = "София";
+      }
+    }
+    const missing = Object.fromEntries(
+      Object.entries(patch).filter(([id]) => !answers[id]?.trim()),
+    );
+    if (Object.keys(missing).length > 0) setAnswers((prev) => ({ ...missing, ...prev }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sector]);
+
+
+
   if (!sector) {
     return (
       <div className="flex min-h-dvh items-center justify-center">
