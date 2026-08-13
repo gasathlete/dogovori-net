@@ -6,6 +6,8 @@
  * причината в админ панела (/admin/ai-json), вместо потребителят да получи 500.
  */
 
+import { maskSensitive } from "./ai-log.ts";
+
 export interface JsonBreak {
   /** Отместване в символи, където JSON.parse спира. */
   breakOffset: number | null;
@@ -129,15 +131,15 @@ export function logAiParseFailure(ctx: {
       fn: ctx.fn ?? envGet("SB_FUNCTION_NAME") ?? "unknown",
       model: ctx.model ?? null,
       stage: ctx.stage ?? "parse",
-      error_message: String(ctx.error instanceof Error ? ctx.error.message : ctx.error).slice(0, 500),
+      error_message: maskSensitive(String(ctx.error instanceof Error ? ctx.error.message : ctx.error)).slice(0, 500),
       raw_length: (ctx.raw ?? "").length,
       break_offset: d.breakOffset,
       break_kind: d.breakKind,
-      break_context: d.breakContext.slice(0, 2000),
+      break_context: maskSensitive(d.breakContext).slice(0, 2000),
       suggestion: d.suggestion,
       missing_closers: d.missingClosers,
       repair_attempted: ctx.repairAttempted ?? false,
-      raw_tail: (ctx.raw ?? "").slice(-1500),
+      raw_tail: maskSensitive((ctx.raw ?? "").slice(-1500)),
     };
 
     void fetch(`${url}/rest/v1/ai_parse_failures`, {
