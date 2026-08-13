@@ -78,7 +78,28 @@ function extractJsonInner(s: string): any {
     .replace(/,\s*]/g, "]")
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
   try { return JSON.parse(cleaned); } catch {}
+  // Error-position guided repair: the most common mid-document break is an
+  // unescaped double quote inside a string value, which closes the string too
+  // early ("Expected ',' or '}' after property value in JSON at position N").
+  // Escape the offending quote and retry, iteratively.
+  {
+    let cur = cleaned;
+    for (let attempt = 0; attempt < 60; attempt++) {
+      try { return JSON.parse(cur); } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        const m = msg.match(/position (\d+)/i);
+        if (!m) break;
+        if (!/Expected ',' or '}'|Expected ',' or ']'|Expected double-quoted property name|Unexpected (?:non-whitespace|string|token)/i.test(msg)) break;
+        const pos = Number(m[1]);
+        const q = cur.lastIndexOf('"', Math.max(0, pos - 1));
+        if (q <= 0 || cur[q - 1] === "\\") break;
+        cur = cur.slice(0, q) + '\\"' + cur.slice(q + 1);
+      }
+    }
+  }
   // Last-resort: repair a response truncated mid-string / mid-escape (max_tokens),
+  // then close the open containers in the correct nesting order.
+
   // then close the open containers in the correct nesting order.
   const scan = (src: string) => {
     let inStr = false, esc = false;

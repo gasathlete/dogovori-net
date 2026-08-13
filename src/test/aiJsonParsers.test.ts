@@ -151,3 +151,18 @@ describe("регресия: всички edge функции ползват об
     expect(offenders).toEqual([]);
   });
 });
+
+describe("extractJson — неескейпнати кавички в средата (500 от production)", () => {
+  it("поправя цитат вътре в стойност", () => {
+    const r = parse('{"a":"текст "цитат" още","b":2}');
+    expect(r.b).toBe(2);
+    expect(String(r.a)).toContain("цитат");
+  });
+
+  it("поправя няколко неескейпнати кавички в дълъг обект", () => {
+    const raw = '{"contract":{"clauses":[{"title":"Чл. 1 "Предмет"","body":"Страните се "договарят" така"}]},"risk":{"score":40}}';
+    const r = parse(raw);
+    expect(r.risk.score).toBe(40);
+    expect(r.contract.clauses.length).toBe(1);
+  });
+});
