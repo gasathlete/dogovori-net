@@ -81,9 +81,11 @@ export type Database = {
       }
       ai_parse_failures: {
         Row: {
+          attempts: number | null
           break_context: string | null
           break_kind: string | null
           break_offset: number | null
+          correlation_id: string | null
           created_at: string
           error_message: string | null
           fn: string
@@ -97,9 +99,11 @@ export type Database = {
           suggestion: string | null
         }
         Insert: {
+          attempts?: number | null
           break_context?: string | null
           break_kind?: string | null
           break_offset?: number | null
+          correlation_id?: string | null
           created_at?: string
           error_message?: string | null
           fn: string
@@ -113,9 +117,11 @@ export type Database = {
           suggestion?: string | null
         }
         Update: {
+          attempts?: number | null
           break_context?: string | null
           break_kind?: string | null
           break_offset?: number | null
+          correlation_id?: string | null
           created_at?: string
           error_message?: string | null
           fn?: string

@@ -65,4 +65,15 @@ describe("parseAiJsonWithRetry", () => {
       parseAiJsonWithRetry({ ...base, content: "счупено" }),
     ).rejects.toThrow(/не може да бъде анализиран/);
   });
+
+  it("carries the correlation ID on the final error", async () => {
+    mockGateway(null, null);
+    const err = await parseAiJsonWithRetry({
+      ...base,
+      content: "счупено",
+      correlationId: "cid-test-123",
+    }).catch((e) => e);
+    expect(err.name).toBe("AiJsonUnparsableError");
+    expect(err.correlationId).toBe("cid-test-123");
+  });
 });

@@ -7,6 +7,7 @@ import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { redactForAI, unredact } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
+import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш СУРОВ ТЕКСТ на договор и списък от установени правни проблеми и липсващи клаузи.
 
@@ -28,6 +29,7 @@ const DAILY_LIMIT = 30;
 
 
 Deno.serve(async (req: Request) => {
+  const correlationId = getCorrelationId(req);
   const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -41,7 +43,7 @@ Deno.serve(async (req: Request) => {
     const { data: userData, error: userErr } = await admin.auth.getUser(token);
     if (userErr || !userData?.user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
     }
     const userId = userData.user.id;
@@ -51,7 +53,7 @@ Deno.serve(async (req: Request) => {
     const isPro = !!q && (q.plan === "pro" || (!!q.pro_until && new Date(q.pro_until) > new Date()));
     if (!isPro) {
       return new Response(JSON.stringify({ error: "pro_required" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
     }
 
@@ -66,13 +68,13 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({
         error: `Достигнахте дневния лимит от ${DAILY_LIMIT} корекции. Опитайте отново след 24 часа.`,
         code: "rate_limited",
-      }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
     }
 
     const { uploadedContractId, selectedIssues, selectedMissing, userConfirmed } = await req.json();
     if (!uploadedContractId) {
       return new Response(JSON.stringify({ error: "uploadedContractId липсва" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
     }
 
@@ -80,7 +82,7 @@ Deno.serve(async (req: Request) => {
       .select("id, user_id, extracted_text").eq("id", uploadedContractId).maybeSingle();
     if (!contract || contract.user_id !== userId) {
       return new Response(JSON.stringify({ error: "Not found" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
     }
     const { data: analysis } = await admin.from("risk_analyses")
@@ -148,7 +150,7 @@ Deno.serve(async (req: Request) => {
             reasons: classification.reasons,
           },
         }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 422, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
 
@@ -165,7 +167,7 @@ Deno.serve(async (req: Request) => {
             reasons: classification.reasons,
           },
         }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 200, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
 
@@ -222,8 +224,8 @@ ${scopeNote}
         status: "error",
         error_code: `http_${aiResp.status}`,
       });
-      if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Лимитът е достигнат." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (aiResp.status === 402) return new Response(JSON.stringify({ error: "Изчерпани кредити." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Лимитът е достигнат." }), { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
+      if (aiResp.status === 402) return new Response(JSON.stringify({ error: "Изчерпани кредити." }), { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
       throw new Error("AI грешка");
     }
 
@@ -242,6 +244,7 @@ ${scopeNote}
       model: route.model,
       apiKey: LOVABLE_API_KEY,
       fn: "correct-uploaded",
+      correlationId,
       regenerateAttempts: 1,
     })).parsed;
 
@@ -269,12 +272,12 @@ ${scopeNote}
     });
 
     return new Response(JSON.stringify(parsed), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("correct-uploaded error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    console.error(`correct-uploaded error [cid=${correlationId}]:`, e);
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка", correlation_id: correlationId }), {
+      status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });
   }
 });

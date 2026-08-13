@@ -3,6 +3,7 @@
 // contract as context. Returns { contract: GeneratedContract }.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, hashIp, clientIp } from "../_shared/cors.ts";
+import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
 
 const KIND_SPECS: Record<string, { label: string; addendum: string }> = {
   appendix: {
@@ -57,6 +58,7 @@ const SYSTEM_PROMPT = `Ти си български правен архитек�
 - Договори.нет НЕ събира лични данни; ако липсват, използвай плейсхолдъри без коментар.`;
 
 Deno.serve(async (req: Request) => {
+  const correlationId = getCorrelationId(req);
   const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -93,7 +95,7 @@ Deno.serve(async (req: Request) => {
           code: "rate_limited",
           requires_login: !userId,
         }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
 
@@ -103,7 +105,7 @@ Deno.serve(async (req: Request) => {
     if (!spec) {
       return new Response(
         JSON.stringify({ error: "Неподдържан вид документ.", code: "invalid_kind" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
 
@@ -120,7 +122,7 @@ Deno.serve(async (req: Request) => {
     if (!parentContract || !parentContract.title) {
       return new Response(
         JSON.stringify({ error: "Липсва основен договор като контекст.", code: "missing_parent" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
 
@@ -163,13 +165,13 @@ ${parentText}
       if (aiResp.status === 429) {
         return new Response(
           JSON.stringify({ error: "Достигнат е лимитът. Моля опитайте след малко." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
         );
       }
       if (aiResp.status === 402) {
         return new Response(
           JSON.stringify({ error: "Изчерпани са кредитите за AI. Моля заредете акаунта." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
         );
       }
       const t = await aiResp.text();
@@ -197,6 +199,7 @@ ${parentText}
       model: "google/gemini-2.5-flash",
       apiKey: LOVABLE_API_KEY,
       fn: "generate-linked-document",
+      correlationId,
       regenerateAttempts: 1,
     })).parsed;
 
@@ -205,13 +208,13 @@ ${parentText}
         ...parsed,
         meta: { kind, parent_slug: parentSlug, number },
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
     );
   } catch (e) {
-    console.error("generate-linked-document error:", e);
+    console.error(`generate-linked-document error [cid=${correlationId}]:`, e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка", correlation_id: correlationId }),
+      { status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
     );
   }
 });

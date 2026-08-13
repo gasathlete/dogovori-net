@@ -91,6 +91,8 @@ export function describeRepair(before: string, after: string): RepairSummary {
 
 export interface AiOutputLogCtx {
   fn?: string;
+  /** Correlation ID на заявката — свързва клиента с repair стъпката. */
+  correlationId?: string;
   stage?: string;
   model?: string | null;
   outcome: "parsed" | "repaired" | "failed";
@@ -112,6 +114,7 @@ export function logAiOutput(ctx: AiOutputLogCtx): void {
     const entry: Record<string, unknown> = {
       tag: "ai_output",
       fn: ctx.fn ?? "unknown",
+      correlation_id: ctx.correlationId ?? null,
       stage: ctx.stage ?? "parse",
       model: ctx.model ?? null,
       outcome: ctx.outcome,

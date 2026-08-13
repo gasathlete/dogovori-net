@@ -120,6 +120,10 @@ export function logAiParseFailure(ctx: {
   raw: string;
   error: unknown;
   repairAttempted?: boolean;
+  /** Correlation ID на заявката. */
+  correlationId?: string;
+  /** Брой опити (direct + repair + regenerate) до момента. */
+  attempts?: number;
 }): void {
   try {
     const url = envGet("SUPABASE_URL");
@@ -140,6 +144,8 @@ export function logAiParseFailure(ctx: {
       missing_closers: d.missingClosers,
       repair_attempted: ctx.repairAttempted ?? false,
       raw_tail: maskSensitive((ctx.raw ?? "").slice(-1500)),
+      correlation_id: ctx.correlationId ?? null,
+      attempts: ctx.attempts ?? null,
     };
 
     void fetch(`${url}/rest/v1/ai_parse_failures`, {

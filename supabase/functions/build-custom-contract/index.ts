@@ -14,6 +14,7 @@ import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { redactForAI, unredact } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
+import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
 
 const BASE_SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ, ГПК, ЗАНН, ЗАПСП, ЗННД).
 
@@ -146,6 +147,7 @@ const BUILD_MODE_ADDENDUM: Record<BuildMode, { label: string; addendum: string; 
 };
 
 Deno.serve(async (req: Request) => {
+  const correlationId = getCorrelationId(req);
   const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -214,7 +216,7 @@ Deno.serve(async (req: Request) => {
           code: "auth_required",
           requires_login: true,
         }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 401, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
     console.log("[build-custom-contract] auth ok:", { userId, ...authDiag });
@@ -249,7 +251,7 @@ Deno.serve(async (req: Request) => {
     if (!name.trim() || !category.trim()) {
       return new Response(
         JSON.stringify({ error: "Името и категорията са задължителни." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
 
@@ -311,7 +313,7 @@ Deno.serve(async (req: Request) => {
           error: "Достигнахте дневния лимит от 5 генерации. Опитайте утре или вземете Pro.",
           code: "rate_limited",
         }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
     if (blocked) return blocked;
@@ -327,7 +329,7 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
     if (cachedRow?.payload) {
       return new Response(JSON.stringify(cachedRow.payload), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
     }
 
@@ -393,7 +395,7 @@ ${fieldsSection}
           contains_special_category_data: classification.contains_special_category_data,
           reasons: classification.reasons,
         },
-      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 422, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
     }
     if (route.requireConfirmation) {
       return new Response(JSON.stringify({
@@ -406,7 +408,7 @@ ${fieldsSection}
           pii_counts: classification.pii_counts,
           reasons: classification.reasons,
         },
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
     }
 
     const redacted = route.redactionRequired ? redactForAI(userPrompt) : { redacted: userPrompt, mapping: {}, stats: {} };
@@ -442,10 +444,10 @@ ${fieldsSection}
         status: "error", error_code: `http_${aiResp.status}`,
       });
       if (aiResp.status === 429) {
-        return new Response(JSON.stringify({ error: "Достигнат е лимитът. Моля опитайте след малко." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "Достигнат е лимитът. Моля опитайте след малко." }), { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
       }
       if (aiResp.status === 402) {
-        return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI. Моля заредете акаунта." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI. Моля заредете акаунта." }), { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
       }
       const t = await aiResp.text();
       console.error("AI gateway:", aiResp.status, t);
@@ -485,6 +487,7 @@ ${fieldsSection}
         model: route.model,
         apiKey: LOVABLE_API_KEY,
         fn: "build-custom-contract",
+      correlationId,
         maxTokens: 16000,
         regenerateAttempts: 1,
         validate: (p: any) => !!p?.contract,
@@ -537,13 +540,13 @@ ${fieldsSection}
     );
 
     return new Response(JSON.stringify(parsed), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("build-custom-contract error:", e);
+    console.error(`build-custom-contract error [cid=${correlationId}]:`, e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка", correlation_id: correlationId }),
+      { status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
     );
   }
 });

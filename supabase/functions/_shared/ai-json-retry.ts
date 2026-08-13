@@ -12,6 +12,7 @@
 
 import { extractJson } from "./json.ts";
 import { logAiOutput, maskSensitive } from "./ai-log.ts";
+import { logAiParseFailure } from "./jsonDiagnostics.ts";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -33,6 +34,18 @@ export interface AiJsonRetryOptions {
   regenerateAttempts?: number;
   /** Optional guard: reject a structurally valid but useless object. */
   validate?: (parsed: unknown) => boolean;
+  /** Correlation ID of the originating request — appears in every log line. */
+  correlationId?: string;
+}
+
+/** Error thrown when every escalation step failed; carries the correlation ID. */
+export class AiJsonUnparsableError extends Error {
+  readonly correlationId?: string;
+  constructor(message: string, correlationId?: string) {
+    super(message);
+    this.name = "AiJsonUnparsableError";
+    this.correlationId = correlationId;
+  }
 }
 
 export interface AiJsonRetryResult<T = any> {
@@ -87,17 +100,18 @@ const STRICT_JSON_REMINDER =
 export async function parseAiJsonWithRetry<T = any>(
   o: AiJsonRetryOptions,
 ): Promise<AiJsonRetryResult<T>> {
+  const cid = o.correlationId ? ` [cid=${o.correlationId}]` : "";
   const ok = (v: unknown) => v != null && (!o.validate || o.validate(v));
   const genOpts = { temperature: o.temperature, maxTokens: o.maxTokens };
   let attempts = 1;
 
   // 1) Local tolerant parse.
   try {
-    const parsed = extractJson(o.content, { fn: o.fn });
+    const parsed = extractJson(o.content, { fn: o.fn, correlationId: o.correlationId });
     if (ok(parsed)) return { parsed, stage: "direct", attempts };
   } catch (err) {
     console.error(
-      `${o.fn}: JSON parse failed (direct):`,
+      `${o.fn}${cid}: JSON parse failed (direct):`,
       maskSensitive(String(err instanceof Error ? err.message : err)),
     );
   }
@@ -115,15 +129,15 @@ export async function parseAiJsonWithRetry<T = any>(
       genOpts,
     );
     if (repaired) {
-      const parsed = extractJson(repaired, { fn: o.fn, model: o.model, stage: "repair" });
+      const parsed = extractJson(repaired, { fn: o.fn, model: o.model, stage: "repair", correlationId: o.correlationId });
       if (ok(parsed)) {
-        logAiOutput({ fn: o.fn, model: o.model, stage: "repair", outcome: "repaired", raw: o.content, repaired });
+        logAiOutput({ fn: o.fn, correlationId: o.correlationId, model: o.model, stage: "repair", outcome: "repaired", raw: o.content, repaired });
         return { parsed, stage: "repair", attempts };
       }
     }
   } catch (err) {
     console.error(
-      `${o.fn}: JSON repair retry failed:`,
+      `${o.fn}${cid}: JSON repair retry failed:`,
       maskSensitive(String(err instanceof Error ? err.message : err)),
     );
   }
@@ -136,10 +150,11 @@ export async function parseAiJsonWithRetry<T = any>(
       const messages: AiMessage[] = [...o.messages, { role: "system", content: STRICT_JSON_REMINDER }];
       const regenerated = await callGateway(o.apiKey, o.model, messages, genOpts);
       if (!regenerated) continue;
-      const parsed = extractJson(regenerated, { fn: o.fn, model: o.model, stage: `regenerate-${i + 1}` });
+      const parsed = extractJson(regenerated, { fn: o.fn, model: o.model, stage: `regenerate-${i + 1}`, correlationId: o.correlationId });
       if (ok(parsed)) {
         logAiOutput({
           fn: o.fn,
+          correlationId: o.correlationId,
           model: o.model,
           stage: `regenerate-${i + 1}`,
           outcome: "repaired",
@@ -150,12 +165,36 @@ export async function parseAiJsonWithRetry<T = any>(
       }
     } catch (err) {
       console.error(
-        `${o.fn}: JSON regenerate attempt ${i + 1} failed:`,
+        `${o.fn}${cid}: JSON regenerate attempt ${i + 1} failed:`,
         maskSensitive(String(err instanceof Error ? err.message : err)),
       );
     }
   }
 
-  logAiOutput({ fn: o.fn, model: o.model, stage: "exhausted", outcome: "failed", raw: o.content });
-  throw new Error("AI отговорът не може да бъде анализиран като JSON. Моля опитайте отново.");
+  logAiOutput({
+    fn: o.fn,
+    correlationId: o.correlationId,
+    model: o.model,
+    stage: "exhausted",
+    outcome: "failed",
+    raw: o.content,
+  });
+
+  // Безопасен диагностичен артефакт: САМО маскирани фрагменти, вид и позиция на
+  // грешката (без пълния изход, без PII). Fire-and-forget — не блокира отговора.
+  logAiParseFailure({
+    fn: o.fn,
+    model: o.model,
+    stage: "exhausted",
+    raw: o.content,
+    error: new Error("repair and regenerate exhausted"),
+    repairAttempted: true,
+    correlationId: o.correlationId,
+    attempts,
+  });
+
+  throw new AiJsonUnparsableError(
+    "AI отговорът не може да бъде анализиран като JSON. Моля опитайте отново.",
+    o.correlationId,
+  );
 }
