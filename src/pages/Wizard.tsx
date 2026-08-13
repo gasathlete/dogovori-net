@@ -136,10 +136,14 @@ export default function WizardPage() {
   const [stepIdx, setStepIdx] = useState<number>(persisted?.stepIdx ?? 0);
   const [generating, setGenerating] = useState(false);
   const [genStepIdx, setGenStepIdx] = useState(0);
-  // Диалог за лични / чувствителни данни (GDPR потвърждение преди генериране).
+  // Диалог за лични / чувствителни данни. Показва се САМО при твърд блокаж
+  // (специална категория данни). Обикновеното GDPR потвърждение се поема
+  // автоматично и се съобщава инлайн, за да не спира генерирането.
   const [sensitiveOpen, setSensitiveOpen] = useState(false);
   const [sensitiveBlocked, setSensitiveBlocked] = useState(false);
   const [sensitiveClass, setSensitiveClass] = useState<ClassificationSummary | null>(null);
+  const [personalDataNotice, setPersonalDataNotice] = useState(false);
+
   const [correctionsPending, setCorrectionsPending] = useState<CorrectionsSelection | null>(null);
   const [result, setResult] = useState<AIResult | null>(persisted?.result ?? null);
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
