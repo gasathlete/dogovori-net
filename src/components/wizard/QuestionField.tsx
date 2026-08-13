@@ -269,36 +269,19 @@ export function QuestionField(props: Props) {
     );
   }
 
-  // Групиран въпрос — стандартен рендер.
+  // Групиран въпрос — стандартен рендер (задължителни полета видими,
+  // незадължителните — скрити зад „Допълнителни детайли“).
   if (q.type === "group" && q.fields && q.fields.length > 0) {
-    const visibleFields = q.fields.filter((f) => !f.showIf || f.showIf(answers));
     return (
-      <div className="space-y-5">
-        <div>
-          <Label className="font-serif text-lg leading-snug text-foreground">
-            {q.label}
-            {q.required && <span className="ml-1 text-gold">*</span>}
-          </Label>
-          {q.help && <p className="mt-1 text-xs text-muted-foreground">{q.help}</p>}
-        </div>
-        <div className="space-y-5 rounded-lg border border-border/50 bg-card/30 p-4 md:p-5">
-          {visibleFields.map((f, idx) => (
-            <div key={f.id} className={idx > 0 ? "border-t border-border/40 pt-5" : ""}>
-              <QuestionField
-                q={f}
-                value={answers[f.id] ?? ""}
-                onChange={(v) => onAnswerChange?.(f.id, v)}
-                answers={answers}
-                onAnswerChange={onAnswerChange}
-                compact
-                contacts={contacts}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
+      <GroupFields
+        q={q}
+        answers={answers}
+        onAnswerChange={onAnswerChange}
+        contacts={contacts}
+      />
     );
   }
+
 
   const legalHint = getFieldHint(q.id, q.label);
   const labelEl = compact ? (
