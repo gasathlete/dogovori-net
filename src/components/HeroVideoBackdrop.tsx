@@ -115,7 +115,7 @@ export function HeroVideoBackdrop() {
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-background" />
       </div>
 
-      {!reducedMotion && (
+      {!reducedMotion && videoAllowed && (
         <button
           type="button"
           onClick={toggle}
