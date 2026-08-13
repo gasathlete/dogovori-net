@@ -215,9 +215,9 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("review-document error:", e);
+    console.error(`review-document error [cid=${correlationId}]:`, e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка" }),
+      JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка", correlation_id: correlationId }),
       { status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
     );
   }
