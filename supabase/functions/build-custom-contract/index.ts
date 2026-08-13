@@ -474,14 +474,31 @@ ${fieldsSection}
     }
 
     let parsed: { risk: any; contract: any };
-    try { parsed = extractJson(content, { fn: "build-custom-contract" }); }
-    catch {
+    try {
+      const { parseAiJsonWithRetry } = await import("../_shared/ai-json-retry.ts");
+      const res = await parseAiJsonWithRetry({
+        content,
+        messages: [
+          { role: "system", content: activeSystemPrompt },
+          { role: "user", content: redactionNote + redacted.redacted },
+        ],
+        model: route.model,
+        apiKey: LOVABLE_API_KEY,
+        fn: "build-custom-contract",
+        maxTokens: 16000,
+        regenerateAttempts: 1,
+        validate: (p: any) => !!p?.contract,
+      });
+      parsed = res.parsed;
+      if (res.stage !== "direct") console.log(`build-custom-contract: JSON recovered via ${res.stage}`);
+    } catch {
       console.error("JSON parse failed. finish_reason:", finishReason, "Content head:", content.slice(0, 800));
       const friendly = finishReason === "length"
         ? "Документът е твърде дълъг и отговорът беше отрязан. Моля опитайте с по-кратко описание или го разделете на части."
         : "AI отговорът не може да бъде анализиран. Моля опитайте отново.";
       throw new Error(friendly);
     }
+
 
     // Unredact AI output so the user sees real names/EGN/IBAN in the final doc.
     if (Object.keys(redacted.mapping).length > 0) {
