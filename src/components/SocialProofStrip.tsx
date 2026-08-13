@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { CATALOG } from "@/data/catalog";
-import { SECTORS } from "@/data/sectors";
+// Леки константи вместо целия CATALOG/SECTORS (~1 MB JSON) — виж src/data/catalogCounts.ts
+import { TEMPLATES_COUNT, SECTORS_COUNT } from "@/data/catalogCounts";
+
 
 type Partner = { id: string; name: string; logo_url: string; website_url?: string | null };
 
