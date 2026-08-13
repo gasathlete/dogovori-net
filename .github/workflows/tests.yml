@@ -25,7 +25,7 @@ jobs:
         run: bun run test
 
       - name: AI JSON parser regression suite
-        run: bunx vitest run src/test/aiJsonParsers.test.ts src/test/aiJsonRetry.test.ts
+        run: bunx vitest run src/test/aiJsonParsers.test.ts src/test/aiJsonRetry.test.ts src/test/aiRepairIntegration.test.ts
 
 
       - name: Wizard full audit (fails on CRITICAL)

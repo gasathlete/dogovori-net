@@ -8,6 +8,16 @@
  * Логването е винаги "fire and forget" — никога не хвърля.
  */
 
+/** Чете env флаг, без да чупи фронтенд typecheck-а. */
+function verbose(): boolean {
+  try {
+    const g = globalThis as unknown as { Deno?: { env?: { get(n: string): string | undefined } } };
+    return g.Deno?.env?.get("AI_LOG_VERBOSE") === "1";
+  } catch {
+    return false;
+  }
+}
+
 /** Максимална дължина на един запис в лога. */
 const SNIPPET = 700;
 
@@ -96,6 +106,8 @@ export interface AiOutputLogCtx {
  */
 export function logAiOutput(ctx: AiOutputLogCtx): void {
   try {
+    // Чистите успехи не се логват (шум); включи с AI_LOG_VERBOSE=1.
+    if (ctx.outcome === "parsed" && !verbose()) return;
     const raw = ctx.raw ?? "";
     const entry: Record<string, unknown> = {
       tag: "ai_output",
