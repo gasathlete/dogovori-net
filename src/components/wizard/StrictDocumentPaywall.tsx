@@ -98,6 +98,9 @@ export function StrictDocumentPaywall({
               </DialogDescription>
             </DialogHeader>
 
+            <RoiSavingsBanner className="mt-3" />
+
+
             <div className="grid gap-3 sm:grid-cols-2 mt-4">
               <div className="rounded-xl border border-border p-4 flex flex-col">
                 <div className="flex items-center gap-2 mb-1">
