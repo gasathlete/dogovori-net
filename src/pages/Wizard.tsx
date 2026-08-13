@@ -585,6 +585,11 @@ export default function WizardPage() {
           return;
         }
         if (isConfirmationRequired(sensitive) || data?.error === "needs_confirmation") {
+          if (!correctionsConfirmed) {
+            setPersonalDataNotice(true);
+            void handleApplyCorrections(sel, true);
+            return;
+          }
           setSensitiveClass(sensitive?.classification ?? null);
           setSensitiveBlocked(false);
           setCorrectionsPending(sel);
