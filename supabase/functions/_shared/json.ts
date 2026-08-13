@@ -53,9 +53,29 @@ export interface ExtractJsonCtx {
 }
 
 export function extractJson(s: string, ctx?: ExtractJsonCtx): any {
+  const trace: { final?: string } = {};
   try {
-    return extractJsonInner(s);
+    const value = extractJsonInner(s, trace);
+    // Безопасно логване: маскиран суров изход + описание на поправката.
+    const repaired = trace.final ?? s;
+    logAiOutput({
+      fn: ctx?.fn,
+      stage: ctx?.stage,
+      model: ctx?.model,
+      outcome: repaired === s.trim() || repaired === s ? "parsed" : "repaired",
+      raw: s,
+      ...(repaired === s || repaired === s.trim() ? {} : { repaired }),
+    });
+    return value;
   } catch (err) {
+    logAiOutput({
+      fn: ctx?.fn,
+      stage: ctx?.stage,
+      model: ctx?.model,
+      outcome: "failed",
+      raw: s,
+      error: err,
+    });
     if (ctx?.report !== false) {
       logAiParseFailure({ fn: ctx?.fn, model: ctx?.model, stage: ctx?.stage, raw: s, error: err });
     }
@@ -63,21 +83,29 @@ export function extractJson(s: string, ctx?: ExtractJsonCtx): any {
   }
 }
 
-function extractJsonInner(s: string): any {
+function extractJsonInner(s: string, trace: { final?: string } = {}): any {
+  // Записва текста, който в крайна сметка е бил успешно парснат.
+  const P = (cur: string): any => {
+    const value = JSON.parse(cur);
+    trace.final = cur;
+    return value;
+  };
+
   let cleaned = s.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
   const start = cleaned.search(/[\{\[]/);
   const openCh = start !== -1 ? cleaned[start] : "";
   const closeCh = openCh === "[" ? "]" : "}";
   const end = cleaned.lastIndexOf(closeCh);
   if (start !== -1 && end !== -1) cleaned = cleaned.substring(start, end + 1);
-  try { return JSON.parse(cleaned); } catch {}
+  try { return P(cleaned); } catch {}
   cleaned = escapeControlCharsInStrings(cleaned);
-  try { return JSON.parse(cleaned); } catch {}
+  try { return P(cleaned); } catch {}
   cleaned = cleaned
     .replace(/,\s*}/g, "}")
     .replace(/,\s*]/g, "]")
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
-  try { return JSON.parse(cleaned); } catch {}
+  try { return P(cleaned); } catch {}
+
   // Error-position guided repair: the most common mid-document break is an
   // unescaped double quote inside a string value, which closes the string too
   // early ("Expected ',' or '}' after property value in JSON at position N").
