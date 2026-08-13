@@ -12,7 +12,7 @@
  */
 
 /** Брой документи (шаблони) в каталога. */
-export const TEMPLATES_COUNT = 475;
+export const TEMPLATES_COUNT = 625;
 
 /** Брой правни сектора (категории) в каталога. */
-export const SECTORS_COUNT = 25;
+export const SECTORS_COUNT = 21;
