@@ -11,6 +11,7 @@
 // minutes and aborting would discard work that still completes.
 
 import { extractJson } from "./json.ts";
+import { logAiOutput, maskSensitive } from "./ai-log.ts";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -61,7 +62,7 @@ async function callGateway(
     body: JSON.stringify(body),
   });
   if (!resp.ok) {
-    console.error("ai-json-retry gateway error:", resp.status, (await resp.text()).slice(0, 300));
+    console.error("ai-json-retry gateway error:", resp.status, maskSensitive((await resp.text()).slice(0, 300)));
     return null;
   }
   const data = await resp.json().catch(() => null);
@@ -95,7 +96,10 @@ export async function parseAiJsonWithRetry<T = any>(
     const parsed = extractJson(o.content, { fn: o.fn });
     if (ok(parsed)) return { parsed, stage: "direct", attempts };
   } catch (err) {
-    console.error(`${o.fn}: JSON parse failed (direct):`, err instanceof Error ? err.message : err);
+    console.error(
+      `${o.fn}: JSON parse failed (direct):`,
+      maskSensitive(String(err instanceof Error ? err.message : err)),
+    );
   }
 
   // 2) Repair call on the broken output.
@@ -111,11 +115,17 @@ export async function parseAiJsonWithRetry<T = any>(
       genOpts,
     );
     if (repaired) {
-      const parsed = extractJson(repaired, { fn: o.fn, stage: "repair" });
-      if (ok(parsed)) return { parsed, stage: "repair", attempts };
+      const parsed = extractJson(repaired, { fn: o.fn, model: o.model, stage: "repair" });
+      if (ok(parsed)) {
+        logAiOutput({ fn: o.fn, model: o.model, stage: "repair", outcome: "repaired", raw: o.content, repaired });
+        return { parsed, stage: "repair", attempts };
+      }
     }
   } catch (err) {
-    console.error(`${o.fn}: JSON repair retry failed:`, err instanceof Error ? err.message : err);
+    console.error(
+      `${o.fn}: JSON repair retry failed:`,
+      maskSensitive(String(err instanceof Error ? err.message : err)),
+    );
   }
 
   // 3) Full regeneration with the user's original request preserved.
@@ -126,12 +136,26 @@ export async function parseAiJsonWithRetry<T = any>(
       const messages: AiMessage[] = [...o.messages, { role: "system", content: STRICT_JSON_REMINDER }];
       const regenerated = await callGateway(o.apiKey, o.model, messages, genOpts);
       if (!regenerated) continue;
-      const parsed = extractJson(regenerated, { fn: o.fn, stage: `regenerate-${i + 1}` });
-      if (ok(parsed)) return { parsed, stage: "regenerate", attempts };
+      const parsed = extractJson(regenerated, { fn: o.fn, model: o.model, stage: `regenerate-${i + 1}` });
+      if (ok(parsed)) {
+        logAiOutput({
+          fn: o.fn,
+          model: o.model,
+          stage: `regenerate-${i + 1}`,
+          outcome: "repaired",
+          raw: o.content,
+          repaired: regenerated,
+        });
+        return { parsed, stage: "regenerate", attempts };
+      }
     } catch (err) {
-      console.error(`${o.fn}: JSON regenerate attempt ${i + 1} failed:`, err instanceof Error ? err.message : err);
+      console.error(
+        `${o.fn}: JSON regenerate attempt ${i + 1} failed:`,
+        maskSensitive(String(err instanceof Error ? err.message : err)),
+      );
     }
   }
 
+  logAiOutput({ fn: o.fn, model: o.model, stage: "exhausted", outcome: "failed", raw: o.content });
   throw new Error("AI отговорът не може да бъде анализиран като JSON. Моля опитайте отново.");
 }
