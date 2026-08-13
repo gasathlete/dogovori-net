@@ -41,7 +41,18 @@ export default defineConfig(({ mode }) => ({
         // NOTE: lucide-react intentionally excluded — letting Rollup tree-shake it per-route
         // is significantly smaller than bundling every icon into a single vendor chunk.
         manualChunks(id) {
+          // Vite/Rollup runtime helpers (`__vitePreload`, CJS interop). Without
+          // pinning them, Rollup can park them inside a heavy lazy chunk
+          // (jspdf/docx), which forces that 1.4 MB chunk to load on first paint.
+          if (
+            id.includes("vite/preload-helper") ||
+            id.includes("commonjsHelpers") ||
+            id.includes("vite/modulepreload-polyfill")
+          ) {
+            return "vendor-react";
+          }
           if (!id.includes("node_modules")) return;
+
           if (/[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(id)) {
             return "vendor-react";
           }
