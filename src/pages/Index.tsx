@@ -125,8 +125,11 @@ const Index = () => {
         <Hero onStart={startInterview} />
         <PlatformCapabilities />
         <LazyOnVisible minHeight={360}>
-          <SocialProofStrip />
+          <Suspense fallback={<SectionSkeleton />}>
+            <SocialProofStrip />
+          </Suspense>
         </LazyOnVisible>
+
 
         <Suspense fallback={<SectionSkeleton />}>
 
