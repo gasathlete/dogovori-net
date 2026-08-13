@@ -9,6 +9,7 @@ import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe
 import { getStripe } from "@/lib/stripe";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
+import { RoiSavingsBanner } from "@/components/funnel/RoiSavingsBanner";
 
 interface Props {
   open: boolean;
