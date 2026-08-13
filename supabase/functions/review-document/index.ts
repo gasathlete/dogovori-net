@@ -169,20 +169,8 @@ Deno.serve(async (req: Request) => {
       apiKey: LOVABLE_API_KEY,
       fn: "review-document",
       regenerateAttempts: 1,
-    })).parsed as Record<string, unknown>; catch (_parseErr) {
-      const repair = await callModel([
-        {
-          role: "system",
-          content:
-            'Ти си JSON поправящ инструмент. Върни САМО валиден JSON обект със същото съдържание. Ескейпни всички кавички в стойностите или ги замени с единични. Без markdown, без коментари, без текст извън JSON.',
-        },
-        { role: "user", content: content.slice(0, 60000) },
-      ]);
-      if (!repair.ok) throw new Error("AI върна невалиден JSON при ревизия");
-      const repairData = await repair.json();
-      const repaired: string = repairData.choices?.[0]?.message?.content ?? "";
-      parsed = extractJson(repaired, { fn: "review-document", stage: "repair" }) as Record<string, unknown>;
-    }
+    })).parsed as Record<string, unknown>;
+
 
 
     // Нормализация — UI-ът разчита на стабилна форма.
