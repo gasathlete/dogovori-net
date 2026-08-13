@@ -34,6 +34,8 @@ export function DocumentValueCard({
   canDownload,
   busy,
   onDownload,
+  onDownloadDocx,
+  busyDocx,
   needsAuth,
   onRegister,
   savedEur = 150,
