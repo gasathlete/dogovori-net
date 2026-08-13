@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, FileDown, Sparkles, ShieldCheck, Loader2 } from "@/icons";
+import { CheckCircle2, FileDown, FileText, Sparkles, ShieldCheck, Loader2 } from "@/icons";
 
 interface Props {
   /** Има ли потребителят право да изтегли документа сега. */
@@ -10,6 +10,10 @@ interface Props {
   busy?: boolean;
   /** Директно сваляне (при налична операция/абонамент). */
   onDownload?: () => void;
+  /** Сваляне в DOCX. */
+  onDownloadDocx?: () => void;
+  /** DOCX експортът върви в момента. */
+  busyDocx?: boolean;
   /** Няма профил — първо регистрация. */
   needsAuth?: boolean;
   onRegister?: () => void;
@@ -17,6 +21,7 @@ interface Props {
   savedEur?: number;
   documentTitle?: string;
 }
+
 
 /**
  * Показва се веднага след успешно генериране.
