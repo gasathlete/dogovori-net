@@ -124,7 +124,10 @@ const Index = () => {
       <main className="route-fade">
         <Hero onStart={startInterview} />
         <PlatformCapabilities />
-        <SocialProofStrip />
+        <LazyOnVisible minHeight={360}>
+          <SocialProofStrip />
+        </LazyOnVisible>
+
         <Suspense fallback={<SectionSkeleton />}>
 
           {/* Проблем → решение → доказателство → детайл → покана */}
