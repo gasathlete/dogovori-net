@@ -19,6 +19,7 @@ import { SoftCapPanel } from "@/components/paywall/SoftCapPanel";
 
 
 import { RoiCalculator } from "@/components/funnel/RoiCalculator";
+import { RoiSavingsBanner } from "@/components/funnel/RoiSavingsBanner";
 import { AudienceToggle } from "@/components/funnel/AudienceToggle";
 import { First100Counter } from "@/components/funnel/First100Counter";
 import { useAudience } from "@/hooks/useAudience";
