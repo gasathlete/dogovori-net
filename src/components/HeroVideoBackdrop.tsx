@@ -17,12 +17,8 @@ export function HeroVideoBackdrop() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [paused, setPaused] = useState(false);
-  /**
-   * Видео се допуска само на по-широки екрани и при връзка без data-saver.
-   * На телефон постерът е достатъчен — спестява трафик, декодиране и батерия
-   * точно докато се мери LCP/INP.
-   */
-  const [videoAllowed, setVideoAllowed] = useState(false);
+  /** Видеото върви на всички екрани, включително мобилни. */
+  const videoAllowed = true;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
