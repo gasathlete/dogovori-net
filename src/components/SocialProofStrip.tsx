@@ -29,9 +29,8 @@ async function fetchRegisteredUsers(): Promise<number> {
   return Number.isFinite(n) ? Math.max(100, n) : 100;
 }
 
-/** Брой шаблони в каталога — статична стойност, изчислена веднъж при зареждане. */
-const TEMPLATES_COUNT = CATALOG.reduce((sum, c) => sum + (c.documents?.length ?? 0), 0);
-const SECTORS_COUNT = SECTORS.length;
+
+
 
 export function SocialProofStrip() {
   // Public, near-static list. Cache aggressively — same data for every visitor.
