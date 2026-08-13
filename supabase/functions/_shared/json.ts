@@ -47,6 +47,8 @@ function escapeControlCharsInStrings(input: string): string {
 export interface ExtractJsonCtx {
   /** Име на edge функцията — за админ панела. */
   fn?: string;
+  /** Correlation ID на заявката. */
+  correlationId?: string;
   model?: string | null;
   stage?: string;
   /** По подразбиране провалите се логват; изключи за "best effort" опити. */
@@ -61,6 +63,7 @@ export function extractJson(s: string, ctx?: ExtractJsonCtx): any {
     const repaired = trace.final ?? s;
     logAiOutput({
       fn: ctx?.fn,
+      correlationId: ctx?.correlationId,
       stage: ctx?.stage,
       model: ctx?.model,
       outcome: repaired === s.trim() || repaired === s ? "parsed" : "repaired",
@@ -71,6 +74,7 @@ export function extractJson(s: string, ctx?: ExtractJsonCtx): any {
   } catch (err) {
     logAiOutput({
       fn: ctx?.fn,
+      correlationId: ctx?.correlationId,
       stage: ctx?.stage,
       model: ctx?.model,
       outcome: "failed",
@@ -78,7 +82,7 @@ export function extractJson(s: string, ctx?: ExtractJsonCtx): any {
       error: err,
     });
     if (ctx?.report !== false) {
-      logAiParseFailure({ fn: ctx?.fn, model: ctx?.model, stage: ctx?.stage, raw: s, error: err });
+      logAiParseFailure({ fn: ctx?.fn, model: ctx?.model, stage: ctx?.stage, raw: s, error: err, correlationId: ctx?.correlationId });
     }
     throw err;
   }
