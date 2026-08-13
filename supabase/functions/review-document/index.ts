@@ -6,7 +6,6 @@
 // Не пренаписва документа и не начислява операция — това е контролен слой
 // върху generate-contract.
 import { buildCors } from "../_shared/cors.ts";
-import { extractJson } from "../_shared/json.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { redactForAI } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
@@ -158,23 +157,19 @@ Deno.serve(async (req: Request) => {
 
     // Моделът понякога връща невалиден JSON (неескейпнати кавички в note/detail).
     // Един поправящ проход, вместо 500 към потребителя.
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = extractJson(content, { fn: "review-document" }) as Record<string, unknown>;
-    } catch (_parseErr) {
-      const repair = await callModel([
-        {
-          role: "system",
-          content:
-            'Ти си JSON поправящ инструмент. Върни САМО валиден JSON обект със същото съдържание. Ескейпни всички кавички в стойностите или ги замени с единични. Без markdown, без коментари, без текст извън JSON.',
-        },
-        { role: "user", content: content.slice(0, 60000) },
-      ]);
-      if (!repair.ok) throw new Error("AI върна невалиден JSON при ревизия");
-      const repairData = await repair.json();
-      const repaired: string = repairData.choices?.[0]?.message?.content ?? "";
-      parsed = extractJson(repaired, { fn: "review-document", stage: "repair" }) as Record<string, unknown>;
-    }
+    const { parseAiJsonWithRetry } = await import("../_shared/ai-json-retry.ts");
+    const parsed = (await parseAiJsonWithRetry({
+      content,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ],
+      model: route.model,
+      apiKey: LOVABLE_API_KEY,
+      fn: "review-document",
+      regenerateAttempts: 1,
+    })).parsed as Record<string, unknown>;
+
 
 
     // Нормализация — UI-ът разчита на стабилна форма.

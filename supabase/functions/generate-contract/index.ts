@@ -336,38 +336,26 @@ ${docTypeSpec.systemAddendum}
       throw new Error("AI не върна съдържание (вероятно прекъснат отговор). Опитайте отново.");
     }
 
-    let parsed;
-    try { parsed = extractJson(content, { fn: "generate-contract" }); }
-    catch (err) {
-      console.error("JSON parse failed on first attempt. Content head:", content.slice(0, 800));
-      // Retry once: ask the model to repair its previous output into strict JSON.
-      try {
-        const repairResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: route.model,
-            messages: [
-              { role: "system", content: "Ти си JSON repair asistant. Върни СТРОГО валиден JSON обект без markdown, без коментари, без обяснения. Запази цялото съдържание и структура от входа, само поправи синтактичните грешки (unescaped кавички, control chars, липсващи скоби, trailing запетаи, отрязан край)." },
-              { role: "user", content: `Поправи следния почти-JSON и върни валиден JSON обект:\n\n${content}` },
-            ],
-            response_format: { type: "json_object" },
-          }),
-        });
-        if (repairResp.ok) {
-          const repairData = await repairResp.json();
-          const repairContent: string = repairData.choices?.[0]?.message?.content ?? "";
-          if (repairContent && repairContent.trim()) {
-            parsed = extractJson(repairContent, { fn: "generate-contract", stage: "repair" });
-          }
-        }
-      } catch (repairErr) {
-        console.error("JSON repair retry failed:", repairErr);
-      }
-      if (!parsed) {
-        throw new Error("AI отговорът не може да бъде анализиран като JSON. Моля опитайте отново.");
-      }
+    // Tolerant parse → AI repair → full regeneration with the original request.
+    let parsed: any;
+    {
+      const { parseAiJsonWithRetry } = await import("../_shared/ai-json-retry.ts");
+      const res = await parseAiJsonWithRetry({
+        content,
+        messages: [
+          { role: "system", content: activeSystemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        model: route.model,
+        apiKey: LOVABLE_API_KEY,
+        fn: "generate-contract",
+        regenerateAttempts: 1,
+        validate: (p: any) => !!p && typeof p === "object",
+      });
+      parsed = res.parsed;
+      if (res.stage !== "direct") console.log(`generate-contract: JSON recovered via ${res.stage} (attempts=${res.attempts})`);
     }
+
 
     // Unredact AI output so the user sees real names/EGN/IBAN in the final doc.
     // Walk the parsed object and replace placeholders directly in string leaves

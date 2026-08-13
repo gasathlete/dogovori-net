@@ -1,7 +1,6 @@
 // Edge function: Pro-only — generate a corrected version of an uploaded contract
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
-import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
@@ -233,7 +232,18 @@ ${scopeNote}
     const raw = await aiResp.json();
     const content: string = raw.choices?.[0]?.message?.content ?? "";
     if (!content.trim()) throw new Error("Празен AI отговор");
-    const parsed = extractJson(content, { fn: "correct-uploaded" });
+    const { parseAiJsonWithRetry } = await import("../_shared/ai-json-retry.ts");
+    const parsed = (await parseAiJsonWithRetry({
+      content,
+      messages: [
+        { role: "system", content: activeSystemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      model: route.model,
+      apiKey: LOVABLE_API_KEY,
+      fn: "correct-uploaded",
+      regenerateAttempts: 1,
+    })).parsed;
 
     // Unredact AI output before returning to user.
     if (Object.keys(redaction.mapping).length > 0) {
