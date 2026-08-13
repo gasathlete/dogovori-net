@@ -158,10 +158,18 @@ Deno.serve(async (req: Request) => {
 
     // Моделът понякога връща невалиден JSON (неескейпнати кавички в note/detail).
     // Един поправящ проход, вместо 500 към потребителя.
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = extractJson(content, { fn: "review-document" }) as Record<string, unknown>;
-    } catch (_parseErr) {
+    const { parseAiJsonWithRetry } = await import("../_shared/ai-json-retry.ts");
+    const parsed = (await parseAiJsonWithRetry({
+      content,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ],
+      model: route.model,
+      apiKey: LOVABLE_API_KEY,
+      fn: "review-document",
+      regenerateAttempts: 1,
+    })).parsed as Record<string, unknown>; catch (_parseErr) {
       const repair = await callModel([
         {
           role: "system",

@@ -188,12 +188,18 @@ ${parentText}
     const content: string = rawJson?.choices?.[0]?.message?.content ?? "";
     if (!content.trim()) throw new Error("AI не върна съдържание");
 
-    let parsed;
-    try {
-      parsed = extractJson(content, { fn: "generate-linked-document" });
-    } catch {
-      throw new Error("AI отговорът не може да бъде анализиран като JSON");
-    }
+    const { parseAiJsonWithRetry } = await import("../_shared/ai-json-retry.ts");
+    const parsed = (await parseAiJsonWithRetry({
+      content,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ],
+      model: "google/gemini-2.5-flash",
+      apiKey: LOVABLE_API_KEY,
+      fn: "generate-linked-document",
+      regenerateAttempts: 1,
+    })).parsed;
 
     return new Response(
       JSON.stringify({
