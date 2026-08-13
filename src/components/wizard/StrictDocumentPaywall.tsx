@@ -9,6 +9,7 @@ import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe
 import { getStripe } from "@/lib/stripe";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
+import { RoiSavingsBanner } from "@/components/funnel/RoiSavingsBanner";
 
 interface Props {
   open: boolean;
@@ -97,6 +98,9 @@ export function StrictDocumentPaywall({
                 закупете еднократно отключване.
               </DialogDescription>
             </DialogHeader>
+
+            <RoiSavingsBanner className="mt-3" />
+
 
             <div className="grid gap-3 sm:grid-cols-2 mt-4">
               <div className="rounded-xl border border-border p-4 flex flex-col">

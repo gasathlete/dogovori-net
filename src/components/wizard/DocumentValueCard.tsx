@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, FileDown, Sparkles, ShieldCheck, Loader2 } from "@/icons";
+import { CheckCircle2, FileDown, FileText, Sparkles, ShieldCheck, Loader2 } from "@/icons";
 
 interface Props {
   /** Има ли потребителят право да изтегли документа сега. */
@@ -10,6 +10,10 @@ interface Props {
   busy?: boolean;
   /** Директно сваляне (при налична операция/абонамент). */
   onDownload?: () => void;
+  /** Сваляне в DOCX. */
+  onDownloadDocx?: () => void;
+  /** DOCX експортът върви в момента. */
+  busyDocx?: boolean;
   /** Няма профил — първо регистрация. */
   needsAuth?: boolean;
   onRegister?: () => void;
@@ -17,6 +21,7 @@ interface Props {
   savedEur?: number;
   documentTitle?: string;
 }
+
 
 /**
  * Показва се веднага след успешно генериране.
@@ -29,6 +34,8 @@ export function DocumentValueCard({
   canDownload,
   busy,
   onDownload,
+  onDownloadDocx,
+  busyDocx,
   needsAuth,
   onRegister,
   savedEur = 150,
@@ -75,14 +82,27 @@ export function DocumentValueCard({
                 Създайте профил и изтеглете
               </Button>
             ) : canDownload ? (
-              <Button
-                onClick={onDownload}
-                disabled={busy}
-                className="flex-1 gap-2 bg-gradient-gold text-navy hover:shadow-gold"
-              >
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FileDown className="h-4 w-4" aria-hidden />}
-                Изтегли документа (PDF)
-              </Button>
+              <>
+                <Button
+                  onClick={onDownload}
+                  disabled={busy || busyDocx}
+                  className="flex-1 gap-2 bg-gradient-gold text-navy hover:shadow-gold"
+                >
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FileDown className="h-4 w-4" aria-hidden />}
+                  Свали PDF
+                </Button>
+                {onDownloadDocx && (
+                  <Button
+                    onClick={onDownloadDocx}
+                    disabled={busy || busyDocx}
+                    variant="outline"
+                    className="flex-1 gap-2 border-gold/40 text-gold hover:bg-gold/10 hover:text-gold"
+                  >
+                    {busyDocx ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FileText className="h-4 w-4" aria-hidden />}
+                    Свали DOCX
+                  </Button>
+                )}
+              </>
             ) : (
               <Button asChild className="flex-1 gap-2 bg-gradient-gold text-navy hover:shadow-gold">
                 <Link to="/plans?plan=entrepreneur&from=document">
@@ -92,6 +112,13 @@ export function DocumentValueCard({
               </Button>
             )}
           </div>
+
+          {canDownload && !needsAuth && (
+            <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+              Свалянето (PDF или DOCX) използва <span className="font-medium text-foreground">1 операция</span> —
+              повторно сваляне на същия документ в тази сесия е безплатно.
+            </p>
+          )}
 
           {!canDownload && !needsAuth && (
             <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">

@@ -19,6 +19,7 @@ import { SoftCapPanel } from "@/components/paywall/SoftCapPanel";
 
 
 import { RoiCalculator } from "@/components/funnel/RoiCalculator";
+import { RoiSavingsBanner } from "@/components/funnel/RoiSavingsBanner";
 import { AudienceToggle } from "@/components/funnel/AudienceToggle";
 import { First100Counter } from "@/components/funnel/First100Counter";
 import { useAudience } from "@/hooks/useAudience";
@@ -474,6 +475,7 @@ export default function Plans() {
         >
           <div className="rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:p-6">
             <div className="mx-auto max-w-3xl">
+              <RoiSavingsBanner className="mb-5" />
               <RoiCalculator />
             </div>
           </div>

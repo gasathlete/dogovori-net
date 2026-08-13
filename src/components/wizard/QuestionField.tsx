@@ -230,6 +230,79 @@ function ChoiceField({
 }
 
 
+/**
+ * Група от полета. Задължителните се показват веднага, а незадължителните са
+ * зад аккордеон „Допълнителни детайли“, за да намалим първоначалното
+ * попълване (по-малко полета на екран).
+ */
+function GroupFields({
+  q,
+  answers,
+  onAnswerChange,
+  contacts,
+}: {
+  q: Question;
+  answers: Record<string, string>;
+  onAnswerChange?: (id: string, v: string) => void;
+  contacts: Contact[];
+}) {
+  const visibleFields = (q.fields ?? []).filter((f) => !f.showIf || f.showIf(answers));
+  const requiredFields = visibleFields.filter((f) => f.required);
+  const optionalFields = visibleFields.filter((f) => !f.required);
+  const hasOptionalValue = optionalFields.some((f) => !!answers[f.id]?.trim());
+  const [showOptional, setShowOptional] = useState(hasOptionalValue);
+  // Ако няма нито едно задължително поле, не крием всичко.
+  const primary = requiredFields.length > 0 ? requiredFields : visibleFields;
+  const secondary = requiredFields.length > 0 ? optionalFields : [];
+
+  const renderField = (f: Question, idx: number) => (
+    <div key={f.id} className={idx > 0 ? "border-t border-border/40 pt-5" : ""}>
+      <QuestionField
+        q={f}
+        value={answers[f.id] ?? ""}
+        onChange={(v) => onAnswerChange?.(f.id, v)}
+        answers={answers}
+        onAnswerChange={onAnswerChange}
+        compact
+        contacts={contacts}
+      />
+    </div>
+  );
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <Label className="font-serif text-lg leading-snug text-foreground">
+          {q.label}
+          {q.required && <span className="ml-1 text-gold">*</span>}
+        </Label>
+        {q.help && <p className="mt-1 text-xs text-muted-foreground">{q.help}</p>}
+      </div>
+      <div className="space-y-5 rounded-lg border border-border/50 bg-card/30 p-4 md:p-5">
+        {primary.map(renderField)}
+
+        {secondary.length > 0 && (
+          <div className="border-t border-border/40 pt-4">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowOptional((v) => !v)}
+              aria-expanded={showOptional}
+              className="h-8 px-2 text-xs text-muted-foreground hover:text-gold"
+            >
+              {showOptional ? "Скрий допълнителните детайли" : `Допълнителни детайли (${secondary.length}) — по избор`}
+            </Button>
+            {showOptional && (
+              <div className="mt-4 space-y-5">{secondary.map(renderField)}</div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function QuestionField(props: Props) {
   const { q, value, onChange, answers = {}, onAnswerChange, compact = false, contacts = [], invalid = false } = props;
   const invalidRing = invalid ? "border-destructive ring-1 ring-destructive" : "";
@@ -269,36 +342,19 @@ export function QuestionField(props: Props) {
     );
   }
 
-  // Групиран въпрос — стандартен рендер.
+  // Групиран въпрос — стандартен рендер (задължителни полета видими,
+  // незадължителните — скрити зад „Допълнителни детайли“).
   if (q.type === "group" && q.fields && q.fields.length > 0) {
-    const visibleFields = q.fields.filter((f) => !f.showIf || f.showIf(answers));
     return (
-      <div className="space-y-5">
-        <div>
-          <Label className="font-serif text-lg leading-snug text-foreground">
-            {q.label}
-            {q.required && <span className="ml-1 text-gold">*</span>}
-          </Label>
-          {q.help && <p className="mt-1 text-xs text-muted-foreground">{q.help}</p>}
-        </div>
-        <div className="space-y-5 rounded-lg border border-border/50 bg-card/30 p-4 md:p-5">
-          {visibleFields.map((f, idx) => (
-            <div key={f.id} className={idx > 0 ? "border-t border-border/40 pt-5" : ""}>
-              <QuestionField
-                q={f}
-                value={answers[f.id] ?? ""}
-                onChange={(v) => onAnswerChange?.(f.id, v)}
-                answers={answers}
-                onAnswerChange={onAnswerChange}
-                compact
-                contacts={contacts}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
+      <GroupFields
+        q={q}
+        answers={answers}
+        onAnswerChange={onAnswerChange}
+        contacts={contacts}
+      />
     );
   }
+
 
   const legalHint = getFieldHint(q.id, q.label);
   const labelEl = compact ? (

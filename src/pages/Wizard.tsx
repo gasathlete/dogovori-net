@@ -136,10 +136,14 @@ export default function WizardPage() {
   const [stepIdx, setStepIdx] = useState<number>(persisted?.stepIdx ?? 0);
   const [generating, setGenerating] = useState(false);
   const [genStepIdx, setGenStepIdx] = useState(0);
-  // Диалог за лични / чувствителни данни (GDPR потвърждение преди генериране).
+  // Диалог за лични / чувствителни данни. Показва се САМО при твърд блокаж
+  // (специална категория данни). Обикновеното GDPR потвърждение се поема
+  // автоматично и се съобщава инлайн, за да не спира генерирането.
   const [sensitiveOpen, setSensitiveOpen] = useState(false);
   const [sensitiveBlocked, setSensitiveBlocked] = useState(false);
   const [sensitiveClass, setSensitiveClass] = useState<ClassificationSummary | null>(null);
+  const [personalDataNotice, setPersonalDataNotice] = useState(false);
+
   const [correctionsPending, setCorrectionsPending] = useState<CorrectionsSelection | null>(null);
   const [result, setResult] = useState<AIResult | null>(persisted?.result ?? null);
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
@@ -190,6 +194,37 @@ export default function WizardPage() {
       return true;
     });
   }, [sector, answers]);
+
+  // Интелигентни стойности по подразбиране — попълват се веднъж при първо
+  // отваряне (днешна дата за полета за дата, София за населено място), за да
+  // намалим ръчното въвеждане в началото на формата.
+  const defaultsApplied = useRef(false);
+  useEffect(() => {
+    if (defaultsApplied.current || !sector) return;
+    defaultsApplied.current = true;
+    const today = new Date().toISOString().slice(0, 10);
+    const flat = flattenQuestions(sector.questions);
+    const patch: Record<string, string> = {};
+    for (const f of flat) {
+      const key = `${f.id} ${f.label ?? ""}`.toLowerCase();
+      if (f.type === "date" && /дата|срок.*от|date/.test(key)) {
+        patch[f.id] = today;
+      } else if (
+        (f.type === "text" || f.type === "select" || f.type === "radio") &&
+        /(^|_)(city|town)|град|населено място|местоположение|сключен в/.test(key) &&
+        (!f.options || f.options.includes("София"))
+      ) {
+        patch[f.id] = "София";
+      }
+    }
+    const missing = Object.fromEntries(
+      Object.entries(patch).filter(([id]) => !answers[id]?.trim()),
+    );
+    if (Object.keys(missing).length > 0) setAnswers((prev) => ({ ...missing, ...prev }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sector]);
+
+
 
   if (!sector) {
     return (
@@ -286,6 +321,14 @@ export default function WizardPage() {
         return;
       }
       if (isConfirmationRequired(sensitive) || data?.error === "needs_confirmation") {
+        // Не спираме потребителя с блокиращ диалог: потвърждаваме автоматично
+        // (веднъж) и показваме инлайн уведомление за личните данни.
+        if (!userConfirmed) {
+          trackEvent("generate_auto_confirmed", { doc_key: docKey, source: "wizard" });
+          setPersonalDataNotice(true);
+          void handleGenerate(true);
+          return;
+        }
         trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: "needs_confirmation" });
         setSensitiveClass(sensitive?.classification ?? data?.classification ?? null);
         setSensitiveBlocked(false);
@@ -573,6 +616,11 @@ export default function WizardPage() {
           return;
         }
         if (isConfirmationRequired(sensitive) || data?.error === "needs_confirmation") {
+          if (!correctionsConfirmed) {
+            setPersonalDataNotice(true);
+            void handleApplyCorrections(sel, true);
+            return;
+          }
           setSensitiveClass(sensitive?.classification ?? null);
           setSensitiveBlocked(false);
           setCorrectionsPending(sel);
@@ -892,6 +940,17 @@ export default function WizardPage() {
               summary={result?.risk.summary}
             />
 
+            {personalDataNotice && (
+              <div className="flex items-start gap-2 rounded-lg border border-border/60 bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground animate-fade-in">
+                <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-gold" aria-hidden />
+                <span>
+                  Документът съдържа лични данни. Обработваме ги само за изготвянето му, в
+                  съответствие с GDPR — не е нужно допълнително потвърждение.
+                </span>
+              </div>
+            )}
+
+
             {!result && current && (
               <div
                 ref={questionCardRef}
@@ -1027,7 +1086,9 @@ export default function WizardPage() {
                   needsAuth={!user}
                   canDownload={!!user && !docAccess.loading && docAccess.canDownload}
                   busy={exporting === "pdf"}
+                  busyDocx={exporting === "docx"}
                   onDownload={() => handleExport("pdf")}
+                  onDownloadDocx={() => handleExport("docx")}
                   onRegister={() => goAuth()}
                 />
 
