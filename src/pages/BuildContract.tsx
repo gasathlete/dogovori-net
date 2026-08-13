@@ -725,6 +725,10 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
           return;
         }
         if (isConfirmationRequired(sensitive) || data?.error === "needs_confirmation") {
+          if (!correctionsConfirmed) {
+            void handleApplyCorrections(sel, true);
+            return;
+          }
           setSensitiveClass(sensitive?.classification ?? null);
           setSensitiveBlocked(false);
           setCorrectionsPending(sel);
