@@ -290,6 +290,14 @@ export default function WizardPage() {
         return;
       }
       if (isConfirmationRequired(sensitive) || data?.error === "needs_confirmation") {
+        // Не спираме потребителя с блокиращ диалог: потвърждаваме автоматично
+        // (веднъж) и показваме инлайн уведомление за личните данни.
+        if (!userConfirmed) {
+          trackEvent("generate_auto_confirmed", { doc_key: docKey, source: "wizard" });
+          setPersonalDataNotice(true);
+          void handleGenerate(true);
+          return;
+        }
         trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: "needs_confirmation" });
         setSensitiveClass(sensitive?.classification ?? data?.classification ?? null);
         setSensitiveBlocked(false);
