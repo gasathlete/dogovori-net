@@ -281,7 +281,18 @@ ${answersRedacted}
     const raw = await aiResp.json();
     const content: string = raw.choices?.[0]?.message?.content ?? "";
     if (!content.trim()) throw new Error("Празен AI отговор");
-    const parsed = extractJson(content, { fn: "apply-corrections" });
+    const { parseAiJsonWithRetry } = await import("../_shared/ai-json-retry.ts");
+    const parsed = (await parseAiJsonWithRetry({
+      content,
+      messages: [
+        { role: "system", content: activeSystemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      model: route.model,
+      apiKey: LOVABLE_API_KEY,
+      fn: "apply-corrections",
+      regenerateAttempts: 1,
+    })).parsed;
 
     // Unredact AI output so the user sees real names/EGN/IBAN in the final doc.
     // Walk the parsed object and replace placeholders directly in string leaves

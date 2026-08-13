@@ -233,7 +233,18 @@ ${scopeNote}
     const raw = await aiResp.json();
     const content: string = raw.choices?.[0]?.message?.content ?? "";
     if (!content.trim()) throw new Error("Празен AI отговор");
-    const parsed = extractJson(content, { fn: "correct-uploaded" });
+    const { parseAiJsonWithRetry } = await import("../_shared/ai-json-retry.ts");
+    const parsed = (await parseAiJsonWithRetry({
+      content,
+      messages: [
+        { role: "system", content: activeSystemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      model: route.model,
+      apiKey: LOVABLE_API_KEY,
+      fn: "correct-uploaded",
+      regenerateAttempts: 1,
+    })).parsed;
 
     // Unredact AI output before returning to user.
     if (Object.keys(redaction.mapping).length > 0) {
