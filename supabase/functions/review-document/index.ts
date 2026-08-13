@@ -6,7 +6,6 @@
 // Не пренаписва документа и не начислява операция — това е контролен слой
 // върху generate-contract.
 import { buildCors } from "../_shared/cors.ts";
-import { extractJson } from "../_shared/json.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { redactForAI } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";

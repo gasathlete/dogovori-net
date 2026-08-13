@@ -3,7 +3,6 @@
 // contract as context. Returns { contract: GeneratedContract }.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, hashIp, clientIp } from "../_shared/cors.ts";
-import { extractJson } from "../_shared/json.ts";
 
 const KIND_SPECS: Record<string, { label: string; addendum: string }> = {
   appendix: {
