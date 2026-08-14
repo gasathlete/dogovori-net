@@ -17,6 +17,7 @@ import {
   X,
 } from "@/icons";
 import { TrustGuaranteeBar } from "@/components/funnel/TrustGuaranteeBar";
+import { cheapestPerOpLabel } from "@/lib/pricing";
 
 /**
  * Global auth gate modal.
