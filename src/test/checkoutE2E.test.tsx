@@ -9,6 +9,7 @@
  *   3. сумата, която Stripe би таксувал за този lookup key (симулиран каталог,
  *      огледален на sandbox), съвпада с цената от `pricing.ts`.
  */
+import * as React from "react";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -45,8 +46,12 @@ vi.mock("@/lib/stripe", () => ({
 vi.mock("@stripe/react-stripe-js", () => ({
   // Симулира Stripe iframe: извиква fetchClientSecret точно както прави Stripe.js
   EmbeddedCheckoutProvider: ({ options, children }: any) => {
-    const secret = options?.fetchClientSecret?.();
-    if (secret && typeof secret.then === "function") secret.catch(() => {});
+    const fetched = React.useRef(false);
+    React.useEffect(() => {
+      if (fetched.current) return;
+      fetched.current = true;
+      Promise.resolve(options?.fetchClientSecret?.()).catch(() => {});
+    }, []);
     return <div data-testid="stripe-provider">{children}</div>;
   },
   EmbeddedCheckout: () => <div data-testid="stripe-checkout-form">Stripe form</div>,
@@ -105,6 +110,10 @@ vi.mock("@/integrations/supabase/client", () => ({
       },
     },
   },
+}));
+
+vi.mock("@/components/account/TopupHistoryPanel", () => ({
+  TopupHistoryPanel: () => <div data-testid="topup-history" />,
 }));
 
 vi.mock("sonner", () => ({
