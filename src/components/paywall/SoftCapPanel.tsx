@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { Crown, Sparkles, Info, ArrowRight, Clock } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { useIsPro } from "@/hooks/useIsPro";
+import { PRICING_PLANS, fmtEur, opsLabel } from "@/lib/pricing";
 import { trackEvent } from "@/lib/analytics";
 import { useEffect, useMemo } from "react";
 
@@ -59,12 +60,12 @@ export function SoftCapPanel() {
       <div className="grid gap-3 sm:grid-cols-2">
         <article className="rounded-xl border border-border/60 bg-card/70 p-4">
           <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold">
-            <Sparkles className="h-4 w-4 text-gold" /> Професионалист
+            <Sparkles className="h-4 w-4 text-gold" /> {PRICING_PLANS.professional.name}
           </h3>
           <p className="text-xs text-muted-foreground">
-            50 операции/мес. · Двуезични договори · e-Подпис
+            {opsLabel("professional")}/мес. · Двуезични договори · e-Подпис
           </p>
-          <div className="mt-2 font-serif text-xl font-bold">12.90 €<span className="text-xs text-muted-foreground"> /мес.</span></div>
+          <div className="mt-2 font-serif text-xl font-bold">{fmtEur(PRICING_PLANS.professional.monthly!)}<span className="text-xs text-muted-foreground"> /мес.</span></div>
           <Button asChild variant="outline" size="sm" className="mt-3 w-full">
             <Link to="/plans" onClick={() => trackEvent("upgrade_started", { plan: "professional", source: "softcap" })}>
               Виж плана <ArrowRight className="ml-1 h-3.5 w-3.5" />
@@ -77,12 +78,12 @@ export function SoftCapPanel() {
             Най-избран
           </span>
           <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold">
-            <Crown className="h-4 w-4 text-gold" /> Предприемач
+            <Crown className="h-4 w-4 text-gold" /> {PRICING_PLANS.entrepreneur.name}
           </h3>
           <p className="text-xs text-muted-foreground">
-            100 операции/мес. · GPT-5 · Premium 24/7 поддръжка
+            {opsLabel("entrepreneur")}/мес. · GPT-5 · Premium 24/7 поддръжка
           </p>
-          <div className="mt-2 font-serif text-xl font-bold">19.90 €<span className="text-xs text-muted-foreground"> /мес.</span></div>
+          <div className="mt-2 font-serif text-xl font-bold">{fmtEur(PRICING_PLANS.entrepreneur.monthly!)}<span className="text-xs text-muted-foreground"> /мес.</span></div>
           <Button asChild size="sm" className="mt-3 w-full bg-gradient-gold text-navy hover:shadow-gold">
             <Link to="/plans" onClick={() => trackEvent("upgrade_started", { plan: "entrepreneur", source: "softcap" })}>
               Активирай <ArrowRight className="ml-1 h-3.5 w-3.5" />

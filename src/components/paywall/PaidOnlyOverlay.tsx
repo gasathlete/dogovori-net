@@ -11,6 +11,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Crown, Sparkles, ArrowRight, Lock } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { useIsPro } from "@/hooks/useIsPro";
+import { PRICING_PLANS, monthlyLabel } from "@/lib/pricing";
 import { trackEvent, trackPillarView, trackPillarCta } from "@/lib/analytics";
 import { ProUpgradeDialog, type ProUpgradeTrigger } from "@/components/ProUpgradeDialog";
 import { cn } from "@/lib/utils";
@@ -119,7 +120,7 @@ export function PaidOnlyOverlay({
               <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
             </Button>
             <p className="mt-2 text-[11px] text-muted-foreground">
-              Предприемач 19.90 €/мес. · Проф. 12.90 €/мес.
+              {PRICING_PLANS.entrepreneur.name} {monthlyLabel("entrepreneur")} · {PRICING_PLANS.professional.name} {monthlyLabel("professional")}
             </p>
           </div>
         </div>

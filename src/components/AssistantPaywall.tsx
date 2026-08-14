@@ -3,6 +3,8 @@ import { Bird, Crown, Check } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { TopupPacks } from "@/components/TopupPacks";
 import { useIsPro } from "@/hooks/useIsPro";
+import { planSummary } from "@/lib/pricing";
+
 
 export function AssistantPaywall() {
   const { isPro } = useIsPro();
@@ -21,7 +23,7 @@ export function AssistantPaywall() {
             "5 безплатни операции при регистрация, после 2/мес.",
             "Помощ с попълване на шаблони и клаузи",
             "Общи насоки по ЗЗД, ТЗ, КТ, СК, ЗУТ, GDPR",
-            "Професионалист 12.90 €/мес. — 50 операции · Предприемач 19.90 €/мес. — 100 + GPT-5",
+            `${planSummary("professional")} · ${planSummary("entrepreneur")} + GPT-5`,
           ].map((f) => (
             <li key={f} className="flex items-start gap-2">
               <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-gold" />

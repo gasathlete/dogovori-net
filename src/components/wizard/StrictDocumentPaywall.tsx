@@ -10,6 +10,15 @@ import { getStripe } from "@/lib/stripe";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
 import { RoiSavingsBanner } from "@/components/funnel/RoiSavingsBanner";
+import {
+  PRICING_PLANS,
+  STRICT_UNLOCK_EUR,
+  fmtEur,
+  monthlyLabel,
+  opsLabel,
+  teamMinYearlyTotal,
+  yearlyLabel,
+} from "@/lib/pricing";
 
 interface Props {
   open: boolean;
@@ -70,7 +79,7 @@ export function StrictDocumentPaywall({
         {clientSecret ? (
           <div>
             <DialogHeader className="mb-3">
-              <DialogTitle>Отключване на Стриктен документ — 0,40 €</DialogTitle>
+              <DialogTitle>Отключване на Стриктен документ — {fmtEur(STRICT_UNLOCK_EUR)}</DialogTitle>
               <DialogDescription>
                 Плащането е сигурно. След успех се връщате към документа за сваляне.
               </DialogDescription>
@@ -94,7 +103,7 @@ export function StrictDocumentPaywall({
               <DialogTitle className="text-2xl">Вие създадохте Стриктен документ</DialogTitle>
               <DialogDescription className="text-base pt-2">
                 Dogovori.net поддържа стриктните документи за платени потребители.
-                За да го изтеглите, преминете към Професионалист/Предприемач или
+                За да го изтеглите, преминете към {PRICING_PLANS.professional.name}/{PRICING_PLANS.entrepreneur.name} или
                 закупете еднократно отключване.
               </DialogDescription>
             </DialogHeader>
@@ -106,11 +115,11 @@ export function StrictDocumentPaywall({
               <div className="rounded-xl border border-border p-4 flex flex-col">
                 <div className="flex items-center gap-2 mb-1">
                   <Crown className="h-4 w-4 text-gold" />
-                  <div className="font-semibold">Предприемач</div>
+                  <div className="font-semibold">{PRICING_PLANS.entrepreneur.name}</div>
                 </div>
-                <div className="text-2xl font-bold mb-1">19,90 €<span className="text-sm font-normal text-muted-foreground">/мес</span></div>
+                <div className="text-2xl font-bold mb-1">{monthlyLabel("entrepreneur")}</div>
                 <ul className="text-xs text-muted-foreground space-y-1 mb-3 flex-1">
-                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />100 операции/месец</li>
+                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />{opsLabel("entrepreneur")}/месец</li>
                   <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />Всички Стриктни документи</li>
                   <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />AI асистент & анализ</li>
                 </ul>
@@ -122,12 +131,12 @@ export function StrictDocumentPaywall({
               <div className="rounded-xl border border-border p-4 flex flex-col">
                 <div className="flex items-center gap-2 mb-1">
                   <Users className="h-4 w-4 text-gold" />
-                  <div className="font-semibold">Екип</div>
+                  <div className="font-semibold">{PRICING_PLANS.team.name}</div>
                 </div>
-                <div className="text-2xl font-bold mb-1">от 327 €<span className="text-sm font-normal text-muted-foreground">/год</span></div>
+                <div className="text-2xl font-bold mb-1">от {fmtEur(teamMinYearlyTotal())}<span className="text-sm font-normal text-muted-foreground">/год</span></div>
                 <ul className="text-xs text-muted-foreground space-y-1 mb-3 flex-1">
-                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />109 €/място/год, от 3 места</li>
-                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />100 операции/място/месец</li>
+                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />{yearlyLabel("team")}, от {PRICING_PLANS.team.seatMin} места</li>
+                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />{opsLabel("team")}/месец</li>
                   <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />Споделени папки & подпис</li>
                 </ul>
                 <Button variant="outline" size="sm" className="w-full" onClick={goPlans}>
@@ -142,7 +151,7 @@ export function StrictDocumentPaywall({
                   <Sparkles className="h-4 w-4 text-gold" />
                   <div className="font-semibold">Отключи само този документ</div>
                 </div>
-                <div className="text-xl font-bold text-gold">0,40 €</div>
+                <div className="text-xl font-bold text-gold">{fmtEur(STRICT_UNLOCK_EUR)}</div>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
                 Еднократно плащане. Валидно 24 часа за този документ — сваляте
@@ -154,7 +163,7 @@ export function StrictDocumentPaywall({
                 className="w-full gap-2 bg-gradient-to-r from-gold to-gold-dark hover:opacity-90"
               >
                 {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                Отключи за 0,40 €
+                Отключи за {fmtEur(STRICT_UNLOCK_EUR)}
               </Button>
             </div>
 

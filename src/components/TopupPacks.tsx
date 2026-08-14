@@ -3,10 +3,18 @@ import { Plus, Zap, Sparkles, Rocket, X } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { useAuth } from "@/hooks/useAuth";
+import { TOPUP_PACK_CONFIG, fmtEur, perOpLabel, type TopupPackConfig } from "@/lib/pricing";
+
+const PACK_ICONS: Record<TopupPackConfig["priceId"], typeof Plus> = {
+  topup_5: Plus,
+  topup_20: Zap,
+  topup_50: Sparkles,
+  topup_100: Rocket,
+};
 
 
 export interface TopupPack {
-  priceId: "topup_5" | "topup_20" | "topup_50" | "topup_100";
+  priceId: TopupPackConfig["priceId"];
   ops: number;
   priceEur: string;
   perOp: string;
@@ -14,12 +22,14 @@ export interface TopupPack {
   badge?: string;
 }
 
-export const TOPUP_PACKS: TopupPack[] = [
-  { priceId: "topup_5", ops: 5, priceEur: "2.90 €", perOp: "0.58 €/оп.", icon: Plus },
-  { priceId: "topup_20", ops: 20, priceEur: "5.40 €", perOp: "0.27 €/оп.", icon: Zap },
-  { priceId: "topup_50", ops: 50, priceEur: "12.90 €", perOp: "0.258 €/оп.", icon: Sparkles, badge: "Най-избиран" },
-  { priceId: "topup_100", ops: 100, priceEur: "23.90 €", perOp: "0.239 €/оп.", icon: Rocket, badge: "Най-изгоден" },
-];
+export const TOPUP_PACKS: TopupPack[] = TOPUP_PACK_CONFIG.map((pack) => ({
+  priceId: pack.priceId,
+  ops: pack.ops,
+  priceEur: fmtEur(pack.eur),
+  perOp: perOpLabel(pack),
+  icon: PACK_ICONS[pack.priceId],
+  badge: pack.badge,
+}));
 
 interface TopupPacksProps {
   /** When false, cards are disabled and a hint to subscribe first is shown. */

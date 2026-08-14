@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { PRICING_PLANS, monthlyLabel } from "@/lib/pricing";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -102,7 +103,7 @@ export function MultiPartySigningDialog(p: Props) {
             <div>
               <h3 className="font-serif text-lg font-bold">e-Подпис — само за платени планове</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Изпращай неограничени заявки за подпис до няколко страни едновременно с Предприемач за 19.90 €/мес.
+                Изпращай неограничени заявки за подпис до няколко страни едновременно с {PRICING_PLANS.entrepreneur.name} за {monthlyLabel("entrepreneur")}.
               </p>
             </div>
             <Button asChild className="w-full bg-gradient-gold text-navy hover:shadow-gold">

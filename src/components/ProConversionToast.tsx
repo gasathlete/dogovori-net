@@ -10,6 +10,7 @@
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { useFreeJourneyStage } from "@/hooks/useFreeJourneyStage";
+import { PRICING_PLANS, fmtEur, monthlyLabel, opsLabel } from "@/lib/pricing";
 import { trackEvent } from "@/lib/analytics";
 import { ProUpgradeDialog, type ProUpgradeTrigger } from "@/components/ProUpgradeDialog";
 
@@ -34,13 +35,13 @@ export function useProConversionToast() {
 
       if (stage === 1) {
         title = `Остават ${opsLeft} от ${opsCap} безплатни операции`;
-        description = "Продължи с Предприемач: 100 операции/мес., неограничени AI корекции и e-Подпис за 19.90 €.";
+        description = `Продължи с ${PRICING_PLANS.entrepreneur.name}: ${opsLabel("entrepreneur")}/мес., неограничени AI корекции и e-Подпис за ${fmtEur(PRICING_PLANS.entrepreneur.monthly!)}.`;
       } else if (stage === 2) {
         title = "Последна безплатна операция за месеца";
-        description = "Със следваща операция изчерпваш лимита. Предприемач отключва 100 ops + GPT-5 за 19.90 €/мес.";
+        description = `Със следваща операция изчерпваш лимита. ${PRICING_PLANS.entrepreneur.name} отключва ${PRICING_PLANS.entrepreneur.opsPerMonth} ops + GPT-5 за ${monthlyLabel("entrepreneur")}.`;
       } else {
         title = "Безплатният лимит е изчерпан";
-        description = "Професионалист 12.90 €/мес. (50 ops) или Предприемач 19.90 €/мес. (100 ops + GPT-5).";
+        description = `${PRICING_PLANS.professional.name} ${monthlyLabel("professional")} (${PRICING_PLANS.professional.opsPerMonth} ops) или ${PRICING_PLANS.entrepreneur.name} ${monthlyLabel("entrepreneur")} (${PRICING_PLANS.entrepreneur.opsPerMonth} ops + GPT-5).`;
       }
 
       trackEvent("tease_shown", { channel: "toast", stage, reason });

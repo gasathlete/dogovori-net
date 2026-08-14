@@ -2,6 +2,13 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, FileDown, FileText, Sparkles, ShieldCheck, Loader2 } from "@/icons";
+import {
+  LAWYER_FEE_MIN_EUR,
+  PRICING_PLANS,
+  monthlyLabel,
+  opsLabel,
+} from "@/lib/pricing";
+
 
 interface Props {
   /** Има ли потребителят право да изтегли документа сега. */
@@ -28,7 +35,7 @@ interface Props {
  *
  * Задача: да превърне „готов текст“ в усетена стойност (ROI), преди
  * потребителят да види гейта — и да води по най-краткия път или към сваляне,
- * или към /plans с предварително избран план Предприемач (12.90 €/мес).
+ * или към /plans с предварително избран план Предприемач.
  */
 export function DocumentValueCard({
   canDownload,
@@ -38,7 +45,7 @@ export function DocumentValueCard({
   busyDocx,
   needsAuth,
   onRegister,
-  savedEur = 150,
+  savedEur = LAWYER_FEE_MIN_EUR,
   documentTitle,
 }: Props) {
   return (
@@ -122,11 +129,15 @@ export function DocumentValueCard({
 
           {!canDownload && !needsAuth && (
             <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-              За сваляне е нужна 1 операция. План <span className="font-medium text-foreground">Професионалист</span> —
-              12.90 €/мес (50 операции), <span className="font-medium text-foreground">Предприемач</span> —
-              19.90 €/мес (100 операции), или еднократен пакет операции.
+              За сваляне е нужна 1 операция. План{" "}
+              <span className="font-medium text-foreground">{PRICING_PLANS.professional.name}</span>{" "}
+              — {monthlyLabel("professional")} ({opsLabel("professional")}),{" "}
+              <span className="font-medium text-foreground">{PRICING_PLANS.entrepreneur.name}</span>{" "}
+              — {monthlyLabel("entrepreneur")} ({opsLabel("entrepreneur")}), или еднократен пакет
+              операции.
             </p>
           )}
+
         </div>
       </div>
     </div>
