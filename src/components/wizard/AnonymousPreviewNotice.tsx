@@ -43,9 +43,10 @@ export function AnonymousPreviewNotice({ onRegister }: Props) {
           </div>
           <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
             Спести време и правни разходи с план{" "}
-            <span className="font-medium text-foreground">Предприемач</span> за 12,90 €/мес
-            (100 операции) или <span className="font-medium text-foreground">Екип</span> —
-            10,90 €/място/мес (мин. 3 места).
+            <span className="font-medium text-foreground">Професионалист</span> за 12,90 €/мес
+            (50 операции), <span className="font-medium text-foreground">Предприемач</span> — 19,90
+            €/мес (100 операции) или <span className="font-medium text-foreground">Екип</span> —
+            109 €/място/год (мин. 3 места).
           </p>
         </div>
       </div>
