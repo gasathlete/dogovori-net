@@ -535,7 +535,8 @@ export default function WizardPage() {
       goAuth();
       return;
     }
-    // Strict document paywall — free users must subscribe or unlock (0.40€).
+    // Strict document paywall — free users must subscribe or buy a single unlock
+    // (цената идва от STRICT_UNLOCK_EUR в @/lib/pricing).
     if (!docAccess.canDownload) {
       trackEvent("strict_paywall_shown", { source: `download_${format}`, doc_key: docKey });
       setShowPaywall(true);

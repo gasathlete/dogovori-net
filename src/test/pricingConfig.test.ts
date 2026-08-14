@@ -63,8 +63,15 @@ describe("pricing config — канонични имена и стойности
   });
 
   it("не съдържа изоставени цени/валути", () => {
+    const deprecatedPrices = [9.9, 7.9, 23.7, 32.7, 10.9, 1.9];
+    const used = [
+      ...Object.values(PRICING_PLANS).flatMap((p) => [p.monthly, p.yearly]),
+      ...TOPUP_PACK_CONFIG.map((p) => p.eur),
+    ].filter((v): v is number => typeof v === "number");
+    for (const bad of deprecatedPrices) expect(used).not.toContain(bad);
+
     const serialized = JSON.stringify(PRICING_PLANS) + JSON.stringify(TOPUP_PACK_CONFIG);
-    for (const bad of ["9.9,", "7.9", "23.7", "лв", "BGN"]) {
+    for (const bad of ["лв", "BGN", "лева"]) {
       expect(serialized.includes(bad)).toBe(false);
     }
   });
