@@ -10,6 +10,8 @@ import { useTeam } from "@/hooks/useTeam";
 import { Header } from "@/components/Header";
 import {
   PRICING_PLANS,
+  TOPUP_PACK_CONFIG,
+  perOpLabel,
   fmtEur,
   opsLabel,
   teamMinYearlyTotal,
@@ -83,7 +85,8 @@ const PLAN_LABELS: Record<string, { name: string; price: string; cycle: string }
   professional_yearly: { name: `${PRICING_PLANS.professional.name} — годишен`, price: fmtEur(PRICING_PLANS.professional.yearly!), cycle: "годишно" },
   entrepreneur_monthly: { name: `${PRICING_PLANS.entrepreneur.name} — месечен`, price: fmtEur(PRICING_PLANS.entrepreneur.monthly!), cycle: "месечно" },
   entrepreneur_yearly: { name: `${PRICING_PLANS.entrepreneur.name} — годишен`, price: fmtEur(PRICING_PLANS.entrepreneur.yearly!), cycle: "годишно" },
-  five_operations: { name: "Пакет 5 операции", price: "1.90 €", cycle: "еднократно" },
+  five_operations: { name: `Пакет ${TOPUP_PACK_CONFIG[0].ops} операции`, price: fmtEur(TOPUP_PACK_CONFIG[0].eur), cycle: "еднократно" },
+  topup_5: { name: `Пакет ${TOPUP_PACK_CONFIG[0].ops} операции`, price: fmtEur(TOPUP_PACK_CONFIG[0].eur), cycle: "еднократно" },
 };
 
 const STATUS_META: Record<string, { label: string; tone: "ok" | "warn" | "err" | "info" }> = {
@@ -603,24 +606,24 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               </ul>
             </div>
 
-            {/* 5 операции */}
+            {/* Top-up пакет */}
             <div className="flex flex-col rounded-2xl border border-border/60 bg-gradient-card p-6 transition-colors hover:border-gold/40">
               <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 <Sparkles className="h-3.5 w-3.5" /> Еднократно
               </div>
-              <h3 className="mt-2 font-serif text-xl font-bold">5 операции</h3>
+              <h3 className="mt-2 font-serif text-xl font-bold">{TOPUP_PACK_CONFIG[0].ops} операции</h3>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="font-serif text-3xl font-bold text-foreground">1.90 €</span>
+                <span className="font-serif text-3xl font-bold text-foreground">{fmtEur(TOPUP_PACK_CONFIG[0].eur)}</span>
                 <span className="text-xs text-muted-foreground">/ пакет</span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">без абонамент · не изтичат</p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">≈ 0.38 € на операция</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">{perOpLabel(TOPUP_PACK_CONFIG[0])}</p>
               <Button
-                onClick={() => setCheckoutPrice("five_operations")}
+                onClick={() => setCheckoutPrice(TOPUP_PACK_CONFIG[0].priceId)}
                 variant="outline"
                 className="mt-4 border-border/80"
               >
-                Купи за 1.90 €
+                Купи за {fmtEur(TOPUP_PACK_CONFIG[0].eur)}
               </Button>
               <div className="my-5 h-px bg-border/60" />
               <ul className="space-y-2.5">

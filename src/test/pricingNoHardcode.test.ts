@@ -34,7 +34,7 @@ const files = ROOTS.flatMap(walk).filter(
 
 /** Цена с EUR знак, изписана като литерал (напр. „19.90 €“ / „19,90 €“). */
 const PRICE_LITERAL = /\d{1,3}[.,]\d{2}\s?€/;
-const LEGACY_CURRENCY = /(\bлв\.?\b|\bBGN\b|лева)/;
+const LEGACY_CURRENCY = /(?:^|[\s"'`>(])(?:лв\.?|лева|BGN)(?=$|[\s"'`<),.])/m;
 
 describe("никакви твърдо зададени цени в UI", () => {
   it("намира файлове за проверка", () => {

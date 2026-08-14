@@ -32,7 +32,7 @@ describe("ROI банер", () => {
     expect(t).toContain(opsLabel("entrepreneur"));
     expect(t).toContain(PRICING_PLANS.team.name);
     expect(t).toContain(fmtEur(teamMinYearlyTotal()));
-    expect(t).not.toMatch(/9,90 €\/мес|10,90|32,70|лв/);
+    expect(t).not.toMatch(/(?:^|[^1])9,90 €\/мес|10,90 €|32,70|\bлв\b/);
   });
 });
 

@@ -156,3 +156,20 @@ export function perOpLabel(pack: TopupPackConfig): string {
 
 /** Имена, които вече не се използват — тестовете следят да не се връщат. */
 export const DEPRECATED_PLAN_TERMS = ["Pro план", "Team план", "лв.", "BGN"] as const;
+
+/** Най-ниската цена за една операция сред активните планове (за маркетинг копие). */
+export function cheapestPerOpEur(): number {
+  const rates: number[] = [];
+  for (const id of ["professional", "entrepreneur"] as const) {
+    const p = PRICING_PLANS[id];
+    if (p.monthly !== null && p.opsPerMonth) rates.push(p.monthly / p.opsPerMonth);
+  }
+  const team = PRICING_PLANS.team;
+  if (team.yearly !== null && team.opsPerMonth) rates.push(team.yearly / 12 / team.opsPerMonth);
+  return Math.round(Math.min(...rates) * 100) / 100;
+}
+
+/** „0,09 €“ — най-изгодна цена за документ. */
+export function cheapestPerOpLabel(): string {
+  return fmtEur(cheapestPerOpEur());
+}

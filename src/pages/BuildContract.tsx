@@ -43,6 +43,7 @@ import { MultiPartySigningDialog } from "@/components/MultiPartySigningDialog";
 import { SECTORS, type Sector } from "@/data/sectors";
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, type DocumentTypeId } from "@/lib/documentReferences";
 import { getBuildSchema, type BuildField } from "@/lib/documentFieldSchemas";
+import { TOPUP_PACK_CONFIG, fmtEur } from "@/lib/pricing";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsPro } from "@/hooks/useIsPro";
@@ -644,7 +645,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         if (res.error === "disclaimer_cancelled" || res.error === "unfilled_placeholders") return;
         if (res.error === "quota_exceeded") {
           toast.error("Изчерпан безплатен лимит", {
-            description: "Купете единичен документ за 1.90€ или активирайте платен план.",
+            description: `Купете пакет ${TOPUP_PACK_CONFIG[0].ops} операции за ${fmtEur(TOPUP_PACK_CONFIG[0].eur)} или активирайте платен план.`,
             action: { label: "Виж опции", onClick: goSubscription },
           });
         } else {
