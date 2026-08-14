@@ -974,6 +974,42 @@ export default function WizardPage() {
               </div>
             )}
 
+            {consentRequired && !result && (
+              <div className="rounded-lg border-2 border-destructive/60 bg-destructive/5 p-4 animate-fade-in" role="alert">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-destructive">
+                      Нужно е вашето изрично съгласие
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Документът съдържа лични данни. За да го изготвим, потвърдете, че сте съгласни
+                      те да бъдат обработени само за целите на този документ (GDPR).
+                    </p>
+                    <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-foreground">
+                      <input
+                        type="checkbox"
+                        checked={consentChecked}
+                        onChange={(e) => setConsentChecked(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 accent-[hsl(var(--primary))]"
+                      />
+                      Съгласен/на съм с обработката на въведените лични данни.
+                    </label>
+                    <Button
+                      size="sm"
+                      className="mt-3"
+                      disabled={!consentChecked || generating}
+                      onClick={() => void handleGenerate(true)}
+                    >
+                      Потвърждавам и генерирам
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+
+
 
             {!result && current && (
               <div
