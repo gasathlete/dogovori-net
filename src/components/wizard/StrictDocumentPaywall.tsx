@@ -108,7 +108,7 @@ export function StrictDocumentPaywall({
                   <Crown className="h-4 w-4 text-gold" />
                   <div className="font-semibold">Предприемач</div>
                 </div>
-                <div className="text-2xl font-bold mb-1">12,90 €<span className="text-sm font-normal text-muted-foreground">/мес</span></div>
+                <div className="text-2xl font-bold mb-1">19,90 €<span className="text-sm font-normal text-muted-foreground">/мес</span></div>
                 <ul className="text-xs text-muted-foreground space-y-1 mb-3 flex-1">
                   <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />100 операции/месец</li>
                   <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />Всички Стриктни документи</li>
@@ -124,9 +124,9 @@ export function StrictDocumentPaywall({
                   <Users className="h-4 w-4 text-gold" />
                   <div className="font-semibold">Екип</div>
                 </div>
-                <div className="text-2xl font-bold mb-1">от 32,70 €<span className="text-sm font-normal text-muted-foreground">/мес</span></div>
+                <div className="text-2xl font-bold mb-1">от 327 €<span className="text-sm font-normal text-muted-foreground">/год</span></div>
                 <ul className="text-xs text-muted-foreground space-y-1 mb-3 flex-1">
-                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />От 3 места нагоре</li>
+                  <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />109 €/място/год, от 3 места</li>
                   <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />100 операции/място/месец</li>
                   <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-gold mt-0.5" />Споделени папки & подпис</li>
                 </ul>

@@ -122,8 +122,9 @@ export function DocumentValueCard({
 
           {!canDownload && !needsAuth && (
             <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-              За сваляне е нужна 1 операция. План <span className="font-medium text-foreground">Предприемач</span> —
-              12.90 €/мес (100 операции), или еднократен пакет операции.
+              За сваляне е нужна 1 операция. План <span className="font-medium text-foreground">Професионалист</span> —
+              12.90 €/мес (50 операции), <span className="font-medium text-foreground">Предприемач</span> —
+              19.90 €/мес (100 операции), или еднократен пакет операции.
             </p>
           )}
         </div>
