@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ShieldCheck, CreditCard } from "@/icons";
+import { PRICING_PLANS, monthlyLabel, opsLabel, planSummary } from "@/lib/pricing";
 
 interface Props {
   onRegister: () => void;
@@ -9,6 +10,7 @@ interface Props {
 /**
  * Shown after an anonymous visitor generates a document: the text is fully
  * readable (proof of quality), but export/save требва регистрация.
+ * Цените идват от `src/lib/pricing.ts`.
  */
 export function AnonymousPreviewNotice({ onRegister }: Props) {
   return (
@@ -43,10 +45,11 @@ export function AnonymousPreviewNotice({ onRegister }: Props) {
           </div>
           <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
             Спести време и правни разходи с план{" "}
-            <span className="font-medium text-foreground">Професионалист</span> за 12,90 €/мес
-            (50 операции), <span className="font-medium text-foreground">Предприемач</span> — 19,90
-            €/мес (100 операции) или <span className="font-medium text-foreground">Екип</span> —
-            109 €/място/год (мин. 3 места).
+            <span className="font-medium text-foreground">{PRICING_PLANS.professional.name}</span>{" "}
+            за {monthlyLabel("professional")} ({opsLabel("professional")}),{" "}
+            <span className="font-medium text-foreground">{PRICING_PLANS.entrepreneur.name}</span> —{" "}
+            {monthlyLabel("entrepreneur")} ({opsLabel("entrepreneur")}) или{" "}
+            <span className="font-medium text-foreground">{planSummary("team")}</span>.
           </p>
         </div>
       </div>

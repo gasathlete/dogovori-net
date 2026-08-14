@@ -8,6 +8,16 @@ import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 
 import { useTeam } from "@/hooks/useTeam";
 import { Header } from "@/components/Header";
+import {
+  PRICING_PLANS,
+  TOPUP_PACK_CONFIG,
+  perOpLabel,
+  fmtEur,
+  opsLabel,
+  teamMinYearlyTotal,
+  yearlyLabel,
+  yearlyPerMonthLabel,
+} from "@/lib/pricing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -69,13 +79,14 @@ type SubRow = {
 };
 
 const PLAN_LABELS: Record<string, { name: string; price: string; cycle: string }> = {
-  pro_monthly: { name: "Професионалист — месечен", price: "12.90 €", cycle: "месечно" },
-  pro_yearly: { name: "Професионалист — годишен", price: "129 €", cycle: "годишно" },
-  professional_monthly: { name: "Професионалист — месечен", price: "12.90 €", cycle: "месечно" },
-  professional_yearly: { name: "Професионалист — годишен", price: "129 €", cycle: "годишно" },
-  entrepreneur_monthly: { name: "Предприемач — месечен", price: "19.90 €", cycle: "месечно" },
-  entrepreneur_yearly: { name: "Предприемач — годишен", price: "199 €", cycle: "годишно" },
-  five_operations: { name: "Пакет 5 операции", price: "1.90 €", cycle: "еднократно" },
+  pro_monthly: { name: `${PRICING_PLANS.professional.name} — месечен`, price: fmtEur(PRICING_PLANS.professional.monthly!), cycle: "месечно" },
+  pro_yearly: { name: `${PRICING_PLANS.professional.name} — годишен`, price: fmtEur(PRICING_PLANS.professional.yearly!), cycle: "годишно" },
+  professional_monthly: { name: `${PRICING_PLANS.professional.name} — месечен`, price: fmtEur(PRICING_PLANS.professional.monthly!), cycle: "месечно" },
+  professional_yearly: { name: `${PRICING_PLANS.professional.name} — годишен`, price: fmtEur(PRICING_PLANS.professional.yearly!), cycle: "годишно" },
+  entrepreneur_monthly: { name: `${PRICING_PLANS.entrepreneur.name} — месечен`, price: fmtEur(PRICING_PLANS.entrepreneur.monthly!), cycle: "месечно" },
+  entrepreneur_yearly: { name: `${PRICING_PLANS.entrepreneur.name} — годишен`, price: fmtEur(PRICING_PLANS.entrepreneur.yearly!), cycle: "годишно" },
+  five_operations: { name: `Пакет ${TOPUP_PACK_CONFIG[0].ops} операции`, price: fmtEur(TOPUP_PACK_CONFIG[0].eur), cycle: "еднократно" },
+  topup_5: { name: `Пакет ${TOPUP_PACK_CONFIG[0].ops} операции`, price: fmtEur(TOPUP_PACK_CONFIG[0].eur), cycle: "еднократно" },
 };
 
 const STATUS_META: Record<string, { label: string; tone: "ok" | "warn" | "err" | "info" }> = {
@@ -492,13 +503,13 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 <Sparkles className="h-3.5 w-3.5" /> За самонаети
               </div>
-              <h3 className="mt-2 font-serif text-xl font-bold">Професионалист</h3>
+              <h3 className="mt-2 font-serif text-xl font-bold">{PRICING_PLANS.professional.name}</h3>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="font-serif text-3xl font-bold text-foreground">12.90 €</span>
+                <span className="font-serif text-3xl font-bold text-foreground">{fmtEur(PRICING_PLANS.professional.monthly!)}</span>
                 <span className="text-xs text-muted-foreground">/ мес</span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">50 операции/мес · ДДС вкл.</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">или 129 €/год (≈ 10.75 €/мес)</p>
+              <p className="mt-1 text-xs text-muted-foreground">{opsLabel("professional")}/мес · ДДС вкл.</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">или {yearlyLabel("professional")} ({yearlyPerMonthLabel("professional")})</p>
               <div className="mt-4 flex flex-col gap-2">
                 <Button
                   onClick={() => setCheckoutPrice("professional_monthly")}
@@ -512,12 +523,12 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
                   variant="outline"
                   className="border-border/80"
                 >
-                  Годишен 129 €
+                  Годишен {fmtEur(PRICING_PLANS.professional.yearly!)}
                 </Button>
               </div>
               <div className="my-5 h-px bg-border/60" />
               <ul className="space-y-2.5">
-                <Feature>50 операции / месец</Feature>
+                <Feature>{opsLabel("professional")} / месец</Feature>
                 <Feature>Неограничен AI Асистент</Feature>
                 <Feature>Двуезични договори (EN/DE/FR)</Feature>
                 <Feature>Неограничени комплекти</Feature>
@@ -531,15 +542,15 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
                 Най-премиум
               </div>
               <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold">
-                <Crown className="h-3.5 w-3.5" /> Предприемач
+                <Crown className="h-3.5 w-3.5" /> {PRICING_PLANS.entrepreneur.name}
               </div>
               <h3 className="mt-2 font-serif text-xl font-bold">Премиум план</h3>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="font-serif text-3xl font-bold text-foreground">19.90 €</span>
+                <span className="font-serif text-3xl font-bold text-foreground">{fmtEur(PRICING_PLANS.entrepreneur.monthly!)}</span>
                 <span className="text-xs text-muted-foreground">/ мес</span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">100 операции/мес · GPT-5 · ДДС вкл.</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">или 199 €/год (≈ 16.60 €/мес)</p>
+              <p className="mt-1 text-xs text-muted-foreground">{opsLabel("entrepreneur")}/мес · GPT-5 · ДДС вкл.</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">или {yearlyLabel("entrepreneur")} ({yearlyPerMonthLabel("entrepreneur")})</p>
               <div className="mt-4 flex flex-col gap-2">
                 <Button
                   onClick={() => setCheckoutPrice("entrepreneur_monthly")}
@@ -552,12 +563,12 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
                   variant="outline"
                   className="border-gold/40 text-gold hover:bg-gold/10"
                 >
-                  Годишен 199 €
+                  Годишен {fmtEur(PRICING_PLANS.entrepreneur.yearly!)}
                 </Button>
               </div>
               <div className="my-5 h-px bg-gold/15" />
               <ul className="space-y-2.5">
-                <Feature>100 операции / месец</Feature>
+                <Feature>{opsLabel("entrepreneur")} / месец</Feature>
                 <Feature>Приоритетна AI обработка + GPT-5</Feature>
                 <Feature>Premium поддръжка 24/7</Feature>
                 <Feature>Персонален onboarding</Feature>
@@ -571,12 +582,12 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold">
                 <Building2 className="h-3.5 w-3.5" /> За фирми
               </div>
-              <h3 className="mt-2 font-serif text-xl font-bold">Екип</h3>
+              <h3 className="mt-2 font-serif text-xl font-bold">{PRICING_PLANS.team.name}</h3>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="font-serif text-3xl font-bold text-foreground">109 €</span>
+                <span className="font-serif text-3xl font-bold text-foreground">{fmtEur(PRICING_PLANS.team.yearly!)}</span>
                 <span className="text-xs text-muted-foreground">/ място / год</span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">мин. 3 места = 327 €/год</p>
+              <p className="mt-1 text-xs text-muted-foreground">мин. {PRICING_PLANS.team.seatMin} места = {fmtEur(teamMinYearlyTotal())}/год</p>
               <p className="mt-0.5 text-[11px] text-muted-foreground">100 операции/място/мес · само годишен</p>
               <Button
                 asChild
@@ -595,24 +606,24 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               </ul>
             </div>
 
-            {/* 5 операции */}
+            {/* Top-up пакет */}
             <div className="flex flex-col rounded-2xl border border-border/60 bg-gradient-card p-6 transition-colors hover:border-gold/40">
               <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 <Sparkles className="h-3.5 w-3.5" /> Еднократно
               </div>
-              <h3 className="mt-2 font-serif text-xl font-bold">5 операции</h3>
+              <h3 className="mt-2 font-serif text-xl font-bold">{TOPUP_PACK_CONFIG[0].ops} операции</h3>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="font-serif text-3xl font-bold text-foreground">1.90 €</span>
+                <span className="font-serif text-3xl font-bold text-foreground">{fmtEur(TOPUP_PACK_CONFIG[0].eur)}</span>
                 <span className="text-xs text-muted-foreground">/ пакет</span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">без абонамент · не изтичат</p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">≈ 0.38 € на операция</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">{perOpLabel(TOPUP_PACK_CONFIG[0])}</p>
               <Button
-                onClick={() => setCheckoutPrice("five_operations")}
+                onClick={() => setCheckoutPrice(TOPUP_PACK_CONFIG[0].priceId)}
                 variant="outline"
                 className="mt-4 border-border/80"
               >
-                Купи за 1.90 €
+                Купи за {fmtEur(TOPUP_PACK_CONFIG[0].eur)}
               </Button>
               <div className="my-5 h-px bg-border/60" />
               <ul className="space-y-2.5">

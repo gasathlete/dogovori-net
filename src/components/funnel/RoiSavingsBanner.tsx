@@ -1,13 +1,24 @@
 /**
  * RoiSavingsBanner — кратко ROI сравнение (само EUR) за пейуол и /plans.
- * Показва спестената сума спрямо адвокатски хонорар за съответния сегмент.
+ * Всички имена и цени идват от `src/lib/pricing.ts` (единствен източник).
  */
 import { PiggyBank, Check } from "@/icons";
 import { useAudience } from "@/hooks/useAudience";
+import {
+  LAWYER_FEE_MAX_EUR,
+  LAWYER_FEE_MIN_EUR,
+  PRICING_PLANS,
+  monthlyLabel,
+  opsLabel,
+  fmtEur,
+  teamMinYearlyTotal,
+  yearlyLabel,
+} from "@/lib/pricing";
 
 export function RoiSavingsBanner({ className = "" }: { className?: string }) {
   const { audience } = useAudience();
   const isFreelancer = audience === "freelancer";
+  const team = PRICING_PLANS.team;
 
   return (
     <div
@@ -20,21 +31,30 @@ export function RoiSavingsBanner({ className = "" }: { className?: string }) {
         </span>
         <div className="min-w-0">
           <p className="text-sm font-semibold text-foreground">
-            Спести над <span className="text-gold">150 EUR</span> за адвокатски хонорар
+            Спести над <span className="text-gold">{LAWYER_FEE_MIN_EUR} EUR</span> за адвокатски
+            хонорар
           </p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
             {isFreelancer ? (
               <>
-                План <span className="font-medium text-foreground">Професионалист</span> — 12,90
-                €/мес (50 операции). Един изготвен договор при адвокат струва 150–400 EUR, тук се
-                изплаща от първия документ.
+                План{" "}
+                <span className="font-medium text-foreground">
+                  {PRICING_PLANS.professional.name}
+                </span>{" "}
+                — {monthlyLabel("professional")} ({opsLabel("professional")}). Един изготвен договор
+                при адвокат струва {LAWYER_FEE_MIN_EUR}–{LAWYER_FEE_MAX_EUR} EUR, тук се изплаща от
+                първия документ.
               </>
             ) : (
               <>
-                План <span className="font-medium text-foreground">Предприемач</span> — 19,90 €/мес
-                (100 операции) за малки фирми, или{" "}
-                <span className="font-medium text-foreground">Екип</span> — 109 €/място/год (само
-                годишно, мин. 3 места = 327 €/год). Едно юридическо становище месечно вече
+                План{" "}
+                <span className="font-medium text-foreground">
+                  {PRICING_PLANS.entrepreneur.name}
+                </span>{" "}
+                — {monthlyLabel("entrepreneur")} ({opsLabel("entrepreneur")}) за малки фирми, или{" "}
+                <span className="font-medium text-foreground">{team.name}</span> —{" "}
+                {yearlyLabel("team")} (само годишно, мин. {team.seatMin} места ={" "}
+                {fmtEur(teamMinYearlyTotal())}/год). Едно юридическо становище месечно вече
                 надхвърля годишния абонамент.
               </>
             )}

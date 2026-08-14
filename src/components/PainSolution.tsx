@@ -1,3 +1,4 @@
+import { PRICING_PLANS, monthlyLabel, opsLabel } from "@/lib/pricing";
 import { X, Check, FileUp, FileSignature, ArrowRight } from "@/icons";
 import { Link } from "react-router-dom";
 
@@ -8,7 +9,7 @@ const PAINS = [
 ];
 
 const GAINS = [
-  "От 12.90 €/мес. — 50 операции (Професионалист) или 19.90 €/мес. — 100 операции (Предприемач) без скрити такси",
+  `От ${monthlyLabel("professional")} — ${opsLabel("professional")} (${PRICING_PLANS.professional.name}) или ${monthlyLabel("entrepreneur")} — ${opsLabel("entrepreneur")} (${PRICING_PLANS.entrepreneur.name}) без скрити такси`,
   "AI риск-анализ, към днешна дата преди да подпишете",
   "Професионален документ, готов за електронен подпис >2 минути",
 ];

@@ -1,9 +1,10 @@
+import { cheapestPerOpLabel } from "@/lib/pricing";
 import { Check, X, Minus } from "@/icons";
 
 type Cell = "yes" | "no" | "partial" | string;
 
 const ROWS: { label: string; us: Cell; lawyer: Cell; free: Cell }[] = [
-  { label: "Цена за документ", us: "от 0,13 €", lawyer: "150–400 €", free: "0 €" },
+  { label: "Цена за документ", us: `от ${cheapestPerOpLabel()}`, lawyer: "150–400 €", free: "0 €" },
   { label: "Време до готов документ", us: " 2-3 мин.", lawyer: "1–5 дни", free: "30–60 мин." },
   { label: "Юридическа валидност (ЗЗД·ТЗ·ЗУТ)", us: "yes", lawyer: "yes", free: "partial" },
   { label: "AI риск-анализ", us: "yes", lawyer: "partial", free: "no" },

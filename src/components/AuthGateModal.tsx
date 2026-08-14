@@ -165,7 +165,7 @@ export function AuthGateModal() {
             <div className="mt-1.5 flex items-center justify-between text-[11px]">
               <span className="text-muted-foreground line-through">~290 €</span>
               <span className="font-semibold text-emerald-500">
-                от 0.13 € / документ
+                от {cheapestPerOpLabel()} / документ
               </span>
             </div>
           </div>
