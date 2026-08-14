@@ -143,6 +143,10 @@ export default function WizardPage() {
   const [sensitiveBlocked, setSensitiveBlocked] = useState(false);
   const [sensitiveClass, setSensitiveClass] = useState<ClassificationSummary | null>(null);
   const [personalDataNotice, setPersonalDataNotice] = useState(false);
+  /** Сървърът все още изисква изрично съгласие — показваме акцентирано инлайн. */
+  const [consentRequired, setConsentRequired] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
+
 
   const [correctionsPending, setCorrectionsPending] = useState<CorrectionsSelection | null>(null);
   const [result, setResult] = useState<AIResult | null>(persisted?.result ?? null);
