@@ -25,16 +25,17 @@ export function RoiSavingsBanner({ className = "" }: { className?: string }) {
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
             {isFreelancer ? (
               <>
-                План <span className="font-medium text-foreground">Предприемач</span> — 12,90 €/мес
-                (100 операции). Един изготвен договор при адвокат струва 150–400 EUR, тук се
+                План <span className="font-medium text-foreground">Професионалист</span> — 12,90
+                €/мес (50 операции). Един изготвен договор при адвокат струва 150–400 EUR, тук се
                 изплаща от първия документ.
               </>
             ) : (
               <>
-                План <span className="font-medium text-foreground">Предприемач</span> — 12,90 €/мес
+                План <span className="font-medium text-foreground">Предприемач</span> — 19,90 €/мес
                 (100 операции) за малки фирми, или{" "}
-                <span className="font-medium text-foreground">Екип</span> — 10,90 €/място/мес
-                (мин. 3 места). Едно юридическо становище месечно вече надхвърля годишния абонамент.
+                <span className="font-medium text-foreground">Екип</span> — 109 €/място/год (само
+                годишно, мин. 3 места = 327 €/год). Едно юридическо становище месечно вече
+                надхвърля годишния абонамент.
               </>
             )}
           </p>
