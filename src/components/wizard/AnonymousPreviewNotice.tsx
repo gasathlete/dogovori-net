@@ -1,5 +1,6 @@
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ShieldCheck } from "@/icons";
+import { Sparkles, ShieldCheck, CreditCard } from "@/icons";
 
 interface Props {
   onRegister: () => void;
@@ -23,10 +24,29 @@ export function AnonymousPreviewNotice({ onRegister }: Props) {
             да го изтеглите в PDF/DOCX или да го изпратите за подпис, е нужен профил —
             прогресът ви се запазва автоматично.
           </p>
-          <Button size="sm" className="mt-3 gap-2" onClick={onRegister}>
-            <Sparkles className="h-4 w-4" aria-hidden />
-            Създайте профил и запазете документа
-          </Button>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <Button size="sm" className="gap-2" onClick={onRegister}>
+              <Sparkles className="h-4 w-4" aria-hidden />
+              Създайте профил и запазете документа
+            </Button>
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="gap-2 border-gold/40 text-gold hover:bg-gold/10 hover:text-gold"
+            >
+              <Link to="/plans?plan=entrepreneur&from=anon_preview">
+                <CreditCard className="h-4 w-4" aria-hidden />
+                Виж абонаментни планове
+              </Link>
+            </Button>
+          </div>
+          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+            Спести време и правни разходи с план{" "}
+            <span className="font-medium text-foreground">Предприемач</span> за 12,90 €/мес
+            (100 операции) или <span className="font-medium text-foreground">Екип</span> —
+            10,90 €/място/мес (мин. 3 места).
+          </p>
         </div>
       </div>
     </div>

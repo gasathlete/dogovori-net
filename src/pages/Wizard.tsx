@@ -143,6 +143,10 @@ export default function WizardPage() {
   const [sensitiveBlocked, setSensitiveBlocked] = useState(false);
   const [sensitiveClass, setSensitiveClass] = useState<ClassificationSummary | null>(null);
   const [personalDataNotice, setPersonalDataNotice] = useState(false);
+  /** Сървърът все още изисква изрично съгласие — показваме акцентирано инлайн. */
+  const [consentRequired, setConsentRequired] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
+
 
   const [correctionsPending, setCorrectionsPending] = useState<CorrectionsSelection | null>(null);
   const [result, setResult] = useState<AIResult | null>(persisted?.result ?? null);
@@ -323,7 +327,7 @@ export default function WizardPage() {
       if (isConfirmationRequired(sensitive) || data?.error === "needs_confirmation") {
         // Не спираме потребителя с блокиращ диалог: потвърждаваме автоматично
         // (веднъж) и показваме инлайн уведомление за личните данни.
-        if (!userConfirmed) {
+        if (!userConfirmed && !consentChecked) {
           trackEvent("generate_auto_confirmed", { doc_key: docKey, source: "wizard" });
           setPersonalDataNotice(true);
           void handleGenerate(true);
@@ -332,7 +336,12 @@ export default function WizardPage() {
         trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: "needs_confirmation" });
         setSensitiveClass(sensitive?.classification ?? data?.classification ?? null);
         setSensitiveBlocked(false);
-        setSensitiveOpen(true);
+        // Инлайн акцент вместо блокиращ модал без контекст.
+        setConsentRequired(true);
+        setConsentChecked(false);
+        toast.error("Нужно е потвърждение", {
+          description: "Отбележете съгласието за обработка на личните данни и опитайте отново.",
+        });
         return;
       }
       if (error || !data || (data as { error?: string }).error) {
@@ -341,6 +350,7 @@ export default function WizardPage() {
       const payload = data as AIResult;
       if (bilingualMode && payload.contract) payload.contract.bilingual = true;
       setResult(payload);
+      setConsentRequired(false);
       trackGenerate("success", { doc_key: docKey, source: "wizard" });
       // Trigger AI disclaimer once per session on first document creation.
       ensureAIDisclaimerAccepted().catch(() => {});
@@ -350,9 +360,23 @@ export default function WizardPage() {
       trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: emsg.slice(0, 120) });
       if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) return;
       const msg = emsg;
-      if (msg.includes("429")) toast.error("Достигнат е лимитът. Опитайте след малко.");
-      else if (msg.includes("402")) toast.error("Изчерпан лимит на системата. Опитайте по-късно.");
-      else toast.error("Възникна грешка", { description: msg });
+      const retryAction = {
+        label: "Опитай отново",
+        onClick: () => void handleGenerate(userConfirmed),
+      };
+      if (/failed to send|fetch|network|relay|timeout/i.test(msg)) {
+        toast.error("Няма връзка със сървъра", {
+          description: "Свързването с услугата за генериране се провали. Опитайте отново.",
+          action: retryAction,
+        });
+      } else if (msg.includes("429")) {
+        toast.error("Достигнат е лимитът. Опитайте след малко.", { action: retryAction });
+      } else if (msg.includes("402")) {
+        toast.error("Изчерпан лимит на системата. Опитайте по-късно.");
+      } else {
+        toast.error("Възникна грешка", { description: msg, action: retryAction });
+      }
+
     } finally {
       clearInterval(interval);
       setGenerating(false);
@@ -949,6 +973,42 @@ export default function WizardPage() {
                 </span>
               </div>
             )}
+
+            {consentRequired && !result && (
+              <div className="rounded-lg border-2 border-destructive/60 bg-destructive/5 p-4 animate-fade-in" role="alert">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-destructive">
+                      Нужно е вашето изрично съгласие
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Документът съдържа лични данни. За да го изготвим, потвърдете, че сте съгласни
+                      те да бъдат обработени само за целите на този документ (GDPR).
+                    </p>
+                    <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-foreground">
+                      <input
+                        type="checkbox"
+                        checked={consentChecked}
+                        onChange={(e) => setConsentChecked(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 accent-[hsl(var(--primary))]"
+                      />
+                      Съгласен/на съм с обработката на въведените лични данни.
+                    </label>
+                    <Button
+                      size="sm"
+                      className="mt-3"
+                      disabled={!consentChecked || generating}
+                      onClick={() => void handleGenerate(true)}
+                    >
+                      Потвърждавам и генерирам
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+
 
 
             {!result && current && (
