@@ -27,10 +27,46 @@ function newCorrelationId(): string {
   }
 }
 
+/** Пауза между опитите (експоненциална). */
+function delay(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 export async function invokeEdgeFunction<T = unknown>(
+  name: string,
+  options: { body?: unknown; headers?: Record<string, string>; retries?: number } = {},
+): Promise<InvokeResult<T>> {
+  const maxRetries = options.retries ?? 2;
+  let last: InvokeResult<T> | null = null;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    last = await invokeOnce<T>(name, options);
+    // Retry само при мрежов/relay срив — не при валиден 4xx/5xx отговор с тяло.
+    const msg = last.error?.message ?? "";
+    const transient =
+      !!last.error &&
+      last.data === null &&
+      last.error.status === undefined &&
+      /failed to send|fetch|network|relay|timeout|aborted/i.test(msg);
+    if (!transient) return last;
+    if (attempt < maxRetries) {
+      console.warn(`edge function ${name}: мрежов срив, повторен опит ${attempt + 1}/${maxRetries}`);
+      await delay(600 * (attempt + 1));
+    }
+  }
+  return (
+    last ?? {
+      data: null,
+      error: { message: "Няма връзка със сървъра.", correlationId: "" },
+      correlationId: "",
+    }
+  );
+}
+
+async function invokeOnce<T = unknown>(
   name: string,
   options: { body?: unknown; headers?: Record<string, string> } = {},
 ): Promise<InvokeResult<T>> {
+
   const correlationId = options.headers?.["x-correlation-id"] || newCorrelationId();
   try {
     const { data, error } = await supabase.functions.invoke<T>(name, {
