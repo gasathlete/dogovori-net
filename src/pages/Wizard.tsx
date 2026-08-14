@@ -327,7 +327,7 @@ export default function WizardPage() {
       if (isConfirmationRequired(sensitive) || data?.error === "needs_confirmation") {
         // Не спираме потребителя с блокиращ диалог: потвърждаваме автоматично
         // (веднъж) и показваме инлайн уведомление за личните данни.
-        if (!userConfirmed) {
+        if (!userConfirmed && !consentChecked) {
           trackEvent("generate_auto_confirmed", { doc_key: docKey, source: "wizard" });
           setPersonalDataNotice(true);
           void handleGenerate(true);
@@ -336,7 +336,12 @@ export default function WizardPage() {
         trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: "needs_confirmation" });
         setSensitiveClass(sensitive?.classification ?? data?.classification ?? null);
         setSensitiveBlocked(false);
-        setSensitiveOpen(true);
+        // Инлайн акцент вместо блокиращ модал без контекст.
+        setConsentRequired(true);
+        setConsentChecked(false);
+        toast.error("Нужно е потвърждение", {
+          description: "Отбележете съгласието за обработка на личните данни и опитайте отново.",
+        });
         return;
       }
       if (error || !data || (data as { error?: string }).error) {
@@ -345,6 +350,7 @@ export default function WizardPage() {
       const payload = data as AIResult;
       if (bilingualMode && payload.contract) payload.contract.bilingual = true;
       setResult(payload);
+      setConsentRequired(false);
       trackGenerate("success", { doc_key: docKey, source: "wizard" });
       // Trigger AI disclaimer once per session on first document creation.
       ensureAIDisclaimerAccepted().catch(() => {});
@@ -354,9 +360,23 @@ export default function WizardPage() {
       trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: emsg.slice(0, 120) });
       if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) return;
       const msg = emsg;
-      if (msg.includes("429")) toast.error("Достигнат е лимитът. Опитайте след малко.");
-      else if (msg.includes("402")) toast.error("Изчерпан лимит на системата. Опитайте по-късно.");
-      else toast.error("Възникна грешка", { description: msg });
+      const retryAction = {
+        label: "Опитай отново",
+        onClick: () => void handleGenerate(userConfirmed),
+      };
+      if (/failed to send|fetch|network|relay|timeout/i.test(msg)) {
+        toast.error("Няма връзка със сървъра", {
+          description: "Свързването с услугата за генериране се провали. Опитайте отново.",
+          action: retryAction,
+        });
+      } else if (msg.includes("429")) {
+        toast.error("Достигнат е лимитът. Опитайте след малко.", { action: retryAction });
+      } else if (msg.includes("402")) {
+        toast.error("Изчерпан лимит на системата. Опитайте по-късно.");
+      } else {
+        toast.error("Възникна грешка", { description: msg, action: retryAction });
+      }
+
     } finally {
       clearInterval(interval);
       setGenerating(false);
