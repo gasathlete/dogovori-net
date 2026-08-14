@@ -24,6 +24,9 @@ jobs:
       - name: Run unit tests (incl. JSON-LD schema validation)
         run: bun run test
 
+      - name: Checkout E2E (планове и цени в реален плащателен поток)
+        run: bunx vitest run src/test/checkoutE2E.test.tsx
+
       - name: AI JSON parser regression suite
         run: bunx vitest run src/test/aiJsonParsers.test.ts src/test/aiJsonRetry.test.ts src/test/aiRepairIntegration.test.ts src/test/catalogCounts.test.ts src/test/questionGraphSlugs.test.ts
 
