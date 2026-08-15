@@ -235,6 +235,38 @@ export default function AdminBots() {
               ))}
             </section>
 
+            {/* Автоматичен график за днес */}
+            {schedule.length > 0 && (
+              <section className="rounded-2xl border border-border/60 bg-card p-5">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h2 className="font-serif text-lg text-foreground">Автоматичен график за днес</h2>
+                  <p className="text-xs text-muted-foreground">
+                    Прозорец {scheduleWindow || "08:00–22:00"} · проверка на всеки 10 мин.
+                  </p>
+                </div>
+                <ul className="mt-4 grid gap-3 sm:grid-cols-3">
+                  {schedule.map((s) => (
+                    <li key={s.slug} className="rounded-xl border border-border/50 bg-background/40 p-3">
+                      <p className="text-sm font-medium text-foreground">{s.name}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {s.ops_planned} операции{s.enabled ? "" : " · изключен"}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {s.slots.map((t) => (
+                          <span
+                            key={t}
+                            className="rounded-md border border-border/60 px-2 py-0.5 font-mono text-xs text-foreground/80"
+                          >
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
             {/* Ботове */}
             <section className="grid gap-3 lg:grid-cols-3">
               {bots.map((b) => {
