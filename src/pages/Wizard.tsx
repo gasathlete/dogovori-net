@@ -636,9 +636,13 @@ export default function WizardPage() {
         return;
       }
       if (res.saved_document_id) setSavedDocId(res.saved_document_id);
+      // Guardrail: документът е свален и запазен в профила — изчистваме
+      // локалната чернова с лични данни от браузъра.
+      clearDraft();
       toast.success(format === "pdf" ? "PDF изтеглен" : "DOCX изтеглен", {
         description: res.free ? "Повторно сваляне (безплатно)" : "Запазен в Документи → Всички",
       });
+
       maybeAskForFeedback("download");
     } catch (e: any) {
       toast.error("Грешка при експорт", { description: String(e?.message ?? e) });
