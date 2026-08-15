@@ -29,32 +29,18 @@ function admin() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Safe mode: маскиране + ограничаване на всичко, което влиза в лога  */
+/* Safe mode: редакция + ограничаване на всичко, което влиза в лога   */
 /* ------------------------------------------------------------------ */
 
-const MASKS: Array<[RegExp, string]> = [
-  [/[\w.+-]+@[\w-]+\.[\w.]+/g, "[email]"],
-  [/\b\d{10}\b/g, "[egn]"],
-  [/\b\d{9}\b/g, "[eik]"],
-  [/\b(?:\+359|0)\s?\d[\d\s-]{7,}\b/g, "[phone]"],
-  [/\b[A-Z]{2}\d{2}[A-Z0-9]{10,}\b/g, "[iban]"],
-  [/\bey[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+/g, "[jwt]"],
-];
-
+/** Маскира лични полета, токени и headers, но пази полезния контекст. */
 export function sanitize(value: unknown, maxLen = 600): string {
-  let text = typeof value === "string" ? value : JSON.stringify(value ?? null);
-  if (!text) return "";
-  for (const [re, rep] of MASKS) text = text.replace(re, rep);
-  return text.length > maxLen ? `${text.slice(0, maxLen)}…` : text;
+  return redactForLog(value, maxLen);
 }
 
 function sanitizeDetail(detail: Record<string, unknown>): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(detail)) {
-    out[k] = typeof v === "number" || typeof v === "boolean" || v === null ? v : sanitize(v, 300);
-  }
-  return out;
+  return redactDetail(detail, 300);
 }
+
 
 /* ------------------------------------------------------------------ */
 /* Синтетични данни — единственият вход, разрешен в safe mode          */
