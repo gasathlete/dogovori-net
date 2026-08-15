@@ -1178,6 +1178,28 @@ export default function WizardPage() {
                     </Button>
                   )}
                 </div>
+                {/* Бърза активация: щом първото задължително поле е попълнено,
+                    потребителят може да види готов документ веднага, без да
+                    минава през всички стъпки. Останалите полета остават
+                    незадължителни и могат да се допълнят след прегледа. */}
+                {!isLast && canNext && !generating && (
+                  <div className="mt-4 rounded-xl border border-gold/30 bg-gold/5 p-4 animate-fade-in">
+                    <p className="text-sm font-medium">Искате да видите документа веднага?</p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Ще изготвим пълен вариант с наличните данни. Можете да
+                      допълните останалите полета и да прегенерирате.
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleGenerate()}
+                      className="mt-3 h-10 w-full border-gold/40 text-gold hover:bg-gold/10 hover:text-gold sm:w-auto"
+                    >
+                      <Bird className="mr-2 h-4 w-4" />
+                      Виж бърз преглед сега
+                    </Button>
+                  </div>
+                )}
+
                 {generating && (
                   <div className="mt-4 rounded-lg border border-gold/30 bg-gold/5 p-4 animate-fade-in">
                     <div className="flex items-center gap-3">
