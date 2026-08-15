@@ -395,6 +395,14 @@ export default function WizardPage() {
       setResult(payload);
       setConsentRequired(false);
       trackGenerate("success", { doc_key: docKey, source: "wizard", correlation_id: correlationId });
+      // Качество на изхода: „чист" документ = без открити пропуски/риск бележки.
+      {
+        const issues =
+          (payload.risk?.issues?.length ?? 0) +
+          ((payload as { missing?: unknown[] }).missing?.length ?? 0);
+        trackReviewResult(issues === 0, issues, { doc_key: docKey, source: "wizard" });
+      }
+
       // Trigger AI disclaimer once per session on first document creation.
       ensureAIDisclaimerAccepted().catch(() => {});
       toast.success("Договорът е готов", { description: "Прегледайте Краен Договор отдясно." });
