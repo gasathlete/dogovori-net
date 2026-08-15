@@ -440,9 +440,27 @@ export default function WizardPage() {
 
     } finally {
       clearInterval(interval);
-      setGenerating(false);
+      // Ако потребителят е отказал (или е стартиран нов опит), новото
+      // състояние вече е зададено — не го презаписваме.
+      if (!isStale()) {
+        generatingRef.current = false;
+        setGenerating(false);
+      }
     }
   };
+
+  /** Прекратява текущото генериране от гледна точка на UI. */
+  const cancelGeneration = () => {
+    if (!generatingRef.current) return;
+    genRunRef.current += 1;
+    generatingRef.current = false;
+    setGenerating(false);
+    trackGenerate("blocked", { doc_key: docKey, source: "wizard", reason: "user_cancelled" });
+    toast.message("Генерирането е прекратено", {
+      description: "Попълнените данни са запазени — можете да опитате отново.",
+    });
+  };
+
 
   const user = authUser;
   const [savedDocId, setSavedDocId] = useState<string | undefined>(persisted?.savedDocId);
