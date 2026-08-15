@@ -3,10 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, FileDown, FileText, Sparkles, ShieldCheck, Loader2 } from "@/icons";
 import {
+  FREE_OPS_PER_MONTH,
   LAWYER_FEE_MIN_EUR,
   PRICING_PLANS,
   monthlyLabel,
   opsLabel,
+  roiSubtitle,
 } from "@/lib/pricing";
 
 
