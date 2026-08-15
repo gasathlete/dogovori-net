@@ -127,6 +127,7 @@ const AdminLegalKB = lazy(() => import("./pages/AdminLegalKB.tsx"));
 const AdminPlans = lazy(() => import("./pages/AdminPlans.tsx"));
 const AdminPerf = lazy(() => import("./pages/AdminPerf.tsx"));
 const AdminFunnel = lazy(() => import("./pages/AdminFunnel.tsx"));
+const AdminBots = lazy(() => import("./pages/AdminBots.tsx"));
 const AdminMetrics = lazy(() => import("./pages/AdminMetrics.tsx"));
 const AdminGrowthBrief = lazy(() => import("./pages/AdminGrowthBrief.tsx"));
 const AdminAiJson = lazy(() => import("./pages/AdminAiJson.tsx"));
@@ -332,6 +333,7 @@ const AnimatedRoutes = () => {
         <Route path="/admin/subscriptions" element={<ProtectedRoute><AdminSubscriptions /></ProtectedRoute>} />
         <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
         <Route path="/admin/funnel" element={<ProtectedRoute><AdminFunnel /></ProtectedRoute>} />
+        <Route path="/admin/bots" element={<ProtectedRoute><AdminBots /></ProtectedRoute>} />
         <Route path="/admin/metrics" element={<ProtectedRoute><AdminMetrics /></ProtectedRoute>} />
         <Route path="/admin/growth-brief" element={<ProtectedRoute><AdminGrowthBrief /></ProtectedRoute>} />
         <Route path="/admin/ai-json" element={<ProtectedRoute><AdminAiJson /></ProtectedRoute>} />

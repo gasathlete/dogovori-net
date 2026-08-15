@@ -2584,6 +2584,167 @@ export type Database = {
         }
         Relationships: []
       }
+      qa_bot_actions: {
+        Row: {
+          action: string
+          bot_id: string
+          created_at: string
+          detail: Json
+          duration_ms: number | null
+          error_message: string | null
+          error_stack: string | null
+          http_status: number | null
+          id: string
+          run_id: string
+          seq: number
+          status: string
+          target: string | null
+        }
+        Insert: {
+          action: string
+          bot_id: string
+          created_at?: string
+          detail?: Json
+          duration_ms?: number | null
+          error_message?: string | null
+          error_stack?: string | null
+          http_status?: number | null
+          id?: string
+          run_id: string
+          seq?: number
+          status?: string
+          target?: string | null
+        }
+        Update: {
+          action?: string
+          bot_id?: string
+          created_at?: string
+          detail?: Json
+          duration_ms?: number | null
+          error_message?: string | null
+          error_stack?: string | null
+          http_status?: number | null
+          id?: string
+          run_id?: string
+          seq?: number
+          status?: string
+          target?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qa_bot_actions_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "qa_bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qa_bot_actions_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "qa_bot_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qa_bot_runs: {
+        Row: {
+          bot_id: string
+          correlation_id: string | null
+          failures: number
+          finished_at: string | null
+          id: string
+          notes: string | null
+          ops_done: number
+          ops_planned: number
+          started_at: string
+          status: string
+          trigger: string
+        }
+        Insert: {
+          bot_id: string
+          correlation_id?: string | null
+          failures?: number
+          finished_at?: string | null
+          id?: string
+          notes?: string | null
+          ops_done?: number
+          ops_planned?: number
+          started_at?: string
+          status?: string
+          trigger?: string
+        }
+        Update: {
+          bot_id?: string
+          correlation_id?: string | null
+          failures?: number
+          finished_at?: string | null
+          id?: string
+          notes?: string | null
+          ops_done?: number
+          ops_planned?: number
+          started_at?: string
+          status?: string
+          trigger?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qa_bot_runs_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "qa_bots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qa_bots: {
+        Row: {
+          consecutive_failures: number
+          created_at: string
+          description: string | null
+          enabled: boolean
+          id: string
+          last_run_at: string | null
+          max_ops_per_day: number
+          name: string
+          paused_reason: string | null
+          paused_until: string | null
+          safe_mode: boolean
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          consecutive_failures?: number
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          max_ops_per_day?: number
+          name: string
+          paused_reason?: string | null
+          paused_until?: string | null
+          safe_mode?: boolean
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          consecutive_failures?: number
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          max_ops_per_day?: number
+          name?: string
+          paused_reason?: string | null
+          paused_until?: string | null
+          safe_mode?: boolean
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       quota_session_charges: {
         Row: {
           created_at: string
