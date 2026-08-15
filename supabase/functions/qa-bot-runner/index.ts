@@ -398,6 +398,73 @@ const MAX_CONSECUTIVE_FAILURES = 3;
 const PAUSE_HOURS = 12;
 /** Повтарящи се грешки в едно изпълнение го прекъсват. */
 const MAX_FAILURES_PER_RUN = 2;
+/** Cron tick-ът върви на всеки 10 мин. — слотът е валиден в този толеранс. */
+const TICK_TOLERANCE_MIN = 12;
+
+
+/* ------------------------------------------------------------------ */
+/* Автоматичен график (randomized window, без ръчно стартиране)        */
+/* ------------------------------------------------------------------ */
+
+/** Активен прозорец в местно време (Europe/Sofia) — да имитира реален трафик. */
+const WINDOW_START_LOCAL = 8; // 08:00
+const WINDOW_END_LOCAL = 22; // 22:00 (последен слот започва преди този час)
+const SOFIA_OFFSET_HOURS = 3; // UTC+3 (лятно часово време)
+
+/** Детерминистичен PRNG — един и същ график за целия ден, без нужда от таблица. */
+function seeded(seed: string): () => number {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return () => {
+    h += 0x6d2b79f5;
+    let t = h;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+export interface Slot {
+  /** Минути от 00:00 UTC за деня. */
+  utcMinutes: number;
+  label: string;
+}
+
+/**
+ * Разпределя 3–4 операции на бот в рандомизиран прозорец за конкретна дата.
+ * Прозорецът се разделя на равни части и във всяка се избира случайна минута,
+ * така че операциите никога да не се струпват.
+ */
+export function planDay(slug: string, dateKey: string, maxOps: number): Slot[] {
+  const rnd = seeded(`${slug}:${dateKey}`);
+  const target = Math.min(Math.max(3, 3 + (rnd() < 0.5 ? 0 : 1)), Math.max(1, maxOps));
+  const startMin = (WINDOW_START_LOCAL - SOFIA_OFFSET_HOURS) * 60;
+  const totalMin = (WINDOW_END_LOCAL - WINDOW_START_LOCAL) * 60;
+  const band = Math.floor(totalMin / target);
+  const slots: Slot[] = [];
+  for (let i = 0; i < target; i++) {
+    // Оставяме 20 мин. буфер в края на всяка лента, за да не се допират слотовете.
+    const offset = Math.floor(rnd() * Math.max(1, band - 20));
+    const utcMinutes = ((startMin + i * band + offset) % 1440 + 1440) % 1440;
+    const localMin = (utcMinutes + SOFIA_OFFSET_HOURS * 60) % 1440;
+    const hh = String(Math.floor(localMin / 60)).padStart(2, "0");
+    const mm = String(localMin % 60).padStart(2, "0");
+    slots.push({ utcMinutes, label: `${hh}:${mm}` });
+  }
+  return slots.sort((a, b) => a.utcMinutes - b.utcMinutes);
+}
+
+/** Кой слот е настъпил и още не е изпълнен (толеранс според честотата на tick-а). */
+export function dueSlot(slots: Slot[], nowUtcMinutes: number, toleranceMin: number): Slot | null {
+  let due: Slot | null = null;
+  for (const s of slots) {
+    if (nowUtcMinutes >= s.utcMinutes && nowUtcMinutes - s.utcMinutes <= toleranceMin) due = s;
+  }
+  return due;
+}
 
 async function opsToday(sb: ReturnType<typeof admin>, botId: string): Promise<number> {
   const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
@@ -409,11 +476,27 @@ async function opsToday(sb: ReturnType<typeof admin>, botId: string): Promise<nu
   return count ?? 0;
 }
 
+/** Имало ли е автоматично изпълнение в последните `minutes` минути. */
+async function ranRecently(
+  sb: ReturnType<typeof admin>,
+  botId: string,
+  minutes: number,
+): Promise<boolean> {
+  const since = new Date(Date.now() - minutes * 60 * 1000).toISOString();
+  const { count } = await sb
+    .from("qa_bot_runs")
+    .select("id", { count: "exact", head: true })
+    .eq("bot_id", botId)
+    .gte("started_at", since);
+  return (count ?? 0) > 0;
+}
+
 async function runBot(
   sb: ReturnType<typeof admin>,
   bot: BotRow,
   trigger: string,
   cid: string,
+  maxSteps = 4,
 ): Promise<{ slug: string; status: string; ops: number; failures: number; note?: string }> {
   // --- Safe mode / circuit breaker проверки преди старт ---
   if (!bot.enabled) return { slug: bot.slug, status: "skipped", ops: 0, failures: 0, note: "изключен" };
@@ -434,19 +517,21 @@ async function runBot(
   }
 
   const all = BOT_STEPS[bot.slug] ?? [];
-  // Умен избор: винаги ротираме началната стъпка, най-много една „скъпа".
-  const offset = new Date().getUTCHours() % Math.max(1, all.length);
+  // Умен избор: ротираме спрямо вече изпълнените днес операции, за да покрием
+  // всички стъпки в рамките на деня; най-много една „скъпа" на изпълнение.
+  const offset = used % Math.max(1, all.length);
   const rotated = [...all.slice(offset), ...all.slice(0, offset)];
   const planned: Step[] = [];
   let costlyUsed = false;
   for (const s of rotated) {
-    if (planned.length >= Math.min(budget, 4)) break;
+    if (planned.length >= Math.min(budget, maxSteps)) break;
     if (s.costly) {
       if (costlyUsed) continue;
       costlyUsed = true;
     }
     planned.push(s);
   }
+
 
   const { data: runIns, error: runErr } = await sb
     .from("qa_bot_runs")
@@ -544,32 +629,54 @@ Deno.serve(async (req) => {
     });
 
   try {
+    const cronSecret = Deno.env.get("QA_BOT_CRON_SECRET") ?? "";
+    const cronHeader = req.headers.get("x-qa-cron") ?? "";
+    const isCron = Boolean(cronSecret) && cronHeader === cronSecret;
+
     const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
-    if (!token) return json({ error: "unauthorized" }, 401);
+    if (!token && !isCron) return json({ error: "unauthorized" }, 401);
 
     const sb = admin();
     let trigger = "cron";
     let onlySlug: string | null = null;
+    let mode = "run";
     try {
       const body = await req.json();
       if (body?.trigger) trigger = String(body.trigger).slice(0, 20);
       if (body?.slug) onlySlug = String(body.slug).slice(0, 60);
+      if (body?.mode) mode = String(body.mode).slice(0, 20);
     } catch { /* празно тяло от cron */ }
 
-    // Достъп: service_role (cron) или служител (ръчно от админ панела).
-    const anonClient = createClient(SUPABASE_URL, ANON_KEY);
-    const { data: claims } = await anonClient.auth.getClaims(token);
-    const role = (claims?.claims as { role?: string } | undefined)?.role;
-    if (role !== "service_role") {
-      const { data: userData } = await createClient(SUPABASE_URL, ANON_KEY, {
-        global: { headers: { Authorization: `Bearer ${token}` } },
-      }).auth.getUser();
-      const uid = userData?.user?.id;
-      if (!uid) return json({ error: "unauthorized" }, 401);
-      const { data: isStaff } = await sb.rpc("is_staff", { _user_id: uid });
-      if (!isStaff) return json({ error: "forbidden" }, 403);
-      trigger = "manual";
+    // Достъп: планировчик (cron secret / service_role / apikey tick) или служител (ръчно).
+    if (!isCron) {
+      const anonClient = createClient(SUPABASE_URL, ANON_KEY);
+      const { data: claims } = await anonClient.auth.getClaims(token);
+      const role = (claims?.claims as { role?: string } | undefined)?.role;
+      if (role === "service_role") {
+        trigger = "tick";
+      } else {
+        const { data: userData } = await createClient(SUPABASE_URL, ANON_KEY, {
+          global: { headers: { Authorization: `Bearer ${token}` } },
+        }).auth.getUser();
+        const uid = userData?.user?.id;
+        if (uid) {
+          const { data: isStaff } = await sb.rpc("is_staff", { _user_id: uid });
+          if (!isStaff) return json({ error: "forbidden" }, 403);
+          if (mode !== "schedule") trigger = "manual";
+        } else if (trigger === "tick") {
+          // pg_cron се автентикира с apikey — допустим е само планираният режим
+          // (идемпотентен: изпълнява се само в рамките на дневния слот).
+          mode = "run";
+        } else {
+
+          return json({ error: "unauthorized" }, 401);
+        }
+      }
+    } else {
+      trigger = "tick";
     }
+
+
 
     let q = sb
       .from("qa_bots")
@@ -578,11 +685,56 @@ Deno.serve(async (req) => {
     const { data: bots, error } = await q;
     if (error) return json({ error: error.message }, 500);
 
-    const results = [];
-    for (const bot of (bots ?? []) as BotRow[]) {
-      results.push(await runBot(sb, bot, trigger, cid));
+    const now = new Date();
+    const dateKey = now.toISOString().slice(0, 10);
+    const nowUtcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+    const list = (bots ?? []) as BotRow[];
+
+    // Само справка: какъв е графикът за днес (използва се от /admin/bots).
+    if (mode === "schedule") {
+      return json({
+        ok: true,
+        correlation_id: cid,
+        date: dateKey,
+        window: `${WINDOW_START_LOCAL}:00–${WINDOW_END_LOCAL}:00 (Europe/Sofia)`,
+        schedule: list.map((b) => ({
+          slug: b.slug,
+          name: b.name,
+          enabled: b.enabled,
+          ops_planned: planDay(b.slug, dateKey, b.max_ops_per_day).length,
+          slots: planDay(b.slug, dateKey, b.max_ops_per_day).map((s) => s.label),
+        })),
+      });
     }
-    return json({ ok: true, correlation_id: cid, trigger, results });
+
+    const results = [];
+    for (const bot of list) {
+      if (trigger === "manual") {
+        results.push(await runBot(sb, bot, trigger, cid));
+        continue;
+      }
+      // Автоматичен режим: изпълняваме само ако е настъпил слот от дневния график.
+      const slots = planDay(bot.slug, dateKey, bot.max_ops_per_day);
+      const slot = dueSlot(slots, nowUtcMinutes, TICK_TOLERANCE_MIN);
+      if (!slot) {
+        results.push({
+          slug: bot.slug,
+          status: "skipped",
+          ops: 0,
+          failures: 0,
+          note: `няма слот сега (следващ: ${slots.find((s) => s.utcMinutes > nowUtcMinutes)?.label ?? slots[0].label})`,
+        });
+        continue;
+      }
+      if (await ranRecently(sb, bot.id, TICK_TOLERANCE_MIN + 20)) {
+        results.push({ slug: bot.slug, status: "skipped", ops: 0, failures: 0, note: "слотът е вече изпълнен" });
+        continue;
+      }
+      const r = await runBot(sb, bot, "schedule", cid, 1);
+      results.push({ ...r, note: r.note ? `${r.note} · слот ${slot.label}` : `слот ${slot.label}` });
+    }
+    return json({ ok: true, correlation_id: cid, trigger, date: dateKey, results });
+
   } catch (e) {
     return json({ error: sanitize((e as Error).message, 300), correlation_id: cid }, 500);
   }
