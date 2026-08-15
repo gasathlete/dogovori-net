@@ -1234,17 +1234,18 @@ export default function WizardPage() {
                         setStepIdx((i) => i + 1);
                         setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
                       }}
+                      disabled={generating}
                       className="h-11 bg-gradient-gold text-navy hover:shadow-gold"
                     >
                       Напред <ArrowRight className="ml-1 h-4 w-4" />
                     </Button>
                   )}
                 </div>
-                {/* Бърза активация: щом първото задължително поле е попълнено,
-                    потребителят може да види готов документ веднага, без да
-                    минава през всички стъпки. Останалите полета остават
-                    незадължителни и могат да се допълнят след прегледа. */}
-                {!isLast && canNext && !generating && (
+                {/* A/B (quick_preview): щом първото задължително поле е попълнено,
+                    вариантът показва CTA за незабавен готов документ. Контролата
+                    минава по класическия път през всички стъпки. */}
+                {showQuickPreviewCta && quickPreviewEligible && (
+
                   <div className="mt-4 rounded-xl border border-gold/30 bg-gold/5 p-4 animate-fade-in">
                     <p className="text-sm font-medium">Искате да видите документа веднага?</p>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
