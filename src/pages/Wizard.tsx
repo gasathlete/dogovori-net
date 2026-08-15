@@ -426,7 +426,8 @@ export default function WizardPage() {
     try {
       localStorage.setItem(
         storageKey,
-        JSON.stringify({ answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId, arbitration })
+        JSON.stringify({ v: 1, ts: Date.now(), answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId, arbitration })
+
       );
       sessionStorage.removeItem(storageKey);
     } catch {}
