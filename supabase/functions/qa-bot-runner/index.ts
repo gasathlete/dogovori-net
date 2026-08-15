@@ -660,11 +660,56 @@ Deno.serve(async (req) => {
     const { data: bots, error } = await q;
     if (error) return json({ error: error.message }, 500);
 
-    const results = [];
-    for (const bot of (bots ?? []) as BotRow[]) {
-      results.push(await runBot(sb, bot, trigger, cid));
+    const now = new Date();
+    const dateKey = now.toISOString().slice(0, 10);
+    const nowUtcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+    const list = (bots ?? []) as BotRow[];
+
+    // Само справка: какъв е графикът за днес (използва се от /admin/bots).
+    if (mode === "schedule") {
+      return json({
+        ok: true,
+        correlation_id: cid,
+        date: dateKey,
+        window: `${WINDOW_START_LOCAL}:00–${WINDOW_END_LOCAL}:00 (Europe/Sofia)`,
+        schedule: list.map((b) => ({
+          slug: b.slug,
+          name: b.name,
+          enabled: b.enabled,
+          ops_planned: planDay(b.slug, dateKey, b.max_ops_per_day).length,
+          slots: planDay(b.slug, dateKey, b.max_ops_per_day).map((s) => s.label),
+        })),
+      });
     }
-    return json({ ok: true, correlation_id: cid, trigger, results });
+
+    const results = [];
+    for (const bot of list) {
+      if (trigger === "manual") {
+        results.push(await runBot(sb, bot, trigger, cid));
+        continue;
+      }
+      // Автоматичен режим: изпълняваме само ако е настъпил слот от дневния график.
+      const slots = planDay(bot.slug, dateKey, bot.max_ops_per_day);
+      const slot = dueSlot(slots, nowUtcMinutes, TICK_TOLERANCE_MIN);
+      if (!slot) {
+        results.push({
+          slug: bot.slug,
+          status: "skipped",
+          ops: 0,
+          failures: 0,
+          note: `няма слот сега (следващ: ${slots.find((s) => s.utcMinutes > nowUtcMinutes)?.label ?? slots[0].label})`,
+        });
+        continue;
+      }
+      if (await ranRecently(sb, bot.id, TICK_TOLERANCE_MIN + 20)) {
+        results.push({ slug: bot.slug, status: "skipped", ops: 0, failures: 0, note: "слотът е вече изпълнен" });
+        continue;
+      }
+      const r = await runBot(sb, bot, "schedule", cid, 1);
+      results.push({ ...r, note: r.note ? `${r.note} · слот ${slot.label}` : `слот ${slot.label}` });
+    }
+    return json({ ok: true, correlation_id: cid, trigger, date: dateKey, results });
+
   } catch (e) {
     return json({ error: sanitize((e as Error).message, 300), correlation_id: cid }, 500);
   }
