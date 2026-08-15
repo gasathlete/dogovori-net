@@ -340,6 +340,108 @@ export default function AdminFunnel() {
               ))}
             </section>
 
+            {/* A/B тест: CTA „Виж бърз преглед сега" */}
+            <section className="rounded-2xl border border-border/60 bg-card p-6">
+              <div className="mb-4">
+                <h2 className="font-serif text-xl text-foreground">
+                  A/B: CTA „Виж бърз преглед сега"
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Ефект върху активацията (Старт → Попълване) и качеството
+                  (дял чисти документи без открити пропуски).
+                </p>
+              </div>
+
+              {!abStats.hasData ? (
+                <p className="text-sm text-muted-foreground">
+                  Още няма достатъчно данни за този тест.
+                </p>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[560px] text-sm">
+                      <thead>
+                        <tr className="border-b border-border/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                          <th className="py-2 pr-3 font-medium">Вариант</th>
+                          <th className="py-2 pr-3 font-medium">Изложени</th>
+                          <th className="py-2 pr-3 font-medium">Стартове</th>
+                          <th className="py-2 pr-3 font-medium">Старт → Попълване</th>
+                          <th className="py-2 pr-3 font-medium">Чисти документи</th>
+                          <th className="py-2 pr-3 font-medium">Старт → Сваляне</th>
+                          <th className="py-2 pr-3 font-medium">Клика по CTA</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[abStats.control, abStats.variant].map((v) => (
+                          <tr key={v.variant} className="border-b border-border/40 last:border-0">
+                            <td className="py-2 pr-3 font-medium text-foreground">
+                              {v.variant === "control" ? "Контрола (без CTA)" : "Вариант (с CTA)"}
+                            </td>
+                            <td className="py-2 pr-3 text-muted-foreground">{v.exposed}</td>
+                            <td className="py-2 pr-3 text-muted-foreground">{v.starts}</td>
+                            <td className="py-2 pr-3 text-foreground">{v.startToFill}%</td>
+                            <td className="py-2 pr-3 text-foreground">
+                              {v.cleanReviewRate}%{" "}
+                              <span className="text-xs text-muted-foreground">
+                                ({v.clean}/{v.reviews})
+                              </span>
+                            </td>
+                            <td className="py-2 pr-3 text-muted-foreground">{v.startToDownload}%</td>
+                            <td className="py-2 pr-3 text-muted-foreground">{v.ctaClicks}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-border/60 bg-background/40 p-4">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Ефект върху активацията
+                      </p>
+                      <p
+                        className={`mt-1 font-serif text-2xl ${
+                          abStats.fillLift >= 0 ? "text-emerald-600" : "text-destructive"
+                        }`}
+                      >
+                        {abStats.fillLift >= 0 ? "+" : ""}
+                        {abStats.fillLift} п.п.
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        z = {abStats.fillSig.z} ·{" "}
+                        {abStats.fillSig.significant
+                          ? "статистически значимо (95%)"
+                          : "още не е значимо — нужни са повече сесии"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-border/60 bg-background/40 p-4">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Ефект върху качеството
+                      </p>
+                      <p
+                        className={`mt-1 font-serif text-2xl ${
+                          abStats.cleanLift >= 0 ? "text-emerald-600" : "text-destructive"
+                        }`}
+                      >
+                        {abStats.cleanLift >= 0 ? "+" : ""}
+                        {abStats.cleanLift} п.п.
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        z = {abStats.cleanSig.z} ·{" "}
+                        {abStats.cleanLift < -2
+                          ? "внимание: качеството спада — не приемайте варианта"
+                          : abStats.cleanSig.significant
+                            ? "статистически значимо (95%)"
+                            : "в рамките на шума"}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
+            </section>
+
+
+
             {/* Документна фуния — хоризонтална, с изтичане между етапите */}
             <section className="rounded-2xl border border-border/60 bg-card p-6">
               <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
