@@ -622,10 +622,24 @@ export default function WizardPage() {
 
   // Track wizard_start once on mount.
   useEffect(() => {
+    applyAbOverridesFromUrl(window.location.search);
     trackEvent("wizard_start", { sectorId, doc: docName });
     trackDocStart({ doc_key: docName, source: "wizard", sector: sectorId });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A/B: CTA „Виж бърз преглед сега" в междинните стъпки.
+  const quickPreviewVariant = useMemo(() => getVariant("quick_preview"), []);
+  const showQuickPreviewCta = quickPreviewVariant === "variant";
+  const quickPreviewEligible = !isLast && canNext && !generating && !result;
+  const exposedRef = useRef(false);
+  useEffect(() => {
+    if (!quickPreviewEligible || exposedRef.current) return;
+    exposedRef.current = true;
+    trackAbExposure("quick_preview", { doc_key: docName, source: "wizard", step_idx: stepIdx });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quickPreviewEligible]);
+
 
   const handleExport = async (format: "pdf" | "docx") => {
     if (!result) return;
