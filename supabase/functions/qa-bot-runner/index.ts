@@ -663,11 +663,12 @@ Deno.serve(async (req) => {
           const { data: isStaff } = await sb.rpc("is_staff", { _user_id: uid });
           if (!isStaff) return json({ error: "forbidden" }, 403);
           if (mode !== "schedule") trigger = "manual";
-        } else if (role === "anon" && trigger === "tick") {
+        } else if (trigger === "tick") {
           // pg_cron се автентикира с apikey — допустим е само планираният режим
           // (идемпотентен: изпълнява се само в рамките на дневния слот).
           mode = "run";
         } else {
+
           return json({ error: "unauthorized" }, 401);
         }
       }
