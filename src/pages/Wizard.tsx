@@ -1253,7 +1253,15 @@ export default function WizardPage() {
                     </p>
                     <Button
                       variant="outline"
-                      onClick={() => handleGenerate()}
+                      disabled={generating}
+                      onClick={() => {
+                        trackEvent("quick_preview_cta_click", {
+                          doc_key: docName,
+                          step_idx: stepIdx,
+                          ab_quick_preview: quickPreviewVariant,
+                        });
+                        handleGenerate();
+                      }}
                       className="mt-3 h-10 w-full border-gold/40 text-gold hover:bg-gold/10 hover:text-gold sm:w-auto"
                     >
                       <Bird className="mr-2 h-4 w-4" />
@@ -1263,7 +1271,7 @@ export default function WizardPage() {
                 )}
 
                 {generating && (
-                  <div className="mt-4 rounded-lg border border-gold/30 bg-gold/5 p-4 animate-fade-in">
+                  <div className="mt-4 rounded-lg border border-gold/30 bg-gold/5 p-4 animate-fade-in" aria-busy="true">
                     <div className="flex items-center gap-3">
                       <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-gold" />
                       <div className="flex-1 min-w-0">
@@ -1274,9 +1282,18 @@ export default function WizardPage() {
                           Процесът отнема около 60 секунди — благодарим за търпението.
                         </div>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={cancelGeneration}
+                        className="h-8 shrink-0 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        Прекрати
+                      </Button>
                     </div>
                   </div>
                 )}
+
               </div>
             )}
 
