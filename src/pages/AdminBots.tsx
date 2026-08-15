@@ -299,6 +299,121 @@ export default function AdminBots() {
               ))}
             </section>
 
+            {/* Coverage по сценарии */}
+            <section className="rounded-2xl border border-border/60 bg-card p-5">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="font-serif text-lg text-foreground">Покритие по сценарии</h2>
+                <p className="text-xs text-muted-foreground">
+                  {coverage.coveredCount} от {coverage.scenarios} сценария са минавали ·{" "}
+                  {coverage.coveragePct}% покритие (последни {actions.length} действия)
+                </p>
+              </div>
+
+              {coverage.rows.length === 0 ? (
+                <p className="mt-4 text-sm text-muted-foreground">Няма записани действия.</p>
+              ) : (
+                <div className="mt-4 overflow-x-auto">
+                  <table className="w-full min-w-[720px] text-sm">
+                    <thead>
+                      <tr className="border-b border-border/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                        <th className="py-2 pr-3 font-medium">Стъпка / сценарий</th>
+                        <th className="py-2 pr-3 font-medium">Изпълнения</th>
+                        <th className="py-2 pr-3 font-medium">Success rate</th>
+                        <th className="py-2 pr-3 font-medium">Ср. време</th>
+                        <th className="py-2 pr-3 font-medium">Последен статус</th>
+                        <th className="py-2 font-medium">Ендпойнти / цели</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {coverage.rows.map((r) => (
+                        <tr key={r.action} className="border-b border-border/40 align-top">
+                          <td className="py-2.5 pr-3 font-medium text-foreground">
+                            {ACTION_LABEL[r.action] ?? r.action}
+                          </td>
+                          <td className="py-2.5 pr-3 text-muted-foreground">
+                            {r.total}
+                            {r.fail > 0 && <span className="text-destructive"> · {r.fail} гр.</span>}
+                            {r.skip > 0 && <span> · {r.skip} проп.</span>}
+                          </td>
+                          <td className="py-2.5 pr-3">
+                            <div className="flex items-center gap-2">
+                              <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
+                                <div
+                                  className={cn(
+                                    "h-full rounded-full",
+                                    r.successRate >= 90
+                                      ? "bg-emerald-600"
+                                      : r.successRate >= 60
+                                        ? "bg-gold"
+                                        : "bg-destructive",
+                                  )}
+                                  style={{ width: `${r.successRate}%` }}
+                                />
+                              </div>
+                              <span className="tabular-nums text-foreground">{r.successRate}%</span>
+                            </div>
+                          </td>
+                          <td className="py-2.5 pr-3 tabular-nums text-muted-foreground">
+                            {r.avgMs === null ? "—" : `${r.avgMs} ms`}
+                          </td>
+                          <td className="py-2.5 pr-3">
+                            <div className="flex flex-col gap-1">
+                              <StatusBadge status={r.lastStatus} />
+                              <span className="text-xs text-muted-foreground">{fmt(r.lastAt)}</span>
+                              {r.lastError && (
+                                <span className="max-w-[220px] truncate text-xs text-destructive">
+                                  {redactValue(r.lastError)}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-2.5">
+                            {r.targetCount === 0 ? (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            ) : (
+                              <div className="flex flex-wrap gap-1">
+                                {r.targetList.map((t) => (
+                                  <span
+                                    key={t}
+                                    className="rounded-md border border-border/60 px-1.5 py-0.5 font-mono text-[11px] text-foreground/80"
+                                  >
+                                    {t}
+                                  </span>
+                                ))}
+                                {r.targetCount > r.targetList.length && (
+                                  <span className="text-[11px] text-muted-foreground">
+                                    +{r.targetCount - r.targetList.length}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {coverage.missing.length > 0 && (
+                <div className="mt-4 rounded-xl border border-border/50 bg-background/40 p-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Все още непокрити сценарии
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {coverage.missing.map((m) => (
+                      <span
+                        key={m}
+                        className="rounded-md border border-border/60 px-2 py-0.5 text-xs text-muted-foreground"
+                      >
+                        {ACTION_LABEL[m] ?? m}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+
             {/* Автоматичен график за днес */}
             {schedule.length > 0 && (
               <section className="rounded-2xl border border-border/60 bg-card p-5">
