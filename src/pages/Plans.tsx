@@ -39,6 +39,7 @@ import { FAQ } from "@/lib/plansData";
 import { usePlans, type Billing, type PlanId } from "@/hooks/usePlans";
 import { trackEvent } from "@/lib/analytics";
 import { trackPlansView, trackCheckoutStarted } from "@/lib/metrics";
+import { roiSubtitle, type PricingPlanId } from "@/lib/pricing";
 
 const PLAN_ICON: Record<PlanId, React.ComponentType<{ className?: string }>> = {
   free: Sparkles,
