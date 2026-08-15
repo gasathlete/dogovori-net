@@ -32,6 +32,23 @@ function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+/**
+ * Съобщения за мрежов срив, при които опитът се повтаря.
+ * Safari връща само „Load failed", Chrome — „Failed to fetch",
+ * supabase-js — „Failed to send a request to the Edge Function".
+ */
+const TRANSIENT_RE =
+  /failed to send|failed to fetch|load failed|networkerror|network error|network|relay|timeout|timed out|aborted|abort|connection|econnreset|socket|502|503|504/i;
+
+/** Преходни HTTP статуси — има смисъл от повторен опит. */
+const TRANSIENT_STATUS = new Set([408, 425, 500, 502, 503, 504]);
+
+export function isTransientEdgeError(err: InvokeResult<unknown>["error"], data: unknown): boolean {
+  if (!err) return false;
+  if (err.status !== undefined) return TRANSIENT_STATUS.has(err.status) && data === null;
+  return TRANSIENT_RE.test(err.message ?? "");
+}
+
 export async function invokeEdgeFunction<T = unknown>(
   name: string,
   options: { body?: unknown; headers?: Record<string, string>; retries?: number } = {},
@@ -40,17 +57,12 @@ export async function invokeEdgeFunction<T = unknown>(
   let last: InvokeResult<T> | null = null;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     last = await invokeOnce<T>(name, options);
-    // Retry само при мрежов/relay срив — не при валиден 4xx/5xx отговор с тяло.
-    const msg = last.error?.message ?? "";
-    const transient =
-      !!last.error &&
-      last.data === null &&
-      last.error.status === undefined &&
-      /failed to send|fetch|network|relay|timeout|aborted/i.test(msg);
-    if (!transient) return last;
+    // Retry само при мрежов/relay срив — не при валиден 4xx отговор с тяло.
+    if (!isTransientEdgeError(last.error, last.data)) return last;
     if (attempt < maxRetries) {
       console.warn(`edge function ${name}: мрежов срив, повторен опит ${attempt + 1}/${maxRetries}`);
-      await delay(600 * (attempt + 1));
+      // Експоненциален backoff с малък jitter.
+      await delay(800 * 2 ** attempt + Math.round(Math.random() * 300));
     }
   }
   return (
@@ -61,6 +73,7 @@ export async function invokeEdgeFunction<T = unknown>(
     }
   );
 }
+
 
 async function invokeOnce<T = unknown>(
   name: string,

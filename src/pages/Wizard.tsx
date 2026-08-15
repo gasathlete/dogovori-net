@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams, Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Loader2, Bird, FileDown, FileText, Save, User, Download, ShieldCheck, Search, FileSearch, Check, AlertCircle } from "@/icons";
 import { Input } from "@/components/ui/input";
@@ -123,14 +123,25 @@ export default function WizardPage() {
   );
 
   // Restore persisted state (answers, step, result, signature, etc.).
-  // Use localStorage so progress survives tab close; cleared on completion.
+  // Use localStorage so progress survives navigation to /auth и затваряне на таб.
+  // Черновата има срок на валидност (7 дни) — след това се изтрива, за да не
+  // остават лични данни в браузъра за неопределено време.
+  const DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
   const persisted = useMemo(() => {
     if (!storageKey) return null;
     try {
       const raw = localStorage.getItem(storageKey) ?? sessionStorage.getItem(storageKey);
-      return raw ? JSON.parse(raw) : null;
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed?.ts && Date.now() - parsed.ts > DRAFT_TTL_MS) {
+        localStorage.removeItem(storageKey);
+        sessionStorage.removeItem(storageKey);
+        return null;
+      }
+      return parsed;
     } catch { return null; }
   }, [storageKey]);
+
 
   const { user: authUser, loading: authLoading } = useAuth();
   const [answers, setAnswers] = useState<Record<string, string>>(persisted?.answers ?? {});
@@ -292,7 +303,9 @@ export default function WizardPage() {
     try {
       const flatQs = flattenQuestions(visibleQuestions);
       const arbitrationCourt = arbitration.enabled ? getCourtById(arbitration.courtId) : undefined;
-      const { data, error } = await invokeEdgeFunction<AIResult & { error?: string; code?: string; requires_login?: boolean; classification?: ClassificationSummary }>("generate-contract", {
+      const { data, error, correlationId } = await invokeEdgeFunction<AIResult & { error?: string; code?: string; requires_login?: boolean; classification?: ClassificationSummary }>("generate-contract", {
+        retries: 3,
+
         body: {
           sector: sector.title,
           contractName: sector.contractName,
@@ -352,28 +365,45 @@ export default function WizardPage() {
         return;
       }
       if (error || !data || (data as { error?: string }).error) {
-        throw new Error((data as { error?: string })?.error || error?.message || "Неуспешно създаване");
+        const err = new Error((data as { error?: string })?.error || error?.message || "Неуспешно създаване");
+        (err as { cid?: string }).cid = error?.correlationId ?? correlationId;
+        (err as { httpStatus?: number }).httpStatus = error?.status;
+        throw err;
       }
       const payload = data as AIResult;
       if (bilingualMode && payload.contract) payload.contract.bilingual = true;
       setResult(payload);
       setConsentRequired(false);
-      trackGenerate("success", { doc_key: docKey, source: "wizard" });
+      trackGenerate("success", { doc_key: docKey, source: "wizard", correlation_id: correlationId });
       // Trigger AI disclaimer once per session on first document creation.
       ensureAIDisclaimerAccepted().catch(() => {});
       toast.success("Договорът е готов", { description: "Прегледайте Краен Договор отдясно." });
     } catch (e: any) {
       const emsg = String(e?.message || e);
-      trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: emsg.slice(0, 120) });
+      const cid: string | undefined = e?.cid;
+      const httpStatus: number | undefined = e?.httpStatus;
+      const isNetwork = /failed to send|failed to fetch|load failed|fetch|network|relay|timeout|aborted|connection/i.test(emsg);
+      // Категоризиран reason за /admin/funnel: мрежата се различава от AI/сървърна грешка.
+      const reason = isNetwork ? "network" : httpStatus ? `http_${httpStatus}` : emsg.slice(0, 120);
+      trackGenerate("fail", {
+        doc_key: docKey,
+        source: "wizard",
+        reason,
+        error_class: isNetwork ? "network" : httpStatus && httpStatus >= 500 ? "server" : "app",
+        message: emsg.slice(0, 160),
+        correlation_id: cid,
+        attempts: 4,
+      });
       if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) return;
       const msg = emsg;
       const retryAction = {
         label: "Опитай отново",
         onClick: () => void handleGenerate(userConfirmed),
       };
-      if (/failed to send|fetch|network|relay|timeout/i.test(msg)) {
+      if (isNetwork) {
         toast.error("Няма връзка със сървъра", {
-          description: "Свързването с услугата за генериране се провали. Опитайте отново.",
+          description:
+            "Опитахме няколко пъти автоматично. Проверете интернет връзката и опитайте отново — попълнените данни са запазени.",
           action: retryAction,
         });
       } else if (msg.includes("429")) {
@@ -381,8 +411,12 @@ export default function WizardPage() {
       } else if (msg.includes("402")) {
         toast.error("Изчерпан лимит на системата. Опитайте по-късно.");
       } else {
-        toast.error("Възникна грешка", { description: msg, action: retryAction });
+        toast.error("Възникна грешка", {
+          description: cid ? `${msg} (код: ${cid.slice(0, 8)})` : msg,
+          action: retryAction,
+        });
       }
+
 
     } finally {
       clearInterval(interval);
@@ -415,11 +449,22 @@ export default function WizardPage() {
     try {
       localStorage.setItem(
         storageKey,
-        JSON.stringify({ answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId, arbitration })
+        JSON.stringify({ v: 1, ts: Date.now(), answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId, arbitration })
+
       );
       sessionStorage.removeItem(storageKey);
     } catch {}
   }, [storageKey, answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId, arbitration]);
+
+  /** Изчиства локалната чернова (лични данни) от браузъра. */
+  const clearDraft = useCallback(() => {
+    if (!storageKey) return;
+    try {
+      localStorage.removeItem(storageKey);
+      sessionStorage.removeItem(storageKey);
+    } catch { /* ignore */ }
+  }, [storageKey]);
+
 
   // Build a redirect URL that preserves the current wizard route + query.
   const wizardHref = window.location.pathname + window.location.search;
@@ -601,9 +646,13 @@ export default function WizardPage() {
         return;
       }
       if (res.saved_document_id) setSavedDocId(res.saved_document_id);
+      // Guardrail: документът е свален и запазен в профила — изчистваме
+      // локалната чернова с лични данни от браузъра.
+      clearDraft();
       toast.success(format === "pdf" ? "PDF изтеглен" : "DOCX изтеглен", {
         description: res.free ? "Повторно сваляне (безплатно)" : "Запазен в Документи → Всички",
       });
+
       maybeAskForFeedback("download");
     } catch (e: any) {
       toast.error("Грешка при експорт", { description: String(e?.message ?? e) });
@@ -1129,6 +1178,28 @@ export default function WizardPage() {
                     </Button>
                   )}
                 </div>
+                {/* Бърза активация: щом първото задължително поле е попълнено,
+                    потребителят може да види готов документ веднага, без да
+                    минава през всички стъпки. Останалите полета остават
+                    незадължителни и могат да се допълнят след прегледа. */}
+                {!isLast && canNext && !generating && (
+                  <div className="mt-4 rounded-xl border border-gold/30 bg-gold/5 p-4 animate-fade-in">
+                    <p className="text-sm font-medium">Искате да видите документа веднага?</p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Ще изготвим пълен вариант с наличните данни. Можете да
+                      допълните останалите полета и да прегенерирате.
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleGenerate()}
+                      className="mt-3 h-10 w-full border-gold/40 text-gold hover:bg-gold/10 hover:text-gold sm:w-auto"
+                    >
+                      <Bird className="mr-2 h-4 w-4" />
+                      Виж бърз преглед сега
+                    </Button>
+                  </div>
+                )}
+
                 {generating && (
                   <div className="mt-4 rounded-lg border border-gold/30 bg-gold/5 p-4 animate-fade-in">
                     <div className="flex items-center gap-3">
@@ -1305,7 +1376,7 @@ export default function WizardPage() {
                   <Button
                     variant="ghost"
                     onClick={() => {
-                      if (storageKey) sessionStorage.removeItem(storageKey);
+                      clearDraft();
                       setResult(null);
                       setStepIdx(0);
                       setAnswers({});
