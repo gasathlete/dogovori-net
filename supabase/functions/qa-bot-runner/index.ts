@@ -647,24 +647,34 @@ Deno.serve(async (req) => {
       if (body?.mode) mode = String(body.mode).slice(0, 20);
     } catch { /* празно тяло от cron */ }
 
-    // Достъп: планировчик (cron secret / service_role) или служител (ръчно от админ панела).
+    // Достъп: планировчик (cron secret / service_role / apikey tick) или служител (ръчно).
     if (!isCron) {
       const anonClient = createClient(SUPABASE_URL, ANON_KEY);
       const { data: claims } = await anonClient.auth.getClaims(token);
       const role = (claims?.claims as { role?: string } | undefined)?.role;
-      if (role !== "service_role") {
+      if (role === "service_role") {
+        trigger = "tick";
+      } else {
         const { data: userData } = await createClient(SUPABASE_URL, ANON_KEY, {
           global: { headers: { Authorization: `Bearer ${token}` } },
         }).auth.getUser();
         const uid = userData?.user?.id;
-        if (!uid) return json({ error: "unauthorized" }, 401);
-        const { data: isStaff } = await sb.rpc("is_staff", { _user_id: uid });
-        if (!isStaff) return json({ error: "forbidden" }, 403);
-        if (mode !== "schedule") trigger = "manual";
+        if (uid) {
+          const { data: isStaff } = await sb.rpc("is_staff", { _user_id: uid });
+          if (!isStaff) return json({ error: "forbidden" }, 403);
+          if (mode !== "schedule") trigger = "manual";
+        } else if (role === "anon" && trigger === "tick") {
+          // pg_cron се автентикира с apikey — допустим е само планираният режим
+          // (идемпотентен: изпълнява се само в рамките на дневния слот).
+          mode = "run";
+        } else {
+          return json({ error: "unauthorized" }, 401);
+        }
       }
     } else {
       trigger = "tick";
     }
+
 
 
     let q = sb
