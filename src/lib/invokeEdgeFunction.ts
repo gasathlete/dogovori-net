@@ -51,7 +51,13 @@ export function isTransientEdgeError(err: InvokeResult<unknown>["error"], data: 
 
 export async function invokeEdgeFunction<T = unknown>(
   name: string,
-  options: { body?: unknown; headers?: Record<string, string>; retries?: number } = {},
+  options: {
+    body?: unknown;
+    headers?: Record<string, string>;
+    retries?: number;
+    /** Извиква се преди всеки повторен опит — за UI съобщение „Опитваме отново…“. */
+    onRetry?: (attempt: number, maxRetries: number) => void;
+  } = {},
 ): Promise<InvokeResult<T>> {
   const maxRetries = options.retries ?? 2;
   let last: InvokeResult<T> | null = null;
@@ -61,6 +67,9 @@ export async function invokeEdgeFunction<T = unknown>(
     if (!isTransientEdgeError(last.error, last.data)) return last;
     if (attempt < maxRetries) {
       console.warn(`edge function ${name}: мрежов срив, повторен опит ${attempt + 1}/${maxRetries}`);
+      try {
+        options.onRetry?.(attempt + 1, maxRetries);
+      } catch { /* UI callback не трябва да чупи retry-я */ }
       // Експоненциален backoff с малък jitter.
       await delay(800 * 2 ** attempt + Math.round(Math.random() * 300));
     }

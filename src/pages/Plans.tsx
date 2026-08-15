@@ -39,6 +39,7 @@ import { FAQ } from "@/lib/plansData";
 import { usePlans, type Billing, type PlanId } from "@/hooks/usePlans";
 import { trackEvent } from "@/lib/analytics";
 import { trackPlansView, trackCheckoutStarted } from "@/lib/metrics";
+import { roiSubtitle, type PricingPlanId } from "@/lib/pricing";
 
 const PLAN_ICON: Record<PlanId, React.ComponentType<{ className?: string }>> = {
   free: Sparkles,
@@ -361,6 +362,11 @@ export default function Plans() {
                         )}
                         {effectivePrice.note && (
                           <p className="mt-1.5 text-xs text-muted-foreground">{effectivePrice.note}</p>
+                        )}
+                        {roiSubtitle(plan.id as PricingPlanId) && (
+                          <p className="mt-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                            {roiSubtitle(plan.id as PricingPlanId)}
+                          </p>
                         )}
                       </>
                     ) : (

@@ -16,7 +16,7 @@ import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { getFillLaterPersonalData } from "@/lib/placeholderGate";
 import { AIReviewCard } from "@/components/wizard/AIReviewCard";
 import { FillLaterPersonalData } from "@/components/wizard/FillLaterPersonalData";
-import { TOPUP_PACK_CONFIG, fmtEur } from "@/lib/pricing";
+import { TOPUP_PACK_CONFIG, fmtEur, roiSubtitle, monthlyLabel, PRICING_PLANS } from "@/lib/pricing";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
@@ -322,6 +322,13 @@ export default function WizardPage() {
       const arbitrationCourt = arbitration.enabled ? getCourtById(arbitration.courtId) : undefined;
       const { data, error, correlationId } = await invokeEdgeFunction<AIResult & { error?: string; code?: string; requires_login?: boolean; classification?: ClassificationSummary }>("generate-contract", {
         retries: 3,
+        onRetry: (attempt, max) => {
+          if (isStale()) return;
+          toast.loading(`Опитваме отново… (${attempt}/${max})`, {
+            id: "gen-retry",
+            description: "Връзката прекъсна за момент — данните ви са запазени.",
+          });
+        },
 
         body: {
           sector: sector.title,
@@ -450,6 +457,7 @@ export default function WizardPage() {
 
     } finally {
       clearInterval(interval);
+      toast.dismiss("gen-retry");
       // Ако потребителят е отказал (или е стартиран нов опит), новото
       // състояние вече е зададено — не го презаписваме.
       if (!isStale()) {
@@ -699,7 +707,7 @@ export default function WizardPage() {
         }
         if (res.error === "quota_exceeded") {
           toast.error("Изчерпан безплатен лимит", {
-            description: `Купете пакет ${TOPUP_PACK_CONFIG[0].ops} операции за ${fmtEur(TOPUP_PACK_CONFIG[0].eur)} или активирайте платен план — прогресът е запазен.`,
+            description: `${roiSubtitle("professional")} с план ${PRICING_PLANS.professional.name} за ${monthlyLabel("professional")}. Или пакет ${TOPUP_PACK_CONFIG[0].ops} операции за ${fmtEur(TOPUP_PACK_CONFIG[0].eur)} — прогресът е запазен.`,
             action: { label: "Виж опции", onClick: () => goSubscription() },
           });
         } else {
