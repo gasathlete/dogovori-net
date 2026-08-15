@@ -79,6 +79,8 @@ export function trackAbExposure(test: AbTestId, extra?: Record<string, unknown>)
   trackFunnelEvent("ab_exposure", {
     ab_test: test,
     ab_variant: getVariant(test),
+    ...abProps(),
     ...(extra ?? {}),
   });
 }
+
