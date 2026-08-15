@@ -397,7 +397,9 @@ export default function WizardPage() {
       ensureAIDisclaimerAccepted().catch(() => {});
       toast.success("Договорът е готов", { description: "Прегледайте Краен Договор отдясно." });
     } catch (e: any) {
+      if (isStale()) return;
       const emsg = String(e?.message || e);
+
       const cid: string | undefined = e?.cid;
       const httpStatus: number | undefined = e?.httpStatus;
       const isNetwork = /failed to send|failed to fetch|load failed|fetch|network|relay|timeout|aborted|connection/i.test(emsg);
