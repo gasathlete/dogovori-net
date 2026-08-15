@@ -98,6 +98,14 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+type ScheduleRow = {
+  slug: string;
+  name: string;
+  enabled: boolean;
+  ops_planned: number;
+  slots: string[];
+};
+
 export default function AdminBots() {
   const [bots, setBots] = useState<Bot[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
