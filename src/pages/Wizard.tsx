@@ -322,6 +322,13 @@ export default function WizardPage() {
       const arbitrationCourt = arbitration.enabled ? getCourtById(arbitration.courtId) : undefined;
       const { data, error, correlationId } = await invokeEdgeFunction<AIResult & { error?: string; code?: string; requires_login?: boolean; classification?: ClassificationSummary }>("generate-contract", {
         retries: 3,
+        onRetry: (attempt, max) => {
+          if (isStale()) return;
+          toast.loading(`Опитваме отново… (${attempt}/${max})`, {
+            id: "gen-retry",
+            description: "Връзката прекъсна за момент — данните ви са запазени.",
+          });
+        },
 
         body: {
           sector: sector.title,
