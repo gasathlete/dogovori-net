@@ -5,7 +5,7 @@
  * Принципи:
  *  - SAFE MODE: ботовете използват само синтетични данни (без реални клиентски
  *    записи), никога не пишат в продуктови таблици и всичко записано в лога
- *    минава през `sanitize()` (маскиране на имейли/телефони/ЕГН/ЕИК/IBAN).
+ *    минава през `redact.ts` (лични полета, токени, headers, stack trace).
  *  - RATE LIMITING: твърд дневен лимит операции на бот (`max_ops_per_day`) +
  *    споделен token-bucket, за да не се дублират стартирания.
  *  - CIRCUIT BREAKER: при 3 последователни неуспешни изпълнения ботът се
@@ -549,7 +549,7 @@ async function runBot(
       res = await step.run({ sb, cid, safeMode: bot.safe_mode });
     } catch (e) {
       const err = e as Error;
-      stack = sanitize(err.stack ?? "", 2000);
+      stack = redactStack(err.stack ?? "");
       res = { status: "fail", error: err.message, detail: { thrown: true } };
     }
     done++;
