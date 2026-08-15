@@ -707,7 +707,7 @@ export default function WizardPage() {
         }
         if (res.error === "quota_exceeded") {
           toast.error("Изчерпан безплатен лимит", {
-            description: `Купете пакет ${TOPUP_PACK_CONFIG[0].ops} операции за ${fmtEur(TOPUP_PACK_CONFIG[0].eur)} или активирайте платен план — прогресът е запазен.`,
+            description: `${roiSubtitle("professional")} с план ${PRICING_PLANS.professional.name} за ${monthlyLabel("professional")}. Или пакет ${TOPUP_PACK_CONFIG[0].ops} операции за ${fmtEur(TOPUP_PACK_CONFIG[0].eur)} — прогресът е запазен.`,
             action: { label: "Виж опции", onClick: () => goSubscription() },
           });
         } else {
