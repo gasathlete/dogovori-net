@@ -127,6 +127,7 @@ const AdminLegalKB = lazy(() => import("./pages/AdminLegalKB.tsx"));
 const AdminPlans = lazy(() => import("./pages/AdminPlans.tsx"));
 const AdminPerf = lazy(() => import("./pages/AdminPerf.tsx"));
 const AdminFunnel = lazy(() => import("./pages/AdminFunnel.tsx"));
+const AdminBots = lazy(() => import("./pages/AdminBots.tsx"));
 const AdminMetrics = lazy(() => import("./pages/AdminMetrics.tsx"));
 const AdminGrowthBrief = lazy(() => import("./pages/AdminGrowthBrief.tsx"));
 const AdminAiJson = lazy(() => import("./pages/AdminAiJson.tsx"));
