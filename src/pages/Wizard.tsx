@@ -303,7 +303,9 @@ export default function WizardPage() {
     try {
       const flatQs = flattenQuestions(visibleQuestions);
       const arbitrationCourt = arbitration.enabled ? getCourtById(arbitration.courtId) : undefined;
-      const { data, error } = await invokeEdgeFunction<AIResult & { error?: string; code?: string; requires_login?: boolean; classification?: ClassificationSummary }>("generate-contract", {
+      const { data, error, correlationId } = await invokeEdgeFunction<AIResult & { error?: string; code?: string; requires_login?: boolean; classification?: ClassificationSummary }>("generate-contract", {
+        retries: 3,
+
         body: {
           sector: sector.title,
           contractName: sector.contractName,
