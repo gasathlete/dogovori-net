@@ -629,8 +629,12 @@ Deno.serve(async (req) => {
     });
 
   try {
+    const cronSecret = Deno.env.get("QA_BOT_CRON_SECRET") ?? "";
+    const cronHeader = req.headers.get("x-qa-cron") ?? "";
+    const isCron = Boolean(cronSecret) && cronHeader === cronSecret;
+
     const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
-    if (!token) return json({ error: "unauthorized" }, 401);
+    if (!token && !isCron) return json({ error: "unauthorized" }, 401);
 
     const sb = admin();
     let trigger = "cron";
@@ -643,21 +647,25 @@ Deno.serve(async (req) => {
       if (body?.mode) mode = String(body.mode).slice(0, 20);
     } catch { /* празно тяло от cron */ }
 
-
-    // Достъп: service_role (cron) или служител (ръчно от админ панела).
-    const anonClient = createClient(SUPABASE_URL, ANON_KEY);
-    const { data: claims } = await anonClient.auth.getClaims(token);
-    const role = (claims?.claims as { role?: string } | undefined)?.role;
-    if (role !== "service_role") {
-      const { data: userData } = await createClient(SUPABASE_URL, ANON_KEY, {
-        global: { headers: { Authorization: `Bearer ${token}` } },
-      }).auth.getUser();
-      const uid = userData?.user?.id;
-      if (!uid) return json({ error: "unauthorized" }, 401);
-      const { data: isStaff } = await sb.rpc("is_staff", { _user_id: uid });
-      if (!isStaff) return json({ error: "forbidden" }, 403);
-      trigger = "manual";
+    // Достъп: планировчик (cron secret / service_role) или служител (ръчно от админ панела).
+    if (!isCron) {
+      const anonClient = createClient(SUPABASE_URL, ANON_KEY);
+      const { data: claims } = await anonClient.auth.getClaims(token);
+      const role = (claims?.claims as { role?: string } | undefined)?.role;
+      if (role !== "service_role") {
+        const { data: userData } = await createClient(SUPABASE_URL, ANON_KEY, {
+          global: { headers: { Authorization: `Bearer ${token}` } },
+        }).auth.getUser();
+        const uid = userData?.user?.id;
+        if (!uid) return json({ error: "unauthorized" }, 401);
+        const { data: isStaff } = await sb.rpc("is_staff", { _user_id: uid });
+        if (!isStaff) return json({ error: "forbidden" }, 403);
+        if (mode !== "schedule") trigger = "manual";
+      }
+    } else {
+      trigger = "tick";
     }
+
 
     let q = sb
       .from("qa_bots")
