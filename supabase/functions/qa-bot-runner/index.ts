@@ -632,11 +632,14 @@ Deno.serve(async (req) => {
     const sb = admin();
     let trigger = "cron";
     let onlySlug: string | null = null;
+    let mode = "run";
     try {
       const body = await req.json();
       if (body?.trigger) trigger = String(body.trigger).slice(0, 20);
       if (body?.slug) onlySlug = String(body.slug).slice(0, 60);
+      if (body?.mode) mode = String(body.mode).slice(0, 20);
     } catch { /* празно тяло от cron */ }
+
 
     // Достъп: service_role (cron) или служител (ръчно от админ панела).
     const anonClient = createClient(SUPABASE_URL, ANON_KEY);
