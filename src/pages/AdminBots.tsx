@@ -167,6 +167,69 @@ export default function AdminBots() {
     return { total, failed, last24, passRate: total ? Math.round(((total - failed) / total) * 100) : 0 };
   }, [actions]);
 
+  /** Coverage по сценарий: кои стъпки/ендпойнти са минали, success rate и последен статус. */
+  const coverage = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        action: string;
+        total: number;
+        pass: number;
+        fail: number;
+        skip: number;
+        lastStatus: string;
+        lastAt: string;
+        lastError: string | null;
+        durations: number[];
+        targets: Set<string>;
+      }
+    >();
+    // actions идват сортирани по created_at DESC → първата среща е последният запис.
+    for (const a of actions) {
+      let row = map.get(a.action);
+      if (!row) {
+        row = {
+          action: a.action,
+          total: 0,
+          pass: 0,
+          fail: 0,
+          skip: 0,
+          lastStatus: a.status,
+          lastAt: a.created_at,
+          lastError: a.error_message,
+          durations: [],
+          targets: new Set<string>(),
+        };
+        map.set(a.action, row);
+      }
+      row.total += 1;
+      if (a.status === "pass" || a.status === "passed") row.pass += 1;
+      else if (a.status === "fail" || a.status === "failed") row.fail += 1;
+      else row.skip += 1;
+      if (typeof a.duration_ms === "number") row.durations.push(a.duration_ms);
+      if (a.target) row.targets.add(a.target);
+    }
+    const covered = Array.from(map.values()).map((r) => ({
+      ...r,
+      successRate: r.total ? Math.round((r.pass / r.total) * 100) : 0,
+      avgMs: r.durations.length
+        ? Math.round(r.durations.reduce((s, x) => s + x, 0) / r.durations.length)
+        : null,
+      targetList: Array.from(r.targets).slice(0, 4),
+      targetCount: r.targets.size,
+    }));
+    covered.sort((x, y) => x.successRate - y.successRate || y.total - x.total);
+    const missing = Object.keys(ACTION_LABEL).filter((k) => !map.has(k));
+    const scenarios = Object.keys(ACTION_LABEL).length;
+    return {
+      rows: covered,
+      missing,
+      coveredCount: covered.length,
+      scenarios,
+      coveragePct: scenarios ? Math.round((covered.length / scenarios) * 100) : 0,
+    };
+  }, [actions]);
+
   const runNow = async (slug?: string) => {
     setRunning(slug ?? "all");
     const { data, error } = await supabase.functions.invoke("qa-bot-runner", {
