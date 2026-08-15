@@ -173,3 +173,21 @@ export function cheapestPerOpEur(): number {
 export function cheapestPerOpLabel(): string {
   return fmtEur(cheapestPerOpEur());
 }
+
+/** Безплатни операции на месец за плана „Безплатен“. */
+export const FREE_OPS_PER_MONTH = PRICING_PLANS.free.opsPerMonth ?? 2;
+
+/**
+ * ROI подзаглавие за платен план — колко правни разходи спестява месечно.
+ * Базата е минималният адвокатски хонорар за един документ, умножен по
+ * консервативни 1–2 документа месечно (спрямо обема на плана).
+ */
+export function roiSubtitle(id: PricingPlanId): string {
+  const p = PRICING_PLANS[id];
+  const price = p.monthly ?? (p.yearly !== null ? Math.round((p.yearly / 12) * 100) / 100 : null);
+  if (price === null || price === 0) return "";
+  const docsPerMonth = id === "professional" ? 1 : 2;
+  const saved = LAWYER_FEE_MIN_EUR * docsPerMonth - price;
+  const rounded = Math.floor(saved / 10) * 10;
+  return `Спестява над ${fmtEur(rounded)}/мес от правни услуги`;
+}
