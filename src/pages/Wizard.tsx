@@ -365,28 +365,45 @@ export default function WizardPage() {
         return;
       }
       if (error || !data || (data as { error?: string }).error) {
-        throw new Error((data as { error?: string })?.error || error?.message || "Неуспешно създаване");
+        const err = new Error((data as { error?: string })?.error || error?.message || "Неуспешно създаване");
+        (err as { cid?: string }).cid = error?.correlationId ?? correlationId;
+        (err as { httpStatus?: number }).httpStatus = error?.status;
+        throw err;
       }
       const payload = data as AIResult;
       if (bilingualMode && payload.contract) payload.contract.bilingual = true;
       setResult(payload);
       setConsentRequired(false);
-      trackGenerate("success", { doc_key: docKey, source: "wizard" });
+      trackGenerate("success", { doc_key: docKey, source: "wizard", correlation_id: correlationId });
       // Trigger AI disclaimer once per session on first document creation.
       ensureAIDisclaimerAccepted().catch(() => {});
       toast.success("Договорът е готов", { description: "Прегледайте Краен Договор отдясно." });
     } catch (e: any) {
       const emsg = String(e?.message || e);
-      trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: emsg.slice(0, 120) });
+      const cid: string | undefined = e?.cid;
+      const httpStatus: number | undefined = e?.httpStatus;
+      const isNetwork = /failed to send|failed to fetch|load failed|fetch|network|relay|timeout|aborted|connection/i.test(emsg);
+      // Категоризиран reason за /admin/funnel: мрежата се различава от AI/сървърна грешка.
+      const reason = isNetwork ? "network" : httpStatus ? `http_${httpStatus}` : emsg.slice(0, 120);
+      trackGenerate("fail", {
+        doc_key: docKey,
+        source: "wizard",
+        reason,
+        error_class: isNetwork ? "network" : httpStatus && httpStatus >= 500 ? "server" : "app",
+        message: emsg.slice(0, 160),
+        correlation_id: cid,
+        attempts: 4,
+      });
       if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) return;
       const msg = emsg;
       const retryAction = {
         label: "Опитай отново",
         onClick: () => void handleGenerate(userConfirmed),
       };
-      if (/failed to send|fetch|network|relay|timeout/i.test(msg)) {
+      if (isNetwork) {
         toast.error("Няма връзка със сървъра", {
-          description: "Свързването с услугата за генериране се провали. Опитайте отново.",
+          description:
+            "Опитахме няколко пъти автоматично. Проверете интернет връзката и опитайте отново — попълнените данни са запазени.",
           action: retryAction,
         });
       } else if (msg.includes("429")) {
@@ -394,8 +411,12 @@ export default function WizardPage() {
       } else if (msg.includes("402")) {
         toast.error("Изчерпан лимит на системата. Опитайте по-късно.");
       } else {
-        toast.error("Възникна грешка", { description: msg, action: retryAction });
+        toast.error("Възникна грешка", {
+          description: cid ? `${msg} (код: ${cid.slice(0, 8)})` : msg,
+          action: retryAction,
+        });
       }
+
 
     } finally {
       clearInterval(interval);
