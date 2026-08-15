@@ -330,23 +330,37 @@ const stepGenerateContract: Step = {
     const r = await callFn(
       "generate-contract",
       {
-        docKey: "dogovor-za-usluga",
+        sector: "uslugi",
+        contractName: "Договор за услуга",
+        documentName: "Договор за услуга",
+        doc_key: "qa-bot-probe",
+        session_id: `qa-bot-${cid}`,
+        parties: [
+          { role: "Възложител", name: SYNTHETIC.companyName },
+          { role: "Изпълнител", name: "QA Изпълнител ЕООД (синтетичен)" },
+        ],
+        questions: [
+          { id: "subject", label: "Предмет на услугата" },
+          { id: "price", label: "Възнаграждение (EUR)" },
+          { id: "term", label: "Срок" },
+        ],
         answers: {
-          party_a_name: SYNTHETIC.companyName,
-          party_b_name: "QA Изпълнител ЕООД (синтетичен)",
-          subject: "Тестова услуга за автоматична проверка",
+          subject: "Тестова консултантска услуга за автоматична проверка",
           price: "1000",
+          term: "6 месеца",
         },
+        arbitration: false,
+        bilingual: false,
         userConfirmed: true,
-        qaBot: true,
       },
       cid,
     );
     let hasContract = false;
     try {
       const j = JSON.parse(r.text);
-      hasContract = Boolean(j?.contract?.title || j?.contract?.clauses);
+      hasContract = Boolean(j?.contract?.title || j?.contract?.clauses || j?.contract?.sections);
     } catch { /* невалиден JSON = провал */ }
+
     const ok = r.status >= 200 && r.status < 300 && hasContract;
     return {
       status: ok ? "pass" : "fail",
