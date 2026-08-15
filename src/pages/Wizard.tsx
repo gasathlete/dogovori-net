@@ -457,6 +457,7 @@ export default function WizardPage() {
 
     } finally {
       clearInterval(interval);
+      toast.dismiss("gen-retry");
       // Ако потребителят е отказал (или е стартиран нов опит), новото
       // състояние вече е зададено — не го презаписваме.
       if (!isStale()) {
