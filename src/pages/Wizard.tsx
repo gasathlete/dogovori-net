@@ -123,14 +123,25 @@ export default function WizardPage() {
   );
 
   // Restore persisted state (answers, step, result, signature, etc.).
-  // Use localStorage so progress survives tab close; cleared on completion.
+  // Use localStorage so progress survives navigation to /auth и затваряне на таб.
+  // Черновата има срок на валидност (7 дни) — след това се изтрива, за да не
+  // остават лични данни в браузъра за неопределено време.
+  const DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
   const persisted = useMemo(() => {
     if (!storageKey) return null;
     try {
       const raw = localStorage.getItem(storageKey) ?? sessionStorage.getItem(storageKey);
-      return raw ? JSON.parse(raw) : null;
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed?.ts && Date.now() - parsed.ts > DRAFT_TTL_MS) {
+        localStorage.removeItem(storageKey);
+        sessionStorage.removeItem(storageKey);
+        return null;
+      }
+      return parsed;
     } catch { return null; }
   }, [storageKey]);
+
 
   const { user: authUser, loading: authLoading } = useAuth();
   const [answers, setAnswers] = useState<Record<string, string>>(persisted?.answers ?? {});
