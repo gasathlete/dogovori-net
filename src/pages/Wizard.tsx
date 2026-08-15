@@ -1354,7 +1354,7 @@ export default function WizardPage() {
                   <Button
                     variant="ghost"
                     onClick={() => {
-                      if (storageKey) sessionStorage.removeItem(storageKey);
+                      clearDraft();
                       setResult(null);
                       setStepIdx(0);
                       setAnswers({});
