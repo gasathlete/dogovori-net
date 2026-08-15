@@ -210,11 +210,17 @@ export default function WizardPage() {
     const today = new Date().toISOString().slice(0, 10);
     const flat = flattenQuestions(sector.questions);
     const patch: Record<string, string> = {};
+    // Само датата на сключване/подписване се предпопълва с днешна дата.
+    // Всички останали дати (краен срок, падеж, прекратяване, раждане, брак…)
+    // трябва да се въведат съзнателно от потребителя.
+    const SIGN_DATE = /(^|_)(contract_date|sign(ing)?_date|date_signed|conclusion_date|start_date|issue_date)($|_)|дата на (сключване|подписване|съставяне|издаване)|дата на договора/;
+    const NEVER_DEFAULT = /end|due|expir|termination|deadline|birth|marriage|payment|delivery|краен|падеж|прекратяване|изтичане|раждане|брак|плащане|доставка/;
     for (const f of flat) {
       const key = `${f.id} ${f.label ?? ""}`.toLowerCase();
-      if (f.type === "date" && /дата|срок.*от|date/.test(key)) {
+      if (f.type === "date" && SIGN_DATE.test(key) && !NEVER_DEFAULT.test(key)) {
         patch[f.id] = today;
       } else if (
+
         (f.type === "text" || f.type === "select" || f.type === "radio") &&
         /(^|_)(city|town)|град|населено място|местоположение|сключен в/.test(key) &&
         (!f.options || f.options.includes("София"))
