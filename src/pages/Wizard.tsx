@@ -456,6 +456,16 @@ export default function WizardPage() {
     } catch {}
   }, [storageKey, answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId, arbitration]);
 
+  /** Изчиства локалната чернова (лични данни) от браузъра. */
+  const clearDraft = useCallback(() => {
+    if (!storageKey) return;
+    try {
+      localStorage.removeItem(storageKey);
+      sessionStorage.removeItem(storageKey);
+    } catch { /* ignore */ }
+  }, [storageKey]);
+
+
   // Build a redirect URL that preserves the current wizard route + query.
   const wizardHref = window.location.pathname + window.location.search;
   const goAuth = () => navigate(`/auth?redirect=${encodeURIComponent(wizardHref)}`);
