@@ -147,7 +147,12 @@ export default function WizardPage() {
   const [answers, setAnswers] = useState<Record<string, string>>(persisted?.answers ?? {});
   const [stepIdx, setStepIdx] = useState<number>(persisted?.stepIdx ?? 0);
   const [generating, setGenerating] = useState(false);
+  /** Синхронен щит срещу двойно кликване по бутона за генериране. */
+  const generatingRef = useRef(false);
+  /** Идентификатор на текущия опит — по-стар отговор се игнорира. */
+  const genRunRef = useRef(0);
   const [genStepIdx, setGenStepIdx] = useState(0);
+
   // Диалог за лични / чувствителни данни. Показва се САМО при твърд блокаж
   // (специална категория данни). Обикновеното GDPR потвърждение се поема
   // автоматично и се съобщава инлайн, за да не спира генерирането.
