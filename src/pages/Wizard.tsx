@@ -294,6 +294,15 @@ export default function WizardPage() {
   const handleGenerate = async (userConfirmed = false) => {
     // Anonymous visitors may generate a read-only preview (server enforces a
     // 1/24h taste limit). Login is required only for save/export/signing.
+    //
+    // Защита от двойно кликване: ref-ът се проверява синхронно, така че два
+    // бързи клика в рамките на един render цикъл не могат да пуснат две
+    // заявки (setGenerating е асинхронен и не е достатъчен).
+    if (generatingRef.current) return;
+    generatingRef.current = true;
+    const runId = ++genRunRef.current;
+    /** true, ако потребителят е отказал или е стартирал по-нов опит. */
+    const isStale = () => genRunRef.current !== runId;
     setGenerating(true);
     trackGenerate("started", { doc_key: docKey, source: "wizard" });
     setGenStepIdx(0);
@@ -301,6 +310,7 @@ export default function WizardPage() {
       setGenStepIdx((i) => (i + 1) % GEN_STEPS.length);
     }, 5000);
     try {
+
       const flatQs = flattenQuestions(visibleQuestions);
       const arbitrationCourt = arbitration.enabled ? getCourtById(arbitration.courtId) : undefined;
       const { data, error, correlationId } = await invokeEdgeFunction<AIResult & { error?: string; code?: string; requires_login?: boolean; classification?: ClassificationSummary }>("generate-contract", {
