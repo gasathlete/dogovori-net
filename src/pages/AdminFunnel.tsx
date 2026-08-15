@@ -147,6 +147,105 @@ export default function AdminFunnel() {
     };
   }, [rows]);
 
+  /**
+   * A/B отчет за теста `quick_preview` (CTA „Виж бърз преглед сега").
+   * Всяко funnel събитие носи props.ab_quick_preview, така че сегментираме
+   * директно по вариант — без join-ове.
+   *
+   * Метрики:
+   *  - start_to_fill: % от сесиите със старт, които са започнали попълване
+   *    (doc_fill_step) ИЛИ директно са минали към генериране.
+   *  - clean_review_rate: % „чисти" документи (doc_review_result.clean = true).
+   */
+  const abStats = useMemo(() => {
+    type Bucket = {
+      exposed: Set<string>;
+      start: Set<string>;
+      fill: Set<string>;
+      generated: Set<string>;
+      download: Set<string>;
+      reviews: number;
+      clean: number;
+      ctaClicks: number;
+    };
+    const mk = (): Bucket => ({
+      exposed: new Set(), start: new Set(), fill: new Set(), generated: new Set(),
+      download: new Set(), reviews: 0, clean: 0, ctaClicks: 0,
+    });
+    const buckets: Record<"control" | "variant", Bucket> = { control: mk(), variant: mk() };
+
+    for (const r of rows) {
+      const props = (r.props ?? {}) as Record<string, unknown>;
+      const v = props.ab_quick_preview as string | undefined;
+      if (v !== "control" && v !== "variant") continue;
+      const b = buckets[v];
+      const stage = props.dstage as DocStage | undefined;
+      const outcome = props.outcome as string | undefined;
+      if (r.name === "ab_exposure" || props.ab_test === "quick_preview") b.exposed.add(r.session_id);
+      if (r.name === "quick_preview_cta_click") b.ctaClicks += 1;
+      if (stage === "start") b.start.add(r.session_id);
+      if (stage === "fill") b.fill.add(r.session_id);
+      if (stage === "generate" && outcome === "success") b.generated.add(r.session_id);
+      if (stage === "download" && outcome === "success") b.download.add(r.session_id);
+      if (r.name === "doc_review_result") {
+        b.reviews += 1;
+        if (props.clean === true) b.clean += 1;
+      }
+    }
+
+    const rate = (num: number, den: number) => (den > 0 ? Math.round((num / den) * 1000) / 10 : 0);
+    const view = (v: "control" | "variant") => {
+      const b = buckets[v];
+      const fillOrGen = new Set([...b.fill, ...b.generated]);
+      return {
+        variant: v,
+        exposed: b.exposed.size,
+        starts: b.start.size,
+        fills: fillOrGen.size,
+        generated: b.generated.size,
+        downloads: b.download.size,
+        ctaClicks: b.ctaClicks,
+        startToFill: rate(fillOrGen.size, b.start.size),
+        cleanReviewRate: rate(b.clean, b.reviews),
+        reviews: b.reviews,
+        clean: b.clean,
+        startToDownload: rate(b.download.size, b.start.size),
+      };
+    };
+    const control = view("control");
+    const variant = view("variant");
+
+    // Двупропорционален z-тест — груба, но достатъчна проверка за значимост.
+    const zTest = (n1: number, x1: number, n2: number, x2: number) => {
+      if (n1 < 1 || n2 < 1) return { z: 0, significant: false };
+      const p1 = x1 / n1;
+      const p2 = x2 / n2;
+      const p = (x1 + x2) / (n1 + n2);
+      const se = Math.sqrt(p * (1 - p) * (1 / n1 + 1 / n2));
+      if (!se) return { z: 0, significant: false };
+      const z = (p2 - p1) / se;
+      return { z: Math.round(z * 100) / 100, significant: Math.abs(z) >= 1.96 };
+    };
+
+    const fillSig = zTest(
+      control.starts, Math.round((control.startToFill / 100) * control.starts),
+      variant.starts, Math.round((variant.startToFill / 100) * variant.starts),
+    );
+    const cleanSig = zTest(control.reviews, control.clean, variant.reviews, variant.clean);
+
+    return {
+      control,
+      variant,
+      fillSig,
+      cleanSig,
+      fillLift: Math.round((variant.startToFill - control.startToFill) * 10) / 10,
+      cleanLift: Math.round((variant.cleanReviewRate - control.cleanReviewRate) * 10) / 10,
+      hasData: control.starts + variant.starts > 0,
+    };
+  }, [rows]);
+
+
+
 
   return (
     <>
