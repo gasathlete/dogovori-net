@@ -46,7 +46,9 @@ import { RefineDraftBox } from "@/components/wizard/RefineDraftBox";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { trackEvent } from "@/lib/analytics";
-import { trackDocStart, trackGenerate, trackFillStep } from "@/lib/docFunnel";
+import { trackDocStart, trackGenerate, trackFillStep, trackReviewResult } from "@/lib/docFunnel";
+import { getVariant, trackAbExposure, applyAbOverridesFromUrl } from "@/lib/ab";
+
 import { useDocumentAccess } from "@/hooks/useDocumentAccess";
 import { StrictDocumentPaywall } from "@/components/wizard/StrictDocumentPaywall";
 import { AnonymousPreviewNotice } from "@/components/wizard/AnonymousPreviewNotice";
