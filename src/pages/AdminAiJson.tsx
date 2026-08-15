@@ -7,6 +7,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Header } from "@/components/Header";
+import { redactValue } from "@/lib/redact";
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -261,11 +262,11 @@ export default function AdminAiJson() {
                             Край на отговора (raw)
                           </p>
                           <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded bg-muted/50 p-2 text-[11px]">
-                            {r.raw_tail ?? "—"}
+                            {r.raw_tail ? redactValue(r.raw_tail, 2000) : "—"}
                           </pre>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Грешка: {r.error_message ?? "—"} · Модел: {r.model ?? "n/a"} ·
+                          Грешка: {r.error_message ? redactValue(r.error_message, 800) : "—"} · Модел: {r.model ?? "n/a"} ·
                           {r.repair_attempted ? " направен е repair опит" : " без repair опит"}
                         </p>
                       </div>
