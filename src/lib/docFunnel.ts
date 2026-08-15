@@ -12,6 +12,8 @@
  * а етапът се носи в props.dstage.
  */
 import { trackFunnelEvent } from "@/lib/funnel";
+import { abProps } from "@/lib/ab";
+
 
 export type DocStage = "start" | "fill" | "generate" | "download" | "sign";
 
@@ -40,8 +42,23 @@ export function trackDocEvent(
   stage: DocStage,
   props?: DocFunnelProps,
 ) {
-  trackFunnelEvent(name, { dstage: stage, ...(props ?? {}) });
+  // Всяко събитие носи активните A/B варианти, за да може /admin/funnel да
+  // сегментира фунията без допълнителни join-ове.
+  trackFunnelEvent(name, { dstage: stage, ...abProps(), ...(props ?? {}) });
 }
+
+/**
+ * Резултат от автоматичната проверка на готовия документ.
+ * `clean = true` означава нула открити пропуски/плейсхолдъри.
+ */
+export function trackReviewResult(clean: boolean, issues: number, props?: DocFunnelProps) {
+  trackDocEvent("doc_review_result", "generate", {
+    clean,
+    issues,
+    ...(props ?? {}),
+  });
+}
+
 
 export function trackDocStart(props?: DocFunnelProps) {
   trackDocEvent("doc_start", "start", props);

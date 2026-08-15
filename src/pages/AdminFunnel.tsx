@@ -147,6 +147,105 @@ export default function AdminFunnel() {
     };
   }, [rows]);
 
+  /**
+   * A/B отчет за теста `quick_preview` (CTA „Виж бърз преглед сега").
+   * Всяко funnel събитие носи props.ab_quick_preview, така че сегментираме
+   * директно по вариант — без join-ове.
+   *
+   * Метрики:
+   *  - start_to_fill: % от сесиите със старт, които са започнали попълване
+   *    (doc_fill_step) ИЛИ директно са минали към генериране.
+   *  - clean_review_rate: % „чисти" документи (doc_review_result.clean = true).
+   */
+  const abStats = useMemo(() => {
+    type Bucket = {
+      exposed: Set<string>;
+      start: Set<string>;
+      fill: Set<string>;
+      generated: Set<string>;
+      download: Set<string>;
+      reviews: number;
+      clean: number;
+      ctaClicks: number;
+    };
+    const mk = (): Bucket => ({
+      exposed: new Set(), start: new Set(), fill: new Set(), generated: new Set(),
+      download: new Set(), reviews: 0, clean: 0, ctaClicks: 0,
+    });
+    const buckets: Record<"control" | "variant", Bucket> = { control: mk(), variant: mk() };
+
+    for (const r of rows) {
+      const props = (r.props ?? {}) as Record<string, unknown>;
+      const v = props.ab_quick_preview as string | undefined;
+      if (v !== "control" && v !== "variant") continue;
+      const b = buckets[v];
+      const stage = props.dstage as DocStage | undefined;
+      const outcome = props.outcome as string | undefined;
+      if (r.name === "ab_exposure" || props.ab_test === "quick_preview") b.exposed.add(r.session_id);
+      if (r.name === "quick_preview_cta_click") b.ctaClicks += 1;
+      if (stage === "start") b.start.add(r.session_id);
+      if (stage === "fill") b.fill.add(r.session_id);
+      if (stage === "generate" && outcome === "success") b.generated.add(r.session_id);
+      if (stage === "download" && outcome === "success") b.download.add(r.session_id);
+      if (r.name === "doc_review_result") {
+        b.reviews += 1;
+        if (props.clean === true) b.clean += 1;
+      }
+    }
+
+    const rate = (num: number, den: number) => (den > 0 ? Math.round((num / den) * 1000) / 10 : 0);
+    const view = (v: "control" | "variant") => {
+      const b = buckets[v];
+      const fillOrGen = new Set([...b.fill, ...b.generated]);
+      return {
+        variant: v,
+        exposed: b.exposed.size,
+        starts: b.start.size,
+        fills: fillOrGen.size,
+        generated: b.generated.size,
+        downloads: b.download.size,
+        ctaClicks: b.ctaClicks,
+        startToFill: rate(fillOrGen.size, b.start.size),
+        cleanReviewRate: rate(b.clean, b.reviews),
+        reviews: b.reviews,
+        clean: b.clean,
+        startToDownload: rate(b.download.size, b.start.size),
+      };
+    };
+    const control = view("control");
+    const variant = view("variant");
+
+    // Двупропорционален z-тест — груба, но достатъчна проверка за значимост.
+    const zTest = (n1: number, x1: number, n2: number, x2: number) => {
+      if (n1 < 1 || n2 < 1) return { z: 0, significant: false };
+      const p1 = x1 / n1;
+      const p2 = x2 / n2;
+      const p = (x1 + x2) / (n1 + n2);
+      const se = Math.sqrt(p * (1 - p) * (1 / n1 + 1 / n2));
+      if (!se) return { z: 0, significant: false };
+      const z = (p2 - p1) / se;
+      return { z: Math.round(z * 100) / 100, significant: Math.abs(z) >= 1.96 };
+    };
+
+    const fillSig = zTest(
+      control.starts, Math.round((control.startToFill / 100) * control.starts),
+      variant.starts, Math.round((variant.startToFill / 100) * variant.starts),
+    );
+    const cleanSig = zTest(control.reviews, control.clean, variant.reviews, variant.clean);
+
+    return {
+      control,
+      variant,
+      fillSig,
+      cleanSig,
+      fillLift: Math.round((variant.startToFill - control.startToFill) * 10) / 10,
+      cleanLift: Math.round((variant.cleanReviewRate - control.cleanReviewRate) * 10) / 10,
+      hasData: control.starts + variant.starts > 0,
+    };
+  }, [rows]);
+
+
+
 
   return (
     <>
@@ -240,6 +339,108 @@ export default function AdminFunnel() {
                 </div>
               ))}
             </section>
+
+            {/* A/B тест: CTA „Виж бърз преглед сега" */}
+            <section className="rounded-2xl border border-border/60 bg-card p-6">
+              <div className="mb-4">
+                <h2 className="font-serif text-xl text-foreground">
+                  A/B: CTA „Виж бърз преглед сега"
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Ефект върху активацията (Старт → Попълване) и качеството
+                  (дял чисти документи без открити пропуски).
+                </p>
+              </div>
+
+              {!abStats.hasData ? (
+                <p className="text-sm text-muted-foreground">
+                  Още няма достатъчно данни за този тест.
+                </p>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[560px] text-sm">
+                      <thead>
+                        <tr className="border-b border-border/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                          <th className="py-2 pr-3 font-medium">Вариант</th>
+                          <th className="py-2 pr-3 font-medium">Изложени</th>
+                          <th className="py-2 pr-3 font-medium">Стартове</th>
+                          <th className="py-2 pr-3 font-medium">Старт → Попълване</th>
+                          <th className="py-2 pr-3 font-medium">Чисти документи</th>
+                          <th className="py-2 pr-3 font-medium">Старт → Сваляне</th>
+                          <th className="py-2 pr-3 font-medium">Клика по CTA</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[abStats.control, abStats.variant].map((v) => (
+                          <tr key={v.variant} className="border-b border-border/40 last:border-0">
+                            <td className="py-2 pr-3 font-medium text-foreground">
+                              {v.variant === "control" ? "Контрола (без CTA)" : "Вариант (с CTA)"}
+                            </td>
+                            <td className="py-2 pr-3 text-muted-foreground">{v.exposed}</td>
+                            <td className="py-2 pr-3 text-muted-foreground">{v.starts}</td>
+                            <td className="py-2 pr-3 text-foreground">{v.startToFill}%</td>
+                            <td className="py-2 pr-3 text-foreground">
+                              {v.cleanReviewRate}%{" "}
+                              <span className="text-xs text-muted-foreground">
+                                ({v.clean}/{v.reviews})
+                              </span>
+                            </td>
+                            <td className="py-2 pr-3 text-muted-foreground">{v.startToDownload}%</td>
+                            <td className="py-2 pr-3 text-muted-foreground">{v.ctaClicks}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-border/60 bg-background/40 p-4">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Ефект върху активацията
+                      </p>
+                      <p
+                        className={`mt-1 font-serif text-2xl ${
+                          abStats.fillLift >= 0 ? "text-emerald-600" : "text-destructive"
+                        }`}
+                      >
+                        {abStats.fillLift >= 0 ? "+" : ""}
+                        {abStats.fillLift} п.п.
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        z = {abStats.fillSig.z} ·{" "}
+                        {abStats.fillSig.significant
+                          ? "статистически значимо (95%)"
+                          : "още не е значимо — нужни са повече сесии"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-border/60 bg-background/40 p-4">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Ефект върху качеството
+                      </p>
+                      <p
+                        className={`mt-1 font-serif text-2xl ${
+                          abStats.cleanLift >= 0 ? "text-emerald-600" : "text-destructive"
+                        }`}
+                      >
+                        {abStats.cleanLift >= 0 ? "+" : ""}
+                        {abStats.cleanLift} п.п.
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        z = {abStats.cleanSig.z} ·{" "}
+                        {abStats.cleanLift < -2
+                          ? "внимание: качеството спада — не приемайте варианта"
+                          : abStats.cleanSig.significant
+                            ? "статистически значимо (95%)"
+                            : "в рамките на шума"}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
+            </section>
+
+
 
             {/* Документна фуния — хоризонтална, с изтичане между етапите */}
             <section className="rounded-2xl border border-border/60 bg-card p-6">

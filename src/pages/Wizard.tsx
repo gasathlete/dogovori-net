@@ -46,7 +46,9 @@ import { RefineDraftBox } from "@/components/wizard/RefineDraftBox";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { trackEvent } from "@/lib/analytics";
-import { trackDocStart, trackGenerate, trackFillStep } from "@/lib/docFunnel";
+import { trackDocStart, trackGenerate, trackFillStep, trackReviewResult, trackDocEvent } from "@/lib/docFunnel";
+import { getVariant, trackAbExposure, applyAbOverridesFromUrl } from "@/lib/ab";
+
 import { useDocumentAccess } from "@/hooks/useDocumentAccess";
 import { StrictDocumentPaywall } from "@/components/wizard/StrictDocumentPaywall";
 import { AnonymousPreviewNotice } from "@/components/wizard/AnonymousPreviewNotice";
@@ -147,7 +149,12 @@ export default function WizardPage() {
   const [answers, setAnswers] = useState<Record<string, string>>(persisted?.answers ?? {});
   const [stepIdx, setStepIdx] = useState<number>(persisted?.stepIdx ?? 0);
   const [generating, setGenerating] = useState(false);
+  /** Синхронен щит срещу двойно кликване по бутона за генериране. */
+  const generatingRef = useRef(false);
+  /** Идентификатор на текущия опит — по-стар отговор се игнорира. */
+  const genRunRef = useRef(0);
   const [genStepIdx, setGenStepIdx] = useState(0);
+
   // Диалог за лични / чувствителни данни. Показва се САМО при твърд блокаж
   // (специална категория данни). Обикновеното GDPR потвърждение се поема
   // автоматично и се съобщава инлайн, за да не спира генерирането.
@@ -294,6 +301,15 @@ export default function WizardPage() {
   const handleGenerate = async (userConfirmed = false) => {
     // Anonymous visitors may generate a read-only preview (server enforces a
     // 1/24h taste limit). Login is required only for save/export/signing.
+    //
+    // Защита от двойно кликване: ref-ът се проверява синхронно, така че два
+    // бързи клика в рамките на един render цикъл не могат да пуснат две
+    // заявки (setGenerating е асинхронен и не е достатъчен).
+    if (generatingRef.current) return;
+    generatingRef.current = true;
+    const runId = ++genRunRef.current;
+    /** true, ако потребителят е отказал или е стартирал по-нов опит. */
+    const isStale = () => genRunRef.current !== runId;
     setGenerating(true);
     trackGenerate("started", { doc_key: docKey, source: "wizard" });
     setGenStepIdx(0);
@@ -301,6 +317,7 @@ export default function WizardPage() {
       setGenStepIdx((i) => (i + 1) % GEN_STEPS.length);
     }, 5000);
     try {
+
       const flatQs = flattenQuestions(visibleQuestions);
       const arbitrationCourt = arbitration.enabled ? getCourtById(arbitration.courtId) : undefined;
       const { data, error, correlationId } = await invokeEdgeFunction<AIResult & { error?: string; code?: string; requires_login?: boolean; classification?: ClassificationSummary }>("generate-contract", {
@@ -323,7 +340,10 @@ export default function WizardPage() {
           userConfirmed,
         },
       });
+      // Отказан или изместен опит — не пипаме UI състоянието.
+      if (isStale()) return;
       if (data?.code === "quota_exceeded") {
+
         trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: "quota_exceeded" });
         toast.error("Изчерпан безплатен лимит", { description: data.error || "Активирайте платен план или закупете пакет операции." });
         return;
@@ -375,11 +395,21 @@ export default function WizardPage() {
       setResult(payload);
       setConsentRequired(false);
       trackGenerate("success", { doc_key: docKey, source: "wizard", correlation_id: correlationId });
+      // Качество на изхода: „чист" документ = без открити пропуски/риск бележки.
+      {
+        const issues =
+          (payload.risk?.issues?.length ?? 0) +
+          ((payload as { missing?: unknown[] }).missing?.length ?? 0);
+        trackReviewResult(issues === 0, issues, { doc_key: docKey, source: "wizard" });
+      }
+
       // Trigger AI disclaimer once per session on first document creation.
       ensureAIDisclaimerAccepted().catch(() => {});
       toast.success("Договорът е готов", { description: "Прегледайте Краен Договор отдясно." });
     } catch (e: any) {
+      if (isStale()) return;
       const emsg = String(e?.message || e);
+
       const cid: string | undefined = e?.cid;
       const httpStatus: number | undefined = e?.httpStatus;
       const isNetwork = /failed to send|failed to fetch|load failed|fetch|network|relay|timeout|aborted|connection/i.test(emsg);
@@ -420,9 +450,27 @@ export default function WizardPage() {
 
     } finally {
       clearInterval(interval);
-      setGenerating(false);
+      // Ако потребителят е отказал (или е стартиран нов опит), новото
+      // състояние вече е зададено — не го презаписваме.
+      if (!isStale()) {
+        generatingRef.current = false;
+        setGenerating(false);
+      }
     }
   };
+
+  /** Прекратява текущото генериране от гледна точка на UI. */
+  const cancelGeneration = () => {
+    if (!generatingRef.current) return;
+    genRunRef.current += 1;
+    generatingRef.current = false;
+    setGenerating(false);
+    trackGenerate("blocked", { doc_key: docKey, source: "wizard", reason: "user_cancelled" });
+    toast.message("Генерирането е прекратено", {
+      description: "Попълнените данни са запазени — можете да опитате отново.",
+    });
+  };
+
 
   const user = authUser;
   const [savedDocId, setSavedDocId] = useState<string | undefined>(persisted?.savedDocId);
@@ -574,10 +622,24 @@ export default function WizardPage() {
 
   // Track wizard_start once on mount.
   useEffect(() => {
+    applyAbOverridesFromUrl(window.location.search);
     trackEvent("wizard_start", { sectorId, doc: docName });
     trackDocStart({ doc_key: docName, source: "wizard", sector: sectorId });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A/B: CTA „Виж бърз преглед сега" в междинните стъпки.
+  const quickPreviewVariant = useMemo(() => getVariant("quick_preview"), []);
+  const showQuickPreviewCta = quickPreviewVariant === "variant";
+  const quickPreviewEligible = !isLast && canNext && !generating && !result;
+  const exposedRef = useRef(false);
+  useEffect(() => {
+    if (!quickPreviewEligible || exposedRef.current) return;
+    exposedRef.current = true;
+    trackAbExposure("quick_preview", { doc_key: docName, source: "wizard", step_idx: stepIdx });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quickPreviewEligible]);
+
 
   const handleExport = async (format: "pdf" | "docx") => {
     if (!result) return;
@@ -1172,17 +1234,18 @@ export default function WizardPage() {
                         setStepIdx((i) => i + 1);
                         setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
                       }}
+                      disabled={generating}
                       className="h-11 bg-gradient-gold text-navy hover:shadow-gold"
                     >
                       Напред <ArrowRight className="ml-1 h-4 w-4" />
                     </Button>
                   )}
                 </div>
-                {/* Бърза активация: щом първото задължително поле е попълнено,
-                    потребителят може да види готов документ веднага, без да
-                    минава през всички стъпки. Останалите полета остават
-                    незадължителни и могат да се допълнят след прегледа. */}
-                {!isLast && canNext && !generating && (
+                {/* A/B (quick_preview): щом първото задължително поле е попълнено,
+                    вариантът показва CTA за незабавен готов документ. Контролата
+                    минава по класическия път през всички стъпки. */}
+                {showQuickPreviewCta && quickPreviewEligible && (
+
                   <div className="mt-4 rounded-xl border border-gold/30 bg-gold/5 p-4 animate-fade-in">
                     <p className="text-sm font-medium">Искате да видите документа веднага?</p>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
@@ -1191,7 +1254,15 @@ export default function WizardPage() {
                     </p>
                     <Button
                       variant="outline"
-                      onClick={() => handleGenerate()}
+                      disabled={generating}
+                      onClick={() => {
+                        trackDocEvent("quick_preview_cta_click", "fill", {
+                          doc_key: docName,
+                          step_idx: stepIdx,
+                        });
+
+                        handleGenerate();
+                      }}
                       className="mt-3 h-10 w-full border-gold/40 text-gold hover:bg-gold/10 hover:text-gold sm:w-auto"
                     >
                       <Bird className="mr-2 h-4 w-4" />
@@ -1201,7 +1272,7 @@ export default function WizardPage() {
                 )}
 
                 {generating && (
-                  <div className="mt-4 rounded-lg border border-gold/30 bg-gold/5 p-4 animate-fade-in">
+                  <div className="mt-4 rounded-lg border border-gold/30 bg-gold/5 p-4 animate-fade-in" aria-busy="true">
                     <div className="flex items-center gap-3">
                       <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-gold" />
                       <div className="flex-1 min-w-0">
@@ -1212,9 +1283,18 @@ export default function WizardPage() {
                           Процесът отнема около 60 секунди — благодарим за търпението.
                         </div>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={cancelGeneration}
+                        className="h-8 shrink-0 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        Прекрати
+                      </Button>
                     </div>
                   </div>
                 )}
+
               </div>
             )}
 
