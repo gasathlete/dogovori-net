@@ -338,7 +338,10 @@ export default function WizardPage() {
           userConfirmed,
         },
       });
+      // Отказан или изместен опит — не пипаме UI състоянието.
+      if (isStale()) return;
       if (data?.code === "quota_exceeded") {
+
         trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: "quota_exceeded" });
         toast.error("Изчерпан безплатен лимит", { description: data.error || "Активирайте платен план или закупете пакет операции." });
         return;
