@@ -5,7 +5,7 @@
  * Принципи:
  *  - SAFE MODE: ботовете използват само синтетични данни (без реални клиентски
  *    записи), никога не пишат в продуктови таблици и всичко записано в лога
- *    минава през `sanitize()` (маскиране на имейли/телефони/ЕГН/ЕИК/IBAN).
+ *    минава през `redact.ts` (лични полета, токени, headers, stack trace).
  *  - RATE LIMITING: твърд дневен лимит операции на бот (`max_ops_per_day`) +
  *    споделен token-bucket, за да не се дублират стартирания.
  *  - CIRCUIT BREAKER: при 3 последователни неуспешни изпълнения ботът се
@@ -18,6 +18,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildCors } from "../_shared/cors.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
+import { redactDetail, redactForLog, redactStack } from "../_shared/redact.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
@@ -29,32 +30,18 @@ function admin() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Safe mode: маскиране + ограничаване на всичко, което влиза в лога  */
+/* Safe mode: редакция + ограничаване на всичко, което влиза в лога   */
 /* ------------------------------------------------------------------ */
 
-const MASKS: Array<[RegExp, string]> = [
-  [/[\w.+-]+@[\w-]+\.[\w.]+/g, "[email]"],
-  [/\b\d{10}\b/g, "[egn]"],
-  [/\b\d{9}\b/g, "[eik]"],
-  [/\b(?:\+359|0)\s?\d[\d\s-]{7,}\b/g, "[phone]"],
-  [/\b[A-Z]{2}\d{2}[A-Z0-9]{10,}\b/g, "[iban]"],
-  [/\bey[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+/g, "[jwt]"],
-];
-
+/** Маскира лични полета, токени и headers, но пази полезния контекст. */
 export function sanitize(value: unknown, maxLen = 600): string {
-  let text = typeof value === "string" ? value : JSON.stringify(value ?? null);
-  if (!text) return "";
-  for (const [re, rep] of MASKS) text = text.replace(re, rep);
-  return text.length > maxLen ? `${text.slice(0, maxLen)}…` : text;
+  return redactForLog(value, maxLen);
 }
 
 function sanitizeDetail(detail: Record<string, unknown>): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(detail)) {
-    out[k] = typeof v === "number" || typeof v === "boolean" || v === null ? v : sanitize(v, 300);
-  }
-  return out;
+  return redactDetail(detail, 300);
 }
+
 
 /* ------------------------------------------------------------------ */
 /* Синтетични данни — единственият вход, разрешен в safe mode          */
@@ -562,7 +549,7 @@ async function runBot(
       res = await step.run({ sb, cid, safeMode: bot.safe_mode });
     } catch (e) {
       const err = e as Error;
-      stack = sanitize(err.stack ?? "", 2000);
+      stack = redactStack(err.stack ?? "");
       res = { status: "fail", error: err.message, detail: { thrown: true } };
     }
     done++;

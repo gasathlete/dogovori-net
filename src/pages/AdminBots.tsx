@@ -7,6 +7,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Header } from "@/components/Header";
+import { redactStack, redactValue } from "@/lib/redact";
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -371,12 +372,12 @@ export default function AdminBots() {
                                 </div>
                                 {a.detail && Object.keys(a.detail).length > 0 && (
                                   <pre className="mt-2 overflow-x-auto rounded-lg bg-muted/60 p-2 text-[11px] leading-relaxed text-muted-foreground">
-                                    {JSON.stringify(a.detail, null, 2)}
+                                    {redactValue(JSON.stringify(a.detail, null, 2), 4000)}
                                   </pre>
                                 )}
                                 {a.error_message && (
                                   <p className="mt-2 rounded-lg border border-destructive/30 bg-destructive/5 p-2 text-xs text-destructive">
-                                    {a.error_message}
+                                    {redactValue(a.error_message, 1200)}
                                   </p>
                                 )}
                                 {a.error_stack && (
@@ -385,7 +386,7 @@ export default function AdminBots() {
                                       Stack trace
                                     </summary>
                                     <pre className="mt-1 overflow-x-auto rounded-lg bg-muted/60 p-2 text-[11px] leading-relaxed text-muted-foreground">
-                                      {a.error_stack}
+                                      {redactStack(a.error_stack)}
                                     </pre>
                                   </details>
                                 )}
