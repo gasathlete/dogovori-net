@@ -107,6 +107,9 @@ export default function AdminBots() {
   const [running, setRunning] = useState<string | null>(null);
   const [openRun, setOpenRun] = useState<string | null>(null);
 
+  const [schedule, setSchedule] = useState<ScheduleRow[]>([]);
+  const [scheduleWindow, setScheduleWindow] = useState<string>("");
+
   const load = useCallback(async () => {
     setLoading(true);
     setErr(null);
@@ -123,7 +126,15 @@ export default function AdminBots() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  const loadSchedule = useCallback(async () => {
+    const { data } = await supabase.functions.invoke("qa-bot-runner", { body: { mode: "schedule" } });
+    const payload = data as { schedule?: ScheduleRow[]; window?: string } | null;
+    setSchedule(payload?.schedule ?? []);
+    setScheduleWindow(payload?.window ?? "");
+  }, []);
+
+  useEffect(() => { load(); loadSchedule(); }, [load, loadSchedule]);
+
 
   const actionsByRun = useMemo(() => {
     const m = new Map<string, Action[]>();
