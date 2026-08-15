@@ -1256,11 +1256,11 @@ export default function WizardPage() {
                       variant="outline"
                       disabled={generating}
                       onClick={() => {
-                        trackEvent("quick_preview_cta_click", {
+                        trackDocEvent("quick_preview_cta_click", "fill", {
                           doc_key: docName,
                           step_idx: stepIdx,
-                          ab_quick_preview: quickPreviewVariant,
                         });
+
                         handleGenerate();
                       }}
                       className="mt-3 h-10 w-full border-gold/40 text-gold hover:bg-gold/10 hover:text-gold sm:w-auto"
