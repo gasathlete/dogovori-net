@@ -12,6 +12,8 @@
  * а етапът се носи в props.dstage.
  */
 import { trackFunnelEvent } from "@/lib/funnel";
+import { abProps } from "@/lib/ab";
+
 
 export type DocStage = "start" | "fill" | "generate" | "download" | "sign";
 
