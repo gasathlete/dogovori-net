@@ -123,19 +123,28 @@ export function DocumentValueCard({
           {canDownload && !needsAuth && (
             <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
               Свалянето (PDF или DOCX) използва <span className="font-medium text-foreground">1 операция</span> —
-              повторно сваляне на същия документ в тази сесия е безплатно.
+              повторно сваляне на същия документ в тази сесия е безплатно.{" "}
+              План {PRICING_PLANS.free.name} включва{" "}
+              <span className="font-medium text-foreground">
+                {FREE_OPS_PER_MONTH} безплатни операции/месец
+              </span>
+              .
             </p>
           )}
 
           {!canDownload && !needsAuth && (
-            <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-              За сваляне е нужна 1 операция. План{" "}
-              <span className="font-medium text-foreground">{PRICING_PLANS.professional.name}</span>{" "}
-              — {monthlyLabel("professional")} ({opsLabel("professional")}),{" "}
-              <span className="font-medium text-foreground">{PRICING_PLANS.entrepreneur.name}</span>{" "}
-              — {monthlyLabel("entrepreneur")} ({opsLabel("entrepreneur")}), или еднократен пакет
-              операции.
-            </p>
+            <div className="mt-2 space-y-1 rounded-lg border border-emerald-500/25 bg-emerald-500/[0.06] px-3 py-2">
+              <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                {roiSubtitle("professional")} с план {PRICING_PLANS.professional.name} за{" "}
+                {monthlyLabel("professional")}
+              </p>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                За сваляне е нужна 1 операция. {PRICING_PLANS.professional.name} —{" "}
+                {monthlyLabel("professional")} ({opsLabel("professional")}),{" "}
+                {PRICING_PLANS.entrepreneur.name} — {monthlyLabel("entrepreneur")} (
+                {opsLabel("entrepreneur")}), или еднократен пакет операции.
+              </p>
+            </div>
           )}
 
         </div>
