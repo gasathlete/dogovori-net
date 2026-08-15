@@ -121,8 +121,8 @@ const stepTemplateSearch: Step = {
     const term = pick(SYNTHETIC.searchTerms);
     const { data, error, status } = await sb
       .from("template_search_index")
-      .select("doc_key", { count: "exact", head: false })
-      .ilike("title", `%${term.split(" ")[0]}%`)
+      .select("slug, name")
+      .ilike("name", `%${term.split(" ")[0]}%`)
       .limit(5);
     if (error) return { status: "fail", target: "template_search_index", httpStatus: status, error: error.message };
     const found = data?.length ?? 0;
@@ -136,43 +136,48 @@ const stepTemplateSearch: Step = {
   },
 };
 
-/** Каталогът не е празен и няма шаблони без ключ. */
+/** Каталогът не е празен и няма шаблони без име. */
 const stepCatalogIntegrity: Step = {
   action: "catalog_integrity",
   run: async ({ sb }) => {
     const { count, error } = await sb
       .from("template_search_index")
-      .select("id", { count: "exact", head: true });
+      .select("slug", { count: "exact", head: true });
     if (error) return { status: "fail", target: "template_search_index", error: error.message };
     const { count: broken } = await sb
       .from("template_search_index")
-      .select("id", { count: "exact", head: true })
-      .is("doc_key", null);
+      .select("slug", { count: "exact", head: true })
+      .is("name", null);
     return {
       status: (count ?? 0) > 100 && !broken ? "pass" : "fail",
       target: "template_search_index",
-      detail: { total: count ?? 0, missing_doc_key: broken ?? 0 },
-      error: (count ?? 0) <= 100 ? "Каталогът изглежда непълен" : broken ? "Има шаблони без doc_key" : undefined,
+      detail: { total: count ?? 0, missing_name: broken ?? 0 },
+      error: (count ?? 0) <= 100 ? "Каталогът изглежда непълен" : broken ? "Има шаблони без име" : undefined,
     };
   },
 };
 
-/** Плановете и цените са налични и в EUR. */
+/** Плановете и цените са налични и валидни (EUR). */
 const stepPlansPricing: Step = {
   action: "plans_pricing",
   run: async ({ sb }) => {
-    const { data, error } = await sb.from("plans").select("slug, name, price_eur, is_active");
+    const { data, error } = await sb.from("plans").select("id, name, monthly_price, yearly_price, active");
     if (error) return { status: "fail", target: "plans", error: error.message };
-    const rows = (data ?? []) as Array<{ slug: string; name: string; price_eur: number | null; is_active: boolean }>;
-    const bad = rows.filter((r) => r.is_active && (r.price_eur === null || Number.isNaN(Number(r.price_eur))));
+    const rows = (data ?? []) as Array<{
+      id: string; name: string; monthly_price: number | null; yearly_price: number | null; active: boolean;
+    }>;
+    const bad = rows.filter(
+      (r) => r.active && r.monthly_price === null && r.yearly_price === null,
+    );
     return {
       status: rows.length > 0 && bad.length === 0 ? "pass" : "fail",
       target: "plans",
-      detail: { plans: rows.length, invalid: bad.length, slugs: rows.map((r) => r.slug).join(",") },
-      error: bad.length ? `Планове без валидна цена: ${bad.map((b) => b.slug).join(",")}` : undefined,
+      detail: { plans: rows.length, invalid: bad.length, names: rows.map((r) => r.name).join(",") },
+      error: bad.length ? `Планове без валидна цена: ${bad.map((b) => b.name).join(",")}` : undefined,
     };
   },
 };
+
 
 /** Публичните броячи работят (RPC smoke test). */
 const stepPublicCounters: Step = {
