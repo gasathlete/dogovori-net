@@ -192,8 +192,10 @@ export default function AdminBots() {
           <div>
             <h1 className="font-serif text-3xl text-foreground sm:text-4xl">QA ботове</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Три бота изпълняват по 3–4 проверки дневно в безопасен режим (само синтетични данни).
+              Три бота изпълняват автоматично по 3–4 проверки дневно в безопасен режим
+              (само синтетични данни), в рандомизирани часове — без ръчно стартиране.
             </p>
+
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={load} disabled={loading}>
