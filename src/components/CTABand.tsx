@@ -14,8 +14,8 @@ function LiveCounter() {
   const total = useMemo(() => {
     let sum = 0;
     counts.forEach((v) => (sum += v));
-    // Baseline floor so the number never reads as zero before telemetry catches up.
-    return sum + 8420;
+    // Стартова база 1000 + реалните изтегляния до момента.
+    return sum + 1000;
   }, [counts]);
   const { ref, value } = useCountUp(total, { duration: 1600 });
   return (
