@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import { trackCheckoutStarted } from "@/lib/metrics";
 import type { Billing, PlanId, PlanView } from "@/hooks/usePlans";
-import { usePlanRecommendation, LAWYER_DOC_COST_EUR } from "@/hooks/usePlanRecommendation";
+import { usePlanRecommendation, LAWYER_DOC_COST_EUR, OPS_PER_DOC } from "@/hooks/usePlanRecommendation";
 
 const PLAN_ICON: Record<PlanId, React.ComponentType<{ className?: string }>> = {
   free: Sparkles,
@@ -36,7 +36,7 @@ interface Props {
 }
 
 export function PlanScaleSlider({ plans, billing, isAuthed, onRecommend }: Props) {
-  const [docs, setDocs] = useState(6);
+  const [docs, setDocs] = useState(8);
   const rec = usePlanRecommendation(plans, docs, billing);
   const Icon = PLAN_ICON[rec.planId];
   const trackTimer = useRef<number | null>(null);
@@ -165,6 +165,9 @@ export function PlanScaleSlider({ plans, billing, isAuthed, onRecommend }: Props
               <dd className="mt-1 text-sm font-semibold text-foreground tabular-nums">
                 {rec.opsCap ?? "—"}
               </dd>
+              <dd className="text-[10px] text-muted-foreground tabular-nums">
+                нужни ≈ {docs * OPS_PER_DOC}
+              </dd>
             </div>
             <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.07] px-3 py-2.5">
               <dt className="text-[10px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
@@ -178,7 +181,8 @@ export function PlanScaleSlider({ plans, billing, isAuthed, onRecommend }: Props
 
           <p className="mt-2 text-[11px] text-muted-foreground">
             Изчислено при {eur(LAWYER_DOC_COST_EUR, 0)} средно за изготвяне на един документ от
-            юрист. ДДС включено.
+            юрист и ≈ {OPS_PER_DOC} операции за един готов документ (генериране, AI преглед,
+            подпис). ДДС включено.
           </p>
         </div>
 
