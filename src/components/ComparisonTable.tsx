@@ -50,7 +50,7 @@ export function ComparisonTable() {
           Сравнение
         </div>
         <h2 className="font-serif text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl">
-          Договор<span className="text-accent-gradient stress-accent">и</span> твоята най-добра сделка още днес.
+          Договор<span className="text-accent-gradient stress-accent">и</span> твоята най-добра сделка днес !
         </h2>
         <p className="mt-3 text-sm text-muted-foreground sm:text-base">
           Цена, скорост и сигурност в едно — без компромис със закона.

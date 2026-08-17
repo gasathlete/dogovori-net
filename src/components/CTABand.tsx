@@ -68,7 +68,7 @@ export function CTABand() {
             {copy.ctaExample}
           </p>
           <p className="mx-auto mt-2 max-w-xl text-[12px] text-muted-foreground">
-            +600 шаблона · AI анализ на риска · електронен подпис · без скрити такси.
+            {"\n"}
           </p>
           <div className="mt-5 flex justify-center">
             <AudienceToggle size="sm" />

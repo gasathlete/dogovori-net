@@ -44,8 +44,8 @@ export const AUDIENCE_COPY: Record<Audience, AudienceCopy> = {
     label: "Фирма",
     ariaLabel: "Малка фирма (2–10 човека)",
     heroHeadline: {
-      lead: "Договори, които защитават",
-      accent: "фирмата",
+      lead: "Документи и договори, които защитават",
+      accent: "работата",
       tail: " ти — без адвокат за всеки документ",
     },
     heroSub:
@@ -54,8 +54,7 @@ export const AUDIENCE_COPY: Record<Audience, AudienceCopy> = {
     valueLine: "Спестяваш 200–380 € на документ · връща се за 1 договор",
     planBadge: "За малки фирми",
     ctaHeadline: "Спести на фирмата си хиляди евро годишно от адвокатски такси",
-    ctaExample:
-      "3 договора/месец × 150 € = 5 400 €/година. С Dogovori.net: 154.80 €/година.",
+    ctaExample: "\n",
     anchors: [
       "1 договор при адвокат = ~290 €",
       "1 адвокатски преглед = 80–150 €",
