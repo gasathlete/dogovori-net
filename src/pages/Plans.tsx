@@ -216,72 +216,15 @@ export default function Plans() {
           />
         </section>
 
-        {/* 01 — Проблемът */}
+
+        {/* 01 — Плановете (цените са първото нещо след слайдера) */}
         <PlanStoryStage
           index="01"
-          title="Един пропуснат текст в договора струва повече от годишен абонамент"
-          subtitle="Липсваща клауза за неустойка, грешни реквизити или неподписано приложение — всяко от тях се плаща по-скъпо от целия ви план."
-        >
-          <div className="grid gap-4 sm:grid-cols-3">
-            {[
-              {
-                t: "90 € и 3 дни",
-                d: "средно за изготвяне на един стандартен договор при външен юрист.",
-              },
-              {
-                t: "Липсващи реквизити",
-                d: "най-честата причина документ да не бъде признат пред институция или банка.",
-              },
-              {
-                t: "Хартия и подписи",
-                d: "срещи, сканиране и разминаващи се версии вместо един проследим документ.",
-              },
-            ].map((it) => (
-              <div
-                key={it.t}
-                className="rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md"
-              >
-                <p className="font-serif text-lg text-foreground">{it.t}</p>
-                <p className="mt-1.5 text-sm text-muted-foreground">{it.d}</p>
-              </div>
-            ))}
-          </div>
-        </PlanStoryStage>
-
-        {/* 02 — Решението */}
-        <PlanStoryStage
-          index="02"
-          title="Четири стъпки от идея до подписан документ"
-          subtitle="Един поток, който платформата води вместо вас — без правен жаргон и без празни полета."
-        >
-          <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { n: "Шаблон", d: "Изберете от 600+ проверени образеца по ЗЗД, ТЗ, КТ, ЗУТ." },
-              { n: "Попълване", d: "Насочени въпроси с правни подсказки на всяко поле." },
-              { n: "AI преглед", d: "Проверка за рискови и липсващи клаузи преди изтегляне." },
-              { n: "Подпис", d: "Електронен подпис, КЕП или качен подпис — с проследимост." },
-            ].map((s, i) => (
-              <li
-                key={s.n}
-                className="relative rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md transition-colors hover:border-brand/40"
-              >
-                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
-                  Стъпка {i + 1}
-                </span>
-                <p className="mt-1.5 font-serif text-lg text-foreground">{s.n}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{s.d}</p>
-              </li>
-            ))}
-          </ol>
-        </PlanStoryStage>
-
-        {/* 03 — Плановете */}
-        <PlanStoryStage
-          index="03"
           id="plan-cards"
-          title="Плановете"
-          subtitle="Едни и същи документи и качество във всеки план — различава се само обемът и дълбочината на AI поддръжката."
+          title="Планове и цени"
+          subtitle="Препоръчваме Предприемач — 100 операции месечно, GPT-5 модел, OCR, сравнение на договори и приоритетна обработка. Качеството на документите е еднакво във всеки план."
           className="pb-12 sm:pb-16"
+
         >
           <div className="grid gap-5 md:grid-cols-3 md:gap-6 xl:gap-7">
             {plans.filter((p) => p.id !== "free").map((plan, idx) => {
@@ -315,13 +258,24 @@ export default function Plans() {
                   </span>
 
                   {/* Един ред бейджове — без наслагване върху рамката */}
-                  {(plan.highlight || isRecommended) && (
+                  {(plan.highlight || isRecommended || plan.id === "entrepreneur") && (
                     <div className="relative z-10 mb-4 flex flex-wrap items-center gap-2">
-                      {plan.highlight && (
+                      {plan.id === "entrepreneur" && (
                         <span className="inline-flex rounded-full bg-gradient-brand px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white shadow-brand">
-                          {plan.id === "entrepreneur" ? copy.planBadge : plan.badge}
+                          Препоръчан план
                         </span>
                       )}
+                      {plan.highlight && plan.id !== "entrepreneur" && (
+                        <span className="inline-flex rounded-full bg-gradient-brand px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white shadow-brand">
+                          {plan.badge}
+                        </span>
+                      )}
+                      {plan.id === "entrepreneur" && copy.planBadge && (
+                        <span className="inline-flex rounded-full border border-brand/40 bg-brand/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand">
+                          {copy.planBadge}
+                        </span>
+                      )}
+
                       {isRecommended && (
                         <span className="inline-flex rounded-full border border-brand/40 bg-brand/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand">
                           За вашия обем
@@ -472,6 +426,91 @@ export default function Plans() {
             <TrustGuaranteeBar />
           </div>
         </PlanStoryStage>
+
+        {/* 02 — Проблемът */}
+        <PlanStoryStage
+          index="02"
+          title="Един пропуснат текст в договора струва повече от годишен абонамент"
+          subtitle="Липсваща клауза за неустойка, грешни реквизити или неподписано приложение — всяко от тях се плаща по-скъпо от целия ви план."
+        >
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[
+              {
+                t: "90 € и 3 дни",
+                d: "средно за изготвяне на един стандартен договор при външен юрист.",
+              },
+              {
+                t: "Липсващи реквизити",
+                d: "най-честата причина документ да не бъде признат пред институция или банка.",
+              },
+              {
+                t: "Хартия и подписи",
+                d: "срещи, сканиране и разминаващи се версии вместо един проследим документ.",
+              },
+            ].map((it) => (
+              <div
+                key={it.t}
+                className="rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md"
+              >
+                <p className="font-serif text-lg text-foreground">{it.t}</p>
+                <p className="mt-1.5 text-sm text-muted-foreground">{it.d}</p>
+              </div>
+            ))}
+          </div>
+        </PlanStoryStage>
+
+        {/* 03 — Как работи */}
+        <PlanStoryStage
+          index="03"
+          title="Как се разходват операциите — стъпка по стъпка"
+          subtitle="Един готов документ отнема средно 3 операции. Точно затова 100 операции в план Предприемач покриват около 30 документа месечно."
+        >
+          <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                n: "Избор на образец",
+                ops: "0 операции",
+                d: "Каталог от 600+ образеца по ЗЗД, ТЗ, КТ и ЗУТ. Разглеждането и отварянето на образец е безплатно във всеки план.",
+              },
+              {
+                n: "Попълване в съветника",
+                ops: "0 операции",
+                d: "Полетата се въвеждат стъпка по стъпка с правна подсказка на всяко от тях. Данните се пазят локално 7 дни, ако прекъснете.",
+              },
+              {
+                n: "Генериране и изтегляне",
+                ops: "1 операция",
+                d: "Финалният текст в DOCX или PDF. Повторно изтегляне на същия документ в същата сесия не се таксува отново.",
+              },
+              {
+                n: "AI преглед и подпис",
+                ops: "1–2 операции",
+                d: "Проверка за рискови и липсващи клаузи (1 операция) и електронен подпис, КЕП или качен подпис с одит-трейл.",
+              },
+            ].map((s, i) => (
+              <li
+                key={s.n}
+                className="relative rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md transition-colors hover:border-brand/40"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
+                    Стъпка {i + 1}
+                  </span>
+                  <span className="shrink-0 rounded-full border border-hairline bg-background/60 px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+                    {s.ops}
+                  </span>
+                </div>
+                <p className="mt-1.5 font-serif text-lg text-foreground">{s.n}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{s.d}</p>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-4 text-xs text-muted-foreground">
+            Операциите се изразходват само при генериране, изтегляне, качване с анализ и всяко
+            съобщение до AI асистента. Вълна авто-корекции = 1 операция на всеки 5 корекции.
+          </p>
+        </PlanStoryStage>
+
 
         {/* 04 — Възвръщаемостта */}
         <PlanStoryStage

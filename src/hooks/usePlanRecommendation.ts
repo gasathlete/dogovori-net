@@ -26,28 +26,46 @@ export interface PlanRecommendation {
 }
 
 /**
- * Избира най-малкия план, който покрива зададения обем документи.
- * Използва реалните `ops_cap_monthly` стойности от базата, без хардкод.
+ * Средно операции за един завършен документ:
+ * генериране/изтегляне (1) + AI преглед за рискови клаузи (1) + подпис или
+ * повторно изтегляне след корекции (1).
+ */
+export const OPS_PER_DOC = 3;
+
+/** Обем, до който Професионалист е достатъчен без AI екстрите на Предприемач. */
+const PROFESSIONAL_MAX_DOCS = 4;
+
+/**
+ * Избира плана, който покрива обема документи с реалния разход на операции.
+ *
+ * Ключово: един документ рядко е една операция — затова Предприемач е
+ * препоръчаният план още от 5 документа месечно (OCR, сравнение на договори,
+ * преговорна стратегия и GPT-5 се включват само там).
  */
 export function recommendPlan(plans: PlanView[], docsPerMonth: number): PlanId {
-  if (!plans.length) return "entrepreneur";
+  const has = (id: PlanId) => plans.some((p) => p.id === id);
+  const capOf = (id: PlanId) => plans.find((p) => p.id === id)?.ops_cap_monthly ?? null;
 
-  const order: PlanId[] = ["free", "professional", "entrepreneur", "team"];
-  const sorted = order
-    .map((id) => plans.find((p) => p.id === id))
-    .filter((p): p is PlanView => Boolean(p));
+  if (docsPerMonth <= 2 && has("free")) return "free";
 
-  for (const plan of sorted) {
-    const cap =
-      plan.id === "free"
-        ? 2
-        : plan.id === "team"
-          ? (plan.ops_cap_monthly ?? 100) * (plan.seat_min ?? 3)
-          : plan.ops_cap_monthly;
-    if (cap !== null && docsPerMonth <= cap) return plan.id;
+  const needOps = docsPerMonth * OPS_PER_DOC;
+
+  const proCap = capOf("professional");
+  if (
+    has("professional") &&
+    docsPerMonth <= PROFESSIONAL_MAX_DOCS &&
+    (proCap === null || needOps <= proCap)
+  ) {
+    return "professional";
   }
-  return sorted[sorted.length - 1].id;
+
+  const entCap = capOf("entrepreneur");
+  if (has("entrepreneur") && (entCap === null || needOps <= entCap)) return "entrepreneur";
+
+  if (has("team")) return "team";
+  return has("entrepreneur") ? "entrepreneur" : "professional";
 }
+
 
 export function usePlanRecommendation(
   plans: PlanView[],
@@ -93,7 +111,7 @@ export function usePlanRecommendation(
       perDocEur,
       savedEur,
       opsCap,
-      needsTopup: opsCap !== null && docsPerMonth > opsCap,
+      needsTopup: opsCap !== null && docs * OPS_PER_DOC > opsCap,
     };
   }, [plans, docsPerMonth, billing]);
 }
