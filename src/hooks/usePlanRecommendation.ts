@@ -111,7 +111,7 @@ export function usePlanRecommendation(
       perDocEur,
       savedEur,
       opsCap,
-      needsTopup: opsCap !== null && docsPerMonth > opsCap,
+      needsTopup: opsCap !== null && docs * OPS_PER_DOC > opsCap,
     };
   }, [plans, docsPerMonth, billing]);
 }
