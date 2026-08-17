@@ -55,7 +55,7 @@ export function recommendPlan(plans: PlanView[], docsPerMonth: number): PlanId {
   const proCap = capOf("professional");
   if (
     has("professional") &&
-    docsPerMonth <= PROFESSIONAL_MAX_DOCS &&
+    needOps <= PROFESSIONAL_MAX_OPS &&
     (proCap === null || needOps <= proCap)
   ) {
     return "professional";
