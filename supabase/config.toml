@@ -25,6 +25,9 @@ project_id = "wkbxojefiovdczkwhved"
     verify_jwt = false
   [functions.generate-contract]
     verify_jwt = false
+  [functions.generate-job]
+    verify_jwt = false
+
   [functions.get-shared-document]
     verify_jwt = false
   [functions.payments-webhook]
