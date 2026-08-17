@@ -1702,6 +1702,48 @@ export type Database = {
         }
         Relationships: []
       }
+      generation_jobs: {
+        Row: {
+          correlation_id: string | null
+          created_at: string
+          duration_ms: number | null
+          error: string | null
+          error_code: string | null
+          http_status: number | null
+          id: string
+          result: Json | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          correlation_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          error_code?: string | null
+          http_status?: number | null
+          id?: string
+          result?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          correlation_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          error_code?: string | null
+          http_status?: number | null
+          id?: string
+          result?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       glossary_terms: {
         Row: {
           body_md: string

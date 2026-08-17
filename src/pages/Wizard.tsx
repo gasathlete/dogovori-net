@@ -34,6 +34,8 @@ import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhili
 import { adaptGraphToWizardQuestions } from "@/data/questionGraphs/adapter";
 import { parseExtraPartyTypes } from "@/components/wizard/liveDraft/clauseBuilders";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
+import { generateContractJob } from "@/lib/generateContractJob";
+
 import { SensitiveDataWarning } from "@/components/SensitiveDataWarning";
 import {
   parseSensitiveResponse,
@@ -320,17 +322,8 @@ export default function WizardPage() {
 
       const flatQs = flattenQuestions(visibleQuestions);
       const arbitrationCourt = arbitration.enabled ? getCourtById(arbitration.courtId) : undefined;
-      const { data, error, correlationId } = await invokeEdgeFunction<AIResult & { error?: string; code?: string; requires_login?: boolean; classification?: ClassificationSummary }>("generate-contract", {
-        retries: 3,
-        onRetry: (attempt, max) => {
-          if (isStale()) return;
-          toast.loading(`Опитваме отново… (${attempt}/${max})`, {
-            id: "gen-retry",
-            description: "Връзката прекъсна за момент — данните ви са запазени.",
-          });
-        },
-
-        body: {
+      const { data, error, correlationId } = await generateContractJob<AIResult & { error?: string; code?: string; requires_login?: boolean; classification?: ClassificationSummary }>(
+        {
           sector: sector.title,
           contractName: sector.contractName,
           documentName: docName,
@@ -346,7 +339,18 @@ export default function WizardPage() {
           bilingual: bilingualMode,
           userConfirmed,
         },
-      });
+        {
+          isStale,
+          onRetry: (attempt, max) => {
+            if (isStale()) return;
+            toast.loading(`Опитваме отново… (${attempt}/${max})`, {
+              id: "gen-retry",
+              description: "Връзката прекъсна за момент — данните ви са запазени.",
+            });
+          },
+        },
+      );
+
       // Отказан или изместен опит — не пипаме UI състоянието.
       if (isStale()) return;
       if (data?.code === "quota_exceeded") {
@@ -1288,8 +1292,10 @@ export default function WizardPage() {
                           {GEN_STEPS[genStepIdx]}
                         </div>
                         <div className="mt-1 text-xs text-muted-foreground">
-                          Процесът отнема около 60 секунди — благодарим за търпението.
+                          Процесът отнема около 60 секунди. Документът се изготвя на сървъра — кратко
+                          прекъсване на връзката не го спира и попълнените данни са запазени.
                         </div>
+
                       </div>
                       <Button
                         variant="ghost"
