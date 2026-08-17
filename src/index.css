@@ -796,6 +796,11 @@
   .partners-marquee:focus-within .partners-marquee__track {
     animation-play-state: paused;
   }
+  @media (max-width: 640px) {
+    .partners-marquee__track {
+      animation-duration: 65s;
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
     .partners-marquee__track { animation: none; }
   }
