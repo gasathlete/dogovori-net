@@ -508,9 +508,7 @@ export function PlatformShowcase() {
       <div className="container relative">
         <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-8">
           <div className="mb-3 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-gold">
-            <span className="h-px w-6 bg-gold/50" />
-            Платформата
-            <span className="h-px w-6 bg-gold/50" />
+            DOGOVORI.NET
           </div>
           <h2
             id="platform-showcase-heading"
@@ -520,7 +518,7 @@ export function PlatformShowcase() {
             <span className="block text-gold">в едно работно пространство</span>
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Пет стълба, които превръщат документалната работа в спокойна, лесна, бърза и акуратна.
+            Пет стълба, които правят документалната работа&nbsp; спокойна, лесна, бърза и акуратна.
           </p>
         </div>
 

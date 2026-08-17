@@ -73,7 +73,7 @@ export function SocialProofStrip() {
           <p className="max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground sm:text-base">
             Използвана от{" "}
             <span className="font-semibold tabular-nums text-foreground">{registeredUsers}+</span>{" "}
-            малки фирми, специалисти на свободна практика, адвокати и счетоводители
+            &nbsp;&nbsp;фирми, специалисти на свободна практика, адвокати и счетоводители
             у нас и в чужбина.
           </p>
         </div>

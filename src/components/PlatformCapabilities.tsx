@@ -16,7 +16,7 @@ const ITEMS: Item[] = [
   { icon: ShieldAlert, to: "/demo/risk-analysis", label: "Анализ на документ", desc: "Открива клопки и неравноправни клаузи." },
   { icon: Languages, to: "/demo/bilingual", label: "Двуезични договори", desc: "Български, английски, немски, френски." },
   { icon: FileSignature, to: "/demo/e-signature", label: "Електронен подпис", desc: "Директно от dogovori.net." },
-  { icon: Package, action: "kits", label: "Комплекти", desc: "Готови решения за чести казуси." },
+  { icon: Package, action: "kits", label: "Комплекти документи", desc: "Готови решения за чести казуси." },
 ];
 
 export function PlatformCapabilities() {
@@ -29,7 +29,7 @@ export function PlatformCapabilities() {
       <div className="container">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-gold/80 sm:text-[11px]">
-            Какво прави платформата
+            КАКВО ИМА В НАШАТА ПЛАТФОРМА ?
           </p>
           <h2
             id="platform-capabilities-title"
@@ -38,7 +38,7 @@ export function PlatformCapabilities() {
             Шест инструмента, един работен процес
           </h2>
           <p className="mx-auto mt-3 max-w-[60ch] text-sm text-muted-foreground sm:text-[15px]">
-            От анализ и преговори до подпис — цялото пътуване на документа на едно място.
+            {"\n"}
           </p>
         </div>
 
