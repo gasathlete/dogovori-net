@@ -34,6 +34,8 @@ import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhili
 import { adaptGraphToWizardQuestions } from "@/data/questionGraphs/adapter";
 import { parseExtraPartyTypes } from "@/components/wizard/liveDraft/clauseBuilders";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
+import { generateContractJob } from "@/lib/generateContractJob";
+
 import { SensitiveDataWarning } from "@/components/SensitiveDataWarning";
 import {
   parseSensitiveResponse,
