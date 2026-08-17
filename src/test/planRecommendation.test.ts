@@ -15,13 +15,12 @@ describe("recommendPlan", () => {
     expect(recommendPlan(plans, 2)).toBe("free");
   });
 
-  it("препоръчва Професионалист при 3–4 документа", () => {
+  it("препоръчва Професионалист при 3 документа (9 операции)", () => {
     expect(recommendPlan(plans, 3)).toBe("professional");
-    expect(recommendPlan(plans, 4)).toBe("professional");
   });
 
-  it("препоръчва Предприемач за типичния обем", () => {
-    for (const docs of [5, 8, 12, 20, 33]) {
+  it("препоръчва Предприемач от 10 операции нататък (≈ 4+ документа)", () => {
+    for (const docs of [4, 5, 8, 12, 20, 33]) {
       expect(recommendPlan(plans, docs)).toBe("entrepreneur");
     }
   });
