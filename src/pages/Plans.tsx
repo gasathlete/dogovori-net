@@ -217,13 +217,14 @@ export default function Plans() {
         </section>
 
 
-        {/* 03 — Плановете */}
+        {/* 01 — Плановете (цените са първото нещо след слайдера) */}
         <PlanStoryStage
-          index="03"
+          index="01"
           id="plan-cards"
-          title="Плановете"
-          subtitle="Едни и същи документи и качество във всеки план — различава се само обемът и дълбочината на AI поддръжката."
+          title="Планове и цени"
+          subtitle="Препоръчваме Предприемач — 100 операции месечно, GPT-5 модел, OCR, сравнение на договори и приоритетна обработка. Качеството на документите е еднакво във всеки план."
           className="pb-12 sm:pb-16"
+
         >
           <div className="grid gap-5 md:grid-cols-3 md:gap-6 xl:gap-7">
             {plans.filter((p) => p.id !== "free").map((plan, idx) => {
