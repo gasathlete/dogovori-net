@@ -258,13 +258,24 @@ export default function Plans() {
                   </span>
 
                   {/* Един ред бейджове — без наслагване върху рамката */}
-                  {(plan.highlight || isRecommended) && (
+                  {(plan.highlight || isRecommended || plan.id === "entrepreneur") && (
                     <div className="relative z-10 mb-4 flex flex-wrap items-center gap-2">
-                      {plan.highlight && (
+                      {plan.id === "entrepreneur" && (
                         <span className="inline-flex rounded-full bg-gradient-brand px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white shadow-brand">
-                          {plan.id === "entrepreneur" ? copy.planBadge : plan.badge}
+                          Препоръчан план
                         </span>
                       )}
+                      {plan.highlight && plan.id !== "entrepreneur" && (
+                        <span className="inline-flex rounded-full bg-gradient-brand px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white shadow-brand">
+                          {plan.badge}
+                        </span>
+                      )}
+                      {plan.id === "entrepreneur" && copy.planBadge && (
+                        <span className="inline-flex rounded-full border border-brand/40 bg-brand/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand">
+                          {copy.planBadge}
+                        </span>
+                      )}
+
                       {isRecommended && (
                         <span className="inline-flex rounded-full border border-brand/40 bg-brand/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand">
                           За вашия обем
