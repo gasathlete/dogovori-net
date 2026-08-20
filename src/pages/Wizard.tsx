@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams, Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Loader2, Bird, FileDown, FileText, Save, User, Download, ShieldCheck, Search, FileSearch, Check, AlertCircle } from "@/icons";
+import { ArrowLeft, ArrowRight, Loader2, Bird, FileDown, FileText, Save, User, Download, ShieldCheck, Search, FileSearch, Check, AlertCircle, RefreshCcw } from "@/icons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -167,6 +167,8 @@ export default function WizardPage() {
   /** Сървърът все още изисква изрично съгласие — показваме акцентирано инлайн. */
   const [consentRequired, setConsentRequired] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
+  /** Последният опит за генериране е неуспешен → бутонът става „Опитай отново". */
+  const [genFailed, setGenFailed] = useState(false);
 
 
   const [correctionsPending, setCorrectionsPending] = useState<CorrectionsSelection | null>(null);
@@ -313,6 +315,7 @@ export default function WizardPage() {
     /** true, ако потребителят е отказал или е стартирал по-нов опит. */
     const isStale = () => genRunRef.current !== runId;
     setGenerating(true);
+    setGenFailed(false);
     trackGenerate("started", { doc_key: docKey, source: "wizard" });
     setGenStepIdx(0);
     const interval = setInterval(() => {
@@ -419,6 +422,7 @@ export default function WizardPage() {
       toast.success("Договорът е готов", { description: "Прегледайте Краен Договор отдясно." });
     } catch (e: any) {
       if (isStale()) return;
+      setGenFailed(true);
       const emsg = String(e?.message || e);
 
       const cid: string | undefined = e?.cid;
@@ -442,9 +446,9 @@ export default function WizardPage() {
         onClick: () => void handleGenerate(userConfirmed),
       };
       if (isNetwork) {
-        toast.error("Няма връзка със сървъра", {
+        toast.error("Връзката бе прекъсната", {
           description:
-            "Опитахме няколко пъти автоматично. Проверете интернет връзката и опитайте отново — попълнените данни са запазени.",
+            "Данните ви са запазени. Моля, опитайте отново.",
           action: retryAction,
         });
       } else if (msg.includes("429")) {
@@ -1229,6 +1233,11 @@ export default function WizardPage() {
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Изготвяне…
+                        </>
+                      ) : genFailed ? (
+                        <>
+                          <RefreshCcw className="mr-2 h-4 w-4" />
+                          Опитай отново
                         </>
                       ) : (
                         <>
