@@ -11,8 +11,11 @@ const ALLOWED_ORIGINS = new Set([
 
 const ALLOWED_HOST_SUFFIXES = [".lovable.app", ".lovableproject.com", ".lovable.dev"];
 
+// ВАЖНО: `x-correlation-id` се изпраща от всяка клиентска заявка
+// (src/lib/invokeEdgeFunction.ts). Ако липсва тук, preflight-ът се отхвърля и
+// браузърът връща „Failed to send a request to the Edge Function".
 const ALLOW_HEADERS =
-  "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";
+  "authorization, x-client-info, apikey, content-type, x-correlation-id, x-request-id, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";
 
 export function buildCors(req: Request, methods = "POST, OPTIONS") {
   const origin = req.headers.get("origin") ?? "";
