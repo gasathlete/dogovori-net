@@ -1230,6 +1230,11 @@ export default function WizardPage() {
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Изготвяне…
                         </>
+                      ) : genFailed ? (
+                        <>
+                          <RefreshCcw className="mr-2 h-4 w-4" />
+                          Опитай отново
+                        </>
                       ) : (
                         <>
                           <Bird className="mr-2 h-4 w-4" />
