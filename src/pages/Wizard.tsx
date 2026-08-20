@@ -422,6 +422,7 @@ export default function WizardPage() {
       toast.success("Договорът е готов", { description: "Прегледайте Краен Договор отдясно." });
     } catch (e: any) {
       if (isStale()) return;
+      setGenFailed(true);
       const emsg = String(e?.message || e);
 
       const cid: string | undefined = e?.cid;
