@@ -1125,29 +1125,51 @@ export default function WizardPage() {
             )}
 
             {consentRequired && !result && (
-              <div className="rounded-lg border-2 border-destructive/60 bg-destructive/5 p-4 animate-fade-in" role="alert">
+              <div
+                ref={consentRef}
+                className="rounded-lg border-2 border-primary/60 bg-primary/5 p-4 animate-fade-in"
+                role="alert"
+              >
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-destructive">
-                      Нужно е вашето изрично съгласие
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-foreground">
+                      Потвърдете обработката на личните данни
                     </p>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      Документът съдържа лични данни. За да го изготвим, потвърдете, че сте съгласни
-                      те да бъдат обработени само за целите на този документ (GDPR).
+                      В отговорите ви са открити лични данни. За да изготвим документа, е нужно
+                      изричното ви съгласие те да бъдат обработени само за тази цел (GDPR, чл. 6).
                     </p>
+                    {(() => {
+                      const counts = (sensitiveClass?.pii_counts ?? {}) as Record<string, number>;
+                      const items = Object.entries(counts).filter(([, n]) => (n ?? 0) > 0);
+                      if (items.length === 0) return null;
+                      return (
+                        <ul className="mt-2 space-y-1 rounded-md border border-border/60 bg-background/60 p-2.5">
+                          {items.map(([key, n]) => (
+                            <li key={key} className="flex items-center justify-between gap-2 text-xs">
+                              <span className="font-medium text-foreground">{PII_LABELS[key] ?? key}</span>
+                              <span className="text-muted-foreground">
+                                {n} {n === 1 ? "поле" : "полета"}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    })()}
                     <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-foreground">
                       <input
                         type="checkbox"
                         checked={consentChecked}
                         onChange={(e) => setConsentChecked(e.target.checked)}
-                        className="mt-0.5 h-4 w-4 accent-[hsl(var(--primary))]"
+                        className="mt-0.5 h-4 w-4 accent-emerald-600"
                       />
-                      Съгласен/на съм с обработката на въведените лични данни.
+                      Съгласен/на съм въведените лични данни да бъдат обработени единствено за
+                      изготвяне на този документ.
                     </label>
                     <Button
                       size="sm"
-                      className="mt-3"
+                      className="mt-3 w-full sm:w-auto"
                       disabled={!consentChecked || generating}
                       onClick={() => void handleGenerate(true)}
                     >
@@ -1337,7 +1359,7 @@ export default function WizardPage() {
             )}
 
             {result && (
-              <div className="space-y-5 animate-fade-in">
+              <div ref={resultRef} className="space-y-5 animate-fade-in scroll-mt-20">
                 <DocumentValueCard
                   documentTitle={customTitle || result.contract.title}
                   needsAuth={!user}
