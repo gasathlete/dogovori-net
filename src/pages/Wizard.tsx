@@ -158,13 +158,14 @@ export default function WizardPage() {
   const [genStepIdx, setGenStepIdx] = useState(0);
 
   // Диалог за лични / чувствителни данни. Показва се САМО при твърд блокаж
-  // (специална категория данни). Обикновеното GDPR потвърждение се поема
-  // автоматично и се съобщава инлайн, за да не спира генерирането.
+  // (специална категория данни). При висок риск (ЕГН/IBAN/лична карта/3+ имена)
+  // сървърът изисква изрично GDPR съгласие — показваме инлайн панел с
+  // конкретните открити данни и едно ясно действие за продължаване.
   const [sensitiveOpen, setSensitiveOpen] = useState(false);
   const [sensitiveBlocked, setSensitiveBlocked] = useState(false);
   const [sensitiveClass, setSensitiveClass] = useState<ClassificationSummary | null>(null);
   const [personalDataNotice, setPersonalDataNotice] = useState(false);
-  /** Сървърът все още изисква изрично съгласие — показваме акцентирано инлайн. */
+  /** Сървърът изисква изрично съгласие — показваме панел с конкретните полета. */
   const [consentRequired, setConsentRequired] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
   /** Последният опит за генериране е неуспешен → бутонът става „Опитай отново". */
@@ -178,6 +179,20 @@ export default function WizardPage() {
   const [appliedNotes, setAppliedNotes] = useState<string[] | undefined>(persisted?.appliedNotes);
   const [attemptedNext, setAttemptedNext] = useState(false);
   const questionCardRef = useRef<HTMLDivElement>(null);
+  /** Панелът за GDPR съгласие — скролираме към него, когато се появи. */
+  const consentRef = useRef<HTMLDivElement | null>(null);
+  /** Блокът с готовия документ — фокус след успешно генериране. */
+  const resultRef = useRef<HTMLDivElement | null>(null);
+  /** Български етикети за категориите лични данни от сървърната класификация. */
+  const PII_LABELS: Record<string, string> = {
+    egn: "ЕГН",
+    iban: "IBAN банкова сметка",
+    email: "Имейл адрес",
+    phone: "Телефонен номер",
+    id_card: "Данни от лична карта",
+    address: "Адрес",
+    name: "Имена на физически лица",
+  };
   const handleEnterFocusNext = useEnterFocusNext();
 
 
@@ -379,23 +394,20 @@ export default function WizardPage() {
         return;
       }
       if (isConfirmationRequired(sensitive) || data?.error === "needs_confirmation") {
-        // Не спираме потребителя с блокиращ диалог: потвърждаваме автоматично
-        // (веднъж) и показваме инлайн уведомление за личните данни.
-        if (!userConfirmed && !consentChecked) {
-          trackEvent("generate_auto_confirmed", { doc_key: docKey, source: "wizard" });
-          setPersonalDataNotice(true);
-          void handleGenerate(true);
-          return;
-        }
-        trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: "needs_confirmation" });
+        // Това НЕ е технически провал, а GDPR стъпка: сървърът е открил данни
+        // с висок риск (ЕГН, IBAN, лична карта…). Показваме инлайн панел с
+        // конкретните открити полета и едно ясно действие за продължаване.
+        // Отчита се като „blocked" (продуктова преграда), НЕ като doc_generate_fail.
+        trackGenerate("blocked", { doc_key: docKey, source: "wizard", reason: "needs_confirmation" });
         setSensitiveClass(sensitive?.classification ?? data?.classification ?? null);
         setSensitiveBlocked(false);
-        // Инлайн акцент вместо блокиращ модал без контекст.
         setConsentRequired(true);
         setConsentChecked(false);
-        toast.error("Нужно е потвърждение", {
-          description: "Отбележете съгласието за обработка на личните данни и опитайте отново.",
+        toast.message("Нужно е потвърждение за личните данни", {
+          description: "Вижте панела за съгласие при въпросите и потвърдете, за да продължим.",
         });
+        // На мобилно панелът може да е извън екрана — скролираме до него.
+        setTimeout(() => consentRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
         return;
       }
       if (error || !data || (data as { error?: string }).error) {
@@ -419,7 +431,10 @@ export default function WizardPage() {
 
       // Trigger AI disclaimer once per session on first document creation.
       ensureAIDisclaimerAccepted().catch(() => {});
-      toast.success("Договорът е готов", { description: "Прегледайте Краен Договор отдясно." });
+      toast.success("Договорът е готов", { description: "Прегледайте го и го свалете в PDF или DOCX." });
+      // Фокус върху готовия документ и бутона „Свали" — на мобилно прегледът е
+      // под сгъваемата зона и без скрол потребителят не разбира, че е готово.
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
     } catch (e: any) {
       if (isStale()) return;
       setGenFailed(true);
