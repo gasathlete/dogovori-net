@@ -129,6 +129,7 @@ export default function AdminPage() {
           <h1 className="text-3xl font-bold flex items-center gap-2"><ShieldCheck className="h-7 w-7 text-gold" /> Модераторски панел</h1>
           <Button asChild variant="outline" size="sm" className="ml-auto border-gold/40"><Link to="/admin/analytics">📊 Analytics</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/metrics">🎯 Growth &amp; Quality</Link></Button>
+          <Button asChild variant="outline" size="sm" className="border-emerald-500/40"><Link to="/admin/generation">🩺 Здраве на генерирането</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-brand/40"><Link to="/admin/growth-brief">🧠 Режим разсъждение</Link></Button>
           <Button asChild variant="outline" size="sm"><Link to="/admin/ai-json">🧩 Неуспешни AI отговори</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-brand/40"><Link to="/admin/bots">🤖 QA ботове</Link></Button>
