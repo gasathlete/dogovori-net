@@ -1122,13 +1122,11 @@ export default function WizardPage() {
 
       <main className="container py-6 md:py-8">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* LEFT — interview / risk report */}
-          <section className="space-y-5">
-            <RiskMeter
-              level={result?.risk.level ?? "unknown"}
-              score={result?.risk.score}
-              summary={result?.risk.summary}
-            />
+          {/* LEFT — interview / result panels (на мобилно резултатът идва след документа) */}
+          <section className={result ? "order-2 space-y-4 lg:order-1" : "space-y-5"}>
+            {!result && (
+              <RiskMeter level="unknown" />
+            )}
 
             {personalDataNotice && (
               <div className="flex items-start gap-2 rounded-lg border border-border/60 bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground animate-fade-in">
