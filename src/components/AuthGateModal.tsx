@@ -17,7 +17,7 @@ import {
   X,
 } from "@/icons";
 import { TrustGuaranteeBar } from "@/components/funnel/TrustGuaranteeBar";
-import { cheapestPerOpLabel, FREE_OPS_PER_MONTH } from "@/lib/pricing";
+import { cheapestPerOpLabel, FREE_OPS_ON_SIGNUP } from "@/lib/pricing";
 import { openInlineAuth } from "@/lib/inlineAuth";
 
 /**
