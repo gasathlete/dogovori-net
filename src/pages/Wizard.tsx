@@ -47,6 +47,7 @@ import { RefineDraftBox } from "@/components/wizard/RefineDraftBox";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { openInlineAuth } from "@/lib/inlineAuth";
 import { trackEvent } from "@/lib/analytics";
 import { trackDocStart, trackGenerate, trackFillStep, trackReviewResult, trackDocEvent } from "@/lib/docFunnel";
 import { getVariant, trackAbExposure, applyAbOverridesFromUrl } from "@/lib/ab";
@@ -379,8 +380,7 @@ export default function WizardPage() {
       }
       if (data?.requires_login) {
         trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: "requires_login" });
-        toast.error(data.error || "Влезте, за да продължите");
-        setTimeout(() => navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`), 1200);
+        goAuth({ action: "Генериране на документа", onSuccess: () => handleGenerate(userConfirmed) });
         return;
       }
       // Лични / чувствителни данни: сървърът иска изрично потвърждение или
@@ -682,8 +682,7 @@ export default function WizardPage() {
   const handleExport = async (format: "pdf" | "docx") => {
     if (!result) return;
     if (!user) {
-      toast.error("Влезте в профила си", { description: "Прогресът е запазен — ще се възстанови след вход." });
-      goAuth();
+      goAuth({ action: `Свали ${format.toUpperCase()}`, onSuccess: () => handleExport(format) });
       return;
     }
     // Strict document paywall — free users must subscribe or buy a single unlock
@@ -764,8 +763,7 @@ export default function WizardPage() {
   const handleApplyCorrections = async (sel: CorrectionsSelection, correctionsConfirmed = false) => {
     if (!result) return;
     if (!user) {
-      toast.error("Влезте в профила си", { description: "Прогресът е запазен." });
-      goAuth();
+      goAuth({ action: "Прилагане на корекции", onSuccess: () => handleApplyCorrections(sel, correctionsConfirmed) });
       return;
     }
     if (sel.issues.length === 0 && sel.recommendations.length === 0) {
@@ -836,8 +834,7 @@ export default function WizardPage() {
   const handleSaveToProfile = async () => {
     if (!result) return;
     if (!user) {
-      toast.error("Влезте в профила си", { description: "Прогресът е запазен." });
-      goAuth();
+      goAuth({ action: "Запазване в профила", onSuccess: () => handleSaveToProfile() });
       return;
     }
     if (savedDocId) {
@@ -908,8 +905,7 @@ export default function WizardPage() {
   ];
   const runBlankDownload = async () => {
     if (!user) {
-      toast.error("Влезте, за да изтеглите бланка", { description: "Прогресът е запазен." });
-      goAuth();
+      goAuth({ action: "Изтегляне на празна бланка", onSuccess: () => runBlankDownload() });
       return;
     }
     setDownloadingBlank(true);
@@ -981,8 +977,7 @@ export default function WizardPage() {
     if (authLoading) return;
     if (!authUser) {
       autoBlankTriggered.current = true;
-      toast.error("Влезте, за да изтеглите бланка", { description: "Прогресът е запазен." });
-      goAuth();
+      goAuth({ action: "Изтегляне на празна бланка", onSuccess: () => void runBlankDownload() });
       return;
     }
     autoBlankTriggered.current = true;
@@ -1375,7 +1370,7 @@ export default function WizardPage() {
                   busyDocx={exporting === "docx"}
                   onDownload={() => handleExport("pdf")}
                   onDownloadDocx={() => handleExport("docx")}
-                  onRegister={() => goAuth()}
+                  onRegister={() => goAuth({ action: "Запазване и сваляне на документа" })}
                 />
 
                 <CorrectionsPanel
@@ -1554,7 +1549,7 @@ export default function WizardPage() {
               )}
             </div>
             {result?.contract && !user && (
-              <AnonymousPreviewNotice onRegister={() => goAuth()} />
+              <AnonymousPreviewNotice onRegister={() => goAuth({ action: "Запазване и сваляне на документа" })} />
             )}
             {result?.contract && user && (
               <div className="mb-4">
@@ -1565,7 +1560,7 @@ export default function WizardPage() {
                     setResult({ ...result, contract: { ...result.contract, ...next } });
                     setSavedDocId(undefined);
                   }}
-                  onNeedAuth={() => goAuth()}
+                  onNeedAuth={() => goAuth({ action: "Продължаване на операцията" })}
                 />
               </div>
             )}
