@@ -6,6 +6,8 @@ import { lovable } from "@/integrations/lovable/index";
 import { translateAuthError } from "@/lib/authErrors";
 import { drainBufferedEvents } from "@/lib/bufferedEvents";
 import { INLINE_AUTH_EVENT, takeInlineAuthSuccess } from "@/lib/inlineAuth";
+import { FREE_OPS_ON_SIGNUP } from "@/lib/pricing";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
