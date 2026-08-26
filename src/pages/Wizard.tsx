@@ -1373,16 +1373,18 @@ export default function WizardPage() {
             )}
 
             {result && (
-              <div ref={resultRef} className="space-y-5 animate-fade-in scroll-mt-20">
-                <DocumentValueCard
+              <div ref={resultRef} className="space-y-4 animate-fade-in scroll-mt-20">
+                <ResultActionBar
                   documentTitle={customTitle || result.contract.title}
                   needsAuth={!user}
                   canDownload={!!user && !docAccess.loading && docAccess.canDownload}
-                  busy={exporting === "pdf"}
-                  busyDocx={exporting === "docx"}
-                  onDownload={() => handleExport("pdf")}
-                  onDownloadDocx={() => handleExport("docx")}
+                  exporting={exporting}
+                  saving={saving}
+                  saved={!!savedDocId}
                   opsLeft={opsLeft}
+                  onExportPdf={() => handleExport("pdf")}
+                  onExportDocx={() => handleExport("docx")}
+                  onSave={handleSaveToProfile}
                   onRegister={() => goAuth({ action: "Запазване и сваляне на документа" })}
                 />
 
@@ -1393,166 +1395,165 @@ export default function WizardPage() {
                   />
                 )}
 
-                <CorrectionsPanel
-                  isPro={isPro}
-                  freeWaveAvailable={freeWaveAvailable}
-                  issues={result.risk.issues || []}
-                  recommendations={result.risk.recommendations || []}
-                  loading={applyingCorrections}
-                  applied={appliedNotes}
-                  onApply={handleApplyCorrections}
-                  onUpgrade={() => navigate("/account?tab=subscription")}
-                />
-
-                <div className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft">
-                  <RiskReport
-                    level={result.risk.level}
-                    issues={result.risk.issues || []}
-                    recommendations={result.risk.recommendations || []}
-                    isPro={isPro}
-                  />
-                </div>
-
-                <FillLaterPersonalData
-                  value={fillLaterPersonal}
-                  onChange={setFillLaterPersonal}
-                />
-
-                <AIReviewCard
-                  contract={result.contract}
-                  documentType={docName ?? sector.contractName}
-                  ignorePersonalData={fillLaterPersonal}
-                />
-
-                {/* Cash payment disclaimer — shown when any answer mentions cash. */}
-                {Object.values(answers).some((v) =>
-                  typeof v === "string" && /\bбро[йя]\b|\bкеш\b|\bcash\b/i.test(v)
-                ) && (
-                  <LegalDisclaimer variant="warning">
-                    <strong>Плащане в брой:</strong> Съгласно чл. 3 от Закона за ограничаване на плащанията в брой (ЗОПБ) плащания на стойност <strong>равна или над 5 000 €</strong> (както и серия от свързани плащания, надхвърлящи прага) задължително се извършват само чрез превод по платежна сметка. Уверете се, че сумата по договора попада в позволения праг — в противен случай преминете към банков превод, за да избегнете санкции.
-                  </LegalDisclaimer>
-                )}
-
-                <ArbitrationSelector value={arbitration} onChange={setArbitration} />
-
-
-                <SignatureBlock
-                  isPro={isPro}
-                  defaultPartyA=""
-                  defaultPartyB=""
-                  value={signature}
-                  onChange={setSignature}
-                />
-
-
-                <div className="rounded-xl border border-gold/30 bg-gradient-card p-6 shadow-soft">
-                  <h3 className="mb-1 font-serif text-lg font-bold">Финализиране</h3>
-                  <p className="mb-4 text-xs text-muted-foreground">
-                    Именувайте договора и (по избор) го свържете с контрагент. Запазва се във „Всички" — после може да го преместите в папка от профила си.
-                  </p>
-
-                  <div className="mb-4 grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="doc-title" className="text-xs uppercase tracking-wider text-muted-foreground">
-                        Име на договора
-                      </Label>
-                      <Input
-                        id="doc-title"
-                        value={customTitle}
-                        onChange={(e) => { setCustomTitle(e.target.value); setSavedDocId(undefined); }}
-                        placeholder={result.contract.title}
-                        className="bg-card/60"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                        <span className="inline-flex items-center gap-1"><User className="h-3 w-3" /> Контрагент</span>
-                      </Label>
-                      <Select
-                        value={contactId || "none"}
-                        onValueChange={(v) => { setContactId(v === "none" ? "" : v); setSavedDocId(undefined); }}
-                      >
-                        <SelectTrigger className="bg-card/60">
-                          <SelectValue placeholder="— Без контрагент —" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">— Без контрагент —</SelectItem>
-                          {contacts.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {user && contacts.length === 0 && (
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/account?tab=contacts&redirect=${encodeURIComponent(wizardHref)}`)}
-                          className="text-[11px] text-gold hover:underline"
-                        >
-                          + Добави контрагент
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <h4 className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">Експорт</h4>
-                  <div className="flex flex-col gap-2 sm:flex-row">
+                <ResultShell
+                  risk={{
+                    level: result.risk.level,
+                    score: result.risk.score,
+                    summary: result.risk.summary,
+                  }}
+                  riskSectionId="risk"
+                  sections={[
+                    {
+                      id: "corrections",
+                      title: "Корекции и препоръки",
+                      badge:
+                        (result.risk.issues?.length ?? 0) + (result.risk.recommendations?.length ?? 0) > 0
+                          ? String((result.risk.issues?.length ?? 0) + (result.risk.recommendations?.length ?? 0))
+                          : undefined,
+                      badgeTone: result.risk.level === "high" ? "danger" : "warning",
+                      defaultOpen:
+                        result.risk.level === "high" && (result.risk.issues?.length ?? 0) > 0,
+                      content: (
+                        <CorrectionsPanel
+                          isPro={isPro}
+                          freeWaveAvailable={freeWaveAvailable}
+                          issues={result.risk.issues || []}
+                          recommendations={result.risk.recommendations || []}
+                          loading={applyingCorrections}
+                          applied={appliedNotes}
+                          onApply={handleApplyCorrections}
+                          onUpgrade={() => navigate("/account?tab=subscription")}
+                        />
+                      ),
+                    },
+                    {
+                      id: "risk",
+                      title: "Правен риск и анализ",
+                      content: (
+                        <>
+                          <RiskReport
+                            level={result.risk.level}
+                            issues={result.risk.issues || []}
+                            recommendations={result.risk.recommendations || []}
+                            isPro={isPro}
+                          />
+                          {/* Плащане в брой — показва се, ако отговор споменава кеш. */}
+                          {Object.values(answers).some(
+                            (v) => typeof v === "string" && /\bбро[йя]\b|\bкеш\b|\bcash\b/i.test(v),
+                          ) && (
+                            <LegalDisclaimer variant="warning">
+                              <strong>Плащане в брой:</strong> Съгласно чл. 3 от Закона за ограничаване на плащанията в брой (ЗОПБ) плащания на стойност <strong>равна или над 5 000 €</strong> (както и серия от свързани плащания, надхвърлящи прага) задължително се извършват само чрез превод по платежна сметка. Уверете се, че сумата по договора попада в позволения праг.
+                            </LegalDisclaimer>
+                          )}
+                        </>
+                      ),
+                    },
+                    {
+                      id: "quality",
+                      title: "AI проверка на качеството",
+                      hint: "Втори прочит от AI одитор — открива липсващи клаузи и незапълнени полета.",
+                      content: (
+                        <>
+                          <FillLaterPersonalData
+                            value={fillLaterPersonal}
+                            onChange={setFillLaterPersonal}
+                          />
+                          <AIReviewCard
+                            contract={result.contract}
+                            documentType={docName ?? sector.contractName}
+                            ignorePersonalData={fillLaterPersonal}
+                          />
+                        </>
+                      ),
+                    },
+                    {
+                      id: "signing",
+                      title: "Подпис и арбитраж",
+                      content: (
+                        <>
+                          <ArbitrationSelector value={arbitration} onChange={setArbitration} />
+                          <SignatureBlock
+                            isPro={isPro}
+                            defaultPartyA=""
+                            defaultPartyB=""
+                            value={signature}
+                            onChange={setSignature}
+                          />
+                        </>
+                      ),
+                    },
+                    {
+                      id: "save",
+                      title: "Име и контрагент",
+                      badge: savedDocId ? "запазено" : undefined,
+                      badgeTone: "success",
+                      hint: "Документът се запазва във „Всички“ — после може да го преместите в папка от профила си.",
+                      content: (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="space-y-1.5">
+                            <Label htmlFor="doc-title" className="text-xs uppercase tracking-wider text-muted-foreground">
+                              Име на договора
+                            </Label>
+                            <Input
+                              id="doc-title"
+                              value={customTitle}
+                              onChange={(e) => { setCustomTitle(e.target.value); setSavedDocId(undefined); }}
+                              placeholder={result.contract.title}
+                              className="bg-card/60"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                              <span className="inline-flex items-center gap-1"><User className="h-3 w-3" /> Контрагент</span>
+                            </Label>
+                            <Select
+                              value={contactId || "none"}
+                              onValueChange={(v) => { setContactId(v === "none" ? "" : v); setSavedDocId(undefined); }}
+                            >
+                              <SelectTrigger className="bg-card/60">
+                                <SelectValue placeholder="— Без контрагент —" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">— Без контрагент —</SelectItem>
+                                {contacts.map((c) => (
+                                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {user && contacts.length === 0 && (
+                              <button
+                                type="button"
+                                onClick={() => navigate(`/account?tab=contacts&redirect=${encodeURIComponent(wizardHref)}`)}
+                                className="text-[11px] text-gold hover:underline"
+                              >
+                                + Добави контрагент
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ),
+                    },
+                  ]}
+                  footer={
                     <Button
-                      onClick={() => handleExport("pdf")}
-                      disabled={!!exporting}
-                      className="flex-1 bg-gradient-gold text-navy hover:shadow-gold"
+                      variant="ghost"
+                      onClick={() => {
+                        clearDraft();
+                        setResult(null);
+                        setStepIdx(0);
+                        setAnswers({});
+                        setSavedDocId(undefined);
+                        setAppliedNotes(undefined);
+                        setSignature({ name_a: "", name_b: "", city: "", date: "" });
+                        setCustomTitle("");
+                        setContactId("");
+                      }}
+                      className="w-full text-xs text-muted-foreground hover:text-gold"
                     >
-                      {exporting === "pdf" ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <FileDown className="mr-2 h-4 w-4" />
-                      )}
-                      Свали PDF
+                      Започни нов договор
                     </Button>
-                    <Button
-                      onClick={() => handleExport("docx")}
-                      disabled={!!exporting}
-                      variant="outline"
-                      className="flex-1 border-gold/40 hover:bg-gold/10 hover:text-gold"
-                    >
-                      {exporting === "docx" ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <FileText className="mr-2 h-4 w-4" />
-                      )}
-                      Свали DOCX
-                    </Button>
-                  </div>
-                  <Button
-                    onClick={handleSaveToProfile}
-                    disabled={saving || !!savedDocId}
-                    variant="outline"
-                    className="mt-2 w-full border-gold/40 hover:bg-gold/10 hover:text-gold"
-                  >
-                    {saving ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="mr-2 h-4 w-4" />
-                    )}
-                    {savedDocId ? "Запазено в профила" : "Запази в профила"}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      clearDraft();
-                      setResult(null);
-                      setStepIdx(0);
-                      setAnswers({});
-                      setSavedDocId(undefined);
-                      setAppliedNotes(undefined);
-                      setSignature({ name_a: "", name_b: "", city: "", date: "" });
-                      setCustomTitle("");
-                      setContactId("");
-                    }}
-                    className="mt-3 w-full text-xs text-muted-foreground hover:text-gold"
-                  >
-                    Започни нов договор
-                  </Button>
-                </div>
+                  }
+                />
               </div>
             )}
           </section>
