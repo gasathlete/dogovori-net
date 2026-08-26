@@ -979,3 +979,36 @@ svg.lucide[stroke-width="2"]:not(.icon-native-stroke) {
   stroke-width: 1.75;
 }
 
+
+/* ── Допаминово преживяване след успешно генериране (дискретно) ───────── */
+@keyframes success-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes success-ring {
+  0% { transform: scale(0.6); opacity: 0.55; }
+  100% { transform: scale(2.1); opacity: 0; }
+}
+@keyframes success-spark {
+  0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translate(var(--spark-x), var(--spark-y)) scale(1); opacity: 0; }
+}
+@keyframes cta-invite {
+  0%, 62%, 100% { transform: translateY(0); box-shadow: 0 0 0 0 hsl(var(--gold) / 0); }
+  70% { transform: translateY(-2px); box-shadow: 0 8px 24px -6px hsl(var(--gold) / 0.55); }
+  86% { transform: translateY(0); box-shadow: 0 4px 14px -6px hsl(var(--gold) / 0.35); }
+}
+.success-pop { animation: success-pop 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.success-ring { animation: success-ring 1100ms ease-out 120ms both; }
+.success-spark { animation: success-spark 900ms ease-out both; }
+.cta-invite { animation: cta-invite 2.6s ease-in-out 400ms 2 both; }
+@media (prefers-reduced-motion: reduce) {
+  .success-pop,
+  .success-ring,
+  .success-spark,
+  .cta-invite {
+    animation: none !important;
+  }
+}

@@ -1,6 +1,7 @@
 import { CheckCircle, FileDown, FileText, Loader2, Save } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { SuccessCelebration } from "@/components/wizard/SuccessCelebration";
 
 type Props = {
   documentTitle: string;
@@ -40,13 +41,16 @@ export function ResultActionBar({
       {/* Компактен статус ред — винаги видим в потока на документа */}
       <div className="rounded-xl border border-gold/30 bg-gradient-card px-4 py-3 shadow-soft">
         <div className="flex items-start gap-2">
-          <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-gold" aria-hidden />
+          <SuccessCelebration className="mt-0.5 shrink-0" />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-gold">
               Документът е готов
             </p>
             <p className="truncate text-sm font-medium text-foreground" title={documentTitle}>
               {documentTitle}
+            </p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Остава само да го свалиш — PDF за подпис или DOCX за редакция.
             </p>
             {typeof opsLeft === "number" && !needsAuth && (
               <p className="mt-0.5 text-[11px] text-muted-foreground">
@@ -69,7 +73,7 @@ export function ResultActionBar({
         {needsAuth ? (
           <Button
             onClick={onRegister}
-            className="h-11 w-full bg-gradient-gold text-navy hover:shadow-gold"
+            className="cta-invite h-11 w-full bg-gradient-gold text-navy transition-transform hover:shadow-gold active:scale-[0.98]"
           >
             Регистрация и сваляне
           </Button>
@@ -78,7 +82,7 @@ export function ResultActionBar({
             <Button
               onClick={onExportPdf}
               disabled={busy || !canDownload}
-              className="h-11 flex-1 bg-gradient-gold text-navy hover:shadow-gold"
+              className="cta-invite h-11 flex-1 bg-gradient-gold text-navy transition-transform hover:shadow-gold active:scale-[0.98]"
             >
               {exporting === "pdf" ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -91,7 +95,7 @@ export function ResultActionBar({
               onClick={onExportDocx}
               disabled={busy || !canDownload}
               variant="outline"
-              className="h-11 flex-1 border-gold/40 hover:bg-gold/10 hover:text-gold"
+              className="h-11 flex-1 border-gold/40 transition-transform hover:bg-gold/10 hover:text-gold active:scale-[0.98]"
             >
               {exporting === "docx" ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
