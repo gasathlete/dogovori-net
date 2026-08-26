@@ -20,6 +20,7 @@ import { TOPUP_PACK_CONFIG, fmtEur, roiSubtitle, monthlyLabel, PRICING_PLANS, FR
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getPreferredFormat, setPreferredFormat, type DocFormat } from "@/lib/preferredFormat";
+import { useKeyboardInset } from "@/hooks/useKeyboardOpen";
 import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { slugify } from "@/lib/slugify";
@@ -190,6 +191,8 @@ export default function WizardPage() {
   const resultRef = useRef<HTMLDivElement | null>(null);
   /** Последно избраният формат — първа опция при следващо сваляне. */
   const [preferredFmt, setPreferredFmt] = useState<DocFormat>(() => getPreferredFormat());
+  /** Височина на софтуерната клавиатура — повдига фиксираната лента, за да няма застъпване. */
+  const keyboardInset = useKeyboardInset();
 
   /**
    * Дискретен тост след успешно генериране с двете действия за сваляне,
