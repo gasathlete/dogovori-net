@@ -2,6 +2,8 @@ import { CheckCircle, FileDown, FileText, Loader2, Save } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SuccessCelebration } from "@/components/wizard/SuccessCelebration";
+import { useKeyboardOpen } from "@/hooks/useKeyboardOpen";
+import type { DocFormat } from "@/lib/preferredFormat";
 
 type Props = {
   documentTitle: string;
@@ -11,6 +13,8 @@ type Props = {
   saving: boolean;
   saved: boolean;
   opsLeft?: number | null;
+  /** Последно използваният формат — показва се първи и е основното действие. */
+  preferredFormat?: DocFormat;
   onExportPdf: () => void;
   onExportDocx: () => void;
   onSave: () => void;
@@ -19,7 +23,8 @@ type Props = {
 
 /**
  * Единственият панел с действия след генериране.
- * Мобилно: фиксиран най-долу (safe-area). Десктоп: inline в началото на резултата.
+ * Мобилно: фиксиран най-долу (safe-area, скрива се при отворена клавиатура).
+ * Десктоп: inline в началото на резултата.
  */
 export function ResultActionBar({
   documentTitle,
@@ -29,12 +34,22 @@ export function ResultActionBar({
   saving,
   saved,
   opsLeft,
+  preferredFormat = "pdf",
   onExportPdf,
   onExportDocx,
   onSave,
   onRegister,
 }: Props) {
   const busy = !!exporting;
+  const keyboardOpen = useKeyboardOpen();
+
+  const buttons: { format: DocFormat; label: string; onClick: () => void }[] = [
+    { format: "pdf", label: "PDF", onClick: onExportPdf },
+    { format: "docx", label: "DOCX", onClick: onExportDocx },
+  ];
+  const ordered =
+    preferredFormat === "docx" ? [buttons[1], buttons[0]] : buttons;
+  const primary = ordered[0];
 
   return (
     <>
@@ -50,12 +65,24 @@ export function ResultActionBar({
               {documentTitle}
             </p>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
-              Остава само да го свалиш — PDF за подпис или DOCX за редакция.
+              Остава една крачка — свали го и е готов за подпис.
             </p>
             {typeof opsLeft === "number" && !needsAuth && (
               <p className="mt-0.5 text-[11px] text-muted-foreground">
                 Оставащи операции: <span className="font-semibold text-foreground">{Math.max(0, opsLeft)}</span>
               </p>
+            )}
+            {!needsAuth && (
+              <Button
+                onClick={primary.onClick}
+                disabled={busy || !canDownload}
+                variant="ghost"
+                size="sm"
+                className="motion-safe:animate-pulse-twice mt-2 h-9 px-2 text-xs font-semibold text-emerald-600 hover:text-emerald-700 dark:text-gold dark:hover:text-gold"
+              >
+                <FileDown className="mr-1.5 h-3.5 w-3.5" />
+                Свали сега ({primary.label})
+              </Button>
             )}
           </div>
         </div>
@@ -66,7 +93,8 @@ export function ResultActionBar({
 
       <div
         className={cn(
-          "fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 px-4 py-3 pb-safe backdrop-blur-md",
+          "fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 px-4 py-3 pb-safe backdrop-blur-md transition-transform duration-200",
+          keyboardOpen && "translate-y-full lg:translate-y-0",
           "lg:static lg:z-auto lg:rounded-xl lg:border lg:bg-card/60 lg:px-4 lg:py-4 lg:backdrop-blur-none",
         )}
       >
@@ -79,31 +107,29 @@ export function ResultActionBar({
           </Button>
         ) : (
           <div className="flex items-center gap-2">
-            <Button
-              onClick={onExportPdf}
-              disabled={busy || !canDownload}
-              className="cta-invite h-11 flex-1 bg-gradient-gold text-navy transition-transform hover:shadow-gold active:scale-[0.98]"
-            >
-              {exporting === "pdf" ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <FileDown className="mr-2 h-4 w-4" />
-              )}
-              PDF
-            </Button>
-            <Button
-              onClick={onExportDocx}
-              disabled={busy || !canDownload}
-              variant="outline"
-              className="h-11 flex-1 border-gold/40 transition-transform hover:bg-gold/10 hover:text-gold active:scale-[0.98]"
-            >
-              {exporting === "docx" ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <FileText className="mr-2 h-4 w-4" />
-              )}
-              DOCX
-            </Button>
+            {ordered.map((b, i) => (
+              <Button
+                key={b.format}
+                onClick={b.onClick}
+                disabled={busy || !canDownload}
+                variant={i === 0 ? "default" : "outline"}
+                className={cn(
+                  "h-11 flex-1 transition-transform active:scale-[0.98]",
+                  i === 0
+                    ? "cta-invite bg-gradient-gold text-navy hover:shadow-gold"
+                    : "border-gold/40 hover:bg-gold/10 hover:text-gold",
+                )}
+              >
+                {exporting === b.format ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : b.format === "pdf" ? (
+                  <FileDown className="mr-2 h-4 w-4" />
+                ) : (
+                  <FileText className="mr-2 h-4 w-4" />
+                )}
+                {b.label}
+              </Button>
+            ))}
             <Button
               onClick={onSave}
               disabled={saving || saved}

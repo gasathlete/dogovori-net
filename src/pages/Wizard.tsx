@@ -19,6 +19,8 @@ import { FillLaterPersonalData } from "@/components/wizard/FillLaterPersonalData
 import { TOPUP_PACK_CONFIG, fmtEur, roiSubtitle, monthlyLabel, PRICING_PLANS, FREE_OPS_PER_MONTH } from "@/lib/pricing";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getPreferredFormat, setPreferredFormat, type DocFormat } from "@/lib/preferredFormat";
+import { useKeyboardInset } from "@/hooks/useKeyboardOpen";
 import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { slugify } from "@/lib/slugify";
@@ -187,6 +189,47 @@ export default function WizardPage() {
   const consentRef = useRef<HTMLDivElement | null>(null);
   /** Блокът с готовия документ — фокус след успешно генериране. */
   const resultRef = useRef<HTMLDivElement | null>(null);
+  /** Последно избраният формат — първа опция при следващо сваляне. */
+  const [preferredFmt, setPreferredFmt] = useState<DocFormat>(() => getPreferredFormat());
+  /** Височина на софтуерната клавиатура — повдига фиксираната лента, за да няма застъпване. */
+  const keyboardInset = useKeyboardInset();
+
+  /**
+   * Дискретен тост след успешно генериране с двете действия за сваляне,
+   * за да не е нужно превъртане до долната лента.
+   */
+  const showReadyToast = () => {
+    const order: DocFormat[] = preferredFmt === "docx" ? ["docx", "pdf"] : ["pdf", "docx"];
+    toast.custom(
+      (id) => (
+        <div className="w-[min(92vw,360px)] rounded-xl border border-gold/30 bg-card px-4 py-3 shadow-elegant">
+          <p className="text-sm font-semibold text-foreground">Документът е готов</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">Свали го в предпочитания формат.</p>
+          <div className="mt-2.5 flex gap-2">
+            {order.map((f, i) => (
+              <Button
+                key={f}
+                size="sm"
+                variant={i === 0 ? "default" : "outline"}
+                className={
+                  i === 0
+                    ? "h-9 flex-1 bg-gradient-gold text-navy hover:shadow-gold"
+                    : "h-9 flex-1 border-gold/40 hover:bg-gold/10 hover:text-gold"
+                }
+                onClick={() => {
+                  toast.dismiss(id);
+                  void handleExport(f);
+                }}
+              >
+                {f.toUpperCase()}
+              </Button>
+            ))}
+          </div>
+        </div>
+      ),
+      { duration: 9000 },
+    );
+  };
   /** Български етикети за категориите лични данни от сървърната класификация. */
   const PII_LABELS: Record<string, string> = {
     egn: "ЕГН",
@@ -218,12 +261,12 @@ export default function WizardPage() {
           return el.getAttribute("data-placeholder") != null || !el.textContent?.trim();
         }) ?? candidates[0];
       if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        target.scrollIntoView({ behavior: "smooth", block: "nearest" });
         setTimeout(() => {
           try { target.focus({ preventScroll: true }); } catch { /* ignore */ }
         }, 300);
       } else {
-        root.scrollIntoView({ behavior: "smooth", block: "center" });
+        root.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     });
   };
@@ -410,7 +453,7 @@ export default function WizardPage() {
           description: "Вижте панела за съгласие при въпросите и потвърдете, за да продължим.",
         });
         // На мобилно панелът може да е извън екрана — скролираме до него.
-        setTimeout(() => consentRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
+        setTimeout(() => consentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
         return;
       }
       if (error || !data || (data as { error?: string }).error) {
@@ -434,10 +477,14 @@ export default function WizardPage() {
 
       // Trigger AI disclaimer once per session on first document creation.
       ensureAIDisclaimerAccepted().catch(() => {});
-      toast.success("Договорът е готов", { description: "Прегледайте го и го свалете в PDF или DOCX." });
-      // Фокус върху готовия документ и бутона „Свали" — на мобилно прегледът е
-      // под сгъваемата зона и без скрол потребителят не разбира, че е готово.
-      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
+      showReadyToast();
+      // Резултатът започва отгоре — без хаотично „мятане" по средата на екрана.
+      requestAnimationFrame(() => {
+        const top = resultRef.current
+          ? resultRef.current.getBoundingClientRect().top + window.scrollY - 72
+          : 0;
+        window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+      });
     } catch (e: any) {
       if (isStale()) return;
       setGenFailed(true);
@@ -700,6 +747,8 @@ export default function WizardPage() {
       setShowPaywall(true);
       return;
     }
+    setPreferredFormat(format);
+    setPreferredFmt(format);
     setExporting(format);
     try {
       // Изграждаме списък със страни само по РОЛЯ и ФОРМА — без имена / ЕГН / лични данни.
@@ -1209,7 +1258,7 @@ export default function WizardPage() {
                     setAttemptedNext(false);
                     trackFillStep(stepIdx + 1, total, { doc_key: docName, source: "wizard" });
                     setStepIdx((i) => i + 1);
-                    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
+                    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
                   }
                 }}
                 className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft animate-fade-in"
@@ -1255,10 +1304,11 @@ export default function WizardPage() {
                 {/* Spacer for mobile sticky action bar */}
                 <div className="h-20 lg:hidden" aria-hidden="true" />
                 <div
+                  style={keyboardInset ? { transform: `translateY(-${keyboardInset}px)` } : undefined}
                   className={
-                    // Mobile: fixed at bottom with safe-area. Desktop: inline.
-                    "fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-border/60 bg-background/95 px-4 py-3 pb-safe backdrop-blur-md " +
-                    "lg:static lg:mt-8 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none"
+                    // Mobile: fixed at bottom with safe-area, повдигнат над клавиатурата.
+                    "fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-border/60 bg-background/95 px-4 py-3 pb-safe backdrop-blur-md transition-transform duration-150 " +
+                    "lg:static lg:mt-8 lg:translate-y-0 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none"
                   }
                 >
                   <Button
@@ -1266,7 +1316,7 @@ export default function WizardPage() {
                     onClick={() => {
                       setAttemptedNext(false);
                       setStepIdx((i) => Math.max(0, i - 1));
-                      setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
+                      window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
                     }}
                     disabled={safeIdx === 0}
                     className="h-11 text-muted-foreground hover:text-foreground"
@@ -1304,7 +1354,7 @@ export default function WizardPage() {
                         setAttemptedNext(false);
                         trackFillStep(stepIdx + 1, total, { doc_key: docName, source: "wizard" });
                         setStepIdx((i) => i + 1);
-                        setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
+                        window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
                       }}
                       disabled={generating}
                       className="h-11 bg-gradient-gold text-navy hover:shadow-gold"
@@ -1382,6 +1432,7 @@ export default function WizardPage() {
                   saving={saving}
                   saved={!!savedDocId}
                   opsLeft={opsLeft}
+                  preferredFormat={preferredFmt}
                   onExportPdf={() => handleExport("pdf")}
                   onExportDocx={() => handleExport("docx")}
                   onSave={handleSaveToProfile}
