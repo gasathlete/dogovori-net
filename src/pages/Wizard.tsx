@@ -16,7 +16,7 @@ import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { getFillLaterPersonalData } from "@/lib/placeholderGate";
 import { AIReviewCard } from "@/components/wizard/AIReviewCard";
 import { FillLaterPersonalData } from "@/components/wizard/FillLaterPersonalData";
-import { TOPUP_PACK_CONFIG, fmtEur, roiSubtitle, monthlyLabel, PRICING_PLANS } from "@/lib/pricing";
+import { TOPUP_PACK_CONFIG, fmtEur, roiSubtitle, monthlyLabel, PRICING_PLANS, FREE_OPS_PER_MONTH } from "@/lib/pricing";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
