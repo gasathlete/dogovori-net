@@ -435,10 +435,14 @@ export default function WizardPage() {
 
       // Trigger AI disclaimer once per session on first document creation.
       ensureAIDisclaimerAccepted().catch(() => {});
-      toast.success("Договорът е готов", { description: "Прегледайте го и го свалете в PDF или DOCX." });
-      // Фокус върху готовия документ и бутона „Свали" — на мобилно прегледът е
-      // под сгъваемата зона и без скрол потребителят не разбира, че е готово.
-      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
+      showReadyToast();
+      // Резултатът започва отгоре — без хаотично „мятане" по средата на екрана.
+      requestAnimationFrame(() => {
+        const top = resultRef.current
+          ? resultRef.current.getBoundingClientRect().top + window.scrollY - 72
+          : 0;
+        window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+      });
     } catch (e: any) {
       if (isStale()) return;
       setGenFailed(true);
