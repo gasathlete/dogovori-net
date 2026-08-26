@@ -55,6 +55,7 @@ import { getVariant, trackAbExposure, applyAbOverridesFromUrl } from "@/lib/ab";
 import { useDocumentAccess } from "@/hooks/useDocumentAccess";
 import { StrictDocumentPaywall } from "@/components/wizard/StrictDocumentPaywall";
 import { AnonymousPreviewNotice } from "@/components/wizard/AnonymousPreviewNotice";
+import { PostDownloadUpgradeBanner } from "@/components/wizard/PostDownloadUpgradeBanner";
 import { OpsHintBar } from "@/components/wizard/OpsHintBar";
 import { DocumentValueCard } from "@/components/wizard/DocumentValueCard";
 import { useEnterFocusNext } from "@/hooks/useEnterFocusNext";
@@ -647,6 +648,11 @@ export default function WizardPage() {
         // Free plan: up to 2 корекционни вълни.
         const freeWavesUsed = Number((data as any).corrections_free_used_count ?? 0);
         setFreeWaveAvailable(freeWavesUsed < 2);
+        // Оставащи операции = месечен лимит − изразходвани + закупени пакети.
+        const cap = Number(data.plan_ops_cap ?? FREE_OPS_PER_MONTH);
+        const used = Number(data.monthly_total_used ?? 0);
+        const topup = Number(data.topup_ops_balance ?? 0);
+        setOpsLeft(Math.max(0, cap - used) + Math.max(0, topup));
       });
     supabase.from("contacts").select("id, name, type").is("deleted_at", null).order("created_at", { ascending: false })
       .then(({ data }) => setContacts((data as any) ?? []));
@@ -752,6 +758,8 @@ export default function WizardPage() {
         description: res.free ? "Повторно сваляне (безплатно)" : "Запазен в Документи → Всички",
       });
 
+      setDownloadCount((n) => n + 1);
+      if (!isPro) setShowUpgradeBanner(true);
       maybeAskForFeedback("download");
     } catch (e: any) {
       toast.error("Грешка при експорт", { description: String(e?.message ?? e) });
@@ -830,6 +838,10 @@ export default function WizardPage() {
     }
   };
 
+  /** Брой сваляния в текущата сесия + контекстуален банер за планове. */
+  const [opsLeft, setOpsLeft] = useState<number | null>(null);
+  const [downloadCount, setDownloadCount] = useState(0);
+  const [showUpgradeBanner, setShowUpgradeBanner] = useState(false);
   const [saving, setSaving] = useState(false);
   const handleSaveToProfile = async () => {
     if (!result) return;
@@ -1370,8 +1382,16 @@ export default function WizardPage() {
                   busyDocx={exporting === "docx"}
                   onDownload={() => handleExport("pdf")}
                   onDownloadDocx={() => handleExport("docx")}
+                  opsLeft={opsLeft}
                   onRegister={() => goAuth({ action: "Запазване и сваляне на документа" })}
                 />
+
+                {showUpgradeBanner && (
+                  <PostDownloadUpgradeBanner
+                    downloads={downloadCount}
+                    onDismiss={() => setShowUpgradeBanner(false)}
+                  />
+                )}
 
                 <CorrectionsPanel
                   isPro={isPro}
