@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { drainBufferedEvents } from "@/lib/bufferedEvents";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   Sparkles,
@@ -17,7 +17,8 @@ import {
   X,
 } from "@/icons";
 import { TrustGuaranteeBar } from "@/components/funnel/TrustGuaranteeBar";
-import { cheapestPerOpLabel } from "@/lib/pricing";
+import { cheapestPerOpLabel, FREE_OPS_PER_MONTH } from "@/lib/pricing";
+import { openInlineAuth } from "@/lib/inlineAuth";
 
 /**
  * Global auth gate modal.
@@ -60,11 +61,6 @@ export function AuthGateModal() {
   useEffect(() => {
     setOpen(false);
   }, [location.pathname]);
-
-  const redirect = detail.redirect ?? (typeof window !== "undefined" ? location.pathname + location.search : "/");
-  const safeRedirect = /^\/[^/\\]/.test(redirect) ? redirect : "/";
-  const authHref = `/auth?redirect=${encodeURIComponent(safeRedirect)}`;
-  const signupHref = `/auth?tab=signup&redirect=${encodeURIComponent(safeRedirect)}`;
 
   const skip = () => setOpen(false);
 
@@ -195,7 +191,7 @@ export function AuthGateModal() {
           {/* Trust line + guarantees */}
           <div className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-[11px] text-emerald-600 dark:text-emerald-400">
             <ShieldCheck className="h-3.5 w-3.5" />
-            <span>5 безплатни операции · без карта · GDPR</span>
+            <span>{FREE_OPS_PER_MONTH} безплатни операции месечно · без карта · GDPR</span>
           </div>
           <div className="mt-3">
             <TrustGuaranteeBar compact />
@@ -203,21 +199,27 @@ export function AuthGateModal() {
 
           {/* CTAs */}
           <div className="mt-4 flex flex-col gap-2">
-            <Link
-              to={signupHref}
-              onClick={() => setOpen(false)}
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                openInlineAuth({ action: detail.action, mode: "signup" });
+              }}
               className="inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-b from-gold to-gold/80 px-4 py-3 text-sm font-semibold text-navy shadow-[0_4px_14px_-4px_hsl(var(--gold)/0.55)] transition-all hover:brightness-110"
             >
               <Sparkles className="h-4 w-4" /> Започни безплатно
               <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              to={authHref}
-              onClick={() => setOpen(false)}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                openInlineAuth({ action: detail.action, mode: "login" });
+              }}
               className="inline-flex items-center justify-center rounded-md px-4 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:text-gold"
             >
-              Имам акаунт → Вход
-            </Link>
+              Имам профил → Вход
+            </button>
             <button
               type="button"
               onClick={skip}

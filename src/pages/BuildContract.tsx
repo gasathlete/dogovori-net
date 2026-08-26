@@ -48,6 +48,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsPro } from "@/hooks/useIsPro";
 import { toast } from "sonner";
+import { openInlineAuth } from "@/lib/inlineAuth";
 import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { mergeParentWithAppendices } from "@/lib/appendixMerger";
@@ -338,7 +339,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     "Финализираме документа — почти готово…",
   ];
 
-  const goAuth = () => {
+  const goAuth = (opts?: { action?: string; onSuccess?: () => void }) => {
     // Snapshot current state synchronously so nothing typed just before this
     // navigation is lost across the /auth → return roundtrip.
     try {
@@ -350,8 +351,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         result, signature, savedDocId, stepIdx,
       }));
     } catch {}
-    const dest = window.location.pathname + window.location.search;
-    navigate(`/auth?redirect=${encodeURIComponent(dest)}`);
+    // Инлайн вход — без напускане на текущия екран, за да не се губи инерция.
+    openInlineAuth({ action: opts?.action, onSuccess: opts?.onSuccess });
   };
   const goSubscription = () => navigate(`/account?tab=subscription`);
 
@@ -504,17 +505,17 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         } catch { /* ignore */ }
         if (parsed?.code === "auth_required" || msg.includes("401")) {
           toast.error(parsed?.error || "Влезте, за да изградите договора", {
-            description: "Пренасочваме ви към входа…",
+            description: "Въведените данни остават запазени.",
           });
-          setTimeout(goAuth, 900);
+          goAuth({ action: "Изготвяне на документа" });
           return;
         }
         throw error;
       }
       if (!data || data.error) {
         if (data?.requires_login || data?.code === "auth_required") {
-          toast.error(data.error || "Влезте с email или Google, за да продължите");
-          setTimeout(goAuth, 900);
+          toast.error(data.error || "Влезте с електронна поща или Google, за да продължите");
+          goAuth({ action: "Изготвяне на документа" });
           return;
         }
         throw new Error(data?.error || "Неуспешно създаване");
@@ -618,7 +619,10 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
 
   const handleExport = async (format: "pdf" | "docx") => {
     if (!result) return;
-    if (!user) { goAuth(); return; }
+    if (!user) {
+      goAuth({ action: `Свали ${format.toUpperCase()}`, onSuccess: () => handleExport(format) });
+      return;
+    }
     setExporting(format);
     try {
       const sigPayload: SignatureInfo = {
@@ -693,8 +697,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   const handleApplyCorrections = async (sel: CorrectionsSelection, correctionsConfirmed = false) => {
     if (!result) return;
     if (!user) {
-      toast.error("Влезте в профила си", { description: "Прогресът е запазен." });
-      navigate("/auth");
+      goAuth({ action: "Прилагане на корекции", onSuccess: () => handleApplyCorrections(sel, correctionsConfirmed) });
       return;
     }
     if (sel.issues.length === 0 && sel.recommendations.length === 0) {
@@ -762,7 +765,10 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
 
   const handleSaveToProfile = async () => {
     if (!result) return;
-    if (!user) { goAuth(); return; }
+    if (!user) {
+      goAuth({ action: "Запазване в профила", onSuccess: () => handleSaveToProfile() });
+      return;
+    }
     if (savedDocId) {
       toast.message("Документът вече е запазен", { description: "Намерете го в Документи → Всички." });
       return;
@@ -886,7 +892,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                 {!user && (
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-foreground">
                     <span>За да изградите договор, влезте безплатно с email или Google.</span>
-                    <Button size="sm" variant="outline" onClick={goAuth} className="h-7 border-gold/50 text-xs">
+                    <Button size="sm" variant="outline" onClick={() => goAuth({ action: "Запазване на документа" })} className="h-7 border-gold/50 text-xs">
                       Вход
                     </Button>
                   </div>
@@ -1455,7 +1461,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                 }
                 busy={exporting === "pdf"}
                 onDownload={() => handleExport("pdf")}
-                onRegister={goAuth}
+                onRegister={() => goAuth({ action: "Запазване и сваляне на документа" })}
               />
             )}
 

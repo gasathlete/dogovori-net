@@ -16,7 +16,7 @@ import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { getFillLaterPersonalData } from "@/lib/placeholderGate";
 import { AIReviewCard } from "@/components/wizard/AIReviewCard";
 import { FillLaterPersonalData } from "@/components/wizard/FillLaterPersonalData";
-import { TOPUP_PACK_CONFIG, fmtEur, roiSubtitle, monthlyLabel, PRICING_PLANS } from "@/lib/pricing";
+import { TOPUP_PACK_CONFIG, fmtEur, roiSubtitle, monthlyLabel, PRICING_PLANS, FREE_OPS_PER_MONTH } from "@/lib/pricing";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
@@ -47,6 +47,7 @@ import { RefineDraftBox } from "@/components/wizard/RefineDraftBox";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { openInlineAuth } from "@/lib/inlineAuth";
 import { trackEvent } from "@/lib/analytics";
 import { trackDocStart, trackGenerate, trackFillStep, trackReviewResult, trackDocEvent } from "@/lib/docFunnel";
 import { getVariant, trackAbExposure, applyAbOverridesFromUrl } from "@/lib/ab";
@@ -54,6 +55,7 @@ import { getVariant, trackAbExposure, applyAbOverridesFromUrl } from "@/lib/ab";
 import { useDocumentAccess } from "@/hooks/useDocumentAccess";
 import { StrictDocumentPaywall } from "@/components/wizard/StrictDocumentPaywall";
 import { AnonymousPreviewNotice } from "@/components/wizard/AnonymousPreviewNotice";
+import { PostDownloadUpgradeBanner } from "@/components/wizard/PostDownloadUpgradeBanner";
 import { OpsHintBar } from "@/components/wizard/OpsHintBar";
 import { DocumentValueCard } from "@/components/wizard/DocumentValueCard";
 import { useEnterFocusNext } from "@/hooks/useEnterFocusNext";
@@ -379,8 +381,7 @@ export default function WizardPage() {
       }
       if (data?.requires_login) {
         trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: "requires_login" });
-        toast.error(data.error || "Влезте, за да продължите");
-        setTimeout(() => navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`), 1200);
+        goAuth({ action: "Генериране на документа", onSuccess: () => handleGenerate(userConfirmed) });
         return;
       }
       // Лични / чувствителни данни: сървърът иска изрично потвърждение или
@@ -547,7 +548,14 @@ export default function WizardPage() {
 
   // Build a redirect URL that preserves the current wizard route + query.
   const wizardHref = window.location.pathname + window.location.search;
-  const goAuth = () => navigate(`/auth?redirect=${encodeURIComponent(wizardHref)}`);
+  /**
+   * Инлайн вход вместо пренасочване към `/auth`. URL-ът и попълнените отговори
+   * остават непокътнати, а подаденото действие продължава автоматично след
+   * успешна автентикация.
+   */
+  const goAuth = (opts?: { action?: string; onSuccess?: () => void }) =>
+    openInlineAuth({ action: opts?.action, onSuccess: opts?.onSuccess });
+
   const goSubscription = () =>
     navigate(`/account?tab=subscription&redirect=${encodeURIComponent(wizardHref)}`);
   // Stable document key for strict-unlock lookups (user-scoped, cross-session).
@@ -640,6 +648,11 @@ export default function WizardPage() {
         // Free plan: up to 2 корекционни вълни.
         const freeWavesUsed = Number((data as any).corrections_free_used_count ?? 0);
         setFreeWaveAvailable(freeWavesUsed < 2);
+        // Оставащи операции = месечен лимит − изразходвани + закупени пакети.
+        const cap = Number(data.plan_ops_cap ?? FREE_OPS_PER_MONTH);
+        const used = Number(data.monthly_total_used ?? 0);
+        const topup = Number(data.topup_ops_balance ?? 0);
+        setOpsLeft(Math.max(0, cap - used) + Math.max(0, topup));
       });
     supabase.from("contacts").select("id, name, type").is("deleted_at", null).order("created_at", { ascending: false })
       .then(({ data }) => setContacts((data as any) ?? []));
@@ -675,8 +688,7 @@ export default function WizardPage() {
   const handleExport = async (format: "pdf" | "docx") => {
     if (!result) return;
     if (!user) {
-      toast.error("Влезте в профила си", { description: "Прогресът е запазен — ще се възстанови след вход." });
-      goAuth();
+      goAuth({ action: `Свали ${format.toUpperCase()}`, onSuccess: () => handleExport(format) });
       return;
     }
     // Strict document paywall — free users must subscribe or buy a single unlock
@@ -746,6 +758,8 @@ export default function WizardPage() {
         description: res.free ? "Повторно сваляне (безплатно)" : "Запазен в Документи → Всички",
       });
 
+      setDownloadCount((n) => n + 1);
+      if (!isPro) setShowUpgradeBanner(true);
       maybeAskForFeedback("download");
     } catch (e: any) {
       toast.error("Грешка при експорт", { description: String(e?.message ?? e) });
@@ -757,8 +771,7 @@ export default function WizardPage() {
   const handleApplyCorrections = async (sel: CorrectionsSelection, correctionsConfirmed = false) => {
     if (!result) return;
     if (!user) {
-      toast.error("Влезте в профила си", { description: "Прогресът е запазен." });
-      goAuth();
+      goAuth({ action: "Прилагане на корекции", onSuccess: () => handleApplyCorrections(sel, correctionsConfirmed) });
       return;
     }
     if (sel.issues.length === 0 && sel.recommendations.length === 0) {
@@ -825,12 +838,15 @@ export default function WizardPage() {
     }
   };
 
+  /** Брой сваляния в текущата сесия + контекстуален банер за планове. */
+  const [opsLeft, setOpsLeft] = useState<number | null>(null);
+  const [downloadCount, setDownloadCount] = useState(0);
+  const [showUpgradeBanner, setShowUpgradeBanner] = useState(false);
   const [saving, setSaving] = useState(false);
   const handleSaveToProfile = async () => {
     if (!result) return;
     if (!user) {
-      toast.error("Влезте в профила си", { description: "Прогресът е запазен." });
-      goAuth();
+      goAuth({ action: "Запазване в профила", onSuccess: () => handleSaveToProfile() });
       return;
     }
     if (savedDocId) {
@@ -901,8 +917,7 @@ export default function WizardPage() {
   ];
   const runBlankDownload = async () => {
     if (!user) {
-      toast.error("Влезте, за да изтеглите бланка", { description: "Прогресът е запазен." });
-      goAuth();
+      goAuth({ action: "Изтегляне на празна бланка", onSuccess: () => runBlankDownload() });
       return;
     }
     setDownloadingBlank(true);
@@ -974,8 +989,7 @@ export default function WizardPage() {
     if (authLoading) return;
     if (!authUser) {
       autoBlankTriggered.current = true;
-      toast.error("Влезте, за да изтеглите бланка", { description: "Прогресът е запазен." });
-      goAuth();
+      goAuth({ action: "Изтегляне на празна бланка", onSuccess: () => void runBlankDownload() });
       return;
     }
     autoBlankTriggered.current = true;
@@ -1368,8 +1382,16 @@ export default function WizardPage() {
                   busyDocx={exporting === "docx"}
                   onDownload={() => handleExport("pdf")}
                   onDownloadDocx={() => handleExport("docx")}
-                  onRegister={() => goAuth()}
+                  opsLeft={opsLeft}
+                  onRegister={() => goAuth({ action: "Запазване и сваляне на документа" })}
                 />
+
+                {showUpgradeBanner && (
+                  <PostDownloadUpgradeBanner
+                    downloads={downloadCount}
+                    onDismiss={() => setShowUpgradeBanner(false)}
+                  />
+                )}
 
                 <CorrectionsPanel
                   isPro={isPro}
@@ -1547,7 +1569,7 @@ export default function WizardPage() {
               )}
             </div>
             {result?.contract && !user && (
-              <AnonymousPreviewNotice onRegister={() => goAuth()} />
+              <AnonymousPreviewNotice onRegister={() => goAuth({ action: "Запазване и сваляне на документа" })} />
             )}
             {result?.contract && user && (
               <div className="mb-4">
@@ -1558,7 +1580,7 @@ export default function WizardPage() {
                     setResult({ ...result, contract: { ...result.contract, ...next } });
                     setSavedDocId(undefined);
                   }}
-                  onNeedAuth={() => goAuth()}
+                  onNeedAuth={() => goAuth({ action: "Продължаване на операцията" })}
                 />
               </div>
             )}
