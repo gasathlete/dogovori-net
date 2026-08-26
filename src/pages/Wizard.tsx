@@ -188,6 +188,45 @@ export default function WizardPage() {
   const consentRef = useRef<HTMLDivElement | null>(null);
   /** Блокът с готовия документ — фокус след успешно генериране. */
   const resultRef = useRef<HTMLDivElement | null>(null);
+  /** Последно избраният формат — първа опция при следващо сваляне. */
+  const [preferredFmt, setPreferredFmt] = useState<DocFormat>(() => getPreferredFormat());
+
+  /**
+   * Дискретен тост след успешно генериране с двете действия за сваляне,
+   * за да не е нужно превъртане до долната лента.
+   */
+  const showReadyToast = () => {
+    const order: DocFormat[] = preferredFmt === "docx" ? ["docx", "pdf"] : ["pdf", "docx"];
+    toast.custom(
+      (id) => (
+        <div className="w-[min(92vw,360px)] rounded-xl border border-gold/30 bg-card px-4 py-3 shadow-elegant">
+          <p className="text-sm font-semibold text-foreground">Документът е готов</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">Свали го в предпочитания формат.</p>
+          <div className="mt-2.5 flex gap-2">
+            {order.map((f, i) => (
+              <Button
+                key={f}
+                size="sm"
+                variant={i === 0 ? "default" : "outline"}
+                className={
+                  i === 0
+                    ? "h-9 flex-1 bg-gradient-gold text-navy hover:shadow-gold"
+                    : "h-9 flex-1 border-gold/40 hover:bg-gold/10 hover:text-gold"
+                }
+                onClick={() => {
+                  toast.dismiss(id);
+                  void handleExport(f);
+                }}
+              >
+                {f.toUpperCase()}
+              </Button>
+            ))}
+          </div>
+        </div>
+      ),
+      { duration: 9000 },
+    );
+  };
   /** Български етикети за категориите лични данни от сървърната класификация. */
   const PII_LABELS: Record<string, string> = {
     egn: "ЕГН",
