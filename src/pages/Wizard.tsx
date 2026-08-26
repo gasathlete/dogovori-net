@@ -258,12 +258,12 @@ export default function WizardPage() {
           return el.getAttribute("data-placeholder") != null || !el.textContent?.trim();
         }) ?? candidates[0];
       if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        target.scrollIntoView({ behavior: "smooth", block: "nearest" });
         setTimeout(() => {
           try { target.focus({ preventScroll: true }); } catch { /* ignore */ }
         }, 300);
       } else {
-        root.scrollIntoView({ behavior: "smooth", block: "center" });
+        root.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     });
   };
@@ -450,7 +450,7 @@ export default function WizardPage() {
           description: "Вижте панела за съгласие при въпросите и потвърдете, за да продължим.",
         });
         // На мобилно панелът може да е извън екрана — скролираме до него.
-        setTimeout(() => consentRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
+        setTimeout(() => consentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
         return;
       }
       if (error || !data || (data as { error?: string }).error) {
@@ -744,6 +744,8 @@ export default function WizardPage() {
       setShowPaywall(true);
       return;
     }
+    setPreferredFormat(format);
+    setPreferredFmt(format);
     setExporting(format);
     try {
       // Изграждаме списък със страни само по РОЛЯ и ФОРМА — без имена / ЕГН / лични данни.
@@ -1253,7 +1255,7 @@ export default function WizardPage() {
                     setAttemptedNext(false);
                     trackFillStep(stepIdx + 1, total, { doc_key: docName, source: "wizard" });
                     setStepIdx((i) => i + 1);
-                    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
+                    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
                   }
                 }}
                 className="rounded-xl border border-border/60 bg-gradient-card p-6 shadow-soft animate-fade-in"
@@ -1310,7 +1312,7 @@ export default function WizardPage() {
                     onClick={() => {
                       setAttemptedNext(false);
                       setStepIdx((i) => Math.max(0, i - 1));
-                      setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
+                      window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
                     }}
                     disabled={safeIdx === 0}
                     className="h-11 text-muted-foreground hover:text-foreground"
@@ -1348,7 +1350,7 @@ export default function WizardPage() {
                         setAttemptedNext(false);
                         trackFillStep(stepIdx + 1, total, { doc_key: docName, source: "wizard" });
                         setStepIdx((i) => i + 1);
-                        setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
+                        window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
                       }}
                       disabled={generating}
                       className="h-11 bg-gradient-gold text-navy hover:shadow-gold"
@@ -1426,6 +1428,7 @@ export default function WizardPage() {
                   saving={saving}
                   saved={!!savedDocId}
                   opsLeft={opsLeft}
+                  preferredFormat={preferredFmt}
                   onExportPdf={() => handleExport("pdf")}
                   onExportDocx={() => handleExport("docx")}
                   onSave={handleSaveToProfile}
