@@ -423,6 +423,8 @@ const App = () => (
           <OnboardingProvider>
           <Suspense fallback={null}>
             <AuthGateModal />
+            <InlineAuthDialog />
+
             <StartStoryOverlay />
             <AIDisclaimerModal />
             <UnfilledPlaceholdersModal />
