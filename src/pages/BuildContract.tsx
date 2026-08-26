@@ -623,6 +623,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       goAuth({ action: `Свали ${format.toUpperCase()}`, onSuccess: () => handleExport(format) });
       return;
     }
+    (await import("@/lib/preferredFormat")).setPreferredFormat(format);
     setExporting(format);
     try {
       const sigPayload: SignatureInfo = {

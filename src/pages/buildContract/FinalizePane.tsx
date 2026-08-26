@@ -6,6 +6,7 @@ import { ResultActionBar } from "@/components/wizard/ResultActionBar";
 import { RiskReport } from "@/components/wizard/RiskReport";
 import { SignatureBlock, type SignatureData } from "@/components/wizard/SignatureBlock";
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
+import { getPreferredFormat } from "@/lib/preferredFormat";
 import { STORAGE_KEY, type AIResult } from "./parts";
 
 type Props = {
@@ -61,6 +62,7 @@ export function FinalizePane({
         exporting={exporting}
         saving={saving}
         saved={!!savedDocId}
+        preferredFormat={getPreferredFormat()}
         onExportPdf={() => onExport("pdf")}
         onExportDocx={() => onExport("docx")}
         onSave={onSaveToProfile}
