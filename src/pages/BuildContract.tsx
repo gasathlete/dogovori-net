@@ -48,6 +48,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsPro } from "@/hooks/useIsPro";
 import { toast } from "sonner";
+import { openInlineAuth } from "@/lib/inlineAuth";
 import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { mergeParentWithAppendices } from "@/lib/appendixMerger";
@@ -338,7 +339,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     "Финализираме документа — почти готово…",
   ];
 
-  const goAuth = () => {
+  const goAuth = (opts?: { action?: string; onSuccess?: () => void }) => {
     // Snapshot current state synchronously so nothing typed just before this
     // navigation is lost across the /auth → return roundtrip.
     try {
@@ -350,8 +351,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         result, signature, savedDocId, stepIdx,
       }));
     } catch {}
-    const dest = window.location.pathname + window.location.search;
-    navigate(`/auth?redirect=${encodeURIComponent(dest)}`);
+    // Инлайн вход — без напускане на текущия екран, за да не се губи инерция.
+    openInlineAuth({ action: opts?.action, onSuccess: opts?.onSuccess });
   };
   const goSubscription = () => navigate(`/account?tab=subscription`);
 
@@ -693,8 +694,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   const handleApplyCorrections = async (sel: CorrectionsSelection, correctionsConfirmed = false) => {
     if (!result) return;
     if (!user) {
-      toast.error("Влезте в профила си", { description: "Прогресът е запазен." });
-      navigate("/auth");
+      goAuth({ action: "Прилагане на корекции", onSuccess: () => handleApplyCorrections(sel, correctionsConfirmed) });
       return;
     }
     if (sel.issues.length === 0 && sel.recommendations.length === 0) {
