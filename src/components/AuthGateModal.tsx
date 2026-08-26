@@ -62,9 +62,6 @@ export function AuthGateModal() {
     setOpen(false);
   }, [location.pathname]);
 
-  const redirect = detail.redirect ?? (typeof window !== "undefined" ? location.pathname + location.search : "/");
-  const safeRedirect = /^\/[^/\\]/.test(redirect) ? redirect : "/";
-
   const skip = () => setOpen(false);
 
   const stats: Array<{ icon: any; value: string; label: string; tone: "gold" | "emerald" }> = [
