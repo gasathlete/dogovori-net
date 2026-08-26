@@ -57,7 +57,7 @@ import { StrictDocumentPaywall } from "@/components/wizard/StrictDocumentPaywall
 import { AnonymousPreviewNotice } from "@/components/wizard/AnonymousPreviewNotice";
 import { PostDownloadUpgradeBanner } from "@/components/wizard/PostDownloadUpgradeBanner";
 import { OpsHintBar } from "@/components/wizard/OpsHintBar";
-import { DocumentValueCard } from "@/components/wizard/DocumentValueCard";
+
 import { ResultActionBar } from "@/components/wizard/ResultActionBar";
 import { ResultShell } from "@/components/wizard/ResultShell";
 import { useEnterFocusNext } from "@/hooks/useEnterFocusNext";
