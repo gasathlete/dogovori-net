@@ -97,9 +97,10 @@ Deno.serve(async (req: Request) => {
           },
           body: JSON.stringify(payload),
         });
-        const text = await res.text();
+        // Тялото е отговор на нашата функция (не AI съдържание) — затова е безопасно.
+        const bodyText = await res.text();
         let parsed: unknown = null;
-        try { parsed = text ? JSON.parse(text) : null; } catch { /* нетипичен отговор */ }
+        try { parsed = bodyText ? JSON.parse(bodyText) : null; } catch { /* нетипичен отговор */ }
 
         const asObj = (parsed ?? {}) as { error?: string; code?: string };
         if (res.ok && parsed && !asObj.error) {
