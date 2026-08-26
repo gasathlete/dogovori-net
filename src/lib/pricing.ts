@@ -178,6 +178,14 @@ export function cheapestPerOpLabel(): string {
 export const FREE_OPS_PER_MONTH = PRICING_PLANS.free.opsPerMonth ?? 2;
 
 /**
+ * Бонус при регистрация: през първите 30 дни безплатният план дава 5 операции
+ * (сървърна истина: `public.free_ops_cap` / `public.consume_quota`), след което
+ * се връща към `FREE_OPS_PER_MONTH`.
+ */
+export const FREE_OPS_ON_SIGNUP = 5;
+
+
+/**
  * ROI подзаглавие за платен план — колко правни разходи спестява месечно.
  * Базата е минималният адвокатски хонорар за един документ, умножен по
  * консервативни 1–2 документа месечно (спрямо обема на плана).
