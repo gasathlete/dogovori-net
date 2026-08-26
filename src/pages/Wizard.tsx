@@ -547,7 +547,14 @@ export default function WizardPage() {
 
   // Build a redirect URL that preserves the current wizard route + query.
   const wizardHref = window.location.pathname + window.location.search;
-  const goAuth = () => navigate(`/auth?redirect=${encodeURIComponent(wizardHref)}`);
+  /**
+   * Инлайн вход вместо пренасочване към `/auth`. URL-ът и попълнените отговори
+   * остават непокътнати, а подаденото действие продължава автоматично след
+   * успешна автентикация.
+   */
+  const goAuth = (opts?: { action?: string; onSuccess?: () => void }) =>
+    openInlineAuth({ action: opts?.action, onSuccess: opts?.onSuccess });
+
   const goSubscription = () =>
     navigate(`/account?tab=subscription&redirect=${encodeURIComponent(wizardHref)}`);
   // Stable document key for strict-unlock lookups (user-scoped, cross-session).
