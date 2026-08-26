@@ -68,6 +68,10 @@ const ActionCelebrationHost = reactLazy(() =>
 const AuthGateModal = reactLazy(() =>
   import("@/components/AuthGateModal").then((m) => ({ default: m.AuthGateModal })),
 );
+const InlineAuthDialog = reactLazy(() =>
+  import("@/components/auth/InlineAuthDialog").then((m) => ({ default: m.InlineAuthDialog })),
+);
+
 import { BetaDisclaimerModal } from "@/components/BetaDisclaimerModal";
 import { ExitIntentLeadMagnet } from "@/components/funnel/ExitIntentLeadMagnet";
 const StartStoryOverlay = reactLazy(() =>
