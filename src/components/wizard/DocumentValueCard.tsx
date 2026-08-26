@@ -29,6 +29,8 @@ interface Props {
   /** Спестена сума спрямо адвокатски хонорар (EUR). */
   savedEur?: number;
   documentTitle?: string;
+  /** Оставащи операции за текущия месец (за прозрачност преди разход). */
+  opsLeft?: number | null;
 }
 
 
@@ -49,6 +51,7 @@ export function DocumentValueCard({
   onRegister,
   savedEur = LAWYER_FEE_MIN_EUR,
   documentTitle,
+  opsLeft,
 }: Props) {
   return (
     <div className="rounded-2xl border border-gold/40 bg-gold/5 p-5 shadow-soft animate-fade-in">
@@ -98,7 +101,9 @@ export function DocumentValueCard({
                   className="flex-1 gap-2 bg-gradient-gold text-navy hover:shadow-gold"
                 >
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FileDown className="h-4 w-4" aria-hidden />}
-                  Свали PDF
+                  {typeof opsLeft === "number"
+                    ? `Свали PDF (1 от ${opsLeft} операции)`
+                    : "Свали PDF (изразходва 1 операция)"}
                 </Button>
                 {onDownloadDocx && (
                   <Button
@@ -108,7 +113,9 @@ export function DocumentValueCard({
                     className="flex-1 gap-2 border-gold/40 text-gold hover:bg-gold/10 hover:text-gold"
                   >
                     {busyDocx ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FileText className="h-4 w-4" aria-hidden />}
-                    Свали DOCX
+                    {typeof opsLeft === "number"
+                      ? `Свали DOCX (1 от ${opsLeft} операции)`
+                      : "Свали DOCX (изразходва 1 операция)"}
                   </Button>
                 )}
               </>
@@ -124,7 +131,9 @@ export function DocumentValueCard({
 
           {canDownload && !needsAuth && (
             <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-              Свалянето (PDF или DOCX) използва <span className="font-medium text-foreground">1 операция</span> —
+              Свалянето (PDF или DOCX) изразходва{" "}
+              <span className="font-medium text-foreground">1 операция</span>
+              {typeof opsLeft === "number" ? ` от наличните ${opsLeft} за този месец` : ""} —
               повторно сваляне на същия документ в тази сесия е безплатно.{" "}
               План {PRICING_PLANS.free.name} включва{" "}
               <span className="font-medium text-foreground">
