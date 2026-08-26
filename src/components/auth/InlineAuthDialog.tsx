@@ -183,11 +183,11 @@ export function InlineAuthDialog() {
             </p>
             <p className="text-center text-[11px] text-muted-foreground">
               Със създаването на профил приемате{" "}
-              <Link to="/legal/terms" className="underline hover:text-gold" onClick={() => setOpen(false)}>
+              <Link to="/terms" className="underline hover:text-gold" onClick={() => setOpen(false)}>
                 Общите условия
               </Link>{" "}
               и{" "}
-              <Link to="/legal/privacy" className="underline hover:text-gold" onClick={() => setOpen(false)}>
+              <Link to="/privacy" className="underline hover:text-gold" onClick={() => setOpen(false)}>
                 Политиката за поверителност
               </Link>
               .
