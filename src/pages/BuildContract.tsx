@@ -505,17 +505,17 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         } catch { /* ignore */ }
         if (parsed?.code === "auth_required" || msg.includes("401")) {
           toast.error(parsed?.error || "Влезте, за да изградите договора", {
-            description: "Пренасочваме ви към входа…",
+            description: "Въведените данни остават запазени.",
           });
-          setTimeout(goAuth, 900);
+          goAuth({ action: "Изготвяне на документа" });
           return;
         }
         throw error;
       }
       if (!data || data.error) {
         if (data?.requires_login || data?.code === "auth_required") {
-          toast.error(data.error || "Влезте с email или Google, за да продължите");
-          setTimeout(goAuth, 900);
+          toast.error(data.error || "Влезте с електронна поща или Google, за да продължите");
+          goAuth({ action: "Изготвяне на документа" });
           return;
         }
         throw new Error(data?.error || "Неуспешно създаване");
@@ -619,7 +619,10 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
 
   const handleExport = async (format: "pdf" | "docx") => {
     if (!result) return;
-    if (!user) { goAuth(); return; }
+    if (!user) {
+      goAuth({ action: `Свали ${format.toUpperCase()}`, onSuccess: () => handleExport(format) });
+      return;
+    }
     setExporting(format);
     try {
       const sigPayload: SignatureInfo = {
@@ -762,7 +765,10 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
 
   const handleSaveToProfile = async () => {
     if (!result) return;
-    if (!user) { goAuth(); return; }
+    if (!user) {
+      goAuth({ action: "Запазване в профила", onSuccess: () => handleSaveToProfile() });
+      return;
+    }
     if (savedDocId) {
       toast.message("Документът вече е запазен", { description: "Намерете го в Документи → Всички." });
       return;
@@ -886,7 +892,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                 {!user && (
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-foreground">
                     <span>За да изградите договор, влезте безплатно с email или Google.</span>
-                    <Button size="sm" variant="outline" onClick={goAuth} className="h-7 border-gold/50 text-xs">
+                    <Button size="sm" variant="outline" onClick={() => goAuth({ action: "Запазване на документа" })} className="h-7 border-gold/50 text-xs">
                       Вход
                     </Button>
                   </div>
@@ -1455,7 +1461,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                 }
                 busy={exporting === "pdf"}
                 onDownload={() => handleExport("pdf")}
-                onRegister={goAuth}
+                onRegister={() => goAuth({ action: "Запазване и сваляне на документа" })}
               />
             )}
 
