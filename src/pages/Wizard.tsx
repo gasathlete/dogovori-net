@@ -19,6 +19,7 @@ import { FillLaterPersonalData } from "@/components/wizard/FillLaterPersonalData
 import { TOPUP_PACK_CONFIG, fmtEur, roiSubtitle, monthlyLabel, PRICING_PLANS, FREE_OPS_PER_MONTH } from "@/lib/pricing";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getPreferredFormat, setPreferredFormat, type DocFormat } from "@/lib/preferredFormat";
 import { type GeneratedContract, type SignatureInfo } from "@/lib/exporters";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { slugify } from "@/lib/slugify";
