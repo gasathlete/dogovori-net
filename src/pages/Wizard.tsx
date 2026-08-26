@@ -1301,10 +1301,11 @@ export default function WizardPage() {
                 {/* Spacer for mobile sticky action bar */}
                 <div className="h-20 lg:hidden" aria-hidden="true" />
                 <div
+                  style={keyboardInset ? { transform: `translateY(-${keyboardInset}px)` } : undefined}
                   className={
-                    // Mobile: fixed at bottom with safe-area. Desktop: inline.
-                    "fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-border/60 bg-background/95 px-4 py-3 pb-safe backdrop-blur-md " +
-                    "lg:static lg:mt-8 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none"
+                    // Mobile: fixed at bottom with safe-area, повдигнат над клавиатурата.
+                    "fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-border/60 bg-background/95 px-4 py-3 pb-safe backdrop-blur-md transition-transform duration-150 " +
+                    "lg:static lg:mt-8 lg:translate-y-0 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none"
                   }
                 >
                   <Button
