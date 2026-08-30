@@ -842,7 +842,7 @@ export default function WizardPage() {
 
   const handleApplyCorrections = async (sel: CorrectionsSelection, correctionsConfirmed = false) => {
     if (!result) return;
-    if (!user) {
+    if (!userRef.current) {
       goAuth({ action: "Прилагане на корекции", onSuccess: () => handleApplyCorrections(sel, correctionsConfirmed) });
       return;
     }
@@ -917,7 +917,7 @@ export default function WizardPage() {
   const [saving, setSaving] = useState(false);
   const handleSaveToProfile = async () => {
     if (!result) return;
-    if (!user) {
+    if (!userRef.current) {
       goAuth({ action: "Запазване в профила", onSuccess: () => handleSaveToProfile() });
       return;
     }
@@ -988,7 +988,7 @@ export default function WizardPage() {
     { icon: Download, label: "Бланката ще бъде свалена до 10 секунди…" },
   ];
   const runBlankDownload = async () => {
-    if (!user) {
+    if (!userRef.current) {
       goAuth({ action: "Изтегляне на празна бланка", onSuccess: () => runBlankDownload() });
       return;
     }
