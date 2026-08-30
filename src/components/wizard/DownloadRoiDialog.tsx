@@ -60,7 +60,7 @@ export function DownloadRoiDialog({
             Документът е готов за сваляне
           </DialogTitle>
           <DialogDescription className="text-center text-[13px]">
-            Включва {FREE_OPS_PER_MONTH} безплатни сваляния за този месец — без карта и без
+            Регистрацията включва {FREE_OPS_ON_SIGNUP} безплатни операции — без карта и без
             абонамент.
           </DialogDescription>
         </DialogHeader>
