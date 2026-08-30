@@ -149,10 +149,12 @@ Deno.serve(async (req) => {
       ui_mode: "embedded_page",
       return_url: returnUrl,
       customer: customerId,
-      // Show Stripe's built-in "Add promotion code" field only for subs.
-      // Loyalty coupon (auto-applied) takes precedence; if absent, the
-      // customer can type FIRST100 manually.
-      ...(isRecurring && !appliedCouponId && { allow_promotion_codes: true }),
+      // Auto-applied discount: loyalty coupon takes precedence, otherwise the
+      // active September promo (−20%) is applied automatically so the price the
+      // customer saw on /plans is the price charged. Stripe does not allow
+      // `discounts` together with `allow_promotion_codes`, so the manual code
+      // field is only shown when no discount is auto-applied.
+      ...(isRecurring && !appliedCouponId && !promoCouponId && { allow_promotion_codes: true }),
       metadata: {
         userId,
         priceId,
@@ -163,9 +165,22 @@ Deno.serve(async (req) => {
         refund_version: "2026-09-01",
         ai_ack_accepted: "true",
         ...(appliedCouponId ? { loyalty_coupon: appliedCouponId } : {}),
+        ...(!appliedCouponId && promoCouponId ? { promo_coupon: promoCouponId } : {}),
       },
-      ...(appliedCouponId ? { discounts: [{ coupon: appliedCouponId }] } : {}),
-      ...(isRecurring && { subscription_data: { metadata: { userId, ...(appliedCouponId ? { loyalty_coupon: appliedCouponId } : {}) } } }),
+      ...(appliedCouponId
+        ? { discounts: [{ coupon: appliedCouponId }] }
+        : promoCouponId
+          ? { discounts: [{ coupon: promoCouponId }] }
+          : {}),
+      ...(isRecurring && {
+        subscription_data: {
+          metadata: {
+            userId,
+            ...(appliedCouponId ? { loyalty_coupon: appliedCouponId } : {}),
+            ...(!appliedCouponId && promoCouponId ? { promo_coupon: promoCouponId } : {}),
+          },
+        },
+      }),
     });
 
 
