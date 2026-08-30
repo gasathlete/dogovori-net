@@ -100,6 +100,8 @@ Deno.serve(async (req) => {
     // applies correctly across monthly + yearly. Legacy FIRST100 codes are
     // deactivated. Skipped for one-off purchases (five_operations /
     // single_contract).
+    let promoCouponId: string | null = null;
+    const promoActive = Date.now() < Date.parse("2026-10-01T00:00:00+03:00");
     if (isRecurring) {
       const productId = typeof price.product === "string" ? price.product : (price.product as any)?.id;
       try {
