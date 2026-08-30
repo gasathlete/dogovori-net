@@ -5,7 +5,7 @@ import { prefetchHandlers } from "@/components/PrefetchLink";
 import { ShieldCheck, Bird, FileText, Search, FileSignature, ArrowRight, FileUp } from "@/icons";
 const logoImg = "/logo-dogovori-hero.webp";
 import { HeroVideoBackdrop } from "@/components/HeroVideoBackdrop";
-import { First100Counter } from "@/components/funnel/First100Counter";
+import { SEPTEMBER_PROMO } from "@/lib/pricing";
 import { useAuth } from "@/hooks/useAuth";
 import { useAudience } from "@/hooks/useAudience";
 import { AudienceToggle } from "@/components/funnel/AudienceToggle";
@@ -189,12 +189,11 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
           </nav>
 
 
-          {/* Promo + counter in one restrained row */}
+          {/* Септемврийска промоция −20% */}
           <div className="mt-6 flex flex-col items-center gap-1.5">
             <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              Промокод <span className="font-semibold text-gold">FIRST100</span> → −20% за нови клиенти · без карта
+              {SEPTEMBER_PROMO.label} · код <span className="font-semibold text-gold">{SEPTEMBER_PROMO.code}</span> при регистрация до 30.09 · без карта
             </p>
-            <First100Counter />
           </div>
         </div>
       </div>

@@ -492,7 +492,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             <h2 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl">Изберете правилния план за Вас</h2>
             <p className="mt-2 text-sm text-muted-foreground">Прозрачно ценообразуване · ДДС включено · отказ по всяко време</p>
             <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs font-medium text-gold">
-              <Sparkles className="h-3.5 w-3.5" /> Промокод <strong className="tracking-wider">FIRST100</strong> → −20% за нови клиенти
+              <Sparkles className="h-3.5 w-3.5" /> Септемврийска промоция −20% · код <strong className="tracking-wider">SEPT20</strong> при регистрация до 30.09
             </p>
           </div>
 

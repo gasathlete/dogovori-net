@@ -93,45 +93,49 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ----- FIRST100 promo code (20% off, all recurring subs) -----
-    // Uses a versioned coupon ID so old 30%/40% coupons in Stripe are
-    // NOT reused. The coupon is restricted to the current line-item
-    // product so it applies correctly across monthly + yearly.
-    // Skipped for one-off purchases (five_operations / single_contract).
+    // ----- SEPT20 promo code (20% off, all recurring subs) -----
+    // Септемврийска промоция: −20% при регистрация до 30.09.2026.
+    // Uses a versioned coupon ID so old coupons in Stripe are NOT reused.
+    // The coupon is restricted to the current line-item product so it
+    // applies correctly across monthly + yearly. Legacy FIRST100 codes are
+    // deactivated. Skipped for one-off purchases (five_operations /
+    // single_contract).
     if (isRecurring) {
       const productId = typeof price.product === "string" ? price.product : (price.product as any)?.id;
       try {
-        const couponId = "first100_20off_v2";
+        const couponId = "sept20_20off_v1";
         try {
           await stripe.coupons.retrieve(couponId);
         } catch {
           await stripe.coupons.create({
             id: couponId,
-            name: "FIRST100 — 20% off",
+            name: "SEPT20 — 20% off (септемврийска промоция)",
             percent_off: 20,
             duration: "forever",
             applies_to: { products: [productId] },
+            redeem_by: Math.floor(Date.parse("2026-10-01T00:00:00+03:00") / 1000),
           });
         }
-        // Ensure a single public promotion code "FIRST100" points at this coupon.
-        const existing = await stripe.promotionCodes.list({ coupon: couponId, code: "FIRST100", limit: 1 });
+        // Ensure a single public promotion code "SEPT20" points at this coupon.
+        const existing = await stripe.promotionCodes.list({ coupon: couponId, code: "SEPT20", limit: 1 });
         if (!existing.data.length) {
-          // Deactivate any older FIRST100 promotion codes that still map to
-          // the 30%/40% legacy coupons so customers can't stack outdated ones.
-          try {
-            const legacy = await stripe.promotionCodes.list({ code: "FIRST100", limit: 20, active: true });
-            for (const pc of legacy.data) {
-              if (pc.coupon.id !== couponId) {
-                await stripe.promotionCodes.update(pc.id, { active: false });
-              }
-            }
-          } catch (deactivateErr) {
-            console.error("FIRST100 legacy deactivation failed (non-fatal):", deactivateErr);
+          await stripe.promotionCodes.create({
+            coupon: couponId,
+            code: "SEPT20",
+            expires_at: Math.floor(Date.parse("2026-10-01T00:00:00+03:00") / 1000),
+          });
+        }
+        // Deactivate the retired FIRST100 codes so they can no longer be used.
+        try {
+          const legacy = await stripe.promotionCodes.list({ code: "FIRST100", limit: 20, active: true });
+          for (const pc of legacy.data) {
+            await stripe.promotionCodes.update(pc.id, { active: false });
           }
-          await stripe.promotionCodes.create({ coupon: couponId, code: "FIRST100" });
+        } catch (deactivateErr) {
+          console.error("FIRST100 legacy deactivation failed (non-fatal):", deactivateErr);
         }
       } catch (couponErr) {
-        console.error("FIRST100 setup failed (non-fatal):", couponErr);
+        console.error("SEPT20 setup failed (non-fatal):", couponErr);
       }
     }
 

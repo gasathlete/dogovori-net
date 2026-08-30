@@ -21,7 +21,7 @@ import { SoftCapPanel } from "@/components/paywall/SoftCapPanel";
 import { RoiCalculator } from "@/components/funnel/RoiCalculator";
 import { RoiSavingsBanner } from "@/components/funnel/RoiSavingsBanner";
 import { AudienceToggle } from "@/components/funnel/AudienceToggle";
-import { First100Counter } from "@/components/funnel/First100Counter";
+import { SEPTEMBER_PROMO, isSeptemberPromoActive, promoPriceEur, fmtEur } from "@/lib/pricing";
 import { useAudience } from "@/hooks/useAudience";
 import { markFunnelStep } from "@/lib/funnel";
 import { useEffect } from "react";
@@ -64,7 +64,7 @@ function buildCta(planId: PlanId, billing: Billing, isAuthed: boolean): {
       ? { href: target, label: "Създай екип" }
       : { href: `/auth?tab=signup&redirect=${encodeURIComponent(target)}&intent=plan_team`, label: "Създай екип" };
   }
-  const target = `/account?tab=subscription&plan=${planId}&billing=${billing}&promo=FIRST100`;
+  const target = `/account?tab=subscription&plan=${planId}&billing=${billing}&promo=SEPT20`;
   const planLabel = planId === "entrepreneur" ? "Предприемач" : "Професионалист";
   if (isAuthed) {
     return {
@@ -156,9 +156,8 @@ export default function Plans() {
 
             <div className="mt-5 flex flex-col items-center gap-2 text-center">
               <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground sm:tracking-[0.18em]">
-                Промокод <span className="font-semibold text-brand">FIRST100</span> · −20% за нови клиенти
+                {SEPTEMBER_PROMO.label} · код <span className="font-semibold text-brand">{SEPTEMBER_PROMO.code}</span> при регистрация до 30.09
               </p>
-              <First100Counter />
             </div>
 
 
@@ -306,10 +305,27 @@ export default function Plans() {
                     {effectivePrice && effectivePrice.price > 0 ? (
                       <>
                         <div className="flex items-baseline gap-1.5">
-                          <span className="font-serif text-[44px] font-semibold leading-none text-foreground sm:text-5xl">
-                            {effectivePrice.price.toFixed(2).replace(/\.00$/, "")}
-                          </span>
-                          <span className="text-sm text-muted-foreground">{effectivePrice.suffix}</span>
+                          {isSeptemberPromoActive() ? (
+                            <>
+                              <span className="font-serif text-[44px] font-semibold leading-none text-foreground sm:text-5xl">
+                                {fmtEur(promoPriceEur(effectivePrice.price)).replace(/ €$/, "")}
+                              </span>
+                              <span className="text-sm text-muted-foreground">{effectivePrice.suffix}</span>
+                              <span className="ml-1 text-sm text-muted-foreground line-through">
+                                {effectivePrice.price.toFixed(2).replace(/\.00$/, "")}
+                              </span>
+                              <span className="ml-1 inline-flex rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                                −20% до 30.09
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="font-serif text-[44px] font-semibold leading-none text-foreground sm:text-5xl">
+                                {effectivePrice.price.toFixed(2).replace(/\.00$/, "")}
+                              </span>
+                              <span className="text-sm text-muted-foreground">{effectivePrice.suffix}</span>
+                            </>
+                          )}
                         </div>
                         {teamMonthlyDisabled && (
                           <p className="mt-1.5 text-xs font-medium text-brand">Само годишно</p>
@@ -636,7 +652,7 @@ export default function Plans() {
                 <Link
                   to={
                     isAuthed
-                      ? "/account?tab=subscription&plan=entrepreneur&billing=monthly&promo=FIRST100"
+                      ? "/account?tab=subscription&plan=entrepreneur&billing=monthly&promo=SEPT20"
                       : "/auth?tab=signup&redirect=%2Fplans"
                   }
                   className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-3 text-sm font-semibold text-brand-dark shadow-brand transition-all hover:shadow-[0_20px_50px_-15px_hsl(var(--brand)/0.7)]"
