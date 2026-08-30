@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Crown, FileDown, PiggyBank, ShieldCheck } from "@/icons";
 import { openInlineAuth } from "@/lib/inlineAuth";
 import {
-  FREE_OPS_PER_MONTH,
+  FREE_OPS_ON_SIGNUP,
   LAWYER_FEE_MIN_EUR,
   PRICING_PLANS,
   monthlyLabel,
@@ -38,7 +38,7 @@ export function DownloadRoiDialog({
   onProceed,
 }: Props) {
   const navigate = useNavigate();
-  const remaining = typeof opsLeft === "number" ? Math.max(0, opsLeft) : FREE_OPS_PER_MONTH;
+  const remaining = typeof opsLeft === "number" ? Math.max(0, opsLeft) : FREE_OPS_ON_SIGNUP;
 
   const continueFree = () => {
     onOpenChange(false);
@@ -60,7 +60,7 @@ export function DownloadRoiDialog({
             Документът е готов за сваляне
           </DialogTitle>
           <DialogDescription className="text-center text-[13px]">
-            Включва {FREE_OPS_PER_MONTH} безплатни сваляния за този месец — без карта и без
+            Регистрацията включва {FREE_OPS_ON_SIGNUP} безплатни операции — без карта и без
             абонамент.
           </DialogDescription>
         </DialogHeader>

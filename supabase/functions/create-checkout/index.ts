@@ -100,6 +100,8 @@ Deno.serve(async (req) => {
     // applies correctly across monthly + yearly. Legacy FIRST100 codes are
     // deactivated. Skipped for one-off purchases (five_operations /
     // single_contract).
+    let promoCouponId: string | null = null;
+    const promoActive = Date.now() < Date.parse("2026-10-01T00:00:00+03:00");
     if (isRecurring) {
       const productId = typeof price.product === "string" ? price.product : (price.product as any)?.id;
       try {
@@ -116,6 +118,7 @@ Deno.serve(async (req) => {
             redeem_by: Math.floor(Date.parse("2026-10-01T00:00:00+03:00") / 1000),
           });
         }
+        if (promoActive) promoCouponId = couponId;
         // Ensure a single public promotion code "SEPT20" points at this coupon.
         const existing = await stripe.promotionCodes.list({ coupon: couponId, code: "SEPT20", limit: 1 });
         if (!existing.data.length) {
@@ -146,10 +149,12 @@ Deno.serve(async (req) => {
       ui_mode: "embedded_page",
       return_url: returnUrl,
       customer: customerId,
-      // Show Stripe's built-in "Add promotion code" field only for subs.
-      // Loyalty coupon (auto-applied) takes precedence; if absent, the
-      // customer can type FIRST100 manually.
-      ...(isRecurring && !appliedCouponId && { allow_promotion_codes: true }),
+      // Auto-applied discount: loyalty coupon takes precedence, otherwise the
+      // active September promo (−20%) is applied automatically so the price the
+      // customer saw on /plans is the price charged. Stripe does not allow
+      // `discounts` together with `allow_promotion_codes`, so the manual code
+      // field is only shown when no discount is auto-applied.
+      ...(isRecurring && !appliedCouponId && !promoCouponId && { allow_promotion_codes: true }),
       metadata: {
         userId,
         priceId,
@@ -160,9 +165,22 @@ Deno.serve(async (req) => {
         refund_version: "2026-09-01",
         ai_ack_accepted: "true",
         ...(appliedCouponId ? { loyalty_coupon: appliedCouponId } : {}),
+        ...(!appliedCouponId && promoCouponId ? { promo_coupon: promoCouponId } : {}),
       },
-      ...(appliedCouponId ? { discounts: [{ coupon: appliedCouponId }] } : {}),
-      ...(isRecurring && { subscription_data: { metadata: { userId, ...(appliedCouponId ? { loyalty_coupon: appliedCouponId } : {}) } } }),
+      ...(appliedCouponId
+        ? { discounts: [{ coupon: appliedCouponId }] }
+        : promoCouponId
+          ? { discounts: [{ coupon: promoCouponId }] }
+          : {}),
+      ...(isRecurring && {
+        subscription_data: {
+          metadata: {
+            userId,
+            ...(appliedCouponId ? { loyalty_coupon: appliedCouponId } : {}),
+            ...(!appliedCouponId && promoCouponId ? { promo_coupon: promoCouponId } : {}),
+          },
+        },
+      }),
     });
 
 
