@@ -12,7 +12,7 @@ export type Audience = "business" | "freelancer";
 
 export const AUDIENCE_STORAGE_KEY = "dogovori_audience_v1";
 export const AUDIENCE_EVENT = "dogovori:audience-changed";
-export const DEFAULT_AUDIENCE: Audience = "business";
+export const DEFAULT_AUDIENCE: Audience = "freelancer";
 
 export interface AudienceCopy {
   /** Кратък етикет за toggle бутона. */
