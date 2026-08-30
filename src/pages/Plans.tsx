@@ -21,7 +21,7 @@ import { SoftCapPanel } from "@/components/paywall/SoftCapPanel";
 import { RoiCalculator } from "@/components/funnel/RoiCalculator";
 import { RoiSavingsBanner } from "@/components/funnel/RoiSavingsBanner";
 import { AudienceToggle } from "@/components/funnel/AudienceToggle";
-import { First100Counter } from "@/components/funnel/First100Counter";
+import { SEPTEMBER_PROMO, isSeptemberPromoActive, promoPriceEur, fmtEur } from "@/lib/pricing";
 import { useAudience } from "@/hooks/useAudience";
 import { markFunnelStep } from "@/lib/funnel";
 import { useEffect } from "react";
@@ -40,6 +40,8 @@ import { usePlans, type Billing, type PlanId } from "@/hooks/usePlans";
 import { trackEvent } from "@/lib/analytics";
 import { trackPlansView, trackCheckoutStarted } from "@/lib/metrics";
 import { roiSubtitle, type PricingPlanId } from "@/lib/pricing";
+
+/** Дублира импорта по-горе? Не — използваме директно помощниците от pricing. */
 
 const PLAN_ICON: Record<PlanId, React.ComponentType<{ className?: string }>> = {
   free: Sparkles,
