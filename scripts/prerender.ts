@@ -446,9 +446,286 @@ for (const sector of SECTORS) {
 }
 
 
+// ---------------------------------------------------------------------------
+// /blog + /blog/<slug> — до момента тези маршрути не се пререндираха и
+// сървърът връщаше HTML на началната страница (canonical="/"), заради което
+// Google ги отчиташе като „Дубликат – потребителят не е избрал канонична
+// страница". Сега всяка статия получава собствен title/description/canonical.
+// ---------------------------------------------------------------------------
+type PrerenderBlogPost = {
+  slug: string;
+  title: string;
+  category: string;
+  summary: string;
+  metaDescription: string;
+  image: string;
+  publishedAt: string;
+  intro: string;
+  sections: { heading: string; body: string }[];
+  faq: { q: string; a: string }[];
+  takeaways: string[];
+};
+
+const blogPosts: PrerenderBlogPost[] = [];
+{
+  const dir = resolve(process.cwd(), "src/content/blog");
+  if (existsSync(dir)) {
+    const files = readdirSync(dir).filter((f) => f.endsWith(".ts"));
+    for (const f of files) {
+      try {
+        const mod: any = await import(resolve(dir, f));
+        if (mod?.POST?.slug) blogPosts.push(mod.POST as PrerenderBlogPost);
+      } catch (e) {
+        console.warn(`⚠ Skipped blog post ${f}:`, (e as Error).message);
+      }
+    }
+    blogPosts.sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1));
+    console.log(`✓ Loaded ${blogPosts.length} blog posts for prerender`);
+  }
+}
+
+const paragraphs = (body: string): string =>
+  body
+    .split("\n\n")
+    .filter(Boolean)
+    .map((p) => `<p>${escapeHtml(p)}</p>`)
+    .join("");
+
+if (blogPosts.length) {
+  pages.push({
+    path: "/blog",
+    title: `Правен блог: ${blogPosts.length} анализа по българско право | Dogovori.net`,
+    description:
+      "Правен блог на Dogovori.net — практични анализи по ЗЗД, ТЗ, КТ и ЗУТ: договори, данъци, срокове и чести грешки, обяснени на разбираем език.",
+    bodyHtml: `<main style="font-family:Georgia,serif;max-width:900px;margin:2rem auto;padding:1rem;color:#0f1a30">
+        <nav><a href="/">Начало</a> › Блог</nav>
+        <h1>Правен блог</h1>
+        <p>Практични статии по българско договорно, трудово и данъчно право. Всеки материал е свързан с готови шаблони, които можете да попълните веднага.</p>
+        <ul>${blogPosts
+          .map(
+            (p) =>
+              `<li><a href="/blog/${p.slug}">${escapeHtml(p.title)}</a> — ${escapeHtml(p.summary)} <em>(${escapeHtml(p.category)}, ${escapeHtml(p.publishedAt)})</em></li>`,
+          )
+          .join("")}</ul>
+        <p><a href="/catalog">Каталог на шаблоните</a> · <a href="/karta">Карта на сайта</a></p>
+      </main>`,
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "Blog",
+        name: "Правен блог — Dogovori.net",
+        inLanguage: "bg-BG",
+        url: `${SITE}/blog`,
+        blogPost: blogPosts.slice(0, 20).map((p) => ({
+          "@type": "BlogPosting",
+          headline: p.title,
+          url: `${SITE}/blog/${p.slug}`,
+          datePublished: p.publishedAt,
+          description: p.summary,
+        })),
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Начало", item: `${SITE}/` },
+          { "@type": "ListItem", position: 2, name: "Блог", item: `${SITE}/blog` },
+        ],
+      },
+    ],
+  });
+
+  for (const post of blogPosts) {
+    const related = blogPosts.filter((p) => p.slug !== post.slug && p.category === post.category).slice(0, 4);
+    pages.push({
+      path: `/blog/${post.slug}`,
+      title: `${post.title} | Dogovori.net`,
+      description: (post.metaDescription || post.summary).slice(0, 160),
+      type: "article",
+      bodyHtml: `<main style="font-family:Georgia,serif;max-width:800px;margin:2rem auto;padding:1rem;color:#0f1a30">
+        <nav><a href="/">Начало</a> › <a href="/blog">Блог</a> › ${escapeHtml(post.title)}</nav>
+        <article>
+          <h1>${escapeHtml(post.title)}</h1>
+          <p><em>${escapeHtml(post.category)} · публикувана ${escapeHtml(post.publishedAt)}</em></p>
+          ${paragraphs(post.intro)}
+          ${post.sections.map((s) => `<section><h2>${escapeHtml(s.heading)}</h2>${paragraphs(s.body)}</section>`).join("")}
+          ${post.takeaways?.length ? `<h2>Основни изводи</h2><ul>${post.takeaways.map((t) => `<li>${escapeHtml(t)}</li>`).join("")}</ul>` : ""}
+          ${post.faq?.length ? `<h2>Често задавани въпроси</h2>${post.faq.map((f) => `<section><h3>${escapeHtml(f.q)}</h3><p>${escapeHtml(f.a)}</p></section>`).join("")}` : ""}
+        </article>
+        ${related.length ? `<h2>Свързани статии</h2><ul>${related.map((r) => `<li><a href="/blog/${r.slug}">${escapeHtml(r.title)}</a></li>`).join("")}</ul>` : ""}
+        <p><a href="/blog">← Всички статии</a> · <a href="/catalog">Каталог на шаблоните</a></p>
+      </main>`,
+      jsonLd: [
+        {
+          "@context": "https://schema.org",
+          "@type": "BlogPosting",
+          headline: post.title,
+          description: post.summary,
+          inLanguage: "bg-BG",
+          datePublished: post.publishedAt,
+          dateModified: post.publishedAt,
+          image: `${SITE}${post.image}`,
+          author: { "@type": "Organization", name: "Dogovori.net" },
+          publisher: {
+            "@type": "Organization",
+            name: "Dogovori.net",
+            logo: { "@type": "ImageObject", url: `${SITE}/favicon.png` },
+          },
+          mainEntityOfPage: `${SITE}/blog/${post.slug}`,
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Начало", item: `${SITE}/` },
+            { "@type": "ListItem", position: 2, name: "Блог", item: `${SITE}/blog` },
+            { "@type": "ListItem", position: 3, name: post.title, item: `${SITE}/blog/${post.slug}` },
+          ],
+        },
+        ...(post.faq?.length
+          ? [
+              {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                mainEntity: post.faq.map((f) => ({
+                  "@type": "Question",
+                  name: f.q,
+                  acceptedAnswer: { "@type": "Answer", text: f.a },
+                })),
+              },
+            ]
+          : []),
+      ],
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// /tools + /tools/<slug> — правни калкулатори. Същият проблем като блога:
+// без SSG връщаха HTML на началната страница и се отчитаха като дубликати.
+// ---------------------------------------------------------------------------
+{
+  let calculators: any[] = [];
+  try {
+    const mod: any = await import(resolve(process.cwd(), "src/data/calculators/index.ts"));
+    calculators = mod?.CALCULATORS ?? [];
+  } catch (e) {
+    console.warn("⚠ Could not load CALCULATORS:", (e as Error).message);
+  }
+
+  if (calculators.length) {
+    pages.push({
+      path: "/tools",
+      title: `Правни калкулатори: ${calculators.length} безплатни инструмента | Dogovori.net`,
+      description:
+        "Безплатни правни калкулатори по българското законодателство: обезщетения при уволнение, платен отпуск, лихва за забава, нотариални такси, ДДС и местни данъци.",
+      bodyHtml: `<main style="font-family:Georgia,serif;max-width:900px;margin:2rem auto;padding:1rem;color:#0f1a30">
+          <nav><a href="/">Начало</a> › Калкулатори</nav>
+          <h1>Правни калкулатори</h1>
+          <p>Изчислете обезщетения, отпуски, лихви и такси според действащото българско законодателство. Всеки калкулатор посочва правното си основание.</p>
+          <ul>${calculators
+            .map((c) => `<li><a href="/tools/${c.slug}">${escapeHtml(c.title)}</a> — ${escapeHtml(c.description)}</li>`)
+            .join("")}</ul>
+          <p><a href="/catalog">Каталог на шаблоните</a> · <a href="/blog">Правен блог</a></p>
+        </main>`,
+      jsonLd: [
+        {
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Правни калкулатори",
+          inLanguage: "bg-BG",
+          url: `${SITE}/tools`,
+          mainEntity: {
+            "@type": "ItemList",
+            numberOfItems: calculators.length,
+            itemListElement: calculators.map((c, idx) => ({
+              "@type": "ListItem",
+              position: idx + 1,
+              url: `${SITE}/tools/${c.slug}`,
+              name: c.title,
+            })),
+          },
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Начало", item: `${SITE}/` },
+            { "@type": "ListItem", position: 2, name: "Калкулатори", item: `${SITE}/tools` },
+          ],
+        },
+      ],
+    });
+
+    for (const calc of calculators) {
+      const seo = calc.seo ?? {};
+      const others = calculators.filter((c) => c.slug !== calc.slug).slice(0, 6);
+      pages.push({
+        path: `/tools/${calc.slug}`,
+        title: `${calc.title} — безплатен калкулатор | Dogovori.net`,
+        description: (seo.metaDescription || calc.description || "").slice(0, 160),
+        bodyHtml: `<main style="font-family:Georgia,serif;max-width:800px;margin:2rem auto;padding:1rem;color:#0f1a30">
+            <nav><a href="/">Начало</a> › <a href="/tools">Калкулатори</a> › ${escapeHtml(calc.title)}</nav>
+            <h1>${escapeHtml(calc.title)}</h1>
+            <p>${escapeHtml(seo.intro || calc.description || "")}</p>
+            ${seo.howItWorks ? `<h2>Как работи изчислението</h2>${paragraphs(seo.howItWorks)}` : ""}
+            ${
+              Array.isArray(calc.legalBasis) && calc.legalBasis.length
+                ? `<h2>Правно основание</h2><ul>${calc.legalBasis.map((l: any) => `<li>${escapeHtml(l.label)}</li>`).join("")}</ul>`
+                : ""
+            }
+            ${
+              Array.isArray(seo.faq) && seo.faq.length
+                ? `<h2>Често задавани въпроси</h2>${seo.faq.map((f: any) => `<section><h3>${escapeHtml(f.q)}</h3><p>${escapeHtml(f.a)}</p></section>`).join("")}`
+                : ""
+            }
+            ${others.length ? `<h2>Други калкулатори</h2><ul>${others.map((c) => `<li><a href="/tools/${c.slug}">${escapeHtml(c.shortTitle || c.title)}</a></li>`).join("")}</ul>` : ""}
+            <p><a href="/tools">← Всички калкулатори</a> · <a href="/catalog">Каталог на шаблоните</a></p>
+          </main>`,
+        jsonLd: [
+          {
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            name: calc.title,
+            description: calc.description,
+            applicationCategory: "FinanceApplication",
+            operatingSystem: "Web",
+            inLanguage: "bg-BG",
+            url: `${SITE}/tools/${calc.slug}`,
+            offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Начало", item: `${SITE}/` },
+              { "@type": "ListItem", position: 2, name: "Калкулатори", item: `${SITE}/tools` },
+              { "@type": "ListItem", position: 3, name: calc.title, item: `${SITE}/tools/${calc.slug}` },
+            ],
+          },
+          ...(Array.isArray(seo.faq) && seo.faq.length
+            ? [
+                {
+                  "@context": "https://schema.org",
+                  "@type": "FAQPage",
+                  mainEntity: seo.faq.map((f: any) => ({
+                    "@type": "Question",
+                    name: f.q,
+                    acceptedAnswer: { "@type": "Answer", text: f.a },
+                  })),
+                },
+              ]
+            : []),
+        ],
+      });
+    }
+  }
+}
+
 let n = 0;
 for (const p of pages) {
   writeRoute(p);
   n++;
 }
 console.log(`✓ Prerendered ${n} pages with SEO meta + JSON-LD into dist/`);
+
