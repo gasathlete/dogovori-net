@@ -50,6 +50,8 @@ import { RefineDraftBox } from "@/components/wizard/RefineDraftBox";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { openInlineAuth } from "@/lib/inlineAuth";
+import { smartDefaultsFor } from "@/lib/smartDefaults";
+import { DownloadRoiDialog } from "@/components/wizard/DownloadRoiDialog";
 import { trackEvent } from "@/lib/analytics";
 import { trackDocStart, trackGenerate, trackFillStep, trackReviewResult, trackDocEvent } from "@/lib/docFunnel";
 import { getVariant, trackAbExposure, applyAbOverridesFromUrl } from "@/lib/ab";
@@ -191,6 +193,11 @@ export default function WizardPage() {
   const resultRef = useRef<HTMLDivElement | null>(null);
   /** Последно избраният формат — първа опция при следващо сваляне. */
   const [preferredFmt, setPreferredFmt] = useState<DocFormat>(() => getPreferredFormat());
+  /** Контекстен модал при сваляне от нерегистриран потребител. */
+  const [downloadModal, setDownloadModal] = useState<{ open: boolean; format: DocFormat }>({
+    open: false,
+    format: "pdf",
+  });
   /** Височина на софтуерната клавиатура — повдига фиксираната лента, за да няма застъпване. */
   const keyboardInset = useKeyboardInset();
 
@@ -312,12 +319,16 @@ export default function WizardPage() {
         patch[f.id] = "София";
       }
     }
+    // Интелигентни стойности за най-популярните документи (МПС пълномощно,
+    // наем на гараж, учредителен акт на ЕООД) — намаляват отпадането на
+    // първото поле.
+    Object.assign(patch, { ...smartDefaultsFor(docName, flat as any), ...patch });
     const missing = Object.fromEntries(
       Object.entries(patch).filter(([id]) => !answers[id]?.trim()),
     );
     if (Object.keys(missing).length > 0) setAnswers((prev) => ({ ...missing, ...prev }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sector]);
+  }, [sector, docName]);
 
 
 
@@ -737,7 +748,9 @@ export default function WizardPage() {
   const handleExport = async (format: "pdf" | "docx") => {
     if (!result) return;
     if (!user) {
-      goAuth({ action: `Свали ${format.toUpperCase()}`, onSuccess: () => handleExport(format) });
+      // Контекстен модал с ROI сравнение и бърза регистрация — без напускане
+      // на уизарда и без загуба на въведените данни.
+      setDownloadModal({ open: true, format });
       return;
     }
     // Strict document paywall — free users must subscribe or buy a single unlock
@@ -1436,7 +1449,14 @@ export default function WizardPage() {
                   onExportPdf={() => handleExport("pdf")}
                   onExportDocx={() => handleExport("docx")}
                   onSave={handleSaveToProfile}
-                  onRegister={() => goAuth({ action: "Запазване и сваляне на документа" })}
+                  onRegister={() => setDownloadModal({ open: true, format: preferredFmt })}
+                />
+                <DownloadRoiDialog
+                  open={downloadModal.open}
+                  onOpenChange={(o) => setDownloadModal((p) => ({ ...p, open: o }))}
+                  format={downloadModal.format}
+                  opsLeft={opsLeft}
+                  onProceed={() => void handleExport(downloadModal.format)}
                 />
 
                 {showUpgradeBanner && (

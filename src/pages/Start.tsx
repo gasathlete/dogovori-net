@@ -11,6 +11,7 @@ import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
 import { useAuth } from "@/hooks/useAuth";
+import { openInlineAuth } from "@/lib/inlineAuth";
 import { LIFE_SCENARIOS } from "@/data/lifeScenarios";
 import { ArrowRight, Search, Sparkles, FileUp, Layers } from "@/icons";
 import { trackDocStart } from "@/lib/docFunnel";
@@ -58,12 +59,10 @@ export default function StartPage() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
-  const hrefFor = (intent: (typeof INTENTS)[number]) => {
-    if ("requiresAuth" in intent && intent.requiresAuth && !user) {
-      return `/auth?tab=signup&redirect=${encodeURIComponent(intent.to)}`;
-    }
-    return intent.to;
-  };
+  // Без пренасочване към /auth — влизането става инлайн, а действието
+  // продължава автоматично след успешна регистрация.
+  const needsAuth = (intent: (typeof INTENTS)[number]) =>
+    "requiresAuth" in intent && !!intent.requiresAuth && !user;
 
   return (
     <>
@@ -102,8 +101,18 @@ export default function StartPage() {
             {INTENTS.map((intent, i) => (
               <li key={intent.id}>
                 <Link
-                  to={hrefFor(intent)}
-                  onClick={() => trackDocStart({ source: "start", intent: intent.id })}
+                  to={intent.to}
+                  onClick={(e) => {
+                    trackDocStart({ source: "start", intent: intent.id });
+                    if (needsAuth(intent)) {
+                      e.preventDefault();
+                      openInlineAuth({
+                        action: intent.cta,
+                        mode: "signup",
+                        onSuccess: () => navigate(intent.to),
+                      });
+                    }
+                  }}
                   className="group flex h-full flex-col rounded-xl border border-border/60 bg-card p-6 text-left shadow-soft transition-all hover:-translate-y-0.5 hover:border-gold/50 hover:shadow-gold/20"
                 >
                   <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gold/30 bg-gold/10 text-gold">
@@ -154,7 +163,7 @@ export default function StartPage() {
               Разглеждането е свободно.{" "}
               <button
                 type="button"
-                onClick={() => navigate("/auth?tab=signup&redirect=%2Fstart")}
+                onClick={() => openInlineAuth({ action: "Регистрация", mode: "signup" })}
                 className="font-semibold text-gold hover:underline"
               >
                 Регистрирайте се
