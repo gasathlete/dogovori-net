@@ -50,8 +50,10 @@ const staticEntries: Entry[] = [
   { loc: "/tools", changefreq: "weekly", priority: "0.85", lastmod: calculatorsDate },
   { loc: "/ai", changefreq: "monthly", priority: "0.85", lastmod: fileMtime("src/pages/AIFeatures.tsx") },
 
-  { loc: "/auth", changefreq: "monthly", priority: "0.4", lastmod: fileMtime("src/pages/Auth.tsx") },
+  // /auth беше тук, но страницата е <meta robots="noindex"> (логин форма) —
+  // присъствието ѝ в sitemap генерираше „Excluded by noindex tag" в GSC.
   { loc: "/contacts", changefreq: "yearly", priority: "0.3", lastmod: fileMtime("src/pages/Contact.tsx") },
+
   { loc: "/terms", changefreq: "yearly", priority: "0.3", lastmod: fileMtime("src/pages/Terms.tsx") },
   { loc: "/privacy", changefreq: "yearly", priority: "0.3", lastmod: fileMtime("src/pages/Privacy.tsx") },
   { loc: "/cookies", changefreq: "yearly", priority: "0.3", lastmod: fileMtime("src/pages/Cookies.tsx") },
