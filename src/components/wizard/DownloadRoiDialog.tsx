@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Crown, FileDown, PiggyBank, ShieldCheck } from "@/icons";
 import { openInlineAuth } from "@/lib/inlineAuth";
 import {
-  FREE_OPS_PER_MONTH,
+  FREE_OPS_ON_SIGNUP,
   LAWYER_FEE_MIN_EUR,
   PRICING_PLANS,
   monthlyLabel,
