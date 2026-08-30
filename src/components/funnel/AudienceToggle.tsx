@@ -10,8 +10,8 @@ import { useAudience } from "@/hooks/useAudience";
 import type { Audience } from "@/lib/audience";
 
 const OPTIONS: { value: Audience; label: string; Icon: typeof Briefcase }[] = [
-  { value: "business", label: "Фирма", Icon: Briefcase },
   { value: "freelancer", label: "Фрийлансър", Icon: User },
+  { value: "business", label: "Фирма", Icon: Briefcase },
 ];
 
 export function AudienceToggle({
