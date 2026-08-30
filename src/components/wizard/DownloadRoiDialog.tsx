@@ -38,7 +38,7 @@ export function DownloadRoiDialog({
   onProceed,
 }: Props) {
   const navigate = useNavigate();
-  const remaining = typeof opsLeft === "number" ? Math.max(0, opsLeft) : FREE_OPS_PER_MONTH;
+  const remaining = typeof opsLeft === "number" ? Math.max(0, opsLeft) : FREE_OPS_ON_SIGNUP;
 
   const continueFree = () => {
     onOpenChange(false);
