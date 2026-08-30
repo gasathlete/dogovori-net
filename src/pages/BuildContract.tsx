@@ -86,6 +86,14 @@ export interface BuildContractPageProps {
 export default function BuildContractPage({ presetOverride, variant = "generic" }: BuildContractPageProps = {}) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  /**
+   * Жива референция към текущия потребител: onSuccess callback-ите от инлайн
+   * входа са затваряния от по-стар рендер (user === null). Четенето през ref
+   * гарантира, че след успешен вход повторното извикване вижда новата сесия,
+   * вместо отново да отвори модала.
+   */
+  const userRef = useRef(user);
+  userRef.current = user;
   const [searchParams] = useSearchParams();
   const presetSignature = useMemo(() => buildPresetSignature(searchParams), [searchParams]);
   const presetCategory = presetOverride?.category ?? searchParams.get("category") ?? "";
