@@ -132,7 +132,7 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
         ? `&redirect=${encodeURIComponent(returnTo)}`
         : "";
     onOpenChange(false);
-    navigate(`/account?tab=subscription&plan=${plan}&billing=${billing}&promo=FIRST100${redirect}`);
+    navigate(`/account?tab=subscription&plan=${plan}&billing=${billing}&promo=SEPT20${redirect}`);
   };
 
   const SCENARIOS = [
