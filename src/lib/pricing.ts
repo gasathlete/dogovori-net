@@ -184,6 +184,30 @@ export const FREE_OPS_PER_MONTH = PRICING_PLANS.free.opsPerMonth ?? 2;
  */
 export const FREE_OPS_ON_SIGNUP = 5;
 
+/**
+ * Септемврийска промоция 2026: −20% на всички абонаментни планове за
+ * регистрации до 30.09.2026 включително (бета периодът е удължен до
+ * 01.10.2026). Промокодът SEPT20 се осигурява сървърно в create-checkout.
+ * Изтича автоматично на 01.10.2026 00:00 българско време.
+ */
+export const SEPTEMBER_PROMO = {
+  code: "SEPT20",
+  percent: 20,
+  /** Край (изключващ) — 01.10.2026 00:00 Europe/Sofia (UTC+3). */
+  endsAt: "2026-10-01T00:00:00+03:00",
+  label: "Септемврийска промоция −20%",
+} as const;
+
+/** Активна ли е септемврийската промоция в момента. */
+export function isSeptemberPromoActive(now: Date = new Date()): boolean {
+  return now.getTime() < Date.parse(SEPTEMBER_PROMO.endsAt);
+}
+
+/** Промоционална цена с −20%, закръглена до стотинки: 12,90 → 10,32. */
+export function promoPriceEur(amount: number): number {
+  return Math.round(amount * (1 - SEPTEMBER_PROMO.percent / 100) * 100) / 100;
+}
+
 
 /**
  * ROI подзаглавие за платен план — колко правни разходи спестява месечно.

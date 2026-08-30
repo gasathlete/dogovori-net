@@ -10,9 +10,9 @@ import { ArrowRight, Sparkles, Gift, Zap, Users, ShieldCheck } from "@/icons";
  * period (until the official launch on 2026-09-01) and the perks early users
  * get. The delay avoids ambushing the visitor the moment the page loads.
  */
-const STORAGE_KEY = "dogovori_beta_ack_v1";
-const SESSION_KEY = "dogovori_beta_ack_session_v1";
-const LAUNCH_DATE = "01.09.2026";
+const STORAGE_KEY = "dogovori_beta_ack_v2";
+const SESSION_KEY = "dogovori_beta_ack_session_v2";
+const LAUNCH_DATE = "01.10.2026";
 const APPEAR_DELAY_MS = 10_000;
 
 function hasAcknowledged(): boolean {
@@ -140,7 +140,7 @@ export function BetaDisclaimerModal() {
               </span>
             </div>
             <h2 className="mt-2.5 text-balance font-serif text-[20px] leading-tight tracking-tight text-foreground sm:text-[24px]">
-              Работим в бета до 1&nbsp;септември 2026&nbsp;г.
+              Работим в бета до 1&nbsp;октомври 2026&nbsp;г.
             </h2>
             <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
               Изграждаме dogovori.net заедно с първите ни потребители. Ранните акаунти
