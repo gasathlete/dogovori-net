@@ -118,6 +118,7 @@ Deno.serve(async (req) => {
             redeem_by: Math.floor(Date.parse("2026-10-01T00:00:00+03:00") / 1000),
           });
         }
+        if (promoActive) promoCouponId = couponId;
         // Ensure a single public promotion code "SEPT20" points at this coupon.
         const existing = await stripe.promotionCodes.list({ coupon: couponId, code: "SEPT20", limit: 1 });
         if (!existing.data.length) {
