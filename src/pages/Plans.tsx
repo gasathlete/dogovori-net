@@ -41,8 +41,6 @@ import { trackEvent } from "@/lib/analytics";
 import { trackPlansView, trackCheckoutStarted } from "@/lib/metrics";
 import { roiSubtitle, type PricingPlanId } from "@/lib/pricing";
 
-/** Дублира импорта по-горе? Не — използваме директно помощниците от pricing. */
-
 const PLAN_ICON: Record<PlanId, React.ComponentType<{ className?: string }>> = {
   free: Sparkles,
   professional: Zap,
@@ -158,9 +156,8 @@ export default function Plans() {
 
             <div className="mt-5 flex flex-col items-center gap-2 text-center">
               <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground sm:tracking-[0.18em]">
-                Промокод <span className="font-semibold text-brand">FIRST100</span> · −20% за нови клиенти
+                {SEPTEMBER_PROMO.label} · код <span className="font-semibold text-brand">{SEPTEMBER_PROMO.code}</span> при регистрация до 30.09
               </p>
-              <First100Counter />
             </div>
 
 
