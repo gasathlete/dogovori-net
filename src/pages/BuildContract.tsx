@@ -627,7 +627,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
 
   const handleExport = async (format: "pdf" | "docx") => {
     if (!result) return;
-    if (!user) {
+    if (!userRef.current) {
       goAuth({ action: `Свали ${format.toUpperCase()}`, onSuccess: () => handleExport(format) });
       return;
     }
@@ -705,7 +705,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
 
   const handleApplyCorrections = async (sel: CorrectionsSelection, correctionsConfirmed = false) => {
     if (!result) return;
-    if (!user) {
+    if (!userRef.current) {
       goAuth({ action: "Прилагане на корекции", onSuccess: () => handleApplyCorrections(sel, correctionsConfirmed) });
       return;
     }
@@ -774,7 +774,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
 
   const handleSaveToProfile = async () => {
     if (!result) return;
-    if (!user) {
+    if (!userRef.current) {
       goAuth({ action: "Запазване в профила", onSuccess: () => handleSaveToProfile() });
       return;
     }
