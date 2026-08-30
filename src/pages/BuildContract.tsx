@@ -86,6 +86,14 @@ export interface BuildContractPageProps {
 export default function BuildContractPage({ presetOverride, variant = "generic" }: BuildContractPageProps = {}) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  /**
+   * Жива референция към текущия потребител: onSuccess callback-ите от инлайн
+   * входа са затваряния от по-стар рендер (user === null). Четенето през ref
+   * гарантира, че след успешен вход повторното извикване вижда новата сесия,
+   * вместо отново да отвори модала.
+   */
+  const userRef = useRef(user);
+  userRef.current = user;
   const [searchParams] = useSearchParams();
   const presetSignature = useMemo(() => buildPresetSignature(searchParams), [searchParams]);
   const presetCategory = presetOverride?.category ?? searchParams.get("category") ?? "";
@@ -619,7 +627,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
 
   const handleExport = async (format: "pdf" | "docx") => {
     if (!result) return;
-    if (!user) {
+    if (!userRef.current) {
       goAuth({ action: `Свали ${format.toUpperCase()}`, onSuccess: () => handleExport(format) });
       return;
     }
@@ -697,7 +705,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
 
   const handleApplyCorrections = async (sel: CorrectionsSelection, correctionsConfirmed = false) => {
     if (!result) return;
-    if (!user) {
+    if (!userRef.current) {
       goAuth({ action: "Прилагане на корекции", onSuccess: () => handleApplyCorrections(sel, correctionsConfirmed) });
       return;
     }
@@ -766,7 +774,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
 
   const handleSaveToProfile = async () => {
     if (!result) return;
-    if (!user) {
+    if (!userRef.current) {
       goAuth({ action: "Запазване в профила", onSuccess: () => handleSaveToProfile() });
       return;
     }

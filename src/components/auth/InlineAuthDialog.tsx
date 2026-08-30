@@ -50,7 +50,9 @@ export function InlineAuthDialog() {
     successRef.current = null;
     setOpen(false);
     setPassword("");
-    if (cb) setTimeout(cb, 60);
+    // Малко по-дълго изчакване, за да успее onAuthStateChange да обнови
+    // React състоянието преди повторното извикване на защитеното действие.
+    if (cb) setTimeout(cb, 250);
   };
 
   const submit = async (e: React.FormEvent) => {
