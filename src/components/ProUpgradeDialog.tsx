@@ -174,10 +174,10 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
 
         <div className="my-2 rounded-lg border border-gold/30 bg-gold/5 p-3 text-center">
           <div className="text-[10px] font-bold uppercase tracking-wider text-gold">
-            Промо код FIRST100
+            Септемврийска промоция · код SEPT20
           </div>
           <div className="mt-0.5 text-xs text-muted-foreground">
-            20% отстъпка — за нови абонати
+            20% отстъпка при регистрация до 30.09
           </div>
         </div>
 
