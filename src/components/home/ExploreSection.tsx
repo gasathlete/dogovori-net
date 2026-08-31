@@ -15,6 +15,10 @@ interface ExploreSectionProps {
   id: string;
   title: string;
   summary: string;
+  /** Кратки „тийзър" факти — показват се само докато панелът е затворен. */
+  highlights?: string[];
+  /** Текст на подканата за отваряне (по подразбиране „Виж повече"). */
+  cta?: string;
   defaultOpen?: boolean;
   children: ReactNode;
 }
@@ -23,6 +27,8 @@ export function ExploreSection({
   id,
   title,
   summary,
+  highlights,
+  cta = "Виж повече",
   defaultOpen = false,
   children,
 }: ExploreSectionProps) {
@@ -54,6 +60,24 @@ export function ExploreSection({
             <span className="mt-0.5 block text-[13px] leading-relaxed text-muted-foreground">
               {summary}
             </span>
+            {!open && highlights && highlights.length > 0 && (
+              <span className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                {highlights.map((h) => (
+                  <span
+                    key={h}
+                    className="rounded-full border border-gold/25 bg-gold/[0.07] px-2.5 py-1 text-[11px] font-medium leading-none text-foreground/80"
+                  >
+                    {h}
+                  </span>
+                ))}
+              </span>
+            )}
+            {!open && (
+              <span className="mt-2.5 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-gold">
+                {cta}
+                <ChevronDown className="h-3 w-3" />
+              </span>
+            )}
           </span>
           <span
             aria-hidden="true"
