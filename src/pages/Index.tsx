@@ -122,9 +122,21 @@ const Index = () => {
           <Suspense fallback={<SectionSkeleton />}>
             <div className="container flex flex-col gap-3 pb-14">
               <ExploreSection
+                id="trust"
+                title="Какво казват клиентите"
+                summary="Мнения и фирми, които вече използват Dogovori.net."
+                defaultOpen
+              >
+                <Testimonials />
+                <SocialProofStrip />
+              </ExploreSection>
+
+              <ExploreSection
                 id="capabilities"
                 title="Какво може платформата"
                 summary="Шест инструмента, един работен процес — от преговор до подпис."
+                highlights={["AI асистент","600+ шаблона","Risk анализ","е-Подпис"]}
+                cta="Разгледай инструментите"
               >
                 <PlatformCapabilities />
               </ExploreSection>
@@ -133,6 +145,8 @@ const Index = () => {
                 id="value"
                 title="За кого е и какво решава"
                 summary="Фрийлансъри и малки фирми — реални казуси и рискове, които покриваме."
+                highlights={["Неплатен аванс = 800 €","Устна уговорка = 0 защита"]}
+                cta="Виж казусите"
               >
                 <PainSolution />
                 <LifeScenarios />
@@ -142,6 +156,8 @@ const Index = () => {
                 id="process"
                 title="Как работи — 3 стъпки"
                 summary="Избираш документ, отговаряш на въпроси, сваляш PDF или DOCX."
+                highlights={["~2 минути","Без карта","PDF + DOCX"]}
+                cta="Виж стъпките"
               >
                 <ProcessChips className="px-4 pt-4 sm:px-5" />
                 <Process />
@@ -152,23 +168,18 @@ const Index = () => {
                 id="templates"
                 title="Популярни шаблони"
                 summary="Най-търсените образци — трудов договор, наем, NDA, пълномощно."
+                highlights={["Трудов договор","Наем","NDA","Пълномощно"]}
+                cta="Отвори шаблоните"
               >
                 <FeaturedBlanks />
-              </ExploreSection>
-
-              <ExploreSection
-                id="trust"
-                title="Какво казват клиентите"
-                summary="Мнения и фирми, които вече използват Dogovori.net."
-              >
-                <Testimonials />
-                <SocialProofStrip />
               </ExploreSection>
 
               <ExploreSection
                 id="comparison"
                 title="Сравнение с адвокат и Word"
                 summary="Колко време и пари спестяваш при всеки документ."
+                highlights={["Адвокат от 150 €","Тук от 12.90 €/мес."]}
+                cta="Виж сравнението"
               >
                 <ComparisonTable />
               </ExploreSection>
@@ -177,6 +188,8 @@ const Index = () => {
                 id="compliance"
                 title="Сигурност и съответствие"
                 summary="GDPR, eIDAS, AI Act — как пазим данните и документите ти."
+                highlights={["GDPR","eIDAS","AI Act","EU сървъри"]}
+                cta="Виж защитата"
               >
                 <ComplianceSection />
               </ExploreSection>
@@ -185,6 +198,8 @@ const Index = () => {
                 id="faq"
                 title="Често задавани въпроси"
                 summary="Цени, операции, правна стойност на документите, е-подпис."
+                highlights={["Какво е операция?","Валиден ли е е-подписът?"]}
+                cta="Виж отговорите"
               >
                 <FAQ />
               </ExploreSection>
