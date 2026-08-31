@@ -127,8 +127,10 @@ const Index = () => {
                 summary="Мнения и фирми, които вече използват Dogovori.net."
                 defaultOpen
               >
-                <Testimonials />
-                <SocialProofStrip />
+                <div className="[&>section]:py-6 sm:[&>section]:py-8">
+                  <Testimonials />
+                  <SocialProofStrip />
+                </div>
               </ExploreSection>
 
               <ExploreSection
