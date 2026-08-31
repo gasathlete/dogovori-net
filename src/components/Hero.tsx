@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { markFunnelStep } from "@/lib/funnel";
 import { Link } from "react-router-dom";
 import { prefetchHandlers } from "@/components/PrefetchLink";
-import { ShieldCheck, Bird, FileText, Search, FileSignature, ArrowRight, FileUp } from "@/icons";
+import { ShieldCheck, Search, ArrowRight, FileUp } from "@/icons";
 const logoImg = "/logo-dogovori-hero.webp";
 import { HeroVideoBackdrop } from "@/components/HeroVideoBackdrop";
 import { SEPTEMBER_PROMO } from "@/lib/pricing";
@@ -89,18 +89,8 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             <AudienceToggle size="sm" />
           </div>
 
-          {/* Eyebrow chips — one line of trust cues */}
-          <div className="mt-4">
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]">
-              <span className="inline-flex items-center gap-1.5 text-gold"><ShieldCheck className="h-3.5 w-3.5" /> ЗЗД · ТЗ · ЗУТ</span>
-              <span className="h-3 w-px bg-gold/30" />
-              <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-gold" /> &gt;600 ШАБЛОНА</span>
-              <span className="h-3 w-px bg-gold/30" />
-              <span className="inline-flex items-center gap-1.5"><Bird className="h-3.5 w-3.5 text-gold" /> АНАЛИЗ НА РИСКА</span>
-              <span className="h-3 w-px bg-gold/30" />
-              <span className="inline-flex items-center gap-1.5"><FileSignature className="h-3.5 w-3.5 text-gold" /> Е-ПОДПИС</span>
-            </div>
-          </div>
+
+
 
           {/* Single primary CTA */}
           <div className="mt-7 flex flex-col items-center gap-3">
@@ -158,43 +148,11 @@ export function Hero({ onStart: _onStart }: { onStart: () => void }) {
             )}
           </div>
 
-          {/* Process steps — clickable chips ending the Hero */}
-          <nav
-            aria-label="Четирите стъпки на процеса"
-            className="mt-9"
-          >
-            <ul
-              role="list"
-              className="mx-auto flex max-w-2xl flex-wrap items-center justify-center gap-x-1.5 gap-y-2 sm:gap-x-2"
-            >
-              {[
-                { slug: "dogovaryay", label: "Договаряй" },
-                { slug: "sazday", label: "Създай" },
-                { slug: "pretsiziray", label: "Прецизирай" },
-                { slug: "podpishi", label: "Подпиши" },
-              ].map((s, i, arr) => (
-                <li key={s.slug} className="inline-flex items-center gap-1.5 sm:gap-2">
-                  <Link
-                    to={`/proces/${s.slug}`}
-                    className="inline-flex items-center rounded-full border border-gold/30 bg-card/40 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-gold/90 shadow-sm backdrop-blur-sm transition-colors hover:border-gold/60 hover:bg-gold/10 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 sm:text-[12px]"
-                  >
-                    {s.label}
-                  </Link>
-                  {i < arr.length - 1 && (
-                    <span aria-hidden="true" className="text-gold/40">·</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </nav>
+          {/* Септемврийска промоция −20% — един дискретен ред */}
+          <p className="mt-6 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            −20% с код <span className="font-semibold text-gold">{SEPTEMBER_PROMO.code}</span> до 30.09
+          </p>
 
-
-          {/* Септемврийска промоция −20% */}
-          <div className="mt-6 flex flex-col items-center gap-1.5">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              {SEPTEMBER_PROMO.label} · код <span className="font-semibold text-gold">{SEPTEMBER_PROMO.code}</span> при регистрация до 30.09 · без карта
-            </p>
-          </div>
         </div>
       </div>
 

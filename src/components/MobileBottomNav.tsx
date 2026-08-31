@@ -81,7 +81,7 @@ export function MobileBottomNav() {
                     type="button"
                     onClick={() => setAiOpen(true)}
                     aria-label="Отвори DogovaryAI"
-                    className="relative flex h-14 w-full flex-col items-center justify-center gap-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-gold/80"
+                    className="relative flex h-16 w-full flex-col items-center justify-center gap-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground transition-colors hover:text-gold/80"
                   >
                     <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full">
                       <img
@@ -93,7 +93,7 @@ export function MobileBottomNav() {
                         aria-hidden="true"
                       />
                     </span>
-                    <span className="mt-0.5 text-[9px] font-bold tracking-[0.05em] text-gold">DogovaryAI</span>
+                    <span className="mt-0.5 text-[10px] font-bold tracking-[0.02em] text-gold">DogovaryAI</span>
                   </button>
                 </li>
               );
@@ -109,13 +109,13 @@ export function MobileBottomNav() {
                   aria-label={item.label}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "relative flex h-14 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold uppercase tracking-wider transition-colors",
-                    active ? "text-gold" : "text-muted-foreground hover:text-gold/80",
+                    "relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold tracking-wide transition-colors",
+                    active ? "bg-gold/[0.08] text-gold" : "text-muted-foreground hover:text-gold/80",
                   )}
                 >
                   {Icon && (
                     <span className="relative">
-                      <Icon className="h-5 w-5" aria-hidden="true" />
+                      <Icon className="h-[22px] w-[22px]" aria-hidden="true" />
                       {item.to === "/account" && user && <StreakBadge variant="mobile" />}
                     </span>
                   )}
@@ -129,7 +129,7 @@ export function MobileBottomNav() {
                   {active && (
                     <span
                       aria-hidden="true"
-                      className="absolute inset-x-4 top-0 h-0.5 rounded-b bg-gold"
+                      className="absolute inset-x-3 top-0 h-[3px] rounded-b bg-gold"
                     />
                   )}
                 </Link>

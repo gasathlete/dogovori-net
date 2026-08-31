@@ -27,7 +27,7 @@ function LiveCounter() {
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold/60 opacity-75" />
         <span className="relative inline-flex h-2 w-2 rounded-full bg-gold" />
       </span>
-      Над <span className="tabular-nums text-foreground">{value.toLocaleString("bg-BG")}</span> документа вече изтеглени
+      <span className="whitespace-nowrap">Над <span className="tabular-nums text-foreground">{value.toLocaleString("bg-BG")}</span> документа вече изтеглени</span>
     </p>
   );
 }
@@ -104,7 +104,7 @@ export function CTABand() {
                 <button
                   type="button"
                   onClick={() => openStartStory()}
-                  className="btn-gold btn-sheen btn-press relative w-full sm:w-auto normal-case tracking-normal text-lg sm:text-xl px-12 py-5 sm:px-14 sm:py-6 lg:px-10 lg:py-4 lg:text-lg rounded-xl font-bold shadow-gold"
+                  className="btn-gold btn-sheen btn-press relative w-full whitespace-nowrap sm:w-auto normal-case tracking-normal text-base sm:text-xl px-6 py-4 sm:px-14 sm:py-6 lg:px-10 lg:py-4 lg:text-lg rounded-xl font-bold shadow-gold"
                 >
                   <ArrowRight className="h-[22px] w-[22px]" /> Започни безплатно
                 </button>

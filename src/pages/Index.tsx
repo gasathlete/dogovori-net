@@ -7,27 +7,23 @@ import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { LazyOnVisible } from "@/components/LazyOnVisible";
 import { SectionSkeleton } from "@/components/SectionSkeleton";
-import { Reveal } from "@/components/Reveal";
+import { PrimaryChoice } from "@/components/home/PrimaryChoice";
+import { ExploreSection } from "@/components/home/ExploreSection";
+import { ProcessChips } from "@/components/home/ProcessChips";
 
 import { FEATURED_BLANKS } from "@/data/featuredBlanks";
 import { buildFaqJsonLd } from "@/data/faqItems";
 
 // NOTE: `templateIndex` (and its transitive `CATALOG` JSON ~260KB) is loaded
 // lazily inside the JSON-LD effect below — keeping it out of the landing
-// entry chunk. The slug map is only needed to build the optional ItemList
-// structured-data block, which doesn't have to render synchronously.
+// entry chunk.
 
-// Linear-style landing structure (top → bottom):
-//  Hero → SocialProofStrip → PainSolution → PlatformShowcase → FeaturedBlanks
-//  → LifeScenarios → ComparisonTable → Testimonials → Process → FAQ
-//  → ComplianceSection → CTABand → SeoFooter
-import { PlatformCapabilities } from "@/components/PlatformCapabilities";
-
-// SocialProofStrip е под първия екран — държим го извън entry chunk-а.
+// Опростена структура (top → bottom):
+//  Hero (кратко) → PrimaryChoice (3 пътя) → разгъващи се панели → CTABand → SeoFooter
+// Всяка секция под сгъвката е скрита зад ExploreSection: човек отваря само
+// това, което иска да види. Съдържанието остава в DOM-а за търсачките.
+const PlatformCapabilities = lazy(() => import("@/components/PlatformCapabilities").then((m) => ({ default: m.PlatformCapabilities })));
 const SocialProofStrip = lazy(() => import("@/components/SocialProofStrip").then((m) => ({ default: m.SocialProofStrip })));
-
-
-
 const PainSolution = lazy(() => import("@/components/PainSolution").then((m) => ({ default: m.PainSolution })));
 const FeaturedBlanks = lazy(() => import("@/components/FeaturedBlanks").then((m) => ({ default: m.FeaturedBlanks })));
 const LifeScenarios = lazy(() => import("@/components/LifeScenarios").then((m) => ({ default: m.LifeScenarios })));
@@ -38,14 +34,6 @@ const Testimonials = lazy(() => import("@/components/Testimonials").then((m) => 
 const FAQ = lazy(() => import("@/components/FAQ").then((m) => ({ default: m.FAQ })));
 const ComplianceSection = lazy(() => import("@/components/ComplianceSection").then((m) => ({ default: m.ComplianceSection })));
 const CTABand = lazy(() => import("@/components/CTABand").then((m) => ({ default: m.CTABand })));
-// StickyScrollCta removed — DogovAIBubble is the single persistent floating helper on the landing.
-const SocialProofToast = lazy(() => import("@/components/funnel/SocialProofToast").then((m) => ({ default: m.SocialProofToast })));
-
-const Divider = () => (
-  <div aria-hidden="true" className="container">
-    <div className="section-divider" />
-  </div>
-);
 
 const Index = () => {
   const navigate = useNavigate();
@@ -59,9 +47,7 @@ const Index = () => {
 
   // Warm the most likely next routes when the main thread is idle
   // (skipped on data-saver / slow connections).
-  useEffect(() => prefetchOnIdle(["/catalog", "/plans"]), []);
-
-
+  useEffect(() => prefetchOnIdle(["/build", "/catalog"]), []);
 
   // Bridge legacy event name to the global DogovAI bubble
   useEffect(() => {
@@ -130,87 +116,87 @@ const Index = () => {
       <Header />
       <main className="route-fade">
         <Hero onStart={startInterview} />
-        <PlatformCapabilities />
-        <LazyOnVisible minHeight={360}>
+        <PrimaryChoice />
+
+        <LazyOnVisible minHeight={520}>
           <Suspense fallback={<SectionSkeleton />}>
-            <SocialProofStrip />
+            <div className="container flex flex-col gap-3 pb-14">
+              <ExploreSection
+                id="capabilities"
+                title="Какво може платформата"
+                summary="Шест инструмента, един работен процес — от преговор до подпис."
+              >
+                <PlatformCapabilities />
+              </ExploreSection>
+
+              <ExploreSection
+                id="value"
+                title="За кого е и какво решава"
+                summary="Фрийлансъри и малки фирми — реални казуси и рискове, които покриваме."
+              >
+                <PainSolution />
+                <LifeScenarios />
+              </ExploreSection>
+
+              <ExploreSection
+                id="process"
+                title="Как работи — 3 стъпки"
+                summary="Избираш документ, отговаряш на въпроси, сваляш PDF или DOCX."
+              >
+                <ProcessChips className="px-4 pt-4 sm:px-5" />
+                <Process />
+                <PlatformShowcase />
+              </ExploreSection>
+
+              <ExploreSection
+                id="templates"
+                title="Популярни шаблони"
+                summary="Най-търсените образци — трудов договор, наем, NDA, пълномощно."
+              >
+                <FeaturedBlanks />
+              </ExploreSection>
+
+              <ExploreSection
+                id="trust"
+                title="Какво казват клиентите"
+                summary="Мнения и фирми, които вече използват Dogovori.net."
+              >
+                <Testimonials />
+                <SocialProofStrip />
+              </ExploreSection>
+
+              <ExploreSection
+                id="comparison"
+                title="Сравнение с адвокат и Word"
+                summary="Колко време и пари спестяваш при всеки документ."
+              >
+                <ComparisonTable />
+              </ExploreSection>
+
+              <ExploreSection
+                id="compliance"
+                title="Сигурност и съответствие"
+                summary="GDPR, eIDAS, AI Act — как пазим данните и документите ти."
+              >
+                <ComplianceSection />
+              </ExploreSection>
+
+              <ExploreSection
+                id="faq"
+                title="Често задавани въпроси"
+                summary="Цени, операции, правна стойност на документите, е-подпис."
+              >
+                <FAQ />
+              </ExploreSection>
+            </div>
           </Suspense>
         </LazyOnVisible>
 
-
-        <Suspense fallback={<SectionSkeleton />}>
-
-          {/* Проблем → решение → доказателство → детайл → покана */}
-
-          <LazyOnVisible minHeight={420}>
-            <Reveal>
-              <PainSolution />
-            </Reveal>
-          </LazyOnVisible>
-          <Divider />
-
-          <LazyOnVisible minHeight={420}>
-            <Reveal>
-              <LifeScenarios />
-            </Reveal>
-          </LazyOnVisible>
-          <Divider />
-
-          <LazyOnVisible minHeight={560}>
-            <Reveal>
-              <PlatformShowcase />
-            </Reveal>
-          </LazyOnVisible>
-          <Divider />
-
-          <LazyOnVisible minHeight={420}>
-            <Reveal>
-              <FeaturedBlanks />
-            </Reveal>
-          </LazyOnVisible>
-          <Divider />
-
-          <LazyOnVisible minHeight={400}>
-            <Reveal>
-              <Process />
-            </Reveal>
-          </LazyOnVisible>
-          <Divider />
-
-          <LazyOnVisible minHeight={400}>
-            <Reveal>
-              <Testimonials />
-            </Reveal>
-          </LazyOnVisible>
-          <Divider />
-
-          <LazyOnVisible minHeight={500}>
-            <Reveal>
-              <ComparisonTable />
-            </Reveal>
-          </LazyOnVisible>
-          <Divider />
-
-          <LazyOnVisible minHeight={400}>
-            <Reveal>
-              <ComplianceSection />
-            </Reveal>
-          </LazyOnVisible>
-          <Divider />
-
-          <LazyOnVisible minHeight={500}>
-            <Reveal>
-              <FAQ />
-            </Reveal>
-          </LazyOnVisible>
-          <Divider />
-
-          <LazyOnVisible minHeight={300}>
-            <Reveal>
-              <CTABand />
-            </Reveal>
-          </LazyOnVisible>
-        </Suspense>
+        <LazyOnVisible minHeight={300}>
+          <Suspense fallback={<SectionSkeleton />}>
+            <CTABand />
+          </Suspense>
+        </LazyOnVisible>
         <SeoFooter />
       </main>
     </div>
