@@ -23,6 +23,27 @@ const NAV = [
 // upgrade prompts. Not shown on the desktop bar to keep it uncluttered.
 const RESOURCES = [{ to: "/plans", label: "Планове" }];
 
+// Мобилното меню е групирано, за да е ясно „къде съм" и какво следва.
+const MOBILE_GROUPS: { title: string; items: { to: string; label: string }[] }[] = [
+  {
+    title: "Работа с документи",
+    items: [
+      { to: "/build", label: "Изготви документ" },
+      { to: "/catalog", label: "Каталог с шаблони" },
+      { to: "/analiz", label: "Анализ на договор" },
+      { to: "/kits", label: "Комплекти документи" },
+    ],
+  },
+  {
+    title: "Ресурси",
+    items: [
+      { to: "__tools__", label: "Инструменти" },
+      { to: "/blog", label: "Блог" },
+      ...RESOURCES,
+    ],
+  },
+];
+
 export function Header() {
   const [open, setOpen] = useState(false);
   const [guestOpen, setGuestOpen] = useState(false);
@@ -228,61 +249,96 @@ export function Header() {
       </div>
 
       {open && (
-        <nav className="origin-top animate-accordion-down overflow-hidden border-t border-border/60 bg-background lg:hidden">
-          <div className="container flex flex-col gap-4 py-4">
-            {/* Group 1 — Продукт */}
-            <div>
-              <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/70">
-                Продукт
-              </p>
-              <div className="flex flex-col">
-                {NAV.filter((n) => n.to !== "__tools__").map((n) => (
-                  <Link
-                    key={n.to}
-                    to={n.to}
-                    onClick={(e) => {
-                      setOpen(false);
-                      handleNav(n.to, e);
-                    }}
-                    className="rounded-md px-3 py-2.5 text-sm text-foreground/80 transition-colors hover:bg-gold/5 hover:text-gold"
-                  >
-                    {n.label}
-                  </Link>
-                ))}
-                <div className="mt-1">
-                  <ToolsMenu variant="mobile" onNavigate={() => setOpen(false)} />
+        <nav
+          aria-label="Мобилна навигация"
+          className="origin-top animate-accordion-down overflow-hidden border-t border-gold/20 bg-background lg:hidden"
+        >
+          <div className="container flex max-h-[calc(100dvh-68px)] flex-col gap-5 overflow-y-auto py-5">
+            {MOBILE_GROUPS.map((group) => (
+              <div key={group.title}>
+                <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/70">
+                  {group.title}
+                </p>
+                <div className="flex flex-col gap-1">
+                  {group.items.map((n) => {
+                    if (n.to === "__tools__") {
+                      return (
+                        <div key="tools" className="px-0">
+                          <ToolsMenu variant="mobile" onNavigate={() => setOpen(false)} />
+                        </div>
+                      );
+                    }
+                    const active = isActive(n.to);
+                    return (
+                      <Link
+                        key={n.to}
+                        to={n.to}
+                        onClick={(e) => {
+                          setOpen(false);
+                          handleNav(n.to, e);
+                        }}
+                        {...prefetchHandlers(n.to)}
+                        aria-current={active ? "page" : undefined}
+                        className={cn(
+                          "flex min-h-[48px] items-center justify-between rounded-lg border px-3.5 text-[15px] font-medium transition-colors",
+                          active
+                            ? "border-gold/50 bg-gold/[0.1] text-gold"
+                            : "border-transparent text-foreground/85 hover:border-gold/30 hover:bg-gold/[0.05] hover:text-gold",
+                        )}
+                      >
+                        <span>{n.label}</span>
+                        {active && (
+                          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gold/80">
+                            тук сте
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
-            </div>
+            ))}
 
-            {/* Group 2 — Ресурси */}
+            {/* Профил */}
             <div>
-              <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/70">
-                Ресурси
+              <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/70">
+                Профил
               </p>
-              <div className="flex flex-col">
-                {RESOURCES.map((n) => (
+              <div className="flex flex-col gap-1">
+                {user ? (
                   <Link
-                    key={n.to}
-                    to={n.to}
+                    to="/account"
                     onClick={() => setOpen(false)}
-                    className="rounded-md px-3 py-2.5 text-sm text-foreground/80 transition-colors hover:bg-gold/5 hover:text-gold"
+                    {...prefetchHandlers("/account")}
+                    className="flex min-h-[48px] items-center rounded-lg border border-gold/40 bg-gold/[0.08] px-3.5 text-[15px] font-semibold text-gold"
                   >
-                    {n.label}
+                    Моят профил
                   </Link>
-                ))}
+                ) : (
+                  <>
+                    <Link
+                      to="/auth"
+                      onClick={() => setOpen(false)}
+                      className="flex min-h-[48px] items-center rounded-lg border border-border/60 px-3.5 text-[15px] font-medium text-foreground/85"
+                    >
+                      Вход
+                    </Link>
+                    <Link
+                      to="/auth?mode=signup"
+                      onClick={() => setOpen(false)}
+                      className="flex min-h-[48px] items-center rounded-lg border border-gold/40 bg-gold/[0.08] px-3.5 text-[15px] font-semibold text-gold"
+                    >
+                      Регистрация — без карта
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
 
-            {/* Group 3 — Настройки */}
-            <div>
-              <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/70">
-                Настройки
-              </p>
-              <div className="flex items-center justify-between rounded-md border border-border/60 bg-card/40 px-3 py-2">
-                <span className="text-sm text-muted-foreground">Тема</span>
-                <ThemeToggle />
-              </div>
+            {/* Настройки */}
+            <div className="flex items-center justify-between rounded-lg border border-border/60 bg-card/40 px-3.5 py-2.5">
+              <span className="text-sm text-muted-foreground">Тема</span>
+              <ThemeToggle />
             </div>
           </div>
         </nav>
