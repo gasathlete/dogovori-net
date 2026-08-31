@@ -23,7 +23,7 @@ export function TopDocuments() {
       <div className="mb-10 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between md:mb-12">
         <div className="max-w-2xl">
           <div className="eyebrow mb-3">
-            <span className="font-serif text-base font-normal tracking-normal text-gold/60">01</span>
+            <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">01</span>
             <span className="h-px w-6 bg-gold/40" />
             <Bird className="h-3 w-3" />
             Топ 5 най-търсени

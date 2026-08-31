@@ -338,7 +338,7 @@ export function Testimonials() {
     <section id="testimonials" className="container py-12 sm:py-16 md:py-20">
       <div className="mb-10 max-w-2xl md:mb-12">
         <div className="eyebrow mb-3">
-          <span className="font-serif text-base font-normal tracking-normal text-gold/60">05</span>
+          <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">05</span>
           <span className="h-px w-6 bg-gold/40" />
           Мнения
         </div>
