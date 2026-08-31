@@ -9,6 +9,7 @@ import { LazyOnVisible } from "@/components/LazyOnVisible";
 import { SectionSkeleton } from "@/components/SectionSkeleton";
 import { PrimaryChoice } from "@/components/home/PrimaryChoice";
 import { ExploreSection } from "@/components/home/ExploreSection";
+import { ProcessChips } from "@/components/home/ProcessChips";
 
 import { FEATURED_BLANKS } from "@/data/featuredBlanks";
 import { buildFaqJsonLd } from "@/data/faqItems";
@@ -143,6 +144,7 @@ const Index = () => {
                 title="Как работи — 3 стъпки"
                 summary="Избираш документ, отговаряш на въпроси, сваляш PDF или DOCX."
               >
+                <ProcessChips className="px-4 pt-4 sm:px-5" />
                 <Process />
                 <PlatformShowcase />
               </ExploreSection>
