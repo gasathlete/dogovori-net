@@ -106,12 +106,12 @@ export function ExitIntentLeadMagnet() {
       role="dialog"
       aria-modal="true"
       aria-labelledby="lm-title"
-      className="fixed inset-0 z-[120] flex items-end justify-center bg-background/60 p-3 backdrop-blur-sm sm:items-center sm:p-6"
+      className="fixed inset-0 z-[120] flex items-end justify-center bg-background/60 p-3 backdrop-blur-sm animate-in fade-in duration-300 motion-reduce:animate-none sm:items-center sm:p-6"
       onClick={close}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-brand/40 bg-card shadow-elegant"
+        className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-brand/40 bg-card shadow-elegant animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:animate-none sm:slide-in-from-bottom-4"
       >
         <button
           onClick={close}

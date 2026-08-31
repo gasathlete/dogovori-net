@@ -122,7 +122,7 @@ export function BetaDisclaimerModal() {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="flex max-h-[92vh] max-w-md flex-col overflow-hidden border-border/60 bg-card p-0 sm:max-w-lg">
+      <DialogContent className="flex max-h-[92vh] max-w-md flex-col overflow-hidden border-border/60 bg-card p-0 !duration-500 data-[state=open]:ease-[cubic-bezier(0.16,1,0.3,1)] data-[state=open]:slide-in-from-bottom-6 data-[state=open]:zoom-in-95 motion-reduce:!duration-150 sm:max-w-lg sm:data-[state=open]:slide-in-from-bottom-2">
         {/* Decorative gradient header */}
         <div className="relative shrink-0 overflow-hidden border-b border-border/60 bg-gradient-to-br from-gold/15 via-card to-card px-5 pt-5 pb-4 pr-14 sm:px-6 sm:pt-6 sm:pb-5 sm:pr-16">
           <div
