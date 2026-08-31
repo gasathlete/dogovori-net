@@ -8,7 +8,7 @@ import { Seo } from "@/components/Seo";
 import { LazyOnVisible } from "@/components/LazyOnVisible";
 import { SectionSkeleton } from "@/components/SectionSkeleton";
 import { PrimaryChoice } from "@/components/home/PrimaryChoice";
-import { ExploreSection } from "@/components/home/ExploreSection";
+import { ExploreAccordion, ExploreSection } from "@/components/home/ExploreSection";
 import { ProcessChips } from "@/components/home/ProcessChips";
 
 import { FEATURED_BLANKS } from "@/data/featuredBlanks";
@@ -135,6 +135,7 @@ const Index = () => {
                 <span className="h-px w-8 bg-gold/40" />
                 Разгледай в детайли
               </div>
+              <ExploreAccordion defaultOpenId="capabilities">
               <ExploreSection
                 id="capabilities"
                 number="04"
@@ -214,6 +215,7 @@ const Index = () => {
               >
                 <FAQ />
               </ExploreSection>
+              </ExploreAccordion>
             </div>
           </Suspense>
         </LazyOnVisible>
