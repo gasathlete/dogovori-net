@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { markFunnelStep } from "@/lib/funnel";
 import { Link } from "react-router-dom";
 import { prefetchHandlers } from "@/components/PrefetchLink";
-import { ShieldCheck, Bird, FileText, Search, FileSignature, ArrowRight, FileUp } from "@/icons";
+import { ShieldCheck, Search, ArrowRight, FileUp } from "@/icons";
 const logoImg = "/logo-dogovori-hero.webp";
 import { HeroVideoBackdrop } from "@/components/HeroVideoBackdrop";
 import { SEPTEMBER_PROMO } from "@/lib/pricing";
