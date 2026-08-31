@@ -31,7 +31,7 @@ const MOBILE_GROUPS: { title: string; items: { to: string; label: string }[] }[]
       { to: "/build", label: "Изготви документ" },
       { to: "/catalog", label: "Каталог с шаблони" },
       { to: "/analiz", label: "Анализ на договор" },
-      { to: "/kits", label: "Комплекти документи" },
+      { to: "/komplekti", label: "Комплекти документи" },
     ],
   },
   {
