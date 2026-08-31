@@ -5,7 +5,7 @@
  * отваря само това, което го интересува. Съдържанието остава в DOM-а
  * (скрито с `hidden`), за да не се губи текст за търсачките.
  */
-import { useId, useState, type ReactNode } from "react";
+import { useCallback, useId, useRef, useState, type ReactNode } from "react";
 import { ChevronDown } from "@/icons";
 import { cn } from "@/lib/utils";
 import { trackMetric } from "@/lib/metrics";
@@ -37,12 +37,39 @@ export function ExploreSection({
 }: ExploreSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
   const panelId = `${useId()}-panel`;
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // Изчистен скрол: при отваряне секцията се позиционира точно под хедъра,
+  // за да заеме целия екран и потребителят да не губи контекст.
+  const toggle = useCallback(() => {
+    setOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        trackMetric("home_section_expand", { section: id });
+        requestAnimationFrame(() => {
+          const el = sectionRef.current;
+          if (!el) return;
+          const header = document.querySelector("header");
+          const offset = (header?.getBoundingClientRect().height ?? 64) + 12;
+          const top = el.getBoundingClientRect().top + window.scrollY - offset;
+          window.scrollTo({
+            top: Math.max(top, 0),
+            behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+              ? "auto"
+              : "smooth",
+          });
+        });
+      }
+      return next;
+    });
+  }, [id]);
 
   return (
     <section
+      ref={sectionRef}
       aria-labelledby={`${panelId}-title`}
       className={cn(
-        "group/panel relative overflow-hidden rounded-xl border bg-card/40 transition-colors duration-300",
+        "group/panel relative scroll-mt-24 overflow-hidden rounded-xl border bg-card/40 transition-colors duration-300",
         open ? "border-gold/40 bg-card/60" : "border-border/70 hover:border-gold/30",
       )}
     >
@@ -51,12 +78,7 @@ export function ExploreSection({
           type="button"
           aria-expanded={open}
           aria-controls={panelId}
-          onClick={() => {
-            setOpen((v) => {
-              if (!v) trackMetric("home_section_expand", { section: id });
-              return !v;
-            });
-          }}
+          onClick={toggle}
           className="flex w-full items-start gap-3 px-4 py-4 text-left transition-colors hover:bg-gold/[0.04] sm:gap-4 sm:px-5 sm:py-5"
         >
           {number && (
@@ -110,7 +132,11 @@ export function ExploreSection({
       <div
         id={panelId}
         hidden={!open}
-        className={cn("border-t border-border/60", open && "animate-fade-in")}
+        className={cn(
+          "overflow-y-auto overscroll-contain border-t border-border/60",
+          "max-h-[calc(100svh-9rem)]",
+          open && "animate-fade-in",
+        )}
       >
         {children}
       </div>
