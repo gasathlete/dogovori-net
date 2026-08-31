@@ -168,7 +168,7 @@ export function Header() {
           ) : (
             <div
               ref={guestRef}
-              className="relative"
+              className="relative hidden lg:block"
               onMouseEnter={() => setGuestOpen(true)}
               onMouseLeave={() => setGuestOpen(false)}
             >

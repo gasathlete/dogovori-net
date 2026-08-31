@@ -125,7 +125,6 @@ const Index = () => {
                 id="capabilities"
                 title="Какво може платформата"
                 summary="Шест инструмента, един работен процес — от преговор до подпис."
-                defaultOpen
               >
                 <PlatformCapabilities />
               </ExploreSection>
