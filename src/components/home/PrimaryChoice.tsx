@@ -12,6 +12,7 @@ const CHOICES = [
     icon: FilePen,
     label: "Изготви документ",
     hint: "Отговаряш на въпроси — получаваш готов договор за 2 минути.",
+    badge: "Най-бърз път",
     id: "build",
     primary: true,
   },
@@ -20,6 +21,7 @@ const CHOICES = [
     icon: Search,
     label: "Разгледай шаблони",
     hint: "Над 600 образца по ЗЗД, ТЗ, КТ и ЗУТ.",
+    badge: "625 шаблона",
     id: "catalog",
     primary: false,
   },
@@ -28,6 +30,7 @@ const CHOICES = [
     icon: ShieldCheck,
     label: "Провери мой договор",
     hint: "AI анализ на риска — открива клопки и неравноправни клаузи.",
+    badge: "AI одит",
     id: "analyze",
     primary: false,
   },
@@ -36,9 +39,14 @@ const CHOICES = [
 export function PrimaryChoice() {
   return (
     <section aria-labelledby="primary-choice-title" className="container pb-10 pt-2 sm:pb-14">
+      <div className="eyebrow mb-3 justify-center">
+        <span className="font-serif text-base font-normal tracking-normal text-gold/60">01</span>
+        <span className="h-px w-8 bg-gold/40" />
+        Твоят избор
+      </div>
       <h2
         id="primary-choice-title"
-        className="mb-4 text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground"
+        className="mb-5 text-center font-serif text-2xl font-bold text-foreground sm:text-3xl"
       >
         Какво искаш да направиш?
       </h2>
@@ -53,7 +61,7 @@ export function PrimaryChoice() {
                 className={
                   "group flex h-full items-start gap-3 rounded-xl border p-4 transition-all hover:-translate-y-0.5 sm:flex-col sm:gap-2.5 sm:p-5 " +
                   (c.primary
-                    ? "border-gold/50 bg-gold/[0.07] hover:border-gold hover:bg-gold/[0.12]"
+                    ? "border-gold/50 bg-gold/[0.07] shadow-gold hover:border-gold hover:bg-gold/[0.12]"
                     : "border-border/70 bg-card/50 hover:border-gold/40 hover:bg-card")
                 }
               >
@@ -61,6 +69,9 @@ export function PrimaryChoice() {
                   <Icon className="h-5 w-5" />
                 </span>
                 <span className="min-w-0">
+                  <span className="mb-1 inline-block rounded-full border border-gold/25 bg-gold/[0.07] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-gold">
+                    {c.badge}
+                  </span>
                   <span className="flex items-center gap-1.5 text-[15px] font-semibold text-foreground group-hover:text-gold">
                     {c.label}
                     <ArrowRight className="h-4 w-4 shrink-0 text-gold/70 transition-transform group-hover:translate-x-0.5" />
