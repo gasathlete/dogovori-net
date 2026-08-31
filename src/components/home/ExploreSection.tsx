@@ -166,7 +166,14 @@ export function ExploreSection({
 
   // Изчистен скрол: при отваряне секцията се позиционира точно под хедъра,
   // за да заеме целия екран и потребителят да не губи контекст.
+  const didMountRef = useRef(false);
   useEffect(() => {
+    // Не скролираме при първоначален монтаж (напр. секция, отворена по подразбиране) —
+    // само когато потребителят сам отвори секция.
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
     if (!open) return;
     const el = sectionRef.current;
     if (!el) return;
