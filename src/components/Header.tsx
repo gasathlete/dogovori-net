@@ -71,7 +71,7 @@ export function Header() {
       <div
         className={cn(
           "container flex items-center justify-between gap-3 transition-[height] duration-300 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-6",
-          scrolled ? "h-14" : "h-16",
+          scrolled ? "h-16 lg:h-14" : "h-[68px] lg:h-16",
         )}
       >
         {/* Zone 1 — Brand */}
@@ -99,8 +99,9 @@ export function Header() {
                 onClick={(e) => handleNav(n.to, e)}
                 {...prefetchHandlers(n.to)}
                 className={cn(
-                  "whitespace-nowrap text-[13px] font-medium tracking-wide transition-colors",
-                  active ? "text-gold" : "text-foreground/75 hover:text-gold",
+                  "relative whitespace-nowrap py-1 text-[13px] font-medium tracking-wide transition-colors",
+                  "after:absolute after:inset-x-0 after:-bottom-0.5 after:h-0.5 after:rounded-full after:bg-gold after:transition-opacity",
+                  active ? "text-gold after:opacity-100" : "text-foreground/75 hover:text-gold after:opacity-0",
                 )}
               >
                 {n.label}
@@ -218,9 +219,10 @@ export function Header() {
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Затвори менюто" : "Отвори менюто"}
             aria-expanded={open}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border/60 bg-card/40 text-foreground transition-colors hover:border-gold/50 hover:text-gold lg:hidden"
+            className="inline-flex h-11 min-w-[64px] items-center justify-center gap-1.5 rounded-lg border border-gold/40 bg-card/50 px-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-foreground transition-colors hover:border-gold hover:bg-gold/10 hover:text-gold lg:hidden"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            <span>{open ? "Затвори" : "Меню"}</span>
           </button>
         </div>
       </div>
