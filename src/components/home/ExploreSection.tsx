@@ -13,6 +13,8 @@ import { trackMetric } from "@/lib/metrics";
 interface ExploreSectionProps {
   /** Кратък технически идентификатор за метрики (slug). */
   id: string;
+  /** Пореден номер на секцията в началната страница (напр. „03"). */
+  number?: string;
   title: string;
   summary: string;
   /** Кратки „тийзър" факти — показват се само докато панелът е затворен. */
@@ -25,6 +27,7 @@ interface ExploreSectionProps {
 
 export function ExploreSection({
   id,
+  number,
   title,
   summary,
   highlights,
@@ -38,7 +41,10 @@ export function ExploreSection({
   return (
     <section
       aria-labelledby={`${panelId}-title`}
-      className="overflow-hidden rounded-xl border border-border/70 bg-card/40"
+      className={cn(
+        "group/panel relative overflow-hidden rounded-xl border bg-card/40 transition-colors duration-300",
+        open ? "border-gold/40 bg-card/60" : "border-border/70 hover:border-gold/30",
+      )}
     >
       <h2 id={`${panelId}-title`} className="m-0">
         <button
@@ -51,8 +57,19 @@ export function ExploreSection({
               return !v;
             });
           }}
-          className="flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-gold/[0.04] sm:px-5 sm:py-5"
+          className="flex w-full items-start gap-3 px-4 py-4 text-left transition-colors hover:bg-gold/[0.04] sm:gap-4 sm:px-5 sm:py-5"
         >
+          {number && (
+            <span
+              aria-hidden="true"
+              className={cn(
+                "mt-0.5 shrink-0 font-serif text-[15px] font-normal leading-none tabular-nums transition-colors",
+                open ? "text-gold" : "text-gold/45 group-hover/panel:text-gold/80",
+              )}
+            >
+              {number}
+            </span>
+          )}
           <span className="min-w-0 flex-1">
             <span className="block font-serif text-[17px] font-bold leading-snug text-foreground sm:text-lg">
               {title}

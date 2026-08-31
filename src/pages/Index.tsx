@@ -118,26 +118,29 @@ const Index = () => {
         <Hero onStart={startInterview} />
         <PrimaryChoice />
 
+        <LazyOnVisible minHeight={420}>
+          <Suspense fallback={<SectionSkeleton />}>
+            <Testimonials />
+            <SocialProofStrip />
+          </Suspense>
+        </LazyOnVisible>
+
         <LazyOnVisible minHeight={520}>
           <Suspense fallback={<SectionSkeleton />}>
-            <div className="container flex flex-col gap-3 pb-14">
-              <ExploreSection
-                id="trust"
-                title="Какво казват клиентите"
-                summary="Мнения и фирми, които вече използват Dogovori.net."
-                defaultOpen
-              >
-                <div className="[&>section]:py-6 sm:[&>section]:py-8">
-                  <Testimonials />
-                  <SocialProofStrip />
-                </div>
-              </ExploreSection>
-
+            <div className="container flex flex-col gap-3 pb-14 [&_.section-number]:hidden">
+              <div className="eyebrow mb-1 mt-2">
+                <span className="section-index font-serif text-base font-normal tracking-normal text-gold/60">
+                  03
+                </span>
+                <span className="h-px w-8 bg-gold/40" />
+                Разгледай в детайли
+              </div>
               <ExploreSection
                 id="capabilities"
+                number="04"
                 title="Какво може платформата"
                 summary="Шест инструмента, един работен процес — от преговор до подпис."
-                highlights={["AI асистент","600+ шаблона","Risk анализ","е-Подпис"]}
+                highlights={["AI асистент","625 шаблона","Risk анализ","е-Подпис"]}
                 cta="Разгледай инструментите"
               >
                 <PlatformCapabilities />
@@ -145,6 +148,7 @@ const Index = () => {
 
               <ExploreSection
                 id="value"
+                number="05"
                 title="За кого е и какво решава"
                 summary="Фрийлансъри и малки фирми — реални казуси и рискове, които покриваме."
                 highlights={["Неплатен аванс = 800 €","Устна уговорка = 0 защита"]}
@@ -156,6 +160,7 @@ const Index = () => {
 
               <ExploreSection
                 id="process"
+                number="06"
                 title="Как работи — 3 стъпки"
                 summary="Избираш документ, отговаряш на въпроси, сваляш PDF или DOCX."
                 highlights={["~2 минути","Без карта","PDF + DOCX"]}
@@ -168,6 +173,7 @@ const Index = () => {
 
               <ExploreSection
                 id="templates"
+                number="07"
                 title="Популярни шаблони"
                 summary="Най-търсените образци — трудов договор, наем, NDA, пълномощно."
                 highlights={["Трудов договор","Наем","NDA","Пълномощно"]}
@@ -178,6 +184,7 @@ const Index = () => {
 
               <ExploreSection
                 id="comparison"
+                number="08"
                 title="Сравнение с адвокат и Word"
                 summary="Колко време и пари спестяваш при всеки документ."
                 highlights={["Адвокат от 150 €","Тук от 12.90 €/мес."]}
@@ -188,6 +195,7 @@ const Index = () => {
 
               <ExploreSection
                 id="compliance"
+                number="09"
                 title="Сигурност и съответствие"
                 summary="GDPR, eIDAS, AI Act — как пазим данните и документите ти."
                 highlights={["GDPR","eIDAS","AI Act","EU сървъри"]}
@@ -198,6 +206,7 @@ const Index = () => {
 
               <ExploreSection
                 id="faq"
+                number="10"
                 title="Често задавани въпроси"
                 summary="Цени, операции, правна стойност на документите, е-подпис."
                 highlights={["Какво е операция?","Валиден ли е е-подписът?"]}
