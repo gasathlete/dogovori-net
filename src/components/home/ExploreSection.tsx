@@ -305,6 +305,8 @@ export function ExploreSection({
           className={cn(
             "overflow-y-auto overscroll-contain border-t border-border/60",
             "max-h-[calc(100svh-11rem)]",
+            // По-плътно съдържание: без излишен горен въздух в панела.
+            "[&>*:first-child]:pt-5 [&>*:last-child]:pb-6",
             open && "animate-fade-in",
           )}
         >
