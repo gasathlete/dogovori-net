@@ -17,7 +17,7 @@ export const platenOtpusk: Calculator = {
       min: 20,
       max: 60,
       step: 1,
-      default: 20,
+      default: 25,
       help: "Минимумът по КТ е 20 дни; често 25 за квалифициран труд.",
     },
     {
@@ -38,8 +38,8 @@ export const platenOtpusk: Calculator = {
       unit: "дни",
       min: 0,
       step: 0.5,
-      default: 0,
-      help: "За изчисляване на обезщетение по чл. 224 КТ.",
+      default: 5,
+      help: "За изчисляване на обезщетение по чл. 224 КТ. Например: 5 неизползвани дни.",
     },
     {
       key: "grossMonthly",
@@ -48,7 +48,8 @@ export const platenOtpusk: Calculator = {
       unit: "EUR",
       min: 0,
       step: 0.01,
-      default: 1000,
+      default: 1500,
+      help: "Например: брутна заплата 1500.00 EUR.",
     },
   ],
   compute: ({ daysPerYear, workedDays, unusedDays, grossMonthly }) => {
