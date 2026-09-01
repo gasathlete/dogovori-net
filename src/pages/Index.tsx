@@ -8,7 +8,6 @@ import { Seo } from "@/components/Seo";
 import { LazyOnVisible } from "@/components/LazyOnVisible";
 import { SectionSkeleton } from "@/components/SectionSkeleton";
 import { PrimaryChoice } from "@/components/home/PrimaryChoice";
-import { ExploreAccordion, ExploreSection } from "@/components/home/ExploreSection";
 import { ProcessChips } from "@/components/home/ProcessChips";
 
 import { FEATURED_BLANKS } from "@/data/featuredBlanks";
@@ -27,7 +26,6 @@ const SocialProofStrip = lazy(() => import("@/components/SocialProofStrip").then
 const PainSolution = lazy(() => import("@/components/PainSolution").then((m) => ({ default: m.PainSolution })));
 const FeaturedBlanks = lazy(() => import("@/components/FeaturedBlanks").then((m) => ({ default: m.FeaturedBlanks })));
 const LifeScenarios = lazy(() => import("@/components/LifeScenarios").then((m) => ({ default: m.LifeScenarios })));
-const PlatformShowcase = lazy(() => import("@/components/PlatformShowcase").then((m) => ({ default: m.PlatformShowcase })));
 const ComparisonTable = lazy(() => import("@/components/ComparisonTable").then((m) => ({ default: m.ComparisonTable })));
 const Process = lazy(() => import("@/components/Process").then((m) => ({ default: m.Process })));
 const Testimonials = lazy(() => import("@/components/Testimonials").then((m) => ({ default: m.Testimonials })));
@@ -120,103 +118,52 @@ const Index = () => {
 
         <LazyOnVisible minHeight={420}>
           <Suspense fallback={<SectionSkeleton />}>
+            <PlatformCapabilities />
+          </Suspense>
+        </LazyOnVisible>
+
+        <LazyOnVisible minHeight={420}>
+          <Suspense fallback={<SectionSkeleton />}>
+            <ProcessChips className="container pt-2" />
+            <Process />
+          </Suspense>
+        </LazyOnVisible>
+
+        <LazyOnVisible minHeight={420}>
+          <Suspense fallback={<SectionSkeleton />}>
+            <FeaturedBlanks />
+          </Suspense>
+        </LazyOnVisible>
+
+        <LazyOnVisible minHeight={420}>
+          <Suspense fallback={<SectionSkeleton />}>
             <Testimonials />
             <SocialProofStrip />
           </Suspense>
         </LazyOnVisible>
 
-        <LazyOnVisible minHeight={520}>
+        <LazyOnVisible minHeight={480}>
           <Suspense fallback={<SectionSkeleton />}>
-            <div className="container flex flex-col gap-3 pb-14 [&_.section-number]:hidden">
-              <div className="eyebrow mb-1 mt-2">
-                <span className="section-index font-serif text-base font-normal tracking-normal text-gold/60">
-                  03
-                </span>
-                <span className="h-px w-8 bg-gold/40" />
-                Разгледай в детайли
-              </div>
-              <ExploreAccordion defaultOpenId="capabilities">
-              <ExploreSection
-                id="capabilities"
-                number="04"
-                title="Какво може платформата"
-                summary="Шест инструмента, един работен процес — от преговор до подпис."
-                highlights={["AI асистент","625 шаблона","Risk анализ","е-Подпис"]}
-                cta="Разгледай инструментите"
-              >
-                <PlatformCapabilities />
-              </ExploreSection>
+            <PainSolution />
+            <LifeScenarios />
+          </Suspense>
+        </LazyOnVisible>
 
-              <ExploreSection
-                id="value"
-                number="05"
-                title="За кого е и какво решава"
-                summary="Фрийлансъри и малки фирми — реални казуси и рискове, които покриваме."
-                highlights={["Неплатен аванс = 800 €","Устна уговорка = 0 защита"]}
-                cta="Виж казусите"
-              >
-                <PainSolution />
-                <LifeScenarios />
-              </ExploreSection>
+        <LazyOnVisible minHeight={420}>
+          <Suspense fallback={<SectionSkeleton />}>
+            <ComparisonTable />
+          </Suspense>
+        </LazyOnVisible>
 
-              <ExploreSection
-                id="process"
-                number="06"
-                title="Как работи — 3 стъпки"
-                summary="Избираш документ, отговаряш на въпроси, сваляш PDF или DOCX."
-                highlights={["~2 минути","Без карта","PDF + DOCX"]}
-                cta="Виж стъпките"
-              >
-                <ProcessChips className="px-4 pt-4 sm:px-5" />
-                <Process />
-                <PlatformShowcase />
-              </ExploreSection>
+        <LazyOnVisible minHeight={420}>
+          <Suspense fallback={<SectionSkeleton />}>
+            <ComplianceSection />
+          </Suspense>
+        </LazyOnVisible>
 
-              <ExploreSection
-                id="templates"
-                number="07"
-                title="Популярни шаблони"
-                summary="Най-търсените образци — трудов договор, наем, NDA, пълномощно."
-                highlights={["Трудов договор","Наем","NDA","Пълномощно"]}
-                cta="Отвори шаблоните"
-              >
-                <FeaturedBlanks />
-              </ExploreSection>
-
-              <ExploreSection
-                id="comparison"
-                number="08"
-                title="Сравнение с адвокат и Word"
-                summary="Колко време и пари спестяваш при всеки документ."
-                highlights={["Адвокат от 150 €","Тук от 12.90 €/мес."]}
-                cta="Виж сравнението"
-              >
-                <ComparisonTable />
-              </ExploreSection>
-
-              <ExploreSection
-                id="compliance"
-                number="09"
-                title="Сигурност и съответствие"
-                summary="GDPR, eIDAS, AI Act — как пазим данните и документите ти."
-                highlights={["GDPR","eIDAS","AI Act","EU сървъри"]}
-                cta="Виж защитата"
-              >
-                <ComplianceSection />
-              </ExploreSection>
-
-              <ExploreSection
-                id="faq"
-                number="10"
-                title="Често задавани въпроси"
-                summary="Цени, операции, правна стойност на документите, е-подпис."
-                highlights={["Какво е операция?","Валиден ли е е-подписът?"]}
-                cta="Виж отговорите"
-              >
-                <FAQ />
-              </ExploreSection>
-              </ExploreAccordion>
-            </div>
+        <LazyOnVisible minHeight={480}>
+          <Suspense fallback={<SectionSkeleton />}>
+            <FAQ />
           </Suspense>
         </LazyOnVisible>
 
