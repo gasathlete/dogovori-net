@@ -25,6 +25,7 @@ const text = (el: HTMLElement) => el.textContent!.replace(/\s+/g, " ");
 
 describe("ROI банер", () => {
   it("показва Предприемач с реалната цена и Екип с минимална годишна стойност", () => {
+    localStorage.setItem("dogovori_audience_v1", "firm");
     const { container } = wrap(<RoiSavingsBanner />);
     const t = text(container.firstElementChild as HTMLElement);
     expect(t).toContain(PRICING_PLANS.entrepreneur.name);
