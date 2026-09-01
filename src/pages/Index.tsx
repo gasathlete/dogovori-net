@@ -9,6 +9,7 @@ import { LazyOnVisible } from "@/components/LazyOnVisible";
 import { SectionSkeleton } from "@/components/SectionSkeleton";
 import { PrimaryChoice } from "@/components/home/PrimaryChoice";
 import { ProcessChips } from "@/components/home/ProcessChips";
+import { BackdropSection } from "@/components/SectionBackdrop";
 
 import { FEATURED_BLANKS } from "@/data/featuredBlanks";
 import { buildFaqJsonLd } from "@/data/faqItems";
