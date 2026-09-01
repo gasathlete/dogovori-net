@@ -16,8 +16,8 @@ export const mestniDanatsi: Calculator = {
       unit: "EUR",
       min: 0,
       step: 1,
-      default: 100000,
-      help: "По-високата от двете суми е база за данъка.",
+      default: 85000,
+      help: "По-високата от двете суми е база за данъка. Например: апартамент на стойност 85 000.00 EUR.",
     },
     {
       key: "rate",

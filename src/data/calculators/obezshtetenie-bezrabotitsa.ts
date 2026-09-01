@@ -16,8 +16,8 @@ export const obezshtetenieBezrabotitsa: Calculator = {
       unit: "EUR",
       min: 0,
       step: 0.01,
-      default: 1200,
-      help: "Средномесечният осигурителен доход за последните 24 месеца.",
+      default: 1500,
+      help: "Средномесечният осигурителен доход за последните 24 месеца. Например: средна брутна заплата 1500.00 EUR.",
     },
     {
       key: "yearsContributed",

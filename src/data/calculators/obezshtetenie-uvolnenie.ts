@@ -16,8 +16,8 @@ export const obezshtetenieUvolnenie: Calculator = {
       unit: "EUR",
       min: 0,
       step: 0.01,
-      default: 1000,
-      help: "Брутна заплата за последния пълен отработен месец.",
+      default: 1500,
+      help: "Брутна заплата за последния пълен отработен месец. Например: 1500.00 EUR.",
     },
     {
       key: "months",

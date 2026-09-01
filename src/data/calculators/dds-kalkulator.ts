@@ -26,7 +26,8 @@ export const ddsKalkulator: Calculator = {
       unit: "EUR",
       min: 0,
       step: 0.01,
-      default: 100,
+      default: 250,
+      help: "Например: фактура за услуга на стойност 250.00 EUR.",
     },
     {
       key: "rate",

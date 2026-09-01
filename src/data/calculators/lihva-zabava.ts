@@ -16,7 +16,8 @@ export const lihvaZabava: Calculator = {
       unit: "EUR",
       min: 0,
       step: 0.01,
-      default: 1000,
+      default: 2400,
+      help: "Например: неплатена фактура на стойност 2400.00 EUR.",
     },
     {
       key: "startDate",

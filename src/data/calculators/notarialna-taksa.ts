@@ -48,8 +48,8 @@ export const notarialnaTaksa: Calculator = {
       unit: "EUR",
       min: 0,
       step: 1,
-      default: 50000,
-      help: "Сумата на сделката — само при удостоверяване на сделка.",
+      default: 85000,
+      help: "Сумата на сделката — само при удостоверяване на сделка. Например: апартамент на стойност 85 000.00 EUR.",
     },
   ],
   compute: ({ mode, count, amount }) => {
