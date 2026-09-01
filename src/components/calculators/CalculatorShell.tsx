@@ -92,14 +92,15 @@ export function CalculatorShell({ calculator }: Props) {
 
       {/* Result */}
       <div className="lg:col-span-2">
-        <div className="sticky top-20 rounded-2xl border border-gold/30 bg-gradient-card p-6 shadow-elegant md:p-7">
+        <div className="rounded-2xl border border-gold/30 bg-gradient-card p-5 shadow-elegant lg:sticky lg:top-20 md:p-7">
           <div className="eyebrow mb-3">Резултат</div>
-          <div className="mb-1 text-xs text-muted-foreground">{result.main.label}</div>
-          <div className="mb-6 font-serif text-3xl font-bold text-gold md:text-4xl">
+          <div className="mb-1 hidden text-xs text-muted-foreground lg:block">{result.main.label}</div>
+          <div className="mb-6 hidden font-serif text-3xl font-bold text-gold lg:block md:text-4xl">
             {result.main.value}
           </div>
 
-          <dl className="space-y-2.5 border-t border-border/40 pt-4 text-sm">
+          <dl className="hidden space-y-2.5 border-t border-border/40 pt-4 text-sm lg:block">
+
             {result.breakdown.map((b, i) => (
               <div key={i} className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">{b.label}</dt>
