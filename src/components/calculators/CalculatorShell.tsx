@@ -19,6 +19,7 @@ export function CalculatorShell({ calculator }: Props) {
   }, [calculator]);
 
   const [values, setValues] = useState<Record<string, any>>(initial);
+  const [showDetails, setShowDetails] = useState(false);
 
   const result: CalcResult = useMemo(() => {
     try {
