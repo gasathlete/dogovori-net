@@ -30,7 +30,7 @@ export function ArticleToc({ items }: { items: TocItem[] }) {
       </div>
       <ul className="flex snap-x gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.map((it, i) => (
-          <li key={it.id} className="snap-start">
+          <li key={it.id} className="shrink-0 snap-start">
             <button
               type="button"
               onClick={() => jump(it.id)}
