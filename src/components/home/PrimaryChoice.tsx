@@ -2,9 +2,11 @@
  * PrimaryChoice — единствената развилка в първия екран.
  * Три ясни пътя вместо стена от информация: изготви, разгледай, провери.
  */
+import { useState } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { FilePen, Search, ShieldCheck, ArrowRight } from "@/icons";
 import { trackMetric } from "@/lib/metrics";
+import { ChoiceFlow, type FlowId } from "@/components/home/ChoiceFlow";
 
 const CHOICES = [
   {
