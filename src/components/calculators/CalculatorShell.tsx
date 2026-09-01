@@ -31,9 +31,38 @@ export function CalculatorShell({ calculator }: Props) {
   const Icon = (Icons as any)[calculator.icon] ?? Icons.Calculator;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-5">
+    <div className="grid gap-6 pb-24 lg:grid-cols-5 lg:pb-0">
+      {/* Мобилен резултат — винаги видим, без скролване */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gold/30 bg-card/95 px-4 py-3 shadow-elegant backdrop-blur lg:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="truncate text-[11px] text-muted-foreground">{result.main.label}</div>
+            <div className="font-serif text-xl font-bold text-gold">{result.main.value}</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowDetails((v) => !v)}
+            aria-expanded={showDetails}
+            className="shrink-0 rounded-full border border-gold/40 px-3 py-1.5 text-xs font-semibold text-gold active:scale-[0.98]"
+          >
+            {showDetails ? "Скрий разбивката" : "Разбивка"}
+          </button>
+        </div>
+        {showDetails && (
+          <dl className="mt-3 max-h-[40vh] space-y-2 overflow-y-auto border-t border-border/40 pt-3 text-sm">
+            {result.breakdown.map((b, i) => (
+              <div key={i} className="flex justify-between gap-3">
+                <dt className="text-muted-foreground">{b.label}</dt>
+                <dd className="text-right font-medium text-foreground">{b.value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </div>
+
       {/* Inputs */}
-      <div className="lg:col-span-3 rounded-2xl border border-border/60 bg-card/50 p-6 md:p-8">
+      <div className="lg:col-span-3 rounded-2xl border border-border/60 bg-card/50 p-4 md:p-8">
+
         <div className="mb-6 flex items-start gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gold/30 bg-gold/5 text-gold">
             <Icon className="h-5 w-5" strokeWidth={1.6} />
