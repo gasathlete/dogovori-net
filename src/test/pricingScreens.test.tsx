@@ -63,6 +63,7 @@ describe("Карта със стойност на документа", () => {
 
 describe("Snapshot на ценовото копие", () => {
   it("остава стабилен", () => {
+    localStorage.setItem("dogovori_audience_v1", "business");
     const { container } = wrap(<RoiSavingsBanner />);
     expect(text(container.firstElementChild as HTMLElement)).toMatchSnapshot();
   });
