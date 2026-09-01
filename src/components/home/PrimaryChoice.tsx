@@ -54,7 +54,6 @@ export function PrimaryChoice() {
         Какво искаш да направиш?
       </h2>
       <ul role="list" className="mx-auto grid max-w-4xl gap-3 sm:grid-cols-3">
-      <ul role="list" className="mx-auto grid max-w-4xl gap-3 sm:grid-cols-3">
         {CHOICES.map((c) => {
           const Icon = c.icon;
           const isActive = active === (c.id as FlowId);
