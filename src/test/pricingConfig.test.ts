@@ -37,19 +37,19 @@ describe("pricing config — канонични имена и стойности
 
   it("форматира EUR по български стандарт", () => {
     expect(fmtEur(12.9)).toBe("12,90 €");
-    expect(fmtEur(129)).toBe("129 €");
+    expect(fmtEur(129)).toBe("129,00 €");
     expect(fmtEur(0.4)).toBe("0,40 €");
   });
 
   it("генерира коректни етикети", () => {
     expect(monthlyLabel("entrepreneur")).toBe("19,90 €/мес");
-    expect(yearlyLabel("professional")).toBe("129 €/год");
-    expect(yearlyLabel("team")).toBe("109 €/място/год");
+    expect(yearlyLabel("professional")).toBe("129,00 €/год");
+    expect(yearlyLabel("team")).toBe("109,00 €/място/год");
     expect(opsLabel("professional")).toBe("50 операции");
     expect(opsLabel("team")).toBe("100 операции на място");
     expect(planSummary("professional")).toBe("Професионалист — 12,90 €/мес (50 операции)");
     expect(planSummary("entrepreneur")).toBe("Предприемач — 19,90 €/мес (100 операции)");
-    expect(teamSummary()).toBe("Екип — 109 €/място/год (мин. 3 места = 327 €/год)");
+    expect(teamSummary()).toBe("Екип — 109,00 €/място/год (мин. 3 места = 327,00 €/год)");
   });
 
   it("top-up пакетите са актуалните 4", () => {

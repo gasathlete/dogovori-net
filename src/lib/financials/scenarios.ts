@@ -165,10 +165,10 @@ export function computeScenario(
 }
 
 export function fmtEur(n: number): string {
-  return n.toLocaleString("bg-BG", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+  return n.toLocaleString("bg-BG", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 export function fmtEur2(n: number): string {
-  return n.toLocaleString("bg-BG", { style: "currency", currency: "EUR", maximumFractionDigits: 2 });
+  return n.toLocaleString("bg-BG", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 export function fmtPct(n: number, digits = 1): string {
   return `${n.toFixed(digits)}%`;

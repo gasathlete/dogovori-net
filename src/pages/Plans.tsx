@@ -312,7 +312,7 @@ export default function Plans() {
                               </span>
                               <span className="text-sm text-muted-foreground">{effectivePrice.suffix}</span>
                               <span className="ml-1 text-sm text-muted-foreground line-through">
-                                {effectivePrice.price.toFixed(2).replace(/\.00$/, "")}
+                                {fmtEur(effectivePrice.price)}
                               </span>
                               <span className="ml-1 inline-flex rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
                                 −20% до 30.09
@@ -321,7 +321,7 @@ export default function Plans() {
                           ) : (
                             <>
                               <span className="font-serif text-[44px] font-semibold leading-none text-foreground sm:text-5xl">
-                                {effectivePrice.price.toFixed(2).replace(/\.00$/, "")}
+                                {fmtEur(effectivePrice.price).replace(/ €$/, "")}
                               </span>
                               <span className="text-sm text-muted-foreground">{effectivePrice.suffix}</span>
                             </>

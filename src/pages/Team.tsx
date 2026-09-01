@@ -111,7 +111,7 @@ export default function TeamPage() {
               <div>
                 <Label>Период на фактуриране</Label>
                 <div className="mt-2 rounded-lg border border-border bg-card/40 px-4 py-3 text-sm">
-                  <div className="font-medium text-foreground">Годишно — {(109 * createSeats).toFixed(0)} €/год</div>
+                  <div className="font-medium text-foreground">Годишно — {(109 * createSeats).toFixed(2).replace(".", ",")} €/год</div>
                   <div className="mt-1 text-xs text-muted-foreground">Екипите са само на годишен абонамент (109 €/място/год).</div>
                 </div>
               </div>

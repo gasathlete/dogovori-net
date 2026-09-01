@@ -53,6 +53,7 @@ export const fmtEUR = (n: number): string =>
   new Intl.NumberFormat("bg-BG", {
     style: "currency",
     currency: "EUR",
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(Math.max(0, n));
 
