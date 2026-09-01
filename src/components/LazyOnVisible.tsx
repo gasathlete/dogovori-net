@@ -10,14 +10,17 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
  */
 export function LazyOnVisible({
   children,
-  rootMargin = "1600px",
+  rootMargin = "600px",
   minHeight = 400,
   fallback = null,
+  idleMount = false,
 }: {
   children: ReactNode;
   rootMargin?: string;
   minHeight?: number;
   fallback?: ReactNode;
+  /** Hydrate during idle time even if never scrolled into view. */
+  idleMount?: boolean;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = useState(false);
@@ -41,8 +44,8 @@ export function LazyOnVisible({
     );
     io.observe(node);
 
-    // Safety net: when the main thread is idle, hydrate remaining sections.
-    // This avoids any chance of a late-mount jump if the user scrolls fast.
+    if (!idleMount) return () => io.disconnect();
+
     const ric =
       (window as any).requestIdleCallback ??
       ((cb: () => void) => setTimeout(cb, 1200));
@@ -54,7 +57,7 @@ export function LazyOnVisible({
       if (cic) cic(handle);
       else clearTimeout(handle as any);
     };
-  }, [rootMargin, visible]);
+  }, [rootMargin, visible, idleMount]);
 
   return (
     <div
