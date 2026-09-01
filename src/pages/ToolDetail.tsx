@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { CalculatorShell } from "@/components/calculators/CalculatorShell";
+import { CollapsibleSection } from "@/components/article/CollapsibleSection";
 import { getCalculator, CALCULATORS } from "@/data/calculators";
 
 export default function ToolDetail() {
