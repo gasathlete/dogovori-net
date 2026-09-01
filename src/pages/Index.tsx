@@ -16,11 +16,8 @@ import { buildFaqJsonLd } from "@/data/faqItems";
 // NOTE: `templateIndex` (and its transitive `CATALOG` JSON ~260KB) is loaded
 // lazily inside the JSON-LD effect below — keeping it out of the landing
 // entry chunk.
-
-// Опростена структура (top → bottom):
-//  Hero (кратко) → PrimaryChoice (3 пътя) → разгъващи се панели → CTABand → SeoFooter
-// Всяка секция под сгъвката е скрита зад ExploreSection: човек отваря само
-// това, което иска да види. Съдържанието остава в DOM-а за търсачките.
+// Класическа подредба: всяка секция е винаги видима, но се монтира лениво
+// при скрол, за да остане входният chunk малък.
 const PlatformCapabilities = lazy(() => import("@/components/PlatformCapabilities").then((m) => ({ default: m.PlatformCapabilities })));
 const SocialProofStrip = lazy(() => import("@/components/SocialProofStrip").then((m) => ({ default: m.SocialProofStrip })));
 const PainSolution = lazy(() => import("@/components/PainSolution").then((m) => ({ default: m.PainSolution })));
