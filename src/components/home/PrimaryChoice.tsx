@@ -2,9 +2,11 @@
  * PrimaryChoice — единствената развилка в първия екран.
  * Три ясни пътя вместо стена от информация: изготви, разгледай, провери.
  */
+import { useState } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { FilePen, Search, ShieldCheck, ArrowRight } from "@/icons";
 import { trackMetric } from "@/lib/metrics";
+import { ChoiceFlow, type FlowId } from "@/components/home/ChoiceFlow";
 
 const CHOICES = [
   {
@@ -37,6 +39,7 @@ const CHOICES = [
 ] as const;
 
 export function PrimaryChoice() {
+  const [active, setActive] = useState<FlowId>("build");
   return (
     <section aria-labelledby="primary-choice-title" className="container pb-10 pt-2 sm:pb-14">
       <div className="eyebrow mb-3 justify-center">
@@ -53,38 +56,64 @@ export function PrimaryChoice() {
       <ul role="list" className="mx-auto grid max-w-4xl gap-3 sm:grid-cols-3">
         {CHOICES.map((c) => {
           const Icon = c.icon;
+          const isActive = active === (c.id as FlowId);
           return (
             <li key={c.id}>
-              <Link
-                to={c.to}
-                onClick={() => trackMetric("home_choice_click", { choice: c.id })}
+              <div
                 className={
-                  "group flex h-full items-start gap-3 rounded-xl border p-4 transition-all hover:-translate-y-0.5 sm:flex-col sm:gap-2.5 sm:p-5 " +
-                  (c.primary
-                    ? "border-gold/50 bg-gold/[0.07] shadow-gold hover:border-gold hover:bg-gold/[0.12]"
-                    : "border-border/70 bg-card/50 hover:border-gold/40 hover:bg-card")
+                  "flex h-full flex-col gap-3 rounded-xl border p-4 transition-all sm:p-5 " +
+                  (isActive
+                    ? "border-gold/60 bg-gold/[0.09] shadow-gold"
+                    : c.primary
+                      ? "border-gold/40 bg-gold/[0.05]"
+                      : "border-border/70 bg-card/50 hover:border-gold/40")
                 }
               >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gold/10 text-gold">
-                  <Icon className="h-5 w-5" />
-                </span>
-                <span className="min-w-0">
-                  <span className="mb-1 inline-block rounded-full border border-gold/25 bg-gold/[0.07] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-gold">
-                    {c.badge}
+                <Link
+                  to={c.to}
+                  onClick={() => trackMetric("home_choice_click", { choice: c.id })}
+                  className="group flex items-start gap-3 sm:flex-col sm:gap-2.5"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gold/10 text-gold">
+                    <Icon className="h-5 w-5" />
                   </span>
-                  <span className="flex items-center gap-1.5 text-[15px] font-semibold text-foreground group-hover:text-gold">
-                    {c.label}
-                    <ArrowRight className="h-4 w-4 shrink-0 text-gold/70 transition-transform group-hover:translate-x-0.5" />
+                  <span className="min-w-0">
+                    <span className="mb-1 inline-block rounded-full border border-gold/25 bg-gold/[0.07] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-gold">
+                      {c.badge}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-[15px] font-semibold text-foreground group-hover:text-gold">
+                      {c.label}
+                      <ArrowRight className="h-4 w-4 shrink-0 text-gold/70 transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                    <span className="mt-1 block text-[13px] leading-relaxed text-muted-foreground">
+                      {c.hint}
+                    </span>
                   </span>
-                  <span className="mt-1 block text-[13px] leading-relaxed text-muted-foreground">
-                    {c.hint}
-                  </span>
-                </span>
-              </Link>
+                </Link>
+                <button
+                  type="button"
+                  aria-pressed={isActive}
+                  onClick={() => {
+                    setActive(c.id as FlowId);
+                    trackMetric("home_choice_flow_view", { choice: c.id });
+                  }}
+                  className={
+                    "mt-auto w-full rounded-lg border px-3 py-2 text-xs font-semibold transition-colors " +
+                    (isActive
+                      ? "border-gold/50 bg-gold/15 text-gold"
+                      : "border-border/70 text-muted-foreground hover:border-gold/40 hover:text-gold")
+                  }
+                >
+                  {isActive ? "Стъпките са показани" : "Виж стъпките"}
+                </button>
+              </div>
             </li>
           );
         })}
       </ul>
+
+      <ChoiceFlow active={active} />
     </section>
+
   );
 }

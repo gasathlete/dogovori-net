@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { CalculatorShell } from "@/components/calculators/CalculatorShell";
+import { CollapsibleSection } from "@/components/article/CollapsibleSection";
 import { getCalculator, CALCULATORS } from "@/data/calculators";
 
 export default function ToolDetail() {
@@ -116,24 +117,24 @@ export default function ToolDetail() {
 
         <CalculatorShell calculator={calc} />
 
-        <section className="mt-14 max-w-3xl">
-          <h2 className="mb-4 font-serif text-2xl font-bold md:text-3xl">Как работи изчислението</h2>
-          <p className="text-sm leading-relaxed text-muted-foreground md:text-base">
-            {calc.seo.howItWorks}
-          </p>
-        </section>
+        <div className="max-w-3xl">
+          <CollapsibleSection heading="Как работи изчислението" preview={calc.seo.howItWorks}>
+            <p className="text-sm leading-relaxed text-muted-foreground md:text-base">
+              {calc.seo.howItWorks}
+            </p>
+          </CollapsibleSection>
 
-        <section className="mt-14 max-w-3xl">
-          <h2 className="mb-6 font-serif text-2xl font-bold md:text-3xl">Често задавани въпроси</h2>
-          <dl className="space-y-4">
-            {calc.seo.faq.map((f) => (
-              <div key={f.q} className="rounded-xl border border-border/60 bg-card/40 p-5">
-                <dt className="font-serif text-base font-bold text-foreground">{f.q}</dt>
-                <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.a}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
+          <CollapsibleSection heading="Често задавани въпроси" preview={`${calc.seo.faq.length} въпроса и отговора`}>
+            <dl className="space-y-3 md:space-y-4">
+              {calc.seo.faq.map((f) => (
+                <div key={f.q} className="rounded-xl border border-border/60 bg-card/40 p-4 md:p-5">
+                  <dt className="font-serif text-base font-bold text-foreground">{f.q}</dt>
+                  <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.a}</dd>
+                </div>
+              ))}
+            </dl>
+          </CollapsibleSection>
+        </div>
 
         <section className="mt-14">
           <h2 className="mb-5 font-serif text-xl font-bold md:text-2xl">Свързани инструменти</h2>
