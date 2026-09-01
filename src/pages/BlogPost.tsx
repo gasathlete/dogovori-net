@@ -5,6 +5,9 @@ import { Seo } from "@/components/Seo";
 import { getPostBySlug, getRelatedPosts } from "@/lib/blog";
 import { ChevronRight } from "@/icons";
 import { BlogRatingAndComments } from "@/components/BlogRatingAndComments";
+import { ArticleToc } from "@/components/article/ArticleToc";
+import { CollapsibleSection } from "@/components/article/CollapsibleSection";
+import { ReadingProgress } from "@/components/article/ReadingProgress";
 import { autoLinkParagraph, createAutoLinkState, type AutoLinkState } from "@/lib/autoLinkBlog";
 
 function Paragraphs({ text, linkState }: { text: string; linkState: AutoLinkState }) {
