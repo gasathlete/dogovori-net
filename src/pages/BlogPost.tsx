@@ -111,7 +111,7 @@ export default function BlogPost() {
             </div>
           </header>
 
-          <figure className="mb-10 overflow-hidden rounded-xl border border-border/50">
+          <figure className="mb-6 overflow-hidden rounded-xl border border-border/50 md:mb-10">
             <img
               src={post.image}
               alt={post.title}
@@ -120,6 +120,10 @@ export default function BlogPost() {
             />
           </figure>
 
+          <ArticleToc
+            items={post.sections.map((s, i) => ({ id: `sec-${i}`, label: s.heading }))}
+          />
+
           <div className="prose prose-invert mx-auto max-w-prose text-pretty [&_pre]:overflow-x-auto [&_table]:block [&_table]:overflow-x-auto">
             {(() => {
               const linkState = createAutoLinkState(8);
@@ -127,11 +131,18 @@ export default function BlogPost() {
                 <>
                   <Paragraphs text={post.intro} linkState={linkState} />
                   {post.sections.map((s, i) => (
-                    <section key={i} className="mt-12">
-                      <h2 className="mb-5 font-serif text-2xl font-bold leading-tight tracking-tight text-foreground md:text-[28px]">{s.heading}</h2>
+                    <CollapsibleSection
+                      key={i}
+                      id={`sec-${i}`}
+                      index={i + 1}
+                      heading={s.heading}
+                      preview={s.body.slice(0, 160)}
+                      defaultOpen={i === 0}
+                    >
                       <Paragraphs text={s.body} linkState={linkState} />
-                    </section>
+                    </CollapsibleSection>
                   ))}
+
 
             {post.takeaways.length > 0 && (
               <aside className="mt-14 overflow-hidden rounded-xl border border-gold/30 bg-gold/[0.04] p-6 md:p-7">
