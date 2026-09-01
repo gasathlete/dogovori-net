@@ -9,6 +9,7 @@ import { LazyOnVisible } from "@/components/LazyOnVisible";
 import { SectionSkeleton } from "@/components/SectionSkeleton";
 import { PrimaryChoice } from "@/components/home/PrimaryChoice";
 import { ProcessChips } from "@/components/home/ProcessChips";
+import { BackdropSection } from "@/components/SectionBackdrop";
 
 import { FEATURED_BLANKS } from "@/data/featuredBlanks";
 import { buildFaqJsonLd } from "@/data/faqItems";
@@ -111,64 +112,85 @@ const Index = () => {
       <Header />
       <main className="route-fade">
         <Hero onStart={startInterview} />
-        <PrimaryChoice />
+        <BackdropSection variant="rings">
+          <PrimaryChoice />
+        </BackdropSection>
 
         <LazyOnVisible minHeight={420}>
           <Suspense fallback={<SectionSkeleton />}>
-            <PlatformCapabilities />
+            <BackdropSection variant="grid" align="top">
+              <PlatformCapabilities />
+            </BackdropSection>
           </Suspense>
         </LazyOnVisible>
 
         <LazyOnVisible minHeight={420}>
           <Suspense fallback={<SectionSkeleton />}>
-            <ProcessChips className="container pt-2" />
-            <Process />
+            <BackdropSection variant="flow" intensity="medium">
+              <ProcessChips className="container pt-2" />
+              <Process />
+            </BackdropSection>
           </Suspense>
         </LazyOnVisible>
 
         <LazyOnVisible minHeight={420}>
           <Suspense fallback={<SectionSkeleton />}>
-            <FeaturedBlanks />
+            <BackdropSection variant="papers" align="bottom">
+              <FeaturedBlanks />
+            </BackdropSection>
           </Suspense>
         </LazyOnVisible>
 
         <LazyOnVisible minHeight={420}>
           <Suspense fallback={<SectionSkeleton />}>
-            <Testimonials />
-            <SocialProofStrip />
+            <BackdropSection variant="dots">
+              <Testimonials />
+              <SocialProofStrip />
+            </BackdropSection>
           </Suspense>
         </LazyOnVisible>
 
         <LazyOnVisible minHeight={480}>
           <Suspense fallback={<SectionSkeleton />}>
-            <PainSolution />
-            <LifeScenarios />
+            <BackdropSection variant="rings">
+              <PainSolution />
+              <LifeScenarios />
+            </BackdropSection>
           </Suspense>
         </LazyOnVisible>
 
         <LazyOnVisible minHeight={420}>
           <Suspense fallback={<SectionSkeleton />}>
-            <ComparisonTable />
+            <BackdropSection variant="grid" align="center">
+              <ComparisonTable />
+            </BackdropSection>
           </Suspense>
         </LazyOnVisible>
 
         <LazyOnVisible minHeight={420}>
           <Suspense fallback={<SectionSkeleton />}>
-            <ComplianceSection />
+            <BackdropSection variant="shield" intensity="medium">
+              <ComplianceSection />
+            </BackdropSection>
           </Suspense>
         </LazyOnVisible>
 
         <LazyOnVisible minHeight={480}>
           <Suspense fallback={<SectionSkeleton />}>
-            <FAQ />
+            <BackdropSection variant="dots">
+              <FAQ />
+            </BackdropSection>
           </Suspense>
         </LazyOnVisible>
 
         <LazyOnVisible minHeight={300}>
           <Suspense fallback={<SectionSkeleton />}>
-            <CTABand />
+            <BackdropSection variant="flow" align="center">
+              <CTABand />
+            </BackdropSection>
           </Suspense>
         </LazyOnVisible>
+
         <SeoFooter />
       </main>
     </div>
