@@ -2,7 +2,7 @@
  * ArticleToc — мобилно съдържание на статията.
  * Хоризонтални чипове за бърз скок към секция, за да не се скролва цялата статия.
  */
-import { List } from "@/icons";
+import { ListChecks as List } from "@/icons";
 
 export interface TocItem {
   id: string;
