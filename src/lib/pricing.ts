@@ -77,11 +77,9 @@ export const STRICT_UNLOCK_EUR = 0.4;
 export const LAWYER_FEE_MIN_EUR = 150;
 export const LAWYER_FEE_MAX_EUR = 400;
 
-/** Форматира EUR по български стандарт: 12,90 € */
+/** Форматира EUR по български стандарт, винаги до 2 знака: 12,90 € / 129,00 € */
 export function fmtEur(amount: number): string {
-  const hasCents = Math.round(amount * 100) % 100 !== 0;
-  const value = hasCents ? amount.toFixed(2).replace(".", ",") : String(Math.round(amount));
-  return `${value} €`;
+  return `${amount.toFixed(2).replace(".", ",")} €`;
 }
 
 /** „12,90 €/мес“ */
