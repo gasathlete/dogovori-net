@@ -83,6 +83,7 @@ export default function BlogPost() {
         jsonLd={faqLd ? [articleLd, faqLd, breadcrumbLd] : [articleLd, breadcrumbLd]}
       />
       <Header />
+      <ReadingProgress />
 
       <main className="container py-8 md:py-12">
         <nav className="mb-6 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
