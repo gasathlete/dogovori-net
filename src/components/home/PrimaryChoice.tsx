@@ -39,6 +39,7 @@ const CHOICES = [
 ] as const;
 
 export function PrimaryChoice() {
+  const [active, setActive] = useState<FlowId>("build");
   return (
     <section aria-labelledby="primary-choice-title" className="container pb-10 pt-2 sm:pb-14">
       <div className="eyebrow mb-3 justify-center">
