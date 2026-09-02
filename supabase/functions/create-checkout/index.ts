@@ -158,6 +158,7 @@ Deno.serve(async (req) => {
       metadata: {
         userId,
         priceId,
+        ...(priceId === "branding_unlock_once" ? { type: "branding_unlock" } : {}),
         billing_period: isRecurring ? (price.recurring?.interval ?? null) : null,
         terms_version: "2026-09-01",
         privacy_version: "2026-09-01",
@@ -167,6 +168,7 @@ Deno.serve(async (req) => {
         ...(appliedCouponId ? { loyalty_coupon: appliedCouponId } : {}),
         ...(!appliedCouponId && promoCouponId ? { promo_coupon: promoCouponId } : {}),
       },
+
       ...(appliedCouponId
         ? { discounts: [{ coupon: appliedCouponId }] }
         : promoCouponId

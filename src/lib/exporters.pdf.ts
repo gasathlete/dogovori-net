@@ -8,13 +8,20 @@ import {
   type WatermarkOpts,
 } from "./exporterTypes";
 import { inferPartyRolesGenitive } from "@/data/partyRoles";
+import type { ResolvedBranding } from "./branding/types";
+import { brandingLayout, headerTextLines, footerTextLines } from "./branding/apply";
 
 export type { GeneratedContract, WatermarkOpts };
 
 
 export async function exportPDF(
   c: GeneratedContract,
-  opts?: { watermark?: boolean; userTag?: string; returnBytes?: boolean },
+  opts?: {
+    watermark?: boolean;
+    userTag?: string;
+    returnBytes?: boolean;
+    branding?: ResolvedBranding | null;
+  },
 ): Promise<Uint8Array | void> {
   const b64 = await loadCyrillicFontB64();
 
@@ -23,10 +30,16 @@ export async function exportPDF(
   doc.addFont("DejaVuSans.ttf", "DejaVu", "normal");
   doc.setFont("DejaVu", "normal");
 
-  const M = 56;
+  const brand = opts?.branding ?? undefined;
+  const L = brandingLayout(brand);
+
+  const M = L.margin;
+  const TOP = M + L.topPad;
+  const BOTTOM = M + L.bottomPad;
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
-  let y = M;
+  let y = TOP;
+  doc.setTextColor(L.text[0], L.text[1], L.text[2]);
 
   const writeWrappedInBox = (
     text: string,
@@ -42,9 +55,9 @@ export async function exportPDF(
       const lines: string[] = doc.splitTextToSize(para, maxWidth);
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        if (y > ph - M) {
+        if (y > ph - BOTTOM) {
           doc.addPage();
-          y = M;
+          y = TOP;
         }
         const isLast = i === lines.length - 1;
         if (wOpts.align === "center") {
@@ -65,7 +78,7 @@ export async function exportPDF(
         } else {
           doc.text(line, x, y);
         }
-        y += size * 1.4;
+        y += size * L.lineHeight;
       }
     }
   };
@@ -82,7 +95,7 @@ export async function exportPDF(
     let h = 0;
     for (const para of paragraphs) {
       const lines: string[] = doc.splitTextToSize(para, maxWidth);
-      h += Math.max(1, lines.length) * size * 1.4;
+      h += Math.max(1, lines.length) * size * L.lineHeight;
     }
     return h;
   };
@@ -103,7 +116,7 @@ export async function exportPDF(
       headingH(bg.heading || "") + measureBlock(bg.body, bodySize, colW),
       headingH(en.heading || "") + measureBlock(en.body, bodySize, colW),
     );
-    if (y + totalH > ph - M) { doc.addPage(); y = M; }
+    if (y + totalH > ph - BOTTOM) { doc.addPage(); y = TOP; }
     const startY = y;
 
     if (bg.heading) { writeWrappedInBox(bg.heading.toUpperCase(), headingSize, { x: leftX, maxWidth: colW }); y += 2; }
@@ -122,22 +135,24 @@ export async function exportPDF(
     c.bilingual && (c.title_en || c.preamble_en || c.clauses.some((cl) => cl.title_en || cl.body_en)),
   );
 
+  const headingText = (t: string) => (L.uppercaseHeadings ? t.toUpperCase() : t);
+
   if (isBilingual) {
-    renderTwoColRow({ body: c.title }, { body: c.title_en || c.title }, 14, 14);
-    doc.setDrawColor(201, 168, 76);
+    renderTwoColRow({ body: c.title }, { body: c.title_en || c.title }, L.headingSize, L.headingSize);
+    doc.setDrawColor(L.accent[0], L.accent[1], L.accent[2]);
     doc.setLineWidth(0.8);
     doc.line(M, y, pw - M, y);
     y += 14;
 
-    renderTwoColRow({ body: c.preamble }, { body: c.preamble_en || "" }, 11, 11);
+    renderTwoColRow({ body: c.preamble }, { body: c.preamble_en || "" }, L.bodySize, L.bodySize);
     y += 6;
 
     for (const cl of c.clauses) {
       renderTwoColRow(
         { heading: `${cl.number} ${cl.title}`, body: cl.body },
         { heading: `${cl.number} ${cl.title_en || cl.title}`, body: cl.body_en || "" },
-        12,
-        11,
+        L.headingSize - 2,
+        L.bodySize,
       );
     }
 
@@ -145,32 +160,35 @@ export async function exportPDF(
     doc.line(M, y, pw - M, y);
     y += 14;
 
-    renderTwoColRow({ body: c.closing }, { body: c.closing_en || "" }, 11, 11);
+    renderTwoColRow({ body: c.closing }, { body: c.closing_en || "" }, L.bodySize, L.bodySize);
     y += 30;
   } else {
-    writeWrapped(c.title.toUpperCase(), 16, { align: "center" });
+    writeWrapped(headingText(c.title), L.titleSize, { align: "center" });
     y += 8;
-    doc.setDrawColor(201, 168, 76);
+    doc.setDrawColor(L.accent[0], L.accent[1], L.accent[2]);
     doc.setLineWidth(0.8);
     doc.line(M, y, pw - M, y);
     y += 18;
 
-    writeWrapped(c.preamble, 11, { align: "justify" });
+    writeWrapped(c.preamble, L.bodySize, { align: L.bodyAlign });
     y += 10;
 
     for (const cl of c.clauses) {
-      y += 8;
-      writeWrapped(`${cl.number} ${cl.title.toUpperCase()}`, 12);
+      y += L.paragraphSpacing;
+      writeWrapped(`${cl.number} ${headingText(cl.title)}`, L.headingSize, {
+        align: L.headingAlign === "center" ? "center" : "left",
+      });
       y += 4;
-      writeWrapped(cl.body, 11, { align: "justify" });
+      writeWrapped(cl.body, L.bodySize, { align: L.bodyAlign });
     }
 
     y += 14;
     doc.line(M, y, pw - M, y);
     y += 14;
-    writeWrapped(c.closing, 11, { align: "justify" });
+    writeWrapped(c.closing, L.bodySize, { align: L.bodyAlign });
     y += 40;
   }
+
 
   // ── Signature block ─────────────────────────────────────────────────────
   // Always append a clear signature area. Uses role-specific parties from
@@ -211,51 +229,132 @@ export async function exportPDF(
 
 
 
-  if (y + 140 > ph - M) { doc.addPage(); y = M; }
+  if (y + 140 > ph - BOTTOM) { doc.addPage(); y = TOP; }
   y += 10;
 
-  if (sig?.city || sig?.date) {
-    doc.setFontSize(11);
+  const showCityDate = brand ? brand.signature.showCityDate : true;
+  if (showCityDate && (sig?.city || sig?.date)) {
+    doc.setFontSize(L.bodySize);
     const line = `Гр. ${sig?.city || "________________"}, дата: ${sig?.date || "____________"}`;
     doc.text(line, M, y);
     y += 22;
   }
 
+  const caption = brand?.signature.caption || "(подпис и имена)";
+
   const drawPartyAt = (
     p: { role: string; name: string; type?: string; image?: string },
     x: number,
     colW: number,
+    ownAsset?: string | null,
   ) => {
     const top = y;
-    doc.setFontSize(11);
+    doc.setFontSize(L.bodySize);
     doc.text((p.role || "").toUpperCase(), x, top);
     const lineY = top + 56;
     doc.setDrawColor(120, 120, 120);
     doc.setLineWidth(0.6);
     doc.line(x, lineY, x + colW - 10, lineY);
-    doc.setFontSize(10);
-    const nameLabel = p.name?.trim() ? p.name : "(подпис и имена)";
+    doc.setFontSize(Math.max(9, L.bodySize - 1));
+    const nameLabel = p.name?.trim() ? p.name : caption;
     doc.text(nameLabel, x, lineY + 14);
     if (p.type) doc.text(p.type, x, lineY + 28);
-    if (p.image) {
+    const asset = p.image || ownAsset || null;
+    if (asset) {
       try {
-        doc.addImage(p.image, "PNG", x, top + 14, Math.min(160, colW - 20), 38);
+        doc.addImage(asset, "PNG", x, top + 14, Math.min(L.assetWidth, colW - 20), 38);
       } catch { /* ignore */ }
     }
   };
 
   const gutter = 24;
   const colW = (pw - M * 2 - gutter) / 2;
+  // Собственият подпис/печат от брандинга се слага само на страната, която
+  // потребителят е избрал в настройките (по подразбиране — първата колона).
+  const ownerIndex = brand?.signature.layout === "right" ? 1 : 0;
+  const ownerAsset = brand?.signatureDataUrl ?? null;
   for (let i = 0; i < parties.length; i += 2) {
-    if (y + 100 > ph - M) { doc.addPage(); y = M; }
+    if (y + 100 > ph - BOTTOM) { doc.addPage(); y = TOP; }
     const startY = y;
-    drawPartyAt(parties[i], M, colW);
+    drawPartyAt(parties[i], M, colW, i === ownerIndex ? ownerAsset : null);
     if (parties[i + 1]) {
       y = startY;
-      drawPartyAt(parties[i + 1], M + colW + gutter, colW);
+      drawPartyAt(parties[i + 1], M + colW + gutter, colW, i + 1 === ownerIndex ? ownerAsset : null);
     }
     y = startY + 100;
   }
+
+  if (brand?.stampDataUrl) {
+    try {
+      doc.addImage(brand.stampDataUrl, "PNG", pw - M - 90, y - 70, 80, 80);
+    } catch { /* ignore */ }
+  }
+
+  // ── Хедър и футър от брандинга (пост-минаване по всички страници) ────────
+  if (brand && (brand.header.enabled || brand.footer.enabled)) {
+    const pages = doc.getNumberOfPages();
+    const hLines = headerTextLines(brand);
+    const fLines = footerTextLines(brand);
+    for (let p = 1; p <= pages; p++) {
+      doc.setPage(p);
+      const drawHeader = brand.header.enabled && (brand.header.repeat === "all" || p === 1);
+      if (drawHeader) {
+        let hy = M - L.topPad + 12;
+        const logoW = brand.header.logoHeight * 3;
+        if (brand.logoDataUrl) {
+          try {
+            const lx = brand.header.align === "center" ? (pw - logoW) / 2 : M;
+            doc.addImage(brand.logoDataUrl, "PNG", lx, hy - 4, logoW, brand.header.logoHeight);
+          } catch { /* ignore */ }
+        }
+        doc.setFontSize(9);
+        doc.setTextColor(L.text[0], L.text[1], L.text[2]);
+        const textX =
+          brand.header.align === "center"
+            ? pw / 2
+            : brand.header.align === "split"
+              ? pw - M
+              : M;
+        const align = brand.header.align === "center" ? "center" : brand.header.align === "split" ? "right" : "left";
+        let ty = brand.logoDataUrl && brand.header.align === "center" ? hy + brand.header.logoHeight + 10 : hy + 6;
+        for (const line of hLines) {
+          doc.text(line, textX, ty, { align: align as "left" | "center" | "right" });
+          ty += 11;
+        }
+        if (brand.header.rule !== "none") {
+          const ruleY = Math.max(ty, hy + brand.header.logoHeight + 6) + 2;
+          if (brand.header.rule === "accent") {
+            doc.setDrawColor(L.accent[0], L.accent[1], L.accent[2]);
+            doc.setLineWidth(1);
+          } else {
+            doc.setDrawColor(190, 190, 190);
+            doc.setLineWidth(0.5);
+          }
+          doc.line(M, ruleY, pw - M, ruleY);
+        }
+      }
+      if (brand.footer.enabled) {
+        doc.setFontSize(8);
+        doc.setTextColor(120, 120, 120);
+        let fy = ph - M + 14;
+        for (const line of fLines) {
+          doc.text(line, M, fy);
+          fy += 10;
+        }
+        if (brand.footer.numbering !== "none") {
+          const label =
+            brand.footer.numbering === "short" ? `${p}` : `Стр. ${p} от ${pages}`;
+          doc.text(label, pw - M, ph - M + 14, { align: "right" });
+        }
+        if (brand.footer.showMadeWith) {
+          doc.text("Изготвено с Договори.нет", pw / 2, ph - M + 24, { align: "center" });
+        }
+        doc.setTextColor(L.text[0], L.text[1], L.text[2]);
+      }
+    }
+    doc.setPage(pages);
+  }
+
 
 
 
