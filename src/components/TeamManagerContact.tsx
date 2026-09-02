@@ -39,25 +39,18 @@ export function TeamManagerContact({
     }
     setSending(true);
     try {
-      const html = `
-        <h2>Нова заявка от Екип</h2>
-        <p><strong>Екип:</strong> ${teamName} (${teamId})</p>
-        <p><strong>Контакт:</strong> ${name || "—"} &lt;${email}&gt;</p>
-        <p><strong>Спешност:</strong> ${urgency}</p>
-        <p><strong>Тема:</strong> ${subject}</p>
-        <hr/>
-        <p style="white-space:pre-wrap">${message.replace(/</g, "&lt;")}</p>
-      `;
-      const { error } = await supabase.functions.invoke("send-transactional-email", {
+      const { error } = await supabase.functions.invoke("team-manager-contact", {
         body: {
-          to: "team@dogovori.net",
-          replyTo: email,
-          subject: `[Team · ${urgency}] ${subject} — ${teamName}`,
-          html,
-          tag: "team-manager-contact",
+          teamId,
+          contactName: name,
+          contactEmail: email,
+          subject,
+          message,
+          urgency,
         },
       });
       if (error) throw new Error(error.message);
+
       toast.success("Изпратено — акаунт мениджърът ще се свърже с вас.");
       setSubject("");
       setMessage("");

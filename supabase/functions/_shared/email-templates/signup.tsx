@@ -1,44 +1,97 @@
 /// <reference types="npm:@types/react@18.3.1" />
 
 import * as React from 'npm:react@18.3.1'
-import { Button, Heading, Section, Text } from 'npm:@react-email/components@0.0.22'
-import { Layout, button, h1, text, small } from './_layout.tsx'
+
+import {
+  Body,
+  Button,
+  Container,
+  Head,
+  Heading,
+  Html,
+  Link,
+  Preview,
+  Text,
+} from 'npm:@react-email/components@0.0.22'
 
 interface SignupEmailProps {
   siteName: string
   siteUrl: string
   recipient: string
   confirmationUrl: string
-  token?: string
 }
 
-export const SignupEmail = ({ siteUrl, recipient, confirmationUrl, token }: SignupEmailProps) => (
-  <Layout preview="Потвърдете имейла си за dogovori.net" siteUrl={siteUrl}>
-    <Heading style={h1}>Добре дошли в dogovori.net</Heading>
-    <Text style={text}>
-      Благодарим Ви, че създадохте профил с <strong>{recipient}</strong>. Остава само една стъпка — потвърдете имейл адреса си, за да активирате профила и да започнете да изготвяте договори.
-    </Text>
-    <Button style={button} href={confirmationUrl}>Потвърди имейла</Button>
-    <Text style={{ ...small, marginTop: '28px' }}>
-      Ако бутонът не работи, копирайте този линк в браузъра:
-    </Text>
-    <Text style={{ ...small, wordBreak: 'break-all', color: '#9b8033' }}>{confirmationUrl}</Text>
-
-    {token ? (
-      <Section style={{ marginTop: '28px', padding: '16px', border: '1px solid #e6d9a8', borderRadius: '8px', backgroundColor: '#fbf7e9' }}>
-        <Text style={{ ...small, margin: 0 }}>
-          Или въведете този 6-цифрен код на страницата за вход → „Не получих имейл за потвърждение":
+export const SignupEmail = ({
+  siteName,
+  siteUrl,
+  recipient,
+  confirmationUrl,
+}: SignupEmailProps) => (
+  <Html lang="en" dir="ltr">
+    <Head>
+      <style>{darkModeCss}</style>
+    </Head>
+    <Preview>Confirm your email for {siteName}</Preview>
+    <Body style={main}>
+      <Container style={container}>
+        <Heading style={h1}>Confirm your email</Heading>
+        <Text style={text}>
+          Thanks for signing up for{' '}
+          <Link href={siteUrl} style={link}>
+            <strong>{siteName}</strong>
+          </Link>
+          !
         </Text>
-        <Text style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '6px', textAlign: 'center', margin: '12px 0 0', color: '#1a1a2e' }}>
-          {token}
+        <Text style={text}>
+          Please confirm your email address (
+          <Link href={`mailto:${recipient}`} style={link}>
+            {recipient}
+          </Link>
+          ) by clicking the button below:
         </Text>
-      </Section>
-    ) : null}
-
-    <Text style={{ ...small, marginTop: '20px' }}>
-      Ако не сте създавали профил, можете спокойно да игнорирате този имейл.
-    </Text>
-  </Layout>
+        <Button className="dm-btn" style={button} href={confirmationUrl}>
+          Verify Email
+        </Button>
+        <Text style={footer}>
+          If you didn't create an account, you can safely ignore this email.
+        </Text>
+      </Container>
+    </Body>
+  </Html>
 )
 
 export default SignupEmail
+
+const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
+const container = { padding: '20px 25px' }
+const h1 = {
+  fontSize: '22px',
+  fontWeight: 'bold' as const,
+  color: '#000000',
+  margin: '0 0 20px',
+}
+const text = {
+  fontSize: '14px',
+  color: '#55575d',
+  lineHeight: '1.5',
+  margin: '0 0 25px',
+}
+const link = { color: 'inherit', textDecoration: 'underline' }
+const button = {
+  backgroundColor: '#000000',
+  color: '#ffffff',
+  fontSize: '14px',
+  border: '1px solid #000000',
+  borderRadius: '8px',
+  padding: '12px 20px',
+  textDecoration: 'none',
+}
+const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
+// Rendered as a text child, which React may HTML-escape: keep this CSS free of >, &, and quotes.
+const darkModeCss = `
+  @media (prefers-color-scheme: dark) {
+    .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
+  }
+  [data-ogsc] .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
+  [data-ogsb] .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
+`

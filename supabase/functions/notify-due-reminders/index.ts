@@ -2,6 +2,7 @@
 // (remind_at <= now + 24h, not done, not yet notified). Idempotent via notified_at.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireServiceRole } from "../_shared/cron-auth.ts";
+import { sendAppEmail } from "../_shared/transactional-email-templates/send-and-log.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -68,10 +69,8 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         const remindOn = new Date(r.remind_at).toLocaleDateString("bg-BG");
-        const { error: sendErr } = await admin.functions.invoke("send-transactional-email", {
-          body: {
-            templateName: "reminder-due",
-            recipientEmail: email,
+        try {
+          await sendAppEmail(admin, "reminder-due", email, {
             idempotencyKey: `reminder-due-${r.id}`,
             templateData: {
               name: (p as any)?.display_name ?? null,
@@ -80,11 +79,9 @@ Deno.serve(async (req) => {
               remindOn,
               note: r.note,
             },
-          },
-        });
-
-        if (sendErr) {
-          errors.push(`${r.id}: ${sendErr.message}`);
+          });
+        } catch (e) {
+          errors.push(`${r.id}: ${(e as Error).message}`);
           continue;
         }
         await admin

@@ -20,6 +20,7 @@ import { template as signingInvitation } from './signing-invitation.tsx'
 import { template as signingOtp } from './signing-otp.tsx'
 import { template as signingCompleted } from './signing-completed.tsx'
 import { template as reminderDue } from './reminder-due.tsx'
+import { template as teamManagerContact } from './team-manager-contact.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'welcome': welcome,
@@ -33,4 +34,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'signing-otp': signingOtp,
   'signing-completed': signingCompleted,
   'reminder-due': reminderDue,
+  'team-manager-contact': teamManagerContact,
 }

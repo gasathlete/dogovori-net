@@ -3,6 +3,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, clientIp, hashIp } from "../_shared/cors.ts";
+import { sendAppEmail } from "../_shared/transactional-email-templates/send-and-log.ts";
 
 async function sha256(s: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
@@ -89,13 +90,9 @@ serve(async (req) => {
         ip_hash: ipHash, user_agent: ua, metadata: { email: signer.email },
       });
       // Send OTP email (best-effort)
-      admin.functions.invoke("send-transactional-email", {
-        body: {
-          templateName: "signing-otp",
-          recipientEmail: signer.email,
-          idempotencyKey: `signing-otp-${signer.id}-${Date.now()}`,
-          templateData: { code, documentTitle: env.title },
-        },
+      sendAppEmail(admin, "signing-otp", signer.email, {
+        idempotencyKey: `signing-otp-${signer.id}-${Date.now()}`,
+        templateData: { code, documentTitle: env.title },
       }).catch(() => {});
       const debugCode = Deno.env.get("SIGNING_DEBUG_OTP") === "1" ? code : undefined;
       return new Response(JSON.stringify({ ok: true, expires_at: exp, debug_code: debugCode }), {
@@ -315,35 +312,27 @@ serve(async (req) => {
           .select("display_name").eq("id", env.owner_id).maybeSingle();
         const ownerName = (ownerProfile as any)?.display_name || "";
         if (ownerEmail) {
-          admin.functions.invoke("send-transactional-email", {
-            body: {
-              templateName: "signing-completed",
-              recipientEmail: ownerEmail,
-              idempotencyKey: `signing-complete-owner-${env.id}`,
-              templateData: {
-                documentTitle: env.title,
-                envelopeUrl: `${appBase}/signing/${env.id}`,
-                signerCount: (allSigners ?? []).length,
-                recipientRole: "owner",
-                recipientName: ownerName,
-              },
+          sendAppEmail(admin, "signing-completed", ownerEmail, {
+            idempotencyKey: `signing-complete-owner-${env.id}`,
+            templateData: {
+              documentTitle: env.title,
+              envelopeUrl: `${appBase}/signing/${env.id}`,
+              signerCount: (allSigners ?? []).length,
+              recipientRole: "owner",
+              recipientName: ownerName,
             },
           }).catch(() => {});
         }
         // Notify each signer
         for (const s of (allSigners ?? [])) {
-          admin.functions.invoke("send-transactional-email", {
-            body: {
-              templateName: "signing-completed",
-              recipientEmail: s.email,
-              idempotencyKey: `signing-complete-signer-${s.id}`,
-              templateData: {
-                documentTitle: env.title,
-                envelopeUrl: `${appBase}/sign/${s.sign_token}`,
-                signerCount: (allSigners ?? []).length,
-                recipientRole: "signer",
-                recipientName: s.name,
-              },
+          sendAppEmail(admin, "signing-completed", s.email, {
+            idempotencyKey: `signing-complete-signer-${s.id}`,
+            templateData: {
+              documentTitle: env.title,
+              envelopeUrl: `${appBase}/sign/${s.sign_token}`,
+              signerCount: (allSigners ?? []).length,
+              recipientRole: "signer",
+              recipientName: s.name,
             },
           }).catch(() => {});
         }
@@ -351,20 +340,17 @@ serve(async (req) => {
         // Notify next signer
         const next = (allSigners ?? []).find((s) => s.status !== "signed" && s.status !== "declined");
         if (next) {
-          admin.functions.invoke("send-transactional-email", {
-            body: {
-              templateName: "signing-invitation",
-              recipientEmail: next.email,
-              idempotencyKey: `signing-invite-${next.id}`,
-              templateData: {
-                signerName: next.name,
-                documentTitle: env.title,
-                signUrl: `${appBase}/sign/${next.sign_token}`,
-                expiresAt: env.expires_at,
-                role: next.role,
-              },
+          sendAppEmail(admin, "signing-invitation", next.email, {
+            idempotencyKey: `signing-invite-${next.id}`,
+            templateData: {
+              signerName: next.name,
+              documentTitle: env.title,
+              signUrl: `${appBase}/sign/${next.sign_token}`,
+              expiresAt: env.expires_at,
+              role: next.role,
             },
           }).catch(() => {});
+
         }
       }
 

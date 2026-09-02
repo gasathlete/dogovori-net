@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
+import { sendAppEmail } from "../_shared/transactional-email-templates/send-and-log.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCors(req);
@@ -48,16 +49,12 @@ Deno.serve(async (req) => {
     const appBase = (Deno.env.get("APP_BASE_URL") || "https://dogovori.net").replace(/\/+$/, "");
     const inviteUrl = `${appBase}/team/accept?token=${token}`;
     try {
-      await admin.functions.invoke("send-transactional-email", {
-        body: {
-          templateName: "team-invitation",
-          recipientEmail: email,
-          idempotencyKey: `team-invite-${invite.id}`,
-          templateData: {
-            teamName: team?.name ?? "екип",
-            inviteUrl,
-            inviterName: user.email,
-          },
+      await sendAppEmail(admin, "team-invitation", email, {
+        idempotencyKey: `team-invite-${invite.id}`,
+        templateData: {
+          teamName: team?.name ?? "екип",
+          inviteUrl,
+          inviterName: user.email,
         },
       });
     } catch (e) {

@@ -3,6 +3,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, clientIp, hashIp } from "../_shared/cors.ts";
+import { sendAppEmail } from "../_shared/transactional-email-templates/send-and-log.ts";
 
 function token(n = 32) {
   const bytes = new Uint8Array(n);
@@ -159,19 +160,15 @@ serve(async (req) => {
       : createdSigners;
 
     await Promise.allSettled(toNotify.map((s: any) =>
-      admin.functions.invoke("send-transactional-email", {
-        body: {
-          templateName: "signing-invitation",
-          recipientEmail: s.email,
-          idempotencyKey: `signing-invite-${s.id}`,
-          templateData: {
-            signerName: s.name,
-            documentTitle: env.title,
-            signUrl: `${appBase}/sign/${s.sign_token}`,
-            ownerName,
-            expiresAt: env.expires_at,
-            role: s.role,
-          },
+      sendAppEmail(admin, "signing-invitation", s.email, {
+        idempotencyKey: `signing-invite-${s.id}`,
+        templateData: {
+          signerName: s.name,
+          documentTitle: env.title,
+          signUrl: `${appBase}/sign/${s.sign_token}`,
+          ownerName,
+          expiresAt: env.expires_at,
+          role: s.role,
         },
       })
     ));

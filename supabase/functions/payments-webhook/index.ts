@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { type StripeEnv, createStripeClient, verifyWebhook } from "../_shared/stripe.ts";
+import { sendAppEmail } from "../_shared/transactional-email-templates/send-and-log.ts";
 
 let _supabase: ReturnType<typeof createClient> | null = null;
 function getSupabase() {
@@ -305,13 +306,9 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
         name = (p as any)?.display_name ?? undefined;
       }
 
-      await getSupabase().functions.invoke("send-transactional-email", {
-        body: {
-          templateName: "payment-receipt",
-          recipientEmail: email,
-          idempotencyKey: `receipt-${session.id}`,
-          templateData: { name, productName, amount: formatted },
-        },
+      await sendAppEmail(getSupabase(), "payment-receipt", email, {
+        idempotencyKey: `receipt-${session.id}`,
+        templateData: { name, productName, amount: formatted },
       });
     }
   } catch (e) {
@@ -356,13 +353,9 @@ async function handleInvoicePaymentFailed(invoice: any, env: StripeEnv) {
         name = (p as any)?.display_name ?? undefined;
       }
 
-      await getSupabase().functions.invoke("send-transactional-email", {
-        body: {
-          templateName: "payment-failed",
-          recipientEmail: email,
-          idempotencyKey: `payfail-${invoice.id}-${invoice.attempt_count ?? 0}`,
-          templateData: { name, amount, nextAttempt },
-        },
+      await sendAppEmail(getSupabase(), "payment-failed", email, {
+        idempotencyKey: `payfail-${invoice.id}-${invoice.attempt_count ?? 0}`,
+        templateData: { name, amount, nextAttempt },
       });
     }
   } catch (e) {
