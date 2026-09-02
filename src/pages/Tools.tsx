@@ -5,6 +5,8 @@ import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { CALCULATORS } from "@/data/calculators";
+import { useAuth } from "@/hooks/useAuth";
+import { Palette, Megaphone, Lock } from "@/icons";
 
 interface OtherTool {
   slug: string;
@@ -27,7 +29,29 @@ const OTHER_TOOLS: OtherTool[] = [
   },
 ];
 
+const BRAND_TOOLS = [
+  {
+    slug: "branding",
+    tab: "branding",
+    icon: Palette,
+    shortTitle: "Персонално брандиране",
+    description:
+      "Задайте лого, горен и долен колонтитул, фирмен цвят, шрифт и място за подпис и печат. Всеки генериран договор излиза с вашата идентичност в PDF и DOCX.",
+    badge: "В профила",
+  },
+  {
+    slug: "marketing",
+    tab: "marketing",
+    icon: Megaphone,
+    shortTitle: "Рекламни материали",
+    description:
+      "Готови брандирани шаблони — покана за работа, оферта, търговско предложение, представяне на фирмата. Попълвате данните, свалятe готовия документ.",
+    badge: "В профила",
+  },
+] as const;
+
 export default function Tools() {
+  const { user } = useAuth();
   const title = "Правни калкулатори и инструменти 2026 | Dogovori.net";
   const desc =
     "Безплатни правни калкулатори в EUR: обезщетения, лихва за забава, нотариални такси, ДДС, местни данъци, платен отпуск, предизвестие. Сравнение на договорни шаблони по българското право.";
@@ -184,6 +208,62 @@ export default function Tools() {
                   <p className="text-sm leading-relaxed text-muted-foreground">{t.description}</p>
                   <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-gold">
                     Отвори инструмента <ArrowRight className="h-3.5 w-3.5" />
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+        <section aria-labelledby="cat-brand" className="mt-14">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md border border-gold/30 bg-gold/[0.05] text-gold">
+              <Palette className="h-4 w-4" strokeWidth={1.7} />
+            </div>
+            <div>
+              <h2 id="cat-brand" className="font-serif text-xl font-bold leading-tight md:text-2xl">
+                Брандиране и реклама
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Фирмен облик на документите и готови рекламни материали
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {BRAND_TOOLS.map((t) => {
+              const Icon = t.icon;
+              const to = user
+                ? `/account?tab=${t.tab}`
+                : `/auth?redirect=${encodeURIComponent(`/account?tab=${t.tab}`)}`;
+              return (
+                <Link
+                  key={t.slug}
+                  to={to}
+                  className="group relative overflow-hidden rounded-xl surface-elevated p-6 transition-all duration-200 hover:-translate-y-0.5 hover:border-gold/45"
+                >
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/0 to-transparent transition-all duration-200 group-hover:via-gold/70" />
+                  <div className="mb-3 flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-gold/30 bg-gold/[0.05] text-gold">
+                      <Icon className="h-5 w-5" strokeWidth={1.6} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-serif text-lg font-bold leading-snug text-foreground transition-colors group-hover:text-gold">
+                          {t.shortTitle}
+                        </h3>
+                        <span className="rounded border border-gold/30 bg-gold/[0.08] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gold">
+                          {t.badge}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{t.description}</p>
+                  <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-gold">
+                    {user ? (
+                      <>Отвори в профила <ArrowRight className="h-3.5 w-3.5" /></>
+                    ) : (
+                      <><Lock className="h-3.5 w-3.5" /> Вход / регистрация</>
+                    )}
                   </span>
                 </Link>
               );
