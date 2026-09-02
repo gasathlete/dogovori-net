@@ -153,9 +153,9 @@ export function BrandedDocumentShowcase() {
               стр. 1 от 1
             </div>
           </figure>
-          <figcaption className="mt-3 text-center text-xs text-muted-foreground">
+          <p className="mt-3 text-center text-xs text-muted-foreground">
             Примерен брандиран документ, генериран от Dogovori.net
-          </figcaption>
+          </p>
         </div>
       </div>
     </section>
