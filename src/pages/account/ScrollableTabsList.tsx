@@ -1,38 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import {
-  Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Bird, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X, MessageSquare, Check, Lock, RefreshCw, Sparkles, Building2, Bell, LayoutDashboard,
-} from "@/icons";
-import { NotificationsTab } from "@/components/NotificationsTab";
-import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
-
-import { useTeam } from "@/hooks/useTeam";
-import { Header } from "@/components/Header";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { downloadDocument } from "@/lib/downloadDocument";
-import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
-import { ShareForSignDialog } from "@/components/ShareForSignDialog";
-import { UploadContractDialog } from "@/components/UploadContractDialog";
-import { SignedContractsTab } from "@/components/SignedContractsTab";
-import { ShieldAlert, ShieldCheck, AlertTriangle, PenTool, ChevronRight, KeyRound, Mail, Trash } from "@/icons";
-import { isValidEGN, isValidEIK } from "@/lib/bgValidation";
-import { translateAuthError } from "@/lib/authErrors";
-import { LegalDisclaimer } from "@/components/LegalDisclaimer";
-import { Seo } from "@/components/Seo";
-import { getUnlockedTiers, getNextTier, REWARD_TIERS } from "@/lib/rewards";
+import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChevronRight } from "@/icons";
 
 export type Contact = {
   id: string; name: string; type: "individual" | "legal";
@@ -58,8 +28,7 @@ export type TabGroup = { id: string; label: string; tabs: TabDef[] };
 
 /* ====================== SCROLLABLE TABS LIST ====================== */
 function ScrollableTabsList({ groups, value }: { groups: TabGroup[]; value: string }) {
-  const [params] = useSearchParams();
-  const isMobile = typeof window !== "undefined" ? window.innerWidth < 768 : false;
+  const isMobile = useIsMobile();
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
     const active = groups.find((g) => g.tabs.some((t) => t.value === value))?.id;
     return active ? { [active]: true } : {};
