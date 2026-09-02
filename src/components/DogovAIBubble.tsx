@@ -634,7 +634,7 @@ export function DogovAIBubble() {
           bubblePosition,
           "z-40",
           "group flex items-center gap-2 rounded-full",
-          "h-11 pl-1.5 pr-3 sm:h-12 sm:pl-2 sm:pr-3.5",
+          "h-11 w-11 justify-center p-0 sm:h-12 sm:w-auto sm:justify-start sm:pl-2 sm:pr-3.5",
           "bg-card/55 backdrop-blur-md text-foreground ring-1 ring-gold/30",
           "shadow-lg shadow-navy/10",
           "opacity-70 hover:opacity-100 hover:bg-card/90 hover:ring-gold/60 hover:shadow-gold",
@@ -650,7 +650,7 @@ export function DogovAIBubble() {
           loading="lazy"
           className="h-8 w-8 rounded-full sm:h-9 sm:w-9"
         />
-        <span className="font-serif text-[13px] font-bold tracking-wide text-foreground sm:text-sm">
+        <span className="hidden font-serif text-[13px] font-bold tracking-wide text-foreground sm:inline sm:text-sm">
           DogovaryAI
         </span>
       </button>
