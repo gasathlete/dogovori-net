@@ -340,20 +340,17 @@ serve(async (req) => {
         // Notify next signer
         const next = (allSigners ?? []).find((s) => s.status !== "signed" && s.status !== "declined");
         if (next) {
-          admin.functions.invoke("send-transactional-email", {
-            body: {
-              templateName: "signing-invitation",
-              recipientEmail: next.email,
-              idempotencyKey: `signing-invite-${next.id}`,
-              templateData: {
-                signerName: next.name,
-                documentTitle: env.title,
-                signUrl: `${appBase}/sign/${next.sign_token}`,
-                expiresAt: env.expires_at,
-                role: next.role,
-              },
+          sendAppEmail(admin, "signing-invitation", next.email, {
+            idempotencyKey: `signing-invite-${next.id}`,
+            templateData: {
+              signerName: next.name,
+              documentTitle: env.title,
+              signUrl: `${appBase}/sign/${next.sign_token}`,
+              expiresAt: env.expires_at,
+              role: next.role,
             },
           }).catch(() => {});
+
         }
       }
 
