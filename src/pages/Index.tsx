@@ -139,6 +139,15 @@ const Index = () => {
           </Suspense>
         </LazyOnVisible>
 
+        {/* Готови комплекти — веднага под Топ 5 най-търсени */}
+        <LazyOnVisible minHeight={480}>
+          <Suspense fallback={<SectionSkeleton />}>
+            <BackdropSection variant="rings">
+              <LifeScenarios />
+            </BackdropSection>
+          </Suspense>
+        </LazyOnVisible>
+
         <LazyOnVisible minHeight={420}>
           <Suspense fallback={<SectionSkeleton />}>
             <BackdropSection variant="dots">
@@ -151,7 +160,6 @@ const Index = () => {
           <Suspense fallback={<SectionSkeleton />}>
             <BackdropSection variant="rings">
               <PainSolution />
-              <LifeScenarios />
             </BackdropSection>
           </Suspense>
         </LazyOnVisible>
