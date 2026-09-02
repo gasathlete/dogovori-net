@@ -243,18 +243,14 @@ export async function guardIllegalContent(args: GuardArgs): Promise<Response | n
 
       for (const recipient of recipients) {
         try {
-          await admin.functions.invoke("send-transactional-email", {
-            body: {
-              templateName: "illegal-content-alert",
-              recipientEmail: recipient,
-              idempotencyKey: `restricted-${eventId ?? crypto.randomUUID()}-${recipient}`,
-              templateData: {
-                category: result.categoryLabel,
-                functionName,
-                userEmail: userEmail ?? "(анонимен)",
-                userId: userId ?? "—",
-                createdAt: new Date().toISOString(),
-              },
+          await sendAppEmail(admin, "illegal-content-alert", recipient, {
+            idempotencyKey: `restricted-${eventId ?? crypto.randomUUID()}-${recipient}`,
+            templateData: {
+              category: result.categoryLabel,
+              functionName,
+              userEmail: userEmail ?? "(анонимен)",
+              userId: userId ?? "—",
+              createdAt: new Date().toISOString(),
             },
           });
         } catch (e) {

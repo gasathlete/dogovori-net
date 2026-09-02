@@ -2,6 +2,7 @@
 // Runs daily; idempotency keys ensure safe re-runs.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireServiceRole } from "../_shared/cron-auth.ts";
+import { sendAppEmail } from "../_shared/transactional-email-templates/send-and-log.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -48,17 +49,16 @@ Deno.serve(async (req) => {
     const { email, name } = await userInfo(user_id);
     if (!email) return;
     const idempotencyKey = `${template}-${user_id}-${bucket}`;
-    const { error } = await admin.functions.invoke("send-transactional-email", {
-      body: {
-        templateName: template,
-        recipientEmail: email,
+    try {
+      await sendAppEmail(admin, template, email, {
         idempotencyKey,
         templateData: { name, ...extra },
-      },
-    });
-    if (error) errors.push(`${template} ${user_id}: ${error.message}`);
-    else if (template === "pro-expiring") expiringSent++;
-    else expiredSent++;
+      });
+      if (template === "pro-expiring") expiringSent++;
+      else expiredSent++;
+    } catch (e) {
+      errors.push(`${template} ${user_id}: ${(e as Error).message}`);
+    }
   };
 
   try {
