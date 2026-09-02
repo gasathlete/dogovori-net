@@ -6,6 +6,7 @@
 // content excerpts, NO matched terms (per legal review).
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { sendAppEmail } from "./transactional-email-templates/send-and-log.ts";
 
 export type IllegalCategory =
   | "violence"
