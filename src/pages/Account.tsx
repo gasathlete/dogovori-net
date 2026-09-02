@@ -28,6 +28,8 @@ const SubscriptionTab = lazy(() => import("./account/SubscriptionTab"));
 const SettingsTab = lazy(() => import("./account/SettingsTab"));
 const DealsTab = lazy(() => import("./account/DealsTab"));
 const KitsTab = lazy(() => import("./account/KitsTab"));
+const BrandingTab = lazy(() => import("./account/BrandingTab"));
+const MarketingTab = lazy(() => import("./account/MarketingTab"));
 const SignedContractsTab = lazy(() => import("@/components/SignedContractsTab").then((m) => ({ default: m.SignedContractsTab })));
 const NotificationsTab = lazy(() => import("@/components/NotificationsTab").then((m) => ({ default: m.NotificationsTab })));
 
@@ -202,6 +204,8 @@ export default function AccountPage() {
             <TabsTrigger value="kits" className="shrink-0 whitespace-nowrap"><Package className="mr-1 h-3.5 w-3.5" />Комплекти</TabsTrigger>
             <TabsTrigger value="signed" className="shrink-0 whitespace-nowrap"><PenTool className="mr-1 h-3.5 w-3.5" />Подписани</TabsTrigger>
 
+            <TabsTrigger value="branding" className="shrink-0 whitespace-nowrap"><Palette className="mr-1 h-3.5 w-3.5" />Брандиране</TabsTrigger>
+            <TabsTrigger value="marketing" className="shrink-0 whitespace-nowrap"><Megaphone className="mr-1 h-3.5 w-3.5" />Рекламни материали</TabsTrigger>
             <TabsTrigger value="subscription" className="shrink-0 whitespace-nowrap"><CreditCard className="mr-1 h-3.5 w-3.5" />Абонамент</TabsTrigger>
             <TabsTrigger value="settings" className="shrink-0 whitespace-nowrap"><SettingsIcon className="mr-1 h-3.5 w-3.5" />Настройки</TabsTrigger>
           </ScrollableTabsList>
@@ -259,6 +263,16 @@ export default function AccountPage() {
             </Suspense>
           </TabsContent>
 
+          <TabsContent value="branding">
+            <Suspense fallback={<TabFallback />}>
+              <BrandingTab />
+            </Suspense>
+          </TabsContent>
+          <TabsContent value="marketing">
+            <Suspense fallback={<TabFallback />}>
+              <MarketingTab />
+            </Suspense>
+          </TabsContent>
           <TabsContent value="subscription">
             <Suspense fallback={<TabFallback />}>
               <SubscriptionTab quota={quota} isPro={!!isPro} />
