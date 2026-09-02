@@ -57,7 +57,7 @@ export function brandingLayout(b: ResolvedBranding | undefined): BrandingLayout 
     [b.header.companyName, b.header.address, [b.header.phone, b.header.email, b.header.website].filter(Boolean).join(" · ")]
       .filter(Boolean).length;
   const headerHeight = b.header.enabled
-    ? Math.max(b.header.logoDataUrlHeight ?? b.header.logoHeight, headerLines * 12) + 16
+    ? Math.max(b.header.logoHeight, headerLines * 12) + 16
     : 0;
   const footerHeight = b.footer.enabled ? 26 : 0;
 
