@@ -33,6 +33,16 @@ const MarketingTab = lazy(() => import("./account/MarketingTab"));
 const SignedContractsTab = lazy(() => import("@/components/SignedContractsTab").then((m) => ({ default: m.SignedContractsTab })));
 const NotificationsTab = lazy(() => import("@/components/NotificationsTab").then((m) => ({ default: m.NotificationsTab })));
 
+/** Дискретен разделител с етикет между групите табове. */
+function TabGroupLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="ml-2 mr-1 hidden shrink-0 select-none items-center gap-2 pl-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 sm:inline-flex">
+      <span aria-hidden className="h-4 w-px bg-border" />
+      {children}
+    </span>
+  );
+}
+
 
 function TabFallback() {
   return (
