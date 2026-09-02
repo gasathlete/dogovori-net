@@ -96,7 +96,7 @@ export default function ToolDetail() {
       />
       <Header />
 
-      <article className="container max-w-6xl py-10 md:py-14">
+      <article className="container max-w-6xl pb-28 pt-10 md:pt-14 lg:pb-14">
         <nav aria-label="Breadcrumb" className="mb-6 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
           <Link to="/" className="hover:text-gold">Начало</Link>
           <ChevronRight className="h-3 w-3" />
