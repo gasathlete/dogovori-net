@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import * as Icons from "@/icons";
 import { Calculator as CalcIcon, ChevronDown, ArrowRight } from "@/icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CALCULATORS } from "@/data/calculators";
+import { CALCULATOR_MENU as CALCULATORS } from "@/data/calculators/menu";
 
 interface Props {
   variant?: "desktop" | "mobile";

@@ -23,9 +23,8 @@ const lazy = <T extends ComponentType<any>>(factory: () => Promise<{ default: T 
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { detectLocaleFromPath, setLocale, stripLocaleFromPath } from "@/i18n";
+import { detectLocaleFromPath, setLocale, stripLocaleFromPath } from "@/i18n/locale";
 import { HelmetProvider } from "react-helmet-async";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -72,8 +71,15 @@ const InlineAuthDialog = reactLazy(() =>
   import("@/components/auth/InlineAuthDialog").then((m) => ({ default: m.InlineAuthDialog })),
 );
 
-import { BetaDisclaimerModal } from "@/components/BetaDisclaimerModal";
-import { ExitIntentLeadMagnet } from "@/components/funnel/ExitIntentLeadMagnet";
+const Sonner = reactLazy(() =>
+  import("@/components/ui/sonner").then((m) => ({ default: m.Toaster })),
+);
+const BetaDisclaimerModal = reactLazy(() =>
+  import("@/components/BetaDisclaimerModal").then((m) => ({ default: m.BetaDisclaimerModal })),
+);
+const ExitIntentLeadMagnet = reactLazy(() =>
+  import("@/components/funnel/ExitIntentLeadMagnet").then((m) => ({ default: m.ExitIntentLeadMagnet })),
+);
 const StartStoryOverlay = reactLazy(() =>
   import("@/components/funnel/StartStoryOverlay").then((m) => ({ default: m.StartStoryOverlay })),
 );
@@ -208,17 +214,27 @@ if (typeof window !== "undefined") {
 // initial entry chunk (each page is still its own lazy chunk).
 // JSON-LD dedup remains handled in main.tsx, so prefetching doesn't re-inject
 // structured data — only the JS chunk is fetched and cached by the browser.
-if (typeof window !== "undefined" && location.pathname !== "/ai" && location.pathname !== "/karta") {
+// NOTE: /karta (SiteMap) is deliberately NOT warmed — it statically pulls the
+// sectors + blog data chunks (~340KB transferred), which dominated the landing
+// page network budget for a page most visitors never open. It is still lazy on
+// hover/click via PrefetchLink.
+if (typeof window !== "undefined" && location.pathname !== "/ai") {
   const prefetchRoutes = () => {
-    void import("./pages/AIFeatures.tsx");
-    void import("./pages/SiteMap.tsx");
+    void import("@/lib/routePrefetch").then((m) => {
+      if (m.shouldPrefetch()) void import("./pages/AIFeatures.tsx");
+    });
   };
-  if ("requestIdleCallback" in window) {
-    (window as any).requestIdleCallback(prefetchRoutes, { timeout: 6000 });
-  } else {
-    setTimeout(prefetchRoutes, 3000);
-  }
+  const start = () => {
+    if ("requestIdleCallback" in window) {
+      (window as any).requestIdleCallback(prefetchRoutes, { timeout: 6000 });
+    } else {
+      setTimeout(prefetchRoutes, 4000);
+    }
+  };
+  if (document.readyState === "complete") setTimeout(start, 3000);
+  else window.addEventListener("load", () => setTimeout(start, 3000), { once: true });
 }
+
 
 // The QueryClient is the shared cache for React Query. It lives in a
 // dedicated module so imperative helpers (e.g. useQuota's fetchQuotaCached /
@@ -416,7 +432,10 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <Sonner />
+      <Suspense fallback={null}>
+        <Sonner />
+      </Suspense>
+
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ScrollToTop />
         <AuthProvider>

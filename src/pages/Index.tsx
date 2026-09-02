@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { prefetchOnIdle } from "@/lib/routePrefetch";
+import { prefetchOnIdle, shouldPrefetch } from "@/lib/routePrefetch";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { SeoFooter } from "@/components/SeoFooter";
@@ -44,7 +44,9 @@ const Index = () => {
 
   // Warm the most likely next routes when the main thread is idle
   // (skipped on data-saver / slow connections).
-  useEffect(() => prefetchOnIdle(["/build", "/catalog"]), []);
+  // Only /catalog (43KB) — /build pulls the export + template chunks (~500KB)
+  // and it was the single biggest cause of a sluggish landing page.
+  useEffect(() => prefetchOnIdle(["/catalog"]), []);
 
   // Bridge legacy event name to the global DogovAI bubble
   useEffect(() => {
@@ -62,6 +64,7 @@ const Index = () => {
   const [slugMap, setSlugMap] = useState<Map<string, string> | null>(null);
   useEffect(() => {
     let cancelled = false;
+    if (!shouldPrefetch()) return;
     const idle =
       (window as any).requestIdleCallback ??
       ((cb: () => void) => setTimeout(cb, 600));

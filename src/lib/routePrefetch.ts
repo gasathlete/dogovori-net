@@ -11,6 +11,21 @@
 
 const fired = new Set<string>();
 
+/**
+ * Speculative loading is a luxury — it must never compete with the critical
+ * path. Skip it on data-saver, slow networks and low-memory devices.
+ */
+export function shouldPrefetch(): boolean {
+  if (typeof window === "undefined") return false;
+  const conn = (navigator as any).connection;
+  if (conn?.saveData) return false;
+  if (/(^|-)(2g|slow-2g|3g)$/.test(String(conn?.effectiveType ?? ""))) return false;
+  if (typeof conn?.downlink === "number" && conn.downlink > 0 && conn.downlink < 3) return false;
+  const mem = (navigator as any).deviceMemory;
+  if (typeof mem === "number" && mem > 0 && mem < 4) return false;
+  return true;
+}
+
 const FACTORIES: Record<string, () => Promise<unknown>> = {
   "/build": () => import("@/pages/BuildContract.tsx"),
   "/catalog": () => import("@/pages/Catalog.tsx"),
@@ -25,7 +40,7 @@ const FACTORIES: Record<string, () => Promise<unknown>> = {
 };
 
 export function prefetchRoute(path: string): void {
-  if (typeof window === "undefined") return;
+  if (!shouldPrefetch()) return;
   // Match longest prefix — handles paths like "/blog/something" -> "/blog".
   const key = FACTORIES[path]
     ? path
@@ -52,19 +67,42 @@ export const prefetchHandlers = (path: string) => ({
  * Skipped on data-saver / slow connections, so мобилните потребители с лимит
  * не плащат за спекулативен трафик. Връща cleanup функция.
  */
-export function prefetchOnIdle(paths: string[], delay = 2000): () => void {
-  if (typeof window === "undefined") return () => {};
-  const conn = (navigator as any).connection;
-  if (conn?.saveData) return () => {};
-  if (/(^|-)(2g|slow-2g)$/.test(String(conn?.effectiveType ?? ""))) return () => {};
+export function prefetchOnIdle(paths: string[], delay = 3000): () => void {
+  if (!shouldPrefetch()) return () => {};
 
-  const ric =
-    (window as any).requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, delay));
-  const handle = ric(() => paths.forEach(prefetchRoute), { timeout: delay + 2000 });
+  let cancelled = false;
+  const timers: number[] = [];
+
+  const run = () => {
+    if (cancelled) return;
+    const ric =
+      (window as any).requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, delay));
+    // Warm one route per idle slot so a burst of chunk downloads never starves
+    // the interactions the user is actually performing.
+    const queue = [...paths];
+    const step = () => {
+      if (cancelled) return;
+      const next = queue.shift();
+      if (!next) return;
+      prefetchRoute(next);
+      const h = ric(step, { timeout: 4000 });
+      timers.push(h as unknown as number);
+    };
+    const h = ric(step, { timeout: delay + 2000 });
+    timers.push(h as unknown as number);
+  };
+
+  // Never start before the page has fully loaded, then wait out `delay`.
+  const start = () => timers.push(window.setTimeout(run, delay));
+  if (document.readyState === "complete") start();
+  else window.addEventListener("load", start, { once: true });
+
   return () => {
+    cancelled = true;
     const cic = (window as any).cancelIdleCallback;
-    if (cic) cic(handle);
-    else clearTimeout(handle as any);
+    timers.forEach((h) => {
+      if (cic) cic(h);
+      clearTimeout(h);
+    });
   };
 }
-

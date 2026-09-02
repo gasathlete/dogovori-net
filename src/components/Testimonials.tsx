@@ -4,15 +4,15 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import viktoriyaPhoto from "@/assets/testimonials/viktoriya.jpg";
-import ivanPhoto from "@/assets/testimonials/ivan.jpg";
-import danielPhoto from "@/assets/testimonials/daniel.jpg";
-import georgiPhoto from "@/assets/testimonials/georgi.jpg";
-import elenaPhoto from "@/assets/testimonials/elena.jpg";
-import petarPhoto from "@/assets/testimonials/petar.jpg";
-import mariyaPhoto from "@/assets/testimonials/mariya.jpg";
-import nikolayPhoto from "@/assets/testimonials/nikolay.jpg";
-import desislavaPhoto from "@/assets/testimonials/desislava.jpg";
+import viktoriyaPhoto from "@/assets/testimonials/viktoriya.webp";
+import ivanPhoto from "@/assets/testimonials/ivan.webp";
+import danielPhoto from "@/assets/testimonials/daniel.webp";
+import georgiPhoto from "@/assets/testimonials/georgi.webp";
+import elenaPhoto from "@/assets/testimonials/elena.webp";
+import petarPhoto from "@/assets/testimonials/petar.webp";
+import mariyaPhoto from "@/assets/testimonials/mariya.webp";
+import nikolayPhoto from "@/assets/testimonials/nikolay.webp";
+import desislavaPhoto from "@/assets/testimonials/desislava.webp";
 
 const WriteReviewDialog = lazy(() =>
   import("@/components/WriteReviewDialog").then((m) => ({ default: m.WriteReviewDialog })),
@@ -280,8 +280,12 @@ function TestimonialCard({ t, onOpen }: { t: Testimonial; onOpen: (t: Testimonia
             src={t.photo_url}
             alt={t.name}
             loading="lazy"
+            decoding="async"
+            width={40}
+            height={40}
             className="h-10 w-10 rounded-full border border-gold/30 object-cover"
           />
+
         ) : (
           <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gold/30 bg-gold/10 font-serif text-xs font-bold text-gold">
             {initials}

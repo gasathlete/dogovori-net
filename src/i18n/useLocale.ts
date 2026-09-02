@@ -2,17 +2,16 @@
 // don't have to know about /en prefix logic.
 import { useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
-import { DEFAULT_LOCALE, type Locale, SUPPORTED_LOCALES, detectLocaleFromPath, setLocale, withLocalePrefix } from "@/i18n";
+import { DEFAULT_LOCALE, type Locale, detectLocaleFromPath, getStoredLocale, setLocale, withLocalePrefix } from "@/i18n/locale";
 
 export function useLocale() {
-  const { i18n } = useTranslation();
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
-  const current = (SUPPORTED_LOCALES.includes(i18n.language as Locale)
-    ? (i18n.language as Locale)
-    : detectLocaleFromPath(pathname)) as Locale;
+  // Derive from the URL first (canonical), then from the stored preference.
+  const current: Locale = detectLocaleFromPath(pathname) === DEFAULT_LOCALE
+    ? (getStoredLocale() ?? DEFAULT_LOCALE)
+    : detectLocaleFromPath(pathname);
 
   const localized = useCallback(
     (to: string) => withLocalePrefix(to, current),
