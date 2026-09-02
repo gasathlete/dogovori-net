@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronRight } from "@/icons";
