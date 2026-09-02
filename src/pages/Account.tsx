@@ -33,6 +33,16 @@ const MarketingTab = lazy(() => import("./account/MarketingTab"));
 const SignedContractsTab = lazy(() => import("@/components/SignedContractsTab").then((m) => ({ default: m.SignedContractsTab })));
 const NotificationsTab = lazy(() => import("@/components/NotificationsTab").then((m) => ({ default: m.NotificationsTab })));
 
+/** Дискретен разделител с етикет между групите табове. */
+function TabGroupLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="ml-2 mr-1 hidden shrink-0 select-none items-center gap-2 pl-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 sm:inline-flex">
+      <span aria-hidden className="h-4 w-px bg-border" />
+      {children}
+    </span>
+  );
+}
+
 
 function TabFallback() {
   return (
@@ -197,18 +207,26 @@ export default function AccountPage() {
         <Tabs value={initialTab} onValueChange={onTabChange} className="space-y-6">
           <ScrollableTabsList>
             <TabsTrigger value="dashboard" className="shrink-0 whitespace-nowrap"><Bird className="mr-1 h-3.5 w-3.5" />Табло</TabsTrigger>
+
+            <TabGroupLabel>Документи</TabGroupLabel>
             <TabsTrigger value="documents" className="shrink-0 whitespace-nowrap"><FileText className="mr-1 h-3.5 w-3.5" />Документи</TabsTrigger>
             <TabsTrigger value="folders" className="shrink-0 whitespace-nowrap"><FolderOpen className="mr-1 h-3.5 w-3.5" />Папки</TabsTrigger>
-            <TabsTrigger value="contacts" className="shrink-0 whitespace-nowrap"><Users className="mr-1 h-3.5 w-3.5" />Контрагенти</TabsTrigger>
-            <TabsTrigger value="deals" className="shrink-0 whitespace-nowrap"><Briefcase className="mr-1 h-3.5 w-3.5" />Сделки</TabsTrigger>
             <TabsTrigger value="kits" className="shrink-0 whitespace-nowrap"><Package className="mr-1 h-3.5 w-3.5" />Комплекти</TabsTrigger>
             <TabsTrigger value="signed" className="shrink-0 whitespace-nowrap"><PenTool className="mr-1 h-3.5 w-3.5" />Подписани</TabsTrigger>
 
+            <TabGroupLabel>Бизнес</TabGroupLabel>
+            <TabsTrigger value="contacts" className="shrink-0 whitespace-nowrap"><Users className="mr-1 h-3.5 w-3.5" />Контрагенти</TabsTrigger>
+            <TabsTrigger value="deals" className="shrink-0 whitespace-nowrap"><Briefcase className="mr-1 h-3.5 w-3.5" />Сделки</TabsTrigger>
+
+            <TabGroupLabel>Бранд</TabGroupLabel>
             <TabsTrigger value="branding" className="shrink-0 whitespace-nowrap"><Palette className="mr-1 h-3.5 w-3.5" />Брандиране</TabsTrigger>
             <TabsTrigger value="marketing" className="shrink-0 whitespace-nowrap"><Megaphone className="mr-1 h-3.5 w-3.5" />Рекламни материали</TabsTrigger>
+
+            <TabGroupLabel>Акаунт</TabGroupLabel>
             <TabsTrigger value="subscription" className="shrink-0 whitespace-nowrap"><CreditCard className="mr-1 h-3.5 w-3.5" />Абонамент</TabsTrigger>
             <TabsTrigger value="settings" className="shrink-0 whitespace-nowrap"><SettingsIcon className="mr-1 h-3.5 w-3.5" />Настройки</TabsTrigger>
           </ScrollableTabsList>
+
 
           <TabsContent value="dashboard">
             <Suspense fallback={<TabFallback />}>

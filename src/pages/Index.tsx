@@ -20,6 +20,7 @@ import { buildFaqJsonLd } from "@/data/faqItems";
 // Класическа подредба: всяка секция е винаги видима, но се монтира лениво
 // при скрол, за да остане входният chunk малък.
 const PlatformCapabilities = lazy(() => import("@/components/PlatformCapabilities").then((m) => ({ default: m.PlatformCapabilities })));
+const BrandedDocumentShowcase = lazy(() => import("@/components/home/BrandedDocumentShowcase").then((m) => ({ default: m.BrandedDocumentShowcase })));
 const SocialProofStrip = lazy(() => import("@/components/SocialProofStrip").then((m) => ({ default: m.SocialProofStrip })));
 const PainSolution = lazy(() => import("@/components/PainSolution").then((m) => ({ default: m.PainSolution })));
 const FeaturedBlanks = lazy(() => import("@/components/FeaturedBlanks").then((m) => ({ default: m.FeaturedBlanks })));
@@ -130,6 +131,15 @@ const Index = () => {
           </Suspense>
         </LazyOnVisible>
 
+
+        {/* Персонално брандиране — веднага под функциите на приложението */}
+        <LazyOnVisible minHeight={520}>
+          <Suspense fallback={<SectionSkeleton />}>
+            <BackdropSection variant="dots" align="center">
+              <BrandedDocumentShowcase />
+            </BackdropSection>
+          </Suspense>
+        </LazyOnVisible>
 
         <LazyOnVisible minHeight={420}>
           <Suspense fallback={<SectionSkeleton />}>
