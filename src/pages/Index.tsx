@@ -8,7 +8,7 @@ import { Seo } from "@/components/Seo";
 import { LazyOnVisible } from "@/components/LazyOnVisible";
 import { SectionSkeleton } from "@/components/SectionSkeleton";
 import { PrimaryChoice } from "@/components/home/PrimaryChoice";
-import { ProcessChips } from "@/components/home/ProcessChips";
+
 import { BackdropSection } from "@/components/SectionBackdrop";
 
 import { FEATURED_BLANKS } from "@/data/featuredBlanks";
@@ -25,7 +25,7 @@ const PainSolution = lazy(() => import("@/components/PainSolution").then((m) => 
 const FeaturedBlanks = lazy(() => import("@/components/FeaturedBlanks").then((m) => ({ default: m.FeaturedBlanks })));
 const LifeScenarios = lazy(() => import("@/components/LifeScenarios").then((m) => ({ default: m.LifeScenarios })));
 const ComparisonTable = lazy(() => import("@/components/ComparisonTable").then((m) => ({ default: m.ComparisonTable })));
-const Process = lazy(() => import("@/components/Process").then((m) => ({ default: m.Process })));
+
 const Testimonials = lazy(() => import("@/components/Testimonials").then((m) => ({ default: m.Testimonials })));
 const FAQ = lazy(() => import("@/components/FAQ").then((m) => ({ default: m.FAQ })));
 const ComplianceSection = lazy(() => import("@/components/ComplianceSection").then((m) => ({ default: m.ComplianceSection })));
@@ -130,14 +130,6 @@ const Index = () => {
           </Suspense>
         </LazyOnVisible>
 
-        <LazyOnVisible minHeight={420}>
-          <Suspense fallback={<SectionSkeleton />}>
-            <BackdropSection variant="flow" intensity="medium">
-              <ProcessChips className="container pt-2" />
-              <Process />
-            </BackdropSection>
-          </Suspense>
-        </LazyOnVisible>
 
         <LazyOnVisible minHeight={420}>
           <Suspense fallback={<SectionSkeleton />}>
