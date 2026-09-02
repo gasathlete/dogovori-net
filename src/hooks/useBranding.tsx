@@ -67,7 +67,7 @@ export function useBranding(): BrandingState {
         if (profileId) {
           const { error } = await supabase
             .from("branding_profiles")
-            .update({ settings: clean as unknown as Record<string, unknown> })
+            .update({ settings: clean as unknown as never })
             .eq("id", profileId);
           if (error) throw error;
         } else {
@@ -75,7 +75,7 @@ export function useBranding(): BrandingState {
             .from("branding_profiles")
             .insert({
               user_id: user.id,
-              settings: clean as unknown as Record<string, unknown>,
+              settings: clean as unknown as never,
               is_active: true,
             })
             .select("id")
