@@ -86,7 +86,7 @@ export function BrandedDocumentShowcase() {
                     Иванов и Милев Пропърти Девелъпмънт
                   </p>
                   <p className="text-[10px] text-[#5a6470]">
-                    ЕИК 207334561 · гр. София, бул. „Витоша“ 89
+                    ЕИК 207334561 · гр. София, бул. България №13
                   </p>
                 </div>
               </div>
@@ -133,10 +133,10 @@ export function BrandedDocumentShowcase() {
                 <div>
                   <p className="text-[10px] text-[#5a6470]">С уважение,</p>
                   <p className="mt-3 font-serif text-[12px] italic text-[#0f3b5c]">
-                    Георги Иванов
+                    Даниел Милев
                   </p>
                   <div className="mt-0.5 w-32 border-t border-[#b9c1cb] pt-1 text-[9px] text-[#8a94a0]">
-                    Управител
+                    imdevelopmentoffice@gmail.com
                   </div>
                 </div>
                 <div className="flex h-16 w-16 shrink-0 rotate-[-8deg] items-center justify-center rounded-full border-2 border-[#0f3b5c]/50 text-center text-[7px] font-semibold uppercase leading-tight text-[#0f3b5c]/70">
@@ -149,8 +149,8 @@ export function BrandedDocumentShowcase() {
 
             {/* Долен колонтитул */}
             <div className="border-t border-[#e3e7ec] bg-[#f6f8fa] px-5 py-2.5 text-[9px] text-[#6b7481]">
-              office@ivanov-milev.bg · +359 2 987 4410 · ДДС № BG207334561 ·
-              стр. 1 от 1
+              imdevelopmentoffice@gmail.com · +359 2 987 4410 · ДДС №
+              BG207334561 · стр. 1 от 1
             </div>
           </figure>
           <p className="mt-3 text-center text-xs text-muted-foreground">
