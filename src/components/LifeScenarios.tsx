@@ -24,7 +24,7 @@ export function LifeScenarios() {
     >
       <div className="mb-8 max-w-2xl md:mb-10">
         <div className="eyebrow mb-3">
-          <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">02</span>
+          <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">05</span>
           <span className="h-px w-6 bg-gold/40" />
           <Compass className="h-3 w-3" />
           Готови комплекти
