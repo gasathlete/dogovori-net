@@ -11,6 +11,9 @@ import {
   TableCell,
   WidthType,
   BorderStyle,
+  Header,
+  Footer,
+  PageNumber,
 } from "docx";
 import { saveAs } from "file-saver";
 import { buildDocxWatermarkHeader } from "./watermark";
@@ -21,10 +24,16 @@ import {
   type WatermarkOpts,
 } from "./exporterTypes";
 import { inferPartyRolesGenitive } from "@/data/partyRoles";
+import type { ResolvedBranding } from "./branding/types";
+import { headerTextLines, footerTextLines } from "./branding/apply";
 
 export type { GeneratedContract, WatermarkOpts };
 
-export async function exportDOCX(c: GeneratedContract, opts?: WatermarkOpts & { returnBlob?: boolean }): Promise<Blob | void> {
+export async function exportDOCX(
+  c: GeneratedContract,
+  opts?: Partial<WatermarkOpts> & { returnBlob?: boolean; branding?: ResolvedBranding | null },
+): Promise<Blob | void> {
+  const brand = opts?.branding ?? undefined;
   const children: (Paragraph | Table)[] = [];
 
   const isBilingual = Boolean(
@@ -288,12 +297,96 @@ export async function exportDOCX(c: GeneratedContract, opts?: WatermarkOpts & { 
 
 
 
-  const header = opts?.watermark ? await buildDocxWatermarkHeader() : undefined;
+  const watermarkHeader = opts?.watermark ? await buildDocxWatermarkHeader() : undefined;
+
+  // Персонално брандиране: фирмен хедър и футър на всяка страница.
+  const brandingHeader = (() => {
+    if (!brand?.header.enabled) return undefined;
+    const alignment =
+      brand.header.align === "center"
+        ? AlignmentType.CENTER
+        : brand.header.align === "split"
+          ? AlignmentType.RIGHT
+          : AlignmentType.LEFT;
+    const paras: Paragraph[] = [];
+    if (brand.logoDataUrl) {
+      try {
+        paras.push(
+          new Paragraph({
+            alignment: brand.header.align === "center" ? AlignmentType.CENTER : AlignmentType.LEFT,
+            children: [
+              new ImageRun({
+                type: "png",
+                data: dataUrlToUint8(brand.logoDataUrl),
+                transformation: { width: brand.header.logoHeight * 3, height: brand.header.logoHeight },
+                altText: { title: "Лого", description: "Фирмено лого", name: "logo" },
+              }),
+            ],
+          }),
+        );
+      } catch { /* ignore */ }
+    }
+    for (const line of headerTextLines(brand)) {
+      paras.push(new Paragraph({ alignment, children: [new TextRun({ text: line, size: 16 })] }));
+    }
+    if (brand.header.rule !== "none") {
+      paras.push(
+        new Paragraph({
+          border: {
+            bottom: {
+              style: BorderStyle.SINGLE,
+              size: brand.header.rule === "accent" ? 8 : 4,
+              color: brand.header.rule === "accent" ? brand.theme.accent.replace("#", "") : "BEBEBE",
+              space: 1,
+            },
+          },
+          children: [new TextRun({ text: "" })],
+        }),
+      );
+    }
+    return paras.length ? new Header({ children: paras }) : undefined;
+  })();
+
+  const brandingFooter = (() => {
+    if (!brand?.footer.enabled) return undefined;
+    const paras: Paragraph[] = [];
+    for (const line of footerTextLines(brand)) {
+      paras.push(new Paragraph({ children: [new TextRun({ text: line, size: 14, color: "777777" })] }));
+    }
+    if (brand.footer.numbering !== "none") {
+      paras.push(
+        new Paragraph({
+          alignment: AlignmentType.RIGHT,
+          children:
+            brand.footer.numbering === "short"
+              ? [new TextRun({ children: [PageNumber.CURRENT], size: 14, color: "777777" })]
+              : [
+                  new TextRun({ text: "Стр. ", size: 14, color: "777777" }),
+                  new TextRun({ children: [PageNumber.CURRENT], size: 14, color: "777777" }),
+                  new TextRun({ text: " от ", size: 14, color: "777777" }),
+                  new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 14, color: "777777" }),
+                ],
+        }),
+      );
+    }
+    if (brand.footer.showMadeWith) {
+      paras.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new TextRun({ text: "Изготвено с Договори.нет", size: 14, color: "999999" })],
+        }),
+      );
+    }
+    return paras.length ? new Footer({ children: paras }) : undefined;
+  })();
+
+  const header = watermarkHeader ?? brandingHeader;
   const doc = new Document({
     creator: "Dogovori.net",
     title: c.title,
     sections: [{
       headers: header ? { default: header } : undefined,
+      footers: brandingFooter ? { default: brandingFooter } : undefined,
       children,
     }],
   });
