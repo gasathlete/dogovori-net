@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut,
-  Bird, Loader2, ArrowLeft, Bell, LayoutDashboard, Briefcase, Package,
+  Bird, Loader2, ArrowLeft, Bell, LayoutDashboard, Briefcase, Package, Palette, Megaphone,
 } from "@/icons";
 
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
