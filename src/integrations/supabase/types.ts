@@ -778,6 +778,63 @@ export type Database = {
         }
         Relationships: []
       }
+      branding_profiles: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          settings: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          settings?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          settings?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      branding_unlocks: {
+        Row: {
+          amount_eur: number | null
+          environment: string | null
+          source: string
+          stripe_session_id: string | null
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_eur?: number | null
+          environment?: string | null
+          source?: string
+          stripe_session_id?: string | null
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_eur?: number | null
+          environment?: string | null
+          source?: string
+          stripe_session_id?: string | null
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       breach_incidents: {
         Row: {
           affected_subjects_count: number
@@ -2153,6 +2210,57 @@ export type Database = {
           unlocked_at?: string
         }
         Relationships: []
+      }
+      marketing_documents: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          deal_id: string | null
+          id: string
+          payload: Json
+          template_key: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          deal_id?: string | null
+          id?: string
+          payload?: Json
+          template_key: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          deal_id?: string | null
+          id?: string
+          payload?: Json
+          template_key?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_documents_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_documents_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_reads: {
         Row: {

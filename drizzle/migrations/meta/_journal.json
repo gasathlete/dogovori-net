@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1788335309220,
+      "tag": "0000_branding_and_marketing",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788335347770,
+      "tag": "0001_branding_storage_policies",
+      "breakpoints": true
+    }
+  ]
+}
