@@ -35,6 +35,11 @@ const NotificationsTab = lazy(() => import("@/components/NotificationsTab").then
 
 const TAB_GROUPS: TabGroup[] = [
   {
+    id: "overview",
+    label: "Начало",
+    tabs: [{ value: "dashboard", label: "Табло", icon: Bird }],
+  },
+  {
     id: "documents",
     label: "Документи",
     tabs: [
