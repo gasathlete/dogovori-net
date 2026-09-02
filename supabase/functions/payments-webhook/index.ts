@@ -181,6 +181,27 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   }
 
 
+  // 0b) Персонално брандиране — еднократно отключване.
+  if (session.mode === "payment" && userId && session.metadata?.type === "branding_unlock") {
+    try {
+      const amountTotal = session.amount_total;
+      await getSupabase()
+        .from("branding_unlocks")
+        .upsert(
+          {
+            user_id: userId,
+            source: "purchase",
+            stripe_session_id: session.id,
+            environment: env,
+            amount_eur: typeof amountTotal === "number" ? amountTotal / 100 : null,
+          },
+          { onConflict: "user_id" },
+        );
+    } catch (e) {
+      console.error("branding_unlocks upsert failed:", e);
+    }
+  }
+
   // 1) Bonus contracts + top-up ops (one-off purchases)
   if (session.mode === "payment" && userId) {
     try {
