@@ -48,8 +48,12 @@ export function SocialProofStrip() {
     gcTime: 30 * 60_000,
   });
 
-  // Duplicate the list so the marquee loops seamlessly.
-  const loop = partners.length > 0 ? [...partners, ...partners] : [];
+  // Дублираме списъка достатъчно пъти, за да е пистата ≥2× екрана и loop-ът да е безшевен.
+  const base =
+    partners.length > 0 && partners.length < 6
+      ? [...partners, ...partners, ...partners].slice(0, Math.max(partners.length * 2, 6))
+      : partners;
+  const loop = base.length > 0 ? [...base, ...base] : [];
 
   const metrics: { value: string; label: string }[] = [
     { value: `${registeredUsers}+`, label: "фирми и специалисти" },
@@ -80,10 +84,10 @@ export function SocialProofStrip() {
 
         {loop.length > 0 && (
           <div className="partners-marquee group relative">
-            <div className="partners-marquee__track flex w-max gap-6 py-3 sm:gap-8">
+            <div className="partners-marquee__track flex w-max gap-5 py-4 sm:gap-6 lg:gap-8">
               {loop.map((p, i) => {
                 const card = (
-                  <div className="proof-logo-card flex aspect-square h-36 w-36 items-center justify-center rounded-2xl p-3 sm:h-44 sm:w-44">
+                  <div className="proof-logo-card flex h-44 w-44 items-center justify-center rounded-2xl p-3 sm:h-56 sm:w-56 sm:p-4 lg:h-72 lg:w-80 lg:p-5">
                     <img
                       src={p.logo_url}
                       alt={p.name}

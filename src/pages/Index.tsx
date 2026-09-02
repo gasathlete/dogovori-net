@@ -112,6 +112,12 @@ const Index = () => {
       <Header />
       <main className="route-fade">
         <Hero onStart={startInterview} />
+
+        {/* Social proof веднага под херото — зарежда се веднага, без lazy gate */}
+        <Suspense fallback={<SectionSkeleton />}>
+          <SocialProofStrip />
+        </Suspense>
+
         <BackdropSection variant="rings">
           <PrimaryChoice />
         </BackdropSection>
@@ -145,7 +151,6 @@ const Index = () => {
           <Suspense fallback={<SectionSkeleton />}>
             <BackdropSection variant="dots">
               <Testimonials />
-              <SocialProofStrip />
             </BackdropSection>
           </Suspense>
         </LazyOnVisible>
