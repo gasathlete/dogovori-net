@@ -8,13 +8,20 @@ import {
   type WatermarkOpts,
 } from "./exporterTypes";
 import { inferPartyRolesGenitive } from "@/data/partyRoles";
+import type { ResolvedBranding } from "./branding/types";
+import { brandingLayout, headerTextLines, footerTextLines } from "./branding/apply";
 
 export type { GeneratedContract, WatermarkOpts };
 
 
 export async function exportPDF(
   c: GeneratedContract,
-  opts?: { watermark?: boolean; userTag?: string; returnBytes?: boolean },
+  opts?: {
+    watermark?: boolean;
+    userTag?: string;
+    returnBytes?: boolean;
+    branding?: ResolvedBranding | null;
+  },
 ): Promise<Uint8Array | void> {
   const b64 = await loadCyrillicFontB64();
 
@@ -23,10 +30,16 @@ export async function exportPDF(
   doc.addFont("DejaVuSans.ttf", "DejaVu", "normal");
   doc.setFont("DejaVu", "normal");
 
-  const M = 56;
+  const brand = opts?.branding ?? undefined;
+  const L = brandingLayout(brand);
+
+  const M = L.margin;
+  const TOP = M + L.topPad;
+  const BOTTOM = M + L.bottomPad;
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
-  let y = M;
+  let y = TOP;
+  doc.setTextColor(L.text[0], L.text[1], L.text[2]);
 
   const writeWrappedInBox = (
     text: string,
