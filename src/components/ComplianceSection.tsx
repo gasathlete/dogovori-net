@@ -61,7 +61,7 @@ export function ComplianceSection() {
 
         <div className="text-center">
           <div className="eyebrow mb-4 justify-center">
-            <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">07</span>
+            <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">09</span>
             <span className="h-px w-6 bg-gold/40" />
             <ShieldCheck className="h-3.5 w-3.5" />
             СТРИКТНА ПРАВНА РАМКА

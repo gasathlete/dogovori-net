@@ -85,7 +85,7 @@ export function Header() {
       className={cn(
         "sticky top-0 z-40 transition-all duration-300",
         scrolled
-          ? "supports-[backdrop-filter]:bg-background/88 bg-background/97 backdrop-blur-xl border-b border-gold/15 shadow-soft"
+          ? "bg-background lg:bg-background/97 lg:supports-[backdrop-filter]:bg-background/88 lg:backdrop-blur-xl border-b border-gold/15 shadow-soft"
           : "border-b border-border/40 bg-background",
       )}
     >
