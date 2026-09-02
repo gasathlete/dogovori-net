@@ -10,14 +10,14 @@ import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { useTeam } from "@/hooks/useTeam";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { ShieldCheck, PenTool } from "@/icons";
 import { Seo } from "@/components/Seo";
 
 import { ScrollableTabsList } from "./account/ScrollableTabsList";
-import type { Contact, Folder, SavedDoc, Quota, UploadedContract, RiskAnalysisLite } from "./account/ScrollableTabsList";
+import type { Contact, Folder, SavedDoc, Quota, UploadedContract, RiskAnalysisLite, TabGroup } from "./account/ScrollableTabsList";
 
 // Lazy-load tabs — only the active tab parses its JS on first visit.
 const Dashboard = lazy(() => import("./account/DashboardTab"));
@@ -33,16 +33,42 @@ const MarketingTab = lazy(() => import("./account/MarketingTab"));
 const SignedContractsTab = lazy(() => import("@/components/SignedContractsTab").then((m) => ({ default: m.SignedContractsTab })));
 const NotificationsTab = lazy(() => import("@/components/NotificationsTab").then((m) => ({ default: m.NotificationsTab })));
 
-/** Дискретен разделител с етикет между групите табове. */
-function TabGroupLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="ml-2 mr-1 hidden shrink-0 select-none items-center gap-2 pl-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 sm:inline-flex">
-      <span aria-hidden className="h-4 w-px bg-border" />
-      {children}
-    </span>
-  );
-}
-
+const TAB_GROUPS: TabGroup[] = [
+  {
+    id: "documents",
+    label: "Документи",
+    tabs: [
+      { value: "documents", label: "Документи", icon: FileText },
+      { value: "folders", label: "Папки", icon: FolderOpen },
+      { value: "kits", label: "Комплекти", icon: Package },
+      { value: "signed", label: "Подписани", icon: PenTool },
+    ],
+  },
+  {
+    id: "business",
+    label: "Бизнес",
+    tabs: [
+      { value: "contacts", label: "Контрагенти", icon: Users },
+      { value: "deals", label: "Сделки", icon: Briefcase },
+    ],
+  },
+  {
+    id: "brand",
+    label: "Бранд",
+    tabs: [
+      { value: "branding", label: "Брандиране", icon: Palette },
+      { value: "marketing", label: "Рекламни материали", icon: Megaphone },
+    ],
+  },
+  {
+    id: "account",
+    label: "Акаунт",
+    tabs: [
+      { value: "subscription", label: "Абонамент", icon: CreditCard },
+      { value: "settings", label: "Настройки", icon: SettingsIcon },
+    ],
+  },
+];
 
 function TabFallback() {
   return (
