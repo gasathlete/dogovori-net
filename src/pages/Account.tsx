@@ -230,103 +230,84 @@ export default function AccountPage() {
           </div>
         </div>
 
-        <Tabs value={initialTab} onValueChange={onTabChange} className="space-y-6">
-          <ScrollableTabsList>
-            <TabsTrigger value="dashboard" className="shrink-0 whitespace-nowrap"><Bird className="mr-1 h-3.5 w-3.5" />Табло</TabsTrigger>
+        <Tabs value={initialTab} onValueChange={onTabChange} className="space-y-4 md:grid md:grid-cols-[240px_1fr] md:gap-8 md:space-y-0 lg:grid-cols-[260px_1fr]">
+          <ScrollableTabsList groups={TAB_GROUPS} value={initialTab} />
 
-            <TabGroupLabel>Документи</TabGroupLabel>
-            <TabsTrigger value="documents" className="shrink-0 whitespace-nowrap"><FileText className="mr-1 h-3.5 w-3.5" />Документи</TabsTrigger>
-            <TabsTrigger value="folders" className="shrink-0 whitespace-nowrap"><FolderOpen className="mr-1 h-3.5 w-3.5" />Папки</TabsTrigger>
-            <TabsTrigger value="kits" className="shrink-0 whitespace-nowrap"><Package className="mr-1 h-3.5 w-3.5" />Комплекти</TabsTrigger>
-            <TabsTrigger value="signed" className="shrink-0 whitespace-nowrap"><PenTool className="mr-1 h-3.5 w-3.5" />Подписани</TabsTrigger>
+          <div className="min-w-0">
+            <TabsContent value="dashboard">
+              <Suspense fallback={<TabFallback />}>
+                <Dashboard quota={quota} isPro={!!isPro} docs={docs} uploadedCount={uploaded.length} correctionsCount={correctionsCount} analysesDates={analysesDates} correctionsDates={correctionsDates} opChargeDates={opChargeDates} hasChatAccess={!!isPro || (!!teamForChat && teamForChat.status === "active")} onOpenChat={() => window.dispatchEvent(new Event("dogovai:open"))} contactsCount={contacts.length} foldersCount={folders.length} />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="notifications">
+              <Suspense fallback={<TabFallback />}>
+                <NotificationsTab />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="contacts">
+              <Suspense fallback={<TabFallback />}>
+                <ContactsTab contacts={contacts} docs={docs} reload={reload} onOpenDocs={openContactDocs} />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="documents">
+              <Suspense fallback={<TabFallback />}>
+                <DocumentsTab
+                  docs={filteredDocs}
+                  folders={folders}
+                  contacts={contacts}
+                  activeFolder={activeFolder}
+                  setActiveFolder={setActiveFolder}
+                  activeContactName={activeContactName}
+                  clearContactFilter={clearContactFilter}
+                  reload={reload}
+                  uploaded={uploaded}
+                  analysesByContract={analysesByContract}
+                  autoOpenUpload={autoOpenUpload}
+                />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="folders">
+              <Suspense fallback={<TabFallback />}>
+                <FoldersTab folders={folders} docs={docs} uploaded={uploaded} reload={reload} onOpenTab={(t) => onTabChange(t)} setActiveFolder={setActiveFolder} />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="signed">
+              <Suspense fallback={<TabFallback />}>
+                <SignedContractsTab userId={user?.id ?? ""} />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="deals">
+              <Suspense fallback={<TabFallback />}>
+                <DealsTab />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="kits">
+              <Suspense fallback={<TabFallback />}>
+                <KitsTab />
+              </Suspense>
+            </TabsContent>
 
-            <TabGroupLabel>Бизнес</TabGroupLabel>
-            <TabsTrigger value="contacts" className="shrink-0 whitespace-nowrap"><Users className="mr-1 h-3.5 w-3.5" />Контрагенти</TabsTrigger>
-            <TabsTrigger value="deals" className="shrink-0 whitespace-nowrap"><Briefcase className="mr-1 h-3.5 w-3.5" />Сделки</TabsTrigger>
-
-            <TabGroupLabel>Бранд</TabGroupLabel>
-            <TabsTrigger value="branding" className="shrink-0 whitespace-nowrap"><Palette className="mr-1 h-3.5 w-3.5" />Брандиране</TabsTrigger>
-            <TabsTrigger value="marketing" className="shrink-0 whitespace-nowrap"><Megaphone className="mr-1 h-3.5 w-3.5" />Рекламни материали</TabsTrigger>
-
-            <TabGroupLabel>Акаунт</TabGroupLabel>
-            <TabsTrigger value="subscription" className="shrink-0 whitespace-nowrap"><CreditCard className="mr-1 h-3.5 w-3.5" />Абонамент</TabsTrigger>
-            <TabsTrigger value="settings" className="shrink-0 whitespace-nowrap"><SettingsIcon className="mr-1 h-3.5 w-3.5" />Настройки</TabsTrigger>
-          </ScrollableTabsList>
-
-
-          <TabsContent value="dashboard">
-            <Suspense fallback={<TabFallback />}>
-              <Dashboard quota={quota} isPro={!!isPro} docs={docs} uploadedCount={uploaded.length} correctionsCount={correctionsCount} analysesDates={analysesDates} correctionsDates={correctionsDates} opChargeDates={opChargeDates} hasChatAccess={!!isPro || (!!teamForChat && teamForChat.status === "active")} onOpenChat={() => window.dispatchEvent(new Event("dogovai:open"))} contactsCount={contacts.length} foldersCount={folders.length} />
-            </Suspense>
-          </TabsContent>
-          <TabsContent value="notifications">
-            <Suspense fallback={<TabFallback />}>
-              <NotificationsTab />
-            </Suspense>
-          </TabsContent>
-          <TabsContent value="contacts">
-            <Suspense fallback={<TabFallback />}>
-              <ContactsTab contacts={contacts} docs={docs} reload={reload} onOpenDocs={openContactDocs} />
-            </Suspense>
-          </TabsContent>
-          <TabsContent value="documents">
-            <Suspense fallback={<TabFallback />}>
-              <DocumentsTab
-                docs={filteredDocs}
-                folders={folders}
-                contacts={contacts}
-                activeFolder={activeFolder}
-                setActiveFolder={setActiveFolder}
-                activeContactName={activeContactName}
-                clearContactFilter={clearContactFilter}
-                reload={reload}
-                uploaded={uploaded}
-                analysesByContract={analysesByContract}
-                autoOpenUpload={autoOpenUpload}
-              />
-            </Suspense>
-          </TabsContent>
-          <TabsContent value="folders">
-            <Suspense fallback={<TabFallback />}>
-              <FoldersTab folders={folders} docs={docs} uploaded={uploaded} reload={reload} onOpenTab={(t) => onTabChange(t)} setActiveFolder={setActiveFolder} />
-            </Suspense>
-          </TabsContent>
-          <TabsContent value="signed">
-            <Suspense fallback={<TabFallback />}>
-              <SignedContractsTab userId={user?.id ?? ""} />
-            </Suspense>
-          </TabsContent>
-          <TabsContent value="deals">
-            <Suspense fallback={<TabFallback />}>
-              <DealsTab />
-            </Suspense>
-          </TabsContent>
-          <TabsContent value="kits">
-            <Suspense fallback={<TabFallback />}>
-              <KitsTab />
-            </Suspense>
-          </TabsContent>
-
-          <TabsContent value="branding">
-            <Suspense fallback={<TabFallback />}>
-              <BrandingTab />
-            </Suspense>
-          </TabsContent>
-          <TabsContent value="marketing">
-            <Suspense fallback={<TabFallback />}>
-              <MarketingTab />
-            </Suspense>
-          </TabsContent>
-          <TabsContent value="subscription">
-            <Suspense fallback={<TabFallback />}>
-              <SubscriptionTab quota={quota} isPro={!!isPro} />
-            </Suspense>
-          </TabsContent>
-          <TabsContent value="settings">
-            <Suspense fallback={<TabFallback />}>
-              <SettingsTab profile={profile} setProfile={setProfile} userId={user?.id ?? ""} />
-            </Suspense>
-          </TabsContent>
+            <TabsContent value="branding">
+              <Suspense fallback={<TabFallback />}>
+                <BrandingTab />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="marketing">
+              <Suspense fallback={<TabFallback />}>
+                <MarketingTab />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="subscription">
+              <Suspense fallback={<TabFallback />}>
+                <SubscriptionTab quota={quota} isPro={!!isPro} />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="settings">
+              <Suspense fallback={<TabFallback />}>
+                <SettingsTab profile={profile} setProfile={setProfile} userId={user?.id ?? ""} />
+              </Suspense>
+            </TabsContent>
+          </div>
         </Tabs>
       </main>
       {/* Global DogovAI bubble is mounted in App.tsx */}
