@@ -789,8 +789,10 @@
     mask-image: linear-gradient(90deg, transparent, hsl(0 0% 0%) 10%, hsl(0 0% 0%) 90%, transparent);
   }
   .partners-marquee__track {
-    animation: marquee-x 90s linear infinite;
+    animation: marquee-x 140s linear infinite;
     will-change: transform;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
   }
   .partners-marquee:hover .partners-marquee__track,
   .partners-marquee:focus-within .partners-marquee__track {
@@ -798,7 +800,7 @@
   }
   @media (max-width: 640px) {
     .partners-marquee__track {
-      animation-duration: 65s;
+      animation-duration: 95s;
     }
   }
   @media (prefers-reduced-motion: reduce) {
