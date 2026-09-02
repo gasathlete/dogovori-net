@@ -21,7 +21,18 @@ const PREFETCHERS: Array<[RegExp, () => Promise<unknown>]> = [
 
 const fired = new WeakSet<() => Promise<unknown>>();
 
+/** Mirrors src/lib/routePrefetch — skip speculation on slow/limited devices. */
+function prefetchAllowed(): boolean {
+  const conn = (navigator as any).connection;
+  if (conn?.saveData) return false;
+  if (/(^|-)(2g|slow-2g|3g)$/.test(String(conn?.effectiveType ?? ""))) return false;
+  const mem = (navigator as any).deviceMemory;
+  if (typeof mem === "number" && mem > 0 && mem < 4) return false;
+  return true;
+}
+
 function prefetchFor(href: string) {
+  if (!prefetchAllowed()) return;
   const match = PREFETCHERS.find(([re]) => re.test(href));
   if (!match) return;
   const fn = match[1];

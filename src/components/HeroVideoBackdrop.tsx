@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Pause, Play } from "lucide-react";
+import { Pause, Play } from "@/icons";
 import videoAsset from "@/assets/hero-bg-video.mp4.asset.json";
 import posterUrl from "@/assets/hero-bg-poster.jpg";
 
@@ -17,8 +17,10 @@ export function HeroVideoBackdrop() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [paused, setPaused] = useState(false);
-  /** Видеото върви на всички екрани, включително мобилни. */
-  const videoAllowed = true;
+  // Видеото е чист декор: на мобилни устройства, при data-saver и при бавна
+  // мрежа показваме само постера — това спестява декодиране на видео на
+  // главната нишка и стотици килобайта трафик.
+  const [videoAllowed, setVideoAllowed] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -29,6 +31,30 @@ export function HeroVideoBackdrop() {
     return () => mq.removeEventListener?.("change", onChange);
   }, []);
 
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const conn = (navigator as any).connection;
+    const capable =
+      window.matchMedia("(min-width: 768px) and (pointer: fine)").matches &&
+      !conn?.saveData &&
+      !/(^|-)(2g|slow-2g|3g)$/.test(String(conn?.effectiveType ?? ""));
+    if (!capable) return;
+    // Стартираме видеото едва след пълно зареждане + idle, за да не се
+    // конкурира с LCP на херото.
+    let handle = 0;
+    const arm = () => {
+      const ric = (window as any).requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 1200));
+      handle = ric(() => setVideoAllowed(true), { timeout: 3000 });
+    };
+    if (document.readyState === "complete") arm();
+    else window.addEventListener("load", arm, { once: true });
+    return () => {
+      const cic = (window as any).cancelIdleCallback;
+      if (cic && handle) cic(handle);
+      clearTimeout(handle);
+    };
+  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
