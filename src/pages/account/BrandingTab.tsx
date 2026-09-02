@@ -27,8 +27,8 @@ import {
   type BrandingAssetKind,
 } from "@/lib/branding/storage";
 import { invalidateResolvedBranding } from "@/lib/branding/resolve";
-import { openCheckout } from "@/lib/checkout";
-import { formatEur } from "@/lib/pricing";
+import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
+import { fmtEur } from "@/lib/pricing";
 
 const BRANDING_PRICE_EUR = 29;
 
@@ -123,6 +123,8 @@ function AssetField({
 }
 
 export default function BrandingTab() {
+  const { user } = useAuth();
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const { unlocked, includedInPlan, settings, loading, saving, save, refresh } = useBranding();
   const [draft, setDraft] = useState<BrandingSettings>(settings);
   const [dirty, setDirty] = useState(false);
@@ -169,19 +171,34 @@ export default function BrandingTab() {
             <li>• Шаблони за рекламни материали (оферти, предложения)</li>
           </ul>
           <div className="flex flex-wrap items-center gap-3">
-            <Button
-              onClick={() => {
-                void openCheckout({ priceId: "branding_unlock_once" });
-              }}
-            >
+            <Button onClick={() => setCheckoutOpen(true)} disabled={!user}>
               <Sparkles className="mr-1.5 h-4 w-4" />
-              Отключи еднократно за {formatEur(BRANDING_PRICE_EUR)}
+              Отключи еднократно за {fmtEur(BRANDING_PRICE_EUR)}
             </Button>
             <span className="text-xs text-muted-foreground">
               Включено безплатно в планове Предприемач и Екип.
             </span>
           </div>
         </CardContent>
+        {checkoutOpen && user && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-xl rounded-lg border bg-card p-4 shadow-lg">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-sm font-medium">Персонално брандиране</span>
+                <Button size="sm" variant="ghost" onClick={() => setCheckoutOpen(false)}>
+                  Затвори
+                </Button>
+              </div>
+              <StripeEmbeddedCheckout
+                priceId="branding_unlock_once"
+                quantity={1}
+                customerEmail={user.email}
+                userId={user.id}
+                returnUrl={`${window.location.origin}/account?tab=branding&branding=success&session_id={CHECKOUT_SESSION_ID}`}
+              />
+            </div>
+          </div>
+        )}
       </Card>
     );
   }
@@ -456,18 +473,19 @@ export default function BrandingTab() {
               <div className="space-y-2">
                 <Label>Акцентен цвят</Label>
                 <div className="flex flex-wrap gap-2">
-                  {ACCENT_PALETTE.map((hex) => (
+                  {ACCENT_PALETTE.map((c) => (
                     <button
-                      key={hex}
+                      key={c.value}
                       type="button"
-                      aria-label={`Цвят ${hex}`}
-                      onClick={() => patch("theme", { accent: hex })}
+                      aria-label={`Цвят ${c.label}`}
+                      title={c.label}
+                      onClick={() => patch("theme", { accent: c.value })}
                       className={`h-8 w-8 rounded-full border-2 transition ${
-                        draft.theme.accent.toLowerCase() === hex.toLowerCase()
+                        draft.theme.accent.toLowerCase() === c.value.toLowerCase()
                           ? "border-foreground scale-110"
                           : "border-transparent"
                       }`}
-                      style={{ backgroundColor: hex }}
+                      style={{ backgroundColor: c.value }}
                     />
                   ))}
                 </div>
