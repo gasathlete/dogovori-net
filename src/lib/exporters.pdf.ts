@@ -135,22 +135,24 @@ export async function exportPDF(
     c.bilingual && (c.title_en || c.preamble_en || c.clauses.some((cl) => cl.title_en || cl.body_en)),
   );
 
+  const headingText = (t: string) => (L.uppercaseHeadings ? t.toUpperCase() : t);
+
   if (isBilingual) {
-    renderTwoColRow({ body: c.title }, { body: c.title_en || c.title }, 14, 14);
-    doc.setDrawColor(201, 168, 76);
+    renderTwoColRow({ body: c.title }, { body: c.title_en || c.title }, L.headingSize, L.headingSize);
+    doc.setDrawColor(L.accent[0], L.accent[1], L.accent[2]);
     doc.setLineWidth(0.8);
     doc.line(M, y, pw - M, y);
     y += 14;
 
-    renderTwoColRow({ body: c.preamble }, { body: c.preamble_en || "" }, 11, 11);
+    renderTwoColRow({ body: c.preamble }, { body: c.preamble_en || "" }, L.bodySize, L.bodySize);
     y += 6;
 
     for (const cl of c.clauses) {
       renderTwoColRow(
         { heading: `${cl.number} ${cl.title}`, body: cl.body },
         { heading: `${cl.number} ${cl.title_en || cl.title}`, body: cl.body_en || "" },
-        12,
-        11,
+        L.headingSize - 2,
+        L.bodySize,
       );
     }
 
@@ -158,32 +160,35 @@ export async function exportPDF(
     doc.line(M, y, pw - M, y);
     y += 14;
 
-    renderTwoColRow({ body: c.closing }, { body: c.closing_en || "" }, 11, 11);
+    renderTwoColRow({ body: c.closing }, { body: c.closing_en || "" }, L.bodySize, L.bodySize);
     y += 30;
   } else {
-    writeWrapped(c.title.toUpperCase(), 16, { align: "center" });
+    writeWrapped(headingText(c.title), L.titleSize, { align: "center" });
     y += 8;
-    doc.setDrawColor(201, 168, 76);
+    doc.setDrawColor(L.accent[0], L.accent[1], L.accent[2]);
     doc.setLineWidth(0.8);
     doc.line(M, y, pw - M, y);
     y += 18;
 
-    writeWrapped(c.preamble, 11, { align: "justify" });
+    writeWrapped(c.preamble, L.bodySize, { align: L.bodyAlign });
     y += 10;
 
     for (const cl of c.clauses) {
-      y += 8;
-      writeWrapped(`${cl.number} ${cl.title.toUpperCase()}`, 12);
+      y += L.paragraphSpacing;
+      writeWrapped(`${cl.number} ${headingText(cl.title)}`, L.headingSize, {
+        align: L.headingAlign === "center" ? "center" : "left",
+      });
       y += 4;
-      writeWrapped(cl.body, 11, { align: "justify" });
+      writeWrapped(cl.body, L.bodySize, { align: L.bodyAlign });
     }
 
     y += 14;
     doc.line(M, y, pw - M, y);
     y += 14;
-    writeWrapped(c.closing, 11, { align: "justify" });
+    writeWrapped(c.closing, L.bodySize, { align: L.bodyAlign });
     y += 40;
   }
+
 
   // ── Signature block ─────────────────────────────────────────────────────
   // Always append a clear signature area. Uses role-specific parties from
