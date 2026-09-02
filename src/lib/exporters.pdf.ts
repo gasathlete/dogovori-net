@@ -55,9 +55,9 @@ export async function exportPDF(
       const lines: string[] = doc.splitTextToSize(para, maxWidth);
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        if (y > ph - M) {
+        if (y > ph - BOTTOM) {
           doc.addPage();
-          y = M;
+          y = TOP;
         }
         const isLast = i === lines.length - 1;
         if (wOpts.align === "center") {
@@ -78,7 +78,7 @@ export async function exportPDF(
         } else {
           doc.text(line, x, y);
         }
-        y += size * 1.4;
+        y += size * L.lineHeight;
       }
     }
   };
@@ -95,7 +95,7 @@ export async function exportPDF(
     let h = 0;
     for (const para of paragraphs) {
       const lines: string[] = doc.splitTextToSize(para, maxWidth);
-      h += Math.max(1, lines.length) * size * 1.4;
+      h += Math.max(1, lines.length) * size * L.lineHeight;
     }
     return h;
   };
@@ -116,7 +116,7 @@ export async function exportPDF(
       headingH(bg.heading || "") + measureBlock(bg.body, bodySize, colW),
       headingH(en.heading || "") + measureBlock(en.body, bodySize, colW),
     );
-    if (y + totalH > ph - M) { doc.addPage(); y = M; }
+    if (y + totalH > ph - BOTTOM) { doc.addPage(); y = TOP; }
     const startY = y;
 
     if (bg.heading) { writeWrappedInBox(bg.heading.toUpperCase(), headingSize, { x: leftX, maxWidth: colW }); y += 2; }
@@ -224,7 +224,7 @@ export async function exportPDF(
 
 
 
-  if (y + 140 > ph - M) { doc.addPage(); y = M; }
+  if (y + 140 > ph - BOTTOM) { doc.addPage(); y = TOP; }
   y += 10;
 
   if (sig?.city || sig?.date) {
@@ -260,7 +260,7 @@ export async function exportPDF(
   const gutter = 24;
   const colW = (pw - M * 2 - gutter) / 2;
   for (let i = 0; i < parties.length; i += 2) {
-    if (y + 100 > ph - M) { doc.addPage(); y = M; }
+    if (y + 100 > ph - BOTTOM) { doc.addPage(); y = TOP; }
     const startY = y;
     drawPartyAt(parties[i], M, colW);
     if (parties[i + 1]) {
