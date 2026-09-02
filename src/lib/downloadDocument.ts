@@ -142,14 +142,24 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
     const fontResult = await fontPromise;
     if (fontResult.ok === false) throw fontResult.error;
 
+    // Персонално брандиране — прилага се само при пълно (без воден знак)
+    // сваляне и когато потребителят има активен профил.
+    let branding = null as Awaited<ReturnType<typeof import("@/lib/branding/resolve").resolveBrandingForUser>>;
+    if (!data?.watermark) {
+      try {
+        const { resolveBrandingForUser } = await import("@/lib/branding/resolve");
+        branding = await resolveBrandingForUser(session.user.id);
+      } catch { /* брандингът никога не блокира свалянето */ }
+    }
+
     if (p.kind === "contract") {
       const c = data.payload as GeneratedContract;
       if (p.format === "pdf") {
         const { exportPDF } = await import("@/lib/exporters.pdf");
-        await exportPDF(c, watermarkOpts);
+        await exportPDF(c, { ...watermarkOpts, branding });
       } else {
         const { exportDOCX } = await import("@/lib/exporters.docx");
-        await exportDOCX(c, watermarkOpts);
+        await exportDOCX(c, { ...watermarkOpts, branding });
       }
     } else {
       const t = data.payload as CompanionTemplate;
