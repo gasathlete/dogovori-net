@@ -452,6 +452,13 @@ Deno.serve(async (req) => {
         .select("ai_messages_used")
         .eq("user_id", userId)
         .maybeSingle();
+      if (!aiQuota) {
+        // Още няма ред за квотата — създаваме го, за да може условният update
+        // по-долу да намери какво да заключи.
+        await admin
+          .from("download_quota")
+          .upsert({ user_id: userId, ai_messages_used: 0 }, { onConflict: "user_id" });
+      }
       const aiUsed = Number((aiQuota as any)?.ai_messages_used ?? 0);
       // Атомарно резервиране: увеличаваме само ако стойността в базата все още е
       // същата (оптимистично заключване), за да не се получи двойно броене при
