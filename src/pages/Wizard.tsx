@@ -1091,6 +1091,13 @@ export default function WizardPage() {
     <div className="min-h-dvh">
       <Header />
 
+      <GenerationBlockedDialog
+        open={blockedReason !== null}
+        onOpenChange={(o) => !o && setBlockedReason(null)}
+        reason={blockedReason ?? "quota_exceeded"}
+        onConfirm={() => void handleGenerate(true)}
+      />
+
 
       {downloadingBlank && (
         <div
