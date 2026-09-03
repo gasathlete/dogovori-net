@@ -544,7 +544,7 @@ export default function Plans() {
 
         <section className="relative z-10 mx-auto max-w-7xl px-4 pb-12 sm:pb-16">
           {/* Top-up пакети */}
-          <section className="rounded-2xl border border-hairline bg-card/70 p-5 backdrop-blur-md sm:p-6">
+          <section id="topup" className="scroll-mt-24 rounded-2xl border border-hairline bg-card/70 p-5 backdrop-blur-md sm:p-6">
 
             <div className="mx-auto max-w-3xl text-center">
               <h2 className="font-serif text-2xl text-foreground sm:text-3xl">
