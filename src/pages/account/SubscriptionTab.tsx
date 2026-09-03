@@ -8,7 +8,9 @@ import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 
 import { useTeam } from "@/hooks/useTeam";
 import { Header } from "@/components/Header";
+import { PiggyBank } from "@/icons";
 import {
+  LAWYER_FEE_MIN_EUR,
   PRICING_PLANS,
   TOPUP_PACK_CONFIG,
   perOpLabel,
