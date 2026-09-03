@@ -178,6 +178,8 @@ export default function WizardPage() {
   const [consentChecked, setConsentChecked] = useState(false);
   /** Последният опит за генериране е неуспешен → бутонът става „Опитай отново". */
   const [genFailed, setGenFailed] = useState(false);
+  /** Спряно генериране (квота / потвърждение) → ясен модал с 1-click изход. */
+  const [blockedReason, setBlockedReason] = useState<BlockedReason | null>(null);
 
 
   const [correctionsPending, setCorrectionsPending] = useState<CorrectionsSelection | null>(null);
