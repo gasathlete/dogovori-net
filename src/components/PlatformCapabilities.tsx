@@ -39,20 +39,25 @@ export function PlatformCapabilities() {
           >
             Шест инструмента, един работен процес
           </h2>
-          <p className="mx-auto mt-3 max-w-[60ch] text-sm text-muted-foreground sm:text-[15px]">
-            {"\n"}
+          <p className="mx-auto mt-3 max-w-[62ch] text-sm text-muted-foreground sm:text-[15px]">
+            Един непрекъснат поток: питаш, избираш шаблон, проверяваш риска,
+            превеждаш, подписваш и подреждаш в комплект — без да сменяш платформа.
           </p>
         </div>
 
         <ul className="mx-auto mt-10 grid max-w-5xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {ITEMS.map((item) => {
+          {ITEMS.map((item, index) => {
             const Icon = item.icon;
             const inner = (
               <>
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gold/30 bg-gold/10 text-gold transition-colors group-hover:border-gold/60 group-hover:bg-gold/15">
-                  <Icon aria-hidden="true" className="h-[18px] w-[18px]" />
+                <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gold/25 bg-gradient-to-br from-gold/15 to-gold/[0.03] text-gold shadow-[inset_0_1px_0_hsl(var(--gold)/0.15)] transition-all group-hover:border-gold/60 group-hover:from-gold/25">
+                  <Icon aria-hidden="true" className="h-[19px] w-[19px]" />
                 </span>
                 <span className="min-w-0 flex-1">
+                  <span className="mb-1 block font-serif text-[11px] tracking-[0.16em] text-gold/60">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
                   <span className="flex items-center gap-1.5">
                     <span className="text-[15px] font-semibold text-foreground">{item.label}</span>
                     <ChevronRight aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-gold/50 transition-transform group-hover:translate-x-0.5 group-hover:text-gold" />
@@ -64,7 +69,7 @@ export function PlatformCapabilities() {
               </>
             );
             const cls =
-              "group flex h-full w-full items-start gap-3 rounded-xl border border-gold/15 bg-card/50 px-5 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-gold/40 hover:bg-card/70 hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60";
+              "group relative flex h-full w-full items-start gap-3.5 overflow-hidden rounded-2xl border border-gold/15 bg-card/60 px-5 py-4 text-left backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 hover:border-gold/45 hover:bg-card/80 hover:shadow-elegant focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60";
 
             if (item.action) {
               const onClick = () => {

@@ -76,7 +76,7 @@ const SYSTEM_PROMPT = `# РОЛЯ И ИДЕНТИЧНОСТ
 
 Никога не пропускай CTA и <followups>. Ако усетиш, че отговорът се удължава — съкрати, за да ги побереш.`;
 
-const MODEL = "google/gemini-2.5-flash";
+const MODEL = "google/gemini-3.7-flash";
 const MAX_MESSAGES = 5;
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
