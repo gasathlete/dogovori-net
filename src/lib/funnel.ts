@@ -154,20 +154,30 @@ export function trackFunnelEvent(name: string, props?: Record<string, unknown>) 
       typeof props?.step === "number"
         ? (props.step as number)
         : null;
-    void import("@/integrations/supabase/client").then(({ supabase }) =>
+    void import("@/integrations/supabase/client").then(async ({ supabase }) => {
+      // Прикрепяме user_id, когато има активна сесия — така потребителят вижда
+      // собствената си фуния в /account?tab=subscription (RPC, без PII).
+      let uid: string | null = null;
+      try {
+        const { data } = await supabase.auth.getSession();
+        uid = data.session?.user?.id ?? null;
+      } catch {
+        /* ignore */
+      }
       // NB: PostgREST builders are lazy thenables — `void builder` never runs.
       // The explicit .then() is what actually dispatches the request.
-      supabase
+      return supabase
         .from("funnel_events")
         .insert({
           session_id: getFunnelSessionId(),
+          user_id: uid,
           name: String(name).slice(0, 80),
           step: stepNum !== null && stepNum >= 1 && stepNum <= 4 ? stepNum : null,
           path: window.location?.pathname?.slice(0, 200) ?? null,
           props: JSON.parse(JSON.stringify(props ?? {})),
         })
-        .then(() => undefined, () => undefined),
-    );
+        .then(() => undefined, () => undefined);
+    });
   } catch {
     /* ignore */
   }
