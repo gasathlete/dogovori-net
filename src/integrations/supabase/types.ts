@@ -4730,6 +4730,14 @@ export type Database = {
       get_active_prompt: { Args: { _function_name: string }; Returns: string }
       get_first100_remaining: { Args: never; Returns: number }
       get_first90_remaining: { Args: never; Returns: number }
+      get_my_activation_funnel: {
+        Args: { _days?: number }
+        Returns: {
+          events: number
+          sessions: number
+          stage: string
+        }[]
+      }
       get_post_rating: {
         Args: {
           _post_slug: string
