@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Send, Loader2, Plus, Bird, AlertCircle, MessageSquare, Trash2, Handshake, Paperclip, Share2, Download, BookOpen, X, MessagesSquare, LayoutPanelLeft } from "@/icons";
+import { Send, Loader2, Plus, AlertCircle, MessageSquare, Trash2, Handshake, Paperclip, Share2, Download, BookOpen, X, MessagesSquare, LayoutPanelLeft } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -73,6 +73,8 @@ const QUICK_ACTIONS = [
   { label: "🛠️ Създаване на документ", text: "Помогни ми да създам трудов договор с конкретни клаузи." },
   { label: "📦 Комплекти документи", text: "Покажи ми комплекти документи за стартиране на ЕООД." },
 ];
+
+const dogovaiIcon = "/dogovai-favicon.png";
 
 const ACTIVE_THREAD_STORAGE_PREFIX = "dogovaryai_active_thread:";
 
@@ -814,7 +816,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 px-3 py-2">
           <div className="flex min-w-0 items-center gap-2">
             <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-gold/20 to-gold/5 ring-1 ring-gold/20">
-              <Bird className="h-4 w-4 text-gold" />
+              <img src={dogovaiIcon} alt="" width={20} height={20} loading="lazy" decoding="async" className="h-5 w-5 rounded-full" />
               <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-card" />
             </div>
             <div className="min-w-0">
@@ -882,7 +884,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
           {isEmpty ? (
             <div className="flex h-full flex-col items-center justify-center">
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-gold/20 to-gold/5 ring-1 ring-gold/20">
-                <Bird className="h-7 w-7 text-gold" />
+                <img src={dogovaiIcon} alt="" width={36} height={36} loading="lazy" decoding="async" className="h-9 w-9 rounded-full" />
               </div>
               <h4 className="mb-1.5 text-base font-semibold text-foreground">С какво да помогна?</h4>
               <p className="mb-6 max-w-md text-center text-xs text-muted-foreground">
@@ -936,11 +938,41 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
           )}
         </div>
 
+        {/* Изчерпани безплатни запитвания — CTA към абонамент вместо композер. */}
+        {aiLocked && (
+          <div className="shrink-0 border-t border-gold/40 bg-gradient-to-br from-gold/15 via-card to-card p-4 pb-[max(env(safe-area-inset-bottom),1rem)] text-center">
+            <p className="text-sm font-semibold text-foreground">
+              Изчерпахте {freeQuota.aiMessagesCap}-те безплатни запитвания
+            </p>
+            <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">
+              Активирайте план за неограничен достъп до DogovaryAI, история на разговорите,
+              прикачени документи и правни цитати.
+            </p>
+            <div className="mt-3 flex flex-col items-center justify-center gap-2 sm:flex-row">
+              <Link
+                to="/plans"
+                className="inline-flex items-center justify-center gap-1.5 rounded-full bg-gradient-to-b from-gold to-gold/80 px-4 py-2 text-sm font-bold text-navy shadow-gold transition-transform hover:scale-[1.03]"
+              >
+                <Crown className="h-4 w-4" /> Виж плановете
+              </Link>
+              <Link
+                to="/account?tab=subscription"
+                className="inline-flex items-center justify-center rounded-full border border-gold/40 px-4 py-2 text-sm font-semibold text-gold transition-colors hover:bg-gold/10"
+              >
+                Моят абонамент
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Composer — sticky-bottom on mobile, sits above iOS safe area.
             Textarea uses 16px base font so iOS Safari doesn't auto-zoom on focus. */}
         <form
           onSubmit={handleSubmit}
-          className="shrink-0 border-t border-border/40 p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]"
+          className={cn(
+            "shrink-0 border-t border-border/40 p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]",
+            aiLocked && "hidden",
+          )}
         >
           <div className={cn(
             "relative rounded-2xl border bg-background/60 transition-all focus-within:border-gold/50 focus-within:ring-2 focus-within:ring-gold/15",
@@ -1159,7 +1191,7 @@ function MessageBubble({ role, content, isStreaming, citations, toolEvents, foll
   return (
     <div className="flex gap-2.5">
       <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-gold/20 to-gold/5 ring-1 ring-gold/20">
-        <Bird className="h-3 w-3 text-gold" />
+        <img src={dogovaiIcon} alt="" width={16} height={16} loading="lazy" decoding="async" className="h-4 w-4 rounded-full" />
       </div>
       <div className="max-w-[85%] flex-1 text-sm text-foreground">
         {showProgress && <ReasoningTrace steps={progress!} />}

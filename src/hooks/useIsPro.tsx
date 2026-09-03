@@ -119,11 +119,13 @@ export function useIsPro(): ProState {
           ? ((q as any)?.pro_monthly_used ?? 0)
           : ((q as any)?.monthly_total_used ?? 0),
         opsCap,
-        // 1 AI message = 1 operation — share the same pool.
+        // Платените планове: 1 AI съобщение = 1 операция от общия месечен пул.
+        // Безплатен план: DogovaryAI е достъпен с 3 запитвания (както и за
+        // нерегистрирани), с CTA към регистрация/абонамент след изчерпване.
         aiMessagesUsed: isPro
           ? ((q as any)?.pro_monthly_used ?? 0)
-          : ((q as any)?.monthly_total_used ?? 0),
-        aiMessagesCap: opsCap,
+          : ((q as any)?.ai_messages_used ?? 0),
+        aiMessagesCap: isPro ? opsCap : 3,
         analysisPreviewsUsed: (q as any)?.analysis_previews_used ?? 0,
         analysisPreviewsCap: 1,
         bilingualPreviewsUsed: (q as any)?.bilingual_previews_used ?? 0,

@@ -21,6 +21,7 @@ import { buildFaqJsonLd } from "@/data/faqItems";
 // при скрол, за да остане входният chunk малък.
 const PlatformCapabilities = lazy(() => import("@/components/PlatformCapabilities").then((m) => ({ default: m.PlatformCapabilities })));
 const BrandedDocumentShowcase = lazy(() => import("@/components/home/BrandedDocumentShowcase").then((m) => ({ default: m.BrandedDocumentShowcase })));
+const DogovaryAIShowcase = lazy(() => import("@/components/home/DogovaryAIShowcase").then((m) => ({ default: m.DogovaryAIShowcase })));
 const SocialProofStrip = lazy(() => import("@/components/SocialProofStrip").then((m) => ({ default: m.SocialProofStrip })));
 const PainSolution = lazy(() => import("@/components/PainSolution").then((m) => ({ default: m.PainSolution })));
 const FeaturedBlanks = lazy(() => import("@/components/FeaturedBlanks").then((m) => ({ default: m.FeaturedBlanks })));
@@ -130,6 +131,15 @@ const Index = () => {
           <Suspense fallback={<SectionSkeleton />}>
             <BackdropSection variant="grid" align="top">
               <PlatformCapabilities />
+            </BackdropSection>
+          </Suspense>
+        </LazyOnVisible>
+
+        {/* DogovaryAI — премиум асистент, веднага след функциите (03) */}
+        <LazyOnVisible minHeight={520}>
+          <Suspense fallback={<SectionSkeleton />}>
+            <BackdropSection variant="rings" align="center">
+              <DogovaryAIShowcase />
             </BackdropSection>
           </Suspense>
         </LazyOnVisible>

@@ -187,8 +187,8 @@ const SYSTEM_PROMPT = `# РОЛЯ
 - ❌ Без повтаряне на чип, вече показан в предишен ход на разговора.
 - Винаги поне 1 CTA chip. Без \`<followups>\` отговорът е невалиден.`;
 
-const MODEL_STANDARD = "google/gemini-3-flash-preview";
-const MODEL_PREMIUM = "openai/gpt-5.2";
+const MODEL_STANDARD = "google/gemini-3.7-flash";
+const MODEL_PREMIUM = "google/gemini-3.1-pro-preview";
 const MAX_TOOL_ITERATIONS = 8;
 const LEGAL_ANSWER_MAX_TOKENS = 4096;
 
@@ -443,11 +443,40 @@ Deno.serve(async (req) => {
       if (t && t.teams?.status === "active") teamId = t.team_id;
     }
 
+    // Безплатен план: DogovaryAI е достъпен с 3 запитвания (както и за
+    // нерегистрирани), след което следва CTA към абонамент.
+    const FREE_AI_MESSAGES = 3;
     if (!isPro && !teamId) {
-      return new Response(JSON.stringify({
-        error: "AI асистентът е достъпен само за Професионалист, Предприемач и Екип.",
-        code: "subscription_required",
-      }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const { data: aiQuota } = await admin
+        .from("download_quota")
+        .select("ai_messages_used")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!aiQuota) {
+        // Още няма ред за квотата — създаваме го, за да може условният update
+        // по-долу да намери какво да заключи.
+        await admin
+          .from("download_quota")
+          .upsert({ user_id: userId, ai_messages_used: 0 }, { onConflict: "user_id" });
+      }
+      const aiUsed = Number((aiQuota as any)?.ai_messages_used ?? 0);
+      // Атомарно резервиране: увеличаваме само ако стойността в базата все още е
+      // същата (оптимистично заключване), за да не се получи двойно броене при
+      // паралелни заявки и да няма пропуснато таксуване.
+      const { data: reserved, error: reserveErr } = await admin
+        .from("download_quota")
+        .update({ ai_messages_used: aiUsed + 1 })
+        .eq("user_id", userId)
+        .eq("ai_messages_used", aiUsed)
+        .lt("ai_messages_used", FREE_AI_MESSAGES)
+        .select("ai_messages_used")
+        .maybeSingle();
+      if (reserveErr || !reserved) {
+        return new Response(JSON.stringify({
+          error: `Изчерпахте ${FREE_AI_MESSAGES}-те безплатни запитвания към DogovaryAI. Активирайте план Професионалист, Предприемач или Екип за неограничен достъп.`,
+          code: "ai_free_limit_reached",
+        }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
     // Thread management

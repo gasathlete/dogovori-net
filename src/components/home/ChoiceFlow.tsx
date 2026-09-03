@@ -2,8 +2,9 @@
  * ChoiceFlow — визуализация на процеса след избора „Какво искаш да направиш?“.
  * Мобилно: вертикална времева линия със стъпки. Десктоп: същите стъпки в таблица.
  */
+import { useEffect, useRef, useState } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
-import { ArrowRight, Clock } from "@/icons";
+import { ArrowRight, Clock, ChevronDown } from "@/icons";
 
 export type FlowId = "build" | "catalog" | "analyze";
 
@@ -53,19 +54,52 @@ export const FLOWS: Record<FlowId, { label: string; to: string; cta: string; tot
 
 export function ChoiceFlow({ active }: { active: FlowId }) {
   const flow = FLOWS[active];
+  const [expanded, setExpanded] = useState(false);
+  const didMountRef = useRef(false);
+
+  // Смяна на избрания път отваря стъпките, за да е ясно какво следва.
+  // При първо зареждане секцията остава свита — началната страница остава лека.
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+    setExpanded(true);
+  }, [active]);
 
   return (
     <div className="mx-auto mt-6 max-w-4xl rounded-2xl border border-border/70 bg-card/40 p-4 sm:p-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        aria-controls="choice-flow-steps"
+        className="flex w-full flex-wrap items-center justify-between gap-2 text-left"
+      >
         <div>
           <div className="eyebrow mb-1">Какво се случва</div>
           <h3 className="font-serif text-lg font-bold text-foreground">{flow.label}</h3>
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/[0.07] px-2.5 py-1 text-[11px] font-semibold text-gold">
-          <Clock className="h-3.5 w-3.5" />
-          Общо {flow.total}
+        <span className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/[0.07] px-2.5 py-1 text-[11px] font-semibold text-gold">
+            <Clock className="h-3.5 w-3.5" />
+            {flow.steps.length} стъпки · {flow.total}
+          </span>
+          <ChevronDown
+            className={
+              "h-4 w-4 text-gold transition-transform " + (expanded ? "rotate-180" : "")
+            }
+          />
         </span>
-      </div>
+      </button>
+
+      {!expanded && (
+        <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
+          Виж стъпките, резултата от всяка и очакваното време.
+        </p>
+      )}
+
+      <div id="choice-flow-steps" hidden={!expanded} className="mt-4">
 
       {/* Мобилно: времева линия */}
       <ol className="relative space-y-3 border-l border-gold/25 pl-5 sm:hidden">
@@ -117,10 +151,11 @@ export function ChoiceFlow({ active }: { active: FlowId }) {
         </table>
       </div>
 
-      <Link to={flow.to} className="btn-gold mt-5 w-full justify-center sm:w-auto">
-        {flow.cta}
-        <ArrowRight className="ml-1.5 h-4 w-4" />
-      </Link>
+        <Link to={flow.to} className="btn-gold mt-5 w-full justify-center sm:w-auto">
+          {flow.cta}
+          <ArrowRight className="ml-1.5 h-4 w-4" />
+        </Link>
+      </div>
     </div>
   );
 }

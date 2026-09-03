@@ -25,7 +25,7 @@ const SIZE_PREF_KEY = "dogovai_size_pref"; // "small" | "full"
  */
 
 const HIDDEN_PREFIXES = ["/assistant", "/console", "/signing", "/share", "/checkout"];
-const ANON_LIMIT = 5;
+const ANON_LIMIT = 3;
 // Persist anonymous trial across close/re-open. Server enforces 5/24h per IP,
 // so the client counter should not silently reset when the user closes the
 // bubble — it caused confusion ("тестовете се рестартират").
@@ -500,23 +500,32 @@ function AnonChat({ resetKey }: { resetKey: number }) {
       </div>
 
       {limitReached ? (
-        <div className="border-t border-gold/40 bg-gradient-to-br from-gold/15 via-card to-card p-4 text-center">
+        <div className="border-t border-gold/40 bg-gradient-to-br from-gold/15 via-card to-card p-4 pb-[max(env(safe-area-inset-bottom),1rem)] text-center">
           <p className="mb-2 text-sm font-medium">
-            Изчерпахте {ANON_LIMIT}-те безплатни съобщения.
+            Изчерпахте {ANON_LIMIT}-те безплатни запитвания.
           </p>
-          <p className="mb-3 text-xs text-muted-foreground">
-            Регистрирайте се и получавайте <b className="text-foreground">5 + 2 безплатни съобщения всеки месец</b>, шаблони и анализи.
+          <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
+            Регистрирайте се безплатно за още <b className="text-foreground">{ANON_LIMIT} запитвания</b>,
+            или активирайте абонамент за неограничен правен контекст, история на разговорите и прикачени документи.
           </p>
-          <Link
-            to="/auth"
-            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-gradient-gold px-4 py-2 text-sm font-semibold text-navy shadow-gold hover:scale-105 transition-transform"
-          >
-            <Sparkles className="h-4 w-4" /> Регистрация (безплатно)
-          </Link>
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <Link
+              to="/auth"
+              className="inline-flex items-center justify-center gap-1.5 rounded-full bg-gradient-gold px-4 py-2 text-sm font-semibold text-navy shadow-gold transition-transform hover:scale-105"
+            >
+              <Sparkles className="h-4 w-4" /> Регистрация (безплатно)
+            </Link>
+            <Link
+              to="/plans"
+              className="inline-flex items-center justify-center rounded-full border border-gold/40 px-4 py-2 text-sm font-semibold text-gold transition-colors hover:bg-gold/10"
+            >
+              Виж плановете
+            </Link>
+          </div>
         </div>
       ) : (
-        <div className="border-t border-border/40 bg-card p-2">
-          <div className="flex items-end gap-2">
+        <div className="border-t border-border/40 bg-card p-2 pb-[max(env(safe-area-inset-bottom),0.5rem)]">
+          <div className="flex items-end gap-2 rounded-2xl border border-border/60 bg-background p-1.5 transition-colors focus-within:border-gold/60 focus-within:ring-2 focus-within:ring-gold/15">
             <textarea
               ref={inputRef}
               value={input}
@@ -528,14 +537,18 @@ function AnonChat({ resetKey }: { resetKey: number }) {
                 }
               }}
               rows={1}
+              enterKeyHint="send"
+              autoCapitalize="sentences"
+              autoCorrect="on"
               placeholder="Питайте DogovaryAI…"
-              className="min-h-[36px] max-h-32 flex-1 resize-none rounded-lg border border-border/60 bg-background px-3 py-2 text-sm outline-none focus:border-gold/60"
+              style={{ fontSize: "16px" }}
+              className="min-h-[40px] max-h-32 flex-1 resize-none bg-transparent px-2 py-2 text-base outline-none sm:text-sm"
             />
             <button
               type="button"
               onClick={() => sendText(input)}
               disabled={busy || !input.trim()}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-gold text-navy disabled:opacity-40"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-gold text-navy shadow-gold transition-transform active:scale-95 disabled:opacity-40 disabled:shadow-none"
               aria-label="Изпрати"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -708,17 +721,22 @@ export function DogovAIBubble() {
         role="dialog"
         aria-label="DogovaryAI чат"
         className={cn(
-          "fixed z-40 bottom-4 right-4 sm:bottom-5 sm:right-5",
-          "w-[min(380px,calc(100vw-2rem))] h-[min(580px,calc(100dvh-6rem))]",
-          "origin-bottom-right rounded-2xl border border-gold/30 bg-card shadow-2xl",
+          // Мобилно: чатът е на цял екран (по-удобно писане, без прескачане при
+          // софтуерна клавиатура). Десктоп: класически панел долу вдясно.
+          // z-[55] на мобилно: чатът стои над долната навигация, за да не се
+          // застъпва полето за писане. Десктоп: обичайният слой z-40.
+          "fixed z-[55] sm:z-40 inset-x-0 bottom-0 top-0 w-full h-[100dvh] rounded-none",
+          "sm:inset-auto sm:bottom-5 sm:right-5 sm:top-auto",
+          "sm:w-[min(400px,calc(100vw-2rem))] sm:h-[min(620px,calc(100dvh-6rem))] sm:rounded-2xl",
+          "border border-gold/30 bg-card shadow-2xl sm:origin-bottom-right",
           "transition-all duration-200",
           open
-            ? "scale-100 opacity-100 pointer-events-auto"
-            : "pointer-events-none scale-95 opacity-0",
+            ? "translate-y-0 scale-100 opacity-100 pointer-events-auto"
+            : "pointer-events-none translate-y-3 scale-95 opacity-0 sm:translate-y-0",
         )}
       >
-        <div className="flex h-full flex-col overflow-hidden rounded-2xl">
-          <div className="flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-gold/15 via-card to-card px-3 py-2.5">
+        <div className="flex h-full flex-col overflow-hidden rounded-none sm:rounded-2xl">
+          <div className="flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-gold/15 via-card to-card px-3 py-2.5 pt-[max(env(safe-area-inset-top),0.625rem)] sm:pt-2.5">
             <div className="flex items-center gap-2">
               <img
                 src={dogovaiIcon}
