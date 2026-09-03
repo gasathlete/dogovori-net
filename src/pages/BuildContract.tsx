@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { OpsHintBar } from "@/components/wizard/OpsHintBar";
+import { GenerationBlockedDialog } from "@/components/wizard/GenerationBlockedDialog";
 import { DocumentValueCard } from "@/components/wizard/DocumentValueCard";
 import { useEnterFocusNext } from "@/hooks/useEnterFocusNext";
 import { useNavigate, useSearchParams } from "react-router-dom";
