@@ -657,10 +657,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       if (!res.ok) {
         if (res.error === "disclaimer_cancelled" || res.error === "unfilled_placeholders") return;
         if (res.error === "quota_exceeded") {
-          toast.error("Изчерпан безплатен лимит", {
-            description: `Купете пакет ${TOPUP_PACK_CONFIG[0].ops} операции за ${fmtEur(TOPUP_PACK_CONFIG[0].eur)} или активирайте платен план.`,
-            action: { label: "Виж опции", onClick: goSubscription },
-          });
+          setQuotaBlocked(true);
         } else {
           toast.error("Грешка при експорт", { description: res.error });
         }
