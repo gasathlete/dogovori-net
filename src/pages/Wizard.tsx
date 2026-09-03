@@ -432,7 +432,7 @@ export default function WizardPage() {
       if (data?.code === "quota_exceeded") {
 
         trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: "quota_exceeded" });
-        toast.error("Изчерпан безплатен лимит", { description: data.error || "Активирайте платен план или закупете пакет операции." });
+        setBlockedReason("quota_exceeded");
         return;
       }
       if (data?.requires_login) {
