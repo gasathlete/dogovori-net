@@ -45,6 +45,7 @@ import { translateAuthError } from "@/lib/authErrors";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { Seo } from "@/components/Seo";
 import { TopupHistoryPanel } from "@/components/account/TopupHistoryPanel";
+import { ActivationFunnelPanel } from "@/components/account/ActivationFunnelPanel";
 import { getUnlockedTiers, getNextTier, REWARD_TIERS } from "@/lib/rewards";
 
 type Contact = {
@@ -463,6 +464,8 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
       )}
 
       <TopupHistoryPanel />
+
+      <ActivationFunnelPanel />
 
 
       {/* Manual-activation notice when isPro but no Stripe sub */}
