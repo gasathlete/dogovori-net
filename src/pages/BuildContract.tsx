@@ -825,6 +825,12 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       />
       <Header />
 
+      <GenerationBlockedDialog
+        open={quotaBlocked}
+        onOpenChange={setQuotaBlocked}
+        reason="quota_exceeded"
+      />
+
 
       {/* Top bar */}
       <div className="sticky top-16 z-30 border-b border-border/60 bg-navy/90 backdrop-blur-xl">
