@@ -464,6 +464,8 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
 
       <TopupHistoryPanel />
 
+      <ActivationFunnelPanel />
+
 
       {/* Manual-activation notice when isPro but no Stripe sub */}
       {isPro && !sub && (
