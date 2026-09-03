@@ -52,6 +52,10 @@ import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { openInlineAuth } from "@/lib/inlineAuth";
 import { smartDefaultsFor } from "@/lib/smartDefaults";
 import { DownloadRoiDialog } from "@/components/wizard/DownloadRoiDialog";
+import {
+  GenerationBlockedDialog,
+  type BlockedReason,
+} from "@/components/wizard/GenerationBlockedDialog";
 import { trackEvent } from "@/lib/analytics";
 import { trackDocStart, trackGenerate, trackFillStep, trackReviewResult, trackDocEvent } from "@/lib/docFunnel";
 import { getVariant, trackAbExposure, applyAbOverridesFromUrl } from "@/lib/ab";
