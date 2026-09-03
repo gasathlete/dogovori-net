@@ -52,6 +52,10 @@ import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { openInlineAuth } from "@/lib/inlineAuth";
 import { smartDefaultsFor } from "@/lib/smartDefaults";
 import { DownloadRoiDialog } from "@/components/wizard/DownloadRoiDialog";
+import {
+  GenerationBlockedDialog,
+  type BlockedReason,
+} from "@/components/wizard/GenerationBlockedDialog";
 import { trackEvent } from "@/lib/analytics";
 import { trackDocStart, trackGenerate, trackFillStep, trackReviewResult, trackDocEvent } from "@/lib/docFunnel";
 import { getVariant, trackAbExposure, applyAbOverridesFromUrl } from "@/lib/ab";
@@ -178,6 +182,8 @@ export default function WizardPage() {
   const [consentChecked, setConsentChecked] = useState(false);
   /** Последният опит за генериране е неуспешен → бутонът става „Опитай отново". */
   const [genFailed, setGenFailed] = useState(false);
+  /** Спряно генериране (квота / потвърждение) → ясен модал с 1-click изход. */
+  const [blockedReason, setBlockedReason] = useState<BlockedReason | null>(null);
 
 
   const [correctionsPending, setCorrectionsPending] = useState<CorrectionsSelection | null>(null);
@@ -432,7 +438,7 @@ export default function WizardPage() {
       if (data?.code === "quota_exceeded") {
 
         trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: "quota_exceeded" });
-        toast.error("Изчерпан безплатен лимит", { description: data.error || "Активирайте платен план или закупете пакет операции." });
+        setBlockedReason("quota_exceeded");
         return;
       }
       if (data?.requires_login) {
@@ -1085,6 +1091,13 @@ export default function WizardPage() {
     <div className="min-h-dvh">
       <Header />
 
+      <GenerationBlockedDialog
+        open={blockedReason !== null}
+        onOpenChange={(o) => !o && setBlockedReason(null)}
+        reason={blockedReason ?? "quota_exceeded"}
+        onConfirm={() => void handleGenerate(true)}
+      />
+
 
       {downloadingBlank && (
         <div
@@ -1153,7 +1166,9 @@ export default function WizardPage() {
               <a href="/karta" className="hidden underline-offset-2 hover:text-gold hover:underline md:inline">Карта на сайта</a>
               <span className="hidden md:inline">·</span>
               <span>
-                {result ? "Готово" : `Стъпка ${safeIdx + 1} от ${total}`}
+                {result
+                  ? "Готово"
+                  : `Стъпка ${safeIdx + 1} от ${total} · остават ${Math.max(0, total - safeIdx - 1)}`}
                 {!result && stepLabel && (
                   <span className="hidden text-foreground sm:inline">: {stepLabel}</span>
                 )}

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { OpsHintBar } from "@/components/wizard/OpsHintBar";
+import { GenerationBlockedDialog } from "@/components/wizard/GenerationBlockedDialog";
 import { DocumentValueCard } from "@/components/wizard/DocumentValueCard";
 import { useEnterFocusNext } from "@/hooks/useEnterFocusNext";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -134,6 +135,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     "contract",
   );
   const [docTypeOpen, setDocTypeOpen] = useState(false);
+  /** Изчерпани операции → ясен модал с 1-click път към план или топ-ъп. */
+  const [quotaBlocked, setQuotaBlocked] = useState(false);
   const [buildMode, setBuildMode] = useState<BuildMode>(
     (persisted?.buildMode as BuildMode) || "working",
   );
@@ -657,10 +660,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       if (!res.ok) {
         if (res.error === "disclaimer_cancelled" || res.error === "unfilled_placeholders") return;
         if (res.error === "quota_exceeded") {
-          toast.error("Изчерпан безплатен лимит", {
-            description: `Купете пакет ${TOPUP_PACK_CONFIG[0].ops} операции за ${fmtEur(TOPUP_PACK_CONFIG[0].eur)} или активирайте платен план.`,
-            action: { label: "Виж опции", onClick: goSubscription },
-          });
+          setQuotaBlocked(true);
         } else {
           toast.error("Грешка при експорт", { description: res.error });
         }
@@ -825,6 +825,12 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         noindex={isBilingualTemplate}
       />
       <Header />
+
+      <GenerationBlockedDialog
+        open={quotaBlocked}
+        onOpenChange={setQuotaBlocked}
+        reason="quota_exceeded"
+      />
 
 
       {/* Top bar */}

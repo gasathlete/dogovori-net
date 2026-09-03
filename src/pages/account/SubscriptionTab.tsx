@@ -8,7 +8,9 @@ import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 
 import { useTeam } from "@/hooks/useTeam";
 import { Header } from "@/components/Header";
+import { PiggyBank } from "@/icons";
 import {
+  LAWYER_FEE_MIN_EUR,
   PRICING_PLANS,
   TOPUP_PACK_CONFIG,
   perOpLabel,
@@ -494,6 +496,26 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs font-medium text-gold">
               <Sparkles className="h-3.5 w-3.5" /> Септемврийска промоция −20% · код <strong className="tracking-wider">SEPT20</strong> при регистрация до 30.09
             </p>
+          </div>
+
+          {/* ROI рамка за фрийлансъри и малки фирми — непосредствено над картите */}
+          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.06] p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <PiggyBank className="h-4 w-4" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">
+                  Спестете над {LAWYER_FEE_MIN_EUR} € от адвокатски хонорар за всеки договор
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  План {PRICING_PLANS.professional.name} ви дава{" "}
+                  {PRICING_PLANS.professional.opsPerMonth} документа за едва{" "}
+                  {fmtEur(PRICING_PLANS.professional.monthly!)}/мес — подходящ за фрийлансъри и
+                  малки фирми. Цените са с включен ДДС 20%.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Pricing grid — 4 tiers */}
