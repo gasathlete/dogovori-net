@@ -134,6 +134,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     "contract",
   );
   const [docTypeOpen, setDocTypeOpen] = useState(false);
+  /** Изчерпани операции → ясен модал с 1-click път към план или топ-ъп. */
+  const [quotaBlocked, setQuotaBlocked] = useState(false);
   const [buildMode, setBuildMode] = useState<BuildMode>(
     (persisted?.buildMode as BuildMode) || "working",
   );
