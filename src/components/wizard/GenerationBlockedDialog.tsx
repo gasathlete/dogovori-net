@@ -98,7 +98,7 @@ export function GenerationBlockedDialog({ open, onOpenChange, reason, onConfirm 
               </Button>
               <Button
                 variant="outline"
-                onClick={() => go(`${SUBSCRIPTION_PATH}&topup=1`)}
+                onClick={() => go("/plans#topup")}
                 className="h-11 w-full gap-2 border-gold/40 hover:bg-gold/10 hover:text-gold"
               >
                 <Coins className="h-4 w-4" aria-hidden />
