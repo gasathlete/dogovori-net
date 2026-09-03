@@ -1166,7 +1166,9 @@ export default function WizardPage() {
               <a href="/karta" className="hidden underline-offset-2 hover:text-gold hover:underline md:inline">Карта на сайта</a>
               <span className="hidden md:inline">·</span>
               <span>
-                {result ? "Готово" : `Стъпка ${safeIdx + 1} от ${total}`}
+                {result
+                  ? "Готово"
+                  : `Стъпка ${safeIdx + 1} от ${total} · остават ${Math.max(0, total - safeIdx - 1)}`}
                 {!result && stepLabel && (
                   <span className="hidden text-foreground sm:inline">: {stepLabel}</span>
                 )}
