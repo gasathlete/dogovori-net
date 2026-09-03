@@ -723,7 +723,9 @@ export function DogovAIBubble() {
         className={cn(
           // Мобилно: чатът е на цял екран (по-удобно писане, без прескачане при
           // софтуерна клавиатура). Десктоп: класически панел долу вдясно.
-          "fixed z-40 inset-x-0 bottom-0 top-0 w-full h-[100dvh] rounded-none",
+          // z-[55] на мобилно: чатът стои над долната навигация, за да не се
+          // застъпва полето за писане. Десктоп: обичайният слой z-40.
+          "fixed z-[55] sm:z-40 inset-x-0 bottom-0 top-0 w-full h-[100dvh] rounded-none",
           "sm:inset-auto sm:bottom-5 sm:right-5 sm:top-auto",
           "sm:w-[min(400px,calc(100vw-2rem))] sm:h-[min(620px,calc(100dvh-6rem))] sm:rounded-2xl",
           "border border-gold/30 bg-card shadow-2xl sm:origin-bottom-right",
