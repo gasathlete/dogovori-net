@@ -453,16 +453,23 @@ Deno.serve(async (req) => {
         .eq("user_id", userId)
         .maybeSingle();
       const aiUsed = Number((aiQuota as any)?.ai_messages_used ?? 0);
-      if (aiUsed >= FREE_AI_MESSAGES) {
+      // Атомарно резервиране: увеличаваме само ако стойността в базата все още е
+      // същата (оптимистично заключване), за да не се получи двойно броене при
+      // паралелни заявки и да няма пропуснато таксуване.
+      const { data: reserved, error: reserveErr } = await admin
+        .from("download_quota")
+        .update({ ai_messages_used: aiUsed + 1 })
+        .eq("user_id", userId)
+        .eq("ai_messages_used", aiUsed)
+        .lt("ai_messages_used", FREE_AI_MESSAGES)
+        .select("ai_messages_used")
+        .maybeSingle();
+      if (reserveErr || !reserved) {
         return new Response(JSON.stringify({
           error: `Изчерпахте ${FREE_AI_MESSAGES}-те безплатни запитвания към DogovaryAI. Активирайте план Професионалист, Предприемач или Екип за неограничен достъп.`,
           code: "ai_free_limit_reached",
         }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      await admin
-        .from("download_quota")
-        .update({ ai_messages_used: aiUsed + 1 })
-        .eq("user_id", userId);
     }
 
     // Thread management
