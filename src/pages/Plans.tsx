@@ -21,7 +21,15 @@ import { SoftCapPanel } from "@/components/paywall/SoftCapPanel";
 import { RoiCalculator } from "@/components/funnel/RoiCalculator";
 import { RoiSavingsBanner } from "@/components/funnel/RoiSavingsBanner";
 import { AudienceToggle } from "@/components/funnel/AudienceToggle";
-import { SEPTEMBER_PROMO, isSeptemberPromoActive, promoPriceEur, fmtEur } from "@/lib/pricing";
+import {
+  ENTRY_PACK_CONFIG,
+  PRICING_PLANS,
+  SEPTEMBER_PROMO,
+  fmtEur,
+  isSeptemberPromoActive,
+  monthlyLabel,
+  promoPriceEur,
+} from "@/lib/pricing";
 import { useAudience } from "@/hooks/useAudience";
 import { markFunnelStep } from "@/lib/funnel";
 import { useEffect } from "react";
