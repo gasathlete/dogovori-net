@@ -259,12 +259,17 @@ export function clearPointer(): void {
   } catch { /* ignore */ }
 }
 
-export function clearDraft(draftId?: string): void {
-  clearPointer();
-  if (!draftId) return;
+/** Маха само съдържанието на дадена чернова от таба (указателят остава). */
+export function removePayload(draftId: string): void {
   try {
     sessionStorage.removeItem(DRAFT_PAYLOAD_PREFIX + draftId);
   } catch { /* ignore */ }
+}
+
+export function clearDraft(draftId?: string): void {
+  clearPointer();
+  if (!draftId) return;
+  removePayload(draftId);
 }
 
 /**
