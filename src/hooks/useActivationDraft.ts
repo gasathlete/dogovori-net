@@ -716,9 +716,10 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
 
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = null;
-    cancelClaimRetry();
-    // Обезсилва всички заявки в движение: закъснял отговор от предишната
-    // самоличност няма да пише нищо.
+    // Обезсилява всички заявки в движение: закъснял отговор от предишната
+    // самоличност няма да пише нищо, а ключът за присвояване се освобождава
+    // веднага — новата самоличност не чака увиснала стара заявка.
+    invalidateClaim();
     discardRevRef.current += 1;
     claimAttemptRef.current = null;
     recreateRef.current = false;
