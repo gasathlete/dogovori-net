@@ -511,6 +511,9 @@ export async function syncDraft(
   opts: { commit?: boolean } = {},
 ): Promise<SyncResult> {
   const p = input.pointer;
+  // Снимка на хранилището в момента на изпращане — по нея решаваме дали
+  // закъснял резултат още има право да пише (виж `SyncCommitOptions`).
+  const startedSnapshot = pointerSnapshot(readPointer());
   const route = safeReturnPath(input.route, "/");
   const body: Record<string, unknown> = {
     flow: input.flow,
