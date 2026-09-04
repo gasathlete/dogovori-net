@@ -738,7 +738,7 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
     } catch {
       /* ignore */
     }
-  }, [user, cancelClaimRetry]);
+  }, [user, invalidateClaim]);
 
   useEffect(() => {
     if (!active || !enabled) return;
