@@ -323,6 +323,28 @@ describe("syncDraft — състояние на указателя", () => {
     expect(localStorage.getItem(DRAFT_POINTER_KEY)).not.toContain("abcdefghijklmnopqrstuvwx");
   });
 
+  it("нов идентификатор от сървъра започва като непотърсен — флагът claimed не се пренася", async () => {
+    const OTHER = "33333333-3333-4333-8333-333333333333";
+    const p = pointer({ draftId: DRAFT_ID, claimed: true, claimToken: "", savedDocId: "doc-1" });
+    writePointer(p);
+    writePayload(DRAFT_ID, PAYLOAD);
+    invokeMock.mockResolvedValueOnce({
+      data: { draft_id: OTHER, claim_token: "zyxwvutsrqponmlkjihgfedcba", expires_at: new Date(Date.now() + ANON_DRAFT_TTL_MS).toISOString() },
+      error: null,
+    });
+    const res = await syncDraft(syncArgs(p));
+    expect(res.ok).toBe(true);
+    if (res.ok !== true) return;
+    expect(res.created).toBe(true);
+    expect(res.pointer.draftId).toBe(OTHER);
+    expect(res.pointer.claimed).toBe(false);
+    expect(res.pointer.claimToken).toBe("zyxwvutsrqponmlkjihgfedcba");
+    expect(res.pointer.savedDocId).toBeUndefined();
+    // Съдържанието се мести под новия идентификатор.
+    expect(readPayload(OTHER)).toEqual(PAYLOAD);
+    expect(readPayload(DRAFT_ID)).toBeNull();
+  });
+
   it("сървърен отказ се връща като типизирана причина, без да пипа указателя", async () => {
     const p = pointer({ draftId: DRAFT_ID });
     writePointer(p);
