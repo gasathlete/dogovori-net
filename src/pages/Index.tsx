@@ -129,6 +129,14 @@ const Index = () => {
 
         <LazyOnVisible minHeight={420}>
           <Suspense fallback={<SectionSkeleton />}>
+            <BackdropSection variant="papers" align="bottom">
+              <FeaturedBlanks />
+            </BackdropSection>
+          </Suspense>
+        </LazyOnVisible>
+
+        <LazyOnVisible minHeight={420}>
+          <Suspense fallback={<SectionSkeleton />}>
             <BackdropSection variant="grid" align="top">
               <PlatformCapabilities />
             </BackdropSection>
@@ -154,15 +162,7 @@ const Index = () => {
           </Suspense>
         </LazyOnVisible>
 
-        <LazyOnVisible minHeight={420}>
-          <Suspense fallback={<SectionSkeleton />}>
-            <BackdropSection variant="papers" align="bottom">
-              <FeaturedBlanks />
-            </BackdropSection>
-          </Suspense>
-        </LazyOnVisible>
-
-        {/* Готови комплекти — веднага под Топ 5 най-търсени */}
+        {/* Готови комплекти */}
         <LazyOnVisible minHeight={480}>
           <Suspense fallback={<SectionSkeleton />}>
             <BackdropSection variant="rings">
