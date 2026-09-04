@@ -19,6 +19,7 @@ import {
   clearDraft,
   isActivationContinuityEnabled,
   isForeignTab,
+  LOCAL_DRAFT_ID,
   readPayload,
   readPointer,
   syncDraft,
@@ -85,7 +86,7 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
     const current = readPointer();
 
     if (current && current.flow === flow) {
-      const payload = readPayload(current.draftId);
+      const payload = readPayload(current.draftId) ?? readPayload(LOCAL_DRAFT_ID);
       if (payload) {
         restoreRef.current?.(payload, { source: "session" });
         trackDraftEvent("draft_restored", { draft_id: current.draftId, doc_key: current.docKey, source: flow });
@@ -104,7 +105,13 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
       const best = legacy[legacy.length - 1];
       writePayloadForLegacy(best.payload);
       restoreRef.current?.(best.payload, { source: "legacy" });
+      return;
     }
+
+    // Няма указател, но има съдържание от този таб (неуспешна синхронизация
+    // преди refresh) — възстановяваме го, за да не се губи попълненото.
+    const local = readPayload(LOCAL_DRAFT_ID);
+    if (local) restoreRef.current?.(local, { source: "session" });
   }, [active, enabled, flow]);
 
   /** Съдържанието от стара чернова изчаква първия сървърен sync за draftId. */
@@ -150,9 +157,9 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
         hasResult: meta?.hasResult ?? !!merged.result,
       };
       // Съдържанието с лични данни остава в текущия таб (sessionStorage).
-      const id = pointerRef.current?.draftId;
-      if (id) {
-        writePayload(id, merged);
+      const id = pointerRef.current?.draftId ?? LOCAL_DRAFT_ID;
+      writePayload(id, merged);
+      if (pointerRef.current) {
         writePointer({
           ...pointerRef.current!,
           stepIdx: latestRef.current.stepIdx,

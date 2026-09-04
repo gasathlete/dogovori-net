@@ -19,7 +19,9 @@ export const AB_TESTS = {
    * в localStorage) + възстановяване след вход. „control“ = старото поведение.
    * Rollout: 20% → 100%. `?ab_activation_continuity=variant` форсира.
    */
-  activation_continuity: { id: "activation_continuity", split: 0.2 },
+  // Изключен до деплой на функциите за чернови; за QA се форсира с
+  // ?ab_activation_continuity=variant.
+  activation_continuity: { id: "activation_continuity", split: 0 },
 } as const;
 
 export type AbTestId = keyof typeof AB_TESTS;

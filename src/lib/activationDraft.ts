@@ -22,6 +22,13 @@ export const DRAFT_PAYLOAD_PREFIX = "activation_draft_payload_v1:";
 const TAB_ID_KEY = "activation_draft_tab_v1";
 
 /** Анонимна чернова живее 24 часа (после сървърът я изтрива). */
+/**
+ * Резервен идентификатор за съдържание в текущия таб, когато сървърът още не е
+ * върнал draft_id (или е недостъпен). Гарантира, че refresh не губи прогреса
+ * дори при неуспешна синхронизация.
+ */
+export const LOCAL_DRAFT_ID = "local";
+
 export const ANON_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
 
 export type DraftFlow = "wizard" | "build";
