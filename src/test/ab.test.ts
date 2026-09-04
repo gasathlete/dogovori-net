@@ -2,7 +2,7 @@
  * Тестове за rollout рамката: стабилен bucket на браузър, монотонно вдигане на
  * прага, миграция на старото запомнено присвояване и non-sticky QA override.
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/funnel", () => ({ trackFunnelEvent: vi.fn() }));
 
@@ -18,6 +18,7 @@ import {
   getVariant,
   resolveVariant,
   seedMatchingLegacy,
+  __resetAbSeedMemory,
 } from "@/lib/ab";
 
 beforeEach(() => {
@@ -120,5 +121,43 @@ describe("QA override", () => {
 
     sessionStorage.clear();
     expect(getVariant("activation_continuity")).toBe("control");
+  });
+});
+
+describe("изключено хранилище", () => {
+  const real = window.localStorage;
+  function breakStorage() {
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: {
+        getItem() { throw new Error("denied"); },
+        setItem() { throw new Error("denied"); },
+        removeItem() { throw new Error("denied"); },
+        clear() { throw new Error("denied"); },
+        key() { return null; },
+        length: 0,
+      },
+    });
+  }
+  afterEach(() => {
+    Object.defineProperty(window, "localStorage", { configurable: true, value: real });
+    __resetAbSeedMemory();
+  });
+
+  it("seed-ът е стабилен за живота на страницата и не е един и същ за всички", () => {
+    breakStorage();
+    __resetAbSeedMemory();
+    const a = getAbSeed();
+    expect(a).toMatch(/^[a-z0-9]{8,64}$/i);
+    expect(getAbSeed()).toBe(a);
+    // Стабилен вариант в рамките на зареждането.
+    expect(getVariant("activation_continuity")).toBe(getVariant("activation_continuity"));
+    // Друг браузър (ново зареждане) получава свой seed — не константа.
+    const seeds = new Set<string>();
+    for (let i = 0; i < 20; i++) {
+      __resetAbSeedMemory();
+      seeds.add(getAbSeed());
+    }
+    expect(seeds.size).toBeGreaterThan(1);
   });
 });
