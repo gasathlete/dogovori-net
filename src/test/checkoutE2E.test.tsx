@@ -17,6 +17,7 @@ import { MemoryRouter } from "react-router-dom";
 import {
   PRICING_PLANS,
   TOPUP_PACK_CONFIG,
+  ENTRY_PACK_CONFIG,
   fmtEur,
   type PricingPlanId,
 } from "@/lib/pricing";
@@ -29,6 +30,7 @@ const STRIPE_CATALOG: Record<string, number> = {
   entrepreneur_monthly: Math.round(PRICING_PLANS.entrepreneur.monthly! * 100),
   entrepreneur_yearly: Math.round(PRICING_PLANS.entrepreneur.yearly! * 100),
   team_seat_yearly: Math.round(PRICING_PLANS.team.yearly! * 100),
+  [ENTRY_PACK_CONFIG.priceId]: Math.round(ENTRY_PACK_CONFIG.eur * 100),
   ...Object.fromEntries(
     TOPUP_PACK_CONFIG.map((p) => [p.priceId, Math.round(p.eur * 100)]),
   ),
@@ -207,21 +209,23 @@ describe("E2E: checkout сценарий и съответствие на пла
     renderPlans();
     await revealAllPlans(user);
 
-    const pack = TOPUP_PACK_CONFIG[0];
-    const buy = screen.getAllByRole("button", {
-      name: new RegExp(`Купи за`, "i"),
-    });
+    // Всяка покупка на операции (входен пакет или top-up) трябва да тръгне
+    // с priceId и сума точно от конфигурацията.
+    const oneOffs = [ENTRY_PACK_CONFIG, ...TOPUP_PACK_CONFIG];
+    const buy = screen.getAllByRole("button", { name: /Купи за/i });
     await user.click(buy[0]);
 
     await waitFor(() => expect(checkoutCalls.length).toBe(1));
-    expect(checkoutCalls[0].priceId).toBe(pack.priceId);
-    expect(checkoutCalls[0].amount).toBe(Math.round(pack.eur * 100));
+    const used = oneOffs.find((p) => p.priceId === checkoutCalls[0].priceId);
+    expect(used, `непознат priceId: ${checkoutCalls[0].priceId}`).toBeTruthy();
+    expect(checkoutCalls[0].amount).toBe(Math.round(used!.eur * 100));
   });
 
   it("всеки lookup key от pricing.ts съществува в платежния каталог", () => {
     const keys = [
       ...Object.values(PRICING_PLANS).flatMap((p) => Object.values(p.priceIds)),
       ...TOPUP_PACK_CONFIG.map((p) => p.priceId),
+      ENTRY_PACK_CONFIG.priceId,
     ].filter(Boolean) as string[];
     for (const key of keys) {
       const catalogKey = key === "team_yearly" ? "team_seat_yearly" : key;
