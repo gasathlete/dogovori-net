@@ -18,6 +18,9 @@ interface Props {
    * Влиза като `source` в каноничното събитие `checkout_started`.
    */
   analyticsSource?: string;
+  /** Override, когато няма price id (напр. Екип: plan="team", billing="yearly"). */
+  analyticsPlan?: string;
+  analyticsBilling?: string;
 }
 
 export function StripeEmbeddedCheckout({
@@ -28,6 +31,8 @@ export function StripeEmbeddedCheckout({
   userId,
   returnUrl,
   analyticsSource,
+  analyticsPlan,
+  analyticsBilling,
 }: Props) {
   // checkout_started = реално създадена Stripe сесия. Един път на монтиране —
   // StrictMode/re-render не трябва да удвояват броя.
@@ -35,8 +40,8 @@ export function StripeEmbeddedCheckout({
   const markStarted = () => {
     if (trackedRef.current) return;
     trackedRef.current = true;
-    const { plan, billing } = describePriceId(priceId);
-    trackCheckoutStarted(plan, billing, analyticsSource ?? "embedded");
+    const derived = describePriceId(priceId);
+    trackCheckoutStarted(analyticsPlan ?? derived.plan, analyticsBilling ?? derived.billing, analyticsSource ?? "embedded");
   };
 
   const fetchClientSecret = async (): Promise<string> => {

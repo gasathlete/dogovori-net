@@ -91,11 +91,11 @@ describe("StripeEmbeddedCheckout → checkout_started", () => {
     expect(trackCheckoutStartedMock).not.toHaveBeenCalled();
   });
 
-  it("подаден clientSecret (напр. Екип) → събитие със source и без plan (unknown)", async () => {
-    render(<StripeEmbeddedCheckout clientSecret="cs_team" analyticsSource="team" />);
+  it("подаден clientSecret (напр. Екип) → събитие с изричните plan/billing и source", async () => {
+    render(<StripeEmbeddedCheckout clientSecret="cs_team" analyticsSource="team" analyticsPlan="team" analyticsBilling="yearly" />);
     await fetchers[0]();
     expect(invokeMock).not.toHaveBeenCalled();
     expect(trackCheckoutStartedMock).toHaveBeenCalledTimes(1);
-    expect(trackCheckoutStartedMock).toHaveBeenCalledWith("unknown", "unknown", "team");
+    expect(trackCheckoutStartedMock).toHaveBeenCalledWith("team", "yearly", "team");
   });
 });
