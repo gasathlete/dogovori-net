@@ -109,6 +109,7 @@ export function PrimaryChoice() {
                   aria-pressed={isActive}
                   onClick={() => {
                     setActive(c.id as FlowId);
+                    setExpanded(true);
                     trackMetric("home_choice_flow_view", { choice: c.id });
                   }}
                   className={
@@ -118,7 +119,7 @@ export function PrimaryChoice() {
                       : "border-border/70 text-muted-foreground hover:border-gold/40 hover:text-gold")
                   }
                 >
-                  {isActive ? "Стъпките са показани" : "Виж стъпките"}
+                  {isActive && expanded ? "Стъпките са показани" : "Виж стъпките"}
                 </button>
               </div>
             </li>
@@ -126,7 +127,7 @@ export function PrimaryChoice() {
         })}
       </ul>
 
-      <ChoiceFlow active={active} />
+      <ChoiceFlow active={active} expanded={expanded} onToggle={toggleExpanded} />
     </section>
 
   );
