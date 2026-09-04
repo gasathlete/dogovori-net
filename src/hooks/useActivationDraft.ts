@@ -743,8 +743,9 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
   useEffect(() => {
     if (!active || !enabled) return;
     if (!user) {
-      // Изход: чакащото присвояване вече е без притежател.
-      cancelClaimRetry();
+      // Изход: чакащото присвояване вече е без притежател — обезсилява се, за да
+      // не държи ключа при увиснала заявка.
+      invalidateClaim();
       claimAttemptRef.current = null;
       return;
     }
