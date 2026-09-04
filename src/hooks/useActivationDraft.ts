@@ -84,6 +84,22 @@ export interface UseActivationDraftResult {
 
 type Latest = { payload: DraftPayload; stepIdx: number; hasResult: boolean; rev: number };
 
+/**
+ * Смислена ли е разликата между два указателя за екрана? Отметката за време не
+ * е — иначе всяко натискане на клавиш би пререндирало екрана.
+ */
+function pointerMetaChanged(a: DraftPointer | null, b: DraftPointer | null): boolean {
+  if (!a || !b) return a !== b;
+  return (
+    a.draftId !== b.draftId ||
+    a.route !== b.route ||
+    a.stepIdx !== b.stepIdx ||
+    a.hasResult !== b.hasResult ||
+    a.claimed !== b.claimed ||
+    (a.savedDocId ?? "") !== (b.savedDocId ?? "")
+  );
+}
+
 interface ClaimRetryState {
   draftId: string;
   userId: string;
