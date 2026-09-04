@@ -23,18 +23,19 @@ export function GoogleConsentDialog({ open, onOpenChange, onConfirm, busy }: Goo
   const [age, setAge] = useState(true);
   const [terms, setTerms] = useState(true);
   const [privacy, setPrivacy] = useState(true);
-  const [marketing, setMarketing] = useState(true);
+  // По желание — не блокира влизането с Google.
+  const [marketing, setMarketing] = useState(false);
 
   useEffect(() => {
     if (open) {
       setAge(true);
       setTerms(true);
       setPrivacy(true);
-      setMarketing(true);
+      setMarketing(false);
     }
   }, [open]);
 
-  const ready = age && terms && privacy && marketing;
+  const ready = age && terms && privacy;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -96,7 +97,7 @@ export function GoogleConsentDialog({ open, onOpenChange, onConfirm, busy }: Goo
               className="mt-0.5"
             />
             <Label htmlFor="g-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
-              Съгласявам се да предоставя име и имейл на администратора на платформата за получаване на съобщения, известия за бонуси и награди в профила ми в dogovori.net. <span className="text-gold">*</span>
+              Съгласявам се да предоставя име и имейл на администратора на платформата за получаване на съобщения, известия за бонуси и награди в профила ми в dogovori.net. <span className="text-muted-foreground">(по желание)</span>
             </Label>
           </div>
         </div>

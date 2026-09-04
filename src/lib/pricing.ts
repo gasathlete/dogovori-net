@@ -66,12 +66,34 @@ export const PRICING_PLANS: Record<PricingPlanId, PricingPlan> = {
     yearly: 109,
     opsPerMonth: 100,
     seatMin: 3,
-    priceIds: { yearly: "team_yearly" },
+    // Реалният lookup key на живия Екип поток (create-team) е team_seat_yearly.
+    priceIds: { yearly: "team_seat_yearly" },
   },
 };
 
-/** Еднократно отключване на един стриктен документ (EUR, с ДДС). */
-export const STRICT_UNLOCK_EUR = 0.4;
+/**
+ * Входен („entry“) пакет БЕЗ абонамент — единственият еднократен продукт,
+ * който предлагаме на нерегистрирани и на безплатни акаунти.
+ *
+ * ВАЖНО: това НЕ е top-up пакет. Top-up пакетите (`TOPUP_PACK_CONFIG`) са
+ * достъпни само за активни абонати и имат отделни lookup keys. Никога не
+ * приравнявайте `topup_5` и `five_operations` — това са различни продукти
+ * с различна аудитория, дори когато числата съвпадат.
+ */
+export interface EntryPackConfig {
+  readonly priceId: "five_operations";
+  readonly ops: number;
+  readonly eur: number;
+}
+
+export const ENTRY_PACK_CONFIG: EntryPackConfig = Object.freeze({
+  priceId: "five_operations",
+  ops: 5,
+  eur: 2.9,
+});
+
+/** Стойност в стотинки, която живата Stripe цена трябва да има точно. */
+export const ENTRY_PACK_AMOUNT_CENTS = Math.round(ENTRY_PACK_CONFIG.eur * 100);
 
 /** Ориентировъчен адвокатски хонорар за изготвяне на един документ (EUR). */
 export const LAWYER_FEE_MIN_EUR = 150;
@@ -145,8 +167,8 @@ export const TOPUP_PACK_CONFIG: TopupPackConfig[] = [
   { priceId: "topup_100", ops: 100, eur: 23.9, badge: "Най-изгоден" },
 ];
 
-/** „0,58 €/оп.“ */
-export function perOpLabel(pack: TopupPackConfig): string {
+/** „0,58 €/оп.“ — работи и за top-up пакет, и за входния пакет. */
+export function perOpLabel(pack: { ops: number; eur: number }): string {
   const per = pack.eur / pack.ops;
   const rounded = Math.round(per * 1000) / 1000;
   return `${String(rounded).replace(".", ",")} €/оп.`;

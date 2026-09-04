@@ -2,7 +2,7 @@
  * Tier resolution from subscription price_id.
  * - Professional: pro_monthly, pro_yearly (legacy), professional_monthly, professional_yearly
  * - Entrepreneur: entrepreneur_monthly, entrepreneur_yearly
- * - Team:         team_yearly
+ * - Team:         team_seat_yearly (актуален), team_yearly (legacy)
  */
 export type Tier = "free" | "professional" | "entrepreneur" | "team";
 
@@ -18,7 +18,7 @@ export const ENTREPRENEUR_PRICE_IDS = new Set([
   "entrepreneur_yearly",
 ]);
 
-export const TEAM_PRICE_IDS = new Set(["team_yearly"]);
+export const TEAM_PRICE_IDS = new Set(["team_seat_yearly", "team_yearly"]);
 
 export function tierFromPriceId(priceId: string | null | undefined): Tier {
   if (!priceId) return "free";

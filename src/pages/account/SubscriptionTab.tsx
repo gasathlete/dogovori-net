@@ -10,6 +10,7 @@ import { useTeam } from "@/hooks/useTeam";
 import { Header } from "@/components/Header";
 import { PiggyBank } from "@/icons";
 import {
+  ENTRY_PACK_CONFIG,
   LAWYER_FEE_MIN_EUR,
   PRICING_PLANS,
   TOPUP_PACK_CONFIG,
@@ -36,6 +37,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { sanitizeReturnPath } from "@/lib/safeRoute";
+import { isAllowedCheckoutPrice } from "@/lib/entryPack";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { ShareForSignDialog } from "@/components/ShareForSignDialog";
 import { UploadContractDialog } from "@/components/UploadContractDialog";
@@ -89,7 +91,7 @@ const PLAN_LABELS: Record<string, { name: string; price: string; cycle: string }
   professional_yearly: { name: `${PRICING_PLANS.professional.name} — годишен`, price: fmtEur(PRICING_PLANS.professional.yearly!), cycle: "годишно" },
   entrepreneur_monthly: { name: `${PRICING_PLANS.entrepreneur.name} — месечен`, price: fmtEur(PRICING_PLANS.entrepreneur.monthly!), cycle: "месечно" },
   entrepreneur_yearly: { name: `${PRICING_PLANS.entrepreneur.name} — годишен`, price: fmtEur(PRICING_PLANS.entrepreneur.yearly!), cycle: "годишно" },
-  five_operations: { name: `Пакет ${TOPUP_PACK_CONFIG[0].ops} операции`, price: fmtEur(TOPUP_PACK_CONFIG[0].eur), cycle: "еднократно" },
+  five_operations: { name: `Пакет ${ENTRY_PACK_CONFIG.ops} операции`, price: fmtEur(ENTRY_PACK_CONFIG.eur), cycle: "еднократно" },
   topup_5: { name: `Пакет ${TOPUP_PACK_CONFIG[0].ops} операции`, price: fmtEur(TOPUP_PACK_CONFIG[0].eur), cycle: "еднократно" },
 };
 
@@ -133,8 +135,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   useEffect(() => {
     const requested = searchParams.get("checkout");
     if (!requested) return;
-    const allowed = ["pro_monthly", "pro_yearly", "professional_monthly", "professional_yearly", "entrepreneur_monthly", "entrepreneur_yearly", "five_operations"];
-    if (allowed.includes(requested)) setCheckoutPrice(requested);
+    if (isAllowedCheckoutPrice(requested)) setCheckoutPrice(requested);
     const next = new URLSearchParams(searchParams);
     next.delete("checkout");
     setSearchParams(next, { replace: true });
@@ -639,19 +640,19 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 <Sparkles className="h-3.5 w-3.5" /> Еднократно
               </div>
-              <h3 className="mt-2 font-serif text-xl font-bold">{TOPUP_PACK_CONFIG[0].ops} операции</h3>
+              <h3 className="mt-2 font-serif text-xl font-bold">{ENTRY_PACK_CONFIG.ops} операции</h3>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="font-serif text-3xl font-bold text-foreground">{fmtEur(TOPUP_PACK_CONFIG[0].eur)}</span>
+                <span className="font-serif text-3xl font-bold text-foreground">{fmtEur(ENTRY_PACK_CONFIG.eur)}</span>
                 <span className="text-xs text-muted-foreground">/ пакет</span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">без абонамент · не изтичат</p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">{perOpLabel(TOPUP_PACK_CONFIG[0])}</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">{perOpLabel(ENTRY_PACK_CONFIG)}</p>
               <Button
-                onClick={() => setCheckoutPrice(TOPUP_PACK_CONFIG[0].priceId)}
+                onClick={() => setCheckoutPrice(ENTRY_PACK_CONFIG.priceId)}
                 variant="outline"
                 className="mt-4 border-border/80"
               >
-                Купи за {fmtEur(TOPUP_PACK_CONFIG[0].eur)}
+                Купи за {fmtEur(ENTRY_PACK_CONFIG.eur)}
               </Button>
               <div className="my-5 h-px bg-border/60" />
               <ul className="space-y-2.5">

@@ -879,7 +879,7 @@ export default function WizardPage() {
       return;
     }
     // Strict document paywall — free users must subscribe or buy a single unlock
-    // (цената идва от STRICT_UNLOCK_EUR в @/lib/pricing).
+    // (цената идва от ENTRY_PACK_CONFIG в @/lib/pricing).
     if (!docAccess.canDownload) {
       trackEvent("strict_paywall_shown", { source: `download_${format}`, doc_key: docKey });
       trackPaywallShown("strict_unlock", { doc_key: docKey, source: "wizard", format });

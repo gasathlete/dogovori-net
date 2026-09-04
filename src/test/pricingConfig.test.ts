@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   PRICING_PLANS,
-  STRICT_UNLOCK_EUR,
+  ENTRY_PACK_CONFIG,
+  ENTRY_PACK_AMOUNT_CENTS,
   TOPUP_PACK_CONFIG,
   fmtEur,
   monthlyLabel,
@@ -32,13 +33,13 @@ describe("pricing config — канонични имена и стойности
     expect(PRICING_PLANS.team.yearly).toBe(109);
     expect(PRICING_PLANS.team.seatMin).toBe(3);
     expect(teamMinYearlyTotal()).toBe(327);
-    expect(STRICT_UNLOCK_EUR).toBe(0.4);
+    expect(PRICING_PLANS.team.priceIds.yearly).toBe("team_seat_yearly");
   });
 
   it("форматира EUR по български стандарт", () => {
     expect(fmtEur(12.9)).toBe("12,90 €");
     expect(fmtEur(129)).toBe("129,00 €");
-    expect(fmtEur(0.4)).toBe("0,40 €");
+    expect(fmtEur(2.9)).toBe("2,90 €");
   });
 
   it("генерира коректни етикети", () => {
@@ -60,6 +61,20 @@ describe("pricing config — канонични имена и стойности
       [100, 23.9],
     ]);
     expect(perOpLabel(TOPUP_PACK_CONFIG[0])).toBe("0,58 €/оп.");
+  });
+
+  it("входният пакет е един канoничен еднократен продукт", () => {
+    expect(ENTRY_PACK_CONFIG.priceId).toBe("five_operations");
+    expect(ENTRY_PACK_CONFIG.ops).toBe(5);
+    expect(ENTRY_PACK_CONFIG.eur).toBe(2.9);
+    expect(ENTRY_PACK_AMOUNT_CENTS).toBe(290);
+    // Stripe минимум за EUR карта е 0,50 € — входният пакет трябва да е над него.
+    expect(ENTRY_PACK_AMOUNT_CENTS).toBeGreaterThanOrEqual(50);
+    // Входният пакет НЕ е top-up пакет: различен lookup key.
+    expect(TOPUP_PACK_CONFIG.map((p) => p.priceId)).not.toContain(
+      ENTRY_PACK_CONFIG.priceId as string,
+    );
+    expect(Object.isFrozen(ENTRY_PACK_CONFIG)).toBe(true);
   });
 
   it("не съдържа изоставени цени/валути", () => {

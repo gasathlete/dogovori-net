@@ -21,9 +21,18 @@ import { SoftCapPanel } from "@/components/paywall/SoftCapPanel";
 import { RoiCalculator } from "@/components/funnel/RoiCalculator";
 import { RoiSavingsBanner } from "@/components/funnel/RoiSavingsBanner";
 import { AudienceToggle } from "@/components/funnel/AudienceToggle";
-import { SEPTEMBER_PROMO, isSeptemberPromoActive, promoPriceEur, fmtEur } from "@/lib/pricing";
+import {
+  ENTRY_PACK_CONFIG,
+  PRICING_PLANS,
+  SEPTEMBER_PROMO,
+  fmtEur,
+  isSeptemberPromoActive,
+  monthlyLabel,
+  promoPriceEur,
+} from "@/lib/pricing";
 import { useAudience } from "@/hooks/useAudience";
 import { markFunnelStep } from "@/lib/funnel";
+import { entryPackCtaHref } from "@/lib/entryPack";
 import { useEffect } from "react";
 
 
@@ -402,6 +411,52 @@ export default function Plans() {
               );
             })}
           </div>
+
+          {/* Входен пакет без абонамент — най-ниската бариера до плащане.
+              Това НЕ е top-up пакет (те са само за активни абонати). */}
+          {(() => {
+            const href = entryPackCtaHref(isAuthed);
+            return (
+              <div className="mt-6 flex flex-col gap-4 rounded-2xl border-2 border-brand/40 bg-brand/[0.04] p-5 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:p-6">
+                <div className="flex items-start gap-3 sm:items-center">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
+                      Без абонамент
+                    </p>
+                    <h3 className="mt-1 font-serif text-lg leading-tight text-foreground">
+                      {ENTRY_PACK_CONFIG.ops} операции за {fmtEur(ENTRY_PACK_CONFIG.eur)}
+                    </h3>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                      Еднократно плащане · операциите не изтичат. При редовна употреба{" "}
+                      {PRICING_PLANS.professional.name} ({monthlyLabel("professional")}) излиза по-евтино на
+                      операция.
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  to={href}
+                  onClick={() =>
+                    trackEvent("plans_cta_clicked", {
+                      plan: ENTRY_PACK_CONFIG.priceId,
+                      billing: "one_time",
+                      source: "public_entry_pack",
+                      authed: isAuthed,
+                      audience,
+                    })
+                  }
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-white shadow-brand transition-all hover:shadow-[0_20px_50px_-15px_hsl(var(--brand)/0.6)]"
+                >
+                  Купи за {fmtEur(ENTRY_PACK_CONFIG.eur)}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            );
+          })()}
+
 
           {/* Slim free plan row */}
           {(() => {

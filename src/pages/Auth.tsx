@@ -56,7 +56,9 @@ export default function AuthPage() {
   const [acceptTerms, setAcceptTerms] = useState(true);
   const [acceptPrivacy, setAcceptPrivacy] = useState(true);
   const [acceptAge, setAcceptAge] = useState(true);
-  const [acceptMarketing, setAcceptMarketing] = useState(true);
+  // Маркетинговото съгласие е по желание — стартира изключено и НЕ участва
+  // в готовността за регистрация (GDPR: свободно, конкретно съгласие).
+  const [acceptMarketing, setAcceptMarketing] = useState(false);
   const [tab, setTab] = useState<"login" | "signup">(
     params.get("tab") === "signup" ? "signup" : "login",
   );
@@ -111,7 +113,7 @@ export default function AuthPage() {
     setTab(params.get("tab") === "signup" ? "signup" : "login");
   }, [params]);
 
-  const signupReady = acceptTerms && acceptPrivacy && acceptAge && acceptMarketing;
+  const signupReady = acceptTerms && acceptPrivacy && acceptAge;
   const showBgEmailWarning = isRiskyBgEmail(email);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -374,7 +376,7 @@ export default function AuthPage() {
                       className="mt-0.5"
                     />
                     <Label htmlFor="c-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
-                      Съгласявам се да предоставя име и имейл на администратора на платформата за получаване на съобщения, известия за бонуси и награди в профила ми в dogovori.net. <span className="text-gold">*</span>
+                      Съгласявам се да предоставя име и имейл на администратора на платформата за получаване на съобщения, известия за бонуси и награди в профила ми в dogovori.net. <span className="text-muted-foreground">(по желание)</span>
                     </Label>
                   </div>
                 </div>
