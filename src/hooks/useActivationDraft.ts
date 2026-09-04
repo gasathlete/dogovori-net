@@ -759,7 +759,25 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
 
     claimAttemptRef.current = current.draftId;
     runClaim(current, userId);
-  }, [active, enabled, user, flow, detach, updatePointer, tabHasContent, runClaim, cancelClaimRetry, stillCurrent]);
+    // Указателят е част от зависимостите ПО САМОЛИЧНОСТ И СЪСТОЯНИЕ: чернова,
+    // създадена след като потребителят вече е влязъл, се присвоява веднага, а
+    // не чак при презареждане. Стъпката/маршрутът не влизат тук — иначе всяко
+    // писане би пускало ефекта (claimAttemptRef пази от дублиране).
+  }, [
+    active,
+    enabled,
+    user,
+    flow,
+    pointer?.draftId,
+    pointer?.claimed,
+    pointer?.savedDocId,
+    detach,
+    updatePointer,
+    tabHasContent,
+    runClaim,
+    cancelClaimRetry,
+    stillCurrent,
+  ]);
 
 
   const discard = useCallback(() => {
