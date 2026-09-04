@@ -150,6 +150,15 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
   const claimAttemptRef = useRef<string | null>(null);
   /** true докато заявката за присвояване е в движение — записите изчакват. */
   const claimInFlightRef = useRef(false);
+  /**
+   * Поколение на операцията за присвояване. Всяка стартирана заявка притежава
+   * едно поколение; само притежателят на ТЕКУЩОТО поколение има право да пипа
+   * състояние (включително да освободи ключа и да изгаси индикатора). При смяна
+   * на самоличност, отказване или замяна на черновата поколението се вдига:
+   * старата HTTP заявка може да приключи по-късно, но вече без правомощия — и
+   * новият валиден контекст не чака увиснала заявка.
+   */
+  const claimGenRef = useRef(0);
   /** Един опит за нова чернова след окончателно невалиден указател. */
   const recreateRef = useRef(false);
   /** Вдига се при изрично отказване — закъснели резултати стават без значение. */
@@ -169,16 +178,34 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
     claimRetryRef.current = null;
   }, []);
 
+  /**
+   * Обезсилява текущото присвояване: логически освобождава ключа веднага, гаси
+   * индикатора и изчиства чакащия повторен опит. Увисналата стара заявка не
+   * блокира новия контекст.
+   */
+  const invalidateClaim = useCallback(() => {
+    claimGenRef.current += 1;
+    claimInFlightRef.current = false;
+    cancelClaimRetry();
+    if (mountedRef.current) setClaiming(false);
+  }, [cancelClaimRetry]);
+
   const updatePointer = useCallback(
     (next: DraftPointer | null) => {
       // Указателят се смени с друга чернова → всяко чакащо присвояване за
-      // старата вече е без значение.
-      const retry = claimRetryRef.current;
-      if (retry && retry.draftId !== next?.draftId) cancelClaimRetry();
+      // старата вече е без значение. Същата чернова (напр. успешно присвояване
+      // или запис) НЕ обезсилва сама себе си.
+      const prevId = pointerRef.current?.draftId ?? null;
+      const nextId = next?.draftId ?? null;
+      if (claimInFlightRef.current && prevId !== nextId) invalidateClaim();
+      else {
+        const retry = claimRetryRef.current;
+        if (retry && retry.draftId !== nextId) cancelClaimRetry();
+      }
       pointerRef.current = next;
       if (mountedRef.current) setPointer(next);
     },
-    [cancelClaimRetry],
+    [cancelClaimRetry, invalidateClaim],
   );
 
   /**
