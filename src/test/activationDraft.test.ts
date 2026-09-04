@@ -61,6 +61,7 @@ function pointer(overrides: Partial<DraftPointer> = {}): DraftPointer {
 beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
+  invokeMock.mockReset();
 });
 
 describe("isSafeRoute", () => {
