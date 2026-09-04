@@ -550,12 +550,18 @@ export async function syncDraft(
       commitOpts: SyncCommitOptions = {},
     ): DraftPointer | null => {
       if (commitOpts.requireCurrent) {
-        // Указател от друг поток е без значение за този екран (един указател на
-        // браузър, но всеки екран отговаря само за своя поток).
         const stored = readPointer();
-        const relevant = stored && stored.flow === input.flow ? stored : null;
-        const expected = p?.draftId ?? null;
-        if ((relevant?.draftId ?? null) !== expected) return null;
+        if (p) {
+          // Update: хранилището още трябва да сочи ИЗПРАТЕНАТА чернова от този
+          // поток. Преминаването към „присвоена“ е допустимо — сливаемо е.
+          const relevant = stored && stored.flow === input.flow ? stored : null;
+          if ((relevant?.draftId ?? null) !== p.draftId) return null;
+        } else if (pointerSnapshot(stored) !== startedSnapshot) {
+          // Изричен create: измества само точно онзи указател, който е бил
+          // запазен при изпращането. Ако друг таб го е заменил или обновил,
+          // резултатът е остарял.
+          return null;
+        }
       }
       const built = buildSyncPointer({
         sent: p,
