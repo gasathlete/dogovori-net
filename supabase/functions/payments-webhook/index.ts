@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { type StripeEnv, createStripeClient, verifyWebhook } from "../_shared/stripe.ts";
 import { sendAppEmail } from "../_shared/transactional-email-templates/send-and-log.ts";
+import { ENTRY_PACK_AMOUNT_CENTS, planOneOffCredit } from "../_shared/oneoff-credit.ts";
 
 let _supabase: ReturnType<typeof createClient> | null = null;
 function getSupabase() {
@@ -15,7 +16,7 @@ function getSupabase() {
 
 function tierFromPriceId(priceId: string | null | undefined): { plan: "pro" | "free"; opsCap: number | null } {
   if (!priceId) return { plan: "pro", opsCap: null };
-  if (priceId.startsWith("entrepreneur")) return { plan: "pro", opsCap: 120 };
+  if (priceId.startsWith("entrepreneur")) return { plan: "pro", opsCap: 100 };
   if (priceId.startsWith("professional")) return { plan: "pro", opsCap: 50 };
   if (priceId.startsWith("pro_")) return { plan: "pro", opsCap: 100 }; // legacy grandfathered
   return { plan: "pro", opsCap: null };
@@ -151,7 +152,8 @@ async function handleSubscriptionDeleted(subscription: any, env: StripeEnv) {
 async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   const userId = session.metadata?.userId;
 
-  // 0) Strict document one-off unlock (0.40€ per (user, doc_key), valid 24h).
+  // 0) Strict document unlock — вече е бъндъл: отключва документа за 24h И
+  //    кредитира входния пакет операции (обработено в блок 1 по-долу).
   if (
     session.mode === "payment" &&
     userId &&
@@ -160,7 +162,9 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   ) {
     try {
       const amountTotal = session.amount_total;
-      const paid = typeof amountTotal === "number" ? amountTotal / 100 : 0.40;
+      const paid = typeof amountTotal === "number"
+        ? amountTotal / 100
+        : ENTRY_PACK_AMOUNT_CENTS / 100;
       await getSupabase()
         .from("strict_doc_unlocks")
         .upsert(
@@ -203,47 +207,26 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
     }
   }
 
-  // 1) Bonus contracts + top-up ops (one-off purchases)
+  // 1) Еднократни покупки → операции. Едно агрегирано, идемпотентно по
+  //    stripe_session_id кредитиране (topup_purchases има UNIQUE(session_id)),
+  //    затова повторна доставка на събитието не начислява втори път.
   if (session.mode === "payment" && userId) {
     try {
       const stripe = createStripeClient(env);
       const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10, expand: ["data.price"] });
-      let bonus = 0;
-      const topupMap: Record<string, number> = {
-        topup_5: 5, topup_10: 10, topup_20: 20, topup_50: 50, topup_100: 100,
-      };
-      for (const li of items.data) {
-        const price: any = (li as any).price;
-        const lookup = price?.lookup_key || price?.metadata?.lovable_external_id;
-        if (lookup === "five_operations") bonus += (li.quantity ?? 1) * 5;
-        else if (lookup === "single_contract") bonus += li.quantity ?? 1;
-        else if (lookup && topupMap[lookup]) {
-          const ops = topupMap[lookup] * (li.quantity ?? 1);
-          const amountEur = typeof li.amount_total === "number" ? li.amount_total / 100 : null;
-          await getSupabase().rpc("credit_topup_ops", {
-            p_user_id: userId,
-            p_price_id: lookup,
-            p_ops: ops,
-            p_amount: amountEur,
-            p_session_id: session.id,
-            p_environment: env,
-          });
-        }
-      }
-      if (bonus > 0) {
-        const { data: q } = await getSupabase()
-          .from("download_quota")
-          .select("bonus_contracts")
-          .eq("user_id", userId)
-          .maybeSingle();
-        const current = (q as any)?.bonus_contracts ?? 0;
-        await getSupabase()
-          .from("download_quota")
-          .update({ bonus_contracts: current + bonus })
-          .eq("user_id", userId);
+      const credit = planOneOffCredit(items.data as any);
+      if (credit) {
+        await getSupabase().rpc("credit_topup_ops", {
+          p_user_id: userId,
+          p_price_id: credit.priceId,
+          p_ops: credit.ops,
+          p_amount: credit.amountEur,
+          p_session_id: session.id,
+          p_environment: env,
+        });
       }
     } catch (e) {
-      console.error("checkout.session.completed bonus/topup handling failed:", e);
+      console.error("checkout.session.completed one-off credit failed:", e);
     }
   }
 

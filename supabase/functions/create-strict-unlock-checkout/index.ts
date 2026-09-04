@@ -2,6 +2,12 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
 import { resolveOrCreateCustomer } from "../_shared/customer.ts";
 import { buildCors } from "../_shared/cors.ts";
+import {
+  ENTRY_PACK_LOOKUP_KEY,
+  ENTRY_PACK_OPS,
+  EntryPriceError,
+  requireEntryPackPrice,
+} from "../_shared/oneoff-credit.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCors(req);
@@ -54,9 +60,11 @@ Deno.serve(async (req) => {
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
 
     const stripe = createStripeClient(environment);
-    const prices = await stripe.prices.list({ lookup_keys: ["strict_doc_unlock"] });
-    if (!prices.data.length) throw new Error("Price not configured");
-    const price = prices.data[0];
+    // Бъндъл: отключване на документа + входен пакет операции. Ползваме
+    // САМО съществуващата цена five_operations и изискваме точно 2,90 € EUR —
+    // никога не създаваме и не променяме Stripe цена оттук.
+    const prices = await stripe.prices.list({ lookup_keys: [ENTRY_PACK_LOOKUP_KEY] });
+    const price = requireEntryPackPrice(prices.data as any);
 
     const customerId = await resolveOrCreateCustomer(stripe, { userId, email });
 
@@ -74,6 +82,9 @@ Deno.serve(async (req) => {
       metadata: {
         userId,
         type: "strict_doc_unlock",
+        priceId: ENTRY_PACK_LOOKUP_KEY,
+        bundle: "strict_plus_five",
+        bundle_ops: String(ENTRY_PACK_OPS),
         doc_key,
         sector_id: sector_id ?? "",
         doc_name: doc_name ?? "",
@@ -85,6 +96,14 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
+    if (e instanceof EntryPriceError) {
+      // Конфигурационен проблем, не грешка на потребителя: връщаме ограничен код.
+      console.error("strict unlock bundle price problem:", e.reason);
+      return new Response(
+        JSON.stringify({ error: e.reason, code: e.reason }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
     return new Response(
       JSON.stringify({ error: String((e as Error).message ?? e) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
