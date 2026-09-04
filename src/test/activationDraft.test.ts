@@ -456,13 +456,13 @@ describe("syncDraft — commit с requireCurrent сравнява снимкат
   });
 
   it("update: преминаването към присвоена чернова е сливаемо и токенът не се връща", async () => {
-    const p = pointer({ draftId: DRAFT_ID });
+    const p = pointer({ draftId: DRAFT_ID, flow: "build" });
     writePointer(p);
     invokeMock.mockResolvedValueOnce(OK());
     const res = await syncDraft(syncArgs(p), { commit: false });
     expect(res.ok).toBe(true);
     if (res.ok !== true) return;
-    writePointer(pointer({ draftId: DRAFT_ID, claimed: true, claimToken: "", savedDocId: "doc-1" }));
+    writePointer(pointer({ draftId: DRAFT_ID, flow: "build", claimed: true, claimToken: "", savedDocId: "doc-1" }));
     const committed = res.commit({ stepIdx: 4 }, { requireCurrent: true });
     expect(committed).not.toBeNull();
     expect(committed!.claimed).toBe(true);
@@ -471,7 +471,7 @@ describe("syncDraft — commit с requireCurrent сравнява снимкат
   });
 
   it("update: указател, сменен с ДРУГА чернова, отказва commit", async () => {
-    const p = pointer({ draftId: DRAFT_ID });
+    const p = pointer({ draftId: DRAFT_ID, flow: "build" });
     writePointer(p);
     invokeMock.mockResolvedValueOnce(OK());
     const res = await syncDraft(syncArgs(p), { commit: false });
