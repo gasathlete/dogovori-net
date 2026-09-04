@@ -384,9 +384,75 @@ interface SyncResponse {
   transferred?: boolean;
 }
 
+/** Стойности, с които викащият „презарежда“ резултата с по-ново състояние. */
+export interface SyncCommitOverrides {
+  /** Най-новото съдържание в таба (по-ново от изпратеното). */
+  payload?: DraftPayload;
+  stepIdx?: number;
+  hasResult?: boolean;
+  route?: string;
+}
+
 export type SyncResult =
-  | { ok: true; pointer: DraftPointer; created: boolean }
+  | {
+      ok: true;
+      pointer: DraftPointer;
+      created: boolean;
+      /**
+       * Прилага указателя и съдържанието в хранилището. Извиква се само когато
+       * резултатът още е актуален; връща реално записания указател.
+       */
+      commit: (overrides?: SyncCommitOverrides) => DraftPointer;
+    }
   | { ok: false; reason: DraftErrorReason };
+
+/**
+ * Сглобява указателя от отговора на сървъра спрямо ТЕКУЩО запазения указател.
+ *
+ * Присвояването е необратимо: закъснял отговор никога не връща токена в
+ * браузъра и не сваля флага. Флагът се пренася само за СЪЩАТА чернова — ако
+ * сървърът е върнал нов идентификатор, статусът му е неизвестен и указателят
+ * започва като непотърсен (с новия токен).
+ */
+function buildSyncPointer(args: {
+  sent: DraftPointer | null;
+  data: SyncResponse;
+  flow: DraftFlow;
+  docKey?: string;
+  route: string;
+  stepIdx: number;
+  hasResult: boolean;
+}): { pointer: DraftPointer; created: boolean } {
+  const { sent, data } = args;
+  const draftId = String(data.draft_id);
+  const stored = readPointer();
+  const sameAsSent = sent?.draftId === draftId;
+  const storedSame = stored?.draftId === draftId ? stored : null;
+  const claimed =
+    data.claimed === true || (sameAsSent && sent?.claimed === true) || storedSame?.claimed === true;
+  const ttl = claimed ? CLAIMED_DRAFT_TTL_MS : ANON_DRAFT_TTL_MS;
+  const expiresAt = Math.max(
+    Date.parse(data.expires_at || "") || Date.now() + ttl,
+    claimed ? storedSame?.expiresAt ?? 0 : 0,
+  );
+  return {
+    created: !sameAsSent,
+    pointer: {
+      draftId,
+      claimToken: claimed ? "" : data.claim_token || (sameAsSent ? sent?.claimToken : "") || "",
+      flow: args.flow,
+      docKey: args.docKey,
+      route: args.route,
+      stepIdx: args.stepIdx,
+      hasResult: args.hasResult || storedSame?.hasResult === true,
+      tabId: getTabId(),
+      ts: Date.now(),
+      expiresAt,
+      claimed,
+      savedDocId: storedSame?.savedDocId ?? (sameAsSent ? sent?.savedDocId : undefined),
+    },
+  };
+}
 
 /**
  * Създава или обновява черновата на сървъра.
@@ -398,16 +464,24 @@ export type SyncResult =
  * Отказ от сървъра се връща като типизирана причина — викащият решава дали да
  * опита пак (network/rate_limited) или да започне нова чернова (expired,
  * invalid_token, different_owner…). Никога не създаваме тихо дубликат тук.
+ *
+ * `opts.commit === false` изключва автоматичния запис в хранилището: тогава
+ * викащият проверява дали отговорът не е остарял и сам вика `res.commit(...)`
+ * с най-новото състояние. Записът се сглобява в момента на commit-а, така че
+ * присвояване, случило се междувременно, не се губи.
  */
-export async function syncDraft(input: {
-  pointer: DraftPointer | null;
-  flow: DraftFlow;
-  docKey?: string;
-  route: string;
-  stepIdx: number;
-  payload: DraftPayload;
-  hasResult: boolean;
-}): Promise<SyncResult> {
+export async function syncDraft(
+  input: {
+    pointer: DraftPointer | null;
+    flow: DraftFlow;
+    docKey?: string;
+    route: string;
+    stepIdx: number;
+    payload: DraftPayload;
+    hasResult: boolean;
+  },
+  opts: { commit?: boolean } = {},
+): Promise<SyncResult> {
   const p = input.pointer;
   const route = safeReturnPath(input.route, "/");
   const body: Record<string, unknown> = {
@@ -429,46 +503,85 @@ export async function syncDraft(input: {
     if (error || !data || data.ok === false || !data.draft_id) {
       return { ok: false, reason: reasonFromResponse(data, error) };
     }
-    // Докато заявката е пътувала, черновата може да е била присвоена (claim
-    // след вход). Присвояването е необратимо — закъснял отговор никога не
-    // връща токена в браузъра и не сваля флага. Флагът се пренася само за
-    // СЪЩАТА чернова: ако сървърът е върнал нов идентификатор, статусът му е
-    // неизвестен и указателят започва като непотърсен (с новия токен).
-    const stored = readPointer();
-    const sameAsSent = p?.draftId === data.draft_id;
-    const storedSame = stored?.draftId === data.draft_id ? stored : null;
-    const claimed =
-      data.claimed === true || (sameAsSent && p?.claimed === true) || storedSame?.claimed === true;
-    const ttl = claimed ? CLAIMED_DRAFT_TTL_MS : ANON_DRAFT_TTL_MS;
-    const expiresAt = Math.max(
-      Date.parse(data.expires_at || "") || Date.now() + ttl,
-      claimed ? storedSame?.expiresAt ?? 0 : 0,
-    );
-    const pointer: DraftPointer = {
-      draftId: data.draft_id,
-      claimToken: claimed ? "" : data.claim_token || (sameAsSent ? p?.claimToken : "") || "",
+
+    const preview = buildSyncPointer({
+      sent: p,
+      data,
       flow: input.flow,
       docKey: input.docKey,
       route,
       stepIdx: input.stepIdx,
-      hasResult: input.hasResult || storedSame?.hasResult === true,
-      tabId: getTabId(),
-      ts: Date.now(),
-      expiresAt,
-      claimed,
-      savedDocId: storedSame?.savedDocId ?? (sameAsSent ? p?.savedDocId : undefined),
+      hasResult: input.hasResult,
+    });
+
+    const commit = (overrides: SyncCommitOverrides = {}): DraftPointer => {
+      const built = buildSyncPointer({
+        sent: p,
+        data,
+        flow: input.flow,
+        docKey: input.docKey,
+        route: overrides.route ? safeReturnPath(overrides.route, route) : route,
+        stepIdx: overrides.stepIdx ?? input.stepIdx,
+        hasResult: overrides.hasResult ?? input.hasResult,
+      });
+      const payload = overrides.payload ?? input.payload;
+      writePointer(built.pointer);
+      writePayload(built.pointer.draftId, payload);
+      // Сървърният запис е потвърден — резервният слот на таба и съдържанието
+      // под стария идентификатор вече не са нужни.
+      removePayload(LOCAL_DRAFT_ID);
+      if (p && p.draftId !== built.pointer.draftId) removePayload(p.draftId);
+      return built.pointer;
     };
-    writePointer(pointer);
-    writePayload(pointer.draftId, input.payload);
-    // Сървърният запис е потвърден — резервният слот на таба и съдържанието
-    // под стария идентификатор вече не са нужни.
-    removePayload(LOCAL_DRAFT_ID);
-    if (p && !sameAsSent) removePayload(p.draftId);
-    return { ok: true, pointer, created: !sameAsSent };
+
+    if (opts.commit === false) {
+      return { ok: true, pointer: preview.pointer, created: preview.created, commit };
+    }
+    const pointer = commit();
+    return { ok: true, pointer, created: preview.created, commit };
   } catch {
     return { ok: false, reason: "network" };
   }
 }
+
+/**
+ * Условно изчистване: маха указателя само ако той още сочи ОЧАКВАНАТА чернова.
+ *
+ * Пази срещу закъснял отговор/грешка за чернова A, която иначе би изтрила вече
+ * заменения указател на чернова B. Съдържанието на таба се пази в резервния
+ * слот (`LOCAL_DRAFT_ID`), за да не се губи въведеното.
+ *
+ * `requireUnclaimed` пази и втория случай: същата чернова, но междувременно
+ * присвоена (успешен claim, докато записът е пътувал) — тогава не пипаме нищо.
+ */
+export function clearDraftIfCurrent(
+  expectedDraftId: string,
+  opts: { keepPayload?: DraftPayload | null; requireUnclaimed?: boolean } = {},
+): boolean {
+  const stored = readPointer();
+  if (stored && stored.draftId !== expectedDraftId) return false;
+  if (opts.requireUnclaimed && stored?.claimed) return false;
+  const payload = opts.keepPayload ?? readPayload(expectedDraftId);
+  if (hasRestorableContent(payload)) writePayload(LOCAL_DRAFT_ID, payload);
+  clearDraft(expectedDraftId);
+  return true;
+}
+
+/** Максимум опити за присвояване при преходна грешка (на монтиране/сесия). */
+export const MAX_CLAIM_ATTEMPTS = 5;
+const CLAIM_RETRY_BASE_MS = 1000;
+const CLAIM_RETRY_CAP_MS = 30_000;
+
+/**
+ * Изчакване преди повторен опит за присвояване: ограничен експоненциален
+ * backoff с малък jitter. Чиста функция — `rand` се подава в тестовете.
+ */
+export function claimRetryDelay(attempt: number, rand: () => number = Math.random): number {
+  const n = Math.max(1, Math.trunc(attempt));
+  const base = Math.min(CLAIM_RETRY_CAP_MS, CLAIM_RETRY_BASE_MS * 2 ** (n - 1));
+  return base + Math.floor(Math.min(1, Math.max(0, rand())) * 250);
+}
+
 
 export interface ClaimResult {
   ok: boolean;

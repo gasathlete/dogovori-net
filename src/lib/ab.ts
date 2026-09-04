@@ -126,23 +126,47 @@ export function seedMatchingLegacy(legacy: Overrides, draw: () => string = rando
   return seed;
 }
 
+/**
+ * Резервен seed в паметта на модула: когато localStorage е недостъпен (private
+ * mode, изключени бисквитки, квота), браузърът пак получава СОБСТВЕН стабилен
+ * seed за живота на страницата — вместо всички такива потребители да попаднат в
+ * един и същ вариант.
+ */
+let memorySeed: string | null = null;
+
+/** Само за тестове: изчиства резервния seed в паметта. */
+export function __resetAbSeedMemory(): void {
+  memorySeed = null;
+}
+
 /** Стабилният seed на браузъра (тегли се веднъж; мигрира стария ключ). */
 export function getAbSeed(): string {
   if (typeof window === "undefined") return "server";
+  if (memorySeed) return memorySeed;
+  let stored: string | null = null;
+  let readable = true;
   try {
-    const existing = localStorage.getItem(SEED_KEY);
-    if (existing && /^[a-z0-9]{8,64}$/i.test(existing)) return existing;
+    stored = localStorage.getItem(SEED_KEY);
   } catch {
-    return "no-storage";
+    readable = false;
   }
-  const legacy = readLegacyVariants();
+  if (stored && /^[a-z0-9]{8,64}$/i.test(stored)) return stored;
+  const legacy = readable ? readLegacyVariants() : {};
   const seed = seedMatchingLegacy(legacy);
+  let persisted = false;
   try {
     localStorage.setItem(SEED_KEY, seed);
     localStorage.removeItem(LEGACY_VARIANTS_KEY);
-  } catch { /* quota / private mode — вариантът важи само за този зареждане */ }
+    persisted = localStorage.getItem(SEED_KEY) === seed;
+  } catch {
+    persisted = false;
+  }
+  // Записът не е потвърден → пазим seed-а в паметта, за да не се мени при всяко
+  // повикване в рамките на същото зареждане.
+  if (!persisted) memorySeed = seed;
   return seed;
 }
+
 
 /* -------------------------------- Override ------------------------------- */
 

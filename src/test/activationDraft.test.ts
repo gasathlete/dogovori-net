@@ -23,6 +23,9 @@ import {
   DRAFT_POINTER_KEY,
   LOCAL_DRAFT_ID,
   claimDraft,
+  claimRetryDelay,
+  clearDraftIfCurrent,
+  MAX_CLAIM_ATTEMPTS,
   clearAllDraftStorage,
   clearDraft,
   clearStagedLegacyDrafts,
@@ -399,5 +402,49 @@ describe("claimDraft — състояние на резултата", () => {
     invokeMock.mockResolvedValueOnce({ data: { ok: false, reason: "already_claimed" }, error: { message: "409" } });
     const res = await claimDraft(pointer({ draftId: DRAFT_ID }));
     expect(res).toEqual({ ok: false, reason: "already_claimed" });
+  });
+});
+
+describe("clearDraftIfCurrent", () => {
+  it("изчиства само когато указателят още сочи очакваната чернова", () => {
+    const p = pointer();
+    writePointer(p);
+    writePayload(p.draftId, { answers: { a: "1" } });
+    expect(clearDraftIfCurrent(p.draftId)).toBe(true);
+    expect(readPointer()).toBeNull();
+    // Съдържанието е запазено в резервния слот.
+    expect(readPayload(LOCAL_DRAFT_ID)).toEqual({ answers: { a: "1" } });
+  });
+
+  it("не пипа по-нов указател за друга чернова", () => {
+    const newer = pointer({ draftId: "22222222-2222-4222-8222-222222222222" });
+    writePointer(newer);
+    expect(clearDraftIfCurrent("11111111-1111-4111-8111-111111111111")).toBe(false);
+    expect(readPointer()?.draftId).toBe(newer.draftId);
+  });
+
+  it("не отвързва чернова, която междувременно е присвоена", () => {
+    const p = pointer({ claimed: true, claimToken: "" });
+    writePointer(p);
+    expect(clearDraftIfCurrent(p.draftId, { requireUnclaimed: true })).toBe(false);
+    expect(readPointer()?.draftId).toBe(p.draftId);
+  });
+});
+
+describe("claimRetryDelay", () => {
+  it("е ограничен експоненциален backoff с jitter", () => {
+    expect(claimRetryDelay(1, () => 0)).toBe(1000);
+    expect(claimRetryDelay(2, () => 0)).toBe(2000);
+    expect(claimRetryDelay(3, () => 0)).toBe(4000);
+    expect(claimRetryDelay(1, () => 0.999)).toBeGreaterThan(1000);
+    expect(claimRetryDelay(1, () => 0.999)).toBeLessThanOrEqual(1250);
+    // Таванът не се надхвърля, колкото и опити да има.
+    expect(claimRetryDelay(20, () => 0)).toBe(30_000);
+    expect(claimRetryDelay(0, () => 0)).toBe(1000);
+  });
+
+  it("максималният брой опити е ограничен", () => {
+    expect(MAX_CLAIM_ATTEMPTS).toBeGreaterThan(1);
+    expect(MAX_CLAIM_ATTEMPTS).toBeLessThanOrEqual(8);
   });
 });
