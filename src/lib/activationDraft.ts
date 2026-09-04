@@ -13,15 +13,23 @@
  *
  * Указателят никога не съдържа отговори, имена, ЕГН или IBAN — той пази само
  * идентификатор, еднократен claim токен, маршрут, вид документ и срок.
+ *
+ * Достъп до сървърната чернова:
+ *   - непотърсена → само с claim токена (в указателя);
+ *   - присвоена   → само с JWT на собственика; токенът се маха от браузъра.
  */
 import { getVariant } from "@/lib/ab";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
+import { isSafeRoute, sanitizeDraftRoute, safeReturnPath } from "@/lib/safeRoute";
+
+export { isSafeRoute, sanitizeDraftRoute } from "@/lib/safeRoute";
 
 export const DRAFT_POINTER_KEY = "activation_draft_v1";
 export const DRAFT_PAYLOAD_PREFIX = "activation_draft_payload_v1:";
 const TAB_ID_KEY = "activation_draft_tab_v1";
+const LEGACY_STAGE_PREFIX = DRAFT_PAYLOAD_PREFIX + "legacy:";
 
-/** Анонимна чернова живее 24 часа (после сървърът я изтрива). */
 /**
  * Резервен идентификатор за съдържание в текущия таб, когато сървърът още не е
  * върнал draft_id (или е недостъпен). Гарантира, че refresh не губи прогреса
@@ -29,12 +37,16 @@ const TAB_ID_KEY = "activation_draft_tab_v1";
  */
 export const LOCAL_DRAFT_ID = "local";
 
+/** Анонимна чернова живее 24 часа (после сървърът я изтрива). */
 export const ANON_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
+/** Присвоена, но недовършена чернова остава при собственика си 30 дни. */
+export const CLAIMED_DRAFT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 export type DraftFlow = "wizard" | "build";
 
 export interface DraftPointer {
   draftId: string;
+  /** Еднократен токен за непотърсена чернова. Празен след присвояване. */
   claimToken: string;
   flow: DraftFlow;
   docKey?: string;
@@ -46,6 +58,10 @@ export interface DraftPointer {
   tabId: string;
   ts: number;
   expiresAt: number;
+  /** true след присвояване — записът върви само с JWT на собственика. */
+  claimed: boolean;
+  /** Идентификатор в „Моите документи" след прехвърляне на готовия резултат. */
+  savedDocId?: string;
 }
 
 /** Съдържанието с лични данни — НИКОГА в localStorage. */
@@ -56,11 +72,75 @@ export interface DraftPayload {
   meta?: Record<string, unknown>;
 }
 
+/** Типизирани причини за отказ от сървъра — едно към едно с `_shared/draft-auth.ts`. */
+export type DraftErrorReason =
+  | "invalid_request"
+  | "payload_too_large"
+  | "rate_limited"
+  | "expired"
+  | "invalid_token"
+  | "unauthorized"
+  | "different_owner"
+  | "already_claimed"
+  | "network";
+
+const KNOWN_REASONS: ReadonlySet<string> = new Set<DraftErrorReason>([
+  "invalid_request",
+  "payload_too_large",
+  "rate_limited",
+  "expired",
+  "invalid_token",
+  "unauthorized",
+  "different_owner",
+  "already_claimed",
+  "network",
+]);
+
+/** Преходни причини — има смисъл от повторен опит със същия указател. */
+export function isTransientDraftReason(reason: DraftErrorReason): boolean {
+  return reason === "network" || reason === "rate_limited";
+}
+
+/**
+ * Причини, при които текущият указател е окончателно невалиден за този
+ * браузър/потребител: изчистваме го и започваме нова чернова.
+ */
+export function isDetachDraftReason(reason: DraftErrorReason): boolean {
+  return (
+    reason === "expired" ||
+    reason === "invalid_token" ||
+    reason === "different_owner" ||
+    reason === "already_claimed" ||
+    reason === "unauthorized"
+  );
+}
+
+/**
+ * Превежда HTTP отговор от edge функция в типизирана причина. Никога не връща
+ * суровия текст на грешката — само каноничен код.
+ */
+export function reasonFromResponse(
+  data: { reason?: unknown; ok?: unknown } | null | undefined,
+  error: { status?: number } | null | undefined,
+): DraftErrorReason {
+  const r = data && typeof data.reason === "string" ? data.reason : "";
+  if (KNOWN_REASONS.has(r)) return r as DraftErrorReason;
+  const status = error?.status;
+  if (status === 401) return "unauthorized";
+  if (status === 403) return "invalid_token";
+  if (status === 404 || status === 410) return "expired";
+  if (status === 409) return "already_claimed";
+  if (status === 413) return "payload_too_large";
+  if (status === 429) return "rate_limited";
+  if (status === 400) return "invalid_request";
+  return "network";
+}
+
 /* ------------------------------- Feature flag ------------------------------ */
 
 /**
- * Rollout зад съществуващата A/B рамка (`?ab_activation_continuity=variant`
- * форсира включване за QA/ботове). „variant“ = новото поведение.
+ * Rollout зад A/B рамката (`?ab_activation_continuity=variant` форсира само за
+ * текущия таб — за QA/ботове). „variant“ = новото поведение.
  */
 export function isActivationContinuityEnabled(): boolean {
   if (typeof window === "undefined") return false;
@@ -73,44 +153,11 @@ export function isActivationContinuityEnabled(): boolean {
 
 /* --------------------------------- Помощни -------------------------------- */
 
-/**
- * Само относителни пътища — предпазва от open redirect след вход.
- * Началната страница („/") е допустима: тя е резервният маршрут, когато
- * подаденият път е бил отхвърлен.
- */
-export function isSafeRoute(route: unknown): route is string {
-  return typeof route === "string" && (route === "/" || /^\/[^/\\]/.test(route));
-}
-
-/**
- * Маршрутът, който пазим в указателя, съдържа само параметрите на документа.
- * Технически ключове за тестове (ab_*, utm_*, debug) се премахват, за да не
- * се връща потребителят в експериментален вариант след вход.
- */
-export function sanitizeDraftRoute(
-  pathname: string,
-  search: string,
-): string {
-  let params: URLSearchParams;
-  try {
-    params = new URLSearchParams(search);
-  } catch {
-    return pathname;
-  }
-  for (const key of [...params.keys()]) {
-    if (/^(ab_|utm_|debug$|gclid$|fbclid$)/i.test(key)) params.delete(key);
-  }
-  const rest = params.toString();
-  return rest ? `${pathname}?${rest}` : pathname;
-}
-
 /** Текущият маршрут на страницата, изчистен от технически параметри. */
 export function currentDraftRoute(): string {
   if (typeof window === "undefined") return "/";
-  return sanitizeDraftRoute(window.location.pathname, window.location.search);
+  return safeReturnPath(window.location.pathname + window.location.search, "/");
 }
-
-
 
 export function getTabId(): string {
   if (typeof window === "undefined") return "server";
@@ -135,16 +182,17 @@ function randomId(): string {
   }
 }
 
+const CLAIM_TOKEN_RE = /^[A-Za-z0-9_-]{20,64}$/;
+
 function isPointer(value: unknown): value is DraftPointer {
   if (!value || typeof value !== "object") return false;
   const p = value as Record<string, unknown>;
-  return (
-    typeof p.draftId === "string" &&
-    typeof p.claimToken === "string" &&
-    (p.flow === "wizard" || p.flow === "build") &&
-    isSafeRoute(p.route) &&
-    typeof p.expiresAt === "number"
-  );
+  if (typeof p.draftId !== "string" || typeof p.claimToken !== "string") return false;
+  if (!(p.flow === "wizard" || p.flow === "build")) return false;
+  if (!isSafeRoute(p.route) || typeof p.expiresAt !== "number") return false;
+  // Инвариант: непотърсена чернова се оторизира само с токен; присвоената —
+  // само със сесията на собственика (токенът е ротиран и не се пази).
+  return p.claimed === true ? true : CLAIM_TOKEN_RE.test(p.claimToken);
 }
 
 /* -------------------------------- Указател -------------------------------- */
@@ -163,12 +211,16 @@ export function readPointer(now: number = Date.now()): DraftPointer | null {
       clearDraft(parsed.draftId);
       return null;
     }
+    const p = parsed as DraftPointer & { claimed?: unknown; savedDocId?: unknown };
     return {
       ...parsed,
+      route: safeReturnPath(parsed.route, "/"),
       stepIdx: typeof parsed.stepIdx === "number" ? parsed.stepIdx : 0,
       hasResult: !!parsed.hasResult,
       tabId: typeof parsed.tabId === "string" ? parsed.tabId : "",
       ts: typeof parsed.ts === "number" ? parsed.ts : 0,
+      claimed: p.claimed === true,
+      savedDocId: typeof p.savedDocId === "string" ? p.savedDocId : undefined,
     };
   } catch {
     return null;
@@ -179,17 +231,21 @@ export function writePointer(pointer: DraftPointer): void {
   if (typeof window === "undefined") return;
   try {
     // Защитна мрежа: в указателя не влиза нищо освен изброените полета.
+    const claimed = pointer.claimed === true;
     const safe: DraftPointer = {
       draftId: pointer.draftId,
-      claimToken: pointer.claimToken,
+      // След присвояване токенът не се пази никъде в браузъра.
+      claimToken: claimed ? "" : pointer.claimToken,
       flow: pointer.flow,
       docKey: pointer.docKey ? String(pointer.docKey).slice(0, 120) : undefined,
-      route: isSafeRoute(pointer.route) ? pointer.route : "/",
+      route: safeReturnPath(pointer.route, "/"),
       stepIdx: Number.isFinite(pointer.stepIdx) ? Math.max(0, Math.trunc(pointer.stepIdx)) : 0,
       hasResult: !!pointer.hasResult,
       tabId: pointer.tabId || getTabId(),
       ts: pointer.ts || Date.now(),
       expiresAt: pointer.expiresAt,
+      claimed,
+      savedDocId: typeof pointer.savedDocId === "string" && pointer.savedDocId ? pointer.savedDocId : undefined,
     };
     localStorage.setItem(DRAFT_POINTER_KEY, JSON.stringify(safe));
   } catch {
@@ -203,11 +259,33 @@ export function clearPointer(): void {
   } catch { /* ignore */ }
 }
 
+/** Маха само съдържанието на дадена чернова от таба (указателят остава). */
+export function removePayload(draftId: string): void {
+  try {
+    sessionStorage.removeItem(DRAFT_PAYLOAD_PREFIX + draftId);
+  } catch { /* ignore */ }
+}
+
 export function clearDraft(draftId?: string): void {
   clearPointer();
   if (!draftId) return;
+  removePayload(draftId);
+}
+
+/**
+ * Изчиства всичко по черновата от браузъра — указател и всяко съдържание в
+ * таба (вкл. резервното и стажираните стари чернови). Вика се при изход.
+ */
+export function clearAllDraftStorage(): void {
+  clearPointer();
+  if (typeof window === "undefined") return;
   try {
-    sessionStorage.removeItem(DRAFT_PAYLOAD_PREFIX + draftId);
+    const keys: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (k && k.startsWith(DRAFT_PAYLOAD_PREFIX)) keys.push(k);
+    }
+    for (const k of keys) sessionStorage.removeItem(k);
   } catch { /* ignore */ }
 }
 
@@ -218,6 +296,57 @@ export function isForeignTab(pointer: DraftPointer | null): boolean {
 }
 
 /* --------------------------------- Payload -------------------------------- */
+
+/** Има ли в съдържанието нещо за възстановяване (а не празен обект)? */
+export function hasRestorableContent(payload: DraftPayload | null | undefined): payload is DraftPayload {
+  if (!payload || typeof payload !== "object") return false;
+  if (payload.result) return true;
+  if (payload.signature) return true;
+  if (payload.answers && Object.keys(payload.answers).length > 0) return true;
+  if (payload.meta && Object.keys(payload.meta).length > 0) return true;
+  return false;
+}
+
+function hasNonEmptyValue(obj: unknown): boolean {
+  if (!obj || typeof obj !== "object") return false;
+  return Object.values(obj as Record<string, unknown>).some((v) => {
+    if (v == null) return false;
+    if (typeof v === "string") return v.trim().length > 0;
+    if (typeof v === "number" || typeof v === "boolean") return true;
+    if (Array.isArray(v)) return v.length > 0;
+    if (typeof v === "object") return hasNonEmptyValue(v);
+    return false;
+  });
+}
+
+/**
+ * Има ли в съдържанието нещо, което потребителят реално е въвел?
+ *
+ * По-строго от `hasRestorableContent`: снапшотът при отваряне на екрана носи
+ * служебни полета (тип документ, версия, стъпка 0) и не бива да създава
+ * чернова, да презаписва вече запазено съдържание или да блокира
+ * възстановяването след присвояване.
+ */
+export function hasUserContent(
+  payload: DraftPayload | null | undefined,
+  stepIdx = 0,
+): payload is DraftPayload {
+  if (!payload || typeof payload !== "object") return false;
+  if (payload.result) return true;
+  if (stepIdx > 0) return true;
+  if (hasNonEmptyValue(payload.answers)) return true;
+  if (hasNonEmptyValue(payload.signature)) return true;
+  const meta = (payload.meta ?? {}) as Record<string, unknown>;
+  if (typeof meta.savedDocId === "string" && meta.savedDocId) return true;
+  if (typeof meta.customTitle === "string" && meta.customTitle.trim()) return true;
+  if (typeof meta.name === "string" && meta.name.trim()) return true;
+  if (typeof meta.stepIdx === "number" && meta.stepIdx > 0) return true;
+  for (const key of ["partiesA", "partiesB"]) {
+    const v = meta[key];
+    if (typeof v === "string" ? v.trim().length > 0 : hasNonEmptyValue(v)) return true;
+  }
+  return false;
+}
 
 export function readPayload(draftId: string): DraftPayload | null {
   if (typeof window === "undefined") return null;
@@ -231,24 +360,44 @@ export function readPayload(draftId: string): DraftPayload | null {
   }
 }
 
-export function writePayload(draftId: string, payload: DraftPayload): void {
-  if (typeof window === "undefined") return;
+/** Записва съдържанието в таба; връща true само ако записът е потвърден. */
+export function writePayload(draftId: string, payload: DraftPayload): boolean {
+  if (typeof window === "undefined") return false;
   try {
-    sessionStorage.setItem(DRAFT_PAYLOAD_PREFIX + draftId, JSON.stringify(payload));
-  } catch { /* ignore */ }
+    const serialized = JSON.stringify(payload);
+    sessionStorage.setItem(DRAFT_PAYLOAD_PREFIX + draftId, serialized);
+    return sessionStorage.getItem(DRAFT_PAYLOAD_PREFIX + draftId) === serialized;
+  } catch {
+    return false;
+  }
 }
 
 /* ------------------------------ Сървърна част ----------------------------- */
 
 interface SyncResponse {
-  draft_id: string;
+  ok?: boolean;
+  reason?: string;
+  draft_id?: string;
   claim_token?: string;
-  expires_at: string;
+  expires_at?: string;
+  claimed?: boolean;
+  transferred?: boolean;
 }
 
+export type SyncResult =
+  | { ok: true; pointer: DraftPointer; created: boolean }
+  | { ok: false; reason: DraftErrorReason };
+
 /**
- * Създава (или обновява) чернова на сървъра. Токенът се генерира от сървъра и
- * се връща само при създаване.
+ * Създава или обновява черновата на сървъра.
+ *
+ * - без указател → изричен create (нова чернова; токенът се връща само тогава);
+ * - непотърсен указател → update с токена;
+ * - присвоен указател → update само с JWT (supabase-js го добавя сам).
+ *
+ * Отказ от сървъра се връща като типизирана причина — викащият решава дали да
+ * опита пак (network/rate_limited) или да започне нова чернова (expired,
+ * invalid_token, different_owner…). Никога не създаваме тихо дубликат тук.
  */
 export async function syncDraft(input: {
   pointer: DraftPointer | null;
@@ -258,78 +407,146 @@ export async function syncDraft(input: {
   stepIdx: number;
   payload: DraftPayload;
   hasResult: boolean;
-}): Promise<DraftPointer | null> {
-  const body = {
-    draft_id: input.pointer?.draftId,
-    claim_token: input.pointer?.claimToken,
+}): Promise<SyncResult> {
+  const p = input.pointer;
+  const route = safeReturnPath(input.route, "/");
+  const body: Record<string, unknown> = {
     flow: input.flow,
     doc_key: input.docKey ?? null,
-    route: isSafeRoute(input.route) ? input.route : "/",
+    route,
     step_idx: input.stepIdx,
     has_result: input.hasResult,
     payload: input.payload,
   };
-  const { data, error } = await supabase.functions.invoke<SyncResponse>("draft-sync", { body });
-  if (error || !data?.draft_id) return null;
-  const expiresAt = Date.parse(data.expires_at || "") || Date.now() + ANON_DRAFT_TTL_MS;
-  const pointer: DraftPointer = {
-    draftId: data.draft_id,
-    claimToken: data.claim_token || input.pointer?.claimToken || "",
-    flow: input.flow,
-    docKey: input.docKey,
-    route: input.route,
-    stepIdx: input.stepIdx,
-    hasResult: input.hasResult,
-    tabId: getTabId(),
-    ts: Date.now(),
-    expiresAt,
-  };
-  writePointer(pointer);
-  writePayload(pointer.draftId, input.payload);
-  return pointer;
-}
+  if (p) {
+    body.draft_id = p.draftId;
+    // Токенът пътува само докато черновата е непотърсена.
+    if (!p.claimed && p.claimToken) body.claim_token = p.claimToken;
+  }
 
-export type ClaimReason = "expired" | "already_claimed" | "invalid_token" | "network";
+  try {
+    const { data, error } = await invokeEdgeFunction<SyncResponse>("draft-sync", { body, retries: 1 });
+    if (error || !data || data.ok === false || !data.draft_id) {
+      return { ok: false, reason: reasonFromResponse(data, error) };
+    }
+    // Докато заявката е пътувала, черновата може да е била присвоена (claim
+    // след вход). Присвояването е необратимо — закъснял отговор никога не
+    // връща токена в браузъра и не сваля флага. Флагът се пренася само за
+    // СЪЩАТА чернова: ако сървърът е върнал нов идентификатор, статусът му е
+    // неизвестен и указателят започва като непотърсен (с новия токен).
+    const stored = readPointer();
+    const sameAsSent = p?.draftId === data.draft_id;
+    const storedSame = stored?.draftId === data.draft_id ? stored : null;
+    const claimed =
+      data.claimed === true || (sameAsSent && p?.claimed === true) || storedSame?.claimed === true;
+    const ttl = claimed ? CLAIMED_DRAFT_TTL_MS : ANON_DRAFT_TTL_MS;
+    const expiresAt = Math.max(
+      Date.parse(data.expires_at || "") || Date.now() + ttl,
+      claimed ? storedSame?.expiresAt ?? 0 : 0,
+    );
+    const pointer: DraftPointer = {
+      draftId: data.draft_id,
+      claimToken: claimed ? "" : data.claim_token || (sameAsSent ? p?.claimToken : "") || "",
+      flow: input.flow,
+      docKey: input.docKey,
+      route,
+      stepIdx: input.stepIdx,
+      hasResult: input.hasResult || storedSame?.hasResult === true,
+      tabId: getTabId(),
+      ts: Date.now(),
+      expiresAt,
+      claimed,
+      savedDocId: storedSame?.savedDocId ?? (sameAsSent ? p?.savedDocId : undefined),
+    };
+    writePointer(pointer);
+    writePayload(pointer.draftId, input.payload);
+    // Сървърният запис е потвърден — резервният слот на таба и съдържанието
+    // под стария идентификатор вече не са нужни.
+    removePayload(LOCAL_DRAFT_ID);
+    if (p && !sameAsSent) removePayload(p.draftId);
+    return { ok: true, pointer, created: !sameAsSent };
+  } catch {
+    return { ok: false, reason: "network" };
+  }
+}
 
 export interface ClaimResult {
   ok: boolean;
-  reason?: ClaimReason;
+  reason?: DraftErrorReason;
   route?: string;
   flow?: DraftFlow;
   docKey?: string;
   stepIdx?: number;
+  hasResult?: boolean;
   payload?: DraftPayload;
   savedDocId?: string;
+  /** Съдържанието вече е прехвърлено в „Моите документи" и е изтрито от черновата. */
+  purged?: boolean;
+  expiresAt?: number;
 }
 
-/** Присвоява анонимната чернова към влезлия потребител. */
+interface ClaimResponse {
+  ok?: boolean;
+  reason?: string;
+  route?: string;
+  flow?: DraftFlow;
+  doc_key?: string | null;
+  step_idx?: number;
+  has_result?: boolean;
+  payload?: DraftPayload | null;
+  saved_doc_id?: string | null;
+  purged?: boolean;
+  expires_at?: string;
+}
+
+/**
+ * Присвоява черновата към влезлия потребител (или, за вече присвоена от него,
+ * връща съдържанието идемпотентно). Не логва нищо от отговора.
+ */
 export async function claimDraft(pointer: DraftPointer): Promise<ClaimResult> {
   try {
-    const { data, error } = await supabase.functions.invoke<{
-      ok?: boolean;
-      reason?: ClaimReason;
-      route?: string;
-      flow?: DraftFlow;
-      doc_key?: string;
-      step_idx?: number;
-      payload?: DraftPayload;
-      saved_doc_id?: string;
-    }>("draft-claim", {
-      body: { draft_id: pointer.draftId, claim_token: pointer.claimToken },
-    });
-    if (error) return { ok: false, reason: "network" };
-    if (!data?.ok) return { ok: false, reason: data?.reason ?? "network" };
+    const body: Record<string, unknown> = { draft_id: pointer.draftId };
+    if (!pointer.claimed && pointer.claimToken) body.claim_token = pointer.claimToken;
+    const { data, error } = await invokeEdgeFunction<ClaimResponse>("draft-claim", { body, retries: 1 });
+    if (error || !data || !data.ok) {
+      return { ok: false, reason: reasonFromResponse(data, error) };
+    }
+    const payload = hasRestorableContent(data.payload ?? undefined) ? (data.payload as DraftPayload) : undefined;
     return {
       ok: true,
-      route: isSafeRoute(data.route) ? data.route : pointer.route,
+      route: safeReturnPath(data.route, pointer.route),
       flow: data.flow ?? pointer.flow,
       docKey: data.doc_key ?? pointer.docKey,
       stepIdx: typeof data.step_idx === "number" ? data.step_idx : pointer.stepIdx,
-      payload: data.payload ?? readPayload(pointer.draftId) ?? undefined,
-      savedDocId: data.saved_doc_id,
+      hasResult: typeof data.has_result === "boolean" ? data.has_result : pointer.hasResult,
+      payload,
+      savedDocId: data.saved_doc_id ?? undefined,
+      purged: data.purged === true,
+      expiresAt: Date.parse(data.expires_at || "") || undefined,
     };
   } catch {
     return { ok: false, reason: "network" };
+  }
+}
+
+/**
+ * След прехвърляне източникът на истина е `saved_documents` (RLS: само
+ * собственикът). Връща съдържанието в същата форма като черновата или null.
+ */
+export async function loadSavedDraftPayload(savedDocId: string): Promise<DraftPayload | null> {
+  try {
+    const { data, error } = await supabase
+      .from("saved_documents")
+      .select("payload")
+      .eq("id", savedDocId)
+      .maybeSingle();
+    if (error || !data) return null;
+    const payload = data.payload as unknown;
+    if (!payload || typeof payload !== "object") return null;
+    const p = payload as DraftPayload;
+    return hasRestorableContent(p) ? p : null;
+  } catch {
+    return null;
   }
 }
 
@@ -347,14 +564,65 @@ export interface LegacyDraft {
   docKey?: string;
 }
 
+function parseLegacy(key: string, raw: string): LegacyDraft | null {
+  const parsed = JSON.parse(raw) as Record<string, unknown>;
+  if (!parsed || typeof parsed !== "object") return null;
+  const flow: DraftFlow = key === LEGACY_BUILD_KEY ? "build" : "wizard";
+  return {
+    flow,
+    key,
+    docKey: flow === "wizard" ? key.slice(LEGACY_WIZARD_PREFIX.length) : (parsed.name as string | undefined),
+    stepIdx: typeof parsed.stepIdx === "number" ? parsed.stepIdx : 0,
+    hasResult: !!parsed.result,
+    payload: {
+      answers: (parsed.answers as Record<string, unknown> | undefined) ?? undefined,
+      result: parsed.result,
+      signature: parsed.signature,
+      meta: parsed,
+    },
+  };
+}
+
+/** Стажира стара чернова в таба; true само ако копието е потвърдено. */
+function stageLegacy(draft: LegacyDraft): boolean {
+  try {
+    const serialized = JSON.stringify(draft);
+    sessionStorage.setItem(LEGACY_STAGE_PREFIX + draft.key, serialized);
+    return sessionStorage.getItem(LEGACY_STAGE_PREFIX + draft.key) === serialized;
+  } catch {
+    return false;
+  }
+}
+
+function readStagedLegacy(): LegacyDraft[] {
+  const out: LegacyDraft[] = [];
+  try {
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (!k || !k.startsWith(LEGACY_STAGE_PREFIX)) continue;
+      try {
+        const parsed = JSON.parse(sessionStorage.getItem(k) ?? "") as LegacyDraft;
+        if (parsed && (parsed.flow === "wizard" || parsed.flow === "build") && parsed.payload) out.push(parsed);
+      } catch {
+        sessionStorage.removeItem(k);
+      }
+    }
+  } catch { /* ignore */ }
+  return out;
+}
+
 /**
- * Прочита еднократно старите локални чернови (с лични данни) и връща тяхното
- * съдържание, след което ги ИЗТРИВА от localStorage. Съдържанието се пренася в
- * sessionStorage / сървъра от викащия екран.
+ * Пренася старите локални чернови (с лични данни) към каноничния модел БЕЗ
+ * загуба: всяка се копира в таба (sessionStorage), копието се проверява и
+ * едва тогава старият ключ се маха от localStorage. При неуспешно копие
+ * (квота, изключено хранилище) старият ключ остава — единственото копие не се
+ * унищожава. Повреден запис (не е JSON) няма какво да губи и се изтрива.
+ *
+ * Връща всички налични стари чернови — и току-що пренесените, и стажираните
+ * от предишно зареждане, за които сървърният запис още не е потвърден.
  */
 export function takeLegacyDrafts(): LegacyDraft[] {
   if (typeof window === "undefined") return [];
-  const out: LegacyDraft[] = [];
   const keys: string[] = [];
   try {
     for (let i = 0; i < localStorage.length; i++) {
@@ -363,32 +631,61 @@ export function takeLegacyDrafts(): LegacyDraft[] {
       if (k === LEGACY_BUILD_KEY || k.startsWith(LEGACY_WIZARD_PREFIX)) keys.push(k);
     }
   } catch {
-    return [];
+    return readStagedLegacy();
   }
+
+  const fresh: LegacyDraft[] = [];
   for (const key of keys) {
+    let raw: string | null = null;
     try {
-      const raw = localStorage.getItem(key);
-      localStorage.removeItem(key);
-      if (!raw) continue;
-      const parsed = JSON.parse(raw) as Record<string, unknown>;
-      if (!parsed || typeof parsed !== "object") continue;
-      const flow: DraftFlow = key === LEGACY_BUILD_KEY ? "build" : "wizard";
-      out.push({
-        flow,
-        key,
-        docKey: flow === "wizard" ? key.slice(LEGACY_WIZARD_PREFIX.length) : (parsed.name as string | undefined),
-        stepIdx: typeof parsed.stepIdx === "number" ? parsed.stepIdx : 0,
-        hasResult: !!parsed.result,
-        payload: {
-          answers: (parsed.answers as Record<string, unknown> | undefined) ?? undefined,
-          result: parsed.result,
-          signature: parsed.signature,
-          meta: parsed,
-        },
-      });
-    } catch { /* повреден запис — пропускаме */ }
+      raw = localStorage.getItem(key);
+    } catch {
+      continue;
+    }
+    if (!raw) {
+      try { localStorage.removeItem(key); } catch { /* ignore */ }
+      continue;
+    }
+    let draft: LegacyDraft | null = null;
+    try {
+      draft = parseLegacy(key, raw);
+    } catch {
+      // Повреден запис — няма какво да се пренесе.
+      try { localStorage.removeItem(key); } catch { /* ignore */ }
+      continue;
+    }
+    if (!draft) {
+      try { localStorage.removeItem(key); } catch { /* ignore */ }
+      continue;
+    }
+    fresh.push(draft);
+    if (stageLegacy(draft)) {
+      try { localStorage.removeItem(key); } catch { /* ignore */ }
+    }
   }
-  return out;
+
+  const staged = readStagedLegacy().filter((s) => !fresh.some((f) => f.key === s.key));
+  return [...staged, ...fresh];
+}
+
+/** Маха стажираните стари чернови след потвърден сървърен запис. */
+export function clearStagedLegacyDrafts(flow?: DraftFlow): void {
+  if (typeof window === "undefined") return;
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (!k || !k.startsWith(LEGACY_STAGE_PREFIX)) continue;
+      if (!flow) {
+        keys.push(k);
+        continue;
+      }
+      const legacyKey = k.slice(LEGACY_STAGE_PREFIX.length);
+      const keyFlow: DraftFlow = legacyKey === LEGACY_BUILD_KEY ? "build" : "wizard";
+      if (keyFlow === flow) keys.push(k);
+    }
+    for (const k of keys) sessionStorage.removeItem(k);
+  } catch { /* ignore */ }
 }
 
 /** Изтрива всички стари ключове без да чете съдържанието (privacy cleanup). */

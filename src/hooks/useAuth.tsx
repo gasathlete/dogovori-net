@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { readPointer } from "@/lib/activationDraft";
+import { clearAllDraftStorage, readPointer } from "@/lib/activationDraft";
+import { sanitizeReturnPath } from "@/lib/safeRoute";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -31,8 +32,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === "SIGNED_IN" && typeof window !== "undefined") {
         try {
           const dest = sessionStorage.getItem("post_login_redirect");
-          // Only allow same-origin relative paths to prevent open-redirect attacks.
-          const safeDest = dest && /^\/[^/\\]/.test(dest) ? dest : null;
+          // Само относителен път в същия origin — иначе open redirect след вход.
+          const safeDest = sanitizeReturnPath(dest);
           const here = window.location.pathname + window.location.search;
           if (safeDest && safeDest !== here) {
             sessionStorage.removeItem("post_login_redirect");
@@ -44,11 +45,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // ако има недовършен документ, връщаме потребителя точно при него
             // вместо в празен акаунт.
             const draft = readPointer();
-            if (draft && draft.route !== here) window.location.replace(draft.route);
+            const draftRoute = draft ? sanitizeReturnPath(draft.route) : null;
+            if (draftRoute && draftRoute !== here) window.location.replace(draftRoute);
           }
         } catch { /* ignore */ }
       }
 
+      // При изход нищо от започнатия документ не остава в браузъра: указателят
+      // е безполезен без сесия, а съдържанието в таба не бива да се вижда от
+      // следващия потребител на същото устройство.
+      if (event === "SIGNED_OUT") {
+        try { clearAllDraftStorage(); } catch { /* ignore */ }
+      }
     });
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);

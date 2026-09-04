@@ -331,7 +331,10 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       return;
     }
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(meta)); } catch { /* ignore */ }
-  }, [activation, presetSignature, documentType, buildMode, bilingual, bilingualLang, name, categoryId, categoryOther, partiesA, partiesB, fieldValues, result, signature, savedDocId, stepIdx]);
+    // Зависимостите са отделните стабилни функции, не целият обект — иначе
+    // снапшотът би се правил при всяко рендиране.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activation.active, activation.persist, presetSignature, documentType, buildMode, bilingual, bilingualLang, name, categoryId, categoryOther, partiesA, partiesB, fieldValues, result, signature, savedDocId, stepIdx]);
 
   // Persist on every change
   useEffect(() => { snapshotDraft(); }, [snapshotDraft]);

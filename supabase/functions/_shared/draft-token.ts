@@ -4,7 +4,10 @@
 // да не изтича информация през времето за отговор. Токенът е еднократен за
 // claim: присвояването става с атомарен `update … where claimed_by is null`.
 
+/** Непотърсена (анонимна) чернова живее 24 часа. */
 export const ANON_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
+/** Присвоена, но недовършена чернова остава възстановима за собственика 30 дни. */
+export const CLAIMED_DRAFT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** 32 байта ентропия, base64url — безопасно за URL и localStorage указателя. */
 export function generateClaimToken(): string {
@@ -62,4 +65,5 @@ export function payloadTooLarge(payload: unknown): boolean {
   }
 }
 
+/** @deprecated Използвай `DraftErrorReason` от `draft-auth.ts`. */
 export type ClaimReason = "expired" | "already_claimed" | "invalid_token" | "network";

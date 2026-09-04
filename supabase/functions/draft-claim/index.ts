@@ -4,21 +4,33 @@
 // съдържанието, така че екранът се възстановява точно там, където е спрял
 // потребителят — и никога не го изпраща към празен `/account`.
 //
-// Сигурност:
+// Сигурност (правилата са в `_shared/draft-auth.ts`):
 //  - потребителят се взема от JWT-то в заявката, НИКОГА от тялото;
 //  - токенът се сравнява с хеша в базата с постоянно време;
 //  - присвояването е атомарно (`claimed_by is null`) → втори claim е отказан;
+//  - след claim токенът се ротира: старият указател в браузъра не важи повече;
 //  - изтекла чернова се третира като липсваща;
+//  - готовият документ се прехвърля в `saved_documents`, а съдържанието в
+//    черновата се изтрива — остават само метаданни за идемпотентност;
 //  - rate limit по потребител.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import {
+  CLAIMED_DRAFT_TTL_MS,
+  generateClaimToken,
   hashToken,
   isValidClaimToken,
   isValidDraftId,
-  timingSafeEqual,
 } from "../_shared/draft-token.ts";
+import {
+  decideClaim,
+  hasRestorableContent,
+  logDraft,
+  REASON_STATUS,
+  rowAfterTransfer,
+  type DraftErrorReason,
+} from "../_shared/draft-auth.ts";
 
 interface Body {
   draft_id?: string;
@@ -55,73 +67,78 @@ Deno.serve(async (req) => {
       status,
       headers: { ...cors, "Content-Type": "application/json" },
     });
+  const fail = (reason: DraftErrorReason) => {
+    logDraft("draft-claim", { reason, status: REASON_STATUS[reason] });
+    return json({ ok: false, reason }, REASON_STATUS[reason]);
+  };
 
   try {
     const db = admin();
 
     // Потребителят идва само от токена в заявката.
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const jwt = authHeader.replace(/^Bearer\s+/i, "");
-    if (!jwt) return json({ ok: false, reason: "invalid_token" }, 401);
+    const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+    if (!jwt) return fail("unauthorized");
     const { data: userData } = await db.auth.getUser(jwt);
     const user = userData?.user ?? null;
-    if (!user) return json({ ok: false, reason: "invalid_token" }, 401);
+    if (!user) return fail("unauthorized");
 
     const rl = await checkRateLimit(`draft-claim:${user.id}`, 30, 60);
-    if (!rl.ok) return json({ ok: false, reason: "network" }, 429);
+    if (!rl.ok) return fail("rate_limited");
 
     const body = (await req.json().catch(() => ({}))) as Body;
-    if (!isValidDraftId(body.draft_id) || !isValidClaimToken(body.claim_token)) {
-      return json({ ok: false, reason: "invalid_token" }, 400);
-    }
+    if (!isValidDraftId(body.draft_id)) return fail("invalid_request");
 
-    const { data } = await db
+    const { data, error: readErr } = await db
       .from("anonymous_drafts")
       .select(
         "id, token_hash, flow, doc_key, route, payload, step_idx, has_result, claimed_by, saved_doc_id, expires_at",
       )
       .eq("id", body.draft_id)
       .maybeSingle();
+    if (readErr) return fail("network");
     const draft = data as DraftRow | null;
-    if (!draft) return json({ ok: false, reason: "expired" }, 404);
 
-    const incoming = await hashToken(body.claim_token);
-    if (!timingSafeEqual(draft.token_hash, incoming)) {
-      return json({ ok: false, reason: "invalid_token" }, 403);
-    }
-    if (Date.parse(draft.expires_at) <= Date.now()) {
-      return json({ ok: false, reason: "expired" }, 410);
-    }
+    const now = Date.now();
+    const tokenHash = isValidClaimToken(body.claim_token) ? await hashToken(body.claim_token) : null;
+    const decision = decideClaim({ row: draft, tokenHash, userId: user.id, now });
+    if (!decision.ok) return fail(decision.reason);
+    // decision.ok ⇒ draft съществува.
+    const row = draft as DraftRow;
 
-    // Вече присвоена: на същия собственик връщаме съдържанието (идемпотентно),
-    // на друг — отказ.
-    if (draft.claimed_by && draft.claimed_by !== user.id) {
-      return json({ ok: false, reason: "already_claimed" }, 409);
-    }
+    let expiresAt = row.expires_at;
 
-    let savedDocId = draft.saved_doc_id;
-
-    if (!draft.claimed_by) {
+    if (!decision.idempotent) {
+      // Атомарно присвояване + ротация на токена: от този момент анонимният
+      // указател в браузъра (и всеки негов дубликат) е безполезен.
+      expiresAt = new Date(now + CLAIMED_DRAFT_TTL_MS).toISOString();
       const { data: updated, error: updErr } = await db
         .from("anonymous_drafts")
-        .update({ claimed_by: user.id, claimed_at: new Date().toISOString() })
-        .eq("id", draft.id)
+        .update({
+          claimed_by: user.id,
+          claimed_at: new Date(now).toISOString(),
+          token_hash: await hashToken(generateClaimToken()),
+          expires_at: expiresAt,
+        })
+        .eq("id", row.id)
         .is("claimed_by", null)
         .select("id")
         .maybeSingle();
-      if (updErr) return json({ ok: false, reason: "network" }, 500);
-      if (!updated) return json({ ok: false, reason: "already_claimed" }, 409);
+      if (updErr) return fail("network");
+      if (!updated) return fail("already_claimed");
     }
 
-    // Ако има готов документ — запазваме го в профила (без нова операция:
-    // генерирането вече е таксувано в анонимната сесия).
-    const payload = (draft.payload ?? {}) as Record<string, unknown>;
-    if (draft.has_result && payload.result && !savedDocId) {
+    let savedDocId = row.saved_doc_id;
+    const payload = (row.payload ?? {}) as Record<string, unknown>;
+    let purged = !!savedDocId;
+
+    // Готов документ → в профила (без нова операция: генерирането вече е
+    // таксувано в анонимната сесия). След това съдържанието напуска черновата.
+    if (row.has_result && payload.result && !savedDocId) {
       const meta = (payload.meta ?? {}) as Record<string, unknown>;
       const title =
         (typeof meta.customTitle === "string" && meta.customTitle) ||
         (typeof meta.name === "string" && meta.name) ||
-        draft.doc_key ||
+        row.doc_key ||
         "Документ";
       const { data: saved } = await db
         .from("saved_documents")
@@ -135,21 +152,38 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (saved?.id) {
         savedDocId = saved.id as string;
-        await db.from("anonymous_drafts").update({ saved_doc_id: savedDocId }).eq("id", draft.id);
+        const { error: purgeErr } = await db
+          .from("anonymous_drafts")
+          .update(rowAfterTransfer(savedDocId, await hashToken(generateClaimToken())))
+          .eq("id", row.id)
+          .eq("claimed_by", user.id);
+        purged = !purgeErr;
       }
     }
 
+    logDraft("draft-claim", {
+      status: 200,
+      flow: row.flow,
+      idempotent: decision.idempotent,
+      has_result: row.has_result,
+      transferred: !!savedDocId,
+    });
+
     return json({
       ok: true,
-      route: draft.route,
-      flow: draft.flow,
-      doc_key: draft.doc_key,
-      step_idx: draft.step_idx,
-      has_result: draft.has_result,
-      payload,
+      route: row.route,
+      flow: row.flow,
+      doc_key: row.doc_key,
+      step_idx: row.step_idx,
+      has_result: row.has_result,
+      expires_at: expiresAt,
+      // Съдържанието се връща само ако има какво да се възстанови; след
+      // прехвърляне източникът на истина е saved_documents.
+      payload: hasRestorableContent(payload) ? payload : null,
       saved_doc_id: savedDocId,
+      purged,
     });
   } catch (_e) {
-    return json({ ok: false, reason: "network" }, 500);
+    return fail("network");
   }
 });
