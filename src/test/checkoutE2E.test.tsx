@@ -76,7 +76,7 @@ vi.mock("@/hooks/useUnreadNotifications", () => ({
 
 const makeQuery = () => {
   const chain: any = {};
-  for (const m of ["select", "eq", "order", "limit", "in", "gte", "lte", "neq"]) {
+  for (const m of ["select", "eq", "order", "limit", "in", "gte", "lte", "neq", "insert", "update", "upsert", "delete", "is"]) {
     chain[m] = () => chain;
   }
   chain.maybeSingle = () => Promise.resolve({ data: null, error: null });
