@@ -144,3 +144,11 @@ describe("миграция от стари чернови", () => {
     expect(localStorage.getItem("wizard:it:broken")).toBeNull();
   });
 });
+
+describe("sanitizeDraftRoute", () => {
+  it("премахва технически параметри, но пази параметрите на документа", () => {
+    expect(sanitizeDraftRoute("/build", "?ab_activation_continuity=variant")).toBe("/build");
+    expect(sanitizeDraftRoute("/build", "?type=nda&ab_x=1&utm_source=fb&gclid=z")).toBe("/build?type=nda");
+    expect(sanitizeDraftRoute("/wizard", "")).toBe("/wizard");
+  });
+});
