@@ -628,17 +628,27 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
         writePointer(next);
         updatePointer(next);
 
+        // Съдържанието от сървъра е снимка от МОМЕНТА на заявката. Ако докато
+        // тя е пътувала потребителят е въвел нещо (в паметта на екрана или в
+        // таба), локалното е по-новото и остава — сървърното не се записва.
+        const localAfter = readPayload(current.draftId) ?? readPayload(LOCAL_DRAFT_ID);
+        const cleanTab = !tabHasContent() && !hasRestorableContent(localAfter);
+        if (!cleanTab) return;
+
         let payload = res.payload ?? null;
-        if (!payload && res.purged && res.savedDocId && !hasLocal && !tabHasContent()) {
+        if (!payload && res.purged && res.savedDocId && !hasLocal) {
           payload = await loadSavedDraftPayload(res.savedDocId);
           // Закъсняло съдържание за вече заменена/отказана чернова се изхвърля.
           if (!stillCurrent(current.draftId, userId)) return;
+          // …както и за таб, в който междувременно е въведено съдържание.
+          const local2 = readPayload(current.draftId) ?? readPayload(LOCAL_DRAFT_ID);
+          if (tabHasContent() || hasRestorableContent(local2)) return;
         }
         if (payload) {
           writePayload(current.draftId, payload);
           // Възстановяваме само ако в този таб потребителят не е въвел нищо
           // (нов таб от имейл линка / OAuth връщане към чист екран).
-          if (!tabHasContent()) restoreRef.current?.(payload, { source: "claim" });
+          restoreRef.current?.(payload, { source: "claim" });
         }
       })();
     },
