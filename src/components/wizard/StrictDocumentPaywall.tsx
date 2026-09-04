@@ -2,18 +2,19 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Check, Loader2, Sparkles, Crown, Users, ShieldCheck } from "@/icons";
+import { AlertTriangle, Check, Loader2, RefreshCw, Sparkles, Crown, Users, ShieldCheck } from "@/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { getStripe } from "@/lib/stripe";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
-import { trackCheckoutStarted } from "@/lib/metrics";
+import { trackCheckoutFailed, trackCheckoutStarted } from "@/lib/metrics";
+import { categorizeCheckoutError } from "@/lib/checkoutAnalytics";
 import { RoiSavingsBanner } from "@/components/funnel/RoiSavingsBanner";
 import {
+  ENTRY_PACK_CONFIG,
   PRICING_PLANS,
-  STRICT_UNLOCK_EUR,
   fmtEur,
   monthlyLabel,
   opsLabel,
@@ -41,11 +42,13 @@ export function StrictDocumentPaywall({
   const navigate = useNavigate();
   const [starting, setStarting] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
 
   const startUnlock = async () => {
     setStarting(true);
-    trackEvent("strict_unlock_checkout_started", { doc_key: docKey, sector_id: sectorId });
-    trackCheckoutStarted("strict_unlock", "one_time", "strict_paywall");
+    setFailed(false);
+    // Клик ≠ стартиран checkout. Тук отчитаме само намерението.
+    trackEvent("strict_unlock_cta_clicked", { doc_key: docKey, sector_id: sectorId });
     try {
       // Preserve wizard route so CheckoutReturn navigates back after payment.
       try {
@@ -63,8 +66,15 @@ export function StrictDocumentPaywall({
       });
       if (error || !data?.clientSecret) throw new Error(error?.message || "Не успяхме да отворим плащане");
       setClientSecret(data.clientSecret);
+      // checkout_started = реално създадена Stripe сесия.
+      trackEvent("strict_unlock_checkout_started", { doc_key: docKey, sector_id: sectorId });
+      trackCheckoutStarted("strict_unlock", "one_time", "strict_paywall");
     } catch (e: any) {
-      toast.error("Грешка", { description: String(e?.message ?? e) });
+      trackCheckoutFailed("strict_unlock", "one_time", categorizeCheckoutError(e), "strict_paywall");
+      setFailed(true);
+      toast.error("Плащането не беше отворено", {
+        description: "Плащане не е извършено. Прогресът ви е запазен — опитайте отново.",
+      });
     } finally {
       setStarting(false);
     }
@@ -76,12 +86,14 @@ export function StrictDocumentPaywall({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) setClientSecret(null); onOpenChange(v); }}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { setClientSecret(null); setFailed(false); } onOpenChange(v); }}>
       <DialogContent className="max-w-2xl">
         {clientSecret ? (
           <div>
             <DialogHeader className="mb-3">
-              <DialogTitle>Отключване на Стриктен документ — {fmtEur(STRICT_UNLOCK_EUR)}</DialogTitle>
+              <DialogTitle>
+                Отключи този Стриктен документ + {ENTRY_PACK_CONFIG.ops} операции — {fmtEur(ENTRY_PACK_CONFIG.eur)}
+              </DialogTitle>
               <DialogDescription>
                 Плащането е сигурно. След успех се връщате към документа за сваляне.
               </DialogDescription>
@@ -151,21 +163,46 @@ export function StrictDocumentPaywall({
               <div className="flex items-center justify-between gap-3 mb-2">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-gold" />
-                  <div className="font-semibold">Отключи само този документ</div>
+                  <div className="font-semibold">
+                    Отключи този Стриктен документ + получи {ENTRY_PACK_CONFIG.ops} операции
+                  </div>
                 </div>
-                <div className="text-xl font-bold text-gold">{fmtEur(STRICT_UNLOCK_EUR)}</div>
+                <div className="text-xl font-bold text-gold">{fmtEur(ENTRY_PACK_CONFIG.eur)}</div>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
-                Еднократно плащане. Валидно 24 часа за този документ — сваляте
-                неограничен брой пъти в PDF и DOCX.
+                Еднократно плащане без абонамент. Документът се отключва за 24 часа
+                (неограничени сваляния в PDF и DOCX), а {ENTRY_PACK_CONFIG.ops} операции
+                остават в профила ви и не изтичат.
               </p>
+              {failed && (
+                <div
+                  role="alert"
+                  className="mb-3 flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-left"
+                >
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">
+                      Не успяхме да отворим плащането
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      Плащане не е извършено и прогресът ви е запазен. Опитайте отново.
+                    </p>
+                  </div>
+                </div>
+              )}
               <Button
                 onClick={startUnlock}
                 disabled={starting}
                 className="w-full gap-2 bg-gradient-to-r from-gold to-gold-dark hover:opacity-90"
               >
-                {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                Отключи за {fmtEur(STRICT_UNLOCK_EUR)}
+                {starting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : failed ? (
+                  <RefreshCw className="h-4 w-4" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                {failed ? "Опитай отново" : `Отключи за ${fmtEur(ENTRY_PACK_CONFIG.eur)}`}
               </Button>
             </div>
 
