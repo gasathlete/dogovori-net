@@ -456,13 +456,15 @@ export async function syncDraft(input: {
       ts: Date.now(),
       expiresAt,
       claimed,
-      savedDocId: storedSame?.savedDocId ?? (p?.draftId === data.draft_id ? p?.savedDocId : undefined),
+      savedDocId: storedSame?.savedDocId ?? (sameAsSent ? p?.savedDocId : undefined),
     };
     writePointer(pointer);
     writePayload(pointer.draftId, input.payload);
-    // Сървърният запис е потвърден — резервният слот на таба вече не е нужен.
-    if (pointer.draftId !== LOCAL_DRAFT_ID) removePayload(LOCAL_DRAFT_ID);
-    return { ok: true, pointer, created: !p || p.draftId !== data.draft_id };
+    // Сървърният запис е потвърден — резервният слот на таба и съдържанието
+    // под стария идентификатор вече не са нужни.
+    removePayload(LOCAL_DRAFT_ID);
+    if (p && !sameAsSent) removePayload(p.draftId);
+    return { ok: true, pointer, created: !sameAsSent };
   } catch {
     return { ok: false, reason: "network" };
   }
