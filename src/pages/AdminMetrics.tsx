@@ -24,6 +24,12 @@ type Range = "7d" | "30d" | "90d";
 interface Overview {
   acquisition: { visitors: number; pageviews: number; signups: number; signup_rate: number };
   activation: { start: number; fill: number; generate: number; download: number; sign: number; start_to_download: number };
+  continuity: {
+    draft_created: number; draft_restore_offered: number; draft_restored: number;
+    claim_started: number; claim_succeeded: number; claim_blocked: number; claim_success_rate: number;
+    blocked_expired: number; blocked_already_claimed: number; blocked_invalid_token: number;
+    blocked_network: number; draft_expired: number;
+  };
   conversion: {
     plans_views: number; checkout_started: number; upgrade_completed: number;
     paid_subscriptions: number; visitor_to_paid: number; signup_to_paid: number; checkout_completion: number;
@@ -191,6 +197,38 @@ export default function AdminMetrics() {
                 Старт → Сваляне: <span className="font-semibold text-foreground">{a!.start_to_download}%</span>
               </p>
             </section>
+
+            {/* Activation continuity (анонимна чернова → акаунт) */}
+            {(() => {
+              const c = data.continuity;
+              if (!c) return null;
+              return (
+                <section className="rounded-2xl border border-hairline bg-card/60 p-5">
+                  <h2 className="mb-4 font-serif text-lg text-foreground">Непрекъснатост на започнатия документ</h2>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <Kpi label="Създадени чернови" value={c.draft_created} hint="анонимен старт" />
+                    <Kpi label="Предложено възстановяване" value={c.draft_restore_offered} />
+                    <Kpi label="Възстановени" value={c.draft_restored} />
+                    <Kpi
+                      label="Успешно присвояване"
+                      value={c.claim_success_rate}
+                      suffix="%"
+                      hint={`${c.claim_succeeded} от ${c.claim_started} след вход`}
+                      tone={c.claim_started === 0 ? "neutral" : c.claim_success_rate >= 95 ? "good" : c.claim_success_rate >= 85 ? "warn" : "bad"}
+                    />
+                    <Kpi label="Отказани · изтекла" value={c.blocked_expired} />
+                    <Kpi label="Отказани · вече присвоена" value={c.blocked_already_claimed} />
+                    <Kpi label="Отказани · невалиден ключ" value={c.blocked_invalid_token} tone={c.blocked_invalid_token > 0 ? "warn" : "neutral"} />
+                    <Kpi label="Отказани · мрежа" value={c.blocked_network} />
+                  </div>
+                  <p className="mt-4 text-xs text-muted-foreground">
+                    Ориентир: над 95% успешно присвояване. Черновите пазят само отговорите по документа,
+                    без идентификация на потребителя, и изтичат след 24 часа.
+                  </p>
+                </section>
+              );
+            })()}
+
 
             {/* Conversion */}
             <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

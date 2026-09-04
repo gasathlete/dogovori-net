@@ -4,6 +4,7 @@ import "./fonts.ts";
 import "./index.css";
 import "./i18n";
 import { initWebVitalsReporter } from "./lib/webVitalsReporter";
+import { applyAbOverridesFromUrl } from "./lib/ab";
 
 // Strip prerendered JSON-LD blocks before React/Helmet mounts its own copies.
 // Without this, /shablon, /kategoria, /ai, /karta etc. would emit duplicate
@@ -45,6 +46,11 @@ window.addEventListener("error", (e) => handleStaleChunk(e?.message));
 window.addEventListener("unhandledrejection", (e) =>
   handleStaleChunk((e?.reason as { message?: string } | undefined)?.message),
 );
+
+// A/B форсиране от URL се прилага ПРЕДИ първия render: hook-ове като
+// useActivationDraft четат варианта още при mount, така че ?ab_<test>=variant
+// трябва да е записан преди това (иначе се хваща едва при следващо зареждане).
+applyAbOverridesFromUrl(window.location.search);
 
 createRoot(document.getElementById("root")!).render(<App />);
 
