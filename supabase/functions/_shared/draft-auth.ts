@@ -53,6 +53,15 @@ export interface AuthInput {
   now?: number;
 }
 
+/**
+ * Създаване е разрешено САМО когато `draft_id` изобщо липсва в заявката.
+ * Ако е подаден (дори невалиден/изтекъл), заявката е обновяване и трябва да
+ * приключи с типизиран отказ — никога с тихо създаден дубликат.
+ */
+export function isCreateRequest(draftId: unknown): boolean {
+  return draftId === undefined || draftId === null || draftId === "";
+}
+
 export type SyncDecision =
   | { ok: true; mode: "anonymous" | "owner"; transferred: boolean }
   | { ok: false; reason: DraftErrorReason };

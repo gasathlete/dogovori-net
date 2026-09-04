@@ -26,6 +26,7 @@ import {
 } from "../_shared/draft-token.ts";
 import {
   decideSyncWrite,
+  isCreateRequest,
   logDraft,
   ownerUpdateAfterTransfer,
   REASON_STATUS,
@@ -102,7 +103,7 @@ Deno.serve(async (req) => {
     };
 
     /* ----------------------------- Обновяване ----------------------------- */
-    if (body.draft_id !== undefined && body.draft_id !== null && body.draft_id !== "") {
+    if (!isCreateRequest(body.draft_id)) {
       if (!isValidDraftId(body.draft_id)) return fail("invalid_request");
 
       const { data: existing, error: readErr } = await db

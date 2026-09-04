@@ -8,6 +8,7 @@ import {
   decideClaim,
   decideSyncWrite,
   hasRestorableContent,
+  isCreateRequest,
   ownerUpdateAfterTransfer,
   REASON_STATUS,
   rowAfterTransfer,
@@ -190,4 +191,22 @@ Deno.test("логът никога не пропуска токени, съдъ�
   for (const forbidden of [TOKEN, "deadbeef", "1234567890", "Иван", "example.com", "България", OWNER, OTHER, "eyJ"]) {
     assertFalse(serialized.includes(forbidden), `логът съдържа „${forbidden}“`);
   }
+});
+
+Deno.test("създаване е разрешено само без draft_id", async () => {
+  assert(isCreateRequest(undefined));
+  assert(isCreateRequest(null));
+  assert(isCreateRequest(""));
+  assertFalse(isCreateRequest("d1"));
+  // Подаден, но невалиден / изтекъл ред → отказ, а не нова чернова.
+  const expired = await unclaimed({ expires_at: PAST });
+  assertFalse(isCreateRequest("d1"));
+  assertEquals(decideSyncWrite({ row: expired, tokenHash: await hashToken(TOKEN), userId: null, now: NOW }), {
+    ok: false,
+    reason: "expired",
+  });
+  assertEquals(decideSyncWrite({ row: null, tokenHash: null, userId: OWNER, now: NOW }), {
+    ok: false,
+    reason: "expired",
+  });
 });
