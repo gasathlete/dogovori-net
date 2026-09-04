@@ -23,17 +23,19 @@
 - [x] Тестове: checkoutTracking (8, vitest) + generation-status (10) и ai-json-retry (10) Deno; CI стъпка с setup-deno; vitest 202/202, deno 65/65, tsgo чист
 - [x] Browser (влязъл потребител): doc_start пристига с user_id (client) и се записва с user_id в базата; тестовите редове са изтрити
 
-## Етап 3 — activation continuity (код готов, флагът е изключен)
+## Етап 3 — activation continuity (пуснато на 25%, security hardening готов в кода)
 - [x] `src/lib/activationDraft.ts`: указател в localStorage без лични данни + съдържание в sessionStorage, TTL 24 ч, tab id, миграция и изтриване на старите ключове (`wizard:*`, `build:custom-contract`)
 - [x] Миграция `0004_create_anonymous_drafts.sql`: `public.anonymous_drafts` (token_hash, RLS само за собственика, grants, TTL trigger, `cleanup_anonymous_drafts()`)
 - [x] Edge функции `draft-sync` (rate limit, лимит 512 KB, токен само хеширан) и `draft-claim` (user от JWT, constant-time сравнение, атомарен claim, авто-запис в „Моите документи")
 - [x] `useActivationDraft` + wire-up в Wizard и BuildContract; резервен запис в таба при неуспешна синхронизация
 - [x] Връщане след вход: `useAuth` праща потребителя към маршрута на черновата, ако няма изрична цел (нов таб от имейл, OAuth)
-- [x] Канонични събития: draft_created / autosaved / restore_offered / restored / claim_started / claim_succeeded / claim_blocked / draft_expired
-- [x] Тестове: activationDraft (10, vitest) + draft-token (5, Deno) в CI; vitest 212/212, tsgo чист
-- [ ] Деплой на `draft-sync` / `draft-claim` и вдигане на `activation_continuity` (сега split 0) — чака одобрение
-- [ ] Playwright сценарии след деплой: шаблон → уизард → inline signup → същата стъпка; резултат → signup → запис; refresh; изтекла чернова
-- [ ] Плочка в /admin/metrics за claim успеваемост
+- [x] Канонични събития: draft_created / autosaved / restore_offered / restored / claim_started / claim_succeeded / claim_blocked / draft_expired / draft_sync_blocked
+- [x] Плочка в /admin/metrics за claim успеваемост (+ бележка за TTL 24 ч / 30 дни и прехвърляне в „Моите документи")
+- [x] Hardening (само код + тестове): `_shared/draft-auth.ts` (чисти решения за sync/claim, JWT само от заглавката, токен ротиран след claim, TTL 30 дни за присвоени, прехвърлена чернова приема само route/step); `src/lib/safeRoute.ts` — едно място за защита от open redirect (Auth, InlineAuthDialog, CheckoutReturn, SubscriptionTab, Wizard); `ab.ts` — детерминистични кофи (10 000) + миграция на старите варианти; указателят маха токена след claim; закъснял sync не сваля `claimed`; записите изчакват claim в движение; празен снапшот при отваряне не създава чернова; legacy миграция без загуба (стажиране до потвърден сървърен запис)
+- [x] Тестове: activationDraft (28), safeRoute (9), ab (9), docFunnel/funnelEvents; draft-auth + draft-token (19, Deno); vitest 248/248, tsgo чист; Playwright: idle open → 0 заявки, въвеждане → 1 sync, reload → възстановено, вход → claim преди sync, без токен в указателя
+- [ ] Деплой на новите `draft-sync` / `draft-claim` (JWT път за присвоени чернови — до деплоя клиентът работи съвместимо със старата версия, но всеки запис след вход създава нова анонимна чернова) — чака одобрение
+- [ ] След деплой: Playwright сценарии шаблон → уизард → inline signup → същата стъпка; резултат → signup → запис; изтекла чернова; два таба
+- [ ] Rollout 25% → 50% → 100% при claim успеваемост ≥ 95% и без спад на индекса на качеството
 
 ## Готови за следващ етап
 - [ ] Deploy на `generate-job` и `generate-contract` (idempotency_key, `completed`, error_code) — чака одобрение
