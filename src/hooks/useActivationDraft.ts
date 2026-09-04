@@ -590,10 +590,14 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
   );
 
   const runClaim = useCallback(
-    (current: DraftPointer, userId: string) => {
-      if (!mountedRef.current || claimInFlightRef.current) return;
+    (current: DraftPointer, userId: string): boolean => {
+      if (!mountedRef.current || claimInFlightRef.current) return false;
       const hasLocal = hasRestorableContent(readPayload(current.draftId) ?? readPayload(LOCAL_DRAFT_ID));
+      // Операцията придобива собствеността ЕДВА тук — маркерът за „опитано" се
+      // вдига само след като заявката наистина е стартирала.
+      const gen = ++claimGenRef.current;
       claimInFlightRef.current = true;
+      claimAttemptRef.current = current.draftId;
       setClaiming(true);
       trackDraftEvent("draft_claim_started", { draft_id: current.draftId, doc_key: current.docKey, source: flow });
       void (async () => {
@@ -601,9 +605,16 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
         try {
           res = await claimDraft(current);
         } finally {
-          claimInFlightRef.current = false;
-          if (mountedRef.current) setClaiming(false);
+          // Само притежателят на текущото поколение освобождава ключа и гаси
+          // индикатора: обезсилена стара заявка не пипа новата операция.
+          if (claimGenRef.current === gen) {
+            claimInFlightRef.current = false;
+            if (mountedRef.current) setClaiming(false);
+          }
         }
+        // Обезсилено поколение (нова самоличност/чернова, отказване) → без
+        // никакви правомощия върху състоянието.
+        if (claimGenRef.current !== gen) return;
         // Указателят е сменен/изтрит или потребителят е излязъл, докато
         // заявката е пътувала → резултатът е без значение.
         const live = stillCurrent(current.draftId, userId);
