@@ -55,7 +55,15 @@ import { downloadDocument } from "@/lib/downloadDocument";
 import { mergeParentWithAppendices } from "@/lib/appendixMerger";
 import { Seo } from "@/components/Seo";
 import { trackEvent } from "@/lib/analytics";
-import { trackDocStart, trackGenerate } from "@/lib/docFunnel";
+import {
+  trackDocStart,
+  trackGenerate,
+  trackResultViewed,
+  trackAuthPromptShown,
+  trackDocumentSaved,
+} from "@/lib/docFunnel";
+import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
+import { classifyGenerationError, errorClassOf, type GenerationError } from "@/lib/generationErrors";
 import { PartyListEditor, parseParties, serializeParties } from "@/components/wizard/PartyListEditor";
 import { Lock } from "@/icons";
 import { findSimilarTemplates, type SimilarTemplate } from "@/lib/templateSimilarity";
@@ -184,8 +192,21 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     if (prefillSubject) fromPersisted.subject = prefillSubject;
     return fromPersisted;
   });
-  const setField = (key: string, value: string) =>
+  const docSelectedRef = useRef(false);
+  /**
+   * `document_selected` — само при съзнателно действие (избор на тип документ,
+   * първо въвеждане, старт на генериране). Не при mount: страницата се отваря и
+   * от SEO трафик/презареждане. Еднократно за (сесия, тип документ).
+   */
+  const markDocSelected = (docKey: string) => {
+    if (docSelectedRef.current) return;
+    docSelectedRef.current = true;
+    trackDocStart({ source: "build", doc_key: docKey });
+  };
+  const setField = (key: string, value: string) => {
+    markDocSelected(documentType);
     setFieldValues((prev) => ({ ...prev, [key]: value }));
+  };
 
   const [generating, setGenerating] = useState(false);
   const [genStepIdx, setGenStepIdx] = useState(0);
@@ -284,7 +305,6 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
 
   useEffect(() => {
     trackEvent("build_contract_open");
-    trackDocStart({ source: "build" });
   }, []);
 
   // Apply preset category from URL when navigating in from a sector page.
@@ -350,7 +370,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     "Финализираме документа — почти готово…",
   ];
 
-  const goAuth = (opts?: { action?: string; onSuccess?: () => void }) => {
+  const goAuth = (opts?: { action?: string; intent?: string; onSuccess?: () => void }) => {
     // Snapshot current state synchronously so nothing typed just before this
     // navigation is lost across the /auth → return roundtrip.
     try {
@@ -363,7 +383,13 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       }));
     } catch {}
     // Инлайн вход — без напускане на текущия екран, за да не се губи инерция.
-    openInlineAuth({ action: opts?.action, onSuccess: opts?.onSuccess });
+    openInlineAuth({
+      action: opts?.action,
+      intent: opts?.intent ?? "generate",
+      docKey: documentType,
+      source: "build",
+      onSuccess: opts?.onSuccess,
+    });
   };
   const goSubscription = () => navigate(`/account?tab=subscription`);
 
@@ -455,13 +481,27 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     const interval = setInterval(() => setGenStepIdx((i) => (i + 1) % GEN_STEPS.length), 5000);
     try {
       trackEvent("build_contract_started", { category: categoryLabel, documentType });
+      markDocSelected(documentType);
       trackGenerate("started", { source: "build", doc_key: documentType, category: categoryLabel });
       const customFields = schema.fields.map((f) => ({
         key: f.key, label: f.label, value: (fieldValues[f.key] ?? "").trim(),
       }));
       // Back-compat aliases for legacy server fields
       const get = (k: string) => (fieldValues[k] ?? "").trim();
-      const { data, error } = await supabase.functions.invoke("build-custom-contract", {
+      // invokeEdgeFunction: разопакова 4xx тялото в `data` и повтаря само при
+      // мрежов срив — така „Failed to send a request" не се брои за провал на AI.
+      let startAttempts = 1;
+      const { data, error, correlationId } = await invokeEdgeFunction<
+        AIResult & { error?: string; code?: string; requires_login?: boolean }
+      >("build-custom-contract", {
+        retries: 2,
+        onRetry: (attempt, max) => {
+          startAttempts = attempt + 1;
+          toast.loading(`Опитваме отново… (${attempt}/${max})`, {
+            id: "build-retry",
+            description: "Връзката прекъсна за момент — данните ви са запазени.",
+          });
+        },
         body: {
           name: name.trim(),
           category: categoryLabel,
@@ -487,8 +527,9 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       });
       // Лични / чувствителни данни → диалог за потвърждение вместо сурова грешка.
       const sensitive = await parseSensitiveResponse(error, data);
+      const genMeta = { correlation_id: correlationId, attempts: startAttempts };
       if (isSpecialCategoryBlocked(sensitive)) {
-        trackGenerate("fail", { source: "build", doc_key: documentType, reason: "sensitive_blocked" });
+        trackGenerate("blocked", { source: "build", doc_key: documentType, reason: "sensitive_blocked", ...genMeta });
         setSensitiveClass(sensitive?.classification ?? null);
         setSensitiveBlocked(true);
         setSensitiveOpen(true);
@@ -500,51 +541,66 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
           void handleGenerate(true);
           return;
         }
-        trackGenerate("fail", { source: "build", doc_key: documentType, reason: "needs_confirmation" });
+        trackGenerate("blocked", { source: "build", doc_key: documentType, reason: "needs_confirmation", ...genMeta });
         setSensitiveClass(sensitive?.classification ?? null);
         setSensitiveBlocked(false);
         setSensitiveOpen(true);
         return;
       }
-      if (error) {
-        const msg = String((error as any)?.message || error);
-        // Edge functions return non-2xx as an Error from supabase-js. Try to extract context.
-        const ctx: any = (error as any)?.context;
-        let parsed: any = null;
-        try {
-          if (ctx && typeof ctx.json === "function") parsed = await ctx.json();
-        } catch { /* ignore */ }
-        if (parsed?.code === "auth_required" || msg.includes("401")) {
-          toast.error(parsed?.error || "Влезте, за да изградите договора", {
+      if (error || !data || data.error) {
+        const gen = classifyGenerationError({ error, data: data ?? null });
+        if (gen.code === "requires_login") {
+          trackGenerate("blocked", { source: "build", doc_key: documentType, reason: gen.code, ...genMeta });
+          toast.error(data?.error || "Влезте, за да изградите договора", {
             description: "Въведените данни остават запазени.",
           });
-          goAuth({ action: "Изготвяне на документа" });
+          goAuth({ action: "Изготвяне на документа", onSuccess: () => handleGenerate(userConfirmed) });
           return;
         }
-        throw error;
-      }
-      if (!data || data.error) {
-        if (data?.requires_login || data?.code === "auth_required") {
-          toast.error(data.error || "Влезте с електронна поща или Google, за да продължите");
-          goAuth({ action: "Изготвяне на документа" });
-          return;
-        }
-        throw new Error(data?.error || "Неуспешно създаване");
+        const err = new Error(data?.error || error?.message || "Неуспешно създаване");
+        (err as { gen?: GenerationError }).gen = gen;
+        (err as { cid?: string }).cid = error?.correlationId ?? correlationId;
+        throw err;
       }
       setResult(data as AIResult);
       trackEvent("build_contract_generated", { category: categoryLabel });
-      trackGenerate("success", { source: "build", doc_key: documentType, category: categoryLabel });
+      trackGenerate("success", { source: "build", doc_key: documentType, category: categoryLabel, ...genMeta });
+      trackResultViewed({ source: "build", doc_key: documentType });
       toast.success("Договорът е готов", { description: "Прегледайте резултата отдясно." });
     } catch (e: any) {
       const emsg = String(e?.message || e);
-      trackGenerate("fail", { source: "build", doc_key: documentType, reason: emsg.slice(0, 120) });
-      if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) return;
-      const msg = emsg;
-      if (msg.includes("429")) toast.error("Достигнат е лимитът. Опитайте след малко.");
-      else if (msg.includes("402")) toast.error("Изчерпан лимит на системата. Опитайте по-късно.");
-      else toast.error("Възникна грешка", { description: msg });
+      const cid: string | undefined = e?.cid;
+      if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) {
+        trackGenerate("blocked", { source: "build", doc_key: documentType, reason: "blocked_content", correlation_id: cid });
+        return;
+      }
+      const gen: GenerationError =
+        (e?.gen as GenerationError | undefined) ??
+        classifyGenerationError({ thrownMessage: emsg, error: { message: emsg, correlationId: cid } });
+      trackGenerate(gen.gate ? "blocked" : "fail", {
+        source: "build",
+        doc_key: documentType,
+        reason: gen.code,
+        error_class: errorClassOf(gen.code),
+        http_status: gen.httpStatus,
+        retryable: gen.retryable,
+        correlation_id: cid,
+      });
+      if (gen.code === "quota_exceeded") {
+        toast.error("Изчерпан лимит на операциите", {
+          description: gen.message,
+          action: { label: "Виж опции", onClick: () => goSubscription() },
+        });
+        return;
+      }
+      toast.error(gen.code === "network" ? "Връзката бе прекъсната" : "Възникна грешка", {
+        description: gen.retryable ? gen.message : `${gen.message}${cid ? ` (код: ${cid.slice(0, 8)})` : ""}`,
+        ...(gen.retryable ? { action: { label: "Опитай отново", onClick: () => void handleGenerate(userConfirmed) } } : {}),
+        duration: gen.retryable ? 12000 : 8000,
+      });
     } finally {
       clearInterval(interval);
+      toast.dismiss("build-retry");
       setGenerating(false);
     }
   };
@@ -580,6 +636,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
               })
               .eq("id", existing.id);
             setSavedDocId(existing.id);
+            trackDocumentSaved(existing.id, { source: "build", doc_key: documentType, via: "autosave" });
             return;
           }
         }
@@ -596,6 +653,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
           .single();
         if (error) throw error;
         setSavedDocId(data.id);
+        trackDocumentSaved(data.id, { source: "build", doc_key: documentType, via: "autosave" });
       } catch (e) {
         console.error("auto-save parent failed:", e);
       } finally {
@@ -666,7 +724,10 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         }
         return;
       }
-      if (res.saved_document_id) setSavedDocId(res.saved_document_id);
+      if (res.saved_document_id) {
+        setSavedDocId(res.saved_document_id);
+        trackDocumentSaved(res.saved_document_id, { source: "build", doc_key: documentType, via: "download" });
+      }
 
       // PDF + linked appendices → produce a merged "with appendices" PDF.
       if (format === "pdf" && (savedDocId || res.saved_document_id)) {
@@ -798,6 +859,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         .single();
       if (error) throw error;
       setSavedDocId(data.id);
+      trackDocumentSaved(data.id, { source: "build", doc_key: documentType, via: "save" });
       trackEvent("build_contract_saved");
       toast.success("Запазено в профила", { description: "Документи → Всички" });
     } catch (e: any) {
@@ -1147,6 +1209,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                                       // from step 1 — prevents stale name/category/parties/fields
                                       // from a previous type bleeding into the new flow.
                                       setDocumentType(d.id);
+                                      markDocSelected(d.id);
                                       setName(
                                         presetDocumentType === d.id && refNumberParam && parentTitleParam
                                           ? `${getDocumentType(d.id).label} № ${refNumberParam} към „${parentTitleParam}”`

@@ -17,6 +17,22 @@ export interface InlineAuthRequest {
   mode?: "login" | "signup";
   /** Изпълнява се веднага след като сесията е налична. */
   onSuccess?: () => void;
+  /** Стабилен ключ на намерението (за аналитика), напр. `generate`, `download_pdf`. */
+  intent?: string;
+  /** Документ / екран, от който идва подканата — за фунията. */
+  docKey?: string;
+  source?: string;
+  /** true → не отчита `auth_prompt_shown` (подканата вече е отчетена от предходен екран). */
+  silent?: boolean;
+}
+
+export interface InlineAuthDetail {
+  action?: string;
+  mode: "login" | "signup";
+  intent?: string;
+  docKey?: string;
+  source?: string;
+  silent?: boolean;
 }
 
 /** Пази callback-а извън CustomEvent detail (не се сериализира). */
@@ -24,7 +40,15 @@ let pendingSuccess: (() => void) | null = null;
 
 export function openInlineAuth(req: InlineAuthRequest = {}): void {
   pendingSuccess = req.onSuccess ?? null;
-  dispatchBuffered(INLINE_AUTH_EVENT, { action: req.action, mode: req.mode ?? "signup" });
+  const detail: InlineAuthDetail = {
+    action: req.action,
+    mode: req.mode ?? "signup",
+    intent: req.intent,
+    docKey: req.docKey,
+    source: req.source,
+    silent: req.silent,
+  };
+  dispatchBuffered(INLINE_AUTH_EVENT, detail);
 }
 
 export function takeInlineAuthSuccess(): (() => void) | null {

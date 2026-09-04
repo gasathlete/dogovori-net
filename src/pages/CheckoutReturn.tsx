@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { trackEvent } from "@/lib/analytics";
 import { trackUpgradeCompleted } from "@/lib/metrics";
+import { trackCheckoutCompleted } from "@/lib/docFunnel";
 
 export default function CheckoutReturn() {
   const [params] = useSearchParams();
@@ -67,10 +68,17 @@ export default function CheckoutReturn() {
   }, [user, sessionId, type]);
 
   // Auto-redirect back to wizard once the purchase is reflected.
+  const purchaseTrackedRef = useRef(false);
   useEffect(() => {
     if (readyAt === "ready") {
-      trackEvent("purchase_complete", { sessionId: sessionId ?? undefined });
-      trackUpgradeCompleted(typeof type === "string" ? type : undefined);
+      // Еднократно за монтиране + сървърна дедупликация по Stripe session id:
+      // ефектът може да се изпълни повторно при промяна на redirectTo.
+      if (!purchaseTrackedRef.current) {
+        purchaseTrackedRef.current = true;
+        trackEvent("purchase_complete", { sessionId: sessionId ?? undefined });
+        trackUpgradeCompleted(typeof type === "string" ? type : undefined);
+        trackCheckoutCompleted(sessionId, { kind: typeof type === "string" ? type : "subscription" });
+      }
       if (redirectTo) {
         const t = setTimeout(() => navigate(redirectTo), 1500);
         return () => clearTimeout(t);

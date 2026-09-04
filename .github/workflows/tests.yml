@@ -30,6 +30,9 @@ jobs:
       - name: AI JSON parser regression suite
         run: bunx vitest run src/test/aiJsonParsers.test.ts src/test/aiJsonRetry.test.ts src/test/aiRepairIntegration.test.ts src/test/catalogCounts.test.ts src/test/questionGraphSlugs.test.ts
 
+      - name: Conversion reliability (funnel semantics, dedup, generation errors)
+        run: bunx vitest run src/test/funnelEvents.test.ts src/test/docFunnel.test.ts src/test/generationReliability.test.ts
+
 
       - name: Wizard full audit (fails on CRITICAL)
         run: bun run scripts/wizard-full-audit.ts

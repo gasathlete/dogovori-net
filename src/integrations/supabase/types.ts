@@ -1768,6 +1768,7 @@ export type Database = {
           error_code: string | null
           http_status: number | null
           id: string
+          idempotency_key: string | null
           result: Json | null
           status: string
           updated_at: string
@@ -1781,6 +1782,7 @@ export type Database = {
           error_code?: string | null
           http_status?: number | null
           id?: string
+          idempotency_key?: string | null
           result?: Json | null
           status?: string
           updated_at?: string
@@ -1794,6 +1796,7 @@ export type Database = {
           error_code?: string | null
           http_status?: number | null
           id?: string
+          idempotency_key?: string | null
           result?: Json | null
           status?: string
           updated_at?: string
