@@ -1,25 +1,13 @@
-import { lazy as reactLazy, Suspense, type ComponentType } from "react";
+import { Suspense } from "react";
+import { lazyRetry } from "@/lib/lazyRetry";
 
-// Wrap React.lazy so that a failed dynamic import (typically caused by a stale
-// index.html pointing to a vendor chunk that no longer exists after a deploy)
-// triggers a one-time hard reload instead of a permanent blank screen.
-const lazy = <T extends ComponentType<any>>(factory: () => Promise<{ default: T }>) =>
-  reactLazy(() =>
-    factory()
-      .then((mod) => {
-        if (typeof window !== "undefined") sessionStorage.removeItem("lovable:chunk-reload");
-        return mod;
-      })
-      .catch((err) => {
-        const key = "lovable:chunk-reload";
-        if (typeof window !== "undefined" && !sessionStorage.getItem(key)) {
-          sessionStorage.setItem(key, "1");
-          window.location.reload();
-          return new Promise(() => {}) as Promise<{ default: T }>;
-        }
-        throw err;
-      }),
-  );
+// Every lazy boundary goes through lazyRetry so a failed dynamic import
+// (typically a stale index.html pointing at chunks removed by a new deploy)
+// retries once and then hard-reloads with a cache-buster, instead of leaving
+// a permanent blank screen.
+const lazy = lazyRetry;
+const reactLazy = lazyRetry;
+
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
