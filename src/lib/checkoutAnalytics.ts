@@ -24,13 +24,6 @@ export function describePriceId(priceId?: string): { plan: string; billing: stri
   return { plan: priceId.slice(0, 40), billing: "unknown" };
 }
 
-/** Еднократни продукти без "_monthly/_yearly" суфикс. */
-const ONE_TIME_PRICE_IDS: Record<string, string> = {
-  five_operations: "five_operations",
-  single_contract: "single_contract",
-  strict_doc_unlock: "strict_unlock",
-};
-
 /**
  * Ограничена таксономия на причините за неуспешен checkout.
  * Никога не изпращаме суровото съобщение за грешка — само една от тези стойности.
