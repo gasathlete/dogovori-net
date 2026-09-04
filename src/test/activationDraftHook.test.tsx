@@ -392,7 +392,9 @@ describe("граница на самоличността и присвояван
   it("A. чернова, създадена след вход, се присвоява точно веднъж без смяна на потребителя", async () => {
     authUser = { id: "user-1" };
     const first = deferred<ReturnType<typeof okSync>["result"]>();
-    syncMock.mockImplementationOnce(() => first.promise);
+    syncMock
+      .mockImplementationOnce(() => first.promise)
+      .mockImplementation(async () => okSync(pointer({ stepIdx: 2 }), false).result);
     claimMock.mockResolvedValue({ ok: true, hasResult: false });
 
     const { result } = render();
