@@ -30,20 +30,24 @@ describe("resolvePostAuthRedirect", () => {
   });
 
   it("без цел връща потребителя при недовършения документ", () => {
-    expect(resolvePostAuthRedirect({ destination: null, here: "/", draftRoute: "/wizard/it?doc=nda" })).toEqual({
+    expect(resolvePostAuthRedirect({ destination: null, here: "/", draftRoute: "/wizard/it?doc=nda", isAuthLanding: true })).toEqual({
       target: "/wizard/it?doc=nda",
       consumeDestination: false,
     });
   });
 
   it("не пренасочва към същия маршрут (без цикъл) и без чернова", () => {
-    expect(resolvePostAuthRedirect({ destination: null, here: "/wizard/it", draftRoute: "/wizard/it" })).toEqual({
+    expect(resolvePostAuthRedirect({ destination: null, here: "/wizard/it", draftRoute: "/wizard/it", isAuthLanding: true })).toEqual({
       target: null,
       consumeDestination: false,
     });
-    expect(resolvePostAuthRedirect({ destination: null, here: "/" })).toEqual({
+    expect(resolvePostAuthRedirect({ destination: null, here: "/", isAuthLanding: true })).toEqual({
       target: null,
       consumeDestination: false,
     });
+    // Влязъл потребител, който презарежда вътрешна страница, остава на място.
+    expect(
+      resolvePostAuthRedirect({ destination: null, here: "/plans", draftRoute: "/wizard/it", isAuthLanding: false }),
+    ).toEqual({ target: null, consumeDestination: false });
   });
 });

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { clearAllDraftStorage, readPointer } from "@/lib/activationDraft";
-import { resolvePostAuthRedirect } from "@/lib/postAuthRedirect";
+import { isAuthLandingPath, resolvePostAuthRedirect } from "@/lib/postAuthRedirect";
 import { sanitizeReturnPath } from "@/lib/safeRoute";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,15 +37,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       redirectHandledRef.current = true;
       try {
         const destination = sessionStorage.getItem("post_login_redirect");
-        const draft = readPointer();
+        // Резервният маршрут на чернова важи само при кацане след вход — иначе
+        // презареждане на /plans или /account би „отвлякло" потребителя.
+        const isAuthLanding = isAuthLandingPath(window.location.pathname);
+        const draft = destination === null && isAuthLanding ? readPointer() : null;
         const decision = resolvePostAuthRedirect({
           destination,
           here: window.location.pathname + window.location.search,
           draftRoute: draft ? sanitizeReturnPath(draft.route) : null,
+          isAuthLanding,
         });
         if (decision.consumeDestination) sessionStorage.removeItem("post_login_redirect");
         if (decision.target) window.location.replace(decision.target);
       } catch { /* ignore */ }
+
     };
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {

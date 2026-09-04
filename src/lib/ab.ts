@@ -150,22 +150,26 @@ export function getAbSeed(): string {
   } catch {
     readable = false;
   }
-  if (stored && /^[a-z0-9]{8,64}$/i.test(stored)) return stored;
+  if (stored && /^[a-z0-9]{8,64}$/i.test(stored)) {
+    // Задържаме и в паметта: ако хранилището спре да работи по-късно в същото
+    // зареждане, bucket-ът не бива да се смени под краката на потребителя.
+    memorySeed = stored;
+    return stored;
+  }
   const legacy = readable ? readLegacyVariants() : {};
   const seed = seedMatchingLegacy(legacy);
-  let persisted = false;
   try {
     localStorage.setItem(SEED_KEY, seed);
     localStorage.removeItem(LEGACY_VARIANTS_KEY);
-    persisted = localStorage.getItem(SEED_KEY) === seed;
   } catch {
-    persisted = false;
+    /* private mode / quota — остава само в паметта */
   }
-  // Записът не е потвърден → пазим seed-а в паметта, за да не се мени при всяко
-  // повикване в рамките на същото зареждане.
-  if (!persisted) memorySeed = seed;
+  // Веднъж решен, seed-ът е неизменен за живота на страницата — независимо дали
+  // записът в localStorage е успял.
+  memorySeed = seed;
   return seed;
 }
+
 
 
 /* -------------------------------- Override ------------------------------- */
