@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useActivationDraft } from "@/hooks/useActivationDraft";
 import { OpsHintBar } from "@/components/wizard/OpsHintBar";
 import { GenerationBlockedDialog } from "@/components/wizard/GenerationBlockedDialog";
 import { DocumentValueCard } from "@/components/wizard/DocumentValueCard";
@@ -285,18 +286,54 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     prefillSubject,
   ]);
 
-  // Persist on every change
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+  /**
+   * Непрекъснатост на активацията: съдържанието се пази в текущия таб и на
+   * сървъра, а в localStorage остава указател без лични данни. Прогресът и
+   * готовият резултат преживяват вход, регистрация и OAuth пренасочване.
+   */
+  const activation = useActivationDraft({
+    flow: "build",
+    docKey: documentType,
+    route: window.location.pathname + window.location.search,
+    onRestore: (payload) => {
+      const meta = (payload.meta ?? {}) as Record<string, unknown>;
+      if (typeof meta.documentType === "string") setDocumentType(meta.documentType as DocumentTypeId);
+      if (typeof meta.buildMode === "string") setBuildMode(meta.buildMode as BuildMode);
+      if (typeof meta.name === "string") setName(meta.name);
+      if (typeof meta.categoryId === "string") setCategoryId(meta.categoryId);
+      if (typeof meta.categoryOther === "string") setCategoryOther(meta.categoryOther);
+      if (meta.partiesA) setPartiesA(meta.partiesA as typeof partiesA);
+      if (meta.partiesB) setPartiesB(meta.partiesB as typeof partiesB);
+      if (payload.answers) setFieldValues(payload.answers as Record<string, string>);
+      if (payload.result) setResult(payload.result as typeof result);
+      if (payload.signature) setSignature(payload.signature as typeof signature);
+      if (typeof meta.savedDocId === "string") setSavedDocId(meta.savedDocId);
+      if (typeof meta.stepIdx === "number") setStepIdx(meta.stepIdx);
+    },
+  });
+
+  /** Един снапшот на състоянието — ползва се и от автозаписа, и преди вход. */
+  const snapshotDraft = useCallback(() => {
+    const meta = {
         presetSignature,
         documentType, buildMode, bilingual, bilingualLang,
         name, categoryId, categoryOther, partiesA, partiesB,
         fieldValues,
         result, signature, savedDocId, stepIdx,
-      }));
-    } catch {}
-  }, [presetSignature, documentType, buildMode, bilingual, bilingualLang, name, categoryId, categoryOther, partiesA, partiesB, fieldValues, result, signature, savedDocId, stepIdx]);
+      };
+    if (activation.active) {
+      activation.persist(
+        { answers: fieldValues, result, signature, meta },
+        { stepIdx, hasResult: !!result },
+      );
+      try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+      return;
+    }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(meta)); } catch { /* ignore */ }
+  }, [activation, presetSignature, documentType, buildMode, bilingual, bilingualLang, name, categoryId, categoryOther, partiesA, partiesB, fieldValues, result, signature, savedDocId, stepIdx]);
+
+  // Persist on every change
+  useEffect(() => { snapshotDraft(); }, [snapshotDraft]);
 
   // Force non-Pro/Team users out of bilingual mode.
   useEffect(() => {
@@ -373,15 +410,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   const goAuth = (opts?: { action?: string; intent?: string; onSuccess?: () => void }) => {
     // Snapshot current state synchronously so nothing typed just before this
     // navigation is lost across the /auth → return roundtrip.
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        presetSignature,
-        documentType, buildMode, bilingual, bilingualLang,
-        name, categoryId, categoryOther, partiesA, partiesB,
-        fieldValues,
-        result, signature, savedDocId, stepIdx,
-      }));
-    } catch {}
+    snapshotDraft();
     // Инлайн вход — без напускане на текущия екран, за да не се губи инерция.
     openInlineAuth({
       action: opts?.action,
@@ -1563,6 +1592,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                 onSaveToProfile={handleSaveToProfile}
                 setSignDialogOpen={setSignDialogOpen}
                 onResetAll={() => {
+                  activation.discard();
                   try { localStorage.removeItem(STORAGE_KEY); } catch {}
                   setResult(null);
                   setName(""); setCategoryId(""); setCategoryOther("");

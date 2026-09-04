@@ -23,6 +23,18 @@
 - [x] Тестове: checkoutTracking (8, vitest) + generation-status (10) и ai-json-retry (10) Deno; CI стъпка с setup-deno; vitest 202/202, deno 65/65, tsgo чист
 - [x] Browser (влязъл потребител): doc_start пристига с user_id (client) и се записва с user_id в базата; тестовите редове са изтрити
 
+## Етап 3 — activation continuity (код готов, флагът е изключен)
+- [x] `src/lib/activationDraft.ts`: указател в localStorage без лични данни + съдържание в sessionStorage, TTL 24 ч, tab id, миграция и изтриване на старите ключове (`wizard:*`, `build:custom-contract`)
+- [x] Миграция `0004_create_anonymous_drafts.sql`: `public.anonymous_drafts` (token_hash, RLS само за собственика, grants, TTL trigger, `cleanup_anonymous_drafts()`)
+- [x] Edge функции `draft-sync` (rate limit, лимит 512 KB, токен само хеширан) и `draft-claim` (user от JWT, constant-time сравнение, атомарен claim, авто-запис в „Моите документи")
+- [x] `useActivationDraft` + wire-up в Wizard и BuildContract; резервен запис в таба при неуспешна синхронизация
+- [x] Връщане след вход: `useAuth` праща потребителя към маршрута на черновата, ако няма изрична цел (нов таб от имейл, OAuth)
+- [x] Канонични събития: draft_created / autosaved / restore_offered / restored / claim_started / claim_succeeded / claim_blocked / draft_expired
+- [x] Тестове: activationDraft (10, vitest) + draft-token (5, Deno) в CI; vitest 212/212, tsgo чист
+- [ ] Деплой на `draft-sync` / `draft-claim` и вдигане на `activation_continuity` (сега split 0) — чака одобрение
+- [ ] Playwright сценарии след деплой: шаблон → уизард → inline signup → същата стъпка; резултат → signup → запис; refresh; изтекла чернова
+- [ ] Плочка в /admin/metrics за claim успеваемост
+
 ## Готови за следващ етап
 - [ ] Deploy на `generate-job` и `generate-contract` (idempotency_key, `completed`, error_code) — чака одобрение
 - [ ] /admin/generation: разрез по `error_class` и `retryable`, колона correlation_id за бърза диагностика

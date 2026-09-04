@@ -21,6 +21,14 @@
  *   document_saved        документът е запазен в профила.
  *   document_downloaded   успешно сваляне (PDF/DOCX).
  *   download_failed       неуспешно сваляне.
+ *   draft_created         създадена е анонимна чернова (при първо реално действие).
+ *   draft_autosaved       черновата е записана на сървъра (веднъж на сесия+чернова).
+ *   draft_restore_offered предложено е продължаване на заварена чернова.
+ *   draft_restored        черновата е върната в екрана (refresh / нов таб).
+ *   draft_claim_started   след вход започва присвояване на анонимната чернова.
+ *   draft_claim_succeeded черновата е присвоена → потребителят продължава оттам.
+ *   draft_claim_blocked   присвояването е отказано (expired/already_claimed/…).
+ *   draft_expired         черновата е изтекла и е изчистена от браузъра.
  *
  * Съхранение: съществуващите табла (/admin/generation, /admin/funnel,
  * growth_snapshot SQL) четат историческите имена (`doc_start`, `doc_generate_*`…).
@@ -46,6 +54,14 @@ export const CANONICAL_EVENTS = [
   "document_saved",
   "document_downloaded",
   "download_failed",
+  "draft_created",
+  "draft_autosaved",
+  "draft_restore_offered",
+  "draft_restored",
+  "draft_claim_started",
+  "draft_claim_succeeded",
+  "draft_claim_blocked",
+  "draft_expired",
 ] as const;
 
 export type CanonicalEvent = (typeof CANONICAL_EVENTS)[number];
@@ -67,6 +83,15 @@ export const STORED_NAME: Record<CanonicalEvent, string> = {
   document_saved: "document_saved",
   document_downloaded: "doc_download_success",
   download_failed: "doc_download_fail",
+  // Activation continuity — нови събития, записват се с каноничното си име.
+  draft_created: "draft_created",
+  draft_autosaved: "draft_autosaved",
+  draft_restore_offered: "draft_restore_offered",
+  draft_restored: "draft_restored",
+  draft_claim_started: "draft_claim_started",
+  draft_claim_succeeded: "draft_claim_succeeded",
+  draft_claim_blocked: "draft_claim_blocked",
+  draft_expired: "draft_expired",
 };
 
 /** Обратна карта: съхранено (историческо или канонично) име → канонично. */
@@ -89,6 +114,10 @@ export const ONCE_PER_SESSION_DOC: ReadonlySet<CanonicalEvent> = new Set<Canonic
   "result_viewed",
   "auth_prompt_shown",
   "paywall_shown",
+  "draft_created",
+  "draft_autosaved",
+  "draft_restore_offered",
+  "draft_restored",
 ]);
 
 /* -------------------- Идемпотентност (клиентска страна) -------------------- */

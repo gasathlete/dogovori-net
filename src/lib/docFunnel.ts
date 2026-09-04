@@ -62,6 +62,14 @@ const STAGE_OF: Record<CanonicalEvent, DocStage | null> = {
   document_saved: "download",
   document_downloaded: "download",
   download_failed: "download",
+  draft_created: "start",
+  draft_autosaved: "fill",
+  draft_restore_offered: null,
+  draft_restored: "fill",
+  draft_claim_started: null,
+  draft_claim_succeeded: null,
+  draft_claim_blocked: null,
+  draft_expired: null,
 };
 
 /**
@@ -259,4 +267,37 @@ export function trackSign(
 ) {
   const reason = props?.reason !== undefined ? normalizeReason(String(props.reason)) : undefined;
   trackDocEvent(`doc_sign_${event}`, "sign", { ...(props ?? {}), ...(reason ? { reason } : {}), outcome: event });
+}
+
+/* -------------------- Activation continuity -------------------- */
+
+/**
+ * Събития за непрекъснатост на активацията. Дедупликацията е по `draft_id`, за
+ * да не се дублират при refresh или при два таба. Никакви лични данни в props —
+ * `draft_id` е случаен идентификатор, а не съдържание.
+ */
+export function trackDraftEvent(
+  event:
+    | "draft_created"
+    | "draft_autosaved"
+    | "draft_restore_offered"
+    | "draft_restored"
+    | "draft_claim_started"
+    | "draft_claim_succeeded"
+    | "draft_claim_blocked"
+    | "draft_expired",
+  props?: DocFunnelProps & { draft_id?: string; reason?: string },
+): boolean {
+  const reason = props?.reason ? normalizeReason(props.reason) : undefined;
+  const clean = { ...(props ?? {}), ...(reason ? { reason } : {}) };
+  const once =
+    event === "draft_created" ||
+    event === "draft_autosaved" ||
+    event === "draft_restore_offered" ||
+    event === "draft_restored";
+  return trackCanonical(
+    event,
+    clean,
+    once ? [event, props?.draft_id ?? "", props?.doc_key ?? ""] : undefined,
+  );
 }
