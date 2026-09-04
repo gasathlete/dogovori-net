@@ -82,6 +82,36 @@ export function isSafeRoute(route: unknown): route is string {
   return typeof route === "string" && (route === "/" || /^\/[^/\\]/.test(route));
 }
 
+/**
+ * Маршрутът, който пазим в указателя, съдържа само параметрите на документа.
+ * Технически ключове за тестове (ab_*, utm_*, debug) се премахват, за да не
+ * се връща потребителят в експериментален вариант след вход.
+ */
+export function sanitizeDraftRoute(
+  pathname: string,
+  search: string,
+): string {
+  let params: URLSearchParams;
+  try {
+    params = new URLSearchParams(search);
+  } catch {
+    return pathname;
+  }
+  for (const key of [...params.keys()]) {
+    if (/^(ab_|utm_|debug$|gclid$|fbclid$)/i.test(key)) params.delete(key);
+  }
+  const rest = params.toString();
+  return rest ? `${pathname}?${rest}` : pathname;
+}
+
+/** Текущият маршрут на страницата, изчистен от технически параметри. */
+export function currentDraftRoute(): string {
+  if (typeof window === "undefined") return "/";
+  return sanitizeDraftRoute(window.location.pathname, window.location.search);
+}
+
+
+
 export function getTabId(): string {
   if (typeof window === "undefined") return "server";
   try {
