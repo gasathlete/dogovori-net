@@ -5,7 +5,7 @@
 // заявка и надпреварата между четене и запис не може да прегази чужд ред.
 import { assert, assertEquals, assertFalse } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { hashToken, isValidDraftId } from "./draft-token.ts";
-import { isCreateRequest, isValidPayloadRow, rowAfterTransfer } from "./draft-auth.ts";
+import { isCreateRequest, rowAfterTransfer } from "./draft-auth.ts";
 import {
   anonymousWriteFilters,
   claimFilters,
@@ -290,9 +290,4 @@ Deno.test("хендлърите използват предикатните за
   assert(sync.includes("classifyLostWrite"));
   assert(claim.includes("claimFilters") && claim.includes("classifyLostClaim"));
   assert(claim.includes("ensureSavedDocument") && claim.includes("ownerPurgeFilters"));
-});
-
-// Помощна проверка, че експортът съществува (типов ориентир за бъдещи промени).
-Deno.test("публичният интерфейс е налице", () => {
-  assertEquals(typeof isValidPayloadRow === "function" || isValidPayloadRow === undefined, true);
 });
