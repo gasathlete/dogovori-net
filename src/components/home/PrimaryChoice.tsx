@@ -2,7 +2,7 @@
  * PrimaryChoice — единствената развилка в първия екран.
  * Три ясни пътя вместо стена от информация: изготви, разгледай, провери.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { FilePen, Search, ShieldCheck, ArrowRight } from "@/icons";
 import { trackMetric } from "@/lib/metrics";
@@ -40,6 +40,20 @@ const CHOICES = [
 
 export function PrimaryChoice() {
   const [active, setActive] = useState<FlowId>("build");
+  const [expanded, setExpanded] = useState(false);
+  const didMountRef = useRef(false);
+
+  // Смяна на избора отваря стъпките автоматично, но не и при първо зареждане.
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+    setExpanded(true);
+  }, [active]);
+
+  const toggleExpanded = () => setExpanded((v) => !v);
+
   return (
     <section aria-labelledby="primary-choice-title" className="container pb-10 pt-2 sm:pb-14">
       <div className="eyebrow mb-3 justify-center">
@@ -95,6 +109,7 @@ export function PrimaryChoice() {
                   aria-pressed={isActive}
                   onClick={() => {
                     setActive(c.id as FlowId);
+                    setExpanded(true);
                     trackMetric("home_choice_flow_view", { choice: c.id });
                   }}
                   className={
@@ -104,7 +119,7 @@ export function PrimaryChoice() {
                       : "border-border/70 text-muted-foreground hover:border-gold/40 hover:text-gold")
                   }
                 >
-                  {isActive ? "Стъпките са показани" : "Виж стъпките"}
+                  {isActive && expanded ? "Стъпките са показани" : "Виж стъпките"}
                 </button>
               </div>
             </li>
@@ -112,7 +127,7 @@ export function PrimaryChoice() {
         })}
       </ul>
 
-      <ChoiceFlow active={active} />
+      <ChoiceFlow active={active} expanded={expanded} onToggle={toggleExpanded} />
     </section>
 
   );

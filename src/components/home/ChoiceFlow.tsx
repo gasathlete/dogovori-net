@@ -2,7 +2,6 @@
  * ChoiceFlow — визуализация на процеса след избора „Какво искаш да направиш?“.
  * Мобилно: вертикална времева линия със стъпки. Десктоп: същите стъпки в таблица.
  */
-import { useEffect, useRef, useState } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { ArrowRight, Clock, ChevronDown } from "@/icons";
 
@@ -52,26 +51,14 @@ export const FLOWS: Record<FlowId, { label: string; to: string; cta: string; tot
   },
 };
 
-export function ChoiceFlow({ active }: { active: FlowId }) {
+export function ChoiceFlow({ active, expanded, onToggle }: { active: FlowId; expanded: boolean; onToggle: () => void }) {
   const flow = FLOWS[active];
-  const [expanded, setExpanded] = useState(false);
-  const didMountRef = useRef(false);
-
-  // Смяна на избрания път отваря стъпките, за да е ясно какво следва.
-  // При първо зареждане секцията остава свита — началната страница остава лека.
-  useEffect(() => {
-    if (!didMountRef.current) {
-      didMountRef.current = true;
-      return;
-    }
-    setExpanded(true);
-  }, [active]);
 
   return (
     <div className="mx-auto mt-6 max-w-4xl rounded-2xl border border-border/70 bg-card/40 p-4 sm:p-6">
       <button
         type="button"
-        onClick={() => setExpanded((v) => !v)}
+        onClick={onToggle}
         aria-expanded={expanded}
         aria-controls="choice-flow-steps"
         className="flex w-full flex-wrap items-center justify-between gap-2 text-left"
