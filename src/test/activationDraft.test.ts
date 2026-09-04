@@ -251,3 +251,131 @@ describe("класификация на отказите", () => {
     expect(isDetachDraftReason("payload_too_large")).toBe(false);
   });
 });
+
+/* ------------------------------------------------------------------------ */
+/* Състояние на указателя около sync/claim                                  */
+/* ------------------------------------------------------------------------ */
+
+const DRAFT_ID = "22222222-2222-4222-8222-222222222222";
+const PAYLOAD = { meta: { name: "Договор за тест" }, answers: { a: "b" } };
+
+function syncArgs(p: DraftPointer | null) {
+  return { pointer: p, flow: "build" as const, docKey: "contract", route: "/build", stepIdx: 1, payload: PAYLOAD, hasResult: false };
+}
+
+describe("syncDraft — състояние на указателя", () => {
+  it("нова чернова: пише указател с токен и мести съдържанието от резервния слот", async () => {
+    writePayload(LOCAL_DRAFT_ID, PAYLOAD);
+    invokeMock.mockResolvedValueOnce({
+      data: { draft_id: DRAFT_ID, claim_token: "abcdefghijklmnopqrstuvwx", expires_at: new Date(Date.now() + ANON_DRAFT_TTL_MS).toISOString() },
+      error: null,
+    });
+    const res = await syncDraft(syncArgs(null));
+    expect(res.ok).toBe(true);
+    if (res.ok !== true) return;
+    expect(res.created).toBe(true);
+    expect(res.pointer.claimed).toBe(false);
+    expect(res.pointer.claimToken).toBe("abcdefghijklmnopqrstuvwx");
+    expect(readPayload(DRAFT_ID)).toEqual(PAYLOAD);
+    expect(readPayload(LOCAL_DRAFT_ID)).toBeNull();
+    // Тялото на заявката не носи draft_id/claim_token при изричен create.
+    const body = (invokeMock.mock.calls[0][1] as { body: Record<string, unknown> }).body;
+    expect(body.draft_id).toBeUndefined();
+    expect(body.claim_token).toBeUndefined();
+  });
+
+  it("непотърсен указател: праща токена; присвоен указател: не го праща", async () => {
+    invokeMock.mockResolvedValue({ data: { draft_id: DRAFT_ID, expires_at: new Date(Date.now() + 1000).toISOString() }, error: null });
+    await syncDraft(syncArgs(pointer({ draftId: DRAFT_ID })));
+    let body = (invokeMock.mock.calls[0][1] as { body: Record<string, unknown> }).body;
+    expect(body.draft_id).toBe(DRAFT_ID);
+    expect(body.claim_token).toBe("abcdefghijklmnopqrstuvwx");
+
+    await syncDraft(syncArgs(pointer({ draftId: DRAFT_ID, claimed: true, claimToken: "" })));
+    body = (invokeMock.mock.calls[1][1] as { body: Record<string, unknown> }).body;
+    expect(body.draft_id).toBe(DRAFT_ID);
+    expect(body.claim_token).toBeUndefined();
+  });
+
+  it("закъснял отговор не размаркира вече присвоена чернова и не връща токена", async () => {
+    // Заявката е тръгнала с непотърсен указател…
+    const stale = pointer({ draftId: DRAFT_ID });
+    let resolve!: (v: unknown) => void;
+    invokeMock.mockReturnValueOnce(new Promise((r) => { resolve = r; }));
+    const pending = syncDraft(syncArgs(stale));
+
+    // …междувременно claim-ът е минал и указателят е присвоен.
+    const claimedAt = Date.now() + CLAIMED_DRAFT_TTL_MS;
+    writePointer(pointer({ draftId: DRAFT_ID, claimed: true, claimToken: "", savedDocId: "doc-1", hasResult: true, expiresAt: claimedAt }));
+
+    resolve({ data: { draft_id: DRAFT_ID, expires_at: new Date(Date.now() + ANON_DRAFT_TTL_MS).toISOString() }, error: null });
+    const res = await pending;
+    expect(res.ok).toBe(true);
+    if (res.ok !== true) return;
+    expect(res.pointer.claimed).toBe(true);
+    expect(res.pointer.claimToken).toBe("");
+    expect(res.pointer.savedDocId).toBe("doc-1");
+    expect(res.pointer.hasResult).toBe(true);
+    expect(res.pointer.expiresAt).toBe(claimedAt);
+    const stored = readPointer()!;
+    expect(stored.claimed).toBe(true);
+    expect(stored.claimToken).toBe("");
+    expect(localStorage.getItem(DRAFT_POINTER_KEY)).not.toContain("abcdefghijklmnopqrstuvwx");
+  });
+
+  it("сървърен отказ се връща като типизирана причина, без да пипа указателя", async () => {
+    const p = pointer({ draftId: DRAFT_ID });
+    writePointer(p);
+    invokeMock.mockResolvedValueOnce({ data: { ok: false, reason: "expired" }, error: { message: "410" } });
+    const res = await syncDraft(syncArgs(p));
+    expect(res).toEqual({ ok: false, reason: "expired" });
+    expect(readPointer()?.draftId).toBe(DRAFT_ID);
+  });
+
+  it("отговор без draft_id е грешка (не се създава указател от нищо)", async () => {
+    invokeMock.mockResolvedValueOnce({ data: { ok: true }, error: null });
+    const res = await syncDraft(syncArgs(null));
+    expect(res.ok).toBe(false);
+    expect(readPointer()).toBeNull();
+  });
+});
+
+describe("claimDraft — състояние на резултата", () => {
+  it("праща токена само за непотърсена чернова", async () => {
+    invokeMock.mockResolvedValue({ data: { ok: true, route: "/build", flow: "build" }, error: null });
+    await claimDraft(pointer({ draftId: DRAFT_ID }));
+    expect((invokeMock.mock.calls[0][1] as { body: Record<string, unknown> }).body.claim_token).toBe("abcdefghijklmnopqrstuvwx");
+    await claimDraft(pointer({ draftId: DRAFT_ID, claimed: true, claimToken: "" }));
+    expect((invokeMock.mock.calls[1][1] as { body: Record<string, unknown> }).body.claim_token).toBeUndefined();
+  });
+
+  it("небезопасен маршрут от сървъра се заменя с маршрута на указателя", async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: { ok: true, route: "https://evil.example", flow: "build", payload: PAYLOAD, purged: false },
+      error: null,
+    });
+    const res = await claimDraft(pointer({ draftId: DRAFT_ID, route: "/build?type=nda" }));
+    expect(res.ok).toBe(true);
+    expect(res.route).toBe("/build?type=nda");
+    expect(res.payload).toEqual(PAYLOAD);
+  });
+
+  it("празно съдържание не се подава за възстановяване; purged/saved_doc_id се пренасят", async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: { ok: true, route: "/build", flow: "build", payload: {}, purged: true, saved_doc_id: "doc-9", has_result: true },
+      error: null,
+    });
+    const res = await claimDraft(pointer({ draftId: DRAFT_ID }));
+    expect(res.ok).toBe(true);
+    expect(res.payload).toBeUndefined();
+    expect(res.purged).toBe(true);
+    expect(res.savedDocId).toBe("doc-9");
+    expect(res.hasResult).toBe(true);
+  });
+
+  it("отказ → типизирана причина", async () => {
+    invokeMock.mockResolvedValueOnce({ data: { ok: false, reason: "already_claimed" }, error: { message: "409" } });
+    const res = await claimDraft(pointer({ draftId: DRAFT_ID }));
+    expect(res).toEqual({ ok: false, reason: "already_claimed" });
+  });
+});
