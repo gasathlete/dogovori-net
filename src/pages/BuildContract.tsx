@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useActivationDraft } from "@/hooks/useActivationDraft";
+import { currentDraftRoute } from "@/lib/activationDraft";
 import { OpsHintBar } from "@/components/wizard/OpsHintBar";
 import { GenerationBlockedDialog } from "@/components/wizard/GenerationBlockedDialog";
 import { DocumentValueCard } from "@/components/wizard/DocumentValueCard";
@@ -294,7 +295,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   const activation = useActivationDraft({
     flow: "build",
     docKey: documentType,
-    route: window.location.pathname + window.location.search,
+    route: currentDraftRoute(),
     onRestore: (payload) => {
       const meta = (payload.meta ?? {}) as Record<string, unknown>;
       if (typeof meta.documentType === "string") setDocumentType(meta.documentType as DocumentTypeId);
