@@ -387,3 +387,103 @@ describe("натрупаното не се изпраща след обезси�
     expect(syncMock.mock.calls[0][0]).toMatchObject({ pointer: null });
   });
 });
+
+describe("граница на самоличността и присвояване на появил се указател", () => {
+  it("A. чернова, създадена след вход, се присвоява точно веднъж без смяна на потребителя", async () => {
+    authUser = { id: "user-1" };
+    const first = deferred<ReturnType<typeof okSync>["result"]>();
+    syncMock.mockImplementationOnce(() => first.promise);
+    claimMock.mockResolvedValue({ ok: true, hasResult: false });
+
+    const { result } = render();
+    act(() => result.current.persist({ answers: { a: "1" } }, { stepIdx: 1 }));
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+    // Още няма указател → няма присвояване.
+    expect(claimMock).not.toHaveBeenCalled();
+
+    const created = okSync(pointer({ stepIdx: 1 }));
+    await act(async () => {
+      first.resolve(created.result);
+      await Promise.resolve();
+      vi.advanceTimersByTime(0);
+      await Promise.resolve();
+    });
+    expect(claimMock).toHaveBeenCalledTimes(1);
+
+    // Без дублиране при последващи записи.
+    act(() => result.current.persist({ answers: { a: "2" } }, { stepIdx: 2 }));
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+      await Promise.resolve();
+    });
+    expect(claimMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("B. изход по средата на присвояване: нищо не се възкресява и чернова на A не се присвоява от B", async () => {
+    writePointer(pointer());
+    writePayload("11111111-1111-4111-8111-111111111111", { answers: { a: "1" } });
+    authUser = { id: "user-A" };
+    const claim = deferred<{ ok: true; hasResult: boolean; payload: { answers: { a: string } } }>();
+    claimMock.mockImplementationOnce(() => claim.promise);
+
+    const { result, rerender } = render();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(claimMock).toHaveBeenCalledTimes(1);
+
+    // Границата на изхода: AuthProvider изчиства хранилището, потребителят е null.
+    authUser = null;
+    localStorage.clear();
+    sessionStorage.clear();
+    await act(async () => {
+      rerender();
+      await Promise.resolve();
+    });
+    expect(result.current.pointer).toBeNull();
+    expect(localStorage.getItem("activation_draft_v1")).toBeNull();
+    expect(sessionStorage.getItem("activation_draft_payload_v1:11111111-1111-4111-8111-111111111111")).toBeNull();
+
+    // Закъснелият успех от предишната самоличност не пише нищо.
+    await act(async () => {
+      claim.resolve({ ok: true, hasResult: false, payload: { answers: { a: "1" } } });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(localStorage.getItem("activation_draft_v1")).toBeNull();
+
+    // Нов потребител: без второ присвояване на черновата на A.
+    authUser = { id: "user-B" };
+    await act(async () => {
+      rerender();
+      vi.advanceTimersByTime(120_000);
+      await Promise.resolve();
+    });
+    expect(claimMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("C. нов обект User със същото id не изчиства указателя и не дублира присвояването", async () => {
+    writePointer(pointer());
+    authUser = { id: "user-1" };
+    claimMock.mockResolvedValue({ ok: true, hasResult: false });
+
+    const { result, rerender } = render();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(claimMock).toHaveBeenCalledTimes(1);
+
+    authUser = { id: "user-1" };
+    await act(async () => {
+      rerender();
+      vi.advanceTimersByTime(120_000);
+      await Promise.resolve();
+    });
+    expect(claimMock).toHaveBeenCalledTimes(1);
+    expect(result.current.pointer?.draftId).toBe("11111111-1111-4111-8111-111111111111");
+    expect(localStorage.getItem("activation_draft_v1")).not.toBeNull();
+  });
+});
