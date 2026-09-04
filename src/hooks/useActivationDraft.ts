@@ -657,6 +657,47 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
 
   runClaimRef.current = runClaim;
 
+  /**
+   * Граница на самоличността: истински потребител → изход или ДРУГ потребител.
+   * Всичко от предишната самоличност се забравя — таймери, чакащо присвояване,
+   * указател и състояние в паметта — за да не се опита присвояване на чужда
+   * чернова в същия жив прозорец. Първата поява на потребител (от анонимен)
+   * НЕ изчиства нищо: точно там анонимната чернова трябва да се присвои.
+   */
+  const prevUserIdRef = useRef<string | null>(user?.id ?? null);
+  useEffect(() => {
+    const nextId = user?.id ?? null;
+    const prevId = prevUserIdRef.current;
+    // Нов обект User със същото id (подновен токен) не е граница.
+    if (prevId === nextId) return;
+    prevUserIdRef.current = nextId;
+    if (prevId === null) return;
+
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = null;
+    cancelClaimRetry();
+    // Обезсилва всички заявки в движение: закъснял отговор от предишната
+    // самоличност няма да пише нищо.
+    discardRevRef.current += 1;
+    claimAttemptRef.current = null;
+    recreateRef.current = false;
+    pendingRef.current = false;
+    latestRef.current = null;
+    restoredRef.current = true;
+    pointerRef.current = null;
+    if (mountedRef.current) {
+      setPointer(null);
+      setClaiming(false);
+    }
+    // Идемпотентно: AuthProvider вече чисти при изход, но при смяна на
+    // потребител в същия прозорец гаранцията трябва да важи и тук.
+    try {
+      clearAllDraftStorage();
+    } catch {
+      /* ignore */
+    }
+  }, [user, cancelClaimRetry]);
+
   useEffect(() => {
     if (!active || !enabled) return;
     if (!user) {
