@@ -63,7 +63,7 @@ describe("classifyGenerationError — сървърният код има при�
 });
 
 /* ---------- generateContractJob: идемпотентност и повторно закачане ---------- */
-const invoke = vi.fn();
+const { invoke } = vi.hoisted(() => ({ invoke: vi.fn() }));
 vi.mock("@/lib/invokeEdgeFunction", () => ({
   invokeEdgeFunction: (...args: unknown[]) => invoke(...args),
 }));
@@ -81,6 +81,14 @@ import {
 
 type Body = { action: "start" | "status"; job_id?: string; idempotency_key?: string; payload?: unknown };
 const bodyOf = (call: unknown[]): Body => (call[1] as { body: Body }).body;
+/** Оставя микрозадачите да стигнат до `sleep`, после превърта n интервала на полване. */
+const tick = async (n: number) => {
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < 5; j++) await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS + 10);
+  }
+};
+const KEY = "abcdef12-testkey";
 
 beforeEach(() => {
   invoke.mockReset();
@@ -122,8 +130,8 @@ describe("generateContractJob", () => {
       .mockResolvedValueOnce({ data: { status: "running" }, error: null, correlationId: "cid-2" })
       .mockResolvedValueOnce({ data: { status: "completed", result: { ok: true } }, error: null, correlationId: "cid-3" });
 
-    const p = generateContractJob<{ ok: boolean }>({ slug: "x", answers: { a: 1 } });
-    await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS * 2 + 10);
+    const p = generateContractJob<{ ok: boolean }>({ slug: "x", answers: { a: 1 } }, { idempotencyKey: KEY });
+    await tick(2);
     const res = await p;
 
     expect(res.data).toEqual({ ok: true });
@@ -133,7 +141,7 @@ describe("generateContractJob", () => {
     expect(res.startAttempts).toBe(1);
     const start = bodyOf(invoke.mock.calls[0]);
     expect(start.action).toBe("start");
-    expect(start.idempotency_key).toMatch(/^abcdef12-[0-9a-f]+$/);
+    expect(start.idempotency_key).toBe(KEY);
     // Успех → ключът е освободен (нов опит със същите данни е нов job).
     expect(recallJob(start.idempotency_key!)).toBeNull();
   });
@@ -163,8 +171,8 @@ describe("generateContractJob", () => {
       .mockResolvedValueOnce({ data: { job_id: "job-new" }, error: null, correlationId: "c1" })
       .mockResolvedValueOnce({ data: { status: "done", result: { v: 2 } }, error: null, correlationId: "c2" });
 
-    const p = generateContractJob(payload);
-    await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS + 10);
+    const p = generateContractJob(payload, { idempotencyKey: key });
+    await tick(1);
     const res = await p;
 
     expect(res.reattached).toBe(false);
@@ -182,8 +190,8 @@ describe("generateContractJob", () => {
         correlationId: "cid2",
       });
 
-    const p = generateContractJob<{ error?: string; quota?: unknown }>({ slug: "z" });
-    await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS + 10);
+    const p = generateContractJob<{ error?: string; quota?: unknown }>({ slug: "z" }, { idempotencyKey: KEY });
+    await tick(1);
     const res = await p;
 
     expect(res.generationError?.code).toBe("quota_exceeded");
@@ -195,7 +203,7 @@ describe("generateContractJob", () => {
 
   it("провален старт без job_id връща класифицирана грешка", async () => {
     invoke.mockResolvedValueOnce({ data: null, error: { message: "Failed to send a request to the Edge Function" }, correlationId: "cid" });
-    const res = await generateContractJob({ slug: "n" });
+    const res = await generateContractJob({ slug: "n" }, { idempotencyKey: KEY });
     expect(res.jobId).toBeUndefined();
     expect(res.generationError?.code).toBe("network");
     expect(res.generationError?.retryable).toBe(true);
@@ -206,10 +214,10 @@ describe("generateContractJob", () => {
       .mockResolvedValueOnce({ data: { job_id: "job-s" }, error: null, correlationId: "cid" })
       .mockResolvedValue({ data: { status: "running" }, error: null, correlationId: "cid" });
     let stale = false;
-    const p = generateContractJob({ slug: "s" }, { isStale: () => stale });
-    await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS + 10);
+    const p = generateContractJob({ slug: "s" }, { isStale: () => stale, idempotencyKey: KEY });
+    await tick(1);
     stale = true;
-    await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS + 10);
+    await tick(1);
     const res = await p;
     expect(res.data).toBeNull();
     expect(res.error).toBeNull();

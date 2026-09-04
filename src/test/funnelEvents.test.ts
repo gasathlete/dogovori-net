@@ -99,7 +99,7 @@ describe("funnelEvents — санитизация (без PII)", () => {
       msg: 'Unexpected token "}" in JSON at position 123!',
       label: "Изготвяне на документа (PDF) №1",
     });
-    expect(out.long).toBeUndefined();
+    expect((out.long as string).length).toBe(120);
     expect(out.msg).toBeUndefined();
     expect(out.label).toBe("Изготвяне на документа (PDF) №1");
   });

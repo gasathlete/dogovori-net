@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const trackFunnelEvent = vi.fn(() => true);
+const { trackFunnelEvent } = vi.hoisted(() => ({ trackFunnelEvent: vi.fn(() => true) }));
 vi.mock("@/lib/funnel", () => ({ trackFunnelEvent }));
 vi.mock("@/lib/ab", () => ({ abProps: () => ({ ab: { quick_preview: "a" } }) }));
 
