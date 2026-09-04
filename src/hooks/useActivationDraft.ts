@@ -150,6 +150,15 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
   const claimAttemptRef = useRef<string | null>(null);
   /** true докато заявката за присвояване е в движение — записите изчакват. */
   const claimInFlightRef = useRef(false);
+  /**
+   * Поколение на операцията за присвояване. Всяка стартирана заявка притежава
+   * едно поколение; само притежателят на ТЕКУЩОТО поколение има право да пипа
+   * състояние (включително да освободи ключа и да изгаси индикатора). При смяна
+   * на самоличност, отказване или замяна на черновата поколението се вдига:
+   * старата HTTP заявка може да приключи по-късно, но вече без правомощия — и
+   * новият валиден контекст не чака увиснала заявка.
+   */
+  const claimGenRef = useRef(0);
   /** Един опит за нова чернова след окончателно невалиден указател. */
   const recreateRef = useRef(false);
   /** Вдига се при изрично отказване — закъснели резултати стават без значение. */
@@ -169,16 +178,34 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
     claimRetryRef.current = null;
   }, []);
 
+  /**
+   * Обезсилява текущото присвояване: логически освобождава ключа веднага, гаси
+   * индикатора и изчиства чакащия повторен опит. Увисналата стара заявка не
+   * блокира новия контекст.
+   */
+  const invalidateClaim = useCallback(() => {
+    claimGenRef.current += 1;
+    claimInFlightRef.current = false;
+    cancelClaimRetry();
+    if (mountedRef.current) setClaiming(false);
+  }, [cancelClaimRetry]);
+
   const updatePointer = useCallback(
     (next: DraftPointer | null) => {
       // Указателят се смени с друга чернова → всяко чакащо присвояване за
-      // старата вече е без значение.
-      const retry = claimRetryRef.current;
-      if (retry && retry.draftId !== next?.draftId) cancelClaimRetry();
+      // старата вече е без значение. Същата чернова (напр. успешно присвояване
+      // или запис) НЕ обезсилва сама себе си.
+      const prevId = pointerRef.current?.draftId ?? null;
+      const nextId = next?.draftId ?? null;
+      if (claimInFlightRef.current && prevId !== nextId) invalidateClaim();
+      else {
+        const retry = claimRetryRef.current;
+        if (retry && retry.draftId !== nextId) cancelClaimRetry();
+      }
       pointerRef.current = next;
       if (mountedRef.current) setPointer(next);
     },
-    [cancelClaimRetry],
+    [cancelClaimRetry, invalidateClaim],
   );
 
   /**
@@ -563,10 +590,14 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
   );
 
   const runClaim = useCallback(
-    (current: DraftPointer, userId: string) => {
-      if (!mountedRef.current || claimInFlightRef.current) return;
+    (current: DraftPointer, userId: string): boolean => {
+      if (!mountedRef.current || claimInFlightRef.current) return false;
       const hasLocal = hasRestorableContent(readPayload(current.draftId) ?? readPayload(LOCAL_DRAFT_ID));
+      // Операцията придобива собствеността ЕДВА тук — маркерът за „опитано" се
+      // вдига само след като заявката наистина е стартирала.
+      const gen = ++claimGenRef.current;
       claimInFlightRef.current = true;
+      claimAttemptRef.current = current.draftId;
       setClaiming(true);
       trackDraftEvent("draft_claim_started", { draft_id: current.draftId, doc_key: current.docKey, source: flow });
       void (async () => {
@@ -574,9 +605,16 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
         try {
           res = await claimDraft(current);
         } finally {
-          claimInFlightRef.current = false;
-          if (mountedRef.current) setClaiming(false);
+          // Само притежателят на текущото поколение освобождава ключа и гаси
+          // индикатора: обезсилена стара заявка не пипа новата операция.
+          if (claimGenRef.current === gen) {
+            claimInFlightRef.current = false;
+            if (mountedRef.current) setClaiming(false);
+          }
         }
+        // Обезсилено поколение (нова самоличност/чернова, отказване) → без
+        // никакви правомощия върху състоянието.
+        if (claimGenRef.current !== gen) return;
         // Указателят е сменен/изтрит или потребителят е излязъл, докато
         // заявката е пътувала → резултатът е без значение.
         const live = stillCurrent(current.draftId, userId);
@@ -640,6 +678,7 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
         if (!payload && res.purged && res.savedDocId && !hasLocal) {
           payload = await loadSavedDraftPayload(res.savedDocId);
           // Закъсняло съдържание за вече заменена/отказана чернова се изхвърля.
+          if (claimGenRef.current !== gen) return;
           if (!stillCurrent(current.draftId, userId)) return;
           // …както и за таб, в който междувременно е въведено съдържание.
           const local2 = readPayload(current.draftId) ?? readPayload(LOCAL_DRAFT_ID);
@@ -652,6 +691,7 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
           restoreRef.current?.(payload, { source: "claim" });
         }
       })();
+      return true;
     },
     [cancelClaimRetry, detach, flow, scheduleClaimRetry, stillCurrent, tabHasContent, updatePointer],
   );
@@ -676,9 +716,10 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
 
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = null;
-    cancelClaimRetry();
-    // Обезсилва всички заявки в движение: закъснял отговор от предишната
-    // самоличност няма да пише нищо.
+    // Обезсилява всички заявки в движение: закъснял отговор от предишната
+    // самоличност няма да пише нищо, а ключът за присвояване се освобождава
+    // веднага — новата самоличност не чака увиснала стара заявка.
+    invalidateClaim();
     discardRevRef.current += 1;
     claimAttemptRef.current = null;
     recreateRef.current = false;
@@ -697,13 +738,14 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
     } catch {
       /* ignore */
     }
-  }, [user, cancelClaimRetry]);
+  }, [user, invalidateClaim]);
 
   useEffect(() => {
     if (!active || !enabled) return;
     if (!user) {
-      // Изход: чакащото присвояване вече е без притежател.
-      cancelClaimRetry();
+      // Изход: чакащото присвояване вече е без притежател — обезсилява се, за да
+      // не държи ключа при увиснала заявка.
+      invalidateClaim();
       claimAttemptRef.current = null;
       return;
     }
@@ -757,7 +799,9 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
       return;
     }
 
-    claimAttemptRef.current = current.draftId;
+    // Маркерът за „опитано" се вдига ВЪТРЕ в runClaim — само ако заявката
+    // наистина е стартирала. Иначе нова чернова би останала маркирана като
+    // опитана, без никога да бъде присвоена.
     runClaim(current, userId);
     // Указателят е част от зависимостите ПО САМОЛИЧНОСТ И СЪСТОЯНИЕ: чернова,
     // създадена след като потребителят вече е влязъл, се присвоява веднага, а
@@ -775,7 +819,7 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
     updatePointer,
     tabHasContent,
     runClaim,
-    cancelClaimRetry,
+    invalidateClaim,
     stillCurrent,
   ]);
 
@@ -783,7 +827,9 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
   const discard = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = null;
-    cancelClaimRetry();
+    // Отказването обезсилва и присвояването в движение: ключът се освобождава
+    // веднага, а закъснелият отговор няма правомощия.
+    invalidateClaim();
     // Изричното отказване е безусловно: потребителят е приключил с документа.
     discardRevRef.current += 1;
     clearDraft(pointerRef.current?.draftId);
@@ -791,7 +837,7 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
     updatePointer(null);
     latestRef.current = null;
     pendingRef.current = false;
-  }, [cancelClaimRetry, updatePointer]);
+  }, [invalidateClaim, updatePointer]);
 
 
   /* ------------------------------ Почистване ------------------------------ */
