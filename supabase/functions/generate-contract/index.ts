@@ -497,8 +497,19 @@ ${docTypeSpec.systemAddendum}
 
   } catch (e) {
     console.error(`generate-contract error [cid=${correlationId}]:`, e);
+    // Типизиран код за клиента/аналитиката. Квотата НЕ е таксувана — тя се
+    // консумира едва след успешно парснат AI отговор (виж consumeQuota по-горе).
+    const message = e instanceof Error ? e.message : "Неизвестна грешка";
+    const code =
+      (e as { name?: string })?.name === "AiJsonUnparsableError" || /json/i.test(message)
+        ? "ai_parse_failed"
+        : /празен отговор|не върна съдържание|ai грешка/i.test(message)
+          ? "ai_upstream_error"
+          : /abort|timeout|timed out/i.test(message)
+            ? "job_timeout"
+            : "internal_error";
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка", correlation_id: correlationId }),
+      JSON.stringify({ error: message, code, charged: false, correlation_id: correlationId }),
       { status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
     );
   }

@@ -44,6 +44,10 @@ export function DownloadRoiDialog({
     onOpenChange(false);
     openInlineAuth({
       action: `Свали ${format.toUpperCase()}`,
+      intent: `download_${format}`,
+      source: "download_roi",
+      // Подканата е отчетена при отваряне на ROI диалога — не броим два пъти.
+      silent: true,
       mode: "signup",
       onSuccess: onProceed,
     });

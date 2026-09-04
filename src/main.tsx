@@ -50,3 +50,12 @@ createRoot(document.getElementById("root")!).render(<App />);
 
 // Collect Web Vitals on every route — non-blocking, fires on idle.
 initWebVitalsReporter();
+
+// Funnel identity: attaches user_id to every funnel event from the first
+// authenticated moment and records `signup_completed` once per new account.
+// Lazy-loaded on idle so it never competes with first paint.
+const scheduleIdle = (cb: () => void) =>
+  "requestIdleCallback" in window ? (window as Window).requestIdleCallback(cb, { timeout: 4000 }) : setTimeout(cb, 1500);
+scheduleIdle(() => {
+  void import("./lib/funnel").then((m) => m.initFunnelIdentity()).catch(() => undefined);
+});

@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { translateAuthError } from "@/lib/authErrors";
 import { drainBufferedEvents } from "@/lib/bufferedEvents";
-import { INLINE_AUTH_EVENT, takeInlineAuthSuccess } from "@/lib/inlineAuth";
+import { INLINE_AUTH_EVENT, takeInlineAuthSuccess, type InlineAuthDetail } from "@/lib/inlineAuth";
+import { trackAuthPromptShown } from "@/lib/docFunnel";
 import { FREE_OPS_ON_SIGNUP } from "@/lib/pricing";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -32,16 +33,25 @@ export function InlineAuthDialog() {
   const successRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    const show = (detail: { action?: string; mode?: "login" | "signup" }) => {
+    const show = (detail: Partial<InlineAuthDetail>) => {
       successRef.current = takeInlineAuthSuccess();
       setAction(detail?.action);
       setMode(detail?.mode === "login" ? "login" : "signup");
       setEmailSent(false);
       setOpen(true);
+      // auth_prompt_shown се отчита тук — единственото място, където подканата
+      // реално се показва (дедупликирано по doc_key + намерение + източник).
+      if (detail?.silent) return;
+      trackAuthPromptShown({
+        doc_key: detail?.docKey,
+        source: detail?.source ?? "inline",
+        action: detail?.intent ?? detail?.action ?? "generic",
+        mode: detail?.mode ?? "signup",
+      });
     };
-    const handler = (e: Event) => show((e as CustomEvent).detail ?? {});
+    const handler = (e: Event) => show(((e as CustomEvent).detail ?? {}) as Partial<InlineAuthDetail>);
     window.addEventListener(INLINE_AUTH_EVENT, handler as EventListener);
-    drainBufferedEvents(INLINE_AUTH_EVENT, (d) => show((d as { action?: string }) ?? {}));
+    drainBufferedEvents(INLINE_AUTH_EVENT, (d) => show(((d as Partial<InlineAuthDetail>) ?? {})));
     return () => window.removeEventListener(INLINE_AUTH_EVENT, handler as EventListener);
   }, []);
 

@@ -37,6 +37,7 @@ import { adaptGraphToWizardQuestions } from "@/data/questionGraphs/adapter";
 import { parseExtraPartyTypes } from "@/components/wizard/liveDraft/clauseBuilders";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { generateContractJob } from "@/lib/generateContractJob";
+import { classifyGenerationError, errorClassOf, type GenerationError } from "@/lib/generationErrors";
 
 import { SensitiveDataWarning } from "@/components/SensitiveDataWarning";
 import {
@@ -57,7 +58,17 @@ import {
   type BlockedReason,
 } from "@/components/wizard/GenerationBlockedDialog";
 import { trackEvent } from "@/lib/analytics";
-import { trackDocStart, trackGenerate, trackFillStep, trackReviewResult, trackDocEvent } from "@/lib/docFunnel";
+import {
+  trackDocStart,
+  trackGenerate,
+  trackFillStep,
+  trackReviewResult,
+  trackDocEvent,
+  trackResultViewed,
+  trackAuthPromptShown,
+  trackPaywallShown,
+  trackDocumentSaved,
+} from "@/lib/docFunnel";
 import { getVariant, trackAbExposure, applyAbOverridesFromUrl } from "@/lib/ab";
 
 import { useDocumentAccess } from "@/hooks/useDocumentAccess";
@@ -395,6 +406,7 @@ export default function WizardPage() {
     const isStale = () => genRunRef.current !== runId;
     setGenerating(true);
     setGenFailed(false);
+    markDocSelected();
     trackGenerate("started", { doc_key: docKey, source: "wizard" });
     setGenStepIdx(0);
     const interval = setInterval(() => {
@@ -404,7 +416,7 @@ export default function WizardPage() {
 
       const flatQs = flattenQuestions(visibleQuestions);
       const arbitrationCourt = arbitration.enabled ? getCourtById(arbitration.courtId) : undefined;
-      const { data, error, correlationId } = await generateContractJob<AIResult & { error?: string; code?: string; requires_login?: boolean; classification?: ClassificationSummary }>(
+      const job = await generateContractJob<AIResult & { error?: string; code?: string; requires_login?: boolean; classification?: ClassificationSummary }>(
         {
           sector: sector.title,
           contractName: sector.contractName,
@@ -430,19 +442,32 @@ export default function WizardPage() {
               description: "Връзката прекъсна за момент — данните ви са запазени.",
             });
           },
+          onReattach: () => {
+            if (isStale()) return;
+            toast.loading("Продължаваме предишното генериране…", {
+              id: "gen-retry",
+              description: "Открихме незавършен опит за същите данни — няма да бъдете таксувани два пъти.",
+            });
+          },
         },
       );
+      const { data, error, correlationId } = job;
+      const genMeta = {
+        correlation_id: correlationId,
+        attempts: job.startAttempts ?? 1,
+        reattached: !!job.reattached,
+      };
 
       // Отказан или изместен опит — не пипаме UI състоянието.
       if (isStale()) return;
       if (data?.code === "quota_exceeded") {
-
-        trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: "quota_exceeded" });
+        trackGenerate("blocked", { doc_key: docKey, source: "wizard", reason: "quota_exceeded", ...genMeta });
+        trackPaywallShown("quota", { doc_key: docKey, source: "wizard" });
         setBlockedReason("quota_exceeded");
         return;
       }
       if (data?.requires_login) {
-        trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: "requires_login" });
+        trackGenerate("blocked", { doc_key: docKey, source: "wizard", reason: "requires_login", ...genMeta });
         goAuth({ action: "Генериране на документа", onSuccess: () => handleGenerate(userConfirmed) });
         return;
       }
@@ -450,7 +475,7 @@ export default function WizardPage() {
       // блокира операцията. Показваме диалога вместо суров текст на грешка.
       const sensitive = await parseSensitiveResponse(error, data);
       if (isSpecialCategoryBlocked(sensitive)) {
-        trackGenerate("fail", { doc_key: docKey, source: "wizard", reason: "sensitive_blocked" });
+        trackGenerate("blocked", { doc_key: docKey, source: "wizard", reason: "sensitive_blocked", ...genMeta });
         setSensitiveClass(sensitive?.classification ?? null);
         setSensitiveBlocked(true);
         setSensitiveOpen(true);
@@ -461,7 +486,7 @@ export default function WizardPage() {
         // с висок риск (ЕГН, IBAN, лична карта…). Показваме инлайн панел с
         // конкретните открити полета и едно ясно действие за продължаване.
         // Отчита се като „blocked" (продуктова преграда), НЕ като doc_generate_fail.
-        trackGenerate("blocked", { doc_key: docKey, source: "wizard", reason: "needs_confirmation" });
+        trackGenerate("blocked", { doc_key: docKey, source: "wizard", reason: "needs_confirmation", ...genMeta });
         setSensitiveClass(sensitive?.classification ?? data?.classification ?? null);
         setSensitiveBlocked(false);
         setConsentRequired(true);
@@ -477,13 +502,19 @@ export default function WizardPage() {
         const err = new Error((data as { error?: string })?.error || error?.message || "Неуспешно създаване");
         (err as { cid?: string }).cid = error?.correlationId ?? correlationId;
         (err as { httpStatus?: number }).httpStatus = error?.status;
+        // Типизираната грешка от job слоя — за точен reason и правилен retry UX.
+        (err as { gen?: GenerationError }).gen =
+          job.generationError ??
+          classifyGenerationError({ error: error ?? { message: err.message }, data: data ?? null });
+        (err as { genMeta?: typeof genMeta }).genMeta = genMeta;
         throw err;
       }
       const payload = data as AIResult;
       if (bilingualMode && payload.contract) payload.contract.bilingual = true;
       setResult(payload);
       setConsentRequired(false);
-      trackGenerate("success", { doc_key: docKey, source: "wizard", correlation_id: correlationId });
+      trackGenerate("success", { doc_key: docKey, source: "wizard", ...genMeta });
+      trackResultViewed({ doc_key: docKey, source: "wizard" });
       // Качество на изхода: „чист" документ = без открити пропуски/риск бележки.
       {
         const issues =
@@ -504,45 +535,65 @@ export default function WizardPage() {
       });
     } catch (e: any) {
       if (isStale()) return;
-      setGenFailed(true);
       const emsg = String(e?.message || e);
-
       const cid: string | undefined = e?.cid;
       const httpStatus: number | undefined = e?.httpStatus;
-      const isNetwork = /failed to send|failed to fetch|load failed|fetch|network|relay|timeout|aborted|connection/i.test(emsg);
-      // Категоризиран reason за /admin/funnel: мрежата се различава от AI/сървърна грешка.
-      const reason = isNetwork ? "network" : httpStatus ? `http_${httpStatus}` : emsg.slice(0, 120);
-      trackGenerate("fail", {
+      const meta = (e?.genMeta as { correlation_id?: string; attempts?: number; reattached?: boolean } | undefined) ?? {
+        correlation_id: cid,
+      };
+
+      // Незаконно/забранено съдържание има собствен диалог — това е преграда, не провал.
+      if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) {
+        trackGenerate("blocked", { doc_key: docKey, source: "wizard", reason: "blocked_content", ...meta });
+        return;
+      }
+
+      // Една типизирана грешка → reason за таблата, съобщение и retry политика.
+      const gen: GenerationError =
+        (e?.gen as GenerationError | undefined) ??
+        classifyGenerationError({
+          thrownMessage: emsg,
+          error: { message: emsg, status: httpStatus, correlationId: cid },
+        });
+      if (!gen.gate) setGenFailed(true);
+      trackGenerate(gen.gate ? "blocked" : "fail", {
         doc_key: docKey,
         source: "wizard",
-        reason,
-        error_class: isNetwork ? "network" : httpStatus && httpStatus >= 500 ? "server" : "app",
-        message: emsg.slice(0, 160),
-        correlation_id: cid,
-        attempts: 4,
+        reason: gen.code,
+        error_class: errorClassOf(gen.code),
+        http_status: gen.httpStatus,
+        retryable: gen.retryable,
+        ...meta,
       });
-      if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) return;
-      const msg = emsg;
-      const retryAction = {
-        label: "Опитай отново",
-        onClick: () => void handleGenerate(userConfirmed),
-      };
-      if (isNetwork) {
-        toast.error("Връзката бе прекъсната", {
-          description:
-            "Данните ви са запазени. Моля, опитайте отново.",
-          action: retryAction,
-        });
-      } else if (msg.includes("429")) {
-        toast.error("Достигнат е лимитът. Опитайте след малко.", { action: retryAction });
-      } else if (msg.includes("402")) {
-        toast.error("Изчерпан лимит на системата. Опитайте по-късно.");
-      } else {
-        toast.error("Възникна грешка", {
-          description: cid ? `${msg} (код: ${cid.slice(0, 8)})` : msg,
-          action: retryAction,
-        });
+
+      if (gen.code === "requires_login") {
+        goAuth({ action: "Генериране на документа", onSuccess: () => handleGenerate(userConfirmed) });
+        return;
       }
+      if (gen.code === "quota_exceeded") {
+        trackPaywallShown("quota", { doc_key: docKey, source: "wizard" });
+        setBlockedReason("quota_exceeded");
+        return;
+      }
+
+      const retryAction = gen.retryable
+        ? { label: "Опитай отново", onClick: () => void handleGenerate(userConfirmed) }
+        : undefined;
+      const cidSuffix = cid ? ` (код: ${cid.slice(0, 8)})` : "";
+      const TITLES: Partial<Record<GenerationError["code"], string>> = {
+        network: "Връзката бе прекъсната",
+        timeout: "Отне повече от обичайното",
+        rate_limited: "Твърде много заявки",
+        ai_parse_failed: "AI отговорът беше невалиден",
+        ai_upstream: "AI услугата е временно недостъпна",
+        server_error: "Грешка на сървъра",
+      };
+      toast.error(TITLES[gen.code] ?? "Възникна грешка", {
+        description: `${gen.message}${gen.retryable ? "" : cidSuffix}`,
+        ...(retryAction ? { action: retryAction } : {}),
+        duration: gen.retryable ? 12000 : 8000,
+      });
+
 
 
     } finally {
@@ -627,8 +678,15 @@ export default function WizardPage() {
    * остават непокътнати, а подаденото действие продължава автоматично след
    * успешна автентикация.
    */
-  const goAuth = (opts?: { action?: string; onSuccess?: () => void }) =>
-    openInlineAuth({ action: opts?.action, onSuccess: opts?.onSuccess });
+  const goAuth = (opts?: { action?: string; intent?: string; onSuccess?: () => void }) => {
+    openInlineAuth({
+      action: opts?.action,
+      intent: opts?.intent ?? "generate",
+      docKey,
+      source: "wizard",
+      onSuccess: opts?.onSuccess,
+    });
+  };
 
   const goSubscription = () =>
     navigate(`/account?tab=subscription&redirect=${encodeURIComponent(wizardHref)}`);
@@ -738,13 +796,23 @@ export default function WizardPage() {
     if (result) trackEvent("wizard_complete", { sectorId, doc: docName });
   }, [result, customTitle, sectorId, docName]);
 
-  // Track wizard_start once on mount.
+  // Track wizard_start once on mount (GA page-level signal only).
+  // `document_selected` НЕ се отчита тук: mount-ът се случва и при SEO трафик,
+  // prefetch и презареждане. Той се отчита при първото съзнателно действие —
+  // първи отговор във въпросника (виж markDocSelected).
   useEffect(() => {
     applyAbOverridesFromUrl(window.location.search);
     trackEvent("wizard_start", { sectorId, doc: docName });
-    trackDocStart({ doc_key: docName, source: "wizard", sector: sectorId });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const docSelectedRef = useRef(false);
+  /** Първо реално действие на потребителя върху документа → document_selected (еднократно). */
+  const markDocSelected = useCallback(() => {
+    if (docSelectedRef.current) return;
+    docSelectedRef.current = true;
+    trackDocStart({ doc_key: docKey, source: "wizard", sector: sectorId });
+  }, [docKey, sectorId]);
 
   // A/B: CTA „Виж бърз преглед сега" в междинните стъпки.
   const quickPreviewVariant = useMemo(() => getVariant("quick_preview"), []);
@@ -754,7 +822,7 @@ export default function WizardPage() {
   useEffect(() => {
     if (!quickPreviewEligible || exposedRef.current) return;
     exposedRef.current = true;
-    trackAbExposure("quick_preview", { doc_key: docName, source: "wizard", step_idx: stepIdx });
+    trackAbExposure("quick_preview", { doc_key: docKey, source: "wizard", step_idx: stepIdx });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quickPreviewEligible]);
 
@@ -764,6 +832,7 @@ export default function WizardPage() {
     if (!userRef.current) {
       // Контекстен модал с ROI сравнение и бърза регистрация — без напускане
       // на уизарда и без загуба на въведените данни.
+      trackAuthPromptShown({ doc_key: docKey, source: "wizard", action: `download_${format}` });
       setDownloadModal({ open: true, format });
       return;
     }
@@ -771,6 +840,7 @@ export default function WizardPage() {
     // (цената идва от STRICT_UNLOCK_EUR в @/lib/pricing).
     if (!docAccess.canDownload) {
       trackEvent("strict_paywall_shown", { source: `download_${format}`, doc_key: docKey });
+      trackPaywallShown("strict_unlock", { doc_key: docKey, source: "wizard", format });
       setShowPaywall(true);
       return;
     }
@@ -815,6 +885,7 @@ export default function WizardPage() {
         if (res.error === "disclaimer_cancelled" || res.error === "unfilled_placeholders") return;
         if (res.error === "strict_paywall") {
           trackEvent("strict_paywall_shown", { source: `download_${format}`, doc_key: docKey });
+          trackPaywallShown("strict_unlock", { doc_key: docKey, source: "wizard", format });
           setShowPaywall(true);
           return;
         }
@@ -828,7 +899,10 @@ export default function WizardPage() {
         }
         return;
       }
-      if (res.saved_document_id) setSavedDocId(res.saved_document_id);
+      if (res.saved_document_id) {
+        setSavedDocId(res.saved_document_id);
+        trackDocumentSaved(res.saved_document_id, { doc_key: docKey, source: "wizard", via: "download" });
+      }
       // Guardrail: документът е свален и запазен в профила — изчистваме
       // локалната чернова с лични данни от браузъра.
       clearDraft();
@@ -945,6 +1019,7 @@ export default function WizardPage() {
       });
       if (error || data?.error) throw new Error(data?.error || error?.message || "Грешка");
       setSavedDocId(data.saved_document_id);
+      trackDocumentSaved(data.saved_document_id, { doc_key: docKey, source: "wizard", via: "save" });
       toast.success("Запазено в профила", { description: "Документи → Всички" });
       maybeAskForFeedback("save");
     } catch (e: any) {
@@ -1292,7 +1367,7 @@ export default function WizardPage() {
                   const moved = handleEnterFocusNext(e);
                   if (!moved && canNext && !isLast) {
                     setAttemptedNext(false);
-                    trackFillStep(stepIdx + 1, total, { doc_key: docName, source: "wizard" });
+                    markDocSelected(); trackFillStep(stepIdx + 1, total, { doc_key: docKey, source: "wizard" });
                     setStepIdx((i) => i + 1);
                     window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
                   }
@@ -1308,9 +1383,9 @@ export default function WizardPage() {
                 <QuestionField
                   q={current}
                   value={answers[current.id] ?? ""}
-                  onChange={(v) => setAnswers((p) => ({ ...p, [current.id]: v }))}
+                  onChange={(v) => { markDocSelected(); setAnswers((p) => ({ ...p, [current.id]: v })); }}
                   answers={answers}
-                  onAnswerChange={(id, v) => setAnswers((p) => ({ ...p, [id]: v }))}
+                  onAnswerChange={(id, v) => { markDocSelected(); setAnswers((p) => ({ ...p, [id]: v })); }}
                   contacts={contacts}
                   invalid={attemptedNext && !canNext}
                 />
@@ -1388,7 +1463,7 @@ export default function WizardPage() {
                       onClick={() => {
                         if (!canNext) { setAttemptedNext(true); focusFirstEmpty(); return; }
                         setAttemptedNext(false);
-                        trackFillStep(stepIdx + 1, total, { doc_key: docName, source: "wizard" });
+                        markDocSelected(); trackFillStep(stepIdx + 1, total, { doc_key: docKey, source: "wizard" });
                         setStepIdx((i) => i + 1);
                         window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
                       }}
@@ -1415,7 +1490,7 @@ export default function WizardPage() {
                       disabled={generating}
                       onClick={() => {
                         trackDocEvent("quick_preview_cta_click", "fill", {
-                          doc_key: docName,
+                          doc_key: docKey,
                           step_idx: stepIdx,
                         });
 
@@ -1472,7 +1547,10 @@ export default function WizardPage() {
                   onExportPdf={() => handleExport("pdf")}
                   onExportDocx={() => handleExport("docx")}
                   onSave={handleSaveToProfile}
-                  onRegister={() => setDownloadModal({ open: true, format: preferredFmt })}
+                  onRegister={() => {
+                    trackAuthPromptShown({ doc_key: docKey, source: "wizard", action: "register_cta" });
+                    setDownloadModal({ open: true, format: preferredFmt });
+                  }}
                 />
                 <DownloadRoiDialog
                   open={downloadModal.open}
