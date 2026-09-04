@@ -69,6 +69,7 @@ const STAGE_OF: Record<CanonicalEvent, DocStage | null> = {
   draft_claim_started: null,
   draft_claim_succeeded: null,
   draft_claim_blocked: null,
+  draft_sync_blocked: null,
   draft_expired: null,
 };
 
@@ -285,6 +286,7 @@ export function trackDraftEvent(
     | "draft_claim_started"
     | "draft_claim_succeeded"
     | "draft_claim_blocked"
+    | "draft_sync_blocked"
     | "draft_expired",
   props?: DocFunnelProps & { draft_id?: string; reason?: string },
 ): boolean {
@@ -295,9 +297,16 @@ export function trackDraftEvent(
     event === "draft_autosaved" ||
     event === "draft_restore_offered" ||
     event === "draft_restored";
+  // Отказан запис се брои веднъж на чернова+причина, за да не залива таблото
+  // при повтарящ се debounce със същия резултат.
+  const oncePerReason = event === "draft_sync_blocked";
   return trackCanonical(
     event,
     clean,
-    once ? [event, props?.draft_id ?? "", props?.doc_key ?? ""] : undefined,
+    once
+      ? [event, props?.draft_id ?? "", props?.doc_key ?? ""]
+      : oncePerReason
+        ? [event, props?.draft_id ?? "", reason ?? ""]
+        : undefined,
   );
 }

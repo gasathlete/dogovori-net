@@ -35,6 +35,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { downloadDocument } from "@/lib/downloadDocument";
+import { sanitizeReturnPath } from "@/lib/safeRoute";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { ShareForSignDialog } from "@/components/ShareForSignDialog";
 import { UploadContractDialog } from "@/components/UploadContractDialog";
@@ -121,7 +122,9 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   const planMeta = sub?.price_id ? PLAN_LABELS[sub.price_id] : undefined;
   const statusMeta = subStatus ? STATUS_META[subStatus] ?? { label: subStatus, tone: "info" as const } : null;
   const renewLabel = sub?.cancel_at_period_end ? "Достъп до" : "Подновяване на";
-  const redirectAfter = searchParams.get("redirect") || "";
+  // Само относителен път в същия origin — иначе линкът „Назад към документа“
+  // би могъл да изведе потребителя извън приложението.
+  const redirectAfter = sanitizeReturnPath(searchParams.get("redirect")) ?? "";
   const returnUrl = `${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}${
     redirectAfter ? `&redirect=${encodeURIComponent(redirectAfter)}` : ""
   }`;

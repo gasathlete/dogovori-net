@@ -1,16 +1,21 @@
-// draft-sync — създава/обновява анонимна чернова на документ.
+// draft-sync — създава/обновява чернова на документ (activation continuity).
 //
 // Защо: анонимният потребител губеше отговорите и генерирания резултат при
 // вход/регистрация (нов таб от имейл линка, OAuth пренасочване, друг браузър).
 // Съдържанието се пази тук, а в браузъра остава само указател без лични данни.
 //
-// Достъпът до `public.anonymous_drafts` е само през service role — заявката се
-// оторизира с `draft_id` + `claim_token` (хеширан в базата), не с JWT.
+// Достъпът до `public.anonymous_drafts` е само през service role. Кой може да
+// пише се решава в `_shared/draft-auth.ts`:
+//   - непотърсена чернова → само с верния claim токен;
+//   - присвоена чернова  → само собственикът (JWT); токенът не важи повече;
+//   - липсваща/изтекла   → типизиран отказ, НЕ тихо създаване на дубликат.
+// Нова чернова се създава само по изричния път без `draft_id`.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, clientIp, hashIp } from "../_shared/cors.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import {
   ANON_DRAFT_TTL_MS,
+  CLAIMED_DRAFT_TTL_MS,
   generateClaimToken,
   hashToken,
   isSafeRoute,
@@ -18,8 +23,15 @@ import {
   isValidDraftId,
   isValidFlow,
   payloadTooLarge,
-  timingSafeEqual,
 } from "../_shared/draft-token.ts";
+import {
+  decideSyncWrite,
+  logDraft,
+  ownerUpdateAfterTransfer,
+  REASON_STATUS,
+  type DraftAuthRow,
+  type DraftErrorReason,
+} from "../_shared/draft-auth.ts";
 
 interface Body {
   draft_id?: string;
@@ -40,6 +52,18 @@ function admin() {
   );
 }
 
+/** Потребителят идва само от JWT-то в заявката; анонимният ключ не е потребител. */
+async function userIdFromRequest(db: ReturnType<typeof admin>, req: Request): Promise<string | null> {
+  const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (!jwt) return null;
+  try {
+    const { data } = await db.auth.getUser(jwt);
+    return data?.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   const cors = buildCors(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -48,65 +72,118 @@ Deno.serve(async (req) => {
       status,
       headers: { ...cors, "Content-Type": "application/json" },
     });
+  const fail = (reason: DraftErrorReason) => {
+    logDraft("draft-sync", { reason, status: REASON_STATUS[reason] });
+    return json({ ok: false, reason }, REASON_STATUS[reason]);
+  };
 
   try {
     const body = (await req.json().catch(() => ({}))) as Body;
 
-    if (!isValidFlow(body.flow)) return json({ error: "invalid flow" }, 400);
-    if (!isSafeRoute(body.route)) return json({ error: "invalid route" }, 400);
-    if (payloadTooLarge(body.payload)) return json({ error: "payload too large" }, 413);
+    if (!isValidFlow(body.flow)) return fail("invalid_request");
+    if (!isSafeRoute(body.route)) return fail("invalid_request");
+    if (payloadTooLarge(body.payload)) return fail("payload_too_large");
 
     const ipKey = await hashIp(clientIp(req));
     const rl = await checkRateLimit(`draft-sync:${ipKey}`, 120, 60);
-    if (!rl.ok) return json({ error: "rate_limited" }, 429);
+    if (!rl.ok) return fail("rate_limited");
 
     const db = admin();
-    const expiresAt = new Date(Date.now() + ANON_DRAFT_TTL_MS).toISOString();
-    const row = {
+    const userId = await userIdFromRequest(db, req);
+    const now = Date.now();
+
+    const base = {
       flow: body.flow,
       doc_key: typeof body.doc_key === "string" ? body.doc_key.slice(0, 200) : null,
       route: body.route,
       step_idx: Number.isFinite(body.step_idx) ? Math.max(0, Math.trunc(body.step_idx as number)) : 0,
       has_result: !!body.has_result,
       payload: body.payload ?? {},
-      expires_at: expiresAt,
     };
 
-    // Обновяване на съществуваща чернова — само с валиден токен.
-    if (isValidDraftId(body.draft_id) && isValidClaimToken(body.claim_token)) {
-      const { data: existing } = await db
+    /* ----------------------------- Обновяване ----------------------------- */
+    if (body.draft_id !== undefined && body.draft_id !== null && body.draft_id !== "") {
+      if (!isValidDraftId(body.draft_id)) return fail("invalid_request");
+
+      const { data: existing, error: readErr } = await db
         .from("anonymous_drafts")
-        .select("id, token_hash, expires_at, claimed_by")
+        .select("id, token_hash, claimed_by, expires_at, saved_doc_id")
         .eq("id", body.draft_id)
         .maybeSingle();
+      if (readErr) return fail("network");
 
-      const incoming = await hashToken(body.claim_token);
-      if (
-        existing &&
-        typeof existing.token_hash === "string" &&
-        timingSafeEqual(existing.token_hash, incoming) &&
-        Date.parse(existing.expires_at as string) > Date.now()
-      ) {
-        const { error } = await db
-          .from("anonymous_drafts")
-          .update(row)
-          .eq("id", body.draft_id);
-        if (error) return json({ error: "update_failed" }, 500);
-        return json({ draft_id: body.draft_id, expires_at: expiresAt });
-      }
-      // Невалиден/изтекъл токен → не разкриваме нищо, създаваме нова чернова.
+      const tokenHash = isValidClaimToken(body.claim_token) ? await hashToken(body.claim_token) : null;
+      const decision = decideSyncWrite({
+        row: (existing as DraftAuthRow | null) ?? null,
+        tokenHash,
+        userId,
+        now,
+      });
+      if (!decision.ok) return fail(decision.reason);
+
+      const expiresAt = new Date(
+        now + (decision.mode === "owner" ? CLAIMED_DRAFT_TTL_MS : ANON_DRAFT_TTL_MS),
+      ).toISOString();
+
+      // Прехвърлена чернова: съдържанието вече живее в saved_documents и не се
+      // връща обратно в таблицата — обновяват се само позиция и маршрут.
+      const update = decision.transferred
+        ? ownerUpdateAfterTransfer({ route: base.route, step_idx: base.step_idx, expires_at: expiresAt })
+        : { ...base, expires_at: expiresAt };
+
+      const { error: updErr } = await db.from("anonymous_drafts").update(update).eq("id", body.draft_id);
+      if (updErr) return fail("network");
+
+      logDraft("draft-sync", {
+        status: 200,
+        mode: decision.mode,
+        flow: base.flow,
+        has_result: base.has_result,
+        transferred: decision.transferred,
+      });
+      return json({
+        ok: true,
+        draft_id: body.draft_id,
+        expires_at: expiresAt,
+        claimed: decision.mode === "owner",
+        transferred: decision.transferred,
+      });
     }
 
+    /* ------------------------------ Създаване ----------------------------- */
+    // Влязъл потребител: черновата е негова от самото начало — няма анонимен
+    // токен за пазене в браузъра; достъпът е само през JWT.
     const token = generateClaimToken();
+    const claimed = !!userId;
+    const expiresAt = new Date(now + (claimed ? CLAIMED_DRAFT_TTL_MS : ANON_DRAFT_TTL_MS)).toISOString();
+    const insert = {
+      ...base,
+      // За присвоена при създаване чернова хешът е на еднократен, неразкрит
+      // токен: колоната е NOT NULL, но никой не притежава стойността.
+      token_hash: await hashToken(claimed ? generateClaimToken() : token),
+      expires_at: expiresAt,
+      ...(claimed ? { claimed_by: userId, claimed_at: new Date(now).toISOString() } : {}),
+    };
     const { data: created, error } = await db
       .from("anonymous_drafts")
-      .insert({ ...row, token_hash: await hashToken(token) })
+      .insert(insert)
       .select("id, expires_at")
       .single();
-    if (error || !created) return json({ error: "insert_failed" }, 500);
+    if (error || !created) return fail("network");
 
-    return json({ draft_id: created.id, claim_token: token, expires_at: created.expires_at });
+    logDraft("draft-sync", { status: 201, mode: claimed ? "owner" : "anonymous", flow: base.flow, claimed });
+    return json(
+      {
+        ok: true,
+        draft_id: created.id,
+        expires_at: created.expires_at,
+        claimed,
+        transferred: false,
+        ...(claimed ? {} : { claim_token: token }),
+      },
+      201,
+    );
   } catch (_e) {
-    return json({ error: "unexpected" }, 500);
+    return fail("network");
   }
 });

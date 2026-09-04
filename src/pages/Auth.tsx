@@ -17,6 +17,7 @@ import { Seo } from "@/components/Seo";
 import { GoogleConsentDialog } from "@/components/auth/GoogleConsentDialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "@/icons";
+import { buildAuthRedirectUrl, safeReturnPath } from "@/lib/safeRoute";
 
 const RISKY_BG_EMAIL_DOMAINS = ["abv.bg", "mail.bg", "dir.bg"];
 function isRiskyBgEmail(value: string): boolean {
@@ -29,8 +30,8 @@ function isRiskyBgEmail(value: string): boolean {
 export default function AuthPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  // Only allow same-origin relative paths to prevent open-redirect attacks.
-  // Must start with "/" followed by a non-"/" char (rejects "//evil.com" and "/\evil.com").
+  // Само относителен път в същия origin (защита от open redirect) — правилото
+  // е централизирано в `safeReturnPath`, същото важи за имейл линковете.
   const rawRedirectParam = params.get("redirect");
   // Smart funnel routing: if no explicit redirect AND user has a saved
   // analysis session, send them straight back to /analiz so they get the
@@ -41,7 +42,9 @@ export default function AuthPage() {
       localStorage.getItem("funnel_analysis_v1"));
   const rawRedirect =
     rawRedirectParam || (hasAnalysisSession ? "/analiz" : "/account");
-  const redirect = /^\/[^/\\]/.test(rawRedirect) ? rawRedirect : "/account";
+  const redirect = safeReturnPath(rawRedirect, "/account");
+  // Абсолютният адрес за имейл потвърждение се строи само от доверения origin.
+  const emailRedirectTo = buildAuthRedirectUrl(redirect, "/account");
 
 
   const [email, setEmail] = useState("");
@@ -81,7 +84,7 @@ export default function AuthPage() {
     const { error } = await supabase.auth.resend({
       type: "signup",
       email: confirmEmail,
-      options: { emailRedirectTo: window.location.origin + redirect },
+      options: { emailRedirectTo },
     });
     setConfirmBusy(false);
     if (error) return toast.error("Не успяхме да изпратим код", { description: translateAuthError(error.message) });
@@ -143,7 +146,7 @@ export default function AuthPage() {
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin + redirect,
+        emailRedirectTo,
         data: { display_name: name },
       },
     });
@@ -219,7 +222,7 @@ export default function AuthPage() {
   const handleReset = async () => {
     if (!email) return toast.error("Въведете email за възстановяване");
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + "/reset-password",
+      redirectTo: buildAuthRedirectUrl("/reset-password"),
     });
     if (error) return toast.error("Грешка", { description: translateAuthError(error.message) });
     toast.success("Изпратихме ви линк за нова парола");

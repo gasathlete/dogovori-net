@@ -90,6 +90,7 @@ import {
 import { MessageSquarePlus } from "@/icons";
 import { useActivationDraft } from "@/hooks/useActivationDraft";
 import { currentDraftRoute } from "@/lib/activationDraft";
+import { safeReturnPath } from "@/lib/safeRoute";
 
 
 
@@ -108,7 +109,7 @@ export default function WizardPage() {
   const { sectorId } = useParams();
   const [searchParams] = useSearchParams();
   const docName = searchParams.get("doc") || undefined;
-  const returnTo = searchParams.get("returnTo") || "/catalog";
+  const returnTo = safeReturnPath(searchParams.get("returnTo"), "/catalog");
   const bilingualMode = searchParams.get("bilingual") === "1";
   const navigate = useNavigate();
   const baseSector = sectorId ? getSector(sectorId) : undefined;
@@ -694,7 +695,10 @@ export default function WizardPage() {
       localStorage.setItem(storageKey, JSON.stringify(snapshot));
       sessionStorage.removeItem(storageKey);
     } catch {}
-  }, [storageKey, activation, answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId, arbitration]);
+    // Зависимостите са отделните стабилни функции, не целият обект — иначе
+    // ефектът би се изпълнявал (и записвал) при всяко рендиране.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey, activation.active, activation.persist, answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId, arbitration]);
 
   /** Изчиства локалната чернова (лични данни) от браузъра. */
   const clearDraft = useCallback(() => {
@@ -704,7 +708,8 @@ export default function WizardPage() {
       localStorage.removeItem(storageKey);
       sessionStorage.removeItem(storageKey);
     } catch { /* ignore */ }
-  }, [storageKey, activation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey, activation.discard]);
 
 
 

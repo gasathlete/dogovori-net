@@ -8,6 +8,7 @@ import { drainBufferedEvents } from "@/lib/bufferedEvents";
 import { INLINE_AUTH_EVENT, takeInlineAuthSuccess, type InlineAuthDetail } from "@/lib/inlineAuth";
 import { trackAuthPromptShown } from "@/lib/docFunnel";
 import { FREE_OPS_ON_SIGNUP } from "@/lib/pricing";
+import { buildAuthRedirectUrl, currentReturnPath } from "@/lib/safeRoute";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -87,7 +88,9 @@ export function InlineAuthDialog() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: window.location.href },
+      // Имейл линкът връща към текущия екран, но само като доверен origin +
+      // изчистен относителен път (без hash, без ab_/utm_ параметри).
+      options: { emailRedirectTo: buildAuthRedirectUrl(currentReturnPath()) },
     });
     setBusy(false);
     if (error) {
@@ -107,7 +110,7 @@ export function InlineAuthDialog() {
     try {
       // Пълното OAuth пренасочване връща потребителя на същия адрес —
       // черновата в уизарда се възстановява автоматично.
-      sessionStorage.setItem("post_login_redirect", window.location.pathname + window.location.search);
+      sessionStorage.setItem("post_login_redirect", currentReturnPath());
       sessionStorage.setItem(
         "pending_consents",
         JSON.stringify({ marketing: false, terms: true, privacy: true, age_18: true, ts: Date.now() }),

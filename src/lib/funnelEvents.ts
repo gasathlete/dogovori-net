@@ -27,7 +27,10 @@
  *   draft_restored        черновата е върната в екрана (refresh / нов таб).
  *   draft_claim_started   след вход започва присвояване на анонимната чернова.
  *   draft_claim_succeeded черновата е присвоена → потребителят продължава оттам.
- *   draft_claim_blocked   присвояването е отказано (expired/already_claimed/…).
+ *   draft_claim_blocked   присвояването е отказано (expired/already_claimed/
+ *                         invalid_token/unauthorized/rate_limited/network).
+ *   draft_sync_blocked    сървърният запис е отказан с типизирана причина
+ *                         (веднъж на чернова+причина; съдържанието остава в таба).
  *   draft_expired         черновата е изтекла и е изчистена от браузъра.
  *
  * Съхранение: съществуващите табла (/admin/generation, /admin/funnel,
@@ -61,6 +64,7 @@ export const CANONICAL_EVENTS = [
   "draft_claim_started",
   "draft_claim_succeeded",
   "draft_claim_blocked",
+  "draft_sync_blocked",
   "draft_expired",
 ] as const;
 
@@ -91,6 +95,7 @@ export const STORED_NAME: Record<CanonicalEvent, string> = {
   draft_claim_started: "draft_claim_started",
   draft_claim_succeeded: "draft_claim_succeeded",
   draft_claim_blocked: "draft_claim_blocked",
+  draft_sync_blocked: "draft_sync_blocked",
   draft_expired: "draft_expired",
 };
 

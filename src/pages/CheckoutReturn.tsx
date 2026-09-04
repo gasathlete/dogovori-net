@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { trackEvent } from "@/lib/analytics";
 import { trackUpgradeCompleted } from "@/lib/metrics";
 import { trackCheckoutCompleted } from "@/lib/docFunnel";
+import { sanitizeReturnPath } from "@/lib/safeRoute";
 
 export default function CheckoutReturn() {
   const [params] = useSearchParams();
@@ -17,7 +18,11 @@ export default function CheckoutReturn() {
   const resumeFromSession = (() => {
     try { return sessionStorage.getItem("wizard:resume") || ""; } catch { return ""; }
   })();
-  const redirectTo = params.get("redirect") || (type === "strict_unlock" ? resumeFromSession : "");
+  // `redirect` идва от URL на Stripe връщането — приема се само относителен път
+  // в същия origin; иначе бутонът „Продължи“ не се показва.
+  const redirectTo =
+    sanitizeReturnPath(params.get("redirect")) ??
+    (type === "strict_unlock" ? sanitizeReturnPath(resumeFromSession) ?? "" : "");
   const navigate = useNavigate();
   const { user } = useAuth();
 
