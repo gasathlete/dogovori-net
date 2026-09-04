@@ -488,4 +488,94 @@ describe("граница на самоличността и присвояван
     expect(result.current.pointer?.draftId).toBe("11111111-1111-4111-8111-111111111111");
     expect(localStorage.getItem("activation_draft_v1")).not.toBeNull();
   });
+
+  it("D. увиснало присвояване на стар потребител не блокира новия контекст и няма правомощия след това", async () => {
+    const DRAFT_A = "11111111-1111-4111-8111-111111111111";
+    const DRAFT_B = "33333333-3333-4333-8333-333333333333";
+    writePointer(pointer({ draftId: DRAFT_A }));
+    authUser = { id: "user-A" };
+    const claimA = deferred<{ ok: true; hasResult: boolean; savedDocId: string }>();
+    const claimB = deferred<{ ok: true; hasResult: boolean }>();
+    claimMock.mockImplementationOnce(() => claimA.promise).mockImplementationOnce(() => claimB.promise);
+
+    const { result, rerender } = render();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(claimMock).toHaveBeenCalledTimes(1);
+    expect(result.current.claiming).toBe(true);
+
+    // Изход по средата на увисналата заявка A (хранилището е изчистено).
+    authUser = null;
+    localStorage.clear();
+    sessionStorage.clear();
+    await act(async () => {
+      rerender();
+      await Promise.resolve();
+    });
+    expect(result.current.claiming).toBe(false);
+
+    // Нов потребител B с НОВА чернова B — присвояването започва веднага, без да
+    // чака A да се върне.
+    writePointer(pointer({ draftId: DRAFT_B, tabId: "tab-1" }));
+    authUser = { id: "user-B" };
+    await act(async () => {
+      rerender();
+      await Promise.resolve();
+    });
+    expect(claimMock).toHaveBeenCalledTimes(2);
+    expect(claimMock.mock.calls[1][0]).toMatchObject({ draftId: DRAFT_B });
+    expect(result.current.claiming).toBe(true);
+
+    // A се връща ПЪРВИ: не гаси индикатора на B, не пише A, не мени указателя B.
+    await act(async () => {
+      claimA.resolve({ ok: true, hasResult: true, savedDocId: "doc-a" });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(result.current.claiming).toBe(true);
+    const afterA = JSON.parse(localStorage.getItem("activation_draft_v1") ?? "{}");
+    expect(afterA).toMatchObject({ draftId: DRAFT_B, claimed: false });
+    expect(afterA.savedDocId).toBeUndefined();
+
+    // B се връща: черновата на B е присвоена, индикаторът угасва.
+    await act(async () => {
+      claimB.resolve({ ok: true, hasResult: false });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(result.current.claiming).toBe(false);
+    const afterB = JSON.parse(localStorage.getItem("activation_draft_v1") ?? "{}");
+    expect(afterB).toMatchObject({ draftId: DRAFT_B, claimed: true, claimToken: "" });
+    expect(claimMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("D2. същият потребител и същата чернова: многократно рендиране не дублира присвояването", async () => {
+    writePointer(pointer());
+    authUser = { id: "user-1" };
+    const claim = deferred<{ ok: true; hasResult: boolean }>();
+    claimMock.mockImplementationOnce(() => claim.promise);
+
+    const { rerender } = render();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(claimMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      rerender();
+      rerender();
+      await Promise.resolve();
+    });
+    expect(claimMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      claim.resolve({ ok: true, hasResult: false });
+      await Promise.resolve();
+      rerender();
+      vi.advanceTimersByTime(120_000);
+      await Promise.resolve();
+    });
+    expect(claimMock).toHaveBeenCalledTimes(1);
+  });
 });
