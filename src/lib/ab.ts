@@ -21,7 +21,7 @@ export const AB_TESTS = {
    */
   // Функциите за чернови са пуснати; стартираме на 10% (0.1) и вдигаме поетапно
   // (0.1 → 0.25 → 0.5 → 1). За QA се форсира с ?ab_activation_continuity=variant.
-  activation_continuity: { id: "activation_continuity", split: 0.1 },
+  activation_continuity: { id: "activation_continuity", split: 0.25 },
 } as const;
 
 export type AbTestId = keyof typeof AB_TESTS;
