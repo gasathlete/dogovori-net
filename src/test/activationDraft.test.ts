@@ -20,6 +20,7 @@ import {
   isSafeRoute,
   readPayload,
   readPointer,
+  sanitizeDraftRoute,
   takeLegacyDrafts,
   writePayload,
   writePointer,
