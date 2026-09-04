@@ -431,10 +431,14 @@ export async function syncDraft(input: {
     }
     // Докато заявката е пътувала, черновата може да е била присвоена (claim
     // след вход). Присвояването е необратимо — закъснял отговор никога не
-    // връща токена в браузъра и не сваля флага.
+    // връща токена в браузъра и не сваля флага. Флагът се пренася само за
+    // СЪЩАТА чернова: ако сървърът е върнал нов идентификатор, статусът му е
+    // неизвестен и указателят започва като непотърсен (с новия токен).
     const stored = readPointer();
+    const sameAsSent = p?.draftId === data.draft_id;
     const storedSame = stored?.draftId === data.draft_id ? stored : null;
-    const claimed = data.claimed === true || (p?.claimed ?? false) || storedSame?.claimed === true;
+    const claimed =
+      data.claimed === true || (sameAsSent && p?.claimed === true) || storedSame?.claimed === true;
     const ttl = claimed ? CLAIMED_DRAFT_TTL_MS : ANON_DRAFT_TTL_MS;
     const expiresAt = Math.max(
       Date.parse(data.expires_at || "") || Date.now() + ttl,
@@ -442,7 +446,7 @@ export async function syncDraft(input: {
     );
     const pointer: DraftPointer = {
       draftId: data.draft_id,
-      claimToken: claimed ? "" : data.claim_token || p?.claimToken || "",
+      claimToken: claimed ? "" : data.claim_token || (sameAsSent ? p?.claimToken : "") || "",
       flow: input.flow,
       docKey: input.docKey,
       route,
