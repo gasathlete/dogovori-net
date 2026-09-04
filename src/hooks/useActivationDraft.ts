@@ -691,6 +691,7 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
           restoreRef.current?.(payload, { source: "claim" });
         }
       })();
+      return true;
     },
     [cancelClaimRetry, detach, flow, scheduleClaimRetry, stillCurrent, tabHasContent, updatePointer],
   );
