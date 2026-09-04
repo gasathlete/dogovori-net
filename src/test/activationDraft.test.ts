@@ -12,10 +12,17 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: { functions: { invoke: vi.fn() } },
 }));
 
+const invokeMock = vi.fn();
+vi.mock("@/lib/invokeEdgeFunction", () => ({
+  invokeEdgeFunction: (...args: unknown[]) => invokeMock(...args),
+}));
+
 import {
   ANON_DRAFT_TTL_MS,
   CLAIMED_DRAFT_TTL_MS,
   DRAFT_POINTER_KEY,
+  LOCAL_DRAFT_ID,
+  claimDraft,
   clearAllDraftStorage,
   clearDraft,
   clearStagedLegacyDrafts,
@@ -27,6 +34,7 @@ import {
   readPayload,
   readPointer,
   sanitizeDraftRoute,
+  syncDraft,
   takeLegacyDrafts,
   writePayload,
   writePointer,
