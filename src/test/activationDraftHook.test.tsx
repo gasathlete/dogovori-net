@@ -284,4 +284,106 @@ describe("указателят е защитен от закъснели отг�
     });
     expect(claimMock).toHaveBeenCalledTimes(1);
   });
+
+  it("закъсняло присвояване не презаписва по-новото съдържание в таба и метаданните преживяват рендиране", async () => {
+    writePointer(pointer({ stepIdx: 1 }));
+    authUser = { id: "user-1" };
+    const claim = deferred<{ ok: true; hasResult: boolean; payload: { answers: { a: string } } }>();
+    claimMock.mockImplementationOnce(() => claim.promise);
+    syncMock.mockImplementation(async () => okSync(pointer({ stepIdx: 5 }), false).result);
+
+    const { result, rerender } = render();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    // Потребителят пише в таба, докато присвояването пътува…
+    act(() => result.current.persist({ answers: { a: "local-new" } }, { stepIdx: 5 }));
+    // …и родителят рендира отново (метаданните не бива да се връщат назад).
+    rerender();
+
+    await act(async () => {
+      claim.resolve({ ok: true, hasResult: false, payload: { answers: { a: "server-old" } } });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(
+      JSON.parse(sessionStorage.getItem("activation_draft_payload_v1:11111111-1111-4111-8111-111111111111") ?? "{}"),
+    ).toEqual({ answers: { a: "local-new" } });
+    const stored = JSON.parse(localStorage.getItem("activation_draft_v1") ?? "{}");
+    expect(stored).toMatchObject({ stepIdx: 5, claimed: true });
+  });
+});
+
+describe("натрупаното не се изпраща след обезсилен контекст", () => {
+  it("отказан commit прекъсва последващото изпращане", async () => {
+    const first = deferred<{ ok: true; pointer: DraftPointer; created: boolean; commit: () => null }>();
+    syncMock.mockImplementationOnce(() => first.promise);
+    const { result } = render();
+    act(() => result.current.persist({ answers: { a: "1" } }, { stepIdx: 1 }));
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+    act(() => result.current.persist({ answers: { a: "2" } }, { stepIdx: 2 }));
+
+    await act(async () => {
+      first.resolve({ ok: true, pointer: pointer(), created: true, commit: () => null });
+      await Promise.resolve();
+      vi.advanceTimersByTime(5000);
+      await Promise.resolve();
+    });
+    expect(syncMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("преходна грешка с по-нова ревизия изпраща натрупаното точно веднъж", async () => {
+    const first = deferred<{ ok: false; reason: "network" }>();
+    const second = okSync(pointer({ stepIdx: 2 }), false);
+    syncMock.mockImplementationOnce(() => first.promise).mockImplementationOnce(async () => second.result);
+    const { result } = render();
+    act(() => result.current.persist({ answers: { a: "1" } }, { stepIdx: 1 }));
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+    act(() => result.current.persist({ answers: { a: "2" } }, { stepIdx: 2 }));
+
+    await act(async () => {
+      first.resolve({ ok: false, reason: "network" });
+      await Promise.resolve();
+      vi.advanceTimersByTime(6000);
+      await Promise.resolve();
+    });
+    expect(syncMock).toHaveBeenCalledTimes(2);
+    expect(syncMock.mock.calls[1][0]).toMatchObject({ stepIdx: 2 });
+  });
+
+  it("успешен запис изпраща натрупаното след себе си", async () => {
+    const first = deferred<ReturnType<typeof okSync>["result"]>();
+    const second = okSync(pointer({ stepIdx: 2 }), false);
+    syncMock.mockImplementationOnce(() => first.promise).mockImplementationOnce(async () => second.result);
+    const { result } = render();
+    act(() => result.current.persist({ answers: { a: "1" } }, { stepIdx: 1 }));
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+    act(() => result.current.persist({ answers: { a: "2" } }, { stepIdx: 2 }));
+    await act(async () => {
+      first.resolve(okSync(pointer()).result);
+      await Promise.resolve();
+      vi.advanceTimersByTime(2000);
+      await Promise.resolve();
+    });
+    expect(syncMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("указател от друг поток се изпраща като изричен create", async () => {
+    writePointer(pointer({ flow: "build", draftId: "22222222-2222-4222-8222-222222222222" }));
+    syncMock.mockImplementation(async () => okSync(pointer()).result);
+    const { result } = render();
+    act(() => result.current.persist({ answers: { a: "1" } }, { stepIdx: 1 }));
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+      await Promise.resolve();
+    });
+    expect(syncMock.mock.calls[0][0]).toMatchObject({ pointer: null });
+  });
 });

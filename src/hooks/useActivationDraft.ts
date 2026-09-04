@@ -84,6 +84,22 @@ export interface UseActivationDraftResult {
 
 type Latest = { payload: DraftPayload; stepIdx: number; hasResult: boolean; rev: number };
 
+/**
+ * Смислена ли е разликата между два указателя за екрана? Отметката за време не
+ * е — иначе всяко натискане на клавиш би пререндирало екрана.
+ */
+function pointerMetaChanged(a: DraftPointer | null, b: DraftPointer | null): boolean {
+  if (!a || !b) return a !== b;
+  return (
+    a.draftId !== b.draftId ||
+    a.route !== b.route ||
+    a.stepIdx !== b.stepIdx ||
+    a.hasResult !== b.hasResult ||
+    a.claimed !== b.claimed ||
+    (a.savedDocId ?? "") !== (b.savedDocId ?? "")
+  );
+}
+
 interface ClaimRetryState {
   draftId: string;
   userId: string;
@@ -106,8 +122,11 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
   });
 
   const [claiming, setClaiming] = useState(false);
+  // ВНИМАНИЕ: препратката НЕ се пренасочва към състоянието при всяко рендиране —
+  // родителско рендиране иначе би върнало остаряла снимка върху вече обновените
+  // метаданни (стъпка, маршрут, флаг за резултат). Синхронизира се само там,
+  // където указателят се променя (`updatePointer`, `persist`).
   const pointerRef = useRef<DraftPointer | null>(pointer);
-  pointerRef.current = pointer;
 
   const restoreRef = useRef(onRestore);
   restoreRef.current = onRestore;
@@ -313,6 +332,13 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
     pendingRef.current = false;
     /** Изчакване преди изпращането на натрупаното състояние. */
     let followUpDelay = 0;
+    /**
+     * Има ли още смисъл натрупаното състояние да се изпрати след тази заявка?
+     * При обезсилен контекст (сменен/зает указател, изрично отказване, отказан
+     * commit) натрупаното е за СТАРАТА чернова и не бива да се изпраща срещу
+     * заместващия указател.
+     */
+    let followUpApplicable = true;
 
     try {
       const res = await syncDraft(
@@ -329,13 +355,18 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
       );
 
       // Екранът е напуснат — нищо не пишем в състояние или хранилище.
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        followUpApplicable = false;
+        return;
+      }
 
       // Указателят е сменен с ДРУГА чернова, докато заявката е пътувала:
       // отговорът е за старата и се изхвърля (нито commit, нито изчистване).
       // …или документът е отказан изрично: и двете правят отговора без значение.
-      if ((pointerRef.current?.draftId ?? null) !== sentDraftId) return;
-      if (discardRevRef.current !== sentDiscardRev) return;
+      if ((pointerRef.current?.draftId ?? null) !== sentDraftId || discardRevRef.current !== sentDiscardRev) {
+        followUpApplicable = false;
+        return;
+      }
 
       if (res.ok === false) {
         const detached = onSyncBlocked(res.reason, current);
@@ -348,6 +379,7 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
         }
         // Един опит за нова чернова през изричния create път (без draft_id).
         const newest = latestRef.current;
+        followUpApplicable = false;
         if (!detached || recreateRef.current || !newest) return;
         recreateRef.current = true;
         const again = await syncDraft(
@@ -381,6 +413,10 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
           { requireCurrent: true },
         );
         if (!committed) return;
+        // Успешното пресъздаване е нов чист старт: следващо изтичане отново има
+        // право на резервен опит.
+        recreateRef.current = false;
+        followUpApplicable = true;
         updatePointer(committed);
         clearStagedLegacyDrafts(flow);
         trackDraftEvent("draft_created", {
@@ -406,7 +442,10 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
         },
         { requireCurrent: true },
       );
-      if (!committed) return;
+      if (!committed) {
+        followUpApplicable = false;
+        return;
+      }
       updatePointer(committed);
       // Сървърният запис е потвърден — стажираните стари чернови вече не са
       // единственото копие.
@@ -419,11 +458,12 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
       });
     } finally {
       // Всеки изход минава оттук: ключът се освобождава и натрупаното (ако е
-      // още актуално) се изпраща точно веднъж.
+      // още АКТУАЛНО) се изпраща точно веднъж.
       inFlightRef.current = false;
       if (mountedRef.current) {
         maybeRunDueClaimRetry();
-        flushIfPending(sentRev, followUpDelay);
+        if (followUpApplicable) flushIfPending(sentRev, followUpDelay);
+        else pendingRef.current = false;
       }
     }
   }, [flow, docKey, onSyncBlocked, updatePointer, scheduleFlush, flushIfPending, maybeRunDueClaimRetry]);
@@ -451,12 +491,13 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
       // веднага, включително докато тече сървърна заявка.
       const id = pointerRef.current?.draftId ?? LOCAL_DRAFT_ID;
       writePayload(id, payload);
-      if (pointerRef.current) {
+      const prev = pointerRef.current;
+      if (prev) {
         // Метаданните се вдигат ВЕДНАГА и в паметта на екрана, не само в
         // хранилището: закъснял отговор от присвояване/запис не бива да върне
         // стъпката, маршрута или флага за резултат назад.
         const next: DraftPointer = {
-          ...pointerRef.current,
+          ...prev,
           stepIdx: latestRef.current.stepIdx,
           hasResult: latestRef.current.hasResult,
           route,
@@ -464,6 +505,9 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
         };
         writePointer(next);
         pointerRef.current = next;
+        // Състоянието на React се пипа само при СМИСЛЕНА промяна — иначе всяко
+        // натискане на клавиш би рендирало екрана заради нова отметка за време.
+        if (mountedRef.current && pointerMetaChanged(prev, next)) setPointer(next);
       }
 
       if (inFlightRef.current) {
@@ -584,17 +628,27 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
         writePointer(next);
         updatePointer(next);
 
+        // Съдържанието от сървъра е снимка от МОМЕНТА на заявката. Ако докато
+        // тя е пътувала потребителят е въвел нещо (в паметта на екрана или в
+        // таба), локалното е по-новото и остава — сървърното не се записва.
+        const localAfter = readPayload(current.draftId) ?? readPayload(LOCAL_DRAFT_ID);
+        const cleanTab = !tabHasContent() && !hasRestorableContent(localAfter);
+        if (!cleanTab) return;
+
         let payload = res.payload ?? null;
-        if (!payload && res.purged && res.savedDocId && !hasLocal && !tabHasContent()) {
+        if (!payload && res.purged && res.savedDocId && !hasLocal) {
           payload = await loadSavedDraftPayload(res.savedDocId);
           // Закъсняло съдържание за вече заменена/отказана чернова се изхвърля.
           if (!stillCurrent(current.draftId, userId)) return;
+          // …както и за таб, в който междувременно е въведено съдържание.
+          const local2 = readPayload(current.draftId) ?? readPayload(LOCAL_DRAFT_ID);
+          if (tabHasContent() || hasRestorableContent(local2)) return;
         }
         if (payload) {
           writePayload(current.draftId, payload);
           // Възстановяваме само ако в този таб потребителят не е въвел нищо
           // (нов таб от имейл линка / OAuth връщане към чист екран).
-          if (!tabHasContent()) restoreRef.current?.(payload, { source: "claim" });
+          restoreRef.current?.(payload, { source: "claim" });
         }
       })();
     },

@@ -16,8 +16,14 @@
  */
 import { sanitizeReturnPath } from "@/lib/safeRoute";
 
-/** Маршрути, на които потребителят „каца“ след вход/OAuth връщане. */
-const AUTH_LANDING_PATHS: ReadonlySet<string> = new Set(["/", "/auth", "/auth/callback", "/reset-password"]);
+/**
+ * Маршрути, на които потребителят „каца“ след вход/OAuth връщане.
+ *
+ * `/reset-password` НЕ е такъв маршрут: там сесията идва от линк за
+ * възстановяване и екранът трябва да остане на място, докато паролата не е
+ * сменена — иначе черновата „отвлича“ потребителя от възстановяването.
+ */
+const AUTH_LANDING_PATHS: ReadonlySet<string> = new Set(["/", "/auth", "/auth/callback"]);
 
 export function isAuthLandingPath(pathname: string): boolean {
   const clean = pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;

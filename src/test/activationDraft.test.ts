@@ -448,3 +448,59 @@ describe("claimRetryDelay", () => {
     expect(MAX_CLAIM_ATTEMPTS).toBeLessThanOrEqual(8);
   });
 });
+
+describe("syncDraft — commit с requireCurrent сравнява снимката при изпращане", () => {
+  const OK = (id = DRAFT_ID) => ({
+    data: { draft_id: id, claim_token: "abcdefghijklmnopqrstuvwx", expires_at: new Date(Date.now() + ANON_DRAFT_TTL_MS).toISOString() },
+    error: null,
+  });
+
+  it("update: преминаването към присвоена чернова е сливаемо и токенът не се връща", async () => {
+    const p = pointer({ draftId: DRAFT_ID, flow: "build" });
+    writePointer(p);
+    invokeMock.mockResolvedValueOnce(OK());
+    const res = await syncDraft(syncArgs(p), { commit: false });
+    expect(res.ok).toBe(true);
+    if (res.ok !== true) return;
+    writePointer(pointer({ draftId: DRAFT_ID, flow: "build", claimed: true, claimToken: "", savedDocId: "doc-1" }));
+    const committed = res.commit({ stepIdx: 4 }, { requireCurrent: true });
+    expect(committed).not.toBeNull();
+    expect(committed!.claimed).toBe(true);
+    expect(committed!.claimToken).toBe("");
+    expect(localStorage.getItem(DRAFT_POINTER_KEY)).not.toContain("abcdefghijklmnopqrstuvwx");
+  });
+
+  it("update: указател, сменен с ДРУГА чернова, отказва commit", async () => {
+    const p = pointer({ draftId: DRAFT_ID, flow: "build" });
+    writePointer(p);
+    invokeMock.mockResolvedValueOnce(OK());
+    const res = await syncDraft(syncArgs(p), { commit: false });
+    if (res.ok !== true) return;
+    const other = pointer({ draftId: "44444444-4444-4444-8444-444444444444", flow: "build" });
+    writePointer(other);
+    expect(res.commit({}, { requireCurrent: true })).toBeNull();
+    expect(readPointer()?.draftId).toBe(other.draftId);
+  });
+
+  it("изричен create: непроменена снимка минава, а заменена от друг таб — не", async () => {
+    invokeMock.mockResolvedValue(OK());
+    // 1) чисто хранилище при изпращане, чисто и при commit → минава
+    const first = await syncDraft(syncArgs(null), { commit: false });
+    if (first.ok !== true) return;
+    expect(first.commit({}, { requireCurrent: true })).not.toBeNull();
+
+    // 2) друг таб заменя указателя, докато заявката пътува → отказ
+    localStorage.clear();
+    const second = await syncDraft(syncArgs(null), { commit: false });
+    if (second.ok !== true) return;
+    const foreign = pointer({ draftId: "55555555-5555-4555-8555-555555555555", tabId: "tab-2" });
+    writePointer(foreign);
+    expect(second.commit({}, { requireCurrent: true })).toBeNull();
+    expect(readPointer()?.draftId).toBe(foreign.draftId);
+  });
+
+  it("clearDraftIfCurrent без указател не създава резервно копие", () => {
+    expect(clearDraftIfCurrent(DRAFT_ID)).toBe(false);
+    expect(readPayload(LOCAL_DRAFT_ID)).toBeNull();
+  });
+});

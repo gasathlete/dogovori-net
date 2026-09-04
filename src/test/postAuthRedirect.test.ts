@@ -3,7 +3,7 @@
  * документ е резервната цел, а небезопасните адреси не извеждат от приложението.
  */
 import { describe, expect, it } from "vitest";
-import { resolvePostAuthRedirect } from "@/lib/postAuthRedirect";
+import { isAuthLandingPath, resolvePostAuthRedirect } from "@/lib/postAuthRedirect";
 
 describe("resolvePostAuthRedirect", () => {
   it("използва изричната цел и я изразходва", () => {
@@ -49,5 +49,20 @@ describe("resolvePostAuthRedirect", () => {
     expect(
       resolvePostAuthRedirect({ destination: null, here: "/plans", draftRoute: "/wizard/it", isAuthLanding: false }),
     ).toEqual({ target: null, consumeDestination: false });
+  });
+});
+
+describe("isAuthLandingPath", () => {
+  it("страницата за нова парола НЕ е място за кацане (възстановяването не се отвлича)", () => {
+    expect(isAuthLandingPath("/reset-password")).toBe(false);
+  });
+
+  it("голият вход и връщането от доставчик са места за кацане", () => {
+    for (const path of ["/", "/auth", "/auth/", "/auth/callback"]) {
+      expect(isAuthLandingPath(path)).toBe(true);
+    }
+    for (const path of ["/plans", "/account", "/wizard/it"]) {
+      expect(isAuthLandingPath(path)).toBe(false);
+    }
   });
 });
