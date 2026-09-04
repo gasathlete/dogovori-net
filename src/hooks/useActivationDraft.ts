@@ -799,7 +799,9 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
       return;
     }
 
-    claimAttemptRef.current = current.draftId;
+    // Маркерът за „опитано" се вдига ВЪТРЕ в runClaim — само ако заявката
+    // наистина е стартирала. Иначе нова чернова би останала маркирана като
+    // опитана, без никога да бъде присвоена.
     runClaim(current, userId);
     // Указателят е част от зависимостите ПО САМОЛИЧНОСТ И СЪСТОЯНИЕ: чернова,
     // създадена след като потребителят вече е влязъл, се присвоява веднага, а
@@ -817,7 +819,7 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
     updatePointer,
     tabHasContent,
     runClaim,
-    cancelClaimRetry,
+    invalidateClaim,
     stillCurrent,
   ]);
 
@@ -825,7 +827,9 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
   const discard = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = null;
-    cancelClaimRetry();
+    // Отказването обезсилва и присвояването в движение: ключът се освобождава
+    // веднага, а закъснелият отговор няма правомощия.
+    invalidateClaim();
     // Изричното отказване е безусловно: потребителят е приключил с документа.
     discardRevRef.current += 1;
     clearDraft(pointerRef.current?.draftId);
@@ -833,7 +837,7 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
     updatePointer(null);
     latestRef.current = null;
     pendingRef.current = false;
-  }, [cancelClaimRetry, updatePointer]);
+  }, [invalidateClaim, updatePointer]);
 
 
   /* ------------------------------ Почистване ------------------------------ */
