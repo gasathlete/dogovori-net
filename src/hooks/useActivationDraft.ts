@@ -454,12 +454,13 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
       // веднага, включително докато тече сървърна заявка.
       const id = pointerRef.current?.draftId ?? LOCAL_DRAFT_ID;
       writePayload(id, payload);
-      if (pointerRef.current) {
+      const prev = pointerRef.current;
+      if (prev) {
         // Метаданните се вдигат ВЕДНАГА и в паметта на екрана, не само в
         // хранилището: закъснял отговор от присвояване/запис не бива да върне
         // стъпката, маршрута или флага за резултат назад.
         const next: DraftPointer = {
-          ...pointerRef.current,
+          ...prev,
           stepIdx: latestRef.current.stepIdx,
           hasResult: latestRef.current.hasResult,
           route,
@@ -467,6 +468,9 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
         };
         writePointer(next);
         pointerRef.current = next;
+        // Състоянието на React се пипа само при СМИСЛЕНА промяна — иначе всяко
+        // натискане на клавиш би рендирало екрана заради нова отметка за време.
+        if (mountedRef.current && pointerMetaChanged(prev, next)) setPointer(next);
       }
 
       if (inFlightRef.current) {
