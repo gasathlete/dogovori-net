@@ -33,6 +33,8 @@ interface Overview {
   conversion: {
     plans_views: number; checkout_started: number; upgrade_completed: number;
     paid_subscriptions: number; visitor_to_paid: number; signup_to_paid: number; checkout_completion: number;
+    /** Налично след прилагане на миграцията за checkout_failed — толерираме липсата. */
+    checkout_failed?: number;
   };
   segments: { business: number; freelancer: number };
   quality: {
@@ -242,6 +244,12 @@ export default function AdminMetrics() {
                 value={data.conversion.upgrade_completed}
                 suffix={`· ${data.conversion.checkout_completion}%`}
                 tone={data.conversion.checkout_completion >= 50 ? "good" : "warn"}
+              />
+              <Kpi
+                label="Неуспешен checkout"
+                value={data.conversion.checkout_failed ?? "—"}
+                hint="сесията не беше създадена (без плащане)"
+                tone={(data.conversion.checkout_failed ?? 0) > 0 ? "warn" : "neutral"}
               />
               <Kpi label="Посетител → платящ" value={data.conversion.visitor_to_paid} suffix="%" />
             </section>
