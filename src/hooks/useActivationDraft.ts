@@ -678,6 +678,7 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
         if (!payload && res.purged && res.savedDocId && !hasLocal) {
           payload = await loadSavedDraftPayload(res.savedDocId);
           // Закъсняло съдържание за вече заменена/отказана чернова се изхвърля.
+          if (claimGenRef.current !== gen) return;
           if (!stillCurrent(current.draftId, userId)) return;
           // …както и за таб, в който междувременно е въведено съдържание.
           const local2 = readPayload(current.draftId) ?? readPayload(LOCAL_DRAFT_ID);
