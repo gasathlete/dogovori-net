@@ -37,6 +37,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { sanitizeReturnPath } from "@/lib/safeRoute";
+import { isAllowedCheckoutPrice } from "@/lib/entryPack";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { ShareForSignDialog } from "@/components/ShareForSignDialog";
 import { UploadContractDialog } from "@/components/UploadContractDialog";
@@ -134,8 +135,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   useEffect(() => {
     const requested = searchParams.get("checkout");
     if (!requested) return;
-    const allowed = ["pro_monthly", "pro_yearly", "professional_monthly", "professional_yearly", "entrepreneur_monthly", "entrepreneur_yearly", ENTRY_PACK_CONFIG.priceId];
-    if (allowed.includes(requested)) setCheckoutPrice(requested);
+    if (isAllowedCheckoutPrice(requested)) setCheckoutPrice(requested);
     const next = new URLSearchParams(searchParams);
     next.delete("checkout");
     setSearchParams(next, { replace: true });

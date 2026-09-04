@@ -32,6 +32,7 @@ import {
 } from "@/lib/pricing";
 import { useAudience } from "@/hooks/useAudience";
 import { markFunnelStep } from "@/lib/funnel";
+import { entryPackCtaHref } from "@/lib/entryPack";
 import { useEffect } from "react";
 
 
@@ -414,10 +415,7 @@ export default function Plans() {
           {/* Входен пакет без абонамент — най-ниската бариера до плащане.
               Това НЕ е top-up пакет (те са само за активни абонати). */}
           {(() => {
-            const target = `/account?tab=subscription&checkout=${ENTRY_PACK_CONFIG.priceId}`;
-            const href = isAuthed
-              ? target
-              : `/auth?tab=signup&redirect=${encodeURIComponent(target)}&intent=one_off_${ENTRY_PACK_CONFIG.priceId}`;
+            const href = entryPackCtaHref(isAuthed);
             return (
               <div className="mt-6 flex flex-col gap-4 rounded-2xl border-2 border-brand/40 bg-brand/[0.04] p-5 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:p-6">
                 <div className="flex items-start gap-3 sm:items-center">
