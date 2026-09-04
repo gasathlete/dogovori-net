@@ -1,6 +1,9 @@
+import { useRef } from "react";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 import { supabase } from "@/integrations/supabase/client";
+import { trackCheckoutStarted } from "@/lib/metrics";
+import { describePriceId } from "@/lib/checkoutAnalytics";
 
 interface Props {
   /** When provided, used directly instead of calling create-checkout. */
@@ -10,6 +13,14 @@ interface Props {
   customerEmail?: string;
   userId?: string;
   returnUrl?: string;
+  /**
+   * Откъде е отворен checkout-ът (account_subscription, branding, team…).
+   * Влиза като `source` в каноничното събитие `checkout_started`.
+   */
+  analyticsSource?: string;
+  /** Override, когато няма price id (напр. Екип: plan="team", billing="yearly"). */
+  analyticsPlan?: string;
+  analyticsBilling?: string;
 }
 
 export function StripeEmbeddedCheckout({
@@ -19,9 +30,25 @@ export function StripeEmbeddedCheckout({
   customerEmail,
   userId,
   returnUrl,
+  analyticsSource,
+  analyticsPlan,
+  analyticsBilling,
 }: Props) {
+  // checkout_started = реално създадена Stripe сесия. Един път на монтиране —
+  // StrictMode/re-render не трябва да удвояват броя.
+  const trackedRef = useRef(false);
+  const markStarted = () => {
+    if (trackedRef.current) return;
+    trackedRef.current = true;
+    const derived = describePriceId(priceId);
+    trackCheckoutStarted(analyticsPlan ?? derived.plan, analyticsBilling ?? derived.billing, analyticsSource ?? "embedded");
+  };
+
   const fetchClientSecret = async (): Promise<string> => {
-    if (clientSecret) return clientSecret;
+    if (clientSecret) {
+      markStarted();
+      return clientSecret;
+    }
     if (!priceId || !returnUrl) throw new Error("priceId/returnUrl required");
     const { data, error } = await supabase.functions.invoke("create-checkout", {
       body: { priceId, quantity, customerEmail, userId, returnUrl, environment: getStripeEnvironment() },
@@ -29,6 +56,7 @@ export function StripeEmbeddedCheckout({
     if (error || !data?.clientSecret) {
       throw new Error(error?.message || "Неуспешно създаване на checkout сесия");
     }
+    markStarted();
     return data.clientSecret;
   };
 

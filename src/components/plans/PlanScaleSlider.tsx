@@ -11,7 +11,6 @@ import { ArrowRight, Sliders, Sparkles, Zap, Crown, Users } from "@/icons";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
-import { trackCheckoutStarted } from "@/lib/metrics";
 import type { Billing, PlanId, PlanView } from "@/hooks/usePlans";
 import { usePlanRecommendation, LAWYER_DOC_COST_EUR, OPS_PER_DOC } from "@/hooks/usePlanRecommendation";
 
@@ -232,7 +231,6 @@ export function PlanScaleSlider({ plans, billing, isAuthed, onRecommend }: Props
                 authed: isAuthed,
                 source: "slider",
               });
-              if (rec.planId !== "free") trackCheckoutStarted(rec.planId, billing, "plans_slider");
             }}
             className={cn(
               "group/btn mt-auto inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-5 py-3 text-sm font-semibold text-white shadow-brand transition-all duration-300 hover:shadow-[0_20px_50px_-15px_hsl(var(--brand)/0.6)]",

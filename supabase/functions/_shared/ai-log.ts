@@ -45,6 +45,10 @@ const MASKS: Array<[RegExp, string]> = [
 export function maskSensitive(input: string): string {
   if (!input) return "";
   let out = input;
+  // V8 JSON.parse грешките цитират суров фрагмент от входа
+  // (`Unexpected token 'Е', "ЕГН 800101"... is not valid JSON`) — фрагментът
+  // може да е отрязан по средата на ЕГН/телефон и да мине под маските по-долу.
+  out = out.replace(/,\s*"(?:[^"\\]|\\.)*"\.{0,3}\s*is not valid JSON/g, " «snippet» is not valid JSON");
   for (const [re, token] of MASKS) out = out.replace(re, token);
   // Три последователни главни-малки думи = вероятно три имена.
   out = out.replace(

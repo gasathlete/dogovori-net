@@ -7,6 +7,7 @@
  *   <ProUpgradeDialog open={open} onOpenChange={setOpen} trigger="corrections" />
  */
 
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, Crown, Sparkles, Zap } from "@/icons";
 import {
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { trackEvent, trackUpgradeStarted } from "@/lib/analytics";
+import { trackPaywallShown } from "@/lib/docFunnel";
 import { PRICING_PLANS, planSummary, yearlyLabel } from "@/lib/pricing";
 import { useAudience } from "@/hooks/useAudience";
 
@@ -144,13 +146,16 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
 
   const { copy: audienceCopy, audience } = useAudience();
 
+  // paywall_shown — при реално показване (контролираният `open`, не onOpenChange,
+  // който не се вика при програмно отваряне). Дедупликира се по kind+source.
+  useEffect(() => {
+    if (open) trackPaywallShown("pro_dialog", { source: trigger, audience });
+  }, [open, trigger, audience]);
+
   return (
     <Dialog
       open={open}
-      onOpenChange={(v) => {
-        if (v) trackEvent("paywall_shown", { trigger, audience });
-        onOpenChange(v);
-      }}
+      onOpenChange={onOpenChange}
     >
       <DialogContent className="max-w-md border-gold/30">
         <DialogHeader>

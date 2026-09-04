@@ -148,7 +148,7 @@ export default function TeamPage() {
           <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto p-0">
             <div className="p-6">
               {checkoutSecret && user && (
-                <StripeEmbeddedCheckout key={checkoutSecret} clientSecret={checkoutSecret} />
+                <StripeEmbeddedCheckout key={checkoutSecret} clientSecret={checkoutSecret} analyticsSource="team" analyticsPlan="team" analyticsBilling="yearly" />
               )}
             </div>
           </DialogContent>

@@ -9,6 +9,7 @@ import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe
 import { getStripe } from "@/lib/stripe";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
+import { trackCheckoutStarted } from "@/lib/metrics";
 import { RoiSavingsBanner } from "@/components/funnel/RoiSavingsBanner";
 import {
   PRICING_PLANS,
@@ -44,6 +45,7 @@ export function StrictDocumentPaywall({
   const startUnlock = async () => {
     setStarting(true);
     trackEvent("strict_unlock_checkout_started", { doc_key: docKey, sector_id: sectorId });
+    trackCheckoutStarted("strict_unlock", "one_time", "strict_paywall");
     try {
       // Preserve wizard route so CheckoutReturn navigates back after payment.
       try {

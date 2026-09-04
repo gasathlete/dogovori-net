@@ -38,7 +38,7 @@ import { cn } from "@/lib/utils";
 import { FAQ } from "@/lib/plansData";
 import { usePlans, type Billing, type PlanId } from "@/hooks/usePlans";
 import { trackEvent } from "@/lib/analytics";
-import { trackPlansView, trackCheckoutStarted } from "@/lib/metrics";
+import { trackPlansView } from "@/lib/metrics";
 import { roiSubtitle, type PricingPlanId } from "@/lib/pricing";
 
 const PLAN_ICON: Record<PlanId, React.ComponentType<{ className?: string }>> = {
@@ -380,7 +380,6 @@ export default function Plans() {
                             authed: isAuthed,
                             audience,
                           });
-                          if (plan.id !== "free") trackCheckoutStarted(plan.id, billing, "plans_card");
                         }
                       }
                       className={cn(

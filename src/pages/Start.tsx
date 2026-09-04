@@ -103,7 +103,7 @@ export default function StartPage() {
                 <Link
                   to={intent.to}
                   onClick={(e) => {
-                    trackDocStart({ source: "start", intent: intent.id });
+                    trackDocStart({ source: "start", doc_key: intent.id, intent: intent.id });
                     if (needsAuth(intent)) {
                       e.preventDefault();
                       openInlineAuth({
