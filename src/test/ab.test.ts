@@ -24,6 +24,8 @@ import {
 beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
+  // Резервният seed в паметта живее колкото модула — иначе се пренася между тестове.
+  __resetAbSeedMemory();
 });
 
 describe("bucketFor / resolveVariant", () => {

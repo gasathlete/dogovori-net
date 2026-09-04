@@ -33,6 +33,10 @@ jobs:
       - name: Conversion reliability (funnel semantics, dedup, generation errors)
         run: bunx vitest run src/test/funnelEvents.test.ts src/test/docFunnel.test.ts src/test/generationReliability.test.ts src/test/checkoutTracking.test.tsx
 
+      - name: Activation continuity (draft autosave, claim retry, post-auth redirect, A/B seed)
+        run: bunx vitest run src/test/activationDraft.test.ts src/test/activationDraftHook.test.tsx src/test/postAuthRedirect.test.ts src/test/ab.test.ts src/test/safeRoute.test.ts
+
+
       - name: Conversion reliability — edge helpers (job status, idempotency, AI JSON repair ladder)
         uses: denoland/setup-deno@v2
         with:

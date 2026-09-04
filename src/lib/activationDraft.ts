@@ -393,6 +393,16 @@ export interface SyncCommitOverrides {
   route?: string;
 }
 
+/** Условия, при които закъснял резултат още има право да пише в хранилището. */
+export interface SyncCommitOptions {
+  /**
+   * Записва само ако хранилището още сочи същата чернова, с която е тръгнала
+   * заявката (или е празно, когато заявката е била изричен create). Пази срещу
+   * друг таб или изрично отказване, случило се докато заявката е пътувала.
+   */
+  requireCurrent?: boolean;
+}
+
 export type SyncResult =
   | {
       ok: true;
@@ -400,11 +410,13 @@ export type SyncResult =
       created: boolean;
       /**
        * Прилага указателя и съдържанието в хранилището. Извиква се само когато
-       * резултатът още е актуален; връща реално записания указател.
+       * резултатът още е актуален; връща реално записания указател или `null`,
+       * ако при `requireCurrent` хранилището вече сочи друга чернова.
        */
-      commit: (overrides?: SyncCommitOverrides) => DraftPointer;
+      commit: (overrides?: SyncCommitOverrides, opts?: SyncCommitOptions) => DraftPointer | null;
     }
   | { ok: false; reason: DraftErrorReason };
+
 
 /**
  * Сглобява указателя от отговора на сървъра спрямо ТЕКУЩО запазения указател.
@@ -514,7 +526,18 @@ export async function syncDraft(
       hasResult: input.hasResult,
     });
 
-    const commit = (overrides: SyncCommitOverrides = {}): DraftPointer => {
+    const commit = (
+      overrides: SyncCommitOverrides = {},
+      commitOpts: SyncCommitOptions = {},
+    ): DraftPointer | null => {
+      if (commitOpts.requireCurrent) {
+        // Указател от друг поток е без значение за този екран (един указател на
+        // браузър, но всеки екран отговаря само за своя поток).
+        const stored = readPointer();
+        const relevant = stored && stored.flow === input.flow ? stored : null;
+        const expected = p?.draftId ?? null;
+        if ((relevant?.draftId ?? null) !== expected) return null;
+      }
       const built = buildSyncPointer({
         sent: p,
         data,
@@ -538,7 +561,7 @@ export async function syncDraft(
       return { ok: true, pointer: preview.pointer, created: preview.created, commit };
     }
     const pointer = commit();
-    return { ok: true, pointer, created: preview.created, commit };
+    return { ok: true, pointer: pointer ?? preview.pointer, created: preview.created, commit };
   } catch {
     return { ok: false, reason: "network" };
   }
@@ -551,7 +574,11 @@ export async function syncDraft(
  * заменения указател на чернова B. Съдържанието на таба се пази в резервния
  * слот (`LOCAL_DRAFT_ID`), за да не се губи въведеното.
  *
- * `requireUnclaimed` пази и втория случай: същата чернова, но междувременно
+ * Буквално „само ако текущият е очакваният“: липсващ указател (изрично
+ * отказване, друг таб) също е разминаване — тогава нищо не се пипа и резервно
+ * копие НЕ се създава, за да не възкръсне отказан документ.
+ *
+ * `requireUnclaimed` пази и третия случай: същата чернова, но междувременно
  * присвоена (успешен claim, докато записът е пътувал) — тогава не пипаме нищо.
  */
 export function clearDraftIfCurrent(
@@ -559,13 +586,14 @@ export function clearDraftIfCurrent(
   opts: { keepPayload?: DraftPayload | null; requireUnclaimed?: boolean } = {},
 ): boolean {
   const stored = readPointer();
-  if (stored && stored.draftId !== expectedDraftId) return false;
-  if (opts.requireUnclaimed && stored?.claimed) return false;
+  if (!stored || stored.draftId !== expectedDraftId) return false;
+  if (opts.requireUnclaimed && stored.claimed) return false;
   const payload = opts.keepPayload ?? readPayload(expectedDraftId);
   if (hasRestorableContent(payload)) writePayload(LOCAL_DRAFT_ID, payload);
   clearDraft(expectedDraftId);
   return true;
 }
+
 
 /** Максимум опити за присвояване при преходна грешка (на монтиране/сесия). */
 export const MAX_CLAIM_ATTEMPTS = 5;

@@ -54,6 +54,8 @@ import {
 } from "@/lib/activationDraft";
 
 const SYNC_DEBOUNCE_MS = 1500;
+/** Изчакване преди повторен опит за натрупано състояние след преходна грешка. */
+const SYNC_RETRY_MS = 2000;
 
 export interface UseActivationDraftOptions {
   flow: DraftFlow;
@@ -94,7 +96,15 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
   const active = useMemo(() => isActivationContinuityEnabled(), []);
   const { user } = useAuth();
 
-  const [pointer, setPointer] = useState<DraftPointer | null>(() => (active ? readPointer() : null));
+  // Указател от ДРУГ поток не е „текущият" за този екран: не бива да обновяваме
+  // чужда сървърна чернова (нито да я триете) — първият реален запис минава по
+  // изричния create път.
+  const [pointer, setPointer] = useState<DraftPointer | null>(() => {
+    if (!active) return null;
+    const stored = readPointer();
+    return stored && stored.flow === flow ? stored : null;
+  });
+
   const [claiming, setClaiming] = useState(false);
   const pointerRef = useRef<DraftPointer | null>(pointer);
   pointerRef.current = pointer;
@@ -122,6 +132,8 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
   const claimInFlightRef = useRef(false);
   /** Един опит за нова чернова след окончателно невалиден указател. */
   const recreateRef = useRef(false);
+  /** Вдига се при изрично отказване — закъснели резултати стават без значение. */
+  const discardRevRef = useRef(0);
   const claimRetryRef = useRef<ClaimRetryState | null>(null);
   const runClaimRef = useRef<((p: DraftPointer, userId: string) => void) | null>(null);
 
@@ -250,11 +262,11 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
 
   /** Ако е останало неизпратено състояние, изпраща го веднъж (обединено). */
   const flushIfPending = useCallback(
-    (sentRev: number) => {
+    (sentRev: number, delay = 0) => {
       if (!mountedRef.current) return;
       const latest = latestRef.current;
       if (!latest) return;
-      if (pendingRef.current || latest.rev > sentRev) scheduleFlush(0);
+      if (pendingRef.current || latest.rev > sentRev) scheduleFlush(delay);
     },
     [scheduleFlush],
   );
@@ -293,12 +305,17 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
 
     const sentRev = latest.rev;
     const sentDraftId = current?.draftId ?? null;
+    const sentDiscardRev = discardRevRef.current;
+    // Ключът се държи през ЦЯЛАТА операция — включително през резервното
+    // създаване след окончателна грешка — иначе запис/таймер по време на
+    // резервния await би започнал втори create и би дублирал черновата.
     inFlightRef.current = true;
     pendingRef.current = false;
+    /** Изчакване преди изпращането на натрупаното състояние. */
+    let followUpDelay = 0;
 
-    let res: Awaited<ReturnType<typeof syncDraft>>;
     try {
-      res = await syncDraft(
+      const res = await syncDraft(
         {
           pointer: current,
           flow,
@@ -310,23 +327,28 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
         },
         { commit: false },
       );
-    } finally {
-      inFlightRef.current = false;
-    }
 
-    // Екранът е напуснат — нищо не пишем в състояние или хранилище.
-    if (!mountedRef.current) return;
+      // Екранът е напуснат — нищо не пишем в състояние или хранилище.
+      if (!mountedRef.current) return;
 
-    // Указателят е сменен с ДРУГА чернова, докато заявката е пътувала:
-    // отговорът е за старата и се изхвърля (нито commit, нито изчистване).
-    const pointerMoved = (pointerRef.current?.draftId ?? null) !== sentDraftId;
+      // Указателят е сменен с ДРУГА чернова, докато заявката е пътувала:
+      // отговорът е за старата и се изхвърля (нито commit, нито изчистване).
+      // …или документът е отказан изрично: и двете правят отговора без значение.
+      if ((pointerRef.current?.draftId ?? null) !== sentDraftId) return;
+      if (discardRevRef.current !== sentDiscardRev) return;
 
-    if (res.ok === false) {
-      if (pointerMoved) return;
-      const detached = onSyncBlocked(res.reason, current);
-      // Един опит за нова чернова през изричния create път (без draft_id).
-      const newest = latestRef.current;
-      if (detached && !recreateRef.current && newest) {
+      if (res.ok === false) {
+        const detached = onSyncBlocked(res.reason, current);
+        if (isTransientDraftReason(res.reason)) {
+          // Ако междувременно има по-нова ревизия, тя не бива да чака трета
+          // редакция: изпращаме я веднъж, след кратко изчакване (без стегнат
+          // цикъл). Без по-нова ревизия остава „нов опит при следващ запис".
+          followUpDelay = SYNC_RETRY_MS;
+          return;
+        }
+        // Един опит за нова чернова през изричния create път (без draft_id).
+        const newest = latestRef.current;
+        if (!detached || recreateRef.current || !newest) return;
         recreateRef.current = true;
         const again = await syncDraft(
           {
@@ -340,57 +362,72 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
           },
           { commit: false },
         );
-        if (!mountedRef.current) return;
-        if (again.ok === true) {
-          // Междувременно указателят може вече да е зает от друга чернова.
-          if (pointerRef.current) return;
-          const fresh = latestRef.current;
-          const committed = again.commit({
+        if (!mountedRef.current || discardRevRef.current !== sentDiscardRev) return;
+        if (again.ok !== true) {
+          onSyncBlocked(again.reason, null);
+          return;
+        }
+        // Междувременно указателят може вече да е зает от друга чернова или
+        // документът да е отказан — тогава новият запис не се присвоява тук.
+        if (pointerRef.current) return;
+        const fresh = latestRef.current;
+        const committed = again.commit(
+          {
             payload: fresh?.payload,
             stepIdx: fresh?.stepIdx,
             hasResult: fresh?.hasResult,
             route: routeRef.current,
-          });
-          updatePointer(committed);
-          clearStagedLegacyDrafts(flow);
-          trackDraftEvent("draft_created", {
-            draft_id: committed.draftId,
-            doc_key: docKey,
-            source: flow,
-            has_result: committed.hasResult,
-          });
-        } else {
-          onSyncBlocked(again.reason, null);
-        }
+          },
+          { requireCurrent: true },
+        );
+        if (!committed) return;
+        updatePointer(committed);
+        clearStagedLegacyDrafts(flow);
+        trackDraftEvent("draft_created", {
+          draft_id: committed.draftId,
+          doc_key: docKey,
+          source: flow,
+          has_result: committed.hasResult,
+        });
+        return;
       }
-      return;
+
+      recreateRef.current = false;
+      // Commit-ът се прави с НАЙ-НОВОТО състояние: закъснял отговор не връща
+      // стъпка, флаг за резултат или съдържание назад. `requireCurrent` пази и
+      // от указател, сменен от друг таб, докато заявката е пътувала.
+      const newest = latestRef.current ?? latest;
+      const committed = res.commit(
+        {
+          payload: newest.payload,
+          stepIdx: newest.stepIdx,
+          hasResult: newest.hasResult,
+          route: routeRef.current,
+        },
+        { requireCurrent: true },
+      );
+      if (!committed) return;
+      updatePointer(committed);
+      // Сървърният запис е потвърден — стажираните стари чернови вече не са
+      // единственото копие.
+      clearStagedLegacyDrafts(flow);
+      trackDraftEvent(res.created ? "draft_created" : "draft_autosaved", {
+        draft_id: committed.draftId,
+        doc_key: docKey,
+        source: flow,
+        has_result: committed.hasResult,
+      });
+    } finally {
+      // Всеки изход минава оттук: ключът се освобождава и натрупаното (ако е
+      // още актуално) се изпраща точно веднъж.
+      inFlightRef.current = false;
+      if (mountedRef.current) {
+        maybeRunDueClaimRetry();
+        flushIfPending(sentRev, followUpDelay);
+      }
     }
-
-    if (pointerMoved) return;
-
-    recreateRef.current = false;
-    // Commit-ът се прави с НАЙ-НОВОТО състояние: закъснял отговор не връща
-    // стъпка, флаг за резултат или съдържание назад.
-    const newest = latestRef.current ?? latest;
-    const committed = res.commit({
-      payload: newest.payload,
-      stepIdx: newest.stepIdx,
-      hasResult: newest.hasResult,
-      route: routeRef.current,
-    });
-    updatePointer(committed);
-    // Сървърният запис е потвърден — стажираните стари чернови вече не са
-    // единственото копие.
-    clearStagedLegacyDrafts(flow);
-    trackDraftEvent(res.created ? "draft_created" : "draft_autosaved", {
-      draft_id: committed.draftId,
-      doc_key: docKey,
-      source: flow,
-      has_result: committed.hasResult,
-    });
-    maybeRunDueClaimRetry();
-    flushIfPending(sentRev);
   }, [flow, docKey, onSyncBlocked, updatePointer, scheduleFlush, flushIfPending, maybeRunDueClaimRetry]);
+
 
   flushRef.current = flush;
 
@@ -415,14 +452,20 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
       const id = pointerRef.current?.draftId ?? LOCAL_DRAFT_ID;
       writePayload(id, payload);
       if (pointerRef.current) {
-        writePointer({
+        // Метаданните се вдигат ВЕДНАГА и в паметта на екрана, не само в
+        // хранилището: закъснял отговор от присвояване/запис не бива да върне
+        // стъпката, маршрута или флага за резултат назад.
+        const next: DraftPointer = {
           ...pointerRef.current,
           stepIdx: latestRef.current.stepIdx,
           hasResult: latestRef.current.hasResult,
           route,
           ts: Date.now(),
-        });
+        };
+        writePointer(next);
+        pointerRef.current = next;
       }
+
       if (inFlightRef.current) {
         // Обединяване: изпраща се само последният снапшот, след като текущата
         // заявка приключи.
@@ -435,27 +478,44 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
   );
 
   /* ---------------------------- 3. Claim след вход ------------------------- */
-  const scheduleClaimRetry = useCallback((draftId: string, userId: string) => {
-    const prev = claimRetryRef.current;
-    const st: ClaimRetryState =
-      prev && prev.draftId === draftId && prev.userId === userId
-        ? prev
-        : { draftId, userId, attempts: 0, timer: null };
-    if (st.timer) clearTimeout(st.timer);
-    st.timer = null;
-    st.attempts += 1;
-    claimRetryRef.current = st;
-    if (st.attempts >= MAX_CLAIM_ATTEMPTS) return;
-    const delay = claimRetryDelay(st.attempts);
-    st.timer = setTimeout(() => {
+  /**
+   * Още ли има смисъл резултат от заявка за чернова `draftId` на потребител
+   * `userId`? Проверява се СЛЕД всеки await — изричното отказване, замяната на
+   * указателя (друг таб, нова чернова) и изходът са необратими: нищо не се
+   * записва, не се възстановява и не се повтаря след тях.
+   */
+  const stillCurrent = useCallback((draftId: string, userId: string): DraftPointer | null => {
+    if (!mountedRef.current) return null;
+    if (userIdRef.current !== userId) return null;
+    const stored = readPointer();
+    if (!stored || stored.draftId !== draftId || stored.flow !== flow) return null;
+    const live = pointerRef.current ?? stored;
+    if (live.draftId !== draftId) return null;
+    return live;
+  }, [flow]);
+
+  const scheduleClaimRetry = useCallback(
+    (draftId: string, userId: string) => {
+      const prev = claimRetryRef.current;
+      const st: ClaimRetryState =
+        prev && prev.draftId === draftId && prev.userId === userId
+          ? prev
+          : { draftId, userId, attempts: 0, timer: null };
+      if (st.timer) clearTimeout(st.timer);
       st.timer = null;
-      if (!mountedRef.current) return;
-      const current = pointerRef.current ?? readPointer();
-      if (!current || current.draftId !== st.draftId) return;
-      if (userIdRef.current !== st.userId) return;
-      runClaimRef.current?.(current, st.userId);
-    }, delay);
-  }, []);
+      st.attempts += 1;
+      claimRetryRef.current = st;
+      if (st.attempts >= MAX_CLAIM_ATTEMPTS) return;
+      const delay = claimRetryDelay(st.attempts);
+      st.timer = setTimeout(() => {
+        st.timer = null;
+        const live = stillCurrent(st.draftId, st.userId);
+        if (!live) return;
+        runClaimRef.current?.(live, st.userId);
+      }, delay);
+    },
+    [stillCurrent],
+  );
 
   const runClaim = useCallback(
     (current: DraftPointer, userId: string) => {
@@ -472,10 +532,10 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
           claimInFlightRef.current = false;
           if (mountedRef.current) setClaiming(false);
         }
-        if (!mountedRef.current) return;
-        // Междувременно указателят е сменен или потребителят е излязъл.
-        if (pointerRef.current && pointerRef.current.draftId !== current.draftId) return;
-        if (userIdRef.current !== userId) return;
+        // Указателят е сменен/изтрит или потребителят е излязъл, докато
+        // заявката е пътувала → резултатът е без значение.
+        const live = stillCurrent(current.draftId, userId);
+        if (!live) return;
 
         if (!res.ok) {
           trackDraftEvent(res.reason === "expired" ? "draft_expired" : "draft_claim_blocked", {
@@ -494,7 +554,7 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
           // безполезен за този потребител — съдържанието на таба остава, а
           // следващият запис създава негова собствена чернова.
           cancelClaimRetry();
-          detach(current);
+          detach(live);
           return;
         }
 
@@ -506,14 +566,19 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
           has_result: !!res.hasResult,
         });
 
-        // Токенът е ротиран на сървъра — махаме го и от браузъра.
+        // Сливаме от ЖИВИЯ указател на същата чернова и от най-новото локално
+        // състояние — не от снимката при започване на заявката. Токенът е
+        // ротиран на сървъра и се маха и от браузъра.
+        const latest = latestRef.current;
         const next: DraftPointer = {
-          ...current,
+          ...live,
           claimToken: "",
           claimed: true,
-          savedDocId: res.savedDocId ?? current.savedDocId,
-          hasResult: res.hasResult ?? current.hasResult,
-          expiresAt: res.expiresAt ?? current.expiresAt,
+          savedDocId: res.savedDocId ?? live.savedDocId,
+          hasResult: !!latest?.hasResult || !!res.hasResult || live.hasResult,
+          stepIdx: Math.max(latest?.stepIdx ?? 0, live.stepIdx),
+          route: routeRef.current || live.route,
+          expiresAt: res.expiresAt ?? live.expiresAt,
           ts: Date.now(),
         };
         writePointer(next);
@@ -522,8 +587,9 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
         let payload = res.payload ?? null;
         if (!payload && res.purged && res.savedDocId && !hasLocal && !tabHasContent()) {
           payload = await loadSavedDraftPayload(res.savedDocId);
+          // Закъсняло съдържание за вече заменена/отказана чернова се изхвърля.
+          if (!stillCurrent(current.draftId, userId)) return;
         }
-        if (!mountedRef.current) return;
         if (payload) {
           writePayload(current.draftId, payload);
           // Възстановяваме само ако в този таб потребителят не е въвел нищо
@@ -532,7 +598,7 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
         }
       })();
     },
-    [cancelClaimRetry, detach, flow, scheduleClaimRetry, tabHasContent, updatePointer],
+    [cancelClaimRetry, detach, flow, scheduleClaimRetry, stillCurrent, tabHasContent, updatePointer],
   );
 
   runClaimRef.current = runClaim;
@@ -548,6 +614,7 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
     const current = pointerRef.current ?? readPointer();
     if (!current || current.flow !== flow) return;
     if (claimAttemptRef.current === current.draftId) return;
+    const userId = user.id;
 
     const hasLocal = hasRestorableContent(readPayload(current.draftId) ?? readPayload(LOCAL_DRAFT_ID));
 
@@ -558,25 +625,33 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
       if (hasLocal || tabHasContent()) return;
       void (async () => {
         let payload: DraftPayload | null = null;
-        if (current.savedDocId) payload = await loadSavedDraftPayload(current.savedDocId);
+        if (current.savedDocId) {
+          payload = await loadSavedDraftPayload(current.savedDocId);
+          if (!stillCurrent(current.draftId, userId)) return;
+        }
         if (!payload) {
           const res = await claimDraft(current);
-          if (!mountedRef.current) return;
+          const live = stillCurrent(current.draftId, userId);
+          if (!live) return;
           if (res.ok) {
             payload = res.payload ?? null;
-            if (!payload && res.savedDocId) payload = await loadSavedDraftPayload(res.savedDocId);
-            if (res.savedDocId && res.savedDocId !== current.savedDocId) {
-              if (pointerRef.current && pointerRef.current.draftId !== current.draftId) return;
-              const next = { ...current, savedDocId: res.savedDocId, hasResult: true };
+            if (!payload && res.savedDocId) {
+              payload = await loadSavedDraftPayload(res.savedDocId);
+              if (!stillCurrent(current.draftId, userId)) return;
+            }
+            if (res.savedDocId && res.savedDocId !== live.savedDocId) {
+              const fresh = stillCurrent(current.draftId, userId);
+              if (!fresh) return;
+              const next: DraftPointer = { ...fresh, savedDocId: res.savedDocId, hasResult: true };
               writePointer(next);
               updatePointer(next);
             }
           } else if (isDetachDraftReason(res.reason)) {
-            detach(current);
+            detach(live);
             return;
           }
         }
-        if (!mountedRef.current) return;
+        if (!stillCurrent(current.draftId, userId)) return;
         if (payload && !tabHasContent()) {
           writePayload(current.draftId, payload);
           restoreRef.current?.(payload, { source: "claim" });
@@ -587,20 +662,23 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
     }
 
     claimAttemptRef.current = current.draftId;
-    runClaim(current, user.id);
-  }, [active, enabled, user, flow, detach, updatePointer, tabHasContent, runClaim, cancelClaimRetry]);
+    runClaim(current, userId);
+  }, [active, enabled, user, flow, detach, updatePointer, tabHasContent, runClaim, cancelClaimRetry, stillCurrent]);
+
 
   const discard = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = null;
     cancelClaimRetry();
     // Изричното отказване е безусловно: потребителят е приключил с документа.
+    discardRevRef.current += 1;
     clearDraft(pointerRef.current?.draftId);
     clearDraft(LOCAL_DRAFT_ID);
     updatePointer(null);
     latestRef.current = null;
     pendingRef.current = false;
   }, [cancelClaimRetry, updatePointer]);
+
 
   /* ------------------------------ Почистване ------------------------------ */
   useEffect(() => {

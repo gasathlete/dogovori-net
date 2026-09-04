@@ -219,3 +219,69 @@ describe("присвояване: повторен опит при преход�
     expect(localStorage.getItem("activation_draft_v1")).toBeNull();
   });
 });
+
+describe("указателят е защитен от закъснели отговори", () => {
+  it("отказване по време на заявка: отговорът не възстановява указателя", async () => {
+    const first = deferred<ReturnType<typeof okSync>["result"]>();
+    syncMock.mockImplementationOnce(() => first.promise);
+    const { result } = render();
+    act(() => result.current.persist({ answers: { a: "1" } }, { stepIdx: 1 }));
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+
+    act(() => result.current.discard());
+    const created = okSync(pointer());
+    await act(async () => {
+      first.resolve(created.result);
+      await Promise.resolve();
+      vi.advanceTimersByTime(2000);
+      await Promise.resolve();
+    });
+
+    expect(created.commit).not.toHaveBeenCalled();
+    expect(localStorage.getItem("activation_draft_v1")).toBeNull();
+  });
+
+  it("успешното присвояване запазва най-новата стъпка от таба", async () => {
+    writePointer(pointer({ stepIdx: 1 }));
+    authUser = { id: "user-1" };
+    const claim = deferred<{ ok: true; hasResult: boolean }>();
+    claimMock.mockImplementationOnce(() => claim.promise);
+
+    const { result } = render();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    // Потребителят продължава да пише, докато присвояването пътува.
+    act(() => result.current.persist({ answers: { a: "9" } }, { stepIdx: 4 }));
+
+    await act(async () => {
+      claim.resolve({ ok: true, hasResult: false });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const stored = JSON.parse(localStorage.getItem("activation_draft_v1") ?? "{}");
+    expect(stored).toMatchObject({ stepIdx: 4, claimed: true, claimToken: "" });
+  });
+
+  it("изходът отменя чакащия повторен опит за присвояване", async () => {
+    writePointer(pointer());
+    authUser = { id: "user-1" };
+    claimMock.mockImplementation(async () => ({ ok: false, reason: "network" }));
+    const { rerender } = render();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(claimMock).toHaveBeenCalledTimes(1);
+
+    authUser = null;
+    rerender();
+    await act(async () => {
+      vi.advanceTimersByTime(120_000);
+      await Promise.resolve();
+    });
+    expect(claimMock).toHaveBeenCalledTimes(1);
+  });
+});
