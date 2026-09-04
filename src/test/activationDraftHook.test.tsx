@@ -376,7 +376,7 @@ describe("натрупаното не се изпраща след обезси�
   });
 
   it("указател от друг поток се изпраща като изричен create", async () => {
-    writePointer(pointer({ flow: "builder", draftId: "22222222-2222-4222-8222-222222222222" }));
+    writePointer(pointer({ flow: "build", draftId: "22222222-2222-4222-8222-222222222222" }));
     syncMock.mockImplementation(async () => okSync(pointer()).result);
     const { result } = render();
     act(() => result.current.persist({ answers: { a: "1" } }, { stepIdx: 1 }));
