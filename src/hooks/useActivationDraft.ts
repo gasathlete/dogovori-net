@@ -29,6 +29,7 @@ import { trackDraftEvent } from "@/lib/docFunnel";
 import {
   claimDraft,
   claimRetryDelay,
+  clearAllDraftStorage,
   clearDraft,
   clearDraftIfCurrent,
   clearStagedLegacyDrafts,
