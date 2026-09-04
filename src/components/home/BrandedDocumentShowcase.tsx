@@ -24,7 +24,7 @@ export function BrandedDocumentShowcase() {
         {/* Текстова част */}
         <div>
           <div className="eyebrow">
-            <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">04</span>
+            <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">05</span>
             <span className="h-px w-5 bg-gold/40" />
             Персонално брандиране
           </div>
