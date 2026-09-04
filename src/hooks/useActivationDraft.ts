@@ -106,8 +106,11 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
   });
 
   const [claiming, setClaiming] = useState(false);
+  // ВНИМАНИЕ: препратката НЕ се пренасочва към състоянието при всяко рендиране —
+  // родителско рендиране иначе би върнало остаряла снимка върху вече обновените
+  // метаданни (стъпка, маршрут, флаг за резултат). Синхронизира се само там,
+  // където указателят се променя (`updatePointer`, `persist`).
   const pointerRef = useRef<DraftPointer | null>(pointer);
-  pointerRef.current = pointer;
 
   const restoreRef = useRef(onRestore);
   restoreRef.current = onRestore;
