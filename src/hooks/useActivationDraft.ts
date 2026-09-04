@@ -332,6 +332,13 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
     pendingRef.current = false;
     /** Изчакване преди изпращането на натрупаното състояние. */
     let followUpDelay = 0;
+    /**
+     * Има ли още смисъл натрупаното състояние да се изпрати след тази заявка?
+     * При обезсилен контекст (сменен/зает указател, изрично отказване, отказан
+     * commit) натрупаното е за СТАРАТА чернова и не бива да се изпраща срещу
+     * заместващия указател.
+     */
+    let followUpApplicable = true;
 
     try {
       const res = await syncDraft(
@@ -348,13 +355,18 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
       );
 
       // Екранът е напуснат — нищо не пишем в състояние или хранилище.
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        followUpApplicable = false;
+        return;
+      }
 
       // Указателят е сменен с ДРУГА чернова, докато заявката е пътувала:
       // отговорът е за старата и се изхвърля (нито commit, нито изчистване).
       // …или документът е отказан изрично: и двете правят отговора без значение.
-      if ((pointerRef.current?.draftId ?? null) !== sentDraftId) return;
-      if (discardRevRef.current !== sentDiscardRev) return;
+      if ((pointerRef.current?.draftId ?? null) !== sentDraftId || discardRevRef.current !== sentDiscardRev) {
+        followUpApplicable = false;
+        return;
+      }
 
       if (res.ok === false) {
         const detached = onSyncBlocked(res.reason, current);
@@ -367,6 +379,7 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
         }
         // Един опит за нова чернова през изричния create път (без draft_id).
         const newest = latestRef.current;
+        followUpApplicable = false;
         if (!detached || recreateRef.current || !newest) return;
         recreateRef.current = true;
         const again = await syncDraft(
@@ -400,6 +413,10 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
           { requireCurrent: true },
         );
         if (!committed) return;
+        // Успешното пресъздаване е нов чист старт: следващо изтичане отново има
+        // право на резервен опит.
+        recreateRef.current = false;
+        followUpApplicable = true;
         updatePointer(committed);
         clearStagedLegacyDrafts(flow);
         trackDraftEvent("draft_created", {
@@ -425,7 +442,10 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
         },
         { requireCurrent: true },
       );
-      if (!committed) return;
+      if (!committed) {
+        followUpApplicable = false;
+        return;
+      }
       updatePointer(committed);
       // Сървърният запис е потвърден — стажираните стари чернови вече не са
       // единственото копие.
@@ -438,11 +458,12 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
       });
     } finally {
       // Всеки изход минава оттук: ключът се освобождава и натрупаното (ако е
-      // още актуално) се изпраща точно веднъж.
+      // още АКТУАЛНО) се изпраща точно веднъж.
       inFlightRef.current = false;
       if (mountedRef.current) {
         maybeRunDueClaimRetry();
-        flushIfPending(sentRev, followUpDelay);
+        if (followUpApplicable) flushIfPending(sentRev, followUpDelay);
+        else pendingRef.current = false;
       }
     }
   }, [flow, docKey, onSyncBlocked, updatePointer, scheduleFlush, flushIfPending, maybeRunDueClaimRetry]);
