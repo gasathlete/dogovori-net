@@ -71,6 +71,19 @@ export function trackCheckoutStarted(plan: string, billing: string, source?: str
   trackMetric("checkout_started", { plan, billing, source: source ?? "plans" });
 }
 
+/**
+ * Неуспешно създаване на checkout сесия. `category` е ограничен етикет от
+ * `CHECKOUT_FAILURE_CATEGORIES` — суровото съобщение НИКОГА не се изпраща.
+ */
+export function trackCheckoutFailed(
+  plan: string,
+  billing: string,
+  category: string,
+  source?: string,
+) {
+  trackMetric("checkout_failed", { plan, billing, category, source: source ?? "plans" });
+}
+
 /** Успешно активиран абонамент. */
 export function trackUpgradeCompleted(plan?: string, billing?: string) {
   trackMetric("upgrade_completed", { plan: plan ?? "unknown", billing: billing ?? "unknown" });
