@@ -658,7 +658,7 @@ export default function WizardPage() {
   const activation = useActivationDraft({
     flow: "wizard",
     docKey: storageKey ?? undefined,
-    route: window.location.pathname + window.location.search,
+    route: currentDraftRoute(),
     onRestore: (payload) => {
       const meta = (payload.meta ?? {}) as Record<string, unknown>;
       if (payload.answers) setAnswers(payload.answers as Record<string, string>);
