@@ -167,8 +167,8 @@ export const TOPUP_PACK_CONFIG: TopupPackConfig[] = [
   { priceId: "topup_100", ops: 100, eur: 23.9, badge: "Най-изгоден" },
 ];
 
-/** „0,58 €/оп.“ */
-export function perOpLabel(pack: TopupPackConfig): string {
+/** „0,58 €/оп.“ — работи и за top-up пакет, и за входния пакет. */
+export function perOpLabel(pack: { ops: number; eur: number }): string {
   const per = pack.eur / pack.ops;
   const rounded = Math.round(per * 1000) / 1000;
   return `${String(rounded).replace(".", ",")} €/оп.`;
