@@ -125,6 +125,7 @@ export function TopupPacks({ enabled = true, compact = false, className }: Topup
               <X className="h-4 w-4" />
             </button>
             <StripeEmbeddedCheckout
+              analyticsSource="topup"
               priceId={activePack.priceId}
               quantity={1}
               customerEmail={user.email}

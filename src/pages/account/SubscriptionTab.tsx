@@ -702,6 +702,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
           <div className="p-6">
             {checkoutPrice && user && (
               <StripeEmbeddedCheckout
+                analyticsSource="account_subscription"
                 priceId={checkoutPrice}
                 customerEmail={user.email}
                 userId={user.id}

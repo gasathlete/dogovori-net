@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useIsPro } from "@/hooks/useIsPro";
 import { PRICING_PLANS, monthlyLabel } from "@/lib/pricing";
 import { trackEvent, trackPillarView, trackPillarCta } from "@/lib/analytics";
+import { trackPaywallShown } from "@/lib/docFunnel";
 import { ProUpgradeDialog, type ProUpgradeTrigger } from "@/components/ProUpgradeDialog";
 import { cn } from "@/lib/utils";
 
@@ -65,7 +66,7 @@ export function PaidOnlyOverlay({
 
   useEffect(() => {
     if (showOverlay) {
-      trackEvent("paywall_shown", { pillar });
+      trackPaywallShown("pillar", { source: pillar });
       trackPillarView(pillar);
     }
   }, [showOverlay, pillar]);

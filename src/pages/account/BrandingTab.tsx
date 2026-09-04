@@ -190,6 +190,7 @@ export default function BrandingTab() {
                 </Button>
               </div>
               <StripeEmbeddedCheckout
+                analyticsSource="branding"
                 priceId="branding_unlock_once"
                 quantity={1}
                 customerEmail={user.email}
