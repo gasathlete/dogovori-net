@@ -29,8 +29,18 @@ import {
   logDraft,
   REASON_STATUS,
   rowAfterTransfer,
+  type DraftAuthRow,
   type DraftErrorReason,
 } from "../_shared/draft-auth.ts";
+import {
+  claimFilters,
+  classifyLostClaim,
+  ensureSavedDocument,
+  ownerPurgeFilters,
+  updateGuarded,
+  type DbLike,
+} from "../_shared/draft-writes.ts";
+
 
 interface Body {
   draft_id?: string;
@@ -106,29 +116,50 @@ Deno.serve(async (req) => {
     const row = draft as DraftRow;
 
     let expiresAt = row.expires_at;
+    let idempotent = decision.idempotent;
+    let savedDocFromFresh: string | null = null;
+    const nowIso = new Date(now).toISOString();
 
-    if (!decision.idempotent) {
-      // Атомарно присвояване + ротация на токена: от този момент анонимният
-      // указател в браузъра (и всеки негов дубликат) е безполезен.
+
+    if (!idempotent) {
+      // Атомарно присвояване + ротация на токена. Предикатите включват
+      // непотърсен ред, същия токен хеш и неизтекъл срок → едновременните
+      // заявки не могат да присвоят два пъти.
       expiresAt = new Date(now + CLAIMED_DRAFT_TTL_MS).toISOString();
-      const { data: updated, error: updErr } = await db
-        .from("anonymous_drafts")
-        .update({
+      const { row: updated, error: updErr } = await updateGuarded(
+        db as unknown as DbLike,
+        "anonymous_drafts",
+        {
           claimed_by: user.id,
-          claimed_at: new Date(now).toISOString(),
+          claimed_at: nowIso,
           token_hash: await hashToken(generateClaimToken()),
           expires_at: expiresAt,
-        })
-        .eq("id", row.id)
-        .is("claimed_by", null)
-        .select("id")
-        .maybeSingle();
+        },
+        claimFilters(row.id, tokenHash as string, nowIso),
+      );
       if (updErr) return fail("network");
-      if (!updated) return fail("already_claimed");
+      if (!updated) {
+        // Загубена надпревара: същият собственик стига до същия резултат,
+        // чужд се отказва, изтекъл остава изтекъл.
+        const { data: fresh, error: reReadErr } = await db
+          .from("anonymous_drafts")
+          .select("id, token_hash, claimed_by, expires_at, saved_doc_id")
+          .eq("id", row.id)
+          .maybeSingle();
+        if (reReadErr) return fail("network");
+        const verdict = classifyLostClaim((fresh as DraftAuthRow | null) ?? null, {
+          userId: user.id,
+          now,
+        });
+        if (!verdict.ok) return fail(verdict.reason);
+        idempotent = true;
+        expiresAt = (fresh as DraftAuthRow).expires_at;
+        savedDocFromFresh = (fresh as DraftAuthRow).saved_doc_id ?? null;
+      }
     }
 
-    let savedDocId = row.saved_doc_id;
-    const payload = (row.payload ?? {}) as Record<string, unknown>;
+    let savedDocId = savedDocFromFresh ?? row.saved_doc_id;
+    let payload = (row.payload ?? {}) as Record<string, unknown>;
     let purged = !!savedDocId;
 
     // Готов документ → в профила (без нова операция: генерирането вече е
@@ -140,31 +171,33 @@ Deno.serve(async (req) => {
         (typeof meta.name === "string" && meta.name) ||
         row.doc_key ||
         "Документ";
-      const { data: saved } = await db
-        .from("saved_documents")
-        .insert({
-          user_id: user.id,
-          kind: "contract",
-          title: String(title).slice(0, 200),
-          payload: payload as never,
-        })
-        .select("id")
-        .maybeSingle();
-      if (saved?.id) {
-        savedDocId = saved.id as string;
-        const { error: purgeErr } = await db
-          .from("anonymous_drafts")
-          .update(rowAfterTransfer(savedDocId, await hashToken(generateClaimToken())))
-          .eq("id", row.id)
-          .eq("claimed_by", user.id);
-        purged = !purgeErr;
-      }
+      const saved = await ensureSavedDocument(db as unknown as DbLike, {
+        draftId: row.id,
+        userId: user.id,
+        title: String(title),
+        payload,
+      });
+      if (!saved.ok) return fail(saved.reason === "different_owner" ? "different_owner" : "network");
+      savedDocId = saved.id;
+
+      const { row: purgedRow, error: purgeErr } = await updateGuarded(
+        db as unknown as DbLike,
+        "anonymous_drafts",
+        rowAfterTransfer(savedDocId, await hashToken(generateClaimToken())),
+        ownerPurgeFilters(row.id, user.id),
+      );
+      // Незавършено прехвърляне не се обявява за успех: клиентът повтаря и
+      // стига до същия (детерминистичен) документ.
+      if (purgeErr || !purgedRow) return fail("network");
+      purged = true;
+      // След изчистване съдържанието вече не се връща — истината е в профила.
+      payload = {};
     }
 
     logDraft("draft-claim", {
       status: 200,
       flow: row.flow,
-      idempotent: decision.idempotent,
+      idempotent,
       has_result: row.has_result,
       transferred: !!savedDocId,
     });
@@ -179,10 +212,11 @@ Deno.serve(async (req) => {
       expires_at: expiresAt,
       // Съдържанието се връща само ако има какво да се възстанови; след
       // прехвърляне източникът на истина е saved_documents.
-      payload: hasRestorableContent(payload) ? payload : null,
+      payload: purged ? null : hasRestorableContent(payload) ? payload : null,
       saved_doc_id: savedDocId,
       purged,
     });
+
   } catch (_e) {
     return fail("network");
   }

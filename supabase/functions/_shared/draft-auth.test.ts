@@ -193,14 +193,21 @@ Deno.test("логът никога не пропуска токени, съдъ�
   }
 });
 
-Deno.test("създаване е разрешено само без draft_id", async () => {
-  assert(isCreateRequest(undefined));
-  assert(isCreateRequest(null));
-  assert(isCreateRequest(""));
-  assertFalse(isCreateRequest("d1"));
+Deno.test("създаване е разрешено само когато draft_id отсъства от тялото", async () => {
+  // Отсъстващо свойство = изричен create.
+  assert(isCreateRequest({}));
+  assert(isCreateRequest({ draft_id: undefined }));
+  assert(isCreateRequest({ flow: "wizard" }));
+  // Подадена, но негодна стойност → НЕ е create (върви към invalid_request).
+  assertFalse(isCreateRequest({ draft_id: null }));
+  assertFalse(isCreateRequest({ draft_id: "" }));
+  assertFalse(isCreateRequest({ draft_id: "   " }));
+  assertFalse(isCreateRequest({ draft_id: "not-a-uuid" }));
+  assertFalse(isCreateRequest({ draft_id: 123 }));
+  assertFalse(isCreateRequest({ draft_id: "d1" }));
   // Подаден, но невалиден / изтекъл ред → отказ, а не нова чернова.
   const expired = await unclaimed({ expires_at: PAST });
-  assertFalse(isCreateRequest("d1"));
+
   assertEquals(decideSyncWrite({ row: expired, tokenHash: await hashToken(TOKEN), userId: null, now: NOW }), {
     ok: false,
     reason: "expired",

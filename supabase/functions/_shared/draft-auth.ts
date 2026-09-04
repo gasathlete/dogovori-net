@@ -54,13 +54,17 @@ export interface AuthInput {
 }
 
 /**
- * Създаване е разрешено САМО когато `draft_id` изобщо липсва в заявката.
- * Ако е подаден (дори невалиден/изтекъл), заявката е обновяване и трябва да
- * приключи с типизиран отказ — никога с тихо създаден дубликат.
+ * Създаване е разрешено САМО когато свойството `draft_id` изобщо ОТСЪСТВА от
+ * тялото на заявката (undefined / липсващ ключ). `null`, празен низ, само
+ * интервали или невалиден UUID са подадена, но негодна стойност → заявката е
+ * обновяване и приключва с `invalid_request`, никога с тихо създаден дубликат.
  */
-export function isCreateRequest(draftId: unknown): boolean {
-  return draftId === undefined || draftId === null || draftId === "";
+export function isCreateRequest(body: unknown): boolean {
+  if (!body || typeof body !== "object") return true;
+  const raw = (body as Record<string, unknown>).draft_id;
+  return !("draft_id" in (body as Record<string, unknown>)) || raw === undefined;
 }
+
 
 export type SyncDecision =
   | { ok: true; mode: "anonymous" | "owner"; transferred: boolean }

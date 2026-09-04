@@ -33,6 +33,14 @@ import {
   type DraftAuthRow,
   type DraftErrorReason,
 } from "../_shared/draft-auth.ts";
+import {
+  anonymousWriteFilters,
+  classifyLostWrite,
+  ownerWriteFilters,
+  updateGuarded,
+  type DbLike,
+} from "../_shared/draft-writes.ts";
+
 
 interface Body {
   draft_id?: string;
@@ -103,13 +111,14 @@ Deno.serve(async (req) => {
     };
 
     /* ----------------------------- Обновяване ----------------------------- */
-    if (!isCreateRequest(body.draft_id)) {
+    if (!isCreateRequest(body)) {
       if (!isValidDraftId(body.draft_id)) return fail("invalid_request");
+      const draftId = body.draft_id as string;
 
       const { data: existing, error: readErr } = await db
         .from("anonymous_drafts")
         .select("id, token_hash, claimed_by, expires_at, saved_doc_id")
-        .eq("id", body.draft_id)
+        .eq("id", draftId)
         .maybeSingle();
       if (readErr) return fail("network");
 
@@ -132,8 +141,33 @@ Deno.serve(async (req) => {
         ? ownerUpdateAfterTransfer({ route: base.route, step_idx: base.step_idx, expires_at: expiresAt })
         : { ...base, expires_at: expiresAt };
 
-      const { error: updErr } = await db.from("anonymous_drafts").update(update).eq("id", body.draft_id);
+      // Предикатите на решението пътуват в самия UPDATE: между четенето и
+      // записа черновата може да е присвоена, токенът ротиран или редът изтекъл.
+      const nowIso = new Date(now).toISOString();
+      const filters =
+        decision.mode === "owner"
+          ? ownerWriteFilters(draftId, userId as string, nowIso)
+          : anonymousWriteFilters(draftId, tokenHash as string, nowIso);
+
+      const { row: updated, error: updErr } = await updateGuarded(
+        db as unknown as DbLike,
+        "anonymous_drafts",
+        update,
+        filters,
+      );
       if (updErr) return fail("network");
+      if (!updated) {
+        // Нула реда → състоянието се е сменило. Прочитаме само нужното и
+        // връщаме точния отказ; никога не пишем наново и не създаваме дубликат.
+        const { data: fresh } = await db
+          .from("anonymous_drafts")
+          .select("id, token_hash, claimed_by, expires_at, saved_doc_id")
+          .eq("id", draftId)
+          .maybeSingle();
+        return fail(
+          classifyLostWrite((fresh as DraftAuthRow | null) ?? null, { userId, tokenHash, now }),
+        );
+      }
 
       logDraft("draft-sync", {
         status: 200,
@@ -144,12 +178,13 @@ Deno.serve(async (req) => {
       });
       return json({
         ok: true,
-        draft_id: body.draft_id,
+        draft_id: draftId,
         expires_at: expiresAt,
         claimed: decision.mode === "owner",
         transferred: decision.transferred,
       });
     }
+
 
     /* ------------------------------ Създаване ----------------------------- */
     // Влязъл потребител: черновата е негова от самото начало — няма анонимен
