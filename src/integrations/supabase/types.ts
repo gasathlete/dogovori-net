@@ -629,6 +629,57 @@ export type Database = {
         }
         Relationships: []
       }
+      anonymous_drafts: {
+        Row: {
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          doc_key: string | null
+          expires_at: string
+          flow: string
+          has_result: boolean
+          id: string
+          payload: Json
+          route: string
+          saved_doc_id: string | null
+          step_idx: number
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          doc_key?: string | null
+          expires_at: string
+          flow: string
+          has_result?: boolean
+          id?: string
+          payload?: Json
+          route: string
+          saved_doc_id?: string | null
+          step_idx?: number
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          doc_key?: string | null
+          expires_at?: string
+          flow?: string
+          has_result?: boolean
+          id?: string
+          payload?: Json
+          route?: string
+          saved_doc_id?: string | null
+          step_idx?: number
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       assistant_messages: {
         Row: {
           content: string
@@ -4701,6 +4752,7 @@ export type Database = {
         Returns: Json
       }
       check_compliance_reminders: { Args: never; Returns: Json }
+      cleanup_anonymous_drafts: { Args: never; Returns: number }
       consume_ai_message: { Args: never; Returns: Json }
       consume_analysis_preview: { Args: never; Returns: Json }
       consume_assistant_message: {

@@ -14,6 +14,12 @@ export type AbVariant = "control" | "variant";
 export const AB_TESTS = {
   /** CTA „Виж бърз преглед сега" в първите стъпки на wizard-а. */
   quick_preview: { id: "quick_preview", split: 0.5 },
+  /**
+   * Activation continuity: „variant“ = каноничен draft модел (без лични данни
+   * в localStorage) + възстановяване след вход. „control“ = старото поведение.
+   * Rollout: 20% → 100%. `?ab_activation_continuity=variant` форсира.
+   */
+  activation_continuity: { id: "activation_continuity", split: 0.2 },
 } as const;
 
 export type AbTestId = keyof typeof AB_TESTS;

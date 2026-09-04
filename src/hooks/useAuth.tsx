@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { readPointer } from "@/lib/activationDraft";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -32,14 +33,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const dest = sessionStorage.getItem("post_login_redirect");
           // Only allow same-origin relative paths to prevent open-redirect attacks.
           const safeDest = dest && /^\/[^/\\]/.test(dest) ? dest : null;
-          if (safeDest && safeDest !== window.location.pathname + window.location.search) {
+          const here = window.location.pathname + window.location.search;
+          if (safeDest && safeDest !== here) {
             sessionStorage.removeItem("post_login_redirect");
             window.location.replace(safeDest);
           } else if (dest && !safeDest) {
             sessionStorage.removeItem("post_login_redirect");
+          } else if (!dest) {
+            // Няма изрична цел (нов таб от имейл линк, OAuth към голия origin):
+            // ако има недовършен документ, връщаме потребителя точно при него
+            // вместо в празен акаунт.
+            const draft = readPointer();
+            if (draft && draft.route !== here) window.location.replace(draft.route);
           }
         } catch { /* ignore */ }
       }
+
     });
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);

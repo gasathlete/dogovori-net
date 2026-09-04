@@ -88,6 +88,7 @@ import {
   markWizardFeedbackPromptShown,
 } from "@/components/wizard/WizardFeedbackPrompt";
 import { MessageSquarePlus } from "@/icons";
+import { useActivationDraft } from "@/hooks/useActivationDraft";
 
 
 
@@ -648,27 +649,62 @@ export default function WizardPage() {
     persisted?.arbitration ?? { enabled: false }
   );
 
+  /**
+   * Непрекъснатост на активацията: съдържанието на черновата се пази в текущия
+   * таб + на сървъра, а в localStorage остава само указател без лични данни.
+   * Така прогресът се запазва при вход/регистрация, OAuth пренасочване и нов
+   * таб от имейл линка. При изключен флаг остава старото поведение.
+   */
+  const activation = useActivationDraft({
+    flow: "wizard",
+    docKey: storageKey ?? undefined,
+    route: window.location.pathname + window.location.search,
+    onRestore: (payload) => {
+      const meta = (payload.meta ?? {}) as Record<string, unknown>;
+      if (payload.answers) setAnswers(payload.answers as Record<string, string>);
+      if (typeof meta.stepIdx === "number") setStepIdx(meta.stepIdx);
+      if (payload.result) setResult(payload.result as AIResult);
+      if (payload.signature) setSignature(payload.signature as SignatureData);
+      if (typeof meta.savedDocId === "string") setSavedDocId(meta.savedDocId);
+      if (Array.isArray(meta.appliedNotes)) setAppliedNotes(meta.appliedNotes as string[]);
+      if (typeof meta.customTitle === "string") setCustomTitle(meta.customTitle);
+      if (typeof meta.contactId === "string") setContactId(meta.contactId);
+      if (meta.arbitration) setArbitration(meta.arbitration as ArbitrationValue);
+    },
+  });
+
   // Persist wizard state on every relevant change so navigation to /auth or /account doesn't lose progress.
   useEffect(() => {
     if (!storageKey) return;
-    try {
-      localStorage.setItem(
-        storageKey,
-        JSON.stringify({ v: 1, ts: Date.now(), answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId, arbitration })
-
+    const snapshot = { v: 1, ts: Date.now(), answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId, arbitration };
+    if (activation.active) {
+      // Каноничен модел — лични данни не влизат в localStorage.
+      activation.persist(
+        { answers, result, signature, meta: snapshot },
+        { stepIdx, hasResult: !!result },
       );
+      try {
+        localStorage.removeItem(storageKey);
+        sessionStorage.removeItem(storageKey);
+      } catch { /* ignore */ }
+      return;
+    }
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(snapshot));
       sessionStorage.removeItem(storageKey);
     } catch {}
-  }, [storageKey, answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId, arbitration]);
+  }, [storageKey, activation, answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId, arbitration]);
 
   /** Изчиства локалната чернова (лични данни) от браузъра. */
   const clearDraft = useCallback(() => {
+    activation.discard();
     if (!storageKey) return;
     try {
       localStorage.removeItem(storageKey);
       sessionStorage.removeItem(storageKey);
     } catch { /* ignore */ }
-  }, [storageKey]);
+  }, [storageKey, activation]);
+
 
 
   // Build a redirect URL that preserves the current wizard route + query.

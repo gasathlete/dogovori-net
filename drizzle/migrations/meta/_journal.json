@@ -29,6 +29,13 @@
       "when": 1788527640489,
       "tag": "0003_generation_idempotency_and_funnel_attribution",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788530491056,
+      "tag": "0004_create_anonymous_drafts",
+      "breakpoints": true
     }
   ]
 }
