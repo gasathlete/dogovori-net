@@ -255,7 +255,7 @@ export default function ProcessStep() {
               <>
                 <h2 className="text-xl font-semibold">Пробвай безплатно</h2>
                 <p className="mt-1.5 text-sm text-muted-foreground">
-                  Регистрирай се за 60 секунди – безплатен старт, без карта.
+                  Регистрирай се за 60 секунди – безплатен профил: {FREE_OFFER_RULE}, без карта.
                 </p>
                 <div className="mt-5 flex flex-wrap items-center gap-3">
                   <Link

@@ -59,7 +59,7 @@ const TRIGGER_COPY: Record<
   ops_exhausted: {
     title: "Изчерпа безплатните операции за месеца",
     description: () =>
-      `Безплатно: 5 операции през първите 30 дни, след това 2 месечно. 1 съобщение в DogovaryAI = 1 операция. ${planSummary("professional")}, ${planSummary("entrepreneur")}.`,
+      `Безплатно: ${FREE_OFFER_RULE}. 1 съобщение в DogovaryAI = 1 операция. ${planSummary("professional")}, ${planSummary("entrepreneur")}.`,
   },
   ai_limit: {
     title: "Достигна лимита на AI Асистента",

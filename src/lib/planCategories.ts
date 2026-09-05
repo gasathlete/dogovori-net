@@ -152,7 +152,7 @@ export function categorize(features: string[]): CategoryGroup[] {
 export const PLAN_HERO_BENEFIT: Record<PlanId, { title: string; subtitle: string }> = {
   free: {
     title: "Започни без карта",
-    subtitle: "5 операции през първите 30 дни, след това 2 месечно",
+    subtitle: FREE_OFFER_RULE,
   },
   professional: {
     title: "Масово сваляне и защитени линкове",

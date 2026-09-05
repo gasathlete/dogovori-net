@@ -122,7 +122,7 @@ export default function ESignatureDemo() {
             {user ? "Стартирайте envelope в Workspace-а" : "Подпишете първия си документ днес"}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            {user ? "Един клик — отива в /console/signing със стартиран нов envelope." : "Безплатен старт след регистрация. Без карта."}
+            {user ? "Един клик — отива в /console/signing със стартиран нов envelope." : `Безплатен профил след регистрация: ${FREE_OFFER_RULE}. Без карта.`}
           </p>
           <Link
             to={primaryHref}

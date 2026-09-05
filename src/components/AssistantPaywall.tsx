@@ -20,7 +20,7 @@ export function AssistantPaywall() {
         </p>
         <ul className="mb-6 space-y-2 text-left text-sm text-muted-foreground">
           {[
-            FREE_OFFER_RULE,
+            `Безплатен профил: ${FREE_OFFER_RULE}.`,
             "Помощ с попълване на шаблони и клаузи",
             "Общи насоки по ЗЗД, ТЗ, КТ, СК, ЗУТ, GDPR",
             `${planSummary("professional")} · ${planSummary("entrepreneur")} + GPT-5`,

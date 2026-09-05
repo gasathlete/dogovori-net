@@ -151,7 +151,7 @@ export function Hero() {
             {!user && (
               <p className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
                 <ShieldCheck className="h-3 w-3 text-emerald-500" />
-                Старт без регистрация · преглед преди плащане · GDPR
+                {FREE_OFFER_HERO_TRUST} · GDPR
               </p>
             )}
           </div>

@@ -85,7 +85,7 @@ export function FreeWelcomeDialog() {
               Добре дошли в Dogovori.net
             </DialogTitle>
             <DialogDescription className="mt-1 text-sm">
-              Безплатен профил: <strong className="text-foreground">5 операции през първите 30 дни</strong>, след това 2 месечно.
+              Безплатен профил: <strong className="text-foreground">{FREE_OFFER_RULE}</strong>.
               Разглеждането на каталога, изготвянето на документи и качването за анализ са неограничени.
             </DialogDescription>
           </DialogHeader>

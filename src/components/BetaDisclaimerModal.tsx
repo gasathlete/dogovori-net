@@ -187,7 +187,7 @@ export function BetaDisclaimerModal() {
               onClick={close}
               className="group inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-gold to-gold/80 px-4 py-2.5 text-sm font-semibold text-navy shadow-gold transition-transform hover:-translate-y-px"
             >
-              Регистрация — 5 операции през първите 30 дни
+              Регистрация — {FREE_OPS_ON_SIGNUP} операции през първите {FREE_OPS_SIGNUP_DAYS} дни
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
             <button

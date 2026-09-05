@@ -205,20 +205,23 @@ export const FREE_OPS_PER_MONTH = PRICING_PLANS.free.opsPerMonth ?? 2;
 export const FREE_OPS_ON_SIGNUP = 5;
 
 /** Прозорецът в дни, през който важи бонусът при регистрация. */
-export const FREE_OPS_SIGNUP_WINDOW_DAYS = 30;
+export const FREE_OPS_SIGNUP_DAYS = 30;
 
 /**
  * Канонично изречение за безплатната оферта. Използвайте го навсякъде, където
  * безплатният план се маркетира — така обещанието не се разминава с реалното
  * право (`free_ops_cap`).
  */
-export const FREE_OFFER_RULE = `${FREE_OPS_ON_SIGNUP} операции през първите ${FREE_OPS_SIGNUP_WINDOW_DAYS} дни, след това ${FREE_OPS_PER_MONTH} месечно.`;
+export const FREE_OFFER_RULE = `${FREE_OPS_ON_SIGNUP} операции през първите ${FREE_OPS_SIGNUP_DAYS} дни, след това ${FREE_OPS_PER_MONTH} месечно`;
 
 /**
  * Компактен вариант за CTA-та, които стартират анонимно: старт без регистрация,
  * но безплатните операции принадлежат на профила.
  */
-export const FREE_OFFER_ANON_HELPER = `Започнете без регистрация. С безплатен профил: ${FREE_OFFER_RULE} Без карта.`;
+export const FREE_OFFER_ANON_HELPER = `Започнете без регистрация. С безплатен профил: ${FREE_OFFER_RULE}. Без карта.`;
+
+/** Компактна trust линия за Hero — напълно квалифицирана. */
+export const FREE_OFFER_HERO_TRUST = `Старт без регистрация · с безплатен профил: ${FREE_OFFER_RULE} · без карта`;
 
 /**
  * Какво точно дава еднократният входен пакет (`five_operations`). Пакетът НЕ
