@@ -1,11 +1,18 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
+import { createStripeClient } from "../_shared/stripe.ts";
 import { buildCors } from "../_shared/cors.ts";
 import {
   SandboxForbiddenError,
   assertEnvironmentAllowed,
   sandboxForbiddenResponse,
 } from "../_shared/sandbox-guard.ts";
+import {
+  TeamEnvironmentMismatchError,
+  assertTeamEnvironment,
+  requireTeamAdmin,
+  teamEnvMismatchResponse,
+} from "../_shared/team-env.ts";
+import { mustAffectRows, mustSucceed } from "../_shared/db-guard.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCors(req);
@@ -32,17 +39,24 @@ Deno.serve(async (req) => {
     // Sandbox (test) плащания пишат в общите entitlement таблици — само staff.
     await assertEnvironmentAllowed(admin, environment, user.id);
 
-    const { data: isAdmin } = await admin.rpc("is_team_admin", { _user_id: user.id, _team_id: teamId });
-    if (!isAdmin) throw new Error("Not allowed");
+    // Fail-closed: RPC грешка също е отказ.
+    await requireTeamAdmin(admin, user.id, teamId);
 
-    const { data: team } = await admin.from("teams").select("*").eq("id", teamId).maybeSingle();
+    const teamRes = await admin.from("teams").select("*").eq("id", teamId).maybeSingle();
+    const team = mustSucceed(teamRes, "teams select") as
+      | { seat_count?: number; stripe_subscription_id?: string | null; environment?: string | null }
+      | null;
     if (!team) throw new Error("Team not found");
 
+    // Окръжението на екипа трябва да съвпада — ПРЕДИ Stripe клиент/мутации.
+    assertTeamEnvironment(team.environment, environment);
+
     // Ensure not shrinking below current member count
-    const { count } = await admin
+    const { count, error: countErr } = await admin
       .from("team_members")
       .select("*", { count: "exact", head: true })
       .eq("team_id", teamId);
+    if (countErr) throw new Error(`team_members count failed: ${countErr.message}`);
     if (seats < (count ?? 0)) {
       throw new Error(`Cannot reduce below ${count} members — remove members first`);
     }
@@ -59,19 +73,33 @@ Deno.serve(async (req) => {
       });
     }
 
-    await admin.from("teams").update({ seat_count: seats }).eq("id", teamId);
-    await admin.from("team_audit_log").insert({
-      team_id: teamId, user_id: user.id, action: "seats_updated",
-      metadata: { from: team.seat_count, to: seats },
-    });
+    // Критично: неуспешен seat_count update НЕ бива да връща ok:true.
+    mustAffectRows(
+      await admin
+        .from("teams")
+        .update({ seat_count: seats })
+        .eq("id", teamId)
+        .eq("environment", environment)
+        .select("id"),
+      "teams seat_count update",
+    );
+    mustSucceed(
+      await admin.from("team_audit_log").insert({
+        team_id: teamId, user_id: user.id, action: "seats_updated",
+        metadata: { from: team.seat_count, to: seats },
+      }),
+      "team_audit_log insert",
+    );
 
     return new Response(JSON.stringify({ ok: true, seats }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     if (e instanceof SandboxForbiddenError) return sandboxForbiddenResponse(corsHeaders);
+    if (e instanceof TeamEnvironmentMismatchError) return teamEnvMismatchResponse(corsHeaders);
     return new Response(JSON.stringify({ error: String((e as Error).message ?? e) }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
+
