@@ -77,7 +77,7 @@ export interface UseActivationDraftResult {
   /** Черновата е отворена и в друг таб. */
   foreignTab: boolean;
   /** Запазва текущото състояние (session + debounce към сървъра). */
-  persist: (payload: DraftPayload, meta?: { stepIdx?: number; hasResult?: boolean }) => void;
+  persist: (payload: DraftPayload, meta?: { stepIdx?: number; hasResult?: boolean; userInitiated?: boolean }) => void;
   /** Изтрива черновата (след успешно сваляне/приключване). */
   discard: () => void;
   claiming: boolean;
@@ -500,9 +500,13 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
   flushRef.current = flush;
 
   const persist = useCallback(
-    (payload: DraftPayload, meta?: { stepIdx?: number; hasResult?: boolean }) => {
+    (payload: DraftPayload, meta?: { stepIdx?: number; hasResult?: boolean; userInitiated?: boolean }) => {
       if (!active || !enabled || !mountedRef.current) return;
       const stepIdx = meta?.stepIdx ?? pointerRef.current?.stepIdx ?? 0;
+      // Първа чернова се създава САМО след истинско действие на потребителя.
+      // Служебните начални стойности (smart defaults) при отваряне на екрана
+      // изглеждат като съдържание, но не са — не пишем нищо преди реален вход.
+      if (!latestRef.current && meta?.userInitiated === false) return;
       // Снапшотът при отваряне на екрана (само служебни полета) не създава
       // чернова и не презаписва вече запазено съдържание — иначе всяко
       // посещение би оставяло празен ред, а възстановяването след вход би

@@ -652,6 +652,14 @@ export default function WizardPage() {
   );
 
   /**
+   * Реално действие на потребителя (за разлика от служебното предпопълване със
+   * smart defaults при отваряне на екрана). Само след него може да се създаде
+   * първа чернова — иначе всяко отваряне би оставяло ред на сървъра.
+   */
+  const interactedRef = useRef(false);
+  const markInteracted = useCallback(() => { interactedRef.current = true; }, []);
+
+  /**
    * Непрекъснатост на активацията: съдържанието на черновата се пази в текущия
    * таб + на сървъра, а в localStorage остава само указател без лични данни.
    * Така прогресът се запазва при вход/регистрация, OAuth пренасочване и нов
@@ -662,6 +670,8 @@ export default function WizardPage() {
     docKey: storageKey ?? undefined,
     route: currentDraftRoute(),
     onRestore: (payload) => {
+      // Възстановена чернова вече е резултат от предишно действие — синхронизира се.
+      interactedRef.current = true;
       const meta = (payload.meta ?? {}) as Record<string, unknown>;
       if (payload.answers) setAnswers(payload.answers as Record<string, string>);
       if (typeof meta.stepIdx === "number") setStepIdx(meta.stepIdx);
@@ -683,7 +693,12 @@ export default function WizardPage() {
       // Каноничен модел — лични данни не влизат в localStorage.
       activation.persist(
         { answers, result, signature, meta: snapshot },
-        { stepIdx, hasResult: !!result },
+        {
+          stepIdx,
+          hasResult: !!result,
+          userInitiated:
+            interactedRef.current || stepIdx > 0 || !!result || !!activation.pointer,
+        },
       );
       try {
         localStorage.removeItem(storageKey);
@@ -851,10 +866,11 @@ export default function WizardPage() {
   const docSelectedRef = useRef(false);
   /** Първо реално действие на потребителя върху документа → document_selected (еднократно). */
   const markDocSelected = useCallback(() => {
+    markInteracted();
     if (docSelectedRef.current) return;
     docSelectedRef.current = true;
     trackDocStart({ doc_key: docKey, source: "wizard", sector: sectorId });
-  }, [docKey, sectorId]);
+  }, [docKey, sectorId, markInteracted]);
 
   // A/B: CTA „Виж бърз преглед сега" в междинните стъпки.
   const quickPreviewVariant = useMemo(() => getVariant("quick_preview"), []);
@@ -1438,7 +1454,7 @@ export default function WizardPage() {
                       sectorId={sector?.id}
                       contractType={(sector as { selectedDocument?: string })?.selectedDocument}
                       answers={answers}
-                      onAnswer={(id, v) => setAnswers((p) => ({ ...p, [id]: v }))}
+                      onAnswer={(id, v) => { markInteracted(); setAnswers((p) => ({ ...p, [id]: v })); }}
                     />
                   </div>
                 )}
