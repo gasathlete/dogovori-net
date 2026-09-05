@@ -670,6 +670,8 @@ export default function WizardPage() {
     docKey: storageKey ?? undefined,
     route: currentDraftRoute(),
     onRestore: (payload) => {
+      // Възстановена чернова вече е резултат от предишно действие — синхронизира се.
+      interactedRef.current = true;
       const meta = (payload.meta ?? {}) as Record<string, unknown>;
       if (payload.answers) setAnswers(payload.answers as Record<string, string>);
       if (typeof meta.stepIdx === "number") setStepIdx(meta.stepIdx);
