@@ -43,6 +43,13 @@
       "when": 1788531718491,
       "tag": "0005_metrics_overview_add_continuity",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788615631101,
+      "tag": "0006_metrics_overview_checkout_failed",
+      "breakpoints": true
     }
   ]
 }
