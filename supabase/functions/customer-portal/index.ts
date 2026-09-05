@@ -6,6 +6,13 @@ import {
   assertEnvironmentAllowed,
   sandboxForbiddenResponse,
 } from "../_shared/sandbox-guard.ts";
+import {
+  TeamEnvironmentMismatchError,
+  assertTeamEnvironment,
+  requireTeamAdmin,
+  teamEnvMismatchResponse,
+} from "../_shared/team-env.ts";
+import { mustSucceed } from "../_shared/db-guard.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCors(req);
@@ -34,19 +41,32 @@ Deno.serve(async (req) => {
     let stripeCustomerId: string | null = null;
 
     if (teamId) {
-      const { data: isAdmin } = await supabase.rpc("is_team_admin", { _user_id: user.id, _team_id: teamId });
-      if (!isAdmin) throw new Error("Not allowed");
-      const { data: team } = await supabase.from("teams").select("stripe_customer_id").eq("id", teamId).maybeSingle();
-      stripeCustomerId = team?.stripe_customer_id ?? null;
+      // Fail-closed: RPC грешка също е отказ.
+      await requireTeamAdmin(supabase, user.id, teamId);
+      const team = mustSucceed(
+        await supabase
+          .from("teams")
+          .select("stripe_customer_id, environment")
+          .eq("id", teamId)
+          .maybeSingle(),
+        "teams select",
+      ) as { stripe_customer_id?: string | null; environment?: string | null } | null;
+      if (!team) throw new Error("Team not found");
+      // Не използваме Stripe customer от друго окръжение.
+      assertTeamEnvironment(team.environment, environment);
+      stripeCustomerId = team.stripe_customer_id ?? null;
     } else {
-      const { data: sub } = await supabase
-        .from("subscriptions")
-        .select("stripe_customer_id")
-        .eq("user_id", user.id)
-        .eq("environment", environment)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const sub = mustSucceed(
+        await supabase
+          .from("subscriptions")
+          .select("stripe_customer_id")
+          .eq("user_id", user.id)
+          .eq("environment", environment)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        "subscriptions select",
+      ) as { stripe_customer_id?: string | null } | null;
       stripeCustomerId = sub?.stripe_customer_id ?? null;
     }
 
@@ -57,22 +77,22 @@ Deno.serve(async (req) => {
       );
     }
 
-
     const stripe = createStripeClient(environment);
     const portal = await stripe.billingPortal.sessions.create({
       customer: stripeCustomerId,
       ...(returnUrl && { return_url: returnUrl }),
     });
 
-
     return new Response(JSON.stringify({ url: portal.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     if (e instanceof SandboxForbiddenError) return sandboxForbiddenResponse(corsHeaders);
+    if (e instanceof TeamEnvironmentMismatchError) return teamEnvMismatchResponse(corsHeaders);
     return new Response(JSON.stringify({ error: String((e as Error).message ?? e) }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
+
