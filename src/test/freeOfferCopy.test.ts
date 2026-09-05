@@ -48,7 +48,7 @@ describe("канонично правило за безплатните опер
     ];
     for (const file of files) {
       const src = read(file);
-      expect(src, file).toMatch(/FREE_OFFER_RULE|FREE_OFFER_HERO_TRUST/);
+      expect(src, file).toMatch(/FREE_OFFER_RULE|FREE_OFFER_HERO_TRUST|FREE_OFFER_ANON_HELPER/);
       expect(src, `${file} дублира числата на офертата`).not.toContain("първите 30 дни");
     }
   });
