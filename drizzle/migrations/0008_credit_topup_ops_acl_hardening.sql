@@ -1,0 +1,2 @@
+REVOKE ALL PRIVILEGES ON FUNCTION public.credit_topup_ops(uuid, text, integer, numeric, text, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.credit_topup_ops(uuid, text, integer, numeric, text, text) TO service_role;

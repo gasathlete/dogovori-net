@@ -57,6 +57,13 @@
       "when": 1788615674024,
       "tag": "0007_credit_topup_ops_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788616241738,
+      "tag": "0008_credit_topup_ops_acl_hardening",
+      "breakpoints": true
     }
   ]
 }
