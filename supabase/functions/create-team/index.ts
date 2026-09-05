@@ -7,6 +7,8 @@ import {
   assertEnvironmentAllowed,
   sandboxForbiddenResponse,
 } from "../_shared/sandbox-guard.ts";
+import { mustSucceed } from "../_shared/db-guard.ts";
+
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCors(req);
@@ -45,19 +47,24 @@ Deno.serve(async (req) => {
     if (!name || name.length < 2 || name.length > 100) throw new Error("Invalid team name");
     if (!Number.isInteger(seats) || seats < 3 || seats > 100) throw new Error("Seats must be 3–100");
     if (billing && billing !== "yearly") throw new Error("Екип е само годишен абонамент");
+    if (!returnUrl) throw new Error("returnUrl required");
+    // Окръжението се валидира ПРЕДИ каквато и да е DB заявка, която го ползва.
+    if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
+
     // Block if user has an active individual subscription
     {
-      const { data: sub } = await admin
-        .from("subscriptions")
-        .select("status")
-        .eq("user_id", user.id)
-        .eq("environment", environment)
-        .in("status", ["active", "trialing", "past_due"])
-        .maybeSingle();
+      const sub = mustSucceed(
+        await admin
+          .from("subscriptions")
+          .select("status")
+          .eq("user_id", user.id)
+          .eq("environment", environment)
+          .in("status", ["active", "trialing", "past_due"])
+          .maybeSingle(),
+        "subscriptions select",
+      );
       if (sub) throw new Error("Имате активен индивидуален абонамент. Откажете го преди да създадете екип.");
     }
-    if (!returnUrl) throw new Error("returnUrl required");
-    if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
     // Sandbox (test) плащания пишат в общите entitlement таблици — само staff.
     await assertEnvironmentAllowed(admin, environment, user.id);
 
@@ -71,10 +78,14 @@ Deno.serve(async (req) => {
       .single();
     if (teamErr) throw teamErr;
 
-    // Owner becomes a member with owner role
-    await admin.from("team_members").insert({
-      team_id: team.id, user_id: user.id, role: "owner",
-    });
+    // Owner becomes a member with owner role — частичен запис не е успех.
+    mustSucceed(
+      await admin.from("team_members").insert({
+        team_id: team.id, user_id: user.id, role: "owner",
+      }),
+      "team_members owner insert",
+    );
+
 
     const stripe = createStripeClient(environment);
     const lookupKey = "team_seat_yearly";
