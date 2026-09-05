@@ -2,6 +2,13 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
 import { resolveOrCreateCustomer } from "../_shared/customer.ts";
 import { buildCors } from "../_shared/cors.ts";
+import {
+  ENTRY_PACK_LOOKUP_KEY,
+  EntryPriceError,
+  SUBSCRIPTION_LOOKUP_KEYS,
+  isAllowedCheckoutLookupKey,
+  requireEntryPackPrice,
+} from "../_shared/oneoff-credit.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCors(req);
@@ -42,16 +49,31 @@ Deno.serve(async (req) => {
       environment: StripeEnv;
     };
 
-    if (!priceId || !/^[a-zA-Z0-9_-]+$/.test(priceId)) throw new Error("Invalid priceId");
-    if (priceId === "team_monthly") throw new Error("Екип е само годишен абонамент. Използвай team_yearly.");
+    // Строг server-side allowlist: точно съвпадение с реално използван lookup
+    // key. Regex не е достатъчен — произволен ключ не трябва да стига до Stripe.
+    // Екипните места (team_*) минават през create-team, не оттук.
+    if (!isAllowedCheckoutLookupKey(priceId)) {
+      throw new EntryPriceError("unsupported_price");
+    }
     if (!returnUrl || typeof returnUrl !== "string") throw new Error("returnUrl required");
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
 
     const stripe = createStripeClient(environment);
 
     const prices = await stripe.prices.list({ lookup_keys: [priceId] });
-    if (!prices.data.length) throw new Error("Price not found");
-    const price = prices.data[0];
+    let price: any;
+    if (priceId === ENTRY_PACK_LOOKUP_KEY) {
+      // Входният пакет: приемаме само active, one_time, EUR, 290 центa.
+      price = requireEntryPackPrice(prices.data as any);
+    } else {
+      const active = prices.data.find((p: any) => p.active === true);
+      if (!active) throw new EntryPriceError("price_not_found");
+      const shouldRecur = SUBSCRIPTION_LOOKUP_KEYS.includes(priceId);
+      if (shouldRecur !== (active.type === "recurring")) {
+        throw new EntryPriceError("price_mismatch");
+      }
+      price = active;
+    }
     const isRecurring = price.type === "recurring";
 
     // Resolve a stable Stripe customer per Lovable user — keeps Portal/refunds clean.
@@ -190,6 +212,14 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
+    // Само ограничени, безопасни кодове — без чувствителен текст навън.
+    if (e instanceof EntryPriceError) {
+      console.error("create-checkout price problem:", e.reason);
+      return new Response(JSON.stringify({ error: e.reason, code: e.reason }), {
+        status: e.reason === "unsupported_price" ? 400 : 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     return new Response(JSON.stringify({ error: String((e as Error).message ?? e) }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

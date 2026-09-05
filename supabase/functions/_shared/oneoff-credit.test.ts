@@ -1,22 +1,77 @@
 import { assertEquals, assertThrows } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
+  CHECKOUT_LOOKUP_KEYS,
   ENTRY_PACK_AMOUNT_CENTS,
   ENTRY_PACK_LOOKUP_KEY,
   EntryPriceError,
+  isAllowedCheckoutLookupKey,
   planOneOffCredit,
   requireEntryPackPrice,
 } from "./oneoff-credit.ts";
+
+const OK_PRICE = {
+  id: "price_1",
+  active: true,
+  currency: "EUR",
+  unit_amount: 290,
+  type: "one_time",
+  lookup_key: ENTRY_PACK_LOOKUP_KEY,
+};
 
 Deno.test("входният пакет е 290 евроцента (над Stripe минимума 50)", () => {
   assertEquals(ENTRY_PACK_AMOUNT_CENTS, 290);
   assertEquals(ENTRY_PACK_LOOKUP_KEY, "five_operations");
 });
 
-Deno.test("requireEntryPackPrice приема точна активна EUR цена от 290", () => {
-  const price = requireEntryPackPrice([
-    { id: "price_1", active: true, currency: "EUR", unit_amount: 290 },
-  ]);
-  assertEquals(price.id, "price_1");
+Deno.test("requireEntryPackPrice приема точна активна EUR one_time цена от 290", () => {
+  assertEquals(requireEntryPackPrice([OK_PRICE]).id, "price_1");
+  // Пропуска неактивните и взема активната.
+  assertEquals(
+    requireEntryPackPrice([{ ...OK_PRICE, id: "old", active: false }, OK_PRICE]).id,
+    "price_1",
+  );
+});
+
+Deno.test("requireEntryPackPrice изисква точен lookup key и one_time тип", () => {
+  assertEquals(
+    assertThrows(
+      () => requireEntryPackPrice([{ ...OK_PRICE, lookup_key: "topup_5" }]),
+      EntryPriceError,
+    ).reason,
+    "price_mismatch",
+  );
+  assertEquals(
+    assertThrows(
+      () => requireEntryPackPrice([{ ...OK_PRICE, lookup_key: undefined }]),
+      EntryPriceError,
+    ).reason,
+    "price_mismatch",
+  );
+  assertEquals(
+    assertThrows(
+      () => requireEntryPackPrice([{ ...OK_PRICE, type: "recurring" }]),
+      EntryPriceError,
+    ).reason,
+    "price_mismatch",
+  );
+  assertEquals(
+    assertThrows(
+      () => requireEntryPackPrice([{ ...OK_PRICE, type: undefined }]),
+      EntryPriceError,
+    ).reason,
+    "price_mismatch",
+  );
+});
+
+Deno.test("allowlist за create-checkout приема само познати ключове", () => {
+  for (const key of ["professional_monthly", "entrepreneur_yearly", ENTRY_PACK_LOOKUP_KEY, "topup_50"]) {
+    assertEquals(isAllowedCheckoutLookupKey(key), true);
+  }
+  // Екипните места минават през create-team, не през create-checkout.
+  for (const bad of ["team_seat_yearly", "team_yearly", "team_monthly", "", "TOPUP_50", "topup_50 ", null, 5]) {
+    assertEquals(isAllowedCheckoutLookupKey(bad), false);
+  }
+  assertEquals(new Set(CHECKOUT_LOOKUP_KEYS).size, CHECKOUT_LOOKUP_KEYS.length);
 });
 
 Deno.test("requireEntryPackPrice отказва липсваща, чужда валута, друга сума и абонамент", () => {
@@ -25,32 +80,24 @@ Deno.test("requireEntryPackPrice отказва липсваща, чужда в�
     "price_not_found",
   );
   assertEquals(
-    assertThrows(
-      () => requireEntryPackPrice([{ active: false, currency: "eur", unit_amount: 290 }]),
-      EntryPriceError,
-    ).reason,
+    assertThrows(() => requireEntryPackPrice([{ ...OK_PRICE, active: false }]), EntryPriceError).reason,
     "price_not_found",
   );
   assertEquals(
-    assertThrows(
-      () => requireEntryPackPrice([{ active: true, currency: "usd", unit_amount: 290 }]),
-      EntryPriceError,
-    ).reason,
+    assertThrows(() => requireEntryPackPrice([{ ...OK_PRICE, active: undefined }]), EntryPriceError).reason,
+    "price_not_found",
+  );
+  assertEquals(
+    assertThrows(() => requireEntryPackPrice([{ ...OK_PRICE, currency: "usd" }]), EntryPriceError).reason,
+    "price_mismatch",
+  );
+  assertEquals(
+    assertThrows(() => requireEntryPackPrice([{ ...OK_PRICE, unit_amount: 40 }]), EntryPriceError).reason,
     "price_mismatch",
   );
   assertEquals(
     assertThrows(
-      () => requireEntryPackPrice([{ active: true, currency: "eur", unit_amount: 40 }]),
-      EntryPriceError,
-    ).reason,
-    "price_mismatch",
-  );
-  assertEquals(
-    assertThrows(
-      () =>
-        requireEntryPackPrice([
-          { active: true, currency: "eur", unit_amount: 290, recurring: { interval: "month" } },
-        ]),
+      () => requireEntryPackPrice([{ ...OK_PRICE, recurring: { interval: "month" } }]),
       EntryPriceError,
     ).reason,
     "price_mismatch",

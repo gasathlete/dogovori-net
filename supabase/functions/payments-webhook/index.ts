@@ -160,28 +160,31 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
     session.metadata?.type === "strict_doc_unlock" &&
     session.metadata?.doc_key
   ) {
-    try {
-      const amountTotal = session.amount_total;
-      const paid = typeof amountTotal === "number"
-        ? amountTotal / 100
-        : ENTRY_PACK_AMOUNT_CENTS / 100;
-      await getSupabase()
-        .from("strict_doc_unlocks")
-        .upsert(
-          {
-            user_id: userId,
-            doc_key: session.metadata.doc_key,
-            sector_id: session.metadata.sector_id || null,
-            doc_name: session.metadata.doc_name || null,
-            paid_price_eur: paid,
-            stripe_session_id: session.id,
-            environment: env,
-            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          },
-          { onConflict: "user_id,doc_key" },
-        );
-    } catch (e) {
-      console.error("strict_doc_unlocks insert failed:", e);
+    // FAIL-CLOSED: платена сесия, чието отключване не е записано, трябва да
+    // върне грешка нагоре → webhook отговаря non-2xx и Stripe повтаря.
+    // Upsert-ът е по (user_id, doc_key), затова retry-ът е безопасен.
+    const amountTotal = session.amount_total;
+    const paid = typeof amountTotal === "number"
+      ? amountTotal / 100
+      : ENTRY_PACK_AMOUNT_CENTS / 100;
+    const { error: unlockErr } = await getSupabase()
+      .from("strict_doc_unlocks")
+      .upsert(
+        {
+          user_id: userId,
+          doc_key: session.metadata.doc_key,
+          sector_id: session.metadata.sector_id || null,
+          doc_name: session.metadata.doc_name || null,
+          paid_price_eur: paid,
+          stripe_session_id: session.id,
+          environment: env,
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        },
+        { onConflict: "user_id,doc_key" },
+      );
+    if (unlockErr) {
+      console.error("strict_doc_unlocks upsert failed:", unlockErr.message);
+      throw new Error(`strict_doc_unlocks upsert failed: ${unlockErr.message}`);
     }
   }
 
@@ -210,23 +213,31 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   // 1) Еднократни покупки → операции. Едно агрегирано, идемпотентно по
   //    stripe_session_id кредитиране (topup_purchases има UNIQUE(session_id)),
   //    затова повторна доставка на събитието не начислява втори път.
+  //
+  //    FAIL-CLOSED: всяка грешка (listLineItems, RPC transport или DB error в
+  //    отговора) се хвърля нагоре — Stripe получава non-2xx и повтаря.
+  //    `credited: false` при дублирана доставка е нормален идемпотентен успех.
   if (session.mode === "payment" && userId) {
-    try {
-      const stripe = createStripeClient(env);
-      const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10, expand: ["data.price"] });
-      const credit = planOneOffCredit(items.data as any);
-      if (credit) {
-        await getSupabase().rpc("credit_topup_ops", {
-          p_user_id: userId,
-          p_price_id: credit.priceId,
-          p_ops: credit.ops,
-          p_amount: credit.amountEur,
-          p_session_id: session.id,
-          p_environment: env,
-        });
+    const stripe = createStripeClient(env);
+    const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10, expand: ["data.price"] });
+    const credit = planOneOffCredit(items.data as any);
+    if (credit) {
+      const { data: creditResult, error: creditErr } = await getSupabase().rpc("credit_topup_ops", {
+        p_user_id: userId,
+        p_price_id: credit.priceId,
+        p_ops: credit.ops,
+        p_amount: credit.amountEur,
+        p_session_id: session.id,
+        p_environment: env,
+      });
+      if (creditErr) {
+        console.error("credit_topup_ops failed:", creditErr.message);
+        throw new Error(`credit_topup_ops failed: ${creditErr.message}`);
       }
-    } catch (e) {
-      console.error("checkout.session.completed one-off credit failed:", e);
+      const ok = (creditResult as { ok?: boolean } | null)?.ok;
+      if (ok === false) {
+        throw new Error("credit_topup_ops returned ok=false");
+      }
     }
   }
 
