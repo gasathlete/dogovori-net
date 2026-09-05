@@ -693,7 +693,12 @@ export default function WizardPage() {
       // Каноничен модел — лични данни не влизат в localStorage.
       activation.persist(
         { answers, result, signature, meta: snapshot },
-        { stepIdx, hasResult: !!result },
+        {
+          stepIdx,
+          hasResult: !!result,
+          userInitiated:
+            interactedRef.current || stepIdx > 0 || !!result || !!activation.pointer,
+        },
       );
       try {
         localStorage.removeItem(storageKey);
