@@ -1454,7 +1454,7 @@ export default function WizardPage() {
                       sectorId={sector?.id}
                       contractType={(sector as { selectedDocument?: string })?.selectedDocument}
                       answers={answers}
-                      onAnswer={(id, v) => setAnswers((p) => ({ ...p, [id]: v }))}
+                      onAnswer={(id, v) => { markInteracted(); setAnswers((p) => ({ ...p, [id]: v })); }}
                     />
                   </div>
                 )}
