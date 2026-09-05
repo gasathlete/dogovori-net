@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { trackEvent, trackUpgradeStarted } from "@/lib/analytics";
 import { trackPaywallShown } from "@/lib/docFunnel";
-import { PRICING_PLANS, planSummary, yearlyLabel } from "@/lib/pricing";
+import { FREE_OFFER_RULE, PRICING_PLANS, planSummary, yearlyLabel } from "@/lib/pricing";
 import { useAudience } from "@/hooks/useAudience";
 
 

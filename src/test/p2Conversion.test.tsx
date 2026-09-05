@@ -43,8 +43,10 @@ describe("Hero — едно основно действие към /start", () =
     expect(src).not.toMatch(/TeaserDialog|teaserOpen/);
   });
 
-  it("trust линията е компактна, но напълно квалифицирана", () => {
-    expect(src).toContain("FREE_OFFER_HERO_TRUST");
+  it("trust линията ползва каноничния текст и пази „Старт без регистрация“", async () => {
+    const { FREE_OFFER_ANON_HELPER } = await import("@/lib/pricing");
+    expect(src).toContain("FREE_OFFER_ANON_HELPER");
+    expect(FREE_OFFER_ANON_HELPER).toContain("Старт без регистрация");
     expect(src).not.toContain("5 безплатни операции");
   });
 

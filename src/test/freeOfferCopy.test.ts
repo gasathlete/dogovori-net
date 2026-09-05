@@ -19,16 +19,17 @@ describe("канонично правило за безплатните опер
     expect(FREE_OPS_PER_MONTH).toBe(2);
     expect(FREE_OPS_SIGNUP_DAYS).toBe(30);
     expect(FREE_OFFER_RULE).toBe("5 операции през първите 30 дни, след това 2 месечно");
+    expect(FREE_OFFER_RULE.endsWith(".")).toBe(false);
   });
 
   it("анонимният helper пояснява, че операциите са към безплатния профил", () => {
-    expect(FREE_OFFER_ANON_HELPER).toContain("Започнете без регистрация");
-    expect(FREE_OFFER_ANON_HELPER).toContain("безплатен профил");
-    expect(FREE_OFFER_ANON_HELPER).toContain(FREE_OFFER_RULE);
-    expect(FREE_OFFER_ANON_HELPER).toContain("Без карта");
+    expect(FREE_OFFER_ANON_HELPER).toBe(
+      `Старт без регистрация · с безплатен профил: ${FREE_OFFER_RULE} · без карта`,
+    );
   });
 
   it("Hero trust линията е компактна и напълно квалифицирана", () => {
+    expect(FREE_OFFER_HERO_TRUST).toBe(FREE_OFFER_ANON_HELPER);
     expect(FREE_OFFER_HERO_TRUST).toContain("Старт без регистрация");
     expect(FREE_OFFER_HERO_TRUST).toContain("безплатен профил");
     expect(FREE_OFFER_HERO_TRUST).toContain(FREE_OFFER_RULE);
@@ -47,7 +48,7 @@ describe("канонично правило за безплатните опер
     ];
     for (const file of files) {
       const src = read(file);
-      expect(src, file).toMatch(/FREE_OFFER_RULE|FREE_OFFER_HERO_TRUST/);
+      expect(src, file).toMatch(/FREE_OFFER_RULE|FREE_OFFER_HERO_TRUST|FREE_OFFER_ANON_HELPER/);
       expect(src, `${file} дублира числата на офертата`).not.toContain("първите 30 дни");
     }
   });
@@ -91,7 +92,11 @@ describe("еднократен входен пакет 2,90 €", () => {
 
   it("списъкът с ползи е само за операции и изключва функции на планове", () => {
     const joined = ENTRY_PACK_FEATURES.join(" | ");
-    expect(joined).toContain("+5 допълнителни операции");
+    expect(joined).toContain(`+${ENTRY_PACK_CONFIG.ops} допълнителни операции`);
+    const pricingSrc = read("src/lib/pricing.ts");
+    const featureBlock = pricingSrc.slice(pricingSrc.indexOf("ENTRY_PACK_FEATURES"));
+    expect(featureBlock.slice(0, featureBlock.indexOf("];"))).toContain("ENTRY_PACK_CONFIG.ops");
+    expect(featureBlock.slice(0, featureBlock.indexOf("];"))).not.toContain("FREE_OPS_ON_SIGNUP");
     expect(joined).toContain("не изтичат");
     expect(joined).toContain("след включените безплатни операции");
     expect(joined).toContain("Не отключва функции от платените планове");

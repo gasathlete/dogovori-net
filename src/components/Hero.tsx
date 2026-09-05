@@ -5,7 +5,7 @@ import { prefetchHandlers } from "@/components/PrefetchLink";
 import { ShieldCheck, Search, ArrowRight, FileUp } from "@/icons";
 const logoImg = "/logo-dogovori-hero.webp";
 import { HeroVideoBackdrop } from "@/components/HeroVideoBackdrop";
-import { FREE_OFFER_HERO_TRUST, SEPTEMBER_PROMO } from "@/lib/pricing";
+import { FREE_OFFER_ANON_HELPER, SEPTEMBER_PROMO } from "@/lib/pricing";
 import { useAuth } from "@/hooks/useAuth";
 import { useAudience } from "@/hooks/useAudience";
 import { AudienceToggle } from "@/components/funnel/AudienceToggle";
@@ -151,7 +151,7 @@ export function Hero() {
             {!user && (
               <p className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
                 <ShieldCheck className="h-3 w-3 text-emerald-500" />
-                {FREE_OFFER_HERO_TRUST} · GDPR
+                {FREE_OFFER_ANON_HELPER} · GDPR
               </p>
             )}
           </div>

@@ -18,6 +18,7 @@ import { trackEvent } from "@/lib/analytics";
 import { trackFunnelEvent } from "@/lib/funnel";
 import { autoLinkParagraph, createAutoLinkState } from "@/lib/autoLinkBlog";
 import { RELATED_TEMPLATES } from "@/data/relatedTemplates";
+import { FREE_OFFER_RULE } from "@/lib/pricing";
 import { getPostBySlug } from "@/lib/blog";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 
@@ -139,7 +140,7 @@ export default function TemplatePage() {
     },
     {
       q: `Колко струва изготвянето на ${docLower} в Dogovori.net?`,
-      a: "Безплатно: 5 операции през първите 30 дни, след това 2 месечно. Плюс 1 безплатна авто-корекция. Професионалист (12.90 €/мес, 50 операции) добавя двуезични договори (BG/EN), пълни AI-корекции, пълен risk report, неограничени комплекти и сваляне без воден знак. Предприемач (19.90 €/мес, 100 операции) добавя GPT-5 и премиум 24/7 поддръжка.",
+      a: `Безплатно: ${FREE_OFFER_RULE}. Плюс 1 безплатна авто-корекция. Професионалист (12.90 €/мес, 50 операции) добавя двуезични договори (BG/EN), пълни AI-корекции, пълен анализ на риска, неограничени комплекти и сваляне без воден знак. Предприемач (19.90 €/мес, 100 операции) добавя GPT-5 и премиум 24/7 поддръжка.`,
     },
     {
       q: "Мога ли да го редактирам след генериране?",
