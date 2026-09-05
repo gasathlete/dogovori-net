@@ -77,7 +77,7 @@ export interface UseActivationDraftResult {
   /** Черновата е отворена и в друг таб. */
   foreignTab: boolean;
   /** Запазва текущото състояние (session + debounce към сървъра). */
-  persist: (payload: DraftPayload, meta?: { stepIdx?: number; hasResult?: boolean }) => void;
+  persist: (payload: DraftPayload, meta?: { stepIdx?: number; hasResult?: boolean; userInitiated?: boolean }) => void;
   /** Изтрива черновата (след успешно сваляне/приключване). */
   discard: () => void;
   claiming: boolean;
