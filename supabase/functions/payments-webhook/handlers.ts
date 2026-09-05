@@ -378,15 +378,18 @@ export async function handleInvoicePaymentFailed(d: WebhookDeps, invoice: Any, e
         "teams past_due update",
       );
     } else {
-      mustSucceed(
+      const rows = mustAffectRows<SubscriptionOwnerRow>(
         await d.db
           .from("subscriptions")
           .update({ status: "past_due", updated_at: new Date().toISOString() })
           .eq("stripe_subscription_id", subscriptionId)
-          .eq("environment", env),
+          .eq("environment", env)
+          .select("user_id"),
         "subscriptions past_due update",
       );
+      userId = userId ?? storedUserId(rows);
     }
+
   }
 
   // Имейлът е ИЗРИЧНО non-fatal.
