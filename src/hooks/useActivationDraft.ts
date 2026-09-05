@@ -500,9 +500,13 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
   flushRef.current = flush;
 
   const persist = useCallback(
-    (payload: DraftPayload, meta?: { stepIdx?: number; hasResult?: boolean }) => {
+    (payload: DraftPayload, meta?: { stepIdx?: number; hasResult?: boolean; userInitiated?: boolean }) => {
       if (!active || !enabled || !mountedRef.current) return;
       const stepIdx = meta?.stepIdx ?? pointerRef.current?.stepIdx ?? 0;
+      // Първа чернова се създава САМО след истинско действие на потребителя.
+      // Служебните начални стойности (smart defaults) при отваряне на екрана
+      // изглеждат като съдържание, но не са — не пишем нищо преди реален вход.
+      if (!latestRef.current && meta?.userInitiated === false) return;
       // Снапшотът при отваряне на екрана (само служебни полета) не създава
       // чернова и не презаписва вече запазено съдържание — иначе всяко
       // посещение би оставяло празен ред, а възстановяването след вход би
