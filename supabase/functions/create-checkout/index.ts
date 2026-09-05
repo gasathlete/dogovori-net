@@ -57,6 +57,9 @@ Deno.serve(async (req) => {
     }
     if (!returnUrl || typeof returnUrl !== "string") throw new Error("returnUrl required");
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
+    // Sandbox (test) плащания дават реален entitlement в общите таблици —
+    // разрешени са само за staff. Проверката е server-side по JWT user id.
+    await assertEnvironmentAllowed(supabase, environment, userId);
 
     const stripe = createStripeClient(environment);
 
