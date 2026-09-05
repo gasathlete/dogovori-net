@@ -103,21 +103,55 @@ Deno.test("всички Stripe-мутиращи функции ползват sa
 });
 
 Deno.test("webhook: sandbox gate преди всеки entitlement write + fail-closed RPC", async () => {
-  const src = await Deno.readTextFile(new URL("../payments-webhook/index.ts", import.meta.url));
-  assertEquals(src.includes('import { extractEventUserId, isStaffUser } from "../_shared/sandbox-guard.ts";'), true);
-  // Gate-ът е в handleWebhook, преди switch-а → покрива checkout.session.completed,
+  // Логиката живее в payments-webhook/handlers.ts (тестваем seam); index.ts
+  // прави само verifyWebhook + env parsing + HTTP отговорите.
+  const src = await Deno.readTextFile(new URL("../payments-webhook/handlers.ts", import.meta.url));
+  assertEquals(src.includes('from "../_shared/sandbox-guard.ts"'), true);
+  assertEquals(src.includes("extractEventUserId"), true);
+  assertEquals(src.includes("isStaffUser"), true);
+  // Gate-ът е в dispatchEvent, преди switch-а → покрива checkout.session.completed,
   // customer.subscription.created/updated/deleted и екипните събития.
   const gateIdx = src.indexOf('if (env === "sandbox" && !(await sandboxEntitlementAllowed(');
   const switchIdx = src.indexOf("switch (event.type)");
   assertEquals(gateIdx > 0, true);
   assertEquals(gateIdx < switchIdx, true);
   // Без entitlement write, order snapshot или receipt email при блокиран event.
-  for (const marker of ["handleCheckoutCompleted", "order_snapshots", "sendAppEmail", "credit_topup_ops", "download_quota"]) {
+  for (const marker of ["handleCheckoutCompleted", "order_snapshots", "sendEmail", "credit_topup_ops", "download_quota"]) {
     assertEquals(src.indexOf(marker) > 0, true, marker);
   }
   // Ранен `return` вместо throw → 200 ignored, без retry storm.
   assertEquals(/sandboxEntitlementAllowed\([^)]*\)\)\) \{\s*return;/.test(src), true);
   // one-off RPC резултат: само ok === true се приема.
-  assertEquals(src.includes('?.ok !== true'), true);
-  assertEquals(src.includes('if (ok === false)'), false);
+  assertEquals(src.includes("?.ok !== true"), true);
+  assertEquals(src.includes("if (ok === false)"), false);
+
+  const indexSrc = await Deno.readTextFile(new URL("../payments-webhook/index.ts", import.meta.url));
+  assertEquals(indexSrc.includes("dispatchEvent"), true);
 });
+
+Deno.test("team функции: env съвпадение и admin RPC са fail-closed", async () => {
+  for (const fn of ["team-update-seats", "customer-portal"]) {
+    const src = await Deno.readTextFile(new URL(`../${fn}/index.ts`, import.meta.url));
+    assertEquals(src.includes("requireTeamAdmin("), true, fn);
+    assertEquals(src.includes("assertTeamEnvironment("), true, fn);
+    assertEquals(src.includes("teamEnvMismatchResponse(corsHeaders)"), true, fn);
+    // Няма непроверен `const { data: isAdmin }` shortcut.
+    assertEquals(src.includes("data: isAdmin"), false, fn);
+    // Env проверката идва преди създаването на Stripe клиента.
+    const envIdx = src.indexOf("assertTeamEnvironment(");
+    const stripeIdx = src.indexOf("createStripeClient(environment)");
+    assertEquals(envIdx > 0 && stripeIdx > envIdx, true, fn);
+  }
+});
+
+Deno.test("create-team: env валидация преди DB заявки и проверени writes", async () => {
+  const src = await Deno.readTextFile(new URL("../create-team/index.ts", import.meta.url));
+  const envIdx = src.indexOf('if (environment !== "sandbox" && environment !== "live")');
+  const subQueryIdx = src.indexOf('.from("subscriptions")');
+  assertEquals(envIdx > 0 && subQueryIdx > envIdx, true);
+  assertEquals(src.includes('"team_members owner insert"'), true);
+  assertEquals(src.includes('"subscriptions select"'), true);
+  // Без деструктивно "cleanup", което може да изтрие съществуващи екипи.
+  assertEquals(/\.from\("teams"\)\s*\.delete\(/.test(src), false);
+});
+
