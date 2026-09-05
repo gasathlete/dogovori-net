@@ -76,10 +76,12 @@ describe("seed и миграция", () => {
   it("възпроизвежда старите варианти при текущите прагове и маха стария ключ", () => {
     localStorage.setItem(
       "ab_variants_v1",
-      JSON.stringify({ activation_continuity: "variant", quick_preview: "control" }),
+      JSON.stringify({ activation_continuity: "control", quick_preview: "variant" }),
     );
-    expect(getVariant("activation_continuity")).toBe("variant");
-    expect(getVariant("quick_preview")).toBe("control");
+    // activation_continuity е изключен (split=0) → винаги control.
+    expect(getVariant("activation_continuity")).toBe("control");
+    // quick_preview е активен → запазва запомнения variant.
+    expect(getVariant("quick_preview")).toBe("variant");
     expect(localStorage.getItem("ab_variants_v1")).toBeNull();
     expect(localStorage.getItem("ab_seed_v2")).not.toBeNull();
   });
@@ -87,9 +89,13 @@ describe("seed и миграция", () => {
   it("seedMatchingLegacy намира seed, който удовлетворява ограниченията", () => {
     let i = 0;
     const draw = () => `d${i++}`;
-    const seed = seedMatchingLegacy({ activation_continuity: "variant" }, draw);
-    const cfg = AB_TESTS.activation_continuity;
+    const seed = seedMatchingLegacy({ quick_preview: "variant" }, draw);
+    const cfg = AB_TESTS.quick_preview;
     expect(resolveVariant(bucketFor(seed, cfg.id, cfg.version), cfg.split)).toBe("variant");
+  });
+
+  it("emergency kill-switch за activation_continuity е заключен на split 0", () => {
+    expect(AB_TESTS.activation_continuity.split).toBe(0);
   });
 
   it("не приема повреден seed в хранилището", () => {
