@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { prefetchOnIdle, shouldPrefetch } from "@/lib/routePrefetch";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
@@ -34,7 +34,6 @@ const ComplianceSection = lazy(() => import("@/components/ComplianceSection").th
 const CTABand = lazy(() => import("@/components/CTABand").then((m) => ({ default: m.CTABand })));
 
 const Index = () => {
-  const navigate = useNavigate();
   const location = useLocation();
   useEffect(() => {
     if (location.hash) {
@@ -55,10 +54,6 @@ const Index = () => {
     window.addEventListener("dogovori:open-assistant", onOpen as EventListener);
     return () => window.removeEventListener("dogovori:open-assistant", onOpen as EventListener);
   }, []);
-
-  const startInterview = () => {
-    navigate("/catalog");
-  };
 
   // ItemList JSON-LD is built asynchronously after first paint so we never
   // ship the 260KB catalog JSON in the landing entry chunk.
@@ -116,7 +111,7 @@ const Index = () => {
       />
       <Header />
       <main className="route-fade">
-        <Hero onStart={startInterview} />
+        <Hero />
 
         {/* Social proof веднага под херото — зарежда се веднага, без lazy gate */}
         <Suspense fallback={<SectionSkeleton />}>

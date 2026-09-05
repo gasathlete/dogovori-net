@@ -1,15 +1,20 @@
 /**
- * StartStoryOverlay — Instagram-style story overlay shown when an anonymous
- * user clicks "Започни безплатно".
+ * StartStoryOverlay — Instagram-style story overlay, което обяснява как работи
+ * платформата. ВАЖНО: това е ОПЦИОНАЛНО демо, а не гейт пред започването на
+ * документ. Отваря се само по изрично желание на потребителя (напр. връзката
+ * „Виж как работи“ в hero-а).
  *
- * Behavior:
- *   - 5 story cards (intro / find / build / analyse / dogovary).
- *   - Each card auto-advances after ~3s.
- *   - On the last card, auto-advance stops and Back / Next controls appear.
- *   - If the user does not interact for 4s on the last card, we auto-navigate
- *     to /auth?tab=signup&redirect=/account?tab=dashboard&tour=1 (registration).
- *   - Tap left/right zones jump to prev/next; hold to pause on non-last cards.
- *   - Global mount in App.tsx. Trigger with `openStartStory()`.
+ * Поведение:
+ *   - 5 story карти (intro / find / build / analyse / dogovary).
+ *   - Всяка карта авто-превърта след ~3s; на последната авто-превъртането спира
+ *     и се показват Назад / Отначало контролите.
+ *   - НЯМА idle таймер и НЯМА автоматична навигация. Никой таймер не може да
+ *     отведе потребителя другаде.
+ *   - Затваряне / пропускане никога не навигира.
+ *   - Финалният primary CTA е изрично действие на потребителя → /start.
+ *   - Tap left/right зони прескачат назад/напред; задържане пауза на не-последна
+ *     карта.
+ *   - Глобален mount в App.tsx. Тригер с `openStartStory()`.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -23,9 +28,10 @@ import { dispatchBuffered, drainBufferedEvents } from "@/lib/bufferedEvents";
 export const START_STORY_EVENT = "dogovori:start-story";
 const SEEN_KEY = "dgv:start-story:seen";
 const STORY_DURATION_MS = 3000; // 3s per card
-const LAST_IDLE_MS = 4000; // 4s idle on last card → auto-signup
-const SIGNUP_HREF = "/auth?tab=signup&redirect=%2Faccount%3Ftab%3Ddashboard%26tour%3D1";
-const LOGIN_HREF = "/auth?redirect=%2Faccount%3Ftab%3Ddashboard%26tour%3D1";
+/** Реалното начало на документ — същата дестинация като hero CTA. */
+const START_HREF = "/start";
+/** Входът запазва намерението, за да продължи потокът след вход. */
+const LOGIN_HREF = "/auth?redirect=%2Fstart";
 // Most logical 5 out of TUTORIAL_STEPS: intro, find, build, analyse, dogovary.
 const STORY_INDICES = [0, 1, 2, 3, 7] as const;
 
@@ -35,12 +41,9 @@ export function StartStoryOverlay() {
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(0); // 0..1 for active story
-  const [idleProgress, setIdleProgress] = useState(0); // 0..1 for last-card idle
   const rafRef = useRef<number | null>(null);
   const startedAtRef = useRef<number>(0);
   const carriedRef = useRef<number>(0);
-  const idleRafRef = useRef<number | null>(null);
-  const idleStartedAtRef = useRef<number>(0);
 
   const stories = STORY_INDICES.map((i) => TUTORIAL_STEPS[i]).filter(Boolean);
   const total = stories.length;
@@ -51,24 +54,24 @@ export function StartStoryOverlay() {
     const openStory = () => {
       setIdx(0);
       setProgress(0);
-      setIdleProgress(0);
       carriedRef.current = 0;
       setPaused(false);
       setOpen(true);
-      trackFunnelEvent("story_view", { step: 1 as any, story_idx: 0 });
+      trackFunnelEvent("story_view", { story_idx: 0 });
     };
     const handler = () => openStory();
     window.addEventListener(START_STORY_EVENT, handler as EventListener);
     // Replay any dispatches that fired before this overlay mounted
-    // (e.g. hero CTA tapped while the lazy chunk was still loading).
+    // (e.g. hero link tapped while the lazy chunk was still loading).
     drainBufferedEvents(START_STORY_EVENT, () => openStory());
     return () => window.removeEventListener(START_STORY_EVENT, handler as EventListener);
   }, []);
 
+  /** Затваряне/пропускане — НИКОГА не навигира. */
   const close = useCallback(
     (reason: "skip" | "complete") => {
       setOpen(false);
-      try { window.localStorage.setItem(SEEN_KEY, String(Date.now())); } catch {}
+      try { window.localStorage.setItem(SEEN_KEY, String(Date.now())); } catch { /* storage недостъпен */ }
       trackFunnelEvent(reason === "complete" ? "story_complete" : "story_skip", {
         at_idx: idx,
         total,
@@ -77,37 +80,35 @@ export function StartStoryOverlay() {
     [idx, total],
   );
 
-  const goToSignup = useCallback(
-    (source: "auto" | "cta") => {
-      trackFunnelEvent("story_cta_click", { target: "signup", source });
+  /** Изрично действие на потребителя → реално начало на документ. */
+  const goToStart = useCallback(
+    (source: "cta" | "keyboard") => {
+      trackFunnelEvent("story_cta_click", { target: "start", source });
       setOpen(false);
-      try { window.localStorage.setItem(SEEN_KEY, String(Date.now())); } catch {}
-      navigate(SIGNUP_HREF);
+      try { window.localStorage.setItem(SEEN_KEY, String(Date.now())); } catch { /* storage недостъпен */ }
+      navigate(START_HREF);
     },
     [navigate],
   );
 
   const goto = useCallback(
     (nextIdx: number) => {
-      // On the last card, "next" should push to signup instead of closing silently.
-      if (nextIdx >= total) {
-        goToSignup("auto");
-        return;
-      }
+      // Отвъд последната карта не навигираме автоматично — оставаме на нея.
+      if (nextIdx >= total) return;
       const clamped = Math.max(0, nextIdx);
       setIdx(clamped);
       setProgress(0);
-      setIdleProgress(0);
       carriedRef.current = 0;
       trackFunnelEvent("story_view", { story_idx: clamped });
     },
-    [total, goToSignup],
+    [total],
   );
 
-  // rAF progress loop for the active story (skip on last card — it waits).
+  // rAF progress loop for the active story (последната карта изчаква
+  // потребителя — без таймер и без навигация).
   useEffect(() => {
     if (!open) return;
-    if (isLast) return; // last card: no auto-advance, handled by idle timer below
+    if (isLast) return;
     if (paused) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       return;
@@ -132,51 +133,22 @@ export function StartStoryOverlay() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, paused, idx, goto, isLast]);
 
-  // Idle timer on last card — 4s no-action → navigate to signup.
-  const resetIdleTimer = useCallback(() => {
-    setIdleProgress(0);
-    idleStartedAtRef.current = performance.now();
-  }, []);
-
-  useEffect(() => {
-    if (!open || !isLast) {
-      if (idleRafRef.current) cancelAnimationFrame(idleRafRef.current);
-      setIdleProgress(0);
-      return;
-    }
-    idleStartedAtRef.current = performance.now();
-    const tick = (now: number) => {
-      const elapsed = now - idleStartedAtRef.current;
-      const p = Math.min(1, elapsed / LAST_IDLE_MS);
-      setIdleProgress(p);
-      if (p >= 1) {
-        goToSignup("auto");
-        return;
-      }
-      idleRafRef.current = requestAnimationFrame(tick);
-    };
-    idleRafRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (idleRafRef.current) cancelAnimationFrame(idleRafRef.current);
-    };
-  }, [open, isLast, goToSignup]);
-
-  // Keyboard navigation
+  // Keyboard navigation. ArrowRight на последната карта е ИЗРИЧНО потребителско
+  // действие, така че може да отведе до /start.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (isLast) resetIdleTimer();
       if (e.key === "Escape") close("skip");
-      else if (e.key === "ArrowRight") goto(idx + 1);
-      else if (e.key === "ArrowLeft") goto(idx - 1);
+      else if (e.key === "ArrowRight") {
+        if (isLast) goToStart("keyboard");
+        else goto(idx + 1);
+      } else if (e.key === "ArrowLeft") goto(idx - 1);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, idx, goto, close, isLast, resetIdleTimer]);
+  }, [open, idx, goto, close, isLast, goToStart]);
 
   if (!open || typeof document === "undefined") return null;
-
-  
 
   return createPortal(
     <div
@@ -196,8 +168,7 @@ export function StartStoryOverlay() {
             "radial-gradient(ellipse at top, hsl(220 40% 12%) 0%, hsl(220 45% 7%) 60%, hsl(220 50% 5%) 100%)",
         }}
         onPointerDown={() => {
-          if (isLast) resetIdleTimer();
-          else setPaused(true);
+          if (!isLast) setPaused(true);
         }}
         onPointerUp={() => {
           if (!isLast) setPaused(false);
@@ -310,22 +281,13 @@ export function StartStoryOverlay() {
 
             {isLast ? (
               <div className="space-y-3">
-                {/* Idle → auto-signup countdown bar */}
-                <div className="h-0.5 w-full overflow-hidden rounded-full bg-white/10">
-                  <div
-                    className="h-full origin-left rounded-full bg-gold/70 will-change-transform"
-                    style={{ transform: `scaleX(${idleProgress})`, transition: "none" }}
-                    aria-hidden
-                  />
-                </div>
-
                 <button
                   type="button"
-                  onClick={() => goToSignup("cta")}
+                  onClick={() => goToStart("cta")}
                   className="btn-gold btn-sheen btn-press flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-[15px] font-bold normal-case tracking-normal shadow-gold"
                 >
                   <Sparkles className="h-4 w-4" />
-                  Създай безплатен акаунт
+                  Започни документ
                   <ArrowRight className="h-4 w-4" />
                 </button>
 
@@ -334,7 +296,6 @@ export function StartStoryOverlay() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      resetIdleTimer();
                       goto(idx - 1);
                     }}
                     className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.18em] transition-colors hover:text-gold"
@@ -348,7 +309,6 @@ export function StartStoryOverlay() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      resetIdleTimer();
                       goto(0);
                     }}
                     className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.18em] text-gold hover:text-gold/80"

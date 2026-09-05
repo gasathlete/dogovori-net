@@ -15,6 +15,7 @@ import { loadTemplateContent } from "@/data/templateContent";
 import { loadTemplateDraft } from "@/data/templateDrafts";
 import type { TemplateContent } from "@/data/templateContentTypes";
 import { trackEvent } from "@/lib/analytics";
+import { trackFunnelEvent } from "@/lib/funnel";
 import { autoLinkParagraph, createAutoLinkState } from "@/lib/autoLinkBlog";
 import { RELATED_TEMPLATES } from "@/data/relatedTemplates";
 import { getPostBySlug } from "@/lib/blog";
@@ -64,6 +65,19 @@ export default function TemplatePage() {
     ? wizardHref
     : `${wizardHref}&blank=1&returnTo=${encodeURIComponent(`/shablon/${entry.slug}`)}`;
   const canonical = `/shablon/${entry.slug}`;
+
+  /**
+   * Всички действия за СЪЗДАВАНЕ на документ тръгват анонимно — без auth гейт.
+   * Auth остава само за реално обвързани с акаунт операции (комплекти/профил).
+   * Props-ите са low-cardinality и без PII (без име на документ).
+   */
+  const trackCreateCta = (position: "hero" | "content" | "footer") => {
+    trackFunnelEvent("template_create_cta_clicked", {
+      slug: entry.slug,
+      position,
+      authenticated: Boolean(user),
+    });
+  };
   const pageTitle = `${doc.name} — образец на български`;
   const pageDesc = meta?.introExcerpt
     ? `${meta.introExcerpt.slice(0, 110)} Безплатен образец на ${doc.name.toLowerCase()} – PDF/DOCX, по ЗЗД и ТЗ.`.slice(0, 160)
@@ -246,6 +260,7 @@ export default function TemplatePage() {
             </div>
             <Link
               to={blankWizardHref}
+              onClick={() => trackCreateCta("hero")}
               className="inline-flex shrink-0 items-center gap-1 rounded-md border border-gold/40 px-2.5 py-1.5 text-xs text-gold transition-colors hover:bg-gold/10"
             >
               <Download className="h-3 w-3" />
@@ -269,11 +284,11 @@ export default function TemplatePage() {
               По-прецизно от бланка
             </span>
             <div className="flex flex-col items-start gap-2">
-              <Link to={wizardHref} className="btn-gold btn-sheen">
+              <Link to={wizardHref} onClick={() => trackCreateCta("hero")} className="btn-gold btn-sheen">
                 Изготви за 3 минути <ArrowRight className="h-4 w-4" />
               </Link>
               <p className="text-[12px] text-muted-foreground">
-                Водени въпроси · преглед преди плащане ·{" "}
+                Старт без регистрация · преглед преди плащане ·{" "}
                 <Link to="/catalog" className="hover:text-gold hover:underline">
                   или виж всички шаблони
                 </Link>
@@ -346,11 +361,7 @@ export default function TemplatePage() {
             <div className="mt-6 flex flex-wrap items-center gap-2">
               <Link
                 to={wizardHref}
-                onClick={(e) => {
-                  if (!requireAuth({ action: `Изготви „${doc.name}"`, redirect: wizardHref })) {
-                    e.preventDefault();
-                  }
-                }}
+                onClick={() => trackCreateCta("content")}
                 className="btn-gold btn-sheen"
               >
                 Изготви документа сега <ArrowRight className="h-4 w-4" />
@@ -366,6 +377,9 @@ export default function TemplatePage() {
                 <Package className="h-4 w-4" /> Добави в профила
               </button>
             </div>
+            <p className="mt-2 text-[12px] text-muted-foreground">
+              Старт без регистрация · преглед преди плащане
+            </p>
           </Section>
         )}
 
@@ -472,9 +486,12 @@ export default function TemplatePage() {
           <p className="mx-auto mt-4 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground">
             Попълнете кратък въпросник и получете готов договор в PDF и DOCX формат, съобразен с българското право.
           </p>
-          <Link to={wizardHref} className="btn-gold btn-sheen mt-7">
+          <Link to={wizardHref} onClick={() => trackCreateCta("footer")} className="btn-gold btn-sheen mt-7">
             Започни сега <ArrowRight className="h-4 w-4" />
           </Link>
+          <p className="mt-3 text-[12px] text-muted-foreground">
+            Старт без регистрация · преглед преди плащане
+          </p>
         </section>
       </article>
 
