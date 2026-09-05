@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { type StripeEnv, createStripeClient, verifyWebhook } from "../_shared/stripe.ts";
 import { sendAppEmail } from "../_shared/transactional-email-templates/send-and-log.ts";
 import { ENTRY_PACK_AMOUNT_CENTS, planOneOffCredit } from "../_shared/oneoff-credit.ts";
+import { extractEventUserId, isStaffUser } from "../_shared/sandbox-guard.ts";
 
 let _supabase: ReturnType<typeof createClient> | null = null;
 function getSupabase() {
@@ -234,9 +235,11 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
         console.error("credit_topup_ops failed:", creditErr.message);
         throw new Error(`credit_topup_ops failed: ${creditErr.message}`);
       }
-      const ok = (creditResult as { ok?: boolean } | null)?.ok;
-      if (ok === false) {
-        throw new Error("credit_topup_ops returned ok=false");
+      // FAIL-CLOSED: приемаме САМО ok === true. null/undefined/друг shape е
+      // грешка → non-2xx и Stripe повтаря. `credited: false` при дублирана
+      // сесия е валиден идемпотентен успех, стига ok === true.
+      if ((creditResult as { ok?: unknown } | null)?.ok !== true) {
+        throw new Error("credit_topup_ops did not return ok=true");
       }
     }
   }
@@ -357,8 +360,33 @@ async function handleInvoicePaymentFailed(invoice: any, env: StripeEnv) {
   }
 }
 
+/**
+ * Defense in depth: sandbox (test) събития пишат в СЪЩИТЕ entitlement таблици
+ * като live. Затова за env=sandbox допускаме writes само когато userId от
+ * подписания Stripe object е staff. Всичко друго се acknowledge-ва като
+ * ignored (HTTP 200, без retry storm) и не прави НИКАКЪВ entitlement write,
+ * order snapshot или receipt email.
+ */
+async function sandboxEntitlementAllowed(eventType: string, object: unknown): Promise<boolean> {
+  const userId = extractEventUserId(eventType, object);
+  if (!userId) {
+    console.log("sandbox event ignored — no userId in signed metadata:", eventType);
+    return false;
+  }
+  const staff = await isStaffUser(getSupabase() as unknown as { rpc: (f: string, a: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> }, userId);
+  if (!staff) {
+    console.log("sandbox event ignored — non-staff owner:", eventType);
+    return false;
+  }
+  return true;
+}
+
 async function handleWebhook(req: Request, env: StripeEnv) {
   const event = await verifyWebhook(req, env);
+
+  if (env === "sandbox" && !(await sandboxEntitlementAllowed(event.type, event.data.object))) {
+    return;
+  }
 
   switch (event.type) {
     case "customer.subscription.created":
