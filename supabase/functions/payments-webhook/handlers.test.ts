@@ -4,7 +4,10 @@ import {
   type WebhookDeps,
   dispatchEvent,
   handleCheckoutCompleted,
+  handleInvoicePaymentFailed,
   handleSubscriptionCreated,
+  handleSubscriptionDeleted,
+  handleSubscriptionUpdated,
 } from "./handlers.ts";
 
 type Result = { data: unknown; error: { message?: string } | null };
@@ -183,4 +186,77 @@ Deno.test("team subscription state error propagates and is env scoped", async ()
     Error,
     "teams subscription state update matched no rows",
   );
+});
+
+// ---------------------------------------------------------------------------
+// Zero-row gaps на индивидуалните абонаменти + stored user_id fallback
+// ---------------------------------------------------------------------------
+
+const canceledSub = {
+  id: "sub_1",
+  customer: "cus_1",
+  status: "canceled",
+  metadata: {},
+  items: { data: [{ price: { lookup_key: "professional_monthly" }, current_period_end: 1 }] },
+};
+
+Deno.test("subscription.created without userId rejects", async () => {
+  const db = makeDb();
+  await assertRejects(
+    () => handleSubscriptionCreated(makeDeps(db), { ...activeSub, metadata: {} }, "live"),
+    Error,
+    "subscription.created missing metadata.userId",
+  );
+  assertEquals(db.calls.length, 0);
+});
+
+Deno.test("individual subscription update rejects zero-row DB result", async () => {
+  const db = makeDb({ results: { "subscriptions.update": { data: [], error: null } } });
+  await assertRejects(
+    () => handleSubscriptionUpdated(makeDeps(db), activeSub, "live"),
+    Error,
+    "subscriptions update matched no rows",
+  );
+});
+
+Deno.test("individual subscription delete rejects zero-row DB result", async () => {
+  const db = makeDb({ results: { "subscriptions.update": { data: [], error: null } } });
+  await assertRejects(
+    () => handleSubscriptionDeleted(makeDeps(db), canceledSub, "live"),
+    Error,
+    "subscriptions cancel update matched no rows",
+  );
+});
+
+Deno.test("individual past_due update rejects zero-row DB result", async () => {
+  const db = makeDb({ results: { "subscriptions.update": { data: [], error: null } } });
+  const deps = makeDeps(db, {
+    createStripe: () => ({
+      checkout: { sessions: { listLineItems: () => Promise.resolve({ data: [] }) } },
+      subscriptions: { retrieve: () => Promise.resolve({ metadata: {} }) },
+    }),
+  });
+  await assertRejects(
+    () => handleInvoicePaymentFailed(deps, { id: "in_1", subscription: "sub_1" }, "live"),
+    Error,
+    "subscriptions past_due update matched no rows",
+  );
+});
+
+Deno.test("stored user_id fallback drives quota update on subscription update", async () => {
+  const db = makeDb({ results: { "subscriptions.update": { data: [{ user_id: "stored_u" }], error: null } } });
+  await handleSubscriptionUpdated(makeDeps(db), { ...activeSub, metadata: {} }, "live");
+  assertEquals(db.calls.some((c) => c.table === "download_quota" && c.op === "update"), true);
+});
+
+Deno.test("stored user_id fallback drives free plan on subscription delete", async () => {
+  const db = makeDb({ results: { "subscriptions.update": { data: [{ user_id: "stored_u" }], error: null } } });
+  await handleSubscriptionDeleted(makeDeps(db), canceledSub, "live");
+  assertEquals(db.calls.some((c) => c.table === "download_quota" && c.op === "update"), true);
+});
+
+Deno.test("missing stored user_id leaves quota untouched (no crash)", async () => {
+  const db = makeDb({ results: { "subscriptions.update": { data: [{ user_id: null }], error: null } } });
+  await handleSubscriptionDeleted(makeDeps(db), canceledSub, "live");
+  assertEquals(db.calls.some((c) => c.table === "download_quota"), false);
 });
