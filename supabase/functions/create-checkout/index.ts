@@ -9,6 +9,11 @@ import {
   isAllowedCheckoutLookupKey,
   requireEntryPackPrice,
 } from "../_shared/oneoff-credit.ts";
+import {
+  SandboxForbiddenError,
+  assertEnvironmentAllowed,
+  sandboxForbiddenResponse,
+} from "../_shared/sandbox-guard.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCors(req);
@@ -216,6 +221,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     // Само ограничени, безопасни кодове — без чувствителен текст навън.
+    if (e instanceof SandboxForbiddenError) return sandboxForbiddenResponse(corsHeaders);
     if (e instanceof EntryPriceError) {
       console.error("create-checkout price problem:", e.reason);
       return new Response(JSON.stringify({ error: e.reason, code: e.reason }), {
