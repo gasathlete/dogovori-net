@@ -73,12 +73,16 @@ serve(async (req) => {
     // Pro status drives watermark on/off
     const { data: planRow } = await admin
       .from("download_quota")
-      .select("plan, pro_until, contracts_used, templates_used, bonus_contracts")
+      .select("plan, pro_until, contracts_used, templates_used, bonus_contracts, topup_ops_balance")
       .eq("user_id", userId)
       .maybeSingle();
     const isPro =
       !!planRow && (planRow.plan === "pro" || (!!planRow.pro_until && new Date(planRow.pro_until) > new Date()));
-    const bonusAvailable = (planRow?.bonus_contracts ?? 0) > 0;
+    // Paid one-off operations (topup_ops_balance) count the same as legacy
+    // admin bonuses here: a user who paid should not be watermarked on
+    // re-downloads just because the charge came from the paid balance.
+    const bonusAvailable =
+      (planRow?.bonus_contracts ?? 0) > 0 || (planRow?.topup_ops_balance ?? 0) > 0;
     // Watermark for re-downloads / generic state (no consume happens).
     // For new downloads we recompute below using `used_bonus`.
     const watermark = !isPro && !bonusAvailable;
