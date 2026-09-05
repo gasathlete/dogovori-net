@@ -7,7 +7,7 @@ import { translateAuthError } from "@/lib/authErrors";
 import { drainBufferedEvents } from "@/lib/bufferedEvents";
 import { INLINE_AUTH_EVENT, takeInlineAuthSuccess, type InlineAuthDetail } from "@/lib/inlineAuth";
 import { trackAuthPromptShown } from "@/lib/docFunnel";
-import { FREE_OPS_ON_SIGNUP } from "@/lib/pricing";
+import { FREE_OPS_ON_SIGNUP, FREE_OPS_PER_MONTH, FREE_OPS_SIGNUP_WINDOW_DAYS } from "@/lib/pricing";
 import { buildAuthRedirectUrl, currentReturnPath } from "@/lib/safeRoute";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
