@@ -218,10 +218,10 @@ export const FREE_OFFER_RULE = `${FREE_OPS_ON_SIGNUP} операции през 
  * Компактен вариант за CTA-та, които стартират анонимно: старт без регистрация,
  * но безплатните операции принадлежат на профила.
  */
-export const FREE_OFFER_ANON_HELPER = `Започнете без регистрация. С безплатен профил: ${FREE_OFFER_RULE}. Без карта.`;
+export const FREE_OFFER_ANON_HELPER = `Старт без регистрация · с безплатен профил: ${FREE_OFFER_RULE} · без карта`;
 
-/** Компактна trust линия за Hero — напълно квалифицирана. */
-export const FREE_OFFER_HERO_TRUST = `Старт без регистрация · с безплатен профил: ${FREE_OFFER_RULE} · без карта`;
+/** Псевдоним за Hero trust линията — същият каноничен текст. */
+export const FREE_OFFER_HERO_TRUST = FREE_OFFER_ANON_HELPER;
 
 /**
  * Какво точно дава еднократният входен пакет (`five_operations`). Пакетът НЕ
