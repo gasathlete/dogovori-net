@@ -210,9 +210,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   ];
 
   const oneOffFeatures = [
-    `+${ENTRY_PACK_CONFIG.ops} допълнителни операции към профила`,
-    "Използват се след месечните безплатни операции",
-    "Без абонамент · не изтичат · не отключват функции от платените планове",
+    ...ENTRY_PACK_FEATURES,
   ];
 
   const proMonthlyUsed = (quota as any)?.pro_monthly_used ?? 0;
@@ -324,7 +322,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
                     const corrFree = (quota as any)?.corrections_free_used
                       ? "Безплатната вълна авто-корекции вече е използвана."
                       : "Имате +1 безплатна вълна автоматични корекции (не консумира операция).";
-                    return `5 операции за първите 30 дни след регистрация, след това 2 на месец. Документите се свалят с дискретен воден знак. Използвани: ${used} от ${cap} този месец. ${corrFree}`;
+                    return `5 операции през първите 30 дни, след това 2 месечно. Документите се свалят с дискретен воден знак. Използвани: ${used} от ${cap} този месец. ${corrFree}`;
                   })()}
             </p>
 

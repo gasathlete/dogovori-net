@@ -475,8 +475,7 @@ export default function Plans() {
                       {free.name} · <span className="text-brand">0 €</span>
                     </h3>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                      Основни функции за малкия бизнес · 5 операции за първите 30 дни, след това
-                      2 на месец, без карта.
+                      Основни функции за малкия бизнес · 5 операции през първите 30 дни, след това 2 месечно. Без карта.
                     </p>
                   </div>
                 </div>
@@ -701,7 +700,7 @@ export default function Plans() {
               <p className="mt-2 text-sm text-white/80 sm:text-base">
                 {isAuthed
                   ? "Получи 100 операции/мес, GPT-5 модел, неограничен AI и премиум поддръжка 24/7."
-                  : "Безплатен старт: 5 операции + 2 всеки месец. Без карта."}
+                  : `Безплатен старт: ${FREE_OFFER_RULE} Без карта.`}
               </p>
               <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Link
