@@ -5,6 +5,11 @@
 -- category ∈ {price_not_found, price_mismatch, unauthorized, network, stripe,
 -- unknown}. Без свободен текст и без лични данни.
 --
+-- ВАЖНО: тялото по-долу е базирано 1:1 на ПОСЛЕДНАТА приложена версия
+-- (drizzle/migrations/0005_metrics_overview_add_continuity.sql), затова целият
+-- `continuity` блок се запазва без промяна. Единствената разлика е новият
+-- брояч `checkout_failed` в `conversion`.
+--
 -- ВНИМАНИЕ: този файл е само подготвен източник и НЕ е приложен. Фронтендът
 -- (/admin/metrics) толерира липсата на полето до прилагането му.
 
@@ -66,7 +71,18 @@ BEGIN
       COUNT(*) FILTER (WHERE name = 'checkout_failed') AS checkout_failed,
       COUNT(*) FILTER (WHERE name = 'upgrade_completed') AS upgrade_completed,
       COUNT(DISTINCT CASE WHEN COALESCE(props->>'segment','') = 'business' THEN session_id END) AS seg_business,
-      COUNT(DISTINCT CASE WHEN COALESCE(props->>'segment','') = 'freelancer' THEN session_id END) AS seg_freelancer
+      COUNT(DISTINCT CASE WHEN COALESCE(props->>'segment','') = 'freelancer' THEN session_id END) AS seg_freelancer,
+      COUNT(*) FILTER (WHERE name = 'draft_created') AS draft_created,
+      COUNT(*) FILTER (WHERE name = 'draft_restore_offered') AS draft_restore_offered,
+      COUNT(*) FILTER (WHERE name = 'draft_restored') AS draft_restored,
+      COUNT(*) FILTER (WHERE name = 'draft_claim_started') AS claim_started,
+      COUNT(*) FILTER (WHERE name = 'draft_claim_succeeded') AS claim_succeeded,
+      COUNT(*) FILTER (WHERE name = 'draft_claim_blocked') AS claim_blocked,
+      COUNT(*) FILTER (WHERE name = 'draft_claim_blocked' AND reason = 'expired') AS claim_blocked_expired,
+      COUNT(*) FILTER (WHERE name = 'draft_claim_blocked' AND reason = 'already_claimed') AS claim_blocked_already,
+      COUNT(*) FILTER (WHERE name = 'draft_claim_blocked' AND reason = 'invalid_token') AS claim_blocked_invalid,
+      COUNT(*) FILTER (WHERE name = 'draft_claim_blocked' AND reason = 'network') AS claim_blocked_network,
+      COUNT(*) FILTER (WHERE name = 'draft_expired') AS draft_expired
     FROM evc
   ),
   sign AS (
@@ -98,6 +114,20 @@ BEGIN
       'download', stage.s_download,
       'sign', stage.s_sign,
       'start_to_download', CASE WHEN stage.s_start > 0 THEN ROUND(100.0 * stage.s_download / stage.s_start, 2) ELSE 0 END
+    ),
+    'continuity', jsonb_build_object(
+      'draft_created', stage.draft_created,
+      'draft_restore_offered', stage.draft_restore_offered,
+      'draft_restored', stage.draft_restored,
+      'claim_started', stage.claim_started,
+      'claim_succeeded', stage.claim_succeeded,
+      'claim_blocked', stage.claim_blocked,
+      'claim_success_rate', CASE WHEN stage.claim_started > 0 THEN ROUND(100.0 * stage.claim_succeeded / stage.claim_started, 2) ELSE 0 END,
+      'blocked_expired', stage.claim_blocked_expired,
+      'blocked_already_claimed', stage.claim_blocked_already,
+      'blocked_invalid_token', stage.claim_blocked_invalid,
+      'blocked_network', stage.claim_blocked_network,
+      'draft_expired', stage.draft_expired
     ),
     'conversion', jsonb_build_object(
       'plans_views', stage.plans_views,
