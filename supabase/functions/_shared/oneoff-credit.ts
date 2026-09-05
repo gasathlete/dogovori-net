@@ -30,15 +30,57 @@ export const ONE_OFF_OPS_PER_UNIT: Readonly<Record<string, number>> = Object.fre
   topup_100: 100,
 });
 
-export type EntryPriceProblem = "price_not_found" | "price_mismatch";
+export type EntryPriceProblem = "price_not_found" | "price_mismatch" | "unsupported_price";
 
 export class EntryPriceError extends Error {
   readonly reason: EntryPriceProblem;
   constructor(reason: EntryPriceProblem) {
-    super(reason === "price_not_found" ? "Entry pack price not configured" : "Entry pack price mismatch");
+    super(
+      reason === "price_not_found"
+        ? "Price not configured"
+        : reason === "unsupported_price"
+          ? "Price not allowed"
+          : "Price mismatch",
+    );
     this.reason = reason;
     this.name = "EntryPriceError";
   }
+}
+
+/**
+ * Server-side allowlist на РЕАЛНО използваните lookup keys.
+ * `team_seat_yearly` / `team_yearly` НЕ са тук — екипните места минават през
+ * create-team. Legacy `pro_*` и branding/topup потоците се запазват.
+ */
+export const SUBSCRIPTION_LOOKUP_KEYS: readonly string[] = Object.freeze([
+  "professional_monthly",
+  "professional_yearly",
+  "entrepreneur_monthly",
+  "entrepreneur_yearly",
+  // Legacy (все още активни абонаменти и стари линкове).
+  "pro_monthly",
+  "pro_yearly",
+]);
+
+export const ONE_OFF_LOOKUP_KEYS: readonly string[] = Object.freeze([
+  ENTRY_PACK_LOOKUP_KEY,
+  "single_contract",
+  "branding_unlock_once",
+  "topup_5",
+  "topup_10",
+  "topup_20",
+  "topup_50",
+  "topup_100",
+]);
+
+export const CHECKOUT_LOOKUP_KEYS: readonly string[] = Object.freeze([
+  ...SUBSCRIPTION_LOOKUP_KEYS,
+  ...ONE_OFF_LOOKUP_KEYS,
+]);
+
+/** Само точно съвпадение — regex „изглежда като lookup key“ не е достатъчен. */
+export function isAllowedCheckoutLookupKey(key: unknown): key is string {
+  return typeof key === "string" && CHECKOUT_LOOKUP_KEYS.includes(key);
 }
 
 export interface MinimalPrice {
@@ -47,6 +89,7 @@ export interface MinimalPrice {
   currency?: string | null;
   unit_amount?: number | null;
   type?: string | null;
+  lookup_key?: string | null;
   recurring?: unknown;
 }
 
@@ -54,16 +97,20 @@ export interface MinimalPrice {
  * Приема списъка цени от `prices.list({ lookup_keys: [five_operations] })` и
  * връща единствената използваема цена. Никога не създава и не променя цена —
  * при разминаване хвърля типизирана грешка, за да върнем безопасен код нагоре.
+ *
+ * Изисква строго: active === true, lookup_key === five_operations,
+ * type === "one_time" (без `recurring`), валута EUR, unit_amount === 290.
  */
 export function requireEntryPackPrice(prices: MinimalPrice[] | null | undefined): MinimalPrice {
   const list = prices ?? [];
-  const price = list.find((p) => p.active !== false);
+  const price = list.find((p) => p.active === true);
   if (!price) throw new EntryPriceError("price_not_found");
+  if (price.lookup_key !== ENTRY_PACK_LOOKUP_KEY) throw new EntryPriceError("price_mismatch");
+  if (price.type !== "one_time" || price.recurring) throw new EntryPriceError("price_mismatch");
   if ((price.currency ?? "").toLowerCase() !== ENTRY_PACK_CURRENCY) {
     throw new EntryPriceError("price_mismatch");
   }
   if (price.unit_amount !== ENTRY_PACK_AMOUNT_CENTS) throw new EntryPriceError("price_mismatch");
-  if (price.recurring) throw new EntryPriceError("price_mismatch");
   return price;
 }
 
