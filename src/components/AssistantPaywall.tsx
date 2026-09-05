@@ -3,7 +3,7 @@ import { Bird, Crown, Check } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { TopupPacks } from "@/components/TopupPacks";
 import { useIsPro } from "@/hooks/useIsPro";
-import { planSummary } from "@/lib/pricing";
+import { FREE_OFFER_RULE, planSummary } from "@/lib/pricing";
 
 
 export function AssistantPaywall() {
@@ -20,7 +20,7 @@ export function AssistantPaywall() {
         </p>
         <ul className="mb-6 space-y-2 text-left text-sm text-muted-foreground">
           {[
-            "5 безплатни операции при регистрация, после 2/мес.",
+            FREE_OFFER_RULE,
             "Помощ с попълване на шаблони и клаузи",
             "Общи насоки по ЗЗД, ТЗ, КТ, СК, ЗУТ, GDPR",
             `${planSummary("professional")} · ${planSummary("entrepreneur")} + GPT-5`,

@@ -17,7 +17,7 @@ import {
   X,
 } from "@/icons";
 import { TrustGuaranteeBar } from "@/components/funnel/TrustGuaranteeBar";
-import { cheapestPerOpLabel, FREE_OPS_ON_SIGNUP } from "@/lib/pricing";
+import { cheapestPerOpLabel, FREE_OPS_ON_SIGNUP, FREE_OPS_PER_MONTH, FREE_OPS_SIGNUP_WINDOW_DAYS } from "@/lib/pricing";
 import { openInlineAuth } from "@/lib/inlineAuth";
 
 /**
@@ -191,7 +191,7 @@ export function AuthGateModal() {
           {/* Trust line + guarantees */}
           <div className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-[11px] text-emerald-600 dark:text-emerald-400">
             <ShieldCheck className="h-3.5 w-3.5" />
-            <span>{FREE_OPS_ON_SIGNUP} безплатни операции при регистрация · без карта · GDPR</span>
+            <span>{FREE_OPS_ON_SIGNUP} операции през първите {FREE_OPS_SIGNUP_WINDOW_DAYS} дни, след това {FREE_OPS_PER_MONTH} месечно · без карта · GDPR</span>
           </div>
           <div className="mt-3">
             <TrustGuaranteeBar compact />
