@@ -89,9 +89,13 @@ describe("seed и миграция", () => {
   it("seedMatchingLegacy намира seed, който удовлетворява ограниченията", () => {
     let i = 0;
     const draw = () => `d${i++}`;
-    const seed = seedMatchingLegacy({ activation_continuity: "variant" }, draw);
-    const cfg = AB_TESTS.activation_continuity;
+    const seed = seedMatchingLegacy({ quick_preview: "variant" }, draw);
+    const cfg = AB_TESTS.quick_preview;
     expect(resolveVariant(bucketFor(seed, cfg.id, cfg.version), cfg.split)).toBe("variant");
+  });
+
+  it("emergency kill-switch за activation_continuity е заключен на split 0", () => {
+    expect(AB_TESTS.activation_continuity.split).toBe(0);
   });
 
   it("не приема повреден seed в хранилището", () => {
