@@ -870,7 +870,7 @@ export default function WizardPage() {
     if (docSelectedRef.current) return;
     docSelectedRef.current = true;
     trackDocStart({ doc_key: docKey, source: "wizard", sector: sectorId });
-  }, [docKey, sectorId]);
+  }, [docKey, sectorId, markInteracted]);
 
   // A/B: CTA „Виж бърз преглед сега" в междинните стъпки.
   const quickPreviewVariant = useMemo(() => getVariant("quick_preview"), []);
