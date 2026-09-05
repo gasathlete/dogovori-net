@@ -11,7 +11,12 @@
  *  - order snapshot и receipt email са ИЗРИЧНО non-fatal.
  */
 
-import type { StripeEnv } from "../_shared/stripe.ts";
+/**
+ * Локален тип (умишлено не се импортира от `stripe.ts`), за да остане този
+ * модул независим от Stripe SDK graph-а и напълно тестваем.
+ */
+export type StripeEnv = "sandbox" | "live";
+
 import { ENTRY_PACK_AMOUNT_CENTS, planOneOffCredit } from "../_shared/oneoff-credit.ts";
 import { extractEventUserId, isStaffUser } from "../_shared/sandbox-guard.ts";
 import { mustAffectRows, mustSucceed } from "../_shared/db-guard.ts";
