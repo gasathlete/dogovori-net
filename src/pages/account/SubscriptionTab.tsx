@@ -210,9 +210,9 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   ];
 
   const oneOffFeatures = [
-    "5 операции по избор, всички функционалности на \"Предприемач\"",
-    "Без воден знак",
-    "Без абонамент · не изтичат",
+    `+${ENTRY_PACK_CONFIG.ops} допълнителни операции към профила`,
+    "Използват се след месечните безплатни операции",
+    "Без абонамент · не изтичат · не отключват функции от платените планове",
   ];
 
   const proMonthlyUsed = (quota as any)?.pro_monthly_used ?? 0;
@@ -324,7 +324,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
                     const corrFree = (quota as any)?.corrections_free_used
                       ? "Безплатната вълна авто-корекции вече е използвана."
                       : "Имате +1 безплатна вълна автоматични корекции (не консумира операция).";
-                    return `5 операции при регистрация, после 2 на месец. Документите се свалят с дискретен воден знак. Използвани: ${used} от ${cap} този месец. ${corrFree}`;
+                    return `5 операции за първите 30 дни след регистрация, след това 2 на месец. Документите се свалят с дискретен воден знак. Използвани: ${used} от ${cap} този месец. ${corrFree}`;
                   })()}
             </p>
 
@@ -640,12 +640,12 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 <Sparkles className="h-3.5 w-3.5" /> Еднократно
               </div>
-              <h3 className="mt-2 font-serif text-xl font-bold">{ENTRY_PACK_CONFIG.ops} операции</h3>
+              <h3 className="mt-2 font-serif text-xl font-bold">+{ENTRY_PACK_CONFIG.ops} допълнителни операции</h3>
               <div className="mt-3 flex items-baseline gap-2">
                 <span className="font-serif text-3xl font-bold text-foreground">{fmtEur(ENTRY_PACK_CONFIG.eur)}</span>
                 <span className="text-xs text-muted-foreground">/ пакет</span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">без абонамент · не изтичат</p>
+              <p className="mt-1 text-xs text-muted-foreground">без абонамент · не изтичат · без функции от платените планове</p>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">{perOpLabel(ENTRY_PACK_CONFIG)}</p>
               <Button
                 onClick={() => setCheckoutPrice(ENTRY_PACK_CONFIG.priceId)}

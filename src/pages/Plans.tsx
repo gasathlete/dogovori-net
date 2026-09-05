@@ -427,10 +427,11 @@ export default function Plans() {
                       Без абонамент
                     </p>
                     <h3 className="mt-1 font-serif text-lg leading-tight text-foreground">
-                      {ENTRY_PACK_CONFIG.ops} операции за {fmtEur(ENTRY_PACK_CONFIG.eur)}
+                      +{ENTRY_PACK_CONFIG.ops} допълнителни операции за {fmtEur(ENTRY_PACK_CONFIG.eur)}
                     </h3>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                      Еднократно плащане · операциите не изтичат. При редовна употреба{" "}
+                      Еднократно плащане · операциите не изтичат и се добавят към безплатните.
+                      Пакетът не отключва функции от платените планове. При редовна употреба{" "}
                       {PRICING_PLANS.professional.name} ({monthlyLabel("professional")}) излиза по-евтино на
                       операция.
                     </p>
@@ -474,8 +475,8 @@ export default function Plans() {
                       {free.name} · <span className="text-brand">0 €</span>
                     </h3>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                      Основни функции за малкия бизнес · 5 операции при регистрация + 2 всеки месец,
-                      без карта.
+                      Основни функции за малкия бизнес · 5 операции за първите 30 дни, след това
+                      2 на месец, без карта.
                     </p>
                   </div>
                 </div>

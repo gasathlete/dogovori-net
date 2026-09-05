@@ -164,15 +164,15 @@ export function StrictDocumentPaywall({
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-gold" />
                   <div className="font-semibold">
-                    Отключи този Стриктен документ + получи {ENTRY_PACK_CONFIG.ops} операции
+                    Отключи този Стриктен документ + {ENTRY_PACK_CONFIG.ops} допълнителни операции
                   </div>
                 </div>
                 <div className="text-xl font-bold text-gold">{fmtEur(ENTRY_PACK_CONFIG.eur)}</div>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
-                Еднократно плащане без абонамент. Документът се отключва за 24 часа
-                (неограничени сваляния в PDF и DOCX), а {ENTRY_PACK_CONFIG.ops} операции
-                остават в профила ви и не изтичат.
+                Еднократно плащане без абонамент. Документът се отключва за 24 часа — всяко
+                сваляне (PDF или DOCX) ползва по една операция. {ENTRY_PACK_CONFIG.ops} операции
+                остават в профила ви и не изтичат. Пакетът не отключва функции от платените планове.
               </p>
               {failed && (
                 <div
