@@ -20,6 +20,7 @@ import {
   teamMinYearlyTotal,
   yearlyLabel,
   yearlyPerMonthLabel,
+  ENTRY_PACK_FEATURES,
 } from "@/lib/pricing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

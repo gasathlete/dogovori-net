@@ -29,6 +29,7 @@ import {
   isSeptemberPromoActive,
   monthlyLabel,
   promoPriceEur,
+  FREE_OFFER_RULE,
 } from "@/lib/pricing";
 import { useAudience } from "@/hooks/useAudience";
 import { markFunnelStep } from "@/lib/funnel";
