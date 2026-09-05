@@ -9,6 +9,11 @@ import {
   isAllowedCheckoutLookupKey,
   requireEntryPackPrice,
 } from "../_shared/oneoff-credit.ts";
+import {
+  SandboxForbiddenError,
+  assertEnvironmentAllowed,
+  sandboxForbiddenResponse,
+} from "../_shared/sandbox-guard.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCors(req);
@@ -57,6 +62,9 @@ Deno.serve(async (req) => {
     }
     if (!returnUrl || typeof returnUrl !== "string") throw new Error("returnUrl required");
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
+    // Sandbox (test) плащания дават реален entitlement в общите таблици —
+    // разрешени са само за staff. Проверката е server-side по JWT user id.
+    await assertEnvironmentAllowed(supabase, environment, userId);
 
     const stripe = createStripeClient(environment);
 
@@ -213,6 +221,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     // Само ограничени, безопасни кодове — без чувствителен текст навън.
+    if (e instanceof SandboxForbiddenError) return sandboxForbiddenResponse(corsHeaders);
     if (e instanceof EntryPriceError) {
       console.error("create-checkout price problem:", e.reason);
       return new Response(JSON.stringify({ error: e.reason, code: e.reason }), {
