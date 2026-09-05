@@ -25,9 +25,10 @@ export class SandboxForbiddenError extends Error {
   }
 }
 
-export type RpcClient = {
-  rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
-};
+// Достатъчно широко, за да приема и SupabaseClient (чиито rpc е типизиран по
+// схема), и тестов двойник.
+// deno-lint-ignore no-explicit-any
+export type RpcClient = { rpc: (...args: any[]) => PromiseLike<{ data: any; error: any }> };
 
 /**
  * Проверява дали потребителят е staff (admin/moderator) през

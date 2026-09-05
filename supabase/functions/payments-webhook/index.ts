@@ -373,7 +373,7 @@ async function sandboxEntitlementAllowed(eventType: string, object: unknown): Pr
     console.log("sandbox event ignored — no userId in signed metadata:", eventType);
     return false;
   }
-  const staff = await isStaffUser(getSupabase() as unknown as { rpc: (f: string, a: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> }, userId);
+  const staff = await isStaffUser(getSupabase(), userId);
   if (!staff) {
     console.log("sandbox event ignored — non-staff owner:", eventType);
     return false;
