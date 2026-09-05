@@ -240,6 +240,15 @@ export function trackFunnelEvent(
   options?: TrackFunnelOptions,
 ): boolean {
   if (typeof window === "undefined") return false;
+  // Пътят се хваща СИНХРОННО: до момента на асинхронния DB запис потребителят
+  // вече може да е навигирал другаде и записът щеше да сочи грешна страница.
+  let path: string | null = null;
+  try {
+    const raw = window.location?.pathname;
+    path = typeof raw === "string" ? raw.slice(0, 200) : null;
+  } catch {
+    path = null;
+  }
   const sessionId = getFunnelSessionId();
   const storedName = String(name).slice(0, 80);
   const dedupKey = options?.dedupKey ? String(options.dedupKey).slice(0, 200) : undefined;
@@ -268,7 +277,7 @@ export function trackFunnelEvent(
         session_id: sessionId,
         name: storedName,
         step: stepNum !== null && stepNum >= 1 && stepNum <= 4 ? stepNum : null,
-        path: window.location?.pathname?.slice(0, 200) ?? null,
+        path,
         props: JSON.parse(JSON.stringify(finalProps)),
       };
       if (uid) row.user_id = uid;

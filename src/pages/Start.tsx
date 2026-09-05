@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { openInlineAuth } from "@/lib/inlineAuth";
 import { LIFE_SCENARIOS } from "@/data/lifeScenarios";
 import { ArrowRight, Search, Sparkles, FileUp, Layers } from "@/icons";
-import { trackDocStart } from "@/lib/docFunnel";
+import { trackFunnelEvent } from "@/lib/funnel";
 
 const UPLOAD_ROUTE = "/account?tab=documents&action=upload";
 
@@ -103,7 +103,14 @@ export default function StartPage() {
                 <Link
                   to={intent.to}
                   onClick={(e) => {
-                    trackDocStart({ source: "start", doc_key: intent.id, intent: intent.id });
+                    // Изборът на намерение НЕ е начало на документ (document_selected).
+                    // Реалният doc_start се изпраща от wizard-а/BuildContract.
+                    trackFunnelEvent("start_intent_selected", {
+                      intent: intent.id,
+                      destination: intent.to,
+                      authenticated: Boolean(user),
+                      requires_auth: needsAuth(intent),
+                    });
                     if (needsAuth(intent)) {
                       e.preventDefault();
                       openInlineAuth({
@@ -148,7 +155,13 @@ export default function StartPage() {
                 <Link
                   key={s.id}
                   to={s.kitId ? `/komplekti/${s.kitId}` : (s.href ?? "/komplekti")}
-                  onClick={() => trackDocStart({ source: "start_scenario", doc_key: s.id })}
+                  onClick={() =>
+                    trackFunnelEvent("start_scenario_selected", {
+                      scenario: s.id,
+                      destination: s.kitId ? `/komplekti/${s.kitId}` : (s.href ?? "/komplekti"),
+                      authenticated: Boolean(user),
+                    })
+                  }
                   className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/60 px-3.5 py-2 text-sm text-foreground/85 transition-colors hover:border-gold/50 hover:text-gold"
                 >
                   <Layers className="h-3.5 w-3.5 text-gold" />
@@ -168,7 +181,7 @@ export default function StartPage() {
               >
                 Регистрирайте се
               </button>{" "}
-              за 5 безплатни операции — без карта.
+              за безплатни операции всеки месец — без карта.
             </p>
           )}
         </div>
