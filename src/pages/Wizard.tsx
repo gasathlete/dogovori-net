@@ -866,6 +866,7 @@ export default function WizardPage() {
   const docSelectedRef = useRef(false);
   /** Първо реално действие на потребителя върху документа → document_selected (еднократно). */
   const markDocSelected = useCallback(() => {
+    markInteracted();
     if (docSelectedRef.current) return;
     docSelectedRef.current = true;
     trackDocStart({ doc_key: docKey, source: "wizard", sector: sectorId });
