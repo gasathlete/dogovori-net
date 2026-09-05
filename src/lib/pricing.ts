@@ -228,7 +228,7 @@ export const FREE_OFFER_HERO_TRUST = FREE_OFFER_ANON_HELPER;
  * отключва функции от абонаментните планове.
  */
 export const ENTRY_PACK_FEATURES: readonly string[] = [
-  `+${FREE_OPS_ON_SIGNUP} допълнителни операции към профила`,
+  `+${ENTRY_PACK_CONFIG.ops} допълнителни операции към профила`,
   "Използват се след включените безплатни операции",
   "Без абонамент · операциите не изтичат",
   "Не отключва функции от платените планове",
