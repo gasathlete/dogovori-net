@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { FREE_OPS_ON_SIGNUP, FREE_OPS_SIGNUP_DAYS } from "@/lib/pricing";
 import { Link, useLocation } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";

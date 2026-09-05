@@ -6,6 +6,7 @@
  * НАМЕРЕНИЕ, а приложението го отвежда към правилния инструмент.
  */
 import { useEffect } from "react";
+import { FREE_OFFER_RULE } from "@/lib/pricing";
 import { useNavigate } from "react-router-dom";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { Header } from "@/components/Header";

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { FREE_OFFER_RULE } from "@/lib/pricing";
 import { FileSignature, CheckCircle2, ShieldCheck, Clock, Users, ArrowRight, Download, Sparkles } from "@/icons";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";

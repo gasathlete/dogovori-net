@@ -5,7 +5,7 @@ import { prefetchHandlers } from "@/components/PrefetchLink";
 import { ShieldCheck, Search, ArrowRight, FileUp } from "@/icons";
 const logoImg = "/logo-dogovori-hero.webp";
 import { HeroVideoBackdrop } from "@/components/HeroVideoBackdrop";
-import { SEPTEMBER_PROMO } from "@/lib/pricing";
+import { FREE_OFFER_HERO_TRUST, SEPTEMBER_PROMO } from "@/lib/pricing";
 import { useAuth } from "@/hooks/useAuth";
 import { useAudience } from "@/hooks/useAudience";
 import { AudienceToggle } from "@/components/funnel/AudienceToggle";

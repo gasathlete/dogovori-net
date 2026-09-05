@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { FREE_OFFER_RULE } from "@/lib/pricing";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";

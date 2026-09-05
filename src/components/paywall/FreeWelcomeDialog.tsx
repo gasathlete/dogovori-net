@@ -6,6 +6,7 @@
  * the paid pillars without any urgency copy.
  */
 import { useEffect, useState } from "react";
+import { FREE_OFFER_RULE } from "@/lib/pricing";
 import { Link } from "react-router-dom";
 import {
   Dialog,

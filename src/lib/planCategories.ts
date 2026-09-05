@@ -1,4 +1,5 @@
 import { Brain, FileText, Shield, Zap, Users, LifeBuoy, Sparkles, type LucideIcon } from "@/icons";
+import { FREE_OFFER_RULE } from "@/lib/pricing";
 import type { PlanId } from "@/hooks/usePlans";
 
 export type CategoryId =
