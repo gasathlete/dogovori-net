@@ -43,9 +43,14 @@ describe("Hero — едно основно действие към /start", () =
     expect(src).not.toMatch(/TeaserDialog|teaserOpen/);
   });
 
-  it("trust линията е без изтекли обещания за 5 операции", () => {
-    expect(src).toContain("Старт без регистрация");
+  it("trust линията е компактна, но напълно квалифицирана", () => {
+    expect(src).toContain("FREE_OFFER_HERO_TRUST");
     expect(src).not.toContain("5 безплатни операции");
+  });
+
+  it("директният старт е запазен заедно със събитието", () => {
+    expect(src).toContain('to="/start"');
+    expect(src).toContain('trackFunnelEvent("home_primary_cta_clicked"');
   });
 });
 
