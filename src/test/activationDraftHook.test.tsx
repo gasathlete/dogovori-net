@@ -579,3 +579,45 @@ describe("граница на самоличността и присвояван
     expect(claimMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("първа чернова само след реално действие на потребителя", () => {
+  it("служебно предпопълване (userInitiated:false) не записва и не праща заявка", async () => {
+    const created = okSync(pointer());
+    syncMock.mockImplementation(async () => created.result);
+
+    const { result } = render();
+    act(() =>
+      result.current.persist(
+        { answers: { term: "12 месеца", notary: "Да" } },
+        { stepIdx: 0, userInitiated: false },
+      ),
+    );
+    await act(async () => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    expect(sessionStorage.getItem("activation_draft_payload_v1:local")).toBeNull();
+    expect(syncMock).not.toHaveBeenCalled();
+  });
+
+  it("същото съдържание с userInitiated:true се записва и синхронизира нормално", async () => {
+    const created = okSync(pointer());
+    syncMock.mockImplementation(async () => created.result);
+
+    const { result } = render();
+    act(() =>
+      result.current.persist(
+        { answers: { term: "12 месеца", notary: "Да" } },
+        { stepIdx: 0, userInitiated: true },
+      ),
+    );
+    await act(async () => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    expect(JSON.parse(sessionStorage.getItem("activation_draft_payload_v1:local") ?? "{}")).toEqual({
+      answers: { term: "12 месеца", notary: "Да" },
+    });
+    expect(syncMock).toHaveBeenCalledTimes(1);
+  });
+});
