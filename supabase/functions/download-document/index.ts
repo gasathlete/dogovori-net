@@ -138,7 +138,7 @@ serve(async (req) => {
 
     // --- Strict Document paywall ---------------------------------------
     // Wizard-generated contracts are "Стриктни документи" — reserved for
-    // paid users OR users who bought a one-off unlock (0.40€). If the user
+    // paid users OR users who bought the one-off unlock bundle (2.90€ =
     // is not Pro, look for an active unlock for this specific (user, doc_key).
     // If none, return `strict_paywall` BEFORE consuming any free ops.
     // Templates and other kinds go through the normal quota path.
