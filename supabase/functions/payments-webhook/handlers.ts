@@ -92,14 +92,27 @@ async function syncTeamSubscription(d: WebhookDeps, subscription: Any, env: Stri
   );
 }
 
+/**
+ * Малък типиран helper: взима `user_id` от засегнатите редове на
+ * `subscriptions` update, за да имаме безопасен fallback, когато Stripe
+ * metadata не носи `userId` (напр. абонамент, създаден извън приложението).
+ */
+type SubscriptionOwnerRow = { user_id?: string | null };
+
+function storedUserId(rows: SubscriptionOwnerRow[]): string | undefined {
+  return rows[0]?.user_id ?? undefined;
+}
+
 export async function handleSubscriptionCreated(d: WebhookDeps, subscription: Any, env: StripeEnv) {
   if (subscription.metadata?.kind === "team" || subscription.metadata?.teamId) {
     return await syncTeamSubscription(d, subscription, env);
   }
   const userId = subscription.metadata?.userId;
   if (!userId) {
-    console.error("No userId in subscription metadata");
-    return;
+    // FAIL-CLOSED: индивидуален абонамент без собственик не може да бъде
+    // записан коректно. Хвърляме bounded вътрешна грешка (без Stripe payload
+    // в текста), за да върне webhook non-2xx и Stripe да повтори.
+    throw new Error(`subscription.created missing metadata.userId for subscription ${subscription.id}`);
   }
   const item = subscription.items?.data?.[0];
   const priceId = item?.price?.lookup_key || item?.price?.metadata?.lovable_external_id || item?.price?.id;
@@ -141,7 +154,7 @@ export async function handleSubscriptionUpdated(d: WebhookDeps, subscription: An
   const periodStart = item?.current_period_start ?? subscription.current_period_start;
   const periodEnd = item?.current_period_end ?? subscription.current_period_end;
 
-  mustSucceed(
+  const rows = mustAffectRows<SubscriptionOwnerRow>(
     await d.db
       .from("subscriptions")
       .update({
@@ -154,11 +167,12 @@ export async function handleSubscriptionUpdated(d: WebhookDeps, subscription: An
         updated_at: new Date().toISOString(),
       })
       .eq("stripe_subscription_id", subscription.id)
-      .eq("environment", env),
+      .eq("environment", env)
+      .select("user_id"),
     "subscriptions update",
   );
 
-  const userId = subscription.metadata?.userId;
+  const userId = subscription.metadata?.userId ?? storedUserId(rows);
   if (userId) {
     if (["active", "trialing"].includes(subscription.status)) {
       await setPaidPlan(d, userId, periodEnd ? new Date(periodEnd * 1000).toISOString() : null, priceId);
@@ -184,18 +198,20 @@ export async function handleSubscriptionDeleted(d: WebhookDeps, subscription: An
     }
     return;
   }
-  mustSucceed(
+  const rows = mustAffectRows<SubscriptionOwnerRow>(
     await d.db
       .from("subscriptions")
       .update({ status: "canceled", updated_at: new Date().toISOString() })
       .eq("stripe_subscription_id", subscription.id)
-      .eq("environment", env),
+      .eq("environment", env)
+      .select("user_id"),
     "subscriptions cancel update",
   );
 
-  const userId = subscription.metadata?.userId;
+  const userId = subscription.metadata?.userId ?? storedUserId(rows);
   if (userId) await setFreePlan(d, userId);
 }
+
 
 export async function handleCheckoutCompleted(d: WebhookDeps, session: Any, env: StripeEnv) {
   const userId = session.metadata?.userId;
