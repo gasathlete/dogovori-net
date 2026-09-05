@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Stripe webhook handlers, извадени от `index.ts` като тестваем seam.
  *

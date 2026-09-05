@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { type StripeEnv, createStripeClient, verifyWebhook } from "../_shared/stripe.ts";
 import { sendAppEmail } from "../_shared/transactional-email-templates/send-and-log.ts";
