@@ -28,6 +28,7 @@ export class SandboxForbiddenError extends Error {
 // Достатъчно широко, за да приема и SupabaseClient (чиито rpc е типизиран по
 // схема), и тестов двойник.
 // deno-lint-ignore no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type RpcClient = { rpc: (...args: any[]) => PromiseLike<{ data: any; error: any }> };
 
 /**
