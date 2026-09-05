@@ -1,6 +1,11 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
 import { buildCors } from "../_shared/cors.ts";
+import {
+  SandboxForbiddenError,
+  assertEnvironmentAllowed,
+  sandboxForbiddenResponse,
+} from "../_shared/sandbox-guard.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCors(req);
@@ -23,6 +28,8 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { returnUrl, environment, teamId } = body as { returnUrl?: string; environment: StripeEnv; teamId?: string };
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
+    // Sandbox (test) плащания пишат в общите entitlement таблици — само staff.
+    await assertEnvironmentAllowed(supabase, environment, user.id);
 
     let stripeCustomerId: string | null = null;
 
@@ -62,6 +69,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
+    if (e instanceof SandboxForbiddenError) return sandboxForbiddenResponse(corsHeaders);
     return new Response(JSON.stringify({ error: String((e as Error).message ?? e) }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

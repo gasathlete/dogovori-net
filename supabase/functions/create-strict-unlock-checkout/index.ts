@@ -3,6 +3,11 @@ import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
 import { resolveOrCreateCustomer } from "../_shared/customer.ts";
 import { buildCors } from "../_shared/cors.ts";
 import {
+  SandboxForbiddenError,
+  assertEnvironmentAllowed,
+  sandboxForbiddenResponse,
+} from "../_shared/sandbox-guard.ts";
+import {
   ENTRY_PACK_LOOKUP_KEY,
   ENTRY_PACK_OPS,
   EntryPriceError,
@@ -58,6 +63,8 @@ Deno.serve(async (req) => {
       throw new Error("Invalid doc_key");
     if (!return_url || typeof return_url !== "string") throw new Error("return_url required");
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
+    // Sandbox (test) плащания пишат в общите entitlement таблици — само staff.
+    await assertEnvironmentAllowed(supabase, environment, userId);
 
     const stripe = createStripeClient(environment);
     // Бъндъл: отключване на документа + входен пакет операции. Ползваме
@@ -96,6 +103,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
+    if (e instanceof SandboxForbiddenError) return sandboxForbiddenResponse(corsHeaders);
     if (e instanceof EntryPriceError) {
       // Конфигурационен проблем, не грешка на потребителя: връщаме ограничен код.
       console.error("strict unlock bundle price problem:", e.reason);
