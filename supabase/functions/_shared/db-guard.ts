@@ -20,9 +20,12 @@ export function mustSucceed<T>(result: DbResult<T>, label: string): T {
 /**
  * Хвърля при грешка ИЛИ когато нито един ред не е засегнат.
  * Изисква заявката да е с `.select(...)`, за да върне засегнатите редове.
+ * Връща засегнатите редове като масив (проверките остават непроменени).
  */
-export function mustAffectRows<T>(result: DbResult<T[] | T | null>, label: string): void {
+export function mustAffectRows<T>(result: DbResult<T[] | T | null>, label: string): T[] {
   const data = mustSucceed(result, label);
-  const count = Array.isArray(data) ? data.length : data ? 1 : 0;
-  if (count === 0) throw new Error(`${label} matched no rows`);
+  const rows: T[] = Array.isArray(data) ? data : data ? [data] : [];
+  if (rows.length === 0) throw new Error(`${label} matched no rows`);
+  return rows;
 }
+
