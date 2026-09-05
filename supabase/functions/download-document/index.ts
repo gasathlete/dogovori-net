@@ -73,16 +73,12 @@ serve(async (req) => {
     // Pro status drives watermark on/off
     const { data: planRow } = await admin
       .from("download_quota")
-      .select("plan, pro_until, contracts_used, templates_used, bonus_contracts, topup_ops_balance")
+      .select("plan, pro_until, contracts_used, templates_used, bonus_contracts")
       .eq("user_id", userId)
       .maybeSingle();
     const isPro =
       !!planRow && (planRow.plan === "pro" || (!!planRow.pro_until && new Date(planRow.pro_until) > new Date()));
-    // Paid one-off operations (topup_ops_balance) count the same as legacy
-    // admin bonuses here: a user who paid should not be watermarked on
-    // re-downloads just because the charge came from the paid balance.
-    const bonusAvailable =
-      (planRow?.bonus_contracts ?? 0) > 0 || (planRow?.topup_ops_balance ?? 0) > 0;
+    const bonusAvailable = (planRow?.bonus_contracts ?? 0) > 0;
     // Watermark for re-downloads / generic state (no consume happens).
     // For new downloads we recompute below using `used_bonus`.
     const watermark = !isPro && !bonusAvailable;
@@ -138,9 +134,8 @@ serve(async (req) => {
 
     // --- Strict Document paywall ---------------------------------------
     // Wizard-generated contracts are "Стриктни документи" — reserved for
-    // paid users OR users who bought the one-off unlock bundle (2.90€ =
-    // 24h unlock + 5 operations). If the user is not Pro, look for an
-    // active unlock for this specific (user, doc_key).
+    // paid users OR users who bought a one-off unlock (0.40€). If the user
+    // is not Pro, look for an active unlock for this specific (user, doc_key).
     // If none, return `strict_paywall` BEFORE consuming any free ops.
     // Templates and other kinds go through the normal quota path.
     let strictUnlockActive = false;

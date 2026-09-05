@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { FREE_OFFER_RULE } from "@/lib/pricing";
 import { FileSignature, CheckCircle2, ShieldCheck, Clock, Users, ArrowRight, Download, Sparkles } from "@/icons";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
@@ -122,7 +123,7 @@ export default function ESignatureDemo() {
             {user ? "Стартирайте envelope в Workspace-а" : "Подпишете първия си документ днес"}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            {user ? "Един клик — отива в /console/signing със стартиран нов envelope." : "Безплатен старт след регистрация. Без карта."}
+            {user ? "Един клик — отива в /console/signing със стартиран нов envelope." : `Безплатен профил след регистрация: ${FREE_OFFER_RULE}. Без карта.`}
           </p>
           <Link
             to={primaryHref}

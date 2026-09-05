@@ -21,6 +21,7 @@ import {
   yearlyLabel,
   yearlyPerMonthLabel,
   ENTRY_PACK_FEATURES,
+  FREE_OFFER_RULE,
 } from "@/lib/pricing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -323,7 +324,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
                     const corrFree = (quota as any)?.corrections_free_used
                       ? "Безплатната вълна авто-корекции вече е използвана."
                       : "Имате +1 безплатна вълна автоматични корекции (не консумира операция).";
-                    return `5 операции през първите 30 дни, след това 2 месечно. Документите се свалят с дискретен воден знак. Използвани: ${used} от ${cap} този месец. ${corrFree}`;
+                    return `${FREE_OFFER_RULE}. Документите се свалят с дискретен воден знак. Използвани: ${used} от ${cap} този месец. ${corrFree}`;
                   })()}
             </p>
 

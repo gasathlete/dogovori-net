@@ -4,10 +4,11 @@ import {
   ENTRY_PACK_CONFIG,
   ENTRY_PACK_FEATURES,
   FREE_OFFER_ANON_HELPER,
+  FREE_OFFER_HERO_TRUST,
   FREE_OFFER_RULE,
   FREE_OPS_ON_SIGNUP,
   FREE_OPS_PER_MONTH,
-  FREE_OPS_SIGNUP_WINDOW_DAYS,
+  FREE_OPS_SIGNUP_DAYS,
 } from "@/lib/pricing";
 
 const read = (p: string) => readFileSync(p, "utf-8");
@@ -16,8 +17,8 @@ describe("канонично правило за безплатните опер
   it("използва 5 / 30 дни / 2 месечно", () => {
     expect(FREE_OPS_ON_SIGNUP).toBe(5);
     expect(FREE_OPS_PER_MONTH).toBe(2);
-    expect(FREE_OPS_SIGNUP_WINDOW_DAYS).toBe(30);
-    expect(FREE_OFFER_RULE).toBe("5 операции през първите 30 дни, след това 2 месечно.");
+    expect(FREE_OPS_SIGNUP_DAYS).toBe(30);
+    expect(FREE_OFFER_RULE).toBe("5 операции през първите 30 дни, след това 2 месечно");
   });
 
   it("анонимният helper пояснява, че операциите са към безплатния профил", () => {
@@ -25,6 +26,30 @@ describe("канонично правило за безплатните опер
     expect(FREE_OFFER_ANON_HELPER).toContain("безплатен профил");
     expect(FREE_OFFER_ANON_HELPER).toContain(FREE_OFFER_RULE);
     expect(FREE_OFFER_ANON_HELPER).toContain("Без карта");
+  });
+
+  it("Hero trust линията е компактна и напълно квалифицирана", () => {
+    expect(FREE_OFFER_HERO_TRUST).toContain("Старт без регистрация");
+    expect(FREE_OFFER_HERO_TRUST).toContain("безплатен профил");
+    expect(FREE_OFFER_HERO_TRUST).toContain(FREE_OFFER_RULE);
+    expect(FREE_OFFER_HERO_TRUST).toContain("без карта");
+  });
+
+  it("каноничният текст се преизползва в ключовите места, без дублирани числа", () => {
+    const files = [
+      "src/pages/Plans.tsx",
+      "src/pages/account/SubscriptionTab.tsx",
+      "src/lib/planCategories.ts",
+      "src/components/ProUpgradeDialog.tsx",
+      "src/pages/ProcessStep.tsx",
+      "src/pages/Start.tsx",
+      "src/components/Hero.tsx",
+    ];
+    for (const file of files) {
+      const src = read(file);
+      expect(src, file).toMatch(/FREE_OFFER_RULE|FREE_OFFER_HERO_TRUST/);
+      expect(src, `${file} дублира числата на офертата`).not.toContain("първите 30 дни");
+    }
   });
 
   it("никъде не се обещава друг брой безплатни операции или стар текст", () => {
@@ -83,10 +108,23 @@ describe("еднократен входен пакет 2,90 €", () => {
     expect(src).not.toContain("0.40");
   });
 
+  it("текстът на пакета в paywall-а не обещава функции на абонамент", () => {
+    const src = read("src/components/wizard/StrictDocumentPaywall.tsx");
+    const packBlock = src.slice(src.indexOf("Отключи този Стриктен документ"));
+    const packCopy = packBlock.slice(0, packBlock.indexOf("{failed &&"));
+    expect(packCopy).toContain("не отключва функции от платените планове");
+    for (const phrase of ["всички функционалности", "Без воден знак", "неограничени"]) {
+      expect(packCopy, phrase).not.toContain(phrase);
+    }
+  });
+
   it("Общите условия описват пакета точно", () => {
     const src = read("src/pages/legal/Terms.tsx");
     expect(src).toContain("добавя 5 операции към профила");
     expect(src).toContain("не изтичат и не активират");
+    expect(src).toContain("след включените безплатни операции");
+    expect(src).toContain("пълен анализ на риска");
+    expect(src).toContain("функции от платените планове");
     expect(src).toContain("валиден 24 часа");
   });
 });
