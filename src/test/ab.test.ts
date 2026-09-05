@@ -76,10 +76,12 @@ describe("seed и миграция", () => {
   it("възпроизвежда старите варианти при текущите прагове и маха стария ключ", () => {
     localStorage.setItem(
       "ab_variants_v1",
-      JSON.stringify({ activation_continuity: "variant", quick_preview: "control" }),
+      JSON.stringify({ activation_continuity: "control", quick_preview: "variant" }),
     );
-    expect(getVariant("activation_continuity")).toBe("variant");
-    expect(getVariant("quick_preview")).toBe("control");
+    // activation_continuity е изключен (split=0) → винаги control.
+    expect(getVariant("activation_continuity")).toBe("control");
+    // quick_preview е активен → запазва запомнения variant.
+    expect(getVariant("quick_preview")).toBe("variant");
     expect(localStorage.getItem("ab_variants_v1")).toBeNull();
     expect(localStorage.getItem("ab_seed_v2")).not.toBeNull();
   });
