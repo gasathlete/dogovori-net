@@ -201,7 +201,7 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
         title="Закупени операции"
         value={`${(quota as any)?.bonus_contracts ?? 0}`}
         icon={<Crown className="h-5 w-5 text-gold" />}
-        sub={((quota as any)?.bonus_contracts ?? 0) > 0 ? "Налични за всеки тип · не изтичат" : "Купете пакет от 5 операции"}
+        sub={((quota as any)?.bonus_contracts ?? 0) > 0 ? "Налични за всеки тип · не изтичат" : "Купете +5 допълнителни операции"}
         onClick={() => navigate("/account?tab=subscription&checkout=five_operations")}
       />
       <Card
