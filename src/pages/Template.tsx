@@ -19,6 +19,8 @@ import { trackFunnelEvent } from "@/lib/funnel";
 import { autoLinkParagraph, createAutoLinkState } from "@/lib/autoLinkBlog";
 import { RELATED_TEMPLATES } from "@/data/relatedTemplates";
 import { buildTemplateFallbackContent } from "@/lib/templateFallbackContent";
+import { resolveTemplatePresentation } from "@/lib/resolveTemplatePresentation";
+
 import { getPostBySlug } from "@/lib/blog";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 
