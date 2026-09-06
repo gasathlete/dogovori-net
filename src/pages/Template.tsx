@@ -295,14 +295,8 @@ export default function TemplatePage() {
               След попълване на кратък въпросник ИИ генерира пълен документ, който типично съдържа следните раздели:
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
-              {[
-                { t: "I. Страни по документа", d: "Пълни данни на физическите/юридическите лица, ЕГН/ЕИК, представители." },
-                { t: "II. Предмет", d: `Конкретно описание на ${doc.name.toLowerCase()} и обхвата му.` },
-                { t: "III. Цена/възнаграждение", d: "Стойност в €, начин и срок на плащане, ДДС режим." },
-                { t: "IV. Срок и действие", d: "Начало, продължителност, условия за продължаване." },
-                { t: "V. Права и задължения", d: "Задължения на двете страни, форсмажор, конфиденциалност." },
-                { t: "VI. Прекратяване и неустойки", d: "Основания за прекратяване, размер на неустойки, обезщетения." },
-              ].map((s) => (
+              {fallback.sectionCards.map((s) => (
+
                 <div key={s.t} className="rounded-lg border border-border/50 bg-card/30 p-4">
                   <h3 className="font-serif text-sm font-bold text-foreground">{s.t}</h3>
                   <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{s.d}</p>
