@@ -162,7 +162,7 @@ describe("TemplatePage wiring", () => {
   const src = readFileSync("src/pages/Template.tsx", "utf8");
 
   it("feeds the corrected FAQ content into the FAQPage structured data", () => {
-    expect(src).toContain("const faq = aiContent?.faq ?? fallback.faq;");
+    expect(src).toContain("const faq = resolved.faq;");
     expect(src).toContain("mainEntity: faq.map(");
   });
 
