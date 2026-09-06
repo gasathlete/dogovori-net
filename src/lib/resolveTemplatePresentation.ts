@@ -56,18 +56,12 @@ export interface ResolvedTemplatePresentation {
   faq: FaqItem[];
 }
 
-function nonEmpty(v: string | undefined | null): string | undefined {
-  const t = v?.trim();
-  return t ? v ?? undefined : undefined;
-}
-
-function nonEmptyList<T>(v: T[] | undefined | null): T[] | undefined {
-  return Array.isArray(v) && v.length > 0 ? v : undefined;
-}
-
 /**
  * Чиста функция — без странични ефекти и без достъп до данни/мрежа.
  * `ai` е заредено генерирано съдържание (или undefined, докато зарежда).
+ *
+ * ВАЖНО: използва се точната legacy nullish семантика (`??`), т.е. изрично
+ * налична празна стойност се запазва байт-по-байт.
  */
 export function resolveTemplatePresentation(
   ai: TemplateContent | undefined,
@@ -75,8 +69,8 @@ export function resolveTemplatePresentation(
 ): ResolvedTemplatePresentation {
   const guarded = isProtectedFallback(fallback);
 
-  const intro = nonEmpty(ai?.intro);
-  const usageCases = nonEmptyList(ai?.usageCases) ?? fallback.usageCases;
+  const intro = ai?.intro ?? undefined;
+  const usageCases = ai?.usageCases ?? fallback.usageCases;
 
   if (guarded) {
     return {
@@ -98,3 +92,37 @@ export function resolveTemplatePresentation(
     faq: ai?.faq ?? fallback.faq,
   };
 }
+
+export interface TemplatePageDescriptionInput {
+  /** `resolved.guarded` — при true meta excerpt-ът се игнорира изцяло. */
+  guarded: boolean;
+  docName: string;
+  metaExcerpt?: string;
+  metaLawSuffix: string;
+  metaFallbackLaw: string;
+}
+
+/**
+ * Meta description + Article JSON-LD description.
+ * За защитените (недоговорни) видове НЕ се ползва генерираният meta excerpt —
+ * той съдържа непроверени абсолютни твърдения („задължителен документ“,
+ * „гарантира законосъобразност“). Там се връща неутралният type-aware текст.
+ */
+export function buildTemplatePageDescription({
+  guarded,
+  docName,
+  metaExcerpt,
+  metaLawSuffix,
+  metaFallbackLaw,
+}: TemplatePageDescriptionInput): string {
+  const neutral =
+    `Безплатен образец на ${docName.toLowerCase()} на български – ${metaFallbackLaw}. Попълни и изтегли PDF или DOCX за 2 минути.`.slice(
+      0,
+      160,
+    );
+  if (guarded) return neutral;
+  return metaExcerpt
+    ? `${metaExcerpt.slice(0, 110)} Безплатен образец на ${docName.toLowerCase()} – ${metaLawSuffix}`.slice(0, 160)
+    : neutral;
+}
+
