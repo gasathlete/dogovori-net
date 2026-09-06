@@ -174,12 +174,12 @@ describe("resolveTemplatePresentation — intro/usageCases и fallback при л
     expect(r.faq).toBe(fallback.faq);
   });
 
-  it("празни AI масиви/intro не заместват fallback-а", () => {
+  it("празни AI стойности се запазват (legacy nullish семантика)", () => {
     const fallback = buildTemplateFallbackContent({ docName: "Договор за наем на жилище" });
     const empty = ai({ intro: "   ", usageCases: [], requirements: [] });
     const r = resolveTemplatePresentation(empty, fallback);
-    expect(r.intro).toBeUndefined();
-    expect(r.usageCases).toBe(fallback.usageCases);
+    expect(r.intro).toBe("   ");
+    expect(r.usageCases).toBe(empty.usageCases);
     expect(r.requirements).toEqual([]);
   });
 });
