@@ -19,7 +19,7 @@ import { trackFunnelEvent } from "@/lib/funnel";
 import { autoLinkParagraph, createAutoLinkState } from "@/lib/autoLinkBlog";
 import { RELATED_TEMPLATES } from "@/data/relatedTemplates";
 import { buildTemplateFallbackContent } from "@/lib/templateFallbackContent";
-import { resolveTemplatePresentation } from "@/lib/resolveTemplatePresentation";
+import { buildTemplatePageDescription, resolveTemplatePresentation } from "@/lib/resolveTemplatePresentation";
 
 import { getPostBySlug } from "@/lib/blog";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
@@ -99,9 +99,6 @@ export default function TemplatePage() {
     categoryId: category.id,
     documentType: doc.documentType,
   });
-  const pageDesc = meta?.introExcerpt
-    ? `${meta.introExcerpt.slice(0, 110)} Безплатен образец на ${doc.name.toLowerCase()} – ${fallback.labels.metaLawSuffix}`.slice(0, 160)
-    : `Безплатен образец на ${doc.name.toLowerCase()} на български – ${fallback.labels.metaFallbackLaw}. Попълни и изтегли PDF или DOCX за 2 минути.`.slice(0, 160);
 
   /**
    * Единствена точка на резолюция: AI съдържанието има предимство само за
@@ -110,6 +107,14 @@ export default function TemplatePage() {
    * Fallback-ът се показва и докато AI съдържанието се зарежда (zero CLS).
    */
   const resolved = resolveTemplatePresentation(aiContent, fallback);
+
+  const pageDesc = buildTemplatePageDescription({
+    guarded: resolved.guarded,
+    docName: doc.name,
+    metaExcerpt: meta?.introExcerpt,
+    metaLawSuffix: fallback.labels.metaLawSuffix,
+    metaFallbackLaw: fallback.labels.metaFallbackLaw,
+  });
 
   const intro = resolved.intro ?? meta?.introExcerpt;
   const usageCases = resolved.usageCases;

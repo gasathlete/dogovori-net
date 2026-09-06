@@ -17,6 +17,7 @@ import type { TemplateContent } from "@/data/templateContentTypes";
 import { buildTemplateFallbackContent } from "@/lib/templateFallbackContent";
 import {
   PROTECTED_DOCUMENT_TYPES,
+  buildTemplatePageDescription,
   isProtectedFallback,
   resolveTemplatePresentation,
 } from "@/lib/resolveTemplatePresentation";
@@ -173,12 +174,12 @@ describe("resolveTemplatePresentation — intro/usageCases и fallback при л
     expect(r.faq).toBe(fallback.faq);
   });
 
-  it("празни AI масиви/intro не заместват fallback-а", () => {
+  it("празни AI стойности се запазват (legacy nullish семантика)", () => {
     const fallback = buildTemplateFallbackContent({ docName: "Договор за наем на жилище" });
     const empty = ai({ intro: "   ", usageCases: [], requirements: [] });
     const r = resolveTemplatePresentation(empty, fallback);
-    expect(r.intro).toBeUndefined();
-    expect(r.usageCases).toBe(fallback.usageCases);
+    expect(r.intro).toBe("   ");
+    expect(r.usageCases).toBe(empty.usageCases);
     expect(r.requirements).toEqual([]);
   });
 });
@@ -253,5 +254,86 @@ describe("Template.tsx wiring", () => {
     expect(src).toContain('trackFunnelEvent("template_create_cta_clicked"');
     expect(src).toContain('trackFunnelEvent("template_blank_cta_clicked"');
     expect(src).toContain("&blank=1&returnTo=");
+  });
+});
+
+describe("legacy nullish семантика (незащитени видове)", () => {
+  const fallback = buildTemplateFallbackContent({ docName: "Договор за наем на жилище" });
+  const empty: TemplateContent = {
+    intro: "",
+    usageCases: [],
+    requirements: [],
+    mistakes: [],
+    faq: [],
+  };
+
+  it("празни AI стойности се запазват байт-по-байт", () => {
+    const r = resolveTemplatePresentation(empty, fallback);
+    expect(r.guarded).toBe(false);
+    expect(r.intro).toBe("");
+    expect(r.usageCases).toBe(empty.usageCases);
+    expect(r.requirements).toBe(empty.requirements);
+    expect(r.mistakes).toBe(empty.mistakes);
+    expect(r.faq).toBe(empty.faq);
+  });
+
+  it("липсващо AI съдържание пада към fallback", () => {
+    const r = resolveTemplatePresentation(undefined, fallback);
+    expect(r.intro).toBeUndefined();
+    expect(r.usageCases).toBe(fallback.usageCases);
+    expect(r.requirements).toBe(fallback.requirements);
+  });
+});
+
+describe("buildTemplatePageDescription", () => {
+  const legacyDesc = (docName: string, metaExcerpt: string | undefined, f: ReturnType<typeof buildTemplateFallbackContent>) =>
+    metaExcerpt
+      ? `${metaExcerpt.slice(0, 110)} Безплатен образец на ${docName.toLowerCase()} – ${f.labels.metaLawSuffix}`.slice(0, 160)
+      : `Безплатен образец на ${docName.toLowerCase()} на български – ${f.labels.metaFallbackLaw}. Попълни и изтегли PDF или DOCX за 2 минути.`.slice(0, 160);
+
+  it("защитен вид игнорира зловреден meta excerpt", () => {
+    const docName = "Фактура (образец)";
+    const f = buildTemplateFallbackContent({ docName });
+    const desc = buildTemplatePageDescription({
+      guarded: true,
+      docName,
+      metaExcerpt: "Задължителен документ, който узаконява сделката и гарантира законосъобразност.",
+      metaLawSuffix: f.labels.metaLawSuffix,
+      metaFallbackLaw: f.labels.metaFallbackLaw,
+    });
+    expect(desc).not.toMatch(/задължителен документ/i);
+    expect(desc).not.toMatch(/гарантира законосъобразност/i);
+    expect(desc).not.toMatch(/узаконява/i);
+    expect(desc).toBe(legacyDesc(docName, undefined, f));
+  });
+
+  it("договор запазва стария низ байт-по-байт", () => {
+    const docName = "Договор за наем на жилище";
+    const f = buildTemplateFallbackContent({ docName });
+    const excerpt = "Договорът за наем урежда отношенията между наемодател и наемател при предоставяне на жилище срещу наемна цена.";
+    expect(
+      buildTemplatePageDescription({
+        guarded: false,
+        docName,
+        metaExcerpt: excerpt,
+        metaLawSuffix: f.labels.metaLawSuffix,
+        metaFallbackLaw: f.labels.metaFallbackLaw,
+      }),
+    ).toBe(legacyDesc(docName, excerpt, f));
+    expect(
+      buildTemplatePageDescription({
+        guarded: false,
+        docName,
+        metaExcerpt: undefined,
+        metaLawSuffix: f.labels.metaLawSuffix,
+        metaFallbackLaw: f.labels.metaFallbackLaw,
+      }),
+    ).toBe(legacyDesc(docName, undefined, f));
+  });
+
+  it("Template.tsx ползва helper-а и resolved.guarded", () => {
+    const src = fs.readFileSync(path.resolve("src/pages/Template.tsx"), "utf8");
+    expect(src).toMatch(/buildTemplatePageDescription\(\{\s*\n\s*guarded: resolved\.guarded/);
+    expect(src).not.toMatch(/const pageDesc = meta\?\.introExcerpt/);
   });
 });
