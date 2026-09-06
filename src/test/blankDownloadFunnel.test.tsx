@@ -93,9 +93,10 @@ beforeEach(() => {
   resetOnceStore();
 });
 
-const names = () => trackFunnelEvent.mock.calls.map((c) => c[0] as string);
-const propsOf = (name: string) =>
-  (trackFunnelEvent.mock.calls.find((c) => c[0] === name)?.[1] ?? {}) as Record<string, unknown>;
+type Call = [string, Record<string, unknown>];
+const calls = () => trackFunnelEvent.mock.calls as unknown as Call[];
+const names = () => calls().map((c) => c[0]);
+const propsOf = (name: string) => calls().find((c) => c[0] === name)?.[1] ?? {};
 
 describe("auth_prompt_shown за празна бланка", () => {
   it("носи action=download_blank и никога generate", async () => {
