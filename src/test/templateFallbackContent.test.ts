@@ -5,6 +5,7 @@ import type { DocumentTypeId } from "@/lib/documentReferences";
 import { inferDocumentType } from "@/lib/documentTypeInference";
 import { CATALOG } from "@/data/catalog";
 import { NEW_TEMPLATES } from "@/data/newTemplates";
+import { isUnilateralDocument } from "@/data/partyRoles";
 
 function allText(c: ReturnType<typeof buildTemplateFallbackContent>) {
   return [
