@@ -101,13 +101,20 @@ export default function TemplatePage() {
     ? `${meta.introExcerpt.slice(0, 110)} Безплатен образец на ${doc.name.toLowerCase()} – ${fallback.labels.metaLawSuffix}`.slice(0, 160)
     : `Безплатен образец на ${doc.name.toLowerCase()} на български – ${fallback.labels.metaFallbackLaw}. Попълни и изтегли PDF или DOCX за 2 минути.`.slice(0, 160);
 
-  // Use AI-generated rich content when loaded; show generic fallback meanwhile (zero CLS — same DOM).
-  const intro = aiContent?.intro ?? meta?.introExcerpt;
+  /**
+   * Единствена точка на резолюция: AI съдържанието има предимство само за
+   * договор/споразумение/анекс. За НЕдоговорните видове правните раздели идват
+   * изцяло от ревизирания type-aware fallback (виж resolveTemplatePresentation).
+   * Fallback-ът се показва и докато AI съдържанието се зарежда (zero CLS).
+   */
+  const resolved = resolveTemplatePresentation(aiContent, fallback);
 
-  const usageCases = aiContent?.usageCases ?? fallback.usageCases;
-  const requirements = aiContent?.requirements ?? fallback.requirements;
-  const mistakes = aiContent?.mistakes ?? fallback.mistakes;
-  const faq = aiContent?.faq ?? fallback.faq;
+  const intro = resolved.intro ?? meta?.introExcerpt;
+  const usageCases = resolved.usageCases;
+  const requirements = resolved.requirements;
+  const mistakes = resolved.mistakes;
+  const faq = resolved.faq;
+
 
 
 
