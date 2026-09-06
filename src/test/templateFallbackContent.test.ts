@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import { buildTemplateFallbackContent } from "@/lib/templateFallbackContent";
 
 function allText(c: ReturnType<typeof buildTemplateFallbackContent>) {
@@ -148,5 +149,27 @@ describe("bilateral template fallback content is preserved", () => {
     const c = buildTemplateFallbackContent({ docName: "Трудов договор за неопределено време", categoryId: "employment" });
     const form = c.faq.find((f) => /писмена форма/.test(f.q))!;
     expect(form.a).toMatch(/чл\. 62, ал\. 1 КТ/);
+  });
+});
+
+describe("TemplatePage wiring", () => {
+  const src = readFileSync("src/pages/Template.tsx", "utf8");
+
+  it("feeds the corrected FAQ content into the FAQPage structured data", () => {
+    expect(src).toContain("const faq = aiContent?.faq ?? fallback.faq;");
+    expect(src).toContain("mainEntity: faq.map(");
+  });
+
+  it("renders no hardcoded bilateral section cards or labels", () => {
+    expect(src).toContain("fallback.sectionCards.map(");
+    expect(src).not.toContain('"III. Цена/възнаграждение"');
+    expect(src).not.toContain('title="Кога се използва този договор"');
+    expect(src).not.toContain("получите готов договор в PDF");
+  });
+
+  it("keeps CTA routing and blank/create telemetry unchanged", () => {
+    expect(src).toContain('trackFunnelEvent("template_create_cta_clicked"');
+    expect(src).toContain('trackFunnelEvent("template_blank_cta_clicked"');
+    expect(src).toContain("&blank=1&returnTo=");
   });
 });
