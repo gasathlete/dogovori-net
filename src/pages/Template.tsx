@@ -18,7 +18,7 @@ import { trackEvent } from "@/lib/analytics";
 import { trackFunnelEvent } from "@/lib/funnel";
 import { autoLinkParagraph, createAutoLinkState } from "@/lib/autoLinkBlog";
 import { RELATED_TEMPLATES } from "@/data/relatedTemplates";
-import { FREE_OFFER_RULE } from "@/lib/pricing";
+import { buildTemplateFallbackContent } from "@/lib/templateFallbackContent";
 import { getPostBySlug } from "@/lib/blog";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 
