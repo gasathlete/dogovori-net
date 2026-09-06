@@ -194,8 +194,8 @@ function buildUnilateral(
 /* --------------------------- не-договорни семейства ------------------------ */
 
 interface FamilySpec {
-  /** Дума за визуалните надписи — „пълномощно“, „разписка“, „фактура“… */
-  noun: string;
+  /** Обещание в долния CTA блок — с правилен род на съществителното. */
+  footerPromise: string;
   usageCases: string[];
   requirements: string[];
   mistakes: string[];
@@ -231,7 +231,7 @@ function buildFamily(
       usageTitle: "Кога се използва този документ",
       requirementsFootnote: f.requirementsFootnote,
       heroLegalFit: f.heroLegalFit,
-      footerPromise: `Попълнете кратък въпросник и получете готово ${f.noun} в PDF и DOCX формат, съобразено с българското право.`,
+      footerPromise: f.footerPromise,
       metaLawSuffix: f.metaLawSuffix,
       metaFallbackLaw: f.metaFallbackLaw,
       howToAnalysisText: f.howToAnalysisText,
@@ -242,7 +242,8 @@ function buildFamily(
 }
 
 const POA: FamilySpec = {
-  noun: "пълномощно",
+  footerPromise:
+    "Попълнете кратък въпросник и получете готово пълномощно в PDF и DOCX формат, съобразено с българското право.",
   usageCases: [
     "Когато упълномощителят не може да се яви лично и трябва друго лице да действа от негово име.",
     "За представителство пред администрация — НАП, НОИ, общини, Търговски регистър или банка.",
@@ -297,7 +298,8 @@ const POA: FamilySpec = {
 };
 
 const RECEIPT: FamilySpec = {
-  noun: "разписка",
+  footerPromise:
+    "Попълнете кратък въпросник и получете готова разписка в PDF и DOCX формат, съобразена с българското право.",
   usageCases: [
     "При предаване и получаване на парична сума в брой, когато е нужно писмено доказателство.",
     "При получаване на капаро, задатък или гаранционен депозит.",
@@ -350,7 +352,8 @@ const RECEIPT: FamilySpec = {
 };
 
 const INVOICE: FamilySpec = {
-  noun: "фактура",
+  footerPromise:
+    "Попълнете кратък въпросник и получете готова фактура в PDF и DOCX формат, съобразена с българското право.",
   usageCases: [
     "При документиране на извършена доставка на стока или услуга.",
     "При получаване на авансово плащане, когато е необходимо документиране.",
@@ -405,7 +408,8 @@ const INVOICE: FamilySpec = {
 };
 
 const OFFER: FamilySpec = {
-  noun: "оферта",
+  footerPromise:
+    "Попълнете кратък въпросник и получете готова оферта в PDF и DOCX формат, съобразена с българското право.",
   usageCases: [
     "При предлагане на стока или услуга с конкретни условия и цена.",
     "При участие в подбор на изпълнител или в събиране на ценови предложения.",
@@ -458,7 +462,8 @@ const OFFER: FamilySpec = {
 };
 
 const PROTOCOL: FamilySpec = {
-  noun: "протокол",
+  footerPromise:
+    "Попълнете кратък въпросник и получете готов протокол в PDF и DOCX формат, съобразен с българското право.",
   usageCases: [
     "При предаване и приемане на изпълнена работа, обект, стока или помещение.",
     "При установяване на състояние, показания на измервателни устройства или налични количества.",
@@ -512,7 +517,8 @@ const PROTOCOL: FamilySpec = {
 };
 
 const APPENDIX: FamilySpec = {
-  noun: "приложение",
+  footerPromise:
+    "Попълнете кратък въпросник и получете готово приложение в PDF и DOCX формат, съобразено с българското право.",
   usageCases: [
     "Когато техническите, количествените или ценовите детайли не се описват в основния текст.",
     "При спецификация на стоки, услуги, параметри или нива на обслужване.",
@@ -566,7 +572,8 @@ const APPENDIX: FamilySpec = {
 };
 
 const CLAIM: FamilySpec = {
-  noun: "искова молба",
+  footerPromise:
+    "Попълнете кратък въпросник и получете готова искова молба в PDF и DOCX формат, съобразена с българското право.",
   usageCases: [
     "Когато спорът не може да се реши доброволно и се търси защита по съдебен ред.",
     "При събиране на неплатено вземане след покана за доброволно плащане.",
@@ -620,7 +627,8 @@ const CLAIM: FamilySpec = {
 };
 
 const SMR: FamilySpec = {
-  noun: "строителен акт",
+  footerPromise:
+    "Попълнете кратък въпросник и получете готов строителен акт в PDF и DOCX формат, съобразен с българското право.",
   usageCases: [
     "При документиране на изпълнени строителни и монтажни работи по обект.",
     "При отчитане на действително извършени количества за определен период.",
@@ -674,7 +682,8 @@ const SMR: FamilySpec = {
 };
 
 const KSS: FamilySpec = {
-  noun: "количествено-стойностна сметка",
+  footerPromise:
+    "Попълнете кратък въпросник и получете готова количествено-стойностна сметка в PDF и DOCX формат, съобразена с българското право.",
   usageCases: [
     "При остойностяване на предвидените строителни работи по обект.",
     "При събиране на ценови предложения от няколко изпълнителя на еднаква база.",
@@ -753,9 +762,18 @@ function buildBilateral(
   const isFinance = /заем|кредит|погасит|лихв|финанс/.test(docLower) || categoryId === "finance";
 
   // Споразумение/анекс запазват договорното съдържание, но НЕ се наричат „договор“.
-  const noun =
-    documentType === "agreement" ? "споразумение" : documentType === "annex" ? "анекс" : "договор";
-  const isContract = noun === "договор";
+  const isAgreement = documentType === "agreement";
+  const isAnnex = documentType === "annex";
+  const isContract = !isAgreement && !isAnnex;
+  const noun = isAgreement ? "споразумение" : isAnnex ? "анекс" : "договор";
+  const nounDefinite = isAgreement ? "споразумението" : isAnnex ? "анекса" : "документа";
+  const readyNoun = isAgreement
+    ? "готово споразумение"
+    : isAnnex
+      ? "готов анекс"
+      : "готов договор";
+  const agreedAdj = isAnnex ? "съобразен" : "съобразено";
+  const demonstrative = isAnnex ? "този анекс" : "това споразумение";
 
   return {
     unilateral: false,
@@ -823,20 +841,20 @@ function buildBilateral(
       { t: "VI. Прекратяване и неустойки", d: "Основания за прекратяване, размер на неустойки, обезщетения." },
     ],
     labels: {
-      usageTitle: isContract ? "Кога се използва този договор" : `Кога се използва това ${noun}`,
+      usageTitle: isContract ? "Кога се използва този договор" : `Кога се използва ${demonstrative}`,
       requirementsFootnote:
         "Препратки: Закон за задълженията и договорите (ЗЗД), Търговски закон (ТЗ).",
       heroLegalFit: "Съобразен със ЗЗД/ТЗ/КТ",
       footerPromise: isContract
         ? "Попълнете кратък въпросник и получете готов договор в PDF и DOCX формат, съобразен с българското право."
-        : `Попълнете кратък въпросник и получете готово ${noun} в PDF и DOCX формат, съобразено с българското право.`,
+        : `Попълнете кратък въпросник и получете ${readyNoun} в PDF и DOCX формат, ${agreedAdj} с българското право.`,
       metaLawSuffix: "PDF/DOCX, по ЗЗД и ТЗ.",
-      metaFallbackLaw: isContract ? "готов шаблон по ЗЗД, ТЗ и КТ" : `готово ${noun} по ЗЗД и ТЗ`,
+      metaFallbackLaw: isContract ? "готов шаблон по ЗЗД, ТЗ и КТ" : `${readyNoun} по ЗЗД и ТЗ`,
       howToAnalysisText: "Системата проверява клаузите по ЗЗД, ТЗ и КТ и предлага корекции.",
       howToFinalStepName: isContract ? "Електронен подпис" : "Подписване",
       howToFinalStepText: isContract
         ? "Подпишете документа онлайн или го разпечатайте."
-        : `Подпишете ${noun}то онлайн или го разпечатайте.`,
+        : `Подпишете ${nounDefinite} онлайн или го разпечатайте.`,
     },
   };
 }
