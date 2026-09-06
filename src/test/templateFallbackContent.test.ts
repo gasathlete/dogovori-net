@@ -332,10 +332,77 @@ describe("type-aware non-contract fallback families", () => {
     expect(explicit.documentType).toBe("protocol");
   });
 
+  it("explicit protocol wins over the central unilateral classifier", () => {
+    const name = "Протокол за бракуване на материални активи";
+    // Централният класификатор смята името за едностранно…
+    expect(isUnilateralDocument(name)).toBe(true);
+    // …но явният тип от каталога има предимство.
+    const explicit = buildTemplateFallbackContent({ docName: name, documentType: "protocol" });
+    expect(explicit.documentType).toBe("protocol");
+    expect(explicit.unilateral).toBe(false);
+    expect(explicit.sectionCards.map((s) => s.t).join("|")).toMatch(/Констатации/);
+    // Без явен тип централната класификация продължава да отменя договора.
+    const implicit = buildTemplateFallbackContent({ docName: name });
+    expect(implicit.unilateral).toBe(true);
+  });
+
+  it("explicit declaration/complaint/notary_invitation still dispatch to unilateral", () => {
+    for (const t of ["declaration", "complaint", "notary_invitation"] as DocumentTypeId[]) {
+      const c = buildTemplateFallbackContent({ docName: "Договор за наем на жилище", documentType: t });
+      expect(c.unilateral, t).toBe(true);
+      expect(c.documentType, t).toBe(t);
+    }
+  });
+
   it("keeps the resignation application in the unilateral family", () => {
     const c = buildTemplateFallbackContent({ docName: "Молба за напускане (чл. 326, ал. 1 КТ)" });
     expect(c.unilateral).toBe(true);
   });
+
+  it("treats a rental termination notice as a unilateral notice", () => {
+    const c = buildTemplateFallbackContent({
+      docName: "Предизвестие за прекратяване на наем",
+      categoryId: "real-estate",
+    });
+    expect(c.unilateral).toBe(true);
+    expect(c.labels.usageTitle).toBe("Кога се използва този документ");
+    expect(c.labels.howToFinalStepName).toBe("Подписване и подаване");
+    expect(c.labels.footerPromise).toMatch(/готов документ/);
+    const t = nonPricingText(c).toLowerCase();
+    for (const bad of [...FORBIDDEN_UNILATERAL, ...CONTRACT_ONLY_MARKERS]) {
+      expect(t, bad).not.toContain(bad.toLowerCase());
+    }
+  });
+
+  it("legal review corrections: invoice, claim fee and SMR wording", () => {
+    const invoice = buildTemplateFallbackContent({ docName: "Фактура (образец)" });
+    const correction = invoice.faq.find((f) => /коригира вече издаден/.test(f.q))!;
+    expect(correction.a).toMatch(/анулира/);
+    expect(correction.a).toMatch(/чл\. 116/);
+    expect(correction.a).toMatch(/чл\. 115/);
+    const reqs = invoice.requirements.join("\n");
+    expect(reqs).toMatch(/когато приложимите правила|когато се изисква|ЗДДС/);
+    expect(reqs).not.toBe(
+      "Наименование и номер на документа, който следва да е последователен и без пропуски.",
+    );
+    const mandatory = invoice.faq.find((f) => /реквизити са задължителни/.test(f.q))!;
+    expect(mandatory.a).toMatch(/проформа/i);
+
+    const claim = buildTemplateFallbackContent({ docName: "Искова молба за неплатено вземане" });
+    const fee = claim.faq.find((f) => /държавна такса/.test(f.q))!;
+    expect(fee.a).not.toMatch(/По правило да/);
+    expect(fee.a).toMatch(/освободен/);
+    expect(fee.a).toMatch(/тариф/);
+    expect(claim.requirements.join("\n")).toMatch(/когато такава се дължи/);
+
+    const smr = buildTemplateFallbackContent({ docName: "Акт обр. 19 за изпълнени СМР" });
+    expect(smr.labels.footerPromise).toMatch(/готов строителен документ/);
+    expect(smr.labels.footerPromise).not.toMatch(/готов строителен акт/);
+    expect(smr.labels.howToFinalStepText).not.toMatch(/Подпишете акта/);
+    const signers = smr.faq.find((f) => /Кой подписва/.test(f.q))!;
+    expect(signers.a).toMatch(/Зависи от вида на документа/);
+  });
+
 
   it("notary answers stay conditional across non-contract families", () => {
     for (const c of NON_CONTRACT_CASES) {
