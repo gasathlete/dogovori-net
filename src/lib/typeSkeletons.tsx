@@ -5,6 +5,8 @@
 // generates the final text.
 
 import type { DocumentTypeId } from "@/lib/documentReferences";
+import { inferDocumentType } from "@/lib/documentTypeInference";
+import { isUnilateralDocument } from "@/data/partyRoles";
 
 export type SkeletonClause = { roman: string; title: string; body: string };
 
@@ -37,17 +39,64 @@ export function isOneSidedType(t: DocumentTypeId | string | null | undefined): b
   return !!t && ONE_SIDED.has(t as DocumentTypeId);
 }
 
+/**
+ * Generic skeleton for unilateral applications / requests / notices
+ * (молба, заявление, уведомление, известие, искане) that have no
+ * specialised skeleton of their own. Strictly one-sided: no second
+ * contracting party, no price/VAT/penalty/arbitration clauses.
+ */
+function buildUnilateralApplicationSkeleton(A: string, docName?: string): TypeSkeleton {
+  const title = (docName || "").trim();
+  return {
+    preambleLines: [
+      "ДО [АДРЕСАТ — работодател / орган / институция]",
+      "[адрес на адресата]",
+      `От: ${A}, ЕГН [........], адрес: [........], тел./e-mail: [........]`,
+      `ОТНОСНО: ${title || "[предмет на искането/уведомлението]"}`,
+      title ? title.toUpperCase() : "МОЛБА / ЗАЯВЛЕНИЕ / УВЕДОМЛЕНИЕ",
+      "УВАЖАЕМИ/А ГОСПОДИН/ГОСПОЖО,",
+    ],
+    clauses: [
+      { roman: "I.", title: "Фактически обстоятелства",
+        body: "Чл. 1. [Кратко изложение на относимите факти — качество/правоотношение, дати, номер на документ]." },
+      { roman: "II.", title: "Изявление / искане",
+        body: "Чл. 1. С настоящото [моля / заявявам / Ви уведомявам], че: [конкретно едностранно изявление, искане или уведомление]." },
+      { roman: "III.", title: "Правно основание и действие",
+        body: "Чл. 1. Настоящото се подава на основание: [чл. от приложимия закон].\nЧл. 2. Изявлението има действие от: [дата / изтичане на срока за предизвестие, ако е приложимо]." },
+      { roman: "IV.", title: "Приложения",
+        body: 'Чл. 1. Прилагам: [списък с приложения или „няма приложения"].' },
+      { roman: "V.", title: "Дата и подпис",
+        body: `Чл. 1. Дата: [ДАТА], гр. [ГРАД]\nЧл. 2. Подпис: ____________________ ( ${A} )` },
+    ],
+  };
+}
+
 export function buildTypeSkeleton(
   documentType: DocumentTypeId | string | null | undefined,
   partyA: string,
   partyB: string,
   docName?: string,
 ): TypeSkeleton | null {
-  if (!documentType || documentType === "contract") return null;
   const A = partyA || "[Страна А]";
   const B = partyB || "[Страна Б]";
 
-  switch (documentType as DocumentTypeId) {
+  // Resolve a type from the document name when the caller supplies no
+  // explicit non-contract type (centralised inference — no local registry).
+  let resolved: DocumentTypeId | string | null | undefined = documentType;
+  if ((!resolved || resolved === "contract") && docName) {
+    resolved = inferDocumentType(docName);
+  }
+  if (!resolved || resolved === "contract") {
+    // Still a "contract" by inference — but the centralised party-role
+    // classifier may recognise the name as a unilateral act.
+    if (docName && isUnilateralDocument(docName)) {
+      return buildUnilateralApplicationSkeleton(A, docName);
+    }
+    return null;
+  }
+
+  switch (resolved as DocumentTypeId) {
+
     case "agreement":
       return {
         preambleLines: [
