@@ -46,6 +46,10 @@ export interface TemplateFallbackContent {
     metaFallbackLaw: string;
     /** Текст на 3-та стъпка в HowTo структурираните данни. */
     howToAnalysisText: string;
+    /** Име на последната (5-та) стъпка в HowTo структурираните данни. */
+    howToFinalStepName: string;
+    /** Текст на последната (5-та) стъпка в HowTo структурираните данни. */
+    howToFinalStepText: string;
   };
 }
 

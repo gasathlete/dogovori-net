@@ -177,7 +177,7 @@ export default function TemplatePage() {
       { "@type": "HowToStep", position: 2, name: "Попълване на въпросник", text: "Отговорете на стратегическия въпросник, изграден от юристи." },
       { "@type": "HowToStep", position: 3, name: "Анализ на риска", text: fallback.labels.howToAnalysisText },
       { "@type": "HowToStep", position: 4, name: "Експорт", text: "Изтеглете готовия документ в PDF или DOCX формат." },
-      { "@type": "HowToStep", position: 5, name: "Електронен подпис", text: "Подпишете документа онлайн или го разпечатайте." },
+      { "@type": "HowToStep", position: 5, name: fallback.labels.howToFinalStepName, text: fallback.labels.howToFinalStepText },
     ],
   };
 
