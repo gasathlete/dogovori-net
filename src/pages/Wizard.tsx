@@ -1128,7 +1128,7 @@ export default function WizardPage() {
   ];
   const runBlankDownload = async () => {
     if (!userRef.current) {
-      goAuth({ action: "Изтегляне на празна бланка", onSuccess: () => runBlankDownload() });
+      goAuth({ action: "Изтегляне на празна бланка", intent: "download_blank", onSuccess: () => runBlankDownload() });
       return;
     }
     setDownloadingBlank(true);
@@ -1200,7 +1200,7 @@ export default function WizardPage() {
     if (authLoading) return;
     if (!authUser) {
       autoBlankTriggered.current = true;
-      goAuth({ action: "Изтегляне на празна бланка", onSuccess: () => void runBlankDownload() });
+      goAuth({ action: "Изтегляне на празна бланка", intent: "download_blank", onSuccess: () => void runBlankDownload() });
       return;
     }
     autoBlankTriggered.current = true;
