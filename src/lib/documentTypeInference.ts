@@ -3,9 +3,14 @@
 
 import type { DocumentTypeId } from "@/lib/documentReferences";
 
+// JS `\b` does not treat Cyrillic letters as word characters, so abbreviations
+// like „КСС" / „СМР" need explicit Cyrillic-aware boundaries.
+const CB = "(?<![A-Za-z\\u0400-\\u04FF])";
+const CA = "(?![A-Za-z\\u0400-\\u04FF])";
+
 const RULES: { type: DocumentTypeId; re: RegExp }[] = [
-  { type: "kss",               re: /\bКСС\b|количествено[-\s]стойностна/i },
-  { type: "smr",               re: /\bСМР\b|строително[-\s]монтажни|акт\s*обр?\.?\s*1[259]\b/i },
+  { type: "kss",               re: new RegExp(`${CB}КСС${CA}|количествено[-\\s]стойностна`, "iu") },
+  { type: "smr",               re: new RegExp(`${CB}СМР${CA}|строително[-\\s]монтажни|акт\\s*обр?\\.?\\s*1[259]${CA}`, "iu") },
   { type: "notary_invitation", re: /нотариална\s+покана/i },
   { type: "claim",             re: /искова\s+молба|заповед(но|за\s+изпълнение)/i },
   { type: "complaint",         re: /^жалба|\bжалба\b/i },
