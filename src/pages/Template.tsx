@@ -175,7 +175,7 @@ export default function TemplatePage() {
     step: [
       { "@type": "HowToStep", position: 1, name: "Избор на шаблон", text: `Изберете „${doc.name}“ от каталога на Dogovori.net.` },
       { "@type": "HowToStep", position: 2, name: "Попълване на въпросник", text: "Отговорете на стратегическия въпросник, изграден от юристи." },
-      { "@type": "HowToStep", position: 3, name: "Анализ на риска", text: "Системата проверява клаузите по ЗЗД, ТЗ и КТ и предлага корекции." },
+      { "@type": "HowToStep", position: 3, name: "Анализ на риска", text: fallback.labels.howToAnalysisText },
       { "@type": "HowToStep", position: 4, name: "Експорт", text: "Изтеглете готовия документ в PDF или DOCX формат." },
       { "@type": "HowToStep", position: 5, name: "Електронен подпис", text: "Подпишете документа онлайн или го разпечатайте." },
     ],
@@ -248,7 +248,7 @@ export default function TemplatePage() {
           </div>
 
           <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground anim-rise" style={{ animationDelay: "320ms" }}>
-            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> Съобразен със ЗЗД/ТЗ/КТ</li>
+            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> {fallback.labels.heroLegalFit}</li>
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> PDF и DOCX експорт</li>
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> Готов за 2 минути</li>
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> Добавен в лична, защитена база данни</li>
@@ -333,7 +333,7 @@ export default function TemplatePage() {
         {/* Готовият образец е скрит от потребителя — използва се само от системата при зареждане на работния документ след „Създай“. */}
 
 
-        <Section title="Кога се използва този договор">
+        <Section title={fallback.labels.usageTitle}>
           <ul className="space-y-2">
             {usageCases.map((u, i) => (
               <li key={i} className="flex gap-3 text-sm text-muted-foreground">
@@ -354,7 +354,7 @@ export default function TemplatePage() {
             ))}
           </ul>
           <p className="mt-4 text-xs text-muted-foreground">
-            Препратки: Закон за задълженията и договорите (ЗЗД), Търговски закон (ТЗ).
+            {fallback.labels.requirementsFootnote}
           </p>
         </Section>
 
@@ -429,7 +429,7 @@ export default function TemplatePage() {
           <div className="absolute inset-x-0 top-0 hairline-x" />
           <h2 className="font-serif text-2xl font-bold leading-tight text-balance md:text-[32px]">Готов ли сте да създадете {doc.name}?</h2>
           <p className="mx-auto mt-4 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground">
-            Попълнете кратък въпросник и получете готов договор в PDF и DOCX формат, съобразен с българското право.
+            {fallback.labels.footerPromise}
           </p>
           <Link to={wizardHref} onClick={() => trackCreateCta("footer")} className="btn-gold btn-sheen mt-7">
             Започни сега <ArrowRight className="h-4 w-4" />
