@@ -145,7 +145,8 @@ describe("bilateral template fallback content is preserved", () => {
       categoryId: "real-estate",
     });
     expect(c.unilateral).toBe(false);
-    expect(c.labels.usageTitle).toBe("Кога се използва този договор");
+    // Споразумението запазва договорното съдържание, но не се нарича „договор".
+    expect(c.labels.usageTitle).toBe("Кога се използва това споразумение");
     expect(c.usageCases[0]).toMatch(/страните по/);
   });
 
