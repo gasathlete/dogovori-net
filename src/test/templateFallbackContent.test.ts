@@ -78,7 +78,7 @@ describe("unilateral template fallback content", () => {
     expect(form.a).not.toMatch(/чл\. 62/);
     expect(form.a).toMatch(/Зависи от конкретния вид документ/);
     const notary = resignation.faq.find((f) => /нотариална заверка/.test(f.q))!;
-    expect(notary.a).toMatch(/В повечето случаи не/);
+    expect(notary.a).toMatch(/Зависи от конкретния вид документ/);
   });
 
   it("uses unilateral-safe labels", () => {
