@@ -1,7 +1,39 @@
 import { describe, it, expect } from "vitest";
 import { SECTORS, getSubWizard } from "@/data/sectors";
 import { REGISTRY } from "@/data/subWizardsGenerated";
-import { inferPartyRoles, partiesAreCompatible } from "@/data/partyRoles";
+import {
+  inferPartyRoles,
+  partiesAreCompatible,
+  isUnilateralDocument,
+  classifyDocument,
+} from "@/data/partyRoles";
+
+describe("unilateral notice (предизвестие)", () => {
+  const name = "Предизвестие за прекратяване на наем";
+
+  it("is classified centrally as a unilateral document", () => {
+    expect(isUnilateralDocument(name)).toBe(true);
+    expect(classifyDocument(name)).toBe("unilateral");
+  });
+
+  it("has a single party — Party B stays empty", () => {
+    expect(inferPartyRoles(name)).toEqual({ a: "Уведомител", b: "" });
+  });
+
+  it("does not leak rental roles", () => {
+    const roles = inferPartyRoles(name)!;
+    expect(roles.a).not.toMatch(/Наемодател/);
+    expect(roles.b).toBe("");
+  });
+
+  it("keeps true rental contracts bilateral", () => {
+    expect(isUnilateralDocument("Договор за наем на жилище")).toBe(false);
+    expect(inferPartyRoles("Договор за наем на жилище")).toEqual({
+      a: "Наемодател", b: "Наемател",
+    });
+  });
+});
+
 
 describe("party roles inference", () => {
   it("infers Продавач/Купувач for purchase-sale contracts", () => {

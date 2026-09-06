@@ -46,7 +46,7 @@ export function isUnilateralDocument(name: string | null | undefined): boolean {
   if (!name) return false;
   const n = name.toLowerCase();
   return /(деклараци|саморъчно завещани|нотариално завещани|завещани|жалба|оплакване|искане до|сигнал до|нотариална покана|покана за|протокол за бракуване|протокол за инвентаризац|протокол за самооценк|dsa compliance|wada код)/.test(n)
-    || /^\s*(заявление|молба|уведомление|известие|искане)/.test(n);
+    || /^\s*(заявление|молба|уведомление|известие|искане|предизвестие)/.test(n);
 }
 
 // Order matters — more specific rules first. The first matching rule wins.
@@ -56,7 +56,7 @@ const RULES: Rule[] = [
   { test: /^\s*(саморъчно завещани|нотариално завещани|завещани)/, roles: { a: "Завещател", b: "" } },
   { test: /^\s*(жалба|оплакване|сигнал до)/, roles: { a: "Жалбоподател", b: "" } },
   { test: /^\s*(заявление|молба|искане)/, roles: { a: "Заявител", b: "" } },
-  { test: /^\s*(уведомление|известие|нотариална покана|покана за)/, roles: { a: "Уведомител", b: "" } },
+  { test: /^\s*(предизвестие|уведомление|известие|нотариална покана|покана за)/, roles: { a: "Уведомител", b: "" } },
   { test: /^\s*протокол за (бракуване|инвентаризац|самооценк)/, roles: { a: "Съставител", b: "" } },
 
   // Receipt / acknowledgement of received sum, deposit, earnest money, goods, documents.
