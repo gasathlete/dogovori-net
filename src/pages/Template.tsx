@@ -79,6 +79,18 @@ export default function TemplatePage() {
       authenticated: Boolean(user),
     });
   };
+  /**
+   * „Свали само бланка" е ОТДЕЛЕН клон на фунията (без генериране на документ)
+   * и не бива да влиза в метриките за създаване.
+   */
+  const trackBlankCta = (position: "hero") => {
+    trackFunnelEvent("template_blank_cta_clicked", {
+      slug: entry.slug,
+      position,
+      authenticated: Boolean(user),
+    });
+  };
+
   const pageTitle = `${doc.name} — образец на български`;
   const pageDesc = meta?.introExcerpt
     ? `${meta.introExcerpt.slice(0, 110)} Безплатен образец на ${doc.name.toLowerCase()} – PDF/DOCX, по ЗЗД и ТЗ.`.slice(0, 160)
@@ -261,7 +273,7 @@ export default function TemplatePage() {
             </div>
             <Link
               to={blankWizardHref}
-              onClick={() => trackCreateCta("hero")}
+              onClick={() => trackBlankCta("hero")}
               className="inline-flex shrink-0 items-center gap-1 rounded-md border border-gold/40 px-2.5 py-1.5 text-xs text-gold transition-colors hover:bg-gold/10"
             >
               <Download className="h-3 w-3" />
