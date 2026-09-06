@@ -78,7 +78,7 @@ describe("unilateral template fallback content", () => {
     expect(form.a).not.toMatch(/чл\. 62/);
     expect(form.a).toMatch(/Зависи от конкретния вид документ/);
     const notary = resignation.faq.find((f) => /нотариална заверка/.test(f.q))!;
-    expect(notary.a).toMatch(/В повечето случаи не/);
+    expect(notary.a).toMatch(/Зависи от конкретния вид документ/);
   });
 
   it("uses unilateral-safe labels", () => {
@@ -171,5 +171,37 @@ describe("TemplatePage wiring", () => {
     expect(src).toContain('trackFunnelEvent("template_create_cta_clicked"');
     expect(src).toContain('trackFunnelEvent("template_blank_cta_clicked"');
     expect(src).toContain("&blank=1&returnTo=");
+  });
+});
+
+describe("HowTo final step + notary FAQ", () => {
+  const uni = buildTemplateFallbackContent({ docName: "Молба за отпуск" });
+  const bi = buildTemplateFallbackContent({ docName: "Договор за наем" });
+
+  it("unilateral final step covers signing and provable submission", () => {
+    expect(uni.labels.howToFinalStepName).toBe("Подписване и подаване");
+    expect(uni.labels.howToFinalStepText).toMatch(/подайте\/връчете/);
+    expect(uni.labels.howToFinalStepText).toMatch(/доказуем/);
+    expect(uni.labels.howToFinalStepText).not.toContain("онлайн или го разпечатайте");
+    expect(uni.labels.howToFinalStepName).not.toBe("Електронен подпис");
+  });
+
+  it("bilateral final step keeps the original wording byte-for-byte", () => {
+    expect(bi.labels.howToFinalStepName).toBe("Електронен подпис");
+    expect(bi.labels.howToFinalStepText).toBe("Подпишете документа онлайн или го разпечатайте.");
+  });
+
+  it("unilateral notary FAQ is conditional, not a default no", () => {
+    const notary = uni.faq.find((f) => /нотариална заверка/.test(f.q))!;
+    expect(notary.a.startsWith("Зависи от конкретния вид документ")).toBe(true);
+    expect(notary.a).not.toMatch(/В повечето случаи не/);
+    expect(notary.a).toMatch(/нотариални покани/);
+  });
+
+  it("TemplatePage HowTo step 5 reads from the fallback labels", () => {
+    const src = readFileSync("src/pages/Template.tsx", "utf8");
+    expect(src).toContain("name: fallback.labels.howToFinalStepName");
+    expect(src).toContain("text: fallback.labels.howToFinalStepText");
+    expect(src).not.toContain('name: "Електронен подпис"');
   });
 });
