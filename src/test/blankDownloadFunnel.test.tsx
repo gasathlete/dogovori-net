@@ -60,7 +60,8 @@ describe("Wizard — подканата за бланка е download_blank", ()
   });
 
   it("blank ефектът не генерира документ и не отчита doc_start", () => {
-    const eff = src.slice(src.indexOf("Auto-trigger blank download"), src.indexOf("Auto-trigger blank download") + 1400);
+    const effStart = src.indexOf("Auto-trigger blank download");
+    const eff = src.slice(effStart, src.indexOf("[searchParams", effStart));
     expect(eff).not.toContain("handleGenerate");
     expect(eff).not.toContain("markDocSelected");
     expect(eff).not.toContain("trackDocStart");
@@ -87,10 +88,13 @@ vi.mock("@/integrations/lovable/index", () => ({ lovable: { auth: {} } }));
 import { InlineAuthDialog } from "@/components/auth/InlineAuthDialog";
 import { openInlineAuth } from "@/lib/inlineAuth";
 import { resetOnceStore } from "@/lib/funnelEvents";
+import { INLINE_AUTH_EVENT } from "@/lib/inlineAuth";
+import { drainBufferedEvents } from "@/lib/bufferedEvents";
 
 beforeEach(() => {
   trackFunnelEvent.mockClear();
   resetOnceStore();
+  drainBufferedEvents(INLINE_AUTH_EVENT, () => {});
 });
 
 type Call = [string, Record<string, unknown>];
