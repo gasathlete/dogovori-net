@@ -37,7 +37,7 @@ export const AB_TESTS = {
    * в localStorage) + възстановяване след вход. „control“ = старото поведение.
    * Rollout по прага: 0.1 → 0.25 → 0.5 → 1. За QA: ?ab_activation_continuity=variant.
    */
-  activation_continuity: { id: "activation_continuity", split: 0, version: 1 },
+  activation_continuity: { id: "activation_continuity", split: 0.1, version: 1 },
 } as const satisfies Record<string, AbTestConfig>;
 
 export type AbTestId = keyof typeof AB_TESTS;

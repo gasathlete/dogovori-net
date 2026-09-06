@@ -78,7 +78,7 @@ describe("seed и миграция", () => {
       "ab_variants_v1",
       JSON.stringify({ activation_continuity: "control", quick_preview: "variant" }),
     );
-    // activation_continuity е изключен (split=0) → винаги control.
+    // activation_continuity е на 10% — избраният seed възпроизвежда запомнения control.
     expect(getVariant("activation_continuity")).toBe("control");
     // quick_preview е активен → запазва запомнения variant.
     expect(getVariant("quick_preview")).toBe("variant");
@@ -94,8 +94,8 @@ describe("seed и миграция", () => {
     expect(resolveVariant(bucketFor(seed, cfg.id, cfg.version), cfg.split)).toBe("variant");
   });
 
-  it("emergency kill-switch за activation_continuity е заключен на split 0", () => {
-    expect(AB_TESTS.activation_continuity.split).toBe(0);
+  it("activation_continuity rollout threshold е 10%", () => {
+    expect(AB_TESTS.activation_continuity.split).toBe(0.1);
   });
 
   it("не приема повреден seed в хранилището", () => {
