@@ -18,7 +18,7 @@ import { trackEvent } from "@/lib/analytics";
 import { trackFunnelEvent } from "@/lib/funnel";
 import { autoLinkParagraph, createAutoLinkState } from "@/lib/autoLinkBlog";
 import { RELATED_TEMPLATES } from "@/data/relatedTemplates";
-import { FREE_OFFER_RULE } from "@/lib/pricing";
+import { buildTemplateFallbackContent } from "@/lib/templateFallbackContent";
 import { getPostBySlug } from "@/lib/blog";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 
@@ -92,81 +92,19 @@ export default function TemplatePage() {
   };
 
   const pageTitle = `${doc.name} — образец на български`;
+  const fallback = buildTemplateFallbackContent({ docName: doc.name, categoryId: category.id });
   const pageDesc = meta?.introExcerpt
-    ? `${meta.introExcerpt.slice(0, 110)} Безплатен образец на ${doc.name.toLowerCase()} – PDF/DOCX, по ЗЗД и ТЗ.`.slice(0, 160)
-    : `Безплатен образец на ${doc.name.toLowerCase()} на български – готов шаблон по ЗЗД, ТЗ и КТ. Попълни и изтегли PDF или DOCX за 2 минути.`.slice(0, 160);
+    ? `${meta.introExcerpt.slice(0, 110)} Безплатен образец на ${doc.name.toLowerCase()} – ${fallback.labels.metaLawSuffix}`.slice(0, 160)
+    : `Безплатен образец на ${doc.name.toLowerCase()} на български – ${fallback.labels.metaFallbackLaw}. Попълни и изтегли PDF или DOCX за 2 минути.`.slice(0, 160);
 
   // Use AI-generated rich content when loaded; show generic fallback meanwhile (zero CLS — same DOM).
   const intro = aiContent?.intro ?? meta?.introExcerpt;
 
-  const docLower = doc.name.toLowerCase();
-  const isEmployment = /трудов|служител|работодател|кт\b/.test(docLower) || category.id === "employment";
-  const isNotary = /нотариал|пълномощно|декларац|покан/.test(docLower);
-  const isFinance = /заем|кредит|погасит|лихв|финанс/.test(docLower) || category.id === "finance";
+  const usageCases = aiContent?.usageCases ?? fallback.usageCases;
+  const requirements = aiContent?.requirements ?? fallback.requirements;
+  const mistakes = aiContent?.mistakes ?? fallback.mistakes;
+  const faq = aiContent?.faq ?? fallback.faq;
 
-  const usageCases = aiContent?.usageCases ?? [
-    `Когато страните по ${docLower} желаят писмено уреждане на отношенията си съгласно българското право.`,
-    `При необходимост от доказване пред съд, нотариус, НАП, Инспекцията по труда или други институции.`,
-    `Преди започване на работа, доставка, услуга или сделка, за да се избегнат бъдещи спорове.`,
-    `За уреждане на правата и задълженията на двете страни в случай на промяна в обстоятелствата.`,
-    `Когато е необходимо обезпечаване на парични или непарични задължения с ясно дефинирани санкции.`,
-    isEmployment
-      ? `За регистрация в НАП по чл. 62, ал. 3 КТ и официално възникване на трудовото правоотношение.`
-      : `Като част от пакет документи при сключване на по-голяма сделка или комплексна транзакция.`,
-  ];
-
-  const requirements = aiContent?.requirements ?? [
-    "Пълни данни на страните – имена/наименование, ЕГН/ЕИК, постоянен адрес/седалище, представител по закон.",
-    `Ясен и конкретен предмет на ${docLower} – без двусмислици и общи формулировки.`,
-    isFinance
-      ? "Размер на главницата, лихвен процент, погасителен план и обезпечение (ако е приложимо)."
-      : "Цена/възнаграждение, валута (€), срок и начин на плащане (банков превод/каса).",
-    "Срок на действие, начало на изпълнението и условия за продължаване/прекратяване.",
-    "Права и задължения на двете страни, отговорност за неизпълнение и неустойки.",
-    "Клауза за решаване на спорове, приложимо право и подсъдност.",
-    "Дата и място на сключване, саморъчни подписи на страните (или КЕП).",
-  ];
-
-  const mistakes = aiContent?.mistakes ?? [
-    "Липсващи или неточни идентификационни данни – грешен ЕГН/ЕИК, остарял адрес, неактуален представител.",
-    `Неясен предмет на ${docLower}, който води до спорове при тълкуване и изпълнение.`,
-    "Пропуснат срок, начин на плащане или валута – особено при сделки в чужбина.",
-    "Липса на клауза за неустойка или непропорционално висока неустойка, която съдът може да намали.",
-    "Пропускане на задължителните законови реквизити (напр. чл. 66 КТ за трудов договор, чл. 240 ЗЗД за заем).",
-    "Подписване без приемо-предавателен протокол при предаване на вещи, обекти или работа.",
-    "Липса на ясна процедура за изменение и допълнение на договора (анекс в писмена форма).",
-  ];
-
-  const faq = aiContent?.faq ?? [
-    {
-      q: `Задължително ли е ${docLower} да бъде в писмена форма?`,
-      a: isEmployment
-        ? "Да. Съгласно чл. 62, ал. 1 КТ трудовият договор се сключва задължително в писмена форма; неспазването прави договора недействителен."
-        : "По принцип ЗЗД допуска и устни договори, но писменият договор е силно препоръчителен за доказване и защита на правата на страните. За някои сделки (недвижими имоти, дарения) писмената или нотариалната форма е задължителна.",
-    },
-    {
-      q: "Има ли нужда от нотариална заверка?",
-      a: isNotary
-        ? "Да, нотариалната заверка/връчване е задължителен елемент от валидността и доказателствената сила на този документ."
-        : "За повечето договори не е задължителна. Тя става задължителна при договори за недвижими имоти, дарения на имоти, някои корпоративни сделки и при изрични законови изисквания.",
-    },
-    {
-      q: `Колко струва изготвянето на ${docLower} в Dogovori.net?`,
-      a: `Безплатно: ${FREE_OFFER_RULE}. Плюс 1 безплатна авто-корекция. Професионалист (12.90 €/мес, 50 операции) добавя двуезични договори (BG/EN), пълни AI-корекции, пълен анализ на риска, неограничени комплекти и сваляне без воден знак. Предприемач (19.90 €/мес, 100 операции) добавя GPT-5 и премиум 24/7 поддръжка.`,
-    },
-    {
-      q: "Мога ли да го редактирам след генериране?",
-      a: "Да. Експортираме документа в DOCX (Word) формат, който можете да редактирате допълнително преди подпис. Платените планове позволяват и редакция директно в платформата.",
-    },
-    {
-      q: "Документът съобразен ли е с актуалното българско законодателство?",
-      a: "Да. Шаблоните се поддържат актуални съгласно ЗЗД, ТЗ, КТ и съответните специални закони. ИИ моделът проверява за липсващи задължителни реквизити и потенциални рискове.",
-    },
-    {
-      q: "Какво се случва, ако другата страна откаже да подпише?",
-      a: "Документът има стойност на проект до момента на подписване. Препоръчваме изпращане чрез препоръчано писмо с обратна разписка или нотариална покана при оспорване.",
-    },
-  ];
 
 
   const breadcrumbsLd = {
@@ -237,7 +175,7 @@ export default function TemplatePage() {
     step: [
       { "@type": "HowToStep", position: 1, name: "Избор на шаблон", text: `Изберете „${doc.name}“ от каталога на Dogovori.net.` },
       { "@type": "HowToStep", position: 2, name: "Попълване на въпросник", text: "Отговорете на стратегическия въпросник, изграден от юристи." },
-      { "@type": "HowToStep", position: 3, name: "Анализ на риска", text: "Системата проверява клаузите по ЗЗД, ТЗ и КТ и предлага корекции." },
+      { "@type": "HowToStep", position: 3, name: "Анализ на риска", text: fallback.labels.howToAnalysisText },
       { "@type": "HowToStep", position: 4, name: "Експорт", text: "Изтеглете готовия документ в PDF или DOCX формат." },
       { "@type": "HowToStep", position: 5, name: "Електронен подпис", text: "Подпишете документа онлайн или го разпечатайте." },
     ],
@@ -310,7 +248,7 @@ export default function TemplatePage() {
           </div>
 
           <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground anim-rise" style={{ animationDelay: "320ms" }}>
-            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> Съобразен със ЗЗД/ТЗ/КТ</li>
+            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> {fallback.labels.heroLegalFit}</li>
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> PDF и DOCX експорт</li>
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> Готов за 2 минути</li>
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> Добавен в лична, защитена база данни</li>
@@ -357,14 +295,8 @@ export default function TemplatePage() {
               След попълване на кратък въпросник ИИ генерира пълен документ, който типично съдържа следните раздели:
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
-              {[
-                { t: "I. Страни по документа", d: "Пълни данни на физическите/юридическите лица, ЕГН/ЕИК, представители." },
-                { t: "II. Предмет", d: `Конкретно описание на ${doc.name.toLowerCase()} и обхвата му.` },
-                { t: "III. Цена/възнаграждение", d: "Стойност в €, начин и срок на плащане, ДДС режим." },
-                { t: "IV. Срок и действие", d: "Начало, продължителност, условия за продължаване." },
-                { t: "V. Права и задължения", d: "Задължения на двете страни, форсмажор, конфиденциалност." },
-                { t: "VI. Прекратяване и неустойки", d: "Основания за прекратяване, размер на неустойки, обезщетения." },
-              ].map((s) => (
+              {fallback.sectionCards.map((s) => (
+
                 <div key={s.t} className="rounded-lg border border-border/50 bg-card/30 p-4">
                   <h3 className="font-serif text-sm font-bold text-foreground">{s.t}</h3>
                   <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{s.d}</p>
@@ -401,7 +333,7 @@ export default function TemplatePage() {
         {/* Готовият образец е скрит от потребителя — използва се само от системата при зареждане на работния документ след „Създай“. */}
 
 
-        <Section title="Кога се използва този договор">
+        <Section title={fallback.labels.usageTitle}>
           <ul className="space-y-2">
             {usageCases.map((u, i) => (
               <li key={i} className="flex gap-3 text-sm text-muted-foreground">
@@ -422,7 +354,7 @@ export default function TemplatePage() {
             ))}
           </ul>
           <p className="mt-4 text-xs text-muted-foreground">
-            Препратки: Закон за задълженията и договорите (ЗЗД), Търговски закон (ТЗ).
+            {fallback.labels.requirementsFootnote}
           </p>
         </Section>
 
@@ -497,7 +429,7 @@ export default function TemplatePage() {
           <div className="absolute inset-x-0 top-0 hairline-x" />
           <h2 className="font-serif text-2xl font-bold leading-tight text-balance md:text-[32px]">Готов ли сте да създадете {doc.name}?</h2>
           <p className="mx-auto mt-4 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground">
-            Попълнете кратък въпросник и получете готов договор в PDF и DOCX формат, съобразен с българското право.
+            {fallback.labels.footerPromise}
           </p>
           <Link to={wizardHref} onClick={() => trackCreateCta("footer")} className="btn-gold btn-sheen mt-7">
             Започни сега <ArrowRight className="h-4 w-4" />
