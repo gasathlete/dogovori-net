@@ -92,7 +92,11 @@ export default function TemplatePage() {
   };
 
   const pageTitle = `${doc.name} — образец на български`;
-  const fallback = buildTemplateFallbackContent({ docName: doc.name, categoryId: category.id });
+  const fallback = buildTemplateFallbackContent({
+    docName: doc.name,
+    categoryId: category.id,
+    documentType: doc.documentType,
+  });
   const pageDesc = meta?.introExcerpt
     ? `${meta.introExcerpt.slice(0, 110)} Безплатен образец на ${doc.name.toLowerCase()} – ${fallback.labels.metaLawSuffix}`.slice(0, 160)
     : `Безплатен образец на ${doc.name.toLowerCase()} на български – ${fallback.labels.metaFallbackLaw}. Попълни и изтегли PDF или DOCX за 2 минути.`.slice(0, 160);

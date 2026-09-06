@@ -765,7 +765,6 @@ function buildBilateral(
   const isAgreement = documentType === "agreement";
   const isAnnex = documentType === "annex";
   const isContract = !isAgreement && !isAnnex;
-  const noun = isAgreement ? "споразумение" : isAnnex ? "анекс" : "договор";
   const nounDefinite = isAgreement ? "споразумението" : isAnnex ? "анекса" : "документа";
   const readyNoun = isAgreement
     ? "готово споразумение"
