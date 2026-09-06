@@ -116,7 +116,14 @@ export default function TemplatePage() {
     metaFallbackLaw: fallback.labels.metaFallbackLaw,
   });
 
-  const intro = resolved.intro ?? meta?.introExcerpt;
+  /**
+   * Видимото intro: при защитените видове НЕ се показва неревизираният
+   * генериран meta excerpt — само AI intro, ако е налично.
+   */
+  const intro = resolved.guarded ? resolved.intro : resolved.intro ?? meta?.introExcerpt;
+
+  /** Описание за структурираните данни: при защитените — безопасният pageDesc. */
+  const structuredDataDesc = resolved.guarded ? pageDesc : doc.purpose;
   const usageCases = resolved.usageCases;
   const requirements = resolved.requirements;
   const mistakes = resolved.mistakes;
@@ -145,7 +152,7 @@ export default function TemplatePage() {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: doc.name,
-    description: doc.purpose,
+    description: structuredDataDesc,
     inLanguage: "bg-BG",
     author: { "@type": "Organization", name: "Dogovori.net" },
     publisher: {
@@ -170,7 +177,7 @@ export default function TemplatePage() {
     "@context": "https://schema.org",
     "@type": "Product",
     name: `${doc.name} — образец`,
-    description: doc.purpose,
+    description: structuredDataDesc,
     inLanguage: "bg-BG",
     category: category.title,
     brand: { "@type": "Brand", name: "Dogovori.net" },

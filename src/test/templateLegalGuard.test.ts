@@ -337,3 +337,40 @@ describe("buildTemplatePageDescription", () => {
     expect(src).not.toMatch(/const pageDesc = meta\?\.introExcerpt/);
   });
 });
+
+describe("Template.tsx wiring — intro и структурирани данни", () => {
+  const src = fs.readFileSync(path.resolve("src/pages/Template.tsx"), "utf8");
+
+  it("Article/Product описанието е безопасно при защитените, doc.purpose при останалите", () => {
+    expect(src).toMatch(
+      /const structuredDataDesc = resolved\.guarded \? pageDesc : doc\.purpose;/,
+    );
+    expect(src).not.toMatch(/description: doc\.purpose,/);
+    expect((src.match(/description: structuredDataDesc,/g) ?? []).length).toBe(2);
+  });
+
+  it("видимото intro не ползва meta excerpt при защитените страници", () => {
+    expect(src).toMatch(
+      /const intro = resolved\.guarded \? resolved\.intro : resolved\.intro \?\? meta\?\.introExcerpt;/,
+    );
+  });
+
+  it("логиката на intro: защитен без AI → undefined; договор → legacy meta excerpt", () => {
+    const metaExcerpt = "Задължителен документ, който гарантира законосъобразност.";
+    const pick = (guarded: boolean, aiIntro: string | undefined) =>
+      guarded ? aiIntro : aiIntro ?? metaExcerpt;
+
+    const protectedFallback = buildTemplateFallbackContent({ docName: "Фактура (образец)" });
+    const protectedResolved = resolveTemplatePresentation(undefined, protectedFallback);
+    expect(protectedResolved.guarded).toBe(true);
+    expect(pick(protectedResolved.guarded, protectedResolved.intro)).toBeUndefined();
+
+    const protectedEmpty = resolveTemplatePresentation(ai({ intro: "" }), protectedFallback);
+    expect(pick(protectedEmpty.guarded, protectedEmpty.intro)).toBe("");
+
+    const rentFallback = buildTemplateFallbackContent({ docName: "Договор за наем на жилище" });
+    const rent = resolveTemplatePresentation(undefined, rentFallback);
+    expect(rent.guarded).toBe(false);
+    expect(pick(rent.guarded, rent.intro)).toBe(metaExcerpt);
+  });
+});
