@@ -94,23 +94,29 @@ export function buildTemplateFallbackContent(
 ): TemplateFallbackContent {
   const { docName, categoryId } = args;
   const docLower = docName.toLowerCase();
-  const documentType: DocumentTypeId = args.documentType ?? inferDocumentType(docName);
+  const explicitType = args.documentType;
+  const documentType: DocumentTypeId = explicitType ?? inferDocumentType(docName);
 
-  // Централната класификация за едностранни актове има предимство.
-  if (
-    isUnilateralDocument(docName) ||
-    documentType === "declaration" ||
-    documentType === "complaint" ||
-    documentType === "notary_invitation"
-  ) {
+  const dispatch = (type: DocumentTypeId): TemplateFallbackContent => {
+    if (type === "declaration" || type === "complaint" || type === "notary_invitation") {
+      return buildUnilateral(docName, docLower, type);
+    }
+    const family = FAMILIES[type];
+    if (family) return buildFamily(docName, docLower, type, family);
+    // "contract", "agreement", "annex" → договорно (двустранно) съдържание.
+    return buildBilateral(docName, docLower, type, categoryId);
+  };
+
+  // Явният `documentType` от каталога винаги има предимство.
+  if (explicitType) return dispatch(explicitType);
+
+  // Само при липса на явен тип централната класификация може да отмени
+  // изведен/по подразбиране „contract“.
+  if (isUnilateralDocument(docName)) {
     return buildUnilateral(docName, docLower, documentType);
   }
 
-  const family = FAMILIES[documentType];
-  if (family) return buildFamily(docName, docLower, documentType, family);
-
-  // "contract", "agreement", "annex" → договорно (двустранно) съдържание.
-  return buildBilateral(docName, docLower, documentType, categoryId);
+  return dispatch(documentType);
 }
 
 /* ------------------------------- едностранни ------------------------------- */
