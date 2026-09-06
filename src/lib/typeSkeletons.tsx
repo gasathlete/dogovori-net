@@ -5,6 +5,8 @@
 // generates the final text.
 
 import type { DocumentTypeId } from "@/lib/documentReferences";
+import { inferDocumentType } from "@/lib/documentTypeInference";
+import { isUnilateralDocument } from "@/data/partyRoles";
 
 export type SkeletonClause = { roman: string; title: string; body: string };
 
