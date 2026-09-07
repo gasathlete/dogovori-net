@@ -18,7 +18,7 @@ describe("канонично правило за безплатните опер
     expect(FREE_OPS_ON_SIGNUP).toBe(5);
     expect(FREE_OPS_PER_MONTH).toBe(2);
     expect(FREE_OPS_SIGNUP_DAYS).toBe(30);
-    expect(FREE_OFFER_RULE).toBe("5 операции през първите 30 дни, след това 2 месечно");
+    expect(FREE_OFFER_RULE).toBe("5 действия по документи през първите 30 дни, след това 2 месечно");
     expect(FREE_OFFER_RULE.endsWith(".")).toBe(false);
   });
 
@@ -92,13 +92,13 @@ describe("еднократен входен пакет 2,90 €", () => {
 
   it("списъкът с ползи е само за операции и изключва функции на планове", () => {
     const joined = ENTRY_PACK_FEATURES.join(" | ");
-    expect(joined).toContain(`+${ENTRY_PACK_CONFIG.ops} допълнителни операции`);
+    expect(joined).toContain(`+${ENTRY_PACK_CONFIG.ops} действия по документи`);
     const pricingSrc = read("src/lib/pricing.ts");
     const featureBlock = pricingSrc.slice(pricingSrc.indexOf("ENTRY_PACK_FEATURES"));
     expect(featureBlock.slice(0, featureBlock.indexOf("];"))).toContain("ENTRY_PACK_CONFIG.ops");
     expect(featureBlock.slice(0, featureBlock.indexOf("];"))).not.toContain("FREE_OPS_ON_SIGNUP");
     expect(joined).toContain("не изтичат");
-    expect(joined).toContain("след включените безплатни операции");
+    expect(joined).toContain("след включените безплатни действия");
     expect(joined).toContain("Не отключва функции от платените планове");
     for (const phrase of ["Без воден знак", "Предприемач", "неограничен"]) {
       expect(joined).not.toContain(phrase);

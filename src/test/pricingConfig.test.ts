@@ -46,10 +46,10 @@ describe("pricing config — канонични имена и стойности
     expect(monthlyLabel("entrepreneur")).toBe("19,90 €/мес");
     expect(yearlyLabel("professional")).toBe("129,00 €/год");
     expect(yearlyLabel("team")).toBe("109,00 €/място/год");
-    expect(opsLabel("professional")).toBe("50 операции");
-    expect(opsLabel("team")).toBe("100 операции на място");
-    expect(planSummary("professional")).toBe("Професионалист — 12,90 €/мес (50 операции)");
-    expect(planSummary("entrepreneur")).toBe("Предприемач — 19,90 €/мес (100 операции)");
+    expect(opsLabel("professional")).toBe("50 действия");
+    expect(opsLabel("team")).toBe("100 действия на място");
+    expect(planSummary("professional")).toBe("Професионалист — 12,90 €/мес (50 действия)");
+    expect(planSummary("entrepreneur")).toBe("Предприемач — 19,90 €/мес (100 действия)");
     expect(teamSummary()).toBe("Екип — 109,00 €/място/год (мин. 3 места = 327,00 €/год)");
   });
 
