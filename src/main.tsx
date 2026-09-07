@@ -6,13 +6,13 @@ import "./i18n";
 import { initWebVitalsReporter } from "./lib/webVitalsReporter";
 import { applyAbOverridesFromUrl } from "./lib/ab";
 
-// Strip prerendered JSON-LD blocks before React/Helmet mounts its own copies.
-// Without this, /shablon, /kategoria, /ai, /karta etc. would emit duplicate
-// structured data (the SSG copy + the runtime copy) and Google Search Console
-// flags it as "Duplicate field FAQPage" — disqualifying the page from rich results.
-document
-  .querySelectorAll('script[type="application/ld+json"][data-prerendered="true"]')
-  .forEach((el) => el.remove());
+// Strip ALL prerendered route-specific head metadata before React/Helmet mounts
+// its own copies: meta description/robots, canonical, og:*, twitter:* and route
+// JSON-LD. Raw static HTML keeps exactly one crawlable set; the hydrated DOM
+// keeps exactly one Helmet-owned set. Global JSON-LD (Organization, WebSite,
+// LegalService, SoftwareApplication) is NOT marked and therefore stays.
+document.querySelectorAll("[data-prerendered='true']").forEach((el) => el.remove());
+
 
 // Auto-recover from stale chunk references after a new deploy.
 // When the build hash changes, previously-loaded HTML points to JS chunks

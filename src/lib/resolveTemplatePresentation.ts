@@ -9,10 +9,12 @@
  * (`buildTemplateFallbackContent`) вече дава коректните, условни формулировки.
  *
  * ПРАВИЛО (детерминистична граница, без regex филтри по елементи):
- *  - за защитените видове: `requirements`, `mistakes` и `faq` идват ИЗЦЯЛО от
- *    fallback-а; полезните `intro` и `usageCases` от AI се запазват;
+ *  - за защитените видове: ЦЯЛОТО съдържание (`intro`, `usageCases`,
+ *    `requirements`, `mistakes`, `faq`) идва от fallback-а; AI intro/usageCases
+ *    не се показват никъде — нито във видимия текст, нито в структурираните данни;
  *  - за договор / споразумение / анекс: поведението остава непроменено —
  *    AI съдържанието има предимство пред fallback-а.
+
  *
  * Тук НЕ се въвежда нов тип-регистър: класификацията идва от
  * `fallback.documentType` и `fallback.unilateral`.
@@ -46,9 +48,14 @@ export function isProtectedFallback(fallback: TemplateFallbackContent): boolean 
 }
 
 export interface ResolvedTemplatePresentation {
-  /** true когато правните раздели са взети от ревизирания fallback. */
+  /** true когато ЦЯЛОТО съдържание е взето от ревизирания fallback. */
   guarded: boolean;
-  /** AI intro, когато е налично (иначе undefined — страницата ползва meta excerpt). */
+  /**
+   * AI intro — само за НЕзащитените видове. При защитените е винаги undefined:
+   * генерираният текст съдържа неревизирани правни твърдения („осигурява
+   * валидност и правно значение"), затова страницата ползва само безопасната
+   * каталожна цел на документа.
+   */
   intro?: string;
   usageCases: string[];
   requirements: string[];
@@ -60,8 +67,8 @@ export interface ResolvedTemplatePresentation {
  * Чиста функция — без странични ефекти и без достъп до данни/мрежа.
  * `ai` е заредено генерирано съдържание (или undefined, докато зарежда).
  *
- * ВАЖНО: използва се точната legacy nullish семантика (`??`), т.е. изрично
- * налична празна стойност се запазва байт-по-байт.
+ * ВАЖНО: за НЕзащитените видове се използва точната legacy nullish семантика
+ * (`??`), т.е. изрично налична празна стойност се запазва байт-по-байт.
  */
 export function resolveTemplatePresentation(
   ai: TemplateContent | undefined,
@@ -69,19 +76,21 @@ export function resolveTemplatePresentation(
 ): ResolvedTemplatePresentation {
   const guarded = isProtectedFallback(fallback);
 
-  const intro = ai?.intro ?? undefined;
-  const usageCases = ai?.usageCases ?? fallback.usageCases;
-
   if (guarded) {
     return {
       guarded: true,
-      intro,
-      usageCases,
+      intro: undefined,
+      usageCases: fallback.usageCases,
       requirements: fallback.requirements,
       mistakes: fallback.mistakes,
       faq: fallback.faq,
     };
   }
+
+  const intro = ai?.intro ?? undefined;
+  const usageCases = ai?.usageCases ?? fallback.usageCases;
+
+
 
   return {
     guarded: false,
