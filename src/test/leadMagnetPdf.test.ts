@@ -88,6 +88,41 @@ const EXPECTED_SECTIONS: Record<LeadMagnetSlug, number> = {
   "labor-checklist-2026": 12,
 };
 
+/**
+ * Каноничните официални източници за всеки наръчник — точно този списък, в този ред.
+ * Промяна на URL адрес тук е съзнателно редакционно решение, не страничен ефект.
+ */
+const EXPECTED_SOURCE_URLS: Record<LeadMagnetSlug, readonly string[]> = {
+  "rent-red-flags": [
+    "https://justice.government.bg/home/normdoc/2121934337",
+    "https://ibl.bas.bg/ezikovispravki/vaprosi/pravopis-na-otdelni-dumi-i-formi-flumaster-simultanen-2/322",
+  ],
+  "labor-checklist-2026": [
+    "https://justice.government.bg/home/normdoc/1594373121",
+    "https://nra.bg/wps/portal/nra/osiguryavane/Registur_na_zaetostta",
+    "https://nra.bg/wps/portal/nra/osiguryavane/Registur_na_zaetostta/vuprosi-i-otgovori-za-registura-na-zaetostta",
+    "https://www.gli.government.bg/bg/taxonomy/term/360/node/13677",
+  ],
+};
+
+const EXPECTED_CTA_URLS: Record<LeadMagnetSlug, string> = {
+  "rent-red-flags": "https://dogovori.net/shablon/dogovor-za-naem-na-zhilishte",
+  "labor-checklist-2026": "https://dogovori.net/shablon/trudov-dogovor-po-chl-67-kt-bezsrochen",
+};
+
+/** Остарели/неканонични адреси — не трябва да се появяват в нито един наръчник (текст, източници, линкове, байтове). */
+const OBSOLETE_URLS = [
+  "https://nra.bg/wps/portal/nra/registar-na-zaetostta",
+  "https://nra.bg/wps/portal/nra/registar-na-zaetostta/vaprosi-i-otgovori-registar-na-zaetostta",
+  "https://gli.government.bg/bg/taxonomy/list/396",
+] as const;
+
+/** Характерни фрагменти на остарелите адреси — хващат и варианти с друг протокол/хост/окончание. */
+const OBSOLETE_URL_FRAGMENTS = ["registar-na-zaetostta", "vaprosi-i-otgovori-registar-na-zaetostta", "taxonomy/list/396"] as const;
+
+/** Хост без водещо „www.“ — allowlist-ът е по регистрируем домейн. */
+const bareHost = (host: string) => host.replace(/^www\./, "");
+
 const docs = LEAD_MAGNET_SLUGS.map((slug) => [slug, LEAD_MAGNET_PDF_DOCUMENTS[slug]] as const);
 
 describe("lead-magnet PDF — съдържание", () => {
