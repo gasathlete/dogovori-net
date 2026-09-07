@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
-import { CheckCircle2, Loader2 } from "@/icons";
+import { AlertTriangle, CheckCircle2, Info, Loader2 } from "@/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { trackCheckoutCompleted } from "@/lib/docFunnel";
@@ -32,7 +32,8 @@ export default function CheckoutReturn() {
       ? sanitizeReturnPath(resumeFromSession) ?? ""
       : "");
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+
 
   const [readyAt, setReadyAt] = useState<"pending" | "ready" | "timeout">("pending");
 
@@ -100,7 +101,7 @@ export default function CheckoutReturn() {
   );
 
   useEffect(() => {
-    if (!user || !sessionId) return;
+    if (authLoading || !user || !sessionId) return;
     let cancelled = false;
     let attempts = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -123,7 +124,7 @@ export default function CheckoutReturn() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [user, sessionId, descriptor.kind, confirmPaid]);
+  }, [authLoading, user, sessionId, descriptor.kind, confirmPaid]);
 
   // Единствено при потвърдено плащане: точно едно канонично завършване.
   const completedRef = useRef(false);
@@ -144,6 +145,42 @@ export default function CheckoutReturn() {
     }
   }, [readyAt, redirectTo, navigate, sessionId, descriptor]);
 
+  /**
+   * Визуалната истина следва състоянието: успех се показва САМО при
+   * потвърдено плащане и начислено право.
+   */
+  const view: "missing" | "signed_out" | "pending" | "ready" | "timeout" = !sessionId
+    ? "missing"
+    : authLoading
+    ? "pending"
+    : !user
+    ? "signed_out"
+    : readyAt;
+
+  const heading =
+    view === "ready"
+      ? "Благодарим Ви!"
+      : view === "missing"
+      ? "Няма информация за плащане"
+      : view === "timeout"
+      ? "Все още потвърждаваме плащането"
+      : view === "signed_out"
+      ? "Влезте, за да потвърдим покупката"
+      : "Проверяваме плащането…";
+
+  const body =
+    view === "ready"
+      ? redirectTo
+        ? "Готово! Връщаме Ви към договора, върху който работехте…"
+        : "Готово! Покупката е активирана."
+      : view === "missing"
+      ? "Този адрес не съдържа данни за платежна сесия. Ако сте платили, проверете профила си или ни пишете."
+      : view === "timeout"
+      ? "Все още не можем да потвърдим активирането. Плащането може да се обработва — проверете профила си след минута."
+      : view === "signed_out"
+      ? "Влезте в профила си със същия имейл, за да проверим плащането и правата по него."
+      : "Проверяваме плащането и активирането на покупката…";
+
   return (
     <div className="min-h-dvh">
       <Seo
@@ -155,37 +192,47 @@ export default function CheckoutReturn() {
       <Header />
       <main className="container max-w-md py-20 text-center">
         <div className="rounded-2xl border border-gold/30 bg-gradient-card p-10">
-          <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600 dark:text-gold" />
-          <h1 className="mt-4 font-serif text-2xl font-bold">Благодарим Ви!</h1>
-          <h2 className="sr-only">Завършена покупка в Dogovori.net</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {!sessionId
-              ? "Няма информация за плащане."
-              : readyAt === "pending"
-              ? "Активираме Вашата покупка…"
-              : readyAt === "ready"
-              ? redirectTo
-                ? "Готово! Връщаме Ви към договора, върху който работехте…"
-                : "Готово! Покупката е активирана."
-              : "Плащането е получено. Активирането може да отнеме до минута."}
-          </p>
-
-          {readyAt === "pending" && sessionId && (
-            <Loader2 className="mx-auto mt-6 h-5 w-5 animate-spin text-gold" />
+          {view === "ready" ? (
+            <CheckCircle2 data-testid="checkout-ready-icon" className="mx-auto h-12 w-12 text-emerald-600 dark:text-gold" />
+          ) : view === "timeout" ? (
+            <AlertTriangle data-testid="checkout-warning-icon" className="mx-auto h-12 w-12 text-amber-600" />
+          ) : view === "pending" ? (
+            <Loader2 data-testid="checkout-pending-icon" className="mx-auto h-12 w-12 animate-spin text-muted-foreground" />
+          ) : (
+            <Info data-testid="checkout-neutral-icon" className="mx-auto h-12 w-12 text-muted-foreground" />
           )}
 
+          <h1 className="mt-4 font-serif text-2xl font-bold">{heading}</h1>
+          <h2 className="sr-only">Състояние на покупката в Dogovori.net</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{body}</p>
+
           <div className="mt-6 flex flex-col gap-2">
-            {redirectTo && (
+            {view === "ready" && redirectTo && (
               <Button asChild className="bg-gradient-gold text-navy hover:shadow-gold">
                 <Link to={redirectTo}>Продължи с моя договор</Link>
               </Button>
             )}
-            <Button asChild variant={redirectTo ? "outline" : "default"} className={redirectTo ? "border-gold/40" : "bg-gradient-gold text-navy hover:shadow-gold"}>
-              <Link to="/account">Към профила</Link>
-            </Button>
+            {view === "signed_out" ? (
+              <Button asChild className="bg-gradient-gold text-navy hover:shadow-gold">
+                <Link to="/auth">Вход в профила</Link>
+              </Button>
+            ) : (
+              <Button
+                asChild
+                variant={view === "ready" && redirectTo ? "outline" : "default"}
+                className={
+                  view === "ready" && redirectTo
+                    ? "border-gold/40"
+                    : "bg-gradient-gold text-navy hover:shadow-gold"
+                }
+              >
+                <Link to="/account">Към профила</Link>
+              </Button>
+            )}
           </div>
         </div>
       </main>
     </div>
   );
 }
+
