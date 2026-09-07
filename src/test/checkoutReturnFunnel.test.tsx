@@ -13,11 +13,15 @@ import { render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { trackCheckoutCompletedMock, trackEventMock, trackUpgradeCompletedMock, tables } = vi.hoisted(() => ({
+const { trackCheckoutCompletedMock, trackEventMock, trackUpgradeCompletedMock, tables, authState } = vi.hoisted(() => ({
   trackCheckoutCompletedMock: vi.fn(),
   trackEventMock: vi.fn(),
   trackUpgradeCompletedMock: vi.fn(),
   tables: new Map<string, unknown>(),
+  authState: {
+    user: { id: "u1", email: "u@example.com" } as { id: string; email: string } | null,
+    loading: false,
+  },
 }));
 
 vi.mock("@/lib/docFunnel", () => ({ trackCheckoutCompleted: trackCheckoutCompletedMock }));
@@ -25,7 +29,8 @@ vi.mock("@/lib/analytics", () => ({ trackEvent: trackEventMock, getCategoryConse
 vi.mock("@/lib/metrics", () => ({ trackUpgradeCompleted: trackUpgradeCompletedMock }));
 vi.mock("@/components/Header", () => ({ Header: () => <header /> }));
 vi.mock("@/components/Seo", () => ({ Seo: () => null }));
-vi.mock("@/hooks/useAuth", () => ({ useAuth: () => ({ user: { id: "u1", email: "u@example.com" } }) }));
+vi.mock("@/hooks/useAuth", () => ({ useAuth: () => authState }));
+
 
 vi.mock("@/integrations/supabase/client", () => {
   const chain = (table: string) => {
