@@ -215,8 +215,78 @@ export async function handleSubscriptionDeleted(d: WebhookDeps, subscription: An
 }
 
 
+/* ==================================================================== */
+/*  Истина за плащането (Stage 2d0)                                      */
+/* ==================================================================== */
+
+/**
+ * Единствената стойност на `session.payment_status`, която приемаме като
+ * доказано плащане. `unpaid` (SEPA/забавени методи) и `no_payment_required`
+ * (безплатен пробен период, 100% код, нулева сума) НЕ са доказано плащане.
+ */
+export const PAID_PAYMENT_STATUS = "paid" as const;
+
+export function isProvenPaidSession(session: Any): boolean {
+  return session?.payment_status === PAID_PAYMENT_STATUS;
+}
+
+/** Затворен списък на видовете покупка, записвани в `order_snapshots`. */
+export const SNAPSHOT_PURCHASE_KINDS = [
+  "team",
+  "subscription",
+  "strict_unlock",
+  "branding",
+  "entry_pack",
+  "topup",
+  "one_time",
+  "unknown",
+] as const;
+export type SnapshotPurchaseKind = (typeof SNAPSHOT_PURCHASE_KINDS)[number];
+
+/** Еднократни ключове, които приемаме като „one_time“ (без entry pack/topup). */
+const ONE_TIME_LEGACY_KEYS: readonly string[] = ["single_contract"];
+
+/**
+ * Чист класификатор: извежда вида покупка от РЕЖИМА на сесията и от
+ * ограничени, познати стойности. Произволен `metadata.kind` НИКОГА не се
+ * записва като вид — непознатото става `unknown`.
+ */
+export function classifySnapshotPurchaseKind(session: Any): SnapshotPurchaseKind {
+  const meta = (session?.metadata ?? {}) as Record<string, unknown>;
+  if (session?.mode === "subscription") {
+    return meta.kind === "team" || meta.teamId ? "team" : "subscription";
+  }
+  if (session?.mode !== "payment") return "unknown";
+  if (meta.type === "strict_doc_unlock") return "strict_unlock";
+  if (meta.type === "branding_unlock") return "branding";
+  const rawKey = typeof meta.priceId === "string"
+    ? meta.priceId
+    : typeof meta.lookup_key === "string"
+      ? meta.lookup_key
+      : null;
+  if (!rawKey || !isAllowedCheckoutLookupKey(rawKey)) return "unknown";
+  if (rawKey === ENTRY_PACK_LOOKUP_KEY) return "entry_pack";
+  if (rawKey.startsWith("topup_")) return "topup";
+  if (ONE_TIME_LEGACY_KEYS.includes(rawKey)) return "one_time";
+  if (rawKey === "branding_unlock_once") return "branding";
+  return "unknown";
+}
+
 export async function handleCheckoutCompleted(d: WebhookDeps, session: Any, env: StripeEnv) {
+  // FAIL-CLOSED ПРЕДИ всичко: без доказано `payment_status === "paid"` не се
+  // прави НИКАКЪВ entitlement запис, order snapshot, Stripe line-item
+  // извикване или имейл. НЕ хвърляме — забавените методи може по-късно да
+  // изпратят `checkout.session.async_payment_succeeded`.
+  if (!isProvenPaidSession(session)) {
+    console.log(
+      "checkout session ignored — payment_status is not 'paid':",
+      session?.payment_status ?? "missing",
+    );
+    return;
+  }
+
   const userId = session.metadata?.userId;
+
 
   // 0) Strict document unlock — бъндъл: отключва документа за 24h И кредитира
   //    входния пакет операции (блок 1 по-долу). FAIL-CLOSED.
