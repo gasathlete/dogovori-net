@@ -111,7 +111,6 @@ export function buildAiFeaturesSchemas(): JsonLd[] {
       { "@type": "Offer", name: "Екип (per seat, yearly)", price: "109", priceCurrency: "EUR", description: "Min 3 seats; per-seat annual price" },
       { "@type": "Offer", name: "Pay-as-you-go", price: "2.90", priceCurrency: "EUR", description: "5 operations, one-off" },
     ],
-    aggregateRating: { "@type": "AggregateRating", ratingValue: "4.8", ratingCount: "127" },
   };
 
   const howToLd: JsonLd = {
