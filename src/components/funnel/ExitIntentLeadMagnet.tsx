@@ -256,6 +256,7 @@ export function ExitIntentLeadMagnet() {
               </ul>
 
               <a
+                ref={downloadRef}
                 href={magnet.fileUrl}
                 download
                 onClick={onDownload}
