@@ -66,10 +66,12 @@ describe("summarizeMetric", () => {
 
 describe("подготвената SQL промяна за web_vitals_daily", () => {
   const SQL = readFileSync("docs/db/20260907110000_web_vitals_daily_aggregate.sql", "utf8");
+  /** Само изпълнимият SQL, без коментарните редове. */
+  const CODE = SQL.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
 
   it("не съдържа идентифициращи колони", () => {
     for (const bad of ["user_id", "session_id", "ip_address", "user_agent", "referrer", "raw_path", "props"]) {
-      expect(SQL).not.toContain(bad);
+      expect(CODE).not.toContain(bad);
     }
   });
 
