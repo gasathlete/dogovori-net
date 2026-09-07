@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { onLCP, onCLS, onINP, onFCP, onTTFB, type Metric } from "web-vitals";
 import { Seo } from "@/components/Seo";
+import { FieldWebVitals } from "@/components/admin/FieldWebVitals";
 
 type Row = { name: string; value: number; rating: string; ts: number };
 
@@ -152,6 +153,8 @@ export default function AdminPerf() {
           </table>
         </div>
       </section>
+
+      <FieldWebVitals />
 
       <LoadtestHistorySection />
     </div>
