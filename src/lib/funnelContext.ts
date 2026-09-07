@@ -54,10 +54,32 @@ function uuid(): string {
   return `f_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
 }
 
-/** Нормализира ключа на документа до кратък технически етикет (без свободен текст). */
+/**
+ * Разрешен технически ключ: 1–120 знака от Unicode букви/цифри плюс `_ . : / -`.
+ * Целият (trim-нат) вход трябва да е валиден — НИКОГА не се отрязва префикс от
+ * опасен или прекалено дълъг вход.
+ */
+const SAFE_DOC_KEY = /^[\p{L}\p{N}_.:/-]{1,120}$/u;
+/** Прилича на имейл — отхвърля се дори без `@` да е в разрешените знаци. */
+const EMAIL_LIKE = /[\p{L}\p{N}._%+-]+@[\p{L}\p{N}.-]+\.[a-z]{2,}/iu;
+/** Самостоятелен 10-цифрен низ (ЕГН-подобен). */
+const EGN_LIKE = /^\d{10}$/;
+/** IBAN-подобен низ (2 букви + 2 цифри + 11–30 буквено-цифрови). */
+const IBAN_LIKE = /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/i;
+
+/**
+ * Нормализира ключа на документа до кратък технически етикет (без свободен текст).
+ * Опасен, празен или прекалено дълъг вход дава празен низ → извикващият получава
+ * непрозрачен контекст (`unknown`).
+ */
 export function normalizeDocKey(input?: string | null): string {
   if (!input) return "";
-  return String(input).trim().toLowerCase().slice(0, 120);
+  const trimmed = String(input).trim();
+  if (!SAFE_DOC_KEY.test(trimmed)) return "";
+  if (EMAIL_LIKE.test(trimmed)) return "";
+  if (EGN_LIKE.test(trimmed)) return "";
+  if (IBAN_LIKE.test(trimmed)) return "";
+  return trimmed.toLowerCase();
 }
 
 /* -------------------- browser_id (траен) -------------------- */
