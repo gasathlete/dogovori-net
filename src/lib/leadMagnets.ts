@@ -47,7 +47,7 @@ export const LEAD_MAGNETS: Record<"rent" | "labor", LeadMagnet> = {
   labor: {
     slug: "labor-checklist-2026",
     title: "Чек-лист: Трудов договор 2026",
-    subtitle: "12 задължителни проверки преди да подпишеш по КТ",
+    subtitle: "12 ключови проверки преди да подпишеш по Кодекса на труда",
     fileUrl: "/lead-magnets/chek-list-truddoven-dogovor-2026.pdf",
     eyebrow: "Актуален за 2026 г.",
     bullets: [
