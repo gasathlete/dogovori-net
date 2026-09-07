@@ -6,6 +6,11 @@
 import { describe, it, expect, expectTypeOf } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import type { Database } from "@/integrations/supabase/types";
+import type {
+  PendingDatabase,
+  RecordWebVitalAggregateArgs,
+  WebVitalsDailyRow,
+} from "@/lib/webVitals/pendingSchema";
 import {
   denormalize,
   formatMetricValue,
@@ -76,7 +81,7 @@ describe("summarizeMetric", () => {
   });
 
   it("приема директно редове с генерирания тип Row", () => {
-    const generated: Database["public"]["Tables"]["web_vitals_daily"]["Row"] = {
+    const generated: PendingDatabase["public"]["Tables"]["web_vitals_daily"]["Row"] = {
       created_at: "2026-09-07T10:00:00Z",
       day: "2026-09-07",
       device_class: "mobile",
@@ -184,8 +189,8 @@ describe("включителни прагове върху нормализир�
 });
 
 describe("генерираните типове за web_vitals_daily / record_web_vital_aggregate", () => {
-  type Tables = Database["public"]["Tables"];
-  type Fns = Database["public"]["Functions"];
+  type Tables = PendingDatabase["public"]["Tables"];
+  type Fns = PendingDatabase["public"]["Functions"];
 
   it("таблицата има Row/Insert/Update с точните колони", () => {
     expectTypeOf<Tables["web_vitals_daily"]["Row"]>().toEqualTypeOf<{
