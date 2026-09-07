@@ -133,24 +133,35 @@ const ONCE_MAX_ENTRIES = 400;
 
 type OnceStore = Record<string, number>;
 
+/**
+ * Резерва в паметта на модула: когато localStorage чете/пише с изключение
+ * (private mode, quota, блокиран storage), дедупликацията пак работи в рамките
+ * на страницата — иначе `doc_start` щеше да се записва при всяко извикване.
+ * TTL и ограничението на размера са същите.
+ */
+let memoryOnce: OnceStore = {};
+
 function readOnce(): OnceStore {
   try {
     const raw = localStorage.getItem(ONCE_KEY);
-    if (!raw) return {};
+    if (!raw) return { ...memoryOnce };
     const parsed = JSON.parse(raw) as unknown;
-    return parsed && typeof parsed === "object" ? (parsed as OnceStore) : {};
+    if (!parsed || typeof parsed !== "object") return { ...memoryOnce };
+    return { ...memoryOnce, ...(parsed as OnceStore) };
   } catch {
-    return {};
+    return { ...memoryOnce };
   }
 }
 
 function writeOnce(store: OnceStore) {
+  memoryOnce = { ...store };
   try {
     localStorage.setItem(ONCE_KEY, JSON.stringify(store));
   } catch {
-    /* quota / private mode — дедупликацията остава best effort */
+    /* quota / private mode — дедупликацията остава в паметта на модула */
   }
 }
+
 
 /**
  * Съставя стабилен ключ за дедупликация. Частите се нормализират, за да е
