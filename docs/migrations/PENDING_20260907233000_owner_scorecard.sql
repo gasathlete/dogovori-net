@@ -92,8 +92,10 @@ BEGIN
   ----------------------------------------------------------------------
   WITH
   -- 3) Automated proven orders: the ONLY automated proven payments.
+  --    id is carried internally only for deterministic ranking; it is
+  --    never returned.
   proven AS (
-    SELECT os.user_id, os.purchase_kind, os.created_at
+    SELECT os.id, os.user_id, os.purchase_kind, os.created_at
     FROM public.order_snapshots os
     WHERE os.created_at >= _cutover
       AND os.created_at < _to
@@ -117,29 +119,28 @@ BEGIN
       AND t.stripe_subscription_id IS NOT NULL
       AND t.created_at < _cutover
   ),
-  -- First automated proven order per user.
-  first_orders AS (
-    SELECT user_id, min(created_at) AS first_at
+  -- Deterministic first automated proven order per user: exactly one row
+  -- per user even when created_at ties (tie-break on id).
+  ranked_orders AS (
+    SELECT
+      user_id,
+      purchase_kind,
+      created_at,
+      row_number() OVER (PARTITION BY user_id ORDER BY created_at, id) AS rn
     FROM proven
-    GROUP BY user_id
-  ),
-  first_kinds AS (
-    SELECT fo.user_id, fo.first_at, p.purchase_kind AS first_kind
-    FROM first_orders fo
-    JOIN proven p ON p.user_id = fo.user_id AND p.created_at = fo.first_at
   ),
   -- 7) First automated purchase mode (closed classification).
   first_modes AS (
     SELECT
       user_id,
-      first_at,
+      created_at AS first_at,
       CASE
-        WHEN first_kind IN ('team', 'subscription') THEN 'subscription'
-        WHEN first_kind IN ('strict_unlock', 'branding', 'entry_pack', 'topup', 'one_time') THEN 'one_time'
+        WHEN purchase_kind IN ('team', 'subscription') THEN 'subscription'
+        WHEN purchase_kind IN ('strict_unlock', 'branding', 'entry_pack', 'topup', 'one_time') THEN 'one_time'
         ELSE 'unknown'
-      END AS first_mode,
-      first_kind
-    FROM first_kinds
+      END AS first_mode
+    FROM ranked_orders
+    WHERE rn = 1
   ),
   -- 8) One-off -> subscription: later automated subscription/team order.
   one_time_conversions AS (
@@ -155,14 +156,18 @@ BEGIN
     GROUP BY fm.user_id
   )
   SELECT
-    -- 6) Period counts.
+    -- 6) Period counts. automated orders and automated payers are
+    --    DISTINCT measures: orders count rows, payers count distinct users.
     (SELECT count(*) FROM proven WHERE created_at >= _from),
-    (SELECT count(*) FROM proven),
+    -- 1) Automated proven payers: distinct users, never order count.
+    (SELECT count(DISTINCT user_id) FROM proven),
     (SELECT count(*) FROM legacy_baseline),
     -- 5) Distinct union: legacy baseline users + automated proven-order users.
     (SELECT count(*) FROM (SELECT user_id FROM legacy_baseline UNION SELECT user_id FROM proven) u),
     (SELECT count(*) FROM first_modes fm WHERE fm.first_at >= _from AND fm.user_id NOT IN (SELECT user_id FROM legacy_baseline)),
     -- 7) Mutually exclusive first-mode totals / among new period payers.
+    --    first_modes has exactly one row per user, so each total <=
+    --    distinct automated payers by construction.
     (SELECT count(*) FROM first_modes WHERE first_mode = 'subscription'),
     (SELECT count(*) FROM first_modes WHERE first_mode = 'one_time'),
     (SELECT count(*) FROM first_modes WHERE first_mode = 'unknown'),
@@ -220,12 +225,12 @@ BEGIN
   );
 
   ----------------------------------------------------------------------
-  -- 9) Automated order counts in the period by closed purchase_kind
-  --    (including unknown). No revenue/amount sums.
+  -- 9) Automated order counts in the period by closed purchase_kind.
+  --    ALL 8 closed keys are always present, zero when absent.
+  --    No revenue/amount sums.
   ----------------------------------------------------------------------
-  SELECT COALESCE(jsonb_object_agg(purchase_kind, n), '{}'::jsonb) INTO _kinds
-  FROM (
-    SELECT os.purchase_kind, count(*) AS n
+  WITH period_proven AS (
+    SELECT os.purchase_kind
     FROM public.order_snapshots os
     WHERE os.created_at >= _from
       AND os.created_at < _to
@@ -233,8 +238,18 @@ BEGIN
       AND os.environment = 'live'
       AND os.payment_status = 'paid'
       AND os.stripe_session_id IS NOT NULL
-    GROUP BY os.purchase_kind
-  ) k;
+  )
+  SELECT jsonb_build_object(
+    'team',          COALESCE(count(*) FILTER (WHERE purchase_kind = 'team'), 0),
+    'subscription',  COALESCE(count(*) FILTER (WHERE purchase_kind = 'subscription'), 0),
+    'strict_unlock', COALESCE(count(*) FILTER (WHERE purchase_kind = 'strict_unlock'), 0),
+    'branding',      COALESCE(count(*) FILTER (WHERE purchase_kind = 'branding'), 0),
+    'entry_pack',    COALESCE(count(*) FILTER (WHERE purchase_kind = 'entry_pack'), 0),
+    'topup',         COALESCE(count(*) FILTER (WHERE purchase_kind = 'topup'), 0),
+    'one_time',      COALESCE(count(*) FILTER (WHERE purchase_kind = 'one_time'), 0),
+    'unknown',       COALESCE(count(*) FILTER (WHERE purchase_kind = 'unknown'), 0)
+  ) INTO _kinds
+  FROM period_proven;
 
   RETURN jsonb_build_object(
     'truth_schema_version', 1,
