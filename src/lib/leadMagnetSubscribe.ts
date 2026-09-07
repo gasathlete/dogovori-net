@@ -50,7 +50,7 @@ export async function subscribeToLeadMagnetNewsletter(
   const args = buildLeadMagnetSubscribeArgs(input);
   if (args === null) return "invalid";
   try {
-    const { data, error } = await supabase.rpc("subscribe_lead_magnet", args);
+    const { data, error } = await pendingLeadMagnetClient.rpc("subscribe_lead_magnet", args);
     if (error) return "error";
     return data === true ? "subscribed" : "invalid";
   } catch {
