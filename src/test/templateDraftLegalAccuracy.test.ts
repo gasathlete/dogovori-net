@@ -137,9 +137,13 @@ describe("предизвестие по чл. 326, ал. 1 КТ", () => {
     expect(notice).not.toMatch(/УП-2/);
     expect(notice).not.toMatch(/УП-3/);
     expect(notice).not.toMatch(/да ми бъде издадена трудова книжка/);
+    expect(notice).not.toMatch(/трудовата книжка да ми бъде върната с надлежно отразено прекратяване/);
     expect(notice).toMatch(/Регистъра на заетостта/);
     expect(notice).toMatch(/удостоверява прекратяването на трудовото правоотношение/);
     expect(notice).toMatch(/\[По избор,[^\]]*01\.06\.2025/);
+    expect(notice).toMatch(/§ 24, ал\. 1/);
+    expect(notice).toMatch(/трудовия стаж към 01\.06\.2025 г\./);
+    expect(notice).toMatch(/върната незабавно/);
   });
 
   it("иска обезщетението по чл. 224 без условие за взаимно съгласие", () => {
