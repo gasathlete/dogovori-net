@@ -94,6 +94,11 @@ export function coarseNavigationType(t: string | undefined | null): NavigationTy
   }
 }
 
+/** Единствената допустима сурова стойност: крайно число >= 0. */
+export function isValidRawValue(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
 /**
  * Цяло число за базата: ms за LCP/INP, CLS × 1000.
  *
@@ -101,9 +106,13 @@ export function coarseNavigationType(t: string | undefined | null): NavigationTy
  * v <= T ⇔ ceil(v) <= T, така рейтингът на web-vitals (сравнение „<=“ върху
  * суровата стойност) винаги съвпада с рейтинга, изведен от цялата стойност.
  * Преди тавана махаме шума от плаваща запетая (0.057 × 1000 = 57.00000000000001).
+ *
+ * FAIL CLOSED: невалиден вход (NaN, ±Infinity, отрицателна стойност) връща NaN,
+ * а не 0 — иначе повредена проба щеше да се запише като идеален резултат.
+ * `isSaneValue` отхвърля NaN, така че такава проба не напуска браузъра.
  */
 export function toIntegerValue(metric: CoreMetric, value: number): number {
-  if (!Number.isFinite(value) || value < 0) return 0;
+  if (!isValidRawValue(value)) return Number.NaN;
   const scaled = metric === "CLS" ? value * 1000 : value;
   return Math.ceil(Math.round(scaled * 1e6) / 1e6);
 }

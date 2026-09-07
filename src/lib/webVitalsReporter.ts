@@ -17,8 +17,8 @@
  */
 
 import type { Metric } from "web-vitals";
-import type { Database } from "@/integrations/supabase/types";
 import { trackEvent, getCategoryConsent } from "@/lib/analytics";
+import { webVitalsClient, type RecordWebVitalAggregateArgs } from "@/lib/webVitals/pendingSchema";
 import {
   coarseDeviceClass,
   coarseNavigationType,
@@ -26,6 +26,7 @@ import {
   isCoreMetric,
   isRating,
   isSaneValue,
+  isValidRawValue,
   ratingForValue,
   toIntegerValue,
   type CoreMetric,
@@ -84,12 +85,13 @@ function capturePageLoadContext(): PageLoadContext {
 }
 
 /** Аргументите на типизирания RPC — точно това, което напуска браузъра. */
-export type CentralArgs = Database["public"]["Functions"]["record_web_vital_aggregate"]["Args"];
+export type CentralArgs = RecordWebVitalAggregateArgs;
 
 /**
- * Клиентска валидация, огледална на RPC-то: allow-list рейтинг, разумна
- * стойност и съответствие рейтинг ↔ стойност по включителните прагове на
- * Web Vitals. Връща null при невалидни данни — тогава нищо не се праща.
+ * Клиентска валидация, огледална на RPC-то: крайна неотрицателна стойност,
+ * allow-list рейтинг, разумни граници и съответствие рейтинг ↔ стойност по
+ * включителните прагове на Web Vitals. FAIL CLOSED — при каквото и да е
+ * несъответствие връща null и навън не отива нищо.
  */
 export function prepareCentralArgs(
   metric: CoreMetric,
@@ -97,6 +99,7 @@ export function prepareCentralArgs(
   value: number,
   ctx: PageLoadContext,
 ): CentralArgs | null {
+  if (!isValidRawValue(value)) return null;
   const intValue = toIntegerValue(metric, value);
   if (!isSaneValue(metric, intValue)) return null;
   if (!isRating(rating) || ratingForValue(metric, intValue) !== rating) return null;
@@ -113,8 +116,7 @@ export function prepareCentralArgs(
 /** Fire-and-forget агрегиран запис. Никога не влияе на UX. */
 async function recordCentral(args: CentralArgs): Promise<void> {
   try {
-    const { supabase } = await import("@/integrations/supabase/client");
-    await supabase.rpc("record_web_vital_aggregate", args);
+    await webVitalsClient.rpc("record_web_vital_aggregate", args);
   } catch {
     /* network/schema errors are non-critical */
   }
@@ -132,7 +134,7 @@ export function initWebVitalsReporter(): void {
     try {
       const { onLCP, onCLS, onINP, onFCP, onTTFB } = await import("web-vitals");
       const handle = (m: MetricSample) => {
-        // 1) Локална диагностика — винаги.
+        // 1) Локална диагностика — винаги (включително за повредени проби).
         persist({ name: m.name, value: m.value, rating: m.rating, ts: Date.now() });
 
         // 2) Всичко навън изисква съгласие в момента на callback-а.
@@ -140,6 +142,32 @@ export function initWebVitalsReporter(): void {
 
         const name: string = m.name;
         const coreName: CoreMetric | null = isCoreMetric(name) ? name : null;
+
+        if (coreName) {
+          // FAIL CLOSED: невалидна стойност или рейтинг, който не съответства
+          // на прага → пробата остава само локална диагностика.
+          const args = prepareCentralArgs(coreName, m.rating, m.value, ctx);
+          if (!args) return;
+          trackEvent("web_vital", {
+            metric: coreName,
+            rating: args._rating,
+            bucket: bucketize(coreName, m.value),
+            route_group: ctx.routeGroup,
+            device_class: ctx.deviceClass,
+            navigation_type: ctx.navigationType,
+            value: args._value,
+          });
+          // 3) LCP/INP/CLS — централно, най-много веднъж на метрика за това зареждане.
+          if (!sentCentral.has(coreName)) {
+            sentCentral.add(coreName);
+            void recordCentral(args);
+          }
+          return;
+        }
+
+        // 4) FCP/TTFB — само аналитика, и само при крайна неотрицателна
+        //    стойност и рейтинг от allow-list-а.
+        if (!isValidRawValue(m.value) || !isRating(m.rating)) return;
         trackEvent("web_vital", {
           metric: name,
           rating: m.rating,
@@ -147,18 +175,8 @@ export function initWebVitalsReporter(): void {
           route_group: ctx.routeGroup,
           device_class: ctx.deviceClass,
           navigation_type: ctx.navigationType,
-          value: coreName ? toIntegerValue(coreName, m.value) : Math.round(m.value),
+          value: Math.round(m.value),
         });
-
-        // 3) LCP/INP/CLS — централно, най-много веднъж на метрика за това
-        //    зареждане и само ако рейтингът и стойността са валидни и съгласувани.
-        if (coreName && !sentCentral.has(coreName)) {
-          const args = prepareCentralArgs(coreName, m.rating, m.value, ctx);
-          if (args) {
-            sentCentral.add(coreName);
-            void recordCentral(args);
-          }
-        }
       };
       onLCP(handle);
       onCLS(handle);
@@ -188,8 +206,11 @@ const AUX_THRESHOLDS: Record<string, readonly [number, number]> = {
 /**
  * Кофа за аналитиката. За LCP/INP/CLS използва същите включителни прагове
  * като централния запис, така че точно 2500 ms / 200 ms / 0.100 са "good".
+ * Невалидна стойност (NaN, ±Infinity, отрицателна) или непозната метрика
+ * дават "n/a" — никога "good".
  */
 export function bucketize(name: string, value: number): Bucket {
+  if (!isValidRawValue(value)) return "n/a";
   if (isCoreMetric(name)) {
     const r = ratingForValue(name, toIntegerValue(name, value));
     return r === "needs-improvement" ? "ni" : r;

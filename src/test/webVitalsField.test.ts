@@ -6,6 +6,11 @@
 import { describe, it, expect, expectTypeOf } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import type { Database } from "@/integrations/supabase/types";
+import type {
+  PendingDatabase,
+  RecordWebVitalAggregateArgs,
+  WebVitalsDailyRow,
+} from "@/lib/webVitals/pendingSchema";
 import {
   denormalize,
   formatMetricValue,
@@ -76,7 +81,7 @@ describe("summarizeMetric", () => {
   });
 
   it("приема директно редове с генерирания тип Row", () => {
-    const generated: Database["public"]["Tables"]["web_vitals_daily"]["Row"] = {
+    const generated: PendingDatabase["public"]["Tables"]["web_vitals_daily"]["Row"] = {
       created_at: "2026-09-07T10:00:00Z",
       day: "2026-09-07",
       device_class: "mobile",
@@ -168,8 +173,10 @@ describe("включителни прагове върху нормализир�
     expect(toIntegerValue("LCP", 2500)).toBe(2500);
     expect(toIntegerValue("LCP", 2500.0001)).toBe(2501); // > 2500 → needs-improvement
     expect(toIntegerValue("INP", 200.4)).toBe(201);
-    expect(toIntegerValue("LCP", -5)).toBe(0);
-    expect(toIntegerValue("LCP", Number.NaN)).toBe(0);
+    // FAIL CLOSED: невалидната стойност дава NaN, не 0 (0 би минало за "good").
+    expect(toIntegerValue("LCP", -5)).toBeNaN();
+    expect(toIntegerValue("LCP", Number.NaN)).toBeNaN();
+    expect(toIntegerValue("LCP", Number.POSITIVE_INFINITY)).toBeNaN();
   });
 
   it("isRating приема само трите allow-list стойности", () => {
@@ -184,8 +191,8 @@ describe("включителни прагове върху нормализир�
 });
 
 describe("генерираните типове за web_vitals_daily / record_web_vital_aggregate", () => {
-  type Tables = Database["public"]["Tables"];
-  type Fns = Database["public"]["Functions"];
+  type Tables = PendingDatabase["public"]["Tables"];
+  type Fns = PendingDatabase["public"]["Functions"];
 
   it("таблицата има Row/Insert/Update с точните колони", () => {
     expectTypeOf<Tables["web_vitals_daily"]["Row"]>().toEqualTypeOf<{
@@ -226,22 +233,25 @@ describe("генерираните типове за web_vitals_daily / record_w
     expectTypeOf<Fns["record_web_vital_aggregate"]["Returns"]>().toEqualTypeOf<undefined>();
   });
 
-  it("присъстват в генерирания файл (не само като локални типове)", () => {
-    const types = readFileSync("src/integrations/supabase/types.ts", "utf8");
-    const tablesStart = types.indexOf("    Tables: {");
-    const viewsStart = types.indexOf("    Views: {");
-    const fnsStart = types.indexOf("    Functions: {");
-    const enumsStart = types.indexOf("    Enums: {", fnsStart);
-    expect(tablesStart).toBeGreaterThan(-1);
-    expect(viewsStart).toBeGreaterThan(tablesStart);
-    expect(fnsStart).toBeGreaterThan(viewsStart);
-    const tables = types.slice(tablesStart, viewsStart);
-    const fns = types.slice(fnsStart, enumsStart);
-    expect(tables).toContain("      web_vitals_daily: {");
-    expect(fns).toContain("      record_web_vital_aggregate: {");
-    // Единствен източник на истината — точно по едно определение.
-    expect(types.match(/^      web_vitals_daily: \{/gm)?.length).toBe(1);
-    expect(types.match(/^      record_web_vital_aggregate: \{/gm)?.length).toBe(1);
+  it("схемата е декларирана точно веднъж и разширява генерирания Database", () => {
+    const pending = readFileSync("src/lib/webVitals/pendingSchema.ts", "utf8");
+    expect(pending).toContain("export type WebVitalsDailyRow = {");
+    expect(pending).toContain("export type WebVitalsDailyInsert");
+    expect(pending).toContain("export type WebVitalsDailyUpdate");
+    expect(pending).toContain("export type RecordWebVitalAggregateArgs = {");
+    expect(pending).toContain('Omit<Database, "public">');
+    expect(pending.match(/web_vitals_daily: \{/g)?.length).toBe(1);
+    expect(pending.match(/record_web_vital_aggregate: \{/g)?.length).toBe(1);
+    // Генерираният файл е автоматичен — не се дописва ръчно преди миграцията.
+    const generated = readFileSync("src/integrations/supabase/types.ts", "utf8");
+    expect(generated).not.toContain("web_vitals_daily");
+    expect(generated).not.toContain("record_web_vital_aggregate");
+    // Типовете на приложението пазят връзката с генерирания Database.
+    expectTypeOf<PendingDatabase["public"]["Tables"]["profiles"]["Row"]>().toEqualTypeOf<
+      Database["public"]["Tables"]["profiles"]["Row"]
+    >();
+    expectTypeOf<WebVitalsDailyRow>().toEqualTypeOf<Tables["web_vitals_daily"]["Row"]>();
+    expectTypeOf<RecordWebVitalAggregateArgs>().toEqualTypeOf<Fns["record_web_vital_aggregate"]["Args"]>();
   });
 });
 
