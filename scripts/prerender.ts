@@ -25,6 +25,8 @@ import {
   buildTemplatePageDescription,
   resolveTemplatePresentation,
 } from "../src/lib/resolveTemplatePresentation";
+import { getSeoTemplateMeta } from "../src/lib/seoTemplateMeta";
+
 import { FREE_OFFER_RULE } from "../src/lib/pricing";
 
 
@@ -356,12 +358,9 @@ for (const cat of CATALOG) {
       documentType: doc.documentType,
     });
     const resolved = resolveTemplatePresentation(ai, fallback);
-    const guardedDesc = buildTemplatePageDescription({
-      guarded: resolved.guarded,
-      docName: doc.name,
-      metaLawSuffix: fallback.labels.metaLawSuffix,
-      metaFallbackLaw: fallback.labels.metaFallbackLaw,
-    });
+    const metaOverride = getSeoTemplateMeta(slug);
+    const guardedDesc = buildTemplatePageDescription({ docName: doc.name });
+
 
     const legacyIntro: string = ai?.intro ?? doc.purpose;
     const legacyRequirements: string[] = ai?.requirements ?? [
@@ -389,11 +388,10 @@ for (const cat of CATALOG) {
       : Array.isArray(ai?.mistakes)
         ? ai.mistakes
         : [];
-    const description = resolved.guarded
-      ? guardedDesc
-      : legacyIntro.length > 155
-        ? legacyIntro.slice(0, 152) + "…"
-        : legacyIntro;
+    // Organic 2: честно, детерминистично описание за ВСЯКА /shablon страница —
+    // без сглобяване/отрязване на генериран intro в средата на изречение.
+    const description = metaOverride?.description ?? guardedDesc;
+
     // Pick up to 6 sibling templates as related, excluding self.
     const related = siblings.filter((s) => s.slug !== slug).slice(0, 6);
 
@@ -429,7 +427,10 @@ for (const cat of CATALOG) {
 
     pages.push({
       path: `/shablon/${slug}`,
-      title: `${doc.name} — образец на български | Dogovori.net`,
+      title: metaOverride
+        ? `${metaOverride.title} | Dogovori.net`
+        : `${doc.name} — образец на български | Dogovori.net`,
+
       description,
       bodyHtml: bodyForTemplate(doc.name, intro, requirements, faq, usageCases, mistakes, related, cat.title, cat.id),
 

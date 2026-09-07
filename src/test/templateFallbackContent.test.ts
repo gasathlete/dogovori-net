@@ -204,12 +204,13 @@ describe("HowTo final step + notary FAQ", () => {
     expect(notary.a).toMatch(/нотариални покани/);
   });
 
-  it("TemplatePage HowTo step 5 reads from the fallback labels", () => {
+  it("TemplatePage вече не емитира HowTo структурирани данни (Organic 2)", () => {
     const src = readFileSync("src/pages/Template.tsx", "utf8");
-    expect(src).toContain("name: fallback.labels.howToFinalStepName");
-    expect(src).toContain("text: fallback.labels.howToFinalStepText");
+    expect(src).not.toContain('"@type": "HowTo"');
+    expect(src).not.toContain("howToLd");
     expect(src).not.toContain('name: "Електронен подпис"');
   });
+
 });
 
 /* ------------------ тип-специфични (не-договорни) семейства ---------------- */
