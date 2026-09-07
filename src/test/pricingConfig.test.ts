@@ -60,7 +60,7 @@ describe("pricing config — канонични имена и стойности
       [50, 12.9],
       [100, 23.9],
     ]);
-    expect(perOpLabel(TOPUP_PACK_CONFIG[0])).toBe("0,58 €/оп.");
+    expect(perOpLabel(TOPUP_PACK_CONFIG[0])).toBe("0,58 €/действие");
   });
 
   it("входният пакет е един канoничен еднократен продукт", () => {
