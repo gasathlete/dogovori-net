@@ -2,7 +2,8 @@ import { Link, useParams, Navigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
-import { getPostBySlug, getRelatedPosts } from "@/lib/blog";
+import { getPostBySlug, getRelatedPosts, hasVerifiedSources, resolveDateModified } from "@/lib/blog";
+import { OfficialSources } from "@/components/article/OfficialSources";
 import { ChevronRight } from "@/icons";
 import { BlogRatingAndComments } from "@/components/BlogRatingAndComments";
 import { ArticleToc } from "@/components/article/ArticleToc";
@@ -39,7 +40,7 @@ export default function BlogPost() {
     description: post.metaDescription,
     image: [imageUrl],
     datePublished: post.publishedAt,
-    dateModified: post.publishedAt,
+    dateModified: resolveDateModified(post),
     author: { "@type": "Organization", name: "Dogovori.net" },
     publisher: {
       "@type": "Organization",
@@ -183,16 +184,27 @@ export default function BlogPost() {
             })()}
           </div>
 
+          {post.sources && post.sources.length > 0 && (
+            <OfficialSources
+              sources={post.sources}
+              verified={hasVerifiedSources(post)}
+              reviewedAt={post.reviewedAt}
+            />
+          )}
+
           <BlogRatingAndComments postType="core" postSlug={post.slug} />
 
           <div className="relative mt-14 overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-8 text-center shadow-elegant md:p-10">
             <div className="absolute inset-x-0 top-0 hairline-x" />
-            <h3 className="font-serif text-xl font-bold leading-tight md:text-2xl">Нужен ви е готов договор?</h3>
+            <h3 className="font-serif text-xl font-bold leading-tight md:text-2xl">
+              {post.cta?.title ?? "Нужен ви е готов договор?"}
+            </h3>
             <p className="mx-auto mt-3 max-w-xl text-balance text-sm leading-relaxed text-muted-foreground">
-              Над 500 професионални документи и бланки на български — попълнете с AI асистент за минути.
+              {post.cta?.body ??
+                "Над 500 професионални документи и бланки на български — попълнете с AI асистент за минути."}
             </p>
-            <Link to="/catalog" className="btn-gold mt-6">
-              Виж шаблоните
+            <Link to={post.cta?.href ?? "/catalog"} className="btn-gold mt-6">
+              {post.cta?.label ?? "Виж шаблоните"}
             </Link>
           </div>
         </article>
