@@ -2010,6 +2010,8 @@ export type Database = {
       }
       lead_magnet_subscribers: {
         Row: {
+          consent_at: string | null
+          consent_version: string | null
           created_at: string
           email: string
           id: string
@@ -2020,6 +2022,8 @@ export type Database = {
           user_agent: string | null
         }
         Insert: {
+          consent_at?: string | null
+          consent_version?: string | null
           created_at?: string
           email: string
           id?: string
@@ -2030,6 +2034,8 @@ export type Database = {
           user_agent?: string | null
         }
         Update: {
+          consent_at?: string | null
+          consent_version?: string | null
           created_at?: string
           email?: string
           id?: string
@@ -4963,6 +4969,15 @@ export type Database = {
           _subject?: string
         }
         Returns: Json
+      }
+      subscribe_lead_magnet: {
+        Args: {
+          _email: string
+          _magnet_slug: string
+          _marketing_consent: boolean
+          _source_group: string
+        }
+        Returns: boolean
       }
       sync_plans_into_prompts: { Args: never; Returns: undefined }
       unaccent: { Args: { "": string }; Returns: string }

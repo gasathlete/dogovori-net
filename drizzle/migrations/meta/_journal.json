@@ -71,6 +71,13 @@
       "when": 1788780884379,
       "tag": "0009_web_vitals_daily_aggregate",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788791290120,
+      "tag": "0010_lead_magnet_consent_hardening",
+      "breakpoints": true
     }
   ]
 }

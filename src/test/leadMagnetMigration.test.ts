@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { describe, expect, expectTypeOf, it } from "vitest";
 
 import type { Tables } from "@/integrations/supabase/types";
-import type { LeadMagnetConsentColumns, SubscribeLeadMagnetArgs } from "@/lib/leadMagnetPendingSchema";
+import type { Database } from "@/integrations/supabase/types";
 import { LEAD_MAGNET_CONSENT_VERSION, LEAD_MAGNET_SLUGS, type LeadMagnetSlug } from "@/lib/leadMagnets";
 import { buildLeadMagnetSubscribeArgs, LEAD_MAGNET_CONSENT_COPY } from "@/lib/leadMagnetSubscribe";
 import { LEAD_MAGNET_SHOWN_KEY, LEAD_MAGNET_SOURCE_GROUPS, type LeadMagnetSourceGroup } from "@/lib/leadMagnetTrigger";
@@ -23,7 +23,8 @@ const COMPONENT_PATH = "src/components/funnel/ExitIntentLeadMagnet.tsx";
 const SUBSCRIBE_PATH = "src/lib/leadMagnetSubscribe.ts";
 const TRIGGER_PATH = "src/lib/leadMagnetTrigger.ts";
 const TYPES_PATH = "src/integrations/supabase/types.ts";
-const PENDING_SCHEMA_PATH = "src/lib/leadMagnetPendingSchema.ts";
+/** Временният типов мост е изтрит след прилагането на миграцията. */
+const REMOVED_PENDING_SCHEMA_PATH = "src/lib/leadMagnetPendingSchema.ts";
 const SOCIAL_PROOF_PATH = "src/components/funnel/SocialProofToast.tsx";
 const ALLOWLIST_PATH = "scripts/security-allowlist.json";
 
@@ -54,21 +55,31 @@ describe("миграция — местоположение и история", 
     expect(rawSql).not.toMatch(/НЕ Е ПРИЛОЖЕНА/);
   });
 
-  it("Drizzle историята е консистентна: чакаща (без запис) или приложена (byte-identical + един запис)", () => {
+  it("миграцията е приложена: Drizzle 0010 е byte-identical, с точно един запис в журнала и снимка", () => {
     const journal = JSON.parse(read(JOURNAL_PATH)) as { entries: Array<{ tag: string; idx: number }> };
     const tags = journal.entries.map((e) => e.tag);
     const applied = readdirSync(DRIZZLE_DIR).filter((f) => /lead_magnet_consent_hardening\.sql$/.test(f));
-    const journalHits = tags.filter((t) => /lead_magnet_consent_hardening$/.test(t));
+    const journalHits = journal.entries.filter((e) => /lead_magnet_consent_hardening$/.test(e.tag));
 
-    if (applied.length === 0) {
-      // Все още не е приложена: журналът не бива да има запис за нея.
-      expect(journalHits).toEqual([]);
-    } else {
-      expect(applied).toHaveLength(1);
-      expect(read(join(DRIZZLE_DIR, applied[0]))).toBe(rawSql);
-      expect(journalHits).toHaveLength(1);
-      expect(applied[0]).toBe(`${journalHits[0]}.sql`);
-    }
+    expect(applied).toEqual(["0010_lead_magnet_consent_hardening.sql"]);
+    expect(read(join(DRIZZLE_DIR, applied[0]))).toBe(rawSql);
+    expect(journalHits).toHaveLength(1);
+    expect(journalHits[0].idx).toBe(10);
+    expect(applied[0]).toBe(`${journalHits[0].tag}.sql`);
+    expect(existsSync(join(DRIZZLE_DIR, "meta", "0010_snapshot.json"))).toBe(true);
+    // По-старата история е непокътната.
+    expect(tags.slice(0, 10)).toEqual([
+      "0000_branding_and_marketing",
+      "0001_branding_storage_policies",
+      "0002_my_activation_funnel",
+      "0003_generation_idempotency_and_funnel_attribution",
+      "0004_create_anonymous_drafts",
+      "0005_metrics_overview_add_continuity",
+      "0006_metrics_overview_checkout_failed",
+      "0007_credit_topup_ops_hardening",
+      "0008_credit_topup_ops_acl_hardening",
+      "0009_web_vitals_daily_aggregate",
+    ]);
     // Индексите в журнала са уникални и последователни.
     const idx = journal.entries.map((e) => e.idx);
     expect(new Set(idx).size).toBe(idx.length);
@@ -197,28 +208,32 @@ describe("миграция — subscribe_lead_magnet RPC", () => {
 });
 
 describe("типове и клиент", () => {
-  it("генерираните типове са канонични: чакащата схема живее само в един мост", () => {
+  it("миграцията е приложена: генерираните типове са канонични, временният мост е изтрит", () => {
     type Row = Tables<"lead_magnet_subscribers">;
     expectTypeOf<Row["marketing_consent"]>().toEqualTypeOf<boolean>();
+    expectTypeOf<Row["consent_at"]>().toEqualTypeOf<string | null>();
+    expectTypeOf<Row["consent_version"]>().toEqualTypeOf<string | null>();
 
-    // Миграцията НЕ е приложена: генерираните типове още не я познават.
-    const types = read(TYPES_PATH);
-    expect(types).not.toContain("subscribe_lead_magnet");
-
-    expectTypeOf<SubscribeLeadMagnetArgs>().toEqualTypeOf<{
+    // RPC-то идва от реалната схема, с точната сигнатура.
+    type Fn = Database["public"]["Functions"]["subscribe_lead_magnet"];
+    expectTypeOf<Fn["Args"]>().toEqualTypeOf<{
       _email: string;
       _magnet_slug: string;
-      _source_group: string;
       _marketing_consent: boolean;
+      _source_group: string;
     }>();
-    expectTypeOf<LeadMagnetConsentColumns>().toEqualTypeOf<{
-      consent_at: string | null;
-      consent_version: string | null;
-    }>();
+    expectTypeOf<Fn["Returns"]>().toEqualTypeOf<boolean>();
 
-    const bridge = read(PENDING_SCHEMA_PATH);
-    expect(bridge).toContain(MIGRATION_NAME);
-    expect((bridge.match(/as unknown as/g) ?? []).length).toBe(1);
+    const types = read(TYPES_PATH);
+    expect(types).toContain("subscribe_lead_magnet");
+    expect(types).toContain("consent_version");
+
+    // Временният типов мост вече не съществува и никой не го внася.
+    expect(existsSync(REMOVED_PENDING_SCHEMA_PATH)).toBe(false);
+    const importers = walk("src")
+      .filter((p) => p !== "src/test/leadMagnetMigration.test.ts")
+      .filter((p) => /leadMagnetPendingSchema|pendingLeadMagnetClient/.test(read(p)));
+    expect(importers).toEqual([]);
   });
 
   it("клиентът ползва типизирано RPC без any/unknown кастове и без директен insert", () => {
