@@ -154,8 +154,9 @@ describe("webVitalsReporter — валидност на рейтинга пре�
     handlers.CLS?.({ name: "CLS", value: 0.3, rating: "needs-improvement" }); // 0.3 е poor
     await vi.advanceTimersByTimeAsync(0);
     expect(rpc).not.toHaveBeenCalled();
-    // Локалният лог и аналитиката не са засегнати от тази проверка.
-    expect(trackEvent).toHaveBeenCalledTimes(3);
+    // FAIL CLOSED: несъгласуваната проба не отива и към аналитиката,
+    // но локалната диагностика я запазва без промяна.
+    expect(trackEvent).not.toHaveBeenCalled();
     expect(localStorage.getItem("dogovori:perf-log")).toContain("LCP");
   });
 
@@ -186,9 +187,10 @@ describe("webVitalsReporter — валидност на рейтинга пре�
     handlers.CLS?.({ name: "CLS", value: 15, rating: "poor" }); // 15 000 > 10 000
     handlers.INP?.({ name: "INP", value: Number.NaN, rating: "good" });
     await vi.advanceTimersByTimeAsync(0);
-    // NaN → 0 → good: единствената съгласувана проба.
-    expect(rpc).toHaveBeenCalledTimes(1);
-    expect(rpcArgs()).toMatchObject({ _metric: "INP", _rating: "good", _value: 0 });
+    // NaN НЕ се свежда до 0 — иначе би минало за "good".
+    expect(rpc).not.toHaveBeenCalled();
+    expect(trackEvent).not.toHaveBeenCalled();
+    expect(localStorage.getItem("dogovori:perf-log")).toContain("INP");
   });
 
   it("точните гранични стойности са good и за RPC, и за аналитичната кофа", async () => {
