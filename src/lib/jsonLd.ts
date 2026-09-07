@@ -149,21 +149,10 @@ export function softwareApplicationSchema() {
           referenceQuantity: { "@type": "QuantitativeValue", value: 1, unitCode: "ANN" },
         },
       },
-      {
-        "@type": "Offer",
-        name: "Pay-as-you-go pack (5 ops)",
-        price: "1.90",
-        priceCurrency: "EUR",
-        description: "5 operations, one-off",
-      },
     ],
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: "4.8",
-      ratingCount: "127",
-    },
   };
 }
+
 
 /**
  * LegalService — entity hint that the site offers legal document services
