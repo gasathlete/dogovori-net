@@ -11,8 +11,10 @@
  * with a 24 h TTL so the user can come back and Step 4 can personalize itself.
  */
 
-import { trackEvent } from "@/lib/analytics";
+import { getCategoryConsent, trackEvent } from "@/lib/analytics";
 import { claimOnce } from "@/lib/funnelEvents";
+import { getBrowserId, getCurrentFunnelContext } from "@/lib/funnelContext";
+
 
 export type FunnelStep = 1 | 2 | 3 | 4;
 
@@ -121,27 +123,19 @@ export function getCurrentFunnelStep(): FunnelStep {
   return (v >= 1 && v <= 4 ? v : 1) as FunnelStep;
 }
 
-const SESSION_ID_KEY = "funnel_session_id_v1";
-
 /**
- * Псевдонимна сесия за фунията. Пази се в localStorage и НЕ се сменя при
+ * Псевдонимен идентификатор на браузъра. Пази се в localStorage и НЕ се сменя при
  * вход/регистрация — така анонимният път (doc_start → generate) и
- * регистрираният (download, checkout) се свързват през един session_id,
+ * регистрираният (download, checkout) се свързват през една стойност,
  * а user_id се добавя от момента на автентикация нататък.
+ *
+ * Обратна съвместимост: колоната `funnel_events.session_id` продължава да носи
+ * точно тази стойност; истинската сесия на таба е `props.tab_session_id`.
  */
 export function getFunnelSessionId(): string {
-  if (typeof window === "undefined") return "ssr";
-  try {
-    let id = localStorage.getItem(SESSION_ID_KEY);
-    if (!id) {
-      id = (crypto?.randomUUID?.() ?? `s_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`);
-      localStorage.setItem(SESSION_ID_KEY, id);
-    }
-    return id;
-  } catch {
-    return `s_${Date.now()}`;
-  }
+  return getBrowserId();
 }
+
 
 /* -------------------- Идентичност (user_id attribution) -------------------- */
 
@@ -232,7 +226,14 @@ export interface TrackFunnelOptions {
 }
 
 /**
- * @returns true, ако събитието е изпратено; false, ако е дедупликирано.
+ * Изпраща продуктово събитие към GA, dataLayer и `public.funnel_events`.
+ *
+ * Съгласие: и трите пътя са зад съгласието за категория „analytics" (банерът
+ * обещава точно това). Без съгласие функцията не прави НИКАКЪВ страничен ефект
+ * и връща false. Оперативната истина остава в оперативните таблици и логове.
+ *
+ * @returns true, ако събитието е изпратено; false, ако е дедупликирано или
+ *          няма съгласие за аналитика.
  */
 export function trackFunnelEvent(
   name: string,
@@ -240,6 +241,11 @@ export function trackFunnelEvent(
   options?: TrackFunnelOptions,
 ): boolean {
   if (typeof window === "undefined") return false;
+  try {
+    if (!getCategoryConsent("analytics")) return false;
+  } catch {
+    return false;
+  }
   // Пътят се хваща СИНХРОННО: до момента на асинхронния DB запис потребителят
   // вече може да е навигирал другаде и записът щеше да сочи грешна страница.
   let path: string | null = null;
@@ -254,8 +260,11 @@ export function trackFunnelEvent(
   const dedupKey = options?.dedupKey ? String(options.dedupKey).slice(0, 200) : undefined;
   if (dedupKey && !claimOnce(`${sessionId}|${storedName}|${dedupKey}`)) return false;
 
-  const finalProps: Record<string, unknown> = { ...(props ?? {}) };
+  // Envelope-ът се налага ПОСЛЕ, за да не може call site да пренапише
+  // идентичността или версията на схемата.
+  const finalProps: Record<string, unknown> = { ...(props ?? {}), ...getCurrentFunnelContext() };
   if (dedupKey) finalProps.dedup_key = dedupKey;
+
 
   trackEvent(storedName, finalProps);
   try {

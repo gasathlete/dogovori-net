@@ -15,7 +15,9 @@
  * а етапът се носи в props.dstage.
  */
 import { trackFunnelEvent } from "@/lib/funnel";
+import { ensureDocumentJourney } from "@/lib/funnelContext";
 import { abProps } from "@/lib/ab";
+
 import {
   ONCE_PER_SESSION_DOC,
   STORED_NAME,
@@ -172,12 +174,16 @@ export function trackReviewResult(clean: boolean, issues: number, props?: DocFun
 
 /**
  * document_selected — САМО при съзнателно действие на потребителя (клик върху
- * документ, първи отговор във въпросника). Еднократно за (сесия, документ).
- * Не се вика от useEffect при mount, от SEO страници или при prefetch.
+ * документ, първи отговор във въпросника). Еднократно за run_id, така че
+ * различни `source` етикети НЕ могат да произведат два старта за един и същи
+ * опит върху документа. Не се вика от useEffect при mount, от SEO страници
+ * или при prefetch.
  */
 export function trackDocStart(props?: DocFunnelProps): boolean {
-  return trackCanonical("document_selected", props, [props?.doc_key ?? "", props?.source ?? ""]);
+  const ctx = ensureDocumentJourney(typeof props?.doc_key === "string" ? props.doc_key : undefined);
+  return trackCanonical("document_selected", props, [ctx.run_id]);
 }
+
 
 /* -------------------- 2. Попълване -------------------- */
 

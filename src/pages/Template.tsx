@@ -16,6 +16,8 @@ import { loadTemplateDraft } from "@/data/templateDrafts";
 import type { TemplateContent } from "@/data/templateContentTypes";
 import { trackEvent } from "@/lib/analytics";
 import { trackFunnelEvent } from "@/lib/funnel";
+import { startDocumentJourney } from "@/lib/funnelContext";
+
 import { autoLinkParagraph, createAutoLinkState } from "@/lib/autoLinkBlog";
 import { RELATED_TEMPLATES } from "@/data/relatedTemplates";
 import { buildTemplateFallbackContent } from "@/lib/templateFallbackContent";
@@ -127,8 +129,10 @@ export default function TemplatePage() {
    * Props-ите са low-cardinality и без PII (без име на документ).
    */
   const trackCreateCta = (position: "hero" | "content" | "footer") => {
+    startDocumentJourney(entry.slug);
     trackFunnelEvent("template_create_cta_clicked", {
       slug: entry.slug,
+      doc_key: entry.slug,
       position,
       variant: intentVariant,
       authenticated: Boolean(user),
@@ -150,13 +154,16 @@ export default function TemplatePage() {
    * се различава от историческото `template_blank_cta_clicked`.
    */
   const trackBlankPreview = () => {
+    startDocumentJourney(entry.slug);
     trackFunnelEvent("template_blank_preview_clicked", {
       slug: entry.slug,
+      doc_key: entry.slug,
       position: "content",
       variant: SEO_INTENT_VERSION,
       authenticated: Boolean(user),
     });
   };
+
 
 
   const metaOverride = getSeoTemplateMeta(entry.slug);
