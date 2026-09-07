@@ -49,7 +49,9 @@
 
     <!-- canonical + hreflang are managed per-route via react-helmet-async in src/components/Seo.tsx -->
     <!-- (static <link> tags don't dedupe with Helmet, so duplicates would otherwise ship on every route) -->
-    <meta name="robots" content="index, follow" />
+    <!-- data-prerendered="true": route-specific tags that Helmet owns at runtime. src/main.tsx removes
+         them before React mounts, so the hydrated DOM keeps exactly one Helmet copy. -->
+    <meta name="robots" content="index, follow" data-prerendered="true" />
     <meta name="theme-color" content="#0b1525" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#faf8f3" media="(prefers-color-scheme: light)" />
     <meta name="geo.region" content="BG" />
@@ -60,12 +62,12 @@
     <meta name="msvalidate.01" content="" />
 
     <title>Dogovori.net – документи, бланки и шаблони на български</title>
-    <meta name="description" content="600+ безплатни образци – Асистент за Преговори, AI Юридически помощник. Документи, договори, пълномощни. Попълни онлайн, свали в PDF/DOCX, подпиши електронно.">
+    <meta name="description" content="600+ безплатни образци – Асистент за Преговори, AI Юридически помощник. Документи, договори, пълномощни. Попълни онлайн, свали в PDF/DOCX, подпиши електронно." data-prerendered="true">
     <meta name="keywords" content="договори, бланки, юридически документи, наем, услуга, трудов договор, ЗЗД, ТЗ, ЗУТ, AI правен помощник" />
     <meta name="author" content="Dogovori.net" />
 
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://dogovori.net/" />
+    <meta property="og:type" content="website" data-prerendered="true" />
+    <meta property="og:url" content="https://dogovori.net/" data-prerendered="true" />
     <meta property="og:locale" content="bg_BG" />
     <meta property="og:site_name" content="Dogovori.net" />
     
@@ -76,6 +78,7 @@
     
     
     <meta name="twitter:image" content="https://dogovori.net/og-image.jpg">
+
 
     <script type="application/ld+json">
       {
@@ -117,15 +120,10 @@
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Web",
         "inLanguage": "bg-BG",
-        "description": "AI асистент за генериране, проверка и електронно подписване на български правни документи и договори.",
-        "offers": [
-          { "@type": "Offer", "name": "Предприемач", "price": "12.90", "priceCurrency": "EUR" },
-          { "@type": "Offer", "name": "Екип (на място)", "price": "10.90", "priceCurrency": "EUR" },
-          { "@type": "Offer", "name": "Пакет 5 операции", "price": "1.90", "priceCurrency": "EUR" }
-        ],
-        "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "ratingCount": "127" }
+        "description": "AI асистент за генериране, проверка и електронно подписване на български правни документи и договори."
       }
     </script>
+
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -144,10 +142,11 @@
       window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
     </script>
   <!-- og:title / og:description / twitter:title / twitter:description се управляват per-route през react-helmet-async (src/components/Seo.tsx). -->
-  <meta property="og:title" content="Dogovori.net – документи, бланки и шаблони на български">
-  <meta name="twitter:title" content="Dogovori.net – документи, бланки и шаблони на български">
-  <meta property="og:description" content="600+ безплатни образци – Асистент за Преговори, AI Юридически помощник. Документи, договори, пълномощни. Попълни онлайн, свали в PDF/DOCX, подпиши електронно.">
-  <meta name="twitter:description" content="600+ безплатни образци – Асистент за Преговори, AI Юридически помощник. Документи, договори, пълномощни. Попълни онлайн, свали в PDF/DOCX, подпиши електронно.">
+  <meta property="og:title" content="Dogovori.net – документи, бланки и шаблони на български" data-prerendered="true">
+  <meta name="twitter:title" content="Dogovori.net – документи, бланки и шаблони на български" data-prerendered="true">
+  <meta property="og:description" content="600+ безплатни образци – Асистент за Преговори, AI Юридически помощник. Документи, договори, пълномощни. Попълни онлайн, свали в PDF/DOCX, подпиши електронно." data-prerendered="true">
+  <meta name="twitter:description" content="600+ безплатни образци – Асистент за Преговори, AI Юридически помощник. Документи, договори, пълномощни. Попълни онлайн, свали в PDF/DOCX, подпиши електронно." data-prerendered="true">
+
 </head>
 
   <body>

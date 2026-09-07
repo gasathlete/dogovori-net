@@ -20,6 +20,13 @@ import {
   AI_FAQS,
   validateAll,
 } from "../src/lib/seo/schemas";
+import { buildTemplateFallbackContent } from "../src/lib/templateFallbackContent";
+import {
+  buildTemplatePageDescription,
+  resolveTemplatePresentation,
+} from "../src/lib/resolveTemplatePresentation";
+import { FREE_OFFER_RULE } from "../src/lib/pricing";
+
 
 const DIST = resolve(process.cwd(), "dist");
 const SITE = "https://dogovori.net";
@@ -78,21 +85,22 @@ function renderPage(meta: PageMeta): string {
   // Replace <title>
   let html = baseHtml.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(meta.title)}</title>`);
   // Replace meta description
-  html = html.replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${escapeHtml(meta.description)}" />`);
+  html = html.replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${escapeHtml(meta.description)}" data-prerendered="true" />`);
   // Replace or inject canonical (index.html no longer ships a static canonical — Helmet owns it per-route at runtime, so prerendered HTML must inject it).
-  const canonicalTag = `<link rel="canonical" href="${url}" />`;
+  const canonicalTag = `<link rel="canonical" href="${url}" data-prerendered="true" />`;
   if (/<link rel="canonical"[^>]*>/.test(html)) {
     html = html.replace(/<link rel="canonical"[^>]*>/, canonicalTag);
   } else {
     html = html.replace(/<\/head>/, `    ${canonicalTag}\n  </head>`);
   }
   // Replace OG
-  html = html.replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${url}" />`);
-  html = html.replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${escapeHtml(meta.title)}" />`);
-  html = html.replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${escapeHtml(meta.description)}" />`);
-  if (meta.type) html = html.replace(/<meta property="og:type"[^>]*>/, `<meta property="og:type" content="${meta.type}" />`);
-  html = html.replace(/<meta name="twitter:title"[^>]*>/, `<meta name="twitter:title" content="${escapeHtml(meta.title)}" />`);
-  html = html.replace(/<meta name="twitter:description"[^>]*>/, `<meta name="twitter:description" content="${escapeHtml(meta.description)}" />`);
+  html = html.replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${url}" data-prerendered="true" />`);
+  html = html.replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${escapeHtml(meta.title)}" data-prerendered="true" />`);
+  html = html.replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${escapeHtml(meta.description)}" data-prerendered="true" />`);
+  if (meta.type) html = html.replace(/<meta property="og:type"[^>]*>/, `<meta property="og:type" content="${meta.type}" data-prerendered="true" />`);
+  html = html.replace(/<meta name="twitter:title"[^>]*>/, `<meta name="twitter:title" content="${escapeHtml(meta.title)}" data-prerendered="true" />`);
+  html = html.replace(/<meta name="twitter:description"[^>]*>/, `<meta name="twitter:description" content="${escapeHtml(meta.description)}" data-prerendered="true" />`);
+
 
   // Inject extra JSON-LD blocks before </head>.
   // Mark each with data-prerendered="true" so the client can strip them before
@@ -286,13 +294,13 @@ for (const cat of CATALOG) {
       <nav><a href="/">Начало</a> › <a href="/catalog">Каталог</a> › ${escapeHtml(cat.title)}</nav>
       <h1>${escapeHtml(cat.title)}</h1>
       <p>${escapeHtml(cat.intro)}</p>
-      <p>В тази категория ще намерите ${cat.documents.length} готови шаблона, съобразени с действащото българско законодателство. Всеки документ е подготвен от юристи и включва задължителните защитни клаузи — частична недействителност, форсмажор и подсъдност.</p>
+      <p>В тази категория ще намерите ${cat.documents.length} готови шаблона, съобразени с действащото българско законодателство. Приложимите клаузи и реквизити зависят от вида на документа и от конкретната сделка.</p>
       <h2>Шаблони в категорията</h2>
       <ul>${cat.documents.map((d) => `<li><a href="/shablon/${slugify(d.name)}">${escapeHtml(d.name)}</a> — ${escapeHtml(d.purpose)}</li>`).join("")}</ul>
       <h2>Често задавани въпроси</h2>
-      <section><h3>Безплатно ли е да изтегля документ?</h3><p>Да, първият документ е безплатен. След това действат месечни лимити или Pro абонамент за неограничено теглене.</p></section>
-      <section><h3>Документите подписват ли се с електронен подпис?</h3><p>Да. Поддържаме подписване в браузъра и експорт към PDF с одиторска следа, признат от ЗЕДЕУУ и eIDAS.</p></section>
-      <section><h3>Заместват ли консултация с адвокат?</h3><p>Не. Шаблоните са професионално подготвени образци, но за сделки с висока стойност препоръчваме окончателен преглед от лицензиран адвокат.</p></section>
+      <section><h3>Безплатно ли е да изтегля документ?</h3><p>Стартът е безплатен: ${escapeHtml(FREE_OFFER_RULE)}. Платените планове дават по-високи месечни лимити.</p></section>
+      <section><h3>Документите подписват ли се с електронен подпис?</h3><p>Поддържаме подписване в браузъра и експорт към PDF с одиторска следа. Обикновеният електронен подпис има силата на саморъчен само ако страните са се съгласили за това; когато законът изисква определена форма, може да е нужен квалифициран електронен подпис или нотариална форма.</p></section>
+      <section><h3>Заместват ли консултация с адвокат?</h3><p>Не. Шаблоните са образци за самостоятелно попълване, но за сделки с висока стойност препоръчваме окончателен преглед от лицензиран адвокат.</p></section>
       ${related.length ? `<h2>Свързани категории</h2><ul>${related.map((r) => `<li><a href="/kategoria/${r.id}">${escapeHtml(r.title)}</a></li>`).join("")}</ul>` : ""}
       <p><a href="/catalog">← Обратно към каталога</a> · <a href="/karta">Карта на сайта</a></p>
     </main>`,
@@ -300,9 +308,10 @@ for (const cat of CATALOG) {
       "@context": "https://schema.org",
       "@type": "FAQPage",
       mainEntity: [
-        { "@type": "Question", name: "Безплатно ли е да изтегля документ?", acceptedAnswer: { "@type": "Answer", text: "Да, първият документ е безплатен. След това действат месечни лимити или Pro абонамент." } },
-        { "@type": "Question", name: "Документите подписват ли се с електронен подпис?", acceptedAnswer: { "@type": "Answer", text: "Да. Поддържаме подписване в браузъра и експорт към PDF с одиторска следа, признат от ЗЕДЕУУ и eIDAS." } },
-        { "@type": "Question", name: "Заместват ли консултация с адвокат?", acceptedAnswer: { "@type": "Answer", text: "Не. Шаблоните са професионално подготвени образци; за сделки с висока стойност препоръчваме преглед от лицензиран адвокат." } },
+        { "@type": "Question", name: "Безплатно ли е да изтегля документ?", acceptedAnswer: { "@type": "Answer", text: `Стартът е безплатен: ${FREE_OFFER_RULE}. Платените планове дават по-високи месечни лимити.` } },
+        { "@type": "Question", name: "Документите подписват ли се с електронен подпис?", acceptedAnswer: { "@type": "Answer", text: "Поддържаме подписване в браузъра и експорт към PDF с одиторска следа. Обикновеният електронен подпис има силата на саморъчен само ако страните са се съгласили за това; когато законът изисква определена форма, може да е нужен квалифициран електронен подпис или нотариална форма." } },
+        { "@type": "Question", name: "Заместват ли консултация с адвокат?", acceptedAnswer: { "@type": "Answer", text: "Не. Шаблоните са образци за самостоятелно попълване; за сделки с висока стойност препоръчваме преглед от лицензиран адвокат." } },
+
       ],
     }],
   });
@@ -336,20 +345,55 @@ for (const cat of CATALOG) {
     const slug = slugByDoc.get(`${cat.id}::${doc.name}`)!;
 
     const ai = TEMPLATE_CONTENT[slug];
-    const intro = ai?.intro ?? doc.purpose;
-    const requirements: string[] = ai?.requirements ?? [
+
+    // SAME guard as runtime (src/lib/resolveTemplatePresentation.ts): за
+    // НЕдоговорните („защитени") видове документи генерираното AI съдържание
+    // НЕ се публикува — нито intro, нито реквизити/FAQ. Иначе статичният HTML
+    // показва на кроулърите точно текста, който runtime-ът вече блокира.
+    const fallback = buildTemplateFallbackContent({
+      docName: doc.name,
+      categoryId: cat.id,
+      documentType: (doc as { documentType?: any }).documentType,
+    });
+    const resolved = resolveTemplatePresentation(ai, fallback);
+    const guardedDesc = buildTemplatePageDescription({
+      guarded: resolved.guarded,
+      docName: doc.name,
+      metaLawSuffix: fallback.labels.metaLawSuffix,
+      metaFallbackLaw: fallback.labels.metaFallbackLaw,
+    });
+
+    const legacyIntro: string = ai?.intro ?? doc.purpose;
+    const legacyRequirements: string[] = ai?.requirements ?? [
       "Пълни данни на страните",
       "Ясен предмет на договора",
       "Цена, срок и начин на плащане",
       "Права и задължения",
       "Подписи на страните и дата",
     ];
-    const faq: { q: string; a: string }[] = ai?.faq ?? [
+    const legacyFaq: { q: string; a: string }[] = ai?.faq ?? [
       { q: "Задължителна ли е писмената форма?", a: "ЗЗД допуска и устни договори, но писмената форма е силно препоръчителна за доказване." },
-      { q: "Колко струва услугата?", a: "Безплатно за първия документ. Pro абонамент дава неограничен брой договори." },
+      { q: "Колко струва услугата?", a: `Стартът е безплатен: ${FREE_OFFER_RULE}. Платените планове дават по-високи месечни лимити.` },
     ];
-    const usageCases: string[] = Array.isArray(ai?.usageCases) ? ai.usageCases : [];
-    const mistakes: string[] = Array.isArray(ai?.mistakes) ? ai.mistakes : [];
+
+    const intro = resolved.guarded ? doc.purpose : legacyIntro;
+    const requirements: string[] = resolved.guarded ? resolved.requirements : legacyRequirements;
+    const faq: { q: string; a: string }[] = resolved.guarded ? resolved.faq : legacyFaq;
+    const usageCases: string[] = resolved.guarded
+      ? resolved.usageCases
+      : Array.isArray(ai?.usageCases)
+        ? ai.usageCases
+        : [];
+    const mistakes: string[] = resolved.guarded
+      ? resolved.mistakes
+      : Array.isArray(ai?.mistakes)
+        ? ai.mistakes
+        : [];
+    const description = resolved.guarded
+      ? guardedDesc
+      : legacyIntro.length > 155
+        ? legacyIntro.slice(0, 152) + "…"
+        : legacyIntro;
     // Pick up to 6 sibling templates as related, excluding self.
     const related = siblings.filter((s) => s.slug !== slug).slice(0, 6);
 
@@ -357,7 +401,7 @@ for (const cat of CATALOG) {
       "@context": "https://schema.org",
       "@type": "Article",
       headline: doc.name,
-      description: doc.purpose,
+      description: resolved.guarded ? guardedDesc : doc.purpose,
       inLanguage: "bg-BG",
       author: { "@type": "Organization", name: "Dogovori.net" },
       publisher: { "@type": "Organization", name: "Dogovori.net", logo: { "@type": "ImageObject", url: `${SITE}/favicon.png` } },
@@ -386,8 +430,9 @@ for (const cat of CATALOG) {
     pages.push({
       path: `/shablon/${slug}`,
       title: `${doc.name} — образец на български | Dogovori.net`,
-      description: (intro.length > 155 ? intro.slice(0, 152) + "…" : intro),
+      description,
       bodyHtml: bodyForTemplate(doc.name, intro, requirements, faq, usageCases, mistakes, related, cat.title, cat.id),
+
       jsonLd: [breadcrumbsLd, articleLd, faqLd],
       type: "article",
     });

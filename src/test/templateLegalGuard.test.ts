@@ -156,14 +156,16 @@ describe("resolveTemplatePresentation — договор/споразумени�
 });
 
 describe("resolveTemplatePresentation — intro/usageCases и fallback при липса на AI", () => {
-  it("запазва AI intro и usageCases за защитените видове", () => {
+  it("НЕ пропуска AI intro и usageCases при защитените видове", () => {
     const fallback = buildTemplateFallbackContent({ docName: "Пълномощно за КАТ" });
     const content = ai({});
     const r = resolveTemplatePresentation(content, fallback);
     expect(r.guarded).toBe(true);
-    expect(r.intro).toBe(content.intro);
-    expect(r.usageCases).toBe(content.usageCases);
+    expect(r.intro).toBeUndefined();
+    expect(r.usageCases).toBe(fallback.usageCases);
+    expect(r.usageCases).not.toBe(content.usageCases);
   });
+
 
   it("без AI съдържание всичко идва от fallback-а", () => {
     const fallback = buildTemplateFallbackContent({ docName: "Разписка за получена сума" });
@@ -199,7 +201,9 @@ describe("тип-матрица (компактен инвариант, без �
       expect(r.requirements, t).toBe(fallback.requirements);
       expect(r.mistakes, t).toBe(fallback.mistakes);
       expect(r.faq, t).toBe(fallback.faq);
-      expect(r.intro, t).toBe(content.intro);
+      expect(r.intro, t).toBeUndefined();
+      expect(r.usageCases, t).toBe(fallback.usageCases);
+
     }
   });
 
@@ -355,7 +359,7 @@ describe("Template.tsx wiring — intro и структурирани данни
     );
   });
 
-  it("логиката на intro: защитен без AI → undefined; договор → legacy meta excerpt", () => {
+  it("логиката на intro: защитен винаги undefined; договор → legacy meta excerpt", () => {
     const metaExcerpt = "Задължителен документ, който гарантира законосъобразност.";
     const pick = (guarded: boolean, aiIntro: string | undefined) =>
       guarded ? aiIntro : aiIntro ?? metaExcerpt;
@@ -365,12 +369,14 @@ describe("Template.tsx wiring — intro и структурирани данни
     expect(protectedResolved.guarded).toBe(true);
     expect(pick(protectedResolved.guarded, protectedResolved.intro)).toBeUndefined();
 
-    const protectedEmpty = resolveTemplatePresentation(ai({ intro: "" }), protectedFallback);
-    expect(pick(protectedEmpty.guarded, protectedEmpty.intro)).toBe("");
+    // AI intro никога не се показва при защитените видове.
+    const protectedWithAi = resolveTemplatePresentation(ai({ intro: "AI въведение." }), protectedFallback);
+    expect(pick(protectedWithAi.guarded, protectedWithAi.intro)).toBeUndefined();
 
     const rentFallback = buildTemplateFallbackContent({ docName: "Договор за наем на жилище" });
     const rent = resolveTemplatePresentation(undefined, rentFallback);
     expect(rent.guarded).toBe(false);
     expect(pick(rent.guarded, rent.intro)).toBe(metaExcerpt);
   });
+
 });
