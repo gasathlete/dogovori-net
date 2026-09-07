@@ -9,7 +9,7 @@
  *    съгласие — без име, без суров път, без user agent;
  *  - никога не показва сурова грешка от базата на потребителя.
  */
-import { pendingLeadMagnetClient } from "@/lib/leadMagnetPendingSchema";
+import { supabase } from "@/integrations/supabase/client";
 import { isLeadMagnetSlug, LEAD_MAGNET_CONSENT_VERSION, type LeadMagnetSlug } from "@/lib/leadMagnets";
 import {
   isLeadMagnetSourceGroup,
@@ -50,7 +50,7 @@ export async function subscribeToLeadMagnetNewsletter(
   const args = buildLeadMagnetSubscribeArgs(input);
   if (args === null) return "invalid";
   try {
-    const { data, error } = await pendingLeadMagnetClient.rpc("subscribe_lead_magnet", args);
+    const { data, error } = await supabase.rpc("subscribe_lead_magnet", args);
     if (error) return "error";
     return data === true ? "subscribed" : "invalid";
   } catch {
