@@ -283,6 +283,16 @@ describe("lead-magnet PDF — рендер", () => {
       `public${leadMagnetPublicPath(slug)} не съответства на източника — изпълнете: bun run scripts/generate-lead-magnets.ts`,
     ).toBe(sha256(fresh));
   });
+
+  it.each(docs)("%s — линковете в байтовете са само каноничните URL адреси; остарелите липсват", (slug) => {
+    // jsPDF записва URI анотациите некодирани: `/A <</S /URI /URI (https://…) >>`.
+    const raw = Buffer.from(rendered.get(slug)!.bytes).toString("latin1");
+    const uris = [...raw.matchAll(/\/S \/URI \/URI \(([^)]*)\)/g)].map((m) => m[1]);
+    expect(uris.length).toBeGreaterThanOrEqual(EXPECTED_SOURCE_URLS[slug].length + 1);
+    expect([...new Set(uris)].sort()).toEqual([...EXPECTED_SOURCE_URLS[slug], EXPECTED_CTA_URLS[slug]].sort());
+    for (const obsolete of OBSOLETE_URLS) expect(raw, `остарял URL в PDF: ${obsolete}`).not.toContain(obsolete);
+    for (const frag of OBSOLETE_URL_FRAGMENTS) expect(raw, `остарял фрагмент в PDF: ${frag}`).not.toContain(frag);
+  });
 });
 
 describe("lead-magnet PDF — извлечен текст (pdf.js)", () => {
