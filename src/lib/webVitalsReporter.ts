@@ -114,10 +114,10 @@ export function prepareCentralArgs(
   };
 }
 
-/** Fire-and-forget агрегиран запис. Никога не влияе на UX. */
+/** Fire-and-forget агрегиран запис през каноничния типизиран клиент. Никога не влияе на UX. */
 async function recordCentral(args: CentralArgs): Promise<void> {
   try {
-    await webVitalsClient.rpc("record_web_vital_aggregate", args);
+    await supabase.rpc("record_web_vital_aggregate", args);
   } catch {
     /* network/schema errors are non-critical */
   }
