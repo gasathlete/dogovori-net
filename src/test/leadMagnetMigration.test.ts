@@ -23,6 +23,7 @@ const COMPONENT_PATH = "src/components/funnel/ExitIntentLeadMagnet.tsx";
 const SUBSCRIBE_PATH = "src/lib/leadMagnetSubscribe.ts";
 const TRIGGER_PATH = "src/lib/leadMagnetTrigger.ts";
 const TYPES_PATH = "src/integrations/supabase/types.ts";
+const PENDING_SCHEMA_PATH = "src/lib/leadMagnetPendingSchema.ts";
 const SOCIAL_PROOF_PATH = "src/components/funnel/SocialProofToast.tsx";
 const ALLOWLIST_PATH = "scripts/security-allowlist.json";
 
