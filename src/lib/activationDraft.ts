@@ -482,6 +482,14 @@ function buildSyncPointer(args: {
     Date.parse(data.expires_at || "") || Date.now() + ttl,
     claimed ? storedSame?.expiresAt ?? 0 : 0,
   );
+  // Атрибуцията се пази, ако вече има валидна (update/claim); иначе се снима
+  // текущият документен контекст (нов указател при първи запис).
+  const existingJourney = storedSame?.journeyId ?? (sameAsSent ? sent?.journeyId : undefined);
+  const existingRun = storedSame?.runId ?? (sameAsSent ? sent?.runId : undefined);
+  const ctx =
+    isValidFunnelId(existingJourney) && isValidFunnelId(existingRun) ? null : getDocumentContext();
+  const journeyId = isValidFunnelId(existingJourney) ? existingJourney : ctx?.journey_id;
+  const runId = isValidFunnelId(existingRun) ? existingRun : ctx?.run_id;
   return {
     created: !sameAsSent,
     pointer: {
@@ -497,7 +505,10 @@ function buildSyncPointer(args: {
       expiresAt,
       claimed,
       savedDocId: storedSame?.savedDocId ?? (sameAsSent ? sent?.savedDocId : undefined),
+      journeyId: isValidFunnelId(journeyId) ? journeyId : undefined,
+      runId: isValidFunnelId(runId) ? runId : undefined,
     },
+
   };
 }
 
