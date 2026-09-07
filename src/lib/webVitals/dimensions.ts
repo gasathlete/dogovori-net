@@ -94,10 +94,18 @@ export function coarseNavigationType(t: string | undefined | null): NavigationTy
   }
 }
 
-/** Цяло число за базата: ms за LCP/INP, CLS × 1000. */
+/**
+ * Цяло число за базата: ms за LCP/INP, CLS × 1000.
+ *
+ * Използваме таван (ceil), а не закръгляне: за реално v и цял праг T важи
+ * v <= T ⇔ ceil(v) <= T, така рейтингът на web-vitals (сравнение „<=“ върху
+ * суровата стойност) винаги съвпада с рейтинга, изведен от цялата стойност.
+ * Преди тавана махаме шума от плаваща запетая (0.057 × 1000 = 57.00000000000001).
+ */
 export function toIntegerValue(metric: CoreMetric, value: number): number {
   if (!Number.isFinite(value) || value < 0) return 0;
-  return Math.round(metric === "CLS" ? value * 1000 : value);
+  const scaled = metric === "CLS" ? value * 1000 : value;
+  return Math.ceil(Math.round(scaled * 1e6) / 1e6);
 }
 
 /** Горна граница на разумните стойности (същата като в SQL валидацията). */
@@ -113,6 +121,27 @@ export function isSaneValue(metric: CoreMetric, intValue: number): boolean {
 
 export type RatingClass = "good" | "needs-improvement" | "poor";
 
-export function isRating(r: string): r is RatingClass {
+export function isRating(r: unknown): r is RatingClass {
   return r === "good" || r === "needs-improvement" || r === "poor";
+}
+
+/**
+ * Актуални прагове на Web Vitals върху нормализираната цяла скала —
+ * включителни („<=“), същите като в SQL валидацията на RPC-то:
+ *   LCP good <= 2500 ms, needs-improvement <= 4000 ms
+ *   INP good <= 200 ms,  needs-improvement <= 500 ms
+ *   CLS good <= 100 (0.100), needs-improvement <= 250 (0.250)
+ */
+export const CORE_THRESHOLDS: Record<CoreMetric, readonly [good: number, needsImprovement: number]> = {
+  LCP: [2500, 4000],
+  INP: [200, 500],
+  CLS: [100, 250],
+};
+
+/** Рейтинг, изведен от нормализираната цяла стойност (точно 2500/200/100 → good). */
+export function ratingForValue(metric: CoreMetric, intValue: number): RatingClass {
+  const [good, needsImprovement] = CORE_THRESHOLDS[metric];
+  if (intValue <= good) return "good";
+  if (intValue <= needsImprovement) return "needs-improvement";
+  return "poor";
 }
