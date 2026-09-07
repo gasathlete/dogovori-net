@@ -78,6 +78,41 @@ function makeDeps(db: any, over: Partial<WebhookDeps> = {}): WebhookDeps {
   };
 }
 
+/**
+ * Deps с шпиони: брои Stripe line-item заявките и изпратените имейли, за да
+ * може „нула външни действия“ да се твърди, а не да се предполага.
+ */
+// deno-lint-ignore no-explicit-any
+function makeSpyDeps(db: any) {
+  const lineItemCalls: string[] = [];
+  const emails: string[] = [];
+  const deps = makeDeps(db, {
+    createStripe: () => ({
+      checkout: {
+        sessions: {
+          listLineItems: (id: string) => {
+            lineItemCalls.push(id);
+            return Promise.resolve({ data: [] });
+          },
+        },
+      },
+      subscriptions: { retrieve: () => Promise.resolve({ metadata: {} }) },
+    }),
+    sendEmail: (_db: unknown, template: string) => {
+      emails.push(template);
+      return Promise.resolve({});
+    },
+  });
+  return { deps, lineItemCalls, emails };
+}
+
+/** Първият ред, подаден на `order_snapshots.upsert`. */
+// deno-lint-ignore no-explicit-any
+function snapshotRow(db: any): Record<string, unknown> {
+  const write = db.calls.find((c: Call) => c.table === "order_snapshots" && c.op === "upsert");
+  return (write?.args?.[0] ?? {}) as Record<string, unknown>;
+}
+
 const activeSub = {
   id: "sub_1",
   customer: "cus_1",
