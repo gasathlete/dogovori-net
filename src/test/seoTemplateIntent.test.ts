@@ -157,6 +157,8 @@ describe("Template.tsx — eligible поведение", () => {
     const fn = src.slice(src.indexOf("const trackCreateCta"), src.indexOf("const trackBlankCta"));
     expect(fn).toContain("variant: intentVariant");
     expect(fn).toContain("slug: entry.slug");
+    expect(fn).toContain("doc_key: journeyDocKey");
+    expect(fn).toContain("startDocumentJourney(journeyDocKey)");
     expect(fn).toContain("authenticated: Boolean(user)");
     expect(fn).not.toContain("doc.name");
   });
@@ -167,6 +169,8 @@ describe("Template.tsx — eligible поведение", () => {
     expect(fn).toContain('position: "content"');
     expect(fn).toContain("variant: SEO_INTENT_VERSION");
     expect(fn).toContain("slug: entry.slug");
+    expect(fn).toContain("doc_key: journeyDocKey");
+    expect(fn).toContain("startDocumentJourney(journeyDocKey)");
     expect(fn).not.toContain("doc.name");
   });
 
