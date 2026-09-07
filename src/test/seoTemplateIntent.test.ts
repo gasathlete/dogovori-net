@@ -29,6 +29,8 @@ import {
   seoIntentVariant,
 } from "@/lib/seoTemplateIntent";
 import { getTemplateBySlug } from "@/lib/templateIndex";
+import { slugify } from "@/lib/slugify";
+import { normalizeDocKey } from "@/lib/funnelContext";
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 const src = read("src/pages/Template.tsx");

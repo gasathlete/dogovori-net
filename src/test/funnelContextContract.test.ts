@@ -39,6 +39,7 @@ import {
   getBrowserId,
   getCurrentFunnelContext,
   getTabSessionId,
+  normalizeDocKey,
   startDocumentJourney,
 } from "@/lib/funnelContext";
 import { trackFunnelEvent, getFunnelSessionId, __resetFunnelIdentityForTests } from "@/lib/funnel";
