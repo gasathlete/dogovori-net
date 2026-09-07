@@ -231,3 +231,32 @@ describe("канонични инварианти", () => {
     expect(src).toContain("`/wizard-bilingual/${category.sectorId}?doc=${encodeURIComponent(doc.name)}`");
   });
 });
+
+describe("непрекъснатост на фунията — общ journeyDocKey", () => {
+  it("Template изчислява един ключ по формулата на уизарда", () => {
+    expect(src).toContain('import { slugify } from "@/lib/slugify"');
+    expect(src).toContain("const journeyDocKey = `${category.sectorId}::${slugify(doc.name)}`;");
+  });
+
+  it("двата CTA handler-а тръгват от същия ключ", () => {
+    const create = src.slice(src.indexOf("const trackCreateCta"), src.indexOf("const trackBlankCta"));
+    const preview = src.slice(src.indexOf("const trackBlankPreview"), src.indexOf("const pageTitle"));
+    for (const fn of [create, preview]) {
+      expect(fn).toContain("startDocumentJourney(journeyDocKey)");
+      expect(fn).toContain("doc_key: journeyDocKey");
+      expect(fn).toContain("slug: entry.slug");
+      expect(fn).not.toContain("doc_key: entry.slug");
+    }
+  });
+
+  it("ключът е байт-идентичен с формулата на уизарда и минава нормализацията", () => {
+    const wizard = read("src/pages/Wizard.tsx");
+    expect(wizard).toContain("`${baseSector?.id ?? \"sector\"}::${slugify(base)}`");
+    for (const slug of SEO_INTENT_SLUGS) {
+      const e = getTemplateBySlug(slug)!;
+      const key = `${e.category.sectorId}::${slugify(e.doc.name)}`;
+      expect(key).toBe(`${e.category.sectorId}::${slugify(e.doc.name)}`);
+      expect(normalizeDocKey(key)).toBe(key.toLowerCase());
+    }
+  });
+});
