@@ -1,16 +1,11 @@
 /**
  * Полеви Web Vitals: агрегация, границите на p75 банда, UTC прозорците на
  * администраторския изглед, включителните прагове и инвариантите на РЕАЛНАТА
- * pending миграция (privacy-minimal, admin-only четене, строга валидация).
+ * приложена миграция (privacy-minimal, admin-only четене, строга валидация).
  */
 import { describe, it, expect, expectTypeOf } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
-import type { Database } from "@/integrations/supabase/types";
-import type {
-  PendingDatabase,
-  RecordWebVitalAggregateArgs,
-  WebVitalsDailyRow,
-} from "@/lib/webVitals/pendingSchema";
+import type { Database, Tables } from "@/integrations/supabase/types";
 import {
   denormalize,
   formatMetricValue,
@@ -28,6 +23,10 @@ import {
 
 const MIGRATION_PATH = "supabase/migrations/20260907110000_web_vitals_daily_aggregate.sql";
 const LEGACY_DOCS_PATH = "docs/db/20260907110000_web_vitals_daily_aggregate.sql";
+/** Приложеното копие в журнала на миграциите — трябва да е byte-identical. */
+const APPLIED_MIGRATION_PATH = "drizzle/migrations/0009_web_vitals_daily_aggregate.sql";
+const MIGRATION_JOURNAL_PATH = "drizzle/migrations/meta/_journal.json";
+const LEGACY_PENDING_SCHEMA_PATH = "src/lib/webVitals/pendingSchema.ts";
 
 const row = (o: Partial<DailyRow>): DailyRow => ({
   metric: "LCP",
