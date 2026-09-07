@@ -8,15 +8,14 @@
  *   иначе                        → Poor
  */
 
+import type { Tables } from "@/integrations/supabase/types";
 import type { CoreMetric, DeviceClass, RatingClass } from "./dimensions";
 
-export interface DailyRow {
-  metric: string;
-  rating: string;
-  device_class: string;
-  sample_count: number;
-  value_sum: number;
-}
+/** Подмножеството от генерирания ред на `web_vitals_daily`, което изгледът чете. */
+export type DailyRow = Pick<
+  Tables<"web_vitals_daily">,
+  "metric" | "rating" | "device_class" | "sample_count" | "value_sum"
+>;
 
 export type P75Band = "good" | "needs-improvement" | "poor" | "unknown";
 
