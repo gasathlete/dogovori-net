@@ -433,9 +433,21 @@ export interface SyncCommitOptions {
  */
 function pointerSnapshot(p: DraftPointer | null): string | null {
   if (!p) return null;
-  return [p.draftId, p.flow, p.claimed ? "1" : "0", p.stepIdx, p.hasResult ? "1" : "0", p.route, p.savedDocId ?? "", p.tabId].join(
-    "|",
-  );
+  return [
+    p.draftId,
+    p.flow,
+    p.claimed ? "1" : "0",
+    p.stepIdx,
+    p.hasResult ? "1" : "0",
+    p.route,
+    p.savedDocId ?? "",
+    p.tabId,
+    // Атрибуцията също е част от снимката: закъснял запис не бива да замести
+    // по-нова атрибуция със старата си.
+    p.journeyId ?? "",
+    p.runId ?? "",
+  ].join("|");
+
 }
 
 export type SyncResult =
