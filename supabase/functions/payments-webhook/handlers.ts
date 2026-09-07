@@ -402,6 +402,11 @@ export async function handleCheckoutCompleted(d: WebhookDeps, session: Any, env:
           ai_ack_accepted: session.metadata?.ai_ack_accepted === "true",
           stripe_session_id: session.id,
           stripe_subscription_id: session.subscription || null,
+          // Истина за плащането: точното окръжение, доказаният статус и
+          // затвореният вид покупка. Без нови идентификатори.
+          environment: env,
+          payment_status: PAID_PAYMENT_STATUS,
+          purchase_kind: classifySnapshotPurchaseKind(session),
         },
         { onConflict: "stripe_session_id" },
       ),
@@ -543,7 +548,10 @@ export async function dispatchEvent(
     case "customer.subscription.deleted":
       await handleSubscriptionDeleted(d, event.data.object, env);
       break;
+    // Двата пътя до платена сесия минават през ЕДИН guarded handler:
+    // директното плащане и уреденото по-късно забавено плащане.
     case "checkout.session.completed":
+    case "checkout.session.async_payment_succeeded":
       await handleCheckoutCompleted(d, event.data.object, env);
       break;
     case "invoice.payment_failed":
