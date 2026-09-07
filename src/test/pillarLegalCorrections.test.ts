@@ -8,8 +8,12 @@ import templateMeta from "@/data/templateContentMeta.json";
 const RENT_SLUG = "kak-da-napravim-dogovor-za-naem";
 const FIRE_SLUG = "predizvestie-uvolnenie";
 
+const GPK_URL = "https://www.justice.government.bg/home/normdoc/2135558368";
+const ZZD_URL = "https://justice.government.bg/home/normdoc/2121934337";
+
 const RENT_SOURCES = [
-  "https://justice.government.bg/home/normdoc/2121934337",
+  ZZD_URL,
+  GPK_URL,
   "https://eur-lex.europa.eu/eli/reg/2016/679/oj",
 ];
 const FIRE_SOURCES = [
@@ -18,6 +22,8 @@ const FIRE_SOURCES = [
   "https://www.mlsp.government.bg/otpuski",
   "https://www.gli.government.bg/bg/taxonomy/term/416/node/4386",
   "https://www.gli.government.bg/bg/node/4390",
+  GPK_URL,
+  ZZD_URL,
 ];
 
 const rent = getPostBySlug(RENT_SLUG)!;
@@ -170,6 +176,15 @@ describe("rental article: legal regression guards", () => {
     expect(RENT_TEXT).toMatch(/чл\. 6, параграф 1, буква \(в\)|буква \(е\)/);
   });
 
+  it("does not equate reliable date with notarisation of signatures (art. 181 GPK)", () => {
+    expect(RENT_TEXT).not.toMatch(/Заверката на подписите \(достоверна дата\)/);
+    expect(RENT_TEXT).not.toMatch(/достоверна дата[^.]{0,40}т\.е\.[^.]{0,40}нотариална заверка/i);
+    expect(RENT_TEXT).not.toMatch(/достоверна дата се постига само/i);
+    expect(RENT_TEXT).toContain("чл. 181 ГПК");
+    expect(RENT_TEXT).toMatch(/не е синоним на нотариална заверка|не е равнозначно на нея|не е равнозначна на нотариална заверка/);
+    expect(RENT_TEXT).toMatch(/процесуалноправно понятие/);
+  });
+
   it("keeps the protocol recommendation honest and correctly spelled", () => {
     expect(RENT_TEXT).not.toMatch(/приемо-предавател/);
     expect(RENT_TEXT).toMatch(/приемно-предавателен протокол/);
@@ -210,15 +225,83 @@ describe("dismissal article: legal regression guards", () => {
     expect(FIRE_TEXT).toMatch(/всяка страна доказва фактите/i);
   });
 
-  it("distinguishes the notice from the termination order and avoids categorical motives claims", () => {
+  it("does not make service of a separate order universally constitutive (art. 335)", () => {
     expect(FIRE_TEXT).not.toMatch(/предизвестието трябва да бъде мотивирано/);
     expect(FIRE_TEXT).not.toMatch(/задължително.{0,40}подробни мотиви/);
-    expect(FIRE_TEXT).toMatch(/заповедта е акта, с който прекратяването се извършва/);
+    expect(FIRE_TEXT).not.toMatch(/заповедта е акта, с който прекратяването се извършва/);
+    expect(FIRE_TEXT).not.toMatch(/заповедта[^.]{0,60}е документът, с който прекратяването се извършва/);
+    expect(FIRE_TEXT).not.toMatch(/от чието връчване се броят редица срокове/);
+    expect(FIRE_TEXT).toContain("чл. 335, ал. 2, т. 1 КТ");
+    expect(FIRE_TEXT).toMatch(/се прекратява с изтичането на срока на предизвестието/);
+    expect(FIRE_TEXT).toMatch(/не е универсално условие, без което прекратяването не настъпва/);
   });
 
-  it("preserves the 2-month challenge deadline", () => {
-    expect(FIRE_TEXT).toContain("чл. 358, ал. 1, т. 2 КТ");
+  it("starts the 2-month period at the day of termination, as a limitation period", () => {
+    expect(FIRE_TEXT).toContain("чл. 358, ал. 1, т. 2");
     expect(FIRE_TEXT).toMatch(/двумесечен/);
+    expect(FIRE_TEXT).not.toMatch(/тоест от връчването на заповедта/);
+    expect(FIRE_TEXT).not.toMatch(/погасява правото на иск/);
+    expect(FIRE_TEXT).toContain("чл. 358, ал. 1, т. 2 във връзка с ал. 2, т. 2 КТ");
+    expect(FIRE_TEXT).toMatch(/от деня на прекратяване/);
+    expect(FIRE_TEXT).toMatch(/кратък давностен срок/);
+    expect(FIRE_TEXT).toMatch(/ако давността бъде надлежно противопоставена/);
+    expect(FIRE_TEXT).toContain("чл. 120 ЗЗД");
+  });
+
+  it("states the correct employment venue and drops the current-address claim", () => {
+    expect(FIRE_TEXT).not.toMatch(/по Вашия настоящ адрес/);
+    expect(FIRE_TEXT).not.toMatch(/районния съд по седалището на работодателя или по/);
+    expect(FIRE_TEXT).toContain("чл. 114 ГПК");
+    expect(FIRE_TEXT).toMatch(/мястото, където работникът обичайно полага своя труд/);
+    expect(FIRE_TEXT).toMatch(/настоящият адрес[^.]{0,80}не е (обща )?особена подсъдност/i);
+  });
+
+  it("keeps art. 333(7) service timing distinct from the art. 358 limitation start", () => {
+    expect(FIRE_TEXT).toContain("чл. 333, ал. 7 КТ");
+    expect(FIRE_TEXT).toMatch(/по чл\. 333, ал\. 7 КТ той е връчването на заповедта за уволнение/);
+    expect(FIRE_TEXT).toMatch(/не бива да се смесва с началото на срока по чл\. 358 КТ/);
+    const faq = fire.faq.find((f) => f.q.includes("разликата между предизвестието"))!;
+    expect(faq.a).toContain("чл. 335, ал. 2, т. 1 КТ");
+    expect(faq.a).toMatch(/двата момента са различни/);
+    expect(faq.a).not.toMatch(/заповедта е акта/);
+  });
+
+  it("keeps the notice-vs-order takeaways consistent", () => {
+    const t = fire.takeaways.join("\n");
+    expect(t).toMatch(/а не от връчването на по-късна заповед/);
+    expect(t).toContain("чл. 114 ГПК");
+    expect(t).toContain("чл. 120 ЗЗД");
+  });
+});
+
+describe("pillar posts: newly added official sources", () => {
+  it("rental cites GPK art. 181 for reliable date", () => {
+    const s = rent.sources!.find((x) => x.url === GPK_URL)!;
+    expect(s.note).toMatch(/чл\. 181 ГПК/i);
+    expect(s.note).toMatch(/достоверна дата/i);
+  });
+
+  it("dismissal cites GPK art. 114 venue and ZZD art. 120 limitation", () => {
+    const gpk = fire.sources!.find((x) => x.url === GPK_URL)!;
+    const zzd = fire.sources!.find((x) => x.url === ZZD_URL)!;
+    expect(gpk.note).toMatch(/чл\. 114 ГПК/i);
+    expect(zzd.note).toMatch(/чл\. 120 ЗЗД/i);
+    expect(zzd.note).toMatch(/по свой почин/i);
+  });
+
+  it("uses only official sources, never private aggregators", () => {
+    const urls = [...(rent.sources ?? []), ...(fire.sources ?? [])].map((s) => s.url);
+    for (const url of urls) {
+      expect(url.startsWith("https://")).toBe(true);
+      expect(url).not.toMatch(/lex\.bg|ciela|apis|kik-info|trud\.bg|blogspot|wikipedia/i);
+      const host = new URL(url).hostname.replace(/^www\./, "");
+      expect([
+        "justice.government.bg",
+        "mlsp.government.bg",
+        "gli.government.bg",
+        "eur-lex.europa.eu",
+      ]).toContain(host);
+    }
   });
 });
 
