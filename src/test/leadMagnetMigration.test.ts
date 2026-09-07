@@ -65,7 +65,7 @@ describe("миграция — местоположение и история", 
       expect(journalHits).toEqual([]);
     } else {
       expect(applied).toHaveLength(1);
-      expect(read(join(DRIZZLE_DIR, applied[0]))).toBe(sql);
+      expect(read(join(DRIZZLE_DIR, applied[0]))).toBe(rawSql);
       expect(journalHits).toHaveLength(1);
       expect(applied[0]).toBe(`${journalHits[0]}.sql`);
     }
@@ -161,11 +161,15 @@ describe("миграция — subscribe_lead_magnet RPC", () => {
     expect([...LEAD_MAGNET_SLUGS]).toEqual(["rent-red-flags", "labor-checklist-2026"]);
   });
 
-  it("UPSERT само по (email, magnet_slug); name/user_agent NULL; consent_* фиксирани; source = груба група", () => {
+  it("UPSERT само по (email, magnet_slug); name/user_agent само при INSERT; consent_* фиксирани; source = груба група", () => {
     expect(fnBody).toMatch(/INSERT INTO public\.lead_magnet_subscribers AS s \(\s*email, name, magnet_slug, source, user_agent,\s*marketing_consent, consent_at, consent_version\s*\)/);
     expect(fnBody).toMatch(/VALUES \(\s*v_email, NULL, _magnet_slug, _source_group, NULL,\s*true, now\(\), 'lead-magnet-v2'\s*\)/);
     expect(fnBody).toContain("ON CONFLICT (email, magnet_slug)");
-    expect(fnBody).toMatch(/DO UPDATE SET\s+name\s*=\s*NULL,\s+source\s*=\s*EXCLUDED\.source,\s+user_agent\s*=\s*NULL,\s+marketing_consent\s*=\s*true,\s+consent_at\s*=\s*now\(\),\s+consent_version\s*=\s*'lead-magnet-v2';/);
+    expect(fnBody).toMatch(/DO UPDATE SET\s+source\s*=\s*EXCLUDED\.source,\s+marketing_consent\s*=\s*true,\s+consent_at\s*=\s*now\(\),\s+consent_version\s*=\s*'lead-magnet-v2';/);
+    // Историческите полета не се пипат при повторно съгласие.
+    const doUpdate = fnBody.slice(fnBody.indexOf("DO UPDATE SET"), fnBody.indexOf(";", fnBody.indexOf("DO UPDATE SET")));
+    expect(doUpdate).not.toMatch(/\bname\s*=/);
+    expect(doUpdate).not.toMatch(/\buser_agent\s*=/);
     expect(LEAD_MAGNET_CONSENT_VERSION).toBe("lead-magnet-v2");
     // Никакъв друг път за запис на consent_version.
     expect(fnBody.match(/lead-magnet-v2/g)).toHaveLength(2);
