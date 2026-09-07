@@ -150,10 +150,14 @@ export function initWebVitalsReporter(): void {
           value: coreName ? toIntegerValue(coreName, m.value) : Math.round(m.value),
         });
 
-        // 3) LCP/INP/CLS — централно, най-много веднъж на метрика за това зареждане.
+        // 3) LCP/INP/CLS — централно, най-много веднъж на метрика за това
+        //    зареждане и само ако рейтингът и стойността са валидни и съгласувани.
         if (coreName && !sentCentral.has(coreName)) {
-          sentCentral.add(coreName);
-          void recordCentral(coreName, m.rating, m.value, ctx);
+          const args = prepareCentralArgs(coreName, m.rating, m.value, ctx);
+          if (args) {
+            sentCentral.add(coreName);
+            void recordCentral(args);
+          }
         }
       };
       onLCP(handle);
