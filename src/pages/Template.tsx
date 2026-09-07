@@ -279,15 +279,16 @@ export default function TemplatePage() {
               <FileText className="h-3 w-3" />
               {category.title}
             </div>
-            <Link
-              to={blankWizardHref}
-              onClick={() => trackBlankCta("hero")}
-              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-gold/40 px-2.5 py-1.5 text-xs text-gold transition-colors hover:bg-gold/10"
-            >
-              <Download className="h-3 w-3" />
-              Свали само бланка
-            </Link>
-          </div>
+            {intent ? null : (
+              <Link
+                to={blankWizardHref}
+                onClick={() => trackBlankCta("hero")}
+                className="inline-flex shrink-0 items-center gap-1 rounded-md border border-gold/40 px-2.5 py-1.5 text-xs text-gold transition-colors hover:bg-gold/10"
+              >
+                <Download className="h-3 w-3" />
+                Свали само бланка
+              </Link>
+            )}
           <h1 className="font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl anim-rise" style={{ animationDelay: "80ms" }}>
             {doc.name}
             {doc.bilingual && (
