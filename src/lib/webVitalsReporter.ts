@@ -18,7 +18,8 @@
 
 import type { Metric } from "web-vitals";
 import { trackEvent, getCategoryConsent } from "@/lib/analytics";
-import { webVitalsClient, type RecordWebVitalAggregateArgs } from "@/lib/webVitals/pendingSchema";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import {
   coarseDeviceClass,
   coarseNavigationType,
