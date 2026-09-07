@@ -116,18 +116,27 @@ const DESCRIPTION_SUFFIX =
 const NAME_BUDGET = TEMPLATE_META_MAX - [...DESCRIPTION_SUFFIX].length;
 
 /**
- * Съкращаване по граница на дума (никога в средата на дума), с многоточие само
- * когато реално е отрязано. Работи по Unicode кодови точки.
+ * Съкращаване само по цели думи от входа — никога частичен токен. Ако нито една
+ * цяла дума не се вмества в бюджета, връщаме кратък неутрален резерв.
  */
+export const TRUNCATE_FALLBACK = "Документ…";
+
 export function truncateOnWordBoundary(text: string, max: number): string {
-  const chars = [...text.trim()];
-  if (chars.length <= max) return chars.join("");
-  // Оставяме място за многоточието.
-  const slice = chars.slice(0, Math.max(1, max - 1)).join("");
-  const cut = slice.replace(/[\s—–-]+\S*$/u, "").trimEnd();
-  const base = (cut.length > 0 ? cut : slice.trimEnd()).replace(/[\s,.;:—–-]+$/u, "");
+  const trimmed = text.trim();
+  if ([...trimmed].length <= max) return trimmed;
+  const tokens = trimmed.split(/\s+/u);
+  const budget = Math.max(1, max - 1); // място за многоточието
+  let acc = "";
+  for (const token of tokens) {
+    const next = acc.length === 0 ? token : `${acc} ${token}`;
+    if ([...next].length > budget) break;
+    acc = next;
+  }
+  const base = acc.replace(/[\s,.;:—–-]+$/u, "");
+  if (base.length === 0 || [...base].length + 1 > max) return TRUNCATE_FALLBACK;
   return `${base}…`;
 }
+
 
 /**
  * Meta description + Article JSON-LD description за `/shablon/:slug`.
