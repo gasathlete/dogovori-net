@@ -136,10 +136,10 @@ export default function TemplatePage() {
    * Props-ите са low-cardinality и без PII (без име на документ).
    */
   const trackCreateCta = (position: "hero" | "content" | "footer") => {
-    startDocumentJourney(entry.slug);
+    startDocumentJourney(journeyDocKey);
     trackFunnelEvent("template_create_cta_clicked", {
       slug: entry.slug,
-      doc_key: entry.slug,
+      doc_key: journeyDocKey,
       position,
       variant: intentVariant,
       authenticated: Boolean(user),
@@ -161,10 +161,10 @@ export default function TemplatePage() {
    * се различава от историческото `template_blank_cta_clicked`.
    */
   const trackBlankPreview = () => {
-    startDocumentJourney(entry.slug);
+    startDocumentJourney(journeyDocKey);
     trackFunnelEvent("template_blank_preview_clicked", {
       slug: entry.slug,
-      doc_key: entry.slug,
+      doc_key: journeyDocKey,
       position: "content",
       variant: SEO_INTENT_VERSION,
       authenticated: Boolean(user),
