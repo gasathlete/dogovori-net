@@ -80,7 +80,7 @@ describe("summarizeMetric", () => {
   });
 
   it("приема директно редове с генерирания тип Row", () => {
-    const generated: PendingDatabase["public"]["Tables"]["web_vitals_daily"]["Row"] = {
+    const generated: Tables<"web_vitals_daily"> = {
       created_at: "2026-09-07T10:00:00Z",
       day: "2026-09-07",
       device_class: "mobile",
