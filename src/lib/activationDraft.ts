@@ -74,6 +74,19 @@ export interface DraftPointer {
   runId?: string;
 }
 
+/**
+ * Атрибуцията е неделима двойка: използваема е само когато и двата
+ * идентификатора минават проверката. Частична или подправена двойка се
+ * отхвърля изцяло — никога не се смесва стар journey с текущ run.
+ */
+function validPair(
+  journeyId: unknown,
+  runId: unknown,
+): { journeyId: string; runId: string } | null {
+  if (!isValidFunnelId(journeyId) || !isValidFunnelId(runId)) return null;
+  return { journeyId: journeyId as string, runId: runId as string };
+}
+
 
 /** Съдържанието с лични данни — НИКОГА в localStorage. */
 export interface DraftPayload {
