@@ -287,7 +287,10 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
       const best = legacy[legacy.length - 1];
       restoreRef.current?.(best.payload, { source: "legacy" });
     }
-  }, [active, enabled, flow, updatePointer]);
+    // `docKey` участва само в проверката за съвместимост при възстановяване на
+    // атрибуцията; ефектът е защитен с `restoredRef` и не се изпълнява пак.
+  }, [active, enabled, flow, docKey, updatePointer]);
+
 
   /* ------------------------------ 2. Запазване ---------------------------- */
   const onSyncBlocked = useCallback(
