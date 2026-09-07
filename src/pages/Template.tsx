@@ -77,6 +77,14 @@ export default function TemplatePage() {
   const canonical = `/shablon/${entry.slug}`;
 
   /**
+   * „SEO template intent v1" — активен САМО за трите изброени slug-а.
+   * Всичко останало (canonical, slug, wizardHref, doc параметър, анонимно
+   * създаване) остава непроменено.
+   */
+  const intent = getSeoTemplateIntent(entry.slug);
+  const intentVariant = seoIntentVariant(entry.slug);
+
+  /**
    * Всички действия за СЪЗДАВАНЕ на документ тръгват анонимно — без auth гейт.
    * Auth остава само за реално обвързани с акаунт операции (комплекти/профил).
    * Props-ите са low-cardinality и без PII (без име на документ).
@@ -85,6 +93,7 @@ export default function TemplatePage() {
     trackFunnelEvent("template_create_cta_clicked", {
       slug: entry.slug,
       position,
+      variant: intentVariant,
       authenticated: Boolean(user),
     });
   };
@@ -99,6 +108,19 @@ export default function TemplatePage() {
       authenticated: Boolean(user),
     });
   };
+  /**
+   * „Preview-first" линк към редактора (БЕЗ blank=1) — отделно събитие, за да
+   * се различава от историческото `template_blank_cta_clicked`.
+   */
+  const trackBlankPreview = () => {
+    trackFunnelEvent("template_blank_preview_clicked", {
+      slug: entry.slug,
+      position: "content",
+      variant: SEO_INTENT_VERSION,
+      authenticated: Boolean(user),
+    });
+  };
+
 
   const pageTitle = `${doc.name} — образец на български`;
   const fallback = buildTemplateFallbackContent({
