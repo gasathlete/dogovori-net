@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { CORE_METRICS, type CoreMetric } from "@/lib/webVitals/dimensions";
-import { webVitalsClient } from "@/lib/webVitals/pendingSchema";
 import {
   formatMetricValue,
   summarizeMetric,
