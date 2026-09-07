@@ -47,8 +47,6 @@ function renderTemplate(slug: string) {
 
 describe("Template JSON-LD — FAQPage без дубликат", () => {
   it("преходното състояние не подава FAQPage, а след settle има точно един", async () => {
-    // По-дълъг таймаут: тестът рендира цялата страница и е чувствителен към
-    // натоварването при пълния сет.
     const { unmount } = renderTemplate(AI);
 
     // Преходно състояние: Breadcrumb/Article вече са налични, FAQPage — не.
@@ -75,7 +73,7 @@ describe("Template JSON-LD — FAQPage без дубликат", () => {
     expect(JSON.stringify(ldBlocks())).not.toContain('"price":0');
 
     unmount();
-  }, 20000);
+  });
 
   it("guarded (fallback) шаблон също завършва с точно един FAQPage", async () => {
     const { unmount } = renderTemplate(GUARDED);
