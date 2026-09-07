@@ -20,6 +20,13 @@ import { autoLinkParagraph, createAutoLinkState } from "@/lib/autoLinkBlog";
 import { RELATED_TEMPLATES } from "@/data/relatedTemplates";
 import { buildTemplateFallbackContent } from "@/lib/templateFallbackContent";
 import { buildTemplatePageDescription, resolveTemplatePresentation } from "@/lib/resolveTemplatePresentation";
+import {
+  SEO_INTENT_BLANK_LINK_LABEL,
+  SEO_INTENT_SUPPORT_LINE,
+  SEO_INTENT_VERSION,
+  getSeoTemplateIntent,
+  seoIntentVariant,
+} from "@/lib/seoTemplateIntent";
 
 import { getPostBySlug } from "@/lib/blog";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
