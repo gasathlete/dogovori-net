@@ -517,8 +517,9 @@ function buildSyncPointer(args: {
       expiresAt,
       claimed,
       savedDocId: storedSame?.savedDocId ?? (sameAsSent ? sent?.savedDocId : undefined),
-      journeyId: isValidFunnelId(journeyId) ? journeyId : undefined,
-      runId: isValidFunnelId(runId) ? runId : undefined,
+      journeyId: pair?.journeyId,
+      runId: pair?.runId,
+
     },
 
   };
