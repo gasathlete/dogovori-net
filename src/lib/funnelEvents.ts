@@ -204,8 +204,10 @@ export function claimOnce(key: string, now: number = Date.now()): boolean {
 
 /** Само за тестове / изчистване на данни. */
 export function resetOnceStore() {
+  memoryOnce = {};
   try {
     localStorage.removeItem(ONCE_KEY);
+
   } catch {
     /* ignore */
   }
