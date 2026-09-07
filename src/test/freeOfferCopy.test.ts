@@ -105,11 +105,11 @@ describe("еднократен входен пакет 2,90 €", () => {
     }
   });
 
-  it("paywall-ът за Стриктен документ описва 24 часа и 1 операция на теглене", () => {
+  it("paywall-ът за Стриктен документ описва 24 часа без такса на теглене", () => {
     const src = read("src/components/wizard/StrictDocumentPaywall.tsx");
     expect(src).toContain("24 часа");
-    expect(src).toContain("ползва по една операция");
-    expect(src).not.toContain("неограничени сваляния");
+    expect(src).toContain("без да се използват операции");
+    expect(src).not.toContain("ползва по една операция");
     expect(src).not.toContain("0.40");
   });
 
@@ -118,7 +118,7 @@ describe("еднократен входен пакет 2,90 €", () => {
     const packBlock = src.slice(src.indexOf("Отключи този Стриктен документ"));
     const packCopy = packBlock.slice(0, packBlock.indexOf("{failed &&"));
     expect(packCopy).toContain("не отключва функции от платените планове");
-    for (const phrase of ["всички функционалности", "Без воден знак", "неограничени"]) {
+    for (const phrase of ["всички функционалности", "Без воден знак"]) {
       expect(packCopy, phrase).not.toContain(phrase);
     }
   });
