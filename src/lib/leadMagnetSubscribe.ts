@@ -9,7 +9,7 @@
  *    съгласие — без име, без суров път, без user agent;
  *  - никога не показва сурова грешка от базата на потребителя.
  */
-import { supabase } from "@/integrations/supabase/client";
+import { pendingLeadMagnetClient } from "@/lib/leadMagnetPendingSchema";
 import { isLeadMagnetSlug, LEAD_MAGNET_CONSENT_VERSION, type LeadMagnetSlug } from "@/lib/leadMagnets";
 import {
   isLeadMagnetSourceGroup,
