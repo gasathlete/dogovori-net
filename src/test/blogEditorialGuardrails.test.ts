@@ -6,6 +6,7 @@ import {
   hasVerifiedSources,
   isPublishablePost,
   resolveDateModified,
+  type BlogPost,
   type BlogPostModule,
 } from "@/lib/blog";
 import { MIN_SOURCE_PACK_SIZE, utcToday, validateSourcePack, serializeDraftArticle } from "../../scripts/generate-blog";
@@ -52,7 +53,7 @@ describe("generator source guard", () => {
         summary: "sum",
         category: "Договори",
         imagePrompt: "p",
-      } as any,
+      } as const,
       { intro: "i", sections: [], faq: [], takeaways: [], metaDescription: "m" },
       "/blog/s.jpg",
       "2026-09-07",
@@ -138,10 +139,10 @@ describe("publishability", () => {
 
 describe("dateModified fallback", () => {
   it("prefers modifiedAt, falls back to publishedAt", () => {
-    expect(resolveDateModified(base({ publishedAt: "2026-01-01" }) as any)).toBe("2026-01-01");
-    expect(
-      resolveDateModified(base({ publishedAt: "2026-01-01", modifiedAt: "2026-03-04" }) as any),
-    ).toBe("2026-03-04");
+    const pub = (over: Partial<BlogPostModule>): BlogPost =>
+      ({ ...base(over), publishedAt: "2026-01-01" }) as BlogPost;
+    expect(resolveDateModified(pub({}))).toBe("2026-01-01");
+    expect(resolveDateModified(pub({ modifiedAt: "2026-03-04" }))).toBe("2026-03-04");
   });
 });
 
