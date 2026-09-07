@@ -88,6 +88,41 @@ const EXPECTED_SECTIONS: Record<LeadMagnetSlug, number> = {
   "labor-checklist-2026": 12,
 };
 
+/**
+ * Каноничните официални източници за всеки наръчник — точно този списък, в този ред.
+ * Промяна на URL адрес тук е съзнателно редакционно решение, не страничен ефект.
+ */
+const EXPECTED_SOURCE_URLS: Record<LeadMagnetSlug, readonly string[]> = {
+  "rent-red-flags": [
+    "https://justice.government.bg/home/normdoc/2121934337",
+    "https://ibl.bas.bg/ezikovispravki/vaprosi/pravopis-na-otdelni-dumi-i-formi-flumaster-simultanen-2/322",
+  ],
+  "labor-checklist-2026": [
+    "https://justice.government.bg/home/normdoc/1594373121",
+    "https://nra.bg/wps/portal/nra/osiguryavane/Registur_na_zaetostta",
+    "https://nra.bg/wps/portal/nra/osiguryavane/Registur_na_zaetostta/vuprosi-i-otgovori-za-registura-na-zaetostta",
+    "https://www.gli.government.bg/bg/taxonomy/term/360/node/13677",
+  ],
+};
+
+const EXPECTED_CTA_URLS: Record<LeadMagnetSlug, string> = {
+  "rent-red-flags": "https://dogovori.net/shablon/dogovor-za-naem-na-zhilishte",
+  "labor-checklist-2026": "https://dogovori.net/shablon/trudov-dogovor-po-chl-67-kt-bezsrochen",
+};
+
+/** Остарели/неканонични адреси — не трябва да се появяват в нито един наръчник (текст, източници, линкове, байтове). */
+const OBSOLETE_URLS = [
+  "https://nra.bg/wps/portal/nra/registar-na-zaetostta",
+  "https://nra.bg/wps/portal/nra/registar-na-zaetostta/vaprosi-i-otgovori-registar-na-zaetostta",
+  "https://gli.government.bg/bg/taxonomy/list/396",
+] as const;
+
+/** Характерни фрагменти на остарелите адреси — хващат и варианти с друг протокол/хост/окончание. */
+const OBSOLETE_URL_FRAGMENTS = ["registar-na-zaetostta", "vaprosi-i-otgovori-registar-na-zaetostta", "taxonomy/list/396"] as const;
+
+/** Хост без водещо „www.“ — allowlist-ът е по регистрируем домейн. */
+const bareHost = (host: string) => host.replace(/^www\./, "");
+
 const docs = LEAD_MAGNET_SLUGS.map((slug) => [slug, LEAD_MAGNET_PDF_DOCUMENTS[slug]] as const);
 
 describe("lead-magnet PDF — съдържание", () => {
@@ -140,18 +175,44 @@ describe("lead-magnet PDF — съдържание", () => {
 
     it("източниците са само официални https публикации", () => {
       expect(doc.sources.items.length).toBeGreaterThanOrEqual(2);
-      const hosts = doc.sources.items.map((s) => new URL(s.url).host);
+      const hosts = doc.sources.items.map((s) => bareHost(new URL(s.url).host));
       expect(hosts).toContain("justice.government.bg");
       for (const s of doc.sources.items) {
         const u = new URL(s.url);
         expect(u.protocol).toBe("https:");
-        expect(LEAD_MAGNET_PDF_ALLOWED_SOURCE_HOSTS as readonly string[]).toContain(u.host);
+        expect(LEAD_MAGNET_PDF_ALLOWED_SOURCE_HOSTS as readonly string[]).toContain(bareHost(u.host));
         expect(s.label.trim().length).toBeGreaterThan(20);
       }
       const seen = new Set<string>();
       for (const u of collectLeadMagnetUrls(doc)) {
         expect(seen.has(u), `дублиран URL ${u}`).toBe(false);
         seen.add(u);
+      }
+    });
+
+    it("източниците са точно каноничният набор официални URL адреси (в този ред)", () => {
+      expect(doc.sources.items.map((s) => s.url)).toEqual([...EXPECTED_SOURCE_URLS[slug]]);
+      expect(doc.cta.url).toBe(EXPECTED_CTA_URLS[slug]);
+      expect([...collectLeadMagnetUrls(doc)].sort()).toEqual([...EXPECTED_SOURCE_URLS[slug], EXPECTED_CTA_URLS[slug]].sort());
+      // Каноничните адреси са нормализирани: без trailing slash, без query/fragment, без интервали.
+      for (const u of collectLeadMagnetUrls(doc)) {
+        expect(u).toBe(u.trim());
+        expect(u.endsWith("/")).toBe(false);
+        const parsed = new URL(u);
+        expect(parsed.search).toBe("");
+        expect(parsed.hash).toBe("");
+      }
+    });
+
+    it("не съдържа остарели/неканонични официални адреси", () => {
+      const urls = collectLeadMagnetUrls(doc);
+      const raw = texts.join("\n").toLowerCase();
+      for (const obsolete of OBSOLETE_URLS) {
+        expect(urls, `остарял URL ${obsolete}`).not.toContain(obsolete);
+        expect(raw, `остарял URL в текста: ${obsolete}`).not.toContain(obsolete.toLowerCase());
+      }
+      for (const frag of OBSOLETE_URL_FRAGMENTS) {
+        expect(raw, `остарял фрагмент от URL: ${frag}`).not.toContain(frag);
       }
     });
 
@@ -222,6 +283,16 @@ describe("lead-magnet PDF — рендер", () => {
       `public${leadMagnetPublicPath(slug)} не съответства на източника — изпълнете: bun run scripts/generate-lead-magnets.ts`,
     ).toBe(sha256(fresh));
   });
+
+  it.each(docs)("%s — линковете в байтовете са само каноничните URL адреси; остарелите липсват", (slug) => {
+    // jsPDF записва URI анотациите некодирани: `/A <</S /URI /URI (https://…) >>`.
+    const raw = Buffer.from(rendered.get(slug)!.bytes).toString("latin1");
+    const uris = [...raw.matchAll(/\/S \/URI \/URI \(([^)]*)\)/g)].map((m) => m[1]);
+    expect(uris.length).toBeGreaterThanOrEqual(EXPECTED_SOURCE_URLS[slug].length + 1);
+    expect([...new Set(uris)].sort()).toEqual([...EXPECTED_SOURCE_URLS[slug], EXPECTED_CTA_URLS[slug]].sort());
+    for (const obsolete of OBSOLETE_URLS) expect(raw, `остарял URL в PDF: ${obsolete}`).not.toContain(obsolete);
+    for (const frag of OBSOLETE_URL_FRAGMENTS) expect(raw, `остарял фрагмент в PDF: ${frag}`).not.toContain(frag);
+  });
 });
 
 describe("lead-magnet PDF — извлечен текст (pdf.js)", () => {
@@ -245,7 +316,7 @@ describe("lead-magnet PDF — извлечен текст (pdf.js)", () => {
     });
     const pdf = await task.promise;
     const pages: string[] = [];
-    let links = 0;
+    const linkUrls: string[] = [];
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
@@ -254,17 +325,19 @@ describe("lead-magnet PDF — извлечен текст (pdf.js)", () => {
         .join(" ");
       pages.push(text);
       const annots = (await page.getAnnotations()) as Array<{ subtype?: string; url?: string }>;
-      links += annots.filter((a) => a.subtype === "Link" && typeof a.url === "string" && a.url.startsWith("https://")).length;
+      for (const a of annots) {
+        if (a.subtype === "Link" && typeof a.url === "string" && a.url.startsWith("https://")) linkUrls.push(a.url);
+      }
     }
     const meta = await pdf.getMetadata();
     await pdf.destroy();
-    return { pages, links, info: meta.info as Record<string, unknown> };
+    return { pages, links: linkUrls.length, linkUrls, info: meta.info as Record<string, unknown> };
   }
 
   it.each(docs)(
     "%s — кирилицата се извлича, всяка страница носи disclaimer и номерация",
     async (slug, doc) => {
-      const { pages, links, info } = await extract(slug);
+      const { pages, links, linkUrls, info } = await extract(slug);
       const n = pages.length;
       expect(n).toBeGreaterThanOrEqual(6);
 
@@ -287,6 +360,14 @@ describe("lead-magnet PDF — извлечен текст (pdf.js)", () => {
 
       // Всеки източник + CTA е кликаем линк (URL-ите на два реда дават повече анотации).
       expect(links).toBeGreaterThanOrEqual(doc.sources.items.length + 1);
+
+      // Кликаемите линкове са точно каноничният набор — нито един остарял адрес.
+      expect([...new Set(linkUrls)].sort()).toEqual([...EXPECTED_SOURCE_URLS[slug], EXPECTED_CTA_URLS[slug]].sort());
+      for (const obsolete of OBSOLETE_URLS) expect(linkUrls, `остарял линк ${obsolete}`).not.toContain(obsolete);
+      // Видимият текст на URL-ите също не съдържа остарели фрагменти (сливаме редовете, защото URL-ите се пренасят след „/“).
+      const glued = pages.join("").replace(/\s+/g, "").toLowerCase();
+      for (const frag of OBSOLETE_URL_FRAGMENTS) expect(glued, `остарял фрагмент във видимия текст: ${frag}`).not.toContain(frag);
+      for (const u of EXPECTED_SOURCE_URLS[slug]) expect(glued).toContain(u.toLowerCase());
 
       expect(info.Title).toBe(doc.title);
       expect(info.Author).toBe(LEAD_MAGNET_PDF_AUTHOR);
