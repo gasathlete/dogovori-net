@@ -232,9 +232,10 @@ export function readPointer(now: number = Date.now()): DraftPointer | null {
       ts: typeof parsed.ts === "number" ? parsed.ts : 0,
       claimed: p.claimed === true,
       savedDocId: typeof p.savedDocId === "string" ? p.savedDocId : undefined,
-      // Подправена или произволна атрибуция се изхвърля — черновата остава.
-      journeyId: isValidFunnelId(p.journeyId) ? p.journeyId : undefined,
-      runId: isValidFunnelId(p.runId) ? p.runId : undefined,
+      // Подправена или частична атрибуция се изхвърля цялата — черновата остава.
+      journeyId: validPair(p.journeyId, p.runId)?.journeyId,
+      runId: validPair(p.journeyId, p.runId)?.runId,
+
     };
 
   } catch {
