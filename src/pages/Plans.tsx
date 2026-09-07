@@ -49,7 +49,7 @@ import { FAQ } from "@/lib/plansData";
 import { usePlans, type Billing, type PlanId } from "@/hooks/usePlans";
 import { trackEvent } from "@/lib/analytics";
 import { trackPlansView } from "@/lib/metrics";
-import { roiSubtitle, type PricingPlanId } from "@/lib/pricing";
+
 
 const PLAN_ICON: Record<PlanId, React.ComponentType<{ className?: string }>> = {
   free: Sparkles,
@@ -314,7 +314,12 @@ export default function Plans() {
           className="pb-12 sm:pb-16"
 
         >
+          <div className="mb-6 flex justify-center sm:mb-8">
+            <BillingToggle billing={billing} setBilling={setBilling} />
+          </div>
+
           <div className="grid gap-5 md:grid-cols-3 md:gap-6 xl:gap-7">
+
             {plans.filter((p) => p.id !== "free").map((plan, idx) => {
 
               const Icon = PLAN_ICON[plan.id];
@@ -422,12 +427,8 @@ export default function Plans() {
                         {effectivePrice.note && (
                           <p className="mt-1.5 text-xs text-muted-foreground">{effectivePrice.note}</p>
                         )}
-                        {roiSubtitle(plan.id as PricingPlanId) && (
-                          <p className="mt-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                            {roiSubtitle(plan.id as PricingPlanId)}
-                          </p>
-                        )}
                       </>
+
                     ) : (
                       <div className="flex items-baseline gap-1">
                         <span className="font-serif text-[44px] font-semibold leading-none text-foreground sm:text-5xl">
