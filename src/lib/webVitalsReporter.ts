@@ -10,19 +10,22 @@
  *     central sink is a privacy-minimal aggregate RPC (no identifiers, no raw
  *     path). Nothing is queued before consent.
  *
- * LCP / INP / CLS are persisted centrally (aggregate only).
- * FCP / TTFB stay local + consent-gated GA.
+ * LCP / INP / CLS are persisted centrally (aggregate only, once per metric
+ * lifecycle). FCP / TTFB stay local + consent-gated GA.
  *
  * Loaded lazily on idle so it never competes with hydration or the LCP paint.
  */
 
+import type { Metric } from "web-vitals";
 import { trackEvent, getCategoryConsent } from "@/lib/analytics";
 import {
   coarseDeviceClass,
   coarseNavigationType,
   coarseRouteGroup,
   isCoreMetric,
+  isRating,
   isSaneValue,
+  ratingForValue,
   toIntegerValue,
   type CoreMetric,
   type DeviceClass,
@@ -30,10 +33,20 @@ import {
   type RouteGroup,
 } from "@/lib/webVitals/dimensions";
 
+declare global {
+  interface Window {
+    /** Гард срещу двойно стартиране на репортера (HMR, повторен mount). */
+    __lovableVitalsBooted?: boolean;
+  }
+}
+
 const KEY = "dogovori:perf-log";
 const MAX_ROWS = 100;
 
 type Row = { name: string; value: number; rating: string; ts: number };
+
+/** Минималният вид на метриката, който ни трябва от web-vitals. */
+type MetricSample = Pick<Metric, "name" | "value"> & { rating: string };
 
 function persist(row: Row) {
   try {
@@ -69,7 +82,11 @@ function capturePageLoadContext(): PageLoadContext {
   };
 }
 
-/** Fire-and-forget агрегиран запис. Никога не влияе на UX. */
+/**
+ * Fire-and-forget агрегиран запис. Никога не влияе на UX.
+ * Клиентът валидира същото, което и RPC-то: allow-list рейтинг, разумна
+ * стойност и съответствие рейтинг ↔ стойност по праговете на Web Vitals.
+ */
 async function recordCentral(
   metric: CoreMetric,
   rating: string,
@@ -78,14 +95,10 @@ async function recordCentral(
 ): Promise<void> {
   const intValue = toIntegerValue(metric, value);
   if (!isSaneValue(metric, intValue)) return;
+  if (!isRating(rating) || ratingForValue(metric, intValue) !== rating) return;
   try {
     const { supabase } = await import("@/integrations/supabase/client");
-    // Типовете в src/integrations/supabase/types.ts се регенерират при
-    // прилагане на миграцията; докато това стане, викаме RPC-то нетипизирано.
-    const rpc = (supabase as unknown as {
-      rpc: (fn: string, args: Record<string, unknown>) => Promise<unknown>;
-    }).rpc;
-    await rpc.call(supabase, "record_web_vital_aggregate", {
+    await supabase.rpc("record_web_vital_aggregate", {
       _metric: metric,
       _rating: rating,
       _route_group: ctx.routeGroup,
@@ -100,22 +113,23 @@ async function recordCentral(
 
 export function initWebVitalsReporter(): void {
   if (typeof window === "undefined") return;
-  if ((window as any).__lovableVitalsBooted) return;
-  (window as any).__lovableVitalsBooted = true;
+  if (window.__lovableVitalsBooted) return;
+  window.__lovableVitalsBooted = true;
 
   const ctx = capturePageLoadContext();
-  const sentCentral = new Set<string>();
+  const sentCentral = new Set<CoreMetric>();
 
-  const boot = async () => {
+  const boot = async (): Promise<void> => {
     try {
       const { onLCP, onCLS, onINP, onFCP, onTTFB } = await import("web-vitals");
-      const handle = (m: { name: string; value: number; rating: string }) => {
+      const handle = (m: MetricSample) => {
         // 1) Локална диагностика — винаги.
         persist({ name: m.name, value: m.value, rating: m.rating, ts: Date.now() });
 
         // 2) Всичко навън изисква съгласие в момента на callback-а.
         if (!getCategoryConsent("analytics")) return;
 
+        const core = isCoreMetric(m.name);
         trackEvent("web_vital", {
           metric: m.name,
           rating: m.rating,
@@ -123,10 +137,10 @@ export function initWebVitalsReporter(): void {
           route_group: ctx.routeGroup,
           device_class: ctx.deviceClass,
           navigation_type: ctx.navigationType,
-          value: Math.round(m.name === "CLS" ? m.value * 1000 : m.value),
+          value: core ? toIntegerValue(m.name, m.value) : Math.round(m.value),
         });
 
-        if (isCoreMetric(m.name) && !sentCentral.has(m.name)) {
+        if (core && !sentCentral.has(m.name)) {
           sentCentral.add(m.name);
           void recordCentral(m.name, m.rating, m.value, ctx);
         }
@@ -141,29 +155,33 @@ export function initWebVitalsReporter(): void {
     }
   };
 
-  if ("requestIdleCallback" in window) {
-    (window as any).requestIdleCallback(boot, { timeout: 5000 });
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(() => void boot(), { timeout: 5000 });
   } else {
-    setTimeout(boot, 2500);
+    setTimeout(() => void boot(), 2500);
   }
 }
 
-function bucketize(name: string, value: number): string {
-  if (name === "CLS") {
-    if (value < 0.1) return "good";
-    if (value < 0.25) return "ni";
-    return "poor";
+type Bucket = "good" | "ni" | "poor" | "n/a";
+
+/** Прагове за неосновните метрики — включителни („<=“), както при core. */
+const AUX_THRESHOLDS: Record<string, readonly [number, number]> = {
+  FCP: [1800, 3000],
+  TTFB: [800, 1800],
+};
+
+/**
+ * Кофа за аналитиката. За LCP/INP/CLS използва същите включителни прагове
+ * като централния запис, така че точно 2500 ms / 200 ms / 0.100 са "good".
+ */
+export function bucketize(name: string, value: number): Bucket {
+  if (isCoreMetric(name)) {
+    const r = ratingForValue(name, toIntegerValue(name, value));
+    return r === "needs-improvement" ? "ni" : r;
   }
-  // millisecond metrics
-  const thresholds: Record<string, [number, number]> = {
-    LCP: [2500, 4000],
-    INP: [200, 500],
-    FCP: [1800, 3000],
-    TTFB: [800, 1800],
-  };
-  const t = thresholds[name];
+  const t = AUX_THRESHOLDS[name];
   if (!t) return "n/a";
-  if (value < t[0]) return "good";
-  if (value < t[1]) return "ni";
+  if (value <= t[0]) return "good";
+  if (value <= t[1]) return "ni";
   return "poor";
 }

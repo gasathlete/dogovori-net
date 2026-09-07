@@ -32,6 +32,19 @@ export interface MetricSummary {
 
 const RATINGS: RatingClass[] = ["good", "needs-improvement", "poor"];
 
+/**
+ * Първият UTC ден (ISO yyyy-mm-dd) на прозорец от `days` дни, който ВКЛЮЧВА
+ * днешния ден: 7 → днес + предходните 6 UTC дати, 30 → днес + предходните 29.
+ * Колоната `day` се пише в UTC, затова и тук смятаме само в UTC.
+ */
+export function windowStartDay(days: number, now: number = Date.now()): string {
+  const span = Number.isFinite(days) ? Math.max(1, Math.floor(days)) : 1;
+  const d = new Date(now);
+  d.setUTCHours(0, 0, 0, 0);
+  d.setUTCDate(d.getUTCDate() - (span - 1));
+  return d.toISOString().slice(0, 10);
+}
+
 /** ms за LCP/INP; CLS се дели на 1000 обратно към оригиналната скала. */
 export function denormalize(metric: CoreMetric, intValue: number): number {
   return metric === "CLS" ? intValue / 1000 : intValue;
