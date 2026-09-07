@@ -56,9 +56,9 @@ const CONFIG: readonly SeoTemplateIntent[] = [
   },
   {
     slug: "molba-za-napuskane-chl-326-al-1-kt",
-    primaryLabel: "Подготви молбата",
+    primaryLabel: "Подготви предизвестието",
     proofPoints: [
-      "Дата на подаване и срок на предизвестие",
+      "Дата на получаване и срок на предизвестието",
       "Данни за работодателя и длъжността",
       "Редактирате преди сваляне",
     ],

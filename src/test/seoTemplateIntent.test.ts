@@ -78,9 +78,9 @@ describe("seoTemplateIntent — allowlist и копие", () => {
 
   it("молбата за напускане има точния етикет и точните три доказателствени точки", () => {
     const c = getSeoTemplateIntent(RESIGNATION)!;
-    expect(c.primaryLabel).toBe("Подготви молбата");
+    expect(c.primaryLabel).toBe("Подготви предизвестието");
     expect([...c.proofPoints]).toEqual([
-      "Дата на подаване и срок на предизвестие",
+      "Дата на получаване и срок на предизвестието",
       "Данни за работодателя и длъжността",
       "Редактирате преди сваляне",
     ]);
