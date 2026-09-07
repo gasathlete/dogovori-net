@@ -184,7 +184,13 @@ describe("funnel.ts — пътят се хваща синхронно", () => {
   });
 
   it("записва страницата от момента на клика, не от момента на записа", async () => {
+    // Записът във фунията е зад съгласие за аналитика (Stage 2a).
+    vi.doMock("@/lib/analytics", () => ({
+      getCategoryConsent: () => true,
+      trackEvent: () => undefined,
+    }));
     vi.doMock("@/integrations/supabase/client", () => ({
+
       supabase: {
         auth: {
           onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
