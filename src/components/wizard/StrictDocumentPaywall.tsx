@@ -10,7 +10,9 @@ import { getStripe } from "@/lib/stripe";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
 import { trackCheckoutFailed, trackCheckoutStarted } from "@/lib/metrics";
-import { categorizeCheckoutError } from "@/lib/checkoutAnalytics";
+import { buildCheckoutReturnUrl, categorizeCheckoutError } from "@/lib/checkoutAnalytics";
+import { sanitizeReturnPath } from "@/lib/safeRoute";
+
 import { RoiSavingsBanner } from "@/components/funnel/RoiSavingsBanner";
 import {
   ENTRY_PACK_CONFIG,
@@ -54,7 +56,14 @@ export function StrictDocumentPaywall({
       try {
         sessionStorage.setItem("wizard:resume", wizardHref);
       } catch {}
-      const returnUrl = `${window.location.origin}/checkout/return?type=strict_unlock&session_id={CHECKOUT_SESSION_ID}`;
+      const returnUrl = buildCheckoutReturnUrl({
+        origin: window.location.origin,
+        priceId: "strict_doc_unlock",
+        source: "strict_paywall",
+        redirect: sanitizeReturnPath(wizardHref) ?? undefined,
+        // Съвместимост с исторически връщания, които разчитат на `type`.
+        legacyType: "strict_unlock",
+      });
       const { data, error } = await supabase.functions.invoke("create-strict-unlock-checkout", {
         body: {
           doc_key: docKey,
@@ -66,9 +75,9 @@ export function StrictDocumentPaywall({
       });
       if (error || !data?.clientSecret) throw new Error(error?.message || "Не успяхме да отворим плащане");
       setClientSecret(data.clientSecret);
-      // checkout_started = реално създадена Stripe сесия.
-      trackEvent("strict_unlock_checkout_started", { doc_key: docKey, sector_id: sectorId });
+      // checkout_started = реално създадена Stripe сесия (канонично събитие).
       trackCheckoutStarted("strict_unlock", "one_time", "strict_paywall");
+
     } catch (e: any) {
       trackCheckoutFailed("strict_unlock", "one_time", categorizeCheckoutError(e), "strict_paywall");
       setFailed(true);

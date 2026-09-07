@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { useAuth } from "@/hooks/useAuth";
 import { TOPUP_PACK_CONFIG, fmtEur, perOpLabel, type TopupPackConfig } from "@/lib/pricing";
+import { buildCheckoutReturnUrl } from "@/lib/checkoutAnalytics";
+
 
 const PACK_ICONS: Record<TopupPackConfig["priceId"], typeof Plus> = {
   topup_5: Plus,
@@ -130,8 +132,14 @@ export function TopupPacks({ enabled = true, compact = false, className }: Topup
               quantity={1}
               customerEmail={user.email}
               userId={user.id}
-              returnUrl={`${window.location.origin}/account?tab=billing&topup=success&session_id={CHECKOUT_SESSION_ID}`}
+              returnUrl={buildCheckoutReturnUrl({
+                origin: window.location.origin,
+                priceId: activePack.priceId,
+                source: "topup",
+                redirect: "/account?tab=subscription",
+              })}
             />
+
           </div>
         </div>
       )}
