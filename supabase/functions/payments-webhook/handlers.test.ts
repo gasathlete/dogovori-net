@@ -430,6 +430,10 @@ Deno.test("класификаторът на вида покупка е затв
   for (const c of KIND_CASES) {
     assertEquals(classifySnapshotPurchaseKind(c.session), c.kind);
   }
+  // Регресия: само exact metadata.kind === "team" е team; teamId сам по себе
+  // си не променя вида на абонамента.
+  assertEquals(classifySnapshotPurchaseKind({ mode: "subscription", metadata: { userId: "u1", teamId: "t1" } }), "subscription");
+  assertEquals(classifySnapshotPurchaseKind({ mode: "subscription", metadata: { userId: "u1", kind: "team", teamId: "t1" } }), "team");
   // Произволна metadata никога не става вид.
   assertEquals(classifySnapshotPurchaseKind({ mode: "payment", metadata: { kind: "team" } }), "unknown");
   assertEquals(classifySnapshotPurchaseKind({ mode: "setup", metadata: {} }), "unknown");

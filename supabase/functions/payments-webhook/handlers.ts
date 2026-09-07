@@ -259,7 +259,7 @@ const ONE_TIME_LEGACY_KEYS: readonly string[] = ["single_contract"];
 export function classifySnapshotPurchaseKind(session: Any): SnapshotPurchaseKind {
   const meta = (session?.metadata ?? {}) as Record<string, unknown>;
   if (session?.mode === "subscription") {
-    return meta.kind === "team" || meta.teamId ? "team" : "subscription";
+    return meta.kind === "team" ? "team" : "subscription";
   }
   if (session?.mode !== "payment") return "unknown";
   if (meta.type === "strict_doc_unlock") return "strict_unlock";
