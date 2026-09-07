@@ -85,6 +85,13 @@
       "when": 1788794890120,
       "tag": "0011_order_snapshots_session_unique",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788820828989,
+      "tag": "0012_order_snapshots_payment_truth",
+      "breakpoints": true
     }
   ]
 }
