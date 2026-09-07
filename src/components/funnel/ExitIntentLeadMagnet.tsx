@@ -217,6 +217,15 @@ export function ExitIntentLeadMagnet() {
       <DialogContent
         className="max-w-lg gap-0 overflow-hidden rounded-2xl border-brand/40 bg-card p-0 shadow-elegant motion-reduce:!animate-none motion-reduce:!duration-0 [&_.dialog-close]:h-11 [&_.dialog-close]:w-11"
         data-testid="lead-magnet-dialog"
+        onOpenAutoFocus={(e) => {
+          // Radix skips links when picking the initial focus target; the
+          // primary action here is a download link, so focus it explicitly
+          // (Enter = download) instead of landing on "Не сега".
+          if (downloadRef.current) {
+            e.preventDefault();
+            downloadRef.current.focus();
+          }
+        }}
       >
         {step === "offer" && (
           <>
