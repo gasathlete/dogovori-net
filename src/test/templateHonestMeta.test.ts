@@ -165,7 +165,7 @@ const prerenderSrc = fs.readFileSync(path.resolve("scripts/prerender.ts"), "utf8
 /** Извлича точния title израз от prerender и го изчислява като функция. */
 function prerenderTitle(metaOverride: { title: string } | undefined, doc: { name: string }): string {
   const m = prerenderSrc.match(
-    /path: `\/shablon\/\$\{slug\}`,\s*(?:\/\/[^\n]*\n\s*)*title: ([\s\S]*?),\n\n?\s*description:/,
+    /path: `\/shablon\/\$\{slug\}`,\n(?:\s*\/\/[^\n]*\n)*\s*title: ([\s\S]*?),\n\n/,
   );
   if (!m) throw new Error("prerender title израз не е намерен");
   const fn = new Function("metaOverride", "doc", `return (${m[1]});`) as (
