@@ -125,12 +125,16 @@ describe("Organic 2 — честно генерично описание", () =>
 });
 
 describe("Organic 2 — структурирани данни на /shablon", () => {
-  it("масивът съдържа BreadcrumbList, Article и FAQPage", () => {
-    expect(templateSrc).toMatch(/jsonLd=\{\[breadcrumbsLd, articleLd, faqLd\]\}/);
+  it("масивът съдържа BreadcrumbList, Article и FAQPage (FAQPage — след settle)", () => {
+    expect(templateSrc).toMatch(
+      /const jsonLd = contentSettled\s*\?\s*\[breadcrumbsLd, articleLd, faqLd\]\s*:\s*\[breadcrumbsLd, articleLd\];/,
+    );
+    expect(templateSrc).toMatch(/jsonLd=\{jsonLd\}/);
     expect(templateSrc).toMatch(/"@type": "BreadcrumbList"/);
     expect(templateSrc).toMatch(/"@type": "Article"/);
     expect(templateSrc).toMatch(/"@type": "FAQPage"/);
   });
+
 
   it("няма Product / HowTo / нулева цена", () => {
     expect(templateSrc).not.toMatch(/"@type": "Product"/);
