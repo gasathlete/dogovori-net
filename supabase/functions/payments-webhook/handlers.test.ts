@@ -115,7 +115,7 @@ Deno.test("branding unlock DB error propagates (paid entitlement)", async () => 
   const db = makeDb({ results: { "branding_unlocks.upsert": { data: null, error: { message: "denied" } } } });
   const session = {
     id: "cs_1",
-    mode: "payment",
+    mode: "payment", payment_status: "paid",
     amount_total: 990,
     metadata: { userId: "u1", type: "branding_unlock" },
   };
@@ -130,7 +130,7 @@ Deno.test("strict unlock DB error still fails closed", async () => {
   const db = makeDb({ results: { "strict_doc_unlocks.upsert": { data: null, error: { message: "x" } } } });
   const session = {
     id: "cs_2",
-    mode: "payment",
+    mode: "payment", payment_status: "paid",
     amount_total: 290,
     metadata: { userId: "u1", type: "strict_doc_unlock", doc_key: "nda" },
   };
@@ -143,7 +143,7 @@ Deno.test("strict unlock DB error still fails closed", async () => {
 
 Deno.test("first delivery writes an idempotent order snapshot", async () => {
   const db = makeDb();
-  const session = { id: "cs_3", mode: "payment", amount_total: 290, metadata: { userId: "u1" } };
+  const session = { id: "cs_3", mode: "payment", payment_status: "paid", amount_total: 290, metadata: { userId: "u1" } };
   await handleCheckoutCompleted(makeDeps(db), session, "live");
   const writes = db.calls.filter((c) => c.table === "order_snapshots" && c.op === "upsert");
   assertEquals(writes.length, 1);
@@ -152,7 +152,7 @@ Deno.test("first delivery writes an idempotent order snapshot", async () => {
 
 Deno.test("duplicate delivery of the same session stays idempotent", async () => {
   const db = makeDb();
-  const session = { id: "cs_3", mode: "payment", amount_total: 290, metadata: { userId: "u1" } };
+  const session = { id: "cs_3", mode: "payment", payment_status: "paid", amount_total: 290, metadata: { userId: "u1" } };
   await handleCheckoutCompleted(makeDeps(db), session, "live");
   await handleCheckoutCompleted(makeDeps(db), session, "live");
   const writes = db.calls.filter((c) => c.table === "order_snapshots");
@@ -171,7 +171,7 @@ Deno.test("duplicate delivery of the same session stays idempotent", async () =>
 
 Deno.test("order snapshot DB error fails closed so Stripe retries", async () => {
   const db = makeDb({ results: { "order_snapshots.upsert": { data: null, error: { message: "snap" } } } });
-  const session = { id: "cs_3", mode: "payment", amount_total: 290, metadata: { userId: "u1" } };
+  const session = { id: "cs_3", mode: "payment", payment_status: "paid", amount_total: 290, metadata: { userId: "u1" } };
   await assertRejects(
     () => handleCheckoutCompleted(makeDeps(db), session, "live"),
     Error,
@@ -184,7 +184,7 @@ Deno.test("sandbox blocked event performs no write", async () => {
   const db = makeDb({ rpc: () => ({ data: false, error: null }) });
   await dispatchEvent(makeDeps(db), {
     type: "checkout.session.completed",
-    data: { object: { id: "cs_4", mode: "payment", amount_total: 290, metadata: { userId: "u1" } } },
+    data: { object: { id: "cs_4", mode: "payment", payment_status: "paid", amount_total: 290, metadata: { userId: "u1" } } },
   }, "sandbox");
   assertEquals(db.calls.length, 0);
   assertEquals(db.rpcCalls, ["is_staff"]);
