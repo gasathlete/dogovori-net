@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
 import { trackCheckoutFailed, trackCheckoutStarted } from "@/lib/metrics";
 import { buildCheckoutReturnUrl, categorizeCheckoutError } from "@/lib/checkoutAnalytics";
-import { sanitizeReturnPath } from "@/lib/safeRoute";
+
 
 import { RoiSavingsBanner } from "@/components/funnel/RoiSavingsBanner";
 import {
@@ -62,7 +62,9 @@ export function StrictDocumentPaywall({
         origin: window.location.origin,
         priceId: "strict_doc_unlock",
         source: "strict_paywall",
-        redirect: sanitizeReturnPath(wizardHref) ?? undefined,
+        // Помощникът сам чисти пътя през sanitizeReturnPath.
+        redirect: wizardHref,
+
         // Съвместимост с исторически връщания, които разчитат на `type`.
         legacyType: "strict_unlock",
       });
