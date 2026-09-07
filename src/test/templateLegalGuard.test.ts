@@ -290,68 +290,43 @@ describe("legacy nullish семантика (незащитени видове)"
 });
 
 describe("buildTemplatePageDescription", () => {
-  const legacyDesc = (docName: string, metaExcerpt: string | undefined, f: ReturnType<typeof buildTemplateFallbackContent>) =>
-    metaExcerpt
-      ? `${metaExcerpt.slice(0, 110)} Безплатен образец на ${docName.toLowerCase()} – ${f.labels.metaLawSuffix}`.slice(0, 160)
-      : `Безплатен образец на ${docName.toLowerCase()} на български – ${f.labels.metaFallbackLaw}. Попълни и изтегли PDF или DOCX за 2 минути.`.slice(0, 160);
-
-  it("защитен вид игнорира зловреден meta excerpt", () => {
-    const docName = "Фактура (образец)";
-    const f = buildTemplateFallbackContent({ docName });
-    const desc = buildTemplatePageDescription({
-      guarded: true,
-      docName,
-      metaExcerpt: "Задължителен документ, който узаконява сделката и гарантира законосъобразност.",
-      metaLawSuffix: f.labels.metaLawSuffix,
-      metaFallbackLaw: f.labels.metaFallbackLaw,
-    });
-    expect(desc).not.toMatch(/задължителен документ/i);
-    expect(desc).not.toMatch(/гарантира законосъобразност/i);
-    expect(desc).not.toMatch(/узаконява/i);
-    expect(desc).toBe(legacyDesc(docName, undefined, f));
+  it("не обещава безплатно изтегляне и не дава времево обещание", () => {
+    const desc = buildTemplatePageDescription({ docName: "Фактура (образец)" });
+    expect(desc).not.toMatch(/безплат/i);
+    expect(desc).not.toMatch(/за 2 минути/i);
+    expect(desc).toContain("без регистрация");
+    expect(desc).toContain("след вход според плана");
   });
 
-  it("договор запазва стария низ байт-по-байт", () => {
+  it("не сглобява генериран excerpt и е детерминистичен", () => {
     const docName = "Договор за наем на жилище";
-    const f = buildTemplateFallbackContent({ docName });
-    const excerpt = "Договорът за наем урежда отношенията между наемодател и наемател при предоставяне на жилище срещу наемна цена.";
-    expect(
-      buildTemplatePageDescription({
-        guarded: false,
-        docName,
-        metaExcerpt: excerpt,
-        metaLawSuffix: f.labels.metaLawSuffix,
-        metaFallbackLaw: f.labels.metaFallbackLaw,
-      }),
-    ).toBe(legacyDesc(docName, excerpt, f));
-    expect(
-      buildTemplatePageDescription({
-        guarded: false,
-        docName,
-        metaExcerpt: undefined,
-        metaLawSuffix: f.labels.metaLawSuffix,
-        metaFallbackLaw: f.labels.metaFallbackLaw,
-      }),
-    ).toBe(legacyDesc(docName, undefined, f));
+    expect(buildTemplatePageDescription({ docName })).toBe(
+      buildTemplatePageDescription({ docName }),
+    );
+    expect(buildTemplatePageDescription({ docName })).toBe(
+      "Договор за наем на жилище — онлайн образец на български. Попълнете и прегледайте без регистрация; PDF/DOCX след вход според плана.",
+    );
   });
 
-  it("Template.tsx ползва helper-а и resolved.guarded", () => {
+  it("Template.tsx ползва helper-а с каноничното име", () => {
     const src = fs.readFileSync(path.resolve("src/pages/Template.tsx"), "utf8");
-    expect(src).toMatch(/buildTemplatePageDescription\(\{\s*\n\s*guarded: resolved\.guarded/);
+    expect(src).toMatch(/buildTemplatePageDescription\(\{ docName: doc\.name \}\)/);
     expect(src).not.toMatch(/const pageDesc = meta\?\.introExcerpt/);
   });
 });
 
+
 describe("Template.tsx wiring — intro и структурирани данни", () => {
   const src = fs.readFileSync(path.resolve("src/pages/Template.tsx"), "utf8");
 
-  it("Article/Product описанието е безопасно при защитените, doc.purpose при останалите", () => {
+  it("Article описанието е безопасно при защитените, doc.purpose при останалите", () => {
     expect(src).toMatch(
       /const structuredDataDesc = resolved\.guarded \? pageDesc : doc\.purpose;/,
     );
     expect(src).not.toMatch(/description: doc\.purpose,/);
-    expect((src.match(/description: structuredDataDesc,/g) ?? []).length).toBe(2);
+    expect((src.match(/description: structuredDataDesc,/g) ?? []).length).toBe(1);
   });
+
 
   it("видимото intro не ползва meta excerpt при защитените страници", () => {
     expect(src).toMatch(

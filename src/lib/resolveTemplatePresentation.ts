@@ -103,35 +103,42 @@ export function resolveTemplatePresentation(
 }
 
 export interface TemplatePageDescriptionInput {
-  /** `resolved.guarded` — при true meta excerpt-ът се игнорира изцяло. */
-  guarded: boolean;
   docName: string;
-  metaExcerpt?: string;
-  metaLawSuffix: string;
-  metaFallbackLaw: string;
+}
+
+/** Максимална дължина на meta description (Unicode кодови точки). */
+export const TEMPLATE_META_MAX = 160;
+
+const DESCRIPTION_SUFFIX =
+  " — онлайн образец на български. Попълнете и прегледайте без регистрация; PDF/DOCX след вход според плана.";
+
+/** Бюджет за името на документа, така че целият низ да остане ≤ 160 знака. */
+const NAME_BUDGET = TEMPLATE_META_MAX - [...DESCRIPTION_SUFFIX].length;
+
+/**
+ * Съкращаване по граница на дума (никога в средата на дума), с многоточие само
+ * когато реално е отрязано. Работи по Unicode кодови точки.
+ */
+export function truncateOnWordBoundary(text: string, max: number): string {
+  const chars = [...text.trim()];
+  if (chars.length <= max) return chars.join("");
+  // Оставяме място за многоточието.
+  const slice = chars.slice(0, Math.max(1, max - 1)).join("");
+  const cut = slice.replace(/[\s—–-]+\S*$/u, "").trimEnd();
+  const base = (cut.length > 0 ? cut : slice.trimEnd()).replace(/[\s,.;:—–-]+$/u, "");
+  return `${base}…`;
 }
 
 /**
- * Meta description + Article JSON-LD description.
- * За защитените (недоговорни) видове НЕ се ползва генерираният meta excerpt —
- * той съдържа непроверени абсолютни твърдения („задължителен документ“,
- * „гарантира законосъобразност“). Там се връща неутралният type-aware текст.
+ * Meta description + Article JSON-LD description за `/shablon/:slug`.
+ *
+ * Честност (Organic 2): страницата НЕ обещава безплатно изтегляне и НЕ дава
+ * времево обещание — експортът зависи от вход и план. Детерминистичен низ само
+ * от каноничното име на документа, без сглобяване на генериран excerpt.
  */
-export function buildTemplatePageDescription({
-  guarded,
-  docName,
-  metaExcerpt,
-  metaLawSuffix,
-  metaFallbackLaw,
-}: TemplatePageDescriptionInput): string {
-  const neutral =
-    `Безплатен образец на ${docName.toLowerCase()} на български – ${metaFallbackLaw}. Попълни и изтегли PDF или DOCX за 2 минути.`.slice(
-      0,
-      160,
-    );
-  if (guarded) return neutral;
-  return metaExcerpt
-    ? `${metaExcerpt.slice(0, 110)} Безплатен образец на ${docName.toLowerCase()} – ${metaLawSuffix}`.slice(0, 160)
-    : neutral;
+export function buildTemplatePageDescription({ docName }: TemplatePageDescriptionInput): string {
+  const name = truncateOnWordBoundary(docName, NAME_BUDGET);
+  return `${name}${DESCRIPTION_SUFFIX}`;
 }
+
 

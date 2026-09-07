@@ -28,6 +28,8 @@ import {
   isSeoIntentSlug,
   seoIntentVariant,
 } from "@/lib/seoTemplateIntent";
+import { getSeoTemplateMeta } from "@/lib/seoTemplateMeta";
+
 
 import { getPostBySlug } from "@/lib/blog";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
@@ -138,7 +140,8 @@ export default function TemplatePage() {
   };
 
 
-  const pageTitle = `${doc.name} — образец на български`;
+  const metaOverride = getSeoTemplateMeta(entry.slug);
+  const pageTitle = metaOverride?.title ?? `${doc.name} — образец на български`;
   const fallback = buildTemplateFallbackContent({
     docName: doc.name,
     categoryId: category.id,
@@ -153,13 +156,8 @@ export default function TemplatePage() {
    */
   const resolved = resolveTemplatePresentation(aiContent, fallback);
 
-  const pageDesc = buildTemplatePageDescription({
-    guarded: resolved.guarded,
-    docName: doc.name,
-    metaExcerpt: meta?.introExcerpt,
-    metaLawSuffix: fallback.labels.metaLawSuffix,
-    metaFallbackLaw: fallback.labels.metaFallbackLaw,
-  });
+  const pageDesc = metaOverride?.description ?? buildTemplatePageDescription({ docName: doc.name });
+
 
   /**
    * Видимото intro: при защитените видове НЕ се показва неревизираният
@@ -218,39 +216,12 @@ export default function TemplatePage() {
     })),
   };
 
-  const productLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: `${doc.name} — образец`,
-    description: structuredDataDesc,
-    inLanguage: "bg-BG",
-    category: category.title,
-    brand: { "@type": "Brand", name: "Dogovori.net" },
-    url: `https://dogovori.net${canonical}`,
-    offers: {
-      "@type": "Offer",
-      price: "0",
-      priceCurrency: "EUR",
-      availability: "https://schema.org/InStock",
-      url: `https://dogovori.net${canonical}`,
-    },
-  };
-
-  const howToLd = {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
-    name: `Как да изготвя ${doc.name.toLowerCase()} онлайн`,
-    inLanguage: "bg-BG",
-    totalTime: "PT2M",
-    step: [
-      { "@type": "HowToStep", position: 1, name: "Избор на шаблон", text: `Изберете „${doc.name}“ от каталога на Dogovori.net.` },
-      { "@type": "HowToStep", position: 2, name: "Попълване на въпросник", text: "Отговорете на стратегическия въпросник, изграден от юристи." },
-      { "@type": "HowToStep", position: 3, name: "Анализ на риска", text: fallback.labels.howToAnalysisText },
-      { "@type": "HowToStep", position: 4, name: "Експорт", text: "Изтеглете готовия документ в PDF или DOCX формат." },
-      { "@type": "HowToStep", position: 5, name: fallback.labels.howToFinalStepName, text: fallback.labels.howToFinalStepText },
-    ],
-  };
-
+  /**
+   * Organic 2: премахнати са page-level `Product` (offers.price „0") и `HowTo`
+   * структурираните данни — страницата не е класическа оферта с нулева цена и
+   * не показва видим стъпков блок. Остават BreadcrumbList / Article / FAQPage,
+   * чието съдържание реално се вижда на страницата.
+   */
   return (
     <div className="min-h-dvh">
       <Seo
@@ -258,8 +229,9 @@ export default function TemplatePage() {
         description={pageDesc}
         canonical={canonical}
         type="article"
-        jsonLd={[breadcrumbsLd, articleLd, productLd, howToLd, faqLd]}
+        jsonLd={[breadcrumbsLd, articleLd, faqLd]}
       />
+
       <Header />
 
       <article className="container max-w-4xl py-12 md:py-16">
