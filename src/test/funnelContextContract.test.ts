@@ -10,9 +10,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { getCategoryConsent, trackEvent } = vi.hoisted(() => ({
   getCategoryConsent: vi.fn<(c: string) => boolean>(() => true),
-  trackEvent: vi.fn(),
+  trackEvent: vi.fn<(name: string, props?: Record<string, unknown>) => void>(),
 }));
-const { insert } = vi.hoisted(() => ({ insert: vi.fn(() => Promise.resolve({ error: null })) }));
+const { insert } = vi.hoisted(() => ({
+  insert: vi.fn<(row: Record<string, unknown>) => Promise<{ error: null }>>(() =>
+    Promise.resolve({ error: null }),
+  ),
+}));
+
 
 vi.mock("@/lib/analytics", () => ({ getCategoryConsent, trackEvent }));
 vi.mock("@/integrations/supabase/client", () => ({
