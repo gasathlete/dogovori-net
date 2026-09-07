@@ -49,7 +49,7 @@ import { FAQ } from "@/lib/plansData";
 import { usePlans, type Billing, type PlanId } from "@/hooks/usePlans";
 import { trackEvent } from "@/lib/analytics";
 import { trackPlansView } from "@/lib/metrics";
-import { roiSubtitle, type PricingPlanId } from "@/lib/pricing";
+
 
 const PLAN_ICON: Record<PlanId, React.ComponentType<{ className?: string }>> = {
   free: Sparkles,
@@ -90,51 +90,84 @@ function buildCta(planId: PlanId, billing: Billing, isAuthed: boolean): {
 }
 
 /**
- * Единствената реализация на публичния CTA за входния пакет (без абонамент).
- * Държим я на едно място, за да няма два различни варианта на същата оферта.
+ * Единственият публичен CTA за входния пакет (без абонамент) — само линк и
+ * неговият handler, без собствена рамка, за да не дублира картата около него.
  */
 function EntryPackCta({ isAuthed, audience }: { isAuthed: boolean; audience: string }) {
   const href = entryPackCtaHref(isAuthed);
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border-2 border-brand/40 bg-brand/[0.04] p-5 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:p-6">
-      <div className="flex items-start gap-3 sm:items-center">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
-          <Sparkles className="h-5 w-5" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
-            Без абонамент
-          </p>
-          <h3 className="mt-1 font-serif text-lg leading-tight text-foreground">
-            Конкретен документ — {ENTRY_PACK_CONFIG.ops} действия по документи за {fmtEur(ENTRY_PACK_CONFIG.eur)}
-          </h3>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
-            Еднократно плащане · действията не изтичат и се използват след включените безплатни действия.
-            Пакетът не отключва функции от платените планове. При редовна работа по договори{" "}
-            {PRICING_PLANS.professional.name} ({monthlyLabel("professional")}) излиза по-изгодно.
-          </p>
-        </div>
-      </div>
+    <Link
+      to={href}
+      onClick={() => {
+        trackEvent("plans_cta_clicked", {
+          plan: ENTRY_PACK_CONFIG.priceId,
+          billing: "one_time",
+          source: "public_entry_pack",
+          authed: isAuthed,
+          audience,
+        });
+        trackEvent("plans_purchase_mode_selected", { mode: "one_time", audience });
+      }}
+      className="inline-flex w-fit shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-white shadow-brand transition-all hover:shadow-[0_20px_50px_-15px_hsl(var(--brand)/0.6)]"
+    >
+      Купи за {fmtEur(ENTRY_PACK_CONFIG.eur)}
+      <ArrowRight className="h-4 w-4" />
+    </Link>
+  );
+}
 
-      <Link
-        to={href}
-        onClick={() =>
-          trackEvent("plans_cta_clicked", {
-            plan: ENTRY_PACK_CONFIG.priceId,
-            billing: "one_time",
-            source: "public_entry_pack",
-            authed: isAuthed,
-            audience,
-          })
-        }
-        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-white shadow-brand transition-all hover:shadow-[0_20px_50px_-15px_hsl(var(--brand)/0.6)]"
+/** Период на фактуриране — едно място, ползвано в секцията „Абонаменти“. */
+function BillingToggle({
+  billing,
+  setBilling,
+}: {
+  billing: Billing;
+  setBilling: (b: Billing) => void;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Период на фактуриране"
+      className="relative inline-flex items-center rounded-full border border-hairline bg-card/80 p-1 backdrop-blur-md shadow-soft"
+    >
+      <button
+        role="tab"
+        aria-selected={billing === "monthly"}
+        onClick={() => setBilling("monthly")}
+        className={cn(
+          "relative z-10 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
+          billing === "monthly"
+            ? "bg-gradient-brand text-white shadow-brand"
+            : "text-muted-foreground hover:text-foreground",
+        )}
       >
-        Купи за {fmtEur(ENTRY_PACK_CONFIG.eur)}
-        <ArrowRight className="h-4 w-4" />
-      </Link>
+        Месечно
+      </button>
+      <button
+        role="tab"
+        aria-selected={billing === "yearly"}
+        onClick={() => setBilling("yearly")}
+        className={cn(
+          "relative z-10 inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
+          billing === "yearly"
+            ? "bg-gradient-brand text-white shadow-brand"
+            : "text-muted-foreground hover:text-foreground",
+        )}
+      >
+        Годишно
+        <span
+          className={cn(
+            "inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors",
+            billing === "yearly" ? "bg-white/15 text-white" : "bg-brand/15 text-brand",
+          )}
+        >
+          −17%
+        </span>
+      </button>
     </div>
   );
 }
+
 
 
 export default function Plans() {
@@ -220,45 +253,8 @@ export default function Plans() {
 
             <div className="mt-6 flex flex-col items-center gap-3 sm:mt-8">
               <AudienceToggle size="sm" />
-              <div
-                role="tablist"
-                aria-label="Период на фактуриране"
-                className="relative inline-flex items-center rounded-full border border-hairline bg-card/80 p-1 backdrop-blur-md shadow-soft"
-              >
-                <button
-                  role="tab"
-                  aria-selected={billing === "monthly"}
-                  onClick={() => setBilling("monthly")}
-                  className={cn(
-                    "relative z-10 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
-                    billing === "monthly"
-                      ? "bg-gradient-brand text-white shadow-brand"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  Месечно
-                </button>
-                <button
-                  role="tab"
-                  aria-selected={billing === "yearly"}
-                  onClick={() => setBilling("yearly")}
-                  className={cn(
-                    "relative z-10 inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
-                    billing === "yearly"
-                      ? "bg-gradient-brand text-white shadow-brand"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  Годишно
-                  <span className={cn(
-                    "inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors",
-                    billing === "yearly" ? "bg-white/15 text-white" : "bg-brand/15 text-brand",
-                  )}>
-                    −17%
-                  </span>
-                </button>
-              </div>
             </div>
+
           </PlansAuroraHero>
         </section>
 
@@ -277,8 +273,9 @@ export default function Plans() {
               </p>
               <h3 className="mt-1.5 font-serif text-xl text-foreground">Конкретен документ</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                {fmtEur(ENTRY_PACK_CONFIG.eur)} · {ENTRY_PACK_CONFIG.ops} включени действия по документи ·
-                без абонамент.
+                {fmtEur(ENTRY_PACK_CONFIG.eur)} · {ENTRY_PACK_CONFIG.ops} включени действия по
+                документи · без абонамент. Действията не изтичат и не отключват функции от платените
+                планове.
               </p>
               <div className="mt-4">
                 <EntryPackCta isAuthed={isAuthed} audience={audience} />
@@ -295,12 +292,16 @@ export default function Plans() {
               </p>
               <a
                 href="#plan-cards"
+                onClick={() =>
+                  trackEvent("plans_purchase_mode_selected", { mode: "subscription", audience })
+                }
                 className="mt-4 inline-flex w-fit items-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-white shadow-brand"
               >
                 Виж абонаментите
                 <ArrowRight className="h-4 w-4" />
               </a>
             </div>
+
           </div>
         </section>
 
@@ -313,7 +314,12 @@ export default function Plans() {
           className="pb-12 sm:pb-16"
 
         >
+          <div className="mb-6 flex justify-center sm:mb-8">
+            <BillingToggle billing={billing} setBilling={setBilling} />
+          </div>
+
           <div className="grid gap-5 md:grid-cols-3 md:gap-6 xl:gap-7">
+
             {plans.filter((p) => p.id !== "free").map((plan, idx) => {
 
               const Icon = PLAN_ICON[plan.id];
@@ -421,12 +427,8 @@ export default function Plans() {
                         {effectivePrice.note && (
                           <p className="mt-1.5 text-xs text-muted-foreground">{effectivePrice.note}</p>
                         )}
-                        {roiSubtitle(plan.id as PricingPlanId) && (
-                          <p className="mt-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                            {roiSubtitle(plan.id as PricingPlanId)}
-                          </p>
-                        )}
                       </>
+
                     ) : (
                       <div className="flex items-baseline gap-1">
                         <span className="font-serif text-[44px] font-semibold leading-none text-foreground sm:text-5xl">
@@ -547,23 +549,24 @@ export default function Plans() {
         {/* 02 — Проблемът */}
         <PlanStoryStage
           index="02"
-          title="Един пропуснат текст в договора струва повече от годишен абонамент"
-          subtitle="Липсваща клауза за неустойка, грешни реквизити или неподписано приложение — всяко от тях се плаща по-скъпо от целия ви план."
+          title="Какво получавате при всеки документ"
+          subtitle="Целта е един ясен, проверен и проследим документ — независимо дали плащате еднократно, или сте на абонамент."
         >
           <div className="grid gap-4 sm:grid-cols-3">
             {[
               {
-                t: "90 € и 3 дни",
-                d: "средно за изготвяне на един стандартен договор при външен юрист.",
+                t: "Ясни реквизити",
+                d: "страни, срокове, суми и приложения се попълват стъпка по стъпка, с правна подсказка на всяко поле.",
               },
               {
-                t: "Липсващи реквизити",
-                d: "най-честата причина документ да не бъде признат пред институция или банка.",
+                t: "Преглед на клаузите",
+                d: "проверка за липсващи и рискови клаузи, преди да изпратите документа на другата страна.",
               },
               {
-                t: "Хартия и подписи",
-                d: "срещи, сканиране и разминаващи се версии вместо един проследим документ.",
+                t: "Една проследима версия",
+                d: "финалният текст, подписите и историята на промените остават на едно място.",
               },
+
             ].map((it) => (
               <div
                 key={it.t}
@@ -623,18 +626,19 @@ export default function Plans() {
             ))}
           </ol>
           <p className="mt-4 text-xs text-muted-foreground">
-            Операциите се изразходват само при генериране, изтегляне, качване с анализ и всяко
+            Действията се изразходват само при генериране, изтегляне, качване с анализ и всяко
             съобщение до AI асистента. Вълна авто-корекции = 1 действие на всеки 5 корекции.
           </p>
         </PlanStoryStage>
 
 
-        {/* 04 — Възвръщаемостта */}
+        {/* 04 — Ориентировъчна сметка по ваши допускания */}
         <PlanStoryStage
           index="04"
-          title="Възвръщаемостта — черно на бяло"
-          subtitle="Изчислете колко ви струва текущият начин на работа и след колко документа планът се изплаща."
+          title="Сравнете с вашия текущ начин на работа"
+          subtitle="По избор: въведете собствените си допускания за обем и разходи — сметката е ориентировъчна и служи само за сравнение, не е обещан резултат."
         >
+
           <div className="rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:p-6">
             <div className="mx-auto max-w-3xl">
               <RoiSavingsBanner className="mb-5" />
