@@ -494,14 +494,14 @@ function buildSyncPointer(args: {
     Date.parse(data.expires_at || "") || Date.now() + ttl,
     claimed ? storedSame?.expiresAt ?? 0 : 0,
   );
-  // Атрибуцията се пази, ако вече има валидна (update/claim); иначе се снима
-  // текущият документен контекст (нов указател при първи запис).
-  const existingJourney = storedSame?.journeyId ?? (sameAsSent ? sent?.journeyId : undefined);
-  const existingRun = storedSame?.runId ?? (sameAsSent ? sent?.runId : undefined);
-  const ctx =
-    isValidFunnelId(existingJourney) && isValidFunnelId(existingRun) ? null : getDocumentContext();
-  const journeyId = isValidFunnelId(existingJourney) ? existingJourney : ctx?.journey_id;
-  const runId = isValidFunnelId(existingRun) ? existingRun : ctx?.run_id;
+  // Атрибуцията е неделима двойка: пази се само ако и двата идентификатора са
+  // валидни; иначе се взема цялата двойка от един снимък на текущия контекст.
+  const existingPair =
+    validPair(storedSame?.journeyId, storedSame?.runId) ??
+    (sameAsSent ? validPair(sent?.journeyId, sent?.runId) : null);
+  const ctx = existingPair ? null : getDocumentContext();
+  const pair = existingPair ?? validPair(ctx?.journey_id, ctx?.run_id);
+
   return {
     created: !sameAsSent,
     pointer: {
