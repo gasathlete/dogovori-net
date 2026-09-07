@@ -90,51 +90,84 @@ function buildCta(planId: PlanId, billing: Billing, isAuthed: boolean): {
 }
 
 /**
- * Единствената реализация на публичния CTA за входния пакет (без абонамент).
- * Държим я на едно място, за да няма два различни варианта на същата оферта.
+ * Единственият публичен CTA за входния пакет (без абонамент) — само линк и
+ * неговият handler, без собствена рамка, за да не дублира картата около него.
  */
 function EntryPackCta({ isAuthed, audience }: { isAuthed: boolean; audience: string }) {
   const href = entryPackCtaHref(isAuthed);
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border-2 border-brand/40 bg-brand/[0.04] p-5 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:p-6">
-      <div className="flex items-start gap-3 sm:items-center">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
-          <Sparkles className="h-5 w-5" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
-            Без абонамент
-          </p>
-          <h3 className="mt-1 font-serif text-lg leading-tight text-foreground">
-            Конкретен документ — {ENTRY_PACK_CONFIG.ops} действия по документи за {fmtEur(ENTRY_PACK_CONFIG.eur)}
-          </h3>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
-            Еднократно плащане · действията не изтичат и се използват след включените безплатни действия.
-            Пакетът не отключва функции от платените планове. При редовна работа по договори{" "}
-            {PRICING_PLANS.professional.name} ({monthlyLabel("professional")}) излиза по-изгодно.
-          </p>
-        </div>
-      </div>
+    <Link
+      to={href}
+      onClick={() => {
+        trackEvent("plans_cta_clicked", {
+          plan: ENTRY_PACK_CONFIG.priceId,
+          billing: "one_time",
+          source: "public_entry_pack",
+          authed: isAuthed,
+          audience,
+        });
+        trackEvent("plans_purchase_mode_selected", { mode: "one_time", audience });
+      }}
+      className="inline-flex w-fit shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-white shadow-brand transition-all hover:shadow-[0_20px_50px_-15px_hsl(var(--brand)/0.6)]"
+    >
+      Купи за {fmtEur(ENTRY_PACK_CONFIG.eur)}
+      <ArrowRight className="h-4 w-4" />
+    </Link>
+  );
+}
 
-      <Link
-        to={href}
-        onClick={() =>
-          trackEvent("plans_cta_clicked", {
-            plan: ENTRY_PACK_CONFIG.priceId,
-            billing: "one_time",
-            source: "public_entry_pack",
-            authed: isAuthed,
-            audience,
-          })
-        }
-        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-white shadow-brand transition-all hover:shadow-[0_20px_50px_-15px_hsl(var(--brand)/0.6)]"
+/** Период на фактуриране — едно място, ползвано в секцията „Абонаменти“. */
+function BillingToggle({
+  billing,
+  setBilling,
+}: {
+  billing: Billing;
+  setBilling: (b: Billing) => void;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Период на фактуриране"
+      className="relative inline-flex items-center rounded-full border border-hairline bg-card/80 p-1 backdrop-blur-md shadow-soft"
+    >
+      <button
+        role="tab"
+        aria-selected={billing === "monthly"}
+        onClick={() => setBilling("monthly")}
+        className={cn(
+          "relative z-10 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
+          billing === "monthly"
+            ? "bg-gradient-brand text-white shadow-brand"
+            : "text-muted-foreground hover:text-foreground",
+        )}
       >
-        Купи за {fmtEur(ENTRY_PACK_CONFIG.eur)}
-        <ArrowRight className="h-4 w-4" />
-      </Link>
+        Месечно
+      </button>
+      <button
+        role="tab"
+        aria-selected={billing === "yearly"}
+        onClick={() => setBilling("yearly")}
+        className={cn(
+          "relative z-10 inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
+          billing === "yearly"
+            ? "bg-gradient-brand text-white shadow-brand"
+            : "text-muted-foreground hover:text-foreground",
+        )}
+      >
+        Годишно
+        <span
+          className={cn(
+            "inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors",
+            billing === "yearly" ? "bg-white/15 text-white" : "bg-brand/15 text-brand",
+          )}
+        >
+          −17%
+        </span>
+      </button>
     </div>
   );
 }
+
 
 
 export default function Plans() {
@@ -220,45 +253,8 @@ export default function Plans() {
 
             <div className="mt-6 flex flex-col items-center gap-3 sm:mt-8">
               <AudienceToggle size="sm" />
-              <div
-                role="tablist"
-                aria-label="Период на фактуриране"
-                className="relative inline-flex items-center rounded-full border border-hairline bg-card/80 p-1 backdrop-blur-md shadow-soft"
-              >
-                <button
-                  role="tab"
-                  aria-selected={billing === "monthly"}
-                  onClick={() => setBilling("monthly")}
-                  className={cn(
-                    "relative z-10 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
-                    billing === "monthly"
-                      ? "bg-gradient-brand text-white shadow-brand"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  Месечно
-                </button>
-                <button
-                  role="tab"
-                  aria-selected={billing === "yearly"}
-                  onClick={() => setBilling("yearly")}
-                  className={cn(
-                    "relative z-10 inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
-                    billing === "yearly"
-                      ? "bg-gradient-brand text-white shadow-brand"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  Годишно
-                  <span className={cn(
-                    "inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors",
-                    billing === "yearly" ? "bg-white/15 text-white" : "bg-brand/15 text-brand",
-                  )}>
-                    −17%
-                  </span>
-                </button>
-              </div>
             </div>
+
           </PlansAuroraHero>
         </section>
 
@@ -277,8 +273,9 @@ export default function Plans() {
               </p>
               <h3 className="mt-1.5 font-serif text-xl text-foreground">Конкретен документ</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                {fmtEur(ENTRY_PACK_CONFIG.eur)} · {ENTRY_PACK_CONFIG.ops} включени действия по документи ·
-                без абонамент.
+                {fmtEur(ENTRY_PACK_CONFIG.eur)} · {ENTRY_PACK_CONFIG.ops} включени действия по
+                документи · без абонамент. Действията не изтичат и не отключват функции от платените
+                планове.
               </p>
               <div className="mt-4">
                 <EntryPackCta isAuthed={isAuthed} audience={audience} />
@@ -295,12 +292,16 @@ export default function Plans() {
               </p>
               <a
                 href="#plan-cards"
+                onClick={() =>
+                  trackEvent("plans_purchase_mode_selected", { mode: "subscription", audience })
+                }
                 className="mt-4 inline-flex w-fit items-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-white shadow-brand"
               >
                 Виж абонаментите
                 <ArrowRight className="h-4 w-4" />
               </a>
             </div>
+
           </div>
         </section>
 
