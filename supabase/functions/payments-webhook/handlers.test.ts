@@ -140,11 +140,33 @@ Deno.test("strict unlock DB error still fails closed", async () => {
   );
 });
 
-Deno.test("order snapshot failure stays non-fatal", async () => {
-  const db = makeDb({ results: { "order_snapshots.insert": { data: null, error: { message: "snap" } } } });
+Deno.test("first delivery writes an idempotent order snapshot", async () => {
+  const db = makeDb();
   const session = { id: "cs_3", mode: "payment", amount_total: 290, metadata: { userId: "u1" } };
   await handleCheckoutCompleted(makeDeps(db), session, "live");
+  assertEquals(db.calls.filter((c) => c.table === "order_snapshots" && c.op === "upsert").length, 1);
 });
+
+Deno.test("duplicate delivery of the same session stays idempotent", async () => {
+  const db = makeDb();
+  const session = { id: "cs_3", mode: "payment", amount_total: 290, metadata: { userId: "u1" } };
+  await handleCheckoutCompleted(makeDeps(db), session, "live");
+  await handleCheckoutCompleted(makeDeps(db), session, "live");
+  const writes = db.calls.filter((c) => c.table === "order_snapshots");
+  assertEquals(writes.length, 2);
+  assertEquals(writes.every((c) => c.op === "upsert"), true);
+});
+
+Deno.test("order snapshot DB error fails closed so Stripe retries", async () => {
+  const db = makeDb({ results: { "order_snapshots.upsert": { data: null, error: { message: "snap" } } } });
+  const session = { id: "cs_3", mode: "payment", amount_total: 290, metadata: { userId: "u1" } };
+  await assertRejects(
+    () => handleCheckoutCompleted(makeDeps(db), session, "live"),
+    Error,
+    "order_snapshots upsert failed",
+  );
+});
+
 
 Deno.test("sandbox blocked event performs no write", async () => {
   const db = makeDb({ rpc: () => ({ data: false, error: null }) });

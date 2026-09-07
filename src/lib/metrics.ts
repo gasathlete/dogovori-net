@@ -68,7 +68,12 @@ export function trackPlansView(source?: string) {
 
 /** Стартиран Stripe checkout (или отваряне на билинг таб). */
 export function trackCheckoutStarted(plan: string, billing: string, source?: string) {
-  trackMetric("checkout_started", { plan, billing, source: source ?? "plans" });
+  trackMetric("checkout_started", {
+    event: "checkout_started",
+    plan,
+    billing,
+    source: source ?? "plans",
+  });
 }
 
 /**
@@ -81,8 +86,15 @@ export function trackCheckoutFailed(
   category: string,
   source?: string,
 ) {
-  trackMetric("checkout_failed", { plan, billing, category, source: source ?? "plans" });
+  trackMetric("checkout_failed", {
+    event: "checkout_failed",
+    plan,
+    billing,
+    category,
+    source: source ?? "plans",
+  });
 }
+
 
 /** Успешно активиран абонамент. */
 export function trackUpgradeCompleted(plan?: string, billing?: string) {

@@ -293,40 +293,45 @@ export async function handleCheckoutCompleted(d: WebhookDeps, session: Any, env:
     }
   }
 
-  // 1b) Order snapshot — ЗЗП чл. 47/49 evidence. ИЗРИЧНО non-fatal.
+  // 1b) Order snapshot — ЗЗП чл. 47/49 evidence. FAIL-CLOSED и идемпотентно:
+  //     повторна доставка на същата сесия обновява същия ред (UNIQUE на
+  //     stripe_session_id), а DB грешка връща non-2xx, за да повтори Stripe.
+  //     Entitlement-ите остават преди този запис.
   if (userId && session.id) {
-    try {
-      const amountTotal = session.amount_total;
-      const currency = (session.currency || "eur").toUpperCase();
-      const lookup = session.metadata?.priceId || session.metadata?.lookup_key || null;
-      const planName = session.mode === "subscription"
-        ? (lookup || "subscription")
-        : (lookup || "one_off");
-      const billingPeriod = session.mode === "subscription"
-        ? (session.metadata?.billing_period || null)
-        : null;
-      const res = await d.db.from("order_snapshots").insert({
-        user_id: userId,
-        plan_name: planName,
-        price_amount: typeof amountTotal === "number" ? amountTotal / 100 : 0,
-        currency,
-        vat_included: true,
-        vat_rate: 20,
-        billing_period: billingPeriod,
-        terms_version: session.metadata?.terms_version || "2026-09-01",
-        privacy_version: session.metadata?.privacy_version || "2026-09-01",
-        withdrawal_version: session.metadata?.withdrawal_version || "2026-09-01",
-        refund_version: session.metadata?.refund_version || "2026-09-01",
-        dpa_version: session.metadata?.dpa_version || null,
-        ai_ack_accepted: session.metadata?.ai_ack_accepted === "true",
-        stripe_session_id: session.id,
-        stripe_subscription_id: session.subscription || null,
-      });
-      if (res?.error) console.error("order_snapshots insert failed (non-fatal):", res.error.message);
-    } catch (e) {
-      console.error("order_snapshots insert failed (non-fatal):", e);
-    }
+    const amountTotal = session.amount_total;
+    const currency = (session.currency || "eur").toUpperCase();
+    const lookup = session.metadata?.priceId || session.metadata?.lookup_key || null;
+    const planName = session.mode === "subscription"
+      ? (lookup || "subscription")
+      : (lookup || "one_off");
+    const billingPeriod = session.mode === "subscription"
+      ? (session.metadata?.billing_period || null)
+      : null;
+    mustSucceed(
+      await d.db.from("order_snapshots").upsert(
+        {
+          user_id: userId,
+          plan_name: planName,
+          price_amount: typeof amountTotal === "number" ? amountTotal / 100 : 0,
+          currency,
+          vat_included: true,
+          vat_rate: 20,
+          billing_period: billingPeriod,
+          terms_version: session.metadata?.terms_version || "2026-09-01",
+          privacy_version: session.metadata?.privacy_version || "2026-09-01",
+          withdrawal_version: session.metadata?.withdrawal_version || "2026-09-01",
+          refund_version: session.metadata?.refund_version || "2026-09-01",
+          dpa_version: session.metadata?.dpa_version || null,
+          ai_ack_accepted: session.metadata?.ai_ack_accepted === "true",
+          stripe_session_id: session.id,
+          stripe_subscription_id: session.subscription || null,
+        },
+        { onConflict: "stripe_session_id" },
+      ),
+      "order_snapshots upsert",
+    );
   }
+
 
   // 2) Receipt email — ИЗРИЧНО non-fatal.
   try {

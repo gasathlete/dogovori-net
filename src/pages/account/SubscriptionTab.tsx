@@ -40,6 +40,8 @@ import { toast } from "sonner";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { sanitizeReturnPath } from "@/lib/safeRoute";
 import { isAllowedCheckoutPrice } from "@/lib/entryPack";
+import { buildCheckoutReturnUrl } from "@/lib/checkoutAnalytics";
+
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { ShareForSignDialog } from "@/components/ShareForSignDialog";
 import { UploadContractDialog } from "@/components/UploadContractDialog";
@@ -129,9 +131,13 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   // Само относителен път в същия origin — иначе линкът „Назад към документа“
   // би могъл да изведе потребителя извън приложението.
   const redirectAfter = sanitizeReturnPath(searchParams.get("redirect")) ?? "";
-  const returnUrl = `${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}${
-    redirectAfter ? `&redirect=${encodeURIComponent(redirectAfter)}` : ""
-  }`;
+  const returnUrl = buildCheckoutReturnUrl({
+    origin: window.location.origin,
+    priceId: checkoutPrice ?? undefined,
+    source: "account_subscription",
+    redirect: redirectAfter || undefined,
+  });
+
 
   // Auto-open checkout if requested via ?checkout=...
   useEffect(() => {

@@ -28,6 +28,8 @@ import {
 } from "@/lib/branding/storage";
 import { invalidateResolvedBranding } from "@/lib/branding/resolve";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
+import { buildCheckoutReturnUrl } from "@/lib/checkoutAnalytics";
+
 import { fmtEur } from "@/lib/pricing";
 
 const BRANDING_PRICE_EUR = 29;
@@ -195,8 +197,14 @@ export default function BrandingTab() {
                 quantity={1}
                 customerEmail={user.email}
                 userId={user.id}
-                returnUrl={`${window.location.origin}/account?tab=branding&branding=success&session_id={CHECKOUT_SESSION_ID}`}
+                returnUrl={buildCheckoutReturnUrl({
+                  origin: window.location.origin,
+                  priceId: "branding_unlock_once",
+                  source: "branding",
+                  redirect: "/account?tab=branding",
+                })}
               />
+
             </div>
           </div>
         )}

@@ -15,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { TEAM_REWARD_TIERS, getUnlockedTeamTiers, getNextTeamTier } from "@/lib/rewards";
 
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
+import { buildCheckoutReturnUrl } from "@/lib/checkoutAnalytics";
+
 import { TeamDocuments } from "@/components/TeamDocuments";
 import { TeamBranding } from "@/components/TeamBranding";
 import { TeamContacts } from "@/components/TeamContacts";
@@ -124,7 +126,13 @@ export default function TeamPage() {
                     const { data, error } = await supabase.functions.invoke("create-team", {
                       body: {
                         name: createName, seats: createSeats, billing: createBilling,
-                        returnUrl: `${window.location.origin}/team?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+                        returnUrl: buildCheckoutReturnUrl({
+                          origin: window.location.origin,
+                          priceId: "team_seat_yearly",
+                          source: "team",
+                          redirect: "/team",
+                        }),
+
                         environment: getStripeEnvironment(),
                       },
                     });
