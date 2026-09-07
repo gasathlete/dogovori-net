@@ -308,7 +308,7 @@ export default function TemplatePage() {
             </span>
             <div className="flex flex-col items-start gap-2">
               <Link to={wizardHref} onClick={() => trackCreateCta("hero")} className="btn-gold btn-sheen">
-                Изготви за 3 минути <ArrowRight className="h-4 w-4" />
+                {intent ? intent.primaryLabel : "Изготви за 3 минути"} <ArrowRight className="h-4 w-4" />
               </Link>
               <p className="text-[12px] text-muted-foreground">
                 Старт без регистрация · преглед преди плащане ·{" "}
