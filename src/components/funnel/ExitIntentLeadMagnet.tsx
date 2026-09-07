@@ -60,6 +60,7 @@ export function ExitIntentLeadMagnet() {
   /** Начало на непрекъснатия престой върху разрешени маршрути (null = отказан маршрут). */
   const allowedSince = useRef<number | null>(null);
   const emailRef = useRef<HTMLInputElement | null>(null);
+  const downloadRef = useRef<HTMLAnchorElement | null>(null);
 
   useEffect(() => {
     mounted.current = true;
