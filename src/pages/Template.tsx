@@ -20,6 +20,14 @@ import { autoLinkParagraph, createAutoLinkState } from "@/lib/autoLinkBlog";
 import { RELATED_TEMPLATES } from "@/data/relatedTemplates";
 import { buildTemplateFallbackContent } from "@/lib/templateFallbackContent";
 import { buildTemplatePageDescription, resolveTemplatePresentation } from "@/lib/resolveTemplatePresentation";
+import {
+  SEO_INTENT_BLANK_LINK_LABEL,
+  SEO_INTENT_SUPPORT_LINE,
+  SEO_INTENT_VERSION,
+  getSeoTemplateIntent,
+  isSeoIntentSlug,
+  seoIntentVariant,
+} from "@/lib/seoTemplateIntent";
 
 import { getPostBySlug } from "@/lib/blog";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
@@ -53,6 +61,21 @@ export default function TemplatePage() {
     if (entry) trackEvent("template_view", { slug: entry.slug, name: entry.doc.name, category: entry.category.title });
   }, [entry]);
 
+  /**
+   * Импресия на intent панела — веднъж на funnel сесия × slug × версия на
+   * експеримента (dedupKey), за да е сравнима с `template_create_cta_clicked`.
+   */
+  useEffect(() => {
+    const s = entry?.slug;
+    if (!s || !isSeoIntentSlug(s)) return;
+    trackFunnelEvent(
+      "template_intent_panel_viewed",
+      { slug: s, variant: SEO_INTENT_VERSION },
+      { dedupKey: `${s}|${SEO_INTENT_VERSION}` },
+    );
+  }, [entry?.slug]);
+
+
   if (!entry) return <Navigate to="/catalog" replace />;
 
   const { doc, category } = entry;
@@ -70,6 +93,14 @@ export default function TemplatePage() {
   const canonical = `/shablon/${entry.slug}`;
 
   /**
+   * „SEO template intent v1" — активен САМО за трите изброени slug-а.
+   * Всичко останало (canonical, slug, wizardHref, doc параметър, анонимно
+   * създаване) остава непроменено.
+   */
+  const intent = getSeoTemplateIntent(entry.slug);
+  const intentVariant = seoIntentVariant(entry.slug);
+
+  /**
    * Всички действия за СЪЗДАВАНЕ на документ тръгват анонимно — без auth гейт.
    * Auth остава само за реално обвързани с акаунт операции (комплекти/профил).
    * Props-ите са low-cardinality и без PII (без име на документ).
@@ -78,6 +109,7 @@ export default function TemplatePage() {
     trackFunnelEvent("template_create_cta_clicked", {
       slug: entry.slug,
       position,
+      variant: intentVariant,
       authenticated: Boolean(user),
     });
   };
@@ -92,6 +124,19 @@ export default function TemplatePage() {
       authenticated: Boolean(user),
     });
   };
+  /**
+   * „Preview-first" линк към редактора (БЕЗ blank=1) — отделно събитие, за да
+   * се различава от историческото `template_blank_cta_clicked`.
+   */
+  const trackBlankPreview = () => {
+    trackFunnelEvent("template_blank_preview_clicked", {
+      slug: entry.slug,
+      position: "content",
+      variant: SEO_INTENT_VERSION,
+      authenticated: Boolean(user),
+    });
+  };
+
 
   const pageTitle = `${doc.name} — образец на български`;
   const fallback = buildTemplateFallbackContent({
@@ -234,14 +279,16 @@ export default function TemplatePage() {
               <FileText className="h-3 w-3" />
               {category.title}
             </div>
-            <Link
-              to={blankWizardHref}
-              onClick={() => trackBlankCta("hero")}
-              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-gold/40 px-2.5 py-1.5 text-xs text-gold transition-colors hover:bg-gold/10"
-            >
-              <Download className="h-3 w-3" />
-              Свали само бланка
-            </Link>
+            {intent ? null : (
+              <Link
+                to={blankWizardHref}
+                onClick={() => trackBlankCta("hero")}
+                className="inline-flex shrink-0 items-center gap-1 rounded-md border border-gold/40 px-2.5 py-1.5 text-xs text-gold transition-colors hover:bg-gold/10"
+              >
+                <Download className="h-3 w-3" />
+                Свали само бланка
+              </Link>
+            )}
           </div>
           <h1 className="font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl anim-rise" style={{ animationDelay: "80ms" }}>
             {doc.name}
@@ -261,7 +308,7 @@ export default function TemplatePage() {
             </span>
             <div className="flex flex-col items-start gap-2">
               <Link to={wizardHref} onClick={() => trackCreateCta("hero")} className="btn-gold btn-sheen">
-                Изготви за 3 минути <ArrowRight className="h-4 w-4" />
+                {intent ? intent.primaryLabel : "Изготви за 3 минути"} <ArrowRight className="h-4 w-4" />
               </Link>
               <p className="text-[12px] text-muted-foreground">
                 Старт без регистрация · преглед преди плащане ·{" "}
@@ -275,7 +322,7 @@ export default function TemplatePage() {
           <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground anim-rise" style={{ animationDelay: "320ms" }}>
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> {fallback.labels.heroLegalFit}</li>
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> PDF и DOCX експорт</li>
-            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> Готов за 2 минути</li>
+            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> Кратък, насочван въпросник</li>
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> Добавен в лична, защитена база данни</li>
           </ul>
         </header>
@@ -288,6 +335,41 @@ export default function TemplatePage() {
             </p>
           </div>
         )}
+
+        {/* SEO template intent v1 — компактен панел веднага след intro (или след header, когато няма intro). */}
+        {intent && (
+          <section
+            aria-labelledby="intent-panel-title"
+            className="mb-10 rounded-xl border border-gold/25 bg-gold/[0.04] p-6 md:p-7"
+          >
+            <h2 id="intent-panel-title" className="font-serif text-lg font-bold text-foreground md:text-xl">
+              Какво попълвате в редактора
+            </h2>
+            <ul className="mt-4 space-y-2">
+              {intent.proofPoints.map((p) => (
+                <li key={p} className="flex gap-3 text-sm text-muted-foreground">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-gold" />
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6 flex flex-col items-start gap-2">
+              <Link to={wizardHref} onClick={() => trackCreateCta("content")} className="btn-gold btn-sheen">
+                {intent.primaryLabel} <ArrowRight className="h-4 w-4" />
+              </Link>
+              <p className="text-[12px] text-muted-foreground">{SEO_INTENT_SUPPORT_LINE}</p>
+              <Link
+                to={wizardHref}
+                onClick={trackBlankPreview}
+                className="text-[12px] text-muted-foreground underline-offset-4 transition-colors hover:text-gold hover:underline"
+              >
+                {SEO_INTENT_BLANK_LINK_LABEL}
+              </Link>
+            </div>
+          </section>
+        )}
+
+
 
         {(() => {
           const rel = RELATED_TEMPLATES[entry.slug];
@@ -329,13 +411,15 @@ export default function TemplatePage() {
               ))}
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-2">
-              <Link
-                to={wizardHref}
-                onClick={() => trackCreateCta("content")}
-                className="btn-gold btn-sheen"
-              >
-                Изготви документа сега <ArrowRight className="h-4 w-4" />
-              </Link>
+              {intent ? null : (
+                <Link
+                  to={wizardHref}
+                  onClick={() => trackCreateCta("content")}
+                  className="btn-gold btn-sheen"
+                >
+                  Изготви документа сега <ArrowRight className="h-4 w-4" />
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={() => {
