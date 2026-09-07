@@ -21,7 +21,9 @@
 import { getVariant } from "@/lib/ab";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
+import { getDocumentContext, isValidFunnelId } from "@/lib/funnelContext";
 import { isSafeRoute, sanitizeDraftRoute, safeReturnPath } from "@/lib/safeRoute";
+
 
 export { isSafeRoute, sanitizeDraftRoute } from "@/lib/safeRoute";
 
