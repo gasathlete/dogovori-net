@@ -316,7 +316,7 @@ describe("lead-magnet PDF — извлечен текст (pdf.js)", () => {
     });
     const pdf = await task.promise;
     const pages: string[] = [];
-    let links = 0;
+    const linkUrls: string[] = [];
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
@@ -325,17 +325,19 @@ describe("lead-magnet PDF — извлечен текст (pdf.js)", () => {
         .join(" ");
       pages.push(text);
       const annots = (await page.getAnnotations()) as Array<{ subtype?: string; url?: string }>;
-      links += annots.filter((a) => a.subtype === "Link" && typeof a.url === "string" && a.url.startsWith("https://")).length;
+      for (const a of annots) {
+        if (a.subtype === "Link" && typeof a.url === "string" && a.url.startsWith("https://")) linkUrls.push(a.url);
+      }
     }
     const meta = await pdf.getMetadata();
     await pdf.destroy();
-    return { pages, links, info: meta.info as Record<string, unknown> };
+    return { pages, links: linkUrls.length, linkUrls, info: meta.info as Record<string, unknown> };
   }
 
   it.each(docs)(
     "%s — кирилицата се извлича, всяка страница носи disclaimer и номерация",
     async (slug, doc) => {
-      const { pages, links, info } = await extract(slug);
+      const { pages, links, linkUrls, info } = await extract(slug);
       const n = pages.length;
       expect(n).toBeGreaterThanOrEqual(6);
 
@@ -358,6 +360,14 @@ describe("lead-magnet PDF — извлечен текст (pdf.js)", () => {
 
       // Всеки източник + CTA е кликаем линк (URL-ите на два реда дават повече анотации).
       expect(links).toBeGreaterThanOrEqual(doc.sources.items.length + 1);
+
+      // Кликаемите линкове са точно каноничният набор — нито един остарял адрес.
+      expect([...new Set(linkUrls)].sort()).toEqual([...EXPECTED_SOURCE_URLS[slug], EXPECTED_CTA_URLS[slug]].sort());
+      for (const obsolete of OBSOLETE_URLS) expect(linkUrls, `остарял линк ${obsolete}`).not.toContain(obsolete);
+      // Видимият текст на URL-ите също не съдържа остарели фрагменти (сливаме редовете, защото URL-ите се пренасят след „/“).
+      const glued = pages.join("").replace(/\s+/g, "").toLowerCase();
+      for (const frag of OBSOLETE_URL_FRAGMENTS) expect(glued, `остарял фрагмент във видимия текст: ${frag}`).not.toContain(frag);
+      for (const u of EXPECTED_SOURCE_URLS[slug]) expect(glued).toContain(u.toLowerCase());
 
       expect(info.Title).toBe(doc.title);
       expect(info.Author).toBe(LEAD_MAGNET_PDF_AUTHOR);
