@@ -85,8 +85,8 @@ function capturePageLoadContext(): PageLoadContext {
   };
 }
 
-/** Аргументите на типизирания RPC — точно това, което напуска браузъра. */
-export type CentralArgs = RecordWebVitalAggregateArgs;
+/** Аргументите на генерирания RPC тип — точно това, което напуска браузъра. */
+export type CentralArgs = Database["public"]["Functions"]["record_web_vital_aggregate"]["Args"];
 
 /**
  * Клиентска валидация, огледална на RPC-то: крайна неотрицателна стойност,
