@@ -209,8 +209,8 @@ describe("lead-magnet PDF — рендер", () => {
     expect(head).toContain(`/CreationDate (D:${ymd}000000+00'00')`);
     expect(head).toContain("/Lang (bg)");
     expect(head).toContain(`/Author (${LEAD_MAGNET_PDF_AUTHOR})`);
-    // Заглавието е с кирилица → jsPDF го записва като UTF-16BE с BOM.
-    expect(head).toMatch(/\/Title <FEFF[0-9A-F]+>/);
+    // Заглавието е с кирилица → jsPDF го записва като UTF-16BE с BOM (FE FF).
+    expect(head).toContain("/Title (\u00FE\u00FF");
     expect(doc.title.length).toBeGreaterThan(0);
   });
 
