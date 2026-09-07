@@ -170,8 +170,9 @@ export function StrictDocumentPaywall({
                 <div className="text-xl font-bold text-gold">{fmtEur(ENTRY_PACK_CONFIG.eur)}</div>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
-                Еднократно плащане без абонамент. Документът се отключва за 24 часа — всяко
-                сваляне (PDF или DOCX) ползва по една операция. {ENTRY_PACK_CONFIG.ops} операции
+                Еднократно плащане без абонамент. Документът се отключва за 24 часа с
+                неограничени сваляния в PDF и DOCX, без да се използват операции.{" "}
+                {ENTRY_PACK_CONFIG.ops} операции
                 остават в профила ви и не изтичат. Пакетът не отключва функции от платените планове.
               </p>
               {failed && (
