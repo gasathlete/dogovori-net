@@ -16,6 +16,8 @@ import { loadTemplateDraft } from "@/data/templateDrafts";
 import type { TemplateContent } from "@/data/templateContentTypes";
 import { trackEvent } from "@/lib/analytics";
 import { trackFunnelEvent } from "@/lib/funnel";
+import { startDocumentJourney } from "@/lib/funnelContext";
+
 import { autoLinkParagraph, createAutoLinkState } from "@/lib/autoLinkBlog";
 import { RELATED_TEMPLATES } from "@/data/relatedTemplates";
 import { buildTemplateFallbackContent } from "@/lib/templateFallbackContent";
