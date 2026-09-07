@@ -427,9 +427,11 @@ for (const cat of CATALOG) {
 
     pages.push({
       path: `/shablon/${slug}`,
+      // Точните override заглавия трябва да са байт-идентични с runtime — без брандов суфикс.
       title: metaOverride
-        ? `${metaOverride.title} | Dogovori.net`
+        ? metaOverride.title
         : `${doc.name} — образец на български | Dogovori.net`,
+
 
       description,
       bodyHtml: bodyForTemplate(doc.name, intro, requirements, faq, usageCases, mistakes, related, cat.title, cat.id),
