@@ -109,9 +109,7 @@ BEGIN
   )
   ON CONFLICT (email, magnet_slug)
   DO UPDATE SET
-    name              = NULL,
     source            = EXCLUDED.source,
-    user_agent        = NULL,
     marketing_consent = true,
     consent_at        = now(),
     consent_version   = 'lead-magnet-v2';

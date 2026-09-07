@@ -264,7 +264,7 @@ export function ExitIntentLeadMagnet() {
                 className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand px-4 py-3 text-[15px] font-semibold text-white shadow-brand transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:transition-none"
               >
                 <Download className="h-4 w-4" aria-hidden="true" />
-                Изтегли безплатния PDF
+                Свали PDF — без имейл
               </a>
               <p className="mt-2 text-center text-[11px] text-muted-foreground">
                 Директно сваляне — без имейл и без регистрация.
