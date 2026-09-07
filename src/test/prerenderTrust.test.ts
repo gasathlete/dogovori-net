@@ -142,3 +142,18 @@ describe("index.html — без остарели ценови/рейтинг т�
     expect(indexHtml).not.toContain("10.90");
   });
 });
+
+describe("src/lib/seo/schemas.ts — неутрални твърдения", () => {
+  const schemas = read("src/lib/seo/schemas.ts");
+
+  it("няма твърдения за курирани от юристи шаблони или обучен модел", () => {
+    expect(schemas).not.toContain("курирани шаблони от юристи");
+    expect(schemas).not.toContain("от юристи");
+    expect(schemas).not.toContain("специализирана за българското договорно право");
+  });
+
+  it("featureList не съдържа брой шаблони и не ги нарича само договори", () => {
+    expect(schemas).not.toContain("600+ Bulgarian contract templates");
+    expect(schemas).toContain("Bulgarian legal document templates");
+  });
+});
