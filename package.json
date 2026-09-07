@@ -9,6 +9,8 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
+    "lead-magnets:build": "bun run scripts/generate-lead-magnets.ts",
+    "lead-magnets:check": "bun run scripts/generate-lead-magnets.ts --check",
     "test": "vitest run",
     "test:watch": "vitest"
   },
