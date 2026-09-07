@@ -55,7 +55,9 @@ export function StrictDocumentPaywall({
       // Preserve wizard route so CheckoutReturn navigates back after payment.
       try {
         sessionStorage.setItem("wizard:resume", wizardHref);
-      } catch {}
+      } catch {
+        /* sessionStorage може да е блокиран — не е критично */
+      }
       const returnUrl = buildCheckoutReturnUrl({
         origin: window.location.origin,
         priceId: "strict_doc_unlock",
