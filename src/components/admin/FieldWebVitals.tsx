@@ -27,8 +27,8 @@ const pct = (rate: number | null): string => (rate === null ? "—" : `${Math.ro
 
 /**
  * Полеви Core Web Vitals от `web_vitals_daily` — само агрегати от посетители
- * със съгласие за аналитика. Ако миграцията още не е приложена, заявката
- * връща грешка и секцията показва съобщение, без да чупи страницата.
+ * със съгласие за аналитика. Четенето е ограничено от RLS до администратори;
+ * при грешка секцията показва съобщение, без да чупи страницата.
  */
 export function FieldWebVitals() {
   const [days, setDays] = useState<7 | 30>(7);
@@ -41,7 +41,7 @@ export function FieldWebVitals() {
     setError(null);
     (async () => {
       try {
-        const { data, error } = await webVitalsClient
+        const { data, error } = await supabase
           .from("web_vitals_daily")
           .select("metric,rating,device_class,sample_count,value_sum")
           .gte("day", windowStartDay(days));
