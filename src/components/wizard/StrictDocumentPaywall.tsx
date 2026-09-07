@@ -79,8 +79,7 @@ export function StrictDocumentPaywall({
       setClientSecret(data.clientSecret);
       // checkout_started = реално създадена Stripe сесия (канонично събитие).
       trackCheckoutStarted("strict_unlock", "one_time", "strict_paywall");
-
-    } catch (e: any) {
+    } catch (e: unknown) {
       trackCheckoutFailed("strict_unlock", "one_time", categorizeCheckoutError(e), "strict_paywall");
       setFailed(true);
       toast.error("Плащането не беше отворено", {
