@@ -69,7 +69,7 @@ export const AI_FAQS = [
   },
   {
     q: "Кои AI модели стоят зад анализа?",
-    a: "Платформата ползва съчетание от Gemini и собствена prompt пайплайн, специализирана за българското договорно право, плюс експертно курирани шаблони от юристи.",
+    a: "Платформата ползва съчетание от Gemini и собствена prompt пайплайн, конфигурирана за анализ на договори на български език и препращане към приложимото българско законодателство, плюс структурирана библиотека от български документни шаблони.",
   },
 ] as const;
 
@@ -96,7 +96,7 @@ export function buildAiFeaturesSchemas(): JsonLd[] {
     description:
       "AI-powered legal contract analysis for Bulgarian law (ЗЗД, ТЗ, КТ). Extracts clauses, scores risk on a 1–10 scale, suggests concrete redlines and exports to PDF/DOCX with e-signature support.",
     featureList: [
-      "600+ Bulgarian contract templates",
+      "Bulgarian legal document templates",
       "Clause extraction and segmentation",
       "Risk scoring vs Bulgarian statutory law (ЗЗД / ТЗ / КТ)",
       "Concrete redline suggestions per clause",
