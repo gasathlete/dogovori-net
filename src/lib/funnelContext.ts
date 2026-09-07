@@ -182,6 +182,35 @@ export function getDocumentContext(): DocumentContext | null {
   return readDocContext();
 }
 
+/**
+ * Непрозрачен идентификатор, генериран от ТОЗИ модул: стандартен crypto UUID
+ * или резервният `f_<base36>_<base36>` вид. Само ASCII, ограничена дължина —
+ * свободен текст, PII, query низове и произволни етикети се отхвърлят.
+ */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const FALLBACK_ID_RE = /^f_[0-9a-z]{1,16}_[0-9a-z]{1,16}$/;
+
+export function isValidFunnelId(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  if (value.length < 8 || value.length > 64) return false;
+  return UUID_RE.test(value) || FALLBACK_ID_RE.test(value);
+}
+
+/**
+ * Възстановява СЪЩИЯ документен контекст (нов таб, имейл линк, OAuth) от вече
+ * записани идентификатори. Никога не създава нови идентификатори: при невалиден
+ * или подправен вход връща `null` и не пипа нищо в хранилището.
+ */
+export function resumeDocumentJourney(input: unknown): DocumentContext | null {
+  if (!input || typeof input !== "object") return null;
+  const raw = input as Record<string, unknown>;
+  if (!isValidFunnelId(raw.journey_id) || !isValidFunnelId(raw.run_id)) return null;
+  const docKey = normalizeDocKey(typeof raw.doc_key === "string" ? raw.doc_key : null);
+  if (!docKey) return null;
+  return writeDocContext({ journey_id: raw.journey_id, run_id: raw.run_id, doc_key: docKey });
+}
+
+
 /** Пълният envelope, добавян към всяко събитие. */
 export function getCurrentFunnelContext(): FunnelContext {
   const base: FunnelContext = {
