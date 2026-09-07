@@ -173,8 +173,10 @@ describe("включителни прагове върху нормализир�
     expect(toIntegerValue("LCP", 2500)).toBe(2500);
     expect(toIntegerValue("LCP", 2500.0001)).toBe(2501); // > 2500 → needs-improvement
     expect(toIntegerValue("INP", 200.4)).toBe(201);
-    expect(toIntegerValue("LCP", -5)).toBe(0);
-    expect(toIntegerValue("LCP", Number.NaN)).toBe(0);
+    // FAIL CLOSED: невалидната стойност дава NaN, не 0 (0 би минало за "good").
+    expect(toIntegerValue("LCP", -5)).toBeNaN();
+    expect(toIntegerValue("LCP", Number.NaN)).toBeNaN();
+    expect(toIntegerValue("LCP", Number.POSITIVE_INFINITY)).toBeNaN();
   });
 
   it("isRating приема само трите allow-list стойности", () => {

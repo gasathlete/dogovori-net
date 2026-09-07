@@ -18,7 +18,7 @@
 
 import type { Metric } from "web-vitals";
 import { trackEvent, getCategoryConsent } from "@/lib/analytics";
-import type { RecordWebVitalAggregateArgs } from "@/lib/webVitals/pendingSchema";
+import { webVitalsClient, type RecordWebVitalAggregateArgs } from "@/lib/webVitals/pendingSchema";
 import {
   coarseDeviceClass,
   coarseNavigationType,
@@ -116,7 +116,6 @@ export function prepareCentralArgs(
 /** Fire-and-forget агрегиран запис. Никога не влияе на UX. */
 async function recordCentral(args: CentralArgs): Promise<void> {
   try {
-    const { webVitalsClient } = await import("@/lib/webVitals/pendingSchema");
     await webVitalsClient.rpc("record_web_vital_aggregate", args);
   } catch {
     /* network/schema errors are non-critical */
