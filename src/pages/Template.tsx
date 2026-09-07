@@ -336,6 +336,41 @@ export default function TemplatePage() {
           </div>
         )}
 
+        {/* SEO template intent v1 — компактен панел веднага след intro (или след header, когато няма intro). */}
+        {intent && (
+          <section
+            aria-labelledby="intent-panel-title"
+            className="mb-10 rounded-xl border border-gold/25 bg-gold/[0.04] p-6 md:p-7"
+          >
+            <h2 id="intent-panel-title" className="font-serif text-lg font-bold text-foreground md:text-xl">
+              Какво попълвате в редактора
+            </h2>
+            <ul className="mt-4 space-y-2">
+              {intent.proofPoints.map((p) => (
+                <li key={p} className="flex gap-3 text-sm text-muted-foreground">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-gold" />
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6 flex flex-col items-start gap-2">
+              <Link to={wizardHref} onClick={() => trackCreateCta("content")} className="btn-gold btn-sheen">
+                {intent.primaryLabel} <ArrowRight className="h-4 w-4" />
+              </Link>
+              <p className="text-[12px] text-muted-foreground">{SEO_INTENT_SUPPORT_LINE}</p>
+              <Link
+                to={wizardHref}
+                onClick={trackBlankPreview}
+                className="text-[12px] text-muted-foreground underline-offset-4 transition-colors hover:text-gold hover:underline"
+              >
+                {SEO_INTENT_BLANK_LINK_LABEL}
+              </Link>
+            </div>
+          </section>
+        )}
+
+
+
         {(() => {
           const rel = RELATED_TEMPLATES[entry.slug];
           if (!rel?.templates?.length) return null;
