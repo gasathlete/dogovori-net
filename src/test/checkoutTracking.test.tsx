@@ -99,3 +99,48 @@ describe("StripeEmbeddedCheckout → checkout_started", () => {
     expect(trackCheckoutStartedMock).toHaveBeenCalledWith("team", "yearly", "team");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Статична проверка: всички платени пътища минават през общия маршрут
+// /checkout/return с описател от allowlist-а (Stage 2b1).
+// ---------------------------------------------------------------------------
+import { readFileSync } from "node:fs";
+
+const CALL_SITES: Array<{ file: string; source: string; price?: string; redirect?: string }> = [
+  { file: "src/pages/account/SubscriptionTab.tsx", source: "account_subscription" },
+  { file: "src/components/wizard/StrictDocumentPaywall.tsx", source: "strict_paywall", price: "strict_doc_unlock" },
+  { file: "src/components/TopupPacks.tsx", source: "topup", redirect: "/account?tab=subscription" },
+  { file: "src/pages/account/BrandingTab.tsx", source: "branding", price: "branding_unlock_once", redirect: "/account?tab=branding" },
+  { file: "src/pages/Team.tsx", source: "team", price: "team_seat_yearly", redirect: "/team" },
+];
+
+describe("платените пътища използват общия адрес за връщане", () => {
+  it.each(CALL_SITES)("$file", ({ file, source, price, redirect }) => {
+    const src = readFileSync(file, "utf8");
+    expect(src).toContain("buildCheckoutReturnUrl");
+    expect(src).toContain(`source: "${source}"`);
+    if (price) expect(src).toContain(`priceId: "${price}"`);
+    if (redirect) expect(src).toContain(`redirect: "${redirect}"`);
+    // Без ръчно сглобени адреси за връщане извън общия помощник.
+    expect(src).not.toMatch(/topup=success|branding=success|checkout=success&session_id/);
+  });
+
+  it("абонаментът и входният пакет ползват реалната избрана цена", () => {
+    const src = readFileSync("src/pages/account/SubscriptionTab.tsx", "utf8");
+    expect(src).toContain("priceId: checkoutPrice ?? undefined");
+  });
+
+  it("strict paywall вече не изпраща дублиращо GA събитие за старт", () => {
+    const src = readFileSync("src/components/wizard/StrictDocumentPaywall.tsx", "utf8");
+    expect(src).not.toContain("strict_unlock_checkout_started");
+    expect(src).toContain("strict_unlock_cta_clicked");
+    expect(src).toContain("trackCheckoutStarted");
+  });
+
+  it("CheckoutReturn не изпраща суровия session id към GA и не дублира upgrade_completed", () => {
+    const src = readFileSync("src/pages/CheckoutReturn.tsx", "utf8");
+    expect(src).not.toContain("purchase_complete");
+    expect(src).not.toContain("trackUpgradeCompleted");
+    expect(src).toContain("trackCheckoutCompleted");
+  });
+});
