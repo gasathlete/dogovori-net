@@ -17,6 +17,7 @@ import {
   trackDownload,
 } from "@/lib/docFunnel";
 import { resetOnceStore } from "@/lib/funnelEvents";
+import { __resetFunnelContextForTests, startDocumentJourney } from "@/lib/funnelContext";
 
 type Call = [string, Record<string, unknown>, { dedupKey?: string } | undefined];
 const calls = () => trackFunnelEvent.mock.calls as unknown as Call[];
@@ -25,6 +26,9 @@ const last = () => calls()[calls().length - 1];
 beforeEach(() => {
   trackFunnelEvent.mockClear();
   resetOnceStore();
+  localStorage.clear();
+  sessionStorage.clear();
+  __resetFunnelContextForTests();
 });
 
 describe("normalizeReason — стабилни причини без PII", () => {
