@@ -190,11 +190,11 @@ describe("включителни прагове върху нормализир�
 });
 
 describe("генерираните типове за web_vitals_daily / record_web_vital_aggregate", () => {
-  type Tables = PendingDatabase["public"]["Tables"];
-  type Fns = PendingDatabase["public"]["Functions"];
+  type PublicTables = Database["public"]["Tables"];
+  type Fns = Database["public"]["Functions"];
 
   it("таблицата има Row/Insert/Update с точните колони", () => {
-    expectTypeOf<Tables["web_vitals_daily"]["Row"]>().toEqualTypeOf<{
+    expectTypeOf<PublicTables["web_vitals_daily"]["Row"]>().toEqualTypeOf<{
       created_at: string;
       day: string;
       device_class: string;
@@ -209,15 +209,21 @@ describe("генерираните типове за web_vitals_daily / record_w
       value_sum: number;
     }>();
     // Insert: измеренията са задължителни, броячите/датите имат DEFAULT.
-    expectTypeOf<Tables["web_vitals_daily"]["Insert"]>().toMatchTypeOf<{
+    expectTypeOf<PublicTables["web_vitals_daily"]["Insert"]>().toMatchTypeOf<{
       device_class: string;
       metric: string;
       navigation_type: string;
       rating: string;
       route_group: string;
     }>();
-    expectTypeOf<Tables["web_vitals_daily"]["Insert"]["sample_count"]>().toEqualTypeOf<number | undefined>();
-    expectTypeOf<Tables["web_vitals_daily"]["Update"]["metric"]>().toEqualTypeOf<string | undefined>();
+    expectTypeOf<PublicTables["web_vitals_daily"]["Insert"]["sample_count"]>().toEqualTypeOf<number | undefined>();
+    expectTypeOf<PublicTables["web_vitals_daily"]["Update"]["metric"]>().toEqualTypeOf<string | undefined>();
+    // Помощният тип Tables<> сочи същия генериран ред.
+    expectTypeOf<Tables<"web_vitals_daily">>().toEqualTypeOf<PublicTables["web_vitals_daily"]["Row"]>();
+    // Изгледът чете точно подмножество от генерирания ред — без ръчни дубликати.
+    expectTypeOf<DailyRow>().toEqualTypeOf<
+      Pick<Tables<"web_vitals_daily">, "metric" | "rating" | "device_class" | "sample_count" | "value_sum">
+    >();
   });
 
   it("RPC-то има Args без идентификатори и Returns void", () => {
@@ -232,25 +238,21 @@ describe("генерираните типове за web_vitals_daily / record_w
     expectTypeOf<Fns["record_web_vital_aggregate"]["Returns"]>().toEqualTypeOf<undefined>();
   });
 
-  it("схемата е декларирана точно веднъж и разширява генерирания Database", () => {
-    const pending = readFileSync("src/lib/webVitals/pendingSchema.ts", "utf8");
-    expect(pending).toContain("export type WebVitalsDailyRow = {");
-    expect(pending).toContain("export type WebVitalsDailyInsert");
-    expect(pending).toContain("export type WebVitalsDailyUpdate");
-    expect(pending).toContain("export type RecordWebVitalAggregateArgs = {");
-    expect(pending).toContain('Omit<Database, "public">');
-    expect(pending.match(/web_vitals_daily: \{/g)?.length).toBe(1);
-    expect(pending.match(/record_web_vital_aggregate: \{/g)?.length).toBe(1);
-    // Генерираният файл е автоматичен — не се дописва ръчно преди миграцията.
+  it("типовете идват само от генерирания файл; временният shim е премахнат", () => {
+    // След прилагането на миграцията каноничният генериран файл е единственият източник.
     const generated = readFileSync("src/integrations/supabase/types.ts", "utf8");
-    expect(generated).not.toContain("web_vitals_daily");
-    expect(generated).not.toContain("record_web_vital_aggregate");
-    // Типовете на приложението пазят връзката с генерирания Database.
-    expectTypeOf<PendingDatabase["public"]["Tables"]["profiles"]["Row"]>().toEqualTypeOf<
-      Database["public"]["Tables"]["profiles"]["Row"]
-    >();
-    expectTypeOf<WebVitalsDailyRow>().toEqualTypeOf<Tables["web_vitals_daily"]["Row"]>();
-    expectTypeOf<RecordWebVitalAggregateArgs>().toEqualTypeOf<Fns["record_web_vital_aggregate"]["Args"]>();
+    expect(generated.match(/^\s{6}web_vitals_daily: \{$/gm)?.length).toBe(1);
+    expect(generated.match(/^\s{6}record_web_vital_aggregate: \{$/gm)?.length).toBe(1);
+    expect(existsSync(LEGACY_PENDING_SCHEMA_PATH)).toBe(false);
+    // Приложението не заобикаля типизацията с каст на клиента.
+    for (const file of ["src/lib/webVitalsReporter.ts", "src/components/admin/FieldWebVitals.tsx"]) {
+      const src = readFileSync(file, "utf8");
+      expect(src).not.toContain("pendingSchema");
+      expect(src).not.toContain("webVitalsClient");
+      expect(src).not.toMatch(/as unknown as/);
+      expect(src).not.toMatch(/as any\b/);
+      expect(src).toContain('from "@/integrations/supabase/client"');
+    }
   });
 });
 
