@@ -2388,11 +2388,14 @@ export type Database = {
           created_at: string
           currency: string
           dpa_version: string | null
+          environment: string
           id: string
           ip: unknown
+          payment_status: string
           plan_name: string
           price_amount: number
           privacy_version: string
+          purchase_kind: string
           refund_version: string
           stripe_session_id: string | null
           stripe_subscription_id: string | null
@@ -2409,11 +2412,14 @@ export type Database = {
           created_at?: string
           currency?: string
           dpa_version?: string | null
+          environment?: string
           id?: string
           ip?: unknown
+          payment_status?: string
           plan_name: string
           price_amount: number
           privacy_version: string
+          purchase_kind?: string
           refund_version: string
           stripe_session_id?: string | null
           stripe_subscription_id?: string | null
@@ -2430,11 +2436,14 @@ export type Database = {
           created_at?: string
           currency?: string
           dpa_version?: string | null
+          environment?: string
           id?: string
           ip?: unknown
+          payment_status?: string
           plan_name?: string
           price_amount?: number
           privacy_version?: string
+          purchase_kind?: string
           refund_version?: string
           stripe_session_id?: string | null
           stripe_subscription_id?: string | null
