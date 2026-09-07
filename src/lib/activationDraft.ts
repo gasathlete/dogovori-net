@@ -276,8 +276,9 @@ export function writePointer(pointer: DraftPointer): void {
       claimed,
       savedDocId: typeof pointer.savedDocId === "string" && pointer.savedDocId ? pointer.savedDocId : undefined,
       // Само непрозрачни идентификатори, генерирани от funnelContext.
-      journeyId: isValidFunnelId(pointer.journeyId) ? pointer.journeyId : undefined,
-      runId: isValidFunnelId(pointer.runId) ? pointer.runId : undefined,
+      journeyId: validPair(pointer.journeyId, pointer.runId)?.journeyId,
+      runId: validPair(pointer.journeyId, pointer.runId)?.runId,
+
 
     };
     localStorage.setItem(DRAFT_POINTER_KEY, JSON.stringify(safe));
