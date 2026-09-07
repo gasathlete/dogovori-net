@@ -42,22 +42,41 @@ export default function TemplatePage() {
   // Async-load the heavy AI content for this template only.
   const [aiContent, setAiContent] = useState<TemplateContent | undefined>(undefined);
   const [draftText, setDraftText] = useState<string | undefined>(undefined);
+  /**
+   * Slug-ът, за който async lookup-ът на съдържанието е приключил (успех, грешка
+   * или липса на loader). Докато не е приключил за текущия slug, runtime FAQPage
+   * JSON-LD не се подава на Helmet — така преходното състояние
+   * fallback → AI не оставя два FAQPage блока в DOM. Stale promise не може да
+   * маркира по-нов slug като приключил заради `alive`.
+   */
+  const [settledSlug, setSettledSlug] = useState<string | null>(null);
   const [kitOpen, setKitOpen] = useState(false);
   const { user } = useAuth();
   const requireAuth = useRequireAuth();
   useEffect(() => {
     let alive = true;
     if (!entry) return;
+    const slugForRun = entry.slug;
     setAiContent(undefined);
     setDraftText(undefined);
-    const p = loadTemplateContent(entry.slug);
-    if (p) p.then((c) => alive && setAiContent(c)).catch(() => {});
-    const d = loadTemplateDraft(entry.slug);
+    setSettledSlug(null);
+    const p = loadTemplateContent(slugForRun);
+    if (p) {
+      p.then((c) => alive && setAiContent(c))
+        .catch(() => {})
+        .finally(() => {
+          if (alive) setSettledSlug(slugForRun);
+        });
+    } else {
+      setSettledSlug(slugForRun);
+    }
+    const d = loadTemplateDraft(slugForRun);
     if (d) d.then((t) => alive && setDraftText(t)).catch(() => {});
     return () => {
       alive = false;
     };
   }, [entry?.slug]);
+
 
   useEffect(() => {
     if (entry) trackEvent("template_view", { slug: entry.slug, name: entry.doc.name, category: entry.category.title });
@@ -206,6 +225,8 @@ export default function TemplatePage() {
     mainEntityOfPage: `https://dogovori.net${canonical}`,
   };
 
+  const contentSettled = settledSlug === entry.slug;
+
   const faqLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -221,7 +242,12 @@ export default function TemplatePage() {
    * структурираните данни — страницата не е класическа оферта с нулева цена и
    * не показва видим стъпков блок. Остават BreadcrumbList / Article / FAQPage,
    * чието съдържание реално се вижда на страницата.
+   *
+   * FAQPage се включва само след като async съдържанието е приключило за текущия
+   * slug — точно един FAQPage блок, без преходен дубликат.
    */
+  const jsonLd = contentSettled ? [breadcrumbsLd, articleLd, faqLd] : [breadcrumbsLd, articleLd];
+
   return (
     <div className="min-h-dvh">
       <Seo
@@ -229,8 +255,9 @@ export default function TemplatePage() {
         description={pageDesc}
         canonical={canonical}
         type="article"
-        jsonLd={[breadcrumbsLd, articleLd, faqLd]}
+        jsonLd={jsonLd}
       />
+
 
       <Header />
 
