@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { CORE_METRICS, type CoreMetric } from "@/lib/webVitals/dimensions";
+import { webVitalsClient } from "@/lib/webVitals/pendingSchema";
 import {
   formatMetricValue,
   summarizeMetric,
@@ -41,7 +41,7 @@ export function FieldWebVitals() {
     setError(null);
     (async () => {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await webVitalsClient
           .from("web_vitals_daily")
           .select("metric,rating,device_class,sample_count,value_sum")
           .gte("day", windowStartDay(days));
