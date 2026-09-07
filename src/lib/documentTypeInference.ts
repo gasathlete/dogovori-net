@@ -26,7 +26,12 @@ const RULES: { type: DocumentTypeId; re: RegExp }[] = [
   { type: "contract",          re: /договор|EULA|лицензионен/i },
 ];
 
+/** Names that clearly announce a contract must never fall into a
+ *  narrower family because of a trailing abbreviation (e.g. „(SLA)"). */
+const CONTRACT_HEAD = /^\s*(рамков\s+)?договор\b/i;
+
 export function inferDocumentType(name: string): DocumentTypeId {
+  if (CONTRACT_HEAD.test(name)) return "contract";
   for (const r of RULES) if (r.re.test(name)) return r.type;
   return "contract";
 }
