@@ -232,7 +232,11 @@ export function readPointer(now: number = Date.now()): DraftPointer | null {
       ts: typeof parsed.ts === "number" ? parsed.ts : 0,
       claimed: p.claimed === true,
       savedDocId: typeof p.savedDocId === "string" ? p.savedDocId : undefined,
+      // Подправена или произволна атрибуция се изхвърля — черновата остава.
+      journeyId: isValidFunnelId(p.journeyId) ? p.journeyId : undefined,
+      runId: isValidFunnelId(p.runId) ? p.runId : undefined,
     };
+
   } catch {
     return null;
   }
@@ -257,6 +261,10 @@ export function writePointer(pointer: DraftPointer): void {
       expiresAt: pointer.expiresAt,
       claimed,
       savedDocId: typeof pointer.savedDocId === "string" && pointer.savedDocId ? pointer.savedDocId : undefined,
+      // Само непрозрачни идентификатори, генерирани от funnelContext.
+      journeyId: isValidFunnelId(pointer.journeyId) ? pointer.journeyId : undefined,
+      runId: isValidFunnelId(pointer.runId) ? pointer.runId : undefined,
+
     };
     localStorage.setItem(DRAFT_POINTER_KEY, JSON.stringify(safe));
   } catch {
