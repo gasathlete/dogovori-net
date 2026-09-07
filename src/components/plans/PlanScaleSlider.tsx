@@ -218,7 +218,7 @@ export function PlanScaleSlider({ plans, billing, isAuthed, onRecommend }: Props
           )}
           {rec.needsTopup && (
             <p className="mt-3 rounded-lg border border-hairline bg-background/50 px-3 py-2 text-[11px] leading-snug text-muted-foreground">
-              При този обем добавете и Top-up пакет операции — или се насочете към план Екип.
+              При този обем добавете и пакет с допълнителни действия — или се насочете към план Екип.
             </p>
           )}
 
