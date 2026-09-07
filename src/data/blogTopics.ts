@@ -49,7 +49,20 @@ export const BLOG_TOPICS: BlogTopic[] = [
     category: "Имоти",
     imagePrompt:
       "Editorial overhead photograph of an open lease document on a dark walnut desk, brass key on a leather keyring, fountain pen, soft window light from the side, single small house plant out of focus, muted navy and gold palette, Financial Times style, no text, no logos, cinematic depth of field",
+    sourcePack: [
+      {
+        title: "Закон за задълженията и договорите (ЗЗД)",
+        url: "https://justice.government.bg/home/normdoc/2121934337",
+        note: "Наемно правоотношение по чл. 228–239 ЗЗД: предаване и поддържане на вещта, дребни поправки, пренаемане на части по чл. 234, противопоставимост при прехвърляне по чл. 237, прекратяване по чл. 236, 238 и 233.",
+      },
+      {
+        title: "Регламент (ЕС) 2016/679 (GDPR)",
+        url: "https://eur-lex.europa.eu/eli/reg/2016/679/oj",
+        note: "Принципите по чл. 5, включително свеждане на данните до минимум, и правните основания по чл. 6 — обхваща само доколко наемодателят може да събира идентификатори и копия от документи.",
+      },
+    ],
   },
+
   {
     slug: "predvaritelen-dogovor-za-pokupka-na-imot",
     title: "Предварителен договор за покупко-продажба на имот: реквизити и капани",
@@ -119,7 +132,35 @@ export const BLOG_TOPICS: BlogTopic[] = [
     category: "Трудово право",
     imagePrompt:
       "Editorial close-up of a sealed envelope on a dark grey desk next to a fountain pen and an analog desk clock, soft window light, navy and warm grey palette, The Economist editorial style, no text, no faces",
+    sourcePack: [
+      {
+        title: "Кодекс на труда (КТ)",
+        url: "https://www.justice.government.bg/home/normdoc/1594373121",
+        note: "Срокове на предизвестие по чл. 326, обезщетение за неспазено предизвестие по чл. 220, прекратяване без предизвестие по чл. 330, предварителна закрила по чл. 333, ползване на отпуск по чл. 173, ал. 4 и срокове за оспорване по чл. 358.",
+      },
+      {
+        title: "МТСП — Прекратяване на трудовото правоотношение",
+        url: "https://www.mlsp.government.bg/trudovo-pravootnoshenie-prekratyavane",
+        note: "Официално разяснение на основанията и реда за прекратяване на трудовото правоотношение; използва се само за процедурната рамка, не за конкретни съдебни изводи.",
+      },
+      {
+        title: "МТСП — Отпуски",
+        url: "https://www.mlsp.government.bg/otpuski",
+        note: "Официално разяснение на режима на платения годишен отпуск, включително кога отпускът се ползва по искане на работника и кога работодателят може да го предостави без съгласие.",
+      },
+      {
+        title: "ИА „Главна инспекция по труда“ — предварителна закрила",
+        url: "https://www.gli.government.bg/bg/taxonomy/term/416/node/4386",
+        note: "Официално разяснение кои категории работници се ползват със закрила по чл. 333 КТ и при кои основания се иска разрешение, съгласие или мнение.",
+      },
+      {
+        title: "ИА „Главна инспекция по труда“ — процедура по разрешение",
+        url: "https://www.gli.government.bg/bg/node/4390",
+        note: "Официално разяснение на процедурата по искане на разрешение за уволнение пред инспекцията по труда; обхваща само процедурните стъпки.",
+      },
+    ],
   },
+
   {
     slug: "ddt-i-dogovor-grazhdanski",
     title: "ДДС и граждански договор: кога се удържа авансов данък",
