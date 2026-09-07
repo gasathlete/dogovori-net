@@ -25,10 +25,6 @@ import { Buffer } from "node:buffer";
 import { BLOG_TOPICS, type BlogTopic, type BlogTopicSource } from "../src/data/blogTopics";
 
 const API_KEY = process.env.LOVABLE_API_KEY;
-if (!API_KEY) {
-  console.error("LOVABLE_API_KEY not set");
-  process.exit(1);
-}
 
 const TEXT_MODEL = "google/gemini-2.5-pro";
 const IMAGE_MODEL = "google/gemini-2.5-flash-image";
@@ -249,6 +245,10 @@ export const POST: BlogPostModule = ${json} as const;
 }
 
 async function main() {
+  if (!API_KEY) {
+    console.error("LOVABLE_API_KEY not set");
+    process.exit(1);
+  }
   const articleDir = resolve(process.cwd(), "src/content/blog");
   const imageDir = resolve(process.cwd(), "public/blog");
   if (!existsSync(articleDir)) mkdirSync(articleDir, { recursive: true });
