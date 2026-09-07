@@ -289,6 +289,7 @@ export default function TemplatePage() {
                 Свали само бланка
               </Link>
             )}
+          </div>
           <h1 className="font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl anim-rise" style={{ animationDelay: "80ms" }}>
             {doc.name}
             {doc.bilingual && (
