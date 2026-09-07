@@ -238,7 +238,24 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
     const legacy = takeLegacyDrafts().filter((d) => d.flow === flow);
     const current = readPointer();
 
+    // Stage 2a2: преди КОЕТО И ДА Е събитие (restore/claim/download) връщаме
+    // същия journey/run от указателя — нов таб, имейл линк или OAuth иначе
+    // започват нов run и разкъсват атрибуцията. Само за същия поток и съвместим
+    // документ: стар указател за друг документ не изземва свеж CTA journey.
+    if (current && current.flow === flow && current.journeyId && current.runId) {
+      const pointerKey = normalizeDocKey(current.docKey);
+      const hookKey = normalizeDocKey(docKey);
+      if (pointerKey && (!hookKey || pointerKey === hookKey)) {
+        resumeDocumentJourney({
+          journey_id: current.journeyId,
+          run_id: current.runId,
+          doc_key: pointerKey,
+        });
+      }
+    }
+
     if (current && current.flow === flow) {
+
       const payload = readPayload(current.draftId) ?? readPayload(LOCAL_DRAFT_ID);
       if (hasRestorableContent(payload)) {
         restoreRef.current?.(payload, { source: "session" });
