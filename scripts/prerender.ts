@@ -243,7 +243,7 @@ pages.push({
     bodyHtml: `<main style="font-family:Georgia,serif;max-width:900px;margin:2rem auto;padding:1rem;color:#0f1a30">
         <nav><a href="/">Начало</a> › AI правен анализ</nav>
         <h1>Как AI системата на Dogovori.net анализира договори</h1>
-        <p>Платформата комбинира над 600 правно курирани шаблона с AI пайплайн, обучен за българското договорно право (ЗЗД, ТЗ, КТ).</p>
+        <p>Платформата комбинира структурирана библиотека от български документни шаблони с AI/prompt пайплайн, конфигуриран за анализ на договори на български език и препращане към приложимото българско законодателство (ЗЗД, ТЗ, КТ).</p>
         <h2>Пайплайн на анализа — 5 стъпки</h2>
         <ol>${AI_ANALYSIS_STEPS.map((s) => `<li><strong>${escapeHtml(s.title)}</strong> — ${escapeHtml(s.body)}</li>`).join("")}</ol>
         <h2>Често задавани въпроси</h2>
@@ -353,7 +353,7 @@ for (const cat of CATALOG) {
     const fallback = buildTemplateFallbackContent({
       docName: doc.name,
       categoryId: cat.id,
-      documentType: (doc as { documentType?: any }).documentType,
+      documentType: doc.documentType,
     });
     const resolved = resolveTemplatePresentation(ai, fallback);
     const guardedDesc = buildTemplatePageDescription({
