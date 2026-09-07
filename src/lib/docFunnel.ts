@@ -16,7 +16,9 @@
  */
 import { trackFunnelEvent } from "@/lib/funnel";
 import { ensureDocumentJourney } from "@/lib/funnelContext";
+import { compactSessionToken } from "@/lib/checkoutAnalytics";
 import { abProps } from "@/lib/ab";
+
 
 import {
   ONCE_PER_SESSION_DOC,
@@ -237,14 +239,19 @@ export function trackPaywallShown(kind: string, props?: DocFunnelProps): boolean
   return trackCanonical("paywall_shown", { kind, ...(props ?? {}) }, [kind, props?.doc_key ?? "", props?.source ?? ""]);
 }
 
-/** checkout_completed — еднократно за Stripe session id. */
+/**
+ * checkout_completed — еднократно за Stripe сесия. Суровият Stripe session id
+ * НЕ влиза нито в props, нито в GA, нито в ключа за дедупликация: пази се само
+ * детерминистичен необратим токен от него.
+ */
 export function trackCheckoutCompleted(stripeSessionId: string | null | undefined, props?: DocFunnelProps): boolean {
   return trackCanonical(
     "checkout_completed",
     props,
-    [stripeSessionId ? `cs:${stripeSessionId.slice(0, 96)}` : `ts:${Math.floor(Date.now() / 60000)}`],
+    [stripeSessionId ? `cst:${compactSessionToken(stripeSessionId)}` : `ts:${Math.floor(Date.now() / 60000)}`],
   );
 }
+
 
 /* -------------------- 4. Сваляне / запазване -------------------- */
 
