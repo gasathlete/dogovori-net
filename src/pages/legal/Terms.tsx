@@ -162,13 +162,23 @@ export default function TermsPage() {
         или предоставя кредит по избор на Потребителя.
       </p>
 
-      <h2>11. Извънсъдебно решаване на спорове (ОРС)</h2>
+      <h2>11. Извънсъдебно решаване на спорове (АРС)</h2>
       <p>
-        При неуспех на рекламацията Потребителят може да се обърне към:
+        При неуспех на рекламацията Потребителят може да използва алтернативно решаване
+        на спорове (АРС) чрез:
       </p>
       <ul>
-        <li>Помирителна комисия към <a href="https://kzp.bg" target="_blank" rel="noopener">КЗП</a>.</li>
-        <li>Платформа за онлайн решаване на спорове на ЕК: <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener">ec.europa.eu/consumers/odr</a>.</li>
+        <li>
+          Помирителна дейност на КЗП (общи и секторни помирителни комисии):{" "}
+          <a href="https://kzp.bg/bg/pomiritelna-deynost" target="_blank" rel="noopener noreferrer">kzp.bg/bg/pomiritelna-deynost</a>.
+        </li>
+        <li>
+          Признати органи за АРС в държавите членки — информационен портал на Европейската
+          комисия за защита на потребителите (EU Consumer Redress):{" "}
+          <a href="https://consumer-redress.ec.europa.eu/index_bg" target="_blank" rel="noopener noreferrer">consumer-redress.ec.europa.eu</a>{" "}
+          (<a href="https://consumer-redress.ec.europa.eu/list-alternative-dispute-resolution-adr-bodies_en?prefLang=bg" target="_blank" rel="noopener noreferrer">списък на органите за АРС</a>).
+          Процедурата се води пред избрания орган за АРС, а не през портала.
+        </li>
       </ul>
 
       <h2>12. Изкуствен интелект — ограничения</h2>

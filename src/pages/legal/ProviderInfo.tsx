@@ -35,8 +35,9 @@ export default function ProviderInfoPage() {
         <li>
           <strong>Комисия за защита на потребителите (КЗП)</strong> — за нарушения на
           ЗЗП и потребителски права.<br />
-          гр. София, пл. „Славейков" № 4А, ет. 3, 4 и 6<br />
-          Тел.: 0700 111 22 · <a href="https://kzp.bg" target="_blank" rel="noopener">kzp.bg</a>
+          гр. София 1000, ул. „Врабча“ № 1, ет. 3–5<br />
+          Тел.: 02 933 05 65 · Гореща линия: 0700 111 22 / *2211 ·{" "}
+          <a href="https://kzp.bg" target="_blank" rel="noopener noreferrer">kzp.bg</a>
         </li>
         <li>
           <strong>Комисия за защита на личните данни (КЗЛД)</strong> — за въпроси
@@ -51,19 +52,25 @@ export default function ProviderInfoPage() {
         </li>
       </ul>
 
-      <h2>4. Извънсъдебно решаване на спорове</h2>
+      <h2>4. Извънсъдебно решаване на спорове (АРС)</h2>
       <p>
         При спор, който не може да бъде уреден чрез контакт с нас, потребителят може
         да се обърне към:
       </p>
       <ul>
         <li>
-          <strong>Общи помирителни комисии към КЗП</strong> — безплатна процедура.
-          Адресите на регионалните комисии са публикувани на <a href="https://kzp.bg" target="_blank" rel="noopener">kzp.bg</a>.
+          <strong>Помирителна дейност на КЗП</strong> — общи и секторни помирителни
+          комисии; редът, компетентността и адресите им са публикувани на{" "}
+          <a href="https://kzp.bg/bg/pomiritelna-deynost" target="_blank" rel="noopener noreferrer">kzp.bg/bg/pomiritelna-deynost</a>.
         </li>
         <li>
-          <strong>Платформа за онлайн решаване на спорове (ОРС) на Европейската
-          комисия:</strong> <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener">ec.europa.eu/consumers/odr</a>
+          <strong>Портал на Европейската комисия за защита на потребителите (EU Consumer
+          Redress)</strong> —{" "}
+          <a href="https://consumer-redress.ec.europa.eu/index_bg" target="_blank" rel="noopener noreferrer">consumer-redress.ec.europa.eu</a>{" "}
+          със{" "}
+          <a href="https://consumer-redress.ec.europa.eu/list-alternative-dispute-resolution-adr-bodies_en?prefLang=bg" target="_blank" rel="noopener noreferrer">списък на признатите органи за АРС</a>{" "}
+          в държавите членки. Порталът е информационен; процедурата се води пред
+          избрания орган за АРС.
         </li>
       </ul>
 
