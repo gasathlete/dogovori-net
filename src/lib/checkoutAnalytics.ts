@@ -67,3 +67,174 @@ export function categorizeCheckoutError(err: unknown): CheckoutFailureCategory {
   if (/(stripe|checkout session|client secret|clientsecret)/.test(raw)) return "stripe";
   return "unknown";
 }
+
+/* ==================================================================== */
+/*  Затворен описател на платената фуния (Stage 2b1)                     */
+/* ==================================================================== */
+
+/**
+ * Видове покупки. Затворен списък: всяка непозната/подправена стойност става
+ * `unknown`, за да не може URL параметър да произведе произволен етикет в
+ * аналитиката.
+ */
+export const PURCHASE_KINDS = [
+  "subscription",
+  "entry_pack",
+  "topup",
+  "strict_unlock",
+  "branding",
+  "team",
+  "unknown",
+] as const;
+export type PurchaseKind = (typeof PURCHASE_KINDS)[number];
+
+/** Позволени логически lookup ключове (вкл. поддържаните исторически pro_*). */
+export const CHECKOUT_PRICE_KEYS = [
+  "professional_monthly",
+  "professional_yearly",
+  "entrepreneur_monthly",
+  "entrepreneur_yearly",
+  "pro_monthly",
+  "pro_yearly",
+  "team_seat_yearly",
+  "five_operations",
+  "topup_5",
+  "topup_20",
+  "topup_50",
+  "topup_100",
+  "strict_doc_unlock",
+  "branding_unlock_once",
+] as const;
+export type CheckoutPriceKey = (typeof CHECKOUT_PRICE_KEYS)[number];
+
+/** Позволени етикети за произход на плащането. */
+export const CHECKOUT_SOURCES = [
+  "account_subscription",
+  "strict_paywall",
+  "topup",
+  "branding",
+  "team",
+  "plans",
+  "embedded",
+  "unknown",
+] as const;
+export type CheckoutSource = (typeof CHECKOUT_SOURCES)[number];
+
+export function parseCheckoutPriceKey(raw: unknown): CheckoutPriceKey | "unknown" {
+  return typeof raw === "string" && (CHECKOUT_PRICE_KEYS as readonly string[]).includes(raw)
+    ? (raw as CheckoutPriceKey)
+    : "unknown";
+}
+
+export function parseCheckoutSource(raw: unknown): CheckoutSource {
+  return typeof raw === "string" && (CHECKOUT_SOURCES as readonly string[]).includes(raw)
+    ? (raw as CheckoutSource)
+    : "unknown";
+}
+
+export function parsePurchaseKind(raw: unknown): PurchaseKind {
+  return typeof raw === "string" && (PURCHASE_KINDS as readonly string[]).includes(raw)
+    ? (raw as PurchaseKind)
+    : "unknown";
+}
+
+/** Логически price key → вид покупка (затворено съпоставяне). */
+export function purchaseKindForPrice(key: CheckoutPriceKey | "unknown"): PurchaseKind {
+  switch (key) {
+    case "professional_monthly":
+    case "professional_yearly":
+    case "entrepreneur_monthly":
+    case "entrepreneur_yearly":
+    case "pro_monthly":
+    case "pro_yearly":
+      return "subscription";
+    case "team_seat_yearly":
+      return "team";
+    case "five_operations":
+      return "entry_pack";
+    case "topup_5":
+    case "topup_20":
+    case "topup_50":
+    case "topup_100":
+      return "topup";
+    case "strict_doc_unlock":
+      return "strict_unlock";
+    case "branding_unlock_once":
+      return "branding";
+    default:
+      return "unknown";
+  }
+}
+
+export interface CheckoutDescriptor {
+  kind: PurchaseKind;
+  plan: string;
+  billing: string;
+  source: CheckoutSource;
+}
+
+/**
+ * Общ адрес за връщане след плащане — един маршрут за всички платени пътища.
+ * Ключово: заместителят `{CHECKOUT_SESSION_ID}` остава буквален (Stripe го
+ * заменя), затова не минава през URL кодиране.
+ */
+export function buildCheckoutReturnUrl(input: {
+  origin: string;
+  priceId?: string;
+  source?: string;
+  /** Безопасен относителен път; подава се вече проверен от sanitizeReturnPath. */
+  redirect?: string | null;
+  /** Историческо: запазва `type=strict_unlock` за съвместимост. */
+  legacyType?: string;
+}): string {
+  const price = parseCheckoutPriceKey(input.priceId);
+  const source = parseCheckoutSource(input.source);
+  const parts = [
+    "session_id={CHECKOUT_SESSION_ID}",
+    `price_id=${price}`,
+    `source=${source}`,
+  ];
+  if (input.legacyType) parts.push(`type=${encodeURIComponent(input.legacyType)}`);
+  if (input.redirect) parts.push(`redirect=${encodeURIComponent(input.redirect)}`);
+  return `${input.origin}/checkout/return?${parts.join("&")}`;
+}
+
+/**
+ * Чете описателя от query параметрите на връщането. Само през allowlist —
+ * подправена стойност никога не става етикет в аналитиката.
+ */
+export function describeCheckoutReturn(params: URLSearchParams): CheckoutDescriptor {
+  const price = parseCheckoutPriceKey(params.get("price_id"));
+  const source = parseCheckoutSource(params.get("source"));
+  const legacyStrict = params.get("type") === "strict_unlock";
+  const kind = (() => {
+    const fromPrice = purchaseKindForPrice(price);
+    if (fromPrice !== "unknown") return fromPrice;
+    if (legacyStrict) return "strict_unlock" as PurchaseKind;
+    return parsePurchaseKind(params.get("kind"));
+  })();
+  const described = price === "unknown"
+    ? legacyStrict
+      ? { plan: "strict_unlock", billing: "one_time" }
+      : { plan: "unknown", billing: "unknown" }
+    : describePriceId(price);
+  return { kind, plan: described.plan, billing: described.billing, source };
+}
+
+/**
+ * Детерминистичен, необратим кратък токен от Stripe session id — служи само за
+ * клиентска идемпотентност. Суровият идентификатор НЕ се съхранява никъде.
+ */
+export function compactSessionToken(sessionId: string): string {
+  let h1 = 0x811c9dc5;
+  let h2 = 0x01000193;
+  for (let i = 0; i < sessionId.length; i++) {
+    const c = sessionId.charCodeAt(i);
+    h1 = (h1 ^ c) >>> 0;
+    h1 = (h1 * 0x01000193) >>> 0;
+    h2 = (h2 + c * (i + 1)) >>> 0;
+    h2 = (h2 ^ (h2 >>> 13)) >>> 0;
+    h2 = (h2 * 0x85ebca6b) >>> 0;
+  }
+  return `${h1.toString(36)}${h2.toString(36)}`;
+}
