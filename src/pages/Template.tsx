@@ -103,6 +103,12 @@ export default function TemplatePage() {
   if (!entry) return <Navigate to="/catalog" replace />;
 
   const { doc, category } = entry;
+  /**
+   * Технически ключ на документа за фунията — байт-идентичен с формулата на
+   * уизарда (`${baseSector.id}::${slugify(docName)}`), за да продължи същият
+   * run вместо да се създава нов. Без PII, без свободен текст.
+   */
+  const journeyDocKey = `${category.sectorId}::${slugify(doc.name)}`;
   const related = getRelatedTemplates(entry, 3);
 
   // Sync meta (used for <meta description> + JSON-LD) — keeps SEO unchanged.
