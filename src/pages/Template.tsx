@@ -322,7 +322,7 @@ export default function TemplatePage() {
           <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground anim-rise" style={{ animationDelay: "320ms" }}>
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> {fallback.labels.heroLegalFit}</li>
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> PDF и DOCX експорт</li>
-            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> Готов за 2 минути</li>
+            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> Кратък, насочван въпросник</li>
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-gold" /> Добавен в лична, защитена база данни</li>
           </ul>
         </header>
