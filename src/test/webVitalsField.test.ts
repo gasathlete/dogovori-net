@@ -276,6 +276,19 @@ describe("реалната pending миграция за web_vitals_daily", () =
     expect(bodyEnd).toBeGreaterThan(bodyStart);
   });
 
+  it("приложеното копие в журнала е byte-identical и е записано точно веднъж", () => {
+    expect(existsSync(APPLIED_MIGRATION_PATH)).toBe(true);
+    expect(readFileSync(APPLIED_MIGRATION_PATH, "utf8")).toBe(SQL);
+    const journal = JSON.parse(readFileSync(MIGRATION_JOURNAL_PATH, "utf8")) as {
+      entries: Array<{ idx: number; tag: string }>;
+    };
+    const entries = journal.entries.filter((e) => e.tag === "0009_web_vitals_daily_aggregate");
+    expect(entries).toHaveLength(1);
+    expect(entries[0].idx).toBe(9);
+    // Никой друг запис в журнала не създава/променя същата таблица или функция.
+    expect(journal.entries.filter((e) => e.tag.includes("web_vitals"))).toHaveLength(1);
+  });
+
   it("не съдържа идентифициращи колони или свободен текст", () => {
     for (const bad of [
       "user_id",
