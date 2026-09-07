@@ -10,6 +10,7 @@ import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { getRelatedTemplates, getTemplateBySlug } from "@/lib/templateIndex";
+import { slugify } from "@/lib/slugify";
 import { TEMPLATE_CONTENT_META } from "@/data/templateContentMeta";
 import { loadTemplateContent } from "@/data/templateContent";
 import { loadTemplateDraft } from "@/data/templateDrafts";
@@ -102,6 +103,12 @@ export default function TemplatePage() {
   if (!entry) return <Navigate to="/catalog" replace />;
 
   const { doc, category } = entry;
+  /**
+   * Технически ключ на документа за фунията — байт-идентичен с формулата на
+   * уизарда (`${baseSector.id}::${slugify(docName)}`), за да продължи същият
+   * run вместо да се създава нов. Без PII, без свободен текст.
+   */
+  const journeyDocKey = `${category.sectorId}::${slugify(doc.name)}`;
   const related = getRelatedTemplates(entry, 3);
 
   // Sync meta (used for <meta description> + JSON-LD) — keeps SEO unchanged.
@@ -129,10 +136,10 @@ export default function TemplatePage() {
    * Props-ите са low-cardinality и без PII (без име на документ).
    */
   const trackCreateCta = (position: "hero" | "content" | "footer") => {
-    startDocumentJourney(entry.slug);
+    startDocumentJourney(journeyDocKey);
     trackFunnelEvent("template_create_cta_clicked", {
       slug: entry.slug,
-      doc_key: entry.slug,
+      doc_key: journeyDocKey,
       position,
       variant: intentVariant,
       authenticated: Boolean(user),
@@ -154,10 +161,10 @@ export default function TemplatePage() {
    * се различава от историческото `template_blank_cta_clicked`.
    */
   const trackBlankPreview = () => {
-    startDocumentJourney(entry.slug);
+    startDocumentJourney(journeyDocKey);
     trackFunnelEvent("template_blank_preview_clicked", {
       slug: entry.slug,
-      doc_key: entry.slug,
+      doc_key: journeyDocKey,
       position: "content",
       variant: SEO_INTENT_VERSION,
       authenticated: Boolean(user),

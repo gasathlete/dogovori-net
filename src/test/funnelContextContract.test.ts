@@ -39,6 +39,7 @@ import {
   getBrowserId,
   getCurrentFunnelContext,
   getTabSessionId,
+  normalizeDocKey,
   startDocumentJourney,
 } from "@/lib/funnelContext";
 import { trackFunnelEvent, getFunnelSessionId, __resetFunnelIdentityForTests } from "@/lib/funnel";
@@ -134,6 +135,53 @@ describe("funnelContext — journey / run", () => {
     expect(ctx.doc_key).toBe("unknown");
     expect(ctx.run_id).toBeTruthy();
     expect(JSON.stringify(ctx)).not.toMatch(/@|\?|=/);
+  });
+});
+
+describe("normalizeDocKey — без PII, без query, без отрязан префикс", () => {
+  it("валидните технически ключове се запазват", () => {
+    expect(normalizeDocKey("services::molba-za-napuskane")).toBe("services::molba-za-napuskane");
+    expect(normalizeDocKey(" Services::Trudov-Dogovor ")).toBe("services::trudov-dogovor");
+    expect(normalizeDocKey("11111111-1111-4111-8111-111111111111")).toBe(
+      "11111111-1111-4111-8111-111111111111",
+    );
+    expect(normalizeDocKey("priemo-predavatelen-protokol")).toBe("priemo-predavatelen-protokol");
+    expect(normalizeDocKey("наем/жилище_v2.1")).toBe("наем/жилище_v2.1");
+  });
+
+  it("PII-подобните стойности се отхвърлят напълно", () => {
+    for (const bad of [
+      "ivan@example.com",
+      "8001011234",
+      "BG80BNBG96611020345678",
+      "bg80bnbg96611020345678",
+    ]) {
+      expect(normalizeDocKey(bad), bad).toBe("");
+    }
+  });
+
+  it("празни знаци, query и адреси се отхвърлят", () => {
+    for (const bad of [
+      "Иван Иванов",
+      "naem?doc=Договор",
+      "naem&blank=1",
+      "a=b",
+      "https://dogovori.net/shablon/naem?x=1",
+      "  ",
+    ]) {
+      expect(normalizeDocKey(bad), bad).toBe("");
+    }
+  });
+
+  it("прекалено дълъг вход НЕ се отрязва до приет префикс", () => {
+    const long = "a".repeat(121);
+    expect(normalizeDocKey(long)).toBe("");
+    expect(normalizeDocKey("a".repeat(120))).toBe("a".repeat(120));
+  });
+
+  it("опасният вход води до непрозрачен контекст unknown", () => {
+    expect(startDocumentJourney("ivan@example.com").doc_key).toBe("unknown");
+    expect(ensureDocumentJourney("naem?doc=X").doc_key).toBe("unknown");
   });
 });
 

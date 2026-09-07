@@ -29,6 +29,8 @@ import {
   seoIntentVariant,
 } from "@/lib/seoTemplateIntent";
 import { getTemplateBySlug } from "@/lib/templateIndex";
+import { slugify } from "@/lib/slugify";
+import { normalizeDocKey } from "@/lib/funnelContext";
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 const src = read("src/pages/Template.tsx");
@@ -157,6 +159,8 @@ describe("Template.tsx — eligible поведение", () => {
     const fn = src.slice(src.indexOf("const trackCreateCta"), src.indexOf("const trackBlankCta"));
     expect(fn).toContain("variant: intentVariant");
     expect(fn).toContain("slug: entry.slug");
+    expect(fn).toContain("doc_key: journeyDocKey");
+    expect(fn).toContain("startDocumentJourney(journeyDocKey)");
     expect(fn).toContain("authenticated: Boolean(user)");
     expect(fn).not.toContain("doc.name");
   });
@@ -167,6 +171,8 @@ describe("Template.tsx — eligible поведение", () => {
     expect(fn).toContain('position: "content"');
     expect(fn).toContain("variant: SEO_INTENT_VERSION");
     expect(fn).toContain("slug: entry.slug");
+    expect(fn).toContain("doc_key: journeyDocKey");
+    expect(fn).toContain("startDocumentJourney(journeyDocKey)");
     expect(fn).not.toContain("doc.name");
   });
 
@@ -225,5 +231,34 @@ describe("канонични инварианти", () => {
     expect(src).toContain("const canonical = `/shablon/${entry.slug}`");
     expect(src).toContain("`/wizard/${category.sectorId}?doc=${encodeURIComponent(doc.name)}`");
     expect(src).toContain("`/wizard-bilingual/${category.sectorId}?doc=${encodeURIComponent(doc.name)}`");
+  });
+});
+
+describe("непрекъснатост на фунията — общ journeyDocKey", () => {
+  it("Template изчислява един ключ по формулата на уизарда", () => {
+    expect(src).toContain('import { slugify } from "@/lib/slugify"');
+    expect(src).toContain("const journeyDocKey = `${category.sectorId}::${slugify(doc.name)}`;");
+  });
+
+  it("двата CTA handler-а тръгват от същия ключ", () => {
+    const create = src.slice(src.indexOf("const trackCreateCta"), src.indexOf("const trackBlankCta"));
+    const preview = src.slice(src.indexOf("const trackBlankPreview"), src.indexOf("const pageTitle"));
+    for (const fn of [create, preview]) {
+      expect(fn).toContain("startDocumentJourney(journeyDocKey)");
+      expect(fn).toContain("doc_key: journeyDocKey");
+      expect(fn).toContain("slug: entry.slug");
+      expect(fn).not.toContain("doc_key: entry.slug");
+    }
+  });
+
+  it("ключът е байт-идентичен с формулата на уизарда и минава нормализацията", () => {
+    const wizard = read("src/pages/Wizard.tsx");
+    expect(wizard).toContain("`${baseSector?.id ?? \"sector\"}::${slugify(base)}`");
+    for (const slug of SEO_INTENT_SLUGS) {
+      const e = getTemplateBySlug(slug)!;
+      const key = `${e.category.sectorId}::${slugify(e.doc.name)}`;
+      expect(key).toBe(`${e.category.sectorId}::${slugify(e.doc.name)}`);
+      expect(normalizeDocKey(key)).toBe(key.toLowerCase());
+    }
   });
 });
