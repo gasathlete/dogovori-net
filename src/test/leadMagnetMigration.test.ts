@@ -9,7 +9,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import type { Database, Tables } from "@/integrations/supabase/types";
+import type { Tables } from "@/integrations/supabase/types";
+import type { LeadMagnetConsentColumns, SubscribeLeadMagnetArgs } from "@/lib/leadMagnetPendingSchema";
 import { LEAD_MAGNET_CONSENT_VERSION, LEAD_MAGNET_SLUGS, type LeadMagnetSlug } from "@/lib/leadMagnets";
 import { buildLeadMagnetSubscribeArgs, LEAD_MAGNET_CONSENT_COPY } from "@/lib/leadMagnetSubscribe";
 import { LEAD_MAGNET_SHOWN_KEY, LEAD_MAGNET_SOURCE_GROUPS, type LeadMagnetSourceGroup } from "@/lib/leadMagnetTrigger";
@@ -22,6 +23,7 @@ const COMPONENT_PATH = "src/components/funnel/ExitIntentLeadMagnet.tsx";
 const SUBSCRIBE_PATH = "src/lib/leadMagnetSubscribe.ts";
 const TRIGGER_PATH = "src/lib/leadMagnetTrigger.ts";
 const TYPES_PATH = "src/integrations/supabase/types.ts";
+const PENDING_SCHEMA_PATH = "src/lib/leadMagnetPendingSchema.ts";
 const SOCIAL_PROOF_PATH = "src/components/funnel/SocialProofToast.tsx";
 const ALLOWLIST_PATH = "scripts/security-allowlist.json";
 
@@ -190,33 +192,38 @@ describe("миграция — subscribe_lead_magnet RPC", () => {
   });
 });
 
-describe("генерирани типове и клиент", () => {
-  it("types.ts съдържа consent_at/consent_version и RPC-то с точните Args/Returns", () => {
+describe("типове и клиент", () => {
+  it("генерираните типове са канонични: чакащата схема живее само в един мост", () => {
     type Row = Tables<"lead_magnet_subscribers">;
-    expectTypeOf<Row["consent_at"]>().toEqualTypeOf<string | null>();
-    expectTypeOf<Row["consent_version"]>().toEqualTypeOf<string | null>();
     expectTypeOf<Row["marketing_consent"]>().toEqualTypeOf<boolean>();
 
-    type Fn = Database["public"]["Functions"]["subscribe_lead_magnet"];
-    expectTypeOf<Fn["Args"]>().toEqualTypeOf<{
+    // Миграцията НЕ е приложена: генерираните типове още не я познават.
+    const types = read(TYPES_PATH);
+    expect(types).not.toContain("subscribe_lead_magnet");
+
+    expectTypeOf<SubscribeLeadMagnetArgs>().toEqualTypeOf<{
       _email: string;
       _magnet_slug: string;
-      _marketing_consent: boolean;
       _source_group: string;
+      _marketing_consent: boolean;
     }>();
-    expectTypeOf<Fn["Returns"]>().toEqualTypeOf<boolean>();
+    expectTypeOf<LeadMagnetConsentColumns>().toEqualTypeOf<{
+      consent_at: string | null;
+      consent_version: string | null;
+    }>();
 
-    const types = read(TYPES_PATH);
-    expect(types).toMatch(/subscribe_lead_magnet: \{\s*Args: \{[\s\S]*?_email: string[\s\S]*?\}\s*Returns: boolean\s*\}/);
+    const bridge = read(PENDING_SCHEMA_PATH);
+    expect(bridge).toContain(MIGRATION_NAME);
+    expect((bridge.match(/as unknown as/g) ?? []).length).toBe(1);
   });
 
-  it("клиентът ползва каноничния типизиран клиент без any/unknown кастове и без директен insert", () => {
+  it("клиентът ползва типизирано RPC без any/unknown кастове и без директен insert", () => {
     for (const p of [SUBSCRIBE_PATH, COMPONENT_PATH, TRIGGER_PATH]) {
       const src = read(p);
       expect(src, p).not.toMatch(/as unknown as|as any\b|: any\b|@ts-ignore|@ts-expect-error/);
     }
     const subscribe = read(SUBSCRIBE_PATH);
-    expect(subscribe).toContain('supabase.rpc("subscribe_lead_magnet"');
+    expect(subscribe).toContain('.rpc("subscribe_lead_magnet"');
     expect(subscribe).not.toMatch(/\.insert\(|\.from\(/);
   });
 
