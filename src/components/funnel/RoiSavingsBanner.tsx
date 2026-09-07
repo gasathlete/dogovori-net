@@ -31,8 +31,11 @@ export function RoiSavingsBanner({ className = "" }: { className?: string }) {
         </span>
         <div className="min-w-0">
           <p className="text-sm font-semibold text-foreground">
-            Спести над <span className="text-gold">{LAWYER_FEE_MIN_EUR} EUR</span> за адвокатски
-            хонорар
+            Ориентировъчно сравнение с{" "}
+            <span className="text-gold">
+              {LAWYER_FEE_MIN_EUR}–{LAWYER_FEE_MAX_EUR} EUR
+            </span>{" "}
+            външен хонорар
           </p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
             {isFreelancer ? (
@@ -41,9 +44,10 @@ export function RoiSavingsBanner({ className = "" }: { className?: string }) {
                 <span className="font-medium text-foreground">
                   {PRICING_PLANS.professional.name}
                 </span>{" "}
-                — {monthlyLabel("professional")} ({opsLabel("professional")}). Един изготвен договор
-                при адвокат струва {LAWYER_FEE_MIN_EUR}–{LAWYER_FEE_MAX_EUR} EUR, тук се изплаща от
-                първия документ.
+                — {monthlyLabel("professional")} ({opsLabel("professional")}). Примерна сметка:
+                изготвянето на един договор при външен юрист обикновено се таксува{" "}
+                {LAWYER_FEE_MIN_EUR}–{LAWYER_FEE_MAX_EUR} EUR. Сравнете с реалната цена, която
+                плащате днес.
               </>
             ) : (
               <>
@@ -54,8 +58,8 @@ export function RoiSavingsBanner({ className = "" }: { className?: string }) {
                 — {monthlyLabel("entrepreneur")} ({opsLabel("entrepreneur")}) за малки фирми, или{" "}
                 <span className="font-medium text-foreground">{team.name}</span> —{" "}
                 {yearlyLabel("team")} (само годишно, мин. {team.seatMin} места ={" "}
-                {fmtEur(teamMinYearlyTotal())}/год). Едно юридическо становище месечно вече
-                надхвърля годишния абонамент.
+                {fmtEur(teamMinYearlyTotal())}/год). Сравнете тези суми с реалните си разходи за
+                договорна работа през последната година.
               </>
             )}
           </p>
@@ -66,10 +70,15 @@ export function RoiSavingsBanner({ className = "" }: { className?: string }) {
             </li>
             <li className="flex items-start gap-1.5">
               <Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600 dark:text-gold" aria-hidden />
-              1 операция = 1 сваляне, 1 анализ или 1 AI съобщение.
+              1 действие = 1 сваляне, 1 анализ или 1 AI съобщение.
+            </li>
+            <li className="flex items-start gap-1.5">
+              <Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600 dark:text-gold" aria-hidden />
+              Сравнението е илюстративно и не е обещан резултат.
             </li>
           </ul>
         </div>
+
       </div>
     </div>
   );
