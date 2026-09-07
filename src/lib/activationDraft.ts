@@ -74,6 +74,19 @@ export interface DraftPointer {
   runId?: string;
 }
 
+/**
+ * Атрибуцията е неделима двойка: използваема е само когато и двата
+ * идентификатора минават проверката. Частична или подправена двойка се
+ * отхвърля изцяло — никога не се смесва стар journey с текущ run.
+ */
+function validPair(
+  journeyId: unknown,
+  runId: unknown,
+): { journeyId: string; runId: string } | null {
+  if (!isValidFunnelId(journeyId) || !isValidFunnelId(runId)) return null;
+  return { journeyId: journeyId as string, runId: runId as string };
+}
+
 
 /** Съдържанието с лични данни — НИКОГА в localStorage. */
 export interface DraftPayload {
@@ -232,9 +245,10 @@ export function readPointer(now: number = Date.now()): DraftPointer | null {
       ts: typeof parsed.ts === "number" ? parsed.ts : 0,
       claimed: p.claimed === true,
       savedDocId: typeof p.savedDocId === "string" ? p.savedDocId : undefined,
-      // Подправена или произволна атрибуция се изхвърля — черновата остава.
-      journeyId: isValidFunnelId(p.journeyId) ? p.journeyId : undefined,
-      runId: isValidFunnelId(p.runId) ? p.runId : undefined,
+      // Подправена или частична атрибуция се изхвърля цялата — черновата остава.
+      journeyId: validPair(p.journeyId, p.runId)?.journeyId,
+      runId: validPair(p.journeyId, p.runId)?.runId,
+
     };
 
   } catch {
@@ -262,8 +276,9 @@ export function writePointer(pointer: DraftPointer): void {
       claimed,
       savedDocId: typeof pointer.savedDocId === "string" && pointer.savedDocId ? pointer.savedDocId : undefined,
       // Само непрозрачни идентификатори, генерирани от funnelContext.
-      journeyId: isValidFunnelId(pointer.journeyId) ? pointer.journeyId : undefined,
-      runId: isValidFunnelId(pointer.runId) ? pointer.runId : undefined,
+      journeyId: validPair(pointer.journeyId, pointer.runId)?.journeyId,
+      runId: validPair(pointer.journeyId, pointer.runId)?.runId,
+
 
     };
     localStorage.setItem(DRAFT_POINTER_KEY, JSON.stringify(safe));
@@ -494,14 +509,14 @@ function buildSyncPointer(args: {
     Date.parse(data.expires_at || "") || Date.now() + ttl,
     claimed ? storedSame?.expiresAt ?? 0 : 0,
   );
-  // Атрибуцията се пази, ако вече има валидна (update/claim); иначе се снима
-  // текущият документен контекст (нов указател при първи запис).
-  const existingJourney = storedSame?.journeyId ?? (sameAsSent ? sent?.journeyId : undefined);
-  const existingRun = storedSame?.runId ?? (sameAsSent ? sent?.runId : undefined);
-  const ctx =
-    isValidFunnelId(existingJourney) && isValidFunnelId(existingRun) ? null : getDocumentContext();
-  const journeyId = isValidFunnelId(existingJourney) ? existingJourney : ctx?.journey_id;
-  const runId = isValidFunnelId(existingRun) ? existingRun : ctx?.run_id;
+  // Атрибуцията е неделима двойка: пази се само ако и двата идентификатора са
+  // валидни; иначе се взема цялата двойка от един снимък на текущия контекст.
+  const existingPair =
+    validPair(storedSame?.journeyId, storedSame?.runId) ??
+    (sameAsSent ? validPair(sent?.journeyId, sent?.runId) : null);
+  const ctx = existingPair ? null : getDocumentContext();
+  const pair = existingPair ?? validPair(ctx?.journey_id, ctx?.run_id);
+
   return {
     created: !sameAsSent,
     pointer: {
@@ -517,8 +532,9 @@ function buildSyncPointer(args: {
       expiresAt,
       claimed,
       savedDocId: storedSame?.savedDocId ?? (sameAsSent ? sent?.savedDocId : undefined),
-      journeyId: isValidFunnelId(journeyId) ? journeyId : undefined,
-      runId: isValidFunnelId(runId) ? runId : undefined,
+      journeyId: pair?.journeyId,
+      runId: pair?.runId,
+
     },
 
   };
