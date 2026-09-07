@@ -4,9 +4,9 @@
  * валиден и съгласуван с прага рейтинг, най-много веднъж на метрика.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { RecordWebVitalAggregateArgs } from "@/lib/webVitals/pendingSchema";
+import type { Database } from "@/integrations/supabase/types";
 
-type CentralArgs = RecordWebVitalAggregateArgs;
+type CentralArgs = Database["public"]["Functions"]["record_web_vital_aggregate"]["Args"];
 
 const handlers: Record<string, (m: unknown) => void> = {};
 const rpc = vi.fn().mockResolvedValue({ error: null });
