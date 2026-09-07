@@ -411,13 +411,15 @@ export default function TemplatePage() {
               ))}
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-2">
-              <Link
-                to={wizardHref}
-                onClick={() => trackCreateCta("content")}
-                className="btn-gold btn-sheen"
-              >
-                Изготви документа сега <ArrowRight className="h-4 w-4" />
-              </Link>
+              {intent ? null : (
+                <Link
+                  to={wizardHref}
+                  onClick={() => trackCreateCta("content")}
+                  className="btn-gold btn-sheen"
+                >
+                  Изготви документа сега <ArrowRight className="h-4 w-4" />
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={() => {
