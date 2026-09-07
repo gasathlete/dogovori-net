@@ -9,7 +9,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import type { Database, Tables } from "@/integrations/supabase/types";
+import type { Tables } from "@/integrations/supabase/types";
+import type { LeadMagnetConsentColumns, SubscribeLeadMagnetArgs } from "@/lib/leadMagnetPendingSchema";
 import { LEAD_MAGNET_CONSENT_VERSION, LEAD_MAGNET_SLUGS, type LeadMagnetSlug } from "@/lib/leadMagnets";
 import { buildLeadMagnetSubscribeArgs, LEAD_MAGNET_CONSENT_COPY } from "@/lib/leadMagnetSubscribe";
 import { LEAD_MAGNET_SHOWN_KEY, LEAD_MAGNET_SOURCE_GROUPS, type LeadMagnetSourceGroup } from "@/lib/leadMagnetTrigger";
