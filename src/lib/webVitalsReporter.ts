@@ -17,6 +17,7 @@
  */
 
 import type { Metric } from "web-vitals";
+import type { Database } from "@/integrations/supabase/types";
 import { trackEvent, getCategoryConsent } from "@/lib/analytics";
 import {
   coarseDeviceClass,
@@ -82,30 +83,38 @@ function capturePageLoadContext(): PageLoadContext {
   };
 }
 
+/** Аргументите на типизирания RPC — точно това, което напуска браузъра. */
+export type CentralArgs = Database["public"]["Functions"]["record_web_vital_aggregate"]["Args"];
+
 /**
- * Fire-and-forget агрегиран запис. Никога не влияе на UX.
- * Клиентът валидира същото, което и RPC-то: allow-list рейтинг, разумна
- * стойност и съответствие рейтинг ↔ стойност по праговете на Web Vitals.
+ * Клиентска валидация, огледална на RPC-то: allow-list рейтинг, разумна
+ * стойност и съответствие рейтинг ↔ стойност по включителните прагове на
+ * Web Vitals. Връща null при невалидни данни — тогава нищо не се праща.
  */
-async function recordCentral(
+export function prepareCentralArgs(
   metric: CoreMetric,
-  rating: string,
+  rating: unknown,
   value: number,
   ctx: PageLoadContext,
-): Promise<void> {
+): CentralArgs | null {
   const intValue = toIntegerValue(metric, value);
-  if (!isSaneValue(metric, intValue)) return;
-  if (!isRating(rating) || ratingForValue(metric, intValue) !== rating) return;
+  if (!isSaneValue(metric, intValue)) return null;
+  if (!isRating(rating) || ratingForValue(metric, intValue) !== rating) return null;
+  return {
+    _metric: metric,
+    _rating: rating,
+    _route_group: ctx.routeGroup,
+    _device_class: ctx.deviceClass,
+    _navigation_type: ctx.navigationType,
+    _value: intValue,
+  };
+}
+
+/** Fire-and-forget агрегиран запис. Никога не влияе на UX. */
+async function recordCentral(args: CentralArgs): Promise<void> {
   try {
     const { supabase } = await import("@/integrations/supabase/client");
-    await supabase.rpc("record_web_vital_aggregate", {
-      _metric: metric,
-      _rating: rating,
-      _route_group: ctx.routeGroup,
-      _device_class: ctx.deviceClass,
-      _navigation_type: ctx.navigationType,
-      _value: intValue,
-    });
+    await supabase.rpc("record_web_vital_aggregate", args);
   } catch {
     /* network/schema errors are non-critical */
   }
