@@ -1,7 +1,8 @@
-import { ReactNode, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { ReactNode } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { Seo } from "@/components/Seo";
 
 interface Props {
   title: string;
@@ -13,14 +14,16 @@ interface Props {
 }
 
 export function LegalLayout({ title, description, updated = "8 май 2026 г.", basis, children }: Props) {
-  useEffect(() => {
-    document.title = `${title} · Dogovori.net`;
-    const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", description);
-  }, [title, description]);
+  const location = useLocation();
 
   return (
     <div className="min-h-dvh">
+      <Seo
+        title={`${title} · Dogovori.net`}
+        description={description}
+        canonical={location.pathname}
+      />
+
       <Header />
       <main className="container max-w-3xl py-10 md:py-16">
         <p className="text-xs uppercase tracking-[0.18em] text-gold">
