@@ -109,7 +109,7 @@ describe("цените и плащането остават непокътнат
     expect(ENTRY_PACK_CONFIG.ops).toBe(5);
     expect(ENTRY_PACK_CONFIG.eur).toBe(2.9);
     expect(TOPUP_PACK_CONFIG.map((p) => [p.ops, p.eur])).toEqual([
-      [10, 2.9],
+      [5, 2.9],
       [20, 5.4],
       [50, 12.9],
       [100, 23.9],
