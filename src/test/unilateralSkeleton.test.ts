@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildTypeSkeleton } from "@/lib/typeSkeletons";
+import { inferDocumentType } from "@/lib/documentTypeInference";
 
 const FORBIDDEN = [
   "Страна Б",
@@ -61,5 +62,29 @@ describe("unilateral application skeleton", () => {
     expect(text(compl!)).toMatch(/ЖАЛБА/);
     const claim = buildTypeSkeleton(undefined, "А", "Б", "Искова молба за неплатено възнаграждение");
     expect(text(claim!)).toMatch(/ИСКОВА МОЛБА/);
+  });
+});
+
+describe("contract-head inference (Cyrillic-safe boundary)", () => {
+  it("SLA maintenance contract is a contract, not an appendix", () => {
+    expect(inferDocumentType("Договор за поддръжка на софтуер/хардуер (SLA)")).toBe("contract");
+    expect(inferDocumentType("Рамков договор за SLA услуги")).toBe("contract");
+    expect(inferDocumentType("Договор")).toBe("contract");
+  });
+
+  it("titles that merely start with SLA remain appendix", () => {
+    expect(inferDocumentType("SLA с платежен оператор / банка")).toBe("appendix");
+  });
+
+  it("catalog SLA contract renders as a contract skeleton", () => {
+    const name = "Договор за поддръжка на софтуер/хардуер (SLA)";
+    const s = buildTypeSkeleton(undefined, "А", "Б", name);
+    if (s) {
+      const t = text(s);
+      expect(t).not.toContain("ПРИЛОЖЕНИЕ №");
+      expect(t).not.toContain("неразделна част от основния договор");
+    } else {
+      expect(s).toBeNull();
+    }
   });
 });

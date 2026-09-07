@@ -27,8 +27,11 @@ const RULES: { type: DocumentTypeId; re: RegExp }[] = [
 ];
 
 /** Names that clearly announce a contract must never fall into a
- *  narrower family because of a trailing abbreviation (e.g. „(SLA)"). */
-const CONTRACT_HEAD = /^\s*(рамков\s+)?договор\b/i;
+ *  narrower family because of a trailing abbreviation (e.g. „(SLA)").
+ *  JS `\b` is ASCII-only, so the boundary after „договор" is spelled out
+ *  explicitly: whitespace, end of string, or ordinary title punctuation. */
+const CONTRACT_HEAD = /^\s*(рамков\s+)?договор(?=$|[\s.,;:!?°№\-–—/\\()\[\]"'«»„“]|\u2116)/i;
+
 
 export function inferDocumentType(name: string): DocumentTypeId {
   if (CONTRACT_HEAD.test(name)) return "contract";
