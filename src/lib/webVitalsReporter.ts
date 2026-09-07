@@ -129,20 +129,22 @@ export function initWebVitalsReporter(): void {
         // 2) Всичко навън изисква съгласие в момента на callback-а.
         if (!getCategoryConsent("analytics")) return;
 
-        const core = isCoreMetric(m.name);
+        const name: string = m.name;
+        const coreName: CoreMetric | null = isCoreMetric(name) ? name : null;
         trackEvent("web_vital", {
-          metric: m.name,
+          metric: name,
           rating: m.rating,
-          bucket: bucketize(m.name, m.value),
+          bucket: bucketize(name, m.value),
           route_group: ctx.routeGroup,
           device_class: ctx.deviceClass,
           navigation_type: ctx.navigationType,
-          value: core ? toIntegerValue(m.name, m.value) : Math.round(m.value),
+          value: coreName ? toIntegerValue(coreName, m.value) : Math.round(m.value),
         });
 
-        if (core && !sentCentral.has(m.name)) {
-          sentCentral.add(m.name);
-          void recordCentral(m.name, m.rating, m.value, ctx);
+        // 3) LCP/INP/CLS — централно, най-много веднъж на метрика за това зареждане.
+        if (coreName && !sentCentral.has(coreName)) {
+          sentCentral.add(coreName);
+          void recordCentral(coreName, m.rating, m.value, ctx);
         }
       };
       onLCP(handle);
