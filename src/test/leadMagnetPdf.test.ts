@@ -242,7 +242,6 @@ describe("lead-magnet PDF — извлечен текст (pdf.js)", () => {
       useWorkerFetch: false,
       disableFontFace: true,
       useSystemFonts: false,
-      isEvalSupported: false,
     });
     const pdf = await task.promise;
     const pages: string[] = [];
