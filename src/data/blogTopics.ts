@@ -2,6 +2,20 @@
 // Used by scripts/generate-blog.ts to produce article + image per slug.
 // Each topic targets a specific high-intent keyword cluster.
 
+/**
+ * Editorially curated official source for a topic. Must be supplied by a human
+ * before any article text may be generated for that topic — domain allowlists
+ * alone are not factual grounding.
+ */
+export interface BlogTopicSource {
+  /** Human-readable title of the official source. */
+  title: string;
+  /** Canonical HTTPS URL (official publisher only). */
+  url: string;
+  /** Grounding note: exactly which claims/scope this source supports. */
+  note: string;
+}
+
 export interface BlogTopic {
   slug: string;
   title: string;
@@ -17,6 +31,12 @@ export interface BlogTopic {
     | "Семейно право"
     | "Данъци";
   imagePrompt: string; // editorial direction for hero image
+  /**
+   * Editorially supplied source pack. Generation of article text fails closed
+   * unless at least 2 HTTPS sources with non-empty notes are present.
+   * Intentionally not bulk-populated: each entry must be curated by a human.
+   */
+  sourcePack?: readonly BlogTopicSource[];
 }
 
 export const BLOG_TOPICS: BlogTopic[] = [
