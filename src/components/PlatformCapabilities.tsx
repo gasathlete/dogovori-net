@@ -11,9 +11,9 @@ type Item = {
 };
 
 const ITEMS: Item[] = [
-  { icon: Bot, action: "assistant", label: "Правен AI-асистент", desc: "Преговаря най-добрите условия за Вас." },
+  { icon: Bot, action: "assistant", label: "Правен асистент с източници", desc: "Структурира казуса и посочва приложимите разпоредби." },
   { icon: FileText, to: "/catalog", label: "Над 600 шаблона", desc: "Бизнес, имоти, труд, услуги." },
-  { icon: ShieldAlert, to: "/demo/risk-analysis", label: "Анализ на документ", desc: "Открива клопки и неравноправни клаузи." },
+  { icon: ShieldAlert, to: "/demo/risk-analysis", label: "Проверка на риска", desc: "Показва неравноправни и липсващи клаузи." },
   { icon: Languages, to: "/demo/bilingual", label: "Двуезични договори", desc: "Български, английски, немски, френски." },
   { icon: FileSignature, to: "/demo/e-signature", label: "Електронен подпис", desc: "Директно от dogovori.net." },
   { icon: Package, action: "kits", label: "Комплекти документи", desc: "Готови решения за чести казуси." },
@@ -37,11 +37,11 @@ export function PlatformCapabilities() {
             id="platform-capabilities-title"
             className="mt-3 font-serif text-2xl font-bold leading-tight text-balance sm:text-[28px] md:text-3xl"
           >
-            Шест инструмента, един работен процес
+            Един работен процес за целия живот на документа
           </h2>
           <p className="mx-auto mt-3 max-w-[62ch] text-sm text-muted-foreground sm:text-[15px]">
-            Един непрекъснат поток: питаш, избираш шаблон, проверяваш риска,
-            превеждаш, подписваш и подреждаш в комплект — без да сменяш платформа.
+            От първото въвеждане до преглед, сваляне, подписване и история —
+            създаване, проверка на клаузите, превод и подреждане в комплект на едно място.
           </p>
         </div>
 
