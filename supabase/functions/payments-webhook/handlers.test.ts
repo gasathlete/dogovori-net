@@ -15,6 +15,7 @@ type Result = { data: unknown; error: { message?: string } | null };
 interface Call {
   table: string;
   op: string;
+  args?: unknown[];
 }
 
 /** Минимален chainable двойник на Supabase клиент. */
@@ -42,9 +43,9 @@ function makeDb(opts: {
       then: (res: any, rej: any) => Promise.resolve(result()).then(res, rej),
     };
     for (const m of ["update", "insert", "upsert", "delete"]) {
-      b[m] = () => {
+      b[m] = (...args: unknown[]) => {
         op = m;
-        calls.push({ table, op: m });
+        calls.push({ table, op: m, args });
         return b;
       };
     }
@@ -144,7 +145,9 @@ Deno.test("first delivery writes an idempotent order snapshot", async () => {
   const db = makeDb();
   const session = { id: "cs_3", mode: "payment", amount_total: 290, metadata: { userId: "u1" } };
   await handleCheckoutCompleted(makeDeps(db), session, "live");
-  assertEquals(db.calls.filter((c) => c.table === "order_snapshots" && c.op === "upsert").length, 1);
+  const writes = db.calls.filter((c) => c.table === "order_snapshots" && c.op === "upsert");
+  assertEquals(writes.length, 1);
+  assertEquals((writes[0].args?.[1] as { onConflict?: string })?.onConflict, "stripe_session_id");
 });
 
 Deno.test("duplicate delivery of the same session stays idempotent", async () => {
@@ -155,6 +158,15 @@ Deno.test("duplicate delivery of the same session stays idempotent", async () =>
   const writes = db.calls.filter((c) => c.table === "order_snapshots");
   assertEquals(writes.length, 2);
   assertEquals(writes.every((c) => c.op === "upsert"), true);
+  // Идемпотентността идва от ON CONFLICT по сесията, не просто от два записа.
+  assertEquals(
+    writes.every((c) => (c.args?.[1] as { onConflict?: string })?.onConflict === "stripe_session_id"),
+    true,
+  );
+  assertEquals(
+    writes.every((c) => (c.args?.[0] as { stripe_session_id?: string })?.stripe_session_id === "cs_3"),
+    true,
+  );
 });
 
 Deno.test("order snapshot DB error fails closed so Stripe retries", async () => {
