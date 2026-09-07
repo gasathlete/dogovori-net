@@ -77,7 +77,54 @@ describe("оферта: еднократно срещу абонамент", () 
     expect(plans.match(/entryPackCtaHref\(/g) ?? []).toHaveLength(1);
     expect(plans.match(/<EntryPackCta /g) ?? []).toHaveLength(1);
     expect(plans.match(/source: "public_entry_pack"/g) ?? []).toHaveLength(1);
+    // CTA-то е само линк — без собствена рамка вътре в картата за еднократно плащане.
+    expect(plans).not.toContain("border-2 border-brand/40 bg-brand/[0.04]");
+    expect(plans.match(/Конкретен документ/g) ?? []).toHaveLength(1);
   });
+
+  it("периодът на фактуриране е втори избор — в секцията с абонаментите", () => {
+    expect(plans.match(/<BillingToggle /g) ?? []).toHaveLength(1);
+    expect(plans.match(/role="tablist"/g) ?? []).toHaveLength(1);
+    expect(plans.indexOf("<BillingToggle ")).toBeGreaterThan(
+      plans.indexOf('id="purchase-modes-title"'),
+    );
+    expect(plans.indexOf("<BillingToggle ")).toBeGreaterThan(plans.indexOf('id="plan-cards"'));
+    expect(plans.indexOf("<BillingToggle ")).toBeLessThan(plans.indexOf("PLAN_ICON[plan.id]"));
+    expect(plans).toContain('aria-label="Период на фактуриране"');
+  });
+
+  it("измерва избора на режим на плащане със затворени стойности", () => {
+    expect(plans).toContain('trackEvent("plans_purchase_mode_selected", { mode: "one_time"');
+    expect(plans).toContain(
+      'trackEvent("plans_purchase_mode_selected", { mode: "subscription", audience })',
+    );
+  });
+
+  it("не съдържа недоказуеми твърдения и не води с фиксирана икономия", () => {
+    for (const phrase of [
+      "90 € и 3 дни",
+      "струва повече от годишен абонамент",
+      "най-честата причина",
+      "Операциите се изразходват",
+      "roiSubtitle",
+    ]) {
+      expect(plans, phrase).not.toContain(phrase);
+    }
+    const banner = read("src/components/funnel/RoiSavingsBanner.tsx");
+    expect(banner).not.toContain("Спести над");
+    expect(banner).not.toContain("изплаща от");
+    expect(banner).not.toContain("1 операция");
+    expect(banner).toContain("Сравнението е илюстративно");
+  });
+
+  it("копието за сегментите е коректно", () => {
+    const aud = read("src/lib/audience.ts");
+    expect(aud).toContain("За свободна практика");
+    expect(aud).not.toContain("За на свободна практика");
+    expect(aud).not.toContain('ctaExample: "\\n"');
+    expect(aud).toContain("Абонаментът е за фирми");
+  });
+
 
   it("помощта по обем е под избора и под абонаментните карти", () => {
     expect(plans.indexOf("<PlanScaleSlider")).toBeGreaterThan(
