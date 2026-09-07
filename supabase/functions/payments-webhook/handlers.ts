@@ -20,7 +20,12 @@
  */
 export type StripeEnv = "sandbox" | "live";
 
-import { ENTRY_PACK_AMOUNT_CENTS, planOneOffCredit } from "../_shared/oneoff-credit.ts";
+import {
+  ENTRY_PACK_AMOUNT_CENTS,
+  ENTRY_PACK_LOOKUP_KEY,
+  isAllowedCheckoutLookupKey,
+  planOneOffCredit,
+} from "../_shared/oneoff-credit.ts";
 import { extractEventUserId, isStaffUser } from "../_shared/sandbox-guard.ts";
 import { mustAffectRows, mustSucceed } from "../_shared/db-guard.ts";
 
