@@ -18,7 +18,8 @@
 
 import type { Metric } from "web-vitals";
 import { trackEvent, getCategoryConsent } from "@/lib/analytics";
-import { webVitalsClient, type RecordWebVitalAggregateArgs } from "@/lib/webVitals/pendingSchema";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import {
   coarseDeviceClass,
   coarseNavigationType,
@@ -84,8 +85,8 @@ function capturePageLoadContext(): PageLoadContext {
   };
 }
 
-/** Аргументите на типизирания RPC — точно това, което напуска браузъра. */
-export type CentralArgs = RecordWebVitalAggregateArgs;
+/** Аргументите на генерирания RPC тип — точно това, което напуска браузъра. */
+export type CentralArgs = Database["public"]["Functions"]["record_web_vital_aggregate"]["Args"];
 
 /**
  * Клиентска валидация, огледална на RPC-то: крайна неотрицателна стойност,
@@ -113,10 +114,10 @@ export function prepareCentralArgs(
   };
 }
 
-/** Fire-and-forget агрегиран запис. Никога не влияе на UX. */
+/** Fire-and-forget агрегиран запис през каноничния типизиран клиент. Никога не влияе на UX. */
 async function recordCentral(args: CentralArgs): Promise<void> {
   try {
-    await webVitalsClient.rpc("record_web_vital_aggregate", args);
+    await supabase.rpc("record_web_vital_aggregate", args);
   } catch {
     /* network/schema errors are non-critical */
   }

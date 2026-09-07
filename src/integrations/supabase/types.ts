@@ -4424,6 +4424,51 @@ export type Database = {
         }
         Relationships: []
       }
+      web_vitals_daily: {
+        Row: {
+          created_at: string
+          day: string
+          device_class: string
+          metric: string
+          navigation_type: string
+          rating: string
+          route_group: string
+          sample_count: number
+          updated_at: string
+          value_max: number
+          value_min: number
+          value_sum: number
+        }
+        Insert: {
+          created_at?: string
+          day?: string
+          device_class: string
+          metric: string
+          navigation_type: string
+          rating: string
+          route_group: string
+          sample_count?: number
+          updated_at?: string
+          value_max?: number
+          value_min?: number
+          value_sum?: number
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          device_class?: string
+          metric?: string
+          navigation_type?: string
+          rating?: string
+          route_group?: string
+          sample_count?: number
+          updated_at?: string
+          value_max?: number
+          value_min?: number
+          value_sum?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       blog_comments_public: {
@@ -4864,6 +4909,17 @@ export type Database = {
       rate_limit_check: {
         Args: { _key: string; _max: number; _window_s: number }
         Returns: Json
+      }
+      record_web_vital_aggregate: {
+        Args: {
+          _device_class: string
+          _metric: string
+          _navigation_type: string
+          _rating: string
+          _route_group: string
+          _value: number
+        }
+        Returns: undefined
       }
       refund_quota: {
         Args: { _kind: string; _used_bonus?: boolean; _user_id: string }
