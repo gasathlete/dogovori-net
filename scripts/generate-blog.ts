@@ -320,7 +320,8 @@ async function main() {
   console.log("All generated modules are drafts and stay invisible until editorially published.");
 }
 
-if (import.meta.main) {
+const isDirectRun = process.argv[1]?.includes("generate-blog");
+if (isDirectRun) {
   main().catch((e) => {
     console.error(e);
     process.exit(1);
