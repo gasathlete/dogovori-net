@@ -10,6 +10,7 @@ import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { getRelatedTemplates, getTemplateBySlug } from "@/lib/templateIndex";
+import { slugify } from "@/lib/slugify";
 import { TEMPLATE_CONTENT_META } from "@/data/templateContentMeta";
 import { loadTemplateContent } from "@/data/templateContent";
 import { loadTemplateDraft } from "@/data/templateDrafts";
