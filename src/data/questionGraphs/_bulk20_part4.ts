@@ -438,7 +438,7 @@ const SPECS: Record<string, BulkSpec> = {
       { clause_id: "price", order: 30, title: "Цена", body_md: "Тип цена: {{price_type}}. Обща цена: {{total_price}} EUR.", severity: "required" },
       { clause_id: "advance", order: 31, title: "Аванс", body_md: "Аванс: {{advance_pct}}% от общата цена, изплащан в срок до 5 дни от подписване.", include_when: "advance_pct != null", severity: "optional" },
       { clause_id: "retention", order: 40, title: "Задържане", body_md: "Възложителят задържа {{retention_pct}}% от всяко плащане до изтичане на гаранционния срок.", severity: "recommended" },
-      { clause_id: "warranty", order: 50, title: "Гаранция", body_md: "Гаранционен срок за извършените СМР: {{warranty_months}} месеца от подписване на приемо-предавателния протокол.", severity: "required" },
+      { clause_id: "warranty", order: 50, title: "Гаранция", body_md: "Гаранционен срок за извършените СМР: {{warranty_months}} месеца от подписване на приемно-предавателния протокол.", severity: "required" },
       { clause_id: "penalty", order: 60, title: "Неустойка", body_md: "При виновна забава Подизпълнителят дължи неустойка в размер на {{penalty_per_day_pct}}% от цената на забавената част за всеки ден забава, но не повече от 10%.", severity: "required" },
     ],
   },

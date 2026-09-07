@@ -179,11 +179,11 @@ export const DOCUMENT_KITS: DocumentKit[] = [
     groupLabel: "Имоти",
     icon: "Home",
     featured: true,
-    shortDescription: "Договор, приемо-предавателен протокол, разписка и предизвестие.",
+    shortDescription: "Договор, приемно-предавателен протокол, разписка и предизвестие.",
     forWho: "За наемодатели и наематели на жилище.",
     items: [
       { docName: "Договор за наем на жилище", role: "primary" },
-      { docName: "Приемо-предавателен протокол", role: "appendix" },
+      { docName: "Приемно-предавателен протокол", role: "appendix" },
       { docName: "Опис на инвентар към договор за наем", role: "appendix" },
       { docName: "Разписка за получена сума (наем/депозит)", role: "companion" },
       { docName: "Декларация за регистрация на наем пред НАП", role: "companion", optional: true },
@@ -197,11 +197,11 @@ export const DOCUMENT_KITS: DocumentKit[] = [
     group: "real_estate",
     groupLabel: "Имоти",
     icon: "Briefcase",
-    shortDescription: "Бизнес наем с приемо-предавателен протокол и опции за подновяване.",
+    shortDescription: "Бизнес наем с приемно-предавателен протокол и опции за подновяване.",
     forWho: "За фирми, които наемат офис или магазин.",
     items: [
       { docName: "Договор за наем на офис", role: "primary" },
-      { docName: "Приемо-предавателен протокол", role: "appendix" },
+      { docName: "Приемно-предавателен протокол", role: "appendix" },
       { docName: "Опис на инвентар към договор за наем", role: "appendix" },
       { docName: "Анекс за подновяване на наем", role: "companion", optional: true },
     ],
@@ -229,13 +229,13 @@ export const DOCUMENT_KITS: DocumentKit[] = [
     icon: "KeyRound",
     featured: true,
     shortDescription:
-      "Предварителен договор, капаро, проект на нотариален акт и приемо-предавателен протокол.",
+      "Предварителен договор, капаро, проект на нотариален акт и приемно-предавателен протокол.",
     forWho: "За купувачи и продавачи на имот.",
     items: [
       { docName: "Предварителен договор за покупка на имот", role: "primary" },
       { docName: "Договор за капаро при продажба на имот", role: "appendix" },
       { docName: "Окончателен договор за покупко-продажба на имот (проект на нотариален акт)", role: "appendix" },
-      { docName: "Приемо-предавателен протокол при продажба на имот", role: "companion" },
+      { docName: "Приемно-предавателен протокол при продажба на имот", role: "companion" },
       { docName: "Декларация по чл. 264 ДОПК", role: "companion" },
       { docName: "Декларация по ЗМИП (мерки срещу прането на пари)", role: "companion" },
       { docName: "Заявление за удостоверение за тежести", role: "companion", optional: true },
@@ -310,7 +310,7 @@ export const DOCUMENT_KITS: DocumentKit[] = [
     icon: "Laptop",
     featured: true,
     shortDescription:
-      "Договор за изработка, NDA, MSA/SOW и приемо-предавателни документи.",
+      "Договор за изработка, NDA, MSA/SOW и приемно-предавателни документи.",
     forWho: "За IT агенции и клиенти.",
     items: [
       { docName: "Договор за изработка на уебсайт / мобилно приложение", role: "primary" },
@@ -403,7 +403,7 @@ export const DOCUMENT_KITS: DocumentKit[] = [
     groupLabel: "Строителство",
     icon: "HardHat",
     shortDescription:
-      "Договор за груб строеж, надзор и приемо-предавателни актове.",
+      "Договор за груб строеж, надзор и приемно-предавателни актове.",
     forWho: "За инвеститори и строителни фирми.",
     items: [
       { docName: "Договор за груб строеж (Акт 14)", role: "primary" },
@@ -420,12 +420,12 @@ export const DOCUMENT_KITS: DocumentKit[] = [
     groupLabel: "Транспорт",
     icon: "Car",
     shortDescription:
-      "Договор за покупко-продажба, декларации и приемо-предавателен протокол.",
+      "Договор за покупко-продажба, декларации и приемно-предавателен протокол.",
     forWho: "За продавачи и купувачи на автомобил.",
     items: [
       { docName: "Договор за покупко-продажба на МПС", role: "primary" },
       { docName: "Декларация за продажба на МПС пред КАТ", role: "appendix" },
-      { docName: "Приемо-предавателен протокол за МПС", role: "appendix" },
+      { docName: "Приемно-предавателен протокол за МПС", role: "appendix" },
       { docName: "Декларация по чл. 264 ДОПК", role: "companion" },
       { docName: "Пълномощно за управление и продажба на МПС", role: "companion", optional: true },
     ],

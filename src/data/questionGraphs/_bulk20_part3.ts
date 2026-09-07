@@ -482,11 +482,11 @@ const SPECS: Record<string, BulkSpec> = {
     ],
   },
 
-  // 15. Приемо-предавателен протокол (общ) -----------------------------------
+  // 15. Приемно-предавателен протокол (общ) -----------------------------------
   "priemo-predavatelen-protokol": {
     graph: {
       template_slug: "priemo-predavatelen-protokol",
-      title: "Приемо-предавателен протокол",
+      title: "Приемно-предавателен протокол",
       sections: [
         { id: "parties", title: "Страни" },
         { id: "subject", title: "Обект" },
@@ -517,11 +517,11 @@ const SPECS: Record<string, BulkSpec> = {
     ],
   },
 
-  // 16. Приемо-предавателен протокол при продажба на имот --------------------
+  // 16. Приемно-предавателен протокол при продажба на имот --------------------
   "priemo-predavatelen-protokol-pri-prodazhba-na-imot": {
     graph: {
       template_slug: "priemo-predavatelen-protokol-pri-prodazhba-na-imot",
-      title: "Приемо-предавателен протокол при продажба на имот",
+      title: "Приемно-предавателен протокол при продажба на имот",
       sections: [
         { id: "parties", title: "Страни" },
         { id: "property", title: "Имот" },
