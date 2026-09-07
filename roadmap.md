@@ -44,6 +44,16 @@
 - [ ] Wizard: reattach индикатор „продължаваме предишното генериране“ в UI (сега само toast)
 - [ ] Почистване на pre-existing `any` в BuildContract.tsx / CheckoutReturn.tsx (lint)
 
+## P0 — Lead magnet: конверсия + поверителност (само код/превю)
+- [x] Двустъпков поток: директно сваляне на PDF без имейл/запис → отделен, незадължителен opt-in за бюлетин (незадължен чекбокс, цел/честота/отказ, връзка към поверителност); shadcn Dialog, Escape/фокус, 44 px цели, reduced-motion; без „GDPR-съвместимо“
+- [x] Allow-list на маршрутите (home/catalog/template/blog) + dwell 12 s desktop / 35 s + >50 % скрол мобилно; едно показване на сесия; „Не показвай повече“; без прекъсване на отворен диалог/форма/нерешен cookie банер
+- [x] Събития: lead_magnet_shown/dismissed/downloaded/converted само с reason, magnet, source_group (без имейл/име/суров път/user agent); converted само след успешен RPC
+- [x] Чакаща миграция `supabase/migrations/20260907123000_lead_magnet_consent_hardening.sql` (НЕ е приложена): consent DEFAULT false, consent_at/consent_version, без директен INSERT, admin-only SELECT, SECURITY DEFINER RPC subscribe_lead_magnet с NULL/allow-list/email/consent гардове
+- [x] Тестове (диалог 32, класификатор 116, миграционни инварианти 23) + пълен Vitest, tsgo, security scan, vite build
+- [ ] След изрично одобрение: прилагане на миграцията през платформения механизъм (създава `drizzle/migrations/0010_*.sql` + journal запис — тестът `leadMagnetMigration` вече покрива и това състояние); до тогава абонаментът връща общо съобщение за грешка, защото RPC-то още не съществува в базата
+- [ ] След прилагане: регенериране на `types.ts` от реалната схема (ръчните типове за consent_at/consent_version/subscribe_lead_magnet трябва да съвпаднат 1:1)
+- [ ] Admin изглед за lead-magnet събитията (shown → downloaded → converted по source_group) в /admin/metrics — само ако се търси измерване на opt-in процента
+
 ## Бележки / решения
 - Съхраняваните имена на събитията остават (doc_start, doc_generate_*, …) заради growth_snapshot SQL,
   /admin/generation, /admin/funnel. Каноничното име пътува в props.event.
