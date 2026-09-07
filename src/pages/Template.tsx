@@ -25,6 +25,7 @@ import {
   SEO_INTENT_SUPPORT_LINE,
   SEO_INTENT_VERSION,
   getSeoTemplateIntent,
+  isSeoIntentSlug,
   seoIntentVariant,
 } from "@/lib/seoTemplateIntent";
 
