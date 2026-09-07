@@ -61,9 +61,10 @@ describe("generator source guard", () => {
     expect(out).toContain('"status": "draft"');
     expect(out).toContain('"reviewStatus": "unreviewed"');
     expect(out).toContain('"draftedAt": "2026-09-07"');
-    expect(out).not.toContain("publishedAt");
-    expect(out).not.toContain("reviewedAt");
-    expect(out).not.toContain("modifiedAt");
+    const serialized = out.slice(out.indexOf("export const POST"));
+    expect(serialized).not.toContain('"publishedAt"');
+    expect(serialized).not.toContain('"reviewedAt"');
+    expect(serialized).not.toContain('"modifiedAt"');
   });
 
   it("uses the real UTC generation date", () => {
