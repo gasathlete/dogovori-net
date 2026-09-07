@@ -26,6 +26,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { trackDraftEvent } from "@/lib/docFunnel";
+import { normalizeDocKey, resumeDocumentJourney } from "@/lib/funnelContext";
+
 import {
   claimDraft,
   claimRetryDelay,
@@ -238,7 +240,24 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
     const legacy = takeLegacyDrafts().filter((d) => d.flow === flow);
     const current = readPointer();
 
+    // Stage 2a2: преди КОЕТО И ДА Е събитие (restore/claim/download) връщаме
+    // същия journey/run от указателя — нов таб, имейл линк или OAuth иначе
+    // започват нов run и разкъсват атрибуцията. Само за същия поток и съвместим
+    // документ: стар указател за друг документ не изземва свеж CTA journey.
+    if (current && current.flow === flow && current.journeyId && current.runId) {
+      const pointerKey = normalizeDocKey(current.docKey);
+      const hookKey = normalizeDocKey(docKey);
+      if (pointerKey && (!hookKey || pointerKey === hookKey)) {
+        resumeDocumentJourney({
+          journey_id: current.journeyId,
+          run_id: current.runId,
+          doc_key: pointerKey,
+        });
+      }
+    }
+
     if (current && current.flow === flow) {
+
       const payload = readPayload(current.draftId) ?? readPayload(LOCAL_DRAFT_ID);
       if (hasRestorableContent(payload)) {
         restoreRef.current?.(payload, { source: "session" });
@@ -268,7 +287,10 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
       const best = legacy[legacy.length - 1];
       restoreRef.current?.(best.payload, { source: "legacy" });
     }
-  }, [active, enabled, flow, updatePointer]);
+    // `docKey` участва само в проверката за съвместимост при възстановяване на
+    // атрибуцията; ефектът е защитен с `restoredRef` и не се изпълнява пак.
+  }, [active, enabled, flow, docKey, updatePointer]);
+
 
   /* ------------------------------ 2. Запазване ---------------------------- */
   const onSyncBlocked = useCallback(

@@ -43,6 +43,7 @@ import {
   writePointer,
   type DraftPointer,
 } from "@/lib/activationDraft";
+import { startDocumentJourney, __resetFunnelContextForTests } from "@/lib/funnelContext";
 
 function pointer(overrides: Partial<DraftPointer> = {}): DraftPointer {
   return {
@@ -65,6 +66,7 @@ beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
   invokeMock.mockReset();
+  __resetFunnelContextForTests();
 });
 
 describe("isSafeRoute", () => {
@@ -502,5 +504,97 @@ describe("syncDraft — commit с requireCurrent сравнява снимкат
   it("clearDraftIfCurrent без указател не създава резервно копие", () => {
     expect(clearDraftIfCurrent(DRAFT_ID)).toBe(false);
     expect(readPayload(LOCAL_DRAFT_ID)).toBeNull();
+  });
+});
+
+/* ------------------------------------------------------------------------ */
+/* Stage 2a2 — атрибуция в указателя (journeyId / runId)                     */
+/* ------------------------------------------------------------------------ */
+
+describe("указател — аналитична атрибуция", () => {
+  it("стар указател без journeyId/runId остава валиден", () => {
+    writePointer(pointer());
+    const read = readPointer()!;
+    expect(read.draftId).toBe("11111111-1111-4111-8111-111111111111");
+    expect(read.journeyId).toBeUndefined();
+    expect(read.runId).toBeUndefined();
+  });
+
+  it("записва само непрозрачни идентификатори — подправените се изхвърлят, черновата остава", () => {
+    const ctx = startDocumentJourney("sector::doc");
+    writePointer(pointer({ journeyId: ctx.journey_id, runId: ctx.run_id }));
+    let read = readPointer()!;
+    expect(read.journeyId).toBe(ctx.journey_id);
+    expect(read.runId).toBe(ctx.run_id);
+
+    writePointer(pointer({ journeyId: "ivan@example.com", runId: "?q=egn" }));
+    read = readPointer()!;
+    expect(read.draftId).toBe("11111111-1111-4111-8111-111111111111");
+    expect(read.journeyId).toBeUndefined();
+    expect(read.runId).toBeUndefined();
+    expect(localStorage.getItem(DRAFT_POINTER_KEY)).not.toContain("ivan@example.com");
+  });
+
+  it("подправена атрибуция в localStorage не унищожава иначе валиден указател", () => {
+    localStorage.setItem(
+      DRAFT_POINTER_KEY,
+      JSON.stringify({ ...pointer(), journeyId: "free text journey", runId: 42 }),
+    );
+    const read = readPointer()!;
+    expect(read.draftId).toBe("11111111-1111-4111-8111-111111111111");
+    expect(read.journeyId).toBeUndefined();
+    expect(read.runId).toBeUndefined();
+  });
+
+  it("sync create снима текущия контекст, а update/присвояване го запазва", async () => {
+    const ctx = startDocumentJourney("contract");
+    invokeMock.mockResolvedValue({
+      data: { draft_id: DRAFT_ID, claim_token: "abcdefghijklmnopqrstuvwx", expires_at: new Date(Date.now() + ANON_DRAFT_TTL_MS).toISOString() },
+      error: null,
+    });
+    const created = await syncDraft(syncArgs(null));
+    if (created.ok !== true) throw new Error("sync failed");
+    expect(created.pointer.journeyId).toBe(ctx.journey_id);
+    expect(created.pointer.runId).toBe(ctx.run_id);
+    expect(readPointer()?.runId).toBe(ctx.run_id);
+
+    // Нов journey в таба НЕ пренаписва вече закрепената атрибуция на черновата.
+    startDocumentJourney("contract");
+    const updated = await syncDraft(syncArgs(readPointer()));
+    if (updated.ok !== true) throw new Error("sync failed");
+    expect(updated.pointer.journeyId).toBe(ctx.journey_id);
+    expect(updated.pointer.runId).toBe(ctx.run_id);
+
+    // Присвояване: атрибуцията се пренася заедно с флага.
+    writePointer({ ...readPointer()!, claimed: true, claimToken: "" });
+    const claimedSync = await syncDraft(syncArgs(readPointer()));
+    if (claimedSync.ok !== true) throw new Error("sync failed");
+    expect(claimedSync.pointer.claimed).toBe(true);
+    expect(claimedSync.pointer.runId).toBe(ctx.run_id);
+  });
+
+  it("тялото към draft-sync никога не носи аналитични идентификатори", async () => {
+    const ctx = startDocumentJourney("contract");
+    invokeMock.mockResolvedValue({ data: { draft_id: DRAFT_ID, expires_at: new Date(Date.now() + 1000).toISOString() }, error: null });
+    await syncDraft(syncArgs(pointer({ draftId: DRAFT_ID, journeyId: ctx.journey_id, runId: ctx.run_id })));
+    const body = (invokeMock.mock.calls[0][1] as { body: Record<string, unknown> }).body;
+    expect(Object.keys(body).sort()).toEqual(
+      ["claim_token", "doc_key", "draft_id", "flow", "has_result", "payload", "route", "step_idx"],
+    );
+    expect(JSON.stringify(body)).not.toContain(ctx.run_id);
+  });
+
+  it("снимката за requireCurrent включва атрибуцията", async () => {
+    const ctx = startDocumentJourney("contract");
+    invokeMock.mockResolvedValue({
+      data: { draft_id: DRAFT_ID, claim_token: "abcdefghijklmnopqrstuvwx", expires_at: new Date(Date.now() + ANON_DRAFT_TTL_MS).toISOString() },
+      error: null,
+    });
+    const res = await syncDraft(syncArgs(null), { commit: false });
+    if (res.ok !== true) throw new Error("sync failed");
+    // Друг таб вече е записал указател с по-нова атрибуция → закъснелият create отказва.
+    writePointer(pointer({ draftId: DRAFT_ID, journeyId: ctx.journey_id, runId: ctx.run_id }));
+    expect(res.commit({}, { requireCurrent: true })).toBeNull();
+    expect(readPointer()?.runId).toBe(ctx.run_id);
   });
 });

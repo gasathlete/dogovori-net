@@ -39,7 +39,9 @@ import {
   getBrowserId,
   getCurrentFunnelContext,
   getTabSessionId,
+  isValidFunnelId,
   normalizeDocKey,
+  resumeDocumentJourney,
   startDocumentJourney,
 } from "@/lib/funnelContext";
 import { trackFunnelEvent, getFunnelSessionId, __resetFunnelIdentityForTests } from "@/lib/funnel";
@@ -315,5 +317,77 @@ describe("исторически имена", () => {
       draft_sync_blocked: "draft_sync_blocked",
       draft_expired: "draft_expired",
     });
+  });
+});
+
+describe("Stage 2a2 — isValidFunnelId / resumeDocumentJourney", () => {
+  it("приема само идентификатори, генерирани от модула", () => {
+    const ctx = startDocumentJourney("services::molba-za-napuskane");
+    expect(isValidFunnelId(ctx.journey_id)).toBe(true);
+    expect(isValidFunnelId(ctx.run_id)).toBe(true);
+    expect(isValidFunnelId("f_abc123_xyz789")).toBe(true);
+    for (const bad of [
+      "",
+      "x",
+      "ivan@example.com",
+      "?utm_source=google",
+      "Иван Иванов",
+      "1234567890",
+      "run id with spaces",
+      "a".repeat(80),
+      42,
+      null,
+      undefined,
+      { journey_id: "x" },
+    ] as unknown[]) {
+      expect(isValidFunnelId(bad)).toBe(false);
+    }
+  });
+
+  it("възстановява точно същия journey/run (кръгов тест)", () => {
+    const ctx = startDocumentJourney("services::molba-za-napuskane");
+    __resetFunnelContextForTests();
+    sessionStorage.clear();
+    const resumed = resumeDocumentJourney({
+      journey_id: ctx.journey_id,
+      run_id: ctx.run_id,
+      doc_key: "services::molba-za-napuskane",
+    });
+    expect(resumed).toEqual(ctx);
+    expect(getCurrentFunnelContext().journey_id).toBe(ctx.journey_id);
+    expect(getCurrentFunnelContext().run_id).toBe(ctx.run_id);
+    // Продължаването за същия документ преизползва възстановения run.
+    expect(ensureDocumentJourney("services::molba-za-napuskane").run_id).toBe(ctx.run_id);
+  });
+
+  it("невалиден или подправен вход връща null и НЕ пипа активния контекст", () => {
+    const active = startDocumentJourney("naem");
+    for (const bad of [
+      null,
+      undefined,
+      "not-an-object",
+      {},
+      { journey_id: active.journey_id },
+      { journey_id: active.journey_id, run_id: "spoofed" },
+      { journey_id: "ivan@example.com", run_id: active.run_id, doc_key: "naem" },
+      { journey_id: active.journey_id, run_id: active.run_id, doc_key: "ivan@example.com" },
+      { journey_id: active.journey_id, run_id: active.run_id, doc_key: "?utm=x&egn=1" },
+      { journey_id: active.journey_id, run_id: active.run_id, doc_key: "" },
+    ] as unknown[]) {
+      expect(resumeDocumentJourney(bad)).toBeNull();
+      expect(getCurrentFunnelContext().journey_id).toBe(active.journey_id);
+      expect(getCurrentFunnelContext().run_id).toBe(active.run_id);
+      expect(getCurrentFunnelContext().doc_key).toBe("naem");
+    }
+  });
+
+  it("никога не създава нови идентификатори и не променя версията/release-а", () => {
+    const ctx = startDocumentJourney("naem");
+    const resumed = resumeDocumentJourney({ journey_id: ctx.journey_id, run_id: ctx.run_id, doc_key: "NAEM" })!;
+    expect(resumed.journey_id).toBe(ctx.journey_id);
+    expect(resumed.run_id).toBe(ctx.run_id);
+    expect(resumed.doc_key).toBe("naem");
+    expect(FUNNEL_SCHEMA_VERSION).toBe(2);
+    expect(FUNNEL_RELEASE).toBe("s2funnel-v2a");
   });
 });

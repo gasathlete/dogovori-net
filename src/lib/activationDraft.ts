@@ -21,7 +21,9 @@
 import { getVariant } from "@/lib/ab";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
+import { getDocumentContext, isValidFunnelId } from "@/lib/funnelContext";
 import { isSafeRoute, sanitizeDraftRoute, safeReturnPath } from "@/lib/safeRoute";
+
 
 export { isSafeRoute, sanitizeDraftRoute } from "@/lib/safeRoute";
 
@@ -62,7 +64,16 @@ export interface DraftPointer {
   claimed: boolean;
   /** Идентификатор в „Моите документи" след прехвърляне на готовия резултат. */
   savedDocId?: string;
+  /**
+   * Непрозрачни аналитични идентификатори (Stage 2a2) — само за непрекъснатост
+   * на фунията при нов таб / имейл линк / OAuth. НЕ са браузърен или табов
+   * идентификатор и никога не носят съдържание на документ или лични данни.
+   * Старите указатели без тези полета остават валидни.
+   */
+  journeyId?: string;
+  runId?: string;
 }
+
 
 /** Съдържанието с лични данни — НИКОГА в localStorage. */
 export interface DraftPayload {
@@ -221,7 +232,11 @@ export function readPointer(now: number = Date.now()): DraftPointer | null {
       ts: typeof parsed.ts === "number" ? parsed.ts : 0,
       claimed: p.claimed === true,
       savedDocId: typeof p.savedDocId === "string" ? p.savedDocId : undefined,
+      // Подправена или произволна атрибуция се изхвърля — черновата остава.
+      journeyId: isValidFunnelId(p.journeyId) ? p.journeyId : undefined,
+      runId: isValidFunnelId(p.runId) ? p.runId : undefined,
     };
+
   } catch {
     return null;
   }
@@ -246,6 +261,10 @@ export function writePointer(pointer: DraftPointer): void {
       expiresAt: pointer.expiresAt,
       claimed,
       savedDocId: typeof pointer.savedDocId === "string" && pointer.savedDocId ? pointer.savedDocId : undefined,
+      // Само непрозрачни идентификатори, генерирани от funnelContext.
+      journeyId: isValidFunnelId(pointer.journeyId) ? pointer.journeyId : undefined,
+      runId: isValidFunnelId(pointer.runId) ? pointer.runId : undefined,
+
     };
     localStorage.setItem(DRAFT_POINTER_KEY, JSON.stringify(safe));
   } catch {
@@ -414,9 +433,21 @@ export interface SyncCommitOptions {
  */
 function pointerSnapshot(p: DraftPointer | null): string | null {
   if (!p) return null;
-  return [p.draftId, p.flow, p.claimed ? "1" : "0", p.stepIdx, p.hasResult ? "1" : "0", p.route, p.savedDocId ?? "", p.tabId].join(
-    "|",
-  );
+  return [
+    p.draftId,
+    p.flow,
+    p.claimed ? "1" : "0",
+    p.stepIdx,
+    p.hasResult ? "1" : "0",
+    p.route,
+    p.savedDocId ?? "",
+    p.tabId,
+    // Атрибуцията също е част от снимката: закъснял запис не бива да замести
+    // по-нова атрибуция със старата си.
+    p.journeyId ?? "",
+    p.runId ?? "",
+  ].join("|");
+
 }
 
 export type SyncResult =
@@ -463,6 +494,14 @@ function buildSyncPointer(args: {
     Date.parse(data.expires_at || "") || Date.now() + ttl,
     claimed ? storedSame?.expiresAt ?? 0 : 0,
   );
+  // Атрибуцията се пази, ако вече има валидна (update/claim); иначе се снима
+  // текущият документен контекст (нов указател при първи запис).
+  const existingJourney = storedSame?.journeyId ?? (sameAsSent ? sent?.journeyId : undefined);
+  const existingRun = storedSame?.runId ?? (sameAsSent ? sent?.runId : undefined);
+  const ctx =
+    isValidFunnelId(existingJourney) && isValidFunnelId(existingRun) ? null : getDocumentContext();
+  const journeyId = isValidFunnelId(existingJourney) ? existingJourney : ctx?.journey_id;
+  const runId = isValidFunnelId(existingRun) ? existingRun : ctx?.run_id;
   return {
     created: !sameAsSent,
     pointer: {
@@ -478,7 +517,10 @@ function buildSyncPointer(args: {
       expiresAt,
       claimed,
       savedDocId: storedSame?.savedDocId ?? (sameAsSent ? sent?.savedDocId : undefined),
+      journeyId: isValidFunnelId(journeyId) ? journeyId : undefined,
+      runId: isValidFunnelId(runId) ? runId : undefined,
     },
+
   };
 }
 
