@@ -26,6 +26,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { trackDraftEvent } from "@/lib/docFunnel";
+import { normalizeDocKey, resumeDocumentJourney } from "@/lib/funnelContext";
+
 import {
   claimDraft,
   claimRetryDelay,
