@@ -40,6 +40,12 @@ describe("scripts/prerender.ts — правен guard", () => {
     expect(prerender).toMatch(/resolved\.guarded\s*\?\s*guardedDesc/);
   });
 
+  it("няма непроверени маркетинг твърдения за курирани шаблони и обучен модел", () => {
+    expect(prerender).not.toContain("правно курирани");
+    expect(prerender).not.toContain("курирани шаблон");
+    expect(prerender).not.toContain("обучен за българското договорно право");
+  });
+
   it("няма фалшиви твърдения за юристи, безусловна безплатност и eIDAS", () => {
     expect(prerender).not.toContain("подготвен от юристи");
     expect(prerender).not.toContain("първият документ е безплатен");
@@ -67,11 +73,60 @@ describe("route-specific head тагове", () => {
   });
 
 
-  it("index.html маркира същите route-specific тагове", () => {
-    const marked = indexHtml.match(/data-prerendered="true"/g) ?? [];
-    expect(marked.length).toBeGreaterThanOrEqual(8);
-    expect(indexHtml).toMatch(/<meta name="robots"[^>]*data-prerendered="true"/);
-    expect(indexHtml).toMatch(/<meta name="description"[^>]*data-prerendered="true"/);
+  // Всеки таг, който src/components/Seo.tsx рендира през Helmet, трябва да има
+  // статичен базов дубликат в index.html, маркиран за премахване от main.tsx.
+  const HELMET_OWNED = [
+    'name="robots"',
+    'name="description"',
+    'property="og:type"',
+    'property="og:url"',
+    'property="og:locale"',
+    'property="og:site_name"',
+    'property="og:title"',
+    'property="og:description"',
+    'property="og:image"',
+    'name="twitter:card"',
+    'name="twitter:title"',
+    'name="twitter:description"',
+    'name="twitter:image"',
+    'name="geo.region"',
+    'name="geo.placename"',
+  ];
+
+  it.each(HELMET_OWNED)("index.html маркира Helmet-owned тага %s", (attr) => {
+    const re = new RegExp(`<meta ${attr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^>]*data-prerendered="true"`);
+    expect(indexHtml).toMatch(re);
+  });
+
+  it("всеки Helmet-owned таг присъства точно веднъж в статичния HTML", () => {
+    for (const attr of HELMET_OWNED) {
+      const re = new RegExp(`<meta ${attr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "g");
+      expect(indexHtml.match(re) ?? [], attr).toHaveLength(1);
+    }
+  });
+
+  it("глобалните / не-Helmet елементи остават немаркирани", () => {
+    const UNMARKED = [
+      'name="theme-color"',
+      'name="language"',
+      'name="keywords"',
+      'name="author"',
+      'name="google-site-verification"',
+      'name="msvalidate.01"',
+      'name="viewport"',
+      'name="referrer"',
+    ];
+    for (const attr of UNMARKED) {
+      const re = new RegExp(`<meta ${attr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^>]*data-prerendered`);
+      expect(indexHtml, attr).not.toMatch(re);
+    }
+    // favicon / manifest / preconnect
+    expect(indexHtml).not.toMatch(/<link [^>]*data-prerendered/);
+    // глобален JSON-LD (Organization, WebSite, SoftwareApplication, LegalService)
+    expect(indexHtml).not.toMatch(/<script type="application\/ld\+json"[^>]*data-prerendered/);
+    for (const t of ["Organization", "WebSite", "SoftwareApplication", "LegalService"]) {
+      expect(indexHtml, t).toContain(`"@type": "${t}"`);
+    }
   });
 
   it("main.tsx маха всички маркирани елементи, не само JSON-LD", () => {
