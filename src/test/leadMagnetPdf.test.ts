@@ -175,18 +175,44 @@ describe("lead-magnet PDF — съдържание", () => {
 
     it("източниците са само официални https публикации", () => {
       expect(doc.sources.items.length).toBeGreaterThanOrEqual(2);
-      const hosts = doc.sources.items.map((s) => new URL(s.url).host);
+      const hosts = doc.sources.items.map((s) => bareHost(new URL(s.url).host));
       expect(hosts).toContain("justice.government.bg");
       for (const s of doc.sources.items) {
         const u = new URL(s.url);
         expect(u.protocol).toBe("https:");
-        expect(LEAD_MAGNET_PDF_ALLOWED_SOURCE_HOSTS as readonly string[]).toContain(u.host);
+        expect(LEAD_MAGNET_PDF_ALLOWED_SOURCE_HOSTS as readonly string[]).toContain(bareHost(u.host));
         expect(s.label.trim().length).toBeGreaterThan(20);
       }
       const seen = new Set<string>();
       for (const u of collectLeadMagnetUrls(doc)) {
         expect(seen.has(u), `дублиран URL ${u}`).toBe(false);
         seen.add(u);
+      }
+    });
+
+    it("източниците са точно каноничният набор официални URL адреси (в този ред)", () => {
+      expect(doc.sources.items.map((s) => s.url)).toEqual([...EXPECTED_SOURCE_URLS[slug]]);
+      expect(doc.cta.url).toBe(EXPECTED_CTA_URLS[slug]);
+      expect([...collectLeadMagnetUrls(doc)].sort()).toEqual([...EXPECTED_SOURCE_URLS[slug], EXPECTED_CTA_URLS[slug]].sort());
+      // Каноничните адреси са нормализирани: без trailing slash, без query/fragment, без интервали.
+      for (const u of collectLeadMagnetUrls(doc)) {
+        expect(u).toBe(u.trim());
+        expect(u.endsWith("/")).toBe(false);
+        const parsed = new URL(u);
+        expect(parsed.search).toBe("");
+        expect(parsed.hash).toBe("");
+      }
+    });
+
+    it("не съдържа остарели/неканонични официални адреси", () => {
+      const urls = collectLeadMagnetUrls(doc);
+      const raw = texts.join("\n").toLowerCase();
+      for (const obsolete of OBSOLETE_URLS) {
+        expect(urls, `остарял URL ${obsolete}`).not.toContain(obsolete);
+        expect(raw, `остарял URL в текста: ${obsolete}`).not.toContain(obsolete.toLowerCase());
+      }
+      for (const frag of OBSOLETE_URL_FRAGMENTS) {
+        expect(raw, `остарял фрагмент от URL: ${frag}`).not.toContain(frag);
       }
     });
 
