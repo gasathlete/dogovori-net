@@ -9,7 +9,7 @@
  *  - суровият Stripe session id не попада в свойствата на събитието.
  */
 import * as React from "react";
-import { render, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -60,7 +60,61 @@ beforeEach(() => {
   trackCheckoutCompletedMock.mockReset();
   trackEventMock.mockReset();
   trackUpgradeCompletedMock.mockReset();
+  authState.user = { id: "u1", email: "u@example.com" };
+  authState.loading = false;
 });
+
+/** Успехът е видим САМО когато е потвърден. */
+describe("CheckoutReturn — визуална истинност", () => {
+  const SUCCESS_ICON = "checkout-ready-icon";
+  const CONTINUE = /Продължи с моя договор/;
+
+  it("докато проверяваме: неутрално състояние без успех и без „Продължи“", async () => {
+    renderReturn(`session_id=${SESSION}&price_id=professional_monthly&source=account_subscription&redirect=%2Fwizard%2Fnda`);
+    await waitFor(() => expect(screen.getByTestId("checkout-pending-icon")).toBeInTheDocument());
+    expect(screen.queryByTestId(SUCCESS_ICON)).toBeNull();
+    expect(screen.queryByText(/Благодарим/)).toBeNull();
+    expect(screen.queryByText(CONTINUE)).toBeNull();
+  });
+
+  it("при потвърждение: зелен успех и „Продължи“", async () => {
+    tables.set("order_snapshots", { id: "o1" });
+    tables.set("download_quota", { plan: "pro", pro_until: null });
+    renderReturn(`session_id=${SESSION}&price_id=professional_monthly&source=account_subscription&redirect=%2Fwizard%2Fnda`);
+    await waitFor(() => expect(screen.getByTestId(SUCCESS_ICON)).toBeInTheDocument());
+    expect(screen.getByText(/Благодарим/)).toBeInTheDocument();
+    expect(screen.getByText(CONTINUE)).toBeInTheDocument();
+  });
+
+  it("при изтекло изчакване: предупреждение, без твърдение че плащането е получено", async () => {
+    renderReturn(`session_id=${SESSION}&price_id=professional_monthly&source=account_subscription&redirect=%2Fwizard%2Fnda`);
+    await waitFor(() => expect(screen.getByTestId("checkout-warning-icon")).toBeInTheDocument(), { timeout: 30_000 });
+    expect(screen.queryByTestId(SUCCESS_ICON)).toBeNull();
+    expect(screen.queryByText(/Благодарим/)).toBeNull();
+    expect(screen.queryByText(/Плащането е получено/)).toBeNull();
+    expect(screen.queryByText(CONTINUE)).toBeNull();
+    expect(trackCheckoutCompletedMock).not.toHaveBeenCalled();
+  }, 40_000);
+
+  it("липсваща сесия: неутрално състояние, не успех", async () => {
+    renderReturn("price_id=professional_monthly");
+    await waitFor(() => expect(screen.getByTestId("checkout-neutral-icon")).toBeInTheDocument());
+    expect(screen.queryByTestId(SUCCESS_ICON)).toBeNull();
+    expect(screen.queryByText(/Благодарим/)).toBeNull();
+    expect(screen.queryByText(CONTINUE)).toBeNull();
+  });
+
+  it("без вход: покана за вход, без измамен безкраен успех", async () => {
+    authState.user = null;
+    tables.set("order_snapshots", { id: "o1" });
+    tables.set("download_quota", { plan: "pro", pro_until: null });
+    renderReturn(`session_id=${SESSION}&price_id=professional_monthly&source=account_subscription`);
+    await waitFor(() => expect(screen.getByText(/Вход в профила/)).toBeInTheDocument());
+    expect(screen.queryByTestId(SUCCESS_ICON)).toBeNull();
+    expect(trackCheckoutCompletedMock).not.toHaveBeenCalled();
+  });
+});
+
 
 afterEach(() => {
   vi.useRealTimers();
