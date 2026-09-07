@@ -306,16 +306,16 @@ export const LABOR_CHECKLIST_2026_PDF: LeadMagnetPdfDocument = {
       {
         label:
           "Национална агенция за приходите — Регистър на заетостта: обща информация, срокове и електронни услуги за работници и работодатели.",
-        url: "https://nra.bg/wps/portal/nra/registar-na-zaetostta",
+        url: "https://nra.bg/wps/portal/nra/osiguryavane/Registur_na_zaetostta",
       },
       {
         label: "Национална агенция за приходите — въпроси и отговори за Регистъра на заетостта.",
-        url: "https://nra.bg/wps/portal/nra/registar-na-zaetostta/vaprosi-i-otgovori-registar-na-zaetostta",
+        url: "https://nra.bg/wps/portal/nra/osiguryavane/Registur_na_zaetostta/vuprosi-i-otgovori-za-registura-na-zaetostta",
       },
       {
         label:
           "Наредба за вписване в регистъра на заетостта, приета с ПМС № 267 от 2024 г., в сила от 1 юни 2025 г. — публикация в раздела с нормативни актове на ИА „Главна инспекция по труда“: чл. 10, ал. 3 (подаване на данните за постъпване преди началото на изпълнението).",
-        url: "https://gli.government.bg/bg/taxonomy/list/396",
+        url: "https://www.gli.government.bg/bg/taxonomy/term/360/node/13677",
       },
     ],
   },
