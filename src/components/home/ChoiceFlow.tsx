@@ -67,8 +67,8 @@ export function ChoiceFlow({ active, expanded, onToggle }: { active: FlowId; exp
         </div>
         <span className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/[0.07] px-2.5 py-1 text-[11px] font-semibold text-gold">
-            <Clock className="h-3.5 w-3.5" />
-            {flow.steps.length} стъпки · {flow.total}
+            <Workflow className="h-3.5 w-3.5" />
+            {flow.steps.length} стъпки
           </span>
           <ChevronDown
             className={
@@ -80,7 +80,7 @@ export function ChoiceFlow({ active, expanded, onToggle }: { active: FlowId; exp
 
       {!expanded && (
         <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
-          Виж стъпките, резултата от всяка и очакваното време.
+          Виж стъпките и какъв е резултатът от всяка от тях.
         </p>
       )}
 
@@ -99,7 +99,6 @@ export function ChoiceFlow({ active, expanded, onToggle }: { active: FlowId; exp
               <span className="rounded border border-emerald-600/30 bg-emerald-600/10 px-1.5 py-0.5 text-emerald-600 dark:text-emerald-400">
                 {s.output}
               </span>
-              <span className="text-muted-foreground">{s.time}</span>
             </div>
           </li>
         ))}
@@ -112,8 +111,7 @@ export function ChoiceFlow({ active, expanded, onToggle }: { active: FlowId; exp
             <tr className="border-b border-border/60 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
               <th className="py-2 pr-3 font-medium">Стъпка</th>
               <th className="py-2 pr-3 font-medium">Какво правиш</th>
-              <th className="py-2 pr-3 font-medium">Резултат</th>
-              <th className="py-2 font-medium">Време</th>
+              <th className="py-2 font-medium">Резултат</th>
             </tr>
           </thead>
           <tbody>
@@ -124,12 +122,11 @@ export function ChoiceFlow({ active, expanded, onToggle }: { active: FlowId; exp
                   <span className="font-semibold text-foreground">{s.title}</span>
                 </td>
                 <td className="py-3 pr-3 text-muted-foreground">{s.detail}</td>
-                <td className="py-3 pr-3">
+                <td className="py-3">
                   <span className="rounded border border-emerald-600/30 bg-emerald-600/10 px-1.5 py-0.5 text-xs text-emerald-600 dark:text-emerald-400">
                     {s.output}
                   </span>
                 </td>
-                <td className="py-3 text-muted-foreground">{s.time}</td>
               </tr>
             ))}
           </tbody>
