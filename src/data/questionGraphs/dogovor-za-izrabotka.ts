@@ -72,7 +72,7 @@ export const dogovorZaIzrabotkaGraph: QuestionGraph = {
     { id: "deadline", section: "schedule", label: "Краен срок за изработка",
       field_type: "date", required_when: "true" },
     { id: "acceptance_with_protocol", section: "schedule",
-      label: "Приемане с приемо-предавателен протокол?",
+      label: "Приемане с приемно-предавателен протокол?",
       field_type: "boolean", required_when: "true", default: true,
       affects_clauses: ["acceptance_protocol", "acceptance_informal"] },
     { id: "inspection_days", section: "schedule",

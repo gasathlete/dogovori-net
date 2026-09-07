@@ -17,7 +17,7 @@ export interface RelatedEntry {
 export const RELATED_TEMPLATES: Record<string, RelatedEntry> = {
   "dogovor-za-naem-na-zhilishte": {
     templates: [
-      { anchor: "Приемо-предавателен протокол при настаняване в имот", slug: "priemo-predavatelen-protokol" },
+      { anchor: "Приемно-предавателен протокол при настаняване в имот", slug: "priemo-predavatelen-protokol" },
       { anchor: "Предизвестие за прекратяване на договор за наем", slug: "predizvestie-za-prekratyavane-na-naem" },
       { anchor: "Разписка за получена сума (депозит по наем)", slug: "razpiska-za-poluchena-suma-naem-depozit" },
       { anchor: "Двуезичен договор за наем (BG/EN) за чужденци", slug: "dvuezichen-dogovor-za-naem-bg-en-za-chuzhdentsi" },

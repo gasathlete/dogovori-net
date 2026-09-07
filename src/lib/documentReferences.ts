@@ -31,7 +31,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
   { id: "agreement",         label: "Споразумение",                 shortLabel: "Споразумение",    group: "contracts",    description: "Споразумение между страни",                          needsParties: true  },
   { id: "appendix",          label: "Приложение",                   shortLabel: "Приложение",      group: "addons",       description: "Приложение към основен договор",                     needsParties: true  },
   { id: "annex",             label: "Анекс",                        shortLabel: "Анекс",           group: "addons",       description: "Анекс/изменение към договор",                        needsParties: true  },
-  { id: "protocol",          label: "Протокол",                     shortLabel: "Протокол",        group: "addons",       description: "Приемо-предавателен или констативен протокол",       needsParties: true  },
+  { id: "protocol",          label: "Протокол",                     shortLabel: "Протокол",        group: "addons",       description: "Приемно-предавателен или констативен протокол",       needsParties: true  },
   { id: "receipt",           label: "Разписка",                     shortLabel: "Разписка",        group: "personal",     description: "Разписка за получена сума/вещ",                      needsParties: true  },
   { id: "power_of_attorney", label: "Пълномощно",                   shortLabel: "Пълномощно",      group: "personal",     description: "Пълномощно (обикновено/нотариално)",                 needsParties: true  },
   { id: "declaration",       label: "Декларация",                   shortLabel: "Декларация",      group: "personal",     description: "Декларация по образец/свободен текст",               needsParties: false },

@@ -8,8 +8,22 @@ const BG_TO_LAT: Record<string, string> = {
   ш: "sh", щ: "sht", ъ: "a", ь: "y", ю: "yu", я: "ya",
 };
 
+/**
+ * Legacy slug spellings that must stay byte-identical in URLs even after the
+ * visible Bulgarian copy was corrected. The display name now reads
+ * "приемно-предавателен", while the indexed, linked and canonical slug remains
+ * the historical transliteration "priemo-predavatelen-...".
+ */
+const LEGACY_SLUG_SPELLINGS: [RegExp, string][] = [
+  [/приемно-предавател/g, "приемо-предавател"],
+];
+
 export function slugify(input: string): string {
-  const lower = input.toLowerCase().trim();
+  let lower = input.toLowerCase().trim();
+  for (const [pattern, replacement] of LEGACY_SLUG_SPELLINGS) {
+    lower = lower.replace(pattern, replacement);
+  }
+
   let out = "";
   for (const ch of lower) {
     if (BG_TO_LAT[ch] !== undefined) out += BG_TO_LAT[ch];
