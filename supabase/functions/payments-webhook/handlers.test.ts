@@ -331,3 +331,119 @@ Deno.test("missing stored user_id leaves quota untouched (no crash)", async () =
   await handleSubscriptionDeleted(makeDeps(db), canceledSub, "live");
   assertEquals(db.calls.some((c) => c.table === "download_quota"), false);
 });
+
+// ---------------------------------------------------------------------------
+// Stage 2d0 — истина за плащането
+// ---------------------------------------------------------------------------
+
+const UNPAID_STATUSES: Array<string | undefined> = [undefined, "unpaid", "no_payment_required"];
+
+for (const status of UNPAID_STATUSES) {
+  Deno.test(`недоказано плащане (${status ?? "missing"}) не прави НИЩО`, async () => {
+    const db = makeDb();
+    const { deps, lineItemCalls, emails } = makeSpyDeps(db);
+    const session: Record<string, unknown> = {
+      id: "cs_unpaid",
+      mode: "payment",
+      amount_total: 290,
+      customer_email: "a@b.bg",
+      metadata: { userId: "u1", type: "strict_doc_unlock", doc_key: "nda" },
+    };
+    if (status !== undefined) session.payment_status = status;
+    await handleCheckoutCompleted(deps, session, "live");
+    assertEquals(db.calls.length, 0);
+    assertEquals(db.rpcCalls.length, 0);
+    assertEquals(lineItemCalls.length, 0);
+    assertEquals(emails.length, 0);
+  });
+}
+
+Deno.test("неплатена сесия не хвърля — забавеното плащане може да успее по-късно", async () => {
+  const db = makeDb();
+  await handleCheckoutCompleted(makeDeps(db), {
+    id: "cs_async_pending",
+    mode: "payment",
+    payment_status: "unpaid",
+    metadata: { userId: "u1" },
+  }, "live");
+  assertEquals(db.calls.length, 0);
+});
+
+Deno.test("async_payment_succeeded с paid минава по същия идемпотентен път", async () => {
+  const db = makeDb();
+  const object = { id: "cs_async", mode: "payment", payment_status: "paid", amount_total: 290, metadata: { userId: "u1" } };
+  await dispatchEvent(makeDeps(db), { type: "checkout.session.async_payment_succeeded", data: { object } }, "live");
+  const writes = db.calls.filter((c) => c.table === "order_snapshots");
+  assertEquals(writes.length, 1);
+  assertEquals(writes[0].op, "upsert");
+  assertEquals((writes[0].args?.[1] as { onConflict?: string })?.onConflict, "stripe_session_id");
+});
+
+Deno.test("async_payment_succeeded без paid се игнорира", async () => {
+  const db = makeDb();
+  await dispatchEvent(makeDeps(db), {
+    type: "checkout.session.async_payment_succeeded",
+    data: { object: { id: "cs_async2", mode: "payment", payment_status: "unpaid", metadata: { userId: "u1" } } },
+  }, "live");
+  assertEquals(db.calls.length, 0);
+});
+
+Deno.test("sandbox staff guard важи и за async_payment_succeeded", async () => {
+  const db = makeDb({ rpc: () => ({ data: false, error: null }) });
+  await dispatchEvent(makeDeps(db), {
+    type: "checkout.session.async_payment_succeeded",
+    data: { object: { id: "cs_async3", mode: "payment", payment_status: "paid", amount_total: 290, metadata: { userId: "u1" } } },
+  }, "sandbox");
+  assertEquals(db.calls.length, 0);
+  assertEquals(db.rpcCalls, ["is_staff"]);
+});
+
+Deno.test("snapshot записва точното окръжение и доказания статус", async () => {
+  for (const env of ["live", "sandbox"] as const) {
+    const db = makeDb({ rpc: () => ({ data: true, error: null }) });
+    await handleCheckoutCompleted(makeDeps(db), {
+      id: `cs_env_${env}`,
+      mode: "payment",
+      payment_status: "paid",
+      amount_total: 290,
+      metadata: { userId: "u1", priceId: "five_operations" },
+    }, env);
+    const row = snapshotRow(db);
+    assertEquals(row.environment, env);
+    assertEquals(row.payment_status, "paid");
+  }
+});
+
+const KIND_CASES: Array<{ kind: SnapshotPurchaseKind; session: Record<string, unknown> }> = [
+  { kind: "team", session: { mode: "subscription", metadata: { userId: "u1", kind: "team", teamId: "t1" } } },
+  { kind: "subscription", session: { mode: "subscription", metadata: { userId: "u1", priceId: "professional_monthly" } } },
+  { kind: "strict_unlock", session: { mode: "payment", metadata: { userId: "u1", type: "strict_doc_unlock", doc_key: "nda" } } },
+  { kind: "branding", session: { mode: "payment", metadata: { userId: "u1", type: "branding_unlock" } } },
+  { kind: "entry_pack", session: { mode: "payment", metadata: { userId: "u1", priceId: "five_operations" } } },
+  { kind: "topup", session: { mode: "payment", metadata: { userId: "u1", lookup_key: "topup_50" } } },
+  { kind: "one_time", session: { mode: "payment", metadata: { userId: "u1", priceId: "single_contract" } } },
+  { kind: "unknown", session: { mode: "payment", metadata: { userId: "u1" } } },
+  { kind: "unknown", session: { mode: "payment", metadata: { userId: "u1", kind: "vip_lifetime", priceId: "made_up_key" } } },
+];
+
+Deno.test("класификаторът на вида покупка е затворен", () => {
+  for (const c of KIND_CASES) {
+    assertEquals(classifySnapshotPurchaseKind(c.session), c.kind);
+  }
+  // Произволна metadata никога не става вид.
+  assertEquals(classifySnapshotPurchaseKind({ mode: "payment", metadata: { kind: "team" } }), "unknown");
+  assertEquals(classifySnapshotPurchaseKind({ mode: "setup", metadata: {} }), "unknown");
+});
+
+Deno.test("snapshot записва вида покупка от класификатора", async () => {
+  for (const c of KIND_CASES) {
+    const db = makeDb({ rpc: () => ({ data: true, error: null }) });
+    await handleCheckoutCompleted(makeDeps(db), {
+      id: `cs_kind_${c.kind}_${Math.random()}`,
+      payment_status: "paid",
+      amount_total: 290,
+      ...c.session,
+    }, "live");
+    assertEquals(snapshotRow(db).purchase_kind, c.kind);
+  }
+});
