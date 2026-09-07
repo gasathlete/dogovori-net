@@ -597,4 +597,83 @@ describe("указател — аналитична атрибуция", () => {
     expect(res.commit({}, { requireCurrent: true })).toBeNull();
     expect(readPointer()?.runId).toBe(ctx.run_id);
   });
+
+  it("частична или подправена двойка се отхвърля изцяло (валиден journey + невалиден run и обратно)", () => {
+    const ctx = startDocumentJourney("sector::doc");
+
+    writePointer(pointer({ journeyId: ctx.journey_id, runId: "не-е-идентификатор" }));
+    let read = readPointer()!;
+    expect(read.draftId).toBe("11111111-1111-4111-8111-111111111111");
+    expect(read.journeyId).toBeUndefined();
+    expect(read.runId).toBeUndefined();
+    let raw = JSON.parse(localStorage.getItem(DRAFT_POINTER_KEY)!) as Record<string, unknown>;
+    expect("journeyId" in raw).toBe(false);
+    expect("runId" in raw).toBe(false);
+
+    writePointer(pointer({ journeyId: "free text journey", runId: ctx.run_id }));
+    read = readPointer()!;
+    expect(read.journeyId).toBeUndefined();
+    expect(read.runId).toBeUndefined();
+    raw = JSON.parse(localStorage.getItem(DRAFT_POINTER_KEY)!) as Record<string, unknown>;
+    expect("journeyId" in raw).toBe(false);
+    expect("runId" in raw).toBe(false);
+  });
+
+  it("само едно от двете полета присъства → не се излага и не се записва нищо", () => {
+    const ctx = startDocumentJourney("sector::doc");
+
+    writePointer(pointer({ journeyId: ctx.journey_id }));
+    expect(readPointer()?.journeyId).toBeUndefined();
+    expect(JSON.parse(localStorage.getItem(DRAFT_POINTER_KEY)!)).not.toHaveProperty("journeyId");
+
+    writePointer(pointer({ runId: ctx.run_id }));
+    expect(readPointer()?.runId).toBeUndefined();
+    expect(JSON.parse(localStorage.getItem(DRAFT_POINTER_KEY)!)).not.toHaveProperty("runId");
+
+    // Указател с една валидна половина директно в localStorage — черновата остава.
+    localStorage.setItem(
+      DRAFT_POINTER_KEY,
+      JSON.stringify({ ...pointer(), runId: ctx.run_id }),
+    );
+    const read = readPointer()!;
+    expect(read.draftId).toBe("11111111-1111-4111-8111-111111111111");
+    expect(read.journeyId).toBeUndefined();
+    expect(read.runId).toBeUndefined();
+  });
+
+  it("buildSyncPointer никога не смесва стар journey с текущ run", async () => {
+    const stale = startDocumentJourney("contract");
+    const fresh = startDocumentJourney("contract");
+    expect(fresh.run_id).not.toBe(stale.run_id);
+
+    invokeMock.mockResolvedValue({
+      data: { draft_id: DRAFT_ID, claim_token: "abcdefghijklmnopqrstuvwx", expires_at: new Date(Date.now() + ANON_DRAFT_TTL_MS).toISOString() },
+      error: null,
+    });
+
+    // Съхранена половинчата двойка (валиден journey, счупен run) → взема се
+    // ЦЯЛАТА текуща двойка, не хибрид.
+    const res = await syncDraft(
+      syncArgs(pointer({ draftId: DRAFT_ID, journeyId: stale.journey_id, runId: "счупен" })),
+    );
+    if (res.ok !== true) throw new Error("sync failed");
+    expect(res.pointer.journeyId).toBe(fresh.journey_id);
+    expect(res.pointer.runId).toBe(fresh.run_id);
+    expect(res.pointer.journeyId).not.toBe(stale.journey_id);
+  });
+
+  it("buildSyncPointer без валидна текуща двойка не излага нито един идентификатор", async () => {
+    __resetFunnelContextForTests();
+    invokeMock.mockResolvedValue({
+      data: { draft_id: DRAFT_ID, claim_token: "abcdefghijklmnopqrstuvwx", expires_at: new Date(Date.now() + ANON_DRAFT_TTL_MS).toISOString() },
+      error: null,
+    });
+    const res = await syncDraft(
+      syncArgs(pointer({ draftId: DRAFT_ID, journeyId: "счупен", runId: "също счупен" })),
+    );
+    if (res.ok !== true) throw new Error("sync failed");
+    expect(res.pointer.journeyId).toBeUndefined();
+    expect(res.pointer.runId).toBeUndefined();
+  });
 });
+
