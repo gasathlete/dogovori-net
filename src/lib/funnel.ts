@@ -226,7 +226,14 @@ export interface TrackFunnelOptions {
 }
 
 /**
- * @returns true, ако събитието е изпратено; false, ако е дедупликирано.
+ * Изпраща продуктово събитие към GA, dataLayer и `public.funnel_events`.
+ *
+ * Съгласие: и трите пътя са зад съгласието за категория „analytics" (банерът
+ * обещава точно това). Без съгласие функцията не прави НИКАКЪВ страничен ефект
+ * и връща false. Оперативната истина остава в оперативните таблици и логове.
+ *
+ * @returns true, ако събитието е изпратено; false, ако е дедупликирано или
+ *          няма съгласие за аналитика.
  */
 export function trackFunnelEvent(
   name: string,
@@ -234,6 +241,11 @@ export function trackFunnelEvent(
   options?: TrackFunnelOptions,
 ): boolean {
   if (typeof window === "undefined") return false;
+  try {
+    if (!getCategoryConsent("analytics")) return false;
+  } catch {
+    return false;
+  }
   // Пътят се хваща СИНХРОННО: до момента на асинхронния DB запис потребителят
   // вече може да е навигирал другаде и записът щеше да сочи грешна страница.
   let path: string | null = null;
@@ -248,8 +260,11 @@ export function trackFunnelEvent(
   const dedupKey = options?.dedupKey ? String(options.dedupKey).slice(0, 200) : undefined;
   if (dedupKey && !claimOnce(`${sessionId}|${storedName}|${dedupKey}`)) return false;
 
-  const finalProps: Record<string, unknown> = { ...(props ?? {}) };
+  // Envelope-ът се налага ПОСЛЕ, за да не може call site да пренапише
+  // идентичността или версията на схемата.
+  const finalProps: Record<string, unknown> = { ...(props ?? {}), ...getCurrentFunnelContext() };
   if (dedupKey) finalProps.dedup_key = dedupKey;
+
 
   trackEvent(storedName, finalProps);
   try {
