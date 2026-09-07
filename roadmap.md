@@ -53,3 +53,11 @@
   В production user обектът идва от auth сървъра, затова 15-мин прозорецът е коректен; тестовият ред е изтрит.
 - /admin/metrics „checkout completion“ вече е completed/started върху реални Stripe сесии — очаквайте
   по-нисък брой „Стартиран checkout“ спрямо преди (кликовете в /plans вече не се броят като checkout).
+
+## Core Web Vitals field baseline (source-only, HEAD 6205024)
+- [x] Миграция под supabase/migrations (pending, НЕ приложена), docs/db премахнат
+- [ ] types.ts: web_vitals_daily Row/Insert/Update + record_web_vital_aggregate Args/Returns (generated-style)
+- [ ] Типизирани .from/.rpc без кастове; Window гард за boot маркера
+- [ ] Тестове: реален път на миграцията, NULL отказ, рейтинг/стойност прагове, точни включителни граници, типове, без docs дубликат, 7/30 UTC прозорци
+- [ ] security-allowlist.json — само таргетирано изключение за SECURITY DEFINER без authz (ако скенерът го изисква)
+- [ ] focused tests, пълен Vitest, tsgo, `bunx vite build` (без sitemap/IndexNow/deploy/migration apply)
