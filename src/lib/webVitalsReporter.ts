@@ -80,7 +80,12 @@ async function recordCentral(
   if (!isSaneValue(metric, intValue)) return;
   try {
     const { supabase } = await import("@/integrations/supabase/client");
-    await supabase.rpc("record_web_vital_aggregate", {
+    // Типовете в src/integrations/supabase/types.ts се регенерират при
+    // прилагане на миграцията; докато това стане, викаме RPC-то нетипизирано.
+    const rpc = (supabase as unknown as {
+      rpc: (fn: string, args: Record<string, unknown>) => Promise<unknown>;
+    }).rpc;
+    await rpc.call(supabase, "record_web_vital_aggregate", {
       _metric: metric,
       _rating: rating,
       _route_group: ctx.routeGroup,
