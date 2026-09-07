@@ -6,6 +6,9 @@
  * Така /admin/metrics „checkout completion“ = completed / started е смислен.
  */
 
+import { sanitizeReturnPath } from "@/lib/safeRoute";
+
+
 /**
  * Извлича { plan, billing } от логическия price id
  * ("professional_monthly" → professional/monthly, "topup_50" → topup_50/one_time).
