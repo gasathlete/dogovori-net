@@ -33,7 +33,7 @@ describe("buildCheckoutReturnUrl", () => {
     expect(url).not.toContain("Evil");
   });
 
-  it("redirect се кодира и остава относителен", () => {
+  it("валиден относителен redirect се запазва и кодира", () => {
     const url = buildCheckoutReturnUrl({
       origin: ORIGIN,
       priceId: "strict_doc_unlock",
@@ -44,7 +44,59 @@ describe("buildCheckoutReturnUrl", () => {
     expect(url).toContain("type=strict_unlock");
     expect(url).toContain(`redirect=${encodeURIComponent("/wizard/nda?step=2")}`);
   });
+
+  it("несигурен redirect се изпуска вътре в помощника (без предварително чистене)", () => {
+    const unsafe = [
+      "https://evil.example",
+      "http://evil.example/path",
+      "//evil.example",
+      "/\\evil.example",
+      "\\\\evil.example",
+      "/\tevil.example",
+      "/\nevil.example",
+      "javascript:alert(1)",
+      "",
+      null,
+    ];
+    for (const redirect of unsafe) {
+      const url = buildCheckoutReturnUrl({ origin: ORIGIN, priceId: "topup_20", source: "topup", redirect });
+      expect(url).toBe(
+        `${ORIGIN}/checkout/return?session_id={CHECKOUT_SESSION_ID}&price_id=topup_20&source=topup`,
+      );
+      expect(url).not.toContain("evil.example");
+      expect(url).not.toContain("javascript");
+    }
+  });
+
+  it("техническите параметри се премахват от redirect", () => {
+    const url = buildCheckoutReturnUrl({
+      origin: ORIGIN,
+      priceId: "topup_50",
+      source: "topup",
+      redirect: "/wizard/nda?step=2&utm_source=ads&ab_x=1&gclid=abc&fbclid=d&debug=1",
+    });
+    expect(url).toContain(`redirect=${encodeURIComponent("/wizard/nda?step=2")}`);
+    expect(url).not.toContain("utm_source");
+    expect(url).not.toContain("gclid");
+    expect(url).not.toContain("ab_x");
+  });
+
+  it("легаси type се добавя само за точната стойност strict_unlock", () => {
+    expect(
+      buildCheckoutReturnUrl({ origin: ORIGIN, priceId: "strict_doc_unlock", legacyType: "strict_unlock" }),
+    ).toContain("type=strict_unlock");
+    // Типово ограничение: всяка друга стойност е грешка при компилация и се
+    // игнорира по време на изпълнение.
+    const url = buildCheckoutReturnUrl({
+      origin: ORIGIN,
+      priceId: "strict_doc_unlock",
+      legacyType: "https://evil.example" as unknown as "strict_unlock",
+    });
+    expect(url).not.toContain("type=");
+    expect(url).not.toContain("evil.example");
+  });
 });
+
 
 describe("describeCheckoutReturn", () => {
   const d = (q: string) => describeCheckoutReturn(new URLSearchParams(q));

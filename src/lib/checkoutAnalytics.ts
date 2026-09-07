@@ -6,6 +6,9 @@
  * Така /admin/metrics „checkout completion“ = completed / started е смислен.
  */
 
+import { sanitizeReturnPath } from "@/lib/safeRoute";
+
+
 /**
  * Извлича { plan, billing } от логическия price id
  * ("professional_monthly" → professional/monthly, "topup_50" → topup_50/one_time).
@@ -175,6 +178,12 @@ export interface CheckoutDescriptor {
 
 /**
  * Общ адрес за връщане след плащане — един маршрут за всички платени пътища.
+ *
+ * Безопасен по конструкция: `redirect` се проверява ВЪТРЕ в помощника през
+ * `sanitizeReturnPath` спрямо подадения origin, така че извикващите места не
+ * са задължени да го чистят предварително — абсолютни, протокол-относителни,
+ * обратно-наклонени и управляващи варианти просто не се добавят.
+ *
  * Ключово: заместителят `{CHECKOUT_SESSION_ID}` остава буквален (Stripe го
  * заменя), затова не минава през URL кодиране.
  */
@@ -182,10 +191,10 @@ export function buildCheckoutReturnUrl(input: {
   origin: string;
   priceId?: string;
   source?: string;
-  /** Безопасен относителен път; подава се вече проверен от sanitizeReturnPath. */
+  /** Произволен вход: чисти се вътре и се добавя само ако е безопасен път. */
   redirect?: string | null;
-  /** Историческо: запазва `type=strict_unlock` за съвместимост. */
-  legacyType?: string;
+  /** Историческо: единствената допустима стойност е `strict_unlock`. */
+  legacyType?: "strict_unlock";
 }): string {
   const price = parseCheckoutPriceKey(input.priceId);
   const source = parseCheckoutSource(input.source);
@@ -194,10 +203,12 @@ export function buildCheckoutReturnUrl(input: {
     `price_id=${price}`,
     `source=${source}`,
   ];
-  if (input.legacyType) parts.push(`type=${encodeURIComponent(input.legacyType)}`);
-  if (input.redirect) parts.push(`redirect=${encodeURIComponent(input.redirect)}`);
+  if (input.legacyType === "strict_unlock") parts.push("type=strict_unlock");
+  const redirect = sanitizeReturnPath(input.redirect, { origin: input.origin });
+  if (redirect) parts.push(`redirect=${encodeURIComponent(redirect)}`);
   return `${input.origin}/checkout/return?${parts.join("&")}`;
 }
+
 
 /**
  * Чете описателя от query параметрите на връщането. Само през allowlist —

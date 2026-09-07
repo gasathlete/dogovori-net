@@ -9,7 +9,9 @@
  * Правило за грешки:
  *  - ПЛАТЕНИ entitlement / billing state writes са FAIL-CLOSED → хвърлят,
  *    webhook връща non-2xx и Stripe повтаря.
- *  - order snapshot и receipt email са ИЗРИЧНО non-fatal.
+ *  - order snapshot също е FAIL-CLOSED (идемпотентен upsert по
+ *    `stripe_session_id`) — ЗЗП доказателството не бива да се губи.
+ *  - САМО receipt email е ИЗРИЧНО non-fatal.
  */
 
 /**
