@@ -145,7 +145,8 @@ describe("Template.tsx — eligible поведение", () => {
 
   it("импресията е веднъж на сесия × slug × версия през dedupKey", () => {
     expect(src).toContain('"template_intent_panel_viewed"');
-    const eff = src.slice(src.indexOf('"template_intent_panel_viewed"'), src.indexOf("if (!entry) return"));
+    const start = src.indexOf('"template_intent_panel_viewed"');
+    const eff = src.slice(start, src.indexOf("}, [entry?.slug]);", start));
     expect(eff).toContain("dedupKey: `${s}|${SEO_INTENT_VERSION}`");
     expect(eff).toContain("variant: SEO_INTENT_VERSION");
     expect(eff).not.toContain("doc.name");
@@ -191,7 +192,7 @@ describe("Template.tsx — eligible поведение", () => {
 
   it("baseline шаблоните запазват hero линка за празна бланка с blank=1", () => {
     expect(src).toContain("&blank=1&returnTo=");
-    const heroBlank = src.slice(src.indexOf("{intent ? null : ("), src.indexOf("Свали само бланка"));
+    const heroBlank = src.slice(src.indexOf("{intent ? null : ("), src.lastIndexOf("Свали само бланка"));
     expect(heroBlank).toContain("to={blankWizardHref}");
     expect(heroBlank).toContain('trackBlankCta("hero")');
   });
