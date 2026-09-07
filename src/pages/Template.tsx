@@ -60,6 +60,21 @@ export default function TemplatePage() {
     if (entry) trackEvent("template_view", { slug: entry.slug, name: entry.doc.name, category: entry.category.title });
   }, [entry]);
 
+  /**
+   * Импресия на intent панела — веднъж на funnel сесия × slug × версия на
+   * експеримента (dedupKey), за да е сравнима с `template_create_cta_clicked`.
+   */
+  useEffect(() => {
+    const s = entry?.slug;
+    if (!s || !isSeoIntentSlug(s)) return;
+    trackFunnelEvent(
+      "template_intent_panel_viewed",
+      { slug: s, variant: SEO_INTENT_VERSION },
+      { dedupKey: `${s}|${SEO_INTENT_VERSION}` },
+    );
+  }, [entry?.slug]);
+
+
   if (!entry) return <Navigate to="/catalog" replace />;
 
   const { doc, category } = entry;
