@@ -159,7 +159,7 @@ export function PlanScaleSlider({ plans, billing, isAuthed, onRecommend }: Props
             </div>
             <div className="rounded-xl border border-hairline bg-background/50 px-3 py-2.5">
               <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                Операции
+                Действия по документи
               </dt>
               <dd className="mt-1 text-sm font-semibold text-foreground tabular-nums">
                 {rec.opsCap ?? "—"}
