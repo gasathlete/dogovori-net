@@ -1,9 +1,11 @@
 /**
  * ChoiceFlow — визуализация на процеса след избора „Какво искаш да направиш?“.
  * Мобилно: вертикална времева линия със стъпки. Десктоп: същите стъпки в таблица.
+ * Съзнателно НЕ обещаваме време за изпълнение — показваме само последователността
+ * и резултата от всяка стъпка.
  */
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
-import { ArrowRight, Clock, ChevronDown } from "@/icons";
+import { ArrowRight, Workflow, ChevronDown } from "@/icons";
 
 export type FlowId = "build" | "catalog" | "analyze";
 
@@ -11,42 +13,38 @@ interface Step {
   title: string;
   detail: string;
   output: string;
-  time: string;
 }
 
-export const FLOWS: Record<FlowId, { label: string; to: string; cta: string; total: string; steps: Step[] }> = {
+export const FLOWS: Record<FlowId, { label: string; to: string; cta: string; steps: Step[] }> = {
   build: {
     label: "Изготви документ",
     to: "/build",
     cta: "Започни изготвяне",
-    total: "~2 мин",
     steps: [
-      { title: "Избираш вид документ", detail: "Договор, анекс, пълномощно, протокол.", output: "Подбран шаблон по ЗЗД/ТЗ/КТ", time: "10 сек" },
-      { title: "Отговаряш на въпроси", detail: "Страни, суми, срокове — с подсказки за всяко поле.", output: "Попълнени параметри", time: "60–90 сек" },
-      { title: "Преглеждаш и сваляш", detail: "Преглед с воден знак, после DOCX или PDF.", output: "Готов документ", time: "15 сек" },
-      { title: "Подписваш (по избор)", detail: "Е-подпис, качен подпис или КЕП.", output: "Подписан екземпляр", time: "30 сек" },
+      { title: "Избираш вид документ", detail: "Договор, анекс, пълномощно, протокол.", output: "Подбран шаблон по ЗЗД/ТЗ/КТ" },
+      { title: "Отговаряш на въпроси", detail: "Страни, суми, срокове — с подсказки за всяко поле.", output: "Попълнени параметри" },
+      { title: "Преглеждаш и сваляш", detail: "Преглед с воден знак, после DOCX или PDF.", output: "Готов документ" },
+      { title: "Подписваш (по избор)", detail: "Е-подпис, качен подпис или КЕП.", output: "Подписан екземпляр" },
     ],
   },
   catalog: {
     label: "Разгледай шаблони",
     to: "/catalog",
     cta: "Отвори каталога",
-    total: "~1 мин",
     steps: [
-      { title: "Филтрираш по сфера", detail: "Търговски, трудови, наем, услуги, строителство.", output: "Кратък списък", time: "20 сек" },
-      { title: "Сравняваш образци", detail: "Виждаш клаузи, риск и правно основание.", output: "Избран образец", time: "20 сек" },
-      { title: "Продължаваш към попълване", detail: "Шаблонът влиза директно в уизърда.", output: "Персонализиран документ", time: "20 сек" },
+      { title: "Филтрираш по сфера", detail: "Търговски, трудови, наем, услуги, строителство.", output: "Кратък списък" },
+      { title: "Сравняваш образци", detail: "Виждаш клаузи, риск и правно основание.", output: "Избран образец" },
+      { title: "Продължаваш към попълване", detail: "Шаблонът влиза директно в уизърда.", output: "Персонализиран документ" },
     ],
   },
   analyze: {
     label: "Провери мой договор",
     to: "/analiz",
     cta: "Качи за анализ",
-    total: "~90 сек",
     steps: [
-      { title: "Качваш файл", detail: "PDF, DOCX или снимка — с OCR за сканирани копия.", output: "Извлечен текст", time: "20 сек" },
-      { title: "AI одит на риска", detail: "Открива неравноправни и липсващи клаузи.", output: "Скор на риска", time: "40 сек" },
-      { title: "Получаваш корекции", detail: "Предложени редакции клауза по клауза.", output: "План за преговори", time: "30 сек" },
+      { title: "Качваш файл", detail: "PDF, DOCX или снимка — с OCR за сканирани копия.", output: "Извлечен текст" },
+      { title: "Проверка на риска", detail: "Открива неравноправни и липсващи клаузи.", output: "Скор на риска" },
+      { title: "Получаваш корекции", detail: "Предложени редакции клауза по клауза.", output: "План за преговори" },
     ],
   },
 };
@@ -69,8 +67,8 @@ export function ChoiceFlow({ active, expanded, onToggle }: { active: FlowId; exp
         </div>
         <span className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/[0.07] px-2.5 py-1 text-[11px] font-semibold text-gold">
-            <Clock className="h-3.5 w-3.5" />
-            {flow.steps.length} стъпки · {flow.total}
+            <Workflow className="h-3.5 w-3.5" />
+            {flow.steps.length} стъпки
           </span>
           <ChevronDown
             className={
@@ -82,7 +80,7 @@ export function ChoiceFlow({ active, expanded, onToggle }: { active: FlowId; exp
 
       {!expanded && (
         <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
-          Виж стъпките, резултата от всяка и очакваното време.
+          Виж стъпките и какъв е резултатът от всяка от тях.
         </p>
       )}
 
@@ -101,7 +99,6 @@ export function ChoiceFlow({ active, expanded, onToggle }: { active: FlowId; exp
               <span className="rounded border border-emerald-600/30 bg-emerald-600/10 px-1.5 py-0.5 text-emerald-600 dark:text-emerald-400">
                 {s.output}
               </span>
-              <span className="text-muted-foreground">{s.time}</span>
             </div>
           </li>
         ))}
@@ -114,8 +111,7 @@ export function ChoiceFlow({ active, expanded, onToggle }: { active: FlowId; exp
             <tr className="border-b border-border/60 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
               <th className="py-2 pr-3 font-medium">Стъпка</th>
               <th className="py-2 pr-3 font-medium">Какво правиш</th>
-              <th className="py-2 pr-3 font-medium">Резултат</th>
-              <th className="py-2 font-medium">Време</th>
+              <th className="py-2 font-medium">Резултат</th>
             </tr>
           </thead>
           <tbody>
@@ -126,12 +122,11 @@ export function ChoiceFlow({ active, expanded, onToggle }: { active: FlowId; exp
                   <span className="font-semibold text-foreground">{s.title}</span>
                 </td>
                 <td className="py-3 pr-3 text-muted-foreground">{s.detail}</td>
-                <td className="py-3 pr-3">
+                <td className="py-3">
                   <span className="rounded border border-emerald-600/30 bg-emerald-600/10 px-1.5 py-0.5 text-xs text-emerald-600 dark:text-emerald-400">
                     {s.output}
                   </span>
                 </td>
-                <td className="py-3 text-muted-foreground">{s.time}</td>
               </tr>
             ))}
           </tbody>

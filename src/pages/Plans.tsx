@@ -89,6 +89,53 @@ function buildCta(planId: PlanId, billing: Billing, isAuthed: boolean): {
   };
 }
 
+/**
+ * Единствената реализация на публичния CTA за входния пакет (без абонамент).
+ * Държим я на едно място, за да няма два различни варианта на същата оферта.
+ */
+function EntryPackCta({ isAuthed, audience }: { isAuthed: boolean; audience: string }) {
+  const href = entryPackCtaHref(isAuthed);
+  return (
+    <div className="flex flex-col gap-4 rounded-2xl border-2 border-brand/40 bg-brand/[0.04] p-5 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <div className="flex items-start gap-3 sm:items-center">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
+          <Sparkles className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
+            Без абонамент
+          </p>
+          <h3 className="mt-1 font-serif text-lg leading-tight text-foreground">
+            Конкретен документ — {ENTRY_PACK_CONFIG.ops} действия по документи за {fmtEur(ENTRY_PACK_CONFIG.eur)}
+          </h3>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+            Еднократно плащане · действията не изтичат и се използват след включените безплатни действия.
+            Пакетът не отключва функции от платените планове. При редовна работа по договори{" "}
+            {PRICING_PLANS.professional.name} ({monthlyLabel("professional")}) излиза по-изгодно.
+          </p>
+        </div>
+      </div>
+
+      <Link
+        to={href}
+        onClick={() =>
+          trackEvent("plans_cta_clicked", {
+            plan: ENTRY_PACK_CONFIG.priceId,
+            billing: "one_time",
+            source: "public_entry_pack",
+            authed: isAuthed,
+            audience,
+          })
+        }
+        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-white shadow-brand transition-all hover:shadow-[0_20px_50px_-15px_hsl(var(--brand)/0.6)]"
+      >
+        Купи за {fmtEur(ENTRY_PACK_CONFIG.eur)}
+        <ArrowRight className="h-4 w-4" />
+      </Link>
+    </div>
+  );
+}
+
 
 export default function Plans() {
   const { user } = useAuth();
@@ -128,7 +175,7 @@ export default function Plans() {
     <>
       <Seo
         title="Планове и цени — Dogovori.net"
-        description="Изберете план: Безплатен, Професионалист 12.90 €/мес, Предприемач 19.90 €/мес или Екип само годишно 109 €/място/год за фирми."
+        description="Платете според начина, по който работите: 2,90 € еднократно за конкретен документ или абонамент от 12,90 €/мес за редовна договорна работа. Екип — 109 €/място/год."
         canonical="https://dogovori.net/plans"
       />
       <Header />
@@ -151,16 +198,16 @@ export default function Plans() {
           <PlansAuroraHero kicker="Планове и цени" className="mt-3">
             <div className="relative mx-auto max-w-3xl text-center">
               <h1 className="font-serif text-4xl leading-[1.1] tracking-tight text-foreground sm:text-5xl md:text-6xl">
-                Изберете плана,
+                Платете според начина,
                 <br />
                 <span className="bg-gradient-to-r from-brand-dark via-brand to-brand-light bg-clip-text text-transparent">
-                  който работи за вас
+                  по който работите
                 </span>
               </h1>
               <p className="mt-3 text-sm text-muted-foreground whitespace-pre-line sm:text-base">
-                2 месеца БЕЗПЛАТНО на годишен абонамент.
+                Еднократно — когато нуждата е един конкретен документ.
                 {"\n"}
-                Без обвързване. ДДС включено в цената. Отказ по всяко време.
+                Абонамент — когато договорите са редовна работа. ДДС включено. Отказ по всяко време.
               </p>
             </div>
 
@@ -215,23 +262,54 @@ export default function Plans() {
           </PlansAuroraHero>
         </section>
 
-        {/* Скалиращ слайдер — препоръка според обема */}
-        <section className="relative z-10 mx-auto max-w-7xl px-4 pb-4 sm:pb-6">
-          <PlanScaleSlider
-            plans={plans}
-            billing={billing}
-            isAuthed={isAuthed}
-            onRecommend={setRecommended}
-          />
+        {/* Начин на плащане — два ясни режима веднага след херото */}
+        <section
+          aria-labelledby="purchase-modes-title"
+          className="relative z-10 mx-auto max-w-6xl px-4 pb-6 sm:pb-8"
+        >
+          <h2 id="purchase-modes-title" className="sr-only">
+            Как да платите
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="flex flex-col rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:p-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
+                Еднократно
+              </p>
+              <h3 className="mt-1.5 font-serif text-xl text-foreground">Конкретен документ</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {fmtEur(ENTRY_PACK_CONFIG.eur)} · {ENTRY_PACK_CONFIG.ops} включени действия по документи ·
+                без абонамент.
+              </p>
+              <div className="mt-4">
+                <EntryPackCta isAuthed={isAuthed} audience={audience} />
+              </div>
+            </div>
+
+            <div className="flex flex-col rounded-2xl border border-brand/40 bg-brand/[0.04] p-5 backdrop-blur-md sm:p-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
+                Абонамент от {monthlyLabel("professional")}
+              </p>
+              <h3 className="mt-1.5 font-serif text-xl text-foreground">Редовна договорна работа</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Изготвяне, преглед, споделяне и история на документите — в един работен процес.
+              </p>
+              <a
+                href="#plan-cards"
+                className="mt-4 inline-flex w-fit items-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-white shadow-brand"
+              >
+                Виж абонаментите
+                <ArrowRight className="h-4 w-4" />
+              </a>
+            </div>
+          </div>
         </section>
 
-
-        {/* 01 — Плановете (цените са първото нещо след слайдера) */}
+        {/* 01 — Плановете (цените са първото нещо след избора на начин на плащане) */}
         <PlanStoryStage
           index="01"
           id="plan-cards"
-          title="Планове и цени"
-          subtitle="Препоръчваме Предприемач — 100 операции месечно, GPT-5 модел, OCR, сравнение на договори и приоритетна обработка. Качеството на документите е еднакво във всеки план."
+          title="Абонаменти"
+          subtitle="Професионалист — за редовна самостоятелна работа по договори. Предприемач — за по-сложен преглед и преговори. Екип — за роли и обща история във фирмата. Качеството на документите е еднакво във всеки план."
           className="pb-12 sm:pb-16"
 
         >
@@ -413,51 +491,6 @@ export default function Plans() {
             })}
           </div>
 
-          {/* Входен пакет без абонамент — най-ниската бариера до плащане.
-              Това НЕ е top-up пакет (те са само за активни абонати). */}
-          {(() => {
-            const href = entryPackCtaHref(isAuthed);
-            return (
-              <div className="mt-6 flex flex-col gap-4 rounded-2xl border-2 border-brand/40 bg-brand/[0.04] p-5 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:p-6">
-                <div className="flex items-start gap-3 sm:items-center">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
-                    <Sparkles className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
-                      Без абонамент
-                    </p>
-                    <h3 className="mt-1 font-serif text-lg leading-tight text-foreground">
-                      +{ENTRY_PACK_CONFIG.ops} допълнителни операции за {fmtEur(ENTRY_PACK_CONFIG.eur)}
-                    </h3>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                      Еднократно плащане · операциите не изтичат и се използват след включените безплатни операции.
-                      Пакетът не отключва функции от платените планове. При редовна употреба{" "}
-                      {PRICING_PLANS.professional.name} ({monthlyLabel("professional")}) излиза по-евтино на
-                      операция.
-                    </p>
-                  </div>
-                </div>
-
-                <Link
-                  to={href}
-                  onClick={() =>
-                    trackEvent("plans_cta_clicked", {
-                      plan: ENTRY_PACK_CONFIG.priceId,
-                      billing: "one_time",
-                      source: "public_entry_pack",
-                      authed: isAuthed,
-                      audience,
-                    })
-                  }
-                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-white shadow-brand transition-all hover:shadow-[0_20px_50px_-15px_hsl(var(--brand)/0.6)]"
-                >
-                  Купи за {fmtEur(ENTRY_PACK_CONFIG.eur)}
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-            );
-          })()}
 
 
           {/* Slim free plan row */}
@@ -498,6 +531,19 @@ export default function Plans() {
           </div>
         </PlanStoryStage>
 
+        {/* Помощ при избора по обем — след избора на начин на плащане и абонаментите */}
+        <section className="relative z-10 mx-auto max-w-7xl px-4 pb-4 sm:pb-6">
+          <p className="mb-3 text-center text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            По избор: помощ при избора по обем документи
+          </p>
+          <PlanScaleSlider
+            plans={plans}
+            billing={billing}
+            isAuthed={isAuthed}
+            onRecommend={setRecommended}
+          />
+        </section>
+
         {/* 02 — Проблемът */}
         <PlanStoryStage
           index="02"
@@ -533,30 +579,30 @@ export default function Plans() {
         {/* 03 — Как работи */}
         <PlanStoryStage
           index="03"
-          title="Как се разходват операциите — стъпка по стъпка"
-          subtitle="Един готов документ отнема средно 3 операции. Точно затова 100 операции в план Предприемач покриват около 30 документа месечно."
+          title="Как се разходват действията по документи — стъпка по стъпка"
+          subtitle="Един готов документ отнема средно 3 действия. Затова 100 действия в план Предприемач покриват около 30 документа месечно."
         >
           <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               {
                 n: "Избор на образец",
-                ops: "0 операции",
+                ops: "0 действия",
                 d: "Каталог от 600+ образеца по ЗЗД, ТЗ, КТ и ЗУТ. Разглеждането и отварянето на образец е безплатно във всеки план.",
               },
               {
                 n: "Попълване в съветника",
-                ops: "0 операции",
+                ops: "0 действия",
                 d: "Полетата се въвеждат стъпка по стъпка с правна подсказка на всяко от тях. Данните се пазят локално 7 дни, ако прекъснете.",
               },
               {
                 n: "Генериране и изтегляне",
-                ops: "1 операция",
+                ops: "1 действие",
                 d: "Финалният текст в DOCX или PDF. Повторно изтегляне на същия документ в същата сесия не се таксува отново.",
               },
               {
                 n: "AI преглед и подпис",
-                ops: "1–2 операции",
-                d: "Проверка за рискови и липсващи клаузи (1 операция) и електронен подпис, КЕП или качен подпис с одит-трейл.",
+                ops: "1–2 действия",
+                d: "Проверка за рискови и липсващи клаузи (1 действие) и електронен подпис, КЕП или качен подпис с одит-трейл.",
               },
             ].map((s, i) => (
               <li
@@ -578,7 +624,7 @@ export default function Plans() {
           </ol>
           <p className="mt-4 text-xs text-muted-foreground">
             Операциите се изразходват само при генериране, изтегляне, качване с анализ и всяко
-            съобщение до AI асистента. Вълна авто-корекции = 1 операция на всеки 5 корекции.
+            съобщение до AI асистента. Вълна авто-корекции = 1 действие на всеки 5 корекции.
           </p>
         </PlanStoryStage>
 
@@ -603,7 +649,7 @@ export default function Plans() {
 
             <div className="mx-auto max-w-3xl text-center">
               <h2 className="font-serif text-2xl text-foreground sm:text-3xl">
-                Top-up пакети — добави операции към плана си
+                Допълнителни пакети — добави действия към плана си
               </h2>
               <p className="mt-2 text-sm text-muted-foreground sm:text-base">
                 Еднократно зареждане без подновяване. Налично само за активни абонати.
@@ -661,7 +707,7 @@ export default function Plans() {
             <div>
               <h3 className="font-serif text-lg text-foreground">Пълно сравнение на плановете</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Виж в детайли какво включва всеки план — операции, AI, езици, поддръжка и още.
+                Виж в детайли какво включва всеки план — действия по документи, езици, поддръжка и още.
               </p>
             </div>
           </ExpandableCard>
@@ -700,7 +746,7 @@ export default function Plans() {
               </h2>
               <p className="mt-2 text-sm text-white/80 sm:text-base">
                 {isAuthed
-                  ? "Получи 100 операции/мес, GPT-5 модел, неограничен AI и премиум поддръжка 24/7."
+                  ? "Получи 100 действия по документи месечно, разширен преглед на клаузи и приоритетна поддръжка."
                   : `Безплатен старт: ${FREE_OFFER_RULE}. Без карта.`}
               </p>
               <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">

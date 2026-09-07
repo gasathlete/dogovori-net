@@ -52,11 +52,12 @@ export function DogovaryAIShowcase() {
             id="dogovaryai-showcase-title"
             className="mt-3 font-serif text-2xl font-bold leading-tight text-balance sm:text-[28px] md:text-3xl"
           >
-            Правен асистент, който отговаря като юрист
+            Асистент, който структурира казуса и посочва източниците
           </h2>
           <p className="mx-auto mt-3 max-w-[62ch] text-sm text-muted-foreground sm:text-[15px]">
-            Задавате казуса си на нормален език. DogovaryAI извежда приложимия режим,
-            цитира точните разпоредби и подготвя документите, които следват от отговора.
+            Задавате казуса си на нормален език. DogovaryAI подрежда въпроса, цитира
+            приложимите разпоредби и предлага следващите стъпки и документи за преглед.
+            Не замества индивидуална правна консултация.
           </p>
         </div>
 

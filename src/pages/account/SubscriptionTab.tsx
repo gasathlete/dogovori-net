@@ -95,8 +95,8 @@ const PLAN_LABELS: Record<string, { name: string; price: string; cycle: string }
   professional_yearly: { name: `${PRICING_PLANS.professional.name} — годишен`, price: fmtEur(PRICING_PLANS.professional.yearly!), cycle: "годишно" },
   entrepreneur_monthly: { name: `${PRICING_PLANS.entrepreneur.name} — месечен`, price: fmtEur(PRICING_PLANS.entrepreneur.monthly!), cycle: "месечно" },
   entrepreneur_yearly: { name: `${PRICING_PLANS.entrepreneur.name} — годишен`, price: fmtEur(PRICING_PLANS.entrepreneur.yearly!), cycle: "годишно" },
-  five_operations: { name: `Пакет ${ENTRY_PACK_CONFIG.ops} операции`, price: fmtEur(ENTRY_PACK_CONFIG.eur), cycle: "еднократно" },
-  topup_5: { name: `Пакет ${TOPUP_PACK_CONFIG[0].ops} операции`, price: fmtEur(TOPUP_PACK_CONFIG[0].eur), cycle: "еднократно" },
+  five_operations: { name: "Пакет за конкретен документ", price: fmtEur(ENTRY_PACK_CONFIG.eur), cycle: "еднократно" },
+  topup_5: { name: `Пакет ${TOPUP_PACK_CONFIG[0].ops} действия`, price: fmtEur(TOPUP_PACK_CONFIG[0].eur), cycle: "еднократно" },
 };
 
 const STATUS_META: Record<string, { label: string; tone: "ok" | "warn" | "err" | "info" }> = {
@@ -195,7 +195,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   };
 
   const proFeatures = [
-    "От 50 до 100 операции на месец (договори, бланки и анализи)",
+    "От 50 до 100 действия по документи на месец (договори, бланки и проверки)",
     "Двуезични документи (BG/EN) с паралелна колона",
     "Преглед на живо и стъпков Wizard",
     "Интелигентен анализ на качени документи",
@@ -208,7 +208,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
   ];
 
   const teamFeatures = [
-    "100 операции на място/месец (споделен капацитет)",
+    "100 действия по документи на място/месец (споделен капацитет)",
     "Споделени шаблони, контакти и папки",
     "Брандирани PDF/DOCX с лого на фирмата",
     "Журнал на действията за администратори",
@@ -321,7 +321,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             )}
             <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
               {isPro
-                ? `Използвани ${proMonthlyUsed} от ${proMonthlyCap} операции за текущия период.`
+                ? `Използвани ${proMonthlyUsed} от ${proMonthlyCap} действия по документи за текущия период.`
                 : (() => {
                     const signupAt = (quota as any)?.signup_at ? new Date((quota as any).signup_at).getTime() : null;
                     const withinFirstMonth = !!signupAt && Date.now() - signupAt < 30 * 24 * 60 * 60 * 1000;
@@ -329,7 +329,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
                     const used = (quota as any)?.monthly_total_used ?? 0;
                     const corrFree = (quota as any)?.corrections_free_used
                       ? "Безплатната вълна авто-корекции вече е използвана."
-                      : "Имате +1 безплатна вълна автоматични корекции (не консумира операция).";
+                      : "Имате +1 безплатна вълна автоматични корекции (не консумира действие).";
                     return `${FREE_OFFER_RULE}. Документите се свалят с дискретен воден знак. Използвани: ${used} от ${cap} този месец. ${corrFree}`;
                   })()}
             </p>
@@ -356,7 +356,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
                   <span className="text-xs font-semibold uppercase tracking-wider">Премиум привилегии</span>
                 </div>
                 <ul className="mt-3 space-y-1.5 text-sm text-foreground/90">
-                  <li>✓ Приоритетна AI обработка + GPT-5 модел</li>
+                  <li>✓ Разширен преглед на клаузи и приоритетна обработка</li>
                   <li>✓ Премиум поддръжка 24/7 — <a href="mailto:premium@dogovori.net" className="text-gold underline">premium@dogovori.net</a></li>
                   <li>✓ Персонален onboarding — <a href="mailto:onboarding@dogovori.net" className="text-gold underline">резервирайте час</a></li>
                   <li>✓ Ранен достъп до нови функции</li>
@@ -367,7 +367,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
             {!isPro && ((quota as any)?.bonus_contracts ?? 0) > 0 && (
               <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-semibold text-gold">
                 <Sparkles className="h-3.5 w-3.5" />
-                Налични купени операции: {(quota as any)?.bonus_contracts}
+                Налични купени действия: {(quota as any)?.bonus_contracts}
               </div>
             )}
           </div>
@@ -584,7 +584,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
                 <span className="font-serif text-3xl font-bold text-foreground">{fmtEur(PRICING_PLANS.entrepreneur.monthly!)}</span>
                 <span className="text-xs text-muted-foreground">/ мес</span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">{opsLabel("entrepreneur")}/мес · GPT-5 · ДДС вкл.</p>
+              <p className="mt-1 text-xs text-muted-foreground">{opsLabel("entrepreneur")}/мес · ДДС вкл.</p>
               <p className="mt-0.5 text-[11px] text-muted-foreground">или {yearlyLabel("entrepreneur")} ({yearlyPerMonthLabel("entrepreneur")})</p>
               <div className="mt-4 flex flex-col gap-2">
                 <Button
@@ -604,7 +604,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               <div className="my-5 h-px bg-gold/15" />
               <ul className="space-y-2.5">
                 <Feature>{opsLabel("entrepreneur")} / месец</Feature>
-                <Feature>Приоритетна AI обработка + GPT-5</Feature>
+                <Feature>Разширен преглед на клаузи и приоритетна обработка</Feature>
                 <Feature>Premium поддръжка 24/7</Feature>
                 <Feature>Персонален onboarding</Feature>
                 <Feature>Ранен достъп до нови функции</Feature>
@@ -623,7 +623,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
                 <span className="text-xs text-muted-foreground">/ място / год</span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">мин. {PRICING_PLANS.team.seatMin} места = {fmtEur(teamMinYearlyTotal())}/год</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">100 операции/място/мес · само годишен</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">100 действия по документи/място/мес · само годишен</p>
               <Button
                 asChild
                 variant="outline"
@@ -633,7 +633,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               </Button>
               <div className="my-5 h-px bg-border/60" />
               <ul className="space-y-2.5">
-                <Feature>100 операции / място / месец</Feature>
+                <Feature>100 действия по документи / място / месец</Feature>
                 <Feature>Споделени документи и шаблони</Feature>
                 <Feature>Audit log</Feature>
                 <Feature>Екипно фактуриране</Feature>
@@ -646,12 +646,12 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 <Sparkles className="h-3.5 w-3.5" /> Еднократно
               </div>
-              <h3 className="mt-2 font-serif text-xl font-bold">+{ENTRY_PACK_CONFIG.ops} допълнителни операции</h3>
+              <h3 className="mt-2 font-serif text-xl font-bold">Пакет за конкретен документ</h3>
               <div className="mt-3 flex items-baseline gap-2">
                 <span className="font-serif text-3xl font-bold text-foreground">{fmtEur(ENTRY_PACK_CONFIG.eur)}</span>
                 <span className="text-xs text-muted-foreground">/ пакет</span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">без абонамент · не изтичат · без функции от платените планове</p>
+              <p className="mt-1 text-xs text-muted-foreground">{ENTRY_PACK_CONFIG.ops} действия по документи · без абонамент · не изтичат</p>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">{perOpLabel(ENTRY_PACK_CONFIG)}</p>
               <Button
                 onClick={() => setCheckoutPrice(ENTRY_PACK_CONFIG.priceId)}

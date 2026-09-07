@@ -104,8 +104,8 @@ const Index = () => {
   return (
     <div className="min-h-dvh">
       <Seo
-        title="Dogovori.net – документи, бланки и образци на български"
-        description="600+ безплатни образци – трудов договор, наем, граждански, NDA, пълномощно. Попълни онлайн, свали в PDF/DOCX, подпиши електронно."
+        title="Dogovori.net – договори от чернова до подпис на едно място"
+        description="Изготвяне, преглед, сваляне и подписване на договори в един работен процес. Еднократно за конкретен документ или абонамент за редовна договорна работа."
         canonical="/"
         jsonLd={jsonLd}
       />
@@ -138,14 +138,8 @@ const Index = () => {
           </Suspense>
         </LazyOnVisible>
 
-        {/* DogovaryAI — премиум асистент, веднага след функциите (03) */}
-        <LazyOnVisible minHeight={520}>
-          <Suspense fallback={<SectionSkeleton />}>
-            <BackdropSection variant="rings" align="center">
-              <DogovaryAIShowcase />
-            </BackdropSection>
-          </Suspense>
-        </LazyOnVisible>
+
+
 
 
         {/* Персонално брандиране — веднага под функциите на приложението */}
@@ -194,6 +188,15 @@ const Index = () => {
           <Suspense fallback={<SectionSkeleton />}>
             <BackdropSection variant="shield" intensity="medium">
               <ComplianceSection />
+            </BackdropSection>
+          </Suspense>
+        </LazyOnVisible>
+
+        {/* DogovaryAI — второстепенна възможност, след процеса и доверието */}
+        <LazyOnVisible minHeight={520}>
+          <Suspense fallback={<SectionSkeleton />}>
+            <BackdropSection variant="rings" align="center">
+              <DogovaryAIShowcase />
             </BackdropSection>
           </Suspense>
         </LazyOnVisible>

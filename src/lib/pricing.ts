@@ -125,11 +125,11 @@ export function yearlyPerMonthLabel(id: PricingPlanId): string {
   return `≈ ${fmtEur(Math.round((p.yearly / 12) * 100) / 100)}/мес`;
 }
 
-/** „100 операции“ */
+/** „100 действия“ — публично формулиран капацитет за работа по документи. */
 export function opsLabel(id: PricingPlanId): string {
   const p = PRICING_PLANS[id];
   const suffix = id === "team" ? " на място" : "";
-  return `${p.opsPerMonth} операции${suffix}`;
+  return `${p.opsPerMonth} действия${suffix}`;
 }
 
 /** Минимална годишна стойност за Екип: 327 € */
@@ -146,7 +146,7 @@ export function teamSummary(): string {
   )}/год)`;
 }
 
-/** „Предприемач — 19,90 €/мес (100 операции)“ */
+/** „Предприемач — 19,90 €/мес (100 действия)“ */
 export function planSummary(id: PricingPlanId): string {
   if (id === "team") return teamSummary();
   return `${PRICING_PLANS[id].name} — ${monthlyLabel(id)} (${opsLabel(id)})`;
@@ -167,11 +167,11 @@ export const TOPUP_PACK_CONFIG: TopupPackConfig[] = [
   { priceId: "topup_100", ops: 100, eur: 23.9, badge: "Най-изгоден" },
 ];
 
-/** „0,58 €/оп.“ — работи и за top-up пакет, и за входния пакет. */
+/** „0,58 €/действие“ — работи и за top-up пакет, и за входния пакет. */
 export function perOpLabel(pack: { ops: number; eur: number }): string {
   const per = pack.eur / pack.ops;
   const rounded = Math.round(per * 1000) / 1000;
-  return `${String(rounded).replace(".", ",")} €/оп.`;
+  return `${String(rounded).replace(".", ",")} €/действие`;
 }
 
 /** Имена, които вече не се използват — тестовете следят да не се връщат. */
@@ -212,7 +212,7 @@ export const FREE_OPS_SIGNUP_DAYS = 30;
  * безплатният план се маркетира — така обещанието не се разминава с реалното
  * право (`free_ops_cap`).
  */
-export const FREE_OFFER_RULE = `${FREE_OPS_ON_SIGNUP} операции през първите ${FREE_OPS_SIGNUP_DAYS} дни, след това ${FREE_OPS_PER_MONTH} месечно`;
+export const FREE_OFFER_RULE = `${FREE_OPS_ON_SIGNUP} действия по документи през първите ${FREE_OPS_SIGNUP_DAYS} дни, след това ${FREE_OPS_PER_MONTH} месечно`;
 
 /**
  * Компактен вариант за CTA-та, които стартират анонимно: старт без регистрация,
@@ -228,9 +228,9 @@ export const FREE_OFFER_HERO_TRUST = FREE_OFFER_ANON_HELPER;
  * отключва функции от абонаментните планове.
  */
 export const ENTRY_PACK_FEATURES: readonly string[] = [
-  `+${ENTRY_PACK_CONFIG.ops} допълнителни операции към профила`,
-  "Използват се след включените безплатни операции",
-  "Без абонамент · операциите не изтичат",
+  `+${ENTRY_PACK_CONFIG.ops} действия по документи към профила`,
+  "Използват се след включените безплатни действия",
+  "Без абонамент · действията не изтичат",
   "Не отключва функции от платените планове",
 ];
 

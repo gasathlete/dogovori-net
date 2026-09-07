@@ -159,7 +159,7 @@ export function PlanScaleSlider({ plans, billing, isAuthed, onRecommend }: Props
             </div>
             <div className="rounded-xl border border-hairline bg-background/50 px-3 py-2.5">
               <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                Операции
+                Действия по документи
               </dt>
               <dd className="mt-1 text-sm font-semibold text-foreground tabular-nums">
                 {rec.opsCap ?? "—"}
@@ -180,8 +180,8 @@ export function PlanScaleSlider({ plans, billing, isAuthed, onRecommend }: Props
 
           <p className="mt-2 text-[11px] text-muted-foreground">
             Изчислено при {eur(LAWYER_DOC_COST_EUR, 0)} средно за изготвяне на един документ от
-            юрист и ≈ {OPS_PER_DOC} операции за един готов документ (генериране, AI преглед,
-            подпис). ДДС включено.
+            юрист и ≈ {OPS_PER_DOC} действия по документи за един готов документ (изготвяне,
+            преглед, подпис). ДДС включено.
           </p>
         </div>
 
@@ -218,7 +218,7 @@ export function PlanScaleSlider({ plans, billing, isAuthed, onRecommend }: Props
           )}
           {rec.needsTopup && (
             <p className="mt-3 rounded-lg border border-hairline bg-background/50 px-3 py-2 text-[11px] leading-snug text-muted-foreground">
-              При този обем добавете и Top-up пакет операции — или се насочете към план Екип.
+              При този обем добавете и пакет с допълнителни действия — или се насочете към план Екип.
             </p>
           )}
 
