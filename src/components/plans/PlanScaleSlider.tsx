@@ -180,8 +180,8 @@ export function PlanScaleSlider({ plans, billing, isAuthed, onRecommend }: Props
 
           <p className="mt-2 text-[11px] text-muted-foreground">
             Изчислено при {eur(LAWYER_DOC_COST_EUR, 0)} средно за изготвяне на един документ от
-            юрист и ≈ {OPS_PER_DOC} операции за един готов документ (генериране, AI преглед,
-            подпис). ДДС включено.
+            юрист и ≈ {OPS_PER_DOC} действия по документи за един готов документ (изготвяне,
+            преглед, подпис). ДДС включено.
           </p>
         </div>
 
