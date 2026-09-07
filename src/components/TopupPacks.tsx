@@ -88,7 +88,7 @@ export function TopupPacks({ enabled = true, compact = false, className }: Topup
               <div className="mb-2 flex items-center gap-2">
                 <Icon aria-hidden className="h-4 w-4 text-gold" />
                 <span className="text-sm font-semibold text-foreground">
-                  +{pack.ops} операции
+                  +{pack.ops} действия
                 </span>
               </div>
               <div className="mb-1 text-xl font-bold text-foreground">{pack.priceEur}</div>
@@ -107,7 +107,7 @@ export function TopupPacks({ enabled = true, compact = false, className }: Topup
       </div>
       {!enabled && (
         <p className="mt-3 text-center text-xs text-muted-foreground">
-          Top-up пакетите са достъпни след активиране на абонамент.
+          Пакетите с допълнителни действия са достъпни след активиране на абонамент.
         </p>
       )}
       {activePack && user && (
