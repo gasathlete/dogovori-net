@@ -12,8 +12,8 @@ import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
 import {
-  isDeferredLocalPlaceholder,
-  softenDeferredCheck,
+  applyDeferredScopeToCheck,
+  shouldDeferItem,
 } from "../_shared/deferred-personal-scope.ts";
 
 const SYSTEM_PROMPT = `Ти си независим български правен ревизор (втори проход). Получаваш ГОТОВ документ и правиш техническа ревизия. НЕ пренаписваш текста.
@@ -184,17 +184,15 @@ Deno.serve(async (req: Request) => {
       // Проверките никога не се изтриват — при доказано отложено локално поле
       // "fail" се сваля до видим "warn" с бележка "За попълване преди използване".
       checks: arr(parsed.checks).slice(0, 12).map((c) =>
-        ignorePersonalData
-          ? softenDeferredCheck(c as Record<string, unknown>, documentText)
-          : c
+        applyDeferredScopeToCheck(ignorePersonalData, c, documentText)
       ),
       missing_requisites: arr(parsed.missing_requisites)
         .filter((x) => typeof x === "string")
-        .filter((x) => !ignorePersonalData || !isDeferredLocalPlaceholder(x as string, documentText)),
+        .filter((x) => !shouldDeferItem(ignorePersonalData, x, documentText)),
       contradictions: arr(parsed.contradictions).slice(0, 10),
       unfilled_fields: arr(parsed.unfilled_fields)
         .filter((x) => typeof x === "string")
-        .filter((x) => !ignorePersonalData || !isDeferredLocalPlaceholder(x as string, documentText))
+        .filter((x) => !shouldDeferItem(ignorePersonalData, x, documentText))
         .slice(0, 20),
 
 
