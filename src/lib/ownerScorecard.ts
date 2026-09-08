@@ -80,17 +80,24 @@ function asDict(value: unknown): Dict | null {
   return value as Dict;
 }
 
-/** Броячите трябва да са цели, крайни и неотрицателни — иначе отговорът е повреден. */
+/**
+ * Броячите трябва да са истински JSON числа — цели, безопасни и неотрицателни.
+ * Низове (включително празен низ или „ "), булеви стойности, null и NaN се
+ * отхвърлят, за да не се произвежда измислена нула.
+ */
 function asCount(value: unknown): number | null {
-  const n = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
-  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) return null;
-  return n;
+  if (typeof value !== "number") return null;
+  if (!Number.isSafeInteger(value) || value < 0) return null;
+  return value;
 }
 
 function asTimestamp(value: unknown): string | null {
   if (typeof value !== "string" || value.trim() === "") return null;
   return Number.isFinite(Date.parse(value)) ? value : null;
 }
+
+/** Максимално допустима заявена продължителност на периода. */
+const MAX_RANGE_DAYS = 366;
 
 function readCounts<K extends string>(source: Dict, keys: readonly K[]): Record<K, number> | null {
   const out = {} as Record<K, number>;
@@ -107,7 +114,7 @@ export function parseOwnerScorecard(raw: unknown): OwnerScorecard | null {
   const root = asDict(raw);
   if (!root) return null;
 
-  if (asCount(root.truth_schema_version) !== OWNER_SCORECARD_SCHEMA_VERSION) return null;
+  if (root.truth_schema_version !== OWNER_SCORECARD_SCHEMA_VERSION) return null;
 
   const cutover = asTimestamp(root.payment_truth_cutover);
   if (!cutover) return null;
@@ -116,6 +123,14 @@ export function parseOwnerScorecard(raw: unknown): OwnerScorecard | null {
   const rangeFrom = rangeRaw ? asTimestamp(rangeRaw.from) : null;
   const rangeTo = rangeRaw ? asTimestamp(rangeRaw.to) : null;
   if (!rangeFrom || !rangeTo) return null;
+  // Периодът трябва да е с нарастващи, крайни граници и разумна дължина.
+  // Период изцяло преди началото на надеждното измерване е валиден: тогава
+  // покритието е null, а не грешка.
+  const fromMs = Date.parse(rangeFrom);
+  const toMs = Date.parse(rangeTo);
+  if (!Number.isFinite(fromMs) || !Number.isFinite(toMs)) return null;
+  if (!(fromMs < toMs)) return null;
+  if (toMs - fromMs > MAX_RANGE_DAYS * 86_400_000) return null;
 
   const funnelRaw = asDict(root.funnel);
   const funnel = funnelRaw ? readCounts(funnelRaw, FUNNEL_STAGE_KEYS) : null;
@@ -136,9 +151,12 @@ export function parseOwnerScorecard(raw: unknown): OwnerScorecard | null {
   ] as const);
   if (!truthCounts) return null;
   if (typeof truthRaw.historical_payment_baseline_verified !== "boolean") return null;
+  // Ключът трябва да съществува: липсващ (undefined) означава повреден отговор.
+  if (!("proof_first_order_at" in truthRaw)) return null;
   const proofFirst = truthRaw.proof_first_order_at;
-  const proofFirstOrderAt = proofFirst === null || proofFirst === undefined ? null : asTimestamp(proofFirst);
-  if (proofFirst !== null && proofFirst !== undefined && proofFirstOrderAt === null) return null;
+  if (proofFirst === undefined) return null;
+  const proofFirstOrderAt = proofFirst === null ? null : asTimestamp(proofFirst);
+  if (proofFirst !== null && proofFirstOrderAt === null) return null;
 
   const cohortsRaw = asDict(root.first_purchase_cohorts);
   const cohorts = cohortsRaw

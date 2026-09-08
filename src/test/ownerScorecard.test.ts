@@ -69,6 +69,51 @@ describe("parseOwnerScorecard", () => {
     for (const value of cases) expect(parseOwnerScorecard(value)).toBeNull();
   });
 
+  it("отхвърля броячи, които не са истински неотрицателни цели числа", () => {
+    const bad: unknown[] = ["", " ", "5", true, false, null, Number.NaN, 1.5, -1, 2 ** 53, "0"];
+    for (const value of bad) {
+      expect(
+        parseOwnerScorecard(payload({ traffic_context: { tracked_sessions: value, pageviews: 0 } })),
+      ).toBeNull();
+      expect(parseOwnerScorecard(payload({ funnel: { ...payload().funnel, doc_start: value } }))).toBeNull();
+    }
+    expect(parseOwnerScorecard(payload({ truth_schema_version: "1" }))).toBeNull();
+  });
+
+  it("отхвърля обърнат, нулев и прекалено дълъг период", () => {
+    const cases = [
+      { from: "2026-10-01T00:00:00.000Z", to: "2026-09-01T00:00:00.000Z" },
+      { from: "2026-10-01T00:00:00.000Z", to: "2026-10-01T00:00:00.000Z" },
+      { from: "2025-01-01T00:00:00.000Z", to: "2026-06-01T00:00:00.000Z" },
+    ];
+    for (const range of cases) expect(parseOwnerScorecard(payload({ range }))).toBeNull();
+  });
+
+  it("приема период изцяло преди началото на надеждното измерване с нулево покритие", () => {
+    const card = parseOwnerScorecard(
+      payload({ range: { from: "2026-06-01T00:00:00.000Z", to: "2026-07-01T00:00:00.000Z" } }),
+    );
+    expect(card).not.toBeNull();
+    expect(computeCoverage(card!).coveredDays).toBeNull();
+  });
+
+  it("отхвърля липсваща отметка за първата потвърдена покупка", () => {
+    const truth = { ...payload().payment_truth } as Record<string, unknown>;
+    delete truth.proof_first_order_at;
+    expect(parseOwnerScorecard(payload({ payment_truth: truth }))).toBeNull();
+    expect(
+      parseOwnerScorecard(payload({ payment_truth: { ...truth, proof_first_order_at: undefined } })),
+    ).toBeNull();
+    expect(
+      parseOwnerScorecard(payload({ payment_truth: { ...truth, proof_first_order_at: "nope" } })),
+    ).toBeNull();
+    expect(
+      parseOwnerScorecard(
+        payload({ payment_truth: { ...truth, proof_first_order_at: "2026-09-10T10:00:00.000Z" } }),
+      ),
+    ).not.toBeNull();
+  });
+
   it("не връща никакви идентификатори", () => {
     const card = parseOwnerScorecard(payload());
     const serialized = JSON.stringify(card);
