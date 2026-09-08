@@ -215,7 +215,7 @@ BEGIN
   INTO
     _automated_orders_period,
     _automated_proven_payers_total,
-    _legacy_baseline_payers,
+    _legacy_subscription_users_unverified,
     _proven_payers_total,
     _new_proven_payers_period,
     _first_mode_subscription_total,
