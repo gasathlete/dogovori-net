@@ -123,8 +123,7 @@ export function selectFindings(input: {
   | { ok: true; issues: SelectedIssue[]; missing: SelectedMissing[] }
   | { ok: false; error: { status: 400; code: "selection_out_of_range"; message: string } } {
   const outOfRange = {
-    ok: false 
-    as const,
+    ok: false as const,
     error: {
       status: 400 as const,
       code: "selection_out_of_range" as const,
