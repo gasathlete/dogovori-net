@@ -118,8 +118,22 @@ Deno.serve(async (req) => {
     const changed = res.changed === true;
 
     // ---- Обвързване на СЪЩИЯ разговор към ТЕКУЩАТА версия ----------------
-    // Изчислява се и при идемпотентен повтор (загубен HTTP отговор): иначе UI
-    // би получил „старият разговор е актуален“ без това да е доказано.
+    // Пре-обвързва се само срещу ДОКАЗАН резултат от този преход. Идемпотентен
+    // повтор след чужда по-късна промяна НЕ обвързва разговора към нея.
+    const resProposal = (res.proposal ?? {}) as Record<string, unknown>;
+    const proven = proveTransitionResult({
+      action,
+      changed,
+      idempotent: res.idempotent === true,
+      status: String(resProposal.status ?? proposal.status ?? ""),
+      appliedUpdatedAt: (resProposal.applied_updated_at as string | null) ?? null,
+      revertedUpdatedAt: (resProposal.reverted_updated_at as string | null) ?? null,
+      documentUpdatedAt: (doc.updated_at as string | null) ?? null,
+      currentTargetValue: readLeafByPath(doc, proposal.target_path),
+      beforeText: String(proposal.before_text),
+      afterText: String(proposal.after_text),
+    });
+
     let rebound = false;
     let contextVersion: string | null = previousVersion;
     if (doc.id) {
