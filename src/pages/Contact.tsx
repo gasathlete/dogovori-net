@@ -127,7 +127,7 @@ export default function ContactPage() {
             <div className="grid gap-3">
               {uploaded.map((u) => {
                 const a = analyses[u.id];
-                const present = a ? presentAnalysisScore({ score: a.score, verification: a.verification }) : null;
+                const present = a ? presentAnalysisScore({ score: a.score, verification: a.verification, freshness: "unknown" }) : null;
                 const score = present?.showScore ? present.score : null;
                 const sevCls = a == null ? "border-border/40 text-muted-foreground"
                   : score == null ? "border-border/60 bg-muted/20 text-muted-foreground"
@@ -151,7 +151,7 @@ export default function ContactPage() {
                       </div>
                       <div className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-xs ${sevCls}`}>
                         <Icon className="h-3.5 w-3.5" />
-                        {score != null ? <><strong>{score}</strong>/10</> : a == null ? "Без анализ" : "Непотвърден анализ"}
+                        {score != null ? <><strong>{score}</strong>/10</> : a == null ? "Без анализ" : "Предишна проверка"}
                       </div>
                     </div>
                   </Link>

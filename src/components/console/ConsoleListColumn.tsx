@@ -480,7 +480,12 @@ function AnalysesListView() {
         )
       : items;
     return filtered.map((d) => {
-      const badge = analysisBadge({ score: d.score, verification: (d as { verification?: unknown }).verification });
+      const badge = analysisBadge({
+        score: d.score,
+        verification: (d as { verification?: unknown }).verification,
+        // Списъкът не тегли текстовете на документите — актуалността е непроверена.
+        freshness: "unknown",
+      });
       return {
         id: d.id,
         title: d.contract_type || "Анализ",

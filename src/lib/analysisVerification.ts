@@ -14,6 +14,12 @@
  * `unverified`, липсата на метаданни е `legacy_unverified`.
  */
 
+import {
+  snapshotFreshnessNotice,
+  type SnapshotFreshness,
+} from "@/lib/analysisSourceBinding";
+
+
 export type AnalysisVerificationStatus =
   | "evidence_checked"
   | "incomplete"
@@ -139,9 +145,10 @@ export interface AnalysisScorePresentation {
   tone: string;
   label: string;
   subtext: string;
-  /** Обяснение, когато проверката не е пълна. */
+  /** Обяснение, когато проверката не е пълна или не е за текущия текст. */
   notice: string | null;
 }
+
 
 export const NEUTRAL_ANALYSIS_TONE = "text-muted-foreground border-border/60 bg-muted/20";
 
@@ -186,11 +193,35 @@ function usableScore(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 10;
 }
 
+/**
+ * Q2b2 — представянето зависи от ДВЕ независими условия:
+ *   1) доказателственото състояние (Q2a) — обосновани ли са находките;
+ *   2) актуалността на снимката — за текущия запазен текст ли е анализът.
+ * `freshness` е задължителен и по подразбиране НЕ се предполага актуалност:
+ * всяка стойност, различна от `current`, скрива оценката.
+ */
 export function presentAnalysisScore(input: {
   score: unknown;
   verification: unknown;
+  freshness: SnapshotFreshness;
 }): AnalysisScorePresentation {
   const parsed = parseAnalysisVerification(input.verification);
+
+  if (input.freshness !== "current") {
+    const notice = snapshotFreshnessNotice(input.freshness);
+    let label = "Предишна проверка";
+    let subtext = "Не можем да потвърдим, че се отнася за текущия текст.";
+    if (input.freshness === "checking") {
+      label = "Проверяваме актуалността";
+      subtext = "Изчакайте момент.";
+    } else if (input.freshness === "unsaved") {
+      label = "Има незапазени промени";
+      subtext = "Запазете текста и името, за да покажем оценка.";
+    } else if (input.freshness === "stale") {
+      subtext = "Текстът или името са променяни след нея.";
+    }
+    return { showScore: false, score: null, tone: NEUTRAL_ANALYSIS_TONE, label, subtext, notice };
+  }
 
   if (!parsed.scoreTrusted || !usableScore(input.score)) {
     let label = "Не можем да потвърдим този анализ";
@@ -233,12 +264,23 @@ export function emptyIssuesMessage(verification: unknown): string {
   return "Няма отбелязани находки, но този анализ не е потвърден. Прегледайте документа.";
 }
 
-/** Кратък бадж за списъчните изгледи. */
-export function analysisBadge(input: { score: unknown; verification: unknown }): {
+/**
+ * Кратък бадж за списъчните изгледи. Списъците НЕ свалят текстовете на
+ * документите, затова там актуалността е `unknown` и баджът е консервативен.
+ */
+export function analysisBadge(input: {
+  score: unknown;
+  verification: unknown;
+  freshness: SnapshotFreshness;
+}): {
   text: string;
   className: string;
 } {
+  if (input.freshness !== "current") {
+    return { text: "Предишна проверка", className: NEUTRAL_ANALYSIS_TONE };
+  }
   const p = presentAnalysisScore(input);
   if (!p.showScore) return { text: "непотвърден", className: NEUTRAL_ANALYSIS_TONE };
   return { text: `${p.score}/10`, className: p.tone };
 }
+

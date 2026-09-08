@@ -371,7 +371,7 @@ function DocumentsTab({
               {uploaded.map((u) => {
                 const a = analysesByContract[u.id];
                 // Оценка се показва само при потвърден анализ; иначе неутрален бадж.
-                const pres = a ? presentAnalysisScore({ score: a.score, verification: a.verification }) : null;
+                const pres = a ? presentAnalysisScore({ score: a.score, verification: a.verification, freshness: "unknown" }) : null;
                 const trustedScore = pres?.showScore ? pres.score : null;
                 const sevCls = pres ? pres.tone : "border-border/40 text-muted-foreground";
                 const Icon = trustedScore == null
@@ -397,7 +397,8 @@ function DocumentsTab({
                       </Link>
                       <div className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-xs ${sevCls}`}>
                         <Icon className="h-3.5 w-3.5" />
-                        {!a ? "Без анализ" : trustedScore != null ? <><strong>{trustedScore}</strong>/10</> : "непотвърден"}
+                        {/* Q2b2 — списъкът не проверява текущия текст, затова баджът е историчен. */}
+                        {!a ? "Без анализ" : trustedScore != null ? <><strong>{trustedScore}</strong>/10</> : <>Предишна проверка · {new Date(a.created_at).toLocaleDateString("bg-BG")}</>}
                       </div>
                     </div>
                     <div className="mt-3 space-y-2">

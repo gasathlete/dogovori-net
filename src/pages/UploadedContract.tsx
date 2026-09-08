@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Download, RefreshCw, ShieldAlert, ShieldCheck, AlertTriangle,
@@ -22,6 +22,24 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/clipboard";
 import { emptyIssuesMessage, presentAnalysisScore } from "@/lib/analysisVerification";
+import {
+  historicalFindingsNotice,
+  isSnapshotActionable,
+  validateAnalysisSourceBinding,
+  type AnalysisSourceBinding,
+} from "@/lib/analysisSourceBinding";
+import { useSourceFreshness } from "@/hooks/useSourceFreshness";
+import {
+  buildCorrectionRequest,
+  buildCorrectionSelection,
+  classifyCasResult,
+  isCorrectionStale,
+  isSameViewIdentity,
+  CAS_CONFLICT_MESSAGE,
+  CORRECTION_REQUEST_MESSAGES,
+  STALE_CORRECTION_NOTICE,
+  type CorrectionResult,
+} from "@/lib/uploadedContractOps";
 import { SensitiveDataWarning } from "@/components/SensitiveDataWarning";
 import { trackGenerate } from "@/lib/docFunnel";
 import {
@@ -62,6 +80,7 @@ type Contract = {
   extracted_text: string;
   contact_id: string | null;
   created_at: string;
+  updated_at: string | null;
 };
 type Contact = { id: string; name: string };
 
@@ -81,7 +100,7 @@ export default function UploadedContractPage() {
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [correcting, setCorrecting] = useState(false);
-  const [corrections, setCorrections] = useState<{ corrected_text: string; changes: string[] } | null>(null);
+  const [corrections, setCorrections] = useState<CorrectionResult | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -101,55 +120,170 @@ export default function UploadedContractPage() {
   const [sensitiveClass, setSensitiveClass] = useState<ClassificationSummary | null>(null);
   const [pendingAction, setPendingAction] = useState<null | "analyze" | "correct">(null);
   const [pendingCorrectSelection, setPendingCorrectSelection] = useState<{
-    selectedIssues: Issue[];
-    selectedMissing: Missing[];
+    analysisId: string;
+    binding: AnalysisSourceBinding;
+    selectedIssueIndices: number[];
+    selectedMissingIndices: number[];
   } | null>(null);
   const [savingText, setSavingText] = useState(false);
   const [savingContact, setSavingContact] = useState(false);
   const [savedDocId, setSavedDocId] = useState<string | null>(null);
   const [creatingShare, setCreatingShare] = useState(false);
 
-  const load = async () => {
-    if (!id || !user) return;
-    setLoading(true);
-    const [cRes, aRes, kRes] = await Promise.all([
-      supabase.from("uploaded_contracts").select("*").eq("id", id).maybeSingle(),
-      supabase.from("risk_analyses").select("*").eq("uploaded_contract_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-      supabase.from("contacts").select("id,name").is("deleted_at", null).order("name", { ascending: true }),
-    ]);
-    const c = (cRes.data as any) ?? null;
-    setContract(c);
-    setAnalysis((aRes.data as any) ?? null);
-    setContacts(((kRes.data as any) ?? []) as Contact[]);
-    if (c) {
-      setEditText(c.extracted_text ?? "");
-      setTitleDraft(c.title ?? "");
-      setContactId(c.contact_id ?? "none");
-    }
-    // Look up an existing shareable saved_documents copy linked via source_id.
-    const sd = await supabase
-      .from("saved_documents")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("kind", "contract")
-      .eq("source_id", `uploaded:${id}`)
-      .maybeSingle();
-    setSavedDocId((sd.data as any)?.id ?? null);
-    setLoading(false);
-  };
+  // ---------------------------------------------------------------------------
+  // Q2b2 — защита срещу закъснели отговори.
+  // Всяка асинхронна заявка носи токен + идентичност (документ + потребител).
+  // Резултат, стартиран за друг документ/потребител или преди нов старт, се
+  // ИГНОРИРА — не може да напълни изгледа и не може да презапише чернови.
+  // ---------------------------------------------------------------------------
+  const identity = useMemo(() => ({ docId: id ?? null, userId: user?.id ?? null }), [id, user?.id]);
+  const identityRef = useRef(identity);
+  identityRef.current = identity;
+  const loadTokenRef = useRef(0);
+  const analyzeTokenRef = useRef(0);
+  const correctTokenRef = useRef(0);
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [id, user]);
+  const isCurrentRequest = (token: number, tokenRef: { current: number }, startedIdentity: typeof identity) =>
+    token === tokenRef.current && isSameViewIdentity(startedIdentity, identityRef.current);
+
+  const resetDocumentState = useCallback(() => {
+    setContract(null);
+    setAnalysis(null);
+    setCorrections(null);
+    setIssueSel({});
+    setMissingSel({});
+    setPickerOpen(false);
+    setEditText("");
+    setTitleDraft("");
+    setContactId("none");
+    setSavedDocId(null);
+    setSensitiveOpen(false);
+    setSensitiveBlocked(false);
+    setSensitiveClass(null);
+    setPendingAction(null);
+    setPendingCorrectSelection(null);
+  }, []);
+
+  /**
+   * `silent` презарежда данните, без да пипа черновите (използва се при връщане
+   * на фокуса). Никога не презаписваме текст/име, който ползвателят е променил.
+   */
+  const load = useCallback(
+    async (opts?: { silent?: boolean; keepDrafts?: boolean }) => {
+      const startedIdentity = { docId: id ?? null, userId: user?.id ?? null };
+      const token = ++loadTokenRef.current;
+      if (!id || !user) {
+        resetDocumentState();
+        setLoading(false);
+        return;
+      }
+      if (!opts?.silent) setLoading(true);
+      const [cRes, aRes, kRes] = await Promise.all([
+        supabase.from("uploaded_contracts").select("*").eq("id", id).maybeSingle(),
+        supabase.from("risk_analyses").select("*").eq("uploaded_contract_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("contacts").select("id,name").is("deleted_at", null).order("name", { ascending: true }),
+      ]);
+      if (!isCurrentRequest(token, loadTokenRef, startedIdentity)) return;
+      const c = (cRes.data as Contract | null) ?? null;
+      setContract(c);
+      setAnalysis((aRes.data as unknown as Analysis | null) ?? null);
+      setContacts(((kRes.data as Contact[] | null) ?? []) as Contact[]);
+      if (c && !opts?.keepDrafts) {
+        setEditText(c.extracted_text ?? "");
+        setTitleDraft(c.title ?? "");
+        setContactId(c.contact_id ?? "none");
+      }
+      // Look up an existing shareable saved_documents copy linked via source_id.
+      const sd = await supabase
+        .from("saved_documents")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("kind", "contract")
+        .eq("source_id", `uploaded:${id}`)
+        .maybeSingle();
+      if (!isCurrentRequest(token, loadTokenRef, startedIdentity)) return;
+      setSavedDocId((sd.data as { id: string } | null)?.id ?? null);
+      setLoading(false);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [id, user, resetDocumentState],
+  );
+
+  // Смяна на документ или потребител — пълно изчистване, преди да зареждаме.
+  useEffect(() => {
+    resetDocumentState();
+    void load();
+    return () => {
+      // Прекъсваме приемането на всякакви заявки, стартирани за този изглед.
+      loadTokenRef.current++;
+      analyzeTokenRef.current++;
+      correctTokenRef.current++;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user?.id]);
+
+  /** Презарежда САМО резултата от анализа — редакторът и черновите не се пипат. */
+  const refreshAnalysisOnly = useCallback(async () => {
+    const startedIdentity = { docId: id ?? null, userId: user?.id ?? null };
+    const token = ++loadTokenRef.current;
+    if (!id || !user) return;
+    const { data } = await supabase
+      .from("risk_analyses")
+      .select("*")
+      .eq("uploaded_contract_id", id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!isCurrentRequest(token, loadTokenRef, startedIdentity)) return;
+    setAnalysis((data as unknown as Analysis | null) ?? null);
+  }, [id, user]);
+
+  // ---------------------------------------------------------------------------
+  // Актуалност на анализа спрямо ТОЧНО запазения текст и име
+  // ---------------------------------------------------------------------------
+  const dirtyText = !!contract && editText !== (contract.extracted_text ?? "");
+  const dirtyTitle = !!contract && titleDraft.trim() !== (contract.title ?? "").trim();
+  const hasUnsavedChanges = dirtyText || dirtyTitle;
+
+  const { freshness, currentBinding } = useSourceFreshness({
+    userId: user?.id ?? null,
+    docId: contract?.id ?? null,
+    savedText: contract?.extracted_text ?? null,
+    savedTitle: contract?.title ?? null,
+    verification: analysis?.verification,
+    hasUnsavedChanges,
+  });
+  const actionable = isSnapshotActionable(freshness);
+  const historyNotice = historicalFindingsNotice(freshness);
+
+  // Проверка при връщане на фокуса — за промени, направени другаде.
+  useEffect(() => {
+    const recheck = () => {
+      if (document.visibilityState === "hidden") return;
+      void load({ silent: true, keepDrafts: hasUnsavedChanges });
+    };
+    window.addEventListener("focus", recheck);
+    document.addEventListener("visibilitychange", recheck);
+    return () => {
+      window.removeEventListener("focus", recheck);
+      document.removeEventListener("visibilitychange", recheck);
+    };
+  }, [load, hasUnsavedChanges]);
 
   const runAnalyze = async (userConfirmed: boolean) => {
-    if (!id) return;
+    if (!id || hasUnsavedChanges) return;
+    const startedIdentity = { docId: id, userId: user?.id ?? null };
+    const token = ++analyzeTokenRef.current;
     setAnalyzing(true);
     trackGenerate("started", { source: "reanalyze" });
     const { data, error } = await supabase.functions.invoke("analyze-contract", {
       body: { uploadedContractId: id, userConfirmed },
     });
+    if (!isCurrentRequest(token, analyzeTokenRef, startedIdentity)) return;
     setAnalyzing(false);
-    if (error || (data as any)?.error) {
+    if (error || (data as { error?: string } | null)?.error) {
       const sensitive = await parseSensitiveResponse(error, data);
+      if (!isCurrentRequest(token, analyzeTokenRef, startedIdentity)) return;
       if (isSpecialCategoryBlocked(sensitive)) {
         trackGenerate("fail", { source: "reanalyze", reason: "sensitive_blocked" });
         setSensitiveClass(sensitive!.classification ?? null);
@@ -170,39 +304,55 @@ export default function UploadedContractPage() {
         trackGenerate("fail", { source: "reanalyze", reason: "blocked_content" });
         return;
       }
-      const msg = (data as any)?.error ?? error?.message ?? "Грешка";
+      const msg = (data as { error?: string } | null)?.error ?? error?.message ?? "Грешка";
       trackGenerate("fail", { source: "reanalyze", reason: String(msg).slice(0, 80) });
       toast.error(msg);
       return;
     }
     trackGenerate("success", { source: "reanalyze" });
     toast.success("Анализът е обновен");
-    load();
+    // Само резултатът от анализа — това, което пишете в редактора, остава.
+    await refreshAnalysisOnly();
   };
 
 
   const reanalyze = () => runAnalyze(false);
 
   const openPicker = () => {
-    if (!analysis) return;
+    if (!analysis || !actionable) return;
     setIssueSel(Object.fromEntries(analysis.issues.map((_, i) => [i, true])));
     setMissingSel(Object.fromEntries(analysis.missing_clauses.map((_, i) => [i, true])));
     setPickerOpen(true);
   };
 
   const runCorrect = async (
-    selectedIssues: Issue[],
-    selectedMissing: Missing[],
+    payload: {
+      analysisId: string;
+      binding: AnalysisSourceBinding;
+      selectedIssueIndices: number[];
+      selectedMissingIndices: number[];
+    },
     userConfirmed: boolean,
   ) => {
     if (!id) return;
+    const startedIdentity = { docId: id, userId: user?.id ?? null };
+    const token = ++correctTokenRef.current;
     setCorrecting(true);
     const { data, error } = await supabase.functions.invoke("correct-uploaded", {
-      body: { uploadedContractId: id, selectedIssues, selectedMissing, userConfirmed },
+      body: {
+        uploadedContractId: id,
+        analysisId: payload.analysisId,
+        expectedSourceBinding: payload.binding,
+        selectedIssueIndices: payload.selectedIssueIndices,
+        selectedMissingIndices: payload.selectedMissingIndices,
+        userConfirmed,
+      },
     });
+    if (!isCurrentRequest(token, correctTokenRef, startedIdentity)) return;
     setCorrecting(false);
-    if (error || (data as any)?.error) {
+    if (error || (data as { error?: string } | null)?.error) {
       const sensitive = await parseSensitiveResponse(error, data);
+      if (!isCurrentRequest(token, correctTokenRef, startedIdentity)) return;
       if (isSpecialCategoryBlocked(sensitive)) {
         setSensitiveClass(sensitive!.classification ?? null);
         setSensitiveBlocked(true);
@@ -214,33 +364,64 @@ export default function UploadedContractPage() {
         setSensitiveClass(sensitive!.classification ?? null);
         setSensitiveBlocked(false);
         setPendingAction("correct");
-        setPendingCorrectSelection({ selectedIssues, selectedMissing });
+        setPendingCorrectSelection(payload);
         setSensitiveOpen(true);
         return;
       }
       if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(error)) return;
-      const msg = (data as any)?.error ?? error?.message ?? "Грешка";
-        if (msg === "pro_required") {
-          toast.error("Тази функция е достъпна само за платен индивидуален план");
+      const msg = (data as { error?: string } | null)?.error ?? error?.message ?? "Грешка";
+      if (msg === "pro_required") {
+        toast.error("Тази функция е достъпна само за платен индивидуален план");
         navigate("/account?tab=plan");
       } else {
         toast.error(msg);
       }
       return;
     }
-    setCorrections(data as any);
+    const res = data as {
+      corrected_text?: string;
+      changes?: string[];
+      analysis_id?: string;
+      source?: unknown;
+    };
+    setCorrections({
+      corrected_text: typeof res.corrected_text === "string" ? res.corrected_text : "",
+      changes: Array.isArray(res.changes) ? res.changes.filter((c): c is string => typeof c === "string") : [],
+      analysisId: typeof res.analysis_id === "string" ? res.analysis_id : payload.analysisId,
+      sourceBinding: validateAnalysisSourceBinding(res.source),
+    });
   };
 
   const suggestCorrections = async () => {
-    if (!id || !analysis) return;
-    const selectedIssues = analysis.issues.filter((_, i) => issueSel[i]);
-    const selectedMissing = analysis.missing_clauses.filter((_, i) => missingSel[i]);
-    if (selectedIssues.length === 0 && selectedMissing.length === 0) {
-      toast.error("Изберете поне едно подобрение");
+    if (!analysis) return;
+    const selection = buildCorrectionSelection({
+      issuesCount: analysis.issues.length,
+      missingCount: analysis.missing_clauses.length,
+      issueSel,
+      missingSel,
+    });
+    const built = buildCorrectionRequest({
+      uploadedContractId: id,
+      analysisId: analysis.id,
+      currentBinding,
+      freshness,
+      selection,
+      userConfirmed: false,
+    });
+    if (built.ok !== true) {
+      toast.error(CORRECTION_REQUEST_MESSAGES[built.reason]);
       return;
     }
     setPickerOpen(false);
-    await runCorrect(selectedIssues, selectedMissing, false);
+    await runCorrect(
+      {
+        analysisId: built.payload.analysisId,
+        binding: built.payload.expectedSourceBinding,
+        selectedIssueIndices: built.payload.selectedIssueIndices,
+        selectedMissingIndices: built.payload.selectedMissingIndices,
+      },
+      false,
+    );
   };
 
   const handleSensitiveConfirm = async () => {
@@ -249,10 +430,22 @@ export default function UploadedContractPage() {
     const sel = pendingCorrectSelection;
     setPendingAction(null);
     setPendingCorrectSelection(null);
+    // Потвърждението не може да се „възпроизведе", ако междувременно източникът
+    // или изгледът са се сменили.
+    if (!isSameViewIdentity({ docId: id ?? null, userId: user?.id ?? null }, identityRef.current)) return;
+    if (!actionable) {
+      toast.error(CORRECTION_REQUEST_MESSAGES.not_current);
+      return;
+    }
     if (action === "analyze") {
       await runAnalyze(true);
     } else if (action === "correct" && sel) {
-      await runCorrect(sel.selectedIssues, sel.selectedMissing, true);
+      if (!currentBinding || sel.binding.text_sha256 !== currentBinding.text_sha256 ||
+        sel.binding.title_sha256 !== currentBinding.title_sha256 || sel.analysisId !== analysis?.id) {
+        toast.error(CORRECTION_REQUEST_MESSAGES.not_current);
+        return;
+      }
+      await runCorrect(sel, true);
     }
   };
 
@@ -286,26 +479,52 @@ export default function UploadedContractPage() {
     return Array.from(new Uint8Array(h)).map((b) => b.toString(16).padStart(2, "0")).join("");
   };
 
+  /**
+   * Обновяването на споделеното копие е ОТДЕЛЕН запис в друга таблица — това НЕ
+   * е транзакция заедно с документа. Пази се само срещу смяна на документ/профил.
+   */
+  const updateShareableCopy = async (
+    docIdAtStart: string,
+    savedCopyId: string,
+    patch: { title?: string; payload?: ReturnType<typeof textToPayload> },
+  ) => {
+    if (!isSameViewIdentity({ docId: docIdAtStart, userId: user?.id ?? null }, identityRef.current)) return;
+    await supabase.from("saved_documents").update(patch).eq("id", savedCopyId);
+  };
+
   const saveText = async () => {
     if (!contract) return;
     const trimmed = editText.trim();
     if (trimmed.length < 80) { toast.error("Текстът е твърде кратък (мин. 80 знака)"); return; }
+    const docIdAtStart = contract.id;
+    const capturedVersion = contract.updated_at;
+    const copyId = savedDocId;
     setSavingText(true);
     const text_hash = await hashText(trimmed);
-    const { error } = await supabase
+    // Оптимистичен запис: пишем само ако редът не е променян другаде.
+    let q = supabase
       .from("uploaded_contracts")
       .update({ extracted_text: trimmed, text_hash })
-      .eq("id", contract.id);
+      .eq("id", docIdAtStart);
+    q = capturedVersion ? q.eq("updated_at", capturedVersion) : q.is("updated_at", null);
+    const { data, error } = await q.select("*").maybeSingle();
     setSavingText(false);
-    if (error) { toast.error(error.message); return; }
+    if (!isSameViewIdentity({ docId: docIdAtStart, userId: user?.id ?? null }, identityRef.current)) return;
+    const outcome = classifyCasResult<Contract>({ data: data as Contract | null, error });
+    if (outcome.kind === "error") { toast.error(outcome.message); return; }
+    if (outcome.kind === "conflict") {
+      // Черновата се запазва както е — нищо не е презаписано и нищо не се твърди.
+      toast.error(CAS_CONFLICT_MESSAGE);
+      void load({ silent: true, keepDrafts: true });
+      return;
+    }
     toast.success("Текстът е запазен");
-    setContract({ ...contract, extracted_text: trimmed, text_hash });
-    // If we previously created a shareable copy, refresh its payload.
-    if (savedDocId) {
-      await supabase
-        .from("saved_documents")
-        .update({ payload: textToPayload(contract.title, trimmed) })
-        .eq("id", savedDocId);
+    // Снимката идва от реално върнатия ред, а не от локално предположение.
+    setContract(outcome.row);
+    if (copyId) {
+      await updateShareableCopy(docIdAtStart, copyId, {
+        payload: textToPayload(outcome.row.title, outcome.row.extracted_text ?? trimmed),
+      });
     }
   };
 
@@ -317,17 +536,30 @@ export default function UploadedContractPage() {
       return;
     }
     if (trimmed.length > 200) { toast.error("Името е твърде дълго"); return; }
+    const docIdAtStart = contract.id;
+    const capturedVersion = contract.updated_at;
+    const copyId = savedDocId;
     setSavingTitle(true);
-    const { error } = await supabase
+    let q = supabase
       .from("uploaded_contracts")
       .update({ title: trimmed })
-      .eq("id", contract.id);
+      .eq("id", docIdAtStart);
+    q = capturedVersion ? q.eq("updated_at", capturedVersion) : q.is("updated_at", null);
+    const { data, error } = await q.select("*").maybeSingle();
     setSavingTitle(false);
-    if (error) { toast.error(error.message); setTitleDraft(contract.title); return; }
+    if (!isSameViewIdentity({ docId: docIdAtStart, userId: user?.id ?? null }, identityRef.current)) return;
+    const outcome = classifyCasResult<Contract>({ data: data as Contract | null, error });
+    if (outcome.kind === "error") { toast.error(outcome.message); return; }
+    if (outcome.kind === "conflict") {
+      toast.error(CAS_CONFLICT_MESSAGE);
+      void load({ silent: true, keepDrafts: true });
+      return;
+    }
     toast.success("Името е обновено");
-    setContract({ ...contract, title: trimmed });
-    if (savedDocId) {
-      await supabase.from("saved_documents").update({ title: trimmed }).eq("id", savedDocId);
+    setContract(outcome.row);
+    setTitleDraft(outcome.row.title);
+    if (copyId) {
+      await updateShareableCopy(docIdAtStart, copyId, { title: outcome.row.title });
     }
   };
 
@@ -371,7 +603,7 @@ export default function UploadedContractPage() {
       .single();
     setCreatingShare(false);
     if (error || !data) { toast.error(error?.message || "Грешка"); return; }
-    setSavedDocId((data as any).id);
+    setSavedDocId((data as { id: string }).id);
     toast.success("Готово за подписване");
   };
 
@@ -384,9 +616,17 @@ export default function UploadedContractPage() {
   }, [analysis]);
 
   const scorePresentation = useMemo(
-    () => presentAnalysisScore({ score: analysis?.score, verification: analysis?.verification }),
-    [analysis],
+    () => presentAnalysisScore({ score: analysis?.score, verification: analysis?.verification, freshness }),
+    [analysis, freshness],
   );
+
+  const correctionStale = isCorrectionStale({
+    correction: corrections,
+    analysisId: analysis?.id ?? null,
+    currentBinding,
+    freshness,
+  });
+
 
 
 
@@ -441,6 +681,12 @@ export default function UploadedContractPage() {
               Качен на {new Date(contract.created_at).toLocaleDateString("bg-BG")} · {contract.source.toUpperCase()}
               {contract.original_filename && <> · {contract.original_filename}</>}
             </div>
+            {hasUnsavedChanges && (
+              <p className="mt-2 rounded-md border border-amber-300/40 bg-amber-300/10 p-2 text-xs text-amber-200">
+                Има незапазени промени{dirtyText && dirtyTitle ? " в текста и името" : dirtyTitle ? " в името" : " в текста"}.
+                Оценката е скрита, а анализът и корекциите са спрени, докато не запазите.
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
             {contract.storage_path && (
@@ -448,12 +694,23 @@ export default function UploadedContractPage() {
                 <Download className="mr-2 h-4 w-4" /> Свали оригинала
               </Button>
             )}
-            <Button onClick={reanalyze} disabled={analyzing} className="bg-gradient-gold text-navy">
+            <Button
+              onClick={reanalyze}
+              disabled={analyzing || hasUnsavedChanges}
+              title={hasUnsavedChanges ? "Запазете промените, преди да анализирате." : undefined}
+              className="bg-gradient-gold text-navy"
+            >
               {analyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
               {analysis ? "Анализирай отново" : "Стартирай анализ"}
             </Button>
             {analysis && (
-              <Button onClick={openPicker} disabled={correcting} variant="outline" className="border-gold/40 hover:bg-gold/10 hover:text-gold">
+              <Button
+                onClick={openPicker}
+                disabled={correcting || !actionable}
+                title={!actionable ? "Нужен е анализ на текущия запазен текст." : undefined}
+                variant="outline"
+                className="border-gold/40 hover:bg-gold/10 hover:text-gold"
+              >
                 {correcting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
                 Предложи корекции
               </Button>
@@ -590,6 +847,11 @@ export default function UploadedContractPage() {
             </DialogHeader>
             {corrections && (
               <div className="space-y-4">
+                {correctionStale && (
+                  <p className="rounded-lg border border-amber-300/40 bg-amber-300/10 p-3 text-xs text-amber-200">
+                    {STALE_CORRECTION_NOTICE}
+                  </p>
+                )}
                 {corrections.changes?.length > 0 && (
                   <div className="rounded-lg border border-gold/30 bg-gold/5 p-3">
                     <div className="text-xs uppercase tracking-wider text-gold mb-2">Ключови промени</div>
@@ -602,10 +864,10 @@ export default function UploadedContractPage() {
                   {corrections.corrected_text}
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={async () => { const ok = await copyToClipboard(corrections.corrected_text); ok ? toast.success("Копирано") : toast.error("Копирането не е разрешено"); }} className="bg-gradient-gold text-navy">
+                  <Button disabled={correctionStale} onClick={async () => { const ok = await copyToClipboard(corrections.corrected_text); ok ? toast.success("Копирано") : toast.error("Копирането не е разрешено"); }} className="bg-gradient-gold text-navy">
                     <Copy className="mr-2 h-4 w-4" /> Копирай
                   </Button>
-                  <Button variant="outline" onClick={() => {
+                  <Button variant="outline" disabled={correctionStale} onClick={() => {
                     const blob = new Blob([corrections.corrected_text], { type: "text/plain;charset=utf-8" });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");
@@ -706,7 +968,7 @@ export default function UploadedContractPage() {
           <div className="mt-8 rounded-xl border border-border/60 bg-gradient-card p-10 text-center">
             <Bird className="mx-auto h-8 w-8 text-gold" />
             <p className="mt-3 text-sm text-muted-foreground">Все още няма анализ за този договор.</p>
-            <Button onClick={reanalyze} disabled={analyzing} className="mt-4 bg-gradient-gold text-navy">
+            <Button onClick={reanalyze} disabled={analyzing || hasUnsavedChanges} className="mt-4 bg-gradient-gold text-navy">
               {analyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bird className="mr-2 h-4 w-4" />}
               Стартирай AI риск-анализ
             </Button>
@@ -756,11 +1018,8 @@ export default function UploadedContractPage() {
                 <div className="mb-1 uppercase tracking-wider">Анализ от</div>
                 <div>{new Date(analysis.created_at).toLocaleString("bg-BG")}</div>
                 <div className="mt-2">Модел: {analysis.model}</div>
-                {analysis.text_hash !== contract.text_hash && (
-                  <div className="mt-2 rounded bg-muted/30 p-2 text-muted-foreground">
-                    Актуалността на този анализ не е потвърдена — възможно е текстът да е
-                    променян след него. Обвързването с точния източник предстои.
-                  </div>
+                {historyNotice && (
+                  <div className="mt-2 rounded bg-muted/30 p-2 text-muted-foreground">{historyNotice}</div>
                 )}
               </div>
             </aside>
@@ -769,8 +1028,13 @@ export default function UploadedContractPage() {
               {/* TYPE & SUMMARY */}
               <section className="rounded-xl border border-border/60 bg-gradient-card p-6">
                 <div className="text-xs uppercase tracking-wider text-gold">{analysis.contract_type || "Тип договор"}</div>
-                <h2 className="mt-2 font-serif text-xl font-bold">Резюме</h2>
+                <h2 className="mt-2 font-serif text-xl font-bold">
+                  {actionable ? "Резюме" : "Резюме от предишната проверка"}
+                </h2>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{analysis.summary}</p>
+                {historyNotice && (
+                  <p className="mt-2 text-xs text-muted-foreground">{historyNotice}</p>
+                )}
               </section>
 
               {/* ISSUES */}
