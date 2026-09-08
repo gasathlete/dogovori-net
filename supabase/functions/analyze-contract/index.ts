@@ -11,18 +11,26 @@ import { redactForAI, unredact } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import {
-  buildAnalysisVerification,
   isTrustedCachedVerification,
-  isValidModelScore,
-  NEUTRAL_STORED_SCORE,
-  normalizeEvidenceText,
-  verifyQuoteAgainstSource,
+  runAnalysisEvidencePipeline,
 } from "../_shared/analysis-evidence.ts";
 
 // PROMPT_VERSION — bump to invalidate cached analyses produced by older prompts.
 // v5: доказателствената проверка на цитатите е строга (един непрекъснат пасаж),
 // затова кешираните резултати от по-стари политики не се връщат като нови.
-const PROMPT_VERSION = "v5-evidence-q2a";
+const PROMPT_VERSION = "v6-evidence-q2a";
+
+// Правилата за доказателственост и за липсата на гаранции се ПРИЛАГАТ НАКРАЯ —
+// след активния промпт от базата — защото активният промпт заменя fallback-а.
+// Тук не се редактират промптите в базата.
+const EVIDENCE_RULES_SUFFIX = `
+
+ЗАДЪЛЖИТЕЛНИ ПРАВИЛА (имат предимство пред всичко по-горе):
+- За ВСЕКИ issue задължително давай "clause" — ДОСЛОВЕН непрекъснат цитат от текста между маркерите, 20-280 знака. Без перифраза, без превод, без сглобяване от отделни думи.
+- Всеки issue задължително има "severity" ("low"|"medium"|"high"), непразно "title" и непразно "explanation". Непълен issue се отхвърля автоматично.
+- Всяка липсваща клауза задължително има непразно "name".
+- Ако не можеш да намериш дословен пасаж — НЕ повдигай issue-то.
+- НЕ давай гаранция, че документът е безопасен за подписване, и не твърди, че е „без рискове". Оценката описва само обхвата на тази автоматична проверка и не замества правен съвет.`;
 
 const SYSTEM_PROMPT = `Ти си водещ български правен експерт по договорно право (ЗЗД, ТЗ, ЗУТ, ЗЗП, ЗЗЛД).
 Анализираш ИЗКЛЮЧИТЕЛНО предоставения текст на договор и връщаш СТРОГО валиден JSON по схемата по-долу. Без markdown ограждания.
@@ -49,7 +57,7 @@ const SYSTEM_PROMPT = `Ти си водещ български правен ек
   (e) Съществен правен риск за подписващия (загуба на собственост без насрещна престация, лична отговорност без ограничение).
 
 СКАЛА НА ОЦЕНКАТА (1-10) — стриктно се придържай към тази скала:
-- 9-10: Изряден договор. Всички съществени клаузи присъстват, балансиран, без рискове. Малки стилови забележки са допустими.
+- 9-10: Изряден договор. Всички съществени клаузи присъстват и е балансиран, без установен риск в обхвата на този анализ. Това не е гаранция за безопасност. Малки стилови забележки са допустими.
 - 7-8: Добър договор. Малки несъвършенства (липсва форсмажор, неясна подсъдност), но БЕЗ установен риск за подписващия в обхвата на този анализ. Не давай гаранция за безопасност на подписването.
 - 5-6: Приемлив, но с препоръчителни корекции. 1-2 средни рискове или липсват важни клаузи (неустойка, прекратяване).
 - 3-4: Проблемен. Съществени неравнопоставености, неясни ключови клаузи или липсва защита за едната страна. Не подписвай без преговори.
@@ -363,9 +371,12 @@ ${payloadText}
     // RAG: ground analysis in the regulated legal knowledge base.
     const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
     const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, payloadText.slice(0, 4000), { matchCount: 6 });
-    const activeSystemPrompt = legal.hasMatches
+    const groundedSystemPrompt = legal.hasMatches
       ? `${baseSystemPrompt}\n\n${legal.promptBlock}`
       : baseSystemPrompt;
+    // Суфиксът се добавя ПОСЛЕДЕН, за да важи и когато активният промпт от
+    // базата е заменил вградения fallback.
+    const activeSystemPrompt = `${groundedSystemPrompt}${EVIDENCE_RULES_SUFFIX}`;
 
     const callAi = async (modelName: string) => {
       return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
