@@ -161,8 +161,9 @@ Deno.serve(async (req) => {
         : null;
 
       if (boundVersion && boundVersion === canonical) {
+        // Разговорът вече сочи ТОЧНО текущата версия — няма нужда от запис.
         rebound = true;
-      } else {
+      } else if (proven) {
         // Пре-обвързваме само ако документът все още е ТОЧНО състоянието, което
         // транзакцията върна, и само от точната текуща версия на разговора.
         const { data: recheck } = await userClient
