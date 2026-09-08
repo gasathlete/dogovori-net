@@ -92,6 +92,13 @@
       "when": 1788820828989,
       "tag": "0012_order_snapshots_payment_truth",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788858812648,
+      "tag": "0013_owner_scorecard",
+      "breakpoints": true
     }
   ]
 }
