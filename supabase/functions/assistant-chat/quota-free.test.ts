@@ -167,3 +167,48 @@ Deno.test("постоянен конфликт под тавана не се о�
   const r = await reserveAssistantOperation("free", s.deps);
   assertEquals((r as { code: string }).code, "quota_unavailable");
 });
+
+// --- pro/team пътища: инфраструктура (503) срещу истински лимит (402) --------
+
+function rpcDeps(result: { data: unknown; error: unknown }): ReservationDeps {
+  return {
+    admin: { from: () => { throw new Error("не се използва"); } } as any,
+    userClient: { rpc: async () => result },
+    userId: USER,
+    teamId: "team-1",
+    now: () => NOW,
+  } as ReservationDeps;
+}
+
+for (const path of ["pro", "team"] as const) {
+  Deno.test(`${path}: транспортна грешка от RPC е 503 quota_unavailable`, async () => {
+    const r = await reserveAssistantOperation(path, rpcDeps({ data: null, error: { message: "boom" } }));
+    assertEquals(r, {
+      ok: false,
+      status: 503,
+      code: "quota_unavailable",
+      error: (r as any).error,
+    });
+  });
+
+  Deno.test(`${path}: липсващ/деформиран отговор е 503, не изчерпан лимит`, async () => {
+    for (const data of [null, undefined, "ok", 1, [], {}, { ok: "не" }]) {
+      const r = await reserveAssistantOperation(path, rpcDeps({ data, error: null }));
+      assertEquals((r as any).status, 503);
+      assertEquals((r as any).code, "quota_unavailable");
+    }
+  });
+
+  Deno.test(`${path}: валиден ok:false е 402 план/екипен лимит`, async () => {
+    const r = await reserveAssistantOperation(path, rpcDeps({ data: { ok: false }, error: null }));
+    assertEquals((r as any).status, 402);
+    assertEquals(
+      (r as any).code,
+      path === "team" ? "team_limit_reached" : "ai_plan_limit_reached",
+    );
+  });
+
+  Deno.test(`${path}: валиден ok:true резервира`, async () => {
+    assertEquals(await reserveAssistantOperation(path, rpcDeps({ data: { ok: true }, error: null })), { ok: true });
+  });
+}

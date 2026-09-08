@@ -228,6 +228,22 @@ async function reserveFree(deps: ReservationDeps): Promise<ReservationResult> {
   return reservationFail("quota_unavailable");
 }
 
+/**
+ * Валиден отговор от RPC е обект с булево `ok`. Транспортна/базова грешка или
+ * липсващ/деформиран отговор е ИНФРАСТРУКТУРНА грешка (503 quota_unavailable),
+ * а не изчерпан лимит (402).
+ */
+function readRpcGate(
+  data: unknown,
+  error: unknown,
+): { kind: "infra" } | { kind: "allowed" } | { kind: "denied" } {
+  if (error) return { kind: "infra" };
+  if (!data || typeof data !== "object" || Array.isArray(data)) return { kind: "infra" };
+  const ok = (data as { ok?: unknown }).ok;
+  if (typeof ok !== "boolean") return { kind: "infra" };
+  return ok ? { kind: "allowed" } : { kind: "denied" };
+}
+
 export async function reserveAssistantOperation(
   path: ReservationPath,
   deps: ReservationDeps,
@@ -236,18 +252,21 @@ export async function reserveAssistantOperation(
     const { data, error } = await deps.userClient.rpc("consume_team_quota", {
       _team_id: deps.teamId,
     });
-    const tg = data as { ok?: boolean } | null;
-    if (error || !tg || tg.ok === false) return reservationFail("team_limit_reached");
+    const gate = readRpcGate(data, error);
+    if (gate.kind === "infra") return reservationFail("quota_unavailable");
+    if (gate.kind === "denied") return reservationFail("team_limit_reached");
     return { ok: true };
   }
   if (path === "pro") {
     const { data, error } = await deps.userClient.rpc("consume_ai_message");
-    const pg = data as { ok?: boolean } | null;
-    if (error || !pg || pg.ok === false) return reservationFail("ai_plan_limit_reached");
+    const gate = readRpcGate(data, error);
+    if (gate.kind === "infra") return reservationFail("quota_unavailable");
+    if (gate.kind === "denied") return reservationFail("ai_plan_limit_reached");
     return { ok: true };
   }
   return await reserveFree(deps);
 }
+
 
 /**
  * Точката, която handler-ът наистина ползва.

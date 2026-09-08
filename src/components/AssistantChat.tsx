@@ -161,11 +161,16 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // Идентичност на заявката: обхват + монотонна последователност. Стари делти,
-  // грешки, tool call-ове, thread ID-та и текст не могат да влязат в новия UI.
+  // Идентичност на заявката: обхват + АКТИВЕН РАЗГОВОР + монотонна
+  // последователност. Стари делти, грешки, tool call-ове, thread ID-та и текст
+  // не могат да влязат в новия UI — включително когато два разговора имат
+  // напълно еднакъв контекст (общи или обвързани с един и същи документ).
   const requestSeqRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const aliveRef = useRef(true);
+  /** Активният разговор, видим СИНХРОННО при рендер (без изчакване на ефект). */
+  const activeThreadIdRef = useRef<string | null>(activeThreadId);
+  activeThreadIdRef.current = activeThreadId;
   useEffect(() => {
     aliveRef.current = true;
     return () => {
@@ -174,6 +179,20 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       abortRef.current = null;
     };
   }, []);
+
+  // Смяна на активния разговор (маршрут, страничен/мобилен панел, хранилище):
+  // текущата заявка се обезсилва и прекъсва, преди късно SSE събитие или
+  // отложен tool ефект да променят UI или навигацията.
+  useEffect(() => {
+    requestSeqRef.current += 1;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setStreaming(false);
+    setStreamingText("");
+    setStreamingTools([]);
+    setStreamingProgress([]);
+  }, [activeThreadId]);
+
 
   /**
    * Клиентски tool-ове. Навигацията е ОТЛОЖЕНА, затова носи проверката за
@@ -328,23 +347,31 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     setMessages([]);
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("assistant_messages")
         .select("id, role, content")
         .eq("thread_id", activeThreadId)
         .order("created_at", { ascending: true });
-      if (!cancelled) {
-        const rows = (data ?? []) as Msg[];
-        setMessages(
-          rows.map((m) => {
-            if (m.role !== "assistant") return m;
-            const { content, followups } = extractFollowups(m.content || "");
-            return { ...m, content, followups };
-          }),
-        );
-        setLoadedMessagesThreadId(activeThreadId);
+      if (cancelled) return;
+      // Неуспешно четене на съобщенията НЕ е готовност: разговорът остава
+      // неизпращаем и потребителят получава същия контролиран изход.
+      if (error) {
+        setMessages([]);
+        setLoadedMessagesThreadId(null);
+        setThreadLoadFailed(true);
+        return;
       }
+      const rows = (data ?? []) as Msg[];
+      setMessages(
+        rows.map((m) => {
+          if (m.role !== "assistant") return m;
+          const { content, followups } = extractFollowups(m.content || "");
+          return { ...m, content, followups };
+        }),
+      );
+      setLoadedMessagesThreadId(activeThreadId);
     })();
+
     return () => { cancelled = true; };
   }, [activeThreadId]);
 
@@ -481,17 +508,24 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     setStreamingProgress([]);
     setStaleContext(null);
 
-    // Идентичност на тази заявка: обхват + номер. Всичко по-старо се игнорира.
+    // Идентичност на тази заявка: обхват + активен разговор + номер.
+    // Всичко по-старо се игнорира, дори при идентичен контекст.
     const seq = ++requestSeqRef.current;
     const scopeKey = contextKey;
+    const threadIdentity = { id: activeThreadId };
     const controller = new AbortController();
     abortRef.current?.abort();
     abortRef.current = controller;
     const isCurrent = () =>
-      aliveRef.current && seq === requestSeqRef.current && scopeKey === contextIdentityKey(
+      aliveRef.current &&
+      seq === requestSeqRef.current &&
+      // Проверяваме срещу текущия активен разговор, не срещу стар render.
+      activeThreadIdRef.current === threadIdentity.id &&
+      scopeKey === contextIdentityKey(
         // Проверяваме срещу текущия store, не срещу стар render.
         documentContextRef.current,
       );
+
 
 
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`;
@@ -645,8 +679,13 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       setStreamingTools([]);
       setStreamingProgress([]);
       if (receivedThreadId && receivedThreadId !== activeThreadId) {
+        // Новополученият разговор е ЧАСТ от идентичността на тази заявка —
+        // иначе собственото ѝ финализиране би изглеждало като остаряло.
+        threadIdentity.id = receivedThreadId;
+        activeThreadIdRef.current = receivedThreadId;
         setPersistedActiveThreadId(receivedThreadId);
       }
+
       loadThreads();
       // Опресняваме показаното потребление след успешна заявка.
       void refreshPlan();
