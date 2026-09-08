@@ -14,6 +14,12 @@
  * `unverified`, липсата на метаданни е `legacy_unverified`.
  */
 
+import {
+  snapshotFreshnessNotice,
+  type SnapshotFreshness,
+} from "@/lib/analysisSourceBinding";
+
+
 export type AnalysisVerificationStatus =
   | "evidence_checked"
   | "incomplete"
