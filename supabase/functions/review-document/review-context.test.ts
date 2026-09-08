@@ -210,7 +210,7 @@ Deno.test("пълен отговор без находки запазва гот
   assertEquals(n.legal_basis.length, 1);
 });
 
-Deno.test("оскъдно „готово" без задължителните структури не остава готово", () => {
+Deno.test("оскъдно готово без задължителните структури не остава готово", () => {
   const n = normalizeReviewResponse({
     parsed: { verdict: "ready", confidence: 99, summary: "Всичко е наред", checks: [{ label: "Едно", status: "pass" }] },
     truncated: false,
@@ -225,7 +225,7 @@ Deno.test("оскъдно „готово" без задължителните �
   assert(n.confidence <= 40);
 });
 
-Deno.test("„готово" с провалена проверка или с пропуски се сваля", () => {
+Deno.test("готово с провалена проверка или с пропуски се сваля", () => {
   const failed = normalizeReviewResponse({
     parsed: fullBody({
       checks: [...FULL_CHECKS.slice(1), { id: "forma_i_deystvitelnost", label: "Форма", status: "fail" }],
