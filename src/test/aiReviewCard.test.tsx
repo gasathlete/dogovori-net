@@ -2,7 +2,7 @@
  * Q2d — РЕАЛЕН жизнен цикъл на картата „Автоматична AI ревизия".
  * Заявките са отложени обещания; никакви мрежови или AI повиквания.
  */
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -18,6 +18,7 @@ vi.mock("@/lib/documentReview", async (importOriginal) => {
 });
 
 import { AIReviewCard } from "@/components/wizard/AIReviewCard";
+import { useReviewLifecycle } from "@/hooks/useReviewLifecycle";
 import { REVIEW_SOURCE_VERSION } from "@/lib/reviewSnapshot";
 import type { DocumentReview, ReviewOutcome } from "@/lib/documentReview";
 
@@ -241,5 +242,99 @@ describe("AIReviewCard — реален жизнен цикъл", () => {
     render(<AIReviewCard contract={contract()} documentType="t" />);
     await waitFor(() => expect(screen.getByText(/Ревизията не можа да бъде извършена/)).toBeTruthy());
     expect(screen.queryByText(/Ревизията е в ход/)).toBeNull();
+  });
+
+  it("по-стар отговор за същата снимка не заменя по-новия (A→B→A и ръчно презареждане)", async () => {
+    const dA1 = deferred<ReviewOutcome>();
+    const dB = deferred<ReviewOutcome>();
+    const dA2 = deferred<ReviewOutcome>();
+    reviewDocument
+      .mockImplementationOnce(() => dA1.promise)
+      .mockImplementationOnce(() => dB.promise)
+      .mockImplementationOnce(() => dA2.promise);
+
+    const A = contract();
+    const B = contract({ closing: "Различен край на документа." });
+    const view = render(<AIReviewCard contract={A} documentType="t" />);
+    await waitFor(() => expect(reviewDocument).toHaveBeenCalledTimes(1));
+    view.rerender(<AIReviewCard contract={B} documentType="t" />);
+    await waitFor(() => expect(reviewDocument).toHaveBeenCalledTimes(2));
+    view.rerender(<AIReviewCard contract={A} documentType="t" />);
+    await waitFor(() => expect(reviewDocument).toHaveBeenCalledTimes(3));
+
+    // Най-новата заявка за A завършва първа и се показва.
+    await act(async () => {
+      dA2.resolve(outcome({ review: review({ verdict: "blocked" }) }));
+    });
+    expect(screen.getByText(/Ревизията не може да потвърди документа/)).toBeTruthy();
+
+    // По-старите отговори за същата и за другата снимка не пипат нищо —
+    // включително стара ГРЕШКА не изтрива успешния резултат.
+    await act(async () => {
+      dA1.resolve(outcome({ review: null, error: "стара грешка" }));
+      dB.resolve(outcome());
+    });
+    expect(screen.getByText(/Ревизията не може да потвърди документа/)).toBeTruthy();
+    expect(screen.queryByText(/стара грешка/)).toBeNull();
+  });
+
+});
+
+describe("useReviewLifecycle — пореден номер на заявката", () => {
+  it("две припокриващи се проверки за същата снимка: важи последната", async () => {
+    const d1 = deferred<ReviewOutcome>();
+    const d2 = deferred<ReviewOutcome>();
+    const runner = vi
+      .fn()
+      .mockImplementationOnce(() => d1.promise)
+      .mockImplementationOnce(() => d2.promise);
+    const view = renderHook(() =>
+      useReviewLifecycle({
+        input: { documentText: "Текст на документа за проверка.", documentTitle: "Т" },
+        runner,
+        auto: false,
+      }),
+    );
+
+    await act(async () => {
+      view.result.current.run();
+    });
+    await act(async () => {
+      view.result.current.run();
+    });
+    expect(runner).toHaveBeenCalledTimes(2);
+
+    // Най-новата завършва първа.
+    await act(async () => {
+      d2.resolve(outcome({ review: review({ verdict: "needs_fixes" }) }));
+    });
+    expect(view.result.current.review?.verdict).toBe("needs_fixes");
+
+    // По-старата (тук: грешка) не изтрива успеха.
+    await act(async () => {
+      d1.resolve(outcome({ review: null, error: "закъсняла грешка" }));
+    });
+    expect(view.result.current.review?.verdict).toBe("needs_fixes");
+    expect(view.result.current.error).toBeNull();
+    expect(view.result.current.loading).toBe(false);
+  });
+
+  it("автоматичният старт остава ЕДИН, включително в StrictMode", async () => {
+    const d = deferred<ReviewOutcome>();
+    const runner = vi.fn().mockImplementation(() => d.promise);
+    const view = renderHook(
+      () =>
+        useReviewLifecycle({
+          input: { documentText: "Текст на документа за проверка.", documentTitle: "Т" },
+          runner,
+        }),
+      { wrapper: ({ children }) => <StrictMode>{children}</StrictMode> },
+    );
+    await waitFor(() => expect(runner).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      d.resolve(outcome());
+    });
+    expect(view.result.current.review?.verdict).toBe("ready");
+    expect(runner).toHaveBeenCalledTimes(1);
   });
 });

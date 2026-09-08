@@ -154,3 +154,24 @@ export function readCompleteness(v: unknown): ReviewCompleteness | null {
   const reasons = Array.isArray(o.reasons) ? o.reasons.filter((r): r is string => typeof r === "string") : [];
   return { status: s, reasons };
 }
+
+/**
+ * Дълбока СНИМКА на приетия контекст в момента на заявката. Копието е
+ * независимо: по-късни редакции на отговорите не могат да го променят.
+ */
+export function captureReviewContext(c: ReviewContextInput | null | undefined): ReviewContextInput | null {
+  if (!c) return null;
+  return {
+    ...(c.role ? { role: c.role } : {}),
+    decisions: c.decisions.map((d) => ({ label: d.label, value: d.value })),
+  };
+}
+
+/** Приетият контекст важи САМО за снимката, с която е заявен. */
+export function acceptedReviewContext(
+  accepted: { key: string; context: ReviewContextInput | null } | null | undefined,
+  currentKey: string,
+): ReviewContextInput | null {
+  if (!accepted || accepted.key !== currentKey) return null;
+  return accepted.context;
+}

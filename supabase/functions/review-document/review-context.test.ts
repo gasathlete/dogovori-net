@@ -195,7 +195,7 @@ Deno.test("противоречие без откъс от текста се о�
   assertEquals(n.completeness.status, "partial");
   assertNotEquals(n.verdict, "ready");
   assert(n.confidence <= 70);
-  assert(n.summary !== "Няма отчетени пропуски");
+  assert(n.summary.includes("Показани са наличните констатации"));
 });
 
 Deno.test("пълен отговор без находки запазва готовата присъда", () => {
@@ -271,7 +271,7 @@ Deno.test("рязан вход прави проверката непълна с
   assertEquals(n.completeness.status, "incomplete");
   assert(n.completeness.reasons.includes("input_truncated"));
   assertNotEquals(n.verdict, "ready");
-  assert(n.summary !== "Няма отчетени пропуски");
+  assert(n.summary.includes("Показани са наличните констатации"));
 });
 
 Deno.test("проверката на откъс е нечувствителна само към празнини и регистър", () => {

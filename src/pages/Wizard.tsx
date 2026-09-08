@@ -15,7 +15,11 @@ import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
 import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { getFillLaterPersonalData } from "@/lib/placeholderGate";
 import { AIReviewCard } from "@/components/wizard/AIReviewCard";
-import type { ReviewContextInput } from "@/lib/reviewSnapshot";
+import {
+  acceptedReviewContext as pickAcceptedReviewContext,
+  captureReviewContext,
+  type ReviewContextInput,
+} from "@/lib/reviewSnapshot";
 
 import { FillLaterPersonalData } from "@/components/wizard/FillLaterPersonalData";
 import { TOPUP_PACK_CONFIG, fmtEur, roiSubtitle, monthlyLabel, PRICING_PLANS, FREE_OPS_PER_MONTH } from "@/lib/pricing";
@@ -353,10 +357,9 @@ export default function WizardPage() {
     context: reviewContext,
   });
   reviewContextRef.current = { key: reviewContextKey, context: reviewContext };
-  const acceptedContextForReview =
-    acceptedReviewContext && acceptedReviewContext.key === reviewContextKey
-      ? acceptedReviewContext.context
-      : null;
+  const acceptedContextForReview = acceptedReviewContext
+    ? pickAcceptedReviewContext(acceptedReviewContext, reviewContextKey)
+    : null;
 
 
 
@@ -467,6 +470,12 @@ export default function WizardPage() {
     }, 5000);
     try {
 
+      // Приетият контекст се СНИМА в началото на заявката (преди първото
+      // изчакване) — по-късни редакции не могат да го подменят.
+      const requestedReviewContext: { key: string; context: ReviewContextInput | null } = {
+        key: reviewContextRef.current.key,
+        context: captureReviewContext(reviewContextRef.current.context),
+      };
       const flatQs = flattenQuestions(visibleQuestions);
       const arbitrationCourt = arbitration.enabled ? getCourtById(arbitration.courtId) : undefined;
       const job = await generateContractJob<AIResult & { error?: string; code?: string; requires_login?: boolean; classification?: ClassificationSummary }>(
@@ -565,8 +574,8 @@ export default function WizardPage() {
       const payload = data as AIResult;
       if (bilingualMode && payload.contract) payload.contract.bilingual = true;
       setResult(payload);
-      // Приетият контекст се фиксира ЗАЕДНО с успешния резултат.
-      setAcceptedReviewContext({ ...reviewContextRef.current });
+      // Приетият контекст е този, с който заявката е ИЗПРАТЕНА.
+      setAcceptedReviewContext(requestedReviewContext);
       setConsentRequired(false);
       trackGenerate("success", { doc_key: docKey, source: "wizard", ...genMeta });
       trackResultViewed({ doc_key: docKey, source: "wizard" });
