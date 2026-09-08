@@ -3,12 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { ShieldAlert, Loader2, ExternalLink, AlertTriangle, Info } from "@/icons";
 import { cn } from "@/lib/utils";
 import { NegotiationStrategyPanel } from "@/components/NegotiationStrategyPanel";
+import { emptyIssuesMessage, presentAnalysisScore } from "@/lib/analysisVerification";
 
-function scoreColor(score: number) {
-  if (score >= 8) return "text-emerald-400 border-emerald-500/40 bg-emerald-500/10";
-  if (score >= 5) return "text-amber-400 border-amber-500/40 bg-amber-500/10";
-  return "text-red-400 border-red-500/40 bg-red-500/10";
-}
 
 export function AnalysisPane({ analysisId }: { analysisId: string }) {
   const [a, setA] = useState<any | null>(null);
