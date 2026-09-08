@@ -113,7 +113,7 @@ export async function computeAnalysisCacheKey(input: {
  * без да пипа или „бумпва" доказателствената схема (v1 метаданни БЕЗ `source`
  * остават четими от Q2a UI, но не могат да дадат нов кеш-хит).
  */
-export function attachSourceBinding<T extends Record<string, unknown>>(
+export function attachSourceBinding<T extends object>(
   verification: T,
   binding: AnalysisSourceBinding,
 ): T & { source: AnalysisSourceBinding } {
