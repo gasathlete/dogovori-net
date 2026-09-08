@@ -25,18 +25,15 @@ CREATE TABLE IF NOT EXISTS public.assistant_edit_proposals (
   applied_at TIMESTAMPTZ,
   -- Състоянието на документа СЛЕД прилагането — нужно за точно връщане (undo).
   applied_updated_at TIMESTAMPTZ,
-  applied_context_version TEXT,
   reverted_at TIMESTAMPTZ,
   CONSTRAINT assistant_edit_proposals_status_chk
     CHECK (status IN ('pending', 'accepted', 'rejected', 'reverted')),
   CONSTRAINT assistant_edit_proposals_base_version_chk
     CHECK (base_context_version ~ '^[0-9a-f]{64}$'),
-  CONSTRAINT assistant_edit_proposals_applied_version_chk
-    CHECK (applied_context_version IS NULL OR applied_context_version ~ '^[0-9a-f]{64}$'),
   CONSTRAINT assistant_edit_proposals_path_chk
     CHECK (
       char_length(target_path) BETWEEN 1 AND 120
-      AND target_path ~ '^(title|payload\.(intro|closing|text)|payload\.(sections|clauses)\[[0-9]{1,3}\]\.(heading|body|title))$'
+      AND target_path ~ '^(title|payload\.(intro|closing|text)|payload\.sections\[([0-9]|[1-9][0-9]|1[0-9][0-9])\]\.(heading|body)|payload\.clauses\[([0-9]|[1-9][0-9]|1[0-9][0-9])\]\.(title|body))$'
     ),
   CONSTRAINT assistant_edit_proposals_text_len_chk
     CHECK (char_length(before_text) <= 20000 AND char_length(after_text) <= 20000),
@@ -97,13 +94,9 @@ AS $$
     WHERE d.id = _document_id
       AND (
         d.user_id = _user_id
-        OR (
-          d.team_id IS NOT NULL
-          AND EXISTS (
-            SELECT 1 FROM public.team_members tm
-            WHERE tm.team_id = d.team_id AND tm.user_id = _user_id
-          )
-        )
+        -- Членството се проверява САМО през общия помощник, за да няма втора,
+        -- разминаваща се реализация на достъпа до екипни документи.
+        OR (d.team_id IS NOT NULL AND public.is_team_member(_user_id, d.team_id))
       )
   );
 $$;
@@ -129,9 +122,13 @@ BEGIN
   IF m IS NOT NULL THEN
     RETURN ARRAY[m[1]];
   END IF;
-  m := regexp_match(_path, '^payload\.(sections|clauses)\[([0-9]{1,3})\]\.(heading|body|title)$');
+  m := regexp_match(_path, '^payload\.sections\[([0-9]|[1-9][0-9]|1[0-9][0-9])\]\.(heading|body)$');
   IF m IS NOT NULL THEN
-    RETURN ARRAY[m[1], m[2], m[3]];
+    RETURN ARRAY['sections', m[1], m[2]];
+  END IF;
+  m := regexp_match(_path, '^payload\.clauses\[([0-9]|[1-9][0-9]|1[0-9][0-9])\]\.(title|body)$');
+  IF m IS NOT NULL THEN
+    RETURN ARRAY['clauses', m[1], m[2]];
   END IF;
   RAISE EXCEPTION 'invalid_target_path';
 END;
@@ -206,15 +203,11 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'code', 'forbidden');
   END IF;
 
+  -- Пътят се разбира веднага (whitelist), но ТЕКУЩАТА стойност на целта се
+  -- чете само в клоновете, които реално променят документа. Така повторен
+  -- reject/accept/undo след загубен отговор остава стабилен и когато елементът
+  -- вече е премахнат от документа.
   jpath := public.assistant_edit_payload_path(p.target_path);
-  IF jpath IS NULL THEN
-    current_val := d.title;
-  ELSE
-    IF jsonb_typeof(d.payload #> jpath) IS DISTINCT FROM 'string' THEN
-      RETURN jsonb_build_object('ok', false, 'code', 'target_not_found');
-    END IF;
-    current_val := d.payload #>> jpath;
-  END IF;
 
   -- ------------------------------------------------------------------ reject
   IF _action = 'reject' THEN
@@ -236,8 +229,23 @@ BEGIN
     ELSIF p.status <> 'pending' THEN
       RETURN jsonb_build_object('ok', false, 'code', 'invalid_transition', 'status', p.status);
     ELSE
+      -- Разговорът трябва все още да е обвързан с ТОЧНО базовата версия, срещу
+      -- която е направено предложението.
+      IF NOT EXISTS (
+        SELECT 1 FROM public.assistant_threads t
+        WHERE t.id = p.thread_id AND t.context_version = p.base_context_version
+      ) THEN
+        RETURN jsonb_build_object('ok', false, 'code', 'stale_context');
+      END IF;
       IF d.updated_at <> p.base_updated_at THEN
         RETURN jsonb_build_object('ok', false, 'code', 'stale_base');
+      END IF;
+      IF jpath IS NULL THEN
+        current_val := d.title;
+      ELSIF jsonb_typeof(d.payload #> jpath) = 'string' THEN
+        current_val := d.payload #>> jpath;
+      ELSE
+        RETURN jsonb_build_object('ok', false, 'code', 'target_not_found');
       END IF;
       IF current_val IS DISTINCT FROM p.before_text THEN
         RETURN jsonb_build_object('ok', false, 'code', 'stale_value');
@@ -271,6 +279,13 @@ BEGIN
       IF p.applied_updated_at IS NULL OR d.updated_at <> p.applied_updated_at THEN
         RETURN jsonb_build_object('ok', false, 'code', 'stale_state');
       END IF;
+      IF jpath IS NULL THEN
+        current_val := d.title;
+      ELSIF jsonb_typeof(d.payload #> jpath) = 'string' THEN
+        current_val := d.payload #>> jpath;
+      ELSE
+        RETURN jsonb_build_object('ok', false, 'code', 'target_not_found');
+      END IF;
       IF current_val IS DISTINCT FROM p.after_text THEN
         RETURN jsonb_build_object('ok', false, 'code', 'stale_state');
       END IF;
@@ -288,7 +303,7 @@ BEGIN
       END IF;
       changed := true;
       UPDATE public.assistant_edit_proposals
-      SET status = 'reverted', reverted_at = now(), applied_updated_at = d.updated_at
+      SET status = 'reverted', reverted_at = now()
       WHERE id = p.id
       RETURNING * INTO p;
     END IF;

@@ -10,6 +10,7 @@
  *    след изрично действие на потребителя, през атомарната SQL функция.
  *  - Тук не се логват текстове на документи или предложения.
  */
+import { computeContextVersion } from "./assistant-context-version.ts";
 
 export const EDIT_TARGETS = [
   "title",
@@ -42,6 +43,7 @@ export type EditProposalFailureCode =
   | "unresolved_redaction"
   | "identical_text"
   | "document_not_found"
+  | "stale_context"
   | "persist_failed";
 
 export interface EditTargetArgs {
@@ -149,6 +151,21 @@ export function boundedReason(raw: unknown): string | null {
 }
 
 /**
+ * Причината минава през СЪЩАТА обработка като новия текст: редактираните PII
+ * стойности се възстановяват и остатъчен защитен маркер е отказ (иначе в базата
+ * би попаднал `<NAME_1>`). Ограничението за дължина се запазва.
+ */
+export function sanitizeReason(
+  raw: unknown,
+  restore: (text: string) => string,
+): { ok: true; text: string | null } | Fail {
+  if (typeof raw !== "string") return { ok: true, text: null };
+  const restored = restore(raw);
+  if (REDACTION_TOKEN_RE.test(restored)) return fail("unresolved_redaction");
+  return { ok: true, text: boundedReason(restored) };
+}
+
+/**
  * Нормализира предложения текст: възстановява редактираните PII стойности през
  * мапинга в паметта и отказва, ако е останал неразрешен маркер.
  */
@@ -212,6 +229,39 @@ export async function proposeSavedDocumentEdit(
   const row = data as AuthoritativeDocumentRow;
   if (!row.updated_at) return fail("document_not_found");
 
+  // Предложението има смисъл САМО ако прочетеният ред е ТОЧНО състоянието, което
+  // моделът е видял. Версията се преизчислява от същия ред със същия помощник,
+  // който обвързва разговора — при разлика няма предложение.
+  const currentVersion = await computeContextVersion({
+    kind: "saved_document",
+    entityId: deps.documentId,
+    fields: {
+      title: row.title ?? null,
+      kind: row.kind ?? null,
+      payload: row.payload ?? null,
+      created_at: row.created_at ?? null,
+    },
+  });
+  if (currentVersion !== deps.contextVersion) return fail("stale_context");
+
+  // Разговорът се препрочита през RLS: същият потребител, същият документ и
+  // ТОЧНО същата базова версия. Иначе контекстът е сменен между ходовете.
+  const threadRes = await deps.reader
+    .from("assistant_threads")
+    .select("id, user_id, context_kind, context_entity_id, context_version")
+    .eq("id", deps.threadId)
+    .maybeSingle();
+  const thread = threadRes.data as Record<string, unknown> | null;
+  if (threadRes.error || !thread) return fail("stale_context");
+  if (
+    String(thread.user_id ?? "") !== deps.userId ||
+    String(thread.context_kind ?? "") !== "saved_document" ||
+    String(thread.context_entity_id ?? "") !== deps.documentId ||
+    String(thread.context_version ?? "") !== deps.contextVersion
+  ) {
+    return fail("stale_context");
+  }
+
   const leaf = resolveTargetLeaf(
     row,
     args.target as EditTarget,
@@ -223,6 +273,9 @@ export async function proposeSavedDocumentEdit(
   if (!replacement.ok) return replacement;
   if (replacement.text === leaf.before) return fail("identical_text");
 
+  const reason = sanitizeReason(args.reason, deps.restore);
+  if (!reason.ok) return reason;
+
   const insert = {
     user_id: deps.userId,
     thread_id: deps.threadId,
@@ -232,7 +285,7 @@ export async function proposeSavedDocumentEdit(
     target_path: path.path,
     before_text: leaf.before,
     after_text: replacement.text,
-    reason: boundedReason(args.reason),
+    reason: reason.text,
     status: "pending",
   };
 
@@ -301,11 +354,13 @@ export function decideEditTransition(input: TransitionInput): TransitionDecision
     return { ok: true, effect: "mark_rejected", idempotent: false };
   }
 
-  if (input.currentTargetValue === null) return { ok: false, code: "target_not_found" };
-
+  // Идемпотентността и противоречивите преходи се решават ПРЕДИ текущата
+  // стойност на целта: повторното действие след загубен отговор трябва да е
+  // стабилно и когато елементът вече не съществува.
   if (action === "accept") {
     if (p.status === "accepted") return { ok: true, effect: "none", idempotent: true };
     if (p.status !== "pending") return { ok: false, code: "invalid_transition" };
+    if (input.currentTargetValue === null) return { ok: false, code: "target_not_found" };
     if (!sameInstant(input.documentUpdatedAt, p.base_updated_at)) {
       return { ok: false, code: "stale_base" };
     }
@@ -318,6 +373,7 @@ export function decideEditTransition(input: TransitionInput): TransitionDecision
   // undo
   if (p.status === "reverted") return { ok: true, effect: "none", idempotent: true };
   if (p.status !== "accepted") return { ok: false, code: "invalid_transition" };
+  if (input.currentTargetValue === null) return { ok: false, code: "target_not_found" };
   if (!sameInstant(input.documentUpdatedAt, p.applied_updated_at ?? null)) {
     return { ok: false, code: "stale_state" };
   }
@@ -340,11 +396,15 @@ export function parseTargetPath(
   if (path === "title") return { target: "title" };
   const simple = path.match(/^payload\.(intro|closing|text)$/);
   if (simple) return { target: simple[1] as EditTarget };
+  // Точно поддържаните двойки: sections→heading|body, clauses→title|body.
+  // Без водещи нули и без кръстосани двойки — същият whitelist като в SQL.
   const indexed = path.match(
-    /^payload\.(sections|clauses)\[(\d{1,3})\]\.(heading|body|title)$/,
+    /^payload\.(?:(sections)\[(0|[1-9][0-9]{0,2})\]\.(heading|body)|(clauses)\[(0|[1-9][0-9]{0,2})\]\.(title|body))$/,
   );
   if (!indexed) return null;
-  const [, collection, rawIndex, leaf] = indexed;
+  const collection = indexed[1] ?? indexed[4];
+  const rawIndex = indexed[2] ?? indexed[5];
+  const leaf = indexed[3] ?? indexed[6];
   const index = Number(rawIndex);
   if (!Number.isInteger(index) || index > MAX_INDEX) return null;
   const target = Object.keys(INDEXED_TARGETS).find((k) =>

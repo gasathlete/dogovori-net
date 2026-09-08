@@ -117,11 +117,13 @@ Deno.serve(async (req) => {
     const doc = res.document ?? {};
     const changed = res.changed === true;
 
-    // ---- Пре-обвързване на СЪЩИЯ разговор към новата версия --------------
+    // ---- Обвързване на СЪЩИЯ разговор към ТЕКУЩАТА версия ----------------
+    // Изчислява се и при идемпотентен повтор (загубен HTTP отговор): иначе UI
+    // би получил „старият разговор е актуален“ без това да е доказано.
     let rebound = false;
     let contextVersion: string | null = previousVersion;
-    if (changed) {
-      contextVersion = await computeContextVersion({
+    if (doc.id) {
+      const canonical = await computeContextVersion({
         kind: "saved_document",
         entityId: String(doc.id),
         fields: {
@@ -131,26 +133,42 @@ Deno.serve(async (req) => {
           created_at: doc.created_at ?? null,
         },
       });
+      contextVersion = canonical;
 
-      // Пре-обвързваме само ако документът все още е ТОЧНО състоянието, което
-      // транзакцията върна, и само от точната предишна версия.
-      const { data: recheck } = await userClient
-        .from("saved_documents")
-        .select("updated_at")
-        .eq("id", doc.id)
+      // Текущо обвързаната версия се препрочита — тя може вече да е новата
+      // (например при повторно изпратено същото действие).
+      const { data: tNow } = await userClient
+        .from("assistant_threads")
+        .select("context_version")
+        .eq("id", proposal.thread_id)
         .maybeSingle();
-      const stillSame = !!recheck &&
-        Date.parse(String((recheck as any).updated_at)) === Date.parse(String(doc.updated_at));
+      const boundVersion: string | null = tNow
+        ? ((tNow as any).context_version ?? null)
+        : null;
 
-      if (stillSame && previousVersion) {
-        const { data: updated } = await userClient
-          .from("assistant_threads")
-          .update({ context_version: contextVersion })
-          .eq("id", proposal.thread_id)
-          .eq("context_version", previousVersion)
-          .select("id")
+      if (boundVersion && boundVersion === canonical) {
+        rebound = true;
+      } else {
+        // Пре-обвързваме само ако документът все още е ТОЧНО състоянието, което
+        // транзакцията върна, и само от точната текуща версия на разговора.
+        const { data: recheck } = await userClient
+          .from("saved_documents")
+          .select("updated_at")
+          .eq("id", doc.id)
           .maybeSingle();
-        rebound = !!updated;
+        const stillSame = !!recheck &&
+          Date.parse(String((recheck as any).updated_at)) === Date.parse(String(doc.updated_at));
+
+        if (stillSame && boundVersion) {
+          const { data: updated } = await userClient
+            .from("assistant_threads")
+            .update({ context_version: canonical })
+            .eq("id", proposal.thread_id)
+            .eq("context_version", boundVersion)
+            .select("id")
+            .maybeSingle();
+          rebound = !!updated;
+        }
       }
     }
 
@@ -163,9 +181,10 @@ Deno.serve(async (req) => {
       document: { id: doc.id ?? null, updatedAt: doc.updated_at ?? null },
       contextVersion,
       rebound,
-      // Ако документът е променен, но обвързването не може да бъде доказано,
-      // интерфейсът ТРЯБВА да поиска нов разговор — старият контекст не е актуален.
-      requiresNewThread: changed && !rebound,
+      // Ако обвързването не може да бъде доказано (включително при идемпотентен
+      // повтор), интерфейсът ТРЯБВА да поиска нов разговор — старият контекст не
+      // е доказано актуален.
+      requiresNewThread: !rebound,
     });
   } catch (_e) {
     // Без текстове на документи/предложения в логовете.
