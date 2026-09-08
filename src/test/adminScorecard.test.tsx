@@ -265,3 +265,168 @@ describe("честно съдържание", () => {
     expect(screen.getByText(/НЕ е включена в общия брой/)).toBeTruthy();
   });
 });
+
+describe("отхвърлени обещания", () => {
+  it("отхвърлена проверка на роля води до отказ без заявка за данни", async () => {
+    rpcMock.mockImplementation((fn: string) => {
+      if (fn === "has_role") return Promise.reject(new Error("network down"));
+      return Promise.resolve({ data: scorecardPayload(), error: null });
+    });
+    renderPage();
+    await screen.findByText(/Достъпът е отказан/);
+    expect(ownerCalls()).toHaveLength(0);
+  });
+
+  it("синхронно изключение при проверка на роля също води до отказ", async () => {
+    rpcMock.mockImplementation((fn: string) => {
+      if (fn === "has_role") throw new Error("boom");
+      return Promise.resolve({ data: scorecardPayload(), error: null });
+    });
+    renderPage();
+    await screen.findByText(/Достъпът е отказан/);
+    expect(ownerCalls()).toHaveLength(0);
+  });
+
+  it("отхвърлена заявка за данни дава повторен опит, който успява", async () => {
+    let attempt = 0;
+    rpcMock.mockImplementation((fn: string) => {
+      if (fn === "has_role") return Promise.resolve({ data: true, error: null });
+      attempt += 1;
+      if (attempt === 1) return Promise.reject(new Error("network down"));
+      return Promise.resolve({
+        data: scorecardPayload({
+          payment_truth: { ...scorecardPayload().payment_truth, proven_payers_total: 12 },
+        }),
+        error: null,
+      });
+    });
+    renderPage();
+    const retry = await screen.findByRole("button", { name: /Опитай отново/ });
+    expect(screen.queryByText(/network down/)).toBeNull();
+    retry.click();
+    await screen.findByText("12");
+  });
+});
+
+describe("смяна на профил", () => {
+  it("данните на първия администратор изчезват веднага, преди ролята на втория", async () => {
+    let resolveSecondRole: ((v: { data: unknown; error: unknown }) => void) | null = null;
+    rpcMock.mockImplementation((fn: string, args: Record<string, unknown>) => {
+      if (fn === "has_role") {
+        if (args._user_id === "admin-2") {
+          return new Promise<{ data: unknown; error: unknown }>((res) => {
+            resolveSecondRole = res;
+          });
+        }
+        return Promise.resolve({ data: true, error: null });
+      }
+      return Promise.resolve({
+        data: scorecardPayload({
+          payment_truth: { ...scorecardPayload().payment_truth, proven_payers_total: 41 },
+        }),
+        error: null,
+      });
+    });
+    const view = renderPage();
+    await screen.findByText("41");
+    const callsBefore = ownerCalls().length;
+
+    authState.user = { id: "admin-2" };
+    view.rerender(
+      <MemoryRouter initialEntries={["/admin/scorecard"]}>
+        <AdminScorecard />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByText("41")).toBeNull();
+    await waitFor(() => expect(ownerCalls().length).toBe(callsBefore));
+
+    resolveSecondRole?.({ data: true, error: null });
+    await waitFor(() => expect(ownerCalls().length).toBe(callsBefore + 1));
+  });
+
+  it("изостанал отказ за стар профил не отменя новия администратор", async () => {
+    let resolveFirstRole: ((v: { data: unknown; error: unknown }) => void) | null = null;
+    rpcMock.mockImplementation((fn: string, args: Record<string, unknown>) => {
+      if (fn === "has_role") {
+        if (args._user_id === "admin-1") {
+          return new Promise<{ data: unknown; error: unknown }>((res) => {
+            resolveFirstRole = res;
+          });
+        }
+        return Promise.resolve({ data: true, error: null });
+      }
+      return Promise.resolve({
+        data: scorecardPayload({
+          payment_truth: { ...scorecardPayload().payment_truth, proven_payers_total: 5 },
+        }),
+        error: null,
+      });
+    });
+    const view = renderPage();
+    await waitFor(() => expect(rpcMock).toHaveBeenCalled());
+
+    authState.user = { id: "admin-2" };
+    view.rerender(
+      <MemoryRouter initialEntries={["/admin/scorecard"]}>
+        <AdminScorecard />
+      </MemoryRouter>,
+    );
+    await screen.findByText("5");
+
+    resolveFirstRole?.({ data: false, error: null });
+    await waitFor(() => expect(screen.queryByText(/Достъпът е отказан/)).toBeNull());
+    expect(screen.getByText("5")).toBeTruthy();
+  });
+});
+
+describe("изостанали заявки за период", () => {
+  it("изостанало отхвърляне не заменя текущите данни", async () => {
+    let rejectFirst: ((e: unknown) => void) | null = null;
+    let call = 0;
+    rpcMock.mockImplementation((fn: string) => {
+      if (fn === "has_role") return Promise.resolve({ data: true, error: null });
+      call += 1;
+      if (call === 1) {
+        return new Promise<{ data: unknown; error: unknown }>((_res, rej) => {
+          rejectFirst = rej;
+        });
+      }
+      return Promise.resolve({
+        data: scorecardPayload({
+          payment_truth: { ...scorecardPayload().payment_truth, proven_payers_total: 8 },
+        }),
+        error: null,
+      });
+    });
+    renderPage();
+    await waitFor(() => expect(ownerCalls().length).toBe(1));
+    (await screen.findByRole("button", { name: "30 дни" })).click();
+    await screen.findByText("8");
+
+    rejectFirst?.(new Error("late failure"));
+    await waitFor(() => expect(screen.queryByRole("button", { name: /Опитай отново/ })).toBeNull());
+    expect(screen.getByText("8")).toBeTruthy();
+  });
+
+  it("смяната на период веднага скрива числата от предишния период", async () => {
+    let call = 0;
+    rpcMock.mockImplementation((fn: string) => {
+      if (fn === "has_role") return Promise.resolve({ data: true, error: null });
+      call += 1;
+      if (call === 1) {
+        return Promise.resolve({
+          data: scorecardPayload({
+            payment_truth: { ...scorecardPayload().payment_truth, proven_payers_total: 33 },
+          }),
+          error: null,
+        });
+      }
+      return new Promise<{ data: unknown; error: unknown }>(() => {});
+    });
+    renderPage();
+    await screen.findByText("33");
+    (await screen.findByRole("button", { name: "7 дни" })).click();
+    expect(screen.queryByText("33")).toBeNull();
+    expect(screen.getByRole("button", { name: "7 дни" })).toHaveAttribute("aria-pressed", "true");
+  });
+});
