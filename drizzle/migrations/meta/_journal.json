@@ -99,6 +99,13 @@
       "when": 1788858812648,
       "tag": "0013_owner_scorecard",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1788864001156,
+      "tag": "0014_analysis_verification",
+      "breakpoints": true
     }
   ]
 }
