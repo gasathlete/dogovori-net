@@ -104,6 +104,12 @@ export function decideAssistantOrchestration(input: OrchestrationInput): Orchest
 /** Ефективен сървърен безплатен лимит за AI съобщения. Непроменен. */
 export const FREE_AI_MESSAGES = 3;
 
+/** Прозорецът на безплатния месечен пул — същите 30 дни, както в базата. */
+export const MONTHLY_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** Колко пъти опитваме при загубен compare-and-update (реална конкуренция). */
+export const FREE_CAS_ATTEMPTS = 4;
+
 export interface ReservationDeps {
   /** Service-role достъп до `download_quota` (само за безплатния път). */
   admin: { from: (table: string) => any };
@@ -111,6 +117,8 @@ export interface ReservationDeps {
   userClient: { rpc: (fn: string, args?: Record<string, unknown>) => Promise<any> };
   userId: string;
   teamId: string | null;
+  /** Инжектируемо време (за тестове на месечния прозорец). */
+  now?: () => number;
 }
 
 export type ReservationResult = { ok: true } | AssistantGateFailure;
@@ -123,6 +131,10 @@ const RESERVATION_FAILURES: Record<string, { status: number; error: string }> = 
     error:
       `Изчерпахте ${FREE_AI_MESSAGES}-те безплатни запитвания към DogovaryAI. Активирайте план Професионалист, Предприемач или Екип за неограничен достъп.`,
   },
+  quota_unavailable: {
+    status: 503,
+    error: "Не можем да проверим оставащите операции в момента. Опитайте отново след минута.",
+  },
 };
 
 function reservationFail(code: string): AssistantGateFailure {
@@ -131,47 +143,89 @@ function reservationFail(code: string): AssistantGateFailure {
 }
 
 /**
- * Безплатният път: едно прието съобщение вдига `ai_messages_used`,
- * `monthly_total_used` и `total_used` ТОЧНО по веднъж, атомарно чрез
- * compare-and-update спрямо прочетените стойности (без клиентско консумиране).
+ * Безплатният път.
+ *
+ * Едно прието съобщение вдига `ai_messages_used` и `total_used` точно по веднъж
+ * и брои една операция в месечния пул. Огледално на `consume_quota` в базата:
+ * ако са минали >= 30 дни от `monthly_reset_at`, месечните броячи се нулират,
+ * прозорецът се придвижва и този чат става първата операция за новия период.
+ *
+ * Атомарност: compare-and-update спрямо ТОЧНО прочетените стойности + таван.
+ * Загубено сравнение (валидна конкуренция) се повтаря ограничено; истинска
+ * инфраструктурна грешка е 503, а не „изчерпан лимит".
  */
 async function reserveFree(deps: ReservationDeps): Promise<ReservationResult> {
-  const { data: current } = await deps.admin
-    .from("download_quota")
-    .select("ai_messages_used, monthly_total_used, total_used")
-    .eq("user_id", deps.userId)
-    .maybeSingle();
+  const nowMs = deps.now ? deps.now() : Date.now();
 
-  if (!current) {
-    await deps.admin
+  for (let attempt = 0; attempt < FREE_CAS_ATTEMPTS; attempt++) {
+    const { data: read, error: readErr } = await deps.admin
       .from("download_quota")
-      .upsert(
-        { user_id: deps.userId, ai_messages_used: 0, monthly_total_used: 0, total_used: 0 },
-        { onConflict: "user_id" },
-      );
+      .select("ai_messages_used, monthly_total_used, total_used, monthly_reset_at")
+      .eq("user_id", deps.userId)
+      .maybeSingle();
+    if (readErr) return reservationFail("quota_unavailable");
+
+    let current = read as Record<string, unknown> | null;
+
+    if (!current) {
+      const { error: upsertErr } = await deps.admin
+        .from("download_quota")
+        .upsert({ user_id: deps.userId }, { onConflict: "user_id" });
+      if (upsertErr) return reservationFail("quota_unavailable");
+      // Авторитетните стойности по подразбиране идват от базата, не от нас.
+      const { data: reread, error: rereadErr } = await deps.admin
+        .from("download_quota")
+        .select("ai_messages_used, monthly_total_used, total_used, monthly_reset_at")
+        .eq("user_id", deps.userId)
+        .maybeSingle();
+      if (rereadErr || !reread) return reservationFail("quota_unavailable");
+      current = reread as Record<string, unknown>;
+    }
+
+    const aiUsed = Number(current.ai_messages_used ?? 0);
+    const monthlyUsed = Number(current.monthly_total_used ?? 0);
+    const totalUsed = Number(current.total_used ?? 0);
+    const resetAtRaw = current.monthly_reset_at ?? null;
+
+    if (aiUsed >= FREE_AI_MESSAGES) return reservationFail("ai_free_limit_reached");
+
+    const resetMs = typeof resetAtRaw === "string" ? Date.parse(resetAtRaw) : NaN;
+    const rollover = Number.isFinite(resetMs) && nowMs - resetMs >= MONTHLY_WINDOW_MS;
+
+    const patch: Record<string, unknown> = rollover
+      ? {
+          ai_messages_used: aiUsed + 1,
+          total_used: totalUsed + 1,
+          monthly_contracts_used: 0,
+          monthly_templates_used: 0,
+          monthly_total_used: 1,
+          monthly_reset_at: new Date(nowMs).toISOString(),
+        }
+      : {
+          ai_messages_used: aiUsed + 1,
+          monthly_total_used: monthlyUsed + 1,
+          total_used: totalUsed + 1,
+        };
+
+    let q = deps.admin
+      .from("download_quota")
+      .update(patch)
+      .eq("user_id", deps.userId)
+      .eq("ai_messages_used", aiUsed)
+      .eq("monthly_total_used", monthlyUsed)
+      .eq("total_used", totalUsed);
+    if (typeof resetAtRaw === "string") q = q.eq("monthly_reset_at", resetAtRaw);
+    const { data: reserved, error } = await q
+      .lt("ai_messages_used", FREE_AI_MESSAGES)
+      .select("ai_messages_used")
+      .maybeSingle();
+
+    if (error) return reservationFail("quota_unavailable");
+    if (reserved) return { ok: true };
+    // Загубено сравнение: друга валидна заявка е обновила реда. Четем отново.
   }
 
-  const aiUsed = Number(current?.ai_messages_used ?? 0);
-  const monthlyUsed = Number(current?.monthly_total_used ?? 0);
-  const totalUsed = Number(current?.total_used ?? 0);
-
-  const { data: reserved, error } = await deps.admin
-    .from("download_quota")
-    .update({
-      ai_messages_used: aiUsed + 1,
-      monthly_total_used: monthlyUsed + 1,
-      total_used: totalUsed + 1,
-    })
-    .eq("user_id", deps.userId)
-    .eq("ai_messages_used", aiUsed)
-    .eq("monthly_total_used", monthlyUsed)
-    .eq("total_used", totalUsed)
-    .lt("ai_messages_used", FREE_AI_MESSAGES)
-    .select("ai_messages_used")
-    .maybeSingle();
-
-  if (error || !reserved) return reservationFail("ai_free_limit_reached");
-  return { ok: true };
+  return reservationFail("quota_unavailable");
 }
 
 export async function reserveAssistantOperation(

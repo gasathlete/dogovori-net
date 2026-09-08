@@ -76,8 +76,12 @@ export async function resolveDocumentContext(
       .eq("id", entityId)
       .maybeSingle();
     if (error || !data) return { ok: false, code: "document_not_found" };
+    // `original_filename` участва в сървърното заглавие, затова ТРЯБВА да влиза
+    // и във версията — иначе смяна само на името не би направила разговора
+    // остарял, макар етикетът му да се променя.
     const fields = {
       title: data.title ?? null,
+      original_filename: data.original_filename ?? null,
       extracted_text: data.extracted_text ?? null,
     };
     return {
@@ -173,10 +177,25 @@ export async function resolveDocumentContext(
   };
 }
 
+/** Плитко-дълбоко копие на прост JSON-подобен обект (без класове/функции). */
+function jsonClone<T>(value: T): T {
+  if (value === null || typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.map((v) => jsonClone(v)) as unknown as T;
+  const out: Record<string, unknown> = {};
+  for (const k of Object.keys(value as Record<string, unknown>)) {
+    out[k] = jsonClone((value as Record<string, unknown>)[k]);
+  }
+  return out as unknown as T;
+}
+
 /**
- * Ограниченото представяне на запазен документ. Известните полета запазват
- * четимия си ред, а ВСИЧКИ останали листа се добавят рекурсивно с пътища —
- * нищо не се изпуска тихо само защото `intro`/`sections` съществуват.
+ * Ограниченото представяне на запазен документ.
+ *
+ * Известните полета запазват четимия си ред САМО когато формата им е
+ * стандартна; всеки консумиран лист се маха от остатъка, а остатъкът се извежда
+ * рекурсивно с пътища. Така всеки string/number/boolean лист се появява точно
+ * ВЕДНЪЖ — включително при нестандартни форми (`sections` като обект, `intro`
+ * като обект, `clauses` като скалар, вложен `text`).
  */
 function renderPayload(payload: unknown): string {
   if (payload === null || payload === undefined) return "";
@@ -185,48 +204,49 @@ function renderPayload(payload: unknown): string {
     return renderBoundedLeaves(payload);
   }
   const p = payload as Record<string, any>;
-  const known = new Set(["intro", "sections", "clauses", "text", "closing"]);
+  const rest = jsonClone(p) as Record<string, any>;
   const parts: string[] = [];
-  if (typeof p.intro === "string" && p.intro.trim()) parts.push(p.intro);
-  if (Array.isArray(p.sections)) {
-    for (const s of p.sections) {
-      if (!s || typeof s !== "object") continue;
-      parts.push([s.heading, s.body].filter((v) => typeof v === "string" && v.trim()).join("\n"));
+
+  const takeString = (holder: Record<string, any>, key: string): string | null => {
+    const v = holder?.[key];
+    if (typeof v === "string" && v.trim()) {
+      delete holder[key];
+      return v;
+    }
+    return null;
+  };
+
+  const intro = takeString(rest, "intro");
+  if (intro) parts.push(intro);
+
+  if (Array.isArray(p.sections) && Array.isArray(rest.sections)) {
+    for (let i = 0; i < rest.sections.length; i++) {
+      const s = rest.sections[i];
+      if (!s || typeof s !== "object" || Array.isArray(s)) continue;
+      const heading = takeString(s, "heading");
+      const body = takeString(s, "body");
+      const joined = [heading, body].filter(Boolean).join("\n");
+      if (joined) parts.push(joined);
     }
   }
-  if (Array.isArray(p.clauses)) {
-    for (const c of p.clauses) {
-      if (!c || typeof c !== "object") continue;
-      parts.push([c.title, c.body].filter((v) => typeof v === "string" && v.trim()).join("\n"));
+
+  if (Array.isArray(p.clauses) && Array.isArray(rest.clauses)) {
+    for (let i = 0; i < rest.clauses.length; i++) {
+      const c = rest.clauses[i];
+      if (!c || typeof c !== "object" || Array.isArray(c)) continue;
+      const title = takeString(c, "title");
+      const body = takeString(c, "body");
+      const joined = [title, body].filter(Boolean).join("\n");
+      if (joined) parts.push(joined);
     }
   }
-  if (typeof p.text === "string" && p.text.trim()) parts.push(p.text);
-  if (typeof p.closing === "string" && p.closing.trim()) parts.push(p.closing);
 
-  const rest: Record<string, unknown> = {};
-  for (const key of Object.keys(p)) {
-    if (!known.has(key)) rest[key] = p[key];
-  }
-  // Нестандартни структури в известните полета също влизат (напр. sections с
-  // допълнителни ключове) — чрез рекурсивното представяне.
-  if (Array.isArray(p.sections)) {
-    const extraSections = p.sections.map((s: any) => {
-      if (!s || typeof s !== "object") return s;
-      const { heading: _h, body: _b, ...restSection } = s;
-      return Object.keys(restSection).length ? restSection : null;
-    }).filter(Boolean);
-    if (extraSections.length) rest.sections = extraSections;
-  }
-  if (Array.isArray(p.clauses)) {
-    const extraClauses = p.clauses.map((c: any) => {
-      if (!c || typeof c !== "object") return c;
-      const { title: _t, body: _b, ...restClause } = c;
-      return Object.keys(restClause).length ? restClause : null;
-    }).filter(Boolean);
-    if (extraClauses.length) rest.clauses = extraClauses;
-  }
+  const text = takeString(rest, "text");
+  if (text) parts.push(text);
+  const closing = takeString(rest, "closing");
+  if (closing) parts.push(closing);
 
-  const restRendered = Object.keys(rest).length ? renderBoundedLeaves(rest, { maxTotal: 4000 }) : "";
+  const restRendered = renderBoundedLeaves(rest, { maxTotal: 4000 });
   const body = parts.filter((s) => s && s.trim()).join("\n\n");
   const rendered = [body, restRendered].filter((s) => s && s.trim()).join("\n\n");
   return rendered || renderBoundedLeaves(payload);

@@ -141,10 +141,23 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   // допуска нито автоматичен избор по съвместимост, нито изпращане.
   const routeThreadId = typeof threadIdProp === "string" && threadIdProp ? threadIdProp : null;
   const [hydratedThreadId, setHydratedThreadId] = useState<string | null>(null);
+  /** Разговорът, за който съобщенията са НАПЪЛНО заредени. */
+  const [loadedMessagesThreadId, setLoadedMessagesThreadId] = useState<string | null>(null);
+  /** Разговор, чийто сървърен ред липсва или не може да бъде прочетен. */
+  const [threadLoadFailed, setThreadLoadFailed] = useState(false);
   // Контекст, ДОШЪЛ от сървърния ред на разговора: смяната му не е избор на
   // потребителя, затова заредените съобщения на този разговор не се изтриват.
   const hydrationScopeRef = useRef<string | null>(null);
   const routeHydrationPending = !!routeThreadId && hydratedThreadId !== routeThreadId;
+  /**
+   * Готовност за изпращане. За ВСЕКИ избран разговор (от маршрут, страничен
+   * панел, мобилен панел, възстановен от хранилището или новополучен от сървъра)
+   * трябва да са завършили И обвързването от сървъра, И неговите съобщения —
+   * иначе бихме изпратили чужда история под чужд разговор. Нов разговор
+   * (`activeThreadId === null`) е готов веднага.
+   */
+  const threadReady = !activeThreadId ||
+    (hydratedThreadId === activeThreadId && loadedMessagesThreadId === activeThreadId);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -162,18 +175,29 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     };
   }, []);
 
-  const executeClientTool = useCallback((name: string, args: any) => {
+  /**
+   * Клиентски tool-ове. Навигацията е ОТЛОЖЕНА, затова носи проверката за
+   * идентичност на заявката: ако обхватът е сменен, заявката е изместена или
+   * компонентът е демонтиран преди изтичането на таймера, нищо не се навигира.
+   */
+  const executeClientTool = useCallback((name: string, args: any, isCurrent?: () => boolean) => {
+    const later = (fn: () => void, ms: number) => {
+      setTimeout(() => {
+        if (isCurrent && !isCurrent()) return;
+        fn();
+      }, ms);
+    };
     try {
       if (name === "navigate" && typeof args?.path === "string") {
-        setTimeout(() => navigate(args.path), 400);
+        later(() => navigate(args.path), 400);
         return;
       }
       if (name === "open_template" && typeof args?.slug === "string") {
-        setTimeout(() => navigate(`/shablon/${args.slug}`), 400);
+        later(() => navigate(`/shablon/${args.slug}`), 400);
         return;
       }
       if (name === "open_upload_analyzer") {
-        setTimeout(() => navigate("/analyze"), 400);
+        later(() => navigate("/analyze"), 400);
         return;
       }
       if (name === "prefill_build_contract") {
@@ -185,7 +209,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
         if (args?.subject) params.set("subject", String(args.subject));
         if (args?.bilingual) params.set("bilingual", "1");
         params.set("from", "dogovaryai");
-        setTimeout(() => navigate(`/build?${params.toString()}`), 500);
+        later(() => navigate(`/build?${params.toString()}`), 500);
         return;
       }
     } catch (e) {
@@ -295,10 +319,13 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   }, [contextKey]);
 
 
-  // Load messages for active thread
+  // Load messages for active thread. Смяната на разговор ВЕДНАГА премахва
+  // видимата стара история — тя не бива да се изпрати под новия разговор.
   useEffect(() => {
     resetAssistantDraft();
+    setLoadedMessagesThreadId(null);
     if (!activeThreadId) { setMessages([]); return; }
+    setMessages([]);
     let cancelled = false;
     (async () => {
       const { data } = await supabase
@@ -315,6 +342,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
             return { ...m, content, followups };
           }),
         );
+        setLoadedMessagesThreadId(activeThreadId);
       }
     })();
     return () => { cancelled = true; };
@@ -323,20 +351,28 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   // Разширеният изглед (/assistant/:threadId): контекстът се взема САМО от
   // сървърния ред на разговора — не от URL параметри, localStorage или текст.
   useEffect(() => {
+    setThreadLoadFailed(false);
     if (!activeThreadId || !user) {
       setHydratedThreadId(null);
       return;
     }
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("assistant_threads")
         .select("*")
         .eq("id", activeThreadId)
         .maybeSingle();
       if (cancelled) return;
       const row = (data ?? null) as unknown as Thread | null;
-      if (row && row.context_kind && row.context_entity_id) {
+      // Липсващ или непрочетен ред: разговорът НЕ се отбелязва като хидратиран,
+      // изпращането остава блокирано и потребителят получава изход.
+      if (error || !row) {
+        setThreadLoadFailed(true);
+        setHydratedThreadId(null);
+        return;
+      }
+      if (row.context_kind && row.context_entity_id) {
         hydrationScopeRef.current = `${row.context_kind}:${String(row.context_entity_id).toLowerCase()}`;
         setAssistantDocumentContext({
           kind: row.context_kind,
@@ -422,6 +458,10 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     // Не изпращаме, преди обвързаният контекст на маршрутния разговор да е
     // прочетен от сървъра — иначе бихме пратили чужд или празен обхват.
     if (routeHydrationPending) return;
+    // Нито преди обвързването И съобщенията на ТОЧНО този разговор да са
+    // заредени: два общи разговора не се различават по сървърна проверка,
+    // затова грешна клиентска история не бива да е възможна.
+    if (!threadReady || threadLoadFailed) return;
     if (!requireAuth({ action: "Изпрати съобщение до DogovaryAI" })) return;
     if (!session?.access_token) return;
 
@@ -577,7 +617,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
             const ev: ToolEvent = { kind: "tool_call", id: parsed.id, name: parsed.name, args: parsed.args };
             accTools.push(ev);
             setStreamingTools([...accTools]);
-            executeClientTool(parsed.name, parsed.args);
+            executeClientTool(parsed.name, parsed.args, isCurrent);
           } else if (parsed.delta) {
             accText += parsed.delta;
             setStreamingText(accText);
@@ -1155,6 +1195,26 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
             aiLocked && "hidden",
           )}
         >
+          {/* Разговорът не може да бъде прочетен: изпращането остава спряно. */}
+          {threadLoadFailed && (
+            <div
+              data-testid="assistant-thread-unavailable"
+              className="mb-2 flex flex-wrap items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/[0.06] px-3 py-2 text-xs"
+            >
+              <span className="min-w-0 flex-1 text-foreground">
+                Този разговор не е достъпен. Започнете нов разговор.
+              </span>
+              <button
+                type="button"
+                data-testid="assistant-thread-recover"
+                onClick={handleNewThread}
+                className="rounded-md border border-gold/50 px-2 py-0.5 font-semibold text-gold hover:bg-gold/10"
+              >
+                Нов разговор
+              </button>
+            </div>
+          )}
+
           {documentContext && (
             <div
               data-testid="assistant-context-bar"
@@ -1221,7 +1281,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 onKeyDown={handleKeyDown}
                 placeholder={negotiationMode ? "Опиши условията за преговори..." : "Задайте правен въпрос"}
                 rows={1}
-                disabled={streaming}
+                disabled={streaming || threadLoadFailed}
                 enterKeyHint="send"
                 autoCorrect="on"
                 autoCapitalize="sentences"
@@ -1250,7 +1310,9 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 <Button
                   type="submit"
                   size="icon"
-                  disabled={!input.trim() || streaming}
+                  data-testid="assistant-send"
+                  aria-label="Изпрати"
+                  disabled={!input.trim() || streaming || !threadReady || threadLoadFailed}
                   className="h-8 w-8 shrink-0 rounded-lg bg-gold text-navy hover:bg-gold/90 disabled:opacity-40"
                 >
                   {streaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
