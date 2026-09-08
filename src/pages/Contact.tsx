@@ -4,6 +4,7 @@ import { ArrowLeft, FileText, Users, Mail, Phone, MapPin, Loader2, ShieldCheck, 
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { presentAnalysisScore } from "@/lib/analysisVerification";
 import { toast } from "sonner";
 
 type Contact = {
@@ -13,7 +14,7 @@ type Contact = {
 };
 type SavedDoc = { id: string; title: string; kind: "contract" | "template"; created_at: string };
 type UploadedContract = { id: string; title: string; source: string; created_at: string };
-type RiskAnalysis = { uploaded_contract_id: string; score: number; contract_type: string };
+type RiskAnalysis = { uploaded_contract_id: string; score: number; contract_type: string; verification?: unknown };
 
 export default function ContactPage() {
   const { id } = useParams<{ id: string }>();
@@ -41,7 +42,7 @@ export default function ContactPage() {
       if (ups.length) {
         const { data: ra } = await supabase
           .from("risk_analyses")
-          .select("uploaded_contract_id,score,contract_type")
+          .select("uploaded_contract_id,score,contract_type,verification")
           .in("uploaded_contract_id", ups.map((x: any) => x.id));
         const map: Record<string, RiskAnalysis> = {};
         for (const r of ((ra as any) ?? []) as RiskAnalysis[]) {
@@ -126,8 +127,10 @@ export default function ContactPage() {
             <div className="grid gap-3">
               {uploaded.map((u) => {
                 const a = analyses[u.id];
-                const score = a?.score;
-                const sevCls = score == null ? "border-border/40 text-muted-foreground"
+                const present = a ? presentAnalysisScore({ score: a.score, verification: a.verification }) : null;
+                const score = present?.showScore ? present.score : null;
+                const sevCls = a == null ? "border-border/40 text-muted-foreground"
+                  : score == null ? "border-border/60 bg-muted/20 text-muted-foreground"
                   : score >= 8 ? "border-emerald-400/40 text-emerald-300 bg-emerald-400/10"
                   : score >= 5 ? "border-amber-300/40 text-amber-200 bg-amber-300/10"
                   : "border-red-400/40 text-red-300 bg-red-400/10";
@@ -148,7 +151,7 @@ export default function ContactPage() {
                       </div>
                       <div className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-xs ${sevCls}`}>
                         <Icon className="h-3.5 w-3.5" />
-                        {score != null ? <><strong>{score}</strong>/10</> : "Без анализ"}
+                        {score != null ? <><strong>{score}</strong>/10</> : a == null ? "Без анализ" : "Непотвърден анализ"}
                       </div>
                     </div>
                   </Link>

@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/clipboard";
+import { emptyIssuesMessage, presentAnalysisScore } from "@/lib/analysisVerification";
 import { SensitiveDataWarning } from "@/components/SensitiveDataWarning";
 import { trackGenerate } from "@/lib/docFunnel";
 import {
@@ -49,6 +50,7 @@ type Analysis = {
   created_at: string;
   text_hash: string;
   model: string;
+  verification?: unknown;
 };
 type Contract = {
   id: string;
@@ -63,26 +65,6 @@ type Contract = {
 };
 type Contact = { id: string; name: string };
 
-const scoreColor = (s: number) => {
-  if (s >= 7) return "text-emerald-400 border-emerald-400/40 bg-emerald-400/10";
-  if (s >= 5) return "text-amber-300 border-amber-300/40 bg-amber-300/10";
-  if (s >= 3) return "text-orange-400 border-orange-400/40 bg-orange-400/10";
-  return "text-red-400 border-red-400/40 bg-red-400/10";
-};
-const scoreLabel = (s: number) => {
-  if (s >= 9) return "Изряден договор";
-  if (s >= 7) return "Добър договор";
-  if (s >= 5) return "Препоръчителни корекции";
-  if (s >= 3) return "Проблемен — преговаряй";
-  return "Опасен — не подписвай";
-};
-const scoreSubtext = (s: number) => {
-  if (s >= 9) return "Балансиран, без съществени рискове.";
-  if (s >= 7) return "Малки несъвършенства, безопасен за подпис.";
-  if (s >= 5) return "Има 1-2 средни рискове или липсват важни клаузи.";
-  if (s >= 3) return "Съществени неравнопоставености или липсва защита.";
-  return "Признаци на престъпна, нищожна или крайно неравнопоставена клауза.";
-};
 const sevColor = (s: Issue["severity"]) =>
   s === "high" ? "border-red-400/40 bg-red-400/10 text-red-300"
   : s === "medium" ? "border-amber-300/40 bg-amber-300/10 text-amber-200"
@@ -400,6 +382,13 @@ export default function UploadedContractPage() {
       { high: 0, medium: 0, low: 0 } as Record<string, number>,
     );
   }, [analysis]);
+
+  const scorePresentation = useMemo(
+    () => presentAnalysisScore({ score: analysis?.score, verification: analysis?.verification }),
+    [analysis],
+  );
+
+
 
   if (loading) {
     return (
@@ -726,11 +715,20 @@ export default function UploadedContractPage() {
           <div className="mt-6 grid gap-6 lg:grid-cols-[280px_1fr]">
             {/* SCORE PANEL */}
             <aside className="space-y-4">
-              <div className={`rounded-xl border p-6 text-center ${scoreColor(analysis.score)}`}>
+              <div className={`rounded-xl border p-6 text-center ${scorePresentation.tone}`}>
                 <div className="text-xs uppercase tracking-wider opacity-80">Risk Score</div>
-                <div className="mt-2 font-serif text-5xl font-bold">{analysis.score}<span className="text-xl opacity-60">/10</span></div>
-                <div className="mt-2 text-sm font-semibold">{scoreLabel(analysis.score)}</div>
-                <div className="mt-1 text-xs opacity-80">{scoreSubtext(analysis.score)}</div>
+                {scorePresentation.showScore ? (
+                  <div className="mt-2 font-serif text-5xl font-bold">{scorePresentation.score}<span className="text-xl opacity-60">/10</span></div>
+                ) : (
+                  <div className="mt-2 font-serif text-4xl font-bold">—</div>
+                )}
+                <div className="mt-2 text-sm font-semibold">{scorePresentation.label}</div>
+                <div className="mt-1 text-xs opacity-80">{scorePresentation.subtext}</div>
+                {scorePresentation.notice && (
+                  <p className="mt-3 border-t border-current/20 pt-3 text-xs leading-relaxed opacity-90">
+                    {scorePresentation.notice}
+                  </p>
+                )}
               </div>
 
               {/* SCALE LEGEND */}
@@ -738,7 +736,7 @@ export default function UploadedContractPage() {
                 <div className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">Скала на оценката</div>
                 <ul className="space-y-1.5 text-xs">
                   <li className="flex items-start gap-2"><span className="mt-0.5 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-emerald-400" /><span><strong className="text-emerald-300">9-10</strong> · Изряден — балансиран, без рискове</span></li>
-                  <li className="flex items-start gap-2"><span className="mt-0.5 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-emerald-400/60" /><span><strong className="text-emerald-300">7-8</strong> · Добър — малки несъвършенства, безопасен</span></li>
+                  <li className="flex items-start gap-2"><span className="mt-0.5 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-emerald-400/60" /><span><strong className="text-emerald-300">7-8</strong> · Добър — малки несъвършенства, без установен риск</span></li>
                   <li className="flex items-start gap-2"><span className="mt-0.5 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-amber-300" /><span><strong className="text-amber-200">5-6</strong> · Приемлив — препоръчителни корекции</span></li>
                   <li className="flex items-start gap-2"><span className="mt-0.5 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-orange-400" /><span><strong className="text-orange-300">3-4</strong> · Проблемен — преговаряй преди подпис</span></li>
                   <li className="flex items-start gap-2"><span className="mt-0.5 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-red-400" /><span><strong className="text-red-300">1-2</strong> · Опасен — не подписвай без юрист</span></li>
@@ -778,7 +776,7 @@ export default function UploadedContractPage() {
               <section className="rounded-xl border border-border/60 bg-gradient-card p-6">
                 <h2 className="font-serif text-xl font-bold">Проблемни клаузи ({analysis.issues.length})</h2>
                 {analysis.issues.length === 0 ? (
-                  <p className="mt-3 text-sm text-muted-foreground">Не са открити съществени правни рискове.</p>
+                  <p className="mt-3 text-sm text-muted-foreground">{emptyIssuesMessage(analysis.verification)}</p>
                 ) : (
                   <ul className="mt-4 space-y-3">
                     {analysis.issues.map((iss, idx) => (

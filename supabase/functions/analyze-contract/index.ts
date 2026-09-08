@@ -10,9 +10,19 @@ import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { redactForAI, unredact } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
+import {
+  buildAnalysisVerification,
+  isTrustedCachedVerification,
+  isValidModelScore,
+  NEUTRAL_STORED_SCORE,
+  normalizeEvidenceText,
+  verifyQuoteAgainstSource,
+} from "../_shared/analysis-evidence.ts";
 
 // PROMPT_VERSION — bump to invalidate cached analyses produced by older prompts.
-const PROMPT_VERSION = "v4-balanced-scale";
+// v5: доказателствената проверка на цитатите е строга (един непрекъснат пасаж),
+// затова кешираните резултати от по-стари политики не се връщат като нови.
+const PROMPT_VERSION = "v5-evidence-q2a";
 
 const SYSTEM_PROMPT = `Ти си водещ български правен експерт по договорно право (ЗЗД, ТЗ, ЗУТ, ЗЗП, ЗЗЛД).
 Анализираш ИЗКЛЮЧИТЕЛНО предоставения текст на договор и връщаш СТРОГО валиден JSON по схемата по-долу. Без markdown ограждания.
@@ -40,7 +50,7 @@ const SYSTEM_PROMPT = `Ти си водещ български правен ек
 
 СКАЛА НА ОЦЕНКАТА (1-10) — стриктно се придържай към тази скала:
 - 9-10: Изряден договор. Всички съществени клаузи присъстват, балансиран, без рискове. Малки стилови забележки са допустими.
-- 7-8: Добър договор. Малки несъвършенства (липсва форсмажор, неясна подсъдност), но БЕЗ риск за подписващия. Безопасен за подпис след прочитане.
+- 7-8: Добър договор. Малки несъвършенства (липсва форсмажор, неясна подсъдност), но БЕЗ установен риск за подписващия в обхвата на този анализ. Не давай гаранция за безопасност на подписването.
 - 5-6: Приемлив, но с препоръчителни корекции. 1-2 средни рискове или липсват важни клаузи (неустойка, прекратяване).
 - 3-4: Проблемен. Съществени неравнопоставености, неясни ключови клаузи или липсва защита за едната страна. Не подписвай без преговори.
 - 1-2: Опасен. Признаци по (a)-(e). Категорично НЕ подписвай без юрист.
@@ -81,19 +91,8 @@ function normalizeForMatch(s: string): string {
     .trim();
 }
 
-// Verify that an issue's clause quote actually appears in the source contract.
-function verifyIssueQuote(quote: string, normalizedSource: string): boolean {
-  if (!quote || quote.length < 12) return false;
-  const norm = normalizeForMatch(quote);
-  if (norm.length < 12) return false;
-  if (normalizedSource.includes(norm)) return true;
-  // Fallback: check if at least 70% of the words appear in order within a sliding window.
-  // Allows for minor OCR/extraction differences without accepting hallucinations.
-  const words = norm.split(" ").filter((w) => w.length > 3);
-  if (words.length < 4) return false;
-  const matched = words.filter((w) => normalizedSource.includes(w)).length;
-  return matched / words.length >= 0.8;
-}
+// Q2a: доказателствената проверка на цитатите живее в `_shared/analysis-evidence.ts`
+// (един непрекъснат пасаж, без сравнение „торба с думи").
 
 // Verify a "missing clause" by checking the source doesn't contain known synonyms.
 const MISSING_SYNONYMS: Record<string, string[]> = {
@@ -212,7 +211,10 @@ Deno.serve(async (req: Request) => {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (cached) {
+    // Кеш-хит е доверен САМО ако записът носи съвместими метаданни за
+    // доказателствената проверка. Липсващи/повредени метаданни → преизчисляваме,
+    // вместо да върнем стар резултат като нов.
+    if (cached && isTrustedCachedVerification((cached as Record<string, unknown>).verification)) {
       // If the cached analysis belongs to a different uploaded_contract_id (e.g. user
       // re-uploaded the same file), clone it so the frontend can find it via the new id.
       let analysisRow = cached;
@@ -229,6 +231,8 @@ Deno.serve(async (req: Request) => {
             issues: cached.issues,
             missing_clauses: cached.missing_clauses,
             text_hash: cached.text_hash,
+            // Клонът задължително носи същите метаданни — иначе би изглеждал непроверен.
+            verification: (cached as Record<string, unknown>).verification,
           })
           .select()
           .single();
@@ -481,50 +485,54 @@ ${payloadText}
       }
     }
 
-    const rawIssues = Array.isArray(parsed?.issues) ? parsed.issues : [];
-    const rawMissing = Array.isArray(parsed?.missing_clauses) ? parsed.missing_clauses : [];
+    const issuesIsArray = Array.isArray(parsed?.issues);
+    const missingIsArray = Array.isArray(parsed?.missing_clauses);
+    const rootShapeValid = !!parsed && typeof parsed === "object" &&
+      issuesIsArray && missingIsArray && typeof parsed.summary === "string";
+    const rawIssues = issuesIsArray ? parsed.issues : [];
+    const rawMissing = missingIsArray ? parsed.missing_clauses : [];
 
-    // === Anti-hallucination verification ===
+    // === Доказателствена проверка (Q2a) ===
+    // Проверяваме срещу ТОЧНО текста, който е бил изпратен на модела (`truncated`),
+    // а не срещу непратения остатък от дълъг документ.
+    const normalizedSentText = normalizeEvidenceText(truncated);
     const normalizedSource = normalizeForMatch(text);
-    const verifiedIssues = [];
-    let filteredIssuesCount = 0;
+    const wasTruncated = compacted.length > MAX_CHARS;
+
+    const verifiedIssues: unknown[] = [];
+    let malformedIssues = 0;
+    let quoteRejected = 0;
     for (const iss of rawIssues) {
-      const quote = String(iss?.clause ?? "").trim();
-      if (verifyIssueQuote(quote, normalizedSource)) {
+      if (!iss || typeof iss !== "object" || Array.isArray(iss)) {
+        malformedIssues++;
+        console.warn("Отхвърлена находка: невалидна структура");
+        continue;
+      }
+      const verdict = verifyQuoteAgainstSource((iss as Record<string, unknown>).clause, normalizedSentText);
+      if (verdict.verified) {
         verifiedIssues.push(iss);
       } else {
-        filteredIssuesCount++;
-        console.warn("Filtered hallucinated issue:", iss?.title, "| quote:", quote.slice(0, 80));
+        quoteRejected++;
+        // Само код за причина — без заглавия и без цитати в лога.
+        console.warn("Отхвърлена находка без текстово покритие:", verdict.reason);
       }
     }
 
-    const verifiedMissing = [];
+    const verifiedMissing: unknown[] = [];
     let filteredMissingCount = 0;
     for (const m of rawMissing) {
-      if (isClauseActuallyMissing(String(m?.name ?? ""), normalizedSource)) {
+      if (isClauseActuallyMissing(String((m as Record<string, unknown>)?.name ?? ""), normalizedSource)) {
         verifiedMissing.push(m);
       } else {
         filteredMissingCount++;
-        console.warn("Filtered false-missing clause:", m?.name);
+        console.warn("Отхвърлена липсваща клауза: намерен синоним в текста");
       }
     }
 
-    if (filteredIssuesCount || filteredMissingCount) {
-      console.log(
-        `Verification: kept ${verifiedIssues.length}/${rawIssues.length} issues, ` +
-        `${verifiedMissing.length}/${rawMissing.length} missing. ` +
-        `Filtered ${filteredIssuesCount} hallucinated issues, ${filteredMissingCount} false-missing.`,
-      );
-    }
-
-    // Recompute score: if many issues were filtered, the contract is actually cleaner
-    // than AI thought — gently nudge score upward.
-    let score = Math.max(1, Math.min(10, Number(parsed.score) || 5));
-    if (rawIssues.length > 0 && verifiedIssues.length === 0) {
-      score = Math.max(score, 8);
-    } else if (filteredIssuesCount > verifiedIssues.length) {
-      score = Math.min(10, score + 2);
-    }
+    // Оценката НЕ се повишава заради отпаднали находки — липсата на доказателство
+    // не е доказателство за безопасност. Запазват се само таваните по тежест.
+    const scoreValid = isValidModelScore(parsed.score);
+    let score = scoreValid ? Number(parsed.score) : NEUTRAL_STORED_SCORE;
 
     // Post-validation cap: if there are verified high/medium severity issues,
     // a high score is incoherent (and a classic prompt-injection symptom).
@@ -537,9 +545,26 @@ ${payloadText}
     else if (medCount >= 4) score = Math.min(score, 6);
     else if (medCount >= 2) score = Math.min(score, 7);
 
-    const summary = filteredIssuesCount > 0
-      ? `${String(parsed.summary ?? "").slice(0, 3800)}\n\n(Бележка: ${filteredIssuesCount} възможна неточност от AI бяха автоматично филтрирани, защото не отговарят на конкретен текст в договора.)`
-      : String(parsed.summary ?? "").slice(0, 4000);
+    const verification = buildAnalysisVerification({
+      rootShapeValid,
+      issuesIsArray,
+      missingIsArray,
+      issuesRaw: rawIssues.length,
+      issuesKept: verifiedIssues.length,
+      malformedIssues,
+      quoteRejected,
+      missingRaw: rawMissing.length,
+      missingKept: verifiedMissing.length,
+      missingRejected: filteredMissingCount,
+      inputTruncated: wasTruncated,
+      scoreValid,
+      sourceTextHash: normalizedHash,
+    });
+
+    const baseSummary = typeof parsed.summary === "string" ? parsed.summary : "";
+    const summary = verification.status === "incomplete"
+      ? `${baseSummary.slice(0, 3700)}\n\n(Бележка: проверката на този анализ не е пълна — част от данните не бяха потвърдени срещу текста на договора. Резултатът не е оценка за безопасност.)`
+      : baseSummary.slice(0, 4000);
 
     const { data: inserted, error: insErr } = await admin
       .from("risk_analyses")
@@ -553,6 +578,7 @@ ${payloadText}
         issues: verifiedIssues,
         missing_clauses: verifiedMissing,
         text_hash: normalizedHash,
+        verification,
       })
       .select()
       .single();

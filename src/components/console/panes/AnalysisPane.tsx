@@ -3,12 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { ShieldAlert, Loader2, ExternalLink, AlertTriangle, Info } from "@/icons";
 import { cn } from "@/lib/utils";
 import { NegotiationStrategyPanel } from "@/components/NegotiationStrategyPanel";
+import { emptyIssuesMessage, presentAnalysisScore } from "@/lib/analysisVerification";
 
-function scoreColor(score: number) {
-  if (score >= 8) return "text-emerald-400 border-emerald-500/40 bg-emerald-500/10";
-  if (score >= 5) return "text-amber-400 border-amber-500/40 bg-amber-500/10";
-  return "text-red-400 border-red-500/40 bg-red-500/10";
-}
 
 export function AnalysisPane({ analysisId }: { analysisId: string }) {
   const [a, setA] = useState<any | null>(null);
@@ -40,6 +36,7 @@ export function AnalysisPane({ analysisId }: { analysisId: string }) {
 
   const issues: any[] = Array.isArray(a.issues) ? a.issues : [];
   const missing: any[] = Array.isArray(a.missing_clauses) ? a.missing_clauses : [];
+  const present = presentAnalysisScore({ score: a.score, verification: a.verification });
 
   return (
     <div className="mx-auto max-w-4xl p-6">
@@ -63,13 +60,20 @@ export function AnalysisPane({ analysisId }: { analysisId: string }) {
         </a>
       </div>
 
-      <div className={cn("mt-5 flex items-center gap-4 rounded-xl border p-4", scoreColor(a.score))}>
-        <div className="text-4xl font-bold">{a.score}/10</div>
+      <div className={cn("mt-5 flex items-start gap-4 rounded-xl border p-4", present.tone)}>
+        <div className="text-4xl font-bold">{present.showScore ? `${present.score}/10` : "—"}</div>
         <div className="flex-1">
-          <div className="text-xs font-semibold uppercase tracking-wider opacity-80">Резюме</div>
+          <div className="text-xs font-semibold uppercase tracking-wider opacity-80">{present.label}</div>
           <p className="mt-0.5 text-sm leading-relaxed">{a.summary || "—"}</p>
+          {present.notice && (
+            <p className="mt-2 text-xs leading-relaxed opacity-90">{present.notice}</p>
+          )}
         </div>
       </div>
+
+      {issues.length === 0 && (
+        <p className="mt-4 text-sm text-muted-foreground">{emptyIssuesMessage(a.verification)}</p>
+      )}
 
       {issues.length > 0 && (
         <section className="mt-6">
