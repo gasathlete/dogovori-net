@@ -242,4 +242,74 @@ describe("AIReviewCard — реален жизнен цикъл", () => {
     await waitFor(() => expect(screen.getByText(/Ревизията не можа да бъде извършена/)).toBeTruthy());
     expect(screen.queryByText(/Ревизията е в ход/)).toBeNull();
   });
+
+  it("по-стар отговор за същата снимка не заменя по-новия (A→B→A и ръчно презареждане)", async () => {
+    const dA1 = deferred<ReviewOutcome>();
+    const dB = deferred<ReviewOutcome>();
+    const dA2 = deferred<ReviewOutcome>();
+    reviewDocument
+      .mockImplementationOnce(() => dA1.promise)
+      .mockImplementationOnce(() => dB.promise)
+      .mockImplementationOnce(() => dA2.promise);
+
+    const A = contract();
+    const B = contract({ closing: "Различен край на документа." });
+    const view = render(<AIReviewCard contract={A} documentType="t" />);
+    await waitFor(() => expect(reviewDocument).toHaveBeenCalledTimes(1));
+    view.rerender(<AIReviewCard contract={B} documentType="t" />);
+    await waitFor(() => expect(reviewDocument).toHaveBeenCalledTimes(2));
+    view.rerender(<AIReviewCard contract={A} documentType="t" />);
+    await waitFor(() => expect(reviewDocument).toHaveBeenCalledTimes(3));
+
+    // Най-новата заявка за A завършва първа и се показва.
+    await act(async () => {
+      dA2.resolve(outcome({ review: review({ verdict: "blocked" }) }));
+    });
+    expect(screen.getByText(/Ревизията не може да потвърди документа/)).toBeTruthy();
+
+    // По-старите отговори за същата и за другата снимка не пипат нищо —
+    // включително стара ГРЕШКА не изтрива успешния резултат.
+    await act(async () => {
+      dA1.resolve(outcome({ review: null, error: "стара грешка" }));
+      dB.resolve(outcome());
+    });
+    expect(screen.getByText(/Ревизията не може да потвърди документа/)).toBeTruthy();
+    expect(screen.queryByText(/стара грешка/)).toBeNull();
+  });
+
+  it("две припокриващи се ръчни проверки: показва се последната", async () => {
+    const d0 = deferred<ReviewOutcome>();
+    const d1 = deferred<ReviewOutcome>();
+    const d2 = deferred<ReviewOutcome>();
+    reviewDocument
+      .mockImplementationOnce(() => d0.promise)
+      .mockImplementationOnce(() => d1.promise)
+      .mockImplementationOnce(() => d2.promise);
+    render(<AIReviewCard contract={contract()} documentType="t" />);
+    await act(async () => {
+      d0.resolve(outcome());
+    });
+
+    const again = screen.getByRole("button", { name: /Провери отново/ });
+    await act(async () => {
+      again.click();
+    });
+    await act(async () => {
+      screen.getByRole("button", { name: /Провери отново|Стартирай ревизия/, hidden: true });
+    });
+    // Втори ръчен старт, докато първият е още във въздуха.
+    await act(async () => {
+      (screen.queryByRole("button", { name: /Провери отново/ }) ?? again).click();
+    });
+    await waitFor(() => expect(reviewDocument).toHaveBeenCalledTimes(3));
+
+    await act(async () => {
+      d2.resolve(outcome({ review: review({ verdict: "needs_fixes" }) }));
+    });
+    await act(async () => {
+      d1.resolve(outcome({ review: null, error: "закъсняла грешка" }));
+    });
+    expect(screen.getByText(/Ревизията откри места за прецизиране/)).toBeTruthy();
+    expect(screen.queryByText(/закъсняла грешка/)).toBeNull();
+  });
 });

@@ -5,7 +5,9 @@
 import { describe, expect, it } from "vitest";
 import { parseDocumentReview } from "@/lib/documentReview";
 import {
+  acceptedReviewContext,
   assessReviewTrust,
+  captureReviewContext,
   canShowReady,
   completenessNotice,
   computeReviewSourceDigest,
@@ -131,5 +133,40 @@ describe("строго разчитане на отговора", () => {
     const r = parseDocumentReview({ ...ok, source: undefined, completeness: undefined })!;
     expect(r.source).toBeNull();
     expect(r.completeness).toBeNull();
+  });
+});
+
+describe("приетият контекст се снима в началото на заявката", () => {
+  it("редакции по време на изчакване не променят снимката", async () => {
+    // „Текущите" отговори живеят в изменяем обект, както в екрана.
+    const current = { key: "k1", context: { decisions: [{ label: "Срок", value: "12 месеца" }] } };
+    // Снимка ПРЕДИ първото изчакване.
+    const requested = { key: current.key, context: captureReviewContext(current.context) };
+
+    let release!: () => void;
+    const generation = new Promise<void>((r) => {
+      release = r;
+    });
+    // Потребителят редактира, докато заявката е още във въздуха.
+    current.context.decisions[0].value = "24 месеца";
+    current.context.decisions.push({ label: "Цена", value: "2 000 EUR" });
+    current.key = "k2";
+    release();
+    await generation;
+
+    expect(requested.context).toEqual({ decisions: [{ label: "Срок", value: "12 месеца" }] });
+    expect(requested.key).toBe("k1");
+    // Приетата снимка не важи за новите отговори.
+    expect(acceptedReviewContext(requested, current.key)).toBeNull();
+    expect(acceptedReviewContext(requested, "k1")).toEqual(requested.context);
+  });
+
+  it("липсващ контекст не се домисля", () => {
+    expect(captureReviewContext(null)).toBeNull();
+    expect(acceptedReviewContext(null, "k1")).toBeNull();
+    expect(captureReviewContext({ role: "Изпълнител", decisions: [] })).toEqual({
+      role: "Изпълнител",
+      decisions: [],
+    });
   });
 });
