@@ -151,7 +151,7 @@ export default function ContactPage() {
                       </div>
                       <div className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-xs ${sevCls}`}>
                         <Icon className="h-3.5 w-3.5" />
-                        {score != null ? <><strong>{score}</strong>/10</> : a == null ? "Без анализ" : "Непотвърден анализ"}
+                        {score != null ? <><strong>{score}</strong>/10</> : a == null ? "Без анализ" : "Предишна проверка"}
                       </div>
                     </div>
                   </Link>
