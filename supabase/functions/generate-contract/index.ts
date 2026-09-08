@@ -115,16 +115,24 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { sector, contractName, documentName, parties, answers, questions, arbitration, bilingual, session_id, doc_key, userConfirmed = false } = await req.json();
+    const body = await req.json();
+    const { sector, contractName, documentName, parties, answers, questions, arbitration, bilingual, session_id, doc_key, userConfirmed = false } = body;
     const isBilingual = Boolean(bilingual);
 
+    // Целият потребителски контекст се събира ЕДИН път — редакцията, класификацията
+    // и идентичността на кеша работят върху едно и също множество полета.
+    const ctxOrError = buildGeneratorContext(body);
+    if ("ok" in ctxOrError && ctxOrError.ok === false) {
+      return new Response(
+        JSON.stringify({ error: ctxOrError.message, code: ctxOrError.code }),
+        { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+      );
+    }
+    const rawContext = ctxOrError as ReturnType<typeof buildGeneratorContext> & { qa: unknown };
+    const userContext = rawContext as Exclude<typeof ctxOrError, { ok: false }>;
 
     // Illegal content guard — block before AI call, log + alert admin.
-    const guardText = [
-      sector, contractName, documentName,
-      parties?.a, parties?.b,
-      ...Object.values(answers ?? {}).map((v) => String(v ?? "")),
-    ].join("\n");
+    const guardText = buildGeneratorClassificationCorpus(userContext);
     const blocked = await guardIllegalContent({
       admin, text: guardText, functionName: "generate-contract",
       userId, userEmail: null, ipHash,
@@ -136,34 +144,24 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
-    // Skip empty answers in the prompt to save input tokens.
-    const qaLines = (questions as Array<{ id: string; label: string }>)
-      .filter((q) => {
-        const v = answers[q.id];
-        return v !== undefined && v !== null && String(v).trim() !== "";
-      })
-      .map((q) => `- ${q.label}: ${answers[q.id]}`)
-      .join("\n");
-
-    const docLine = documentName && documentName !== contractName
-      ? `КОНКРЕТЕН ДОКУМЕНТ: ${documentName}\n`
-      : "";
-
     // Detect the document type from the name so we don't render every output
     // as a "договор" (e.g. Разписка, Декларация, Пълномощно, Жалба, Искова молба).
+    // Изводът се прави върху СУРОВОТО наименование — това е избор на доверена
+    // спецификация, не изходящ текст.
     const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName || contractName));
 
-    // Cache: identical (sector, contractName, documentName, sorted answers) → reuse output for 30 days.
-    // PROMPT_VERSION included so prompt/system changes invalidate stale cache entries.
+    // Кеш: идентичност = версия на политиката + удостоверен повикващ + ТОЧНИЯТ
+    // потребителски контекст (включително етикетите и реда на въпросите,
+    // арбитражния избор и двуезичния режим). Старите глобални ключове, които не
+    // включваха етикетите на въпросите, вече не могат да бъдат улучени.
     const PROMPT_VERSION = isBilingual ? "v3-doc-type-bilingual" : "v3-doc-type";
-    const cacheKeyInput = stableStringify({
-      v: PROMPT_VERSION,
-      sector, contractName, documentName: documentName || null,
-      docType: docTypeSpec.id,
-      parties: { a: parties?.a ?? "", b: parties?.b ?? "" },
-      answers: answers ?? {},
-      arbitration: arbitration ?? null,
+    const cacheKeyInput = buildGeneratorCacheIdentity({
+      context: userContext,
+      promptVersion: PROMPT_VERSION,
+      docTypeId: docTypeSpec.id,
       bilingual: isBilingual,
+      arbitrationEnabled: arbitration?.enabled === true,
+      callerKey: userId ? `user:${userId}` : `ip:${ipHash}`,
     });
     const cacheHash = await sha256Hex(cacheKeyInput);
     const cacheCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
