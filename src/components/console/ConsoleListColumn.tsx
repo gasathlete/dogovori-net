@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useConsoleStore } from "@/hooks/useConsoleStore";
 import { useDeals, dealStatusLabel, dealStatusColor, type Deal } from "@/hooks/useDeals";
 import { supabase } from "@/integrations/supabase/client";
+import { analysisBadge } from "@/lib/analysisVerification";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { Search, Plus, Loader2, FileText, FileUp, Briefcase, Library, Users, Package, PenSquare } from "@/icons";
@@ -457,7 +458,7 @@ function AnalysesListView() {
       setLoading(true);
       const { data } = await supabase
         .from("risk_analyses")
-        .select("id, contract_type, summary, score, created_at")
+        .select("id, contract_type, summary, score, created_at, verification")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(200);
@@ -479,17 +480,12 @@ function AnalysesListView() {
         )
       : items;
     return filtered.map((d) => {
-      const cls =
-        d.score >= 8
-          ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-          : d.score >= 5
-            ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
-            : "border-red-500/40 bg-red-500/10 text-red-300";
+      const badge = analysisBadge({ score: d.score, verification: (d as any).verification });
       return {
         id: d.id,
         title: d.contract_type || "Анализ",
         subtitle: new Date(d.created_at).toLocaleDateString("bg-BG"),
-        badge: { text: `${d.score}/10`, className: cls },
+        badge,
       };
     });
   }, [items, q]);
