@@ -650,7 +650,7 @@ export default function UploadedContractPage() {
                   {corrections.corrected_text}
                 </div>
                 <div className="flex gap-2">
-                  <Button disabled={correctionStale} onClick={async () => { const ok = await copyToClipboard(corrections.corrected_text); ok ? toast.success("Копирано") : toast.error("Копирането не е разрешено"); }} className="bg-gradient-gold text-navy">
+                  <Button disabled={correctionStale} onClick={async () => { const ok = await copyToClipboard(corrections.corrected_text); if (ok) { toast.success("Копирано"); } else { toast.error("Копирането не е разрешено"); } }} className="bg-gradient-gold text-navy">
                     <Copy className="mr-2 h-4 w-4" /> Копирай
                   </Button>
                   <Button variant="outline" disabled={correctionStale} onClick={() => {
