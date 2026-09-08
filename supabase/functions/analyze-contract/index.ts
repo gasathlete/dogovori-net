@@ -485,50 +485,54 @@ ${payloadText}
       }
     }
 
-    const rawIssues = Array.isArray(parsed?.issues) ? parsed.issues : [];
-    const rawMissing = Array.isArray(parsed?.missing_clauses) ? parsed.missing_clauses : [];
+    const issuesIsArray = Array.isArray(parsed?.issues);
+    const missingIsArray = Array.isArray(parsed?.missing_clauses);
+    const rootShapeValid = !!parsed && typeof parsed === "object" &&
+      issuesIsArray && missingIsArray && typeof parsed.summary === "string";
+    const rawIssues = issuesIsArray ? parsed.issues : [];
+    const rawMissing = missingIsArray ? parsed.missing_clauses : [];
 
-    // === Anti-hallucination verification ===
+    // === Доказателствена проверка (Q2a) ===
+    // Проверяваме срещу ТОЧНО текста, който е бил изпратен на модела (`truncated`),
+    // а не срещу непратения остатък от дълъг документ.
+    const normalizedSentText = normalizeEvidenceText(truncated);
     const normalizedSource = normalizeForMatch(text);
-    const verifiedIssues = [];
-    let filteredIssuesCount = 0;
+    const wasTruncated = compacted.length > MAX_CHARS;
+
+    const verifiedIssues: unknown[] = [];
+    let malformedIssues = 0;
+    let quoteRejected = 0;
     for (const iss of rawIssues) {
-      const quote = String(iss?.clause ?? "").trim();
-      if (verifyIssueQuote(quote, normalizedSource)) {
+      if (!iss || typeof iss !== "object" || Array.isArray(iss)) {
+        malformedIssues++;
+        console.warn("Отхвърлена находка: невалидна структура");
+        continue;
+      }
+      const verdict = verifyQuoteAgainstSource((iss as Record<string, unknown>).clause, normalizedSentText);
+      if (verdict.verified) {
         verifiedIssues.push(iss);
       } else {
-        filteredIssuesCount++;
-        console.warn("Filtered hallucinated issue:", iss?.title, "| quote:", quote.slice(0, 80));
+        quoteRejected++;
+        // Само код за причина — без заглавия и без цитати в лога.
+        console.warn("Отхвърлена находка без текстово покритие:", verdict.reason);
       }
     }
 
-    const verifiedMissing = [];
+    const verifiedMissing: unknown[] = [];
     let filteredMissingCount = 0;
     for (const m of rawMissing) {
-      if (isClauseActuallyMissing(String(m?.name ?? ""), normalizedSource)) {
+      if (isClauseActuallyMissing(String((m as Record<string, unknown>)?.name ?? ""), normalizedSource)) {
         verifiedMissing.push(m);
       } else {
         filteredMissingCount++;
-        console.warn("Filtered false-missing clause:", m?.name);
+        console.warn("Отхвърлена липсваща клауза: намерен синоним в текста");
       }
     }
 
-    if (filteredIssuesCount || filteredMissingCount) {
-      console.log(
-        `Verification: kept ${verifiedIssues.length}/${rawIssues.length} issues, ` +
-        `${verifiedMissing.length}/${rawMissing.length} missing. ` +
-        `Filtered ${filteredIssuesCount} hallucinated issues, ${filteredMissingCount} false-missing.`,
-      );
-    }
-
-    // Recompute score: if many issues were filtered, the contract is actually cleaner
-    // than AI thought — gently nudge score upward.
-    let score = Math.max(1, Math.min(10, Number(parsed.score) || 5));
-    if (rawIssues.length > 0 && verifiedIssues.length === 0) {
-      score = Math.max(score, 8);
-    } else if (filteredIssuesCount > verifiedIssues.length) {
-      score = Math.min(10, score + 2);
-    }
+    // Оценката НЕ се повишава заради отпаднали находки — липсата на доказателство
+    // не е доказателство за безопасност. Запазват се само таваните по тежест.
+    const scoreValid = isValidModelScore(parsed.score);
+    let score = scoreValid ? Number(parsed.score) : NEUTRAL_STORED_SCORE;
 
     // Post-validation cap: if there are verified high/medium severity issues,
     // a high score is incoherent (and a classic prompt-injection symptom).
@@ -541,9 +545,26 @@ ${payloadText}
     else if (medCount >= 4) score = Math.min(score, 6);
     else if (medCount >= 2) score = Math.min(score, 7);
 
-    const summary = filteredIssuesCount > 0
-      ? `${String(parsed.summary ?? "").slice(0, 3800)}\n\n(Бележка: ${filteredIssuesCount} възможна неточност от AI бяха автоматично филтрирани, защото не отговарят на конкретен текст в договора.)`
-      : String(parsed.summary ?? "").slice(0, 4000);
+    const verification = buildAnalysisVerification({
+      rootShapeValid,
+      issuesIsArray,
+      missingIsArray,
+      issuesRaw: rawIssues.length,
+      issuesKept: verifiedIssues.length,
+      malformedIssues,
+      quoteRejected,
+      missingRaw: rawMissing.length,
+      missingKept: verifiedMissing.length,
+      missingRejected: filteredMissingCount,
+      inputTruncated: wasTruncated,
+      scoreValid,
+      sourceTextHash: normalizedHash,
+    });
+
+    const baseSummary = typeof parsed.summary === "string" ? parsed.summary : "";
+    const summary = verification.status === "incomplete"
+      ? `${baseSummary.slice(0, 3700)}\n\n(Бележка: проверката на този анализ не е пълна — част от данните не бяха потвърдени срещу текста на договора. Резултатът не е оценка за безопасност.)`
+      : baseSummary.slice(0, 4000);
 
     const { data: inserted, error: insErr } = await admin
       .from("risk_analyses")
@@ -557,6 +578,7 @@ ${payloadText}
         issues: verifiedIssues,
         missing_clauses: verifiedMissing,
         text_hash: normalizedHash,
+        verification,
       })
       .select()
       .single();
