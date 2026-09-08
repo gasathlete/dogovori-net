@@ -208,24 +208,18 @@ Deno.serve(async (req: Request) => {
     }
 
 
-    const arbitrationLine = arbitration?.enabled
-      ? `\nАРБИТРАЖ: enabled=true, court="${arbitration.courtName || arbitration.courtId || ""}"${arbitration.courtLink ? `, link=${arbitration.courtLink}` : ""}`
-      : `\nАРБИТРАЖ: enabled=false (използвай държавна подсъдност)`;
-
     const bilingualLine = isBilingual
       ? `\nБИЛИНГВАЛЕН РЕЖИМ: ЗАДЪЛЖИТЕЛНО върни паралелен английски превод. За contract добави полета: "title_en", "preamble_en", "closing_en" и за всяка клауза в "clauses" — "title_en" и "body_en". Преводът да е професионален легален английски (US/UK неутрален), номерацията на членовете да е "Art. N." и да съответства 1:1 на българския текст. Поставяй "bilingual": true на root на contract. Английският текст НЕ заменя българския — те съществуват паралелно.`
       : "";
 
     // === GDPR/AI Act compliance layer ===
-    const sourceText = [
-      String(parties?.a ?? ""), String(parties?.b ?? ""),
-      qaLines,
-    ].join("\n");
-    const classification = classifyDocumentBeforeAI(sourceText);
+    // Класификацията вижда ЦЕЛИЯ изходящ потребителски контекст, не само страните.
+    const classification = classifyDocumentBeforeAI(guardText);
     const route = routeModel("generate-contract", classification, {
       userConfirmed,
-      promptLength: sourceText.length,
+      promptLength: guardText.length,
     });
+
 
     if (!route.allowed) {
       await logAiAudit({
