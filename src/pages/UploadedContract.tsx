@@ -21,11 +21,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/clipboard";
-import { emptyIssuesMessage, presentAnalysisScore } from "@/lib/analysisVerification";
+import { emptyIssuesMessage, emptyMissingClausesMessage, presentAnalysisScore } from "@/lib/analysisVerification";
 import {
   historicalFindingsNotice,
   isSnapshotActionable,
-  validateAnalysisSourceBinding,
   type AnalysisSourceBinding,
 } from "@/lib/analysisSourceBinding";
 import { useSourceFreshness } from "@/hooks/useSourceFreshness";
@@ -43,7 +42,9 @@ import {
   buildCorrectionSelection,
   isCorrectionStale,
   isSameViewIdentity,
+  validateCorrectionResponse,
   CORRECTION_REQUEST_MESSAGES,
+  CORRECTION_RESPONSE_MESSAGES,
   STALE_CORRECTION_NOTICE,
   type CorrectionResult,
 } from "@/lib/uploadedContractOps";
@@ -103,7 +104,7 @@ export default function UploadedContractPage() {
   const {
     contract, analysis, contacts, savedDocId, loading,
     editText, titleDraft, contactId, setEditText, setTitleDraft,
-    dirtyText, dirtyTitle, hasUnsavedChanges, remoteConflict,
+    dirtyText, dirtyTitle, hasUnsavedChanges, remoteConflict, conflictUnresolved,
     savingText, savingTitle, savingContact, creatingShare,
   } = doc;
 
@@ -282,23 +283,17 @@ export default function UploadedContractPage() {
       }
       return;
     }
-    const res = data as {
-      corrected_text?: string;
-      changes?: string[];
-      analysis_id?: string;
-      source?: unknown;
-    };
-    // Резултатът трябва да е за ТОЧНО заявения анализ, иначе не се показва.
-    if (typeof res.analysis_id === "string" && res.analysis_id !== payload.analysisId) {
-      toast.error(STALE_CORRECTION_NOTICE);
+    // Резултатът се приема САМО ако носи точно заявения анализ и обвързване.
+    const checked = validateCorrectionResponse({
+      response: data,
+      requestedAnalysisId: payload.analysisId,
+      requestedBinding: payload.binding,
+    });
+    if (checked.ok !== true) {
+      toast.error(CORRECTION_RESPONSE_MESSAGES[checked.reason]);
       return;
     }
-    setCorrections({
-      corrected_text: typeof res.corrected_text === "string" ? res.corrected_text : "",
-      changes: Array.isArray(res.changes) ? res.changes.filter((c): c is string => typeof c === "string") : [],
-      analysisId: typeof res.analysis_id === "string" ? res.analysis_id : payload.analysisId,
-      sourceBinding: validateAnalysisSourceBinding(res.source),
-    });
+    setCorrections(checked.result);
   };
 
   const suggestCorrections = async () => {
@@ -669,37 +664,50 @@ export default function UploadedContractPage() {
         </Dialog>
 
         {/* DOCUMENT EDITOR + LINKED CONTACT + SIGNING — always visible */}
-        {remoteConflict && (
+        {conflictUnresolved && (
           <section className="mt-6 rounded-xl border border-amber-300/50 bg-amber-300/10 p-4 text-sm text-amber-100">
             <h2 className="font-serif text-lg font-bold">Документът е променен и на друго място</h2>
             <p className="mt-1 text-xs">
-              Вашите незапазени промени са запазени тук. Отдалечената версия е различна. Изберете какво да остане —
+              Вашите незапазени промени са запазени тук. Записването е спряно, докато не изберете какво остане —
               нищо не се презаписва без Вашето решение.
             </p>
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
-              <div className="rounded-md border border-amber-300/30 bg-background/40 p-3">
-                <div className="text-xs uppercase tracking-wider">Отдалечена версия</div>
-                <div className="mt-1 text-xs font-semibold">{remoteConflict.title}</div>
-                <pre className="mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap text-[11px] leading-relaxed">
-                  {remoteConflict.extracted_text}
-                </pre>
+            {remoteConflict ? (
+              <>
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <div className="rounded-md border border-amber-300/30 bg-background/40 p-3">
+                    <div className="text-xs uppercase tracking-wider">Версия на другото място</div>
+                    <div className="mt-1 text-xs font-semibold">{remoteConflict.title}</div>
+                    <pre className="mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap text-[11px] leading-relaxed">
+                      {remoteConflict.extracted_text}
+                    </pre>
+                  </div>
+                  <div className="rounded-md border border-amber-300/30 bg-background/40 p-3">
+                    <div className="text-xs uppercase tracking-wider">Вашият текст</div>
+                    <div className="mt-1 text-xs font-semibold">{titleDraft}</div>
+                    <pre className="mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap text-[11px] leading-relaxed">
+                      {editText}
+                    </pre>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={() => doc.useRemoteVersion()}>
+                    Използвай другата версия
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => doc.keepLocalVersion()}>
+                    Запази моя текст
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <p className="text-xs">
+                  Другата версия още не е заредена. Опитайте да я заредите, за да изберете.
+                </p>
+                <Button size="sm" variant="outline" onClick={() => void doc.load({ silent: true })}>
+                  Зареди другата версия
+                </Button>
               </div>
-              <div className="rounded-md border border-amber-300/30 bg-background/40 p-3">
-                <div className="text-xs uppercase tracking-wider">Вашият текст</div>
-                <div className="mt-1 text-xs font-semibold">{titleDraft}</div>
-                <pre className="mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap text-[11px] leading-relaxed">
-                  {editText}
-                </pre>
-              </div>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={doc.useRemoteVersion}>
-                Използвай отдалечената версия
-              </Button>
-              <Button size="sm" variant="outline" onClick={doc.keepLocalVersion}>
-                Запази моя текст
-              </Button>
-            </div>
+            )}
           </section>
         )}
 
@@ -712,7 +720,8 @@ export default function UploadedContractPage() {
               <Button
                 size="sm"
                 onClick={saveText}
-                disabled={savingText || editText === contract.extracted_text}
+                disabled={savingText || conflictUnresolved || editText === contract.extracted_text}
+                title={conflictUnresolved ? "Изберете коя версия остава, преди да записвате." : undefined}
                 className="bg-gradient-gold text-navy"
               >
                 {savingText ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
@@ -891,7 +900,7 @@ export default function UploadedContractPage() {
               <section className="rounded-xl border border-border/60 bg-gradient-card p-6">
                 <h2 className="font-serif text-xl font-bold">Липсващи стандартни клаузи ({analysis.missing_clauses.length})</h2>
                 {analysis.missing_clauses.length === 0 ? (
-                  <p className="mt-3 text-sm text-muted-foreground">Всички основни клаузи присъстват.</p>
+                  <p className="mt-3 text-sm text-muted-foreground">{emptyMissingClausesMessage(analysis.verification, freshness)}</p>
                 ) : (
                   <ul className="mt-4 space-y-2">
                     {analysis.missing_clauses.map((m, idx) => (

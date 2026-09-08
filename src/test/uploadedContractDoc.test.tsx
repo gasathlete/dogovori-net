@@ -305,3 +305,273 @@ describe("контролер на качения договор — отложе
     expect(view.result.current.contract?.updated_at).toBe("2026-05-05T00:00:00Z");
   });
 });
+
+describe("контролер — запис на едно поле не губи чернова на друго", () => {
+  it("запис на името пази вече мръсната чернова на текста и по-късното писане", async () => {
+    const h = harness();
+    const view = mount(h);
+    await settleInitialLoad(h, view);
+    // Текстът е мръсен ПРЕДИ да пипаме името.
+    await act(async () => void view.result.current.setEditText(`${LONG} мои промени`));
+    await act(async () => void view.result.current.setTitleDraft("Ново име"));
+    let outcome!: Promise<string>;
+    await act(async () => {
+      outcome = view.result.current.saveTitle() as unknown as Promise<string>;
+    });
+    await waitFor(() => expect(h.updateQueue.length).toBe(1));
+    expect(h.updates[0].patch).toEqual({ title: "Ново име" });
+    await act(async () => {
+      h.updateQueue[0].resolve({
+        data: row({ title: "Ново име", updated_at: "2026-06-06T00:00:00Z" }),
+        error: null,
+      });
+      await outcome;
+    });
+    // Текстовата чернова е НЕДОКОСНАТА.
+    expect(view.result.current.editText).toBe(`${LONG} мои промени`);
+    expect(view.result.current.titleDraft).toBe("Ново име");
+    expect(view.result.current.dirtyText).toBe(true);
+    // Следващият запис ползва новата версия.
+    await act(async () => void view.result.current.setEditText(`${LONG} и още`));
+    let second!: Promise<string>;
+    await act(async () => {
+      second = view.result.current.saveText() as unknown as Promise<string>;
+    });
+    await waitFor(() => expect(h.hashQueue.length).toBe(1));
+    await act(async () => h.hashQueue[0].resolve("h2"));
+    await waitFor(() => expect(h.updateQueue.length).toBe(2));
+    expect(h.updates[1].version).toBe("2026-06-06T00:00:00Z");
+    await act(async () => {
+      h.updateQueue[1].resolve({
+        data: row({ extracted_text: `${LONG} и още`, title: "Ново име", updated_at: "2026-06-07T00:00:00Z" }),
+        error: null,
+      });
+      await second;
+    });
+    expect(view.result.current.editText).toBe(`${LONG} и още`);
+  });
+
+  it("запис на текста пази вече мръсната чернова на името", async () => {
+    const h = harness();
+    const view = mount(h);
+    await settleInitialLoad(h, view);
+    await act(async () => void view.result.current.setTitleDraft("Мое име"));
+    await act(async () => void view.result.current.setEditText(`${LONG} нов текст`));
+    let outcome!: Promise<string>;
+    await act(async () => {
+      outcome = view.result.current.saveText() as unknown as Promise<string>;
+    });
+    await waitFor(() => expect(h.hashQueue.length).toBe(1));
+    await act(async () => h.hashQueue[0].resolve("h3"));
+    await waitFor(() => expect(h.updateQueue.length).toBe(1));
+    await act(async () => {
+      h.updateQueue[0].resolve({
+        data: row({ extracted_text: `${LONG} нов текст`, updated_at: "2026-06-08T00:00:00Z" }),
+        error: null,
+      });
+      await outcome;
+    });
+    expect(view.result.current.titleDraft).toBe("Мое име");
+    expect(view.result.current.dirtyTitle).toBe(true);
+    expect(view.result.current.editText).toBe(`${LONG} нов текст`);
+  });
+});
+
+describe("контролер — изричен изход от конфликт", () => {
+  async function toConflict(h: Harness, view: ReturnType<typeof mount>, remote: Contract) {
+    await settleInitialLoad(h, view);
+    await act(async () => void view.result.current.setEditText(`${LONG} моя версия`));
+    let outcome!: Promise<string>;
+    await act(async () => {
+      outcome = view.result.current.saveText() as unknown as Promise<string>;
+    });
+    await waitFor(() => expect(h.hashQueue.length).toBe(1));
+    await act(async () => h.hashQueue[0].resolve("hc"));
+    await waitFor(() => expect(h.updateQueue.length).toBe(1));
+    await act(async () => {
+      h.updateQueue[0].resolve({ data: null, error: null });
+      await outcome;
+    });
+    // CAS 0 стартира презареждане, което носи отдалечената снимка.
+    await waitFor(() => expect(h.contractQueue.length).toBe(2));
+    await act(async () => {
+      h.contractQueue[1].resolve({ data: remote, error: null });
+    });
+  }
+
+  it("конфликтът е видим и когато отдалеченият текст е същият, но версията е нова", async () => {
+    const h = harness();
+    const view = mount(h);
+    await toConflict(h, view, row({ updated_at: "2026-07-01T00:00:00Z" }));
+    expect(view.result.current.conflictUnresolved).toBe(true);
+    expect(view.result.current.remoteConflict?.updated_at).toBe("2026-07-01T00:00:00Z");
+    // Записът е блокиран, докато няма избор.
+    const blocked = await act(async () => {
+      await view.result.current.saveText();
+    });
+    void blocked;
+    expect(h.updates.length).toBe(1);
+  });
+
+  it("„запази моя текст\" пренася версията и следващият запис успява", async () => {
+    const h = harness();
+    const view = mount(h);
+    await toConflict(h, view, row({ extracted_text: `${LONG} чуждо`, updated_at: "2026-07-02T00:00:00Z" }));
+    await act(async () => void view.result.current.keepLocalVersion());
+    expect(view.result.current.conflictUnresolved).toBe(false);
+    expect(view.result.current.editText).toBe(`${LONG} моя версия`);
+    let outcome!: Promise<string>;
+    await act(async () => {
+      outcome = view.result.current.saveText() as unknown as Promise<string>;
+    });
+    await waitFor(() => expect(h.hashQueue.length).toBe(2));
+    await act(async () => h.hashQueue[1].resolve("hk"));
+    await waitFor(() => expect(h.updateQueue.length).toBe(2));
+    expect(h.updates[1].version).toBe("2026-07-02T00:00:00Z");
+    await act(async () => {
+      h.updateQueue[1].resolve({
+        data: row({ extracted_text: `${LONG} моя версия`, updated_at: "2026-07-03T00:00:00Z" }),
+        error: null,
+      });
+      await outcome;
+    });
+    expect(view.result.current.contract?.updated_at).toBe("2026-07-03T00:00:00Z");
+  });
+
+  it("нова отдалечена промяна след избора пак дава конфликт", async () => {
+    const h = harness();
+    const view = mount(h);
+    await toConflict(h, view, row({ extracted_text: `${LONG} чуждо`, updated_at: "2026-07-02T00:00:00Z" }));
+    await act(async () => void view.result.current.keepLocalVersion());
+    let outcome!: Promise<string>;
+    await act(async () => {
+      outcome = view.result.current.saveText() as unknown as Promise<string>;
+    });
+    await waitFor(() => expect(h.hashQueue.length).toBe(2));
+    await act(async () => h.hashQueue[1].resolve("hk2"));
+    await waitFor(() => expect(h.updateQueue.length).toBe(2));
+    await act(async () => {
+      h.updateQueue[1].resolve({ data: null, error: null });
+      await outcome;
+    });
+    expect(view.result.current.conflictUnresolved).toBe(true);
+    expect(view.result.current.editText).toBe(`${LONG} моя версия`);
+  });
+
+  it("„използвай другата версия\" приема отдалечения текст", async () => {
+    const h = harness();
+    const view = mount(h);
+    await toConflict(h, view, row({ extracted_text: `${LONG} чуждо`, updated_at: "2026-07-04T00:00:00Z" }));
+    await act(async () => void view.result.current.useRemoteVersion());
+    expect(view.result.current.conflictUnresolved).toBe(false);
+    expect(view.result.current.editText).toBe(`${LONG} чуждо`);
+    expect(view.result.current.contract?.updated_at).toBe("2026-07-04T00:00:00Z");
+  });
+
+  it("провалено презареждане не скрива конфликта", async () => {
+    const h = harness();
+    const view = mount(h);
+    await settleInitialLoad(h, view);
+    await act(async () => void view.result.current.setEditText(`${LONG} моя версия`));
+    let outcome!: Promise<string>;
+    await act(async () => {
+      outcome = view.result.current.saveText() as unknown as Promise<string>;
+    });
+    await waitFor(() => expect(h.hashQueue.length).toBe(1));
+    await act(async () => h.hashQueue[0].resolve("hf"));
+    await waitFor(() => expect(h.updateQueue.length).toBe(1));
+    await act(async () => {
+      h.updateQueue[0].resolve({ data: null, error: null });
+      await outcome;
+    });
+    await waitFor(() => expect(h.contractQueue.length).toBe(2));
+    await act(async () => {
+      h.contractQueue[1].reject(new Error("network"));
+      await Promise.resolve();
+    });
+    expect(view.result.current.conflictUnresolved).toBe(true);
+  });
+});
+
+describe("контролер — контрагент и ред на четенията", () => {
+  it("контрагент с различен отдалечен текст не приема новата версия", async () => {
+    const h = harness();
+    const view = mount(h);
+    await settleInitialLoad(h, view);
+    await act(async () => void view.result.current.setEditText(`${LONG} локално`));
+    let outcome!: Promise<string>;
+    await act(async () => {
+      outcome = view.result.current.saveContact("c-1") as unknown as Promise<string>;
+    });
+    await waitFor(() => expect(h.contactQueue.length).toBe(1));
+    let res = "";
+    await act(async () => {
+      h.contactQueue[0].resolve({
+        data: row({ contact_id: "c-1", extracted_text: `${LONG} чуждо`, updated_at: "2026-08-01T00:00:00Z" }),
+        error: null,
+      });
+      res = (await outcome) as unknown as string;
+    });
+    expect(res).toBe("conflict");
+    expect(view.result.current.conflictUnresolved).toBe(true);
+    expect(view.result.current.contract?.updated_at).toBe("2026-01-01T00:00:00Z");
+    expect(view.result.current.editText).toBe(`${LONG} локално`);
+  });
+
+  it("грешка при контрагент не съобщава успех", async () => {
+    const notices: Array<[string, string]> = [];
+    const h = harness();
+    const view = renderHook(() =>
+      useUploadedContractDoc({
+        docId: "doc-1",
+        userId: "user-1",
+        api: h.api,
+        onNotice: (k, m) => notices.push([k, m]),
+      }),
+    );
+    await settleInitialLoad(h, view as unknown as ReturnType<typeof mount>);
+    let outcome!: Promise<string>;
+    await act(async () => {
+      outcome = view.result.current.saveContact("c-9") as unknown as Promise<string>;
+    });
+    await waitFor(() => expect(h.contactQueue.length).toBe(1));
+    let res = "";
+    await act(async () => {
+      h.contactQueue[0].resolve({ data: null, error: null });
+      res = (await outcome) as unknown as string;
+    });
+    expect(res).toBe("error");
+    expect(notices.some(([k]) => k === "success")).toBe(false);
+  });
+
+  it("по-старо четене, което завършва последно, не връща по-стара база", async () => {
+    const h = harness();
+    const view = mount(h);
+    await settleInitialLoad(h, view);
+    await act(async () => void view.result.current.load({ silent: true }));
+    await waitFor(() => expect(h.contractQueue.length).toBe(2));
+    await act(async () => void view.result.current.load({ silent: true }));
+    await waitFor(() => expect(h.contractQueue.length).toBe(3));
+    // Новото четене завършва ПЪРВО.
+    await act(async () => {
+      h.contractQueue[2].resolve({ data: row({ title: "Ново", updated_at: "2026-09-02T00:00:00Z" }), error: null });
+    });
+    // По-старото — след него; не бива да се приложи.
+    await act(async () => {
+      h.contractQueue[1].resolve({ data: row({ title: "Старо", updated_at: "2026-09-01T00:00:00Z" }), error: null });
+    });
+    expect(view.result.current.contract?.title).toBe("Ново");
+    expect(view.result.current.contract?.updated_at).toBe("2026-09-02T00:00:00Z");
+  });
+
+  it("отказано четене не оставя вечно зареждане", async () => {
+    const h = harness();
+    const view = mount(h);
+    await waitFor(() => expect(h.contractQueue.length).toBe(1));
+    await act(async () => {
+      h.contractQueue[0].reject(new Error("offline"));
+      await Promise.resolve();
+    });
+    expect(view.result.current.contract).toBeNull();
+  });
+});

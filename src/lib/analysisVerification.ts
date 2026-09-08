@@ -270,6 +270,26 @@ export function emptyIssuesMessage(verification: unknown, freshness: SnapshotFre
   return "Няма отбелязани находки, но този анализ не е потвърден. Прегледайте документа.";
 }
 
+/**
+ * Текст при нула липсващи клаузи — това е констатация за ТАЗИ проверка, а не
+ * твърдение, че договорът съдържа всичко нужно.
+ */
+export function emptyMissingClausesMessage(verification: unknown, freshness: SnapshotFreshness): string {
+  const parsed = parseAnalysisVerification(verification);
+  if (freshness !== "current") {
+    return "В предишната проверка няма отчетени липсващи клаузи. Това не описва задължително текущия текст — направете нов анализ.";
+  }
+  if (parsed.status === "evidence_checked") {
+    return "В тази проверка няма отчетени липсващи клаузи. Това не е потвърждение, че договорът е пълен.";
+  }
+  if (parsed.status === "incomplete") {
+    return "В тази проверка няма отчетени липсващи клаузи; част от проверката не е завършена.";
+  }
+  return "В тази проверка няма отчетени липсващи клаузи, но анализът не е потвърден. Прегледайте документа.";
+}
+
+
+
 
 /**
  * Кратък бадж за списъчните изгледи. Списъците НЕ свалят текстовете на
