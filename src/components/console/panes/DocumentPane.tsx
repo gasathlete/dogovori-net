@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { SAVED_DOCUMENT_UPDATED_EVENT } from "@/lib/assistantEditProposals";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ExternalLink, FileText, Save } from "@/icons";
 import { Input } from "@/components/ui/input";
@@ -30,6 +32,9 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
   const [rawText, setRawText] = useState("");
   const [mode, setMode] = useState<"structured" | "raw">("structured");
 
+  const [reloadKey, setReloadKey] = useState(0);
+  const dirtyRef = useRef(false);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -55,9 +60,26 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
       }
       setLoading(false);
     })();
+  }, [documentId, reloadKey]);
+
+  // Приета/върната редакция от DogovaryAI: презарежда САМО този документ и
+  // никога не презаписва незапазени промени на потребителя.
+  useEffect(() => {
+    const onUpdated = (e: Event) => {
+      const id = (e as CustomEvent<{ documentId?: string }>).detail?.documentId;
+      if (!id || id !== documentId) return;
+      if (dirtyRef.current) {
+        toast.info("Документът е обновен. Запазете или отхвърлете промените си, за да го презаредите.");
+        return;
+      }
+      setReloadKey((k) => k + 1);
+    };
+    window.addEventListener(SAVED_DOCUMENT_UPDATED_EVENT, onUpdated);
+    return () => window.removeEventListener(SAVED_DOCUMENT_UPDATED_EVENT, onUpdated);
   }, [documentId]);
 
-  const markDirty = () => { if (tabId) setDirty(tabId, true); };
+  const markDirty = () => { dirtyRef.current = true; if (tabId) setDirty(tabId, true); };
+
 
   const handleSave = async () => {
     if (!doc) return;
@@ -76,7 +98,9 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
     if (error) toast.error("Грешка", { description: error.message });
     else {
       toast.success("Запазено");
+      dirtyRef.current = false;
       if (tabId) setDirty(tabId, false);
+
     }
   };
 
