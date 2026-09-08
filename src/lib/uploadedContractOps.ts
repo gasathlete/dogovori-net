@@ -8,6 +8,7 @@
 
 import {
   isSourceBindingEqual,
+  validateAnalysisSourceBinding,
   type AnalysisSourceBinding,
   type SnapshotFreshness,
 } from "@/lib/analysisSourceBinding";
@@ -181,3 +182,62 @@ export function isCorrectionStale(input: {
 
 export const STALE_CORRECTION_NOTICE =
   "Документът е променен, след като тази редакция беше изготвена. Тя не отговаря на текущия текст — направете нов анализ и нова корекция.";
+
+// ---------------------------------------------------------------------------
+// Проверка на отговора от корекцията — fail closed
+// ---------------------------------------------------------------------------
+
+export type CorrectionResponseReason =
+  | "malformed"
+  | "analysis_missing"
+  | "analysis_mismatch"
+  | "binding_missing"
+  | "binding_mismatch"
+  | "empty_text";
+
+export type CorrectionResponseCheck =
+  | { ok: true; result: CorrectionResult }
+  | { ok: false; reason: CorrectionResponseReason };
+
+/**
+ * Отговорът се приема САМО ако носи точно заявения анализ И обвързване, идентично
+ * на изпратеното. Липсващи доказателства не се домислят от заявката.
+ */
+export function validateCorrectionResponse(input: {
+  response: unknown;
+  requestedAnalysisId: string;
+  requestedBinding: AnalysisSourceBinding;
+}): CorrectionResponseCheck {
+  const res = input.response;
+  if (!res || typeof res !== "object" || Array.isArray(res)) return { ok: false, reason: "malformed" };
+  const r = res as Record<string, unknown>;
+  if (typeof r.analysis_id !== "string" || r.analysis_id.length === 0) {
+    return { ok: false, reason: "analysis_missing" };
+  }
+  if (r.analysis_id !== input.requestedAnalysisId) return { ok: false, reason: "analysis_mismatch" };
+  const binding = validateAnalysisSourceBinding(r.source);
+  if (!binding) return { ok: false, reason: "binding_missing" };
+  if (!isSourceBindingEqual(binding, input.requestedBinding)) return { ok: false, reason: "binding_mismatch" };
+  if (typeof r.corrected_text !== "string" || r.corrected_text.trim().length === 0) {
+    return { ok: false, reason: "empty_text" };
+  }
+  const changes = Array.isArray(r.changes) ? r.changes.filter((c): c is string => typeof c === "string") : [];
+  return {
+    ok: true,
+    result: {
+      corrected_text: r.corrected_text,
+      changes,
+      analysisId: r.analysis_id,
+      sourceBinding: binding,
+    },
+  };
+}
+
+export const CORRECTION_RESPONSE_MESSAGES: Record<CorrectionResponseReason, string> = {
+  malformed: "Отговорът не е разчетен. Опитайте пак.",
+  analysis_missing: STALE_CORRECTION_NOTICE,
+  analysis_mismatch: STALE_CORRECTION_NOTICE,
+  binding_missing: STALE_CORRECTION_NOTICE,
+  binding_mismatch: STALE_CORRECTION_NOTICE,
+  empty_text: "Не получихме коригиран текст. Опитайте пак.",
+};

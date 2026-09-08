@@ -5,6 +5,7 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { emptyMissingClausesMessage } from "@/lib/analysisVerification";
 
 const read = (p: string) => readFileSync(p, "utf8");
 
@@ -99,5 +100,26 @@ describe("edge конвейер", () => {
     expect(src).not.toMatch(/sourceTextHash/);
     expect(read("supabase/functions/_shared/analysis-evidence.ts")).not.toMatch(/source_text_hash/);
     expect(read("drizzle/migrations/0014_analysis_verification.sql")).not.toMatch(/"source_text_hash"/);
+  });
+});
+
+describe("липсващи клаузи — без твърдение за пълнота", () => {
+  it("никога не казва, че всички клаузи присъстват", () => {
+    const variants: Array<[unknown, "current" | "stale" | "unknown"]> = [
+      [{ version: 1, evidence: { status: "evidence_checked", verified: 1, total: 1 } }, "current"],
+      [{ version: 1, evidence: { status: "incomplete", verified: 0, total: 1 } }, "current"],
+      [null, "current"],
+      [null, "stale"],
+      [null, "unknown"],
+    ];
+    for (const [verification, freshness] of variants) {
+      const msg = emptyMissingClausesMessage(verification, freshness);
+      expect(msg).not.toContain("Всички основни клаузи присъстват");
+      expect(msg.length).toBeGreaterThan(10);
+    }
+  });
+
+  it("при неактуален анализ казва изрично, че не описва текущия текст", () => {
+    expect(emptyMissingClausesMessage(null, "stale")).toContain("текущия текст");
   });
 });

@@ -144,10 +144,19 @@ export const supabaseUploadedDocApi: UploadedDocApi = {
   hashText: sha256Hex,
 };
 
-export type SaveOutcome = "saved" | "conflict" | "error" | "ignored" | "invalid";
+export type SaveOutcome = "saved" | "conflict" | "error" | "ignored" | "invalid" | "blocked";
 
 export function snapshotKeyOf(text: string, title: string): string {
   return `${text}\u0000${title}`;
+}
+
+export const CONFLICT_BLOCK_MESSAGE =
+  "Документът е променен и на друго място. Изберете коя версия остава, преди да записвате пак.";
+
+/** Кои полета РЕАЛНО са записани в базата при този запис. */
+export interface SavedFields {
+  text?: boolean;
+  title?: boolean;
 }
 
 export function useUploadedContractDoc(input: {
@@ -176,6 +185,7 @@ export function useUploadedContractDoc(input: {
   const [savingContact, setSavingContact] = useState(false);
   const [creatingShare, setCreatingShare] = useState(false);
   const [remoteConflict, setRemoteConflict] = useState<Contract | null>(null);
+  const [conflictUnresolved, setConflictUnresolvedState] = useState(false);
   const [savedRevision, setSavedRevision] = useState(0);
 
   // ---- обхват и генерации ---------------------------------------------------
@@ -192,6 +202,16 @@ export function useUploadedContractDoc(input: {
   const baselineTextRef = useRef("");
   const baselineTitleRef = useRef("");
   const saveSeqRef = useRef(0);
+  /** Ред на четенията: приложим САМО резултата на последно стартираното. */
+  const loadSeqRef = useRef(0);
+  /** Всяко създаване на свързано копие обезсилва по-стари четения на копието. */
+  const copyWriteSeqRef = useRef(0);
+  const conflictRef = useRef(false);
+
+  const setConflictUnresolved = useCallback((v: boolean) => {
+    conflictRef.current = v;
+    setConflictUnresolvedState(v);
+  }, []);
 
   const setEditText = useCallback((v: string) => {
     draftTextRef.current = v;
@@ -216,6 +236,20 @@ export function useUploadedContractDoc(input: {
     [setEditText, setTitleDraft],
   );
 
+  const clearConflict = useCallback(() => {
+    setRemoteConflict(null);
+    setConflictUnresolved(false);
+  }, [setConflictUnresolved]);
+
+  /** Конфликтът е ВИДИМ дори когато отдалеченият ред не е успял да се зареди. */
+  const noteConflict = useCallback(
+    (remote: Contract | null) => {
+      setConflictUnresolved(true);
+      if (remote) setRemoteConflict(remote);
+    },
+    [setConflictUnresolved],
+  );
+
   const resetAll = useCallback(() => {
     setContract(null);
     setAnalysis(null);
@@ -223,6 +257,7 @@ export function useUploadedContractDoc(input: {
     setSavedDocId(null);
     setLoadedScope(null);
     setRemoteConflict(null);
+    setConflictUnresolved(false);
     setSavingText(false);
     setSavingTitle(false);
     setSavingContact(false);
@@ -234,24 +269,39 @@ export function useUploadedContractDoc(input: {
     baselineTextRef.current = "";
     baselineTitleRef.current = "";
     saveSeqRef.current = 0;
-  }, [setEditText, setTitleDraft]);
+    loadSeqRef.current = 0;
+    copyWriteSeqRef.current = 0;
+  }, [setConflictUnresolved, setEditText, setTitleDraft]);
 
   const load = useCallback(
     async (opts?: { silent?: boolean }) => {
       const scope = `${input.userId ?? ""}|${input.docId ?? ""}`;
       const gen = genRef.current;
       const saveSeqAtStart = saveSeqRef.current;
+      const seq = ++loadSeqRef.current;
+      const copyWriteAtStart = copyWriteSeqRef.current;
       if (!input.docId || !input.userId) {
         setLoading(false);
         return;
       }
       if (!opts?.silent) setLoading(true);
-      const [cRes, aRes, kRes] = await Promise.all([
-        api.loadContract(input.docId),
-        api.loadLatestAnalysis(input.docId),
-        api.loadContacts(),
-      ]);
-      if (!isLive(gen, scope)) return;
+      const isCurrentLoad = () => isLive(gen, scope) && seq === loadSeqRef.current;
+
+      let cRes: DbResult<Contract>;
+      let aRes: DbResult<Analysis>;
+      let kRes: DbResult<Contact[]>;
+      try {
+        [cRes, aRes, kRes] = await Promise.all([
+          api.loadContract(input.docId),
+          api.loadLatestAnalysis(input.docId),
+          api.loadContacts(),
+        ]);
+      } catch {
+        // Провалено четене не трие видимия конфликт и не оставя вечно „зареждане".
+        if (isCurrentLoad()) setLoading(false);
+        return;
+      }
+      if (!isCurrentLoad()) return;
 
       setAnalysis(aRes.data ?? null);
       setContacts(kRes.data ?? []);
@@ -268,37 +318,47 @@ export function useUploadedContractDoc(input: {
       const staleAfterSave = saveSeqAtStart !== saveSeqRef.current;
       if (!staleAfterSave) {
         // Решението за черновите се взема СЕГА, по актуалните стойности.
-        const dirtyText = draftTextRef.current !== baselineTextRef.current;
-        const dirtyTitle = draftTitleRef.current !== baselineTitleRef.current;
-        const dirty = dirtyText || dirtyTitle;
+        const dirtyTextNow = draftTextRef.current !== baselineTextRef.current;
+        const dirtyTitleNow = draftTitleRef.current !== baselineTitleRef.current;
+        const dirty = dirtyTextNow || dirtyTitleNow;
         const remoteChanged =
           (remote.extracted_text ?? "") !== baselineTextRef.current ||
           (remote.title ?? "") !== baselineTitleRef.current;
 
-        if (!dirty) {
+        if (conflictRef.current) {
+          // Неразрешен конфликт: само показваме отдалечената снимка.
+          setRemoteConflict(remote);
+        } else if (!dirty) {
           commitBaseline(remote);
-          setRemoteConflict(null);
         } else if (remoteChanged) {
           // Базата за CAS НЕ се мести — отдалеченият ред чака изричен избор.
-          setRemoteConflict(remote);
+          noteConflict(remote);
         } else {
           setContract(remote);
         }
       }
 
-      const sd = await api.loadSavedCopyId(input.userId, input.docId);
-      if (!isLive(gen, scope)) return;
-      setSavedDocId(sd.data?.id ?? null);
+      let sd: DbResult<{ id: string }>;
+      try {
+        sd = await api.loadSavedCopyId(input.userId, input.docId);
+      } catch {
+        if (isCurrentLoad()) setLoading(false);
+        return;
+      }
+      if (!isCurrentLoad()) return;
+      // Ново копие, създадено междувременно, не се затрива с по-старо четене.
+      if (copyWriteAtStart === copyWriteSeqRef.current) setSavedDocId(sd.data?.id ?? null);
       setLoadedScope(scope);
       setLoading(false);
     },
-    [api, input.docId, input.userId, isLive, commitBaseline],
+    [api, input.docId, input.userId, isLive, commitBaseline, noteConflict],
   );
 
   // Смяна на документ/потребител: всичко се изчиства и никоя стара заявка не се приема.
   useEffect(() => {
     genRef.current++;
     scopeRef.current = scopeKey;
+    conflictRef.current = false;
     resetAll();
     setLoading(true);
     void load();
@@ -313,31 +373,46 @@ export function useUploadedContractDoc(input: {
     const scope = `${input.userId ?? ""}|${input.docId ?? ""}`;
     const gen = genRef.current;
     if (!input.docId || !input.userId) return;
-    const { data } = await api.loadLatestAnalysis(input.docId);
-    if (!isLive(gen, scope)) return;
-    setAnalysis(data ?? null);
+    try {
+      const { data } = await api.loadLatestAnalysis(input.docId);
+      if (!isLive(gen, scope)) return;
+      setAnalysis(data ?? null);
+    } catch {
+      /* тихо: анализът остава какъвто е */
+    }
   }, [api, input.docId, input.userId, isLive]);
 
   // ---- запис ---------------------------------------------------------------
 
+  /**
+   * Прилага РЕАЛНО записания ред. Нормализира редактора само за полетата, които
+   * са били записани, и само ако тяхната чернова не е променяна междувременно —
+   * иначе мръсна чернова на ДРУГО поле щеше да се загуби.
+   */
   const applySavedRow = useCallback(
-    (row: Contract, captured: { text: string; title: string }) => {
+    (row: Contract, captured: { text: string; title: string }, fields: SavedFields) => {
       saveSeqRef.current++;
       setContract(row);
       baselineTextRef.current = row.extracted_text ?? "";
       baselineTitleRef.current = row.title ?? "";
-      setRemoteConflict(null);
+      clearConflict();
       setSavedRevision((n) => n + 1);
-      // Нормализираме редактора САМО ако черновата не е променяна междувременно.
-      if (draftTextRef.current === captured.text) setEditText(row.extracted_text ?? "");
-      if (draftTitleRef.current === captured.title) setTitleDraft(row.title ?? "");
+      if (fields.text && draftTextRef.current === captured.text) setEditText(row.extracted_text ?? "");
+      if (fields.title && draftTitleRef.current === captured.title) setTitleDraft(row.title ?? "");
     },
-    [setEditText, setTitleDraft],
+    [clearConflict, setEditText, setTitleDraft],
   );
+
+  const blockedByConflict = useCallback((): boolean => {
+    if (!conflictRef.current) return false;
+    notify?.("error", CONFLICT_BLOCK_MESSAGE);
+    return true;
+  }, [notify]);
 
   const saveText = useCallback(async (): Promise<SaveOutcome> => {
     const current = contract;
     if (!current || !input.docId || !input.userId) return "ignored";
+    if (blockedByConflict()) return "blocked";
     const scope = `${input.userId}|${input.docId}`;
     const gen = genRef.current;
     const capturedText = draftTextRef.current;
@@ -362,7 +437,16 @@ export function useUploadedContractDoc(input: {
     }
     // Обхватът се проверява СЛЕД хеширането и ПРЕДИ записа.
     if (!isLive(gen, scope)) return "ignored";
-    const res = await api.updateContract(input.docId, { extracted_text: trimmed, text_hash }, capturedVersion);
+    let res: DbResult<Contract>;
+    try {
+      res = await api.updateContract(input.docId, { extracted_text: trimmed, text_hash }, capturedVersion);
+    } catch (e) {
+      if (isLive(gen, scope)) {
+        setSavingText(false);
+        notify?.("error", (e as Error)?.message || "Грешка при запис");
+      }
+      return "error";
+    }
     if (!isLive(gen, scope)) return "ignored";
     setSavingText(false);
     if (res.error) {
@@ -371,25 +455,43 @@ export function useUploadedContractDoc(input: {
     }
     if (!res.data) {
       // Конфликт: нищо не е презаписано, черновата остава, свързаното копие НЕ се пипа.
+      noteConflict(null);
       void load({ silent: true });
       return "conflict";
     }
-    applySavedRow(res.data, { text: capturedText, title: capturedTitle });
+    applySavedRow(res.data, { text: capturedText, title: capturedTitle }, { text: true });
     notify?.("success", "Текстът е запазен");
     if (copyId) {
       const savedRow = res.data;
       if (isLive(gen, scope)) {
-        await api.updateSavedCopy(copyId, {
-          payload: textToPayload(savedRow.title, savedRow.extracted_text ?? trimmed),
-        });
+        try {
+          await api.updateSavedCopy(copyId, {
+            payload: textToPayload(savedRow.title, savedRow.extracted_text ?? trimmed),
+          });
+        } catch {
+          /* свързаното копие не блокира основния запис */
+        }
       }
     }
     return "saved";
-  }, [api, applySavedRow, contract, input.docId, input.userId, isLive, load, notify, savedDocId]);
+  }, [
+    api,
+    applySavedRow,
+    blockedByConflict,
+    contract,
+    input.docId,
+    input.userId,
+    isLive,
+    load,
+    noteConflict,
+    notify,
+    savedDocId,
+  ]);
 
   const saveTitle = useCallback(async (): Promise<SaveOutcome> => {
     const current = contract;
     if (!current || !input.docId || !input.userId) return "ignored";
+    if (blockedByConflict()) return "blocked";
     const scope = `${input.userId}|${input.docId}`;
     const gen = genRef.current;
     const capturedText = draftTextRef.current;
@@ -406,7 +508,16 @@ export function useUploadedContractDoc(input: {
     const capturedVersion = current.updated_at;
     const copyId = savedDocId;
     setSavingTitle(true);
-    const res = await api.updateContract(input.docId, { title: trimmed }, capturedVersion);
+    let res: DbResult<Contract>;
+    try {
+      res = await api.updateContract(input.docId, { title: trimmed }, capturedVersion);
+    } catch (e) {
+      if (isLive(gen, scope)) {
+        setSavingTitle(false);
+        notify?.("error", (e as Error)?.message || "Грешка при запис");
+      }
+      return "error";
+    }
     if (!isLive(gen, scope)) return "ignored";
     setSavingTitle(false);
     if (res.error) {
@@ -414,42 +525,81 @@ export function useUploadedContractDoc(input: {
       return "error";
     }
     if (!res.data) {
+      noteConflict(null);
       void load({ silent: true });
       return "conflict";
     }
-    applySavedRow(res.data, { text: capturedText, title: capturedTitle });
+    applySavedRow(res.data, { text: capturedText, title: capturedTitle }, { title: true });
     notify?.("success", "Името е обновено");
     if (copyId && isLive(gen, scope)) {
-      await api.updateSavedCopy(copyId, { title: res.data.title });
+      try {
+        await api.updateSavedCopy(copyId, { title: res.data.title });
+      } catch {
+        /* без ефект върху основния запис */
+      }
     }
     return "saved";
-  }, [api, applySavedRow, contract, input.docId, input.userId, isLive, load, notify, savedDocId, setTitleDraft]);
+  }, [
+    api,
+    applySavedRow,
+    blockedByConflict,
+    contract,
+    input.docId,
+    input.userId,
+    isLive,
+    load,
+    noteConflict,
+    notify,
+    savedDocId,
+    setTitleDraft,
+  ]);
 
   const saveContact = useCallback(
     async (next: string): Promise<SaveOutcome> => {
-      if (!contract || !input.docId || !input.userId) return "ignored";
+      const current = contract;
+      if (!current || !input.docId || !input.userId) return "ignored";
+      if (blockedByConflict()) return "blocked";
       const scope = `${input.userId}|${input.docId}`;
       const gen = genRef.current;
+      const previous = current.contact_id ?? "none";
       setContactId(next);
       setSavingContact(true);
-      const res = await api.updateContactLink(input.docId, next === "none" ? null : next);
-      if (!isLive(gen, scope)) return "ignored";
-      setSavingContact(false);
-      if (res.error) {
-        notify?.("error", res.error.message || "Грешка при запис");
+      let res: DbResult<Contract>;
+      try {
+        res = await api.updateContactLink(input.docId, next === "none" ? null : next);
+      } catch (e) {
+        if (isLive(gen, scope)) {
+          setSavingContact(false);
+          setContactId(previous);
+          notify?.("error", (e as Error)?.message || "Грешка при запис");
+        }
         return "error";
       }
-      // Записът вдига `updated_at` — версията идва от реално върнатия ред, за да
-      // не се получи фалшив конфликт при следващия запис.
-      if (res.data) {
-        saveSeqRef.current++;
-        setContract(res.data);
-        setContactId(res.data.contact_id ?? "none");
+      if (!isLive(gen, scope)) return "ignored";
+      setSavingContact(false);
+      if (res.error || !res.data) {
+        setContactId(previous);
+        notify?.("error", res.error?.message || "Грешка при запис");
+        return "error";
       }
+      const row = res.data;
+      const sameText = (row.extracted_text ?? "") === baselineTextRef.current;
+      const sameTitle = (row.title ?? "") === baselineTitleRef.current;
+      setContactId(row.contact_id ?? "none");
       notify?.("success", "Контрагентът е обновен");
-      return "saved";
+      if (sameText && sameTitle) {
+        // Само връзката е сменена — новата версия е безопасна за CAS.
+        saveSeqRef.current++;
+        setContract(row);
+        baselineTextRef.current = row.extracted_text ?? "";
+        baselineTitleRef.current = row.title ?? "";
+        return "saved";
+      }
+      // Текстът/името са различни от нашата база: НЕ приемаме новия CAS токен.
+      noteConflict(row);
+      return "conflict";
     },
-    [api, contract, input.docId, input.userId, isLive, notify],
+    [api, blockedByConflict, contract, input.docId, input.userId, isLive, noteConflict, notify],
   );
 
   const prepareForSigning = useCallback(async (): Promise<SaveOutcome> => {
@@ -462,14 +612,25 @@ export function useUploadedContractDoc(input: {
       notify?.("error", "Запазете текста преди подписване");
       return "invalid";
     }
+    copyWriteSeqRef.current++;
     setCreatingShare(true);
-    const res = await api.createSavedCopy({ userId: input.userId, contract, text });
+    let res: DbResult<{ id: string }>;
+    try {
+      res = await api.createSavedCopy({ userId: input.userId, contract, text });
+    } catch (e) {
+      if (isLive(gen, scope)) {
+        setCreatingShare(false);
+        notify?.("error", (e as Error)?.message || "Грешка");
+      }
+      return "error";
+    }
     if (!isLive(gen, scope)) return "ignored";
     setCreatingShare(false);
     if (res.error || !res.data) {
       notify?.("error", res.error?.message || "Грешка");
       return "error";
     }
+    copyWriteSeqRef.current++;
     setSavedDocId(res.data.id);
     notify?.("success", "Готово за подписване");
     return "saved";
@@ -478,16 +639,26 @@ export function useUploadedContractDoc(input: {
   /** Изричен избор: приемаме отдалечената версия като нова база. */
   const useRemoteVersion = useCallback(() => {
     const remote = remoteConflict;
-    if (!remote) return;
+    if (!remote) return false;
     saveSeqRef.current++;
     commitBaseline(remote);
-    setRemoteConflict(null);
-  }, [commitBaseline, remoteConflict]);
+    clearConflict();
+    return true;
+  }, [clearConflict, commitBaseline, remoteConflict]);
 
-  /** Изричен избор: оставяме локалния текст; базата за CAS остава старата. */
+  /**
+   * Изричен избор: моят текст остава, но очакваната версия за CAS се пренася
+   * върху ПОКАЗАНАТА отдалечена снимка. Нищо не се записва сега — следващият
+   * изричен запис ще успее, а нова отдалечена промяна пак ще даде конфликт.
+   */
   const keepLocalVersion = useCallback(() => {
-    setRemoteConflict(null);
-  }, []);
+    const remote = remoteConflict;
+    if (!remote) return false;
+    saveSeqRef.current++;
+    commitBaseline(remote, { keepDrafts: true });
+    clearConflict();
+    return true;
+  }, [clearConflict, commitBaseline, remoteConflict]);
 
   const dirtyText = !!contract && editText !== (contract.extracted_text ?? "");
   const dirtyTitle = !!contract && titleDraft.trim() !== (contract.title ?? "").trim();
@@ -517,6 +688,7 @@ export function useUploadedContractDoc(input: {
     savedRevision,
     savedSnapshotKey,
     remoteConflict: scopeReady ? remoteConflict : null,
+    conflictUnresolved: scopeReady ? conflictUnresolved : false,
     savingText,
     savingTitle,
     savingContact,
