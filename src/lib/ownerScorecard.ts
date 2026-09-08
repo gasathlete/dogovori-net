@@ -114,7 +114,7 @@ export function parseOwnerScorecard(raw: unknown): OwnerScorecard | null {
   const root = asDict(raw);
   if (!root) return null;
 
-  if (asCount(root.truth_schema_version) !== OWNER_SCORECARD_SCHEMA_VERSION) return null;
+  if (root.truth_schema_version !== OWNER_SCORECARD_SCHEMA_VERSION) return null;
 
   const cutover = asTimestamp(root.payment_truth_cutover);
   if (!cutover) return null;
@@ -123,6 +123,14 @@ export function parseOwnerScorecard(raw: unknown): OwnerScorecard | null {
   const rangeFrom = rangeRaw ? asTimestamp(rangeRaw.from) : null;
   const rangeTo = rangeRaw ? asTimestamp(rangeRaw.to) : null;
   if (!rangeFrom || !rangeTo) return null;
+  // Периодът трябва да е с нарастващи, крайни граници и разумна дължина.
+  // Период изцяло преди началото на надеждното измерване е валиден: тогава
+  // покритието е null, а не грешка.
+  const fromMs = Date.parse(rangeFrom);
+  const toMs = Date.parse(rangeTo);
+  if (!Number.isFinite(fromMs) || !Number.isFinite(toMs)) return null;
+  if (!(fromMs < toMs)) return null;
+  if (toMs - fromMs > MAX_RANGE_DAYS * 86_400_000) return null;
 
   const funnelRaw = asDict(root.funnel);
   const funnel = funnelRaw ? readCounts(funnelRaw, FUNNEL_STAGE_KEYS) : null;
