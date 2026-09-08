@@ -251,25 +251,39 @@ Deno.serve(async (req: Request) => {
       }), { status: 200, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
     }
 
-    const redactedParties = route.redactionRequired
-      ? { a: redactForAI(String(parties?.a ?? "")), b: redactForAI(String(parties?.b ?? "")) }
-      : null;
-    const redactedQaLines = route.redactionRequired ? redactForAI(qaLines) : null;
-    const mergedMapping: Record<string, string> = {};
-    if (redactedParties) Object.assign(mergedMapping, redactedParties.a.mapping, redactedParties.b.mapping);
-    if (redactedQaLines) Object.assign(mergedMapping, redactedQaLines.mapping);
-
-    const safePartyA = redactedParties ? redactedParties.a.redacted : String(parties?.a ?? "");
-    const safePartyB = redactedParties ? redactedParties.b.redacted : String(parties?.b ?? "");
-    const safeQaLines = redactedQaLines ? redactedQaLines.redacted : qaLines;
+    // ЕДНА редакция за ЦЕЛИЯ изходящ контекст → един общ мапинг. Различните
+    // стойности пазят различни плейсхолдъри, еднаквите — един и същ.
+    const safe = redactGeneratorContext(userContext, { redactionRequired: route.redactionRequired });
+    if (safe.ok === false) {
+      await logAiAudit({
+        user_id: userId, operation: "generate-contract", model: "",
+        classification, redaction_applied: false, status: "blocked",
+        error_code: safe.code,
+      });
+      return new Response(JSON.stringify({ error: safe.message, code: safe.code }), {
+        status: 422,
+        headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
+      });
+    }
+    const mergedMapping = safe.mapping;
+    const s = safe.context;
+    const safeQaLines = buildQaLines(s);
+    const safeDocLine = s.documentName && s.documentName !== s.contractName
+      ? `КОНКРЕТЕН ДОКУМЕНТ: ${s.documentName}\n`
+      : "";
+    const safeDocTitle = s.documentName || s.contractName;
+    const arbitrationLine = arbitration?.enabled
+      ? `\nАРБИТРАЖ: enabled=true, court="${s.arbitrationCourt}"`
+      : `\nАРБИТРАЖ: enabled=false (използвай държавна подсъдност)`;
+    const languageLine = s.languageContext ? `\nЕЗИКОВ КОНТЕКСТ: ${s.languageContext}` : "";
     const redactionNote = route.redactionRequired
       ? "ВАЖНО: Лични данни (имена, ЕГН, IBAN, адреси) са заменени с плейсхолдъри (<NAME_1>, <EGN_1> и т.н.). В готовия документ ИЗПОЛЗВАЙ плейсхолдърите дословно — те ще бъдат заменени с реалните стойности при връщане на потребителя.\n\n"
       : "";
 
-    const userPrompt = `${redactionNote}СЕКТОР: ${sector}
+    const userPrompt = `${redactionNote}СЕКТОР: ${s.sector}
 ТИП ДОКУМЕНТ: ${docTypeSpec.label}
-НАИМЕНОВАНИЕ: ${contractName}
-${docLine}СТРАНИ: ${safePartyA} ↔ ${safePartyB}${arbitrationLine}${bilingualLine}
+НАИМЕНОВАНИЕ: ${s.contractName}
+${safeDocLine}СТРАНИ: ${s.partyA} ↔ ${s.partyB}${arbitrationLine}${languageLine}${bilingualLine}
 
 ОТГОВОРИ:
 ${safeQaLines}
@@ -277,11 +291,12 @@ ${safeQaLines}
 ВАЖНО: Изготви документ от вид „${docTypeSpec.label}" (не разглеждай автоматично като двустранен договор). Спазвай специфичната структура за този вид документ:
 ${docTypeSpec.systemAddendum}
 
-Задача: Risk Analysis (конкретни слаби места за ${safePartyA}${safePartyB ? ` и ${safePartyB}` : ""}) + ПЪЛНИЯТ документ на български за "${documentName || contractName}" според структурата за „${docTypeSpec.label}"${isBilingual ? " + паралелен английски превод в полетата *_en" : ""}. Върни СТРОГО валиден JSON по схемата.`;
+Задача: Risk Analysis (конкретни слаби места за ${s.partyA}${s.partyB ? ` и ${s.partyB}` : ""}) + ПЪЛНИЯТ документ на български за "${safeDocTitle}" според структурата за „${docTypeSpec.label}"${isBilingual ? " + паралелен английски превод в полетата *_en" : ""}. Върни СТРОГО валиден JSON по схемата.`;
 
     const baseSystem = await loadActivePrompt(admin, "generate-contract", SYSTEM_PROMPT);
     const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
-    const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, `${docTypeSpec.label} ${contractName}\n${userPrompt}`.slice(0, 4000), { matchCount: 6 });
+    // Заявката към RAG също минава САМО през санитирания контекст.
+    const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, `${docTypeSpec.label} ${s.contractName}\n${userPrompt}`.slice(0, 4000), { matchCount: 6 });
     const activeSystemPrompt = legal.hasMatches ? `${baseSystem}\n\n${legal.promptBlock}` : baseSystem;
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
