@@ -212,42 +212,43 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     documentContext?.kind === "saved_document" ? documentContext.entityId : null;
 
   /**
-   * Пълната идентичност на обхвата: потребител + разговор + документ. Всеки
-   * закъснял отговор (зареждане или действие) се сравнява с НЕЯ и се изхвърля,
-   * ако междувременно е сменен маршрутът, разговорът, документът или акаунтът.
+   * Монотонно поколение на обхвата (потребител + разговор + документ). Расте при
+   * ВСЯКА смяна, така че дори връщане към същия обхват (А→Б→А) не приема
+   * закъснели отговори от предишното посещение.
    */
   const proposalScope = `${user?.id ?? ""}|${activeThreadId ?? ""}|${savedDocumentContextId ?? ""}`;
-  const proposalScopeRef = useRef(proposalScope);
-  proposalScopeRef.current = proposalScope;
-  const inProposalScope = useCallback(
-    (scope: string) => aliveRef.current && proposalScopeRef.current === scope,
+  const proposalGenRef = useRef(0);
+  const inProposalGen = useCallback(
+    (gen: number) => aliveRef.current && proposalGenRef.current === gen,
     [],
   );
 
   /** Авторитетното състояние идва САМО от сървъра и само за текущия обхват. */
-  const refreshProposals = useCallback(async (threadId: string, docId: string, scope: string) => {
+  const refreshProposals = useCallback(async (threadId: string, docId: string, gen: number) => {
     const res = await loadThreadProposals(threadId, docId);
-    if (!res.ok || !inProposalScope(scope)) return;
+    if (!res.ok || !inProposalGen(gen)) return;
     if (activeThreadIdRef.current !== threadId) return;
     const ctx = documentContextRef.current;
     if (!ctx || ctx.kind !== "saved_document" || ctx.entityId !== docId) return;
     setProposals(res.proposals);
-  }, [inProposalScope]);
+  }, [inProposalGen]);
 
-  // Смяна на разговор/документ/потребител: картите се изчистват ВЕДНАГА.
+  // Смяна на разговор/документ/потребител: картите се изчистват ВЕДНАГА и всяко
+  // текущо зареждане/действие се обезсилва чрез новото поколение.
   useEffect(() => {
+    const gen = ++proposalGenRef.current;
     setProposals([]);
     setProposalErrors({});
     setProposalBusyId(null);
     proposalBusyRef.current = null;
     if (!user || !activeThreadId || !savedDocumentContextId || !threadReady) return;
-    void refreshProposals(activeThreadId, savedDocumentContextId, proposalScope);
-  }, [user?.id, activeThreadId, savedDocumentContextId, threadReady, refreshProposals]); // eslint-disable-line react-hooks/exhaustive-deps
+    void refreshProposals(activeThreadId, savedDocumentContextId, gen);
+  }, [user?.id, activeThreadId, savedDocumentContextId, threadReady, refreshProposals, proposalScope]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleProposalAction = useCallback(async (proposal: EditProposal, action: ProposalAction) => {
     if (!session?.access_token) return;
     if (proposalBusyRef.current) return; // двоен клик не създава втори преход
-    const scope = proposalScopeRef.current;
+    const gen = proposalGenRef.current;
     proposalBusyRef.current = proposal.id;
     setProposalBusyId(proposal.id);
     setProposalErrors((prev) => {
@@ -256,10 +257,11 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       return next;
     });
     const res = await submitProposalAction(session.access_token, proposal.id, action);
-    proposalBusyRef.current = null;
     // Обхватът е сменен/компонентът е демонтиран, докато действието е течало:
-    // никакво състояние, съобщение, събитие или презареждане за чужд обхват.
-    if (!inProposalScope(scope)) return;
+    // никакво състояние, съобщение, събитие или презареждане за чужд обхват и
+    // без да се пипа ключалката на новото действие.
+    if (!inProposalGen(gen)) return;
+    proposalBusyRef.current = null;
     setProposalBusyId(null);
     if (!res.ok) {
       setProposalErrors((prev) => ({ ...prev, [proposal.id]: proposalErrorMessage(res.code) }));
@@ -276,8 +278,8 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
         toast.success("Промяната е върната.");
       }
     }
-    await refreshProposals(proposal.threadId, proposal.savedDocumentId, scope);
-  }, [session?.access_token, refreshProposals, inProposalScope]);
+    await refreshProposals(proposal.threadId, proposal.savedDocumentId, gen);
+  }, [session?.access_token, refreshProposals, inProposalGen]);
 
 
 

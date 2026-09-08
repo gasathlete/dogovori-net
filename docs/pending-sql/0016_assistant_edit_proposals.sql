@@ -26,6 +26,9 @@ CREATE TABLE IF NOT EXISTS public.assistant_edit_proposals (
   -- Състоянието на документа СЛЕД прилагането — нужно за точно връщане (undo).
   applied_updated_at TIMESTAMPTZ,
   reverted_at TIMESTAMPTZ,
+  -- Състоянието на документа СЛЕД връщането — нужно, за да се докаже, че
+  -- текущият документ е точно резултатът от undo (при повторено действие).
+  reverted_updated_at TIMESTAMPTZ,
   CONSTRAINT assistant_edit_proposals_status_chk
     CHECK (status IN ('pending', 'accepted', 'rejected', 'reverted')),
   CONSTRAINT assistant_edit_proposals_base_version_chk
@@ -42,6 +45,11 @@ CREATE TABLE IF NOT EXISTS public.assistant_edit_proposals (
   CONSTRAINT assistant_edit_proposals_reason_len_chk
     CHECK (reason IS NULL OR char_length(reason) <= 300)
 );
+
+-- Повторно изпълнение върху вече съществуваща таблица: колоната се добавя без
+-- backfill и без промяна на съществуващи редове.
+ALTER TABLE public.assistant_edit_proposals
+  ADD COLUMN IF NOT EXISTS reverted_updated_at TIMESTAMPTZ;
 
 COMMENT ON TABLE public.assistant_edit_proposals IS
   'Q2f: предложения за редакция на един низов елемент от запазен документ. Нищо не се прилага без изрично приемане от потребителя.';
@@ -203,6 +211,29 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'code', 'forbidden');
   END IF;
 
+  -- Идемпотентност и противоречиви преходи се решават ВЕДНАГА след заключване
+  -- и удостоверяване на предложението/разговора — преди каквото и да е четене
+  -- на целевия елемент от документа.
+  IF _action = 'reject' THEN
+    IF p.status = 'rejected' THEN
+      idem := true;
+    ELSIF p.status <> 'pending' THEN
+      RETURN jsonb_build_object('ok', false, 'code', 'invalid_transition', 'status', p.status);
+    END IF;
+  ELSIF _action = 'accept' THEN
+    IF p.status = 'accepted' THEN
+      idem := true;
+    ELSIF p.status <> 'pending' THEN
+      RETURN jsonb_build_object('ok', false, 'code', 'invalid_transition', 'status', p.status);
+    END IF;
+  ELSE
+    IF p.status = 'reverted' THEN
+      idem := true;
+    ELSIF p.status <> 'accepted' THEN
+      RETURN jsonb_build_object('ok', false, 'code', 'invalid_transition', 'status', p.status);
+    END IF;
+  END IF;
+
   -- Пътят се разбира веднага (whitelist), но ТЕКУЩАТА стойност на целта се
   -- чете само в клоновете, които реално променят документа. Така повторен
   -- reject/accept/undo след загубен отговор остава стабилен и когато елементът
@@ -211,11 +242,8 @@ BEGIN
 
   -- ------------------------------------------------------------------ reject
   IF _action = 'reject' THEN
-    IF p.status = 'rejected' THEN
-      idem := true;
-    ELSIF p.status <> 'pending' THEN
-      RETURN jsonb_build_object('ok', false, 'code', 'invalid_transition', 'status', p.status);
-    ELSE
+    -- Отказът НИКОГА не пипа saved_documents и не чете целевия елемент.
+    IF NOT idem THEN
       UPDATE public.assistant_edit_proposals
       SET status = 'rejected', decided_at = now()
       WHERE id = p.id
@@ -224,11 +252,7 @@ BEGIN
 
   -- ------------------------------------------------------------------ accept
   ELSIF _action = 'accept' THEN
-    IF p.status = 'accepted' THEN
-      idem := true;
-    ELSIF p.status <> 'pending' THEN
-      RETURN jsonb_build_object('ok', false, 'code', 'invalid_transition', 'status', p.status);
-    ELSE
+    IF NOT idem THEN
       -- Разговорът трябва все още да е обвързан с ТОЧНО базовата версия, срещу
       -- която е направено предложението.
       IF NOT EXISTS (
@@ -271,11 +295,7 @@ BEGIN
 
   -- -------------------------------------------------------------------- undo
   ELSE
-    IF p.status = 'reverted' THEN
-      idem := true;
-    ELSIF p.status <> 'accepted' THEN
-      RETURN jsonb_build_object('ok', false, 'code', 'invalid_transition', 'status', p.status);
-    ELSE
+    IF NOT idem THEN
       IF p.applied_updated_at IS NULL OR d.updated_at <> p.applied_updated_at THEN
         RETURN jsonb_build_object('ok', false, 'code', 'stale_state');
       END IF;
@@ -303,7 +323,7 @@ BEGIN
       END IF;
       changed := true;
       UPDATE public.assistant_edit_proposals
-      SET status = 'reverted', reverted_at = now()
+      SET status = 'reverted', reverted_at = now(), reverted_updated_at = d.updated_at
       WHERE id = p.id
       RETURNING * INTO p;
     END IF;
@@ -317,7 +337,8 @@ BEGIN
       'id', p.id,
       'status', p.status,
       'target_path', p.target_path,
-      'applied_updated_at', p.applied_updated_at
+      'applied_updated_at', p.applied_updated_at,
+      'reverted_updated_at', p.reverted_updated_at
     ),
     'document', jsonb_build_object(
       'id', d.id,

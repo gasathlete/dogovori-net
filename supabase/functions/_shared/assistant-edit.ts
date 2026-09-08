@@ -384,6 +384,48 @@ export function decideEditTransition(input: TransitionInput): TransitionDecision
 }
 
 /* -------------------------------------------------------------------------
+ * Доказване на резултата от прехода (за пре-обвързване на разговора).
+ *
+ * Разговор се пре-обвързва САМО когато текущото състояние на документа е
+ * ДОКАЗАНО точно резултатът от този преход. При повторно изпратено действие
+ * (загубен HTTP отговор) това е вярно само ако документът не е пипан след
+ * прилагането/връщането. Всяка по-късна чужда промяна → без пре-обвързване.
+ * ------------------------------------------------------------------------- */
+
+export interface TransitionProofInput {
+  action: EditAction;
+  /** Истинската транзакция е сменила документа сега → резултатът е точен. */
+  changed: boolean;
+  idempotent: boolean;
+  /** Статус на предложението СЛЕД прехода (от транзакцията). */
+  status: string;
+  appliedUpdatedAt: string | null;
+  revertedUpdatedAt: string | null;
+  documentUpdatedAt: string | null;
+  currentTargetValue: string | null;
+  beforeText: string;
+  afterText: string;
+}
+
+export function proveTransitionResult(input: TransitionProofInput): boolean {
+  // Отказът никога не променя документа — той не може да „освежи“ разговор.
+  if (input.action === "reject") return false;
+  if (input.changed) return true;
+  if (!input.idempotent) return false;
+  if (input.status === "accepted") {
+    return !!input.documentUpdatedAt &&
+      sameInstant(input.documentUpdatedAt, input.appliedUpdatedAt) &&
+      input.currentTargetValue === input.afterText;
+  }
+  if (input.status === "reverted") {
+    return !!input.documentUpdatedAt &&
+      sameInstant(input.documentUpdatedAt, input.revertedUpdatedAt) &&
+      input.currentTargetValue === input.beforeText;
+  }
+  return false;
+}
+
+/* -------------------------------------------------------------------------
  * Разбор на канонична текстова форма на пътя обратно към семантична цел.
  * Ползва се от `assistant-edit`, за да прочете ТЕКУЩАТА стойност на целта от
  * авторитетния ред — без да се доверява на нищо от браузъра.

@@ -16,7 +16,11 @@ type SavedDoc = {
   kind: string;
   payload: any;
   created_at: string;
+  updated_at: string;
 };
+
+/** Няма външна промяна | чака решение | опит за запис върху чужда промяна. */
+type ExternalState = null | "pending" | "conflict";
 
 export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?: string }) {
   const { setDirty } = useConsoleStore();
@@ -35,7 +39,7 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
   const [reloadKey, setReloadKey] = useState(0);
   const dirtyRef = useRef(false);
   /** Външна промяна (приета редакция от DogovaryAI), която чака решение. */
-  const [pendingExternalUpdate, setPendingExternalUpdate] = useState(false);
+  const [externalState, setExternalState] = useState<ExternalState>(null);
   /** Пореден номер на зареждането: късен отговор от старо зареждане се игнорира. */
   const loadSeqRef = useRef(0);
   const docIdRef = useRef(documentId);
@@ -49,7 +53,7 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
     if (prevDocIdRef.current !== null && prevDocIdRef.current !== documentId) {
       dirtyRef.current = false;
       if (tabId) setDirty(tabId, false);
-      setPendingExternalUpdate(false);
+      setExternalState(null);
     }
     prevDocIdRef.current = documentId;
     const isCurrent = () => loadSeqRef.current === seq && docIdRef.current === forDocumentId;
@@ -65,7 +69,7 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
       // Редакция, направена СЛЕД старта на зареждането, има приоритет: локалните
       // полета остават, а външната промяна се обявява за решение.
       if (dirtyRef.current) {
-        setPendingExternalUpdate(true);
+        setExternalState((prev) => (prev === "conflict" ? prev : "pending"));
         setLoading(false);
         return;
       }
@@ -84,7 +88,7 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
           setRawText(typeof p === "string" ? p : (p.text || JSON.stringify(p, null, 2)));
         }
       }
-      setPendingExternalUpdate(false);
+      setExternalState(null);
       setLoading(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -97,7 +101,7 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
       const id = (e as CustomEvent<{ documentId?: string }>).detail?.documentId;
       if (!id || id !== documentId) return;
       if (dirtyRef.current) {
-        setPendingExternalUpdate(true);
+        setExternalState((prev) => (prev === "conflict" ? prev : "pending"));
         toast.info("Документът е обновен. Запазете или отхвърлете промените си, за да го презаредите.");
         return;
       }
@@ -113,12 +117,19 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
   const discardAndReload = () => {
     dirtyRef.current = false;
     if (tabId) setDirty(tabId, false);
-    setPendingExternalUpdate(false);
+    setExternalState(null);
     setReloadKey((k) => k + 1);
   };
 
   const handleSave = async () => {
     if (!doc) return;
+    // Записът е обвързан с ТОЧНАТА версия, която е заредена (id + updated_at).
+    // Така запис върху чужда/AI промяна е невъзможен и никога не се обявява за
+    // успешен. Закъснял запис за стар документ не пипа новия обхват.
+    const seq = loadSeqRef.current;
+    const forDocumentId = doc.id;
+    const baseUpdatedAt = doc.updated_at;
+    const isCurrent = () => loadSeqRef.current === seq && docIdRef.current === forDocumentId;
     setSaving(true);
     let payload: any = doc.payload || {};
     if (mode === "structured") {
@@ -126,23 +137,32 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
     } else {
       try { payload = JSON.parse(rawText); } catch { payload = { ...payload, text: rawText }; }
     }
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("saved_documents")
       .update({ title, payload })
-      .eq("id", doc.id);
+      .eq("id", forDocumentId)
+      .eq("updated_at", baseUpdatedAt)
+      .select("*")
+      .maybeSingle();
+    if (!isCurrent()) return;
     setSaving(false);
-    if (error) toast.error("Грешка", { description: error.message });
-    else {
-      toast.success("Запазено");
-      dirtyRef.current = false;
-      if (tabId) setDirty(tabId, false);
-      // Ако междувременно е приета редакция от DogovaryAI, сега документът може
-      // да се презареди без загуба — външната промяна не остава „забравена“.
-      if (pendingExternalUpdate) {
-        setPendingExternalUpdate(false);
-        setReloadKey((k) => k + 1);
-      }
+    if (error) {
+      toast.error("Грешка", { description: error.message });
+      return;
     }
+    if (!data) {
+      // Нула променени редове = документът е бил променен след зареждането.
+      setExternalState("conflict");
+      toast.error("Документът е променен междувременно.", {
+        description: "Промените Ви са запазени тук. Презаредете, за да видите новата версия.",
+      });
+      return;
+    }
+    toast.success("Запазено");
+    setDoc(data as SavedDoc);
+    dirtyRef.current = false;
+    if (tabId) setDirty(tabId, false);
+    setExternalState(null);
   };
 
   if (loading) {
@@ -159,19 +179,23 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
 
   return (
     <div className="mx-auto max-w-4xl p-6">
-      {pendingExternalUpdate && (
+      {externalState && (
         <div
           data-testid="document-external-update"
           role="status"
           className="mb-4 flex flex-col gap-2 rounded-lg border border-gold/40 bg-gold/10 p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
         >
           <span className="min-w-0">
-            DogovaryAI обнови документа. Вашите незапазени промени са запазени тук.
+            {externalState === "conflict"
+              ? "Документът е променен другаде и записът не бе приложен. Вашите промени са запазени само тук."
+              : "DogovaryAI обнови документа. Вашите незапазени промени са запазени тук."}
           </span>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={handleSave} disabled={saving} size="sm" variant="secondary">
-              Запази моите промени
-            </Button>
+            {externalState === "pending" && (
+              <Button onClick={handleSave} disabled={saving} size="sm" variant="secondary">
+                Запази моите промени
+              </Button>
+            )}
             <Button onClick={discardAndReload} size="sm" variant="outline">
               Презареди и отхвърли промените
             </Button>

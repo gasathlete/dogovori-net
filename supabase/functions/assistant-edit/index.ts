@@ -9,6 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import {
   decideEditTransition,
+  proveTransitionResult,
   readLeafByPath,
   type EditAction,
 } from "../_shared/assistant-edit.ts";
@@ -118,8 +119,22 @@ Deno.serve(async (req) => {
     const changed = res.changed === true;
 
     // ---- Обвързване на СЪЩИЯ разговор към ТЕКУЩАТА версия ----------------
-    // Изчислява се и при идемпотентен повтор (загубен HTTP отговор): иначе UI
-    // би получил „старият разговор е актуален“ без това да е доказано.
+    // Пре-обвързва се само срещу ДОКАЗАН резултат от този преход. Идемпотентен
+    // повтор след чужда по-късна промяна НЕ обвързва разговора към нея.
+    const resProposal = (res.proposal ?? {}) as Record<string, unknown>;
+    const proven = proveTransitionResult({
+      action,
+      changed,
+      idempotent: res.idempotent === true,
+      status: String(resProposal.status ?? proposal.status ?? ""),
+      appliedUpdatedAt: (resProposal.applied_updated_at as string | null) ?? null,
+      revertedUpdatedAt: (resProposal.reverted_updated_at as string | null) ?? null,
+      documentUpdatedAt: (doc.updated_at as string | null) ?? null,
+      currentTargetValue: readLeafByPath(doc, proposal.target_path),
+      beforeText: String(proposal.before_text),
+      afterText: String(proposal.after_text),
+    });
+
     let rebound = false;
     let contextVersion: string | null = previousVersion;
     if (doc.id) {
@@ -147,8 +162,9 @@ Deno.serve(async (req) => {
         : null;
 
       if (boundVersion && boundVersion === canonical) {
+        // Разговорът вече сочи ТОЧНО текущата версия — няма нужда от запис.
         rebound = true;
-      } else {
+      } else if (proven) {
         // Пре-обвързваме само ако документът все още е ТОЧНО състоянието, което
         // транзакцията върна, и само от точната текуща версия на разговора.
         const { data: recheck } = await userClient
