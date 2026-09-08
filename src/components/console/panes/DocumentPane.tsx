@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useConsoleStore } from "@/hooks/useConsoleStore";
+import { AskDogovaryAIButton } from "@/components/console/AskDogovaryAIButton";
 
 type SavedDoc = {
   id: string;
@@ -121,6 +122,12 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
           >
             <ExternalLink className="h-4 w-4" /> Пълен редактор
           </a>
+          <AskDogovaryAIButton
+            kind="saved_document"
+            entityId={doc.id}
+            displayTitle={title || doc.title || ""}
+            tabId={tabId}
+          />
         </div>
       </div>
 

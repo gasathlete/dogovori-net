@@ -25,6 +25,12 @@ import {
   sanitizePath,
   toolSchemasFor,
 } from "../_shared/assistant-tools.ts";
+import { redactForAI, unredact, type RedactionMapping } from "../_shared/redact.ts";
+import {
+  buildUntrustedContextBlock,
+  parseRequestedDocumentContext,
+} from "./document-context.ts";
+import { resolveDocumentContext, type ResolvedDocumentContext } from "./context-resolver.ts";
 
 const SYSTEM_PROMPT = `# РОЛЯ
 Ти си **DogovaryAI** — управляван от tools агент на Dogovori.net. Не отказваш, не се извиняваш — водиш потребителя през ясна верига от стъпки докато стигнете до готов договор/документ.
@@ -409,6 +415,25 @@ Deno.serve(async (req) => {
       }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ---- Q2e: заявен документен контекст (само {kind, entityId}) -------------
+    const requestedCtxParse = parseRequestedDocumentContext(body?.documentContext ?? null);
+    if (!requestedCtxParse.ok) {
+      return new Response(JSON.stringify({
+        error: "Невалиден документен контекст.",
+        code: "invalid_document_context",
+      }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const requestedContext = requestedCtxParse.value;
+
+    // Клиент с JWT-а на потребителя — RLS (включително правилата за екипи) е
+    // единственият авторитет за достъп до документа. Service-role НЕ се ползва
+    // като проверка за достъп.
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!,
+      { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } },
+    );
+
     // Paid individual / team gate
     const { data: quota } = await admin
       .from("download_quota")
@@ -443,26 +468,92 @@ Deno.serve(async (req) => {
       if (t && t.teams?.status === "active") teamId = t.team_id;
     }
 
-    // Безплатен план: DogovaryAI е достъпен с 3 запитвания (както и за
-    // нерегистрирани), след което следва CTA към абонамент.
+    // ---- Валидация на разговора (ПРЕДИ всякаква резервация) -----------------
+    let activeThreadId = threadId;
+    let existingThread: any = null;
+    if (activeThreadId) {
+      const { data: th } = await admin
+        .from("assistant_threads")
+        .select("id, user_id, context_kind, context_entity_id, context_version, context_title")
+        .eq("id", activeThreadId)
+        .maybeSingle();
+      if (!th || (th as any).user_id !== userId) {
+        return new Response(JSON.stringify({ error: "Разговорът не е намерен", code: "thread_not_found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      existingThread = th;
+      const boundKind = (th as any).context_kind ?? null;
+      const boundId = (th as any).context_entity_id ?? null;
+      // Записаното обвързване е авторитетно: общ разговор остава общ, а обвързан
+      // разговор не може да бъде пренасочен към друг документ.
+      const requestedKind = requestedContext?.kind ?? null;
+      const requestedId = requestedContext?.entityId ?? null;
+      if (boundKind !== requestedKind || (boundId ?? null) !== requestedId) {
+        return new Response(JSON.stringify({
+          error: "Разговорът е обвързан с друг документ. Започнете нов разговор.",
+          code: "document_context_mismatch",
+        }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // ---- Разрешаване на контекста през RLS (ПРЕДИ резервация) --------------
+    let resolvedContext: ResolvedDocumentContext | null = null;
+    if (requestedContext) {
+      const resolution = await resolveDocumentContext(userClient, requestedContext);
+      if (!resolution.ok) {
+        // Липсващ/забранен ред → неутрално 404 (без разкриване на съществуване).
+        return new Response(JSON.stringify({
+          error: "Документът не е намерен.",
+          code: "document_not_found",
+        }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      resolvedContext = resolution.value;
+      if (existingThread && existingThread.context_version &&
+          existingThread.context_version !== resolvedContext.version) {
+        return new Response(JSON.stringify({
+          error: "Документът е променен след започването на този разговор. Започнете нов разговор с текущата версия.",
+          code: "document_context_stale",
+        }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // ---- ЕДИНСТВЕНА резервация на операция (сървърът е авторитетът) --------
+    // Клиентът вече НЕ извиква consume_ai_message — двойното таксуване е
+    // премахнато. Отказан/невалиден/остарял контекст изразходва 0 операции,
+    // защото всички проверки по-горе се случват преди този блок.
     const FREE_AI_MESSAGES = 3;
-    if (!isPro && !teamId) {
+    if (teamId) {
+      const { data: teamGate, error: teamErr } = await userClient.rpc("consume_team_quota", { _team_id: teamId });
+      const tg = teamGate as { ok?: boolean; reason?: string } | null;
+      if (teamErr || !tg || tg.ok === false) {
+        return new Response(JSON.stringify({
+          error: "Екипната квота е изчерпана за този период.",
+          code: "team_limit_reached",
+        }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    } else if (isPro) {
+      const { data: proGate, error: proErr } = await userClient.rpc("consume_ai_message");
+      const pg = proGate as { ok?: boolean; reason?: string } | null;
+      if (proErr || !pg || pg.ok === false) {
+        return new Response(JSON.stringify({
+          error: "Изчерпани са операциите по плана за този период.",
+          code: "ai_plan_limit_reached",
+        }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    } else {
+      // Регистриран безплатен план: същото поведение като досега (3 запитвания).
       const { data: aiQuota } = await admin
         .from("download_quota")
         .select("ai_messages_used")
         .eq("user_id", userId)
         .maybeSingle();
       if (!aiQuota) {
-        // Още няма ред за квотата — създаваме го, за да може условният update
-        // по-долу да намери какво да заключи.
         await admin
           .from("download_quota")
           .upsert({ user_id: userId, ai_messages_used: 0 }, { onConflict: "user_id" });
       }
       const aiUsed = Number((aiQuota as any)?.ai_messages_used ?? 0);
-      // Атомарно резервиране: увеличаваме само ако стойността в базата все още е
-      // същата (оптимистично заключване), за да не се получи двойно броене при
-      // паралелни заявки и да няма пропуснато таксуване.
       const { data: reserved, error: reserveErr } = await admin
         .from("download_quota")
         .update({ ai_messages_used: aiUsed + 1 })
@@ -479,25 +570,20 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Thread management
-    let activeThreadId = threadId;
-    if (activeThreadId) {
-      const { data: th } = await admin
-        .from("assistant_threads")
-        .select("id, user_id")
-        .eq("id", activeThreadId)
-        .maybeSingle();
-      if (!th || th.user_id !== userId) {
-        return new Response(JSON.stringify({ error: "Разговорът не е намерен" }), {
-          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    } else {
+    // ---- Създаване на разговора (след успешна резервация) ------------------
+    if (!activeThreadId) {
       const firstUser = safeMessages.find((m: any) => m.role === "user");
       const title = (firstUser?.content ?? "Нов разговор").slice(0, 80);
+      const insertRow: Record<string, unknown> = { user_id: userId, title };
+      if (resolvedContext) {
+        insertRow.context_kind = resolvedContext.kind;
+        insertRow.context_entity_id = resolvedContext.entityId;
+        insertRow.context_version = resolvedContext.version;
+        insertRow.context_title = resolvedContext.title;
+      }
       const { data: created } = await admin
         .from("assistant_threads")
-        .insert({ user_id: userId, title })
+        .insert(insertRow as any)
         .select("id")
         .single();
       activeThreadId = created?.id ?? null;
@@ -510,6 +596,7 @@ Deno.serve(async (req) => {
       role: "user",
       content: lastUser.content,
     });
+
 
     // RAG
     const ctxLines = [
@@ -666,12 +753,34 @@ Deno.serve(async (req) => {
 
     const nudgeBlock = intentNudges.join("\n");
 
+    // ---- Q2e: блок с НЕДОВЕРЕНИ ДАННИ за избрания документ -----------------
+    // Редакцията е с ЕДНО in-memory съответствие; нито то, нито суровият
+    // контекст се логват или записват.
+    let contextMapping: RedactionMapping | null = null;
+    let contextTruncated = false;
+    const contextSystemBlocks: ChatMsg[] = [];
+    if (resolvedContext) {
+      const built = buildUntrustedContextBlock({
+        kind: resolvedContext.kind,
+        title: resolvedContext.title,
+        body: resolvedContext.body,
+      });
+      contextTruncated = built.truncated;
+      const red = redactForAI(built.block);
+      contextMapping = red.mapping;
+      contextSystemBlocks.push({ role: "system", content: red.text });
+    }
+
     // Build conversation
     const convo: ChatMsg[] = [
       { role: "system", content: systemFinal },
       { role: "system", content: `# INTENT HINTS (за текущия ход)\n${nudgeBlock}` },
+      ...contextSystemBlocks,
       ...safeMessages.map((m: any) => ({ role: m.role, content: m.content })),
     ];
+
+    const restoreLeaves = (text: string): string =>
+      contextMapping ? unredact(text, contextMapping) : text;
 
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
@@ -683,7 +792,21 @@ Deno.serve(async (req) => {
           controller.enqueue(encoder.encode(`${ev}data: ${JSON.stringify(data)}\n\n`));
         };
 
-        enqueue("meta", { threadId: activeThreadId, citations: legal.citations });
+        enqueue("meta", {
+          threadId: activeThreadId,
+          citations: legal.citations,
+          // Сървърно извлечени метаданни — UI етикетите не са авторитетни.
+          documentContext: resolvedContext
+            ? {
+                kind: resolvedContext.kind,
+                entityId: resolvedContext.entityId,
+                version: resolvedContext.version,
+                title: resolvedContext.title,
+                truncated: contextTruncated,
+              }
+            : null,
+        });
+
 
         // --- Visible reasoning progress trace (competitor parity) ---
         // Steps stream one-by-one so the user sees the assistant "working".
@@ -1025,6 +1148,8 @@ Deno.serve(async (req) => {
           }
 
 
+          // Безопасно възстановяване САМО на текстови листа от редакцията.
+          cleaned = restoreLeaves(cleaned);
           const finalFollowups = followups.length >= 2 ? followups : fallbackFollowups(lastToolName);
           if (cleaned.trim() && cleaned.trim() !== rawCleaned.trim()) {
             try {

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useConsoleStore } from "@/hooks/useConsoleStore";
 import { AddToKitDialog } from "@/components/AddToKitDialog";
+import { AskDogovaryAIButton } from "@/components/console/AskDogovaryAIButton";
 
 export function UploadedPane({ uploadedId, tabId }: { uploadedId: string; tabId?: string }) {
   const { setDirty } = useConsoleStore();
@@ -99,6 +100,12 @@ export function UploadedPane({ uploadedId, tabId }: { uploadedId: string; tabId?
           >
             <ExternalLink className="h-4 w-4" /> Анализ
           </a>
+          <AskDogovaryAIButton
+            kind="uploaded_contract"
+            entityId={doc.id}
+            displayTitle={title || doc.original_filename || ""}
+            tabId={tabId}
+          />
         </div>
       </div>
 
