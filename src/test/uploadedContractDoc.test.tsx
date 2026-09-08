@@ -155,9 +155,13 @@ describe("контролер на качения договор — отложе
       h.contractQueue[1].resolve({ data: row({ extracted_text: `${LONG} отдалечено` }), error: null });
     });
     await act(async () => void view.result.current.keepLocalVersion());
+    // Черновата остава локална, но версията за запис се пренася върху показаната отдалечена снимка,
+    // за да не конфликтира вечно следващият запис.
     expect(view.result.current.editText).toBe(`${LONG} локално`);
     expect(view.result.current.remoteConflict).toBeNull();
-    expect(view.result.current.contract?.extracted_text).toBe(LONG);
+    expect(view.result.current.conflictUnresolved).toBe(false);
+    expect(view.result.current.contract?.extracted_text).toBe(`${LONG} отдалечено`);
+    expect(view.result.current.dirtyText).toBe(true);
   });
 
   it("успешен запис пази текста, написан след натискането на „Запази\"", async () => {
