@@ -133,6 +133,9 @@ export default function AdminMetrics() {
             <p className="text-sm text-muted-foreground">
               Конверсия и качество в един изглед. Агрегирани данни, без лични данни.
             </p>
+            <Link to="/admin/scorecard" className="mt-2 inline-block text-xs font-medium text-gold underline">
+              Табло за растеж
+            </Link>
           </div>
           <div className="flex gap-1 rounded-full border border-hairline bg-card/70 p-1">
             {(["7d", "30d", "90d"] as Range[]).map((r) => (
