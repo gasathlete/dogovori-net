@@ -136,6 +136,11 @@ beforeEach(() => {
   // jsdom не реализира scrollTo/scrollIntoView.
   Element.prototype.scrollTo = Element.prototype.scrollTo ?? (() => {});
   Element.prototype.scrollIntoView = Element.prototype.scrollIntoView ?? (() => {});
+  if (!("ResizeObserver" in globalThis)) {
+    vi.stubGlobal("ResizeObserver", class {
+      observe() {} unobserve() {} disconnect() {}
+    });
+  }
   vi.stubGlobal("fetch", vi.fn(async (url: string, init: RequestInit) => {
     bodies.push(JSON.parse(String(init.body)));
     return fetchImpl(url, init);
@@ -241,6 +246,9 @@ describe("видим контекст и изчистване", () => {
         "owner-a",
       );
     });
+    db.threads = [
+      thread({ id: "t-1", title: "Наем", context_kind: "saved_document", context_entity_id: DOC_A, context_title: "Сървърно заглавие" }),
+    ];
     fetchImpl = async () => {
       const { response, ctl } = sseResponse();
       ctl.push(evt("meta", {
