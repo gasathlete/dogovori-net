@@ -1318,9 +1318,10 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={negotiationMode ? "Опиши условията за преговори..." : "Задайте правен въпрос"}
+                placeholder={!threadReady && !threadLoadFailed ? "Зареждане на разговора..." : negotiationMode ? "Опиши условията за преговори..." : "Задайте правен въпрос"}
                 rows={1}
-                disabled={streaming || threadLoadFailed}
+                disabled={streaming || threadLoadFailed || !threadReady}
+                aria-busy={!threadReady && !threadLoadFailed}
                 enterKeyHint="send"
                 autoCorrect="on"
                 autoCapitalize="sentences"
