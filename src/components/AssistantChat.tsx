@@ -229,7 +229,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     proposalBusyRef.current = null;
     if (!user || !activeThreadId || !savedDocumentContextId || !threadReady) return;
     void refreshProposals(activeThreadId, savedDocumentContextId);
-  }, [user?.id, activeThreadId, savedDocumentContextId, threadReady, refreshProposals]);
+  }, [user?.id, activeThreadId, savedDocumentContextId, threadReady, refreshProposals]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleProposalAction = useCallback(async (proposal: EditProposal, action: ProposalAction) => {
     if (!session?.access_token) return;

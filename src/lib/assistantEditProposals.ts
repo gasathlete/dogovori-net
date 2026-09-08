@@ -95,6 +95,8 @@ export async function loadThreadProposals(
   threadId: string,
   savedDocumentId: string,
 ): Promise<{ ok: true; proposals: EditProposal[] } | { ok: false }> {
+  // Таблицата още не е в генерираните типове — четенето остава RLS-обхванато.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
     .from("assistant_edit_proposals")
     .select(
