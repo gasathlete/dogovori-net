@@ -5,6 +5,7 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { emptyMissingClausesMessage } from "@/lib/analysisVerification";
 
 const read = (p: string) => readFileSync(p, "utf8");
 
