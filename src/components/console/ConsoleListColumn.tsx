@@ -480,7 +480,7 @@ function AnalysesListView() {
         )
       : items;
     return filtered.map((d) => {
-      const badge = analysisBadge({ score: d.score, verification: (d as any).verification });
+      const badge = analysisBadge({ score: d.score, verification: (d as { verification?: unknown }).verification });
       return {
         id: d.id,
         title: d.contract_type || "Анализ",
