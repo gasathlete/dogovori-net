@@ -714,6 +714,10 @@ export type Database = {
       }
       assistant_threads: {
         Row: {
+          context_entity_id: string | null
+          context_kind: string | null
+          context_title: string | null
+          context_version: string | null
           created_at: string
           id: string
           title: string
@@ -721,6 +725,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          context_entity_id?: string | null
+          context_kind?: string | null
+          context_title?: string | null
+          context_version?: string | null
           created_at?: string
           id?: string
           title?: string
@@ -728,6 +736,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          context_entity_id?: string | null
+          context_kind?: string | null
+          context_title?: string | null
+          context_version?: string | null
           created_at?: string
           id?: string
           title?: string
