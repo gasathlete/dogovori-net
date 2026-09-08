@@ -51,7 +51,7 @@ type UploadedContract = {
   original_filename: string | null; storage_path: string | null;
   created_at: string;
 };
-type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_type: string; created_at: string };
+type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_type: string; created_at: string; verification?: unknown };
 
 function FoldersTab({
   folders, docs, uploaded, reload, onOpenTab, setActiveFolder,

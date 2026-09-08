@@ -61,7 +61,7 @@ type UploadedContract = {
   original_filename: string | null; storage_path: string | null;
   created_at: string;
 };
-type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_type: string; created_at: string };
+type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_type: string; created_at: string; verification?: unknown };
 
 function DocumentsTab({
   docs, folders, contacts, activeFolder, setActiveFolder, activeContactName, clearContactFilter, reload,
@@ -369,12 +369,13 @@ function DocumentsTab({
             <div className="grid gap-3">
               {uploaded.map((u) => {
                 const a = analysesByContract[u.id];
-                const score = a?.score;
-                const sevCls = score == null ? "border-border/40 text-muted-foreground"
-                  : score >= 8 ? "border-emerald-400/40 text-emerald-300 bg-emerald-400/10"
-                  : score >= 5 ? "border-amber-300/40 text-amber-200 bg-amber-300/10"
-                  : "border-red-400/40 text-red-300 bg-red-400/10";
-                const Icon = score == null ? AlertTriangle : score >= 8 ? ShieldCheck : score >= 5 ? AlertTriangle : ShieldAlert;
+                // Оценка се показва само при потвърден анализ; иначе неутрален бадж.
+                const badge = a ? analysisBadge({ score: a.score, verification: a.verification }) : null;
+                const trustedScore = badge && badge.text !== "непотвърден" ? a!.score : null;
+                const sevCls = badge ? badge.className : "border-border/40 text-muted-foreground";
+                const Icon = trustedScore == null
+                  ? AlertTriangle
+                  : trustedScore >= 8 ? ShieldCheck : trustedScore >= 5 ? AlertTriangle : ShieldAlert;
                 return (
                   <div
                     key={u.id}
@@ -395,7 +396,7 @@ function DocumentsTab({
                       </Link>
                       <div className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-xs ${sevCls}`}>
                         <Icon className="h-3.5 w-3.5" />
-                        {score != null ? <><strong>{score}</strong>/10</> : "Без анализ"}
+                        {badge ? badge.text : "Без анализ"}
                       </div>
                     </div>
                     <div className="mt-3 space-y-2">

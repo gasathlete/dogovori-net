@@ -20,7 +20,7 @@ export type UploadedContract = {
   original_filename: string | null; storage_path: string | null;
   created_at: string;
 };
-export type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_type: string; created_at: string };
+export type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_type: string; created_at: string; verification?: unknown };
 
 export type TabDef = { value: string; label: string; icon?: React.ComponentType<{ className?: string }> };
 export type TabGroup = { id: string; label: string; tabs: TabDef[] };

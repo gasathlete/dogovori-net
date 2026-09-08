@@ -57,7 +57,7 @@ type UploadedContract = {
   original_filename: string | null; storage_path: string | null;
   created_at: string;
 };
-type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_type: string; created_at: string };
+type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_type: string; created_at: string; verification?: unknown };
 
 /* ============================ DASHBOARD ============================ */
 function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analysesDates, correctionsDates, opChargeDates, hasChatAccess, onOpenChat, contactsCount = 0, foldersCount = 0 }: { quota: Quota | null; isPro: boolean; docs: SavedDoc[]; uploadedCount: number; correctionsCount: number; analysesDates: string[]; correctionsDates: string[]; opChargeDates: string[]; hasChatAccess: boolean; onOpenChat: () => void; contactsCount?: number; foldersCount?: number }) {

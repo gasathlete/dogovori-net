@@ -735,7 +735,7 @@ export default function UploadedContractPage() {
               <div className="rounded-xl border border-border/60 bg-gradient-card p-4">
                 <div className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">Скала на оценката</div>
                 <ul className="space-y-1.5 text-xs">
-                  <li className="flex items-start gap-2"><span className="mt-0.5 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-emerald-400" /><span><strong className="text-emerald-300">9-10</strong> · Изряден — балансиран, без рискове</span></li>
+                  <li className="flex items-start gap-2"><span className="mt-0.5 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-emerald-400" /><span><strong className="text-emerald-300">9-10</strong> · Изряден — балансиран, без установен риск в обхвата на проверката</span></li>
                   <li className="flex items-start gap-2"><span className="mt-0.5 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-emerald-400/60" /><span><strong className="text-emerald-300">7-8</strong> · Добър — малки несъвършенства, без установен риск</span></li>
                   <li className="flex items-start gap-2"><span className="mt-0.5 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-amber-300" /><span><strong className="text-amber-200">5-6</strong> · Приемлив — препоръчителни корекции</span></li>
                   <li className="flex items-start gap-2"><span className="mt-0.5 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-orange-400" /><span><strong className="text-orange-300">3-4</strong> · Проблемен — преговаряй преди подпис</span></li>
@@ -757,8 +757,9 @@ export default function UploadedContractPage() {
                 <div>{new Date(analysis.created_at).toLocaleString("bg-BG")}</div>
                 <div className="mt-2">Модел: {analysis.model}</div>
                 {analysis.text_hash !== contract.text_hash && (
-                  <div className="mt-2 rounded bg-amber-300/10 p-2 text-amber-300">
-                    Договорът е променен след последния анализ.
+                  <div className="mt-2 rounded bg-muted/30 p-2 text-muted-foreground">
+                    Актуалността на този анализ не е потвърдена — възможно е текстът да е
+                    променян след него. Обвързването с точния източник предстои.
                   </div>
                 )}
               </div>

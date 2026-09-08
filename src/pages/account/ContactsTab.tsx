@@ -52,7 +52,7 @@ type UploadedContract = {
   original_filename: string | null; storage_path: string | null;
   created_at: string;
 };
-type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_type: string; created_at: string };
+type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_type: string; created_at: string; verification?: unknown };
 
 function ContactsTab({ contacts, docs, reload, onOpenDocs }: {
   contacts: Contact[]; docs: SavedDoc[]; reload: () => void; onOpenDocs: (id: string) => void;
