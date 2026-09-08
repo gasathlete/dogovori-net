@@ -211,7 +211,10 @@ Deno.serve(async (req: Request) => {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (cached) {
+    // Кеш-хит е доверен САМО ако записът носи съвместими метаданни за
+    // доказателствената проверка. Липсващи/повредени метаданни → преизчисляваме,
+    // вместо да върнем стар резултат като нов.
+    if (cached && isTrustedCachedVerification((cached as Record<string, unknown>).verification)) {
       // If the cached analysis belongs to a different uploaded_contract_id (e.g. user
       // re-uploaded the same file), clone it so the frontend can find it via the new id.
       let analysisRow = cached;
@@ -228,6 +231,8 @@ Deno.serve(async (req: Request) => {
             issues: cached.issues,
             missing_clauses: cached.missing_clauses,
             text_hash: cached.text_hash,
+            // Клонът задължително носи същите метаданни — иначе би изглеждал непроверен.
+            verification: (cached as Record<string, unknown>).verification,
           })
           .select()
           .single();
