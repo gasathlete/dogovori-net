@@ -27,10 +27,11 @@ import {
 } from "../_shared/assistant-tools.ts";
 import { redactForAI, unredact, type RedactionMapping } from "../_shared/redact.ts";
 import {
-  buildUntrustedContextBlock,
+  buildRedactedContextSystemBlock,
   parseRequestedDocumentContext,
 } from "./document-context.ts";
 import { resolveDocumentContext, type ResolvedDocumentContext } from "./context-resolver.ts";
+import { runAssistantOrchestration, type ThreadBinding } from "./orchestration.ts";
 
 const SYSTEM_PROMPT = `# РОЛЯ
 Ти си **DogovaryAI** — управляван от tools агент на Dogovori.net. Не отказваш, не се извиняваш — водиш потребителя през ясна верига от стъпки докато стигнете до готов договор/документ.
@@ -417,13 +418,10 @@ Deno.serve(async (req) => {
 
     // ---- Q2e: заявен документен контекст (само {kind, entityId}) -------------
     const requestedCtxParse = parseRequestedDocumentContext(body?.documentContext ?? null);
-    if (!requestedCtxParse.ok) {
-      return new Response(JSON.stringify({
-        error: "Невалиден документен контекст.",
-        code: "invalid_document_context",
-      }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    const requestedContext = requestedCtxParse.value;
+    // Невалидният контекст стига до оркестрацията като `"invalid"`, за да е
+    // гарантирано, че нито един резервационен път не е бил докоснат.
+    const requestedContext: { kind: string; entityId: string } | null | "invalid" =
+      requestedCtxParse.ok ? requestedCtxParse.value : "invalid";
 
     // Клиент с JWT-а на потребителя — RLS (включително правилата за екипи) е
     // единственият авторитет за достъп до документа. Service-role НЕ се ползва
@@ -470,132 +468,95 @@ Deno.serve(async (req) => {
 
     // ---- Валидация на разговора (ПРЕДИ всякаква резервация) -----------------
     let activeThreadId = threadId;
-    let existingThread: any = null;
+    let existingThread: ThreadBinding | null | "not_found" = null;
     if (activeThreadId) {
       const { data: th } = await admin
         .from("assistant_threads")
         .select("id, user_id, context_kind, context_entity_id, context_version, context_title")
         .eq("id", activeThreadId)
         .maybeSingle();
-      if (!th || (th as any).user_id !== userId) {
-        return new Response(JSON.stringify({ error: "Разговорът не е намерен", code: "thread_not_found" }), {
-          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      existingThread = th;
-      const boundKind = (th as any).context_kind ?? null;
-      const boundId = (th as any).context_entity_id ?? null;
-      // Записаното обвързване е авторитетно: общ разговор остава общ, а обвързан
-      // разговор не може да бъде пренасочен към друг документ.
-      const requestedKind = requestedContext?.kind ?? null;
-      const requestedId = requestedContext?.entityId ?? null;
-      if (boundKind !== requestedKind || (boundId ?? null) !== requestedId) {
-        return new Response(JSON.stringify({
-          error: "Разговорът е обвързан с друг документ. Започнете нов разговор.",
-          code: "document_context_mismatch",
-        }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
+      existingThread = th
+        ? {
+            userId: (th as any).user_id,
+            contextKind: (th as any).context_kind ?? null,
+            contextEntityId: (th as any).context_entity_id ?? null,
+            contextVersion: (th as any).context_version ?? null,
+          }
+        : "not_found";
     }
 
     // ---- Разрешаване на контекста през RLS (ПРЕДИ резервация) --------------
     let resolvedContext: ResolvedDocumentContext | null = null;
-    if (requestedContext) {
-      const resolution = await resolveDocumentContext(userClient, requestedContext);
-      if (!resolution.ok) {
-        // Липсващ/забранен ред → неутрално 404 (без разкриване на съществуване).
-        return new Response(JSON.stringify({
-          error: "Документът не е намерен.",
-          code: "document_not_found",
-        }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-      resolvedContext = resolution.value;
-      if (existingThread && existingThread.context_version &&
-          existingThread.context_version !== resolvedContext.version) {
-        return new Response(JSON.stringify({
-          error: "Документът е променен след започването на този разговор. Започнете нов разговор с текущата версия.",
-          code: "document_context_stale",
-        }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
+    let resolutionFailure: "document_not_found" | "analysis_context_stale" | null = null;
+    if (requestedContext && requestedContext !== "invalid") {
+      const resolution = await resolveDocumentContext(userClient, requestedContext as any);
+      if (resolution.ok) resolvedContext = resolution.value;
+      else resolutionFailure = resolution.code;
     }
 
-    // ---- ЕДИНСТВЕНА резервация на операция (сървърът е авторитетът) --------
-    // Клиентът вече НЕ извиква consume_ai_message — двойното таксуване е
-    // премахнато. Отказан/невалиден/остарял контекст изразходва 0 операции,
-    // защото всички проверки по-горе се случват преди този блок.
-    const FREE_AI_MESSAGES = 3;
-    if (teamId) {
-      const { data: teamGate, error: teamErr } = await userClient.rpc("consume_team_quota", { _team_id: teamId });
-      const tg = teamGate as { ok?: boolean; reason?: string } | null;
-      if (teamErr || !tg || tg.ok === false) {
-        return new Response(JSON.stringify({
-          error: "Екипната квота е изчерпана за този период.",
-          code: "team_limit_reached",
-        }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-    } else if (isPro) {
-      const { data: proGate, error: proErr } = await userClient.rpc("consume_ai_message");
-      const pg = proGate as { ok?: boolean; reason?: string } | null;
-      if (proErr || !pg || pg.ok === false) {
-        return new Response(JSON.stringify({
-          error: "Изчерпани са операциите по плана за този период.",
-          code: "ai_plan_limit_reached",
-        }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-    } else {
-      // Регистриран безплатен план: същото поведение като досега (3 запитвания).
-      const { data: aiQuota } = await admin
-        .from("download_quota")
-        .select("ai_messages_used")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (!aiQuota) {
-        await admin
-          .from("download_quota")
-          .upsert({ user_id: userId, ai_messages_used: 0 }, { onConflict: "user_id" });
-      }
-      const aiUsed = Number((aiQuota as any)?.ai_messages_used ?? 0);
-      const { data: reserved, error: reserveErr } = await admin
-        .from("download_quota")
-        .update({ ai_messages_used: aiUsed + 1 })
-        .eq("user_id", userId)
-        .eq("ai_messages_used", aiUsed)
-        .lt("ai_messages_used", FREE_AI_MESSAGES)
-        .select("ai_messages_used")
-        .maybeSingle();
-      if (reserveErr || !reserved) {
-        return new Response(JSON.stringify({
-          error: `Изчерпахте ${FREE_AI_MESSAGES}-те безплатни запитвания към DogovaryAI. Активирайте план Професионалист, Предприемач или Екип за неограничен достъп.`,
-          code: "ai_free_limit_reached",
-        }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-    }
+    // ---- Оркестрация: валидация → запис → ЕДНА резервация -------------------
+    // Отказан/невалиден/остарял контекст изразходва 0 операции.
+    const orchestration = await runAssistantOrchestration(
+      {
+        userId,
+        requestedContext,
+        existingThread,
+        resolved: resolvedContext ? { version: resolvedContext.version } : null,
+        resolutionFailure,
+        plan: { teamId, isPro: !!isPro },
+      },
+      { admin, userClient, userId, teamId },
+      {
+        ensureThread: async () => {
+          if (activeThreadId) return activeThreadId;
+          const firstUser = safeMessages.find((m: any) => m.role === "user");
+          const title = (firstUser?.content ?? "Нов разговор").slice(0, 80);
+          const insertRow: Record<string, unknown> = { user_id: userId, title };
+          if (resolvedContext) {
+            insertRow.context_kind = resolvedContext.kind;
+            insertRow.context_entity_id = resolvedContext.entityId;
+            insertRow.context_version = resolvedContext.version;
+            insertRow.context_title = resolvedContext.title;
+          }
+          const { data: created, error: createErr } = await admin
+            .from("assistant_threads")
+            .insert(insertRow as any)
+            .select("id")
+            .maybeSingle();
+          if (createErr || !created?.id) {
+            console.error("assistant thread insert failed", createErr?.code ?? "no_row");
+            return null;
+          }
+          return created.id as string;
+        },
+        persistUserMessage: async (tid: string) => {
+          const lastUser = safeMessages[safeMessages.length - 1];
+          const { error: msgErr } = await admin.from("assistant_messages").insert({
+            thread_id: tid,
+            role: "user",
+            content: lastUser.content,
+          });
+          if (msgErr) {
+            console.error("assistant message insert failed", msgErr.code ?? "unknown");
+            return false;
+          }
+          return true;
+        },
+      },
+    );
 
-    // ---- Създаване на разговора (след успешна резервация) ------------------
-    if (!activeThreadId) {
-      const firstUser = safeMessages.find((m: any) => m.role === "user");
-      const title = (firstUser?.content ?? "Нов разговор").slice(0, 80);
-      const insertRow: Record<string, unknown> = { user_id: userId, title };
-      if (resolvedContext) {
-        insertRow.context_kind = resolvedContext.kind;
-        insertRow.context_entity_id = resolvedContext.entityId;
-        insertRow.context_version = resolvedContext.version;
-        insertRow.context_title = resolvedContext.title;
-      }
-      const { data: created } = await admin
-        .from("assistant_threads")
-        .insert(insertRow as any)
-        .select("id")
-        .single();
-      activeThreadId = created?.id ?? null;
+    if (!orchestration.ok) {
+      return new Response(
+        JSON.stringify({ error: orchestration.error, code: orchestration.code }),
+        {
+          status: orchestration.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
+    activeThreadId = orchestration.threadId;
 
-    // Persist last user message
-    const lastUser = safeMessages[safeMessages.length - 1];
-    await admin.from("assistant_messages").insert({
-      thread_id: activeThreadId,
-      role: "user",
-      content: lastUser.content,
-    });
+
 
 
     // RAG
@@ -760,15 +721,15 @@ Deno.serve(async (req) => {
     let contextTruncated = false;
     const contextSystemBlocks: ChatMsg[] = [];
     if (resolvedContext) {
-      const built = buildUntrustedContextBlock({
+      const built = buildRedactedContextSystemBlock({
         kind: resolvedContext.kind,
         title: resolvedContext.title,
         body: resolvedContext.body,
+        redact: redactForAI,
       });
       contextTruncated = built.truncated;
-      const red = redactForAI(built.block);
-      contextMapping = red.mapping;
-      contextSystemBlocks.push({ role: "system", content: red.text });
+      contextMapping = built.mapping as RedactionMapping;
+      contextSystemBlocks.push(built.message);
     }
 
     // Build conversation

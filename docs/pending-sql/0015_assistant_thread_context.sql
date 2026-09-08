@@ -45,3 +45,40 @@ BEGIN
       ) NOT VALID;
   END IF;
 END $$;
+
+-- Ограничения по дължина (консервативни): заглавието е сървърно ограничено на
+-- 120 знака, версията е SHA-256 hex (64 знака). Само за непразни стойности.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'assistant_threads_context_title_len_chk'
+      AND conrelid = 'public.assistant_threads'::regclass
+  ) THEN
+    ALTER TABLE public.assistant_threads
+      ADD CONSTRAINT assistant_threads_context_title_len_chk CHECK (
+        context_title IS NULL OR char_length(context_title) <= 120
+      ) NOT VALID;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'assistant_threads_context_version_len_chk'
+      AND conrelid = 'public.assistant_threads'::regclass
+  ) THEN
+    ALTER TABLE public.assistant_threads
+      ADD CONSTRAINT assistant_threads_context_version_len_chk CHECK (
+        context_version IS NULL OR context_version ~ '^[0-9a-f]{64}$'
+      ) NOT VALID;
+  END IF;
+END $$;
+
+-- Съществуващите редове имат само NULL стойности в тези колони, затова и трите
+-- проверки са валидни за тях — валидираме ги веднага, без backfill и без
+-- каквато и да е промяна на данни.
+ALTER TABLE public.assistant_threads
+  VALIDATE CONSTRAINT assistant_threads_context_tuple_chk;
+ALTER TABLE public.assistant_threads
+  VALIDATE CONSTRAINT assistant_threads_context_title_len_chk;
+ALTER TABLE public.assistant_threads
+  VALIDATE CONSTRAINT assistant_threads_context_version_len_chk;
