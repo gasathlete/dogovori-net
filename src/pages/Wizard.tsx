@@ -353,10 +353,9 @@ export default function WizardPage() {
     context: reviewContext,
   });
   reviewContextRef.current = { key: reviewContextKey, context: reviewContext };
-  const acceptedContextForReview =
-    acceptedReviewContext && acceptedReviewContext.key === reviewContextKey
-      ? acceptedReviewContext.context
-      : null;
+  const acceptedContextForReview = acceptedReviewContext
+    ? pickAcceptedReviewContext(acceptedReviewContext, reviewContextKey)
+    : null;
 
 
 
@@ -471,17 +470,7 @@ export default function WizardPage() {
       // изчакване) — по-късни редакции не могат да го подменят.
       const requestedReviewContext: { key: string; context: ReviewContextInput | null } = {
         key: reviewContextRef.current.key,
-        context: reviewContextRef.current.context
-          ? {
-              ...(reviewContextRef.current.context.role
-                ? { role: reviewContextRef.current.context.role }
-                : {}),
-              decisions: reviewContextRef.current.context.decisions.map((d) => ({
-                label: d.label,
-                value: d.value,
-              })),
-            }
-          : null,
+        context: captureReviewContext(reviewContextRef.current.context),
       };
       const flatQs = flattenQuestions(visibleQuestions);
       const arbitrationCourt = arbitration.enabled ? getCourtById(arbitration.courtId) : undefined;
