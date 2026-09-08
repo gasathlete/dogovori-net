@@ -228,7 +228,11 @@ export function buildFreshAnalysisPayload(input: {
   issues: unknown;
   missingClauses: unknown;
   cacheKey: string;
-  verification: Record<string, unknown>;
+  /**
+   * Точният тип, който връща `runAnalysisEvidencePipeline` — без индексен подпис,
+   * без `Record`/`any` междинни типове, за да не се крият несъвместимости.
+   */
+  verification: AnalysisVerificationMetadata;
   binding: AnalysisSourceBinding;
 }): Record<string, unknown> {
   return {
