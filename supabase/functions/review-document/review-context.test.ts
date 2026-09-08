@@ -10,6 +10,7 @@ import {
   isQuoteSupported,
   normalizeReviewResponse,
   redactReviewContext,
+  restoreLeaves,
   REVIEW_TEXT_LIMIT,
   type ReviewRequest,
 } from "./review-context.ts";
