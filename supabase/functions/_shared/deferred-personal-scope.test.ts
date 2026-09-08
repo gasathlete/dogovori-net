@@ -4,9 +4,11 @@
 
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
+  applyDeferredScopeToCheck,
   DEFERRED_NOTE,
   extractPlaceholderTokens,
   isDeferredLocalPlaceholder,
+  shouldDeferItem,
   softenDeferredCheck,
 } from "./deferred-personal-scope.ts";
 
@@ -15,40 +17,69 @@ const DOC = [
   "Между [Име] с ЕГН [ЕГН], адрес [Адрес], и Бета ООД, ЕИК [ЕИК].",
   "Чл. 1. Възнаграждението е 1200 лева, платимо до 05.05.2026 г.",
   "Чл. 2. Договорът приключва на 01.04.2026 г.",
-  "Чл. 3. Плащане по банкова сметка [IBAN].",
+  "Чл. 3. Плащане по банкова сметка {{IBAN}}.",
   "Дата: 10.01.2026 г.  Подписи: ____________",
 ].join("\n");
 
-Deno.test("токени: разпознава само пълни [..] / {{..}} етикети", () => {
+// ---------- извличане на токени ----------
+
+Deno.test("токени: само цели самостоятелни [..] / {{..}}", () => {
   assertEquals(extractPlaceholderTokens("Липсва [ЕГН] и [Адрес]"), ["егн", "адрес"]);
   assertEquals(extractPlaceholderTokens("{{IBAN}}"), ["iban"]);
   assertEquals(extractPlaceholderTokens("няма токени тук"), []);
 });
 
-Deno.test("отложено: буквален [ЕГН] / [Адрес] в текста се разпознава", () => {
-  assert(isDeferredLocalPlaceholder("Непопълнено поле [ЕГН]", DOC));
+Deno.test("токени: вложени, слепени и деформирани форми не дават токен", () => {
+  assertEquals(extractPlaceholderTokens("[[ЕГН]]"), []);
+  assertEquals(extractPlaceholderTokens("x[ЕГН]y"), []);
+  assertEquals(extractPlaceholderTokens("{ {ЕГН} }"), []);
+  assertEquals(extractPlaceholderTokens("[[ЕГН]"), []);
+  assertEquals(extractPlaceholderTokens("[ЕГН]]"), []);
+});
+
+Deno.test("токени: пунктуацията в етикета НЕ се маха — [ЕГН:] != [ЕГН]", () => {
+  assertEquals(extractPlaceholderTokens("[ЕГН:]"), ["егн:"]);
+  assertEquals(isDeferredLocalPlaceholder("[ЕГН:]", DOC), false);
+});
+
+// ---------- позитивно разпознаване ----------
+
+Deno.test("отложено: токен сам по себе си", () => {
+  assert(isDeferredLocalPlaceholder("[ЕГН]", DOC));
   assert(isDeferredLocalPlaceholder("[Адрес]", DOC));
-  assert(isDeferredLocalPlaceholder("[ЕИК]", DOC));
+  assert(isDeferredLocalPlaceholder("{{IBAN}}", DOC));
+  assert(isDeferredLocalPlaceholder("[IBAN]", DOC), "формите [..] и {{..}} са еквивалентни");
 });
 
-Deno.test("отложено: токен, който НЕ е в документа, не се разпознава", () => {
-  assertEquals(isDeferredLocalPlaceholder("[Телефон]", DOC), false);
-  assertEquals(isDeferredLocalPlaceholder("[Имейл]", DOC), false);
+Deno.test("отложено: изрична фраза за празно поле", () => {
+  assert(isDeferredLocalPlaceholder("Полето [ЕГН] не е попълнено", DOC));
+  assert(isDeferredLocalPlaceholder("Липсва [Адрес]", DOC));
+  assert(isDeferredLocalPlaceholder("[Име] и [Адрес] са празни полета", DOC));
 });
 
-Deno.test("отложено: вграден/частичен токен не се разпознава", () => {
-  const doc = "Между [ЕГН-НОМЕР] и [Име и адрес по лична карта].";
-  assertEquals(isDeferredLocalPlaceholder("[ЕГН]", doc), false);
-  assertEquals(isDeferredLocalPlaceholder("[Адрес]", doc), false);
+// ---------- непозната проза → задържане (Q1) ----------
+
+Deno.test("непозната проза с токен НЕ е отложено поле", () => {
+  assertEquals(isDeferredLocalPlaceholder("[ЕГН] е подменен", DOC), false);
+  assertEquals(isDeferredLocalPlaceholder("[Адрес] предоставя неограничени права", DOC), false);
+  assertEquals(isDeferredLocalPlaceholder("[ЕГН] field grants unlimited access", DOC), false);
+  assertEquals(isDeferredLocalPlaceholder("[Име] изглежда съмнително", DOC), false);
 });
 
-Deno.test("отложено: без placeholder токен → запазва се", () => {
-  assertEquals(isDeferredLocalPlaceholder("Липсва ЕГН на изпълнителя", DOC), false);
-  assertEquals(isDeferredLocalPlaceholder("Подписите липсват", DOC), false);
+Deno.test("смесено: празно поле + непознато твърдение → задържане", () => {
+  assertEquals(
+    isDeferredLocalPlaceholder("[ЕГН] не е попълнено и клаузата обезсилва защитата", DOC),
+    false,
+  );
+  assertEquals(
+    isDeferredLocalPlaceholder("[Адрес] е празно, но текстът въвежда допълнителни задължения", DOC),
+    false,
+  );
 });
+
+// ---------- същностни рискове ----------
 
 Deno.test("същностни рискове остават дори при токен за лично поле", () => {
-  // конфликт плащане/краен срок
   assertEquals(
     isDeferredLocalPlaceholder(
       "Срокът за плащане 05.05.2026 е след крайната дата 01.04.2026 — противоречие; [ЕГН]",
@@ -56,29 +87,35 @@ Deno.test("същностни рискове остават дори при то
     ),
     false,
   );
-  // грешно наименование на страна
   assertEquals(
     isDeferredLocalPlaceholder("В чл. 4 страната е Гама ООД, различно от Бета ООД [Име]", DOC),
     false,
   );
-  // липсващи подписи / форма
   assertEquals(
     isDeferredLocalPlaceholder("Липсват задължителни подписи и нотариална заверка [Име]", DOC),
     false,
   );
-  // несъответствие на банкова сметка
   assertEquals(
     isDeferredLocalPlaceholder("Банковата сметка в чл. 3 не съвпада с тази в чл. 5 [IBAN]", DOC),
     false,
   );
-  // смесен случай: празно поле + противоречие
   assertEquals(
     isDeferredLocalPlaceholder("[Адрес] е празен и валутата се сменя от лева на евро", DOC),
     false,
   );
-  // дати и срокове никога не са отложени
   assertEquals(isDeferredLocalPlaceholder("[Дата]", `${DOC}\n[Дата]`), false);
   assertEquals(isDeferredLocalPlaceholder("[Подпис]", `${DOC}\n[Подпис]`), false);
+});
+
+Deno.test("токен, който не е в документа или е без етикет от списъка", () => {
+  assertEquals(isDeferredLocalPlaceholder("[Телефон]", DOC), false);
+  assertEquals(isDeferredLocalPlaceholder("[Имейл] не е попълнено", DOC), false);
+  assertEquals(isDeferredLocalPlaceholder("[Предмет на договора]", `${DOC}\n[Предмет на договора]`), false);
+});
+
+Deno.test("без токен → задържане", () => {
+  assertEquals(isDeferredLocalPlaceholder("Липсва ЕГН на изпълнителя", DOC), false);
+  assertEquals(isDeferredLocalPlaceholder("______", `${DOC}\n______`), false);
 });
 
 Deno.test("редакционни токени не са отложени полета", () => {
@@ -87,35 +124,74 @@ Deno.test("редакционни токени не са отложени пол
   assertEquals(isDeferredLocalPlaceholder("[NAME_2]", doc), false);
 });
 
-Deno.test("проверките не се трият: fail заради отложено поле → warn с бележка", () => {
-  const out = softenDeferredCheck(
-    { id: "danni", label: "Проверка на [ЕГН]", status: "fail", note: "Полето е празно" },
-    DOC,
-  );
-  assertEquals(out.status, "warn");
-  assert(String(out.note).includes(DEFERRED_NOTE));
-  assertEquals(out.id, "danni");
+Deno.test("нетекстов вход не хвърля", () => {
+  assertEquals(isDeferredLocalPlaceholder(null, DOC), false);
+  assertEquals(isDeferredLocalPlaceholder("[ЕГН]", null), false);
+  assertEquals(isDeferredLocalPlaceholder(undefined, undefined), false);
+  assertEquals(isDeferredLocalPlaceholder(42, DOC), false);
 });
 
-Deno.test("критични проверки остават fail", () => {
+// ---------- проверки (checks) ----------
+
+Deno.test("проверките не се трият: fail заради празно поле → warn с бележка", () => {
+  const out = softenDeferredCheck(
+    { id: "lichni_danni", label: "[ЕГН]", status: "fail", note: "Полето е празно" },
+    DOC,
+  ) as Record<string, unknown>;
+  assertEquals(out.status, "warn");
+  assert(String(out.note).includes(DEFERRED_NOTE));
+  assertEquals(out.id, "lichni_danni");
+});
+
+Deno.test("защитен id остава fail, дори при празно поле в label и безобидна бележка", () => {
   const check = {
     id: "forma_i_deystvitelnost",
-    label: "Форма и действителност",
+    label: "[ЕГН]",
     status: "fail",
-    note: "Липсва нотариална заверка по чл. 129, ал. 2 ТЗ",
+    note: "Полето е празно",
   };
-  assertEquals(softenDeferredCheck(check, DOC).status, "fail");
+  assertEquals(softenDeferredCheck(check, DOC), check);
+});
 
-  const conflict = {
-    id: "srokove",
-    label: "Срокове",
-    status: "fail",
-    note: "Крайната дата 01.04.2026 противоречи на плащане до 05.05.2026",
-  };
-  assertEquals(softenDeferredCheck(conflict, DOC).status, "fail");
+Deno.test("произволна бележка се запазва — не се смекчава", () => {
+  const check = { id: "lichni_danni", label: "[ЕГН]", status: "fail", note: "Полето е подменено" };
+  assertEquals(softenDeferredCheck(check, DOC), check);
+});
+
+Deno.test("непознат/липсващ id е защитен", () => {
+  const check = { label: "[ЕГН]", status: "fail", note: "не е попълнено" };
+  assertEquals(softenDeferredCheck(check, DOC), check);
 });
 
 Deno.test("pass/warn проверки остават непроменени", () => {
   const c = { id: "x", status: "warn", note: "[ЕГН]" };
   assertEquals(softenDeferredCheck(c, DOC), c);
+});
+
+Deno.test("null/нетекстови записи не се трият и не хвърлят", () => {
+  assertEquals(softenDeferredCheck(null, DOC), null);
+  assertEquals(softenDeferredCheck(undefined, DOC), undefined);
+  assertEquals(softenDeferredCheck("низ", DOC), "низ");
+  assertEquals(softenDeferredCheck([1], DOC), [1]);
+  const weird = { id: "lichni_danni", status: "fail", label: 5, note: null };
+  assertEquals(softenDeferredCheck(weird, DOC), weird);
+});
+
+// ---------- флаг ignorePersonalData ----------
+
+Deno.test("ignorePersonalData=false не отлага нищо", () => {
+  assertEquals(shouldDeferItem(false, "[ЕГН]", DOC), false);
+  const check = { id: "lichni_danni", label: "[ЕГН]", status: "fail", note: "Полето е празно" };
+  assertEquals(applyDeferredScopeToCheck(false, check, DOC), check);
+});
+
+Deno.test("ignorePersonalData=true отлага само доказаното празно поле", () => {
+  assertEquals(shouldDeferItem(true, "[ЕГН]", DOC), true);
+  assertEquals(shouldDeferItem(true, "[ЕГН] е подменен", DOC), false);
+  const softened = applyDeferredScopeToCheck(
+    true,
+    { id: "lichni_danni", label: "[ЕГН]", status: "fail", note: "Полето е празно" },
+    DOC,
+  ) as Record<string, unknown>;
+  assertEquals(softened.status, "warn");
 });
