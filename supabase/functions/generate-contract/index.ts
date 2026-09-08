@@ -324,8 +324,9 @@ ${docTypeSpec.systemAddendum}
       if (aiResp.status === 402) {
         return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI. Моля заредете акаунта." }), { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
       }
+      // Без съдържание в лога — само диагностика.
       const t = await aiResp.text();
-      console.error("AI gateway:", aiResp.status, t);
+      console.error("AI gateway error:", aiResp.status, `body_len=${t.length}`);
       throw new Error("AI грешка");
     }
 
@@ -341,13 +342,13 @@ ${docTypeSpec.systemAddendum}
 
     let data: any;
     try { data = JSON.parse(rawText); } catch {
-      console.error("AI raw (not JSON):", rawText.slice(0, 500));
+      console.error("AI response not JSON:", `len=${rawText.length}`);
       throw new Error("AI върна невалиден JSON отговор");
     }
 
     const content: string = data.choices?.[0]?.message?.content ?? "";
     if (!content || !content.trim()) {
-      console.error("AI empty content. Full data:", JSON.stringify(data).slice(0, 500));
+      console.error("AI empty content:", `choices=${Array.isArray(data?.choices) ? data.choices.length : 0}`, `finish=${String(data?.choices?.[0]?.finish_reason ?? "unknown")}`);
       throw new Error("AI не върна съдържание (вероятно прекъснат отговор). Опитайте отново.");
     }
 
@@ -390,7 +391,7 @@ ${docTypeSpec.systemAddendum}
         };
         parsed = walk(parsed);
       } catch (e) {
-        console.error("unredact failed:", e);
+        console.error("unredact failed:", e instanceof Error ? e.name : "unknown_error");
       }
     }
 
