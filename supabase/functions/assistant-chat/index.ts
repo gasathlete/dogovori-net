@@ -22,9 +22,11 @@ import {
   FULL_TOOL_NAMES,
   execSearchTemplates,
   isServerTool,
+  SAVED_DOCUMENT_EDIT_TOOL,
   sanitizePath,
   toolSchemasFor,
 } from "../_shared/assistant-tools.ts";
+import { proposeSavedDocumentEdit } from "../_shared/assistant-edit.ts";
 import { redactForAI, unredact, type RedactionMapping } from "../_shared/redact.ts";
 import {
   buildRedactedContextSystemBlock,
@@ -609,7 +611,10 @@ Deno.serve(async (req) => {
         ? (isHighRisk ? "risk:high" : `long_convo:${userTurnCount}`)
         : "default:flash";
     console.log(`[router] model=${chatModel} reason=${routerReason}`);
-    const tools = toolSchemasFor(FULL_TOOL_NAMES);
+    // Инструментът за редакция се добавя по-долу, само ако контекстът е
+    // НЕотрязан запазен документ (Q2f).
+    let tools = toolSchemasFor(FULL_TOOL_NAMES);
+
 
     // Intent hints — injected as an extra system nudge to steer the model on
     // ambiguous patterns where it would otherwise misfire (call the wrong tool
@@ -732,8 +737,30 @@ Deno.serve(async (req) => {
       contextSystemBlocks.push(built.message);
     }
 
+    // ---- Q2f: редакция на запазен документ — само предложения ---------------
+    // Инструментът съществува САМО при избран запазен документ, чийто пълен
+    // контекст НЕ е отрязан. При общ чат, качен документ, анализ или отрязан
+    // контекст той дори не се предлага на модела.
+    // Максимум едно предложение за редакция на заявка/ход.
+    let proposalThisTurn = false;
+    const editToolAvailable =
+      !!resolvedContext && resolvedContext.kind === "saved_document" && !contextTruncated;
+    if (editToolAvailable) {
+      tools = toolSchemasFor([...FULL_TOOL_NAMES, SAVED_DOCUMENT_EDIT_TOOL]);
+      contextSystemBlocks.push({
+        role: "system",
+        content:
+          "# РЕДАКЦИЯ НА ИЗБРАНИЯ ЗАПАЗЕН ДОКУМЕНТ\n" +
+          "- Когато потребителят иска промяна в текста на документа, извикай `propose_saved_document_edit`.\n" +
+          "- Това е ПРЕДЛОЖЕНИЕ: документът НЕ се променя, докато потребителят не натисне „Приеми“. Никога не твърди, че вече си променил документа.\n" +
+          "- Максимум ЕДНО предложение на ход и само за съществуващ елемент (заглавие, уводен текст, заключение, свободен текст, секция или клауза по номер).\n" +
+          "- Подавай пълния нов текст на елемента и кратка причина. Не подавай стария текст, id-та или версии.",
+      });
+    }
+
     // Build conversation
     const convo: ChatMsg[] = [
+
       { role: "system", content: systemFinal },
       { role: "system", content: `# INTENT HINTS (за текущия ход)\n${nudgeBlock}` },
       ...contextSystemBlocks,
@@ -958,9 +985,50 @@ Deno.serve(async (req) => {
                 const args = safeParse(sc.function.arguments || "{}");
                 if (sc.function.name === "search_templates") {
                   result = await execSearchTemplates(admin, args);
+                } else if (sc.function.name === SAVED_DOCUMENT_EDIT_TOOL) {
+                  // Пътят за редакция е достъпен САМО при валиден контекст;
+                  // иначе инструментът дори не е бил обявен на модела.
+                  if (!editToolAvailable || !resolvedContext || !activeThreadId) {
+                    result = { ok: false, code: "edit_not_available" };
+                  } else if (proposalThisTurn) {
+                    result = { ok: false, code: "one_proposal_per_turn" };
+                  } else {
+                    const proposed = await proposeSavedDocumentEdit({
+                      reader: userClient,
+                      writer: admin,
+                      userId,
+                      threadId: activeThreadId,
+                      documentId: resolvedContext.entityId,
+                      contextVersion: resolvedContext.version,
+                      contextTruncated,
+                      restore: restoreLeaves,
+                    }, args as any);
+                    if (proposed.ok) {
+                      proposalThisTurn = true;
+                      const p = proposed.proposal;
+                      result = {
+                        ok: true,
+                        proposal: {
+                          id: p.id,
+                          status: p.status,
+                          targetPath: p.target_path,
+                          before: p.before_text,
+                          after: p.after_text,
+                          reason: p.reason,
+                          savedDocumentId: p.saved_document_id,
+                          threadId: p.thread_id,
+                          createdAt: p.created_at ?? null,
+                        },
+                        note: "Предложението чака изричното решение на потребителя. Документът не е променен.",
+                      };
+                    } else {
+                      result = { ok: false, code: proposed.code };
+                    }
+                  }
                 } else {
                   result = { error: "unknown_tool" };
                 }
+
               } catch (e) {
                 result = { error: "tool_exec_failed", message: e instanceof Error ? e.message : String(e) };
               }

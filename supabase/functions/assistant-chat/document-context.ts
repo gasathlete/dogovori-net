@@ -8,15 +8,22 @@
 // Клиентът НИКОГА не определя заглавие, версия или съдържание — те се
 // извличат само от базата след автентикация през RLS-обхванат клиент.
 
-export const ASSISTANT_CONTEXT_SOURCE_VERSION = "q2e-assistant-context-1";
+// Версията на контекста живее в `_shared`, за да е буквално един и същ код и в
+// `assistant-edit` (пре-обвързване след приложена редакция).
+export {
+  ASSISTANT_CONTEXT_KINDS,
+  ASSISTANT_CONTEXT_SOURCE_VERSION,
+  canonicalContextPayload,
+  canonicalJson,
+  computeContextVersion,
+} from "../_shared/assistant-context-version.ts";
+export type { AssistantContextKind, ContextRow } from "../_shared/assistant-context-version.ts";
 
-export const ASSISTANT_CONTEXT_KINDS = [
-  "saved_document",
-  "uploaded_contract",
-  "analysis",
-] as const;
+import {
+  ASSISTANT_CONTEXT_KINDS,
+  type AssistantContextKind,
+} from "../_shared/assistant-context-version.ts";
 
-export type AssistantContextKind = (typeof ASSISTANT_CONTEXT_KINDS)[number];
 
 export interface RequestedDocumentContext {
   kind: AssistantContextKind;
@@ -57,45 +64,9 @@ export function parseRequestedDocumentContext(raw: unknown): RequestedContextPar
   return { ok: true, value: { kind, entityId: String(entityId).trim().toLowerCase() } };
 }
 
-/** Детерминистичен JSON: рекурсивно сортирани ключове, без зависимост от реда. */
-export function canonicalJson(value: unknown): string {
-  if (value === undefined) return "null";
-  if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
-  if (Array.isArray(value)) return "[" + value.map(canonicalJson).join(",") + "]";
-  const obj = value as Record<string, unknown>;
-  const keys = Object.keys(obj).sort();
-  return "{" +
-    keys.map((k) => JSON.stringify(k) + ":" + canonicalJson(obj[k])).join(",") +
-    "}";
-}
+/* canonicalJson / ContextRow / canonicalContextPayload / computeContextVersion
+ * се пре-експортират от `../_shared/assistant-context-version.ts` (виж горе). */
 
-export interface ContextRow {
-  kind: AssistantContextKind;
-  entityId: string;
-  /** Пълните полета на реда, използвани и за версията, и за заглавието. */
-  fields: Record<string, unknown>;
-}
-
-/**
- * Канонична форма на контекста — структурирани полета (без разделители в
- * низовете), затова колизии от вида `label=value` са невъзможни.
- */
-export function canonicalContextPayload(row: ContextRow): string {
-  return canonicalJson({
-    v: ASSISTANT_CONTEXT_SOURCE_VERSION,
-    kind: row.kind,
-    entity_id: row.entityId,
-    fields: row.fields,
-  });
-}
-
-export async function computeContextVersion(row: ContextRow): Promise<string> {
-  const data = new TextEncoder().encode(canonicalContextPayload(row));
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
 
 export const CONTEXT_TITLE_MAX = 120;
 

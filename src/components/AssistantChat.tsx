@@ -26,6 +26,16 @@ import {
   toRequestContext,
   useAssistantDocumentContext,
 } from "@/lib/assistantDocumentContext";
+import { AssistantEditProposalCard } from "@/components/assistant/AssistantEditProposalCard";
+import {
+  emitSavedDocumentUpdated,
+  loadThreadProposals,
+  proposalErrorMessage,
+  submitProposalAction,
+  type EditProposal,
+  type ProposalAction,
+} from "@/lib/assistantEditProposals";
+
 
 export interface ProgressStep {
   step: string;
@@ -192,6 +202,67 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     setStreamingTools([]);
     setStreamingProgress([]);
   }, [activeThreadId]);
+
+  /* --- Q2f: предложения за редакция на запазен документ ------------------ */
+  const [proposals, setProposals] = useState<EditProposal[]>([]);
+  const [proposalBusyId, setProposalBusyId] = useState<string | null>(null);
+  const [proposalErrors, setProposalErrors] = useState<Record<string, string>>({});
+  const proposalBusyRef = useRef<string | null>(null);
+  const savedDocumentContextId =
+    documentContext?.kind === "saved_document" ? documentContext.entityId : null;
+
+  /** Авторитетното състояние идва САМО от сървъра и само за текущия обхват. */
+  const refreshProposals = useCallback(async (threadId: string, docId: string) => {
+    const res = await loadThreadProposals(threadId, docId);
+    if (!res.ok || !aliveRef.current) return;
+    if (activeThreadIdRef.current !== threadId) return;
+    const ctx = documentContextRef.current;
+    if (!ctx || ctx.kind !== "saved_document" || ctx.entityId !== docId) return;
+    setProposals(res.proposals);
+  }, []);
+
+  // Смяна на разговор/документ/потребител: картите се изчистват ВЕДНАГА.
+  useEffect(() => {
+    setProposals([]);
+    setProposalErrors({});
+    setProposalBusyId(null);
+    proposalBusyRef.current = null;
+    if (!user || !activeThreadId || !savedDocumentContextId || !threadReady) return;
+    void refreshProposals(activeThreadId, savedDocumentContextId);
+  }, [user?.id, activeThreadId, savedDocumentContextId, threadReady, refreshProposals]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleProposalAction = useCallback(async (proposal: EditProposal, action: ProposalAction) => {
+    if (!session?.access_token) return;
+    if (proposalBusyRef.current) return; // двоен клик не създава втори преход
+    proposalBusyRef.current = proposal.id;
+    setProposalBusyId(proposal.id);
+    setProposalErrors((prev) => {
+      const next = { ...prev };
+      delete next[proposal.id];
+      return next;
+    });
+    const res = await submitProposalAction(session.access_token, proposal.id, action);
+    proposalBusyRef.current = null;
+    setProposalBusyId(null);
+    if (!res.ok) {
+      setProposalErrors((prev) => ({ ...prev, [proposal.id]: proposalErrorMessage(res.code) }));
+    } else {
+      if (res.changed && res.document?.id) emitSavedDocumentUpdated(res.document.id);
+      if (res.requiresNewThread) {
+        setStaleContext("version");
+        toast.message("Документът е обновен. Започнете нов разговор, за да работя с новата версия.");
+      } else if (action === "accept") {
+        toast.success("Промяната е приложена в документа.");
+      } else if (action === "reject") {
+        toast.success("Предложението е отказано.");
+      } else {
+        toast.success("Промяната е върната.");
+      }
+    }
+    await refreshProposals(proposal.threadId, proposal.savedDocumentId);
+  }, [session?.access_token, refreshProposals]);
+
+
 
 
   /**
@@ -647,6 +718,23 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
             const ev: ToolEvent = { kind: "tool_result", id: parsed.id, name: parsed.name, args: parsed.args, result: parsed.result };
             accTools.push(ev);
             setStreamingTools([...accTools]);
+            // Ново предложение за редакция — само за ТАЗИ (актуална) заявка.
+            const pr = parsed?.result?.proposal;
+            if (parsed.name === "propose_saved_document_edit" && parsed?.result?.ok && pr && isCurrent()) {
+              const mapped: EditProposal = {
+                id: String(pr.id),
+                threadId: String(pr.threadId ?? threadIdentity.id ?? ""),
+                savedDocumentId: String(pr.savedDocumentId),
+                targetPath: String(pr.targetPath),
+                before: String(pr.before ?? ""),
+                after: String(pr.after ?? ""),
+                reason: pr.reason ?? null,
+                status: "pending",
+                createdAt: pr.createdAt ?? null,
+              };
+              setProposals((prev) => (prev.some((x) => x.id === mapped.id) ? prev : [...prev, mapped]));
+            }
+
           } else if (eventType === "tool_call") {
             const ev: ToolEvent = { kind: "tool_call", id: parsed.id, name: parsed.name, args: parsed.args };
             accTools.push(ev);
@@ -1196,7 +1284,24 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
               )}
             </div>
           )}
+
+          {/* Q2f: предложения за редакция — нищо не се прилага без изрично решение. */}
+          {proposals.length > 0 && (
+            <div className="mt-5 space-y-3" data-testid="edit-proposal-list">
+              {proposals.map((p) => (
+                <AssistantEditProposalCard
+                  key={p.id}
+                  proposal={p}
+                  busy={proposalBusyId === p.id}
+                  error={proposalErrors[p.id] ?? null}
+                  onAction={(action) => { void handleProposalAction(p, action); }}
+                  onOpenDocument={() => navigate(`/document/${p.savedDocumentId}`)}
+                />
+              ))}
+            </div>
+          )}
         </div>
+
 
         {/* Изчерпани безплатни запитвания — CTA към абонамент вместо композер. */}
         {aiLocked && (

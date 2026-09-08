@@ -207,12 +207,61 @@ export const ASSISTANT_TOOLS: Record<string, ToolDef> = {
       }
     }
   },
+  // ---- Server-side, само при избран НЕотрязан запазен документ (Q2f) -------
+  propose_saved_document_edit: {
+    kind: "server",
+    schema: {
+      type: "function",
+      function: {
+        name: "propose_saved_document_edit",
+        description:
+          "Предложи промяна на ЕДИН текстов елемент от текущо избрания ЗАПАЗЕН документ. Създава ПРЕДЛОЖЕНИЕ, което потребителят вижда като „Преди/След“ и трябва изрично да приеме — документът НЕ се променя от това извикване. Максимум едно предложение на ход. Не подавай id-та, версии или стар текст: сървърът ги взема от документа.",
+        parameters: {
+          type: "object",
+          properties: {
+            target: {
+              type: "string",
+              enum: [
+                "title",
+                "intro",
+                "closing",
+                "text",
+                "section_heading",
+                "section_body",
+                "clause_title",
+                "clause_body",
+              ],
+              description: "Кой съществуващ елемент да се промени.",
+            },
+            index: {
+              type: "number",
+              minimum: 0,
+              maximum: 199,
+              description: "Номер (от 0) на секцията/клаузата — задължителен за section_* и clause_*.",
+            },
+            replacement: {
+              type: "string",
+              description: "Пълният нов текст на елемента (до 8000 знака).",
+            },
+            reason: {
+              type: "string",
+              description: "Кратко защо (1 изречение, до 300 знака).",
+            },
+          },
+          required: ["target", "replacement"],
+        },
+      },
+    },
+  },
 };
 
-
+/** Инструментът за редакция се добавя САМО когато контекстът го позволява. */
+export const SAVED_DOCUMENT_EDIT_TOOL = "propose_saved_document_edit";
 
 export const ANON_TOOL_NAMES: string[] = ["search_templates", "navigate", "open_template"];
-export const FULL_TOOL_NAMES: string[] = Object.keys(ASSISTANT_TOOLS);
+export const FULL_TOOL_NAMES: string[] = Object.keys(ASSISTANT_TOOLS)
+  .filter((n) => n !== SAVED_DOCUMENT_EDIT_TOOL);
+
 
 export function toolSchemasFor(names: string[]) {
   return names.map((n) => ASSISTANT_TOOLS[n].schema);
