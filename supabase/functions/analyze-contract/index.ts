@@ -476,106 +476,45 @@ ${payloadText}
     // works against the original source text).
     if (Object.keys(redaction.mapping).length > 0) {
       const unmap = redaction.mapping;
-      if (typeof parsed.summary === "string") parsed.summary = unredact(parsed.summary, unmap);
-      if (typeof parsed.contract_type === "string") parsed.contract_type = unredact(parsed.contract_type, unmap);
-      if (Array.isArray(parsed.issues)) {
-        parsed.issues = parsed.issues.map((it: Record<string, unknown>) => ({
-          ...it,
-          title: typeof it.title === "string" ? unredact(it.title, unmap) : it.title,
-          clause: typeof it.clause === "string" ? unredact(it.clause, unmap) : it.clause,
-          explanation: typeof it.explanation === "string" ? unredact(it.explanation, unmap) : it.explanation,
-          suggestion: typeof it.suggestion === "string" ? unredact(it.suggestion, unmap) : it.suggestion,
-        }));
+      const un = (v: unknown) => (typeof v === "string" ? unredact(v, unmap) : v);
+      if (typeof parsed?.summary === "string") parsed.summary = unredact(parsed.summary, unmap);
+      if (typeof parsed?.contract_type === "string") parsed.contract_type = unredact(parsed.contract_type, unmap);
+      // Пазим се ПРЕДИ четене на полета: null / число / масив не се докосва и не
+      // хвърля — схемната валидация по-долу ще го отчете като невалиден елемент.
+      const isObj = (v: unknown): v is Record<string, unknown> =>
+        !!v && typeof v === "object" && !Array.isArray(v);
+      if (Array.isArray(parsed?.issues)) {
+        parsed.issues = parsed.issues.map((it: unknown) =>
+          isObj(it)
+            ? { ...it, title: un(it.title), clause: un(it.clause), explanation: un(it.explanation), suggestion: un(it.suggestion) }
+            : it
+        );
       }
-      if (Array.isArray(parsed.missing_clauses)) {
-        parsed.missing_clauses = parsed.missing_clauses.map((m: Record<string, unknown>) => ({
-          ...m,
-          name: typeof m.name === "string" ? unredact(m.name, unmap) : m.name,
-          why: typeof m.why === "string" ? unredact(m.why, unmap) : m.why,
-        }));
+      if (Array.isArray(parsed?.missing_clauses)) {
+        parsed.missing_clauses = parsed.missing_clauses.map((m: unknown) =>
+          isObj(m) ? { ...m, name: un(m.name), why: un(m.why) } : m
+        );
       }
     }
-
-    const issuesIsArray = Array.isArray(parsed?.issues);
-    const missingIsArray = Array.isArray(parsed?.missing_clauses);
-    const rootShapeValid = !!parsed && typeof parsed === "object" &&
-      issuesIsArray && missingIsArray && typeof parsed.summary === "string";
-    const rawIssues = issuesIsArray ? parsed.issues : [];
-    const rawMissing = missingIsArray ? parsed.missing_clauses : [];
 
     // === Доказателствена проверка (Q2a) ===
-    // Проверяваме срещу ТОЧНО текста, който е бил изпратен на модела (`truncated`),
-    // а не срещу непратения остатък от дълъг документ.
-    const normalizedSentText = normalizeEvidenceText(truncated);
-    const normalizedSource = normalizeForMatch(text);
+    // Обосноваваме САМО срещу оригиналния текст, изпратен на модела — без
+    // служебния маркер за съкращаване, който не е част от документа.
     const wasTruncated = compacted.length > MAX_CHARS;
+    const evidenceSource = wasTruncated ? compacted.slice(0, MAX_CHARS) : compacted;
 
-    const verifiedIssues: unknown[] = [];
-    let malformedIssues = 0;
-    let quoteRejected = 0;
-    for (const iss of rawIssues) {
-      if (!iss || typeof iss !== "object" || Array.isArray(iss)) {
-        malformedIssues++;
-        console.warn("Отхвърлена находка: невалидна структура");
-        continue;
-      }
-      const verdict = verifyQuoteAgainstSource((iss as Record<string, unknown>).clause, normalizedSentText);
-      if (verdict.verified) {
-        verifiedIssues.push(iss);
-      } else {
-        quoteRejected++;
-        // Само код за причина — без заглавия и без цитати в лога.
-        console.warn("Отхвърлена находка без текстово покритие:", verdict.reason);
-      }
-    }
-
-    const verifiedMissing: unknown[] = [];
-    let filteredMissingCount = 0;
-    for (const m of rawMissing) {
-      if (isClauseActuallyMissing(String((m as Record<string, unknown>)?.name ?? ""), normalizedSource)) {
-        verifiedMissing.push(m);
-      } else {
-        filteredMissingCount++;
-        console.warn("Отхвърлена липсваща клауза: намерен синоним в текста");
-      }
-    }
-
-    // Оценката НЕ се повишава заради отпаднали находки — липсата на доказателство
-    // не е доказателство за безопасност. Запазват се само таваните по тежест.
-    const scoreValid = isValidModelScore(parsed.score);
-    let score = scoreValid ? Number(parsed.score) : NEUTRAL_STORED_SCORE;
-
-    // Post-validation cap: if there are verified high/medium severity issues,
-    // a high score is incoherent (and a classic prompt-injection symptom).
-    const highCount = verifiedIssues.filter((i: any) => i?.severity === "high").length;
-    const medCount  = verifiedIssues.filter((i: any) => i?.severity === "medium").length;
-    // Softened caps: only severe high-severity issues drag the score down hard.
-    if (highCount >= 3) score = Math.min(score, 3);
-    else if (highCount === 2) score = Math.min(score, 5);
-    else if (highCount === 1) score = Math.min(score, 6);
-    else if (medCount >= 4) score = Math.min(score, 6);
-    else if (medCount >= 2) score = Math.min(score, 7);
-
-    const verification = buildAnalysisVerification({
-      rootShapeValid,
-      issuesIsArray,
-      missingIsArray,
-      issuesRaw: rawIssues.length,
-      issuesKept: verifiedIssues.length,
-      malformedIssues,
-      quoteRejected,
-      missingRaw: rawMissing.length,
-      missingKept: verifiedMissing.length,
-      missingRejected: filteredMissingCount,
+    const pipeline = runAnalysisEvidencePipeline({
+      parsed,
+      sentText: evidenceSource,
+      normalizedSource: normalizeForMatch(text),
       inputTruncated: wasTruncated,
-      scoreValid,
-      sourceTextHash: normalizedHash,
+      isClauseActuallyMissing,
     });
-
-    const baseSummary = typeof parsed.summary === "string" ? parsed.summary : "";
-    const summary = verification.status === "incomplete"
-      ? `${baseSummary.slice(0, 3700)}\n\n(Бележка: проверката на този анализ не е пълна — част от данните не бяха потвърдени срещу текста на договора. Резултатът не е оценка за безопасност.)`
-      : baseSummary.slice(0, 4000);
+    const verification = pipeline.verification;
+    // Само кодове в лога — без заглавия, цитати и идентификатори.
+    if (verification.status === "incomplete") {
+      console.warn("Непълна доказателствена проверка:", verification.reason_codes.join(","));
+    }
 
     const { data: inserted, error: insErr } = await admin
       .from("risk_analyses")
@@ -583,11 +522,11 @@ ${payloadText}
         uploaded_contract_id: contract.id,
         user_id: userId,
         model,
-        score,
-        contract_type: String(parsed.contract_type ?? "").slice(0, 200),
-        summary,
-        issues: verifiedIssues,
-        missing_clauses: verifiedMissing,
+        score: pipeline.score,
+        contract_type: pipeline.contractType,
+        summary: pipeline.summary,
+        issues: pipeline.issues,
+        missing_clauses: pipeline.missingClauses,
         text_hash: normalizedHash,
         verification,
       })
