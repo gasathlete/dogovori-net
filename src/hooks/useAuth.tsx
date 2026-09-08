@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { clearAllDraftStorage, readPointer } from "@/lib/activationDraft";
+import { clearAssistantDocumentContext } from "@/lib/assistantDocumentContext";
 import { isAuthLandingPath, resolvePostAuthRedirect } from "@/lib/postAuthRedirect";
 import { sanitizeReturnPath } from "@/lib/safeRoute";
 import type { Session, User } from "@supabase/supabase-js";
@@ -24,6 +25,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   /** Пренасочването след вход се обработва точно веднъж на зареждане. */
   const redirectHandledRef = useRef(false);
+  /** Последният видян потребител — само в паметта, за изчистване при смяна. */
+  const lastUserIdRef = useRef<string | null>(null);
+
+  /**
+   * Изборът на документ за DogovaryAI е строго за текущата сесия: при изход или
+   * смяна на акаунт (включително повторен вход в СЪЩИЯ акаунт) той се изчиства
+   * безусловно, за да не може заглавие или ID от предишната сесия да се появи.
+   */
+  const syncAssistantContextOwner = (nextUserId: string | null) => {
+    const prev = lastUserIdRef.current;
+    if (prev !== nextUserId) {
+      if (prev !== null) clearAssistantDocumentContext();
+      lastUserIdRef.current = nextUserId;
+    }
+  };
 
   useEffect(() => {
     /**
@@ -63,12 +79,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // следващия потребител на същото устройство.
       if (event === "SIGNED_OUT") {
         redirectHandledRef.current = false;
+        lastUserIdRef.current = null;
+        try { clearAssistantDocumentContext(); } catch { /* ignore */ }
         try { clearAllDraftStorage(); } catch { /* ignore */ }
+        return;
       }
+      // Обновяване на токена за същия акаунт НЕ изчиства избрания документ.
+      syncAssistantContextOwner(s?.user?.id ?? null);
     });
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
+      syncAssistantContextOwner(data.session?.user?.id ?? null);
       // Същото правило и когато сесията вече е налична при зареждане —
       // потребителят не бива да остава на празен екран с „залепнала" цел.
       if (data.session) applyPostAuthRedirect();

@@ -66,10 +66,20 @@ type ThreadRow = {
   context_title: string | null;
 };
 
-const db: { threads: ThreadRow[]; messages: Record<string, Array<{ id: string; role: string; content: string }>> } = {
-  threads: [],
-  messages: {},
-};
+const db: {
+  threads: ThreadRow[];
+  messages: Record<string, Array<{ id: string; role: string; content: string }>>;
+  /** Задържа зареждането на съобщенията, докато тестът не го освободи. */
+  messageGate: Promise<void> | null;
+  releaseMessages: (() => void) | null;
+  threadError: boolean;
+} = { threads: [], messages: {}, messageGate: null, releaseMessages: null, threadError: false };
+
+function holdMessages() {
+  let release: () => void = () => {};
+  db.messageGate = new Promise<void>((r) => { release = () => r(); });
+  db.releaseMessages = () => { release(); db.messageGate = null; };
+}
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -84,15 +94,18 @@ vi.mock("@/integrations/supabase/client", () => ({
         order: () => api,
         limit: () => api,
         delete: () => api,
-        maybeSingle: async () => ({
-          data: db.threads.find((t) => t.id === id) ?? null,
-          error: null,
-        }),
+        maybeSingle: async () => {
+          if (db.threadError) return { data: null, error: { message: "нет достъп" } };
+          return { data: db.threads.find((t) => t.id === id) ?? null, error: null };
+        },
         then: (res: any, rej: any) => {
           const data = table === "assistant_threads"
             ? db.threads
             : (id ? db.messages[id] ?? [] : []);
-          return Promise.resolve({ data, error: null }).then(res, rej);
+          const gate = table === "assistant_messages" && db.messageGate
+            ? db.messageGate
+            : Promise.resolve();
+          return gate.then(() => ({ data, error: null })).then(res, rej);
         },
       };
       return api;
@@ -154,6 +167,9 @@ beforeEach(() => {
   localStorage.clear();
   db.threads = [];
   db.messages = {};
+  db.messageGate = null;
+  db.releaseMessages = null;
+  db.threadError = false;
   fetchImpl = async () => {
     const { response, ctl } = sseResponse();
     ctl.push(evt("meta", { threadId: "t-new" }));
@@ -417,5 +433,71 @@ describe("заявката и хранилището не носят съдър�
     const storage = JSON.stringify(localStorage);
     expect(storage).not.toContain("Иван Петров");
     expect(storage).not.toContain(DOC_A);
+  });
+});
+
+describe("готовност на разговора преди изпращане", () => {
+  it("не изпраща стара история, преди съобщенията на новия разговор да са заредени", async () => {
+    db.threads = [thread({ id: "t-1", title: "Първи" })];
+    db.messages["t-1"] = [{ id: "m1", role: "user", content: "стар въпрос" }];
+    holdMessages();
+    render(<AssistantChat threadId="t-1" />);
+
+    const send = await screen.findByTestId("assistant-send");
+    const input = screen.getByPlaceholderText("Задайте правен въпрос");
+    await userEvent.type(input, "нов въпрос");
+    await userEvent.keyboard("{Enter}");
+    expect(fetch).not.toHaveBeenCalled();
+    expect(send).toBeDisabled();
+
+    await act(async () => { db.releaseMessages?.(); await Promise.resolve(); });
+    await waitFor(() => expect(send).not.toBeDisabled());
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    expect(bodies[0].threadId).toBe("t-1");
+  });
+
+  it("липсващ разговор от маршрута не може да изпраща и предлага изход", async () => {
+    db.threads = [];
+    render(<AssistantChat threadId="t-missing" />);
+    await screen.findByTestId("assistant-thread-unavailable");
+    const input = screen.getByPlaceholderText("Задайте правен въпрос");
+    await userEvent.type(input, "въпрос");
+    await userEvent.keyboard("{Enter}");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("недостъпен ред на разговора също остава без изпращане", async () => {
+    db.threads = [thread({ id: "t-1" })];
+    db.threadError = true;
+    render(<AssistantChat threadId="t-1" />);
+    await screen.findByTestId("assistant-thread-unavailable");
+    const input = screen.getByPlaceholderText("Задайте правен въпрос");
+    await userEvent.type(input, "въпрос");
+    await userEvent.keyboard("{Enter}");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("закъснели клиентски tool-ове", () => {
+  it("смяна на обхвата преди таймера отменя навигацията", async () => {
+    fetchImpl = async () => {
+      const { response, ctl } = sseResponse();
+      ctl.push(evt("meta", { threadId: "t-new" }));
+      ctl.push(evt("tool_call", { name: "navigate", args: { path: "/catalog" } }));
+      ctl.close();
+      return response;
+    };
+    render(<AssistantChat />);
+    await typeAndSend("въпрос");
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    act(() => {
+      setAssistantDocumentContext(
+        { kind: "saved_document", entityId: DOC_B, displayTitle: "Друг" },
+        "owner-a",
+      );
+    });
+    await new Promise((r) => setTimeout(r, 700));
+    expect(navigate).not.toHaveBeenCalledWith("/catalog");
   });
 });

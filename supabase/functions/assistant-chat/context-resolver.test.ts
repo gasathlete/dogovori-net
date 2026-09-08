@@ -192,3 +192,59 @@ Deno.test("запазен документ: допълнителните пол�
   assert(r.value.body.includes("1200"));
   assert(r.value.body.includes("EUR"));
 });
+
+Deno.test("качен документ: смяна САМО на името сменя версията", async () => {
+  const one = await resolveDocumentContext(
+    client({ uploaded_contracts: { id: UUID, title: null, original_filename: "a.pdf", extracted_text: "А" } }),
+    { kind: "uploaded_contract", entityId: UUID },
+  );
+  const two = await resolveDocumentContext(
+    client({ uploaded_contracts: { id: UUID, title: null, original_filename: "b.pdf", extracted_text: "А" } }),
+    { kind: "uploaded_contract", entityId: UUID },
+  );
+  assert(one.ok && two.ok);
+  assertEquals(one.value.title, "a.pdf");
+  assertEquals(two.value.title, "b.pdf");
+  assertNotEquals(one.value.version, two.value.version);
+});
+
+Deno.test("нестандартни форми на познати ключове не изчезват и не се дублират", async () => {
+  const r = await resolveDocumentContext(
+    client({
+      saved_documents: {
+        id: UUID, title: "Наем",
+        payload: {
+          intro: { header: "УВОД-ОБЕКТ" },
+          sections: { first: { heading: "ХХ", body: "ТЯЛО-ОБЕКТ" } },
+          clauses: "КЛАУЗА-СКАЛАР",
+          text: { inner: "ВЛОЖЕН-ТЕКСТ" },
+          closing: 42,
+        },
+      },
+    }),
+    { kind: "saved_document", entityId: UUID },
+  );
+  assert(r.ok);
+  const b = r.value.body;
+  for (const needle of ["УВОД-ОБЕКТ", "ХХ", "ТЯЛО-ОБЕКТ", "КЛАУЗА-СКАЛАР", "ВЛОЖЕН-ТЕКСТ", "42"]) {
+    assert(b.includes(needle), `липсва: ${needle}`);
+  }
+});
+
+Deno.test("стандартните полета се извеждат точно веднъж", async () => {
+  const r = await resolveDocumentContext(
+    client({
+      saved_documents: {
+        id: UUID, title: "Наем",
+        payload: { intro: "УВОД", sections: [{ heading: "ЗАГЛ", body: "ТЯЛО" }], closing: "КРАЙ" },
+      },
+    }),
+    { kind: "saved_document", entityId: UUID },
+  );
+  assert(r.ok);
+  const count = (s: string) => r.value.body.split(s).length - 1;
+  assertEquals(count("УВОД"), 1);
+  assertEquals(count("ЗАГЛ"), 1);
+  assertEquals(count("ТЯЛО"), 1);
+  assertEquals(count("КРАЙ"), 1);
+});
