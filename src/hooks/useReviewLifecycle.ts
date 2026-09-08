@@ -90,8 +90,11 @@ export function useReviewLifecycle(options: {
     };
   }, []);
 
+  const seqRef = useRef(0);
   const run = useCallback((userConfirmed = false) => {
     const forKey = keyRef.current;
+    // Пореден номер на заявката: по-стар отговор за СЪЩАТА снимка не заменя по-нов.
+    const seq = ++seqRef.current;
     const snapshot = inputRef.current;
     setState({ ...IDLE(forKey), phase: "loading" });
     void (async () => {
@@ -105,7 +108,7 @@ export function useReviewLifecycle(options: {
           ignorePersonalData: snapshot.ignorePersonalData,
           userConfirmed,
         });
-        if (!aliveRef.current || keyRef.current !== forKey) return;
+        if (!aliveRef.current || keyRef.current !== forKey || seq !== seqRef.current) return;
         if (out.review) {
           setLastReview(out.review);
           setState({
@@ -128,7 +131,7 @@ export function useReviewLifecycle(options: {
         }
       } catch {
         // Провал при отпечатък или при повикването — състоянието се урежда.
-        if (!aliveRef.current || keyRef.current !== forKey) return;
+        if (!aliveRef.current || keyRef.current !== forKey || seq !== seqRef.current) return;
         setState({ ...IDLE(forKey), phase: "error", error: GENERIC_ERROR });
       }
     })();

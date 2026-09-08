@@ -467,6 +467,22 @@ export default function WizardPage() {
     }, 5000);
     try {
 
+      // Приетият контекст се СНИМА в началото на заявката (преди първото
+      // изчакване) — по-късни редакции не могат да го подменят.
+      const requestedReviewContext: { key: string; context: ReviewContextInput | null } = {
+        key: reviewContextRef.current.key,
+        context: reviewContextRef.current.context
+          ? {
+              ...(reviewContextRef.current.context.role
+                ? { role: reviewContextRef.current.context.role }
+                : {}),
+              decisions: reviewContextRef.current.context.decisions.map((d) => ({
+                label: d.label,
+                value: d.value,
+              })),
+            }
+          : null,
+      };
       const flatQs = flattenQuestions(visibleQuestions);
       const arbitrationCourt = arbitration.enabled ? getCourtById(arbitration.courtId) : undefined;
       const job = await generateContractJob<AIResult & { error?: string; code?: string; requires_login?: boolean; classification?: ClassificationSummary }>(
@@ -565,8 +581,8 @@ export default function WizardPage() {
       const payload = data as AIResult;
       if (bilingualMode && payload.contract) payload.contract.bilingual = true;
       setResult(payload);
-      // Приетият контекст се фиксира ЗАЕДНО с успешния резултат.
-      setAcceptedReviewContext({ ...reviewContextRef.current });
+      // Приетият контекст е този, с който заявката е ИЗПРАТЕНА.
+      setAcceptedReviewContext(requestedReviewContext);
       setConsentRequired(false);
       trackGenerate("success", { doc_key: docKey, source: "wizard", ...genMeta });
       trackResultViewed({ doc_key: docKey, source: "wizard" });
