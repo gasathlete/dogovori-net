@@ -133,6 +133,9 @@ const bodies: Array<Record<string, any>> = [];
 let fetchImpl: (url: string, init: RequestInit) => Promise<Response>;
 
 beforeEach(() => {
+  // jsdom не реализира scrollTo/scrollIntoView.
+  Element.prototype.scrollTo = Element.prototype.scrollTo ?? (() => {});
+  Element.prototype.scrollIntoView = Element.prototype.scrollIntoView ?? (() => {});
   vi.stubGlobal("fetch", vi.fn(async (url: string, init: RequestInit) => {
     bodies.push(JSON.parse(String(init.body)));
     return fetchImpl(url, init);
