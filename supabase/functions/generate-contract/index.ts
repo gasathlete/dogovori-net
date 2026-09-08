@@ -2,7 +2,7 @@
 // Uses Lovable AI Gateway (Gemini) — no API key needed by user.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, hashIp, clientIp } from "../_shared/cors.ts";
-import { sha256Hex, stableStringify } from "../_shared/normalize.ts";
+import { sha256Hex } from "../_shared/normalize.ts";
 import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
