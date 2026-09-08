@@ -190,7 +190,8 @@ describe("свежест на данните", () => {
     });
     renderPage();
     await waitFor(() => expect(ownerCalls().length).toBeGreaterThan(0));
-    (await screen.findByRole("button", { name: /Обнови/ })).click();
+    // Смяната на периода стартира нова заявка, докато първата още виси.
+    (await screen.findByRole("button", { name: "30 дни" })).click();
     await screen.findByText("7");
     resolveFirst?.({
       data: scorecardPayload({
