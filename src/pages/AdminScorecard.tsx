@@ -8,7 +8,7 @@
  * Достъп: изричен `has_role(user.id, 'admin')` (модератори са отказани),
  * fail-closed при грешка, и данните се зареждат само вътре в `AdminMFAGuard`.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
@@ -382,7 +382,7 @@ function ScorecardContent({ userId }: { userId: string }) {
 
           <Card title="Историческа основа">
             <Metric
-              label="Стари абонаменти в Stripe (непотвърдено плащане)"
+              label="Клиенти със стар абонамент (плащането не е потвърдено)"
               value={num(card.paymentTruth.legacySubscriptionUsersUnverified)}
             />
             {!card.paymentTruth.historicalPaymentBaselineVerified ? (
@@ -413,12 +413,18 @@ export default function AdminScorecard() {
     let cancelled = false;
     // Ролята е обвързана с текущия потребител: смяна на профил не показва кеш.
     setRole(null);
-    supabase
-      .rpc("has_role", { _user_id: uid, _role: "admin" })
+    // Promise.resolve().then(...) улавя и синхронни изключения от клиента.
+    Promise.resolve()
+      .then(() => supabase.rpc("has_role", { _user_id: uid, _role: "admin" }))
       .then(({ data, error }) => {
         if (cancelled) return;
         // Fail-closed: всяка грешка означава отказ.
         setRole({ uid, allowed: !error && data === true });
+      })
+      .catch(() => {
+        // Отхвърлено обещание също е отказ, без безкрайно зареждане.
+        if (cancelled) return;
+        setRole({ uid, allowed: false });
       });
     return () => {
       cancelled = true;
@@ -457,7 +463,8 @@ export default function AdminScorecard() {
     <div className="min-h-dvh bg-background">
       <Seo title="Табло за растеж" description="Административно табло за растеж." noindex />
       <Header />
-      <AdminMFAGuard>
+      {/* Ключът по потребител прави пресъздаването при смяна на профил изрично. */}
+      <AdminMFAGuard key={user.id}>
         <ScorecardContent userId={user.id} />
       </AdminMFAGuard>
     </div>
