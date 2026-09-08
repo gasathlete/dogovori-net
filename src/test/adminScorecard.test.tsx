@@ -3,7 +3,7 @@
  * състояния при липсваща/повредена справка.
  */
 import * as React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -261,7 +261,7 @@ describe("честно съдържание", () => {
   it("показва историческата основа само с етикет за непотвърденост", async () => {
     setupRpc({ role: { data: true } });
     renderPage();
-    await screen.findByText(/непотвърдено плащане/);
+    await screen.findByText(/плащането не е потвърдено/);
     expect(screen.getByText(/НЕ е включена в общия брой/)).toBeTruthy();
   });
 });
@@ -425,7 +425,11 @@ describe("изостанали заявки за период", () => {
     });
     renderPage();
     await screen.findByText("33");
-    (await screen.findByRole("button", { name: "7 дни" })).click();
+    const button = await screen.findByRole("button", { name: "7 дни" });
+    act(() => {
+      button.click();
+    });
+    // Още преди новия отговор числата от предишния период не се показват.
     expect(screen.queryByText("33")).toBeNull();
     expect(screen.getByRole("button", { name: "7 дни" })).toHaveAttribute("aria-pressed", "true");
   });
