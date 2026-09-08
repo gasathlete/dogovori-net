@@ -5,6 +5,7 @@ import {
   decideEditTransition,
   parseTargetPath,
   proposeSavedDocumentEdit,
+  proveTransitionResult,
   readLeafByPath,
   REPLACEMENT_MAX,
   resolveTargetLeaf,
@@ -577,5 +578,137 @@ Deno.test("идемпотентност след загубен отговор �
       currentTargetValue: null,
     }),
     { ok: true, effect: "none", idempotent: true },
+  );
+});
+
+/* ----------------- доказване на резултата за пре-обвързване -------------- */
+
+const PROOF_BASE = {
+  status: "accepted",
+  appliedUpdatedAt: APPLIED_UPDATED,
+  revertedUpdatedAt: null as string | null,
+  documentUpdatedAt: APPLIED_UPDATED,
+  currentTargetValue: "Ново тяло" as string | null,
+  beforeText: "Тяло на секция",
+  afterText: "Ново тяло",
+};
+
+Deno.test("proveTransitionResult: първо приемане/връщане е доказано", () => {
+  assertEquals(
+    proveTransitionResult({
+      ...PROOF_BASE,
+      action: "accept",
+      changed: true,
+      idempotent: false,
+    }),
+    true,
+  );
+  assertEquals(
+    proveTransitionResult({
+      ...PROOF_BASE,
+      action: "undo",
+      changed: true,
+      idempotent: false,
+      status: "reverted",
+      currentTargetValue: "Тяло на секция",
+    }),
+    true,
+  );
+});
+
+Deno.test("proveTransitionResult: точен повтор след загубен отговор", () => {
+  assertEquals(
+    proveTransitionResult({
+      ...PROOF_BASE,
+      action: "accept",
+      changed: false,
+      idempotent: true,
+    }),
+    true,
+  );
+  assertEquals(
+    proveTransitionResult({
+      ...PROOF_BASE,
+      action: "undo",
+      changed: false,
+      idempotent: true,
+      status: "reverted",
+      appliedUpdatedAt: APPLIED_UPDATED,
+      revertedUpdatedAt: "2026-02-01T12:00:00.000Z",
+      documentUpdatedAt: "2026-02-01T12:00:00.000Z",
+      currentTargetValue: "Тяло на секция",
+    }),
+    true,
+  );
+});
+
+Deno.test("proveTransitionResult: чужда по-късна промяна не се обвързва", () => {
+  // Различен updated_at (документът е пипан след прилагането).
+  assertEquals(
+    proveTransitionResult({
+      ...PROOF_BASE,
+      action: "accept",
+      changed: false,
+      idempotent: true,
+      documentUpdatedAt: "2026-03-01T00:00:00.000Z",
+    }),
+    false,
+  );
+  // Целта е променена ръчно или премахната.
+  assertEquals(
+    proveTransitionResult({
+      ...PROOF_BASE,
+      action: "accept",
+      changed: false,
+      idempotent: true,
+      currentTargetValue: "нещо друго",
+    }),
+    false,
+  );
+  assertEquals(
+    proveTransitionResult({
+      ...PROOF_BASE,
+      action: "accept",
+      changed: false,
+      idempotent: true,
+      currentTargetValue: null,
+    }),
+    false,
+  );
+  // undo без сървърен reverted_updated_at не може да бъде доказан.
+  assertEquals(
+    proveTransitionResult({
+      ...PROOF_BASE,
+      action: "undo",
+      changed: false,
+      idempotent: true,
+      status: "reverted",
+      revertedUpdatedAt: null,
+      currentTargetValue: "Тяло на секция",
+    }),
+    false,
+  );
+});
+
+Deno.test("proveTransitionResult: отказът никога не освежава разговор", () => {
+  assertEquals(
+    proveTransitionResult({
+      ...PROOF_BASE,
+      action: "reject",
+      changed: false,
+      idempotent: false,
+      status: "rejected",
+    }),
+    false,
+  );
+  assertEquals(
+    proveTransitionResult({
+      ...PROOF_BASE,
+      action: "reject",
+      changed: false,
+      idempotent: true,
+      status: "rejected",
+    }),
+    false,
   );
 });
