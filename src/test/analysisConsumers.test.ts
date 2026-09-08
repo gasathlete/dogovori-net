@@ -50,8 +50,21 @@ describe("потребители на оценката от риск-анали�
   it("сигналът за актуалност е неутрален, а не категорично твърдение", () => {
     const src = read("src/pages/UploadedContract.tsx");
     expect(src).not.toMatch(/Договорът е променен след последния анализ/);
-    expect(src).toMatch(/Актуалността на този анализ не е потвърдена/);
+    // Текстът идва от общия помощник, който страницата ползва.
+    expect(src).toMatch(/historicalFindingsNotice/);
+    expect(read("src/lib/analysisSourceBinding.ts")).toMatch(/не описват задължително текущия текст/);
   });
+
+  it("текстът при нула находки знае за актуалността на снимката", () => {
+    for (const f of ["src/pages/UploadedContract.tsx", "src/components/console/panes/AnalysisPane.tsx"]) {
+      expect(read(f), f).toMatch(/emptyIssuesMessage\([^)]*,\s*freshness\)/);
+    }
+    const helper = read("src/lib/analysisVerification.ts");
+    expect(helper).toMatch(/emptyIssuesMessage\(\s*verification: unknown,\s*freshness: SnapshotFreshness/);
+    // Изостанала снимка не твърди, че договорът е без находки.
+    expect(helper).toMatch(/Това не описва задължително текущия текст/);
+  });
+
 
   it("публичната страница /analyze не обещава липса на халюцинации или време под минута", () => {
     const src = read("src/pages/Analyze.tsx");
@@ -85,6 +98,6 @@ describe("edge конвейер", () => {
   it("метаданните не носят хеш на източника в обхвата на Q2a", () => {
     expect(src).not.toMatch(/sourceTextHash/);
     expect(read("supabase/functions/_shared/analysis-evidence.ts")).not.toMatch(/source_text_hash/);
-    expect(read("docs/migrations/PENDING_Q2_ANALYSIS_VERIFICATION.sql")).not.toMatch(/"source_text_hash"/);
+    expect(read("drizzle/migrations/0014_analysis_verification.sql")).not.toMatch(/"source_text_hash"/);
   });
 });

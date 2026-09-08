@@ -81,9 +81,13 @@ Deno.test("userConfirmed по подразбиране е false", () => {
   assertEquals(r.value.userConfirmed, false);
 });
 
+const CLAUSE_A = "Неустойката е в размер на 50% от стойността на договора.";
+const CLAUSE_B = "Срокът за изпълнение се определя допълнително от Възложителя.";
+const SOURCE = `ДОГОВОР\n\n1. ${CLAUSE_A}\n\n2. ${CLAUSE_B}\n`;
+
 const issues = [
-  { severity: "high", title: "Неустойка", explanation: "Прекомерна", suggestion: "Намали" },
-  { severity: "low", title: "Срок", explanation: "Неясен" },
+  { severity: "high", title: "Неустойка", clause: CLAUSE_A, explanation: "Прекомерна неустойка.", suggestion: "Намали" },
+  { severity: "low", title: "Срок", clause: CLAUSE_B, explanation: "Неясен срок за изпълнение." },
 ];
 const missing = [
   { name: "Конфиденциалност", why: "Липсва защита на данни" },
@@ -91,16 +95,17 @@ const missing = [
 ];
 
 Deno.test("избраните находки се четат от базата, точно по индекс", () => {
-  const r = selectFindings({ issues, missingClauses: missing, issueIndices: [1], missingIndices: [0] });
+  const r = selectFindings({ issues, missingClauses: missing, issueIndices: [1], missingIndices: [0], sourceText: SOURCE });
   assert(r.ok);
   assertEquals(r.issues.length, 1);
   assertEquals(r.issues[0].title, "Срок");
+  assertEquals(r.issues[0].clause, CLAUSE_B);
   assertEquals(r.missing.length, 1);
   assertEquals(r.missing[0].name, "Конфиденциалност");
 });
 
 Deno.test("празна категория дава празен списък, не всички находки", () => {
-  const r = selectFindings({ issues, missingClauses: missing, issueIndices: [], missingIndices: [1] });
+  const r = selectFindings({ issues, missingClauses: missing, issueIndices: [], missingIndices: [1], sourceText: SOURCE });
   assert(r.ok);
   assertEquals(r.issues, []);
   assertEquals(r.missing.length, 1);
@@ -117,7 +122,7 @@ Deno.test("индекс извън обхвата или повредена на
     { issues, missingClauses: [{ name: "x", why: "  " }], issueIndices: [], missingIndices: [0] },
     { issues: ["не е обект"], missingClauses: missing, issueIndices: [0], missingIndices: [] },
   ]) {
-    const r = selectFindings(input as Parameters<typeof selectFindings>[0]);
+    const r = selectFindings({ ...input, sourceText: SOURCE } as Parameters<typeof selectFindings>[0]);
     assert(!r.ok, JSON.stringify(input));
     assertEquals(r.error.code, "selection_out_of_range");
   }
@@ -128,4 +133,16 @@ Deno.test("ограничителният суфикс пази суми/вал�
   assert(/валут/i.test(CORRECTION_PRESERVATION_SUFFIX));
   assert(!/в евро \(€\)/.test(CORRECTION_PRESERVATION_SUFFIX));
   assertEquals(CORRECTION_MAX_SOURCE_CHARS, 30000);
+});
+
+Deno.test("находка, чийто цитат липсва в текущия текст, се отхвърля", () => {
+  const r = selectFindings({
+    issues: [{ severity: "high", title: "Неустойка", clause: "Неустойката НЕ се дължи.", explanation: "Не е в текста." }],
+    missingClauses: missing,
+    issueIndices: [0],
+    missingIndices: [],
+    sourceText: SOURCE,
+  });
+  assert(!r.ok);
+  assertEquals(r.error.code, "selection_quote_unverified");
 });

@@ -24,24 +24,27 @@ type AnalysisRow = {
 
 type LinkedSource = { id: string; title: string; extracted_text: string } | null;
 
+/** Анализът и свързаният източник се показват само като ЕДНА разрешена снимка. */
+type Snapshot = { identity: string; analysis: AnalysisRow | null; source: LinkedSource };
+
 export function AnalysisPane({ analysisId }: { analysisId: string }) {
   const { user } = useAuth();
-  const [a, setA] = useState<AnalysisRow | null>(null);
-  const [source, setSource] = useState<LinkedSource>(null);
+  const identity = `${user?.id ?? ""}|${analysisId}`;
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Q2b2 — закъснели заявки не могат да напълнят изгледа за друг анализ/потребител.
   const tokenRef = useRef(0);
-  const identityRef = useRef<string>("");
+  const identityRef = useRef(identity);
+  identityRef.current = identity;
 
   const load = useCallback(
     async (opts?: { silent?: boolean }) => {
-      const identity = `${user?.id ?? ""}|${analysisId}`;
-      identityRef.current = identity;
+      const scope = `${user?.id ?? ""}|${analysisId}`;
       const token = ++tokenRef.current;
+      const live = () => token === tokenRef.current && identityRef.current === scope;
       if (!user || !analysisId) {
-        setA(null);
-        setSource(null);
+        setSnapshot({ identity: scope, analysis: null, source: null });
         setLoading(false);
         return;
       }
@@ -51,9 +54,8 @@ export function AnalysisPane({ analysisId }: { analysisId: string }) {
         .select("*")
         .eq("id", analysisId)
         .maybeSingle();
-      if (token !== tokenRef.current || identityRef.current !== identity) return;
+      if (!live()) return;
       const row = (data as AnalysisRow | null) ?? null;
-      setA(row);
       let linked: LinkedSource = null;
       if (row?.uploaded_contract_id) {
         const { data: up } = await supabase
@@ -61,18 +63,25 @@ export function AnalysisPane({ analysisId }: { analysisId: string }) {
           .select("id, title, extracted_text")
           .eq("id", row.uploaded_contract_id)
           .maybeSingle();
-        if (token !== tokenRef.current || identityRef.current !== identity) return;
+        if (!live()) return;
         const u = up as { id: string; title: string | null; extracted_text: string | null } | null;
         linked = u ? { id: u.id, title: u.title ?? "", extracted_text: u.extracted_text ?? "" } : null;
       }
-      setSource(linked);
+      // Анализ и източник влизат заедно — никога нов анализ върху стар източник.
+      setSnapshot({ identity: scope, analysis: row, source: linked });
       setLoading(false);
     },
     [analysisId, user],
   );
 
   useEffect(() => {
+    // Нов обхват: старата снимка изчезва веднага.
+    setSnapshot(null);
+    setLoading(true);
     void load();
+    return () => {
+      tokenRef.current++;
+    };
   }, [load]);
 
   // Ревалидация при връщане към прозореца — документът може да е сменен другаде.
@@ -89,6 +98,10 @@ export function AnalysisPane({ analysisId }: { analysisId: string }) {
     };
   }, [load]);
 
+  const ready = snapshot?.identity === identity ? snapshot : null;
+  const a = ready?.analysis ?? null;
+  const source = ready?.source ?? null;
+
   const { freshness } = useSourceFreshness({
     userId: user?.id ?? null,
     docId: source?.id ?? null,
@@ -98,7 +111,7 @@ export function AnalysisPane({ analysisId }: { analysisId: string }) {
     hasUnsavedChanges: false,
   });
 
-  if (loading) {
+  if (loading || !ready) {
     return (
       <div className="flex h-full items-center justify-center">
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -164,7 +177,7 @@ export function AnalysisPane({ analysisId }: { analysisId: string }) {
       )}
 
       {issues.length === 0 && (
-        <p className="mt-4 text-sm text-muted-foreground">{emptyIssuesMessage(a.verification)}</p>
+        <p className="mt-4 text-sm text-muted-foreground">{emptyIssuesMessage(a.verification, freshness)}</p>
       )}
 
       {issues.length > 0 && (

@@ -145,18 +145,18 @@ describe("presentAnalysisScore", () => {
 
 describe("текстове при нула находки и в списъци", () => {
   it("непълен анализ без находки не звучи безрисково", () => {
-    expect(emptyIssuesMessage(incomplete)).toBe(
+    expect(emptyIssuesMessage(incomplete, "current")).toBe(
       "Няма потвърдени находки; част от проверката не е завършена.",
     );
     for (const v of [null, { version: 1, status: "evidence_checked" }]) {
-      const msg = emptyIssuesMessage(v);
+      const msg = emptyIssuesMessage(v, "current");
       expect(msg).toBe("Няма отбелязани находки, но този анализ не е потвърден. Прегледайте документа.");
       expect(msg).not.toMatch(/потвърдени находки/);
     }
   });
 
   it("потвърден анализ без находки пак не е правна гаранция", () => {
-    expect(emptyIssuesMessage(checked)).toContain("не е правна гаранция");
+    expect(emptyIssuesMessage(checked, "current")).toContain("не е правна гаранция");
   });
 
   it("баджът е неутрален при непотвърдени метаданни", () => {

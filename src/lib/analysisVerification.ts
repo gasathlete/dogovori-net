@@ -252,9 +252,15 @@ export function presentAnalysisScore(input: {
   };
 }
 
-/** Текст при нула находки — никога „без рискове", когато проверката не е пълна. */
-export function emptyIssuesMessage(verification: unknown): string {
+/**
+ * Текст при нула находки — никога „без рискове", когато проверката не е пълна,
+ * и никога твърдение за ТЕКУЩИЯ договор, когато снимката не е актуална.
+ */
+export function emptyIssuesMessage(verification: unknown, freshness: SnapshotFreshness): string {
   const parsed = parseAnalysisVerification(verification);
+  if (freshness !== "current") {
+    return "Предишната проверка не е отбелязала находки. Това не описва задължително текущия текст — направете нов анализ.";
+  }
   if (parsed.status === "evidence_checked") {
     return "Не са открити находки с текстово покритие в договора. Това не е правна гаранция.";
   }
@@ -263,6 +269,7 @@ export function emptyIssuesMessage(verification: unknown): string {
   }
   return "Няма отбелязани находки, но този анализ не е потвърден. Прегледайте документа.";
 }
+
 
 /**
  * Кратък бадж за списъчните изгледи. Списъците НЕ свалят текстовете на
