@@ -6,7 +6,7 @@
  * URL параметри, без analytics и без логове. Сървърът е единственият източник
  * на заглавие и версия; `displayTitle` е чисто UI етикет.
  */
-import { useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 export const ASSISTANT_CONTEXT_KINDS = [
   "saved_document",
@@ -78,31 +78,57 @@ export function contextIdentityKey(ctx: AssistantDocumentContext | null): string
 }
 
 // ---------------------------------------------------------------- store
+//
+// Обхватът е ПО АКТУАЛНИЯ ПОТРЕБИТЕЛ. След изход или смяна на профил в същото
+// SPA контекстът на предишния акаунт е недостъпен — заглавието и ID-то му не
+// могат да се появят в нито един изглед. Идентификаторът на потребителя живее
+// САМО в паметта: никога в заявка, URL, analytics или браузърно хранилище.
 
-let current: AssistantDocumentContext | null = null;
+interface OwnedContext {
+  ownerId: string;
+  ctx: AssistantDocumentContext;
+}
+
+let currentOwned: OwnedContext | null = null;
 const listeners = new Set<() => void>();
 
 function emit() {
   for (const l of Array.from(listeners)) l();
 }
 
-export function getAssistantDocumentContext(): AssistantDocumentContext | null {
-  return current;
+/** Без валиден собственик няма контекст. */
+export function getAssistantDocumentContext(
+  ownerId?: string | null,
+): AssistantDocumentContext | null {
+  if (!currentOwned) return null;
+  if (!ownerId || currentOwned.ownerId !== ownerId) return null;
+  return currentOwned.ctx;
 }
 
-export function setAssistantDocumentContext(input: unknown): AssistantDocumentContext | null {
+export function setAssistantDocumentContext(
+  input: unknown,
+  ownerId?: string | null,
+): AssistantDocumentContext | null {
+  if (!ownerId) return null;
   const next = makeAssistantDocumentContext(input);
-  if (sameContextTarget(next, current) && next?.displayTitle === current?.displayTitle) {
-    return current;
+  if (!next) {
+    clearAssistantDocumentContext(ownerId);
+    return null;
   }
-  current = next;
+  const prev = getAssistantDocumentContext(ownerId);
+  if (prev && sameContextTarget(next, prev) && next.displayTitle === prev.displayTitle) {
+    return prev;
+  }
+  currentOwned = { ownerId, ctx: next };
   emit();
-  return current;
+  return next;
 }
 
-export function clearAssistantDocumentContext(): void {
-  if (current === null) return;
-  current = null;
+/** Изчиства контекста. Без `ownerId` изчиства безусловно (изход от профил). */
+export function clearAssistantDocumentContext(ownerId?: string | null): void {
+  if (currentOwned === null) return;
+  if (ownerId && currentOwned.ownerId !== ownerId) return;
+  currentOwned = null;
   emit();
 }
 
@@ -111,10 +137,10 @@ export function subscribeAssistantDocumentContext(listener: () => void): () => v
   return () => { listeners.delete(listener); };
 }
 
-export function useAssistantDocumentContext(): AssistantDocumentContext | null {
-  return useSyncExternalStore(
-    subscribeAssistantDocumentContext,
-    getAssistantDocumentContext,
-    getAssistantDocumentContext,
-  );
+export function useAssistantDocumentContext(
+  ownerId?: string | null,
+): AssistantDocumentContext | null {
+  const owner = ownerId ?? null;
+  const read = useCallback(() => getAssistantDocumentContext(owner), [owner]);
+  return useSyncExternalStore(subscribeAssistantDocumentContext, read, read);
 }

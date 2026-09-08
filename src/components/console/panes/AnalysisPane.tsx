@@ -160,7 +160,10 @@ export function AnalysisPane({ analysisId }: { analysisId: string }) {
             kind="analysis"
             entityId={a.id}
             displayTitle={a.contract_type || "Риск анализ"}
+            disabled={!actionable}
+            disabledReason="Този анализ е направен върху друга версия на текста. Направете нов анализ на документа, за да разговаряте по него."
           />
+
         </div>
       </div>
 

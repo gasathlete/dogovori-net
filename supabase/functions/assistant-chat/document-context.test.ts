@@ -1,11 +1,14 @@
-import { assert, assertEquals, assertNotEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assert, assertEquals, assertNotEquals, assertThrows } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { redactForAI } from "../_shared/redact.ts";
 import {
   boundedContextTitle,
+  buildRedactedContextSystemBlock,
   buildUntrustedContextBlock,
   canonicalContextPayload,
   computeContextVersion,
   CONTEXT_TITLE_MAX,
   parseRequestedDocumentContext,
+  renderBoundedLeaves,
 } from "./document-context.ts";
 
 const UUID = "11111111-1111-4111-8111-111111111111";
@@ -115,4 +118,86 @@ Deno.test("прекалено дългият текст се отрязва и �
   assertEquals(truncated, true);
   assert(block.includes("СЪКРАТЕН"));
   assertEquals(block.includes("я".repeat(11)), false);
+});
+
+// --- Редактиран системен блок: ТОЧНО пътят на handler-а ---------------------
+
+Deno.test("системният блок ползва `redacted`, не несъществуващо поле", () => {
+  const raw = "Иван Петров, ivan@example.com, ЕГН 8001011234";
+  const built = buildRedactedContextSystemBlock({
+    kind: "saved_document",
+    title: "Наем",
+    body: raw,
+    redact: redactForAI,
+  });
+  assertEquals(built.message.role, "system");
+  // Никакво `undefined` в промпта.
+  assert(!built.message.content.includes("undefined"));
+  // Суровите чувствителни низове НЕ достигат модела.
+  assert(!built.message.content.includes("ivan@example.com"));
+  assert(!built.message.content.includes("8001011234"));
+  assert(!built.message.content.includes("Иван Петров"));
+  // Редактираният контекст присъства с разделителите.
+  assert(built.message.content.includes("<UNTRUSTED_DOCUMENT>"));
+  assert(built.message.content.includes("<EMAIL_1>"));
+  assert(Object.values(built.mapping).includes("ivan@example.com"));
+  assertEquals(built.truncated, false);
+});
+
+Deno.test("редакция с грешна форма се отказва шумно", () => {
+  assertThrows(() =>
+    buildRedactedContextSystemBlock({
+      kind: "analysis",
+      title: "А",
+      body: "тяло",
+      // Умишлено стара/грешна форма `{ text }`.
+      redact: (() => ({ text: "x", mapping: {} })) as unknown as typeof redactForAI,
+    })
+  );
+});
+
+Deno.test("съкращаването се вижда и в редактирания блок", () => {
+  const built = buildRedactedContextSystemBlock({
+    kind: "uploaded_contract",
+    title: "Дълъг",
+    body: "я".repeat(50),
+    maxLen: 10,
+    redact: redactForAI,
+  });
+  assertEquals(built.truncated, true);
+  assert(built.message.content.includes("СЪКРАТЕН"));
+});
+
+// --- Рекурсивно ограничено извеждане на листа --------------------------------
+
+Deno.test("всички листа влизат с път на полето, в детерминиран ред", () => {
+  const out = renderBoundedLeaves({
+    b: "второ",
+    a: { z: 1, y: true },
+    list: ["едно", { k: "две" }],
+  });
+  assertEquals(out.split("\n"), [
+    "a.y: true",
+    "a.z: 1",
+    "b: второ",
+    "list[0]: едно",
+    "list[1].k: две",
+  ]);
+  // Повторното извикване дава същия резултат.
+  assertEquals(renderBoundedLeaves({ list: ["едно", { k: "две" }], b: "второ", a: { y: true, z: 1 } }), out);
+});
+
+Deno.test("празни низове и null не се извеждат", () => {
+  assertEquals(renderBoundedLeaves({ a: "", b: null, c: undefined, d: "х" }), "d: х");
+});
+
+Deno.test("бюджетът се спазва и пропуснатите полета се обявяват", () => {
+  const out = renderBoundedLeaves({ a: "я".repeat(40), b: "я".repeat(40) }, { maxTotal: 50 });
+  assert(out.includes("ВНИМАНИЕ"));
+  assert(out.length < 200);
+});
+
+Deno.test("дълъг лист се отрязва, но полето не изчезва", () => {
+  const out = renderBoundedLeaves({ a: "я".repeat(100) }, { maxLeaf: 10 });
+  assert(out.startsWith("a: яяяяяяяяяя…"));
 });

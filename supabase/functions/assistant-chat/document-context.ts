@@ -157,3 +157,116 @@ export function buildUntrustedContextBlock(input: {
   ].filter(Boolean).join("\n");
   return { block, truncated };
 }
+
+/* ---------------------------------------------------------------------------
+ * Редактиран системен блок — ТОЧНО пътят, който ползва handler-ът.
+ *
+ * Изнесен тук, за да може да се тества без частната зависимост на
+ * entrypoint-а. Формата на `redactForAI` е `{ redacted, mapping, stats }`;
+ * всяко отклонение (напр. четене на несъществуващо `.text`) е грешка още тук,
+ * а не тихо `undefined` в промпта.
+ * ------------------------------------------------------------------------- */
+
+export interface RedactionLike {
+  redacted: string;
+  mapping: Record<string, string>;
+  stats?: Record<string, number>;
+}
+
+export type RedactFn = (input: string) => RedactionLike;
+
+export interface RedactedContextBlock {
+  /** Готовото системно съобщение за модела. */
+  message: { role: "system"; content: string };
+  /** In-memory съответствие за възстановяване на листата в изхода. */
+  mapping: Record<string, string>;
+  truncated: boolean;
+}
+
+export function buildRedactedContextSystemBlock(input: {
+  kind: AssistantContextKind;
+  title: string;
+  body: string;
+  maxLen?: number;
+  redact: RedactFn;
+}): RedactedContextBlock {
+  const built = buildUntrustedContextBlock({
+    kind: input.kind,
+    title: input.title,
+    body: input.body,
+    maxLen: input.maxLen,
+  });
+  const red = input.redact(built.block);
+  if (!red || typeof red.redacted !== "string") {
+    throw new TypeError(
+      "redact() трябва да върне { redacted, mapping } — проверете формата на redactForAI.",
+    );
+  }
+  return {
+    message: { role: "system", content: red.redacted },
+    mapping: red.mapping ?? {},
+    truncated: built.truncated,
+  };
+}
+
+/* ---------------------------------------------------------------------------
+ * Рекурсивно ограничено извеждане на листа със пътища на полетата.
+ *
+ * Пълният payload остава входът за версията (хеша); тук се строи само
+ * ОГРАНИЧЕНОТО текстово представяне за промпта. Нищо не се изпуска тихо:
+ * всички string/number/boolean листа влизат в детерминиран ред, докато има
+ * бюджет, а при изчерпан бюджет се добавя явна бележка.
+ * ------------------------------------------------------------------------- */
+
+export const CONTEXT_LEAF_MAX = 4000;
+
+export function renderBoundedLeaves(
+  value: unknown,
+  opts?: { maxTotal?: number; maxLeaf?: number },
+): string {
+  const maxTotal = opts?.maxTotal ?? CONTEXT_BODY_MAX;
+  const maxLeaf = opts?.maxLeaf ?? CONTEXT_LEAF_MAX;
+  const lines: string[] = [];
+  let used = 0;
+  let omitted = 0;
+
+  const push = (path: string, leaf: string) => {
+    const text = leaf.length > maxLeaf ? `${leaf.slice(0, maxLeaf)}…` : leaf;
+    const line = path ? `${path}: ${text}` : text;
+    if (used + line.length > maxTotal) {
+      omitted += 1;
+      return;
+    }
+    used += line.length + 1;
+    lines.push(line);
+  };
+
+  const walk = (node: unknown, path: string) => {
+    if (node === null || node === undefined) return;
+    if (typeof node === "string") {
+      if (node.trim()) push(path, node);
+      return;
+    }
+    if (typeof node === "number" || typeof node === "boolean") {
+      push(path, String(node));
+      return;
+    }
+    if (Array.isArray(node)) {
+      node.forEach((item, i) => walk(item, `${path}[${i}]`));
+      return;
+    }
+    if (typeof node === "object") {
+      for (const key of Object.keys(node as Record<string, unknown>).sort()) {
+        walk((node as Record<string, unknown>)[key], path ? `${path}.${key}` : key);
+      }
+      return;
+    }
+  };
+
+  walk(value, "");
+  if (omitted > 0) {
+    lines.push(`[ВНИМАНИЕ: ${omitted} полета не са включени поради ограничение на размера]`);
+  }
+  return lines.join("\n");
+}
+

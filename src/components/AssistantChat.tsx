@@ -127,7 +127,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   const [mobilePane, setMobilePane] = useState<"chat" | "panel">("chat");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   // Q2e: избран документен контекст (само метаданни, само в паметта).
-  const documentContext = useAssistantDocumentContext();
+  const documentContext = useAssistantDocumentContext(user?.id ?? null);
   const contextKey = contextIdentityKey(documentContext);
   const requestContext = toRequestContext(documentContext);
   const documentContextRef = useRef(documentContext);
@@ -135,7 +135,16 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   const [serverContext, setServerContext] = useState<
     { kind: string; title: string; truncated: boolean } | null
   >(null);
-  const [staleContext, setStaleContext] = useState(false);
+  const [staleContext, setStaleContext] = useState<null | "version" | "analysis">(null);
+  // Q2e/4: маршрутът (/assistant/:threadId) е АВТОРИТЕТЕН. Докато сървърният ред
+  // на този разговор не е хидратиран (включително обвързания контекст), не се
+  // допуска нито автоматичен избор по съвместимост, нито изпращане.
+  const routeThreadId = typeof threadIdProp === "string" && threadIdProp ? threadIdProp : null;
+  const [hydratedThreadId, setHydratedThreadId] = useState<string | null>(null);
+  // Контекст, ДОШЪЛ от сървърния ред на разговора: смяната му не е избор на
+  // потребителя, затова заредените съобщения на този разговор не се изтриват.
+  const hydrationScopeRef = useRef<string | null>(null);
+  const routeHydrationPending = !!routeThreadId && hydratedThreadId !== routeThreadId;
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -209,6 +218,8 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   }, [threadIdProp]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    // Явен разговор от URL адреса печели над всяка стойност в localStorage.
+    if (routeThreadId) return;
     if (!activeThreadStorageKey || typeof window === "undefined") {
       setActiveThreadId(null);
       return;
@@ -218,7 +229,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     } catch {
       setActiveThreadId(null);
     }
-  }, [activeThreadStorageKey]);
+  }, [activeThreadStorageKey, routeThreadId]);
 
   // Load threads
   const loadThreads = useCallback(async () => {
@@ -232,6 +243,10 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       .limit(20);
     const nextThreads = (data ?? []) as unknown as Thread[];
     setThreads(nextThreads);
+
+    // Маршрутният разговор е авторитетен: докато той не е хидратиран от сървъра,
+    // никакъв автоматичен избор по контекст не се извършва.
+    if (routeThreadId) return;
 
     // Само разговори със същия обхват са допустими за автоматичен избор —
     // разговор, обвързан с друг документ, никога не се преизползва наготово.
@@ -255,7 +270,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
 
     setPersistedActiveThreadId(compatible[0].id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, activeThreadId, activeThreadStorageKey, setPersistedActiveThreadId, contextKey]);
+  }, [user, activeThreadId, activeThreadStorageKey, setPersistedActiveThreadId, contextKey, routeThreadId]);
 
   useEffect(() => { loadThreads(); }, [loadThreads]);
 
@@ -270,7 +285,12 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     setStreamingTools([]);
     setStreamingProgress([]);
     setServerContext(null);
-    setStaleContext(false);
+    setStaleContext(null);
+    // Ако обхватът идва от хидратацията на самия разговор, историята му остава.
+    if (hydrationScopeRef.current === contextKey) {
+      hydrationScopeRef.current = null;
+      return;
+    }
     setMessages([]);
   }, [contextKey]);
 
@@ -303,7 +323,10 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   // Разширеният изглед (/assistant/:threadId): контекстът се взема САМО от
   // сървърния ред на разговора — не от URL параметри, localStorage или текст.
   useEffect(() => {
-    if (!activeThreadId || !user) return;
+    if (!activeThreadId || !user) {
+      setHydratedThreadId(null);
+      return;
+    }
     let cancelled = false;
     (async () => {
       const { data } = await supabase
@@ -311,17 +334,20 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
         .select("*")
         .eq("id", activeThreadId)
         .maybeSingle();
-      if (cancelled || !data) return;
-      const row = data as unknown as Thread;
-      if (row.context_kind && row.context_entity_id) {
+      if (cancelled) return;
+      const row = (data ?? null) as unknown as Thread | null;
+      if (row && row.context_kind && row.context_entity_id) {
+        hydrationScopeRef.current = `${row.context_kind}:${String(row.context_entity_id).toLowerCase()}`;
         setAssistantDocumentContext({
           kind: row.context_kind,
           entityId: row.context_entity_id,
           displayTitle: row.context_title ?? "",
-        });
+        }, user.id);
       } else if (documentContextRef.current) {
-        clearAssistantDocumentContext();
+        hydrationScopeRef.current = "general";
+        clearAssistantDocumentContext(user.id);
       }
+      setHydratedThreadId(activeThreadId);
     })();
     return () => { cancelled = true; };
   }, [activeThreadId, user]);
@@ -393,6 +419,9 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || streaming) return;
+    // Не изпращаме, преди обвързаният контекст на маршрутния разговор да е
+    // прочетен от сървъра — иначе бихме пратили чужд или празен обхват.
+    if (routeHydrationPending) return;
     if (!requireAuth({ action: "Изпрати съобщение до DogovaryAI" })) return;
     if (!session?.access_token) return;
 
@@ -410,7 +439,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     setStreamingText("");
     setStreamingTools([]);
     setStreamingProgress([]);
-    setStaleContext(false);
+    setStaleContext(null);
 
     // Идентичност на тази заявка: обхват + номер. Всичко по-старо се игнорира.
     const seq = ++requestSeqRef.current;
@@ -449,10 +478,17 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
         if (!isCurrent()) return;
         const code = String((err as { code?: unknown })?.code ?? "");
         if (code === "document_context_stale") {
-          setStaleContext(true);
+          setStaleContext("version");
           toast.error("Документът е променен след започването на този разговор.");
         } else if (code === "document_context_mismatch") {
           toast.error("Този разговор е обвързан с друг документ. Започнете нов разговор.");
+        } else if (code === "analysis_context_stale") {
+          setStaleContext("analysis");
+          toast.error("Анализът е върху друга версия на документа.", {
+            description: "Направете нов анализ, за да разговаряте по него.",
+          });
+        } else if (code === "thread_unavailable" || code === "message_persist_failed") {
+          toast.error((err as { error?: string }).error || "Услугата е временно недостъпна.");
         } else if (code === "document_not_found") {
           toast.error("Документът не е намерен или нямате достъп до него.");
         } else {
@@ -1135,11 +1171,12 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                   (виждам само част от текста)
                 </span>
               )}
-              {staleContext && (
+              {staleContext === "version" && (
                 <button
                   type="button"
+                  data-testid="assistant-context-new-thread"
                   onClick={() => {
-                    setStaleContext(false);
+                    setStaleContext(null);
                     handleNewThread();
                   }}
                   className="rounded-md border border-gold/50 px-2 py-0.5 font-semibold text-gold hover:bg-gold/10"
@@ -1147,10 +1184,25 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                   Нов разговор с текущата версия
                 </button>
               )}
+              {/* Остарял анализ: нов разговор не помага — трябва нов анализ. */}
+              {staleContext === "analysis" && (
+                <button
+                  type="button"
+                  data-testid="assistant-context-reanalyze"
+                  onClick={() => {
+                    setStaleContext(null);
+                    clearAssistantDocumentContext(user?.id ?? null);
+                    navigate("/analyze");
+                  }}
+                  className="rounded-md border border-gold/50 px-2 py-0.5 font-semibold text-gold hover:bg-gold/10"
+                >
+                  Направи нов анализ
+                </button>
+              )}
               <button
                 type="button"
                 aria-label="Премахни избрания документ"
-                onClick={() => clearAssistantDocumentContext()}
+                onClick={() => clearAssistantDocumentContext(user?.id ?? null)}
                 className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               >
                 <X className="h-3.5 w-3.5" />
