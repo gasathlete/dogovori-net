@@ -11,6 +11,10 @@ import { redactForAI } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
+import {
+  isDeferredLocalPlaceholder,
+  softenDeferredCheck,
+} from "../_shared/deferred-personal-scope.ts";
 
 const SYSTEM_PROMPT = `Ти си независим български правен ревизор (втори проход). Получаваш ГОТОВ документ и правиш техническа ревизия. НЕ пренаписваш текста.
 
