@@ -13,6 +13,7 @@
  * (staff-only SECURITY DEFINER, агрегирани, без лични данни).
  */
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
 import { supabase } from "@/integrations/supabase/client";
@@ -133,6 +134,9 @@ export default function AdminMetrics() {
             <p className="text-sm text-muted-foreground">
               Конверсия и качество в един изглед. Агрегирани данни, без лични данни.
             </p>
+            <Link to="/admin/scorecard" className="mt-2 inline-block text-xs font-medium text-gold underline">
+              Табло за растеж
+            </Link>
           </div>
           <div className="flex gap-1 rounded-full border border-hairline bg-card/70 p-1">
             {(["7d", "30d", "90d"] as Range[]).map((r) => (
