@@ -15,7 +15,11 @@ import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
 import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { getFillLaterPersonalData } from "@/lib/placeholderGate";
 import { AIReviewCard } from "@/components/wizard/AIReviewCard";
-import type { ReviewContextInput } from "@/lib/reviewSnapshot";
+import {
+  acceptedReviewContext as pickAcceptedReviewContext,
+  captureReviewContext,
+  type ReviewContextInput,
+} from "@/lib/reviewSnapshot";
 
 import { FillLaterPersonalData } from "@/components/wizard/FillLaterPersonalData";
 import { TOPUP_PACK_CONFIG, fmtEur, roiSubtitle, monthlyLabel, PRICING_PLANS, FREE_OPS_PER_MONTH } from "@/lib/pricing";
