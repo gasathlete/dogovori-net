@@ -536,18 +536,21 @@ ${payloadText}
 
     const { data: inserted, error: insErr } = await admin
       .from("risk_analyses")
-      .insert({
-        uploaded_contract_id: contract.id,
-        user_id: userId,
-        model,
-        score: pipeline.score,
-        contract_type: pipeline.contractType,
-        summary: pipeline.summary,
-        issues: pipeline.issues,
-        missing_clauses: pipeline.missingClauses,
-        text_hash: normalizedHash,
-        verification,
-      })
+      .insert(
+        buildFreshAnalysisPayload({
+          uploadedContractId: contract.id as string,
+          userId,
+          model,
+          score: pipeline.score,
+          contractType: pipeline.contractType,
+          summary: pipeline.summary,
+          issues: pipeline.issues,
+          missingClauses: pipeline.missingClauses,
+          cacheKey: normalizedHash,
+          verification,
+          binding: sourceBinding,
+        }),
+      )
       .select()
       .single();
 
