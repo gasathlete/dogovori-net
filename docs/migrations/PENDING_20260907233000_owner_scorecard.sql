@@ -9,10 +9,23 @@
 --   upgrade_completed on the checkout return page), not payment truth.
 -- * tracked_sessions is first-party page_view context, not Lovable unique
 --   visitors.
+-- * proven_payers_total means distinct users with AUTOMATED LIVE+PAID
+--   snapshot proof since payment_truth_cutover. It does NOT mean active
+--   subscribers, does NOT measure progress toward any subscriber goal,
+--   and deliberately excludes the unverified legacy baseline (see
+--   legacy_subscription_users_unverified below).
 --
 -- Fixed payment-truth cutover: timestamptz '2026-09-07 22:42:00+00'.
 -- order_snapshots before that moment do not carry payment truth and are
 -- excluded from automated proven payments entirely.
+--
+-- Historical baseline truth note: a live legacy subscription/team row with
+-- a stripe_subscription_id proves a Stripe relationship existed, but NOT
+-- paid status by itself. Until independently verified historical payment
+-- evidence can be integrated, the legacy baseline is reported separately
+-- as legacy_subscription_users_unverified and is NEVER unioned into
+-- proven_payers_total. historical_payment_baseline_verified is an
+-- explicit false until that verification exists.
 
 CREATE OR REPLACE FUNCTION public.owner_scorecard(_from timestamptz, _to timestamptz)
 RETURNS jsonb
@@ -32,7 +45,7 @@ DECLARE
 
   _automated_orders_period bigint;
   _automated_proven_payers_total bigint;
-  _legacy_baseline_payers bigint;
+  _legacy_subscription_users_unverified bigint;
   _proven_payers_total bigint;
   _new_proven_payers_period bigint;
   _proof_first_order_at timestamptz;
@@ -52,8 +65,11 @@ BEGIN
     RAISE EXCEPTION 'forbidden' USING ERRCODE = 'insufficient_privilege';
   END IF;
 
-  -- Range validation: reject null/reversed windows and windows > 366 days.
-  IF _from IS NULL OR _to IS NULL OR _from >= _to OR (_to - _from) > interval '366 days' THEN
+  -- Range validation: reject null, non-finite, or reversed windows and
+  -- windows > 366 days. isfinite rejects 'infinity'/'-infinity' endpoints.
+  IF _from IS NULL OR _to IS NULL
+     OR NOT isfinite(_from) OR NOT isfinite(_to)
+     OR _from >= _to OR (_to - _from) > interval '366 days' THEN
     RAISE EXCEPTION 'invalid_range';
   END IF;
 
@@ -106,18 +122,29 @@ BEGIN
   ),
   -- 4) Legacy pre-snapshot Stripe subscription baseline (separately labeled;
   --    never inferred from profiles/pro_until/quota/status flags).
+  --    IMPORTANT: these rows prove a live Stripe subscription relationship
+  --    existed, NOT paid status — a subscription id alone is not payment
+  --    evidence. This baseline is therefore reported only as
+  --    legacy_subscription_users_unverified and is never unioned into
+  --    proven_payers_total. It IS still used to exclude known existing
+  --    customers from new-payer period counts (conservative treatment:
+  --    better to under-report new payers than to over-report them).
+  --    Range-bounded: created_at < _to prevents as-of historical leakage
+  --    when _to precedes the cutover.
   legacy_baseline AS (
     SELECT s.user_id
     FROM public.subscriptions s
     WHERE s.environment = 'live'
       AND s.stripe_subscription_id IS NOT NULL
       AND s.created_at < _cutover
+      AND s.created_at < _to
     UNION
     SELECT t.owner_id
     FROM public.teams t
     WHERE t.environment = 'live'
       AND t.stripe_subscription_id IS NOT NULL
       AND t.created_at < _cutover
+      AND t.created_at < _to
   ),
   -- Deterministic first automated proven order per user: exactly one row
   -- per user even when created_at ties (tie-break on id).
@@ -162,8 +189,15 @@ BEGIN
     -- 1) Automated proven payers: distinct users, never order count.
     (SELECT count(DISTINCT user_id) FROM proven),
     (SELECT count(*) FROM legacy_baseline),
-    -- 5) Distinct union: legacy baseline users + automated proven-order users.
-    (SELECT count(*) FROM (SELECT user_id FROM legacy_baseline UNION SELECT user_id FROM proven) u),
+    -- 5) Proven payers = distinct automated live+paid snapshot users ONLY.
+    --    The unverified legacy baseline is NOT unioned in: a legacy
+    --    subscription id alone does not prove paid status. This equals
+    --    automated_proven_payers_total by design until independently
+    --    verified historical payment evidence exists.
+    (SELECT count(DISTINCT user_id) FROM proven),
+    -- New-payer and new-period first-mode counts conservatively EXCLUDE
+    -- legacy baseline users (known existing customers): better to
+    -- under-report new payers than to count an existing customer as new.
     (SELECT count(*) FROM first_modes fm WHERE fm.first_at >= _from AND fm.user_id NOT IN (SELECT user_id FROM legacy_baseline)),
     -- 7) Mutually exclusive first-mode totals / among new period payers.
     --    first_modes has exactly one row per user, so each total <=
@@ -181,7 +215,7 @@ BEGIN
   INTO
     _automated_orders_period,
     _automated_proven_payers_total,
-    _legacy_baseline_payers,
+    _legacy_subscription_users_unverified,
     _proven_payers_total,
     _new_proven_payers_period,
     _first_mode_subscription_total,
@@ -203,13 +237,19 @@ BEGIN
     AND p.payment_status = 'paid'
     AND p.stripe_session_id IS NOT NULL;
 
+  -- proven_payers_total = distinct automated live+paid snapshot users since
+  -- payment_truth_cutover. It does NOT mean active subscribers and does NOT
+  -- measure progress toward any subscriber goal; the unverified legacy
+  -- baseline is excluded until independently verified historical payment
+  -- evidence can be integrated (historical_payment_baseline_verified).
   _truth := jsonb_build_object(
-    'automated_proven_orders_period',  COALESCE(_automated_orders_period, 0),
-    'automated_proven_payers_total',   COALESCE(_automated_proven_payers_total, 0),
-    'legacy_baseline_payers',          COALESCE(_legacy_baseline_payers, 0),
-    'proven_payers_total',             COALESCE(_proven_payers_total, 0),
-    'new_proven_payers_period',        COALESCE(_new_proven_payers_period, 0),
-    'proof_first_order_at',            _proof_first_order_at
+    'automated_proven_orders_period',        COALESCE(_automated_orders_period, 0),
+    'automated_proven_payers_total',         COALESCE(_automated_proven_payers_total, 0),
+    'legacy_subscription_users_unverified',  COALESCE(_legacy_subscription_users_unverified, 0),
+    'historical_payment_baseline_verified',  false,
+    'proven_payers_total',                   COALESCE(_proven_payers_total, 0),
+    'new_proven_payers_period',              COALESCE(_new_proven_payers_period, 0),
+    'proof_first_order_at',                  _proof_first_order_at
   );
 
   _cohorts := jsonb_build_object(
