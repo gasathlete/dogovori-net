@@ -94,13 +94,34 @@ describe("presentAnalysisScore", () => {
     const p = presentAnalysisScore({ score: 9, verification: incomplete });
     expect(p.showScore).toBe(false);
     expect(p.score).toBeNull();
-    expect(p.notice).toContain("не е пълна");
+    expect(p.label).toBe("Част от проверката не е завършена");
+    expect(p.subtext).toBe("Потвърдените находки остават видими.");
+    expect(p.notice).toContain("не е завършена");
   });
 
-  it("легаси запис се показва неутрално, без оценка със задна дата", () => {
+  it("легаси запис насочва към нов анализ, без оценка", () => {
     const p = presentAnalysisScore({ score: 9, verification: null });
     expect(p.showScore).toBe(false);
-    expect(p.label).toBe("Анализ без запис от проверката");
+    expect(p.label).toBe("Предишен анализ");
+    expect(p.subtext).toBe("Направете нов анализ, за да получите актуална проверка.");
+  });
+
+  it("непотвърдени метаданни канят към преглед, без да наричат находките потвърдени", () => {
+    const p = presentAnalysisScore({ score: 9, verification: { version: 99 } });
+    expect(p.showScore).toBe(false);
+    expect(p.label).toBe("Не можем да потвърдим този анализ");
+    expect(p.subtext).toBe("Прегледайте документа и посочените находки.");
+    expect(`${p.subtext} ${p.notice}`).not.toMatch(/потвърдените находки/i);
+  });
+
+  it("копието е за ползвателя, не за вътрешното състояние", () => {
+    for (const v of [null, incomplete, { version: 99 }]) {
+      const p = presentAnalysisScore({ score: 9, verification: v });
+      const txt = `${p.label} ${p.subtext} ${p.notice}`;
+      for (const jargon of [/показва се неутрално/i, /със задна дата/i, /метаданни/i, /верси/i, /валидатор/i, /схем/i]) {
+        expect(txt, JSON.stringify(v)).not.toMatch(jargon);
+      }
+    }
   });
 
   it("дробна оценка НЕ се закръгля, а се отхвърля", () => {
@@ -124,11 +145,14 @@ describe("presentAnalysisScore", () => {
 
 describe("текстове при нула находки и в списъци", () => {
   it("непълен анализ без находки не звучи безрисково", () => {
-    expect(emptyIssuesMessage(incomplete)).toBe("Няма потвърдени находки; проверката не е пълна.");
-    expect(emptyIssuesMessage(null)).toBe("Няма потвърдени находки; проверката не е пълна.");
-    expect(emptyIssuesMessage({ version: 1, status: "evidence_checked" })).toBe(
-      "Няма потвърдени находки; проверката не е пълна.",
+    expect(emptyIssuesMessage(incomplete)).toBe(
+      "Няма потвърдени находки; част от проверката не е завършена.",
     );
+    for (const v of [null, { version: 1, status: "evidence_checked" }]) {
+      const msg = emptyIssuesMessage(v);
+      expect(msg).toBe("Няма отбелязани находки, но този анализ не е потвърден. Прегледайте документа.");
+      expect(msg).not.toMatch(/потвърдени находки/);
+    }
   });
 
   it("потвърден анализ без находки пак не е правна гаранция", () => {

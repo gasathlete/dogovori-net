@@ -168,8 +168,18 @@ function subtextForScore(s: number): string {
   return "Признаци на престъпна, нищожна или крайно неравнопоставена клауза.";
 }
 
-const UNVERIFIED_NOTICE =
-  "Проверката на този анализ не е пълна, затова оценка не се показва. Липсата на потвърдени находки не означава, че документът е безопасен.";
+/**
+ * Текстове, когато оценка не се показва. Езикът е насочен към действието на
+ * ползвателя, а не към вътрешното състояние на проверката.
+ */
+const INCOMPLETE_NOTICE =
+  "Част от проверката не е завършена, затова оценка не се показва. Липсата на находки не означава, че документът е безопасен.";
+
+const UNCONFIRMED_NOTICE =
+  "Не можем да потвърдим този анализ, затова оценка не се показва. Прегледайте документа и посочените находки.";
+
+const LEGACY_NOTICE =
+  "Този анализ е от по-ранна проверка и не носи запис за проверените цитати, затова оценка не се показва.";
 
 /** Оценка се приема само като цяло число 1..10 — без закръгляне на дробни стойности. */
 function usableScore(value: unknown): value is number {
@@ -183,20 +193,21 @@ export function presentAnalysisScore(input: {
   const parsed = parseAnalysisVerification(input.verification);
 
   if (!parsed.scoreTrusted || !usableScore(input.score)) {
-    return {
-      showScore: false,
-      score: null,
-      tone: NEUTRAL_ANALYSIS_TONE,
-      label:
-        parsed.status === "legacy_unverified"
-          ? "Анализ без запис от проверката"
-          : "Оценката не е потвърдена",
-      subtext:
-        parsed.status === "legacy_unverified"
-          ? "По-стар анализ — показва се неутрално, без оценка със задна дата."
-          : "Показваме само потвърдените находки по-долу.",
-      notice: UNVERIFIED_NOTICE,
-    };
+    let label = "Не можем да потвърдим този анализ";
+    let subtext = "Прегледайте документа и посочените находки.";
+    let notice = UNCONFIRMED_NOTICE;
+
+    if (parsed.status === "legacy_unverified") {
+      label = "Предишен анализ";
+      subtext = "Направете нов анализ, за да получите актуална проверка.";
+      notice = LEGACY_NOTICE;
+    } else if (parsed.status === "incomplete") {
+      label = "Част от проверката не е завършена";
+      subtext = "Потвърдените находки остават видими.";
+      notice = INCOMPLETE_NOTICE;
+    }
+
+    return { showScore: false, score: null, tone: NEUTRAL_ANALYSIS_TONE, label, subtext, notice };
   }
 
   const s = input.score;
@@ -216,7 +227,10 @@ export function emptyIssuesMessage(verification: unknown): string {
   if (parsed.status === "evidence_checked") {
     return "Не са открити находки с текстово покритие в договора. Това не е правна гаранция.";
   }
-  return "Няма потвърдени находки; проверката не е пълна.";
+  if (parsed.status === "incomplete") {
+    return "Няма потвърдени находки; част от проверката не е завършена.";
+  }
+  return "Няма отбелязани находки, но този анализ не е потвърден. Прегледайте документа.";
 }
 
 /** Кратък бадж за списъчните изгледи. */

@@ -202,6 +202,45 @@ Deno.test("missing_clauses: [null, {}, 42] се отхвърлят като не
   assertEquals(r.verification.counts.missing_rejected, 3);
 });
 
+Deno.test("липсваща клауза без обяснение 'why' се отхвърля (undefined/null/празно)", () => {
+  for (const why of [undefined, null, "", "   ", "\n\t", 42, {}]) {
+    const bad: Record<string, unknown> = { name: "Форсмажор" };
+    if (why !== undefined) bad.why = why;
+    const r = run(goodDoc({
+      missing_clauses: [bad, { name: "Конфиденциалност", why: "Няма защита на търговската тайна." }],
+    }));
+    // Отхвърля се само дефектната клауза; истинската препоръка се запазва.
+    assertEquals(r.missingClauses.length, 1, JSON.stringify(why));
+    assertEquals((r.missingClauses[0] as { name: string }).name, "Конфиденциалност");
+    assertEquals(r.verification.counts.missing_raw, 2);
+    assertEquals(r.verification.counts.missing_kept, 1);
+    assertEquals(r.verification.counts.missing_rejected, 1);
+    assertEquals(r.verification.reason_codes.includes("missing_clause_malformed"), true);
+    assertEquals(r.verification.status, "incomplete");
+    assertEquals(r.verification.score_trusted, false);
+    // Валидните находки с цитат остават видими.
+    assertEquals(r.issues.length, 1);
+  }
+});
+
+Deno.test("липсваща клауза с непразно name И why се запазва напълно", () => {
+  const r = run(goodDoc({
+    missing_clauses: [{ name: "Форсмажор", why: "Липсва уредба при непреодолима сила." }],
+  }));
+  assertEquals(r.missingClauses.length, 1);
+  assertEquals(r.verification.counts.missing_rejected, 0);
+  assertEquals(r.verification.reason_codes.includes("missing_clause_malformed"), false);
+  assertEquals(r.verification.status, "evidence_checked");
+});
+
+Deno.test("прекалено дълго 'why' също е дефектна клауза", () => {
+  const r = run(goodDoc({
+    missing_clauses: [{ name: "Форсмажор", why: "я".repeat(2001) }],
+  }));
+  assertEquals(r.missingClauses.length, 0);
+  assertEquals(r.verification.reason_codes.includes("missing_clause_malformed"), true);
+});
+
 Deno.test("филтрирана липсваща клауза (намерен синоним) дава непълнота", () => {
   const r = run(goodDoc(), { missingFn: neverMissing });
   assertEquals(r.verification.reason_codes.includes("missing_clause_filtered"), true);
