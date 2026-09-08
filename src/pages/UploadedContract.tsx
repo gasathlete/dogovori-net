@@ -383,6 +383,13 @@ export default function UploadedContractPage() {
     );
   }, [analysis]);
 
+  const scorePresentation = useMemo(
+    () => presentAnalysisScore({ score: analysis?.score, verification: analysis?.verification }),
+    [analysis],
+  );
+
+
+
   if (loading) {
     return (
       <div className="min-h-dvh">
