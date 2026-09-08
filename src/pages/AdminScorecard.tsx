@@ -121,53 +121,65 @@ function num(value: number): string {
   return value.toLocaleString("bg-BG");
 }
 
+interface ScorecardResult {
+  /** Ключ на заявката: потребител + избран период + брояч на обновяванията. */
+  key: string;
+  card: OwnerScorecard | null;
+  error: ScorecardErrorKind | null;
+}
+
 /** Съдържанието с данни се рендерира само вътре в AdminMFAGuard. */
 function ScorecardContent({ userId }: { userId: string }) {
   const [range, setRange] = useState<ScorecardRangeKey>("90d");
-  const [card, setCard] = useState<OwnerScorecard | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [errorKind, setErrorKind] = useState<ScorecardErrorKind | null>(null);
-  const [refreshedAt, setRefreshedAt] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
+  const [result, setResult] = useState<ScorecardResult | null>(null);
+  const [refreshedAt, setRefreshedAt] = useState<string | null>(null);
   const requestRef = useRef(0);
 
-  const load = useCallback(() => {
+  // Данните са валидни само за точния ключ на текущата заявка. Смяна на период
+  // или обновяване веднага скрива предишните числа, още преди новия отговор.
+  const requestKey = `${userId}|${range}|${nonce}`;
+  const current = result && result.key === requestKey ? result : null;
+  const card = current?.card ?? null;
+  const errorKind = current?.error ?? null;
+  const loading = current === null;
+
+  useEffect(() => {
     const requestId = ++requestRef.current;
-    const owner = userId;
-    setLoading(true);
-    setErrorKind(null);
-    setCard(null);
+    const key = requestKey;
+    const settle = (next: Omit<ScorecardResult, "key">) => {
+      // Изостаналите отговори не пренаписват по-новото състояние.
+      if (requestId !== requestRef.current) return;
+      setResult({ key, ...next });
+    };
     const to = new Date();
     const from = new Date(to.getTime() - SCORECARD_RANGE_DAYS[range] * 86_400_000);
-    ownerScorecardRpc
-      .rpc("owner_scorecard", { _from: from.toISOString(), _to: to.toISOString() })
+    // Promise.resolve().then(...) улавя и синхронни изключения от клиента.
+    Promise.resolve()
+      .then(() => ownerScorecardRpc.rpc("owner_scorecard", { _from: from.toISOString(), _to: to.toISOString() }))
       .then(({ data, error }) => {
-        // Отхвърляме изостанали отговори и отговори за друг потребител.
-        if (requestId !== requestRef.current || owner !== userId) return;
         if (error) {
-          setErrorKind(classifyScorecardError(error));
-          setLoading(false);
+          settle({ card: null, error: classifyScorecardError(error) });
           return;
         }
         const parsed = parseOwnerScorecard(data);
         if (!parsed) {
-          setErrorKind("generic");
-          setLoading(false);
+          settle({ card: null, error: "generic" });
           return;
         }
-        setCard(parsed);
+        if (requestId !== requestRef.current) return;
         setRefreshedAt(new Date().toISOString());
-        setLoading(false);
+        settle({ card: parsed, error: null });
+      })
+      .catch(() => {
+        // Отхвърлено обещание също трябва да завърши в състояние с повторен опит.
+        settle({ card: null, error: "generic" });
       });
-  }, [range, userId]);
-
-  useEffect(() => {
-    load();
     return () => {
-      // Всяка смяна на период или потребител обезсилва предишния отговор.
+      // Всяка смяна на период, потребител или обновяване обезсилва предишния отговор.
       requestRef.current += 1;
     };
-  }, [load, nonce]);
+  }, [requestKey, range]);
 
   const coverage = useMemo(() => (card ? computeCoverage(card) : null), [card]);
   const pace = useMemo(
