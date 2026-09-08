@@ -210,8 +210,22 @@ Deno.serve(async (req: Request) => {
     });
     if (blocked) return blocked;
 
-    // Cache key includes prompt version so v1 cached (potentially hallucinated) results are bypassed.
-    const normalizedHash = await sha256Hex(PROMPT_VERSION + ":" + normalizeText(text));
+    // Q2b1 — снимка на източника: точният ПЪЛЕН текст (след външния trim, ПРЕДИ
+    // компактиране/съкращаване) и точният заглавен контекст, който се изпраща.
+    // Отпечатъкът доказва „анализиран е точно този вход" — не е доказателство за
+    // правна правилност.
+    const titleContext = buildTitleContext(contract.title);
+    const sourceBinding = await buildAnalysisSourceBinding({
+      sourceText: text,
+      titleContext,
+    });
+    // Кеш-ключът включва точните дайджести на текста И заглавието + версиите на
+    // промпта и на кеш-политиката. (`text_hash` е ВЕРСИОНИРАН КЕШ-КЛЮЧ, не
+    // отпечатък на суровия източник.)
+    const normalizedHash = await computeAnalysisCacheKey({
+      promptVersion: PROMPT_VERSION,
+      binding: sourceBinding,
+    });
     const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const { data: cached } = await admin
       .from("risk_analyses")
@@ -222,38 +236,38 @@ Deno.serve(async (req: Request) => {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    // Кеш-хит е доверен САМО ако записът носи съвместими метаданни за
-    // доказателствената проверка. Липсващи/повредени метаданни → преизчисляваме,
-    // вместо да върнем стар резултат като нов.
-    if (cached && isTrustedCachedVerification((cached as Record<string, unknown>).verification)) {
-      // If the cached analysis belongs to a different uploaded_contract_id (e.g. user
-      // re-uploaded the same file), clone it so the frontend can find it via the new id.
-      let analysisRow = cached;
-      if (cached.uploaded_contract_id !== contract.id) {
+    // Доверен кеш-хит изисква СТРИКТНО валидни доказателствени метаданни И
+    // обвързване, РАВНО на текущата снимка. Само форматът не е достатъчен.
+    const resolution = await resolveCachedAnalysis({
+      cached: cached as Record<string, unknown> | null,
+      currentBinding: sourceBinding,
+      uploadedContractId: contract.id as string,
+      userId,
+      cloneAnalysis: async (payload) => {
         const { data: cloned, error: cloneErr } = await admin
           .from("risk_analyses")
-          .insert({
-            uploaded_contract_id: contract.id,
-            user_id: userId,
-            model: cached.model,
-            score: cached.score,
-            contract_type: cached.contract_type,
-            summary: cached.summary,
-            issues: cached.issues,
-            missing_clauses: cached.missing_clauses,
-            text_hash: cached.text_hash,
-            // Клонът задължително носи същите метаданни — иначе би изглеждал непроверен.
-            verification: (cached as Record<string, unknown>).verification,
-          })
+          .insert(payload)
           .select()
           .single();
         if (cloneErr) {
           console.error("clone cached analysis:", cloneErr);
-        } else if (cloned) {
-          analysisRow = cloned;
+          return null;
         }
-      }
-      return new Response(JSON.stringify({ analysis: analysisRow, cached: true }), {
+        return cloned ?? null;
+      },
+    });
+    if (resolution.kind === "clone_failed") {
+      // НИКОГА не връщаме анализ на друг uploaded_contract_id като успех.
+      return new Response(
+        JSON.stringify({
+          error: "Анализът не можа да бъде записан за този документ. Опитайте отново.",
+          code: "analysis_clone_failed",
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (resolution.kind === "reuse" || resolution.kind === "cloned") {
+      return new Response(JSON.stringify({ analysis: resolution.row, cached: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
