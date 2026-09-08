@@ -15,6 +15,8 @@ import { RiskMeter, type RiskLevel } from "@/components/wizard/RiskMeter";
 import { RiskReport, type RiskIssue } from "@/components/wizard/RiskReport";
 import { getFillLaterPersonalData } from "@/lib/placeholderGate";
 import { AIReviewCard } from "@/components/wizard/AIReviewCard";
+import type { ReviewContextInput } from "@/lib/reviewSnapshot";
+
 import { FillLaterPersonalData } from "@/components/wizard/FillLaterPersonalData";
 import { TOPUP_PACK_CONFIG, fmtEur, roiSubtitle, monthlyLabel, PRICING_PLANS, FREE_OPS_PER_MONTH } from "@/lib/pricing";
 import { supabase } from "@/integrations/supabase/client";
@@ -310,6 +312,31 @@ export default function WizardPage() {
       return true;
     });
   }, [sector, answers]);
+
+  /**
+   * Минимален изричен контекст за независимата ревизия: само СЪЩЕСТВЕНИ
+   * попълнени решения на потребителя. Полета за лични данни и контакти НЕ
+   * влизат — те се вписват локално и не са предмет на ревизията.
+   */
+  const reviewContext = useMemo<ReviewContextInput | null>(() => {
+    if (!sector) return null;
+    const PERSONAL_KEY = /egn|eik|iban|bulstat|phone|telefon|email|mail|address|adres|passport|lk_|id_card|име|адрес|телефон|имейл|егн|лична карта|банкова сметка/i;
+    const flat = flattenQuestions(visibleQuestions);
+    const decisions = flat
+      .filter((q) => {
+        if (!answers[q.id]?.trim()) return false;
+        return !PERSONAL_KEY.test(`${q.id} ${q.label ?? ""}`);
+      })
+      .slice(0, 20)
+      .map((q) => ({
+        label: (q.label ?? q.id).slice(0, 120),
+        value: (answers[q.id] ?? "").trim().slice(0, 400),
+      }));
+    if (decisions.length === 0) return null;
+    return { decisions };
+  }, [sector, visibleQuestions, answers]);
+
+
 
   // Интелигентни стойности по подразбиране — попълват се веднъж при първо
   // отваряне (днешна дата за полета за дата, София за населено място), за да
@@ -1691,8 +1718,10 @@ export default function WizardPage() {
                           <AIReviewCard
                             contract={result.contract}
                             documentType={docName ?? sector.contractName}
+                            reviewContext={reviewContext}
                             ignorePersonalData={fillLaterPersonal}
                           />
+
                         </>
                       ),
                     },

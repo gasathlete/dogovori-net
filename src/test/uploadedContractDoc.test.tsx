@@ -578,4 +578,84 @@ describe("контролер — контрагент и ред на четен�
     });
     expect(view.result.current.contract).toBeNull();
   });
+
+  it("грешка при първо зареждане дава явна грешка и успешен повторен опит", async () => {
+    const h = harness();
+    const view = mount(h);
+    await waitFor(() => expect(h.contractQueue.length).toBe(1));
+    await act(async () => {
+      h.contractQueue[0].reject(new Error("network"));
+    });
+    // Не остава вечно „зареждане" и НЕ е „липсващ документ".
+    expect(view.result.current.loading).toBe(false);
+    expect(view.result.current.loadError).toBeTruthy();
+    expect(view.result.current.contract).toBeNull();
+
+    await act(async () => void view.result.current.retryLoad());
+    await waitFor(() => expect(h.contractQueue.length).toBe(2));
+    await act(async () => {
+      h.contractQueue[1].resolve({ data: row(), error: null });
+    });
+    expect(view.result.current.loadError).toBeNull();
+    expect(view.result.current.contract?.id).toBe("doc-1");
+  });
+
+  it("грешка от базата не се представя като липсващ документ", async () => {
+    const h = harness();
+    const view = mount(h);
+    await waitFor(() => expect(h.contractQueue.length).toBe(1));
+    await act(async () => {
+      h.contractQueue[0].resolve({ data: null, error: { message: "boom" } });
+    });
+    expect(view.result.current.loadError).toBeTruthy();
+  });
+
+  it("провалено презареждане при мръсна чернова пази редактора и конфликта", async () => {
+    const h = harness();
+    const view = mount(h);
+    await settleInitialLoad(h, view);
+    await act(async () => void view.result.current.setEditText(`${LONG} мои промени`));
+
+    await act(async () => void view.result.current.load({ silent: true }));
+    await waitFor(() => expect(h.contractQueue.length).toBe(2));
+    await act(async () => {
+      h.contractQueue[1].reject(new Error("offline"));
+    });
+    expect(view.result.current.editText).toBe(`${LONG} мои промени`);
+    expect(view.result.current.contract?.id).toBe("doc-1");
+    expect(view.result.current.loadError).toBeTruthy();
+  });
+
+  it("по-старо четене не връща по-стар анализ след успешен запис", async () => {
+    const h = harness({
+      loadLatestAnalysis: () =>
+        Promise.resolve({ data: { id: `an-${h.contractQueue.length}` } as never, error: null }),
+    });
+    const view = mount(h);
+    await settleInitialLoad(h, view);
+
+    // Стартираме четене, после успешен запис, после пускаме старото четене.
+    await act(async () => void view.result.current.load({ silent: true }));
+    await waitFor(() => expect(h.contractQueue.length).toBe(2));
+    await act(async () => void view.result.current.setEditText(`${LONG} ново`));
+    await act(async () => void view.result.current.saveText());
+    await waitFor(() => expect(h.hashQueue.length).toBe(1));
+    await act(async () => {
+      h.hashQueue[0].resolve("h1");
+    });
+    await waitFor(() => expect(h.updateQueue.length).toBe(1));
+    await act(async () => {
+      h.updateQueue[0].resolve({
+        data: row({ extracted_text: `${LONG} ново`, text_hash: "h1", updated_at: "2026-03-03T00:00:00Z" }),
+        error: null,
+      });
+    });
+    const savedAt = view.result.current.contract?.updated_at;
+    await act(async () => {
+      h.contractQueue[1].resolve({ data: row({ updated_at: "2026-01-01T00:00:00Z" }), error: null });
+    });
+    // Нито договорът, нито анализът се връщат назад.
+    expect(view.result.current.contract?.updated_at).toBe(savedAt);
+    expect(view.result.current.editText).toBe(`${LONG} ново`);
+  });
 });

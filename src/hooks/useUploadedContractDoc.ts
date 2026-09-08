@@ -153,6 +153,10 @@ export function snapshotKeyOf(text: string, title: string): string {
 export const CONFLICT_BLOCK_MESSAGE =
   "Документът е променен и на друго място. Изберете коя версия остава, преди да записвате пак.";
 
+export const LOAD_ERROR_MESSAGE =
+  "Документът не можа да бъде зареден. Вашият текст в редактора е запазен — опитайте пак.";
+
+
 /** Кои полета РЕАЛНО са записани в базата при този запис. */
 export interface SavedFields {
   text?: boolean;
@@ -175,6 +179,9 @@ export function useUploadedContractDoc(input: {
   const [savedDocId, setSavedDocId] = useState<string | null>(null);
   const [loadedScope, setLoadedScope] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  /** Провалено четене — документът НЕ е обявен за липсващ. */
+  const [loadError, setLoadError] = useState<string | null>(null);
+
 
   const [editText, setEditTextState] = useState("");
   const [titleDraft, setTitleDraftState] = useState("");
@@ -286,6 +293,16 @@ export function useUploadedContractDoc(input: {
       }
       if (!opts?.silent) setLoading(true);
       const isCurrentLoad = () => isLive(gen, scope) && seq === loadSeqRef.current;
+      /**
+       * Провалено четене НЕ трие видим конфликт и НЕ трие вече заредена
+       * чернова — само обявява грешка и разрешава повторен опит.
+       */
+      const failLoad = () => {
+        if (!isCurrentLoad()) return;
+        setLoadError(LOAD_ERROR_MESSAGE);
+        setLoadedScope(scope);
+        setLoading(false);
+      };
 
       let cRes: DbResult<Contract>;
       let aRes: DbResult<Analysis>;
@@ -297,12 +314,26 @@ export function useUploadedContractDoc(input: {
           api.loadContacts(),
         ]);
       } catch {
-        // Провалено четене не трие видимия конфликт и не оставя вечно „зареждане".
-        if (isCurrentLoad()) setLoading(false);
+        failLoad();
         return;
       }
       if (!isCurrentLoad()) return;
 
+      // Грешка от базата НЕ е „няма такъв документ".
+      if (cRes.error) {
+        failLoad();
+        return;
+      }
+
+      // Закъсняло четене не може да върне по-стара база след успешен запис —
+      // това важи за ЦЕЛИЯ резултат (договор, анализ, контакти, копие).
+      const staleAfterSave = saveSeqAtStart !== saveSeqRef.current;
+      if (staleAfterSave) {
+        setLoading(false);
+        return;
+      }
+
+      setLoadError(null);
       setAnalysis(aRes.data ?? null);
       setContacts(kRes.data ?? []);
 
@@ -314,9 +345,7 @@ export function useUploadedContractDoc(input: {
         return;
       }
 
-      // Закъсняло четене не може да върне по-стара база след успешен запис.
-      const staleAfterSave = saveSeqAtStart !== saveSeqRef.current;
-      if (!staleAfterSave) {
+      {
         // Решението за черновите се взема СЕГА, по актуалните стойности.
         const dirtyTextNow = draftTextRef.current !== baselineTextRef.current;
         const dirtyTitleNow = draftTitleRef.current !== baselineTitleRef.current;
@@ -342,17 +371,29 @@ export function useUploadedContractDoc(input: {
       try {
         sd = await api.loadSavedCopyId(input.userId, input.docId);
       } catch {
-        if (isCurrentLoad()) setLoading(false);
+        if (isCurrentLoad()) {
+          setLoadedScope(scope);
+          setLoading(false);
+        }
         return;
       }
       if (!isCurrentLoad()) return;
-      // Ново копие, създадено междувременно, не се затрива с по-старо четене.
-      if (copyWriteAtStart === copyWriteSeqRef.current) setSavedDocId(sd.data?.id ?? null);
+      // Ново копие или пореден запис междувременно не се затрива с по-старо четене.
+      if (copyWriteAtStart === copyWriteSeqRef.current && saveSeqAtStart === saveSeqRef.current) {
+        setSavedDocId(sd.data?.id ?? null);
+      }
       setLoadedScope(scope);
       setLoading(false);
     },
     [api, input.docId, input.userId, isLive, commitBaseline, noteConflict],
   );
+
+  /** Изричен повторен опит след провалено четене. */
+  const retryLoad = useCallback(() => {
+    setLoadError(null);
+    void load();
+  }, [load]);
+
 
   // Смяна на документ/потребител: всичко се изчиства и никоя стара заявка не се приема.
   useEffect(() => {
@@ -676,7 +717,10 @@ export function useUploadedContractDoc(input: {
     analysis: scopeReady ? analysis : null,
     contacts: scopeReady ? contacts : [],
     savedDocId: scopeReady ? savedDocId : null,
-    loading: loading || !scopeReady,
+    loading: (loading || !scopeReady) && !loadError,
+    loadError: scopeReady ? loadError : null,
+    retryLoad,
+
     editText,
     titleDraft,
     contactId,
