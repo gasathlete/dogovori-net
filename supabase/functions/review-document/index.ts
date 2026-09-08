@@ -180,21 +180,22 @@ Deno.serve(async (req: Request) => {
         : "needs_fixes",
       confidence: Math.max(0, Math.min(100, Number(parsed.confidence) || 0)),
       summary: typeof parsed.summary === "string" ? parsed.summary : "",
-      checks: arr(parsed.checks).slice(0, 12).filter((c) => {
-        // При отложено попълване на лични данни скриваме "fail" само заради тях.
-        if (!ignorePersonalData) return true;
-        const rec = c as Record<string, unknown>;
-        if (String(rec.status) !== "fail") return true;
-        return !isPersonalField(`${rec.label ?? ""} ${rec.note ?? ""}`);
-      }),
+      // Проверките никога не се изтриват — при доказано отложено локално поле
+      // "fail" се сваля до видим "warn" с бележка "За попълване преди използване".
+      checks: arr(parsed.checks).slice(0, 12).map((c) =>
+        ignorePersonalData
+          ? softenDeferredCheck(c as Record<string, unknown>, documentText)
+          : c
+      ),
       missing_requisites: arr(parsed.missing_requisites)
         .filter((x) => typeof x === "string")
-        .filter((x) => !ignorePersonalData || !isPersonalField(x as string)),
+        .filter((x) => !ignorePersonalData || !isDeferredLocalPlaceholder(x as string, documentText)),
       contradictions: arr(parsed.contradictions).slice(0, 10),
       unfilled_fields: arr(parsed.unfilled_fields)
         .filter((x) => typeof x === "string")
-        .filter((x) => !ignorePersonalData || !isPersonalField(x as string))
+        .filter((x) => !ignorePersonalData || !isDeferredLocalPlaceholder(x as string, documentText))
         .slice(0, 20),
+
 
       legal_basis: arr(parsed.legal_basis).slice(0, 12),
       model: route.model,
