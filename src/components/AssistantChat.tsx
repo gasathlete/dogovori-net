@@ -18,6 +18,14 @@ import { LegalCitations, type LegalCitation } from "@/components/LegalCitations"
 import { AssistantToolCard, type ToolEvent } from "@/components/assistant/AssistantToolCard";
 import { AssistantThinkingStatus } from "@/components/assistant/AssistantThinkingStatus";
 import { resetAssistantDraft } from "@/components/assistant/assistantDraftStore";
+import {
+  clearAssistantDocumentContext,
+  setAssistantDocumentContext,
+  contextIdentityKey,
+  kindLabel,
+  toRequestContext,
+  useAssistantDocumentContext,
+} from "@/lib/assistantDocumentContext";
 
 export interface ProgressStep {
   step: string;
@@ -65,6 +73,21 @@ interface Thread {
   id: string;
   title: string;
   updated_at: string;
+  /** Q2e: сървърно обвързване на разговора с документ (null = общ разговор). */
+  context_kind?: string | null;
+  context_entity_id?: string | null;
+  context_title?: string | null;
+}
+
+/** Разговорът е съвместим само с точно същия обхват (документ или общ). */
+function threadMatchesContext(
+  thread: Thread,
+  ctx: { kind: string; entityId: string } | null,
+): boolean {
+  const tk = thread.context_kind ?? null;
+  const ti = thread.context_entity_id ?? null;
+  if (!ctx) return tk === null && ti === null;
+  return tk === ctx.kind && ti === ctx.entityId;
 }
 
 const QUICK_ACTIONS = [
@@ -103,9 +126,32 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   const [showSources, setShowSources] = useState(true);
   const [mobilePane, setMobilePane] = useState<"chat" | "panel">("chat");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  // Q2e: избран документен контекст (само метаданни, само в паметта).
+  const documentContext = useAssistantDocumentContext();
+  const contextKey = contextIdentityKey(documentContext);
+  const requestContext = toRequestContext(documentContext);
+  const documentContextRef = useRef(documentContext);
+  documentContextRef.current = documentContext;
+  const [serverContext, setServerContext] = useState<
+    { kind: string; title: string; truncated: boolean } | null
+  >(null);
+  const [staleContext, setStaleContext] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Идентичност на заявката: обхват + монотонна последователност. Стари делти,
+  // грешки, tool call-ове, thread ID-та и текст не могат да влязат в новия UI.
+  const requestSeqRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+  const aliveRef = useRef(true);
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+      abortRef.current?.abort();
+      abortRef.current = null;
+    };
+  }, []);
 
   const executeClientTool = useCallback((name: string, args: any) => {
     try {
@@ -177,16 +223,21 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   // Load threads
   const loadThreads = useCallback(async () => {
     if (!user) return;
+    // Контекстните колони още не са в генерираните типове (миграция 0015).
     const { data } = await supabase
       .from("assistant_threads")
-      .select("id, title, updated_at")
+      .select("*")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false })
       .limit(20);
-    const nextThreads = data ?? [];
+    const nextThreads = (data ?? []) as unknown as Thread[];
     setThreads(nextThreads);
 
-    if (nextThreads.length === 0) {
+    // Само разговори със същия обхват са допустими за автоматичен избор —
+    // разговор, обвързан с друг документ, никога не се преизползва наготово.
+    const compatible = nextThreads.filter((t) => threadMatchesContext(t, requestContext));
+
+    if (compatible.length === 0) {
       setPersistedActiveThreadId(null);
       return;
     }
@@ -195,17 +246,34 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       ? localStorage.getItem(activeThreadStorageKey)
       : null);
 
-    if (preferredThreadId && nextThreads.some((thread) => thread.id === preferredThreadId)) {
+    if (preferredThreadId && compatible.some((thread) => thread.id === preferredThreadId)) {
       if (preferredThreadId !== activeThreadId) {
         setActiveThreadId(preferredThreadId);
       }
       return;
     }
 
-    setPersistedActiveThreadId(nextThreads[0].id);
-  }, [user, activeThreadId, activeThreadStorageKey, setPersistedActiveThreadId]);
+    setPersistedActiveThreadId(compatible[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, activeThreadId, activeThreadStorageKey, setPersistedActiveThreadId, contextKey]);
 
   useEffect(() => { loadThreads(); }, [loadThreads]);
+
+  // Смяна/изчистване на контекста: прекъсваме текущия стрийм и започваме
+  // съвместим разговор. Резултати от стария обхват не могат да се появят.
+  useEffect(() => {
+    requestSeqRef.current += 1;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setStreaming(false);
+    setStreamingText("");
+    setStreamingTools([]);
+    setStreamingProgress([]);
+    setServerContext(null);
+    setStaleContext(false);
+    setMessages([]);
+  }, [contextKey]);
+
 
   // Load messages for active thread
   useEffect(() => {
@@ -231,6 +299,32 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     })();
     return () => { cancelled = true; };
   }, [activeThreadId]);
+
+  // Разширеният изглед (/assistant/:threadId): контекстът се взема САМО от
+  // сървърния ред на разговора — не от URL параметри, localStorage или текст.
+  useEffect(() => {
+    if (!activeThreadId || !user) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("assistant_threads")
+        .select("*")
+        .eq("id", activeThreadId)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      const row = data as unknown as Thread;
+      if (row.context_kind && row.context_entity_id) {
+        setAssistantDocumentContext({
+          kind: row.context_kind,
+          entityId: row.context_entity_id,
+          displayTitle: row.context_title ?? "",
+        });
+      } else if (documentContextRef.current) {
+        clearAssistantDocumentContext();
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activeThreadId, user]);
 
   // Smart auto-scroll: only follow the bottom if the user is already near the
   // bottom. Otherwise leave their scroll position alone so they can read
@@ -302,21 +396,8 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     if (!requireAuth({ action: "Изпрати съобщение до DogovaryAI" })) return;
     if (!session?.access_token) return;
 
-
-    // Gate: meter against monthly AI quota (5/mo Free, unlimited PRO/Team).
-    const { data: gate, error: gateErr } = await supabase.rpc("consume_ai_message");
-    if (gateErr) {
-      toast.error("Грешка при проверка на квотата");
-      return;
-    }
-    const g = gate as { ok: boolean; reason?: string; used?: number; cap?: number } | null;
-    if (g && g.ok === false) {
-      toast.error("Изчерпани са безплатните операции за този месец. 1 съобщение = 1 операция. Надгради за 100/мес.");
-      await refreshPlan();
-      return;
-    }
-    await refreshPlan();
-
+    // Q2e/C: сървърът е ЕДИНСТВЕНАТА точка на резервация — клиентът вече не
+    // извиква consume_ai_message (двойното таксуване е премахнато).
 
     const finalText = negotiationMode
       ? `[ПРЕГОВОРЕН РЕЖИМ] ${text.trim()}\n\n(Анализирай условията от позиция на договаряща страна, идентифицирай слабости в офертата на отсрещната страна и предложи аргументирани контра-предложения с правно основание.)`
@@ -329,11 +410,26 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     setStreamingText("");
     setStreamingTools([]);
     setStreamingProgress([]);
+    setStaleContext(false);
+
+    // Идентичност на тази заявка: обхват + номер. Всичко по-старо се игнорира.
+    const seq = ++requestSeqRef.current;
+    const scopeKey = contextKey;
+    const controller = new AbortController();
+    abortRef.current?.abort();
+    abortRef.current = controller;
+    const isCurrent = () =>
+      aliveRef.current && seq === requestSeqRef.current && scopeKey === contextIdentityKey(
+        // Проверяваме срещу текущия store, не срещу стар render.
+        documentContextRef.current,
+      );
+
 
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`;
     try {
       const resp = await fetch(url, {
         method: "POST",
+        signal: controller.signal,
         headers: {
           Authorization: `Bearer ${session.access_token}`,
           "Content-Type": "application/json",
@@ -342,17 +438,33 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
         body: JSON.stringify({
           threadId: activeThreadId,
           currentPath: location.pathname,
+          // Само {kind, entityId} — никакъв текст, payload или заглавие.
+          documentContext: requestContext,
           messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
 
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: "Грешка" }));
-        toast.error(err.error || "Грешка при изпращане");
+        if (!isCurrent()) return;
+        const code = String((err as { code?: unknown })?.code ?? "");
+        if (code === "document_context_stale") {
+          setStaleContext(true);
+          toast.error("Документът е променен след започването на този разговор.");
+        } else if (code === "document_context_mismatch") {
+          toast.error("Този разговор е обвързан с друг документ. Започнете нов разговор.");
+        } else if (code === "document_not_found") {
+          toast.error("Документът не е намерен или нямате достъп до него.");
+        } else {
+          toast.error((err as { error?: string }).error || "Грешка при изпращане");
+        }
         setMessages(messages);
         setStreaming(false);
+        // Квотата може да е отказала заявката — опресняваме показаното.
+        void refreshPlan();
         return;
       }
+
 
       const reader = resp.body!.getReader();
       const decoder = new TextDecoder();
@@ -367,10 +479,16 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
+        // Смяна на документа / нова заявка / unmount → нищо не влиза в UI.
+        if (!isCurrent()) {
+          try { await reader.cancel(); } catch { /* ignore */ }
+          return;
+        }
         buffer += decoder.decode(value, { stream: true });
         const events = buffer.split("\n\n");
         buffer = events.pop() ?? "";
         for (const evt of events) {
+          if (!isCurrent()) return;
           const lines = evt.split("\n");
           let eventType = "";
           let dataLine = "";
@@ -386,6 +504,17 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
           if (eventType === "meta") {
             if (parsed.threadId) receivedThreadId = parsed.threadId;
             if (Array.isArray(parsed.citations)) receivedCitations = parsed.citations;
+            // Сървърните метаданни са авторитетни за етикета на контекста.
+            const dc = parsed.documentContext;
+            if (dc && typeof dc === "object" && typeof dc.kind === "string") {
+              setServerContext({
+                kind: String(dc.kind),
+                title: String(dc.title ?? ""),
+                truncated: dc.truncated === true,
+              });
+            } else {
+              setServerContext(null);
+            }
           } else if (eventType === "error") {
             toast.error(parsed.message || "AI грешка");
           } else if (eventType === "progress") {
@@ -421,6 +550,8 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
         }
       }
 
+      if (!isCurrent()) return;
+
       // Finalize — prefer server-emitted followups; fall back to inline tag parse.
       const { content: cleanText, followups: inlineFollowups } = extractFollowups(accText);
       const finalFollowups = receivedFollowups.length > 0 ? receivedFollowups : inlineFollowups;
@@ -441,14 +572,18 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
         setPersistedActiveThreadId(receivedThreadId);
       }
       loadThreads();
+      // Опресняваме показаното потребление след успешна заявка.
+      void refreshPlan();
     } catch (err) {
+      if ((err as { name?: string })?.name === "AbortError" || !isCurrent()) return;
       console.error(err);
       toast.error("Грешка при връзка с асистента");
       setMessages(messages);
     } finally {
-      setStreaming(false);
+      if (isCurrent()) setStreaming(false);
     }
   };
+
 
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -600,6 +735,11 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 )}
                 <MessageSquare className={cn("h-3 w-3 shrink-0", activeThreadId === t.id ? "text-gold" : "text-muted-foreground/60")} />
                 <span className="flex-1 truncate">{t.title}</span>
+                {t.context_title && (
+                  <span className="max-w-[45%] shrink-0 truncate rounded border border-gold/30 bg-gold/10 px-1 text-[9px] text-gold">
+                    {t.context_title}
+                  </span>
+                )}
                 <button
                   onClick={(e) => handleDeleteThread(t.id, e)}
                   className={cn(
@@ -737,6 +877,11 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
                 )}
                 <MessageSquare className={cn("h-3.5 w-3.5 shrink-0", activeThreadId === t.id ? "text-gold" : "text-muted-foreground/60")} />
                 <span className="flex-1 truncate">{t.title}</span>
+                {t.context_title && (
+                  <span className="max-w-[45%] shrink-0 truncate rounded border border-gold/30 bg-gold/10 px-1 text-[9px] text-gold">
+                    {t.context_title}
+                  </span>
+                )}
                 <button
                   onClick={(e) => handleDeleteThread(t.id, e)}
                   className={cn(
@@ -974,6 +1119,44 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
             aiLocked && "hidden",
           )}
         >
+          {documentContext && (
+            <div
+              data-testid="assistant-context-bar"
+              className="mb-2 flex flex-wrap items-center gap-2 rounded-xl border border-gold/40 bg-gold/[0.06] px-3 py-2 text-xs"
+            >
+              <span className="font-semibold text-gold">
+                {kindLabel(documentContext.kind)}:
+              </span>
+              <span className="min-w-0 flex-1 truncate text-foreground">
+                {serverContext?.title || documentContext.displayTitle}
+              </span>
+              {serverContext?.truncated && (
+                <span className="text-muted-foreground">
+                  (виждам само част от текста)
+                </span>
+              )}
+              {staleContext && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStaleContext(false);
+                    handleNewThread();
+                  }}
+                  className="rounded-md border border-gold/50 px-2 py-0.5 font-semibold text-gold hover:bg-gold/10"
+                >
+                  Нов разговор с текущата версия
+                </button>
+              )}
+              <button
+                type="button"
+                aria-label="Премахни избрания документ"
+                onClick={() => clearAssistantDocumentContext()}
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
           <div className={cn(
             "relative rounded-2xl border bg-background/60 transition-all focus-within:border-gold/50 focus-within:ring-2 focus-within:ring-gold/15",
             negotiationMode ? "border-gold/40 bg-gold/[0.03]" : "border-border/50",

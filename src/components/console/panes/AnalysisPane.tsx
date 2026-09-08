@@ -7,6 +7,7 @@ import { NegotiationStrategyPanel } from "@/components/NegotiationStrategyPanel"
 import { emptyIssuesMessage, presentAnalysisScore } from "@/lib/analysisVerification";
 import { historicalFindingsNotice, isSnapshotActionable } from "@/lib/analysisSourceBinding";
 import { useSourceFreshness } from "@/hooks/useSourceFreshness";
+import { AskDogovaryAIButton } from "@/components/console/AskDogovaryAIButton";
 
 type AnalysisRow = {
   id: string;
@@ -146,14 +147,21 @@ export function AnalysisPane({ analysisId }: { analysisId: string }) {
             {new Date(a.created_at).toLocaleString("bg-BG")} · модел {a.model}
           </p>
         </div>
-        <a
-          href={`/uploaded/${a.uploaded_contract_id}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-md bg-gold/15 px-3 py-2 text-sm text-gold hover:bg-gold/25"
-        >
-          <ExternalLink className="h-4 w-4" /> Към документа
-        </a>
+        <div className="flex items-center gap-2">
+          <a
+            href={`/uploaded/${a.uploaded_contract_id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-md bg-gold/15 px-3 py-2 text-sm text-gold hover:bg-gold/25"
+          >
+            <ExternalLink className="h-4 w-4" /> Към документа
+          </a>
+          <AskDogovaryAIButton
+            kind="analysis"
+            entityId={a.id}
+            displayTitle={a.contract_type || "Риск анализ"}
+          />
+        </div>
       </div>
 
       <div className={cn("mt-5 flex items-start gap-4 rounded-xl border p-4", present.tone)}>
