@@ -73,7 +73,8 @@ const db: {
   messageGate: Promise<void> | null;
   releaseMessages: (() => void) | null;
   threadError: boolean;
-} = { threads: [], messages: {}, messageGate: null, releaseMessages: null, threadError: false };
+  messagesError: boolean;
+} = { threads: [], messages: {}, messageGate: null, releaseMessages: null, threadError: false, messagesError: false };
 
 function holdMessages() {
   let release: () => void = () => {};
@@ -105,7 +106,10 @@ vi.mock("@/integrations/supabase/client", () => ({
           const gate = table === "assistant_messages" && db.messageGate
             ? db.messageGate
             : Promise.resolve();
-          return gate.then(() => ({ data, error: null })).then(res, rej);
+          const err = table === "assistant_messages" && db.messagesError
+            ? { message: "не може да се прочете" }
+            : null;
+          return gate.then(() => ({ data: err ? null : data, error: err })).then(res, rej);
         },
       };
       return api;
@@ -170,6 +174,7 @@ beforeEach(() => {
   db.messageGate = null;
   db.releaseMessages = null;
   db.threadError = false;
+  db.messagesError = false;
   fetchImpl = async () => {
     const { response, ctl } = sseResponse();
     ctl.push(evt("meta", { threadId: "t-new" }));
@@ -499,5 +504,83 @@ describe("закъснели клиентски tool-ове", () => {
     });
     await new Promise((r) => setTimeout(r, 700));
     expect(navigate).not.toHaveBeenCalledWith("/catalog");
+  });
+});
+
+describe("грешка при зареждане на съобщенията", () => {
+  it("неуспешно четене не се брои за готовност и предлага изход", async () => {
+    db.threads = [thread({ id: "t-1", title: "Първи" })];
+    db.messages["t-1"] = [{ id: "m1", role: "user", content: "стар въпрос" }];
+    db.messagesError = true;
+    render(<AssistantChat threadId="t-1" />);
+
+    await screen.findByTestId("assistant-thread-unavailable");
+    expect(screen.queryByText("стар въпрос")).toBeNull();
+    const send = screen.getByTestId("assistant-send");
+    expect(send).toBeDisabled();
+    const input = screen.getByPlaceholderText("Задайте правен въпрос");
+    await userEvent.type(input, "нов въпрос");
+    await userEvent.keyboard("{Enter}");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("смяна на разговор при ИДЕНТИЧЕН контекст", () => {
+  async function switchWhileStreaming(threadsSetup: ThreadRow[], from: string, to: string) {
+    const opened: Controllable[] = [];
+    fetchImpl = async () => {
+      const { response, ctl } = sseResponse();
+      opened.push(ctl);
+      return response;
+    };
+    db.threads = threadsSetup;
+    db.messages[from] = [{ id: "m1", role: "user", content: "история А" }];
+    db.messages[to] = [{ id: "m2", role: "user", content: "история Б" }];
+    const view = render(<AssistantChat threadId={from} />);
+    expect(await screen.findByText("история А")).toBeTruthy();
+    const input = screen.getByPlaceholderText("Задайте правен въпрос");
+    await userEvent.type(input, "въпрос по А");
+    await waitFor(() => expect(screen.getByTestId("assistant-send")).not.toBeDisabled());
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() => expect(opened.length).toBe(1));
+
+    view.rerender(<AssistantChat threadId={to} />);
+    expect(await screen.findByText("история Б")).toBeTruthy();
+
+    await act(async () => {
+      opened[0].push(evt("meta", { threadId: "late-thread" }));
+      opened[0].push(`data: ${JSON.stringify({ delta: "закъсняла делта" })}\n\n`);
+      opened[0].push(evt("error", { message: "закъсняла грешка" }));
+      opened[0].push(evt("final_text", { content: "закъснял финал" }));
+      opened[0].push(evt("tool_call", { name: "navigate", args: { path: "/catalog" } }));
+      opened[0].close();
+      await Promise.resolve();
+    });
+    await new Promise((r) => setTimeout(r, 700));
+
+    expect(screen.queryByText(/закъсняла делта/)).toBeNull();
+    expect(screen.queryByText(/закъснял финал/)).toBeNull();
+    expect(screen.queryByText("въпрос по А")).toBeNull();
+    expect(toastError).not.toHaveBeenCalledWith(expect.stringContaining("закъсняла грешка"));
+    expect(navigate).not.toHaveBeenCalledWith("/catalog");
+    expect(localStorage.getItem("dogovaryai_active_thread:owner-a")).not.toBe("late-thread");
+    expect(await screen.findByText("история Б")).toBeTruthy();
+  }
+
+  it("два ОБЩИ разговора: закъснелите събития от А не влизат в Б", async () => {
+    await switchWhileStreaming(
+      [thread({ id: "g-a", title: "Общ А" }), thread({ id: "g-b", title: "Общ Б" })],
+      "g-a",
+      "g-b",
+    );
+  });
+
+  it("два разговора по СЪЩИЯ документ: закъснелите събития не влизат", async () => {
+    const ctx = { context_kind: "saved_document", context_entity_id: DOC_A, context_title: "Наем" };
+    await switchWhileStreaming(
+      [thread({ id: "d-a", title: "Док А", ...ctx }), thread({ id: "d-b", title: "Док Б", ...ctx })],
+      "d-a",
+      "d-b",
+    );
   });
 });
