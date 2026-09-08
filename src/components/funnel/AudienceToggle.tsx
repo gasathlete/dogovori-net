@@ -10,7 +10,7 @@ import { useAudience } from "@/hooks/useAudience";
 import type { Audience } from "@/lib/audience";
 
 const OPTIONS: { value: Audience; label: string; Icon: typeof Briefcase }[] = [
-  { value: "freelancer", label: "Фрийлансър", Icon: User },
+  { value: "freelancer", label: "Частно лице", Icon: User },
   { value: "business", label: "Фирма", Icon: Briefcase },
 ];
 
