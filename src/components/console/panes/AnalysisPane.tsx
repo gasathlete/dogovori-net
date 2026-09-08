@@ -36,6 +36,7 @@ export function AnalysisPane({ analysisId }: { analysisId: string }) {
 
   const issues: any[] = Array.isArray(a.issues) ? a.issues : [];
   const missing: any[] = Array.isArray(a.missing_clauses) ? a.missing_clauses : [];
+  const present = presentAnalysisScore({ score: a.score, verification: a.verification });
 
   return (
     <div className="mx-auto max-w-4xl p-6">
