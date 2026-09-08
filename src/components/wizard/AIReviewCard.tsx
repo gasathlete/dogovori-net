@@ -210,7 +210,7 @@ export function AIReviewCard({
         </div>
       )}
 
-      {!loading && review && notice && (
+      {notice && (
         <div className="mb-3 rounded-lg border border-border/60 bg-card/50 p-3 text-xs text-muted-foreground">
           {notice}
         </div>
