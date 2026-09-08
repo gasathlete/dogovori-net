@@ -2,11 +2,15 @@
  * Q2d — обвързване на AI ревизията с ТОЧНАТА снимка на документа.
  *
  * Клиентът показва присъда/проверки САМО когато отговорът носи същия отпечатък
- * на източника, който сме заявили, и заявката е от текущата генерация.
+ * на източника, който сме заявили, и заявката е от текущата снимка.
  * Стар (legacy) резултат без отпечатък се показва като непотвърден.
+ *
+ * Каноничното представяне е СТРУКТУРИРАН JSON — идентичен в браузъра и в edge
+ * функцията. Не се използват разделители в текста, защото стойност, съдържаща
+ * разделителя, би могла да се преправи в друга снимка със същия отпечатък.
  */
 
-export const REVIEW_SOURCE_VERSION = "q2d-review-source-1";
+export const REVIEW_SOURCE_VERSION = "q2d-review-source-2";
 export const REVIEW_TEXT_LIMIT = 60000;
 
 export interface ReviewDecision {
@@ -28,28 +32,40 @@ export interface ReviewSnapshotInput {
   ignorePersonalData?: boolean;
 }
 
-/** Канонично представяне — ЕДНО и също с edge функцията. */
+/** Канонично представяне — ЕДНО и също с edge функцията (structured JSON). */
 export function canonicalReviewSource(i: ReviewSnapshotInput): string {
-  const parts: string[] = [
-    REVIEW_SOURCE_VERSION,
-    (i.documentType ?? "").trim(),
-    ((i.documentTitle ?? "").trim() || "Документ"),
-    (i.documentVersion ?? "").trim(),
-    (i.context?.role ?? "").trim(),
-    String(i.ignorePersonalData === true),
-  ];
+  const decisions: ReviewDecision[] = [];
   for (const d of i.context?.decisions ?? []) {
-    if (!d.label.trim() || !d.value.trim()) continue;
-    parts.push(`${d.label.trim()}=${d.value.trim()}`);
+    const label = (d?.label ?? "").trim();
+    const value = (d?.value ?? "").trim();
+    if (!label || !value) continue;
+    decisions.push({ label, value });
   }
-  parts.push("\u241E", i.documentText.trim());
-  return parts.join("\u0000");
+  return JSON.stringify({
+    v: REVIEW_SOURCE_VERSION,
+    type: (i.documentType ?? "").trim(),
+    title: (i.documentTitle ?? "").trim() || "Документ",
+    version: (i.documentVersion ?? "").trim(),
+    role: (i.context?.role ?? "").trim(),
+    ignorePersonalData: i.ignorePersonalData === true,
+    decisions,
+    text: i.documentText.trim(),
+  });
 }
 
 export async function computeReviewSourceDigest(i: ReviewSnapshotInput): Promise<string> {
   const buf = new TextEncoder().encode(canonicalReviewSource(i));
   const h = await crypto.subtle.digest("SHA-256", buf);
   return Array.from(new Uint8Array(h)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Синхронен ключ на текущата снимка (без хеширане) — с него UI-ът решава ВЕДНАГА,
+ * още при рисуването, дали показаният резултат се отнася за текущия вход.
+ * Обхватът на потребителя влиза в ключа: чужд/изтекъл резултат не се показва.
+ */
+export function reviewIdentityKey(i: ReviewSnapshotInput & { userScope?: string | null }): string {
+  return JSON.stringify({ scope: i.userScope ?? "", src: canonicalReviewSource(i) });
 }
 
 export type ReviewTrust = "verified" | "unverified" | "mismatched";
@@ -62,14 +78,23 @@ export interface ReviewTrustState {
 }
 
 /**
- * Строго: приемаме резултата САМО при точно съвпадение на отпечатъка.
- * Липсващ отпечатък (стар резултат) не се обявява за проверен.
+ * Строго: приемаме резултата САМО при точно съвпадение на отпечатъка на
+ * ЗАЯВЕНАТА снимка, която е и текущата.
  */
 export function assessReviewTrust(input: {
   responseSource?: { v?: string; digest?: string } | null;
   expectedDigest: string;
+  /** Резултатът е от текущия вход (ключът не се е променил). */
+  currentInput?: boolean;
 }): ReviewTrustState {
   const src = input.responseSource;
+  if (input.currentInput === false) {
+    return {
+      trust: "mismatched",
+      showVerdict: false,
+      notice: "Документът е променен след тази проверка. Резултатът не се отнася за текущия текст.",
+    };
+  }
   if (!src || typeof src.digest !== "string" || !src.digest || src.v !== REVIEW_SOURCE_VERSION) {
     return {
       trust: "unverified",
@@ -77,7 +102,7 @@ export function assessReviewTrust(input: {
       notice: "Този резултат не може да бъде свързан с текущия документ. Направете нова проверка.",
     };
   }
-  if (src.digest !== input.expectedDigest) {
+  if (!input.expectedDigest || src.digest !== input.expectedDigest) {
     return {
       trust: "mismatched",
       showVerdict: false,
@@ -96,7 +121,10 @@ export interface ReviewCompleteness {
 
 /** Непълна проверка никога не се представя като „готово". */
 export function completenessNotice(c: ReviewCompleteness | null | undefined): string | null {
-  if (!c || c.status === "complete") return null;
+  if (!c) {
+    return "Проверката не съобщава колко от документа е обхванала. Резултатът не се представя като окончателен.";
+  }
+  if (c.status === "complete") return null;
   if (c.status === "incomplete") {
     if ((c.reasons ?? []).includes("input_truncated")) {
       return "Документът е по-дълъг от обхвата на проверката — прегледана е само част от текста. Потвърдените находки остават видими.";
@@ -106,13 +134,14 @@ export function completenessNotice(c: ReviewCompleteness | null | undefined): st
   return "Част от констатациите не са потвърдени с откъс от текста и не се представят като установени факти.";
 }
 
+/** „Готово" изисква ИЗРИЧНО потвърдена пълна проверка — липсваща метаинформация не е доказателство. */
 export function canShowReady(input: {
   verdict: string;
   completeness?: ReviewCompleteness | null;
   trust: ReviewTrust;
 }): boolean {
   if (input.trust !== "verified") return false;
-  if (input.completeness && input.completeness.status !== "complete") return false;
+  if (!input.completeness || input.completeness.status !== "complete") return false;
   return input.verdict === "ready";
 }
 

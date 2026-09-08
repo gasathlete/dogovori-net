@@ -97,27 +97,113 @@ export interface ReviewOutcome {
   confirmationRequired: boolean;
 }
 
+/**
+ * Runtime проверка на отговора — без cast-ове. Нечетима задължителна структура
+ * означава НЕУТРАЛЕН провал, а не „готово" без доказателство.
+ */
+export function parseDocumentReview(v: unknown): DocumentReview | null {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  const o = v as Record<string, unknown>;
+  const verdict = o.verdict;
+  if (verdict !== "ready" && verdict !== "needs_fixes" && verdict !== "blocked") return null;
+  if (typeof o.summary !== "string") return null;
+  const confidence =
+    typeof o.confidence === "number" && Number.isFinite(o.confidence)
+      ? Math.max(0, Math.min(100, Math.round(o.confidence)))
+      : 0;
+  if (!Array.isArray(o.checks)) return null;
+
+  const checks: ReviewCheck[] = [];
+  for (const c of o.checks) {
+    if (!c || typeof c !== "object" || Array.isArray(c)) continue;
+    const cc = c as Record<string, unknown>;
+    const status = cc.status;
+    if (typeof cc.label !== "string" || !cc.label.trim()) continue;
+    if (status !== "pass" && status !== "warn" && status !== "fail") continue;
+    checks.push({
+      id: typeof cc.id === "string" ? cc.id : undefined,
+      label: cc.label,
+      status,
+      note: typeof cc.note === "string" ? cc.note : undefined,
+    });
+  }
+
+  const strings = (x: unknown): string[] =>
+    Array.isArray(x) ? x.filter((i): i is string => typeof i === "string" && i.trim().length > 0) : [];
+
+  const contradictions: ReviewContradiction[] = [];
+  for (const c of Array.isArray(o.contradictions) ? o.contradictions : []) {
+    if (!c || typeof c !== "object" || Array.isArray(c)) continue;
+    const cc = c as Record<string, unknown>;
+    if (typeof cc.detail !== "string" || !cc.detail.trim()) continue;
+    contradictions.push({
+      detail: cc.detail,
+      where: typeof cc.where === "string" ? cc.where : undefined,
+      quote: typeof cc.quote === "string" ? cc.quote : undefined,
+    });
+  }
+
+  const legal_basis: ReviewLegalBasis[] = [];
+  for (const b of Array.isArray(o.legal_basis) ? o.legal_basis : []) {
+    if (!b || typeof b !== "object" || Array.isArray(b)) continue;
+    const bb = b as Record<string, unknown>;
+    if (typeof bb.act !== "string" || !bb.act.trim()) continue;
+    legal_basis.push({
+      act: bb.act,
+      article: typeof bb.article === "string" ? bb.article : undefined,
+      why: typeof bb.why === "string" ? bb.why : undefined,
+    });
+  }
+
+  let source: { v?: string; digest?: string } | null = null;
+  if (o.source && typeof o.source === "object" && !Array.isArray(o.source)) {
+    const so = o.source as Record<string, unknown>;
+    source = {
+      v: typeof so.v === "string" ? so.v : undefined,
+      digest: typeof so.digest === "string" ? so.digest : undefined,
+    };
+  }
+
+  return {
+    verdict,
+    confidence,
+    summary: o.summary,
+    checks,
+    missing_requisites: strings(o.missing_requisites),
+    contradictions,
+    unfilled_fields: strings(o.unfilled_fields),
+    legal_basis,
+    source,
+    completeness: readCompleteness(o.completeness),
+    model: typeof o.model === "string" ? o.model : undefined,
+    reviewed_at: typeof o.reviewed_at === "string" ? o.reviewed_at : undefined,
+  };
+}
+
+export const REVIEW_MALFORMED_MESSAGE =
+  "Резултатът от проверката не е разчетен. Направете нова проверка.";
+
 export async function reviewDocument(input: ReviewRequestInput): Promise<ReviewOutcome> {
   const requestedDigest = await computeReviewSourceDigest(input);
-  const { data, error } = await invokeEdgeFunction<
-    DocumentReview & { error?: string; code?: string }
-  >("review-document", { body: input });
+  const { data, error } = await invokeEdgeFunction<Record<string, unknown>>(
+    "review-document",
+    { body: input },
+  );
 
-  if (error || !data || data.error) {
+  if (error || !data || typeof data.error === "string") {
     return {
       review: null,
-      error: data?.error || error?.message || "Ревизията не успя",
+      error:
+        (typeof data?.error === "string" ? data.error : null) || error?.message || "Ревизията не успя",
       requestedDigest,
       confirmationRequired: data?.code === "confirmation_required",
     };
   }
-  return {
-    review: { ...data, completeness: readCompleteness(data.completeness) },
-    error: null,
-    requestedDigest,
-    confirmationRequired: false,
-  };
+  const review = parseDocumentReview(data);
+  if (!review) {
+    return { review: null, error: REVIEW_MALFORMED_MESSAGE, requestedDigest, confirmationRequired: false };
+  }
+  return { review, error: null, requestedDigest, confirmationRequired: false };
 }
 
 export type { ReviewCompleteness };
-

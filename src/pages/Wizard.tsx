@@ -317,24 +317,47 @@ export default function WizardPage() {
    * Минимален изричен контекст за независимата ревизия: само СЪЩЕСТВЕНИ
    * попълнени решения на потребителя. Полета за лични данни и контакти НЕ
    * влизат — те се вписват локално и не са предмет на ревизията.
+   *
+   * Дълъг отговор НЕ се реже по средата — отрязана стойност може да преобърне
+   * смисъла (например отрицание). Такова решение просто не влиза в контекста.
    */
   const reviewContext = useMemo<ReviewContextInput | null>(() => {
     if (!sector) return null;
     const PERSONAL_KEY = /egn|eik|iban|bulstat|phone|telefon|email|mail|address|adres|passport|lk_|id_card|име|адрес|телефон|имейл|егн|лична карта|банкова сметка/i;
     const flat = flattenQuestions(visibleQuestions);
-    const decisions = flat
-      .filter((q) => {
-        if (!answers[q.id]?.trim()) return false;
-        return !PERSONAL_KEY.test(`${q.id} ${q.label ?? ""}`);
-      })
-      .slice(0, 20)
-      .map((q) => ({
-        label: (q.label ?? q.id).slice(0, 120),
-        value: (answers[q.id] ?? "").trim().slice(0, 400),
-      }));
+    const decisions: ReviewContextInput["decisions"] = [];
+    for (const q of flat) {
+      if (decisions.length >= 20) break;
+      const value = (answers[q.id] ?? "").trim();
+      if (!value) continue;
+      if (PERSONAL_KEY.test(`${q.id} ${q.label ?? ""}`)) continue;
+      const label = (q.label ?? q.id).trim();
+      if (!label || label.length > 120 || value.length > 400) continue;
+      decisions.push({ label, value });
+    }
     if (decisions.length === 0) return null;
     return { decisions };
   }, [sector, visibleQuestions, answers]);
+
+  /**
+   * Ревизията получава контекста, с който документът е РЕАЛНО генериран.
+   * Ако потребителят промени отговорите след това, приетият контекст се
+   * обезсилва и не се подава — нищо не се домисля за възстановени резултати.
+   */
+  const [acceptedReviewContext, setAcceptedReviewContext] = useState<
+    { key: string; context: ReviewContextInput | null } | null
+  >(null);
+  const reviewContextKey = useMemo(() => JSON.stringify(reviewContext), [reviewContext]);
+  const reviewContextRef = useRef<{ key: string; context: ReviewContextInput | null }>({
+    key: reviewContextKey,
+    context: reviewContext,
+  });
+  reviewContextRef.current = { key: reviewContextKey, context: reviewContext };
+  const acceptedContextForReview =
+    acceptedReviewContext && acceptedReviewContext.key === reviewContextKey
+      ? acceptedReviewContext.context
+      : null;
+
 
 
 
@@ -542,6 +565,8 @@ export default function WizardPage() {
       const payload = data as AIResult;
       if (bilingualMode && payload.contract) payload.contract.bilingual = true;
       setResult(payload);
+      // Приетият контекст се фиксира ЗАЕДНО с успешния резултат.
+      setAcceptedReviewContext({ ...reviewContextRef.current });
       setConsentRequired(false);
       trackGenerate("success", { doc_key: docKey, source: "wizard", ...genMeta });
       trackResultViewed({ doc_key: docKey, source: "wizard" });
@@ -1718,7 +1743,7 @@ export default function WizardPage() {
                           <AIReviewCard
                             contract={result.contract}
                             documentType={docName ?? sector.contractName}
-                            reviewContext={reviewContext}
+                            reviewContext={acceptedContextForReview}
                             ignorePersonalData={fillLaterPersonal}
                           />
 

@@ -12,7 +12,7 @@
 
 import { redactForAI, type RedactionMapping } from "../_shared/redact.ts";
 
-export const REVIEW_SOURCE_VERSION = "q2d-review-source-1";
+export const REVIEW_SOURCE_VERSION = "q2d-review-source-2";
 /** Над този размер входът се реже — и това се обявява явно. */
 export const REVIEW_TEXT_LIMIT = 60000;
 
@@ -156,19 +156,22 @@ export function buildReviewRequest(body: unknown): ReviewRequest | RequestFailur
   };
 }
 
-/** Канонично представяне — ЕДНО и също в edge и в браузъра. */
+/**
+ * Канонично представяне — ЕДНО и също в edge и в браузъра.
+ * СТРУКТУРИРАН JSON: няма разделители в стойностите, значи няма и снимки, които
+ * се преправят една в друга (например етикет „a=b" срещу стойност „b=c").
+ */
 export function canonicalReviewSource(r: ReviewRequest): string {
-  const parts: string[] = [
-    REVIEW_SOURCE_VERSION,
-    r.documentType,
-    r.documentTitle,
-    r.documentVersion,
-    r.context?.role ?? "",
-    String(r.ignorePersonalData),
-  ];
-  for (const d of r.context?.decisions ?? []) parts.push(`${d.label}=${d.value}`);
-  parts.push("\u241E", r.documentText);
-  return parts.join("\u0000");
+  return JSON.stringify({
+    v: REVIEW_SOURCE_VERSION,
+    type: r.documentType,
+    title: r.documentTitle,
+    version: r.documentVersion,
+    role: r.context?.role ?? "",
+    ignorePersonalData: r.ignorePersonalData,
+    decisions: (r.context?.decisions ?? []).map((d) => ({ label: d.label, value: d.value })),
+    text: r.documentText,
+  });
 }
 
 export async function computeReviewSourceDigest(r: ReviewRequest): Promise<string> {
@@ -377,18 +380,32 @@ export function normalizeReviewResponse(input: {
     });
   }
   if (rawChecks && checks.length === 0) degrade("incomplete", "checks_empty");
+  if (rawChecks && rawChecks.length > 12) degrade("partial", "checks_truncated");
+  // Проверката за форма и действителност е задължителна по промпта.
+  if (rawChecks && !checks.some((c) => c.id === "forma_i_deystvitelnost")) {
+    degrade("incomplete", "form_check_missing");
+  }
+  if (rawChecks && checks.length > 0 && checks.length < 6) degrade("partial", "checks_too_few");
 
-  const strings = (v: unknown, cap: number): string[] => {
-    if (!Array.isArray(v)) return [];
-    return v.filter((x): x is string => typeof x === "string")
+  const strings = (v: unknown, cap: number, field: string): string[] => {
+    if (!Array.isArray(v)) {
+      degrade("partial", `${field}_missing`);
+      return [];
+    }
+    const valid = v.filter((x): x is string => typeof x === "string" && x.trim().length > 0);
+    if (valid.length !== v.length) degrade("partial", `${field}_malformed`);
+    if (valid.length > cap) degrade("partial", `${field}_truncated`);
+    return valid
       .filter((x) => (input.transform?.keepItem ? input.transform.keepItem(x) : true))
       .slice(0, cap);
   };
 
-  const missing_requisites = strings(p.missing_requisites, 20);
-  const unfilled_fields = strings(p.unfilled_fields, 20);
+  const missing_requisites = strings(p.missing_requisites, 20, "missing_requisites");
+  const unfilled_fields = strings(p.unfilled_fields, 20, "unfilled_fields");
 
   const contradictions: NormalizedReview["contradictions"] = [];
+  if (!Array.isArray(p.contradictions)) degrade("partial", "contradictions_missing");
+  else if (p.contradictions.length > 10) degrade("partial", "contradictions_truncated");
   for (const c of (Array.isArray(p.contradictions) ? p.contradictions : []).slice(0, 10)) {
     if (!c || typeof c !== "object" || Array.isArray(c)) {
       degrade("partial", "contradiction_malformed");
@@ -414,10 +431,18 @@ export function normalizeReviewResponse(input: {
   }
 
   const legal_basis: NormalizedReview["legal_basis"] = [];
+  if (!Array.isArray(p.legal_basis)) degrade("partial", "legal_basis_missing");
+  else if (p.legal_basis.length > 12) degrade("partial", "legal_basis_truncated");
   for (const b of (Array.isArray(p.legal_basis) ? p.legal_basis : []).slice(0, 12)) {
-    if (!b || typeof b !== "object" || Array.isArray(b)) continue;
+    if (!b || typeof b !== "object" || Array.isArray(b)) {
+      degrade("partial", "legal_basis_malformed");
+      continue;
+    }
     const o = b as Record<string, unknown>;
-    if (typeof o.act !== "string" || !o.act.trim()) continue;
+    if (typeof o.act !== "string" || !o.act.trim()) {
+      degrade("partial", "legal_basis_malformed");
+      continue;
+    }
     legal_basis.push({
       act: o.act.trim(),
       article: typeof o.article === "string" ? o.article : undefined,
@@ -425,17 +450,34 @@ export function normalizeReviewResponse(input: {
     });
   }
 
+  // „Готово" не може да съжителства с провалена проверка, доказано противоречие
+  // или същностен пропуск — това е несъгласуван отговор, не установен факт.
+  const hasFail = checks.some((c) => c.status === "fail");
+  if (verdict === "ready" && (hasFail || contradictions.length > 0)) {
+    degrade("partial", "ready_contradicted");
+    verdict = hasFail || contradictions.length > 0 ? "needs_fixes" : verdict;
+  }
+  if (verdict === "ready" && (missing_requisites.length > 0 || unfilled_fields.length > 0)) {
+    degrade("partial", "ready_with_gaps");
+    verdict = "needs_fixes";
+  }
+
   // Непълна проверка НИКОГА не изглежда „готово" и не носи висока увереност.
   const finalStatus: CompletenessStatus = state.status;
   if (finalStatus === "incomplete") confidence = Math.min(confidence, 40);
   else if (finalStatus === "partial") confidence = Math.min(confidence, 70);
   if (finalStatus !== "complete" && verdict === "ready") verdict = "needs_fixes";
+  // Обобщението също е неутрално: моделното „всичко е наред" не важи за
+  // непълна проверка.
+  const finalSummary = finalStatus === "complete"
+    ? summary
+    : "Проверката не е завършена в пълен обхват. Показаните находки са потвърдени, но резултатът не потвърждава документа като цяло.";
 
 
   return {
     verdict,
     confidence,
-    summary,
+    summary: finalSummary,
     checks,
     missing_requisites,
     contradictions,
@@ -443,4 +485,33 @@ export function normalizeReviewResponse(input: {
     legal_basis,
     completeness: { status: finalStatus, reasons: Array.from(new Set(reasons)) },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Безопасно възстановяване през общия мапинг
+// ---------------------------------------------------------------------------
+
+/**
+ * Стойностите се възстановяват ПО ЛИСТА на разчетения JSON, а не върху
+ * сериализиран текст: реална стойност с кавичка, обратно наклонена черта или
+ * контролен знак иначе би счупила JSON-а. Ключовете на обектите остават както
+ * са дошли от модела.
+ */
+export function restoreLeaves(
+  value: unknown,
+  mapping: RedactionMapping,
+  unredactFn: (s: string, m: RedactionMapping) => string,
+): unknown {
+  if (Object.keys(mapping).length === 0) return value;
+  const walk = (v: unknown): unknown => {
+    if (typeof v === "string") return unredactFn(v, mapping);
+    if (Array.isArray(v)) return v.map(walk);
+    if (v && typeof v === "object") {
+      const out: Record<string, unknown> = {};
+      for (const [k, val] of Object.entries(v as Record<string, unknown>)) out[k] = walk(val);
+      return out;
+    }
+    return v;
+  };
+  return walk(value);
 }

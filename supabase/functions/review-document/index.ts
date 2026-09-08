@@ -15,6 +15,7 @@ import {
   computeReviewSourceDigest,
   normalizeReviewResponse,
   redactReviewContext,
+  restoreLeaves,
   REVIEW_SOURCE_VERSION,
 } from "./review-context.ts";
 
@@ -204,8 +205,9 @@ Deno.serve(async (req: Request) => {
       regenerateAttempts: 1,
     })).parsed as unknown;
 
-    // Възстановяване на реалните стойности САМО тук, в паметта, през същия мапинг.
-    const restored: unknown = JSON.parse(unredact(JSON.stringify(parsed ?? null), mapping));
+    // Възстановяване на реалните стойности САМО тук, в паметта, през същия
+    // мапинг — по листа на JSON-а, за да не се чупи от кавички/контролни знаци.
+    const restored: unknown = restoreLeaves(parsed ?? null, mapping, unredact);
 
     // Валидация по стойности (без cast-ове) + честна пълнота.
     const normalized = normalizeReviewResponse({
