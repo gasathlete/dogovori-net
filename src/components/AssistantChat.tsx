@@ -272,7 +272,6 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     setServerContext(null);
     setStaleContext(false);
     setMessages([]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contextKey]);
 
 
