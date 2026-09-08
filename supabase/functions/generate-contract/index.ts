@@ -2,13 +2,20 @@
 // Uses Lovable AI Gateway (Gemini) — no API key needed by user.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, hashIp, clientIp } from "../_shared/cors.ts";
-import { sha256Hex, stableStringify } from "../_shared/normalize.ts";
+import { sha256Hex } from "../_shared/normalize.ts";
 import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
 import { getDocumentTypeSpec, inferDocumentType } from "../_shared/document-types.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
-import { redactForAI, unredact } from "../_shared/redact.ts";
+import { unredact } from "../_shared/redact.ts";
+import {
+  buildGeneratorCacheIdentity,
+  buildGeneratorClassificationCorpus,
+  buildGeneratorContext,
+  buildQaLines,
+  redactGeneratorContext,
+} from "./generator-context.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
@@ -108,16 +115,23 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { sector, contractName, documentName, parties, answers, questions, arbitration, bilingual, session_id, doc_key, userConfirmed = false } = await req.json();
+    const body = await req.json();
+    const { sector, contractName, documentName, parties, answers, questions, arbitration, bilingual, session_id, doc_key, userConfirmed = false } = body;
     const isBilingual = Boolean(bilingual);
 
+    // Целият потребителски контекст се събира ЕДИН път — редакцията, класификацията
+    // и идентичността на кеша работят върху едно и също множество полета.
+    const ctxOrError = buildGeneratorContext(body);
+    if ("ok" in ctxOrError) {
+      return new Response(
+        JSON.stringify({ error: ctxOrError.message, code: ctxOrError.code }),
+        { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+      );
+    }
+    const userContext = ctxOrError;
 
     // Illegal content guard — block before AI call, log + alert admin.
-    const guardText = [
-      sector, contractName, documentName,
-      parties?.a, parties?.b,
-      ...Object.values(answers ?? {}).map((v) => String(v ?? "")),
-    ].join("\n");
+    const guardText = buildGeneratorClassificationCorpus(userContext);
     const blocked = await guardIllegalContent({
       admin, text: guardText, functionName: "generate-contract",
       userId, userEmail: null, ipHash,
@@ -129,34 +143,24 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
-    // Skip empty answers in the prompt to save input tokens.
-    const qaLines = (questions as Array<{ id: string; label: string }>)
-      .filter((q) => {
-        const v = answers[q.id];
-        return v !== undefined && v !== null && String(v).trim() !== "";
-      })
-      .map((q) => `- ${q.label}: ${answers[q.id]}`)
-      .join("\n");
-
-    const docLine = documentName && documentName !== contractName
-      ? `КОНКРЕТЕН ДОКУМЕНТ: ${documentName}\n`
-      : "";
-
     // Detect the document type from the name so we don't render every output
     // as a "договор" (e.g. Разписка, Декларация, Пълномощно, Жалба, Искова молба).
+    // Изводът се прави върху СУРОВОТО наименование — това е избор на доверена
+    // спецификация, не изходящ текст.
     const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName || contractName));
 
-    // Cache: identical (sector, contractName, documentName, sorted answers) → reuse output for 30 days.
-    // PROMPT_VERSION included so prompt/system changes invalidate stale cache entries.
+    // Кеш: идентичност = версия на политиката + удостоверен повикващ + ТОЧНИЯТ
+    // потребителски контекст (включително етикетите и реда на въпросите,
+    // арбитражния избор и двуезичния режим). Старите глобални ключове, които не
+    // включваха етикетите на въпросите, вече не могат да бъдат улучени.
     const PROMPT_VERSION = isBilingual ? "v3-doc-type-bilingual" : "v3-doc-type";
-    const cacheKeyInput = stableStringify({
-      v: PROMPT_VERSION,
-      sector, contractName, documentName: documentName || null,
-      docType: docTypeSpec.id,
-      parties: { a: parties?.a ?? "", b: parties?.b ?? "" },
-      answers: answers ?? {},
-      arbitration: arbitration ?? null,
+    const cacheKeyInput = buildGeneratorCacheIdentity({
+      context: userContext,
+      promptVersion: PROMPT_VERSION,
+      docTypeId: docTypeSpec.id,
       bilingual: isBilingual,
+      arbitrationEnabled: arbitration?.enabled === true,
+      callerKey: userId ? `user:${userId}` : `ip:${ipHash}`,
     });
     const cacheHash = await sha256Hex(cacheKeyInput);
     const cacheCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -204,24 +208,18 @@ Deno.serve(async (req: Request) => {
     }
 
 
-    const arbitrationLine = arbitration?.enabled
-      ? `\nАРБИТРАЖ: enabled=true, court="${arbitration.courtName || arbitration.courtId || ""}"${arbitration.courtLink ? `, link=${arbitration.courtLink}` : ""}`
-      : `\nАРБИТРАЖ: enabled=false (използвай държавна подсъдност)`;
-
     const bilingualLine = isBilingual
       ? `\nБИЛИНГВАЛЕН РЕЖИМ: ЗАДЪЛЖИТЕЛНО върни паралелен английски превод. За contract добави полета: "title_en", "preamble_en", "closing_en" и за всяка клауза в "clauses" — "title_en" и "body_en". Преводът да е професионален легален английски (US/UK неутрален), номерацията на членовете да е "Art. N." и да съответства 1:1 на българския текст. Поставяй "bilingual": true на root на contract. Английският текст НЕ заменя българския — те съществуват паралелно.`
       : "";
 
     // === GDPR/AI Act compliance layer ===
-    const sourceText = [
-      String(parties?.a ?? ""), String(parties?.b ?? ""),
-      qaLines,
-    ].join("\n");
-    const classification = classifyDocumentBeforeAI(sourceText);
+    // Класификацията вижда ЦЕЛИЯ изходящ потребителски контекст, не само страните.
+    const classification = classifyDocumentBeforeAI(guardText);
     const route = routeModel("generate-contract", classification, {
       userConfirmed,
-      promptLength: sourceText.length,
+      promptLength: guardText.length,
     });
+
 
     if (!route.allowed) {
       await logAiAudit({
@@ -253,25 +251,39 @@ Deno.serve(async (req: Request) => {
       }), { status: 200, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
     }
 
-    const redactedParties = route.redactionRequired
-      ? { a: redactForAI(String(parties?.a ?? "")), b: redactForAI(String(parties?.b ?? "")) }
-      : null;
-    const redactedQaLines = route.redactionRequired ? redactForAI(qaLines) : null;
-    const mergedMapping: Record<string, string> = {};
-    if (redactedParties) Object.assign(mergedMapping, redactedParties.a.mapping, redactedParties.b.mapping);
-    if (redactedQaLines) Object.assign(mergedMapping, redactedQaLines.mapping);
-
-    const safePartyA = redactedParties ? redactedParties.a.redacted : String(parties?.a ?? "");
-    const safePartyB = redactedParties ? redactedParties.b.redacted : String(parties?.b ?? "");
-    const safeQaLines = redactedQaLines ? redactedQaLines.redacted : qaLines;
+    // ЕДНА редакция за ЦЕЛИЯ изходящ контекст → един общ мапинг. Различните
+    // стойности пазят различни плейсхолдъри, еднаквите — един и същ.
+    const safe = redactGeneratorContext(userContext, { redactionRequired: route.redactionRequired });
+    if (safe.ok === false) {
+      await logAiAudit({
+        user_id: userId, operation: "generate-contract", model: "",
+        classification, redaction_applied: false, status: "blocked",
+        error_code: safe.code,
+      });
+      return new Response(JSON.stringify({ error: safe.message, code: safe.code }), {
+        status: 422,
+        headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
+      });
+    }
+    const mergedMapping = safe.mapping;
+    const s = safe.context;
+    const safeQaLines = buildQaLines(s);
+    const safeDocLine = s.documentName && s.documentName !== s.contractName
+      ? `КОНКРЕТЕН ДОКУМЕНТ: ${s.documentName}\n`
+      : "";
+    const safeDocTitle = s.documentName || s.contractName;
+    const arbitrationLine = arbitration?.enabled
+      ? `\nАРБИТРАЖ: enabled=true, court="${s.arbitrationCourt}"`
+      : `\nАРБИТРАЖ: enabled=false (използвай държавна подсъдност)`;
+    const languageLine = s.languageContext ? `\nЕЗИКОВ КОНТЕКСТ: ${s.languageContext}` : "";
     const redactionNote = route.redactionRequired
       ? "ВАЖНО: Лични данни (имена, ЕГН, IBAN, адреси) са заменени с плейсхолдъри (<NAME_1>, <EGN_1> и т.н.). В готовия документ ИЗПОЛЗВАЙ плейсхолдърите дословно — те ще бъдат заменени с реалните стойности при връщане на потребителя.\n\n"
       : "";
 
-    const userPrompt = `${redactionNote}СЕКТОР: ${sector}
+    const userPrompt = `${redactionNote}СЕКТОР: ${s.sector}
 ТИП ДОКУМЕНТ: ${docTypeSpec.label}
-НАИМЕНОВАНИЕ: ${contractName}
-${docLine}СТРАНИ: ${safePartyA} ↔ ${safePartyB}${arbitrationLine}${bilingualLine}
+НАИМЕНОВАНИЕ: ${s.contractName}
+${safeDocLine}СТРАНИ: ${s.partyA} ↔ ${s.partyB}${arbitrationLine}${languageLine}${bilingualLine}
 
 ОТГОВОРИ:
 ${safeQaLines}
@@ -279,11 +291,12 @@ ${safeQaLines}
 ВАЖНО: Изготви документ от вид „${docTypeSpec.label}" (не разглеждай автоматично като двустранен договор). Спазвай специфичната структура за този вид документ:
 ${docTypeSpec.systemAddendum}
 
-Задача: Risk Analysis (конкретни слаби места за ${safePartyA}${safePartyB ? ` и ${safePartyB}` : ""}) + ПЪЛНИЯТ документ на български за "${documentName || contractName}" според структурата за „${docTypeSpec.label}"${isBilingual ? " + паралелен английски превод в полетата *_en" : ""}. Върни СТРОГО валиден JSON по схемата.`;
+Задача: Risk Analysis (конкретни слаби места за ${s.partyA}${s.partyB ? ` и ${s.partyB}` : ""}) + ПЪЛНИЯТ документ на български за "${safeDocTitle}" според структурата за „${docTypeSpec.label}"${isBilingual ? " + паралелен английски превод в полетата *_en" : ""}. Върни СТРОГО валиден JSON по схемата.`;
 
     const baseSystem = await loadActivePrompt(admin, "generate-contract", SYSTEM_PROMPT);
     const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
-    const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, `${docTypeSpec.label} ${contractName}\n${userPrompt}`.slice(0, 4000), { matchCount: 6 });
+    // Заявката към RAG също минава САМО през санитирания контекст.
+    const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, `${docTypeSpec.label} ${s.contractName}\n${userPrompt}`.slice(0, 4000), { matchCount: 6 });
     const activeSystemPrompt = legal.hasMatches ? `${baseSystem}\n\n${legal.promptBlock}` : baseSystem;
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -311,8 +324,9 @@ ${docTypeSpec.systemAddendum}
       if (aiResp.status === 402) {
         return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI. Моля заредете акаунта." }), { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
       }
+      // Без съдържание в лога — само диагностика.
       const t = await aiResp.text();
-      console.error("AI gateway:", aiResp.status, t);
+      console.error("AI gateway error:", aiResp.status, `body_len=${t.length}`);
       throw new Error("AI грешка");
     }
 
@@ -328,13 +342,13 @@ ${docTypeSpec.systemAddendum}
 
     let data: any;
     try { data = JSON.parse(rawText); } catch {
-      console.error("AI raw (not JSON):", rawText.slice(0, 500));
+      console.error("AI response not JSON:", `len=${rawText.length}`);
       throw new Error("AI върна невалиден JSON отговор");
     }
 
     const content: string = data.choices?.[0]?.message?.content ?? "";
     if (!content || !content.trim()) {
-      console.error("AI empty content. Full data:", JSON.stringify(data).slice(0, 500));
+      console.error("AI empty content:", `choices=${Array.isArray(data?.choices) ? data.choices.length : 0}`, `finish=${String(data?.choices?.[0]?.finish_reason ?? "unknown")}`);
       throw new Error("AI не върна съдържание (вероятно прекъснат отговор). Опитайте отново.");
     }
 
@@ -377,7 +391,7 @@ ${docTypeSpec.systemAddendum}
         };
         parsed = walk(parsed);
       } catch (e) {
-        console.error("unredact failed:", e);
+        console.error("unredact failed:", e instanceof Error ? e.name : "unknown_error");
       }
     }
 
