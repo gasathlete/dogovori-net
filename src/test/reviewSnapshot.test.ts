@@ -3,6 +3,7 @@
  * Синтетични данни; никакви AI повиквания.
  */
 import { describe, expect, it } from "vitest";
+import { parseDocumentReview } from "@/lib/documentReview";
 import {
   assessReviewTrust,
   canShowReady,
@@ -69,6 +70,12 @@ describe("честна пълнота", () => {
     expect(canShowReady({ verdict: "ready", completeness: { status: "complete" }, trust: "verified" })).toBe(true);
   });
 
+  it("липсваща информация за обхвата не е „готово“", () => {
+    expect(canShowReady({ verdict: "ready", completeness: null, trust: "verified" })).toBe(false);
+    expect(canShowReady({ verdict: "ready", trust: "verified" })).toBe(false);
+    expect(completenessNotice(null)).toContain("не съобщава колко");
+  });
+
   it("съобщенията са ясни и без техническа терминология", () => {
     expect(completenessNotice({ status: "complete" })).toBeNull();
     expect(completenessNotice({ status: "incomplete", reasons: ["input_truncated"] })).toContain("по-дълъг");
@@ -80,5 +87,49 @@ describe("честна пълнота", () => {
     expect(readCompleteness({ status: "нещо" })).toBeNull();
     expect(readCompleteness(null)).toBeNull();
     expect(readCompleteness([])).toBeNull();
+  });
+});
+
+describe("строго разчитане на отговора", () => {
+  const ok = {
+    verdict: "needs_fixes",
+    confidence: 55.6,
+    summary: "Има какво да се уточни",
+    checks: [
+      { id: "a", label: "Форма", status: "pass" },
+      { label: "", status: "pass" },
+      { label: "Срок", status: "нещо" },
+      "не е обект",
+    ],
+    missing_requisites: ["Липсва дата", 3, "  "],
+    unfilled_fields: ["[дата]"],
+    contradictions: [{ detail: "Разминаване", quote: "срок 12 месеца" }, { detail: "" }, 5],
+    legal_basis: [{ act: "ЗЗД", article: "чл. 20" }, { article: "чл. 9" }],
+    source: { v: REVIEW_SOURCE_VERSION, digest: "D" },
+    completeness: { status: "partial", reasons: ["x"] },
+  };
+
+  it("нечетливите записи се изхвърлят, валидните остават", () => {
+    const r = parseDocumentReview(ok)!;
+    expect(r.checks).toHaveLength(1);
+    expect(r.confidence).toBe(56);
+    expect(r.missing_requisites).toEqual(["Липсва дата"]);
+    expect(r.contradictions).toHaveLength(1);
+    expect(r.legal_basis).toHaveLength(1);
+    expect(r.completeness).toEqual({ status: "partial", reasons: ["x"] });
+  });
+
+  it("невалидна задължителна структура се отказва изцяло", () => {
+    expect(parseDocumentReview({ ...ok, verdict: "готово" })).toBeNull();
+    expect(parseDocumentReview({ ...ok, checks: "няма" })).toBeNull();
+    expect(parseDocumentReview({ ...ok, summary: 5 })).toBeNull();
+    expect(parseDocumentReview(null)).toBeNull();
+    expect(parseDocumentReview([])).toBeNull();
+  });
+
+  it("липсваща метаинформация не се измисля", () => {
+    const r = parseDocumentReview({ ...ok, source: undefined, completeness: undefined })!;
+    expect(r.source).toBeNull();
+    expect(r.completeness).toBeNull();
   });
 });
