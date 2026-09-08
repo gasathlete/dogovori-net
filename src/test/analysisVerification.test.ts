@@ -107,7 +107,7 @@ describe("presentAnalysisScore", () => {
   });
 
   it("непотвърдени метаданни канят към преглед, без да наричат находките потвърдени", () => {
-    const p = presentAnalysisScore({ score: 9, verification: { version: 99 } });
+    const p = presentAnalysisScore({ score: 9, verification: { version: 99 }, freshness: "current" });
     expect(p.showScore).toBe(false);
     expect(p.label).toBe("Не можем да потвърдим този анализ");
     expect(p.subtext).toBe("Прегледайте документа и посочените находки.");

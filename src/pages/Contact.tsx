@@ -127,7 +127,7 @@ export default function ContactPage() {
             <div className="grid gap-3">
               {uploaded.map((u) => {
                 const a = analyses[u.id];
-                const present = a ? presentAnalysisScore({ score: a.score, verification: a.verification }) : null;
+                const present = a ? presentAnalysisScore({ score: a.score, verification: a.verification, freshness: "unknown" }) : null;
                 const score = present?.showScore ? present.score : null;
                 const sevCls = a == null ? "border-border/40 text-muted-foreground"
                   : score == null ? "border-border/60 bg-muted/20 text-muted-foreground"
