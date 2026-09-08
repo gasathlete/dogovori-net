@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- фалшиви клиент/стрийм обекти в тест */
 /**
  * Q2e — реален жизнен цикъл на AssistantChat (не само стор/чисти помощници).
  *
