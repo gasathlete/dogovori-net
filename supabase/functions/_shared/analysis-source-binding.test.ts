@@ -14,7 +14,10 @@ import {
   resolveCachedAnalysis,
   validateAnalysisSourceBinding,
 } from "./analysis-source-binding.ts";
-import { validateAnalysisVerification } from "./analysis-evidence.ts";
+import {
+  type AnalysisVerificationMetadata,
+  validateAnalysisVerification,
+} from "./analysis-evidence.ts";
 
 const TEXT =
   "Наемателят дължи наем в размер на 1 200,00 EUR месечно. Наемодателят не дължи неустойка при забава.";
@@ -26,10 +29,10 @@ const binding = (text = TEXT, title = TITLE) =>
 const key = async (text = TEXT, title = TITLE) =>
   await computeAnalysisCacheKey({ promptVersion: "v6", binding: await binding(text, title) });
 
-const evidenceOk = () => ({
+const evidenceOk = (): AnalysisVerificationMetadata => ({
   version: 1,
   status: "evidence_checked",
-  reason_codes: [] as string[],
+  reason_codes: [],
   counts: {
     issues_raw: 1,
     issues_kept: 1,
@@ -41,7 +44,7 @@ const evidenceOk = () => ({
   score_trusted: true,
 });
 
-const evidenceIncomplete = () => ({
+const evidenceIncomplete = (): AnalysisVerificationMetadata => ({
   version: 1,
   status: "incomplete",
   reason_codes: ["quote_unverified"],
