@@ -132,7 +132,7 @@ export default function AccountPage() {
       (await import("@/hooks/useQuota")).fetchQuotaCached(user.id),
       supabase.from("profiles").select("display_name, company, vat_number").eq("id", user.id).maybeSingle(),
       supabase.from("uploaded_contracts").select("id,title,source,folder_id,contact_id,original_filename,storage_path,created_at").order("created_at", { ascending: false }),
-      supabase.from("risk_analyses").select("uploaded_contract_id,score,contract_type,created_at").order("created_at", { ascending: false }),
+      supabase.from("risk_analyses").select("uploaded_contract_id,score,contract_type,created_at,verification").order("created_at", { ascending: false }),
       supabase.from("corrections_batch_charges").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       supabase.from("corrections_batch_charges").select("created_at").eq("user_id", user.id).gte("created_at", since30).order("created_at", { ascending: true }).limit(1000),
       supabase.from("quota_session_charges").select("created_at").eq("user_id", user.id).gte("created_at", since30).order("created_at", { ascending: true }).limit(1000),

@@ -52,7 +52,7 @@ type UploadedContract = {
   original_filename: string | null; storage_path: string | null;
   created_at: string;
 };
-type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_type: string; created_at: string };
+type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_type: string; created_at: string; verification?: unknown };
 
 function SettingsTab({ profile, setProfile, userId }: {
   profile: { display_name: string | null; company: string | null; vat_number: string | null };

@@ -11,18 +11,26 @@ import { redactForAI, unredact } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import {
-  buildAnalysisVerification,
   isTrustedCachedVerification,
-  isValidModelScore,
-  NEUTRAL_STORED_SCORE,
-  normalizeEvidenceText,
-  verifyQuoteAgainstSource,
+  runAnalysisEvidencePipeline,
 } from "../_shared/analysis-evidence.ts";
 
 // PROMPT_VERSION — bump to invalidate cached analyses produced by older prompts.
 // v5: доказателствената проверка на цитатите е строга (един непрекъснат пасаж),
 // затова кешираните резултати от по-стари политики не се връщат като нови.
-const PROMPT_VERSION = "v5-evidence-q2a";
+const PROMPT_VERSION = "v6-evidence-q2a";
+
+// Правилата за доказателственост и за липсата на гаранции се ПРИЛАГАТ НАКРАЯ —
+// след активния промпт от базата — защото активният промпт заменя fallback-а.
+// Тук не се редактират промптите в базата.
+const EVIDENCE_RULES_SUFFIX = `
+
+ЗАДЪЛЖИТЕЛНИ ПРАВИЛА (имат предимство пред всичко по-горе):
+- За ВСЕКИ issue задължително давай "clause" — ДОСЛОВЕН непрекъснат цитат от текста между маркерите, 20-280 знака. Без перифраза, без превод, без сглобяване от отделни думи.
+- Всеки issue задължително има "severity" ("low"|"medium"|"high"), непразно "title" и непразно "explanation". Непълен issue се отхвърля автоматично.
+- Всяка липсваща клауза задължително има непразно "name".
+- Ако не можеш да намериш дословен пасаж — НЕ повдигай issue-то.
+- НЕ давай гаранция, че документът е безопасен за подписване, и не твърди, че е „без рискове". Оценката описва само обхвата на тази автоматична проверка и не замества правен съвет.`;
 
 const SYSTEM_PROMPT = `Ти си водещ български правен експерт по договорно право (ЗЗД, ТЗ, ЗУТ, ЗЗП, ЗЗЛД).
 Анализираш ИЗКЛЮЧИТЕЛНО предоставения текст на договор и връщаш СТРОГО валиден JSON по схемата по-долу. Без markdown ограждания.
@@ -49,7 +57,7 @@ const SYSTEM_PROMPT = `Ти си водещ български правен ек
   (e) Съществен правен риск за подписващия (загуба на собственост без насрещна престация, лична отговорност без ограничение).
 
 СКАЛА НА ОЦЕНКАТА (1-10) — стриктно се придържай към тази скала:
-- 9-10: Изряден договор. Всички съществени клаузи присъстват, балансиран, без рискове. Малки стилови забележки са допустими.
+- 9-10: Изряден договор. Всички съществени клаузи присъстват и е балансиран, без установен риск в обхвата на този анализ. Това не е гаранция за безопасност. Малки стилови забележки са допустими.
 - 7-8: Добър договор. Малки несъвършенства (липсва форсмажор, неясна подсъдност), но БЕЗ установен риск за подписващия в обхвата на този анализ. Не давай гаранция за безопасност на подписването.
 - 5-6: Приемлив, но с препоръчителни корекции. 1-2 средни рискове или липсват важни клаузи (неустойка, прекратяване).
 - 3-4: Проблемен. Съществени неравнопоставености, неясни ключови клаузи или липсва защита за едната страна. Не подписвай без преговори.
@@ -363,9 +371,12 @@ ${payloadText}
     // RAG: ground analysis in the regulated legal knowledge base.
     const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
     const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, payloadText.slice(0, 4000), { matchCount: 6 });
-    const activeSystemPrompt = legal.hasMatches
+    const groundedSystemPrompt = legal.hasMatches
       ? `${baseSystemPrompt}\n\n${legal.promptBlock}`
       : baseSystemPrompt;
+    // Суфиксът се добавя ПОСЛЕДЕН, за да важи и когато активният промпт от
+    // базата е заменил вградения fallback.
+    const activeSystemPrompt = `${groundedSystemPrompt}${EVIDENCE_RULES_SUFFIX}`;
 
     const callAi = async (modelName: string) => {
       return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -465,106 +476,45 @@ ${payloadText}
     // works against the original source text).
     if (Object.keys(redaction.mapping).length > 0) {
       const unmap = redaction.mapping;
-      if (typeof parsed.summary === "string") parsed.summary = unredact(parsed.summary, unmap);
-      if (typeof parsed.contract_type === "string") parsed.contract_type = unredact(parsed.contract_type, unmap);
-      if (Array.isArray(parsed.issues)) {
-        parsed.issues = parsed.issues.map((it: Record<string, unknown>) => ({
-          ...it,
-          title: typeof it.title === "string" ? unredact(it.title, unmap) : it.title,
-          clause: typeof it.clause === "string" ? unredact(it.clause, unmap) : it.clause,
-          explanation: typeof it.explanation === "string" ? unredact(it.explanation, unmap) : it.explanation,
-          suggestion: typeof it.suggestion === "string" ? unredact(it.suggestion, unmap) : it.suggestion,
-        }));
+      const un = (v: unknown) => (typeof v === "string" ? unredact(v, unmap) : v);
+      if (typeof parsed?.summary === "string") parsed.summary = unredact(parsed.summary, unmap);
+      if (typeof parsed?.contract_type === "string") parsed.contract_type = unredact(parsed.contract_type, unmap);
+      // Пазим се ПРЕДИ четене на полета: null / число / масив не се докосва и не
+      // хвърля — схемната валидация по-долу ще го отчете като невалиден елемент.
+      const isObj = (v: unknown): v is Record<string, unknown> =>
+        !!v && typeof v === "object" && !Array.isArray(v);
+      if (Array.isArray(parsed?.issues)) {
+        parsed.issues = parsed.issues.map((it: unknown) =>
+          isObj(it)
+            ? { ...it, title: un(it.title), clause: un(it.clause), explanation: un(it.explanation), suggestion: un(it.suggestion) }
+            : it
+        );
       }
-      if (Array.isArray(parsed.missing_clauses)) {
-        parsed.missing_clauses = parsed.missing_clauses.map((m: Record<string, unknown>) => ({
-          ...m,
-          name: typeof m.name === "string" ? unredact(m.name, unmap) : m.name,
-          why: typeof m.why === "string" ? unredact(m.why, unmap) : m.why,
-        }));
+      if (Array.isArray(parsed?.missing_clauses)) {
+        parsed.missing_clauses = parsed.missing_clauses.map((m: unknown) =>
+          isObj(m) ? { ...m, name: un(m.name), why: un(m.why) } : m
+        );
       }
     }
-
-    const issuesIsArray = Array.isArray(parsed?.issues);
-    const missingIsArray = Array.isArray(parsed?.missing_clauses);
-    const rootShapeValid = !!parsed && typeof parsed === "object" &&
-      issuesIsArray && missingIsArray && typeof parsed.summary === "string";
-    const rawIssues = issuesIsArray ? parsed.issues : [];
-    const rawMissing = missingIsArray ? parsed.missing_clauses : [];
 
     // === Доказателствена проверка (Q2a) ===
-    // Проверяваме срещу ТОЧНО текста, който е бил изпратен на модела (`truncated`),
-    // а не срещу непратения остатък от дълъг документ.
-    const normalizedSentText = normalizeEvidenceText(truncated);
-    const normalizedSource = normalizeForMatch(text);
+    // Обосноваваме САМО срещу оригиналния текст, изпратен на модела — без
+    // служебния маркер за съкращаване, който не е част от документа.
     const wasTruncated = compacted.length > MAX_CHARS;
+    const evidenceSource = wasTruncated ? compacted.slice(0, MAX_CHARS) : compacted;
 
-    const verifiedIssues: unknown[] = [];
-    let malformedIssues = 0;
-    let quoteRejected = 0;
-    for (const iss of rawIssues) {
-      if (!iss || typeof iss !== "object" || Array.isArray(iss)) {
-        malformedIssues++;
-        console.warn("Отхвърлена находка: невалидна структура");
-        continue;
-      }
-      const verdict = verifyQuoteAgainstSource((iss as Record<string, unknown>).clause, normalizedSentText);
-      if (verdict.verified) {
-        verifiedIssues.push(iss);
-      } else {
-        quoteRejected++;
-        // Само код за причина — без заглавия и без цитати в лога.
-        console.warn("Отхвърлена находка без текстово покритие:", verdict.reason);
-      }
-    }
-
-    const verifiedMissing: unknown[] = [];
-    let filteredMissingCount = 0;
-    for (const m of rawMissing) {
-      if (isClauseActuallyMissing(String((m as Record<string, unknown>)?.name ?? ""), normalizedSource)) {
-        verifiedMissing.push(m);
-      } else {
-        filteredMissingCount++;
-        console.warn("Отхвърлена липсваща клауза: намерен синоним в текста");
-      }
-    }
-
-    // Оценката НЕ се повишава заради отпаднали находки — липсата на доказателство
-    // не е доказателство за безопасност. Запазват се само таваните по тежест.
-    const scoreValid = isValidModelScore(parsed.score);
-    let score = scoreValid ? Number(parsed.score) : NEUTRAL_STORED_SCORE;
-
-    // Post-validation cap: if there are verified high/medium severity issues,
-    // a high score is incoherent (and a classic prompt-injection symptom).
-    const highCount = verifiedIssues.filter((i: any) => i?.severity === "high").length;
-    const medCount  = verifiedIssues.filter((i: any) => i?.severity === "medium").length;
-    // Softened caps: only severe high-severity issues drag the score down hard.
-    if (highCount >= 3) score = Math.min(score, 3);
-    else if (highCount === 2) score = Math.min(score, 5);
-    else if (highCount === 1) score = Math.min(score, 6);
-    else if (medCount >= 4) score = Math.min(score, 6);
-    else if (medCount >= 2) score = Math.min(score, 7);
-
-    const verification = buildAnalysisVerification({
-      rootShapeValid,
-      issuesIsArray,
-      missingIsArray,
-      issuesRaw: rawIssues.length,
-      issuesKept: verifiedIssues.length,
-      malformedIssues,
-      quoteRejected,
-      missingRaw: rawMissing.length,
-      missingKept: verifiedMissing.length,
-      missingRejected: filteredMissingCount,
+    const pipeline = runAnalysisEvidencePipeline({
+      parsed,
+      sentText: evidenceSource,
+      normalizedSource: normalizeForMatch(text),
       inputTruncated: wasTruncated,
-      scoreValid,
-      sourceTextHash: normalizedHash,
+      isClauseActuallyMissing,
     });
-
-    const baseSummary = typeof parsed.summary === "string" ? parsed.summary : "";
-    const summary = verification.status === "incomplete"
-      ? `${baseSummary.slice(0, 3700)}\n\n(Бележка: проверката на този анализ не е пълна — част от данните не бяха потвърдени срещу текста на договора. Резултатът не е оценка за безопасност.)`
-      : baseSummary.slice(0, 4000);
+    const verification = pipeline.verification;
+    // Само кодове в лога — без заглавия, цитати и идентификатори.
+    if (verification.status === "incomplete") {
+      console.warn("Непълна доказателствена проверка:", verification.reason_codes.join(","));
+    }
 
     const { data: inserted, error: insErr } = await admin
       .from("risk_analyses")
@@ -572,11 +522,11 @@ ${payloadText}
         uploaded_contract_id: contract.id,
         user_id: userId,
         model,
-        score,
-        contract_type: String(parsed.contract_type ?? "").slice(0, 200),
-        summary,
-        issues: verifiedIssues,
-        missing_clauses: verifiedMissing,
+        score: pipeline.score,
+        contract_type: pipeline.contractType,
+        summary: pipeline.summary,
+        issues: pipeline.issues,
+        missing_clauses: pipeline.missingClauses,
         text_hash: normalizedHash,
         verification,
       })

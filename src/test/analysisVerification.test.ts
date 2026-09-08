@@ -5,108 +5,139 @@ import {
   parseAnalysisVerification,
   presentAnalysisScore,
 } from "@/lib/analysisVerification";
+import { VERIFICATION_FIXTURES } from "./analysisVerificationFixtures";
 
 const checked = {
   version: 1,
   status: "evidence_checked",
   reason_codes: [],
   counts: {
-    issues_raw: 2,
-    issues_kept: 2,
+    issues_raw: 1,
+    issues_kept: 1,
     issues_rejected: 0,
-    missing_raw: 1,
-    missing_kept: 1,
+    missing_raw: 0,
+    missing_kept: 0,
     missing_rejected: 0,
   },
   score_trusted: true,
 };
 
 const incomplete = {
-  ...checked,
+  version: 1,
   status: "incomplete",
   reason_codes: ["quote_unverified"],
+  counts: {
+    issues_raw: 2,
+    issues_kept: 1,
+    issues_rejected: 1,
+    missing_raw: 0,
+    missing_kept: 0,
+    missing_rejected: 0,
+  },
   score_trusted: false,
 };
 
-describe("parseAnalysisVerification", () => {
-  it("липсващи метаданни са legacy_unverified", () => {
-    expect(parseAnalysisVerification(null).status).toBe("legacy_unverified");
-    expect(parseAnalysisVerification(undefined).status).toBe("legacy_unverified");
+describe("parseAnalysisVerification — строга схема, огледална на edge функцията", () => {
+  it("решава еднакво с edge валидатора по общия набор случаи", () => {
+    for (const f of VERIFICATION_FIXTURES) {
+      const parsed = parseAnalysisVerification(f.value);
+      const accepted = parsed.status === "evidence_checked" || parsed.status === "incomplete";
+      expect(accepted, f.name).toBe(f.valid);
+      if (!f.valid) expect(parsed.status, f.name).toBe("unverified");
+      if (!f.valid) expect(parsed.scoreTrusted, f.name).toBe(false);
+    }
   });
 
-  it("повредени или несъвместими метаданни са unverified", () => {
-    expect(parseAnalysisVerification("evidence_checked").status).toBe("unverified");
-    expect(parseAnalysisVerification([]).status).toBe("unverified");
-    expect(parseAnalysisVerification({ version: 2, status: "evidence_checked" }).status).toBe("unverified");
-    expect(parseAnalysisVerification({ version: 1, status: "clean" }).status).toBe("unverified");
+  it("липсата на метаданни е legacy_unverified", () => {
+    for (const v of [null, undefined]) {
+      const p = parseAnalysisVerification(v);
+      expect(p.status).toBe("legacy_unverified");
+      expect(p.scoreTrusted).toBe(false);
+      expect(p.counts).toBeNull();
+    }
   });
 
-  it("не се доверява на score_trusted при incomplete", () => {
-    const p = parseAnalysisVerification({ ...incomplete, score_trusted: true });
-    expect(p.status).toBe("incomplete");
+  it("не се доверява на непълни метаданни без броеве", () => {
+    const p = parseAnalysisVerification({ version: 1, status: "evidence_checked", score_trusted: true });
+    expect(p.status).toBe("unverified");
     expect(p.scoreTrusted).toBe(false);
   });
 
-  it("нечислови броячи стават нула, а не NaN", () => {
-    const p = parseAnalysisVerification({ ...checked, counts: { issues_raw: "3" } });
-    expect(p.counts?.issuesRaw).toBe(0);
-    expect(p.counts?.issuesKept).toBe(0);
+  it("не се доверява на противоречиви метаданни", () => {
+    const p = parseAnalysisVerification({ ...incomplete, status: "evidence_checked", score_trusted: true });
+    expect(p.status).toBe("unverified");
+  });
+
+  it("валидните метаданни връщат типизирани броеве", () => {
+    const p = parseAnalysisVerification(incomplete);
+    expect(p.status).toBe("incomplete");
+    expect(p.counts).toEqual({
+      issuesRaw: 2,
+      issuesKept: 1,
+      issuesRejected: 1,
+      missingRaw: 0,
+      missingKept: 0,
+      missingRejected: 0,
+    });
   });
 });
 
 describe("presentAnalysisScore", () => {
-  it("показва оценка само при напълно обоснован анализ", () => {
+  it("показва оценка само при потвърден анализ", () => {
     const p = presentAnalysisScore({ score: 8, verification: checked });
     expect(p.showScore).toBe(true);
     expect(p.score).toBe(8);
     expect(p.notice).toBeNull();
-    expect(p.subtext).not.toContain("безопасен за подпис");
   });
 
-  it("непълен анализ не показва оценка и обяснява защо", () => {
+  it("непълен анализ не показва оценка", () => {
     const p = presentAnalysisScore({ score: 9, verification: incomplete });
     expect(p.showScore).toBe(false);
     expect(p.score).toBeNull();
-    expect(p.tone).toContain("muted");
     expect(p.notice).toContain("не е пълна");
   });
 
-  it("стар запис се показва неутрално, без сертифициране със задна дата", () => {
-    const p = presentAnalysisScore({ score: 10, verification: null });
+  it("легаси запис се показва неутрално, без оценка със задна дата", () => {
+    const p = presentAnalysisScore({ score: 9, verification: null });
     expect(p.showScore).toBe(false);
-    expect(p.label).toContain("без запис");
+    expect(p.label).toBe("Анализ без запис от проверката");
   });
 
-  it("невалидна оценка не се показва дори при потвърдени метаданни", () => {
-    for (const bad of [0, 11, NaN, "8", null, undefined]) {
-      expect(presentAnalysisScore({ score: bad, verification: checked }).showScore).toBe(false);
+  it("дробна оценка НЕ се закръгля, а се отхвърля", () => {
+    for (const bad of [7.5, 0, 11, NaN, Infinity, "8", null, undefined]) {
+      const p = presentAnalysisScore({ score: bad, verification: checked });
+      expect(p.showScore).toBe(false);
+      expect(p.score).toBeNull();
     }
   });
 
-  it("нито един етикет не обещава безопасен подпис", () => {
-    for (const s of [1, 3, 5, 7, 9, 10]) {
+  it("никъде няма гаранция за безопасен подпис", () => {
+    for (const s of [1, 5, 8, 10]) {
       const p = presentAnalysisScore({ score: s, verification: checked });
-      expect(`${p.label} ${p.subtext}`.toLowerCase()).not.toContain("безопасен");
+      const txt = `${p.label} ${p.subtext}`;
+      expect(txt).not.toMatch(/безопас/i);
+      expect(txt).not.toMatch(/без рискове/i);
+      expect(txt).not.toMatch(/гарант(ира|ирано)\b/i);
     }
   });
 });
 
-describe("emptyIssuesMessage", () => {
-  it("непълна проверка не твърди липса на риск", () => {
+describe("текстове при нула находки и в списъци", () => {
+  it("непълен анализ без находки не звучи безрисково", () => {
     expect(emptyIssuesMessage(incomplete)).toBe("Няма потвърдени находки; проверката не е пълна.");
     expect(emptyIssuesMessage(null)).toBe("Няма потвърдени находки; проверката не е пълна.");
+    expect(emptyIssuesMessage({ version: 1, status: "evidence_checked" })).toBe(
+      "Няма потвърдени находки; проверката не е пълна.",
+    );
   });
 
-  it("обоснован анализ пак не дава правна гаранция", () => {
+  it("потвърден анализ без находки пак не е правна гаранция", () => {
     expect(emptyIssuesMessage(checked)).toContain("не е правна гаранция");
   });
-});
 
-describe("analysisBadge", () => {
-  it("зелен бадж е възможен само при потвърден анализ", () => {
+  it("баджът е неутрален при непотвърдени метаданни", () => {
+    expect(analysisBadge({ score: 9, verification: incomplete }).text).toBe("непотвърден");
+    expect(analysisBadge({ score: 9, verification: null }).text).toBe("непотвърден");
     expect(analysisBadge({ score: 9, verification: checked }).text).toBe("9/10");
-    const b = analysisBadge({ score: 9, verification: incomplete });
-    expect(b.text).toBe("непотвърден");
-    expect(b.className).not.toContain("emerald");
   });
 });
