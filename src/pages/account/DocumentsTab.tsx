@@ -371,7 +371,6 @@ function DocumentsTab({
               {uploaded.map((u) => {
                 const a = analysesByContract[u.id];
                 // Оценка се показва само при потвърден анализ; иначе неутрален бадж.
-                // Оценка се показва само при потвърден анализ; иначе неутрален бадж.
                 const pres = a ? presentAnalysisScore({ score: a.score, verification: a.verification }) : null;
                 const trustedScore = pres?.showScore ? pres.score : null;
                 const sevCls = pres ? pres.tone : "border-border/40 text-muted-foreground";
