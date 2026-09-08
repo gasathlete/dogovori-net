@@ -102,7 +102,7 @@ export default function UploadedContractPage() {
     onNotice: (kind, message) => (kind === "success" ? toast.success(message) : toast.error(message)),
   });
   const {
-    contract, analysis, contacts, savedDocId, loading,
+    contract, analysis, contacts, savedDocId, loading, loadError, retryLoad,
     editText, titleDraft, contactId, setEditText, setTitleDraft,
     dirtyText, dirtyTitle, hasUnsavedChanges, remoteConflict, conflictUnresolved,
     savingText, savingTitle, savingContact, creatingShare,
@@ -422,6 +422,19 @@ export default function UploadedContractPage() {
     );
   }
 
+  if (loadError && !contract) {
+    return (
+      <div className="min-h-dvh">
+        <Header />
+        <main className="container py-10 space-y-4">
+          <p className="text-sm text-muted-foreground">{loadError}</p>
+          <Button variant="outline" size="sm" onClick={retryLoad}>Опитай пак</Button>
+          <div><Link to="/account?tab=documents" className="text-gold">← Към профила</Link></div>
+        </main>
+      </div>
+    );
+  }
+
   if (!contract) {
     return (
       <div className="min-h-dvh">
@@ -433,6 +446,7 @@ export default function UploadedContractPage() {
       </div>
     );
   }
+
 
   return (
     <div className="min-h-dvh">
@@ -664,6 +678,13 @@ export default function UploadedContractPage() {
         </Dialog>
 
         {/* DOCUMENT EDITOR + LINKED CONTACT + SIGNING — always visible */}
+        {loadError && contract && (
+          <section className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-card/50 p-4 text-sm text-muted-foreground">
+            <span>{loadError}</span>
+            <Button variant="outline" size="sm" onClick={retryLoad}>Опитай пак</Button>
+          </section>
+        )}
+
         {conflictUnresolved && (
           <section className="mt-6 rounded-xl border border-amber-300/50 bg-amber-300/10 p-4 text-sm text-amber-100">
             <h2 className="font-serif text-lg font-bold">Документът е променен и на друго място</h2>
