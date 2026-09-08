@@ -186,7 +186,7 @@ export default function UploadedContractPage() {
       if (!isCurrentRequest(token, loadTokenRef, startedIdentity)) return;
       const c = (cRes.data as Contract | null) ?? null;
       setContract(c);
-      setAnalysis((aRes.data as Analysis | null) ?? null);
+      setAnalysis((aRes.data as unknown as Analysis | null) ?? null);
       setContacts(((kRes.data as Contact[] | null) ?? []) as Contact[]);
       if (c && !opts?.keepDrafts) {
         setEditText(c.extracted_text ?? "");
@@ -235,7 +235,7 @@ export default function UploadedContractPage() {
       .limit(1)
       .maybeSingle();
     if (!isCurrentRequest(token, loadTokenRef, startedIdentity)) return;
-    setAnalysis((data as Analysis | null) ?? null);
+    setAnalysis((data as unknown as Analysis | null) ?? null);
   }, [id, user]);
 
   // ---------------------------------------------------------------------------
@@ -408,7 +408,7 @@ export default function UploadedContractPage() {
       selection,
       userConfirmed: false,
     });
-    if (!built.ok) {
+    if (built.ok !== true) {
       toast.error(CORRECTION_REQUEST_MESSAGES[built.reason]);
       return;
     }
@@ -486,7 +486,7 @@ export default function UploadedContractPage() {
   const updateShareableCopy = async (
     docIdAtStart: string,
     savedCopyId: string,
-    patch: { title?: string; payload?: unknown },
+    patch: { title?: string; payload?: ReturnType<typeof textToPayload> },
   ) => {
     if (!isSameViewIdentity({ docId: docIdAtStart, userId: user?.id ?? null }, identityRef.current)) return;
     await supabase.from("saved_documents").update(patch).eq("id", savedCopyId);
