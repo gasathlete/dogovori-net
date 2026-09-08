@@ -193,20 +193,21 @@ export function presentAnalysisScore(input: {
   const parsed = parseAnalysisVerification(input.verification);
 
   if (!parsed.scoreTrusted || !usableScore(input.score)) {
-    return {
-      showScore: false,
-      score: null,
-      tone: NEUTRAL_ANALYSIS_TONE,
-      label:
-        parsed.status === "legacy_unverified"
-          ? "Анализ без запис от проверката"
-          : "Оценката не е потвърдена",
-      subtext:
-        parsed.status === "legacy_unverified"
-          ? "По-стар анализ — показва се неутрално, без оценка със задна дата."
-          : "Показваме само потвърдените находки по-долу.",
-      notice: UNVERIFIED_NOTICE,
-    };
+    let label = "Не можем да потвърдим този анализ";
+    let subtext = "Прегледайте документа и посочените находки.";
+    let notice = UNCONFIRMED_NOTICE;
+
+    if (parsed.status === "legacy_unverified") {
+      label = "Предишен анализ";
+      subtext = "Направете нов анализ, за да получите актуална проверка.";
+      notice = LEGACY_NOTICE;
+    } else if (parsed.status === "incomplete") {
+      label = "Част от проверката не е завършена";
+      subtext = "Потвърдените находки остават видими.";
+      notice = INCOMPLETE_NOTICE;
+    }
+
+    return { showScore: false, score: null, tone: NEUTRAL_ANALYSIS_TONE, label, subtext, notice };
   }
 
   const s = input.score;
