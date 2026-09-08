@@ -9,10 +9,23 @@
 --   upgrade_completed on the checkout return page), not payment truth.
 -- * tracked_sessions is first-party page_view context, not Lovable unique
 --   visitors.
+-- * proven_payers_total means distinct users with AUTOMATED LIVE+PAID
+--   snapshot proof since payment_truth_cutover. It does NOT mean active
+--   subscribers, does NOT measure progress toward any subscriber goal,
+--   and deliberately excludes the unverified legacy baseline (see
+--   legacy_subscription_users_unverified below).
 --
 -- Fixed payment-truth cutover: timestamptz '2026-09-07 22:42:00+00'.
 -- order_snapshots before that moment do not carry payment truth and are
 -- excluded from automated proven payments entirely.
+--
+-- Historical baseline truth note: a live legacy subscription/team row with
+-- a stripe_subscription_id proves a Stripe relationship existed, but NOT
+-- paid status by itself. Until independently verified historical payment
+-- evidence can be integrated, the legacy baseline is reported separately
+-- as legacy_subscription_users_unverified and is NEVER unioned into
+-- proven_payers_total. historical_payment_baseline_verified is an
+-- explicit false until that verification exists.
 
 CREATE OR REPLACE FUNCTION public.owner_scorecard(_from timestamptz, _to timestamptz)
 RETURNS jsonb
