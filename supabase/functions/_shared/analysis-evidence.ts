@@ -152,11 +152,15 @@ export function isIssueSchemaValid(item: unknown): boolean {
   return typeof item.clause === "string";
 }
 
-/** Валидна липсваща клауза: смислено име и (по избор) обяснение. */
+/**
+ * Валидна липсваща клауза: смислено име И непразно обяснение защо липсата има
+ * значение. Предложение без „защо" не е препоръка, която ползвателят може да
+ * прецени, затова се отчита като `missing_clause_malformed`.
+ */
 export function isMissingClauseSchemaValid(item: unknown): boolean {
   if (!isPlainObject(item)) return false;
   if (!boundedNonEmptyString(item.name, NAME_MAX_CHARS)) return false;
-  return optionalBoundedString(item.why, WHY_MAX_CHARS);
+  return boundedNonEmptyString(item.why, WHY_MAX_CHARS);
 }
 
 // ---------------------------------------------------------------------------
