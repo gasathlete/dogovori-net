@@ -119,7 +119,7 @@ describe("закъснели зареждания", () => {
     await userEvent.type(title, "Моят вариант");
     // Външна промяна (приета редакция от DogovaryAI) стартира презареждане.
     window.dispatchEvent(
-      new CustomEvent("dogovaryai:saved-document-updated", { detail: { documentId: DOC_A } }),
+      new CustomEvent("dogovori:saved-document-updated", { detail: { documentId: DOC_A } }),
     );
     await waitFor(() => expect(screen.getByTestId("document-external-update")).toBeTruthy());
     expect(screen.getByDisplayValue("Моят вариант")).toBeTruthy();
