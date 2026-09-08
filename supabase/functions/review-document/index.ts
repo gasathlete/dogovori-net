@@ -11,6 +11,10 @@ import { redactForAI } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
+import {
+  isDeferredLocalPlaceholder,
+  softenDeferredCheck,
+} from "../_shared/deferred-personal-scope.ts";
 
 const SYSTEM_PROMPT = `Ти си независим български правен ревизор (втори проход). Получаваш ГОТОВ документ и правиш техническа ревизия. НЕ пренаписваш текста.
 
@@ -45,17 +49,10 @@ const SYSTEM_PROMPT = `Ти си независим български прав�
 - КРИТИЧНО: в текстовите стойности НЕ използвай двойни кавички. Наименования пиши без кавички или с единични (Алфа ООД / 'Алфа' ООД), за да е JSON-ът винаги валиден.`;
 
 
-// Полета, които потребителят попълва локално след сваляне (лични/идентификационни данни).
-const PERSONAL_HINTS = [
-  "име", "имена", "егн", "лнч", "еик", "булстат", "адрес", "седалище", "иban", "iban",
-  "сметка", "телефон", "имейл", "email", "лична карта", "паспорт", "дата", "град",
-  "представител", "мол", "подпис", "ддс",
-];
+// Отложените локални полета се разпознават консервативно (виж helper-а):
+// само конкретни празни placeholder токени за идентичност/контакт, доказани в
+// оригиналния текст, и само когато не се твърди същностен проблем.
 
-function isPersonalField(text: string): boolean {
-  const t = text.toLowerCase();
-  return PERSONAL_HINTS.some((h) => t.includes(h));
-}
 
 
 Deno.serve(async (req: Request) => {
@@ -102,9 +99,10 @@ Deno.serve(async (req: Request) => {
 
     const scopeNote = ignorePersonalData
       ? [
-          "ОБХВАТ: Потребителят ще попълни личните и идентификационните данни локално след сваляне.",
-          "Затова НЕ отчитай като пропуск или липсващ реквизит непопълнени полета за имена, ЕГН/ЛНЧ, ЕИК/Булстат, адреси, седалище, IBAN/банкова сметка, телефон, имейл, лична карта, дата, град, представител и подпис.",
-          "Върни празен масив \"unfilled_fields\" за такива полета и анализирай САМО генерираното съдържание — структура, клаузи, вътрешна логика и правни основания.",
+          "ОБХВАТ: Потребителят ще попълни локално, след сваляне, САМО празните полета за идентичност и контакт.",
+          "Не отчитай като пропуск ЕДИНСТВЕНО конкретни празни placeholder полета за: имена, ЕГН/ЛНЧ, ЕИК/Булстат, адрес/седалище, IBAN/банкова сметка, телефон, имейл, лична карта, представител/МОЛ, град.",
+          "ВСИЧКО останало се проверява и отчита в пълна сила: срокове и дати, суми, валута, противоречия между клаузите, различни наименования на страните, изисквания за форма, подписи, нотариална заверка, вписване и правни основания.",
+          "Отлагането важи само за попълването на такова празно поле; то никога не оправдава пропуск по същество.",
         ].join("\n")
       : "";
 
@@ -183,21 +181,22 @@ Deno.serve(async (req: Request) => {
         : "needs_fixes",
       confidence: Math.max(0, Math.min(100, Number(parsed.confidence) || 0)),
       summary: typeof parsed.summary === "string" ? parsed.summary : "",
-      checks: arr(parsed.checks).slice(0, 12).filter((c) => {
-        // При отложено попълване на лични данни скриваме "fail" само заради тях.
-        if (!ignorePersonalData) return true;
-        const rec = c as Record<string, unknown>;
-        if (String(rec.status) !== "fail") return true;
-        return !isPersonalField(`${rec.label ?? ""} ${rec.note ?? ""}`);
-      }),
+      // Проверките никога не се изтриват — при доказано отложено локално поле
+      // "fail" се сваля до видим "warn" с бележка "За попълване преди използване".
+      checks: arr(parsed.checks).slice(0, 12).map((c) =>
+        ignorePersonalData
+          ? softenDeferredCheck(c as Record<string, unknown>, documentText)
+          : c
+      ),
       missing_requisites: arr(parsed.missing_requisites)
         .filter((x) => typeof x === "string")
-        .filter((x) => !ignorePersonalData || !isPersonalField(x as string)),
+        .filter((x) => !ignorePersonalData || !isDeferredLocalPlaceholder(x as string, documentText)),
       contradictions: arr(parsed.contradictions).slice(0, 10),
       unfilled_fields: arr(parsed.unfilled_fields)
         .filter((x) => typeof x === "string")
-        .filter((x) => !ignorePersonalData || !isPersonalField(x as string))
+        .filter((x) => !ignorePersonalData || !isDeferredLocalPlaceholder(x as string, documentText))
         .slice(0, 20),
+
 
       legal_basis: arr(parsed.legal_basis).slice(0, 12),
       model: route.model,
