@@ -80,17 +80,24 @@ function asDict(value: unknown): Dict | null {
   return value as Dict;
 }
 
-/** Броячите трябва да са цели, крайни и неотрицателни — иначе отговорът е повреден. */
+/**
+ * Броячите трябва да са истински JSON числа — цели, безопасни и неотрицателни.
+ * Низове (включително празен низ или „ "), булеви стойности, null и NaN се
+ * отхвърлят, за да не се произвежда измислена нула.
+ */
 function asCount(value: unknown): number | null {
-  const n = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
-  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) return null;
-  return n;
+  if (typeof value !== "number") return null;
+  if (!Number.isSafeInteger(value) || value < 0) return null;
+  return value;
 }
 
 function asTimestamp(value: unknown): string | null {
   if (typeof value !== "string" || value.trim() === "") return null;
   return Number.isFinite(Date.parse(value)) ? value : null;
 }
+
+/** Максимално допустима заявена продължителност на периода. */
+const MAX_RANGE_DAYS = 366;
 
 function readCounts<K extends string>(source: Dict, keys: readonly K[]): Record<K, number> | null {
   const out = {} as Record<K, number>;
