@@ -681,6 +681,12 @@ export default function UploadedContractPage() {
               Качен на {new Date(contract.created_at).toLocaleDateString("bg-BG")} · {contract.source.toUpperCase()}
               {contract.original_filename && <> · {contract.original_filename}</>}
             </div>
+            {hasUnsavedChanges && (
+              <p className="mt-2 rounded-md border border-amber-300/40 bg-amber-300/10 p-2 text-xs text-amber-200">
+                Има незапазени промени{dirtyText && dirtyTitle ? " в текста и името" : dirtyTitle ? " в името" : " в текста"}.
+                Оценката е скрита, а анализът и корекциите са спрени, докато не запазите.
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
             {contract.storage_path && (
@@ -688,12 +694,23 @@ export default function UploadedContractPage() {
                 <Download className="mr-2 h-4 w-4" /> Свали оригинала
               </Button>
             )}
-            <Button onClick={reanalyze} disabled={analyzing} className="bg-gradient-gold text-navy">
+            <Button
+              onClick={reanalyze}
+              disabled={analyzing || hasUnsavedChanges}
+              title={hasUnsavedChanges ? "Запазете промените, преди да анализирате." : undefined}
+              className="bg-gradient-gold text-navy"
+            >
               {analyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
               {analysis ? "Анализирай отново" : "Стартирай анализ"}
             </Button>
             {analysis && (
-              <Button onClick={openPicker} disabled={correcting} variant="outline" className="border-gold/40 hover:bg-gold/10 hover:text-gold">
+              <Button
+                onClick={openPicker}
+                disabled={correcting || !actionable}
+                title={!actionable ? "Нужен е анализ на текущия запазен текст." : undefined}
+                variant="outline"
+                className="border-gold/40 hover:bg-gold/10 hover:text-gold"
+              >
                 {correcting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
                 Предложи корекции
               </Button>
@@ -830,6 +847,11 @@ export default function UploadedContractPage() {
             </DialogHeader>
             {corrections && (
               <div className="space-y-4">
+                {correctionStale && (
+                  <p className="rounded-lg border border-amber-300/40 bg-amber-300/10 p-3 text-xs text-amber-200">
+                    {STALE_CORRECTION_NOTICE}
+                  </p>
+                )}
                 {corrections.changes?.length > 0 && (
                   <div className="rounded-lg border border-gold/30 bg-gold/5 p-3">
                     <div className="text-xs uppercase tracking-wider text-gold mb-2">Ключови промени</div>
@@ -842,10 +864,10 @@ export default function UploadedContractPage() {
                   {corrections.corrected_text}
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={async () => { const ok = await copyToClipboard(corrections.corrected_text); ok ? toast.success("Копирано") : toast.error("Копирането не е разрешено"); }} className="bg-gradient-gold text-navy">
+                  <Button disabled={correctionStale} onClick={async () => { const ok = await copyToClipboard(corrections.corrected_text); ok ? toast.success("Копирано") : toast.error("Копирането не е разрешено"); }} className="bg-gradient-gold text-navy">
                     <Copy className="mr-2 h-4 w-4" /> Копирай
                   </Button>
-                  <Button variant="outline" onClick={() => {
+                  <Button variant="outline" disabled={correctionStale} onClick={() => {
                     const blob = new Blob([corrections.corrected_text], { type: "text/plain;charset=utf-8" });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");
@@ -946,7 +968,7 @@ export default function UploadedContractPage() {
           <div className="mt-8 rounded-xl border border-border/60 bg-gradient-card p-10 text-center">
             <Bird className="mx-auto h-8 w-8 text-gold" />
             <p className="mt-3 text-sm text-muted-foreground">Все още няма анализ за този договор.</p>
-            <Button onClick={reanalyze} disabled={analyzing} className="mt-4 bg-gradient-gold text-navy">
+            <Button onClick={reanalyze} disabled={analyzing || hasUnsavedChanges} className="mt-4 bg-gradient-gold text-navy">
               {analyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bird className="mr-2 h-4 w-4" />}
               Стартирай AI риск-анализ
             </Button>
@@ -996,11 +1018,8 @@ export default function UploadedContractPage() {
                 <div className="mb-1 uppercase tracking-wider">Анализ от</div>
                 <div>{new Date(analysis.created_at).toLocaleString("bg-BG")}</div>
                 <div className="mt-2">Модел: {analysis.model}</div>
-                {analysis.text_hash !== contract.text_hash && (
-                  <div className="mt-2 rounded bg-muted/30 p-2 text-muted-foreground">
-                    Актуалността на този анализ не е потвърдена — възможно е текстът да е
-                    променян след него. Обвързването с точния източник предстои.
-                  </div>
+                {historyNotice && (
+                  <div className="mt-2 rounded bg-muted/30 p-2 text-muted-foreground">{historyNotice}</div>
                 )}
               </div>
             </aside>
@@ -1009,8 +1028,13 @@ export default function UploadedContractPage() {
               {/* TYPE & SUMMARY */}
               <section className="rounded-xl border border-border/60 bg-gradient-card p-6">
                 <div className="text-xs uppercase tracking-wider text-gold">{analysis.contract_type || "Тип договор"}</div>
-                <h2 className="mt-2 font-serif text-xl font-bold">Резюме</h2>
+                <h2 className="mt-2 font-serif text-xl font-bold">
+                  {actionable ? "Резюме" : "Резюме от предишната проверка"}
+                </h2>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{analysis.summary}</p>
+                {historyNotice && (
+                  <p className="mt-2 text-xs text-muted-foreground">{historyNotice}</p>
+                )}
               </section>
 
               {/* ISSUES */}
