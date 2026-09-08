@@ -139,9 +139,10 @@ export interface AnalysisScorePresentation {
   tone: string;
   label: string;
   subtext: string;
-  /** Обяснение, когато проверката не е пълна. */
+  /** Обяснение, когато проверката не е пълна или не е за текущия текст. */
   notice: string | null;
 }
+
 
 export const NEUTRAL_ANALYSIS_TONE = "text-muted-foreground border-border/60 bg-muted/20";
 
