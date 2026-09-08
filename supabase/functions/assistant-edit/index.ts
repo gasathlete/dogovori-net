@@ -9,6 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import {
   decideEditTransition,
+  proveTransitionResult,
   readLeafByPath,
   type EditAction,
 } from "../_shared/assistant-edit.ts";
