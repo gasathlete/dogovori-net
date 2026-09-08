@@ -1,4 +1,12 @@
 // Q2b2 — чиста валидация на заявката за корекция и ТОЧЕН избор на находки.
+import {
+  isIssueSchemaValid,
+  isMissingClauseSchemaValid,
+  KNOWN_SEVERITIES,
+  normalizeEvidenceText,
+  verifyQuoteAgainstSource,
+} from "../_shared/analysis-evidence.ts";
+
 //
 // Клиентът праща САМО индекси към конкретен анализ. Текстовете на находките се
 // вземат от базата — никога не се вярва на подадена от клиента проза.
@@ -100,8 +108,10 @@ export function parseCorrectionRequest(
 }
 
 export interface SelectedIssue {
-  severity: string;
+  severity: (typeof KNOWN_SEVERITIES)[number];
   title: string;
+  /** Точният цитиран пасаж — целта на пренаписването. */
+  clause: string;
   explanation: string;
   suggestion?: string;
 }
@@ -110,18 +120,28 @@ export interface SelectedMissing {
   why: string;
 }
 
+export type SelectFindingsError =
+  | { status: 400; code: "selection_out_of_range"; message: string }
+  | { status: 409; code: "selection_quote_unverified"; message: string };
+
 /**
  * Взима ТОЧНО избраните находки от записания анализ. Липсващ индекс или
  * повреден запис е грешка — не се подменя с нещо друго.
+ *
+ * Всяка избрана проблемна клауза трябва да носи цитат, който е НЕПРЕКЪСНАТ
+ * пасаж от текущия пълен източник (Q2a проверка). Без такъв цитат моделът няма
+ * точна цел за пренаписване, затова заявката се отказва.
  */
 export function selectFindings(input: {
   issues: unknown;
   missingClauses: unknown;
   issueIndices: number[];
   missingIndices: number[];
+  /** Текущият пълен източник (нормализира се вътре). */
+  sourceText: string;
 }):
   | { ok: true; issues: SelectedIssue[]; missing: SelectedMissing[] }
-  | { ok: false; error: { status: 400; code: "selection_out_of_range"; message: string } } {
+  | { ok: false; error: SelectFindingsError } {
   const outOfRange = {
     ok: false as const,
     error: {
@@ -130,38 +150,49 @@ export function selectFindings(input: {
       message: "Избраните находки не съществуват в този анализ.",
     },
   };
+  const unverifiedQuote = {
+    ok: false as const,
+    error: {
+      status: 409 as const,
+      code: "selection_quote_unverified" as const,
+      message:
+        "Избрана клауза не може да бъде намерена дословно в текущия текст. Направете нов анализ, преди да поискате корекции.",
+    },
+  };
   const rawIssues = Array.isArray(input.issues) ? input.issues : null;
   const rawMissing = Array.isArray(input.missingClauses) ? input.missingClauses : null;
   if (input.issueIndices.length > 0 && !rawIssues) return outOfRange;
   if (input.missingIndices.length > 0 && !rawMissing) return outOfRange;
 
+  const normalizedSource = normalizeEvidenceText(input.sourceText);
+
   const issues: SelectedIssue[] = [];
   for (const i of input.issueIndices) {
     const item = rawIssues?.[i];
-    if (!item || typeof item !== "object" || Array.isArray(item)) return outOfRange;
+    if (!isIssueSchemaValid(item)) return outOfRange;
     const o = item as Record<string, unknown>;
-    if (typeof o.title !== "string" || !o.title.trim()) return outOfRange;
-    if (typeof o.explanation !== "string" || !o.explanation.trim()) return outOfRange;
+    const severity = o.severity as (typeof KNOWN_SEVERITIES)[number];
+    if (!verifyQuoteAgainstSource(o.clause, normalizedSource).verified) return unverifiedQuote;
     issues.push({
-      severity: typeof o.severity === "string" ? o.severity : "medium",
-      title: o.title,
-      explanation: o.explanation,
-      suggestion: typeof o.suggestion === "string" ? o.suggestion : undefined,
+      severity,
+      title: o.title as string,
+      clause: (o.clause as string).trim(),
+      explanation: o.explanation as string,
+      suggestion: typeof o.suggestion === "string" && o.suggestion.trim() ? o.suggestion : undefined,
     });
   }
 
   const missing: SelectedMissing[] = [];
   for (const i of input.missingIndices) {
     const item = rawMissing?.[i];
-    if (!item || typeof item !== "object" || Array.isArray(item)) return outOfRange;
+    if (!isMissingClauseSchemaValid(item)) return outOfRange;
     const o = item as Record<string, unknown>;
-    if (typeof o.name !== "string" || !o.name.trim()) return outOfRange;
-    if (typeof o.why !== "string" || !o.why.trim()) return outOfRange;
-    missing.push({ name: o.name, why: o.why });
+    missing.push({ name: o.name as string, why: o.why as string });
   }
 
   return { ok: true, issues, missing };
 }
+
 
 /**
  * Тесен ограничителен суфикс — залепва се СЛЕД активния промпт и RAG блока, за

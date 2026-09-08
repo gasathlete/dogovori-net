@@ -23,7 +23,7 @@ export function useSourceFreshness(input: {
   savedTitle: string | null | undefined;
   verification: unknown;
   hasUnsavedChanges: boolean;
-}): { freshness: SnapshotFreshness; currentBinding: AnalysisSourceBinding | null } {
+}): { freshness: SnapshotFreshness; currentBinding: AnalysisSourceBinding | null; hashUnavailable: boolean } {
   const identityKey = useMemo(
     () =>
       buildSnapshotIdentityKey({
@@ -36,6 +36,8 @@ export function useSourceFreshness(input: {
   );
 
   const [digest, setDigest] = useState<ResolvedSnapshotDigest | null>(null);
+  /** Ключът, за който изчислението се е провалило — тогава не твърдим нищо. */
+  const [failedKey, setFailedKey] = useState<string | null>(null);
   const latestKey = useRef(identityKey);
   latestKey.current = identityKey;
 
@@ -44,17 +46,27 @@ export function useSourceFreshness(input: {
   useEffect(() => {
     if (!hasSource) {
       setDigest(null);
+      setFailedKey(null);
       return;
     }
     let active = true;
     const keyAtStart = identityKey;
     void (async () => {
-      const binding = await computeSourceBinding({
-        sourceText: (input.savedText ?? "").trim(),
-        titleContext: buildTitleContext(input.savedTitle ?? ""),
-      });
-      if (!active || latestKey.current !== keyAtStart) return;
-      setDigest({ identityKey: keyAtStart, binding });
+      try {
+        const binding = await computeSourceBinding({
+          sourceText: (input.savedText ?? "").trim(),
+          titleContext: buildTitleContext(input.savedTitle ?? ""),
+        });
+        if (!active || latestKey.current !== keyAtStart) return;
+        setFailedKey(null);
+        setDigest({ identityKey: keyAtStart, binding });
+      } catch {
+        // Хеширането не е налично/пропадна: падаме затворено — „не знаем",
+        // а не безкрайно „проверяваме". Никакво необработено отхвърляне.
+        if (!active || latestKey.current !== keyAtStart) return;
+        setDigest(null);
+        setFailedKey(keyAtStart);
+      }
     })();
     return () => {
       active = false;
@@ -62,17 +74,27 @@ export function useSourceFreshness(input: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [identityKey, hasSource]);
 
-  const freshness = hasSource
-    ? resolveSnapshotFreshness({
-        hasUnsavedChanges: input.hasUnsavedChanges,
-        identityKey,
-        digest,
-        storedVerification: input.verification,
-      })
-    : "checking";
+  const hashUnavailable = failedKey === identityKey;
+
+  let freshness: SnapshotFreshness;
+  if (!hasSource) {
+    freshness = "checking";
+  } else if (hashUnavailable) {
+    freshness = input.hasUnsavedChanges ? "unsaved" : "unknown";
+  } else {
+    freshness = resolveSnapshotFreshness({
+      hasUnsavedChanges: input.hasUnsavedChanges,
+      identityKey,
+      digest,
+      storedVerification: input.verification,
+    });
+  }
 
   return {
     freshness,
     currentBinding: digest && digest.identityKey === identityKey ? digest.binding : null,
+    /** Истина само когато отпечатъкът за ТОЗИ вход не може да бъде изчислен. */
+    hashUnavailable,
   };
 }
+

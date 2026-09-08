@@ -160,8 +160,9 @@ export interface CorrectionResult {
 }
 
 /**
- * Закъснял или изостарял резултат: различен документ/анализ или променен
- * източник. Такъв резултат не се предлага за сваляне като актуален.
+ * Закъснял или изостарял резултат: липсваща идентичност, различен документ/
+ * анализ или променен източник. Еднакъв отпечатък САМ по себе си не е
+ * достатъчен — резултат без известен анализ от двете страни се смята изостанал.
  */
 export function isCorrectionStale(input: {
   correction: Pick<CorrectionResult, "analysisId" | "sourceBinding"> | null;
@@ -171,12 +172,12 @@ export function isCorrectionStale(input: {
 }): boolean {
   if (!input.correction) return false;
   if (!input.correction.sourceBinding) return true;
-  if (input.correction.analysisId && input.analysisId && input.correction.analysisId !== input.analysisId) {
-    return true;
-  }
+  if (!input.correction.analysisId || !input.analysisId) return true;
+  if (input.correction.analysisId !== input.analysisId) return true;
   if (input.freshness !== "current" || !input.currentBinding) return true;
   return !isSourceBindingEqual(input.correction.sourceBinding, input.currentBinding);
 }
+
 
 export const STALE_CORRECTION_NOTICE =
   "Документът е променен, след като тази редакция беше изготвена. Тя не отговаря на текущия текст — направете нов анализ и нова корекция.";
