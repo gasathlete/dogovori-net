@@ -4,7 +4,13 @@ import { buildCors } from "../_shared/cors.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
-import { redactForAI, unredact } from "../_shared/redact.ts";
+import { unredact } from "../_shared/redact.ts";
+import {
+  buildClassificationCorpus,
+  redactCorrectionContext,
+  type CorrectionContext,
+} from "./context-redaction.ts";
+
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
