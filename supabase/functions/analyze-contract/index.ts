@@ -10,9 +10,19 @@ import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { redactForAI, unredact } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
+import {
+  buildAnalysisVerification,
+  isTrustedCachedVerification,
+  isValidModelScore,
+  NEUTRAL_STORED_SCORE,
+  normalizeEvidenceText,
+  verifyQuoteAgainstSource,
+} from "../_shared/analysis-evidence.ts";
 
 // PROMPT_VERSION — bump to invalidate cached analyses produced by older prompts.
-const PROMPT_VERSION = "v4-balanced-scale";
+// v5: доказателствената проверка на цитатите е строга (един непрекъснат пасаж),
+// затова кешираните резултати от по-стари политики не се връщат като нови.
+const PROMPT_VERSION = "v5-evidence-q2a";
 
 const SYSTEM_PROMPT = `Ти си водещ български правен експерт по договорно право (ЗЗД, ТЗ, ЗУТ, ЗЗП, ЗЗЛД).
 Анализираш ИЗКЛЮЧИТЕЛНО предоставения текст на договор и връщаш СТРОГО валиден JSON по схемата по-долу. Без markdown ограждания.
