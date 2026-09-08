@@ -2,7 +2,6 @@
 // Reads uploaded_contracts.extracted_text, calls Lovable AI Gateway, stores result in risk_analyses.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
-import { normalizeText, sha256Hex } from "../_shared/normalize.ts";
 import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
@@ -10,10 +9,14 @@ import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { redactForAI, unredact } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
+import { runAnalysisEvidencePipeline } from "../_shared/analysis-evidence.ts";
 import {
-  isTrustedCachedVerification,
-  runAnalysisEvidencePipeline,
-} from "../_shared/analysis-evidence.ts";
+  buildAnalysisSourceBinding,
+  buildFreshAnalysisPayload,
+  buildTitleContext,
+  computeAnalysisCacheKey,
+  resolveCachedAnalysis,
+} from "../_shared/analysis-source-binding.ts";
 
 // PROMPT_VERSION — bump to invalidate cached analyses produced by older prompts.
 // v5: доказателствената проверка на цитатите е строга (един непрекъснат пасаж),
