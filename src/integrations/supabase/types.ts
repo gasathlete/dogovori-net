@@ -4920,6 +4920,7 @@ export type Database = {
       }
       metrics_overview: { Args: { _from: string; _to: string }; Returns: Json }
       my_team_ids: { Args: never; Returns: string[] }
+      owner_scorecard: { Args: { _from: string; _to: string }; Returns: Json }
       purge_old_funnel_events: { Args: never; Returns: undefined }
       rate_limit_check: {
         Args: { _key: string; _max: number; _window_s: number }
