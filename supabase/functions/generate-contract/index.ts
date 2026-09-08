@@ -122,14 +122,13 @@ Deno.serve(async (req: Request) => {
     // Целият потребителски контекст се събира ЕДИН път — редакцията, класификацията
     // и идентичността на кеша работят върху едно и също множество полета.
     const ctxOrError = buildGeneratorContext(body);
-    if ("ok" in ctxOrError && ctxOrError.ok === false) {
+    if ("ok" in ctxOrError) {
       return new Response(
         JSON.stringify({ error: ctxOrError.message, code: ctxOrError.code }),
         { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
-    const rawContext = ctxOrError as ReturnType<typeof buildGeneratorContext> & { qa: unknown };
-    const userContext = rawContext as Exclude<typeof ctxOrError, { ok: false }>;
+    const userContext = ctxOrError;
 
     // Illegal content guard — block before AI call, log + alert admin.
     const guardText = buildGeneratorClassificationCorpus(userContext);
