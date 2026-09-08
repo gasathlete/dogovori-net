@@ -45,7 +45,7 @@ DECLARE
 
   _automated_orders_period bigint;
   _automated_proven_payers_total bigint;
-  _legacy_baseline_payers bigint;
+  _legacy_subscription_users_unverified bigint;
   _proven_payers_total bigint;
   _new_proven_payers_period bigint;
   _proof_first_order_at timestamptz;
@@ -65,8 +65,11 @@ BEGIN
     RAISE EXCEPTION 'forbidden' USING ERRCODE = 'insufficient_privilege';
   END IF;
 
-  -- Range validation: reject null/reversed windows and windows > 366 days.
-  IF _from IS NULL OR _to IS NULL OR _from >= _to OR (_to - _from) > interval '366 days' THEN
+  -- Range validation: reject null, non-finite, or reversed windows and
+  -- windows > 366 days. isfinite rejects 'infinity'/'-infinity' endpoints.
+  IF _from IS NULL OR _to IS NULL
+     OR NOT isfinite(_from) OR NOT isfinite(_to)
+     OR _from >= _to OR (_to - _from) > interval '366 days' THEN
     RAISE EXCEPTION 'invalid_range';
   END IF;
 
