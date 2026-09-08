@@ -407,24 +407,19 @@ export interface TransitionProofInput {
   afterText: string;
 }
 
-function sameInstant(a: string | null, b: string | null): boolean {
-  if (!a || !b) return false;
-  const ta = Date.parse(a);
-  const tb = Date.parse(b);
-  return Number.isFinite(ta) && Number.isFinite(tb) && ta === tb;
-}
-
 export function proveTransitionResult(input: TransitionProofInput): boolean {
   // Отказът никога не променя документа — той не може да „освежи“ разговор.
   if (input.action === "reject") return false;
   if (input.changed) return true;
   if (!input.idempotent) return false;
   if (input.status === "accepted") {
-    return sameInstant(input.documentUpdatedAt, input.appliedUpdatedAt) &&
+    return !!input.documentUpdatedAt &&
+      sameInstant(input.documentUpdatedAt, input.appliedUpdatedAt) &&
       input.currentTargetValue === input.afterText;
   }
   if (input.status === "reverted") {
-    return sameInstant(input.documentUpdatedAt, input.revertedUpdatedAt) &&
+    return !!input.documentUpdatedAt &&
+      sameInstant(input.documentUpdatedAt, input.revertedUpdatedAt) &&
       input.currentTargetValue === input.beforeText;
   }
   return false;
