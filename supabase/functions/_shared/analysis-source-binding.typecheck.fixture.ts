@@ -31,9 +31,9 @@ export async function assertFreshPayloadTypeContract(): Promise<Record<string, u
       issues: [],
       missing_clauses: [],
     },
-    evidenceSource: sourceText,
-    truncated: false,
-    unredactText: (s: string) => s,
+    sentText: sourceText,
+    normalizedSource: sourceText.toLowerCase(),
+    inputTruncated: false,
     isClauseActuallyMissing: () => true,
   });
 
