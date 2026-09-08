@@ -122,18 +122,29 @@ BEGIN
   ),
   -- 4) Legacy pre-snapshot Stripe subscription baseline (separately labeled;
   --    never inferred from profiles/pro_until/quota/status flags).
+  --    IMPORTANT: these rows prove a live Stripe subscription relationship
+  --    existed, NOT paid status — a subscription id alone is not payment
+  --    evidence. This baseline is therefore reported only as
+  --    legacy_subscription_users_unverified and is never unioned into
+  --    proven_payers_total. It IS still used to exclude known existing
+  --    customers from new-payer period counts (conservative treatment:
+  --    better to under-report new payers than to over-report them).
+  --    Range-bounded: created_at < _to prevents as-of historical leakage
+  --    when _to precedes the cutover.
   legacy_baseline AS (
     SELECT s.user_id
     FROM public.subscriptions s
     WHERE s.environment = 'live'
       AND s.stripe_subscription_id IS NOT NULL
       AND s.created_at < _cutover
+      AND s.created_at < _to
     UNION
     SELECT t.owner_id
     FROM public.teams t
     WHERE t.environment = 'live'
       AND t.stripe_subscription_id IS NOT NULL
       AND t.created_at < _cutover
+      AND t.created_at < _to
   ),
   -- Deterministic first automated proven order per user: exactly one row
   -- per user even when created_at ties (tie-break on id).
