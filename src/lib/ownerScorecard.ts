@@ -151,9 +151,12 @@ export function parseOwnerScorecard(raw: unknown): OwnerScorecard | null {
   ] as const);
   if (!truthCounts) return null;
   if (typeof truthRaw.historical_payment_baseline_verified !== "boolean") return null;
+  // Ключът трябва да съществува: липсващ (undefined) означава повреден отговор.
+  if (!("proof_first_order_at" in truthRaw)) return null;
   const proofFirst = truthRaw.proof_first_order_at;
-  const proofFirstOrderAt = proofFirst === null || proofFirst === undefined ? null : asTimestamp(proofFirst);
-  if (proofFirst !== null && proofFirst !== undefined && proofFirstOrderAt === null) return null;
+  if (proofFirst === undefined) return null;
+  const proofFirstOrderAt = proofFirst === null ? null : asTimestamp(proofFirst);
+  if (proofFirst !== null && proofFirstOrderAt === null) return null;
 
   const cohortsRaw = asDict(root.first_purchase_cohorts);
   const cohorts = cohortsRaw
