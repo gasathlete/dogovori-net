@@ -44,7 +44,7 @@ const evidenceOk = (): AnalysisVerificationMetadata => ({
   score_trusted: true,
 });
 
-const evidenceIncomplete = () => ({
+const evidenceIncomplete = (): AnalysisVerificationMetadata => ({
   version: 1,
   status: "incomplete",
   reason_codes: ["quote_unverified"],
