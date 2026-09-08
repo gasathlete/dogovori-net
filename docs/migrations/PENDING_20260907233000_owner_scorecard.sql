@@ -189,8 +189,15 @@ BEGIN
     -- 1) Automated proven payers: distinct users, never order count.
     (SELECT count(DISTINCT user_id) FROM proven),
     (SELECT count(*) FROM legacy_baseline),
-    -- 5) Distinct union: legacy baseline users + automated proven-order users.
-    (SELECT count(*) FROM (SELECT user_id FROM legacy_baseline UNION SELECT user_id FROM proven) u),
+    -- 5) Proven payers = distinct automated live+paid snapshot users ONLY.
+    --    The unverified legacy baseline is NOT unioned in: a legacy
+    --    subscription id alone does not prove paid status. This equals
+    --    automated_proven_payers_total by design until independently
+    --    verified historical payment evidence exists.
+    (SELECT count(DISTINCT user_id) FROM proven),
+    -- New-payer and new-period first-mode counts conservatively EXCLUDE
+    -- legacy baseline users (known existing customers): better to
+    -- under-report new payers than to count an existing customer as new.
     (SELECT count(*) FROM first_modes fm WHERE fm.first_at >= _from AND fm.user_id NOT IN (SELECT user_id FROM legacy_baseline)),
     -- 7) Mutually exclusive first-mode totals / among new period payers.
     --    first_modes has exactly one row per user, so each total <=
@@ -230,13 +237,19 @@ BEGIN
     AND p.payment_status = 'paid'
     AND p.stripe_session_id IS NOT NULL;
 
+  -- proven_payers_total = distinct automated live+paid snapshot users since
+  -- payment_truth_cutover. It does NOT mean active subscribers and does NOT
+  -- measure progress toward any subscriber goal; the unverified legacy
+  -- baseline is excluded until independently verified historical payment
+  -- evidence can be integrated (historical_payment_baseline_verified).
   _truth := jsonb_build_object(
-    'automated_proven_orders_period',  COALESCE(_automated_orders_period, 0),
-    'automated_proven_payers_total',   COALESCE(_automated_proven_payers_total, 0),
-    'legacy_baseline_payers',          COALESCE(_legacy_baseline_payers, 0),
-    'proven_payers_total',             COALESCE(_proven_payers_total, 0),
-    'new_proven_payers_period',        COALESCE(_new_proven_payers_period, 0),
-    'proof_first_order_at',            _proof_first_order_at
+    'automated_proven_orders_period',        COALESCE(_automated_orders_period, 0),
+    'automated_proven_payers_total',         COALESCE(_automated_proven_payers_total, 0),
+    'legacy_subscription_users_unverified',  COALESCE(_legacy_subscription_users_unverified, 0),
+    'historical_payment_baseline_verified',  false,
+    'proven_payers_total',                   COALESCE(_proven_payers_total, 0),
+    'new_proven_payers_period',              COALESCE(_new_proven_payers_period, 0),
+    'proof_first_order_at',                  _proof_first_order_at
   );
 
   _cohorts := jsonb_build_object(
