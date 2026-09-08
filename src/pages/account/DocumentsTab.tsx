@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { presentAnalysisScore } from "@/lib/analysisVerification";
 import {
   Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Bird, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X, MessageSquare, Check, Lock, RefreshCw, Sparkles, Building2, Bell, LayoutDashboard, ChevronDown,
 } from "@/icons";
@@ -370,9 +371,10 @@ function DocumentsTab({
               {uploaded.map((u) => {
                 const a = analysesByContract[u.id];
                 // Оценка се показва само при потвърден анализ; иначе неутрален бадж.
-                const badge = a ? analysisBadge({ score: a.score, verification: a.verification }) : null;
-                const trustedScore = badge && badge.text !== "непотвърден" ? a!.score : null;
-                const sevCls = badge ? badge.className : "border-border/40 text-muted-foreground";
+                // Оценка се показва само при потвърден анализ; иначе неутрален бадж.
+                const pres = a ? presentAnalysisScore({ score: a.score, verification: a.verification }) : null;
+                const trustedScore = pres?.showScore ? pres.score : null;
+                const sevCls = pres ? pres.tone : "border-border/40 text-muted-foreground";
                 const Icon = trustedScore == null
                   ? AlertTriangle
                   : trustedScore >= 8 ? ShieldCheck : trustedScore >= 5 ? AlertTriangle : ShieldAlert;
@@ -396,7 +398,7 @@ function DocumentsTab({
                       </Link>
                       <div className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-xs ${sevCls}`}>
                         <Icon className="h-3.5 w-3.5" />
-                        {badge ? badge.text : "Без анализ"}
+                        {!a ? "Без анализ" : trustedScore != null ? <><strong>{trustedScore}</strong>/10</> : "непотвърден"}
                       </div>
                     </div>
                     <div className="mt-3 space-y-2">
