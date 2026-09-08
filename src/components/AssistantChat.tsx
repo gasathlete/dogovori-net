@@ -278,8 +278,8 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
         toast.success("Промяната е върната.");
       }
     }
-    await refreshProposals(proposal.threadId, proposal.savedDocumentId, scope);
-  }, [session?.access_token, refreshProposals, inProposalScope]);
+    await refreshProposals(proposal.threadId, proposal.savedDocumentId, gen);
+  }, [session?.access_token, refreshProposals, inProposalGen]);
 
 
 
