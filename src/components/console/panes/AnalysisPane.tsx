@@ -59,13 +59,20 @@ export function AnalysisPane({ analysisId }: { analysisId: string }) {
         </a>
       </div>
 
-      <div className={cn("mt-5 flex items-center gap-4 rounded-xl border p-4", scoreColor(a.score))}>
-        <div className="text-4xl font-bold">{a.score}/10</div>
+      <div className={cn("mt-5 flex items-start gap-4 rounded-xl border p-4", present.tone)}>
+        <div className="text-4xl font-bold">{present.showScore ? `${present.score}/10` : "—"}</div>
         <div className="flex-1">
-          <div className="text-xs font-semibold uppercase tracking-wider opacity-80">Резюме</div>
+          <div className="text-xs font-semibold uppercase tracking-wider opacity-80">{present.label}</div>
           <p className="mt-0.5 text-sm leading-relaxed">{a.summary || "—"}</p>
+          {present.notice && (
+            <p className="mt-2 text-xs leading-relaxed opacity-90">{present.notice}</p>
+          )}
         </div>
       </div>
+
+      {issues.length === 0 && (
+        <p className="mt-4 text-sm text-muted-foreground">{emptyIssuesMessage(a.verification)}</p>
+      )}
 
       {issues.length > 0 && (
         <section className="mt-6">
