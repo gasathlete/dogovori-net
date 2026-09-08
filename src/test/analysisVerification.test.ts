@@ -84,14 +84,14 @@ describe("parseAnalysisVerification — строга схема, огледал�
 
 describe("presentAnalysisScore", () => {
   it("показва оценка само при потвърден анализ", () => {
-    const p = presentAnalysisScore({ score: 8, verification: checked });
+    const p = presentAnalysisScore({ score: 8, verification: checked, freshness: "current" });
     expect(p.showScore).toBe(true);
     expect(p.score).toBe(8);
     expect(p.notice).toBeNull();
   });
 
   it("непълен анализ не показва оценка", () => {
-    const p = presentAnalysisScore({ score: 9, verification: incomplete });
+    const p = presentAnalysisScore({ score: 9, verification: incomplete, freshness: "current" });
     expect(p.showScore).toBe(false);
     expect(p.score).toBeNull();
     expect(p.label).toBe("Част от проверката не е завършена");
@@ -100,7 +100,7 @@ describe("presentAnalysisScore", () => {
   });
 
   it("легаси запис насочва към нов анализ, без оценка", () => {
-    const p = presentAnalysisScore({ score: 9, verification: null });
+    const p = presentAnalysisScore({ score: 9, verification: null, freshness: "current" });
     expect(p.showScore).toBe(false);
     expect(p.label).toBe("Предишен анализ");
     expect(p.subtext).toBe("Направете нов анализ, за да получите актуална проверка.");
@@ -116,7 +116,7 @@ describe("presentAnalysisScore", () => {
 
   it("копието е за ползвателя, не за вътрешното състояние", () => {
     for (const v of [null, incomplete, { version: 99 }]) {
-      const p = presentAnalysisScore({ score: 9, verification: v });
+      const p = presentAnalysisScore({ score: 9, verification: v, freshness: "current" });
       const txt = `${p.label} ${p.subtext} ${p.notice}`;
       for (const jargon of [/показва се неутрално/i, /със задна дата/i, /метаданни/i, /верси/i, /валидатор/i, /схем/i]) {
         expect(txt, JSON.stringify(v)).not.toMatch(jargon);
@@ -126,7 +126,7 @@ describe("presentAnalysisScore", () => {
 
   it("дробна оценка НЕ се закръгля, а се отхвърля", () => {
     for (const bad of [7.5, 0, 11, NaN, Infinity, "8", null, undefined]) {
-      const p = presentAnalysisScore({ score: bad, verification: checked });
+      const p = presentAnalysisScore({ score: bad, verification: checked, freshness: "current" });
       expect(p.showScore).toBe(false);
       expect(p.score).toBeNull();
     }
@@ -134,7 +134,7 @@ describe("presentAnalysisScore", () => {
 
   it("никъде няма гаранция за безопасен подпис", () => {
     for (const s of [1, 5, 8, 10]) {
-      const p = presentAnalysisScore({ score: s, verification: checked });
+      const p = presentAnalysisScore({ score: s, verification: checked, freshness: "current" });
       const txt = `${p.label} ${p.subtext}`;
       expect(txt).not.toMatch(/безопас/i);
       expect(txt).not.toMatch(/без рискове/i);
@@ -160,8 +160,8 @@ describe("текстове при нула находки и в списъци",
   });
 
   it("баджът е неутрален при непотвърдени метаданни", () => {
-    expect(analysisBadge({ score: 9, verification: incomplete }).text).toBe("непотвърден");
-    expect(analysisBadge({ score: 9, verification: null }).text).toBe("непотвърден");
-    expect(analysisBadge({ score: 9, verification: checked }).text).toBe("9/10");
+    expect(analysisBadge({ score: 9, verification: incomplete, freshness: "current" }).text).toBe("непотвърден");
+    expect(analysisBadge({ score: 9, verification: null, freshness: "current" }).text).toBe("непотвърден");
+    expect(analysisBadge({ score: 9, verification: checked, freshness: "current" }).text).toBe("9/10");
   });
 });

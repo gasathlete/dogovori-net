@@ -229,8 +229,8 @@ export function presentAnalysisScore(input: {
     let notice = UNCONFIRMED_NOTICE;
 
     if (parsed.status === "legacy_unverified") {
-      label = "Предишна проверка";
-      subtext = "Направете нова проверка, за да получите оценка.";
+      label = "Предишен анализ";
+      subtext = "Направете нов анализ, за да получите актуална проверка.";
       notice = LEGACY_NOTICE;
     } else if (parsed.status === "incomplete") {
       label = "Част от проверката не е завършена";
