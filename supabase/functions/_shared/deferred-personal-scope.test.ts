@@ -107,7 +107,7 @@ Deno.test("критични проверки остават fail", () => {
   assertEquals(softenDeferredCheck(check, DOC).status, "fail");
 
   const conflict = {
-    id: "sroko​ve",
+    id: "srokove",
     label: "Срокове",
     status: "fail",
     note: "Крайната дата 01.04.2026 противоречи на плащане до 05.05.2026",
