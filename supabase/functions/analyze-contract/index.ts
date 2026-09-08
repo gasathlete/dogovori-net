@@ -91,19 +91,8 @@ function normalizeForMatch(s: string): string {
     .trim();
 }
 
-// Verify that an issue's clause quote actually appears in the source contract.
-function verifyIssueQuote(quote: string, normalizedSource: string): boolean {
-  if (!quote || quote.length < 12) return false;
-  const norm = normalizeForMatch(quote);
-  if (norm.length < 12) return false;
-  if (normalizedSource.includes(norm)) return true;
-  // Fallback: check if at least 70% of the words appear in order within a sliding window.
-  // Allows for minor OCR/extraction differences without accepting hallucinations.
-  const words = norm.split(" ").filter((w) => w.length > 3);
-  if (words.length < 4) return false;
-  const matched = words.filter((w) => normalizedSource.includes(w)).length;
-  return matched / words.length >= 0.8;
-}
+// Q2a: доказателствената проверка на цитатите живее в `_shared/analysis-evidence.ts`
+// (един непрекъснат пасаж, без сравнение „торба с думи").
 
 // Verify a "missing clause" by checking the source doesn't contain known synonyms.
 const MISSING_SYNONYMS: Record<string, string[]> = {
