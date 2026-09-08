@@ -22,7 +22,10 @@
 // находките, обвързването описва идентичността на входа. Едното не отменя другото.
 
 import { sha256Hex } from "./normalize.ts";
-import { validateAnalysisVerification } from "./analysis-evidence.ts";
+import {
+  type AnalysisVerificationMetadata,
+  validateAnalysisVerification,
+} from "./analysis-evidence.ts";
 
 export const ANALYSIS_SOURCE_BINDING_VERSION = 1 as const;
 
