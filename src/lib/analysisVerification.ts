@@ -5,8 +5,13 @@
  * договора (`evidence_checked`). Иначе числото не се показва като оценка —
  * липсата на потвърдени находки НЕ означава, че документът е безопасен.
  *
- * Метаданните идват от базата и се третират като недоверен вход: всяко
- * отклонение от очакваната форма дава `unverified`, а липсата им — `legacy_unverified`.
+ * Метаданните идват от базата и се третират като недоверен вход. Валидаторът тук
+ * е ОГЛЕДАЛЕН на `supabase/functions/_shared/analysis-evidence.ts`
+ * (`validateAnalysisVerification`) — същата версия, същият затворен набор кодове,
+ * същите изисквания за шестте броя, същите правила за консистентност между
+ * статус, кодове и доверена оценка. Двете страни се проверяват с еднакъв набор
+ * тестови случаи. Валидаторът НЕ „пада отворен": всичко нестандартно е
+ * `unverified`, липсата на метаданни е `legacy_unverified`.
  */
 
 export type AnalysisVerificationStatus =
@@ -28,52 +33,101 @@ export interface ParsedAnalysisVerification {
   status: AnalysisVerificationStatus;
   reasonCodes: string[];
   counts: AnalysisVerificationCounts | null;
-  /** Само при `evidence_checked` числото може да се показва като оценка. */
+  /** Само при валиден `evidence_checked` числото може да се показва като оценка. */
   scoreTrusted: boolean;
 }
 
 const SUPPORTED_VERSION = 1;
 
-function num(value: unknown): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+/** Затворен набор — идентичен с `ANALYSIS_REASON_CODES` на функцията. */
+export const ANALYSIS_REASON_CODES = [
+  "root_shape_invalid",
+  "issues_not_array",
+  "missing_not_array",
+  "issue_malformed",
+  "quote_unverified",
+  "missing_clause_malformed",
+  "missing_clause_filtered",
+  "input_truncated",
+  "score_invalid",
+] as const;
+
+const COUNT_KEYS = [
+  "issues_raw",
+  "issues_kept",
+  "issues_rejected",
+  "missing_raw",
+  "missing_kept",
+  "missing_rejected",
+] as const;
+
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return !!v && typeof v === "object" && !Array.isArray(v);
 }
+
+function safeCount(v: unknown): v is number {
+  return typeof v === "number" && Number.isInteger(v) && Number.isFinite(v) && v >= 0 &&
+    v <= Number.MAX_SAFE_INTEGER;
+}
+
+const UNVERIFIED: ParsedAnalysisVerification = {
+  status: "unverified",
+  reasonCodes: [],
+  counts: null,
+  scoreTrusted: false,
+};
 
 export function parseAnalysisVerification(value: unknown): ParsedAnalysisVerification {
   if (value === null || value === undefined) {
     return { status: "legacy_unverified", reasonCodes: [], counts: null, scoreTrusted: false };
   }
-  if (typeof value !== "object" || Array.isArray(value)) {
-    return { status: "unverified", reasonCodes: [], counts: null, scoreTrusted: false };
+  if (!isPlainObject(value)) return UNVERIFIED;
+  if (value.version !== SUPPORTED_VERSION) return UNVERIFIED;
+
+  const status = value.status;
+  if (status !== "evidence_checked" && status !== "incomplete") return UNVERIFIED;
+
+  if (!Array.isArray(value.reason_codes)) return UNVERIFIED;
+  const reasonCodes: string[] = [];
+  for (const c of value.reason_codes) {
+    if (typeof c !== "string") return UNVERIFIED;
+    if (!(ANALYSIS_REASON_CODES as readonly string[]).includes(c)) return UNVERIFIED;
+    if (reasonCodes.includes(c)) return UNVERIFIED;
+    reasonCodes.push(c);
   }
-  const v = value as Record<string, unknown>;
-  if (v.version !== SUPPORTED_VERSION) {
-    return { status: "unverified", reasonCodes: [], counts: null, scoreTrusted: false };
+
+  const rawCounts = value.counts;
+  if (!isPlainObject(rawCounts)) return UNVERIFIED;
+  for (const k of COUNT_KEYS) {
+    if (!safeCount(rawCounts[k])) return UNVERIFIED;
   }
-  if (v.status !== "evidence_checked" && v.status !== "incomplete") {
-    return { status: "unverified", reasonCodes: [], counts: null, scoreTrusted: false };
+  const counts: AnalysisVerificationCounts = {
+    issuesRaw: rawCounts.issues_raw as number,
+    issuesKept: rawCounts.issues_kept as number,
+    issuesRejected: rawCounts.issues_rejected as number,
+    missingRaw: rawCounts.missing_raw as number,
+    missingKept: rawCounts.missing_kept as number,
+    missingRejected: rawCounts.missing_rejected as number,
+  };
+  if (counts.issuesRaw !== counts.issuesKept + counts.issuesRejected) return UNVERIFIED;
+  if (counts.missingRaw !== counts.missingKept + counts.missingRejected) return UNVERIFIED;
+
+  if (typeof value.score_trusted !== "boolean") return UNVERIFIED;
+
+  if (status === "evidence_checked") {
+    if (reasonCodes.length !== 0) return UNVERIFIED;
+    if (counts.issuesRejected !== 0 || counts.missingRejected !== 0) return UNVERIFIED;
+    if (value.score_trusted !== true) return UNVERIFIED;
+  } else {
+    if (reasonCodes.length === 0) return UNVERIFIED;
+    if (value.score_trusted !== false) return UNVERIFIED;
   }
-  const reasonCodes = Array.isArray(v.reason_codes)
-    ? v.reason_codes.filter((c): c is string => typeof c === "string")
-    : [];
-  const rawCounts = v.counts && typeof v.counts === "object" && !Array.isArray(v.counts)
-    ? (v.counts as Record<string, unknown>)
-    : null;
-  const counts: AnalysisVerificationCounts | null = rawCounts
-    ? {
-        issuesRaw: num(rawCounts.issues_raw),
-        issuesKept: num(rawCounts.issues_kept),
-        issuesRejected: num(rawCounts.issues_rejected),
-        missingRaw: num(rawCounts.missing_raw),
-        missingKept: num(rawCounts.missing_kept),
-        missingRejected: num(rawCounts.missing_rejected),
-      }
-    : null;
-  const status = v.status as "evidence_checked" | "incomplete";
+
   return {
     status,
     reasonCodes,
     counts,
-    scoreTrusted: status === "evidence_checked" && v.score_trusted === true,
+    scoreTrusted: status === "evidence_checked",
   };
 }
 
@@ -89,7 +143,7 @@ export interface AnalysisScorePresentation {
   notice: string | null;
 }
 
-const NEUTRAL_TONE = "text-muted-foreground border-border/60 bg-muted/20";
+export const NEUTRAL_ANALYSIS_TONE = "text-muted-foreground border-border/60 bg-muted/20";
 
 function toneForScore(s: number): string {
   if (s >= 7) return "text-emerald-400 border-emerald-400/40 bg-emerald-400/10";
@@ -117,20 +171,22 @@ function subtextForScore(s: number): string {
 const UNVERIFIED_NOTICE =
   "Проверката на този анализ не е пълна, затова оценка не се показва. Липсата на потвърдени находки не означава, че документът е безопасен.";
 
+/** Оценка се приема само като цяло число 1..10 — без закръгляне на дробни стойности. */
+function usableScore(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 10;
+}
+
 export function presentAnalysisScore(input: {
   score: unknown;
   verification: unknown;
 }): AnalysisScorePresentation {
   const parsed = parseAnalysisVerification(input.verification);
-  const rawScore = input.score;
-  const scoreUsable =
-    typeof rawScore === "number" && Number.isFinite(rawScore) && rawScore >= 1 && rawScore <= 10;
 
-  if (!parsed.scoreTrusted || !scoreUsable) {
+  if (!parsed.scoreTrusted || !usableScore(input.score)) {
     return {
       showScore: false,
       score: null,
-      tone: NEUTRAL_TONE,
+      tone: NEUTRAL_ANALYSIS_TONE,
       label:
         parsed.status === "legacy_unverified"
           ? "Анализ без запис от проверката"
@@ -143,7 +199,7 @@ export function presentAnalysisScore(input: {
     };
   }
 
-  const s = Math.round(rawScore as number);
+  const s = input.score;
   return {
     showScore: true,
     score: s,
@@ -169,6 +225,6 @@ export function analysisBadge(input: { score: unknown; verification: unknown }):
   className: string;
 } {
   const p = presentAnalysisScore(input);
-  if (!p.showScore) return { text: "непотвърден", className: NEUTRAL_TONE };
+  if (!p.showScore) return { text: "непотвърден", className: NEUTRAL_ANALYSIS_TONE };
   return { text: `${p.score}/10`, className: p.tone };
 }
