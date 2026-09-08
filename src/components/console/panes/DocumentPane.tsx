@@ -94,7 +94,7 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
 
   return (
     <div className="mx-auto max-w-4xl p-6">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
             <FileText className="h-3.5 w-3.5 text-gold" /> {doc.kind}
@@ -109,7 +109,7 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
             Създаден на {new Date(doc.created_at).toLocaleString("bg-BG")}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:justify-end">
           <Button onClick={handleSave} disabled={saving} size="sm" className="bg-gradient-gold text-navy">
             {saving ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-2 h-3.5 w-3.5" />}
             Запази

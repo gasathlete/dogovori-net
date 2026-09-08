@@ -198,7 +198,7 @@ function thread(over: Partial<ThreadRow> & { id: string }): ThreadRow {
 }
 
 async function typeAndSend(text: string) {
-  const input = screen.getByPlaceholderText("Задайте правен въпрос");
+  const input = screen.getByTestId("assistant-input");
   await userEvent.type(input, text);
   await userEvent.keyboard("{Enter}");
 }
@@ -449,13 +449,17 @@ describe("готовност на разговора преди изпращан
     render(<AssistantChat threadId="t-1" />);
 
     const send = await screen.findByTestId("assistant-send");
-    const input = screen.getByPlaceholderText("Задайте правен въпрос");
+    const input = screen.getByTestId("assistant-input");
+    expect(input).toBeDisabled();
+    expect(input).toHaveAttribute("placeholder", "Зареждане на разговора...");
     await userEvent.type(input, "нов въпрос");
     await userEvent.keyboard("{Enter}");
     expect(fetch).not.toHaveBeenCalled();
     expect(send).toBeDisabled();
 
     await act(async () => { db.releaseMessages?.(); await Promise.resolve(); });
+    await waitFor(() => expect(input).not.toBeDisabled());
+    await userEvent.type(input, "нов въпрос");
     await waitFor(() => expect(send).not.toBeDisabled());
     await userEvent.keyboard("{Enter}");
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
@@ -466,7 +470,7 @@ describe("готовност на разговора преди изпращан
     db.threads = [];
     render(<AssistantChat threadId="t-missing" />);
     await screen.findByTestId("assistant-thread-unavailable");
-    const input = screen.getByPlaceholderText("Задайте правен въпрос");
+    const input = screen.getByTestId("assistant-input");
     await userEvent.type(input, "въпрос");
     await userEvent.keyboard("{Enter}");
     expect(fetch).not.toHaveBeenCalled();
@@ -477,7 +481,7 @@ describe("готовност на разговора преди изпращан
     db.threadError = true;
     render(<AssistantChat threadId="t-1" />);
     await screen.findByTestId("assistant-thread-unavailable");
-    const input = screen.getByPlaceholderText("Задайте правен въпрос");
+    const input = screen.getByTestId("assistant-input");
     await userEvent.type(input, "въпрос");
     await userEvent.keyboard("{Enter}");
     expect(fetch).not.toHaveBeenCalled();
@@ -518,7 +522,7 @@ describe("грешка при зареждане на съобщенията", (
     expect(screen.queryByText("стар въпрос")).toBeNull();
     const send = screen.getByTestId("assistant-send");
     expect(send).toBeDisabled();
-    const input = screen.getByPlaceholderText("Задайте правен въпрос");
+    const input = screen.getByTestId("assistant-input");
     await userEvent.type(input, "нов въпрос");
     await userEvent.keyboard("{Enter}");
     expect(fetch).not.toHaveBeenCalled();
@@ -538,7 +542,7 @@ describe("смяна на разговор при ИДЕНТИЧЕН конте�
     db.messages[to] = [{ id: "m2", role: "user", content: "история Б" }];
     const view = render(<AssistantChat threadId={from} />);
     expect(await screen.findByText("история А")).toBeTruthy();
-    const input = screen.getByPlaceholderText("Задайте правен въпрос");
+    const input = screen.getByTestId("assistant-input");
     await userEvent.type(input, "въпрос по А");
     await waitFor(() => expect(screen.getByTestId("assistant-send")).not.toBeDisabled());
     await userEvent.keyboard("{Enter}");
