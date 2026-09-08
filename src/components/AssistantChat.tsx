@@ -211,15 +211,28 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   const savedDocumentContextId =
     documentContext?.kind === "saved_document" ? documentContext.entityId : null;
 
+  /**
+   * Пълната идентичност на обхвата: потребител + разговор + документ. Всеки
+   * закъснял отговор (зареждане или действие) се сравнява с НЕЯ и се изхвърля,
+   * ако междувременно е сменен маршрутът, разговорът, документът или акаунтът.
+   */
+  const proposalScope = `${user?.id ?? ""}|${activeThreadId ?? ""}|${savedDocumentContextId ?? ""}`;
+  const proposalScopeRef = useRef(proposalScope);
+  proposalScopeRef.current = proposalScope;
+  const inProposalScope = useCallback(
+    (scope: string) => aliveRef.current && proposalScopeRef.current === scope,
+    [],
+  );
+
   /** Авторитетното състояние идва САМО от сървъра и само за текущия обхват. */
-  const refreshProposals = useCallback(async (threadId: string, docId: string) => {
+  const refreshProposals = useCallback(async (threadId: string, docId: string, scope: string) => {
     const res = await loadThreadProposals(threadId, docId);
-    if (!res.ok || !aliveRef.current) return;
+    if (!res.ok || !inProposalScope(scope)) return;
     if (activeThreadIdRef.current !== threadId) return;
     const ctx = documentContextRef.current;
     if (!ctx || ctx.kind !== "saved_document" || ctx.entityId !== docId) return;
     setProposals(res.proposals);
-  }, []);
+  }, [inProposalScope]);
 
   // Смяна на разговор/документ/потребител: картите се изчистват ВЕДНАГА.
   useEffect(() => {
@@ -228,12 +241,13 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     setProposalBusyId(null);
     proposalBusyRef.current = null;
     if (!user || !activeThreadId || !savedDocumentContextId || !threadReady) return;
-    void refreshProposals(activeThreadId, savedDocumentContextId);
+    void refreshProposals(activeThreadId, savedDocumentContextId, proposalScope);
   }, [user?.id, activeThreadId, savedDocumentContextId, threadReady, refreshProposals]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleProposalAction = useCallback(async (proposal: EditProposal, action: ProposalAction) => {
     if (!session?.access_token) return;
     if (proposalBusyRef.current) return; // двоен клик не създава втори преход
+    const scope = proposalScopeRef.current;
     proposalBusyRef.current = proposal.id;
     setProposalBusyId(proposal.id);
     setProposalErrors((prev) => {
@@ -243,6 +257,9 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     });
     const res = await submitProposalAction(session.access_token, proposal.id, action);
     proposalBusyRef.current = null;
+    // Обхватът е сменен/компонентът е демонтиран, докато действието е течало:
+    // никакво състояние, съобщение, събитие или презареждане за чужд обхват.
+    if (!inProposalScope(scope)) return;
     setProposalBusyId(null);
     if (!res.ok) {
       setProposalErrors((prev) => ({ ...prev, [proposal.id]: proposalErrorMessage(res.code) }));
@@ -259,8 +276,8 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
         toast.success("Промяната е върната.");
       }
     }
-    await refreshProposals(proposal.threadId, proposal.savedDocumentId);
-  }, [session?.access_token, refreshProposals]);
+    await refreshProposals(proposal.threadId, proposal.savedDocumentId, scope);
+  }, [session?.access_token, refreshProposals, inProposalScope]);
 
 
 

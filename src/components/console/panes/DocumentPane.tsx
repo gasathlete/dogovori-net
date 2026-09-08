@@ -34,15 +34,41 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
 
   const [reloadKey, setReloadKey] = useState(0);
   const dirtyRef = useRef(false);
+  /** Външна промяна (приета редакция от DogovaryAI), която чака решение. */
+  const [pendingExternalUpdate, setPendingExternalUpdate] = useState(false);
+  /** Пореден номер на зареждането: късен отговор от старо зареждане се игнорира. */
+  const loadSeqRef = useRef(0);
+  const docIdRef = useRef(documentId);
+  docIdRef.current = documentId;
+  const prevDocIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    const seq = ++loadSeqRef.current;
+    const forDocumentId = documentId;
+    // Друг документ в панела = чист старт (никакви пренесени незапазени промени).
+    if (prevDocIdRef.current !== null && prevDocIdRef.current !== documentId) {
+      dirtyRef.current = false;
+      if (tabId) setDirty(tabId, false);
+      setPendingExternalUpdate(false);
+    }
+    prevDocIdRef.current = documentId;
+    const isCurrent = () => loadSeqRef.current === seq && docIdRef.current === forDocumentId;
     (async () => {
       setLoading(true);
       const { data } = await supabase
         .from("saved_documents")
         .select("*")
-        .eq("id", documentId)
+        .eq("id", forDocumentId)
         .maybeSingle();
+      // Закъснял отговор за стар документ/старо презареждане не пренаписва нищо.
+      if (!isCurrent()) return;
+      // Редакция, направена СЛЕД старта на зареждането, има приоритет: локалните
+      // полета остават, а външната промяна се обявява за решение.
+      if (dirtyRef.current) {
+        setPendingExternalUpdate(true);
+        setLoading(false);
+        return;
+      }
       const d = data as SavedDoc | null;
       setDoc(d);
       if (d) {
@@ -58,8 +84,10 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
           setRawText(typeof p === "string" ? p : (p.text || JSON.stringify(p, null, 2)));
         }
       }
+      setPendingExternalUpdate(false);
       setLoading(false);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documentId, reloadKey]);
 
   // Приета/върната редакция от DogovaryAI: презарежда САМО този документ и
@@ -69,6 +97,7 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
       const id = (e as CustomEvent<{ documentId?: string }>).detail?.documentId;
       if (!id || id !== documentId) return;
       if (dirtyRef.current) {
+        setPendingExternalUpdate(true);
         toast.info("Документът е обновен. Запазете или отхвърлете промените си, за да го презаредите.");
         return;
       }
@@ -80,6 +109,13 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
 
   const markDirty = () => { dirtyRef.current = true; if (tabId) setDirty(tabId, true); };
 
+  /** Отхвърля локалните промени и зарежда актуалния документ. */
+  const discardAndReload = () => {
+    dirtyRef.current = false;
+    if (tabId) setDirty(tabId, false);
+    setPendingExternalUpdate(false);
+    setReloadKey((k) => k + 1);
+  };
 
   const handleSave = async () => {
     if (!doc) return;
@@ -100,7 +136,12 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
       toast.success("Запазено");
       dirtyRef.current = false;
       if (tabId) setDirty(tabId, false);
-
+      // Ако междувременно е приета редакция от DogovaryAI, сега документът може
+      // да се презареди без загуба — външната промяна не остава „забравена“.
+      if (pendingExternalUpdate) {
+        setPendingExternalUpdate(false);
+        setReloadKey((k) => k + 1);
+      }
     }
   };
 
@@ -118,6 +159,25 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
 
   return (
     <div className="mx-auto max-w-4xl p-6">
+      {pendingExternalUpdate && (
+        <div
+          data-testid="document-external-update"
+          role="status"
+          className="mb-4 flex flex-col gap-2 rounded-lg border border-gold/40 bg-gold/10 p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+        >
+          <span className="min-w-0">
+            DogovaryAI обнови документа. Вашите незапазени промени са запазени тук.
+          </span>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={handleSave} disabled={saving} size="sm" variant="secondary">
+              Запази моите промени
+            </Button>
+            <Button onClick={discardAndReload} size="sm" variant="outline">
+              Презареди и отхвърли промените
+            </Button>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">

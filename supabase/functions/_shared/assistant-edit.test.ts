@@ -12,10 +12,12 @@ import {
   targetLabel,
 } from "./assistant-edit.ts";
 import { unredact } from "./redact.ts";
+import { computeContextVersion } from "./assistant-context-version.ts";
 
 const BASE_UPDATED = "2026-02-01T10:00:00.000Z";
 const APPLIED_UPDATED = "2026-02-01T11:00:00.000Z";
-const VERSION = "a".repeat(64);
+const USER_ID = "33333333-3333-4333-8333-333333333333";
+const THREAD_ID = "44444444-4444-4444-8444-444444444444";
 
 const DOC = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -33,11 +35,42 @@ const DOC = {
 
 /* ----------------------------- fake clients ----------------------------- */
 
-function reader(row: unknown, error: unknown = null) {
+/** Версията се изчислява от СЪЩИЯ ред със СЪЩИЯ помощник като в продукцията. */
+const VERSION = await computeContextVersion({
+  kind: "saved_document",
+  entityId: DOC.id,
+  fields: {
+    title: DOC.title,
+    kind: DOC.kind,
+    payload: DOC.payload,
+    created_at: DOC.created_at,
+  },
+});
+
+const THREAD = {
+  id: THREAD_ID,
+  user_id: USER_ID,
+  context_kind: "saved_document",
+  context_entity_id: DOC.id,
+  context_version: VERSION,
+};
+
+/** Четенето е по таблици: документът и разговорът са различни редове. */
+function reader(
+  row: unknown,
+  threadRow: unknown = THREAD,
+  error: unknown = null,
+) {
   return {
-    from: (_t: string) => ({
+    from: (t: string) => ({
       select: () => ({
-        eq: () => ({ maybeSingle: () => Promise.resolve({ data: row, error }) }),
+        eq: () => ({
+          maybeSingle: () =>
+            Promise.resolve({
+              data: t === "assistant_threads" ? threadRow : row,
+              error,
+            }),
+        }),
       }),
     }),
   };
@@ -83,8 +116,8 @@ function deps(overrides: Record<string, unknown> = {}, docRow: unknown = DOC) {
     deps: {
       reader: reader(docRow),
       writer: w.client,
-      userId: "33333333-3333-4333-8333-333333333333",
-      threadId: "44444444-4444-4444-8444-444444444444",
+      userId: USER_ID,
+      threadId: THREAD_ID,
       documentId: DOC.id,
       contextVersion: VERSION,
       contextTruncated: false,
@@ -432,5 +465,117 @@ Deno.test("unknown action is refused", () => {
       currentTargetValue: "Тяло на секция",
     }),
     { ok: false, code: "invalid_action" },
+  );
+});
+
+/* -------------------- TOCTOU: документ и разговор ------------------------ */
+
+Deno.test("propose: доказано остарял документ не създава предложение", async () => {
+  // Редът е сменен след обвързването → преизчислената версия не съвпада.
+  const changed = { ...DOC, title: "Друго заглавие" };
+  const d = deps({}, changed);
+  assertEquals(
+    await proposeSavedDocumentEdit(d.deps, { target: "intro", replacement: "Нов увод" }),
+    { ok: false, code: "stale_context" },
+  );
+  assertEquals(d.w.inserts.length, 0);
+});
+
+Deno.test("propose: разговорът трябва да е същият, на същия документ и версия", async () => {
+  const cases: unknown[] = [
+    null,
+    { ...THREAD, user_id: "99999999-9999-4999-8999-999999999999" },
+    { ...THREAD, context_kind: "uploaded_contract" },
+    { ...THREAD, context_entity_id: "55555555-5555-4555-8555-555555555555" },
+    { ...THREAD, context_version: "b".repeat(64) },
+  ];
+  for (const t of cases) {
+    const d = deps({ reader: reader(DOC, t) });
+    assertEquals(
+      await proposeSavedDocumentEdit(d.deps, { target: "intro", replacement: "Нов увод" }),
+      { ok: false, code: "stale_context" },
+    );
+    assertEquals(d.w.inserts.length, 0);
+  }
+});
+
+Deno.test("propose: причината също се възстановява и се проверява", async () => {
+  const mapping = { "<NAME_1>": "Иван Петров" };
+  const restore = (t: string) => unredact(t, mapping);
+
+  const ok = deps({ restore });
+  const res = await proposeSavedDocumentEdit(ok.deps, {
+    target: "intro",
+    replacement: "Нов увод",
+    reason: "уточнява <NAME_1>",
+  });
+  assertEquals(res.ok, true);
+  assertEquals(ok.w.inserts[0].reason, "уточнява Иван Петров");
+
+  const bad = deps({ restore });
+  assertEquals(
+    await proposeSavedDocumentEdit(bad.deps, {
+      target: "intro",
+      replacement: "Нов увод",
+      reason: "уточнява <EGN_9>",
+    }),
+    { ok: false, code: "unresolved_redaction" },
+  );
+  assertEquals(bad.w.inserts.length, 0);
+});
+
+Deno.test("parseTargetPath: точен whitelist без кръстосани двойки", () => {
+  assertEquals(parseTargetPath("payload.sections[0].title"), null);
+  assertEquals(parseTargetPath("payload.clauses[0].heading"), null);
+  assertEquals(parseTargetPath("payload.sections[01].body"), null);
+  assertEquals(parseTargetPath("payload.sections[200].body"), null);
+  assertEquals(parseTargetPath("payload.clauses[199].body"), {
+    target: "clause_body",
+    index: 199,
+  });
+  assertEquals(parseTargetPath("payload.text"), { target: "text" });
+});
+
+Deno.test("идемпотентност след загубен отговор и по-късна промяна", () => {
+  const accepted = { ...pending, status: "accepted", applied_updated_at: APPLIED_UPDATED };
+  // Повторен accept при вече променен документ и изчезнала цел остава стабилен.
+  assertEquals(
+    decideEditTransition({
+      action: "accept",
+      proposal: accepted,
+      documentUpdatedAt: "2026-03-01T00:00:00.000Z",
+      currentTargetValue: null,
+    }),
+    { ok: true, effect: "none", idempotent: true },
+  );
+  // Повторен reject при премахната цел — нула промени по документа.
+  assertEquals(
+    decideEditTransition({
+      action: "reject",
+      proposal: { ...pending, status: "rejected" },
+      documentUpdatedAt: "2026-03-01T00:00:00.000Z",
+      currentTargetValue: null,
+    }),
+    { ok: true, effect: "none", idempotent: true },
+  );
+  // Първи reject не зависи от текущата стойност на целта.
+  assertEquals(
+    decideEditTransition({
+      action: "reject",
+      proposal: pending,
+      documentUpdatedAt: "2026-03-01T00:00:00.000Z",
+      currentTargetValue: null,
+    }),
+    { ok: true, effect: "mark_rejected", idempotent: false },
+  );
+  // Повторен undo след други промени остава идемпотентен.
+  assertEquals(
+    decideEditTransition({
+      action: "undo",
+      proposal: { ...accepted, status: "reverted" },
+      documentUpdatedAt: "2026-03-01T00:00:00.000Z",
+      currentTargetValue: null,
+    }),
+    { ok: true, effect: "none", idempotent: true },
   );
 });

@@ -50,13 +50,17 @@ export function proposalTargetLabel(path: string): string {
   if (path === "payload.intro") return "Уводен текст";
   if (path === "payload.closing") return "Заключение";
   if (path === "payload.text") return "Текст на документа";
-  const m = path.match(/^payload\.(sections|clauses)\[(\d{1,3})\]\.(heading|body|title)$/);
+  // Същият whitelist като на сървъра: само поддържаните двойки, без водещи нули.
+  const m = path.match(
+    /^payload\.(?:(sections)\[(0|[1-9][0-9]{0,2})\]\.(heading|body)|(clauses)\[(0|[1-9][0-9]{0,2})\]\.(title|body))$/,
+  );
   if (!m) return "Елемент от документа";
-  const nr = Number(m[2]) + 1;
-  if (m[1] === "sections") {
+  if (m[1]) {
+    const nr = Number(m[2]) + 1;
     return m[3] === "heading" ? `Заглавие на секция ${nr}` : `Текст на секция ${nr}`;
   }
-  return m[3] === "title" ? `Заглавие на клауза ${nr}` : `Текст на клауза ${nr}`;
+  const nr = Number(m[5]) + 1;
+  return m[6] === "title" ? `Заглавие на клауза ${nr}` : `Текст на клауза ${nr}`;
 }
 
 export function proposalStatusLabel(status: ProposalStatus): string {
