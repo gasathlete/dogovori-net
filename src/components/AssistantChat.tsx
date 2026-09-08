@@ -1315,6 +1315,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
             <div className="relative">
               <Textarea
                 ref={textareaRef}
+                data-testid="assistant-input"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
