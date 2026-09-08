@@ -224,12 +224,13 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   const loadThreads = useCallback(async () => {
     if (!user) return;
     // Контекстните колони още не са в генерираните типове (миграция 0015).
-    const { data } = await (supabase.from("assistant_threads") as any)
-      .select("id, title, updated_at, context_kind, context_entity_id, context_title")
+    const { data } = await supabase
+      .from("assistant_threads")
+      .select("*")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false })
       .limit(20);
-    const nextThreads = (data ?? []) as Thread[];
+    const nextThreads = (data ?? []) as unknown as Thread[];
     setThreads(nextThreads);
 
     // Само разговори със същия обхват са допустими за автоматичен избор —
@@ -306,12 +307,13 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     if (!activeThreadId || !user) return;
     let cancelled = false;
     (async () => {
-      const { data } = await (supabase.from("assistant_threads") as any)
-        .select("id, context_kind, context_entity_id, context_title")
+      const { data } = await supabase
+        .from("assistant_threads")
+        .select("*")
         .eq("id", activeThreadId)
         .maybeSingle();
       if (cancelled || !data) return;
-      const row = data as Thread;
+      const row = data as unknown as Thread;
       if (row.context_kind && row.context_entity_id) {
         setAssistantDocumentContext({
           kind: row.context_kind,
@@ -446,7 +448,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: "Грешка" }));
         if (!isCurrent()) return;
-        const code = String((err as any)?.code ?? "");
+        const code = String((err as { code?: unknown })?.code ?? "");
         if (code === "document_context_stale") {
           setStaleContext(true);
           toast.error("Документът е променен след започването на този разговор.");
@@ -455,7 +457,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
         } else if (code === "document_not_found") {
           toast.error("Документът не е намерен или нямате достъп до него.");
         } else {
-          toast.error((err as any).error || "Грешка при изпращане");
+          toast.error((err as { error?: string }).error || "Грешка при изпращане");
         }
         setMessages(messages);
         setStreaming(false);
@@ -574,7 +576,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       // Опресняваме показаното потребление след успешна заявка.
       void refreshPlan();
     } catch (err) {
-      if ((err as any)?.name === "AbortError" || !isCurrent()) return;
+      if ((err as { name?: string })?.name === "AbortError" || !isCurrent()) return;
       console.error(err);
       toast.error("Грешка при връзка с асистента");
       setMessages(messages);
