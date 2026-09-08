@@ -3126,7 +3126,6 @@ export type Database = {
           text_hash: string
           uploaded_contract_id: string
           user_id: string
-          verification: Json | null
         }
         Insert: {
           contract_type?: string
@@ -3142,7 +3141,6 @@ export type Database = {
           text_hash?: string
           uploaded_contract_id: string
           user_id: string
-          verification?: Json | null
         }
         Update: {
           contract_type?: string
@@ -3158,7 +3156,6 @@ export type Database = {
           text_hash?: string
           uploaded_contract_id?: string
           user_id?: string
-          verification?: Json | null
         }
         Relationships: [
           {
