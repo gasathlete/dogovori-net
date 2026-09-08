@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { forwardRef, useEffect, useMemo, useRef, type ReactNode } from "react";
 import {
   AlertTriangle, BadgeCheck, Bot, CheckCircle2, Info, RefreshCcw, Scale, Sparkles,
 } from "@/icons";
@@ -10,6 +10,8 @@ import {
   assessReviewTrust, canShowReady, completenessNotice,
   type ReviewContextInput,
 } from "@/lib/reviewSnapshot";
+import { useReviewLifecycle } from "@/hooks/useReviewLifecycle";
+import { useAuth } from "@/hooks/useAuth";
 import { isPersonalDataPlaceholder } from "@/lib/placeholderGate";
 import { trackQualityReview, trackQualityReviewFail } from "@/lib/metrics";
 
@@ -77,39 +79,40 @@ export function AIReviewCard({
   auto = true,
   ignorePersonalData = false,
 }: Props) {
-  const [loading, setLoading] = useState(false);
-  const [review, setReview] = useState<DocumentReview | null>(null);
-  const [reviewDigest, setReviewDigest] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [needsConfirm, setNeedsConfirm] = useState(false);
-  const [expectedDigest, setExpectedDigest] = useState<string | null>(null);
-  const started = useRef(false);
-  /** Генерация на заявката: закъснял отговор от по-стара заявка се отхвърля. */
-  const reqGen = useRef(0);
-
+  const { user } = useAuth();
+  const userScope = user?.id ?? "";
   const text = useMemo(() => contractToPlainText(contract), [contract]);
 
-  const run = async (userConfirmed = false) => {
-    const gen = ++reqGen.current;
-    setLoading(true);
-    setError(null);
-    setNeedsConfirm(false);
-    const out = await reviewDocument({
+  const input = useMemo(
+    () => ({
       documentText: text,
       documentTitle: contract.title,
       documentType,
       documentVersion,
       context: reviewContext,
       ignorePersonalData,
-      userConfirmed,
-    });
-    // Отговор от изоставена заявка не пипа нищо.
-    if (gen !== reqGen.current) return;
-    setExpectedDigest(out.requestedDigest);
-    if (out.review) {
-      setReview(out.review);
-      setReviewDigest(out.requestedDigest);
-      const r = out.review;
+      userScope,
+    }),
+    [text, contract.title, documentType, documentVersion, reviewContext, ignorePersonalData, userScope],
+  );
+
+  const life = useReviewLifecycle({ input, runner: reviewDocument, auto });
+  const { loading, review, error, needsConfirm } = {
+    loading: life.loading,
+    review: life.review,
+    error: life.error,
+    needsConfirm: life.confirmationRequired,
+  };
+  const run = life.run;
+
+  // Отчитаме резултата веднъж, когато вече е приет за текущата снимка.
+  const trackedKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (life.phase !== "done" && life.phase !== "error") return;
+    if (trackedKeyRef.current === `${life.key}|${life.phase}`) return;
+    trackedKeyRef.current = `${life.key}|${life.phase}`;
+    if (life.review) {
+      const r = life.review;
       trackQualityReview(
         {
           verdict: r.verdict,
@@ -121,49 +124,26 @@ export function AIReviewCard({
         },
         documentType,
       );
-    } else {
-      setError(out.error);
-      setNeedsConfirm(out.confirmationRequired);
-      trackQualityReviewFail(out.confirmationRequired ? "confirmation_required" : "review_error");
+    } else if (life.phase === "error") {
+      trackQualityReviewFail(life.confirmationRequired ? "confirmation_required" : "review_error");
     }
-    setLoading(false);
-  };
+  }, [life.phase, life.key, life.review, life.confirmationRequired, documentType]);
 
-  useEffect(() => {
-    if (!auto || started.current) return;
-    started.current = true;
-    void run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auto]);
-
-  // Промяната на отметката за лични данни променя обхвата на ревизията —
-  // презареждаме резултата, за да не остават вече неприложими пропуски.
-  useEffect(() => {
-    if (!started.current || loading) return;
-    void run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ignorePersonalData]);
-
-  // Промяна на документа обезсилва показания резултат — без нова заявка.
-  useEffect(() => {
-    reqGen.current++;
-  }, [text, documentType, documentVersion]);
-
-  const trustState = review
+  // Доверието се преценява СИНХРОННО: резултат от текущата снимка + точен отпечатък.
+  const trust = review
     ? assessReviewTrust({
         responseSource: review.source ?? null,
-        expectedDigest: expectedDigest ?? "",
+        expectedDigest: life.requestedDigest ?? "",
+        currentInput: true,
       })
     : null;
-  // Резултатът важи само за същата снимка, за която е заявен.
-  const sameSnapshot = !!review && reviewDigest !== null && reviewDigest === expectedDigest;
-  const trust = trustState && sameSnapshot ? trustState : null;
   const showVerdict = !!trust?.showVerdict;
-  const notice = review
-    ? (trust?.notice ?? "Документът е променен след тази проверка. Резултатът не се отнася за текущия текст.")
+  const staleNotice = life.stale
+    ? "Документът е променен след последната проверка. Предишният резултат не се отнася за текущия текст — направете нова проверка."
     : null;
+  const notice = review ? trust?.notice ?? null : staleNotice;
   const completeness = review?.completeness ?? null;
-  const completeNote = completenessNotice(completeness);
+  const completeNote = review ? completenessNotice(completeness) : null;
 
   const verdictKey =
     review && showVerdict
@@ -180,6 +160,7 @@ export function AIReviewCard({
   const visibleUnfilled = (review?.unfilled_fields ?? []).filter(
     (f) => !ignorePersonalData || !isPersonalDataPlaceholder(f),
   );
+
 
 
   return (
@@ -229,7 +210,7 @@ export function AIReviewCard({
         </div>
       )}
 
-      {!loading && review && notice && (
+      {notice && (
         <div className="mb-3 rounded-lg border border-border/60 bg-card/50 p-3 text-xs text-muted-foreground">
           {notice}
         </div>

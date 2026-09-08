@@ -10,6 +10,7 @@ import {
   isQuoteSupported,
   normalizeReviewResponse,
   redactReviewContext,
+  restoreLeaves,
   REVIEW_TEXT_LIMIT,
   type ReviewRequest,
 } from "./review-context.ts";
@@ -153,20 +154,39 @@ Deno.test("нечетим отговор е непълен, не чист", () =
   assertNotEquals(n.verdict, "ready");
 });
 
+const FULL_CHECKS = [
+  { id: "forma_i_deystvitelnost", label: "Форма и действителност", status: "pass" },
+  { id: "strani", label: "Страни", status: "pass" },
+  { id: "predmet", label: "Предмет", status: "pass" },
+  { id: "cena", label: "Цена", status: "pass" },
+  { id: "srok", label: "Срок", status: "pass" },
+  { id: "podpisi", label: "Подписи", status: "pass" },
+];
+
+function fullBody(over: Record<string, unknown> = {}) {
+  return {
+    verdict: "ready",
+    confidence: 90,
+    summary: "Няма отчетени пропуски",
+    checks: FULL_CHECKS,
+    missing_requisites: [],
+    unfilled_fields: [],
+    contradictions: [],
+    legal_basis: [{ act: "ЗЗД", article: "чл. 20" }],
+    ...over,
+  };
+}
+
 Deno.test("противоречие без откъс от текста се отхвърля, доказаните остават", () => {
   const source = "Възнаграждението е 1 200,50 EUR и НЕ се дължи предварително.";
   const n = normalizeReviewResponse({
-    parsed: {
-      verdict: "ready",
-      confidence: 90,
-      summary: "Проверено",
-      checks: [{ label: "Реквизити", status: "pass" }],
+    parsed: fullBody({
       contradictions: [
         { detail: "Сумата е противоречива", quote: "1 200,50 EUR" },
         { detail: "Измислено твърдение", quote: "плаща се предварително" },
         { detail: "Без откъс" },
       ],
-    },
+    }),
     truncated: false,
     submittedText: source,
   });
@@ -175,25 +195,83 @@ Deno.test("противоречие без откъс от текста се о�
   assertEquals(n.completeness.status, "partial");
   assertNotEquals(n.verdict, "ready");
   assert(n.confidence <= 70);
+  assert(n.summary !== "Няма отчетени пропуски");
 });
 
-Deno.test("пълен и доказан отговор запазва готовата присъда", () => {
-  const source = "Страните се съгласяват срок 12 месеца.";
+Deno.test("пълен отговор без находки запазва готовата присъда", () => {
   const n = normalizeReviewResponse({
-    parsed: {
-      verdict: "ready",
-      confidence: 88,
-      summary: "Няма отчетени пропуски",
-      checks: [{ label: "Срок", status: "pass" }],
-      contradictions: [{ detail: "Срокът е двусмислен", quote: "срок 12 месеца" }],
-      legal_basis: [{ act: "ЗЗД", article: "чл. 20" }],
-    },
+    parsed: fullBody(),
     truncated: false,
-    submittedText: source,
+    submittedText: "Страните се съгласяват срок 12 месеца.",
   });
   assertEquals(n.completeness.status, "complete");
   assertEquals(n.verdict, "ready");
+  assertEquals(n.summary, "Няма отчетени пропуски");
   assertEquals(n.legal_basis.length, 1);
+});
+
+Deno.test("оскъдно готово без задължителните структури не остава готово", () => {
+  const n = normalizeReviewResponse({
+    parsed: { verdict: "ready", confidence: 99, summary: "Всичко е наред", checks: [{ label: "Едно", status: "pass" }] },
+    truncated: false,
+    submittedText: "Страните се съгласяват срок 12 месеца и цена 1 000 EUR.",
+  });
+  assertNotEquals(n.verdict, "ready");
+  assertEquals(n.completeness.status, "incomplete");
+  assert(n.completeness.reasons.includes("form_check_missing"));
+  assert(n.completeness.reasons.includes("legal_basis_missing"));
+  assert(n.completeness.reasons.includes("missing_requisites_missing"));
+  assert(n.summary !== "Всичко е наред");
+  assert(n.confidence <= 40);
+});
+
+Deno.test("готово с провалена проверка или с пропуски се сваля", () => {
+  const failed = normalizeReviewResponse({
+    parsed: fullBody({
+      checks: [...FULL_CHECKS.slice(1), { id: "forma_i_deystvitelnost", label: "Форма", status: "fail" }],
+    }),
+    truncated: false,
+    submittedText: "Страните се съгласяват срок 12 месеца.",
+  });
+  assertNotEquals(failed.verdict, "ready");
+
+  const gaps = normalizeReviewResponse({
+    parsed: fullBody({ missing_requisites: ["Липсва дата"] }),
+    truncated: false,
+    submittedText: "Страните се съгласяват срок 12 месеца.",
+  });
+  assertEquals(gaps.verdict, "needs_fixes");
+  assert(gaps.completeness.reasons.includes("ready_with_gaps"));
+});
+
+Deno.test("нечетими записи в масивите се отчитат, не се крият", () => {
+  const n = normalizeReviewResponse({
+    parsed: fullBody({
+      missing_requisites: ["Липсва дата", 5, null],
+      legal_basis: [{ act: "ЗЗД" }, { article: "чл. 9" }, "не е обект"],
+      contradictions: [{ detail: 7 }],
+    }),
+    truncated: false,
+    submittedText: "Страните се съгласяват срок 12 месеца.",
+  });
+  assertEquals(n.missing_requisites, ["Липсва дата"]);
+  assertEquals(n.legal_basis.length, 1);
+  assert(n.completeness.reasons.includes("missing_requisites_malformed"));
+  assert(n.completeness.reasons.includes("legal_basis_malformed"));
+  assert(n.completeness.reasons.includes("contradiction_malformed"));
+  assertNotEquals(n.verdict, "ready");
+});
+
+Deno.test("рязан вход прави проверката непълна с неутрално обобщение", () => {
+  const n = normalizeReviewResponse({
+    parsed: fullBody(),
+    truncated: true,
+    submittedText: "Страните се съгласяват срок 12 месеца.",
+  });
+  assertEquals(n.completeness.status, "incomplete");
+  assert(n.completeness.reasons.includes("input_truncated"));
+  assertNotEquals(n.verdict, "ready");
+  assert(n.summary !== "Няма отчетени пропуски");
 });
 
 Deno.test("проверката на откъс е нечувствителна само към празнини и регистър", () => {
@@ -216,4 +294,49 @@ Deno.test("браузърният помощник дава ТОЧНО същи�
     ignorePersonalData: true,
   });
   assertEquals(client, server);
+});
+
+Deno.test("каноничният източник не се преправя чрез разделители", async () => {
+  const a = req({ context: { decisions: [{ label: "a=b", value: "c" }] } });
+  const b = req({ context: { decisions: [{ label: "a", value: "b=c" }] } });
+  assertNotEquals(await computeReviewSourceDigest(a), await computeReviewSourceDigest(b));
+
+  const c1 = req({ context: { decisions: [{ label: "Срок", value: "12" }, { label: "Цена", value: "5" }] } });
+  const c2 = req({ context: { decisions: [{ label: "Срок", value: "12\u0000Цена\u0000" }, { label: "x", value: "5" }] } });
+  assertNotEquals(await computeReviewSourceDigest(c1), await computeReviewSourceDigest(c2));
+
+  const withSep = req({ documentTitle: "Договор\u241E\u0000таен" });
+  assertNotEquals(await computeReviewSourceDigest(withSep), await computeReviewSourceDigest(req()));
+});
+
+Deno.test("златен отпечатък: браузър и edge съвпадат при кавички и контролни знаци", async () => {
+  const tricky = {
+    documentText: `Клауза „А" гласи: сумата е 1 200,50 EUR.\nВтора\tклауза с \\ обратна черта.${"x".repeat(60)}`,
+    documentTitle: 'Договор "Алфа" \\ ООД',
+    documentType: "dogovor-za-uslugi",
+    documentVersion: "v2",
+    context: { role: "Изпълнител", decisions: [{ label: 'Цена "нето"', value: "1 200,50 EUR\\месец" }] },
+    ignorePersonalData: true,
+  };
+  const built = buildReviewRequest(tricky);
+  assert(!("ok" in built));
+  const server = await computeReviewSourceDigest(built as ReviewRequest);
+  const client = await clientDigest(tricky);
+  assertEquals(client, server);
+});
+
+Deno.test("възстановяването по листа не се чупи от кавички и контролни знаци", () => {
+  const mapping = { "<EMAIL_1>": 'ко"нтакт\\т\u0007@пример' };
+  const parsed = {
+    summary: "Плати на <EMAIL_1>",
+    checks: [{ label: "<EMAIL_1>", status: "warn", note: "виж <EMAIL_1>" }],
+    nested: { list: ["<EMAIL_1>", 5, null, true] },
+  };
+  const restored = restoreLeaves(parsed, mapping, unredact) as typeof parsed;
+  assertEquals(restored.summary, `Плати на ${mapping["<EMAIL_1>"]}`);
+  assertEquals(restored.checks[0].label, mapping["<EMAIL_1>"]);
+  assertEquals(restored.nested.list[0], mapping["<EMAIL_1>"]);
+  assertEquals(restored.nested.list[1], 5);
+  // Ключовете на обектите остават непроменени.
+  assertEquals(Object.keys(restored).sort(), ["checks", "nested", "summary"]);
 });
