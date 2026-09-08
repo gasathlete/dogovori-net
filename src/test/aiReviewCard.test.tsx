@@ -2,7 +2,7 @@
  * Q2d — РЕАЛЕН жизнен цикъл на картата „Автоматична AI ревизия".
  * Заявките са отложени обещания; никакви мрежови или AI повиквания.
  */
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -18,6 +18,7 @@ vi.mock("@/lib/documentReview", async (importOriginal) => {
 });
 
 import { AIReviewCard } from "@/components/wizard/AIReviewCard";
+import { useReviewLifecycle } from "@/hooks/useReviewLifecycle";
 import { REVIEW_SOURCE_VERSION } from "@/lib/reviewSnapshot";
 import type { DocumentReview, ReviewOutcome } from "@/lib/documentReview";
 
@@ -277,39 +278,63 @@ describe("AIReviewCard — реален жизнен цикъл", () => {
     expect(screen.queryByText(/стара грешка/)).toBeNull();
   });
 
-  it("две припокриващи се ръчни проверки: показва се последната", async () => {
-    const d0 = deferred<ReviewOutcome>();
+});
+
+describe("useReviewLifecycle — пореден номер на заявката", () => {
+  it("две припокриващи се проверки за същата снимка: важи последната", async () => {
     const d1 = deferred<ReviewOutcome>();
     const d2 = deferred<ReviewOutcome>();
-    reviewDocument
-      .mockImplementationOnce(() => d0.promise)
+    const runner = vi
+      .fn()
       .mockImplementationOnce(() => d1.promise)
       .mockImplementationOnce(() => d2.promise);
-    render(<AIReviewCard contract={contract()} documentType="t" />);
-    await act(async () => {
-      d0.resolve(outcome());
-    });
+    const view = renderHook(() =>
+      useReviewLifecycle({
+        input: { documentText: "Текст на документа за проверка.", documentTitle: "Т" },
+        runner,
+        auto: false,
+      }),
+    );
 
-    const again = screen.getByRole("button", { name: /Провери отново/ });
     await act(async () => {
-      again.click();
+      view.result.current.run();
     });
     await act(async () => {
-      screen.getByRole("button", { name: /Провери отново|Стартирай ревизия/, hidden: true });
+      view.result.current.run();
     });
-    // Втори ръчен старт, докато първият е още във въздуха.
-    await act(async () => {
-      (screen.queryByRole("button", { name: /Провери отново/ }) ?? again).click();
-    });
-    await waitFor(() => expect(reviewDocument).toHaveBeenCalledTimes(3));
+    expect(runner).toHaveBeenCalledTimes(2);
 
+    // Най-новата завършва първа.
     await act(async () => {
       d2.resolve(outcome({ review: review({ verdict: "needs_fixes" }) }));
     });
+    expect(view.result.current.review?.verdict).toBe("needs_fixes");
+
+    // По-старата (тук: грешка) не изтрива успеха.
     await act(async () => {
       d1.resolve(outcome({ review: null, error: "закъсняла грешка" }));
     });
-    expect(screen.getByText(/Ревизията откри места за прецизиране/)).toBeTruthy();
-    expect(screen.queryByText(/закъсняла грешка/)).toBeNull();
+    expect(view.result.current.review?.verdict).toBe("needs_fixes");
+    expect(view.result.current.error).toBeNull();
+    expect(view.result.current.loading).toBe(false);
+  });
+
+  it("автоматичният старт остава ЕДИН, включително в StrictMode", async () => {
+    const d = deferred<ReviewOutcome>();
+    const runner = vi.fn().mockImplementation(() => d.promise);
+    const view = renderHook(
+      () =>
+        useReviewLifecycle({
+          input: { documentText: "Текст на документа за проверка.", documentTitle: "Т" },
+          runner,
+        }),
+      { wrapper: ({ children }) => <StrictMode>{children}</StrictMode> },
+    );
+    await waitFor(() => expect(runner).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      d.resolve(outcome());
+    });
+    expect(view.result.current.review?.verdict).toBe("ready");
+    expect(runner).toHaveBeenCalledTimes(1);
   });
 });
