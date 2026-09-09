@@ -10,8 +10,6 @@ import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronDown } from "@/icons";
 import type { TabDef } from "./ScrollableTabsList";
 
-export const MOBILE_PRIMARY_TABS: TabDef[] = [];
-
 export function MobileAccountNav({
   primary,
   secondary,
