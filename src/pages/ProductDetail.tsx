@@ -12,6 +12,7 @@ import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
 import { SeoFooter } from "@/components/SeoFooter";
 import { ProductDemo } from "@/components/products/ProductDemo";
+import { PlanAlternativeNote } from "@/components/products/PlanAlternativeNote";
 import { trackFunnelEvent } from "@/lib/funnel";
 import {
   ONE_TIME_PRODUCTS,
@@ -147,6 +148,8 @@ export default function ProductDetail() {
               <p className="mt-3 text-[11.5px] font-medium text-muted-foreground">
                 {ONE_TIME_TERMS}
               </p>
+
+              <PlanAlternativeNote className="mt-5 max-w-md" />
             </div>
 
             <div className="min-w-0 rounded-2xl border border-border/70 bg-card/60 p-4 shadow-soft sm:p-5">

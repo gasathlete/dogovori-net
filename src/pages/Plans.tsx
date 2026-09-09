@@ -34,6 +34,8 @@ import {
 import { useAudience } from "@/hooks/useAudience";
 import { markFunnelStep } from "@/lib/funnel";
 import { entryPackCtaHref } from "@/lib/entryPack";
+import { OneTaskAlternative } from "@/components/products/OneTaskAlternative";
+import { planVolumeSentence } from "@/components/products/PlanAlternativeNote";
 import { useEffect } from "react";
 
 
@@ -208,7 +210,7 @@ export default function Plans() {
     <>
       <Seo
         title="Планове и цени — Dogovori.net"
-        description="Платете според начина, по който работите: 2,90 € еднократно за конкретен документ или абонамент от 12,90 €/мес за редовна договорна работа. Екип — 109 €/място/год."
+        description="Платете според начина, по който работите: една задача от 2,99 € еднократно или абонамент от 12,90 €/мес при използване на включения обем. Екип — 109 €/място/год."
         canonical="https://dogovori.net/plans"
       />
       <Header />
@@ -269,26 +271,37 @@ export default function Plans() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="flex flex-col rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:p-6">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
-                Еднократно
+                Една задача
               </p>
               <h3 className="mt-1.5 font-serif text-xl text-foreground">Конкретен документ</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                {fmtEur(ENTRY_PACK_CONFIG.eur)} · {ENTRY_PACK_CONFIG.ops} включени действия по
-                документи · без абонамент. Действията не изтичат и не отключват функции от платените
-                планове.
+                Избирате готов резултат и плащате само него.
               </p>
-              <div className="mt-4">
-                <EntryPackCta isAuthed={isAuthed} audience={audience} />
-              </div>
+              <OneTaskAlternative className="mt-3" />
+              <details className="mt-3 text-[12px] text-muted-foreground">
+                <summary className="cursor-pointer list-none font-medium underline decoration-border underline-offset-4">
+                  Отделно: пакет от {ENTRY_PACK_CONFIG.ops} действия за{" "}
+                  {fmtEur(ENTRY_PACK_CONFIG.eur)}
+                </summary>
+                <p className="mt-2 leading-relaxed">
+                  Това не е един от горните продукти. Пакетът добавя{" "}
+                  {ENTRY_PACK_CONFIG.ops} действия по документи към профила Ви, не изтича и не
+                  отключва функции от платените планове.
+                </p>
+                <div className="mt-2.5">
+                  <EntryPackCta isAuthed={isAuthed} audience={audience} />
+                </div>
+              </details>
             </div>
 
             <div className="flex flex-col rounded-2xl border border-brand/40 bg-brand/[0.04] p-5 backdrop-blur-md sm:p-6">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
-                Абонамент от {monthlyLabel("professional")}
+                Работите редовно
               </p>
-              <h3 className="mt-1.5 font-serif text-xl text-foreground">Редовна договорна работа</h3>
+              <h3 className="mt-1.5 font-serif text-xl text-foreground">Абонамент</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Изготвяте, проверявате и споделяте документи, а историята и версиите остават при Вас.
+                {planVolumeSentence()} Изготвяте, проверявате и споделяте документи, а историята и
+                версиите остават при Вас.
               </p>
               <a
                 href="#plan-cards"
@@ -301,6 +314,7 @@ export default function Plans() {
                 <ArrowRight className="h-4 w-4" />
               </a>
             </div>
+
 
           </div>
         </section>
