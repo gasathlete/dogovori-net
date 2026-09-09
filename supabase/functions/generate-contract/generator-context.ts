@@ -153,7 +153,7 @@ function collectFields(ctx: GeneratorContext): string[] | null {
   const push = (v: unknown): boolean => {
     if (typeof v !== "string") return false;
     // Fail-closed: служебен разделител или вече наличен наш плейсхолдър.
-    if (v.includes("\u241E")) return false;
+    if (v.includes(CONTROL_MARK)) return false;
     if (RESERVED_PLACEHOLDER_RE.test(v)) return false;
     fields.push(v);
     return true;
