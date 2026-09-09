@@ -27,9 +27,17 @@
 
 
 import { sha256Hex } from "./normalize.ts";
+import {
+  canonicalizeIntentAssertions,
+  type IntentAssertion,
+  type IntentIssue,
+  type IntentVerificationReport,
+  intentMismatchIssues,
+  validateIntentAssertions,
+} from "./intent-assertions.ts";
 
-export const GENERATED_QUALITY_SCHEMA_VERSION = 1 as const;
-export const GENERATED_QUALITY_POLICY_VERSION = "q4a-generated-quality-2" as const;
+export const GENERATED_QUALITY_SCHEMA_VERSION = 2 as const;
+export const GENERATED_QUALITY_POLICY_VERSION = "q4b-generated-quality-1" as const;
 export const GENERATED_QUALITY_SIGNATURE_VERSION = 1 as const;
 export const GENERATED_QUALITY_SIGNATURE_ALG = "HMAC-SHA-256" as const;
 
@@ -102,6 +110,13 @@ export interface QualityManifestClaims {
   plaintext_fingerprint: string | null;
   /** Умишлени решения при съставянето — само от затворения списък. */
   decisions: IntentionalDecisionId[];
+  /**
+   * Q4b — ЗАТВОРЕН типизиран набор твърдения за ЯВНОТО намерение на потребителя.
+   * Съдържа САМО затворени метаданни и еднопосочни HMAC commitment-и — никаква
+   * сурова стойност, никакви лични данни. Подписват се заедно с останалите
+   * твърдения, така че клиент не може да добави, махне или подмени твърдение.
+   */
+  intents: IntentAssertion[];
 }
 
 export interface QualityManifest extends QualityManifestClaims {
@@ -297,6 +312,7 @@ export function canonicalizeQualityClaims(claims: QualityManifestClaims): string
     `content:${claims.content_fingerprint}`,
     `plaintext:${claims.plaintext_fingerprint ?? ""}`,
     `decisions:${[...claims.decisions].sort().join(",")}`,
+    `intents:${canonicalizeIntentAssertions(claims.intents ?? [])}`,
   ].join("\n");
 }
 
@@ -363,6 +379,8 @@ export async function buildQualityManifest(input: {
   buildMode?: unknown;
   contextFingerprint?: string | null;
   decisions?: readonly string[];
+  /** Q4b — вече изчислени (сървърно) типизирани твърдения за намерението. */
+  intents?: readonly IntentAssertion[];
 }): Promise<QualityManifest> {
   if (typeof input.signingSecret !== "string" || input.signingSecret.length < 16) {
     throw new Error("quality_manifest_signing_key_missing");
@@ -380,6 +398,7 @@ export async function buildQualityManifest(input: {
     content_fingerprint: await computeContentFingerprint(input.contract),
     plaintext_fingerprint: await computePlaintextFingerprint(input.contract),
     decisions: dedupeDecisions(input.decisions ?? []),
+    intents: validateIntentAssertions(input.intents ?? []) ?? [],
   };
   return {
     ...claims,
@@ -415,6 +434,11 @@ export function validateQualityManifest(value: unknown): QualityManifest | null 
   ) {
     return null;
   }
+  // Q4b — твърденията за намерението минават през СВОЯТА строга схема. Всяко
+  // отклонение (непознат слот, чужд вид, невалиден commitment, надвишен лимит)
+  // прави ЦЕЛИЯ манифест невалиден → недоверен.
+  const intents = validateIntentAssertions(v.intents);
+  if (intents === null) return null;
   const sig = v.signature;
   if (!sig || typeof sig !== "object" || Array.isArray(sig)) return null;
   const s = sig as Record<string, unknown>;
@@ -431,6 +455,7 @@ export function validateQualityManifest(value: unknown): QualityManifest | null 
     content_fingerprint: v.content_fingerprint,
     plaintext_fingerprint: typeof pf === "string" ? pf : null,
     decisions: dedupeDecisions(v.decisions),
+    intents,
     signature: {
       v: GENERATED_QUALITY_SIGNATURE_VERSION,
       alg: GENERATED_QUALITY_SIGNATURE_ALG,
@@ -497,6 +522,27 @@ export async function verifyQualityManifest(input: {
     return { trusted: false, manifest: null, reason: "content_mismatch" };
   }
   return { trusted: true, manifest };
+}
+
+/**
+ * Проверка САМО на подписа (без обвързване към съдържание). Ползва се
+ * ЕДИНСТВЕНО за ПРЕНАСЯНЕ на твърдения за намерението при редакция/корекция:
+ * съдържанието СЕ променя, затова `content_fingerprint` вече не съвпада, но
+ * твърденията остават НАШИ (клиентът не може да ги измисли). Всяко пренесено
+ * твърдение след това се проверява ОТНОВО срещу новия текст — само доказано
+ * съвпадащите се преиздават. Тази функция НЕ дава доверие за потискане на
+ * находки; за това служи `verifyQualityManifest`.
+ */
+export async function verifyManifestSignatureOnly(input: {
+  manifest: unknown;
+  signingSecret: string | null;
+}): Promise<QualityManifest | null> {
+  const manifest = validateQualityManifest(input.manifest);
+  if (!manifest) return null;
+  const secret = input.signingSecret;
+  if (typeof secret !== "string" || secret.length < 16) return null;
+  const expected = await signClaims(manifest, secret);
+  return constantTimeEqualHex(expected, manifest.signature.value) ? manifest : null;
 }
 
 /**
@@ -935,6 +981,13 @@ export function classifyLaterFinding(input: {
   }
   if (!text) return { action: "keep", reason: "not_intentional", decision: null };
 
+  // Q4b — ДЕТЕРМИНИРАНА находка от проверката на намерението НИКОГА не се
+  // потиска. Тя е доказана срещу текста чрез HMAC commitment, а не преценка на
+  // модел, и точно тя е бизнес причината Q4b да съществува.
+  if (isDeterministicIntentFinding(text)) {
+    return { action: "keep", reason: "substantive_defect_preserved", decision: null };
+  }
+
   const doc = normalizeForMatch(input.documentText ?? "");
 
   // Доказан СЪЩЕСТВЕН дефект се запазва ПРЕДИ всяко потискане.
@@ -992,4 +1045,63 @@ export function partitionLaterFindings<T>(
     else kept.push(item);
   }
   return { kept, personal, optional, reason_codes: [...reasons].sort() };
+}
+
+// ---------------------------------------------------------------------------
+// Q4b — ДЕТЕРМИНИРАНО сливане на резултата от проверката на намерението
+// ---------------------------------------------------------------------------
+//
+// Тези находки НЕ идват от модел. Те са резултат от сравнение на HMAC
+// commitment-и срещу реалния текст на документа. Затова:
+//   - те се добавят СЛЕД gate-а/нормализацията, за да не може AI (или филтърът
+//     за умишлени решения) да ги махне или свали;
+//   - те НИКОГА не се третират като „наше умишлено решение";
+//   - те не разкриват очакваната стойност — commitment-ът е еднопосочен.
+
+/** Маркер за находка, произведена детерминирано от Q4b (не от модел). */
+export const DETERMINISTIC_INTENT_MARKER = "__q4b_intent" as const;
+
+export interface IntentMergeOutcome {
+  risk: GatedRisk;
+  /** Колко ДОКАЗАНИ несъответствия са добавени. */
+  added: number;
+}
+
+/**
+ * Слива доказаните несъответствия в вече минал през gate-а risk анализ.
+ * Резултатът НИКОГА не може да остане „нисък риск", ако има доказано
+ * несъответствие с изрично избрана стойност.
+ */
+export function mergeIntentFindingsIntoRisk(input: {
+  risk: GatedRisk;
+  report: IntentVerificationReport | null | undefined;
+}): IntentMergeOutcome {
+  const issues: IntentIssue[] = input.report ? intentMismatchIssues(input.report) : [];
+  if (issues.length === 0) return { risk: input.risk, added: 0 };
+
+  const merged: GatedRiskIssue[] = [...input.risk.issues];
+  for (const i of issues) {
+    if (merged.some((m) => m.title === i.title)) continue;
+    merged.push({ severity: i.severity, title: i.title, detail: i.detail });
+  }
+  const weight = (s: string) => (s === "high" ? 30 : s === "medium" ? 15 : 5);
+  const computed = merged.reduce((sum, i) => sum + weight(i.severity), 0);
+  return {
+    risk: {
+      ...input.risk,
+      level: "high",
+      score: Math.max(0, Math.min(100, Math.round(Math.max(input.risk.score, computed)))),
+      issues: merged,
+    },
+    added: issues.length,
+  };
+}
+
+/**
+ * Разпознава ДЕТЕРМИНИРАНА находка на Q4b по заглавието. Ползва се от филтъра
+ * за по-късни находки, за да не бъде тя никога потисната като „умишлено наше
+ * решение" — тя е доказана срещу текста, а не преценка на модел.
+ */
+export function isDeterministicIntentFinding(text: unknown): boolean {
+  return typeof text === "string" && /Несъответствие със заявеното:/.test(text);
 }

@@ -57,7 +57,9 @@ async function manifest(
 
 Deno.test("манифестът е без PII, подписан и валиден", async () => {
   const m = await manifest();
-  assertEquals(m.version, 1);
+  // Q4b — схемата е версия 2: манифестът вече носи и твърденията за намерението.
+  assertEquals(m.version, 2);
+  assertEquals(m.intents, []);
   assertEquals(m.origin, "generate-contract");
   assertEquals(m.signature.alg, "HMAC-SHA-256");
   assert(/^[0-9a-f]{64}$/.test(m.signature.value));

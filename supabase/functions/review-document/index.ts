@@ -31,6 +31,7 @@ import {
   qualitySigningSecretFromEnv,
   verifyQualityManifest,
 } from "../_shared/generated-document-quality.ts";
+import { intentMismatchChecks, verifyIntentAssertions } from "../_shared/intent-assertions.ts";
 
 const SYSTEM_PROMPT = `Ти си независим български правен ревизор (втори проход). Получаваш ГОТОВ документ и правиш техническа ревизия. НЕ пренаписваш текста.
 
@@ -247,7 +248,17 @@ Deno.serve(async (req: Request) => {
     };
 
     // Валидация по стойности (без cast-ове) + честна пълнота.
+    // Q4b — ДЕТЕРМИНИРАНА проверка на явното намерение. Твърденията се вземат
+    // САМО от ДОВЕРЕН манифест (валиден подпис + точно обвързване с ТОЗИ текст).
+    // Очакваната стойност не съществува в явен вид и НИКОГА не влиза в промпта.
+    const intentReport = await verifyIntentAssertions({
+      assertions: trust.trusted ? trust.manifest.intents : [],
+      documentText: request.documentText,
+      serverSecret: qualitySigningSecretFromEnv(),
+    });
+
     const normalized = normalizeReviewResponse({
+      deterministicChecks: intentMismatchChecks(intentReport),
       parsed: restored,
       submittedText: request.documentText,
       truncated: request.truncated,
@@ -286,6 +297,11 @@ Deno.serve(async (req: Request) => {
         manifest_reason: trust.trusted ? null : trust.reason,
         deferred_personal_scope: ignorePersonalData,
         optional_findings: optionalFindings,
+        intent: {
+          checked: intentReport.checked,
+          satisfied: intentReport.satisfied,
+          mismatched: intentReport.mismatched_required.length,
+        },
       },
       model: route.model,
       reviewed_at: new Date().toISOString(),

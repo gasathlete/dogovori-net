@@ -16,6 +16,11 @@ import {
   qualitySigningSecretFromEnv,
   verifyQualityManifest,
 } from "../_shared/generated-document-quality.ts";
+import {
+  hasIntentMismatch,
+  intentMismatchIssues,
+  verifyIntentAssertions,
+} from "../_shared/intent-assertions.ts";
 import { shouldDeferItem } from "../_shared/deferred-personal-scope.ts";
 import {
   buildAnalysisSourceBinding,
@@ -605,9 +610,38 @@ ${payloadText}
       ...missingPartition.optional.map((m) => String(m?.name ?? "").trim()),
     ].filter((t) => t.length > 0);
 
+    // Q4b — ДЕТЕРМИНИРАНА проверка на явното намерение. Твърденията се вземат
+    // САМО от ДОВЕРЕН манифест (валиден подпис + точно обвързване с ТОЗИ текст).
+    // Очакваните стойности НЕ съществуват в явен вид тук и НИКОГА не тръгват към
+    // модела — сравняват се HMAC commitment-и срещу кандидати, извлечени от
+    // подадения текст. Сливането е СЛЕД нормализацията на AI отговора, за да не
+    // може моделът да махне или свали доказано несъответствие.
+    const intentReport = await verifyIntentAssertions({
+      assertions: trust.trusted ? trust.manifest.intents : [],
+      documentText: text,
+      serverSecret: qualitySigningSecretFromEnv(),
+    });
+    const intentIssues = intentMismatchIssues(intentReport).map((i) => ({
+      severity: i.severity,
+      title: i.title,
+      explanation: i.detail,
+    }));
+    const finalIssues = [
+      ...gatedIssues,
+      ...intentIssues.filter(
+        (n) => !gatedIssues.some((g: { title?: unknown }) => String(g?.title ?? "") === n.title),
+      ),
+    ];
+
     // Преизчисляване на видимата оценка СЛЕД филтрирането — премахната находка
     // не оставя остаряла лоша оценка. Никога над базовата оценка на модела.
-    const score = Math.min(pipeline.baseScore, applySeverityCaps(pipeline.baseScore, gatedIssues));
+    // Изключение: ДОКАЗАНО несъответствие с явно избрана стойност НЕ може да
+    // бъде „изгладено" от базовата оценка на модела — то е факт, не преценка.
+    const filteredScore = Math.min(
+      pipeline.baseScore,
+      applySeverityCaps(pipeline.baseScore, gatedIssues),
+    );
+    const score = hasIntentMismatch(intentReport) ? Math.max(filteredScore, 70) : filteredScore;
 
     const quality = {
       trusted_manifest: trust.trusted,
@@ -618,6 +652,11 @@ ${payloadText}
         (pipeline.missingClauses.length - gatedMissing.length - missingPartition.optional.length),
       optional_recommendations: optionalRecommendations,
       score_recomputed: score !== pipeline.score,
+      intent: {
+        checked: intentReport.checked,
+        satisfied: intentReport.satisfied,
+        mismatched: intentReport.mismatched_required.length,
+      },
       finding_reason_codes: [
         ...new Set([...issuePartition.reason_codes, ...missingPartition.reason_codes]),
       ].sort(),
@@ -634,7 +673,7 @@ ${payloadText}
           score,
           contractType: pipeline.contractType,
           summary: pipeline.summary,
-          issues: gatedIssues,
+          issues: finalIssues,
           missingClauses: gatedMissing,
           cacheKey: normalizedHash,
           verification,

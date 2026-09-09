@@ -26,7 +26,13 @@ import {
   qualitySigningSecretFromEnv,
   GENERATED_QUALITY_POLICY_VERSION,
   flattenGeneratedContract,
+  mergeIntentFindingsIntoRisk,
 } from "../_shared/generated-document-quality.ts";
+import {
+  buildIntentAssertions,
+  extractIntentDrafts,
+  verifyIntentAssertions,
+} from "../_shared/intent-assertions.ts";
 
 
 
@@ -422,10 +428,26 @@ ${docTypeSpec.systemAddendum}
       // издава манифест — тогава gate-ът работи в режим „външен документ".
       const signingSecret = qualitySigningSecretFromEnv();
       if (!signingSecret) console.error("quality manifest signing key unavailable");
+      // Q4b — типизирани твърдения за ЯВНОТО намерение. Извличат се САМО от
+      // авторитетния структуриран вход на съветника (недвусмислен идентификатор/
+      // етикет на въпрос). Двусмислените отговори не дават твърдение. В
+      // манифеста влизат само затворени метаданни и еднопосочни commitment-и —
+      // никаква сурова стойност и никакви лични данни.
+      const intents = signingSecret
+        ? await buildIntentAssertions({
+          serverSecret: signingSecret,
+          drafts: extractIntentDrafts({
+            questions,
+            answers,
+            flags: { bilingual: isBilingual, arbitration: arbitration?.enabled === true },
+          }),
+        })
+        : [];
       const qualityManifest = signingSecret ? await buildQualityManifest({
         origin: "generate-contract",
         signingSecret,
         contract: parsed.contract,
+        intents,
         documentType: docTypeSpec.id,
         buildMode: null,
         contextFingerprint: await computeContextFingerprint([
@@ -448,8 +470,19 @@ ${docTypeSpec.systemAddendum}
         manifest: qualityManifest,
         trustedManifest: !!qualityManifest,
       });
-      parsed.risk = gated.risk;
-      parsed.quality = gated.quality;
+      // Q4b — ДЕТЕРМИНИРАНАТА проверка на намерението се слива СЛЕД gate-а, за
+      // да не може нито моделът, нито филтърът за умишлени решения да я махне.
+      // Няма допълнително AI повикване и НЕ се начислява операция — това е
+      // локално сравнение на HMAC commitment-и срещу вече готовия текст.
+      const intentReport = await verifyIntentAssertions({
+        assertions: intents,
+        documentText: documentText,
+        serverSecret: signingSecret,
+        structuralFlags: { bilingual: isBilingual, arbitration: arbitration?.enabled === true },
+      });
+      const withIntent = mergeIntentFindingsIntoRisk({ risk: gated.risk, report: intentReport });
+      parsed.risk = withIntent.risk;
+      parsed.quality = { ...gated.quality, intent: { checked: intentReport.checked, satisfied: intentReport.satisfied, mismatched: intentReport.mismatched_required.length } };
       if (qualityManifest) parsed.quality_manifest = qualityManifest;
 
       // Препоръката за попълване на личните данни локално остава — платформата
