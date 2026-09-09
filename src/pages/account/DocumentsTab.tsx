@@ -455,13 +455,19 @@ function DocumentsTab({
                     </div>
                     <div className="mt-3 space-y-2">
                       <div className="grid grid-cols-1 gap-2">
-                        <ShareForSignDialog
-                          uploadedContractId={u.id}
-                          documentTitle={u.title}
-                          triggerLabel="Подпиши"
-                          triggerIcon={<PenTool className="mr-1 h-3.5 w-3.5" />}
-                          triggerClassName="h-10 w-full justify-center border-gold/50 text-gold hover:bg-gold/10 sm:h-9"
-                        />
+                        {isMobile ? (
+                          <Button asChild size="sm" className="h-11 w-full justify-center">
+                            <Link to={`/uploaded/${u.id}`}>Отвори</Link>
+                          </Button>
+                        ) : (
+                          <ShareForSignDialog
+                            uploadedContractId={u.id}
+                            documentTitle={u.title}
+                            triggerLabel="Подпиши"
+                            triggerIcon={<PenTool className="mr-1 h-3.5 w-3.5" />}
+                            triggerClassName="h-10 w-full justify-center border-gold/50 text-gold hover:bg-gold/10 sm:h-9"
+                          />
+                        )}
                       </div>
                       <Button
                         type="button"
@@ -485,6 +491,15 @@ function DocumentsTab({
                           id={`u-actions-${u.id}`}
                           className="grid grid-cols-2 gap-2 rounded-lg border border-border/50 bg-background/40 p-2 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5"
                         >
+                          {isMobile && (
+                            <ShareForSignDialog
+                              uploadedContractId={u.id}
+                              documentTitle={u.title}
+                              triggerLabel="Подпиши"
+                              triggerIcon={<PenTool className="mr-1 h-3.5 w-3.5" />}
+                              triggerClassName="h-10 w-full justify-center border-gold/50 text-gold hover:bg-gold/10"
+                            />
+                          )}
                           <DocumentReminderDialog
                             target={{ uploadedContractId: u.id }}
                             documentTitle={u.title}
