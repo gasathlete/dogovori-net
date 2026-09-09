@@ -288,37 +288,21 @@ Deno.serve(async (req) => {
         }
 
         const finishedAt = new Date().toISOString();
-        const record = buildRunRecord({
-          sourceKey: entry.sourceKey,
-          trigger,
-          startedAt,
-          finishedAt,
-          outcome,
-          httpStatus,
-          contentType,
-          byteCount,
-          discovered,
-          changed,
-          errorCode,
-        });
 
-        let finalOutcome: RunOutcome = record.outcome;
-        let finalErrorCode: string | null = record.error_code;
+        // Ред на bookkeeping: първо registry touch, после audit запис с ФИНАЛНИЯ
+        // резултат. Така записаният audit ред никога не остава „success“ при
+        // известен провал на touch.
+        let touchFailure: Extract<DbErrorCode, "registry_touch_failed"> | null = null;
 
         if (!dryRun) {
-          let bookkeepingFailure: DbErrorCode | null = null;
-
-          const runIns = await admin.from("legal_ingestion_runs").insert(record);
-          if (runIns.error) bookkeepingFailure = "run_audit_write_failed";
-
           const regRead = await admin
             .from("legal_source_registry")
             .select("last_success_at")
             .eq("source_key", entry.sourceKey)
             .maybeSingle();
-          if (regRead.error && !bookkeepingFailure) bookkeepingFailure = "registry_touch_failed";
-
-          if (!regRead.error) {
+          if (regRead.error) {
+            touchFailure = "registry_touch_failed";
+          } else {
             const touch = registryTouchForRun({
               entry,
               outcome,
@@ -329,18 +313,38 @@ Deno.serve(async (req) => {
               .from("legal_source_registry")
               .update(touch)
               .eq("source_key", entry.sourceKey);
-            if (upd.error && !bookkeepingFailure) bookkeepingFailure = "registry_touch_failed";
-          }
-
-          if (bookkeepingFailure) {
-            // Никакъв подвеждащ „ok“: audit/touch провалът влошава резултата.
-            const degraded = degradeForBookkeepingFailure(record.outcome, bookkeepingFailure);
-            finalOutcome = degraded.outcome;
-            finalErrorCode = degraded.error_code;
-            persisted = false;
+            if (upd.error) touchFailure = "registry_touch_failed";
           }
         }
 
+        const audited = auditOutcomeAfterTouch(outcome, errorCode, touchFailure);
+
+        const record = buildRunRecord({
+          sourceKey: entry.sourceKey,
+          trigger,
+          startedAt,
+          finishedAt,
+          outcome: audited.outcome,
+          httpStatus,
+          contentType,
+          byteCount,
+          discovered,
+          changed,
+          errorCode: audited.error_code,
+        });
+
+        let finalOutcome: RunOutcome = record.outcome;
+        let finalErrorCode: string | null = record.error_code;
+
+        if (!dryRun) {
+          const runIns = await admin.from("legal_ingestion_runs").insert(record);
+          if (runIns.error) {
+            // Липсващ audit ред не може да се отчете като успех.
+            const degraded = degradeForBookkeepingFailure(record.outcome, "run_audit_write_failed");
+            finalOutcome = degraded.outcome;
+            finalErrorCode = degraded.error_code;
+          }
+        }
 
         results.push({
           source_key: entry.sourceKey,
@@ -349,8 +353,11 @@ Deno.serve(async (req) => {
           discovered: record.discovered_count,
           changed: record.changed_count,
           parser_status: parserStatus,
+          // `persisted` описва честно съдържателния запис (snapshot/candidates),
+          // не bookkeeping-а.
           persisted: dryRun ? false : persisted,
         });
+
       }
 
       return json(
