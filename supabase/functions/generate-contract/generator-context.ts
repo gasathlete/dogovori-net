@@ -205,17 +205,18 @@ export function redactGeneratorContext(
     };
   }
 
-  // JSON-array рамкиране: няма разделител, който PII шаблон да „изяде".
-  // Един общ redactForAI върху сериализирания масив пази общия мапинг/брояч.
-  const { redacted, mapping } = redactForAI(JSON.stringify(fields));
-  let parts: unknown;
-  try {
-    parts = JSON.parse(redacted);
-  } catch {
-    return notRedactable();
-  }
+  // Рамкирането е СТРУКТУРНО (масив), а не текстово: няма разделител, който
+  // PII шаблон (телефон/адрес) да „прелее" и да развали разделянето. Всяко поле
+  // се редактира отделно, но плейсхолдърите се номерират през ЕДИН общ брояч и
+  // ЕДИН общ мапинг, така че една и съща стойност навсякъде получава един
+  // плейсхолдър, а различните стойности остават различни.
+  const framed = redactFieldsWithSharedMapping(fields);
+  if (!framed) return notRedactable();
+  const { parts, mapping } = framed;
+  // Fail-closed проверка на структурата след редакцията.
   if (!Array.isArray(parts) || parts.length !== fields.length) return notRedactable();
   if (!parts.every((p): p is string => typeof p === "string")) return notRedactable();
+
 
 
   let k = 0;
