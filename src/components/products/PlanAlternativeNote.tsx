@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 export const PLAN_ALTERNATIVE_QUESTION = "Работите с документи редовно?";
 export const PLAN_ALTERNATIVE_LINK_LABEL = "Сравнете плановете";
 
-/** „Професионалист — 12,90 €/мес за 50 действия при използване на включения обем.“ */
+/** Изречение за плана — всички числа идват от PRICING_PLANS чрез helper-ите. */
 export function planVolumeSentence(): string {
   const plan = PRICING_PLANS.professional;
   return `${plan.name} — ${monthlyLabel("professional")} за ${opsLabel(

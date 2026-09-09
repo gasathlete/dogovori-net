@@ -71,7 +71,8 @@ describe("оферта: еднократно срещу абонамент", () 
   it("страницата предлага и двата режима на плащане", () => {
     expect(plans).toContain("Платете според начина,");
     expect(plans).toContain("Конкретен документ");
-    expect(plans).toContain("Редовна договорна работа");
+    expect(plans).toContain("Работите редовно");
+    expect(plans).toContain("Една задача");
     expect(plans).toContain('href="#plan-cards"');
   });
 
@@ -136,7 +137,7 @@ describe("оферта: еднократно срещу абонамент", () 
   });
 
   it("SEO описанието посочва и еднократната цена, и абонамента", () => {
-    expect(plans).toContain("2,90 € еднократно");
+    expect(plans).toContain("2,99 € еднократно");
     expect(plans).toContain("12,90 €/мес");
   });
 });
