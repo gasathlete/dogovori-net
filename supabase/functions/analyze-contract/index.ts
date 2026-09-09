@@ -19,6 +19,7 @@ import {
 import {
   hasIntentMismatch,
   intentMismatchIssues,
+  detectArbitrationInText,
   verifyIntentAssertions,
 } from "../_shared/intent-assertions.ts";
 import { shouldDeferItem } from "../_shared/deferred-personal-scope.ts";
@@ -616,11 +617,16 @@ ${payloadText}
     // модела — сравняват се HMAC commitment-и срещу кандидати, извлечени от
     // подадения текст. Сливането е СЛЕД нормализацията на AI отговора, за да не
     // може моделът да махне или свали доказано несъответствие.
+    // Q4b(2): наблюдаемият факт за арбитраж се извежда от ТОЧНО подадения текст.
+    // Двуезичността не е изводима от обикновен текст → остава НЕПРОВЕРИМА, а не
+    // невярно „изпълнена".
     const intentReport = await verifyIntentAssertions({
       assertions: trust.trusted ? trust.manifest.intents : [],
       documentText: text,
       serverSecret: qualitySigningSecretFromEnv(),
+      structuralFlags: { arbitration: detectArbitrationInText(text) ?? undefined },
     });
+
     const intentIssues = intentMismatchIssues(intentReport).map((i) => ({
       severity: i.severity,
       title: i.title,

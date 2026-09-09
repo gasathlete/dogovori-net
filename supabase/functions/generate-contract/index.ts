@@ -32,6 +32,8 @@ import {
   buildIntentAssertions,
   extractIntentDrafts,
   verifyIntentAssertions,
+  detectBilingualStructure,
+  detectArbitrationInText,
 } from "../_shared/intent-assertions.ts";
 
 
@@ -474,12 +476,19 @@ ${docTypeSpec.systemAddendum}
       // да не може нито моделът, нито филтърът за умишлени решения да я махне.
       // Няма допълнително AI повикване и НЕ се начислява операция — това е
       // локално сравнение на HMAC commitment-и срещу вече готовия текст.
+      // Q4b(2) — структурните факти се извеждат от РЕЗУЛТАТА, а не от входа:
+      // двуезичността от реално рендерираните английски полета, арбитражът от
+      // текста на готовия документ. Копирането на входа тук би било тавтология.
       const intentReport = await verifyIntentAssertions({
         assertions: intents,
         documentText: documentText,
         serverSecret: signingSecret,
-        structuralFlags: { bilingual: isBilingual, arbitration: arbitration?.enabled === true },
+        structuralFlags: {
+          bilingual: detectBilingualStructure(parsed.contract) ?? undefined,
+          arbitration: detectArbitrationInText(documentText) ?? undefined,
+        },
       });
+
       const withIntent = mergeIntentFindingsIntoRisk({ risk: gated.risk, report: intentReport });
       parsed.risk = withIntent.risk;
       parsed.quality = { ...gated.quality, intent: { checked: intentReport.checked, satisfied: intentReport.satisfied, mismatched: intentReport.mismatched_required.length } };

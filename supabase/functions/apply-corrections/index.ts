@@ -16,7 +16,11 @@ import {
   mergeIntentFindingsIntoRisk,
   verifyManifestSignatureOnly,
 } from "../_shared/generated-document-quality.ts";
-import { verifyIntentAssertions } from "../_shared/intent-assertions.ts";
+import {
+  detectArbitrationInText,
+  detectBilingualStructure,
+  verifyIntentAssertions,
+} from "../_shared/intent-assertions.ts";
 
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш съществуващ договор (в JSON) и списък от ИЗБРАНИ препоръки/слаби места, които трябва да коригираш в текста.
@@ -340,10 +344,13 @@ ${answersRedacted}
       const signingSecret = qualitySigningSecretFromEnv();
       if (!signingSecret) console.error("quality manifest signing key unavailable");
       const documentText = flattenGeneratedContract(p.contract);
-      // Q4b — пренасяне на намерението през корекцията. Приемат се САМО
-      // твърдения от манифест с ВАЛИДЕН НАШ подпис. Всяко от тях се проверява
-      // отново срещу КОРИГИРАНИЯ текст: съвпадащите се преиздават, а
-      // несъвпадащите не се преиздават и излизат като детерминирана бележка.
+      // Q4b(3) — пренасяне на намерението през корекцията. Приемат се САМО
+      // твърдения от манифест с ВАЛИДЕН НАШ подпис. „Подписано ОЧАКВАНО
+      // намерение" и „текущо изпълнение" са РАЗЛИЧНИ неща: целият валиден
+      // затворен набор се пренася в новия обвързан манифест — включително
+      // твърденията, които коригираният текст в момента НАРУШАВА. Иначе по-късна
+      // ревизия/анализ би „забравила" изричния избор на потребителя и би минала.
+      // Наборът пада ИЗЦЯЛО само при невалидна/подправена схема или подпис.
       const carried = await verifyManifestSignatureOnly({
         manifest: incomingManifest,
         signingSecret,
@@ -353,16 +360,17 @@ ${answersRedacted}
         assertions: carriedIntents,
         documentText,
         serverSecret: signingSecret,
+        structuralFlags: {
+          bilingual: detectBilingualStructure(p.contract) ?? undefined,
+          arbitration: detectArbitrationInText(documentText) ?? undefined,
+        },
       });
-      const satisfiedSlots = new Set(
-        carryReport.results.filter((r) => r.status === "satisfied").map((r) => r.slot),
-      );
-      const reissuedIntents = carriedIntents.filter((a) => satisfiedSlots.has(a.slot));
       const qualityManifest = signingSecret ? await buildQualityManifest({
         origin: "apply-corrections",
         signingSecret,
         contract: p.contract,
-        intents: reissuedIntents,
+        intents: carriedIntents,
+
         decisions: [
           "placeholders_for_personal_data",
           "local_completion_of_personal_data",
