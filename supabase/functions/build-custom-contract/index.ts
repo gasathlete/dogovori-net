@@ -346,9 +346,13 @@ Deno.serve(async (req: Request) => {
 
     const partyALabel = docSpec.partyAName || "Страна А";
     const partyBLabel = docSpec.partyBName || "Страна Б";
-    const partiesAList = (partiesA.length ? partiesA : [`[${partyALabel}]`]).map((p, i) => `  ${i + 1}. ${p}`).join("\n");
+    const partyAPlaceholder = "[" + partyALabel + "]";
+    const partyBPlaceholder = "[" + partyBLabel + "]";
+    const partiesASource = partiesA.length ? partiesA : [partyAPlaceholder];
+    const partiesBSource = partiesB.length ? partiesB : [partyBPlaceholder];
+    const partiesAList = partiesASource.map((p, i) => `  ${i + 1}. ${p}`).join("\n");
     const partiesBList = docSpec.partyBName
-      ? (partiesB.length ? partiesB : [`[${partyBLabel}]`]).map((p, i) => `  ${i + 1}. ${p}`).join("\n")
+      ? partiesBSource.map((p, i) => `  ${i + 1}. ${p}`).join("\n")
       : "(едностранен документ — без втора страна)";
 
     const parentHeader = parentContext?.parentTitle
