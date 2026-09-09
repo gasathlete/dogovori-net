@@ -274,6 +274,27 @@ export interface EvidencePipelineResult {
   verification: AnalysisVerificationMetadata;
 }
 
+/**
+ * Тавани по тежест на находките. Изнесено, за да ползва ЕДНА логика и когато
+ * оценката се преизчислява СЛЕД по-късно филтриране (Q4a) — така премахната
+ * находка не оставя остарял (несправедливо лош) резултат. Никога не повишава
+ * оценката над базовата, дадена от модела.
+ */
+export function applySeverityCaps(
+  baseScore: number,
+  issues: readonly { severity?: unknown }[],
+): number {
+  let score = baseScore;
+  const highCount = issues.filter((i) => i.severity === "high").length;
+  const medCount = issues.filter((i) => i.severity === "medium").length;
+  if (highCount >= 3) score = Math.min(score, 3);
+  else if (highCount === 2) score = Math.min(score, 5);
+  else if (highCount === 1) score = Math.min(score, 6);
+  else if (medCount >= 4) score = Math.min(score, 6);
+  else if (medCount >= 2) score = Math.min(score, 7);
+  return score;
+}
+
 export function runAnalysisEvidencePipeline(
   input: EvidencePipelineInput,
 ): EvidencePipelineResult {
