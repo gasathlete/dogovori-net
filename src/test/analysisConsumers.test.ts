@@ -92,9 +92,14 @@ describe("edge конвейер", () => {
   it("записът минава единствено през общия конвейер", () => {
     expect(src).toMatch(/runAnalysisEvidencePipeline/);
     expect(src).toMatch(/summary: pipeline\.summary/);
-    expect(src).toMatch(/issues: pipeline\.issues/);
+    // Q4a: записаните находки идват от конвейера; при ДОВЕРЕН манифест се
+    // изважда само отложеното локално попълване на лични данни.
+    expect(src).toMatch(/issues: gatedIssues/);
+    expect(src).toMatch(/const gatedIssues =[\s\S]{0,200}pipeline\.issues/);
+    expect(src).toMatch(/verifyQualityManifest/);
     expect(src).not.toMatch(/verifiedIssues/);
   });
+
 
   it("метаданните не носят хеш на източника в обхвата на Q2a", () => {
     expect(src).not.toMatch(/sourceTextHash/);

@@ -8,10 +8,16 @@ import { redactForAI, unredact } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
+import {
+  applyRiskConsistencyGate,
+  buildQualityManifest,
+  flattenGeneratedContract,
+} from "../_shared/generated-document-quality.ts";
+
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш съществуващ договор (в JSON) и списък от ИЗБРАНИ препоръки/слаби места, които трябва да коригираш в текста.
 Запази всички останали клаузи, формат, номерация и стил. Промени САМО това, което е необходимо, за да адресираш избраните препоръки. Където е нужно — добави нови клаузи или алинеи в съответния раздел (или нов раздел "Допълнителни защитни клаузи").
-След корекциите направи и нов кратък Risk Analysis на коригирания договор.
+След корекциите направи и нов кратък Risk Analysis на коригирания договор. В "issues" влизат САМО ПРОВЕРЕНИ дефекти с опора в конкретен текст на клауза (противоречие, нищожност, незаконност, прекомерна неустойка, липсващ задължителен по закон елемент). Опционалните подобрения и локалното попълване на лични данни влизат в "recommendations". Нула issues е валиден резултат.
 
 ВАЖНО: Договори.нет НЕ събира лични данни (имена, ЕГН, адреси, IBAN, контакти) — потребителят ги попълва локално след сваляне. Липсата на такива данни НЕ Е issue/слабо място и НЕ понижава risk score. Ако липсват — не добавяй issue, а ЕДНА recommendation с точния текст: "Попълнете личните данни (имена, ЕГН/ЕИК, адреси, IBAN, контакти) от Вашето устройство след сваляне — Договори.нет работи съобразно изискванията за предпазване от разкриване на чувствителни лични данни." В текста на договора използвай плейсхолдъри в квадратни скоби ([име], [ЕГН/ЕИК], [адрес]).
 
@@ -318,6 +324,32 @@ ${answersRedacted}
       } catch (e) {
         console.error("unredact failed:", e);
       }
+    }
+
+    // Q4a — коригираният документ носи СВЕЖ risk анализ: минава през същия
+    // детерминиран gate, за да не се появят отново недоказани самокритики.
+    if ((parsed as Record<string, unknown>)?.risk) {
+      const p = parsed as Record<string, unknown>;
+      const qualityManifest = await buildQualityManifest({
+        origin: "apply-corrections",
+        contract: p.contract,
+        decisions: [
+          "placeholders_for_personal_data",
+          "local_completion_of_personal_data",
+          "optional_annex_details",
+          "standard_clause_set",
+        ],
+      });
+      const gated = applyRiskConsistencyGate({
+        risk: p.risk,
+        documentText: flattenGeneratedContract(p.contract),
+        origin: "apply-corrections",
+        manifest: qualityManifest,
+        trustedManifest: true,
+      });
+      p.risk = gated.risk;
+      p.quality = gated.quality;
+      p.quality_manifest = qualityManifest;
     }
 
     await logAiAudit({

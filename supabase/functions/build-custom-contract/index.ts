@@ -15,6 +15,13 @@ import { redactForAI, unredact } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
+import {
+  applyRiskConsistencyGate,
+  buildQualityManifest,
+  computeContextFingerprint,
+  flattenGeneratedContract,
+} from "../_shared/generated-document-quality.ts";
+
 
 const BASE_SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ, ГПК, ЗАНН, ЗАПСП, ЗННД).
 
@@ -123,7 +130,7 @@ const BUILD_MODE_ADDENDUM: Record<BuildMode, { label: string; addendum: string; 
     addendum: `Стил: КРАТКО И ЯСНО. Подходящ за прости документи без висока правна сложност.
 - Минимален задължителен набор клаузи (предмет, страни, срок, цена, подпис).
 - Кратки изречения, без излишни препратки към закони.
-- Без обширни приложения и без подробен risk report (1–2 issues максимум).
+- Без обширни приложения. В "issues" включвай САМО реално установени правни дефекти — нула issues е валиден резултат.
 - Без напомняния и съвети извън документа.`,
   },
   working: {
@@ -132,8 +139,8 @@ const BUILD_MODE_ADDENDUM: Record<BuildMode, { label: string; addendum: string; 
     addendum: `Стил: БАЛАНСИРАН — пълен работен документ с пространство за надграждане.
 - Стандартен набор клаузи според вида документ и категорията.
 - Кратко, но прецизно правно формулиране; цитирай ЗЗД/ТЗ при ключови клаузи.
-- Risk report: 3–5 issues с конкретни препоръки за надграждане.
-- Маркирай в issues кои клаузи могат опционално да бъдат разширени до стриктна версия.`,
+- Risk report: в "issues" влизат САМО ПРОВЕРЕНИ дефекти на документа (противоречие между клаузи, нищожна или незаконна клауза, прекомерна неустойка, липсващ задължителен по закон елемент, несъответствие с изричното желание на потребителя). Нула issues е валиден и очакван резултат при изряден документ.
+- Възможностите за опционално надграждане и всичко, което потребителят ще попълни локално, влизат в "recommendations" — НИКОГА в "issues".`,
   },
   strict: {
     label: "СТРИКТЕН РЕЖИМ",
@@ -142,7 +149,7 @@ const BUILD_MODE_ADDENDUM: Record<BuildMode, { label: string; addendum: string; 
 - Изчерпателен набор клаузи: дефиниции, представителство, поверителност, IP, неустойки, форсмажор, приложимо право и подсъдност, нотификации, цялост на договора.
 - Цитирай конкретни членове от ЗЗД/ТЗ/ЗЗП/ЗАПСП/ЗЗЛД където е уместно.
 - Дълги, точно формулирани клаузи; никакви двусмислици.
-- Risk report: ПОДРОБЕН (поне 5–8 issues), със severity и detail-обяснение защо клаузата е важна и как се подобрява. Включи recommendations с конкретни съвети за висок професионализъм (e-signature, нотариална заверка, регистрация, данъчни импликации, и т.н.).`,
+- Risk report: в "issues" влизат САМО ПРОВЕРЕНИ дефекти с дословна опора в текста, със severity и detail. Без задължителен брой — нула issues е валиден резултат при изряден документ. Съветите за професионализъм (e-signature, нотариална заверка, регистрация, данъчни импликации) влизат в "recommendations".
   },
 };
 
@@ -515,6 +522,45 @@ ${fieldsSection}
     if (safeBilingual && parsed?.contract) {
       parsed.contract.bilingual = true;
     }
+
+    // Q4a — същият детерминиран gate като при generate-contract: реалните
+    // дефекти се пазят, умишлените ни решения и недоказаните бележки отпадат.
+    if (parsed?.risk) {
+      const qualityManifest = await buildQualityManifest({
+        origin: "build-custom-contract",
+        contract: parsed.contract,
+        documentType: safeDocumentType,
+        buildMode: safeBuildMode,
+        contextFingerprint: await computeContextFingerprint([
+          `doc_type:${safeDocumentType}`,
+          `build_mode:${safeBuildMode}`,
+          `bilingual:${safeBilingual}`,
+        ]),
+        decisions: [
+          "placeholders_for_personal_data",
+          "local_completion_of_personal_data",
+          "optional_annex_details",
+          safeBuildMode === "fast"
+            ? "brief_clause_set"
+            : safeBuildMode === "strict"
+              ? "exhaustive_clause_set"
+              : "standard_clause_set",
+          ...(safeBilingual ? ["bilingual_parallel_text"] : []),
+        ],
+      });
+      const gated = applyRiskConsistencyGate({
+        risk: parsed.risk,
+        documentText: flattenGeneratedContract(parsed.contract),
+        origin: "build-custom-contract",
+        manifest: qualityManifest,
+        trustedManifest: true,
+      });
+      parsed.risk = gated.risk;
+      parsed.quality = gated.quality;
+      parsed.quality_manifest = qualityManifest;
+    }
+
+
 
     await logAiAudit({
       user_id: userId, operation: "build-custom-contract", model: route.model,

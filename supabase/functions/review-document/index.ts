@@ -26,6 +26,7 @@ import {
   applyDeferredScopeToCheck,
   shouldDeferItem,
 } from "../_shared/deferred-personal-scope.ts";
+import { verifyQualityManifest } from "../_shared/generated-document-quality.ts";
 
 const SYSTEM_PROMPT = `Ти си независим български правен ревизор (втори проход). Получаваш ГОТОВ документ и правиш техническа ревизия. НЕ пренаписваш текста.
 
@@ -79,7 +80,8 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("Липсва конфигурация за AI");
 
-    const req0 = buildReviewRequest(await req.json().catch(() => ({})));
+    const rawBody: Record<string, unknown> = await req.json().catch(() => ({}));
+    const req0 = buildReviewRequest(rawBody);
     if ("ok" in req0) {
       return new Response(
         JSON.stringify({ error: req0.message, code: req0.code }),
@@ -87,7 +89,18 @@ Deno.serve(async (req: Request) => {
       );
     }
     const request = req0;
-    const ignorePersonalData = request.ignorePersonalData;
+    // Q4a — незадължителен манифест за качество от нашия генератор. Доверява се
+    // САМО при точно съвпадение на отпечатъка със РЕВИЗИРАНИЯ текст; иначе
+    // документът е външен/недоверен и нищо не се потиска.
+    const trust = await verifyQualityManifest({
+      manifest: rawBody?.qualityManifest ?? rawBody?.quality_manifest ?? null,
+      content: request.documentText,
+    });
+    const manifestDefersPersonal =
+      trust.trusted &&
+      (trust.manifest.decisions.includes("local_completion_of_personal_data") ||
+        trust.manifest.decisions.includes("placeholders_for_personal_data"));
+    const ignorePersonalData = request.ignorePersonalData || manifestDefersPersonal;
     const sourceDigest = await computeReviewSourceDigest(request);
     const source = { v: REVIEW_SOURCE_VERSION, digest: sourceDigest };
 
@@ -227,6 +240,11 @@ Deno.serve(async (req: Request) => {
     const review = {
       ...normalized,
       source,
+      quality: {
+        trusted_manifest: trust.trusted,
+        manifest_reason: trust.trusted ? null : trust.reason,
+        deferred_personal_scope: ignorePersonalData,
+      },
       model: route.model,
       reviewed_at: new Date().toISOString(),
     };

@@ -19,6 +19,13 @@ import {
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
+import {
+  applyRiskConsistencyGate,
+  buildQualityManifest,
+  computeContextFingerprint,
+  flattenGeneratedContract,
+} from "../_shared/generated-document-quality.ts";
+
 
 
 const SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ). Използваш правилните понятия (Възложител/Изпълнител, Наемодател/Наемател, Продавач/Купувач, Страните, Настоящият Договор).
@@ -57,7 +64,7 @@ const SYSTEM_PROMPT = `Ти си български правен архитек�
 - че липсват имена, ЕГН, ЕИК, адреси, IBAN, дати, места, контакти, банкови реквизити — потребителят ги попълва локално след сваляне;
 - че липсва процедура/график/приложение/техническо задание, което по своята същност е отделен документ или бланка;
 - че някой раздел (Права и задължения, Приемане, Гаранции и т.н.) "би могъл да е по-подробен" — това не е риск, а стилистично мнение.
-Оценявай риска САМО по реални правни дефекти в самия текст на клаузите, които ТИ написа: нищожни клаузи (чл. 26 ЗЗД), непропорционални неустойки, неравноправни клаузи по ЗЗП, нарушения на императивни норми (ЗОПБ, ГДПР, КТ), противоречия между клаузи, липса на задължителни по закон реквизити за конкретния вид документ. Ако документът покрива необходимите за вида клаузи и няма такива дефекти → risk level = "low", score ≤ 25. Ниво "medium" (score 26-60) само при реален правен риск. Ниво "high" (score 61+) само при доказано противозаконно или нищожно съдържание. НЕ измисляй issues, ако няма реални.
+Оценявай риска САМО по реални правни дефекти в самия текст на клаузите, които ТИ написа: нищожни клаузи (чл. 26 ЗЗД), непропорционални неустойки, неравноправни клаузи по ЗЗП, нарушения на императивни норми (ЗОПБ, ГДПР, КТ), противоречия между клаузи, липса на задължителни по закон реквизити за конкретния вид документ. Ако документът покрива необходимите за вида клаузи и няма такива дефекти → risk level = "low", score ≤ 25. Ниво "medium" (score 26-60) само при реален правен риск. Ниво "high" (score 61+) само при доказано противозаконно или нищожно съдържание. НЕ измисляй issues, ако няма реални. РАЗГРАНИЧЕНИЕ: "issues" = ПРОВЕРЕНИ дефекти с опора в конкретен текст на клауза; всичко останало (опционално надграждане, приложения, детайли, локално попълване на лични данни) е ОПЦИОНАЛНА препоръка в "recommendations". Нула issues е валиден резултат.
 
 **Плащане в брой:** ако сумата по договора е над 5 000 € (или левова равностойност), ДОБАВИ изричен текст в раздел II че плащането задължително се извършва по банков път, защото по чл. 3 ЗОПБ плащания над този праг в брой са забранени. Включи и кратка алинея с реквизитите на банковата сметка ([IBAN], [BIC], [Банка]).
 
@@ -396,36 +403,38 @@ ${docTypeSpec.systemAddendum}
     }
 
 
-    // Post-process risk analysis.
-    // ВАЖНО: реалните юридически бележки НЕ се филтрират и оценката НЕ се
-    // занижава. Отстраняват се само чисто стилистични мнения за тона/езика
-    // на документа, които не са правен риск.
+    // Q4a — консистентност на risk анализа спрямо СОБСТВЕНО генерирания документ.
+    // Реалните юридически дефекти НЕ се филтрират и оценката НЕ се занижава.
+    // Отпадат само недоказани бележки и умишлените ни решения при съставянето.
     if (parsed?.risk) {
-      const STYLE_ONLY_PATTERNS = [
-        /стил(ът|а)?\s+(на\s+)?(текста|документа)/i,
-        /(езикът|формулировките)\s+(е|са)\s+(твърде\s+)?(официал|сух|тежк)/i,
-        /(шрифт|форматиране|оформление|типограф)/i,
-        /(твърде|прекалено)\s+(дълг|кратк)\s+(изречени|абзац)/i,
-      ];
-      const isStyleOnly = (txt: string) =>
-        STYLE_ONLY_PATTERNS.some((rx) => rx.test(txt));
-
-      const originalIssues: Array<{ severity?: string; title?: string; detail?: string }> =
-        Array.isArray(parsed.risk.issues) ? parsed.risk.issues : [];
-      const kept = originalIssues.filter(
-        (i) => !isStyleOnly(`${i?.title ?? ""} ${i?.detail ?? ""}`),
-      );
-      parsed.risk.issues = kept;
-
-      // Level/score се изчисляват от реално оставените бележки, без таван.
-      const sevWeight = (s?: string) =>
-        s === "high" ? 30 : s === "medium" ? 15 : s === "low" ? 5 : 0;
-      const computed = kept.reduce((sum, i) => sum + sevWeight(i.severity), 0);
-      const hasHigh = kept.some((i) => i.severity === "high");
-      const hasMedium = kept.some((i) => i.severity === "medium");
-      parsed.risk.level = hasHigh ? "high" : hasMedium ? "medium" : "low";
-      const score = typeof parsed.risk.score === "number" ? parsed.risk.score : computed;
-      parsed.risk.score = Math.max(0, Math.min(100, Math.round(Math.max(score, computed))));
+      const qualityManifest = await buildQualityManifest({
+        origin: "generate-contract",
+        contract: parsed.contract,
+        documentType: docTypeSpec.id,
+        buildMode: null,
+        contextFingerprint: await computeContextFingerprint([
+          `doc_type:${docTypeSpec.id}`,
+          `bilingual:${isBilingual}`,
+        ]),
+        decisions: [
+          "placeholders_for_personal_data",
+          "local_completion_of_personal_data",
+          "optional_annex_details",
+          "standard_clause_set",
+          ...(isBilingual ? ["bilingual_parallel_text"] : []),
+        ],
+      });
+      const documentText = flattenGeneratedContract(parsed.contract);
+      const gated = applyRiskConsistencyGate({
+        risk: parsed.risk,
+        documentText,
+        origin: "generate-contract",
+        manifest: qualityManifest,
+        trustedManifest: true,
+      });
+      parsed.risk = gated.risk;
+      parsed.quality = gated.quality;
+      parsed.quality_manifest = qualityManifest;
 
       // Препоръката за попълване на личните данни локално остава — платформата
       // не събира и не съхранява лични данни.
@@ -461,11 +470,8 @@ ${docTypeSpec.systemAddendum}
       pushIf(bodyOf(/частичн[аи]?\s+недействителност|severabil/i), "Клауза за частична недействителност.");
       pushIf(bodyOf(/писмен[аоа]\s+форма|заключителни/i), "Изискване за писмена форма при изменения.");
 
-      const aiStrengths: string[] = Array.isArray(parsed.risk.strengths)
-        ? parsed.risk.strengths.filter((s: unknown) => typeof s === "string" && s.trim().length > 5)
-        : [];
       const merged: string[] = [];
-      for (const s of [...aiStrengths, ...derivedStrengths]) {
+      for (const s of [...parsed.risk.strengths, ...derivedStrengths]) {
         if (merged.length >= 6) break;
         if (!merged.some((m) => m.toLowerCase().slice(0, 30) === s.toLowerCase().slice(0, 30))) {
           merged.push(s);
@@ -473,6 +479,7 @@ ${docTypeSpec.systemAddendum}
       }
       parsed.risk.strengths = merged;
     }
+
 
     // Defensive: ensure bilingual flag is set on contract when requested,
     // so exporters render BG/EN two-column layout reliably.

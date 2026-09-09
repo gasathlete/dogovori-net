@@ -10,6 +10,8 @@ import { redactForAI, unredact } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { runAnalysisEvidencePipeline } from "../_shared/analysis-evidence.ts";
+import { verifyQualityManifest } from "../_shared/generated-document-quality.ts";
+import { shouldDeferItem } from "../_shared/deferred-personal-scope.ts";
 import {
   buildAnalysisSourceBinding,
   buildFreshAnalysisPayload,
@@ -165,6 +167,10 @@ Deno.serve(async (req: Request) => {
     const sessionId = typeof reqBody?.session_id === "string" ? reqBody.session_id : "";
     const docKeyClient = typeof reqBody?.doc_key === "string" ? reqBody.doc_key : "";
     const userConfirmed = reqBody?.userConfirmed === true;
+    // Q4a — НЕЗАДЪЛЖИТЕЛЕН манифест за качество от нашия генератор. Доверява се
+    // САМО ако отпечатъкът на съдържанието съвпада с анализирания текст.
+    const submittedQualityManifest = reqBody?.qualityManifest ?? reqBody?.quality_manifest ?? null;
+
     if (!uploadedContractId || typeof uploadedContractId !== "string") {
       return new Response(JSON.stringify({ error: "uploadedContractId е задължителен" }), {
         status: 400,
@@ -534,6 +540,38 @@ ${payloadText}
       console.warn("Непълна доказателствена проверка:", verification.reason_codes.join(","));
     }
 
+    // Q4a — обвързване с ТОЧНО нашия генериран източник. При липсващ или
+    // несъвпадащ манифест документът е ВЪНШЕН/недоверен и НИЩО не се потиска.
+    const trust = await verifyQualityManifest({
+      manifest: submittedQualityManifest,
+      content: text,
+    });
+    const deferPersonal =
+      trust.trusted &&
+      (trust.manifest.decisions.includes("local_completion_of_personal_data") ||
+        trust.manifest.decisions.includes("placeholders_for_personal_data"));
+
+    const gatedIssues = deferPersonal
+      ? pipeline.issues.filter(
+          (i) => !shouldDeferItem(true, `${i?.title ?? ""} ${i?.explanation ?? ""}`, text),
+        )
+      : pipeline.issues;
+    const gatedMissing = deferPersonal
+      ? pipeline.missingClauses.filter(
+          (m) => !shouldDeferItem(true, `${m?.name ?? ""} ${m?.why ?? ""}`, text),
+        )
+      : pipeline.missingClauses;
+
+    const quality = {
+      trusted_manifest: trust.trusted,
+      manifest_reason: trust.trusted ? null : trust.reason,
+      deferred_personal_scope: deferPersonal,
+      removed_deferred_items:
+        (pipeline.issues.length - gatedIssues.length) +
+        (pipeline.missingClauses.length - gatedMissing.length),
+    };
+
+
     const { data: inserted, error: insErr } = await admin
       .from("risk_analyses")
       .insert(
@@ -544,8 +582,8 @@ ${payloadText}
           score: pipeline.score,
           contractType: pipeline.contractType,
           summary: pipeline.summary,
-          issues: pipeline.issues,
-          missingClauses: pipeline.missingClauses,
+          issues: gatedIssues,
+          missingClauses: gatedMissing,
           cacheKey: normalizedHash,
           verification,
           binding: sourceBinding,
@@ -573,7 +611,7 @@ ${payloadText}
       status: "ok",
     });
 
-    return new Response(JSON.stringify({ analysis: inserted }), {
+    return new Response(JSON.stringify({ analysis: inserted, quality }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
