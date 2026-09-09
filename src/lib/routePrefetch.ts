@@ -27,6 +27,7 @@ export function shouldPrefetch(): boolean {
 }
 
 const FACTORIES: Record<string, () => Promise<unknown>> = {
+  "/produkti": () => import("@/pages/Products.tsx"),
   "/build": () => import("@/pages/BuildContract.tsx"),
   "/catalog": () => import("@/pages/Catalog.tsx"),
   "/blog": () => import("@/pages/Blog.tsx"),

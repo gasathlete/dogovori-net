@@ -10,46 +10,62 @@
  * Анонимни потребители → CTA за регистрация; след вход попадат в същата
  * форма (redirect параметърът пренася namерението).
  */
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { FileUp, ShieldCheck, Sparkles, Lock } from "@/icons";
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
 import { useAuth } from "@/hooks/useAuth";
 import { markFunnelStep, trackFunnelEvent } from "@/lib/funnel";
+import { getProduct, parseProductParam } from "@/lib/products";
 
 const UPLOAD_ROUTE = "/account?tab=documents&action=upload";
 
 export default function Analyze() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+
+  // Само allowlist-нати продуктови стойности се четат — непознати падат до
+  // null и страницата остава в стандартния си вид. Нищо в генерирането,
+  // quota-та или auth поведението не се променя.
+  const product = parseProductParam(params.get("product"));
+  const uploadRoute = useMemo(
+    () => (product ? `${UPLOAD_ROUTE}&product=${product}` : UPLOAD_ROUTE),
+    [product],
+  );
 
   // Всеки логнат потребител отива направо в реалната форма за качване +
   // анализ. Free акаунтите получават 1 безплатен пълен анализ през месеца
   // (quota пътят), платените — според плана си.
   useEffect(() => {
     if (!loading && user) {
-      navigate(UPLOAD_ROUTE, { replace: true });
+      navigate(uploadRoute, { replace: true });
     }
-  }, [loading, user, navigate]);
+  }, [loading, user, navigate, uploadRoute]);
 
   useEffect(() => {
     markFunnelStep(3);
   }, []);
 
   const goSignup = () => {
-    trackFunnelEvent("funnel_analyze_signup_click", { source: "analiz_landing" });
-    navigate(
-      `/auth?tab=signup&redirect=${encodeURIComponent(UPLOAD_ROUTE)}`,
-    );
+    trackFunnelEvent("funnel_analyze_signup_click", {
+      source: "analiz_landing",
+      product: product ?? "none",
+    });
+    navigate(`/auth?tab=signup&redirect=${encodeURIComponent(uploadRoute)}`);
   };
 
   const goLogin = () => {
-    trackFunnelEvent("funnel_analyze_login_click", { source: "analiz_landing" });
-    navigate(
-      `/auth?tab=login&redirect=${encodeURIComponent(UPLOAD_ROUTE)}`,
-    );
+    trackFunnelEvent("funnel_analyze_login_click", {
+      source: "analiz_landing",
+      product: product ?? "none",
+    });
+    navigate(`/auth?tab=login&redirect=${encodeURIComponent(uploadRoute)}`);
   };
+
+  const productCopy = product ? getProduct(product) : null;
+
 
   return (
     <>
@@ -71,19 +87,24 @@ export default function Analyze() {
         />
 
         <section className="container relative mx-auto max-w-2xl px-4">
-          <header className="text-center">
+          <header className="text-center" data-product={product ?? "none"}>
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gold">
-              Реален AI анализ
+              {productCopy ? productCopy.name : "Реален AI анализ"}
             </p>
             <h1 className="mt-2 font-serif text-3xl font-bold leading-tight sm:text-4xl md:text-5xl">
-              AI риск-анализ на{" "}
-              <em className="not-italic text-gold">твоя реален договор</em>
+              {productCopy ? (
+                productCopy.name
+              ) : (
+                <>
+                  AI риск-анализ на{" "}
+                  <em className="not-italic text-gold">твоя реален договор</em>
+                </>
+              )}
             </h1>
             <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
-              Качваш PDF или Word файл — системата извлича текста (с OCR при
-              нужда), сверява клаузите със ЗЗД и Търговския закон и посочва
-              рисковете дословно от документа. Без предварително подготвени
-              шаблонни отговори.
+              {productCopy
+                ? productCopy.promise
+                : "Качваш PDF или Word файл — системата извлича текста (с OCR при нужда), сверява клаузите със ЗЗД и Търговския закон и посочва рисковете дословно от документа. Без предварително подготвени шаблонни отговори."}
             </p>
           </header>
 
@@ -106,7 +127,8 @@ export default function Analyze() {
                 onClick={goSignup}
                 className="btn-gold btn-sheen btn-press inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-[15px] font-semibold"
               >
-                <FileUp className="h-4 w-4" /> Регистрирай се и качи договор
+                <FileUp className="h-4 w-4" />{" "}
+                {productCopy ? productCopy.ctaLabel : "Регистрирай се и качи договор"}
               </button>
               <button
                 type="button"
