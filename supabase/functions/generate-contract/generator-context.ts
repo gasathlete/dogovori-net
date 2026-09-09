@@ -203,9 +203,18 @@ export function redactGeneratorContext(
     };
   }
 
-  const { redacted, mapping } = redactForAI(fields.join(FIELD_SEP));
-  const parts = redacted.split(FIELD_SEP);
-  if (parts.length !== fields.length) return notRedactable();
+  // JSON-array рамкиране: няма разделител, който PII шаблон да „изяде".
+  // Един общ redactForAI върху сериализирания масив пази общия мапинг/брояч.
+  const { redacted, mapping } = redactForAI(JSON.stringify(fields));
+  let parts: unknown;
+  try {
+    parts = JSON.parse(redacted);
+  } catch {
+    return notRedactable();
+  }
+  if (!Array.isArray(parts) || parts.length !== fields.length) return notRedactable();
+  if (!parts.every((p): p is string => typeof p === "string")) return notRedactable();
+
 
   let k = 0;
   const next = () => parts[k++];
