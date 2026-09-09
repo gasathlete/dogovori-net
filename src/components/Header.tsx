@@ -25,30 +25,21 @@ const NAV = [
 // upgrade prompts. Not shown on the desktop bar to keep it uncluttered.
 const RESOURCES = [{ to: "/plans", label: "Планове" }];
 
-// Мобилното меню е групирано, за да е ясно „къде съм" и какво следва.
-// Първата група и първият елемент са „Продукти".
-const MOBILE_GROUPS: { title: string; items: { to: string; label: string }[] }[] = [
-  {
-    title: "Продукти",
-    items: [{ to: "/produkti", label: "Продукти" }],
-  },
-  {
-    title: "Работа с документи",
-    items: [
-      { to: "/build", label: "Изготви документ" },
-      { to: "/catalog", label: "Каталог с шаблони" },
-      { to: "/analiz", label: "Анализ на договор" },
-      { to: "/komplekti", label: "Комплекти документи" },
-    ],
-  },
-  {
-    title: "Ресурси",
-    items: [
-      { to: "__tools__", label: "Инструменти" },
-      { to: "/blog", label: "Блог" },
-      ...RESOURCES,
-    ],
-  },
+// Мобилното меню започва с точно същите четири основни изхода като долната
+// навигация. Всичко останало е в една свита група „Още".
+const MOBILE_PRIMARY: { to: string; label: string }[] = [
+  { to: "/produkti", label: "Продукти" },
+  { to: "/analiz", label: "Качи договор" },
+  { to: "/build", label: "Изготви документ" },
+  { to: "/account", label: "Профил" },
+];
+
+const MOBILE_MORE: { to: string; label: string }[] = [
+  { to: "/catalog", label: "Каталог с шаблони" },
+  { to: "/komplekti", label: "Комплекти документи" },
+  { to: "__tools__", label: "Инструменти" },
+  { to: "/blog", label: "Блог" },
+  ...RESOURCES,
 ];
 
 export function Header() {
@@ -261,50 +252,60 @@ export function Header() {
           className="origin-top animate-accordion-down overflow-hidden border-t border-gold/20 bg-background lg:hidden"
         >
           <div className="container flex max-h-[calc(100dvh-68px)] flex-col gap-5 overflow-y-auto py-5">
-            {MOBILE_GROUPS.map((group) => (
-              <div key={group.title}>
-                <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/70">
-                  {group.title}
-                </p>
-                <div className="flex flex-col gap-1">
-                  {group.items.map((n) => {
-                    if (n.to === "__tools__") {
-                      return (
-                        <div key="tools" className="px-0">
-                          <ToolsMenu variant="mobile" onNavigate={() => setOpen(false)} />
-                        </div>
-                      );
-                    }
-                    const active = isActive(n.to);
-                    return (
-                      <Link
-                        key={n.to}
-                        to={n.to}
-                        onClick={(e) => {
-                          setOpen(false);
-                          handleNav(n.to, e);
-                        }}
-                        {...prefetchHandlers(n.to)}
-                        aria-current={active ? "page" : undefined}
-                        className={cn(
-                          "flex min-h-[48px] items-center justify-between rounded-lg border px-3.5 text-[15px] font-medium transition-colors",
-                          active
-                            ? "border-gold/50 bg-gold/[0.1] text-gold"
-                            : "border-transparent text-foreground/85 hover:border-gold/30 hover:bg-gold/[0.05] hover:text-gold",
-                        )}
-                      >
-                        <span>{n.label}</span>
-                        {active && (
-                          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gold/80">
-                            тук сте
-                          </span>
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+            {(() => {
+              const renderItem = (n: { to: string; label: string }) => {
+                if (n.to === "__tools__") {
+                  return (
+                    <div key="tools" className="px-0">
+                      <ToolsMenu variant="mobile" onNavigate={() => setOpen(false)} />
+                    </div>
+                  );
+                }
+                const to = n.to === "/account" && !user ? "/auth" : n.to;
+                const active = isActive(to);
+                return (
+                  <Link
+                    key={n.to}
+                    to={to}
+                    onClick={(e) => {
+                      setOpen(false);
+                      handleNav(to, e);
+                    }}
+                    {...prefetchHandlers(to)}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "flex min-h-[48px] items-center justify-between rounded-lg border px-3.5 text-[15px] font-medium transition-colors",
+                      active
+                        ? "border-gold/50 bg-gold/[0.1] text-gold"
+                        : "border-transparent text-foreground/85 hover:border-gold/30 hover:bg-gold/[0.05] hover:text-gold",
+                    )}
+                  >
+                    <span>{n.label}</span>
+                    {active && (
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gold/80">
+                        тук сте
+                      </span>
+                    )}
+                  </Link>
+                );
+              };
+              return (
+                <>
+                  <div className="flex flex-col gap-1" data-testid="mobile-menu-primary">
+                    {MOBILE_PRIMARY.map(renderItem)}
+                  </div>
+                  <details className="rounded-lg border border-border/60" data-testid="mobile-menu-more">
+                    <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between px-3.5 text-[14px] font-semibold text-foreground/80">
+                      Още
+                      <span aria-hidden="true" className="text-gold">›</span>
+                    </summary>
+                    <div className="flex flex-col gap-1 border-t border-border/50 p-2">
+                      {MOBILE_MORE.map(renderItem)}
+                    </div>
+                  </details>
+                </>
+              );
+            })()}
 
             {/* Профил */}
             <div>

@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { ShieldCheck, PenTool } from "@/icons";
 import { Seo } from "@/components/Seo";
+import { useIsMobileViewport } from "@/hooks/useMediaQuery";
 
 import { ScrollableTabsList } from "./account/ScrollableTabsList";
 import type { Contact, Folder, SavedDoc, Quota, UploadedContract, RiskAnalysisLite, TabGroup } from "./account/ScrollableTabsList";
@@ -75,6 +76,30 @@ const TAB_GROUPS: TabGroup[] = [
   },
 ];
 
+/**
+ * На телефон водещото е „Документи"; вторичните раздели са под „Още", за да
+ * няма безкрайна лента. Наборът от раздели е същият — само подредбата е друга.
+ */
+const MOBILE_TAB_GROUPS: TabGroup[] = [
+  { id: "documents", label: "Документи", tabs: [{ value: "documents", label: "Документи", icon: FileText }] },
+  { id: "overview", label: "Начало", tabs: [{ value: "dashboard", label: "Табло", icon: Bird }] },
+  { id: "plan", label: "План", tabs: [{ value: "subscription", label: "Абонамент", icon: CreditCard }] },
+  {
+    id: "more",
+    label: "Още",
+    tabs: [
+      { value: "folders", label: "Папки", icon: FolderOpen },
+      { value: "kits", label: "Комплекти", icon: Package },
+      { value: "signed", label: "Подписани", icon: PenTool },
+      { value: "contacts", label: "Контрагенти", icon: Users },
+      { value: "deals", label: "Сделки", icon: Briefcase },
+      { value: "branding", label: "Брандиране", icon: Palette },
+      { value: "marketing", label: "Рекламни материали", icon: Megaphone },
+      { value: "settings", label: "Настройки", icon: SettingsIcon },
+    ],
+  },
+];
+
 function TabFallback() {
   return (
     <div className="flex items-center justify-center py-16 text-muted-foreground">
@@ -86,7 +111,15 @@ function TabFallback() {
 export default function AccountPage() {
   const { user, signOut } = useAuth();
   const [params, setParams] = useSearchParams();
-  const initialTab = params.get("tab") ?? (params.get("action") === "upload" ? "uploaded" : "dashboard");
+  const isMobileViewport = useIsMobileViewport();
+  // Явно поисканият таб винаги печели; иначе на телефон водим с документите.
+  const initialTab =
+    params.get("tab") ??
+    (params.get("action") === "upload"
+      ? "uploaded"
+      : isMobileViewport
+        ? "documents"
+        : "dashboard");
   const activeContact = params.get("contact");
   const [autoOpenUpload] = useState(() => params.get("action") === "upload");
 
@@ -236,7 +269,7 @@ export default function AccountPage() {
         </div>
 
         <Tabs value={initialTab} onValueChange={onTabChange} className="space-y-4 md:grid md:grid-cols-[240px_1fr] md:gap-8 md:space-y-0 lg:grid-cols-[260px_1fr]">
-          <ScrollableTabsList groups={TAB_GROUPS} value={initialTab} />
+          <ScrollableTabsList groups={isMobileViewport ? MOBILE_TAB_GROUPS : TAB_GROUPS} value={initialTab} />
 
           <div className="min-w-0">
             <TabsContent value="dashboard">

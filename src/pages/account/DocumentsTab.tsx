@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { presentAnalysisScore } from "@/lib/analysisVerification";
+import { useIsMobileViewport } from "@/hooks/useMediaQuery";
 import {
   Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Bird, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X, MessageSquare, Check, Lock, RefreshCw, Sparkles, Building2, Bell, LayoutDashboard, ChevronDown,
 } from "@/icons";
@@ -64,6 +65,32 @@ type UploadedContract = {
 };
 type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_type: string; created_at: string; verification?: unknown };
 
+/**
+ * На телефон второстепенните блокове са свити зад native `<details>` —
+ * възможностите остават, но не заемат целия екран. На десктоп нищо не се
+ * променя.
+ */
+function MobileCollapse({
+  mobile,
+  title,
+  children,
+}: {
+  mobile: boolean;
+  title: string;
+  children: React.ReactNode;
+}) {
+  if (!mobile) return <>{children}</>;
+  return (
+    <details className="rounded-xl border border-border/60 bg-card/40">
+      <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between px-3.5 text-sm font-semibold text-foreground/85">
+        {title}
+        <span aria-hidden="true" className="text-gold">›</span>
+      </summary>
+      <div className="border-t border-border/50 p-3">{children}</div>
+    </details>
+  );
+}
+
 function DocumentsTab({
   docs, folders, contacts, activeFolder, setActiveFolder, activeContactName, clearContactFilter, reload,
   uploaded, analysesByContract, autoOpenUpload,
@@ -96,6 +123,7 @@ function DocumentsTab({
   const toggleSelected = (id: string, v: boolean) =>
     setSelectedIds((prev) => (v ? [...prev, id] : prev.filter((x) => x !== id)));
   const hasMobileViewport = typeof window !== "undefined" && window.innerWidth < 640;
+  const isMobile = useIsMobileViewport();
   const upcomingReminders = reminders
     .filter((r) => !r.done_at)
     .slice(0, 5);
@@ -258,7 +286,29 @@ function DocumentsTab({
 
   return (
     <div className="grid gap-6 md:grid-cols-[220px_1fr]">
-      <aside className="space-y-1 rounded-xl border border-border/60 bg-gradient-card p-3">
+      {isMobile && folders.length > 0 && (
+        <label className="flex items-center gap-2 rounded-xl border border-border/60 bg-card/40 px-3 py-2 text-xs text-muted-foreground">
+          <span className="shrink-0">Папка</span>
+          <select
+            aria-label="Избор на папка"
+            value={showSharedOnly ? "__shared__" : activeFolder}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === "__shared__") { setShowSharedOnly(true); setActiveFolder("all"); return; }
+              setShowSharedOnly(false);
+              setActiveFolder(v as string | "all");
+            }}
+            className="min-h-[40px] w-full rounded-md border border-border/60 bg-background px-2 text-sm text-foreground"
+          >
+            <option value="all">Всички ({docs.length})</option>
+            {inActiveTeam && <option value="__shared__">Споделени с екипа</option>}
+            {folders.map((f) => (
+              <option key={f.id} value={f.id}>{f.name}</option>
+            ))}
+          </select>
+        </label>
+      )}
+      <aside className={`space-y-1 rounded-xl border border-border/60 bg-gradient-card p-3 ${isMobile ? "hidden" : ""}`}>
         <button onClick={() => { setActiveFolder("all"); setShowSharedOnly(false); }}
           className={`w-full rounded-md px-3 py-2 text-left text-sm ${activeFolder === "all" && !showSharedOnly ? "bg-gold/10 text-gold" : "hover:bg-card/60"}`}>
           Всички ({docs.length})
@@ -278,8 +328,9 @@ function DocumentsTab({
           </button>
         ))}
       </aside>
-      <div className={hasMobileViewport ? "space-y-8 pb-20" : "space-y-8"}>
+      <div className={hasMobileViewport ? "flex flex-col gap-8 pb-24" : "flex flex-col gap-8"}>
         {upcomingReminders.length > 0 && (
+          <MobileCollapse mobile={isMobile} title="Напомняния">
           <section className="rounded-xl border border-gold/30 bg-gold/5 p-4">
             <div className="mb-2 flex items-center justify-between gap-2 text-sm font-semibold text-gold">
               <div className="flex items-center gap-2">
@@ -341,9 +392,10 @@ function DocumentsTab({
               })}
             </ul>
           </section>
+          </MobileCollapse>
         )}
         {/* ===== Uploaded contracts (own files with AI risk analysis) ===== */}
-        <section id="uploaded" className="scroll-mt-24">
+        <section id="uploaded" className="scroll-mt-24 order-first md:order-none">
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <h3 className="font-serif text-lg font-bold">Качени договори</h3>
@@ -403,13 +455,19 @@ function DocumentsTab({
                     </div>
                     <div className="mt-3 space-y-2">
                       <div className="grid grid-cols-1 gap-2">
-                        <ShareForSignDialog
-                          uploadedContractId={u.id}
-                          documentTitle={u.title}
-                          triggerLabel="Подпиши"
-                          triggerIcon={<PenTool className="mr-1 h-3.5 w-3.5" />}
-                          triggerClassName="h-10 w-full justify-center border-gold/50 text-gold hover:bg-gold/10 sm:h-9"
-                        />
+                        {isMobile ? (
+                          <Button asChild size="sm" className="h-11 w-full justify-center">
+                            <Link to={`/uploaded/${u.id}`}>Отвори</Link>
+                          </Button>
+                        ) : (
+                          <ShareForSignDialog
+                            uploadedContractId={u.id}
+                            documentTitle={u.title}
+                            triggerLabel="Подпиши"
+                            triggerIcon={<PenTool className="mr-1 h-3.5 w-3.5" />}
+                            triggerClassName="h-10 w-full justify-center border-gold/50 text-gold hover:bg-gold/10 sm:h-9"
+                          />
+                        )}
                       </div>
                       <Button
                         type="button"
@@ -433,6 +491,15 @@ function DocumentsTab({
                           id={`u-actions-${u.id}`}
                           className="grid grid-cols-2 gap-2 rounded-lg border border-border/50 bg-background/40 p-2 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5"
                         >
+                          {isMobile && (
+                            <ShareForSignDialog
+                              uploadedContractId={u.id}
+                              documentTitle={u.title}
+                              triggerLabel="Подпиши"
+                              triggerIcon={<PenTool className="mr-1 h-3.5 w-3.5" />}
+                              triggerClassName="h-10 w-full justify-center border-gold/50 text-gold hover:bg-gold/10"
+                            />
+                          )}
                           <DocumentReminderDialog
                             target={{ uploadedContractId: u.id }}
                             documentTitle={u.title}
@@ -466,6 +533,7 @@ function DocumentsTab({
         </section>
 
         {/* ===== Generated documents (existing) ===== */}
+        <MobileCollapse mobile={isMobile} title="Създадени документи">
         <section>
           <h3 className="mb-3 font-serif text-lg font-bold">Създадени документи</h3>
           {activeContactName && (
@@ -681,6 +749,7 @@ function DocumentsTab({
             </>
           )}
         </section>
+        </MobileCollapse>
       </div>
       <DocumentVersionsDialog
         open={!!versionsForDoc}

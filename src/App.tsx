@@ -19,6 +19,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { useIsMobileViewport } from "@/hooks/useMediaQuery";
 
 import Index from "./pages/Index.tsx";
 const PaymentTestModeBanner = reactLazy(() =>
@@ -247,6 +248,9 @@ const RouteFallback = () => (
  */
 function DeferredOverlays() {
   const [ready, setReady] = useState(false);
+  // На телефон монтираме само необходимото за безопасност/плащане и долната
+  // навигация — никакви наслоени плаващи помощници и изскачащи прозорци.
+  const isMobile = useIsMobileViewport();
   useEffect(() => {
     const idle =
       (window as any).requestIdleCallback ??
@@ -257,6 +261,18 @@ function DeferredOverlays() {
     return () => cancel(handle);
   }, []);
   if (!ready) return null;
+  if (isMobile) {
+    return (
+      <Suspense fallback={null}>
+        <PaymentTestModeBanner />
+        <CookieBanner />
+        <BetaDisclaimerModal />
+        <GlobalProUpgradeListener />
+        <MobileBottomNav />
+        <ActionCelebrationHost />
+      </Suspense>
+    );
+  }
   return (
     <Suspense fallback={null}>
       <PaymentTestModeBanner />
@@ -266,8 +282,7 @@ function DeferredOverlays() {
       <UsernamePrompt />
       <GlobalProUpgradeListener />
       <CommandPalette />
-      {/* Only one floating helper — the DogovAI bubble. Removed FloatingCommandTrigger
-          to avoid stacking with the bubble/sticky CTA and reduce visual clutter. */}
+      {/* Only one floating helper — the DogovAI bubble. */}
       <DogovAIBubble />
       <MobileBottomNav />
       <ActionCelebrationHost />

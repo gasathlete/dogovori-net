@@ -249,7 +249,7 @@ describe("навигация — Продукти е първа", () => {
   });
 
   it("мобилното меню започва с продуктите", () => {
-    const groups = header.slice(header.indexOf("const MOBILE_GROUPS"));
+    const groups = header.slice(header.indexOf("const MOBILE_PRIMARY"));
     const body = groups.slice(0, groups.indexOf("\n];"));
     expect(body.indexOf("/produkti")).toBeGreaterThan(-1);
     expect(body.indexOf("/produkti")).toBeLessThan(body.indexOf("/build"));

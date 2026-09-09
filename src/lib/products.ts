@@ -20,6 +20,8 @@ export type ProductDemoKind = "scan" | "diff" | "map";
 export interface OneTimeProduct {
   readonly id: OneTimeProductId;
   readonly name: string;
+  /** Кратко име — използва се САМО в мобилния превключвател. */
+  readonly shortName: string;
   /** Цена в EUR с включен ДДС. */
   readonly priceEur: number;
   readonly badge?: string;
@@ -40,6 +42,7 @@ export const ONE_TIME_PRODUCTS: readonly OneTimeProduct[] = Object.freeze([
   Object.freeze({
     id: "contract_check",
     name: "Проверка преди подпис",
+    shortName: "Проверка",
     priceEur: 2.99,
     promise:
       "Паспорт на договора: какво поемате, докога и какво липсва — на един екран.",
@@ -57,6 +60,7 @@ export const ONE_TIME_PRODUCTS: readonly OneTimeProduct[] = Object.freeze([
   Object.freeze({
     id: "contract_improve",
     name: "Подобри договора ми",
+    shortName: "Подобри",
     priceEur: 3.99,
     badge: "Най-предпочитан",
     promise:
@@ -75,6 +79,7 @@ export const ONE_TIME_PRODUCTS: readonly OneTimeProduct[] = Object.freeze([
   Object.freeze({
     id: "business_contract_map",
     name: "Бизнес договорна карта",
+    shortName: "Бизнес карта",
     priceEur: 6.99,
     badge: "За бизнес",
     promise:
@@ -205,4 +210,5 @@ export const PRODUCT_EVENTS = Object.freeze({
   productSelected: "product_selected",
   personaSelected: "business_persona_selected",
   nextStepClicked: "product_next_step_clicked",
+  detailsOpened: "product_details_opened",
 } as const);
