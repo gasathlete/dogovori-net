@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Logo } from "./Logo";
+import { ONE_TIME_PRODUCTS, productPath } from "@/lib/products";
 
 
 // Top 8 categories inlined to avoid pulling the full CATALOG (166KB) into the
@@ -118,6 +119,29 @@ export function SeoFooter() {
               </div>
             );
           })}
+
+          <div>
+            <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gold">Продукти</h3>
+            <ul className="space-y-2 text-xs text-muted-foreground">
+              {ONE_TIME_PRODUCTS.map((p) => (
+                <li key={p.id}>
+                  <Link to={productPath(p)} className="transition-colors hover:text-gold">
+                    {p.name}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <Link to="/produkti" className="transition-colors hover:text-gold">
+                  Всички продукти
+                </Link>
+              </li>
+              <li>
+                <Link to="/plans" className="transition-colors hover:text-gold">
+                  Планове
+                </Link>
+              </li>
+            </ul>
+          </div>
 
           <div>
             <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gold">Категории</h3>

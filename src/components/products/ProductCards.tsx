@@ -1,14 +1,12 @@
 /**
  * Отговорната витрина с трите еднократни продукта.
  *
- * Телефон: един панел наведнъж (`MobileProductSwitcher`).
- * Таблет/десктоп: познатата решетка с три карти.
- *
- * И двата режима ползват една и съща конфигурация — няма форк на цени/копие.
+ * Едно и също съдържание на телефон и на десктоп — трите карти винаги са в
+ * DOM (изискване за еднакво основно съдържание при двата размера). На телефон
+ * подредбата е в една колона и по-компактна, на десктоп — три карти.
  */
 import { useEffect } from "react";
 import { ProductCard, type ProductCardVariant } from "@/components/products/ProductCard";
-import { MobileProductSwitcher } from "@/components/products/MobileProductSwitcher";
 import { useIsMobileViewport } from "@/hooks/useMediaQuery";
 import { useInView } from "@/hooks/useInView";
 import { ONE_TIME_PRODUCTS, PRODUCT_EVENTS } from "@/lib/products";
@@ -37,19 +35,20 @@ export function ProductCards({
 
   return (
     <div ref={ref} data-testid="product-cards" data-layout={layout}>
-      {isMobile ? (
-        <MobileProductSwitcher source={source} />
-      ) : (
-        <ul
-          role="list"
-          data-testid="product-card-grid"
-          className="mx-auto grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-3"
-        >
-          {ONE_TIME_PRODUCTS.map((p) => (
-            <ProductCard key={p.id} product={p} variant={variant} source={source} />
-          ))}
-        </ul>
-      )}
+      <ul
+        role="list"
+        data-testid="product-card-grid"
+        className="mx-auto grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      >
+        {ONE_TIME_PRODUCTS.map((p) => (
+          <ProductCard
+            key={p.id}
+            product={p}
+            variant={isMobile ? "compact" : variant}
+            source={source}
+          />
+        ))}
+      </ul>
     </div>
   );
 }

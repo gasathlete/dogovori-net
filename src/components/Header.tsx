@@ -21,16 +21,17 @@ const NAV = [
   { to: "/blog", label: "Блог" },
 ];
 
-// Off-header links — surfaced only inside the mobile menu and via contextual
-// upgrade prompts. Not shown on the desktop bar to keep it uncluttered.
-const RESOURCES = [{ to: "/plans", label: "Планове" }];
+// „Планове" не е на десктоп лентата (стои в менюто за гости и в мобилното
+// меню), за да остане навигацията продуктова.
 
-// Мобилното меню започва с точно същите четири основни изхода като долната
-// навигация. Всичко останало е в една свита група „Още".
+// Мобилното меню започва с „Продукти" и „Планове" като два отделни реда най-
+// горе, следвани от двата основни изхода и профила. Всичко останало е в една
+// свита група „Още". Профилът се появява точно веднъж.
 const MOBILE_PRIMARY: { to: string; label: string }[] = [
   { to: "/produkti", label: "Продукти" },
-  { to: "/analiz", label: "Качи договор" },
-  { to: "/build", label: "Изготви документ" },
+  { to: "/plans", label: "Планове" },
+  { to: "/analiz", label: "Качете за проверка" },
+  { to: "/build", label: "Създайте документ" },
   { to: "/account", label: "Профил" },
 ];
 
@@ -39,7 +40,6 @@ const MOBILE_MORE: { to: string; label: string }[] = [
   { to: "/komplekti", label: "Комплекти документи" },
   { to: "__tools__", label: "Инструменти" },
   { to: "/blog", label: "Блог" },
-  ...RESOURCES,
 ];
 
 export function Header() {
@@ -89,10 +89,10 @@ export function Header() {
     >
       <div
         className={cn(
-          // Мобилната височина е стабилна 58px (не скача при скрол);
-          // десктоп височините остават непроменени.
+          // Възстановени пропорции на предишния мобилен хедър (68px, 64px при
+          // скрол); десктоп височините остават непроменени.
           "container flex items-center justify-between gap-3 transition-[height] duration-300 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-6",
-          scrolled ? "h-[58px] lg:h-14" : "h-[58px] lg:h-16",
+          scrolled ? "h-16 lg:h-14" : "h-[68px] lg:h-16",
         )}
       >
         {/* Zone 1 — Brand */}
@@ -253,7 +253,7 @@ export function Header() {
           aria-label="Мобилна навигация"
           className="origin-top animate-accordion-down overflow-hidden border-t border-gold/20 bg-background lg:hidden"
         >
-          <div className="container flex max-h-[calc(100dvh-58px)] flex-col gap-4 overflow-y-auto py-4">
+          <div className="container flex max-h-[calc(100dvh-68px)] flex-col gap-4 overflow-y-auto py-4">
             {(() => {
               const renderItem = (n: { to: string; label: string }) => {
                 if (n.to === "__tools__") {

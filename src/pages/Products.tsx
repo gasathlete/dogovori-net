@@ -6,7 +6,12 @@ import { Seo } from "@/components/Seo";
 import { SeoFooter } from "@/components/SeoFooter";
 import { ProductCards } from "@/components/products/ProductCards";
 import { StepsStrip } from "@/components/products/StepsStrip";
-import { ONE_TIME_PRODUCTS, ONE_TIME_TERMS, lowestOneTimePriceLabel } from "@/lib/products";
+import {
+  ONE_TIME_PRODUCTS,
+  ONE_TIME_TERMS,
+  lowestOneTimePriceLabel,
+  productPath,
+} from "@/lib/products";
 
 const jsonLd = [
   {
@@ -35,7 +40,7 @@ const jsonLd = [
       "@type": "ListItem",
       position: i + 1,
       name: p.name,
-      url: `https://dogovori.net/produkti#product-${p.id}`,
+      url: `https://dogovori.net${productPath(p)}`,
     })),
   },
 ];

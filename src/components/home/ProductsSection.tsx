@@ -15,7 +15,7 @@ export function ProductsSection() {
     >
       <div className="eyebrow mb-3 justify-center">
         <span className="h-px w-8 bg-gold/40" />
-        Готови за поръчка
+        Три продукта, еднократно плащане
       </div>
       <h2
         id="home-products-title"
@@ -24,8 +24,8 @@ export function ProductsSection() {
         Разгледайте нашите продукти
       </h2>
       <p className="mx-auto mb-6 max-w-xl text-center text-sm text-muted-foreground">
-        Три ясни резултата за конкретен договор или за цялата ви договорна
-        организация. Плащате веднъж за избрания резултат.
+        Проверка на един документ, конкретни поправки или карта на документите
+        за бизнеса Ви. Плащате веднъж за избрания резултат.
       </p>
 
       <ProductCards variant="compact" source="home" />
@@ -33,9 +33,9 @@ export function ProductsSection() {
       <div className="mt-6 text-center">
         <Link
           to="/produkti"
-          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-muted-foreground transition-colors hover:text-gold"
+          className="inline-flex min-h-[44px] items-center gap-1.5 text-[13px] font-semibold text-muted-foreground transition-colors hover:text-gold"
         >
-          Виж всички детайли по продуктите
+          Вижте подробно всеки продукт
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>

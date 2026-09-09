@@ -1,26 +1,24 @@
 /**
- * Мобилният конверсионен слой: една задача на екран.
+ * Мобилният конверсионен слой след връщането на предишния мобилен вид.
  *
- * Проверява реда/маршрутите на долната навигация, краткия мобилен начален
- * екран, продуктовия превключвател и олекотения слой от наслоявания.
+ * Проверява: долната навигация, възстановената обща композиция на началната
+ * страница (богат hero → лога → продукти), ранния продуктов ред, хедъра и
+ * менюто, олекотените наслоявания и профила.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import { MOBILE_NAV_ITEMS } from "@/components/MobileBottomNav";
-import { MobileProductSwitcher, DEFAULT_MOBILE_PRODUCT } from "@/components/products/MobileProductSwitcher";
-import { getProduct, ONE_TIME_TERMS, productPriceLabel } from "@/lib/products";
+import { HeroProductRail } from "@/components/products/HeroProductRail";
+import { ONE_TIME_PRODUCTS, productPath, productPriceLabel } from "@/lib/products";
 
 vi.mock("@/lib/funnel", () => ({
   trackFunnelEvent: vi.fn(() => true),
   markFunnelStep: vi.fn(),
 }));
-import { trackFunnelEvent } from "@/lib/funnel";
 
 const wrap = (ui: React.ReactNode) => <MemoryRouter>{ui}</MemoryRouter>;
-
 const read = (f: string) => readFileSync(f, "utf8");
 
 describe("мобилна долна навигация", () => {
@@ -39,91 +37,67 @@ describe("мобилна долна навигация", () => {
   });
 });
 
-describe("мобилен продуктов превключвател", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("по подразбиране показва най-лесната конверсия и само един панел", () => {
-    render(wrap(<MobileProductSwitcher source="home" />));
-    expect(DEFAULT_MOBILE_PRODUCT).toBe("contract_check");
-    const panels = screen.getAllByRole("tabpanel");
-    expect(panels).toHaveLength(1);
-    expect(panels[0]).toHaveAttribute("data-product-id", "contract_check");
-    expect(screen.getAllByRole("tab")).toHaveLength(3);
-  });
-
-  it("панелът води с два най-силни резултата, а останалите са в „Какво получавам“", async () => {
-    render(wrap(<MobileProductSwitcher source="home" />));
-    const product = getProduct("contract_check");
-    expect(
-      screen.getByTestId("mobile-product-outcomes").querySelectorAll("li"),
-    ).toHaveLength(2);
-    expect(screen.getByText(product.outcomes[0])).toBeInTheDocument();
-    const details = screen.getByTestId("mobile-product-details");
-    expect(details).not.toHaveAttribute("open");
-    expect(details).toHaveTextContent("Какво получавам");
-    expect(details).toHaveTextContent(ONE_TIME_TERMS);
-    expect(
-      screen.getByRole("link", { name: new RegExp(product.ctaLabel) }),
-    ).toHaveAttribute("href", product.ctaHref);
-  });
-
-  it("отварянето на подробностите е дедупликирано по източник и продукт", async () => {
-    render(wrap(<MobileProductSwitcher source="home" />));
-    const summary = screen.getByText("Какво получавам");
-    await userEvent.click(summary);
-    const calls = vi.mocked(trackFunnelEvent).mock.calls.filter(
-      (c) => c[0] === "product_details_opened",
-    );
-    expect(calls.length).toBeGreaterThan(0);
-    expect(calls[0][2]).toEqual(
-      expect.objectContaining({ dedupKey: "home|contract_check" }),
-    );
-  });
-
-  it("смяната на опция сменя панела, цените са винаги видими", async () => {
-    render(wrap(<MobileProductSwitcher source="home" />));
-    for (const id of ["contract_check", "contract_improve", "business_contract_map"] as const) {
-      expect(screen.getAllByText(productPriceLabel(id)).length).toBeGreaterThan(0);
+describe("ранен продуктов ред в hero-а", () => {
+  it("показва трите продукта като реални връзки с цени", () => {
+    render(wrap(<HeroProductRail />));
+    for (const p of ONE_TIME_PRODUCTS) {
+      const link = screen.getByRole("link", { name: new RegExp(p.name) });
+      expect(link).toHaveAttribute("href", productPath(p));
+      expect(link).toHaveTextContent(productPriceLabel(p.id));
     }
-    await userEvent.click(screen.getByRole("tab", { name: /Бизнес карта/ }));
-    expect(screen.getByTestId("mobile-product-panel")).toHaveAttribute(
-      "data-product-id",
-      "business_contract_map",
-    );
-    expect(trackFunnelEvent).toHaveBeenCalledWith(
-      "product_selected",
-      expect.objectContaining({ product: "business_contract_map", interaction: "tab" }),
-    );
+    // „еднократно" се появява точно веднъж — за групата.
+    expect(screen.getAllByText("еднократно")).toHaveLength(1);
+  });
+
+  it("няма автоматична въртележка, popup или изкуствен недостиг", () => {
+    const src = read("src/components/products/HeroProductRail.tsx");
+    expect(src).not.toMatch(/setInterval|setTimeout|autoplay|Dialog/);
+    expect(src.toLowerCase()).not.toMatch(/остават само|последен шанс/);
+    expect(src).toContain("min-h-[64px]");
+  });
+
+  it("е вграден в hero-а, а не в отделен мобилен екран", () => {
+    expect(read("src/components/Hero.tsx")).toContain("<HeroProductRail />");
   });
 });
 
-describe("мобилен начален екран и граф на модулите", () => {
+describe("възстановена обща композиция на началната страница", () => {
   const index = read("src/pages/Index.tsx");
-  const desktop = read("src/components/home/DesktopHome.tsx");
-  const mobileBranch = index.slice(index.indexOf('data-home-variant="mobile"'), index.indexOf("<DesktopHome"));
+  const home = read("src/components/home/HomeSections.tsx");
 
-  it("съдържа само кратката композиция", () => {
-    for (const c of ["MobileHero", "MobileTrustRow", "ProductsSection", "MobileEssentials", "MobileFinalCta", "SeoFooter"]) {
-      expect(mobileBranch).toContain(c);
-    }
+  it("телефон и десктоп ползват една и съща композиция", () => {
+    expect(index).toContain("<HomeSections />");
+    expect(index).not.toContain("MobileHero");
+    expect(index).not.toContain("MobileEssentials");
+    expect(index).not.toMatch(/isMobile \? \(/);
   });
 
-  it("десктоп-only модулите не са в мобилния граф на входа", () => {
-    for (const m of [
-      "@/components/Hero",
-      "@/components/home/PrimaryChoice",
-      "@/components/SectionBackdrop",
-      "@/components/LazyOnVisible",
-      "@/data/featuredBlanks",
-      "@/lib/templateIndex",
-    ]) {
-      expect(index).not.toContain(m);
-    }
-    // Десктоп композицията се внася само лениво.
-    expect(index).toMatch(/lazy\(\(\) => import\("@\/components\/home\/DesktopHome"\)/);
+  it("богатият hero е първи, логата са преди продуктите", () => {
+    expect(home.indexOf("<Hero />")).toBeGreaterThan(-1);
+    expect(home.indexOf("<SocialProofStrip />")).toBeLessThan(
+      home.indexOf("<ProductsSection />"),
+    );
+    expect(home.indexOf("<Hero />")).toBeLessThan(home.indexOf("<SocialProofStrip />"));
   });
 
-  it("десктоп поредицата остава пълна в отделния модул", () => {
+  it("продуктите са преди Топ шаблоните и другите възможности", () => {
+    expect(home.indexOf("<ProductsSection />")).toBeLessThan(
+      home.indexOf("<FeaturedBlanks />"),
+    );
+    expect(home.indexOf("<ProductsSection />")).toBeLessThan(
+      home.indexOf("<PlatformCapabilities />"),
+    );
+  });
+
+  it("метаданните и JSON-LD не зависят от размера на екрана", () => {
+    expect(index).toContain("buildFaqJsonLd()");
+    expect(index).toContain("itemList ? [itemList, buildFaqJsonLd()] : [buildFaqJsonLd()]");
+    expect(index).not.toContain("if (isMobile || !shouldPrefetch())");
+    const seo = index.slice(index.indexOf("<Seo"), index.indexOf("<Header />"));
+    expect(seo).not.toContain("isMobile");
+  });
+
+  it("дългата подредба остава пълна", () => {
     for (const c of [
       "Hero",
       "SocialProofStrip",
@@ -141,18 +115,8 @@ describe("мобилен начален екран и граф на модули
       "FAQ",
       "CTABand",
     ]) {
-      expect(desktop).toContain(c);
+      expect(home).toContain(c);
     }
-  });
-
-  it("на телефон не се пуска prefetch на каталога, нито каталожният индекс", () => {
-    expect(index).toMatch(/if \(isMobile\) return;\s*\n\s*return prefetchOnIdle/);
-    expect(index).toContain("if (isMobile || !shouldPrefetch()) return;");
-  });
-
-  it("базовото SEO остава вярно — FAQ винаги, ItemList само когато е наличен", () => {
-    expect(index).toContain("buildFaqJsonLd()");
-    expect(index).toContain("itemList ? [itemList, buildFaqJsonLd()] : [buildFaqJsonLd()]");
   });
 });
 
@@ -213,53 +177,70 @@ describe("мобилни наслоявания и профил", () => {
   });
 });
 
-describe("мобилен хедър", () => {
+describe("мобилен хедър и меню", () => {
   const header = read("src/components/Header.tsx");
 
-  it("има стабилна височина 58px на телефон, без промяна на десктоп", () => {
-    expect(header).toContain('h-[58px] lg:h-14');
-    expect(header).toContain('h-[58px] lg:h-16');
-    expect(header).not.toContain("h-[68px]");
-    expect(header).toContain("max-h-[calc(100dvh-58px)]");
+  it("връща предишните пропорции на хедъра, без промяна на десктоп", () => {
+    expect(header).toContain("h-[68px] lg:h-16");
+    expect(header).toContain("h-16 lg:h-14");
+    expect(header).not.toContain("h-[58px]");
+    expect(header).toContain("max-h-[calc(100dvh-68px)]");
   });
 
-  it("не повтаря Профил и дава един път изход/вход", () => {
+  it("„Продукти“ и „Планове“ са отделни водещи редове най-горе", () => {
+    const primary = header.slice(header.indexOf("const MOBILE_PRIMARY"), header.indexOf("const MOBILE_MORE"));
+    const labels = [...primary.matchAll(/label: "([^"]+)"/g)].map((m) => m[1]);
+    expect(labels[0]).toBe("Продукти");
+    expect(labels[1]).toBe("Планове");
+    expect(labels).toContain("Профил");
+    // „Планове" не остава скрито в „Още".
+    const more = header.slice(header.indexOf("const MOBILE_MORE"), header.indexOf("export function Header"));
+    expect(more).not.toContain("Планове");
+  });
+
+  it("не повтаря Профил и дава един път изход", () => {
     const menu = header.slice(header.indexOf('aria-label="Мобилна навигация"'));
     expect(menu).not.toContain("Моят профил");
-    expect(menu).not.toContain("Регистрация — без карта");
     expect((menu.match(/Изход/g) ?? []).length).toBe(1);
+    const primary = header.slice(header.indexOf("const MOBILE_PRIMARY"), header.indexOf("const MOBILE_MORE"));
+    expect((primary.match(/Профил/g) ?? []).length).toBe(1);
   });
 });
 
-describe("увереност и ясен резултат", () => {
-  const hero = read("src/components/home/MobileHero.tsx");
+describe("hero копие и продуктови карти", () => {
+  const hero = read("src/components/Hero.tsx");
+  const audience = read("src/lib/audience.ts");
 
-  it("мобилното hero води с резултат, цена и едно действие", () => {
-    expect(hero).toContain("Вашият договор.");
-    expect(hero).toContain("Проверен. Поправен.");
-    expect(hero).toContain("lowestOneTimePriceLabel()");
-    expect(hero).toContain("еднократно");
-    expect(hero).toContain("Изберете резултат");
-    expect(hero).toContain("Изготви нов договор");
+  it("H1 и подкрепящият ред казват какво прави човекът", () => {
+    expect(audience).toContain("Създайте, проверете или");
+    expect(audience).toContain(" документ.");
+    expect(audience).toContain("Започнете от шаблон или качете свой файл.");
   });
 
-  it("не обещава измерено време, адвокатски преглед или безопасност за подпис", () => {
-    for (const bad of ["минут", "секунд", "адвокат", "безопасно за подпис"]) {
-      expect(hero.toLowerCase()).not.toContain(bad);
-    }
+  it("основното действие води към продуктите, а второстепенните са реални пътища", () => {
+    expect(hero).toContain("Изберете какво Ви трябва");
+    expect(hero).toContain('to="/produkti"');
+    expect(hero).toContain("Създайте документ");
+    expect(hero).toContain("Качете за проверка");
   });
 
-  it("акцентът е code-native и уважава reduced motion", () => {
-    expect(hero).toContain("motion-safe:animate-scan-line");
-    expect(hero).not.toMatch(/<img|<video/);
+  it("септемврийската промоция не се конкурира с продуктите в hero-а", () => {
+    expect(hero).not.toContain("SEPTEMBER_PROMO");
+    expect(hero).not.toContain("−20%");
   });
 
-  it("предпочитаният продукт получава контролирано подчертаване на десктоп", () => {
+  it("картите водят към собствените продуктови страници", () => {
     const card = read("src/components/products/ProductCard.tsx");
+    expect(card).toContain("productPath(product)");
+    expect(card).toContain("min-h-[44px]");
     expect(card).toContain("isFeaturedProduct");
-    expect(card).toContain('data-featured');
-    expect(card).toContain("border-2 border-gold/45");
     expect(card).not.toMatch(/scale-1[1-9]/);
+  });
+
+  it("трите карти са в DOM и на телефон (еднакво основно съдържание)", () => {
+    const cards = read("src/components/products/ProductCards.tsx");
+    expect(cards).not.toContain("MobileProductSwitcher");
+    expect(cards).toContain("ONE_TIME_PRODUCTS.map");
   });
 
   it("трите стъпки са компактни и без обещание за време", () => {

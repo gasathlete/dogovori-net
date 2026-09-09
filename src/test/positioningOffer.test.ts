@@ -24,7 +24,7 @@ const CONVERSION_FILES = [
   "src/components/PlatformCapabilities.tsx",
   "src/components/home/DogovaryAIShowcase.tsx",
   "src/pages/Index.tsx",
-  "src/components/home/DesktopHome.tsx",
+  "src/components/home/HomeSections.tsx",
 ];
 
 describe("позициониране на началната страница", () => {
@@ -46,8 +46,8 @@ describe("позициониране на началната страница", 
 
   it("H1-ите описват работния процес, не замяна на адвокат", () => {
     const src = read("src/lib/audience.ts");
-    expect(src).toContain("Договорите на фирмата — от чернова до");
-    expect(src).toContain("От ясни условия до готов");
+    expect(src).toContain("Създайте, проверете или");
+    expect(src).toContain("Започнете от шаблон или качете свой файл.");
     expect(src).not.toContain("без адвокат за всеки документ");
   });
 
@@ -56,8 +56,8 @@ describe("позициониране на началната страница", 
     expect(showcase).not.toContain("отговаря като юрист");
     expect(showcase).toContain("Не замества индивидуална правна консултация");
 
-    // Богатата десктоп подредба живее в DesktopHome.tsx (Index е само входът).
-    const index = read("src/components/home/DesktopHome.tsx");
+    // Богатата десктоп подредба живее в HomeSections.tsx (Index е само входът).
+    const index = read("src/components/home/HomeSections.tsx");
     expect(index.indexOf("<DogovaryAIShowcase />")).toBeGreaterThan(
       index.indexOf("<ComplianceSection />"),
     );

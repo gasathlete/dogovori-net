@@ -288,7 +288,7 @@ export default function Plans() {
               </p>
               <h3 className="mt-1.5 font-serif text-xl text-foreground">Редовна договорна работа</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Изготвяне, преглед, споделяне и история на документите — в един работен процес.
+                Изготвяте, проверявате и споделяте документи, а историята и версиите остават при Вас.
               </p>
               <a
                 href="#plan-cards"

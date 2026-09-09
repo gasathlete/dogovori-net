@@ -9,6 +9,7 @@ import {
   isFeaturedProduct,
   ONE_TIME_TERMS,
   PRODUCT_EVENTS,
+  productPath,
   productPriceLabel,
   type OneTimeProduct,
 } from "@/lib/products";
@@ -61,7 +62,12 @@ export function ProductCard({
               id={headingId}
               className="font-serif text-[17px] font-bold leading-tight text-foreground sm:text-lg"
             >
-              {product.name}
+              <Link
+                to={productPath(product)}
+                className="rounded-sm outline-none transition-colors hover:text-gold focus-visible:ring-2 focus-visible:ring-gold/60"
+              >
+                {product.name}
+              </Link>
             </h3>
           </div>
           <p className="shrink-0 text-right font-serif text-xl font-bold tabular-nums text-gold sm:text-2xl">
@@ -89,7 +95,7 @@ export function ProductCard({
         </p>
 
         <Link
-          to={product.ctaHref}
+          to={productPath(product)}
           onClick={() =>
             trackFunnelEvent(PRODUCT_EVENTS.productSelected, {
               product: product.id,
@@ -97,7 +103,7 @@ export function ProductCard({
               variant,
             })
           }
-          className="btn-gold btn-press inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-[14px] font-bold tracking-tight transition-transform duration-200"
+          className="btn-gold btn-press inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-5 py-3 text-[14px] font-bold tracking-tight transition-transform duration-200"
         >
           {product.ctaLabel}
           <ArrowRight className="h-4 w-4" />

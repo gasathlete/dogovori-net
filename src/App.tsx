@@ -93,6 +93,7 @@ const Catalog = lazy(() => import("./pages/Catalog.tsx"));
 const Start = lazy(() => import("./pages/Start.tsx"));
 const Products = lazy(() => import("./pages/Products.tsx"));
 const BusinessCardIntake = lazy(() => import("./pages/BusinessCardIntake.tsx"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail.tsx"));
 const Analyze = lazy(() => import("./pages/Analyze.tsx"));
 const ProcessStep = lazy(() => import("./pages/ProcessStep.tsx"));
 const Tools = lazy(() => import("./pages/Tools.tsx"));
@@ -342,6 +343,8 @@ const AnimatedRoutes = () => {
         <Route path="/plans" element={<Plans />} />
         <Route path="/produkti" element={<Products />} />
         <Route path="/produkti/biznes-karta" element={<BusinessCardIntake />} />
+        {/* Самостоятелните продуктови страници — стабилни ASCII slug-ове. */}
+        <Route path="/produkti/:slug" element={<ProductDetail />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
         <Route path="/connect" element={<Connect />} />
