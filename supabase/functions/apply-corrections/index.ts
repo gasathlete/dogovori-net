@@ -320,6 +320,32 @@ ${answersRedacted}
       }
     }
 
+    // Q4a — коригираният документ носи СВЕЖ risk анализ: минава през същия
+    // детерминиран gate, за да не се появят отново недоказани самокритики.
+    if ((parsed as Record<string, unknown>)?.risk) {
+      const p = parsed as Record<string, unknown>;
+      const qualityManifest = await buildQualityManifest({
+        origin: "apply-corrections",
+        contract: p.contract,
+        decisions: [
+          "placeholders_for_personal_data",
+          "local_completion_of_personal_data",
+          "optional_annex_details",
+          "standard_clause_set",
+        ],
+      });
+      const gated = applyRiskConsistencyGate({
+        risk: p.risk,
+        documentText: flattenGeneratedContract(p.contract),
+        origin: "apply-corrections",
+        manifest: qualityManifest,
+        trustedManifest: true,
+      });
+      p.risk = gated.risk;
+      p.quality = gated.quality;
+      p.quality_manifest = qualityManifest;
+    }
+
     await logAiAudit({
       user_id: userId, operation: "apply-corrections", model: route.model,
       classification, redaction_applied: route.redactionRequired,
