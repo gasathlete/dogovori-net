@@ -287,9 +287,11 @@ const BILINGUAL_OK = {
 };
 
 const withoutKey = (path: string) => {
-  const c = JSON.parse(JSON.stringify(BILINGUAL_OK)) as Record<string, any>;
-  if (path.startsWith("clause0.")) delete c.clauses[0][path.slice(8)];
-  else delete c[path];
+  const c = JSON.parse(JSON.stringify(BILINGUAL_OK)) as Record<string, unknown>;
+  if (path.startsWith("clause0.")) {
+    const clauses = c.clauses as Array<Record<string, unknown>>;
+    delete clauses[0][path.slice(8)];
+  } else delete c[path];
   return c;
 };
 
