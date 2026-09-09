@@ -241,7 +241,9 @@ ${answersStr}
       contract?: unknown;
       changed_clause_numbers?: string[];
       change_summary?: string;
+      risk?: unknown;
     };
+
 
 
     if (!parsed?.contract) throw new Error("AI не върна contract");
