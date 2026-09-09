@@ -151,7 +151,7 @@ const BUILD_MODE_ADDENDUM: Record<BuildMode, { label: string; addendum: string; 
 - Изчерпателен набор клаузи: дефиниции, представителство, поверителност, IP, неустойки, форсмажор, приложимо право и подсъдност, нотификации, цялост на договора.
 - Цитирай конкретни членове от ЗЗД/ТЗ/ЗЗП/ЗАПСП/ЗЗЛД където е уместно.
 - Дълги, точно формулирани клаузи; никакви двусмислици.
-- Risk report: в "issues" влизат САМО ПРОВЕРЕНИ дефекти с дословна опора в текста, със severity и detail. Без задължителен брой — нула issues е валиден резултат при изряден документ. Съветите за професионализъм (e-signature, нотариална заверка, регистрация, данъчни импликации) влизат в "recommendations".
+- Risk report: в "issues" влизат САМО ПРОВЕРЕНИ дефекти с дословна опора в текста, със severity и detail. Без задължителен брой — нула issues е валиден резултат при изряден документ. Съветите за професионализъм (e-signature, нотариална заверка, регистрация, данъчни импликации) влизат в "recommendations".`,
   },
 };
 
@@ -346,9 +346,13 @@ Deno.serve(async (req: Request) => {
 
     const partyALabel = docSpec.partyAName || "Страна А";
     const partyBLabel = docSpec.partyBName || "Страна Б";
-    const partiesAList = (partiesA.length ? partiesA : [`[${partyALabel}]`]).map((p, i) => `  ${i + 1}. ${p}`).join("\n");
+    const partyAPlaceholder = "[" + partyALabel + "]";
+    const partyBPlaceholder = "[" + partyBLabel + "]";
+    const partiesASource = partiesA.length ? partiesA : [partyAPlaceholder];
+    const partiesBSource = partiesB.length ? partiesB : [partyBPlaceholder];
+    const partiesAList = partiesASource.map((p, i) => `  ${i + 1}. ${p}`).join("\n");
     const partiesBList = docSpec.partyBName
-      ? (partiesB.length ? partiesB : [`[${partyBLabel}]`]).map((p, i) => `  ${i + 1}. ${p}`).join("\n")
+      ? partiesBSource.map((p, i) => `  ${i + 1}. ${p}`).join("\n")
       : "(едностранен документ — без втора страна)";
 
     const parentHeader = parentContext?.parentTitle
