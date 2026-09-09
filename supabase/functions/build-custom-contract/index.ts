@@ -198,7 +198,7 @@ Deno.serve(async (req: Request) => {
           authDiag.method = "getClaims";
         }
       } catch (e) {
-        authDiag.reason = `getClaims_threw:${e instanceof Error ? e.message : String(e)}`;
+        authDiag.reason = "getClaims_threw:" + (e instanceof Error ? e.message : String(e));
       }
 
       // Fallback for legacy HS256 tokens.
@@ -206,13 +206,13 @@ Deno.serve(async (req: Request) => {
         try {
           const { data: u, error: uErr } = await admin.auth.getUser(token);
           if (uErr) {
-            authDiag.reason = (authDiag.reason ?? "") + `|getUser:${uErr.message}`;
+            authDiag.reason = (authDiag.reason ?? "") + "|getUser:" + String(uErr.message);
           } else if (u?.user?.id) {
             userId = u.user.id;
             authDiag.method = "getUser";
           }
         } catch (e) {
-          authDiag.reason = (authDiag.reason ?? "") + `|getUser_threw:${e instanceof Error ? e.message : String(e)}`;
+          authDiag.reason = (authDiag.reason ?? "") + "|getUser_threw:" + (e instanceof Error ? e.message : String(e));
         }
       }
     }
