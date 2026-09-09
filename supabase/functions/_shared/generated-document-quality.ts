@@ -868,3 +868,128 @@ export function applyRiskConsistencyGate(input: {
     },
   };
 }
+
+// ---------------------------------------------------------------------------
+// Q4a — ЕДИНЕН fail-closed филтър за находките на ПО-КЪСНИЯ анализ/ревизия
+// ---------------------------------------------------------------------------
+//
+// Проблемът, който този филтър затваря: първичният анализатор/ревизор четеше
+// САМО решенията за лични данни. Затова умишлено опционалните приложения и
+// съзнателно избраният набор клаузи (кратък/стандартен/изчерпателен) можеха да
+// бъдат критикувани като „дефект" в собствен наш документ.
+//
+// Правилата са НЕПРОМЕНЛИВИ и fail-closed:
+//   1. Без ДОВЕРЕН ПОДПИСАН манифест НИЩО не се потиска и не се сваля.
+//   2. Потискане е допустимо САМО за решение, изрично изброено в манифеста.
+//   3. Доказан съществен дефект (противоречие, нищожност, императивна форма,
+//      прекомерна неустойка, несъответствие със заявеното) СЕ ЗАПАЗВА дори
+//      когато формулировката му споменава приложение/плейсхолдър.
+//   4. Личните плейсхолдъри остават „за попълване преди използване" там,
+//      където такъв е съществуващият UX; опционалните приложения/детайли и
+//      избраният набор клаузи стават ОПЦИОНАЛНА ПРЕПОРЪКА и не се броят като
+//      дефект — те никога не са провал.
+//
+// ИЗВЪН ОБХВАТ (документирано): сравнение на КОНКРЕТНИ типизирани стойности на
+// потребителското намерение (срок, сума, валута). `context_fingerprint` е
+// еднопосочен и не разкрива стойности; това е задача на следващия етап.
+
+/** Решенията, които описват отложено ЛОКАЛНО попълване на лични данни. */
+export const PERSONAL_DATA_DECISIONS: readonly IntentionalDecisionId[] = [
+  "placeholders_for_personal_data",
+  "local_completion_of_personal_data",
+];
+
+export type LaterFindingAction = "keep" | "personal_warn" | "optional_recommendation";
+
+export type LaterFindingReason =
+  | "untrusted_manifest"
+  | "substantive_defect_preserved"
+  | "not_intentional"
+  | "intentional_personal_placeholder"
+  | "intentional_optional_detail";
+
+export interface LaterFindingDisposition {
+  action: LaterFindingAction;
+  reason: LaterFindingReason;
+  /** Решението от манифеста, което е дало основанието (иначе `null`). */
+  decision: IntentionalDecisionId | null;
+}
+
+/**
+ * Единственият предикат, през който по-късните находки минават. Чист, без
+ * мрежа/база/PII. Не отслабва проверката по цитат — тя се прави ПРЕДИ него.
+ */
+export function classifyLaterFinding(input: {
+  /** Целият четим текст на находката (заглавие + обяснение). */
+  text: string;
+  /** Дословният цитат, ако схемата на находката го поддържа. */
+  quote?: unknown;
+  /** ТЕКУЩИЯТ текст на документа — единственият източник на доказателство. */
+  documentText: string;
+  trust?: ManifestTrust | null;
+}): LaterFindingDisposition {
+  const text = typeof input.text === "string" ? input.text.trim() : "";
+  const trust = input.trust;
+  if (!trust || trust.trusted !== true) {
+    return { action: "keep", reason: "untrusted_manifest", decision: null };
+  }
+  if (!text) return { action: "keep", reason: "not_intentional", decision: null };
+
+  const doc = normalizeForMatch(input.documentText ?? "");
+
+  // Доказан СЪЩЕСТВЕН дефект се запазва ПРЕДИ всяко потискане.
+  const evidenceBacked = isEvidenceBacked({ title: text, quote: input.quote }, doc);
+  if (evidenceBacked && matchesAny(text, LEGAL_DEFECT_PATTERNS)) {
+    return { action: "keep", reason: "substantive_defect_preserved", decision: null };
+  }
+
+  for (const decision of trust.manifest.decisions) {
+    const patterns = DECISION_PATTERNS[decision] ?? [];
+    if (!matchesAny(text, patterns)) continue;
+    if (PERSONAL_DATA_DECISIONS.includes(decision)) {
+      return { action: "personal_warn", reason: "intentional_personal_placeholder", decision };
+    }
+    return { action: "optional_recommendation", reason: "intentional_optional_detail", decision };
+  }
+
+  return { action: "keep", reason: "not_intentional", decision: null };
+}
+
+export interface LaterFindingsPartition<T> {
+  /** Находки, които остават дефекти/констатации. */
+  kept: T[];
+  /** Находки за локално попълване на лични данни (UX: „за попълване"). */
+  personal: T[];
+  /** Умишлено опционални — стават препоръка, не се броят като дефект. */
+  optional: T[];
+  reason_codes: string[];
+}
+
+/** Прилага предиката върху списък находки, без да пипа реда на оставените. */
+export function partitionLaterFindings<T>(
+  items: readonly T[],
+  opts: {
+    textOf: (item: T) => string;
+    quoteOf?: (item: T) => unknown;
+    documentText: string;
+    trust?: ManifestTrust | null;
+  },
+): LaterFindingsPartition<T> {
+  const kept: T[] = [];
+  const personal: T[] = [];
+  const optional: T[] = [];
+  const reasons = new Set<string>();
+  for (const item of items ?? []) {
+    const d = classifyLaterFinding({
+      text: opts.textOf(item),
+      quote: opts.quoteOf ? opts.quoteOf(item) : undefined,
+      documentText: opts.documentText,
+      trust: opts.trust,
+    });
+    reasons.add(d.reason);
+    if (d.action === "personal_warn") personal.push(item);
+    else if (d.action === "optional_recommendation") optional.push(item);
+    else kept.push(item);
+  }
+  return { kept, personal, optional, reason_codes: [...reasons].sort() };
+}
