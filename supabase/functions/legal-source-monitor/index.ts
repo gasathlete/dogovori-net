@@ -1,0 +1,317 @@
+// N0/N1 — единствен admin/service endpoint за контролния слой на нормативните
+// източници.
+//
+// Действия:
+//   sync_registry  — идемпотентен upsert на code-owned allowlist. БЕЗ мрежа.
+//   poll           — проверява един или всички разрешени източници.
+//   health         === агрегати за статус, без сурови payload-и.
+//
+// Гаранции:
+//   * Fail-closed автентикация: service_role JWT или staff потребител.
+//   * Никакъв URL от заявката. Само записи от регистъра.
+//   * Изолация по източник: провалът на един не отбелязва другите като успешни.
+//   * dry_run парсва и отчита, но НЕ записва нищо.
+//   * Никакви AI/embedding заявки. Съществуващият RAG корпус не се пипа.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { buildCors } from "../_shared/cors.ts";
+import {
+  enabledSources,
+  getRegistryEntry,
+  LEGAL_SOURCE_REGISTRY,
+  registrySyncRows,
+} from "../_shared/legal-source-registry.ts";
+import type { LegalSourceEntry } from "../_shared/legal-source-registry.ts";
+import { safeFetchSource } from "../_shared/legal-fetch-guard.ts";
+import { runAdapter } from "../_shared/legal-source-adapters.ts";
+import {
+  buildRunRecord,
+  decideSnapshot,
+  registryTouchForRun,
+  toCandidateRows,
+} from "../_shared/legal-monitor-core.ts";
+import type { RunOutcome, RunTrigger, SourceRunResult } from "../_shared/legal-monitor-core.ts";
+
+const MAX_STORED_PAYLOAD = 200_000;
+
+function json(body: unknown, status: number, cors: Record<string, string>): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...cors, "Content-Type": "application/json" },
+  });
+}
+
+Deno.serve(async (req) => {
+  const cors = buildCors(req);
+  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405, cors);
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseUrl || !serviceKey || !anonKey) {
+    return json({ error: "server_not_configured" }, 500, cors);
+  }
+
+  const admin = createClient(supabaseUrl, serviceKey);
+
+  // ---- Fail-closed автентикация: service_role JWT или staff потребител ----
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  if (!token) return json({ error: "unauthorized" }, 401, cors);
+
+  let isServiceRole = false;
+  try {
+    const anon = createClient(supabaseUrl, anonKey);
+    // getClaims не е в типовете на закования SDK; ползваме тесен локален контракт.
+    const authWithClaims = anon.auth as unknown as {
+      getClaims: (t: string) => Promise<{ data?: { claims?: { role?: string } } }>;
+    };
+    const { data } = await authWithClaims.getClaims(token);
+    isServiceRole = data?.claims?.role === "service_role";
+  } catch {
+    isServiceRole = false;
+  }
+
+  let actorId: string | null = null;
+  if (!isServiceRole) {
+    const { data: ud } = await admin.auth.getUser(token);
+    actorId = ud?.user?.id ?? null;
+    if (!actorId) return json({ error: "unauthorized" }, 401, cors);
+    const { data: staff, error: staffErr } = await admin.rpc("is_staff", { _user_id: actorId });
+    if (staffErr || !staff) return json({ error: "forbidden" }, 403, cors);
+  }
+
+  const body = (await req.json().catch(() => null)) as
+    | { action?: unknown; source_key?: unknown; dry_run?: unknown }
+    | null;
+  const action = typeof body?.action === "string" ? body.action : "";
+  const dryRun = body?.dry_run === true;
+  const requestedKey = typeof body?.source_key === "string" ? body.source_key : null;
+
+  try {
+    // ---------------- sync_registry (без мрежа) ----------------
+    if (action === "sync_registry") {
+      const rows = registrySyncRows();
+      if (dryRun) {
+        return json({ ok: true, action, dry_run: true, sources: rows.length, rows }, 200, cors);
+      }
+      const { error } = await admin
+        .from("legal_source_registry")
+        .upsert(rows, { onConflict: "source_key" });
+      if (error) return json({ error: "registry_sync_failed" }, 500, cors);
+      return json({ ok: true, action, sources: rows.length }, 200, cors);
+    }
+
+    // ---------------- health ----------------
+    if (action === "health") {
+      const { data: regRows } = await admin
+        .from("legal_source_registry")
+        .select(
+          "source_key, title, jurisdiction, authority_tier, enabled, watch_only, review_status, expected_cadence, freshness_state, last_attempt_at, last_success_at, last_change_at, parser_version",
+        )
+        .order("source_key");
+      const { count: pendingReview } = await admin
+        .from("legal_change_candidates")
+        .select("id", { count: "exact", head: true })
+        .eq("review_status", "new");
+      const { data: lastErrors } = await admin
+        .from("legal_ingestion_runs")
+        .select("source_key, outcome, error_code, started_at")
+        .order("started_at", { ascending: false })
+        .limit(50);
+      return json(
+        {
+          ok: true,
+          action,
+          code_allowlist: LEGAL_SOURCE_REGISTRY.length,
+          enabled_in_code: enabledSources().length,
+          pending_review: pendingReview ?? 0,
+          sources: regRows ?? [],
+          recent_runs: lastErrors ?? [],
+        },
+        200,
+        cors,
+      );
+    }
+
+    // ---------------- poll ----------------
+    if (action === "poll") {
+      let targets: readonly LegalSourceEntry[];
+      if (requestedKey) {
+        const entry = getRegistryEntry(requestedKey);
+        if (!entry) return json({ error: "unknown_source_key" }, 400, cors);
+        targets = [entry];
+      } else {
+        targets = enabledSources();
+      }
+
+      const trigger: RunTrigger = dryRun ? "dry_run" : isServiceRole ? "scheduled" : "manual";
+      const results: SourceRunResult[] = [];
+
+      for (const entry of targets) {
+        // Изолация: всеки източник има собствен try/catch и собствен запис.
+        const startedAt = new Date().toISOString();
+        let outcome: RunOutcome = "failed";
+        let errorCode: string | null = "unknown_error";
+        let httpStatus: number | null = null;
+        let contentType: string | null = null;
+        let byteCount: number | null = null;
+        let discovered = 0;
+        let changed = 0;
+        let parserStatus: SourceRunResult["parser_status"] = null;
+        let persisted = false;
+
+        try {
+          if (!entry.enabled || entry.reviewStatus !== "approved") {
+            outcome = "skipped";
+            errorCode = "source_disabled";
+          } else {
+            const fetched = await safeFetchSource(entry);
+            if (!fetched.ok) {
+              outcome = "failed";
+              errorCode = fetched.errorCode;
+              httpStatus = fetched.status;
+            } else if (fetched.notModified) {
+              outcome = "no_change";
+              errorCode = null;
+              httpStatus = 304;
+            } else {
+              httpStatus = fetched.status;
+              contentType = fetched.contentType;
+              byteCount = fetched.byteCount;
+
+              const envelope = runAdapter(entry.adapterId, fetched.body, entry.parserVersion);
+              parserStatus = envelope.parserStatus;
+              discovered = envelope.items.length;
+
+              if (envelope.parserStatus === "parser_error") {
+                // Fail-closed: без фалшив успех и без резервен неофициален източник.
+                outcome = "needs_review";
+                errorCode = envelope.errorCode ?? "unrecognized_schema";
+              } else {
+                const { data: prev } = await admin
+                  .from("legal_source_snapshots")
+                  .select("checksum")
+                  .eq("source_key", entry.sourceKey)
+                  .order("retrieved_at", { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+
+                const decision = decideSnapshot(prev?.checksum ?? null, fetched.checksum);
+                if (decision === "unchanged") {
+                  outcome = "no_change";
+                  errorCode = null;
+                } else if (dryRun) {
+                  outcome = envelope.parserStatus === "needs_review" ? "needs_review" : "changed";
+                  errorCode = envelope.parserStatus === "needs_review"
+                    ? envelope.errorCode ?? "unrecognized_schema"
+                    : null;
+                  changed = envelope.items.length;
+                } else {
+                  const { data: snap, error: snapErr } = await admin
+                    .from("legal_source_snapshots")
+                    .insert({
+                      source_key: entry.sourceKey,
+                      canonical_url: fetched.canonicalUrl,
+                      content_type: fetched.contentType,
+                      byte_count: fetched.byteCount,
+                      checksum: fetched.checksum,
+                      parser_version: entry.parserVersion,
+                      raw_payload: fetched.body.slice(0, MAX_STORED_PAYLOAD),
+                    })
+                    .select("id")
+                    .single();
+
+                  if (snapErr || !snap) {
+                    outcome = "failed";
+                    errorCode = "snapshot_write_failed";
+                  } else {
+                    const rows = toCandidateRows(envelope, snap.id, fetched.checksum);
+                    if (rows.length > 0) {
+                      const { error: candErr } = await admin
+                        .from("legal_change_candidates")
+                        .upsert(rows, { onConflict: "snapshot_id,item_key", ignoreDuplicates: true });
+                      if (candErr) {
+                        outcome = "needs_review";
+                        errorCode = "candidate_write_failed";
+                      } else {
+                        changed = rows.length;
+                        outcome = envelope.parserStatus === "needs_review" ? "needs_review" : "changed";
+                        errorCode = envelope.parserStatus === "needs_review"
+                          ? envelope.errorCode ?? "unrecognized_schema"
+                          : null;
+                        persisted = true;
+                      }
+                    } else {
+                      outcome = "no_change";
+                      errorCode = null;
+                      persisted = true;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } catch {
+          outcome = "failed";
+          errorCode = "unhandled_source_error";
+        }
+
+        const finishedAt = new Date().toISOString();
+        const record = buildRunRecord({
+          sourceKey: entry.sourceKey,
+          trigger,
+          startedAt,
+          finishedAt,
+          outcome,
+          httpStatus,
+          contentType,
+          byteCount,
+          discovered,
+          changed,
+          errorCode,
+        });
+
+        if (!dryRun) {
+          await admin.from("legal_ingestion_runs").insert(record);
+          const { data: regRow } = await admin
+            .from("legal_source_registry")
+            .select("last_success_at")
+            .eq("source_key", entry.sourceKey)
+            .maybeSingle();
+          const touch = registryTouchForRun({
+            entry,
+            outcome,
+            at: finishedAt,
+            previousLastSuccessAt: regRow?.last_success_at ?? null,
+          });
+          await admin
+            .from("legal_source_registry")
+            .update(touch)
+            .eq("source_key", entry.sourceKey);
+        }
+
+        results.push({
+          source_key: entry.sourceKey,
+          outcome: record.outcome,
+          error_code: record.error_code,
+          discovered: record.discovered_count,
+          changed: record.changed_count,
+          parser_status: parserStatus,
+          persisted: dryRun ? false : persisted,
+        });
+      }
+
+      return json(
+        { ok: true, action, dry_run: dryRun, polled: results.length, results },
+        200,
+        cors,
+      );
+    }
+
+    return json({ error: "unknown_action" }, 400, cors);
+  } catch (e) {
+    console.error("legal-source-monitor", (e as Error)?.name ?? "error");
+    return json({ error: "internal_error" }, 500, cors);
+  }
+});
