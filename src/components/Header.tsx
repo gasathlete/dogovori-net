@@ -303,7 +303,7 @@ export function Header() {
                     </summary>
                     <div className="flex flex-col gap-1 border-t border-border/50 p-2">
                       {MOBILE_MORE.map(renderItem)}
-                      {/* Изходът съществува точно веднъж — тук. */}
+                      {/* Излизането от профила съществува точно веднъж — тук. */}
                       {user && (
                         <button
                           type="button"
