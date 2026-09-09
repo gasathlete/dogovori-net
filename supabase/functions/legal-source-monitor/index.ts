@@ -24,12 +24,16 @@ import type { LegalSourceEntry } from "../_shared/legal-source-registry.ts";
 import { safeFetchSource } from "../_shared/legal-fetch-guard.ts";
 import { runAdapter } from "../_shared/legal-source-adapters.ts";
 import {
+  aggregateHealth,
   buildRunRecord,
+  dbErrorCode,
   decideSnapshot,
+  degradeForBookkeepingFailure,
   registryTouchForRun,
   toCandidateRows,
 } from "../_shared/legal-monitor-core.ts";
-import type { RunOutcome, RunTrigger, SourceRunResult } from "../_shared/legal-monitor-core.ts";
+import type { DbErrorCode, RunOutcome, RunTrigger, SourceRunResult } from "../_shared/legal-monitor-core.ts";
+
 
 const MAX_STORED_PAYLOAD = 200_000;
 
@@ -104,35 +108,52 @@ Deno.serve(async (req) => {
 
     // ---------------- health ----------------
     if (action === "health") {
-      const { data: regRows } = await admin
+      const reg = await admin
         .from("legal_source_registry")
         .select(
           "source_key, title, jurisdiction, authority_tier, enabled, watch_only, review_status, expected_cadence, freshness_state, last_attempt_at, last_success_at, last_change_at, parser_version",
         )
         .order("source_key");
-      const { count: pendingReview } = await admin
+      const cand = await admin
         .from("legal_change_candidates")
         .select("id", { count: "exact", head: true })
         .eq("review_status", "new");
-      const { data: lastErrors } = await admin
+      const runs = await admin
         .from("legal_ingestion_runs")
         .select("source_key, outcome, error_code, started_at")
         .order("started_at", { ascending: false })
         .limit(50);
+
+      // Fail-closed: частичен успех не се отчита като „ok“.
+      const health = aggregateHealth([
+        dbErrorCode(Boolean(reg.error), "registry_read_failed"),
+        dbErrorCode(Boolean(cand.error), "candidates_count_failed"),
+        dbErrorCode(Boolean(runs.error), "runs_read_failed"),
+      ]);
+      if (!health.ok) {
+        return json(
+          { ok: false, action, error: "health_degraded", degraded_codes: health.degraded_codes },
+          503,
+          cors,
+        );
+      }
+
       return json(
         {
           ok: true,
           action,
           code_allowlist: LEGAL_SOURCE_REGISTRY.length,
           enabled_in_code: enabledSources().length,
-          pending_review: pendingReview ?? 0,
-          sources: regRows ?? [],
-          recent_runs: lastErrors ?? [],
+          pending_review: cand.count ?? 0,
+          sources: reg.data ?? [],
+          recent_runs: runs.data ?? [],
         },
         200,
         cors,
       );
     }
+
+
 
     // ---------------- poll ----------------
     if (action === "poll") {
@@ -189,7 +210,7 @@ Deno.serve(async (req) => {
                 outcome = "needs_review";
                 errorCode = envelope.errorCode ?? "unrecognized_schema";
               } else {
-                const { data: prev } = await admin
+                const prevRead = await admin
                   .from("legal_source_snapshots")
                   .select("checksum")
                   .eq("source_key", entry.sourceKey)
@@ -197,11 +218,18 @@ Deno.serve(async (req) => {
                   .limit(1)
                   .maybeSingle();
 
-                const decision = decideSnapshot(prev?.checksum ?? null, fetched.checksum);
+                if (prevRead.error) {
+                  // Fail-closed: без предишен checksum „changed“ не е надеждно.
+                  outcome = "failed";
+                  errorCode = "snapshot_read_failed";
+                } else {
+                const decision = decideSnapshot(prevRead.data?.checksum ?? null, fetched.checksum);
+
                 if (decision === "unchanged") {
                   outcome = "no_change";
                   errorCode = null;
                 } else if (dryRun) {
+
                   outcome = envelope.parserStatus === "needs_review" ? "needs_review" : "changed";
                   errorCode = envelope.parserStatus === "needs_review"
                     ? envelope.errorCode ?? "unrecognized_schema"
@@ -249,6 +277,8 @@ Deno.serve(async (req) => {
                     }
                   }
                 }
+                }
+
               }
             }
           }
@@ -272,29 +302,50 @@ Deno.serve(async (req) => {
           errorCode,
         });
 
+        let finalOutcome: RunOutcome = record.outcome;
+        let finalErrorCode: string | null = record.error_code;
+
         if (!dryRun) {
-          await admin.from("legal_ingestion_runs").insert(record);
-          const { data: regRow } = await admin
+          let bookkeepingFailure: DbErrorCode | null = null;
+
+          const runIns = await admin.from("legal_ingestion_runs").insert(record);
+          if (runIns.error) bookkeepingFailure = "run_audit_write_failed";
+
+          const regRead = await admin
             .from("legal_source_registry")
             .select("last_success_at")
             .eq("source_key", entry.sourceKey)
             .maybeSingle();
-          const touch = registryTouchForRun({
-            entry,
-            outcome,
-            at: finishedAt,
-            previousLastSuccessAt: regRow?.last_success_at ?? null,
-          });
-          await admin
-            .from("legal_source_registry")
-            .update(touch)
-            .eq("source_key", entry.sourceKey);
+          if (regRead.error && !bookkeepingFailure) bookkeepingFailure = "registry_touch_failed";
+
+          if (!regRead.error) {
+            const touch = registryTouchForRun({
+              entry,
+              outcome,
+              at: finishedAt,
+              previousLastSuccessAt: regRead.data?.last_success_at ?? null,
+            });
+            const upd = await admin
+              .from("legal_source_registry")
+              .update(touch)
+              .eq("source_key", entry.sourceKey);
+            if (upd.error && !bookkeepingFailure) bookkeepingFailure = "registry_touch_failed";
+          }
+
+          if (bookkeepingFailure) {
+            // Никакъв подвеждащ „ok“: audit/touch провалът влошава резултата.
+            const degraded = degradeForBookkeepingFailure(record.outcome, bookkeepingFailure);
+            finalOutcome = degraded.outcome;
+            finalErrorCode = degraded.error_code;
+            persisted = false;
+          }
         }
+
 
         results.push({
           source_key: entry.sourceKey,
-          outcome: record.outcome,
-          error_code: record.error_code,
+          outcome: finalOutcome,
+          error_code: finalErrorCode,
           discovered: record.discovered_count,
           changed: record.changed_count,
           parser_status: parserStatus,

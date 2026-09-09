@@ -85,9 +85,78 @@ export function sha256HexOf(input: string): Promise<string> {
     );
 }
 
+/**
+ * Segment-safe проверка на пътя. Никакво „prefix startsWith“ подхлъзване:
+ *   * "/"            → разрешава САМО root ("/").
+ *   * "/bg/laws/"     → разрешава "/bg/laws/" и всичко под него.
+ *   * "/bg/laws"      → разрешава точно "/bg/laws" или "/bg/laws/..." ,
+ *                       но НЕ "/bg/lawsmith".
+ * Пътищата винаги са code-owned (никога от потребител).
+ */
 function pathAllowed(entry: LegalSourceEntry, pathname: string): boolean {
-  return entry.allowedPathPrefixes.some((p) => pathname === p || pathname.startsWith(p));
+  return entry.allowedPathPrefixes.some((p) => {
+    if (p === "/") return pathname === "/";
+    if (p.endsWith("/")) return pathname === p || pathname.startsWith(p);
+    return pathname === p || pathname.startsWith(p + "/");
+  });
 }
+
+/**
+ * Прочита тялото поточно, като брои РЕАЛНИТЕ байтове и прекъсва веднага при
+ * надхвърляне на тавана. Няма второ неограничено копие в паметта.
+ */
+async function readBodyBounded(
+  resp: Response,
+  maxBytes: number,
+): Promise<
+  | { ok: true; text: string; byteCount: number }
+  | { ok: false; code: "response_too_large" | "network_error" }
+> {
+  const decoder = new TextDecoder("utf-8");
+  const body = resp.body;
+  if (!body) {
+    let buf: Uint8Array;
+    try {
+      buf = new Uint8Array(await resp.arrayBuffer());
+    } catch {
+      return { ok: false, code: "network_error" };
+    }
+    if (buf.byteLength > maxBytes) return { ok: false, code: "response_too_large" };
+    return { ok: true, text: decoder.decode(buf), byteCount: buf.byteLength };
+  }
+
+  const reader = body.getReader();
+  let total = 0;
+  let text = "";
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value || value.byteLength === 0) continue;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        try {
+          await reader.cancel();
+        } catch {
+          // игнорира се: вече отказваме отговора
+        }
+        return { ok: false, code: "response_too_large" };
+      }
+      // stream:true декодира коректно multibyte UTF-8 през границите на chunk-ове.
+      text += decoder.decode(value, { stream: true });
+    }
+    text += decoder.decode();
+    return { ok: true, text, byteCount: total };
+  } catch {
+    try {
+      await reader.cancel();
+    } catch {
+      // игнорира се
+    }
+    return { ok: false, code: "network_error" };
+  }
+}
+
 
 /**
  * Проверява, че URL принадлежи точно на този запис от регистъра.
@@ -218,17 +287,16 @@ export async function safeFetchSource(
         return { ok: false, errorCode: "response_too_large", status: resp.status };
       }
 
-      let text: string;
-      try {
-        text = await resp.text();
-      } catch {
-        if (controller.signal.aborted) return { ok: false, errorCode: "timeout", status: resp.status };
-        return { ok: false, errorCode: "network_error", status: resp.status };
+      const read = await readBodyBounded(resp, entry.maxBytes);
+      if (!read.ok) {
+        if (read.code === "network_error" && controller.signal.aborted) {
+          return { ok: false, errorCode: "timeout", status: resp.status };
+        }
+        return { ok: false, errorCode: read.code, status: resp.status };
       }
-      const byteCount = new TextEncoder().encode(text).byteLength;
-      if (byteCount > entry.maxBytes) {
-        return { ok: false, errorCode: "response_too_large", status: resp.status };
-      }
+      const text = read.text;
+      const byteCount = read.byteCount;
+
 
       return {
         ok: true,

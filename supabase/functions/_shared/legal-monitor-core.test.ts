@@ -12,12 +12,16 @@ import {
   sanitizeExternalText,
 } from "./legal-source-adapters.ts";
 import {
+  aggregateHealth,
   buildRunRecord,
   computeFreshnessState,
+  dbErrorCode,
   decideSnapshot,
+  degradeForBookkeepingFailure,
   registryTouchForRun,
   toCandidateRows,
 } from "./legal-monitor-core.ts";
+
 import {
   CELLAR_SPARQL_JSON,
   DV_INDEX_HTML,
@@ -355,4 +359,32 @@ Deno.test("контракт: изходът на монитора не съдъ�
     Object.keys(record).sort().join(","),
     "byte_count,changed_count,content_type,discovered_count,error_code,finished_at,http_status,outcome,source_key,started_at,trigger",
   );
+});
+
+// ---------------- Fail-closed DB решения ----------------
+
+Deno.test("db: health не е ok при частично неуспешни заявки", () => {
+  assertEquals(aggregateHealth([null, null, null]), { ok: true, degraded_codes: [] });
+  const partial = aggregateHealth([null, "candidates_count_failed", null]);
+  assertEquals(partial.ok, false);
+  assertEquals(partial.degraded_codes, ["candidates_count_failed"]);
+});
+
+Deno.test("db: dbErrorCode връща само затворен машинен код", () => {
+  assertEquals(dbErrorCode(false, "registry_read_failed"), null);
+  assertEquals(dbErrorCode(true, "registry_read_failed"), "registry_read_failed");
+});
+
+Deno.test("db: провал на audit/touch запис не оставя подвеждащ успех", () => {
+  const a = degradeForBookkeepingFailure("changed", "run_audit_write_failed");
+  assertEquals(a.outcome, "needs_review");
+  assertEquals(a.error_code, "run_audit_write_failed");
+
+  const b = degradeForBookkeepingFailure("no_change", "registry_touch_failed");
+  assertEquals(b.outcome, "needs_review");
+  assertEquals(b.error_code, "registry_touch_failed");
+
+  // Вече провален източник си остава провален.
+  const c = degradeForBookkeepingFailure("failed", "run_audit_write_failed");
+  assertEquals(c.outcome, "failed");
 });

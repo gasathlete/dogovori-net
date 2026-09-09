@@ -16,7 +16,7 @@ import {
   safeFetchSource,
   validateUrlForEntry,
 } from "./legal-fetch-guard.ts";
-import { res, testEntry } from "./legal-source.fixtures.ts";
+import { chunkedRes, res, testEntry } from "./legal-source.fixtures.ts";
 
 // ---------- Регистър ----------
 
@@ -255,4 +255,118 @@ Deno.test("guard: checksum е детерминистичен за идентич
     assertEquals(a.checksum, b.checksum);
     assertEquals(a.checksum.length, 64);
   }
+});
+
+// ---------- Poточно четене с таван (chunked) ----------
+
+Deno.test("guard: chunked oversized отговор се прекъсва и потокът се cancel-ва", async () => {
+  const entry = testEntry({ maxBytes: 100 });
+  const { response, state } = chunkedRes(["a".repeat(60), "b".repeat(60), "c".repeat(60)]);
+  const r = await safeFetchSource(entry, { fetchImpl: () => Promise.resolve(response) });
+  assertEquals(r.ok, false);
+  if (!r.ok) assertEquals(r.errorCode, "response_too_large");
+  assertEquals(state.cancelled, true);
+});
+
+Deno.test("guard: точна граница на байтовете се приема, +1 се отказва", async () => {
+  const entry = testEntry({ maxBytes: 100 });
+  const exact = chunkedRes(["x".repeat(50), "x".repeat(50)]);
+  const ok = await safeFetchSource(entry, { fetchImpl: () => Promise.resolve(exact.response) });
+  assert(ok.ok && !ok.notModified);
+  if (ok.ok && !ok.notModified) assertEquals(ok.byteCount, 100);
+  assertEquals(exact.state.cancelled, false);
+
+  const over = chunkedRes(["x".repeat(50), "x".repeat(50), "x"]);
+  const bad = await safeFetchSource(entry, { fetchImpl: () => Promise.resolve(over.response) });
+  assertEquals(bad.ok, false);
+  if (!bad.ok) assertEquals(bad.errorCode, "response_too_large");
+});
+
+Deno.test("guard: multibyte UTF-8 през границата на chunk се декодира коректно", async () => {
+  const bytes = new TextEncoder().encode("<html>Държавен вестник — брой 61</html>");
+  const cut = 8; // среща средата на многобайтов символ
+  const { response } = chunkedRes([bytes.slice(0, cut), bytes.slice(cut)]);
+  const r = await safeFetchSource(testEntry(), { fetchImpl: () => Promise.resolve(response) });
+  assert(r.ok && !r.notModified);
+  if (r.ok && !r.notModified) {
+    assertEquals(r.body, "<html>Държавен вестник — брой 61</html>");
+    assertEquals(r.byteCount, bytes.byteLength);
+    assert(!r.body.includes("\uFFFD"));
+  }
+});
+
+Deno.test("guard: безкраен поток се cancel-ва при надхвърлен таван", async () => {
+  const entry = testEntry({ maxBytes: 500 });
+  let cancelled = false;
+  let pulled = 0;
+  const enc = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      pulled++;
+      // Предпазен клапан за теста: без cancel потокът е практически безкраен.
+      if (pulled > 5000) {
+        controller.close();
+        return;
+      }
+      controller.enqueue(enc.encode("z".repeat(50)));
+    },
+    cancel() {
+      cancelled = true;
+    },
+  });
+  const r = await safeFetchSource(entry, {
+    fetchImpl: () =>
+      Promise.resolve(
+        new Response(stream, { status: 200, headers: { "content-type": "text/html" } }),
+      ),
+  });
+  assertEquals(r.ok, false);
+  if (!r.ok) assertEquals(r.errorCode, "response_too_large");
+  assertEquals(cancelled, true);
+  assert(pulled < 5000, "потокът е спрян рано, без да се чете целият отговор");
+});
+
+// ---------- Segment-safe път ----------
+
+Deno.test("guard: prefix \"/\" разрешава само root", () => {
+  const entry = testEntry({ allowedPathPrefixes: ["/"], entryPath: "/" });
+  const root = validateUrlForEntry(entry, "https://dv.parliament.bg/");
+  assertEquals(root.ok, true);
+  for (const bad of ["https://dv.parliament.bg/anything", "https://dv.parliament.bg/DVWeb/x"]) {
+    const r = validateUrlForEntry(entry, bad);
+    assertEquals(r.ok, false, bad);
+    if (!r.ok) assertEquals(r.errorCode, "path_not_allowed");
+  }
+});
+
+Deno.test("guard: префикс без наклонена черта е segment-safe", () => {
+  const entry = testEntry({
+    origin: "https://www.parliament.bg",
+    allowedPathPrefixes: ["/bg/laws"],
+    entryPath: "/bg/laws",
+  });
+  assertEquals(validateUrlForEntry(entry, "https://www.parliament.bg/bg/laws").ok, true);
+  assertEquals(validateUrlForEntry(entry, "https://www.parliament.bg/bg/laws/2026/61").ok, true);
+  const sneaky = validateUrlForEntry(entry, "https://www.parliament.bg/bg/lawsmith");
+  assertEquals(sneaky.ok, false);
+  if (!sneaky.ok) assertEquals(sneaky.errorCode, "path_not_allowed");
+});
+
+Deno.test("guard: redirect към подобен префикс се отказва", async () => {
+  const entry = testEntry({
+    origin: "https://www.parliament.bg",
+    allowedPathPrefixes: ["/bg/laws"],
+    entryPath: "/bg/laws",
+  });
+  const r = await safeFetchSource(entry, {
+    fetchImpl: () =>
+      Promise.resolve(
+        new Response(null, {
+          status: 302,
+          headers: { location: "https://www.parliament.bg/bg/lawsmith/index" },
+        }),
+      ),
+  });
+  assertEquals(r.ok, false);
+  if (!r.ok) assertEquals(r.errorCode, "redirect_origin_changed");
 });
