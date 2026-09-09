@@ -146,4 +146,4 @@ export function HomeSections() {
   );
 }
 
-export default DesktopHome;
+export default HomeSections;
