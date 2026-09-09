@@ -13,6 +13,7 @@ import {
 } from "./legal-source-adapters.ts";
 import {
   aggregateHealth,
+  auditOutcomeAfterTouch,
   buildRunRecord,
   computeFreshnessState,
   dbErrorCode,
@@ -387,4 +388,18 @@ Deno.test("db: провал на audit/touch запис не оставя под
   // Вече провален източник си остава провален.
   const c = degradeForBookkeepingFailure("failed", "run_audit_write_failed");
   assertEquals(c.outcome, "failed");
+});
+
+Deno.test("audit: успешен touch не променя съдържателния резултат", () => {
+  const r = auditOutcomeAfterTouch("changed", null, null);
+  assertEquals(r.outcome, "changed");
+  assertEquals(r.error_code, null);
+});
+
+Deno.test("audit: известен touch failure никога не се записва като success", () => {
+  for (const oc of ["changed", "no_change", "needs_review", "skipped", "failed"] as const) {
+    const r = auditOutcomeAfterTouch(oc, null, "registry_touch_failed");
+    assertEquals(r.error_code, "registry_touch_failed");
+    assertEquals(["needs_review", "failed"].includes(r.outcome), true);
+  }
 });

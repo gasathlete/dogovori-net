@@ -245,3 +245,18 @@ export function degradeForBookkeepingFailure(
 ): { outcome: RunOutcome; error_code: DbErrorCode } {
   return { outcome: outcome === "failed" ? "failed" : "needs_review", error_code: code };
 }
+
+/**
+ * Изчислява резултата, който ТРЯБВА да бъде записан в audit-а, при вече известен
+ * провал на registry touch. Инвариант: никога success/no_change/changed след
+ * известен touch failure — audit редът не бива да лъже.
+ */
+export function auditOutcomeAfterTouch(
+  contentOutcome: RunOutcome,
+  contentErrorCode: string | null,
+  touchFailure: Extract<DbErrorCode, "registry_touch_failed"> | null,
+): { outcome: RunOutcome; error_code: string | null } {
+  if (!touchFailure) return { outcome: contentOutcome, error_code: contentErrorCode };
+  const degraded = degradeForBookkeepingFailure(contentOutcome, touchFailure);
+  return { outcome: degraded.outcome, error_code: degraded.error_code };
+}
