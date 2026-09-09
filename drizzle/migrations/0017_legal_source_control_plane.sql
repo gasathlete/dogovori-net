@@ -84,7 +84,7 @@ CREATE INDEX IF NOT EXISTS lsr_freshness_idx
 CREATE TABLE IF NOT EXISTS public.legal_ingestion_runs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   source_key text NOT NULL
-    REFERENCES public.legal_source_registry (source_key) ON DELETE CASCADE,
+    REFERENCES public.legal_source_registry (source_key) ON DELETE RESTRICT,
   trigger text NOT NULL,
   started_at timestamptz NOT NULL DEFAULT now(),
   finished_at timestamptz,
@@ -128,7 +128,7 @@ CREATE INDEX IF NOT EXISTS lir_outcome_idx
 CREATE TABLE IF NOT EXISTS public.legal_source_snapshots (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   source_key text NOT NULL
-    REFERENCES public.legal_source_registry (source_key) ON DELETE CASCADE,
+    REFERENCES public.legal_source_registry (source_key) ON DELETE RESTRICT,
   retrieved_at timestamptz NOT NULL DEFAULT now(),
   canonical_url text NOT NULL,
   content_type text NOT NULL,
@@ -165,9 +165,9 @@ CREATE INDEX IF NOT EXISTS lss_source_retrieved_idx
 CREATE TABLE IF NOT EXISTS public.legal_change_candidates (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   source_key text NOT NULL
-    REFERENCES public.legal_source_registry (source_key) ON DELETE CASCADE,
+    REFERENCES public.legal_source_registry (source_key) ON DELETE RESTRICT,
   snapshot_id uuid NOT NULL
-    REFERENCES public.legal_source_snapshots (id) ON DELETE CASCADE,
+    REFERENCES public.legal_source_snapshots (id) ON DELETE RESTRICT,
   item_key text NOT NULL,
   lifecycle text NOT NULL,
   official_identifier text,
