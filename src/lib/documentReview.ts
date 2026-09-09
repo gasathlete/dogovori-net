@@ -56,23 +56,46 @@ export interface DocumentReview {
 }
 
 
-/** Сглобява плоския текст на документа от резултата на генератора. */
+/**
+ * Сглобява плоския текст на документа от резултата на генератора.
+ *
+ * ВАЖНО: редът и съставът са КАНОНИЧНИ и трябва да съвпадат дословно с
+ * `renderCanonicalPlainText` на сървъра (Q4a). Включват се и английските
+ * рендерирани полета, за да вижда ревизията целия двуезичен текст и промяна
+ * само в английската част да обезсилва подадения манифест за качество.
+ * Манифестът НИКОГА не влиза в четимото/експортираното съдържание.
+ */
 export function contractToPlainText(contract: {
   title?: string;
+  title_en?: string;
   preamble?: string;
-  clauses?: Array<{ number?: string; title?: string; body?: string }>;
+  preamble_en?: string;
+  clauses?: Array<{
+    number?: string;
+    title?: string;
+    title_en?: string;
+    body?: string;
+    body_en?: string;
+  }>;
   closing?: string;
+  closing_en?: string;
 }): string {
   const parts: string[] = [];
   if (contract.title) parts.push(contract.title);
+  if (contract.title_en) parts.push(contract.title_en);
   if (contract.preamble) parts.push(contract.preamble);
+  if (contract.preamble_en) parts.push(contract.preamble_en);
   for (const c of contract.clauses ?? []) {
     parts.push([c.number, c.title].filter(Boolean).join(" ").trim());
     if (c.body) parts.push(c.body);
+    if (c.title_en) parts.push([c.number, c.title_en].filter(Boolean).join(" ").trim());
+    if (c.body_en) parts.push(c.body_en);
   }
   if (contract.closing) parts.push(contract.closing);
+  if (contract.closing_en) parts.push(contract.closing_en);
   return parts.filter(Boolean).join("\n\n");
 }
+
 
 export interface ReviewRequestInput {
   documentText: string;
