@@ -461,23 +461,47 @@ export function normalizeReviewResponse(input: {
     });
   }
 
-  // „Готово" не може да съжителства с провалена проверка, доказано противоречие
-  // или същностен пропуск — това е несъгласуван отговор, не установен факт.
+  // -------------------------------------------------------------------------
+  // Q4a — ПРИСЪДАТА се извежда ДЕТЕРМИНИРАНО след ВСИЧКИ трансформации.
+  // -------------------------------------------------------------------------
+  // Причина: филтърът за умишлени решения може законно да махне/смекчи всички
+  // находки, които са направили моделното „needs_fixes". Тогава остарялата
+  // присъда е ЛЪЖЛИВО лоша. Обратно — оцеляла находка никога не се прикрива.
   const hasFail = checks.some((c) => c.status === "fail");
-  if (verdict === "ready" && (hasFail || contradictions.length > 0)) {
+  /** Същностна блокираща находка: провалена проверка, доказано противоречие или липсващ реквизит. */
+  const hasSubstantive = hasFail || contradictions.length > 0 || missing_requisites.length > 0;
+  /** Всяка оцеляла находка, която не позволява „готово". Предупрежденията и опционалните препоръки НЕ влизат. */
+  const hasBlocking = hasSubstantive || unfilled_fields.length > 0;
+
+  // Несъгласуван отговор „готово" + оцеляла находка се отчита като непълнота
+  // (запазено поведение), но крайната присъда се решава по-долу.
+  if (rawVerdict === "ready" && (hasFail || contradictions.length > 0)) {
     degrade("partial", "ready_contradicted");
-    verdict = hasFail || contradictions.length > 0 ? "needs_fixes" : verdict;
   }
-  if (verdict === "ready" && (missing_requisites.length > 0 || unfilled_fields.length > 0)) {
+  if (
+    rawVerdict === "ready" && !hasFail && contradictions.length === 0 &&
+    (missing_requisites.length > 0 || unfilled_fields.length > 0)
+  ) {
     degrade("partial", "ready_with_gaps");
-    verdict = "needs_fixes";
   }
 
   // Непълна проверка НИКОГА не изглежда „готово" и не носи висока увереност.
   const finalStatus: CompletenessStatus = state.status;
   if (finalStatus === "incomplete") confidence = Math.min(confidence, 40);
   else if (finalStatus === "partial") confidence = Math.min(confidence, 70);
-  if (finalStatus !== "complete" && verdict === "ready") verdict = "needs_fixes";
+
+  // „blocked" се запазва САМО ако още има същностна блокираща находка;
+  // документ, обявен за блокиран, никога не се вдига до „готово".
+  if (verdict === "blocked") {
+    verdict = hasSubstantive ? "blocked" : "needs_fixes";
+  } else if (finalStatus !== "complete") {
+    verdict = "needs_fixes";
+  } else {
+    // Пълен обхват: присъдата следва ОЦЕЛЕЛИТЕ находки, а не суровия отговор.
+    verdict = hasBlocking ? "needs_fixes" : "ready";
+  }
+  // Увереността никога не се вдига — само присъдата спира да е остаряла.
+
   // Обобщението също е неутрално: моделното „всичко е наред" не важи за
   // непълна проверка.
   const finalSummary = finalStatus === "complete"
