@@ -94,8 +94,15 @@ describe("edge конвейер", () => {
     expect(src).toMatch(/summary: pipeline\.summary/);
     // Q4a: записаните находки идват от конвейера; при ДОВЕРЕН манифест се
     // изважда само отложеното локално попълване на лични данни.
-    expect(src).toMatch(/issues: gatedIssues/);
+    // Q4b: записва се `finalIssues` — филтрираните находки на конвейера ПЛЮС
+    // детерминираните несъответствия с явно заявеното намерение, които не могат
+    // да бъдат премахнати от модела или от филтъра за умишлени решения.
+    expect(src).toMatch(/issues: finalIssues/);
     expect(src).toMatch(/const gatedIssues =[\s\S]{0,200}pipeline\.issues/);
+    expect(src).toMatch(/const finalIssues = \[[\s\S]{0,300}intentIssues/);
+    expect(src).toMatch(/verifyIntentAssertions/);
+    // Твърденията се вземат САМО от ДОВЕРЕН манифест.
+    expect(src).toMatch(/assertions: trust\.trusted \? trust\.manifest\.intents : \[\]/);
     expect(src).toMatch(/verifyQualityManifest/);
     expect(src).not.toMatch(/verifiedIssues/);
   });

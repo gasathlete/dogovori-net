@@ -22,7 +22,13 @@ import {
   qualitySigningSecretFromEnv,
   GENERATED_QUALITY_POLICY_VERSION,
   flattenGeneratedContract,
+  mergeIntentFindingsIntoRisk,
 } from "../_shared/generated-document-quality.ts";
+import {
+  buildIntentAssertions,
+  extractIntentDrafts,
+  verifyIntentAssertions,
+} from "../_shared/intent-assertions.ts";
 
 
 const BASE_SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ, ГПК, ЗАНН, ЗАПСП, ЗННД).
@@ -534,10 +540,24 @@ ${fieldsSection}
     if (parsed?.risk) {
       const signingSecret = qualitySigningSecretFromEnv();
       if (!signingSecret) console.error("quality manifest signing key unavailable");
+      // Q4b — намерението се извлича САМО от структурираните полета на съветника
+      // (`customFields`: ключ/етикет/стойност). Свободните полета `term`/`prices`
+      // са проза и НЕ дават твърдение — намерение не се домисля.
+      const intents = signingSecret
+        ? await buildIntentAssertions({
+          serverSecret: signingSecret,
+          drafts: extractIntentDrafts({
+            questions: safeCustomFields.map((f) => ({ id: f.key, label: f.label })),
+            answers: Object.fromEntries(safeCustomFields.map((f) => [f.key, f.value])),
+            flags: { bilingual: safeBilingual },
+          }),
+        })
+        : [];
       const qualityManifest = signingSecret ? await buildQualityManifest({
         origin: "build-custom-contract",
         signingSecret,
         contract: parsed.contract,
+        intents,
         documentType: safeDocumentType,
         buildMode: safeBuildMode,
         contextFingerprint: await computeContextFingerprint([
@@ -557,15 +577,25 @@ ${fieldsSection}
           ...(safeBilingual ? ["bilingual_parallel_text"] : []),
         ],
       }) : null;
+      const documentText = flattenGeneratedContract(parsed.contract);
       const gated = applyRiskConsistencyGate({
         risk: parsed.risk,
-        documentText: flattenGeneratedContract(parsed.contract),
+        documentText,
         origin: "build-custom-contract",
         manifest: qualityManifest,
         trustedManifest: !!qualityManifest,
       });
-      parsed.risk = gated.risk;
-      parsed.quality = gated.quality;
+      // Детерминираната проверка се слива СЛЕД gate-а — без ново AI повикване и
+      // без начисляване на операция.
+      const intentReport = await verifyIntentAssertions({
+        assertions: intents,
+        documentText,
+        serverSecret: signingSecret,
+        structuralFlags: { bilingual: safeBilingual },
+      });
+      const withIntent = mergeIntentFindingsIntoRisk({ risk: gated.risk, report: intentReport });
+      parsed.risk = withIntent.risk;
+      parsed.quality = { ...gated.quality, intent: { checked: intentReport.checked, satisfied: intentReport.satisfied, mismatched: intentReport.mismatched_required.length } };
       if (qualityManifest) parsed.quality_manifest = qualityManifest;
     }
 

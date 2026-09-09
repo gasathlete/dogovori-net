@@ -13,7 +13,10 @@ import {
   buildQualityManifest,
   qualitySigningSecretFromEnv,
   flattenGeneratedContract,
+  mergeIntentFindingsIntoRisk,
+  verifyManifestSignatureOnly,
 } from "../_shared/generated-document-quality.ts";
+import { verifyIntentAssertions } from "../_shared/intent-assertions.ts";
 
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш съществуващ договор (в JSON) и списък от ИЗБРАНИ препоръки/слаби места, които трябва да коригираш в текста.
@@ -95,6 +98,9 @@ Deno.serve(async (req: Request) => {
       session_id: sessionId,
       batch_id: batchId,
       userConfirmed = false,
+      // Непрозрачен ПОДПИСАН манифест от предходния етап. Браузърът не може да
+      // го създаде или редактира — само да го пренесе непроменен.
+      quality_manifest: incomingManifest = null,
     } = await req.json();
 
     if (!contract || (selectedIssues.length === 0 && selectedRecommendations.length === 0)) {
@@ -333,10 +339,30 @@ ${answersRedacted}
       const p = parsed as Record<string, unknown>;
       const signingSecret = qualitySigningSecretFromEnv();
       if (!signingSecret) console.error("quality manifest signing key unavailable");
+      const documentText = flattenGeneratedContract(p.contract);
+      // Q4b — пренасяне на намерението през корекцията. Приемат се САМО
+      // твърдения от манифест с ВАЛИДЕН НАШ подпис. Всяко от тях се проверява
+      // отново срещу КОРИГИРАНИЯ текст: съвпадащите се преиздават, а
+      // несъвпадащите не се преиздават и излизат като детерминирана бележка.
+      const carried = await verifyManifestSignatureOnly({
+        manifest: incomingManifest,
+        signingSecret,
+      });
+      const carriedIntents = carried?.intents ?? [];
+      const carryReport = await verifyIntentAssertions({
+        assertions: carriedIntents,
+        documentText,
+        serverSecret: signingSecret,
+      });
+      const satisfiedSlots = new Set(
+        carryReport.results.filter((r) => r.status === "satisfied").map((r) => r.slot),
+      );
+      const reissuedIntents = carriedIntents.filter((a) => satisfiedSlots.has(a.slot));
       const qualityManifest = signingSecret ? await buildQualityManifest({
         origin: "apply-corrections",
         signingSecret,
         contract: p.contract,
+        intents: reissuedIntents,
         decisions: [
           "placeholders_for_personal_data",
           "local_completion_of_personal_data",
@@ -346,13 +372,14 @@ ${answersRedacted}
       }) : null;
       const gated = applyRiskConsistencyGate({
         risk: p.risk,
-        documentText: flattenGeneratedContract(p.contract),
+        documentText,
         origin: "apply-corrections",
         manifest: qualityManifest,
         trustedManifest: !!qualityManifest,
       });
-      p.risk = gated.risk;
-      p.quality = gated.quality;
+      const withIntent = mergeIntentFindingsIntoRisk({ risk: gated.risk, report: carryReport });
+      p.risk = withIntent.risk;
+      p.quality = { ...gated.quality, intent: { checked: carryReport.checked, satisfied: carryReport.satisfied, mismatched: carryReport.mismatched_required.length } };
       if (qualityManifest) p.quality_manifest = qualityManifest;
     }
 

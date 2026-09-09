@@ -10,14 +10,17 @@
  *  - Непълен вход или непълен отговор НИКОГА не изглеждат „готово".
  */
 
-import { redactForAI, type RedactionMapping } from "../_shared/redact.ts";
+import { type RedactionMapping } from "../_shared/redact.ts";
+import {
+  CONTROL_MARK,
+  redactFieldsWithSharedMapping,
+  RESERVED_PLACEHOLDER_RE,
+} from "../_shared/redact-fields.ts";
 
 export const REVIEW_SOURCE_VERSION = "q2d-review-source-2";
 /** Над този размер входът се реже — и това се обявява явно. */
 export const REVIEW_TEXT_LIMIT = 60000;
 
-const FIELD_SEP = "\n\u241E\u241E\u241E\n";
-const RESERVED_PLACEHOLDER_RE = /<(?:EMAIL|IBAN|ID_CARD|EGN|PHONE|ADDRESS|NAME)_\d+>/;
 
 const MAX_TITLE = 300;
 const MAX_TYPE = 200;
@@ -231,8 +234,17 @@ export function redactReviewContext(
     return { ok: true, context: rebuild(fields), mapping: {}, redactionApplied: false };
   }
 
+  // Q4b — рамкирането е СТРУКТУРНО (масив от полета), а не текстово. Старият
+  // подход слепваше полетата с разделител и разчиташе, че редакцията ще го
+  // запази. Телефонен шаблон, който стига до КРАЯ на поле, „изяждаше" следващия
+  // нов ред, разделянето връщаше грешен брой части и напълно нормални
+  // име/телефон/адрес се превръщаха в `context_not_redactable`. Точно този
+  // дефект вече беше поправен в `generate-contract`; тук се ползва СЪЩИЯТ
+  // споделен помощник — едно поле = едно повикване, но ЕДИН общ мапинг и ЕДИН
+  // общ брояч, така че една и съща стойност навсякъде получава един
+  // плейсхолдър, а различните стойности остават различни.
   for (const f of fields) {
-    if (f.includes("\u241E")) {
+    if (typeof f !== "string" || f.includes(CONTROL_MARK)) {
       return { ok: false, code: "context_not_redactable", message: "Документът съдържа служебен символ, който пречи на защитата на данните." };
     }
     if (RESERVED_PLACEHOLDER_RE.test(f)) {
@@ -240,13 +252,11 @@ export function redactReviewContext(
     }
   }
 
-  const joined = fields.join(FIELD_SEP);
-  const { redacted, mapping } = redactForAI(joined);
-  const parts = redacted.split(FIELD_SEP);
-  if (parts.length !== fields.length) {
+  const framed = redactFieldsWithSharedMapping(fields);
+  if (!framed || framed.parts.length !== fields.length) {
     return { ok: false, code: "context_not_redactable", message: "Защитата на данните не можа да се приложи надеждно." };
   }
-  return { ok: true, context: rebuild(parts), mapping, redactionApplied: true };
+  return { ok: true, context: rebuild(framed.parts), mapping: framed.mapping, redactionApplied: true };
 }
 
 /** Контекстът влиза в промпта като ДАННИ, ясно ограден. */
@@ -317,6 +327,15 @@ export function normalizeReviewResponse(input: {
      */
     keepContradiction?: (detail: string, quote: string) => boolean;
   };
+  /**
+   * Q4b — ДЕТЕРМИНИРАНИ проверки (несъответствие с явно заявена стойност).
+   * Те НЕ идват от модела и НЕ минават през `transform` — иначе филтърът за
+   * умишлени решения би могъл да смекчи именно бизнес дефекта, който Q4b
+   * съществува да хване. Добавят се СЛЕД всички трансформации и ПРЕДИ
+   * извеждането на присъдата, така че доказано несъответствие никога не оставя
+   * „готово".
+   */
+  deterministicChecks?: ReadonlyArray<{ id?: string; label: string; status: "fail"; note?: string }>;
 }): NormalizedReview {
   const reasons: string[] = [];
   /** Държим статуса в обект — така типът остава пълен въпреки присвояване в замъкване. */
@@ -458,6 +477,18 @@ export function normalizeReviewResponse(input: {
       act: o.act.trim(),
       article: typeof o.article === "string" ? o.article : undefined,
       why: typeof o.why === "string" ? o.why : undefined,
+    });
+  }
+
+  // Q4b — детерминираните проверки влизат СЛЕД трансформациите (нефилтруеми).
+  for (const dc of input.deterministicChecks ?? []) {
+    if (!dc || typeof dc.label !== "string" || !dc.label.trim()) continue;
+    if (checks.some((c) => c.id && dc.id && c.id === dc.id)) continue;
+    checks.push({
+      id: dc.id,
+      label: dc.label,
+      status: "fail",
+      note: typeof dc.note === "string" ? dc.note : undefined,
     });
   }
 

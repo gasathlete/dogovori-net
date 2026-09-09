@@ -817,6 +817,9 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
           selectedIssues: sel.issues,
           selectedRecommendations: sel.recommendations,
           answers: syntheticAnswers,
+          // Q4b — непрозрачният ПОДПИСАН манифест се пренася непроменен и само
+          // заедно с точно този документ. Браузърът не го чете и не го създава.
+          quality_manifest: result.quality_manifest ?? undefined,
           session_id: getOpSessionId(),
           batch_id: newOpBatchId(),
           userConfirmed: correctionsConfirmed,
