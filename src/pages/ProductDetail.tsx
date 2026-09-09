@@ -12,6 +12,7 @@ import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
 import { SeoFooter } from "@/components/SeoFooter";
 import { ProductDemo } from "@/components/products/ProductDemo";
+import { PlanAlternativeNote } from "@/components/products/PlanAlternativeNote";
 import { trackFunnelEvent } from "@/lib/funnel";
 import {
   ONE_TIME_PRODUCTS,
