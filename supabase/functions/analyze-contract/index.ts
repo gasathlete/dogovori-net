@@ -233,11 +233,16 @@ Deno.serve(async (req: Request) => {
     // ВАЛИДЕН ПОДПИС от нашия сървърен ключ И съвпадащ отпечатък на съдържанието.
     // При липсващ, невалиден, подправен или несъвпадащ манифест документът е
     // ВЪНШЕН/недоверен и НИЩО не се потиска.
+    // Този поток вижда САМО чист текст (качен/извлечен), затова обвързването е
+    // по ПОДПИСАНИЯ отпечатък на каноничния четим текст. Точната снимка на
+    // източника и кеш-разделянето остават непроменени.
     const trust = await verifyQualityManifest({
       manifest: submittedQualityManifest,
       content: text,
       signingSecret: qualitySigningSecretFromEnv(),
+      allowPlaintextMatch: true,
     });
+
     // Контекстът на доверието влиза в кеш-идентичността: анализ, направен при
     // различно доверие/решения, НЕ може да бъде преизползван.
     const trustIdentity = await computeManifestTrustIdentity(trust);

@@ -15,6 +15,16 @@
 //
 // Отпечатъкът НЕ е доказателство за правна правилност. Той доказва единствено
 // „това е точно този генериран от нас документ" — нищо повече.
+//
+// ОГРАНИЧЕНИЕ (осъзнато и тествано): `context_fingerprint` е ЕДНОПОСОЧЕН и
+// пази поверителност — от него НЕ могат да се възстановят конкретните
+// потребителски стойности (срок, сума, валута, роли). Затова Q4a може да
+// запази „несъответствие със заявеното" САМО когато има доказателство от
+// ТЕКУЩИЯ документ (дословен цитат или детерминирано правило) И изрично
+// твърдение за несъответствие. Хешът сам по себе си НЕ доказва каква е била
+// желаната стойност. По-дълбоко типизирано сравнение на намерението е задача
+// на следващия етап (каноничен контекст), не на този модул.
+
 
 import { sha256Hex } from "./normalize.ts";
 
@@ -161,26 +171,39 @@ export function flattenGeneratedContract(contract: unknown): string {
 
 /**
  * КАНОНИЧЕН четим текст — ТОЧНО същият ред и състав, който фронтендът праща
- * за ревизия (`contractToPlainText`). Парите се пазят в синхрон чрез златни
- * тестове от двете страни.
+ * за ревизия (`contractToPlainText`). Включва и АНГЛИЙСКИТЕ рендерирани полета,
+ * за да вижда ревизията реално целия двуезичен текст и промяна само в
+ * английската част да обезсилва подадения манифест. Паритетът се пази чрез
+ * златни тестове от двете страни.
+ *
+ * Ред: title, title_en, preamble, preamble_en, за всяка клауза
+ * (number+title, body, number+title_en, body_en), closing, closing_en.
  */
 export function renderCanonicalPlainText(contract: unknown): string {
   if (!contract || typeof contract !== "object" || Array.isArray(contract)) return "";
   const c = contract as GeneratedContractLike;
   const parts: string[] = [];
   if (asText(c.title)) parts.push(asText(c.title));
+  if (asText(c.title_en)) parts.push(asText(c.title_en));
   if (asText(c.preamble)) parts.push(asText(c.preamble));
+  if (asText(c.preamble_en)) parts.push(asText(c.preamble_en));
   if (Array.isArray(c.clauses)) {
     for (const raw of c.clauses) {
       if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
       const cl = raw as ClauseLike;
       parts.push([asText(cl.number), asText(cl.title)].filter(Boolean).join(" ").trim());
       if (asText(cl.body)) parts.push(asText(cl.body));
+      if (asText(cl.title_en)) {
+        parts.push([asText(cl.number), asText(cl.title_en)].filter(Boolean).join(" ").trim());
+      }
+      if (asText(cl.body_en)) parts.push(asText(cl.body_en));
     }
   }
   if (asText(c.closing)) parts.push(asText(c.closing));
+  if (asText(c.closing_en)) parts.push(asText(c.closing_en));
   return parts.filter(Boolean).join("\n\n");
 }
+
 
 /**
  * Нормализация за отпечатък: САМО CRLF и незначимо празно място. НИКАКВО
@@ -674,7 +697,27 @@ function isEvidenceBacked(issue: RiskIssueLike, normalizedDocLower: string): boo
   return false;
 }
 
+/**
+ * Робустно доказателство за СВОБОДЕН текст (силни страни, където схемата не
+ * поддържа цитат): дословен откъс от документа ИЛИ ≥3 РАЗЛИЧНИ значими
+ * (не-общи) думи, реално намерени в документа.
+ */
+function hasRobustTextEvidence(text: string, normalizedDocLower: string): boolean {
+  const n = normalizeForMatch(text);
+  if (n.length >= 20 && normalizedDocLower.includes(n)) return true;
+  const seen = new Set<string>();
+  let hits = 0;
+  for (const t of significantTokens(text)) {
+    if (seen.has(t)) continue;
+    seen.add(t);
+    if (normalizedDocLower.includes(t)) hits++;
+    if (hits >= 3) return true;
+  }
+  return false;
+}
+
 const matchesAny = (text: string, patterns: RegExp[]) => patterns.some((rx) => rx.test(text));
+
 
 /** Модели за потискане — САМО от решенията в ДОВЕРЕН подписан манифест. */
 function intentionalPatterns(manifest: QualityManifest | null): RegExp[] {
@@ -738,13 +781,29 @@ export function applyRiskConsistencyGate(input: {
       continue;
     }
 
+    // 1) Доказателственост се смята ПЪРВО — от текущия документ.
+    const evidenceBacked = isEvidenceBacked(issue, normalizedDocLower);
+    // 2) Съществено правно твърдение (противоречие, нищожност, императивна
+    //    форма, прекомерна неустойка, несъответствие със заявеното...).
+    const substantive = matchesAny(text, LEGAL_DEFECT_PATTERNS);
+
+    // 3) ДОКАЗАН съществен дефект се ЗАПАЗВА ПРЕДИ всяко потискане. Така
+    //    цитирано реално противоречие НЕ се крие само защото формулировката
+    //    му споменава приложение, плейсхолдър или лични данни.
+    if (evidenceBacked && substantive) {
+      reasons.add("substantive_defect_preserved");
+      kept.push({ severity, title, detail });
+      continue;
+    }
+
     // Стилистичните бележки не са дефект, но и не се крият.
     if (matchesAny(text, STYLE_PATTERNS)) {
       downgrade(title, detail, "style_note_downgraded");
       continue;
     }
 
-    // Потискане на умишлено решение — само при ДОВЕРЕН подписан манифест.
+    // Потискане на умишлено решение — само при ДОВЕРЕН подписан манифест и
+    // само за НЕсъществена самокритика (същественото вече е запазено горе).
     if (intentional.length > 0 && matchesAny(text, intentional)) {
       removed++;
       reasons.add("intentional_drafting_decision");
@@ -752,24 +811,25 @@ export function applyRiskConsistencyGate(input: {
     }
 
     // Доказателственост е задължителна и за правните дефекти — етикет не стига.
-    if (!isEvidenceBacked(issue, normalizedDocLower)) {
-      const legalLabel = matchesAny(text, LEGAL_DEFECT_PATTERNS);
-      downgrade(title, detail, legalLabel ? "legal_label_unsupported" : "issue_downgraded_to_recommendation");
+    if (!evidenceBacked) {
+      downgrade(title, detail, substantive ? "legal_label_unsupported" : "issue_downgraded_to_recommendation");
       continue;
     }
     kept.push({ severity, title, detail });
   }
 
-  // Силните страни също изискват доказателственост срещу реалния текст.
+  // Силните страни изискват РОБУСТНО доказателство срещу реалния текст:
+  // дословен откъс ИЛИ ≥3 РАЗЛИЧНИ значими (не-общи) думи от документа.
+  // Една случайна дума НЕ е доказателство.
   const rawStrengths = asStringArray(raw.strengths);
   const keptStrengths: string[] = [];
   for (const s of rawStrengths) {
-    const tokens = significantTokens(s);
-    const hit = tokens.some((t) => normalizedDocLower.includes(t));
-    if (hit && !keptStrengths.some((k) => k.toLowerCase() === s.toLowerCase())) keptStrengths.push(s);
+    if (!hasRobustTextEvidence(s, normalizedDocLower)) continue;
+    if (!keptStrengths.some((k) => k.toLowerCase() === s.toLowerCase())) keptStrengths.push(s);
   }
   const removedStrengths = rawStrengths.length - keptStrengths.length;
   if (removedStrengths > 0) reasons.add("strength_unsupported_removed");
+
 
   const recommendations = [...asStringArray(raw.recommendations), ...downgraded];
 

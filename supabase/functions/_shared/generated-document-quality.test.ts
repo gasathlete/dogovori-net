@@ -218,7 +218,7 @@ Deno.test("чист генериран документ без дефекти о
       summary: "ок",
       issues: [],
       recommendations: [],
-      strengths: ["Уредено е възнаграждението и плащането по банков път."],
+      strengths: ["Уредени са възнаграждение, срок за изпълнение и плащане по банков път."],
     },
     documentText: docText,
     origin: "generate-contract",
@@ -510,4 +510,200 @@ Deno.test("редактиран чист текст (дори само реги�
     assertEquals(trust.trusted, false);
     if (!trust.trusted) assertEquals(trust.reason, "content_mismatch");
   }
+});
+
+// ---------------------------------------------------------------------------
+// Q4a — препокриване: доказан съществен дефект НЕ се крие от умишлено решение
+// ---------------------------------------------------------------------------
+
+Deno.test("цитирано реално противоречие остава, макар да споменава приложение", async () => {
+  const m = await manifest();
+  const { risk, quality } = applyRiskConsistencyGate({
+    risk: {
+      issues: [{
+        severity: "high",
+        title: "Противоречие между приложението и чл. 2",
+        detail:
+          "Липсва приложение със спецификация, но чл. 2 препраща към него за размера на възнаграждението — двете разпоредби си противоречат.",
+        quote: "Възнаграждението е в размер на [сума] евро, платимо по банков път.",
+      }],
+    },
+    documentText: docText,
+    origin: "generate-contract",
+    manifest: m,
+    trustedManifest: true,
+  });
+  assertEquals(risk.issues.length, 1);
+  assert(quality.reason_codes.includes("substantive_defect_preserved"));
+  assert(!quality.reason_codes.includes("intentional_drafting_decision"));
+});
+
+Deno.test("цитирана нищожна клауза остава, макар да споменава плейсхолдъри", async () => {
+  const m = await manifest();
+  const { risk } = applyRiskConsistencyGate({
+    risk: {
+      issues: [{
+        severity: "high",
+        title: "Нищожна клауза до плейсхолдърите за лични данни",
+        detail: "Отказът от съдебна защита е нищожен, независимо че имената са оставени като плейсхолдъри.",
+        quote: "Договорът се прекратява по реда на ЗЗД, като страните нямат право на съдебна защита.",
+      }],
+    },
+    documentText: docText,
+    origin: "generate-contract",
+    manifest: m,
+    trustedManifest: true,
+  });
+  assertEquals(risk.issues.length, 1);
+});
+
+Deno.test("НЕсъществена самокритика все още се потиска при доверен манифест", async () => {
+  const m = await manifest();
+  const { risk, quality } = applyRiskConsistencyGate({
+    risk: {
+      issues: [{
+        severity: "low",
+        title: "Няма приложение със спецификация",
+        detail: "Препоръчително е да се добави приложение с детайлна спецификация на услугите.",
+      }],
+    },
+    documentText: docText,
+    origin: "generate-contract",
+    manifest: m,
+    trustedManifest: true,
+  });
+  assertEquals(risk.issues.length, 0);
+  assert(quality.reason_codes.includes("intentional_drafting_decision"));
+});
+
+// ---------------------------------------------------------------------------
+// Q4a — силните страни изискват робустно доказателство
+// ---------------------------------------------------------------------------
+
+Deno.test("силна страна с една случайна дума се маха (лъжливо положителна)", () => {
+  const { risk, quality } = applyRiskConsistencyGate({
+    risk: { issues: [], strengths: ["Уредена е арбитражна процедура пред международна институция."] },
+    documentText: docText,
+    origin: "generate-contract",
+  });
+  assertEquals(risk.strengths.length, 0);
+  assert(quality.reason_codes.includes("strength_unsupported_removed"));
+});
+
+Deno.test("силна страна с реално покритие в текста се запазва", () => {
+  const { risk } = applyRiskConsistencyGate({
+    risk: {
+      issues: [],
+      strengths: [
+        "Уредени са възнаграждението, срокът за изпълнение и неустойка при забава.",
+      ],
+    },
+    documentText: docText,
+    origin: "generate-contract",
+  });
+  assertEquals(risk.strengths.length, 1);
+});
+
+// ---------------------------------------------------------------------------
+// Q4a — двуезичен каноничен четим текст (паритет с фронтенда)
+// ---------------------------------------------------------------------------
+
+const GOLDEN_BILINGUAL = {
+  title: "ДОГОВОР ЗА ИЗРАБОТКА",
+  title_en: "WORK CONTRACT",
+  preamble: "Днес, между страните, се сключи следният договор:",
+  preamble_en: "Today, the parties concluded the following contract:",
+  bilingual: true,
+  clauses: [
+    {
+      number: "Чл. 1",
+      title: "Предмет",
+      title_en: "Subject",
+      body: "Изпълнителят изработва уеб сайт.",
+      body_en: "The contractor builds a website.",
+    },
+  ],
+  closing: "Настоящият договор се подписа в два еднообразни екземпляра.",
+  closing_en: "This contract was signed in two identical counterparts.",
+};
+
+const GOLDEN_BILINGUAL_PLAIN_TEXT = [
+  "ДОГОВОР ЗА ИЗРАБОТКА",
+  "WORK CONTRACT",
+  "Днес, между страните, се сключи следният договор:",
+  "Today, the parties concluded the following contract:",
+  "Чл. 1 Предмет",
+  "Изпълнителят изработва уеб сайт.",
+  "Чл. 1 Subject",
+  "The contractor builds a website.",
+  "Настоящият договор се подписа в два еднообразни екземпляра.",
+  "This contract was signed in two identical counterparts.",
+].join("\n\n");
+
+Deno.test("двуезичният каноничен текст включва и английските полета", () => {
+  assertEquals(renderCanonicalPlainText(GOLDEN_BILINGUAL), GOLDEN_BILINGUAL_PLAIN_TEXT);
+});
+
+Deno.test("промяна САМО в английския текст обезсилва подадения манифест", async () => {
+  const m = await buildQualityManifest({
+    origin: "generate-contract",
+    contract: GOLDEN_BILINGUAL,
+    signingSecret: SECRET,
+  });
+  const ok = await verifyQualityManifest({
+    manifest: m,
+    content: GOLDEN_BILINGUAL_PLAIN_TEXT,
+    signingSecret: SECRET,
+    allowPlaintextMatch: true,
+  });
+  assertEquals(ok.trusted, true);
+
+  const edited = GOLDEN_BILINGUAL_PLAIN_TEXT.replace("builds a website", "builds a mobile app");
+  const bad = await verifyQualityManifest({
+    manifest: m,
+    content: edited,
+    signingSecret: SECRET,
+    allowPlaintextMatch: true,
+  });
+  assertEquals(bad.trusted, false);
+  if (!bad.trusted) assertEquals(bad.reason, "content_mismatch");
+});
+
+// ---------------------------------------------------------------------------
+// Q4a — ОГРАНИЧЕНИЕ: отпечатъкът не носи стойностите на потребителското желание
+// ---------------------------------------------------------------------------
+
+Deno.test("ограничение: несъответствие с желанието се пази само с доказателство + изрично твърдение", () => {
+  // Има изрично твърдение за несъответствие + дословен цитат → запазва се.
+  const withEvidence = applyRiskConsistencyGate({
+    risk: {
+      issues: [{
+        severity: "medium",
+        title: "Не съответства на заявения срок",
+        detail: "Заявен е срок от 60 дни, а документът предвижда 30 дни.",
+        quote: "Срокът за изпълнение е 30 дни от датата на сключване.",
+      }],
+    },
+    documentText: docText,
+    origin: "generate-contract",
+  });
+  assertEquals(withEvidence.risk.issues.length, 1);
+
+  // Без доказателство от ТЕКУЩИЯ документ твърдението не се приема за дефект —
+  // отпечатъкът на контекста е защитаващ поверителността и НЕ съдържа
+  // стойностите на желанието, така че типизираното сравнение остава за
+  // следващия етап (каноничен контекст).
+  const withoutEvidence = applyRiskConsistencyGate({
+    risk: {
+      issues: [{
+        severity: "high",
+        title: "Не съответства на заявеното",
+        detail: "Клиентът вероятно е искал друга уговорка за прехвърляне на авторските правомощия.",
+      }],
+    },
+    documentText: docText,
+    origin: "generate-contract",
+  });
+  assertEquals(withoutEvidence.risk.issues.length, 0);
+  assert(withoutEvidence.quality.reason_codes.includes("legal_label_unsupported"));
 });

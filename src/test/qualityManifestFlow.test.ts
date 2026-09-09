@@ -73,3 +73,66 @@ describe("Q4a — пренасяне на манифеста за качеств
     expect(text).not.toContain("quality_manifest");
   });
 });
+
+/**
+ * Двуезичен златен образец — ТОЧНО същият, който сървърният
+ * `renderCanonicalPlainText` дава (Q4a). Ако тези два образеца се разминат,
+ * подаденият манифест няма да бъде приет и ревизията ще третира документа като
+ * външен.
+ */
+const GOLDEN_BILINGUAL = {
+  title: "ДОГОВОР ЗА ИЗРАБОТКА",
+  title_en: "WORK CONTRACT",
+  preamble: "Днес, между страните, се сключи следният договор:",
+  preamble_en: "Today, the parties concluded the following contract:",
+  clauses: [
+    {
+      number: "Чл. 1",
+      title: "Предмет",
+      title_en: "Subject",
+      body: "Изпълнителят изработва уеб сайт.",
+      body_en: "The contractor builds a website.",
+    },
+  ],
+  closing: "Настоящият договор се подписа в два еднообразни екземпляра.",
+  closing_en: "This contract was signed in two identical counterparts.",
+};
+
+const GOLDEN_BILINGUAL_PLAIN_TEXT = [
+  "ДОГОВОР ЗА ИЗРАБОТКА",
+  "WORK CONTRACT",
+  "Днес, между страните, се сключи следният договор:",
+  "Today, the parties concluded the following contract:",
+  "Чл. 1 Предмет",
+  "Изпълнителят изработва уеб сайт.",
+  "Чл. 1 Subject",
+  "The contractor builds a website.",
+  "Настоящият договор се подписа в два еднообразни екземпляра.",
+  "This contract was signed in two identical counterparts.",
+].join("\n\n");
+
+describe("Q4a — двуезичен каноничен текст", () => {
+  it("включва BG и EN полета в същия детерминиран ред като сървъра", () => {
+    expect(contractToPlainText(GOLDEN_BILINGUAL)).toBe(GOLDEN_BILINGUAL_PLAIN_TEXT);
+  });
+
+  it("ревизията вижда английския текст, а промяна в него сменя подадения текст", () => {
+    const text = contractToPlainText(GOLDEN_BILINGUAL);
+    expect(text).toContain("The contractor builds a website.");
+    const edited = contractToPlainText({
+      ...GOLDEN_BILINGUAL,
+      clauses: [{ ...GOLDEN_BILINGUAL.clauses[0], body_en: "The contractor builds a mobile app." }],
+    });
+    expect(edited).not.toBe(text);
+  });
+
+  it("манифестът не се появява в четимото съдържание при двуезичен документ", () => {
+    const text = contractToPlainText({
+      ...GOLDEN_BILINGUAL,
+      // @ts-expect-error — умишлено допълнително поле
+      quality_manifest: { signature: { value: "deadbeef" } },
+    });
+    expect(text).toBe(GOLDEN_BILINGUAL_PLAIN_TEXT);
+    expect(text).not.toContain("deadbeef");
+  });
+});
