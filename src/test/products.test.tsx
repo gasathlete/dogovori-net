@@ -17,6 +17,7 @@ import {
   loadBusinessPersona,
   parseProductParam,
   personaNextStepHref,
+  productPath,
   productPriceLabel,
   recommendForPersona,
   saveBusinessPersona,
@@ -51,7 +52,7 @@ describe("продуктова конфигурация — единствен �
 
   it("имена, значки и CTA маршрути са каноничните", () => {
     expect(getProduct("contract_check").name).toBe("Проверка преди подпис");
-    expect(getProduct("contract_check").ctaLabel).toBe("Провери договора");
+    expect(getProduct("contract_check").ctaLabel).toBe("Проверете документ");
     expect(getProduct("contract_check").ctaHref).toBe(
       "/analiz?product=contract_check",
     );
@@ -77,7 +78,13 @@ describe("продуктова конфигурация — единствен �
   });
 
   it("не описва продуктите като операции/кредити и не води с AI", () => {
-    const text = JSON.stringify(ONE_TIME_PRODUCTS).toLowerCase();
+    // Проверява се витринното копие; задължителните правни уточнения в
+    // страниците (page.faq) съзнателно споменават адвокат.
+    const text = ONE_TIME_PRODUCTS.map(
+      (p) => `${p.name} ${p.promise} ${p.outcomes.join(" ")} ${p.ctaLabel}`,
+    )
+      .join(" ")
+      .toLowerCase();
     for (const bad of ["кредит", "операци", "безопасно за подписване", "адвокат"]) {
       expect(text).not.toContain(bad);
     }
@@ -132,12 +139,16 @@ describe("витрина — паритет между началната стр
     );
   });
 
-  it("CTA-тата сочат към каноничните маршрути", () => {
+  it("CTA-тата сочат към самостоятелните продуктови страници", () => {
     render(wrap(<ProductCards variant="full" source="produkti" />));
     for (const p of ONE_TIME_PRODUCTS) {
       expect(screen.getByRole("link", { name: p.ctaLabel })).toHaveAttribute(
         "href",
-        p.ctaHref,
+        productPath(p),
+      );
+      expect(screen.getByRole("link", { name: p.name })).toHaveAttribute(
+        "href",
+        productPath(p),
       );
     }
   });
@@ -160,7 +171,7 @@ describe("витрина — паритет между началната стр
       expect.objectContaining({ dedupKey: expect.any(String) }),
     );
     vi.mocked(trackFunnelEvent).mockClear();
-    await userEvent.click(screen.getByRole("link", { name: "Провери договора" }));
+    await userEvent.click(screen.getByRole("link", { name: "Проверете документ" }));
     expect(trackFunnelEvent).toHaveBeenCalledWith(
       "product_selected",
       expect.objectContaining({ product: "contract_check", source: "home" }),

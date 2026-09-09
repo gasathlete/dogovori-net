@@ -27,7 +27,7 @@ const FAQ = lazy(() => import("@/components/FAQ").then((m) => ({ default: m.FAQ 
 const ComplianceSection = lazy(() => import("@/components/ComplianceSection").then((m) => ({ default: m.ComplianceSection })));
 const CTABand = lazy(() => import("@/components/CTABand").then((m) => ({ default: m.CTABand })));
 
-export function DesktopHome() {
+export function HomeSections() {
   return (
     <main className="route-fade" data-home-variant="desktop">
       <Hero />
@@ -146,4 +146,4 @@ export function DesktopHome() {
   );
 }
 
-export default DesktopHome;
+export default HomeSections;

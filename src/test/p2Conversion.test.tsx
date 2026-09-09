@@ -14,28 +14,35 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 
-describe("Hero — едно основно действие към /start", () => {
+describe("Hero — едно основно действие към продуктите", () => {
   const src = read("src/components/Hero.tsx");
 
-  it("основният CTA е реален Link към /start и за анонимни, и за влезли", () => {
-    expect(src).toContain('to="/start"');
-    expect(src).toContain("Започни документ");
+  it("основният CTA е реален Link към /produkti и за анонимни, и за влезли", () => {
+    expect(src).toContain('to="/produkti"');
+    expect(src).toContain("Изберете какво Ви трябва");
     expect(src).toContain('trackFunnelEvent("home_primary_cta_clicked"');
-    expect(src).toContain('destination: "/start"');
+    expect(src).toContain('destination: "/produkti"');
   });
 
   it("има само едно златно (primary) действие", () => {
     expect(src.match(/btn-gold/g)?.length ?? 0).toBe(1);
   });
 
-  it("„Виж как работи“ отваря демо стори, не навигира", () => {
-    expect(src).toContain("Виж как работи");
+  it("„Вижте как работи“ отваря демо стори, не навигира", () => {
+    expect(src).toContain("Вижте как работи");
     expect(src).toContain("openStartStory");
     expect(src).toContain('trackFunnelEvent("home_demo_story_opened"');
   });
 
   it("вторичното ROI действие е запазено", () => {
-    expect(src).toContain("Виж колко спестяваш");
+    expect(src).toContain("Вижте колко спестявате");
+  });
+
+  it("второстепенните връзки водят към създаване и качване", () => {
+    expect(src).toContain('to="/build"');
+    expect(src).toContain("Създайте документ");
+    expect(src).toContain('to="/analiz"');
+    expect(src).toContain("Качете за проверка");
   });
 
   it("няма onStart prop, нито мъртъв TeaserDialog", () => {
@@ -49,15 +56,10 @@ describe("Hero — едно основно действие към /start", () =
     expect(FREE_OFFER_ANON_HELPER).toContain("Старт без регистрация");
     expect(src).not.toContain("5 безплатни операции");
   });
-
-  it("директният старт е запазен заедно със събитието", () => {
-    expect(src).toContain('to="/start"');
-    expect(src).toContain('trackFunnelEvent("home_primary_cta_clicked"');
-  });
 });
 
 describe("Index — премахната мъртва plumbing", () => {
-  const src = read("src/components/home/DesktopHome.tsx");
+  const src = read("src/components/home/HomeSections.tsx");
   it("Hero се рендира без props и без startInterview", () => {
     expect(src).toContain("<Hero />");
     expect(src).not.toContain("startInterview");

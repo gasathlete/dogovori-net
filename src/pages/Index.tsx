@@ -2,20 +2,15 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { prefetchOnIdle, shouldPrefetch } from "@/lib/routePrefetch";
 import { Header } from "@/components/Header";
-import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { SectionSkeleton } from "@/components/SectionSkeleton";
-import { MobileHero } from "@/components/home/MobileHero";
-import { MobileTrustRow } from "@/components/home/MobileTrustRow";
-import { MobileEssentials, MobileFinalCta } from "@/components/home/MobileEssentials";
 import { useIsMobileViewport } from "@/hooks/useMediaQuery";
 import { buildFaqJsonLd } from "@/data/faqItems";
 
-// Кратката мобилна композиция е статична (малка и водеща за LCP), а цялата
-// богата десктоп подредба живее в отделен ленив модул — така телефонът не
-// изтегля нито Hero, нито PrimaryChoice, нито дългите секции.
-const DesktopHome = lazy(() => import("@/components/home/DesktopHome").then((m) => ({ default: m.DesktopHome })));
-const ProductsSection = lazy(() => import("@/components/home/ProductsSection").then((m) => ({ default: m.ProductsSection })));
+// Една и съща подредба на телефон и десктоп — богатият hero, социалното
+// доказателство и продуктите. Модулът е ленив само за да не влиза в първия
+// bundle; съдържанието и метаданните са идентични при двата размера.
+const HomeSections = lazy(() => import("@/components/home/HomeSections").then((m) => ({ default: m.HomeSections })));
 
 const Index = () => {
   const location = useLocation();
@@ -41,11 +36,11 @@ const Index = () => {
     return () => window.removeEventListener("dogovori:open-assistant", onOpen as EventListener);
   }, []);
 
-  // ItemList JSON-LD се строи само на десктоп и само след първото рисуване —
-  // каталожният индекс (~260KB) никога не се зарежда на телефон.
+  // ItemList JSON-LD се строи след първото рисуване — еднакво на телефон и на
+  // десктоп, за да са идентични метаданните при двата размера.
   const [itemList, setItemList] = useState<Record<string, unknown> | null>(null);
   useEffect(() => {
-    if (isMobile || !shouldPrefetch()) return;
+    if (!shouldPrefetch()) return;
     let cancelled = false;
     const idle =
       (window as { requestIdleCallback?: (cb: () => void, o?: unknown) => number }).requestIdleCallback ??
@@ -61,7 +56,7 @@ const Index = () => {
       if (cic) cic(handle);
       else clearTimeout(handle as unknown as ReturnType<typeof setTimeout>);
     };
-  }, [isMobile]);
+  }, []);
 
   const jsonLd = useMemo(
     () => (itemList ? [itemList, buildFaqJsonLd()] : [buildFaqJsonLd()]),
@@ -71,28 +66,15 @@ const Index = () => {
   return (
     <div className="min-h-dvh">
       <Seo
-        title="Dogovori.net – договори от чернова до подпис на едно място"
-        description="Изготвяне, преглед, сваляне и подписване на договори в един работен процес. Еднократно за конкретен документ или абонамент за редовна договорна работа."
+        title="Dogovori.net — създайте, проверете или поправете документ"
+        description="Започвате от шаблон или качвате свой файл. Виждате какво липсва и какво да промените. Плащате еднократно за един документ или абонамент за редовна работа."
         canonical="/"
         jsonLd={jsonLd}
       />
       <Header />
-      {isMobile ? (
-        <main className="route-fade pb-20" data-home-variant="mobile">
-          <MobileHero />
-          <MobileTrustRow />
-          <Suspense fallback={<SectionSkeleton />}>
-            <ProductsSection />
-          </Suspense>
-          <MobileEssentials />
-          <MobileFinalCta />
-          <SeoFooter />
-        </main>
-      ) : (
-        <Suspense fallback={<SectionSkeleton />}>
-          <DesktopHome />
-        </Suspense>
-      )}
+      <Suspense fallback={<SectionSkeleton />}>
+        <HomeSections />
+      </Suspense>
     </div>
   );
 };

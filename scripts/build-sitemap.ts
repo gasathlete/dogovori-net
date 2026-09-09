@@ -18,6 +18,7 @@ import { SECTORS } from "../src/data/sectors";
 import { FEATURED_BLANKS } from "../src/data/featuredBlanks";
 
 import { slugify } from "../src/lib/slugify";
+import { ONE_TIME_PRODUCT_PATHS } from "../src/lib/products";
 import { CALCULATORS } from "../src/data/calculators";
 
 
@@ -43,6 +44,14 @@ const topNames = new Set(TOP_DOCUMENTS.map((d) => d.name));
 // that renders it, so Google sees real change signals (not a daily reset).
 const staticEntries: Entry[] = [
   { loc: "/", changefreq: "daily", priority: "1.0", lastmod: fileMtime("src/pages/Index.tsx") },
+  { loc: "/produkti", changefreq: "weekly", priority: "0.95", lastmod: fileMtime("src/pages/Products.tsx") },
+  // Самостоятелните продуктови страници — пътищата идват от src/lib/products.ts.
+  ...ONE_TIME_PRODUCT_PATHS.map<Entry>((loc) => ({
+    loc,
+    changefreq: "monthly",
+    priority: "0.9",
+    lastmod: fileMtime("src/lib/products.ts"),
+  })),
   { loc: "/catalog", changefreq: "weekly", priority: "0.95", lastmod: catalogDate },
   { loc: "/karta", changefreq: "weekly", priority: "0.9", lastmod: catalogDate },
   // /build е Disallow: в robots.txt (private conversational entry point) — не в sitemap.

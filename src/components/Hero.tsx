@@ -5,7 +5,8 @@ import { prefetchHandlers } from "@/components/PrefetchLink";
 import { ShieldCheck, Search, ArrowRight, FileUp } from "@/icons";
 const logoImg = "/logo-dogovori-hero.webp";
 import { HeroVideoBackdrop } from "@/components/HeroVideoBackdrop";
-import { FREE_OFFER_ANON_HELPER, SEPTEMBER_PROMO } from "@/lib/pricing";
+import { FREE_OFFER_ANON_HELPER } from "@/lib/pricing";
+import { HeroProductRail } from "@/components/products/HeroProductRail";
 import { useAuth } from "@/hooks/useAuth";
 import { useAudience } from "@/hooks/useAudience";
 import { AudienceToggle } from "@/components/funnel/AudienceToggle";
@@ -91,37 +92,34 @@ export function Hero() {
 
 
           {/*
-            Единствено основно действие: реален Link към /start и за анонимни, и
-            за влезли посетители. Story overlay-ът вече НЕ е гейт — той е само
-            опционално демо, достъпно през второстепенната връзка по-долу.
+            Основното действие води към трите продукта. Двете второстепенни
+            връзки остават реални пътища — създаване и качване.
           */}
           <div className="mt-7 flex flex-col items-center gap-3">
             <div className="mx-auto flex w-full max-w-[560px] flex-col items-center gap-3">
               <Link
-                to="/start"
-                {...prefetchHandlers("/start")}
+                to="/produkti"
+                {...prefetchHandlers("/produkti")}
                 onClick={() => {
                   trackFunnelEvent("home_primary_cta_clicked", {
-                    destination: "/start",
+                    destination: "/produkti",
                     authenticated: Boolean(user),
                   });
                 }}
-                className="btn-gold btn-press inline-flex items-center gap-2 rounded-xl px-8 py-4 text-[16px] font-bold normal-case tracking-normal sm:text-[17px] sm:px-10"
+                className="btn-gold btn-press inline-flex min-h-[48px] items-center gap-2 rounded-xl px-8 py-4 text-[16px] font-bold normal-case tracking-normal sm:text-[17px] sm:px-10"
               >
-                Започни документ
+                Изберете какво Ви трябва
                 <ArrowRight className="h-[16px] w-[16px]" />
               </Link>
-              {user && (
-                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[12px] text-muted-foreground">
-                  <Link to="/catalog" {...prefetchHandlers("/catalog")} className="inline-flex items-center gap-1.5 hover:text-gold">
-                    <Search className="h-3.5 w-3.5" /> Разгледай шаблоните
-                  </Link>
-                  <span className="hidden h-3 w-px bg-border sm:inline-block" />
-                  <Link to="/account?tab=documents&action=upload" {...prefetchHandlers("/account")} className="inline-flex items-center gap-1.5 hover:text-gold">
-                    <FileUp className="h-3.5 w-3.5" /> Качи за анализ
-                  </Link>
-                </div>
-              )}
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[12.5px] text-muted-foreground">
+                <Link to="/build" {...prefetchHandlers("/build")} className="inline-flex min-h-[44px] items-center gap-1.5 hover:text-gold">
+                  <Search className="h-3.5 w-3.5" /> Създайте документ
+                </Link>
+                <span className="hidden h-3 w-px bg-border sm:inline-block" />
+                <Link to="/analiz" {...prefetchHandlers("/analiz")} className="inline-flex min-h-[44px] items-center gap-1.5 hover:text-gold">
+                  <FileUp className="h-3.5 w-3.5" /> Качете за проверка
+                </Link>
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
@@ -133,7 +131,7 @@ export function Hero() {
                 }}
                 className="story-link text-[12px] font-semibold text-muted-foreground transition-colors hover:text-gold"
               >
-                Виж как работи
+                Вижте как работи
               </button>
               <span className="hidden h-3 w-px bg-border sm:inline-block" />
               <button
@@ -144,7 +142,7 @@ export function Hero() {
                 }}
                 className="story-link text-[12px] font-semibold text-muted-foreground transition-colors hover:text-gold"
               >
-                Виж колко спестяваш
+                Вижте колко спестявате
               </button>
             </div>
 
@@ -156,10 +154,9 @@ export function Hero() {
             )}
           </div>
 
-          {/* Септемврийска промоция −20% — един дискретен ред */}
-          <p className="mt-6 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            −20% с код <span className="font-semibold text-gold">{SEPTEMBER_PROMO.code}</span> до 30.09
-          </p>
+          {/* Трите продукта — видими още в hero-а, с реални връзки. */}
+          <HeroProductRail />
+
 
         </div>
       </div>
