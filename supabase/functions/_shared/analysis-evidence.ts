@@ -268,6 +268,8 @@ export interface EvidencePipelineResult {
   missingClauses: Record<string, unknown>[];
   /** Стойност за NOT NULL колоната; рейтинг е само ако `verification.score_trusted`. */
   score: number;
+  /** Базовата оценка ПРЕДИ таваните — нужна за коректно преизчисляване (Q4a). */
+  baseScore: number;
   /** Резюме: неутрално и системно при `incomplete`, иначе резюмето на модела. */
   summary: string;
   contractType: string;
@@ -384,6 +386,7 @@ export function runAnalysisEvidencePipeline(
     issues,
     missingClauses,
     score,
+    baseScore,
     summary: incomplete ? NEUTRAL_INCOMPLETE_SUMMARY : modelSummary,
     contractType: contractTypeRaw.slice(0, 200),
     verification,
