@@ -680,6 +680,81 @@ export type Database = {
         }
         Relationships: []
       }
+      assistant_edit_proposals: {
+        Row: {
+          after_text: string
+          applied_at: string | null
+          applied_updated_at: string | null
+          base_context_version: string
+          base_updated_at: string
+          before_text: string
+          created_at: string
+          decided_at: string | null
+          id: string
+          reason: string | null
+          reverted_at: string | null
+          reverted_updated_at: string | null
+          saved_document_id: string
+          status: string
+          target_path: string
+          thread_id: string
+          user_id: string
+        }
+        Insert: {
+          after_text: string
+          applied_at?: string | null
+          applied_updated_at?: string | null
+          base_context_version: string
+          base_updated_at: string
+          before_text: string
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          reason?: string | null
+          reverted_at?: string | null
+          reverted_updated_at?: string | null
+          saved_document_id: string
+          status?: string
+          target_path: string
+          thread_id: string
+          user_id: string
+        }
+        Update: {
+          after_text?: string
+          applied_at?: string | null
+          applied_updated_at?: string | null
+          base_context_version?: string
+          base_updated_at?: string
+          before_text?: string
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          reason?: string | null
+          reverted_at?: string | null
+          reverted_updated_at?: string | null
+          saved_document_id?: string
+          status?: string
+          target_path?: string
+          thread_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_edit_proposals_saved_document_id_fkey"
+            columns: ["saved_document_id"]
+            isOneToOne: false
+            referencedRelation: "saved_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assistant_edit_proposals_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "assistant_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assistant_messages: {
         Row: {
           content: string
@@ -4815,12 +4890,24 @@ export type Database = {
         }[]
       }
       assemble_prompt_content: { Args: { _prompt_id: string }; Returns: string }
+      assistant_edit_payload_path: {
+        Args: { _path: string }
+        Returns: string[]
+      }
+      assistant_edit_proposal_action: {
+        Args: { _action: string; _proposal_id: string }
+        Returns: Json
+      }
       award_team_loyalty: {
         Args: { _team_id: string; _total_ops: number }
         Returns: Json
       }
       award_user_loyalty: { Args: { _total_ops: number }; Returns: Json }
       bg_to_lat: { Args: { input: string }; Returns: string }
+      can_access_saved_document: {
+        Args: { _document_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_use_kit_slot: { Args: never; Returns: Json }
       charge_corrections_wave: {
         Args: { p_batch_id: string; p_count: number; p_user_id: string }
