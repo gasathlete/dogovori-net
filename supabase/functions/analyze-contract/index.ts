@@ -10,6 +10,8 @@ import { redactForAI, unredact } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { runAnalysisEvidencePipeline } from "../_shared/analysis-evidence.ts";
+import { verifyQualityManifest } from "../_shared/generated-document-quality.ts";
+import { shouldDeferItem } from "../_shared/deferred-personal-scope.ts";
 import {
   buildAnalysisSourceBinding,
   buildFreshAnalysisPayload,
@@ -580,8 +582,8 @@ ${payloadText}
           score: pipeline.score,
           contractType: pipeline.contractType,
           summary: pipeline.summary,
-          issues: pipeline.issues,
-          missingClauses: pipeline.missingClauses,
+          issues: gatedIssues,
+          missingClauses: gatedMissing,
           cacheKey: normalizedHash,
           verification,
           binding: sourceBinding,
@@ -609,7 +611,7 @@ ${payloadText}
       status: "ok",
     });
 
-    return new Response(JSON.stringify({ analysis: inserted }), {
+    return new Response(JSON.stringify({ analysis: inserted, quality }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
