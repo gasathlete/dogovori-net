@@ -15,6 +15,11 @@ import {
   type ReviewRequest,
 } from "./review-context.ts";
 import { unredact } from "../_shared/redact.ts";
+import {
+  buildQualityManifest,
+  classifyLaterFinding,
+  verifyQualityManifest,
+} from "../_shared/generated-document-quality.ts";
 import { computeReviewSourceDigest as clientDigest } from "../../../src/lib/reviewSnapshot.ts";
 
 const EMAIL = "review-person@example.invalid";
@@ -339,4 +344,164 @@ Deno.test("възстановяването по листа не се чупи �
   assertEquals(restored.nested.list[1], 5);
   // Ключовете на обектите остават непроменени.
   assertEquals(Object.keys(restored).sort(), ["checks", "nested", "summary"]);
+});
+
+// ---------------------------------------------------------------------------
+// Q4a — ЕДИНЕН филтър за умишлените решения ПРИ РЕВИЗИЯТА
+// ---------------------------------------------------------------------------
+
+const Q4A_SECRET = "fake-service-role-secret-for-tests-0123456789";
+const Q4A_OTHER = "different-fake-secret-0123456789abcdef";
+
+const Q4A_TEXT = [
+  "Договор за изработка",
+  "Чл. 1. Предмет. Изпълнителят изработва уеб сайт съгласно приложение №1.",
+  "Чл. 2. Срок. Срокът за изпълнение е 30 дни от датата на сключване.",
+  "Чл. 3. Срок. Срокът за изпълнение е 60 дни от датата на сключване.",
+  "Чл. 4. Данни. Възложител: [име]. Плащане по банков път.",
+].join("\n");
+
+const q4aTrust = async (decisions: string[], secret = Q4A_SECRET) => {
+  const m = await buildQualityManifest({
+    origin: "generate-contract",
+    contract: Q4A_TEXT,
+    signingSecret: secret,
+    decisions,
+  });
+  return await verifyQualityManifest({
+    manifest: m,
+    content: Q4A_TEXT,
+    signingSecret: Q4A_SECRET,
+  });
+};
+
+const q4aChecks = (extra: Array<Record<string, unknown>> = []) => [
+  { id: "forma_i_deystvitelnost", label: "Форма и действителност", status: "pass" },
+  { id: "strani", label: "Страни", status: "pass" },
+  { id: "predmet", label: "Предмет", status: "pass" },
+  { id: "cena", label: "Цена", status: "pass" },
+  { id: "podpisi", label: "Подписи", status: "pass" },
+  { id: "srok", label: "Срок", status: "pass" },
+  ...extra,
+];
+
+function q4aNormalize(
+  parsed: Record<string, unknown>,
+  trust: Awaited<ReturnType<typeof q4aTrust>> | null,
+) {
+  let optional = 0;
+  const isOptional = (text: string, quote?: string) => {
+    const d = classifyLaterFinding({ text, quote, documentText: Q4A_TEXT, trust });
+    if (d.action !== "optional_recommendation") return false;
+    optional++;
+    return true;
+  };
+  const normalized = normalizeReviewResponse({
+    parsed,
+    submittedText: Q4A_TEXT,
+    truncated: false,
+    transform: {
+      check: (c) => {
+        const o = c as { id?: string; label: string; status: string; note?: string };
+        const text = `${o?.label ?? ""} ${o?.note ?? ""}`.trim();
+        if (o?.status === "fail" && isOptional(text)) {
+          return { ...o, status: "warn", note: `Опционално: ${o.note ?? o.label}` };
+        }
+        return o;
+      },
+      keepItem: (x) => !isOptional(x),
+      keepContradiction: (detail, quote) => !isOptional(detail, quote),
+    },
+  });
+  return { normalized, optional };
+}
+
+Deno.test("Q4a ревизия: доверена самокритика за опционално приложение не е дефект", async () => {
+  const trust = await q4aTrust(["optional_annex_details", "brief_clause_set"]);
+  const parsed = {
+    verdict: "ready",
+    confidence: 90,
+    summary: "Документът е технически изправен.",
+    checks: q4aChecks([
+      {
+        id: "prilozhenia",
+        label: "Приложения",
+        status: "fail",
+        note: "Липсва приложение с детайлизация на обхвата",
+      },
+    ]),
+    missing_requisites: ["Липсва приложение №1 с детайлизация"],
+    contradictions: [],
+    unfilled_fields: [],
+    legal_basis: [{ act: "ЗЗД", article: "чл. 79" }],
+  };
+  const { normalized, optional } = q4aNormalize(parsed, trust);
+  assert(optional >= 2);
+  assertEquals(normalized.missing_requisites.length, 0);
+  assertEquals(normalized.checks.find((c) => c.id === "prilozhenia")?.status, "warn");
+  // След филтрирането не остава остарял лош резултат.
+  assertEquals(normalized.verdict, "ready");
+  assertEquals(normalized.completeness.status, "complete");
+  assertEquals(normalized.confidence, 90);
+});
+
+Deno.test("Q4a ревизия: същата находка при ЛИПСВАЩ/ПОДПРАВЕН манифест остава дефект", async () => {
+  const parsed = {
+    verdict: "ready",
+    confidence: 90,
+    summary: "Документът е технически изправен.",
+    checks: q4aChecks([
+      { id: "prilozhenia", label: "Приложения", status: "fail", note: "Липсва приложение с детайлизация" },
+    ]),
+    missing_requisites: ["Липсва приложение №1 с детайлизация"],
+    contradictions: [],
+    unfilled_fields: [],
+    legal_basis: [],
+  };
+  for (const trust of [null, await q4aTrust(["optional_annex_details"], Q4A_OTHER)]) {
+    const { normalized, optional } = q4aNormalize(structuredClone(parsed), trust);
+    assertEquals(optional, 0);
+    assertEquals(normalized.missing_requisites.length, 1);
+    assertEquals(normalized.checks.find((c) => c.id === "prilozhenia")?.status, "fail");
+    assertNotEquals(normalized.verdict, "ready");
+  }
+});
+
+Deno.test("Q4a ревизия: цитирано противоречие, споменаващо приложение, ОЦЕЛЯВА", async () => {
+  const trust = await q4aTrust(["optional_annex_details"]);
+  const { normalized } = q4aNormalize({
+    verdict: "ready",
+    confidence: 95,
+    summary: "Готово.",
+    checks: q4aChecks(),
+    missing_requisites: [],
+    contradictions: [
+      {
+        detail: "Противоречие между Чл. 2 и Чл. 3 — различни срокове, посочени и в приложение №1",
+        where: "Чл. 2 / Чл. 3",
+        quote: "Срокът за изпълнение е 60 дни от датата на сключване.",
+      },
+    ],
+    unfilled_fields: [],
+    legal_basis: [],
+  }, trust);
+  assertEquals(normalized.contradictions.length, 1);
+  assertNotEquals(normalized.verdict, "ready");
+});
+
+Deno.test("Q4a ревизия: непопълнено лично поле остава за попълване преди използване", async () => {
+  const trust = await q4aTrust(["placeholders_for_personal_data"]);
+  const { normalized } = q4aNormalize({
+    verdict: "needs_fixes",
+    confidence: 80,
+    summary: "Има непопълнени полета.",
+    checks: q4aChecks(),
+    missing_requisites: [],
+    contradictions: [],
+    unfilled_fields: ["[име]"],
+    legal_basis: [],
+  }, trust);
+  // Личните плейсхолдъри НЕ стават опционална препоръка — остават видими.
+  assertEquals(normalized.unfilled_fields, ["[име]"]);
+  assertEquals(normalized.verdict, "needs_fixes");
 });
