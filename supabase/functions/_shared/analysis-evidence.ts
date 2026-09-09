@@ -325,14 +325,8 @@ export function runAnalysisEvidencePipeline(
   // Оценката НЕ се повишава заради отпаднали находки — липсата на доказателство
   // не е доказателство за безопасност. Запазват се само таваните по тежест.
   const scoreValid = !!root && isValidModelScore(root.score);
-  let score = scoreValid ? (root!.score as number) : NEUTRAL_STORED_SCORE;
-  const highCount = issues.filter((i) => i.severity === "high").length;
-  const medCount = issues.filter((i) => i.severity === "medium").length;
-  if (highCount >= 3) score = Math.min(score, 3);
-  else if (highCount === 2) score = Math.min(score, 5);
-  else if (highCount === 1) score = Math.min(score, 6);
-  else if (medCount >= 4) score = Math.min(score, 6);
-  else if (medCount >= 2) score = Math.min(score, 7);
+  const baseScore = scoreValid ? (root!.score as number) : NEUTRAL_STORED_SCORE;
+  const score = applySeverityCaps(baseScore, issues);
 
   const codes = new Set<AnalysisReasonCode>();
   if (!rootShapeValid) codes.add("root_shape_invalid");
