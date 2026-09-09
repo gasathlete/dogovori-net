@@ -10,7 +10,11 @@ import { redactForAI, unredact } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { runAnalysisEvidencePipeline } from "../_shared/analysis-evidence.ts";
-import { verifyQualityManifest } from "../_shared/generated-document-quality.ts";
+import {
+  computeManifestTrustIdentity,
+  qualitySigningSecretFromEnv,
+  verifyQualityManifest,
+} from "../_shared/generated-document-quality.ts";
 import { shouldDeferItem } from "../_shared/deferred-personal-scope.ts";
 import {
   buildAnalysisSourceBinding,
@@ -225,11 +229,24 @@ Deno.serve(async (req: Request) => {
       sourceText: text,
       titleContext,
     });
+    // Q4a — обвързване с ТОЧНО нашия генериран източник. Доверието изисква
+    // ВАЛИДЕН ПОДПИС от нашия сървърен ключ И съвпадащ отпечатък на съдържанието.
+    // При липсващ, невалиден, подправен или несъвпадащ манифест документът е
+    // ВЪНШЕН/недоверен и НИЩО не се потиска.
+    const trust = await verifyQualityManifest({
+      manifest: submittedQualityManifest,
+      content: text,
+      signingSecret: qualitySigningSecretFromEnv(),
+    });
+    // Контекстът на доверието влиза в кеш-идентичността: анализ, направен при
+    // различно доверие/решения, НЕ може да бъде преизползван.
+    const trustIdentity = await computeManifestTrustIdentity(trust);
+
     // Кеш-ключът включва точните дайджести на текста И заглавието + версиите на
     // промпта и на кеш-политиката. (`text_hash` е ВЕРСИОНИРАН КЕШ-КЛЮЧ, не
     // отпечатък на суровия източник.)
     const normalizedHash = await computeAnalysisCacheKey({
-      promptVersion: PROMPT_VERSION,
+      promptVersion: `${PROMPT_VERSION}|q4a-trust:${trustIdentity}`,
       binding: sourceBinding,
     });
     const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -540,12 +557,6 @@ ${payloadText}
       console.warn("Непълна доказателствена проверка:", verification.reason_codes.join(","));
     }
 
-    // Q4a — обвързване с ТОЧНО нашия генериран източник. При липсващ или
-    // несъвпадащ манифест документът е ВЪНШЕН/недоверен и НИЩО не се потиска.
-    const trust = await verifyQualityManifest({
-      manifest: submittedQualityManifest,
-      content: text,
-    });
     const deferPersonal =
       trust.trusted &&
       (trust.manifest.decisions.includes("local_completion_of_personal_data") ||

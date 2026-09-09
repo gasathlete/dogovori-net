@@ -26,7 +26,10 @@ import {
   applyDeferredScopeToCheck,
   shouldDeferItem,
 } from "../_shared/deferred-personal-scope.ts";
-import { verifyQualityManifest } from "../_shared/generated-document-quality.ts";
+import {
+  qualitySigningSecretFromEnv,
+  verifyQualityManifest,
+} from "../_shared/generated-document-quality.ts";
 
 const SYSTEM_PROMPT = `Ти си независим български правен ревизор (втори проход). Получаваш ГОТОВ документ и правиш техническа ревизия. НЕ пренаписваш текста.
 
@@ -95,6 +98,10 @@ Deno.serve(async (req: Request) => {
     const trust = await verifyQualityManifest({
       manifest: rawBody?.qualityManifest ?? rawBody?.quality_manifest ?? null,
       content: request.documentText,
+      signingSecret: qualitySigningSecretFromEnv(),
+      // Ревизията вижда каноничния ЧЕТИМ текст на документа, затова тук е
+      // валидно и точното обвързване по отпечатък на четимия текст.
+      allowPlaintextMatch: true,
     });
     const manifestDefersPersonal =
       trust.trusted &&

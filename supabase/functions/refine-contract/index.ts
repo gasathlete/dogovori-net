@@ -11,11 +11,6 @@ import { redactForAI, unredact } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
-import {
-  applyRiskConsistencyGate,
-  buildQualityManifest,
-  flattenGeneratedContract,
-} from "../_shared/generated-document-quality.ts";
 
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш вече генериран договор (в JSON) и КРАТКА обратна връзка от потребителя за пропуск/грешка/подобрение.
@@ -241,7 +236,7 @@ ${answersStr}
       contract?: unknown;
       changed_clause_numbers?: string[];
       change_summary?: string;
-      risk?: unknown;
+      // Схемата на refine-contract НЕ включва risk — виж бележката по Q4a долу.
     };
 
 
@@ -270,33 +265,11 @@ ${answersStr}
       }
     }
 
-    // Q4a — ако моделът е върнал СВЕЖ risk анализ, той минава през същия
-    // детерминиран gate преди да стигне до потребителя.
-    let gatedRisk: unknown = undefined;
-    let quality: unknown = undefined;
-    let qualityManifest: unknown = undefined;
-    if (parsed.risk) {
-      const manifest = await buildQualityManifest({
-        origin: "refine-contract",
-        contract: parsed.contract,
-        decisions: [
-          "placeholders_for_personal_data",
-          "local_completion_of_personal_data",
-          "optional_annex_details",
-          "standard_clause_set",
-        ],
-      });
-      const gated = applyRiskConsistencyGate({
-        risk: parsed.risk,
-        documentText: flattenGeneratedContract(parsed.contract),
-        origin: "refine-contract",
-        manifest,
-        trustedManifest: true,
-      });
-      gatedRisk = gated.risk;
-      quality = gated.quality;
-      qualityManifest = manifest;
-    }
+    // Q4a — ВАЖНО: промптът на refine-contract НЕ изисква и схемата НЕ връща
+    // свеж risk анализ (връща се само коригиран договор + резюме на промените).
+    // Затова тук НЯМА gate и НЯМА манифест за качество: рискът остава ОТСЪСТВАЩ
+    // и се преоценява там, където реално се прави анализ. Манифест не се издава
+    // за отговор без risk — иначе бихме удостоверили нещо непроверено.
 
     await logAiAudit({
       user_id: userId, operation: "refine-contract", model: route.model,
@@ -310,7 +283,6 @@ ${answersStr}
       contract: parsed.contract,
       changed_clause_numbers: parsed.changed_clause_numbers ?? [],
       change_summary: parsed.change_summary ?? "",
-      ...(gatedRisk ? { risk: gatedRisk, quality, quality_manifest: qualityManifest } : {}),
     }), {
       headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });

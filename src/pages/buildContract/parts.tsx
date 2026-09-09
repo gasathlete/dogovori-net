@@ -30,6 +30,8 @@ export const buildPresetSignature = (params: URLSearchParams) => [
 export interface AIResult {
   risk: { level: RiskLevel; score: number; summary: string; issues: RiskIssue[]; recommendations: string[] };
   contract: GeneratedContract;
+  /** Q4a — подписан манифест за качество; маха се при локална редакция. */
+  quality_manifest?: unknown;
 }
 
 export const STORAGE_KEY = "build:custom-contract";

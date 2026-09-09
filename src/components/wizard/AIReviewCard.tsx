@@ -42,6 +42,12 @@ interface Props {
    * ревизията анализира само генерираното съдържание.
    */
   ignorePersonalData?: boolean;
+  /**
+   * Q4a — подписан манифест за качество за ТОЧНО този документ. Подава се само
+   * ако не е остарял след редакция; иначе се пропуска и документът се ревизира
+   * като външен.
+   */
+  qualityManifest?: unknown;
 }
 
 const VERDICT = {
@@ -78,6 +84,7 @@ export function AIReviewCard({
   reviewContext = null,
   auto = true,
   ignorePersonalData = false,
+  qualityManifest = null,
 }: Props) {
   const { user } = useAuth();
   const userScope = user?.id ?? "";
@@ -92,8 +99,9 @@ export function AIReviewCard({
       context: reviewContext,
       ignorePersonalData,
       userScope,
+      ...(qualityManifest ? { qualityManifest } : {}),
     }),
-    [text, contract.title, documentType, documentVersion, reviewContext, ignorePersonalData, userScope],
+    [text, contract.title, documentType, documentVersion, reviewContext, ignorePersonalData, userScope, qualityManifest],
   );
 
   const life = useReviewLifecycle({ input, runner: reviewDocument, auto });

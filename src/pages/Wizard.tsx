@@ -109,6 +109,12 @@ interface AIResult {
     recommendations: string[];
   };
   contract: GeneratedContract;
+  /**
+   * Q4a — подписан манифест за качество от сървъра. Пази се заедно с резултата
+   * и се маха при ВСЯКА локална редакция на документа, за да не се подава
+   * остарял манифест (сървърът и без това би го отхвърлил по отпечатък).
+   */
+  quality_manifest?: unknown;
 }
 
 export default function WizardPage() {
@@ -1052,7 +1058,7 @@ export default function WizardPage() {
     setApplyingCorrections(true);
     try {
       const { getOpSessionId, newOpBatchId } = await import("@/lib/opSession");
-      const { data, error } = await invokeEdgeFunction<{ error?: string; risk?: AIResult["risk"]; contract?: AIResult["contract"]; applied?: string[] }>("apply-corrections", {
+      const { data, error } = await invokeEdgeFunction<{ error?: string; risk?: AIResult["risk"]; contract?: AIResult["contract"]; applied?: string[]; quality_manifest?: unknown }>("apply-corrections", {
         body: {
           contract: result.contract,
           risk: result.risk,
@@ -1097,6 +1103,8 @@ export default function WizardPage() {
       setResult({
         risk: data.risk ?? result.risk,
         contract: data.contract ?? result.contract,
+        // Манифестът е валиден само за документа, който сървърът е върнал.
+        quality_manifest: data.quality_manifest ?? undefined,
       });
       setAppliedNotes(Array.isArray(data.applied) ? data.applied : ["Корекциите са приложени"]);
       setSavedDocId(undefined); // forces re-save as new version
@@ -1754,6 +1762,7 @@ export default function WizardPage() {
                             documentType={docName ?? sector.contractName}
                             reviewContext={acceptedContextForReview}
                             ignorePersonalData={fillLaterPersonal}
+                            qualityManifest={result.quality_manifest ?? null}
                           />
 
                         </>
@@ -1877,7 +1886,11 @@ export default function WizardPage() {
                   contract={result.contract}
                   answers={answers}
                   onRefined={(next) => {
-                    setResult({ ...result, contract: { ...result.contract, ...next } });
+                    setResult({
+                      ...result,
+                      contract: { ...result.contract, ...next },
+                      quality_manifest: undefined,
+                    });
                     setSavedDocId(undefined);
                   }}
                   onNeedAuth={() => goAuth({ action: "Продължаване на операцията" })}
@@ -1896,7 +1909,11 @@ export default function WizardPage() {
                   bilingual={bilingualMode}
                   onContractChange={(next) => {
                     if (!result) return;
-                    setResult({ ...result, contract: { ...result.contract, ...next } });
+                    setResult({
+                      ...result,
+                      contract: { ...result.contract, ...next },
+                      quality_manifest: undefined,
+                    });
                     setSavedDocId(undefined);
                   }}
                   onDownloadBlank={handleDownloadBlank}

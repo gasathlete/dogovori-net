@@ -114,7 +114,12 @@ export function PreviewPane({
               isPro={isPro}
               onContractChange={(next) => {
                 if (!result) return;
-                setResult({ ...result, contract: { ...result.contract, ...next } });
+                // Локална редакция → манифестът за качество е остарял и НЕ се пази.
+                setResult({
+                  ...result,
+                  contract: { ...result.contract, ...next },
+                  quality_manifest: undefined,
+                });
                 setSavedDocId(undefined);
               }}
             />

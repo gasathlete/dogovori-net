@@ -23,6 +23,8 @@ import {
   applyRiskConsistencyGate,
   buildQualityManifest,
   computeContextFingerprint,
+  qualitySigningSecretFromEnv,
+  GENERATED_QUALITY_POLICY_VERSION,
   flattenGeneratedContract,
 } from "../_shared/generated-document-quality.ts";
 
@@ -160,7 +162,9 @@ Deno.serve(async (req: Request) => {
     // потребителски контекст (включително етикетите и реда на въпросите,
     // арбитражния избор и двуезичния режим). Старите глобални ключове, които не
     // включваха етикетите на въпросите, вече не могат да бъдат улучени.
-    const PROMPT_VERSION = isBilingual ? "v3-doc-type-bilingual" : "v3-doc-type";
+    // Версията на Q4a политиката влиза в кеш-идентичността: стари, НЕПОДПИСАНИ
+    // резултати не могат да бъдат сервирани под настоящия договор за качество.
+    const PROMPT_VERSION = `${isBilingual ? "v3-doc-type-bilingual" : "v3-doc-type"}|${GENERATED_QUALITY_POLICY_VERSION}`;
     const cacheKeyInput = buildGeneratorCacheIdentity({
       context: userContext,
       promptVersion: PROMPT_VERSION,
@@ -403,12 +407,24 @@ ${docTypeSpec.systemAddendum}
     }
 
 
+    // Defensive: ensure bilingual flag is set on contract when requested, so
+    // exporters render BG/EN two-column layout reliably. ВАЖНО: това става ПРЕДИ
+    // Q4a манифеста, за да е обвързан ФИНАЛНИЯТ документ.
+    if (isBilingual && parsed?.contract) {
+      parsed.contract.bilingual = true;
+    }
+
     // Q4a — консистентност на risk анализа спрямо СОБСТВЕНО генерирания документ.
     // Реалните юридически дефекти НЕ се филтрират и оценката НЕ се занижава.
     // Отпадат само недоказани бележки и умишлените ни решения при съставянето.
     if (parsed?.risk) {
-      const qualityManifest = await buildQualityManifest({
+      // Ключът за подпис е сървърен и НИКОГА не се връща/логва. Без него не се
+      // издава манифест — тогава gate-ът работи в режим „външен документ".
+      const signingSecret = qualitySigningSecretFromEnv();
+      if (!signingSecret) console.error("quality manifest signing key unavailable");
+      const qualityManifest = signingSecret ? await buildQualityManifest({
         origin: "generate-contract",
+        signingSecret,
         contract: parsed.contract,
         documentType: docTypeSpec.id,
         buildMode: null,
@@ -423,18 +439,18 @@ ${docTypeSpec.systemAddendum}
           "standard_clause_set",
           ...(isBilingual ? ["bilingual_parallel_text"] : []),
         ],
-      });
+      }) : null;
       const documentText = flattenGeneratedContract(parsed.contract);
       const gated = applyRiskConsistencyGate({
         risk: parsed.risk,
         documentText,
         origin: "generate-contract",
         manifest: qualityManifest,
-        trustedManifest: true,
+        trustedManifest: !!qualityManifest,
       });
       parsed.risk = gated.risk;
       parsed.quality = gated.quality;
-      parsed.quality_manifest = qualityManifest;
+      if (qualityManifest) parsed.quality_manifest = qualityManifest;
 
       // Препоръката за попълване на личните данни локално остава — платформата
       // не събира и не съхранява лични данни.
@@ -480,12 +496,6 @@ ${docTypeSpec.systemAddendum}
       parsed.risk.strengths = merged;
     }
 
-
-    // Defensive: ensure bilingual flag is set on contract when requested,
-    // so exporters render BG/EN two-column layout reliably.
-    if (isBilingual && parsed?.contract) {
-      parsed.contract.bilingual = true;
-    }
 
     await logAiAudit({
       user_id: userId, operation: "generate-contract", model: route.model,

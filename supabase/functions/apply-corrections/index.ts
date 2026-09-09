@@ -11,6 +11,7 @@ import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts"
 import {
   applyRiskConsistencyGate,
   buildQualityManifest,
+  qualitySigningSecretFromEnv,
   flattenGeneratedContract,
 } from "../_shared/generated-document-quality.ts";
 
@@ -330,8 +331,11 @@ ${answersRedacted}
     // детерминиран gate, за да не се появят отново недоказани самокритики.
     if ((parsed as Record<string, unknown>)?.risk) {
       const p = parsed as Record<string, unknown>;
-      const qualityManifest = await buildQualityManifest({
+      const signingSecret = qualitySigningSecretFromEnv();
+      if (!signingSecret) console.error("quality manifest signing key unavailable");
+      const qualityManifest = signingSecret ? await buildQualityManifest({
         origin: "apply-corrections",
+        signingSecret,
         contract: p.contract,
         decisions: [
           "placeholders_for_personal_data",
@@ -339,17 +343,17 @@ ${answersRedacted}
           "optional_annex_details",
           "standard_clause_set",
         ],
-      });
+      }) : null;
       const gated = applyRiskConsistencyGate({
         risk: p.risk,
         documentText: flattenGeneratedContract(p.contract),
         origin: "apply-corrections",
         manifest: qualityManifest,
-        trustedManifest: true,
+        trustedManifest: !!qualityManifest,
       });
       p.risk = gated.risk;
       p.quality = gated.quality;
-      p.quality_manifest = qualityManifest;
+      if (qualityManifest) p.quality_manifest = qualityManifest;
     }
 
     await logAiAudit({
