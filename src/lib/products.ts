@@ -129,6 +129,18 @@ export function productPriceLabel(id: OneTimeProductId): string {
   return fmtEur(BY_ID[id].priceEur);
 }
 
+/** Честна входна котва („от …") — винаги най-ниската реална цена. */
+export function lowestOneTimePriceLabel(): string {
+  return fmtEur(Math.min(...ONE_TIME_PRODUCTS.map((p) => p.priceEur)));
+}
+
+/** Продуктът с контролирано подчертано представяне на десктоп. */
+export const FEATURED_PRODUCT_ID: OneTimeProductId = "contract_improve";
+
+export function isFeaturedProduct(id: OneTimeProductId): boolean {
+  return id === FEATURED_PRODUCT_ID;
+}
+
 /* ------------------------- Бизнес персона ------------------------- */
 
 export type BusinessPersona = "own_business" | "client_work";
