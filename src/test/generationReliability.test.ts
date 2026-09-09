@@ -23,6 +23,20 @@ describe("classifyGenerationError — сървърният код има при�
     expect(rl.retryable).toBe(true);
   });
 
+  it("context_not_redactable + HTTP 422 НЕ е специална категория данни", () => {
+    const r = classifyGenerationError({
+      data: { error: "Защитата на данните не можа да се приложи.", code: "context_not_redactable" },
+      error: { message: "non-2xx", status: 422 },
+    });
+    expect(r.code).toBe("input_not_processable");
+    expect(r.message).not.toMatch(/специални категории/i);
+    expect(r.message).toMatch(/данни/i);
+
+    // Само 422 без изричен код не бива да води до sensitive_blocked.
+    const bare = classifyGenerationError({ error: { message: "non-2xx status", status: 422 } });
+    expect(bare.code).not.toBe("sensitive_blocked");
+  });
+
   it("needs_confirmation и чувствителни данни са прегради, не провали", () => {
     expect(classifyGenerationError({ data: { error: "needs_confirmation" } }).gate).toBe(true);
     const sb = classifyGenerationError({ data: { error: "x", code: "special_category_blocked" } });
