@@ -19,6 +19,13 @@ import {
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
+import {
+  applyRiskConsistencyGate,
+  buildQualityManifest,
+  computeContextFingerprint,
+  flattenGeneratedContract,
+} from "../_shared/generated-document-quality.ts";
+
 
 
 const SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ). Използваш правилните понятия (Възложител/Изпълнител, Наемодател/Наемател, Продавач/Купувач, Страните, Настоящият Договор).
