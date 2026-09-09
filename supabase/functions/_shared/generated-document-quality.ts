@@ -161,26 +161,39 @@ export function flattenGeneratedContract(contract: unknown): string {
 
 /**
  * КАНОНИЧЕН четим текст — ТОЧНО същият ред и състав, който фронтендът праща
- * за ревизия (`contractToPlainText`). Парите се пазят в синхрон чрез златни
- * тестове от двете страни.
+ * за ревизия (`contractToPlainText`). Включва и АНГЛИЙСКИТЕ рендерирани полета,
+ * за да вижда ревизията реално целия двуезичен текст и промяна само в
+ * английската част да обезсилва подадения манифест. Паритетът се пази чрез
+ * златни тестове от двете страни.
+ *
+ * Ред: title, title_en, preamble, preamble_en, за всяка клауза
+ * (number+title, body, number+title_en, body_en), closing, closing_en.
  */
 export function renderCanonicalPlainText(contract: unknown): string {
   if (!contract || typeof contract !== "object" || Array.isArray(contract)) return "";
   const c = contract as GeneratedContractLike;
   const parts: string[] = [];
   if (asText(c.title)) parts.push(asText(c.title));
+  if (asText(c.title_en)) parts.push(asText(c.title_en));
   if (asText(c.preamble)) parts.push(asText(c.preamble));
+  if (asText(c.preamble_en)) parts.push(asText(c.preamble_en));
   if (Array.isArray(c.clauses)) {
     for (const raw of c.clauses) {
       if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
       const cl = raw as ClauseLike;
       parts.push([asText(cl.number), asText(cl.title)].filter(Boolean).join(" ").trim());
       if (asText(cl.body)) parts.push(asText(cl.body));
+      if (asText(cl.title_en)) {
+        parts.push([asText(cl.number), asText(cl.title_en)].filter(Boolean).join(" ").trim());
+      }
+      if (asText(cl.body_en)) parts.push(asText(cl.body_en));
     }
   }
   if (asText(c.closing)) parts.push(asText(c.closing));
+  if (asText(c.closing_en)) parts.push(asText(c.closing_en));
   return parts.filter(Boolean).join("\n\n");
 }
+
 
 /**
  * Нормализация за отпечатък: САМО CRLF и незначимо празно място. НИКАКВО
