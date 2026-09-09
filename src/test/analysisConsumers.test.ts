@@ -101,6 +101,27 @@ describe("edge конвейер", () => {
   });
 
 
+  it("Q4a: умишлените решения минават през ЕДИНИЯ споделен филтър", () => {
+    // Не само личните данни — филтърът покрива всички затворени решения.
+    expect(src).toMatch(/partitionLaterFindings/);
+    const shared = read("supabase/functions/_shared/generated-document-quality.ts");
+    expect(shared).toMatch(/export function classifyLaterFinding/);
+    expect(shared).toMatch(/optional_annex_details/);
+    expect(shared).toMatch(/brief_clause_set/);
+    // Fail-closed: без доверен подписан манифест нищо не се потиска.
+    expect(shared).toMatch(/trust\.trusted !== true[\s\S]{0,120}untrusted_manifest/);
+  });
+
+  it("Q4a: видимата оценка се преизчислява СЛЕД филтрирането", () => {
+    expect(src).toMatch(/applySeverityCaps\(pipeline\.baseScore, gatedIssues\)/);
+    expect(src).not.toMatch(/score: pipeline\.score/);
+  });
+
+  it("Q4a: кешът остава разделен по идентичност на доверието", () => {
+    expect(src).toMatch(/computeManifestTrustIdentity/);
+    expect(src).toMatch(/q4a-trust:\$\{trustIdentity\}/);
+  });
+
   it("метаданните не носят хеш на източника в обхвата на Q2a", () => {
     expect(src).not.toMatch(/sourceTextHash/);
     expect(read("supabase/functions/_shared/analysis-evidence.ts")).not.toMatch(/source_text_hash/);

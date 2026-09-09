@@ -268,10 +268,33 @@ export interface EvidencePipelineResult {
   missingClauses: Record<string, unknown>[];
   /** Стойност за NOT NULL колоната; рейтинг е само ако `verification.score_trusted`. */
   score: number;
+  /** Базовата оценка ПРЕДИ таваните — нужна за коректно преизчисляване (Q4a). */
+  baseScore: number;
   /** Резюме: неутрално и системно при `incomplete`, иначе резюмето на модела. */
   summary: string;
   contractType: string;
   verification: AnalysisVerificationMetadata;
+}
+
+/**
+ * Тавани по тежест на находките. Изнесено, за да ползва ЕДНА логика и когато
+ * оценката се преизчислява СЛЕД по-късно филтриране (Q4a) — така премахната
+ * находка не оставя остарял (несправедливо лош) резултат. Никога не повишава
+ * оценката над базовата, дадена от модела.
+ */
+export function applySeverityCaps(
+  baseScore: number,
+  issues: readonly { severity?: unknown }[],
+): number {
+  let score = baseScore;
+  const highCount = issues.filter((i) => i.severity === "high").length;
+  const medCount = issues.filter((i) => i.severity === "medium").length;
+  if (highCount >= 3) score = Math.min(score, 3);
+  else if (highCount === 2) score = Math.min(score, 5);
+  else if (highCount === 1) score = Math.min(score, 6);
+  else if (medCount >= 4) score = Math.min(score, 6);
+  else if (medCount >= 2) score = Math.min(score, 7);
+  return score;
 }
 
 export function runAnalysisEvidencePipeline(
@@ -325,14 +348,8 @@ export function runAnalysisEvidencePipeline(
   // Оценката НЕ се повишава заради отпаднали находки — липсата на доказателство
   // не е доказателство за безопасност. Запазват се само таваните по тежест.
   const scoreValid = !!root && isValidModelScore(root.score);
-  let score = scoreValid ? (root!.score as number) : NEUTRAL_STORED_SCORE;
-  const highCount = issues.filter((i) => i.severity === "high").length;
-  const medCount = issues.filter((i) => i.severity === "medium").length;
-  if (highCount >= 3) score = Math.min(score, 3);
-  else if (highCount === 2) score = Math.min(score, 5);
-  else if (highCount === 1) score = Math.min(score, 6);
-  else if (medCount >= 4) score = Math.min(score, 6);
-  else if (medCount >= 2) score = Math.min(score, 7);
+  const baseScore = scoreValid ? (root!.score as number) : NEUTRAL_STORED_SCORE;
+  const score = applySeverityCaps(baseScore, issues);
 
   const codes = new Set<AnalysisReasonCode>();
   if (!rootShapeValid) codes.add("root_shape_invalid");
@@ -369,6 +386,7 @@ export function runAnalysisEvidencePipeline(
     issues,
     missingClauses,
     score,
+    baseScore,
     summary: incomplete ? NEUTRAL_INCOMPLETE_SUMMARY : modelSummary,
     contractType: contractTypeRaw.slice(0, 200),
     verification,

@@ -9,9 +9,10 @@ import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { redactForAI, unredact } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
-import { runAnalysisEvidencePipeline } from "../_shared/analysis-evidence.ts";
+import { applySeverityCaps, runAnalysisEvidencePipeline } from "../_shared/analysis-evidence.ts";
 import {
   computeManifestTrustIdentity,
+  partitionLaterFindings,
   qualitySigningSecretFromEnv,
   verifyQualityManifest,
 } from "../_shared/generated-document-quality.ts";
@@ -567,24 +568,59 @@ ${payloadText}
       (trust.manifest.decisions.includes("local_completion_of_personal_data") ||
         trust.manifest.decisions.includes("placeholders_for_personal_data"));
 
-    const gatedIssues = deferPersonal
-      ? pipeline.issues.filter(
-          (i) => !shouldDeferItem(true, `${i?.title ?? ""} ${i?.explanation ?? ""}`, text),
-        )
-      : pipeline.issues;
-    const gatedMissing = deferPersonal
-      ? pipeline.missingClauses.filter(
-          (m) => !shouldDeferItem(true, `${m?.name ?? ""} ${m?.why ?? ""}`, text),
-        )
-      : pipeline.missingClauses;
+    // Q4a — ЕДИН fail-closed филтър за ВСИЧКИ умишлени решения от ДОВЕРЕН
+    // подписан манифест, не само за личните данни. Прилага се СЛЕД
+    // доказателствения конвейер, така че проверката по цитат не се отслабва.
+    const issuePartition = partitionLaterFindings(pipeline.issues, {
+      textOf: (i) => `${i?.title ?? ""} ${i?.explanation ?? ""}`.trim(),
+      quoteOf: (i) => i?.clause,
+      documentText: text,
+      trust,
+    });
+    const missingPartition = partitionLaterFindings(pipeline.missingClauses, {
+      textOf: (m) => `${m?.name ?? ""} ${m?.why ?? ""}`.trim(),
+      documentText: text,
+      trust,
+    });
+
+    // Личните плейсхолдъри отпадат от находките САМО през съществуващия,
+    // тесен позитивен предикат — запазено поведение, без разширяване.
+    const optionalIssueSet = new Set(issuePartition.optional);
+    const optionalMissingSet = new Set(missingPartition.optional);
+    const gatedIssues = pipeline.issues.filter(
+      (i) =>
+        !optionalIssueSet.has(i) &&
+        !shouldDeferItem(deferPersonal, `${i?.title ?? ""} ${i?.explanation ?? ""}`, text),
+    );
+    const gatedMissing = pipeline.missingClauses.filter(
+      (m) =>
+        !optionalMissingSet.has(m) &&
+        !shouldDeferItem(deferPersonal, `${m?.name ?? ""} ${m?.why ?? ""}`, text),
+    );
+
+    // Умишлено опционалното (приложения/детайли, избран набор клаузи) става
+    // ОПЦИОНАЛНА ПРЕПОРЪКА и НЕ се брои като дефект — не е провал.
+    const optionalRecommendations = [
+      ...issuePartition.optional.map((i) => String(i?.title ?? "").trim()),
+      ...missingPartition.optional.map((m) => String(m?.name ?? "").trim()),
+    ].filter((t) => t.length > 0);
+
+    // Преизчисляване на видимата оценка СЛЕД филтрирането — премахната находка
+    // не оставя остаряла лоша оценка. Никога над базовата оценка на модела.
+    const score = Math.min(pipeline.baseScore, applySeverityCaps(pipeline.baseScore, gatedIssues));
 
     const quality = {
       trusted_manifest: trust.trusted,
       manifest_reason: trust.trusted ? null : trust.reason,
       deferred_personal_scope: deferPersonal,
       removed_deferred_items:
-        (pipeline.issues.length - gatedIssues.length) +
-        (pipeline.missingClauses.length - gatedMissing.length),
+        (pipeline.issues.length - gatedIssues.length - issuePartition.optional.length) +
+        (pipeline.missingClauses.length - gatedMissing.length - missingPartition.optional.length),
+      optional_recommendations: optionalRecommendations,
+      score_recomputed: score !== pipeline.score,
+      finding_reason_codes: [
+        ...new Set([...issuePartition.reason_codes, ...missingPartition.reason_codes]),
+      ].sort(),
     };
 
 
@@ -595,7 +631,7 @@ ${payloadText}
           uploadedContractId: contract.id as string,
           userId,
           model,
-          score: pipeline.score,
+          score,
           contractType: pipeline.contractType,
           summary: pipeline.summary,
           issues: gatedIssues,
