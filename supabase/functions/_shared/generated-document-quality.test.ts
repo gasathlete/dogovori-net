@@ -2,13 +2,17 @@
 // Подписът се тества с ФИКСИРАН фалшив секрет — истинският сървърен ключ никога
 // не участва в тестове и никъде не се отпечатва.
 import { assert, assertEquals, assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { applySeverityCaps } from "./analysis-evidence.ts";
 import {
   applyRiskConsistencyGate,
   buildQualityManifest,
   computeContentFingerprint,
   computeContextFingerprint,
+  classifyLaterFinding,
   computeManifestTrustIdentity,
   flattenGeneratedContract,
+  partitionLaterFindings,
+  PERSONAL_DATA_DECISIONS,
   renderCanonicalPlainText,
   validateQualityManifest,
   verifyQualityManifest,
@@ -706,4 +710,121 @@ Deno.test("ограничение: несъответствие с желани�
   });
   assertEquals(withoutEvidence.risk.issues.length, 0);
   assert(withoutEvidence.quality.reason_codes.includes("legal_label_unsupported"));
+});
+
+// ---------------------------------------------------------------------------
+// Q4a — ЕДИНЕН филтър за находките на ПО-КЪСНИЯ анализ/ревизия
+// ---------------------------------------------------------------------------
+
+const laterDoc = [
+  "Договор за изработка",
+  "Чл. 1. Предмет. Изпълнителят изработва уеб сайт съгласно приложение №1.",
+  "Чл. 2. Срок. Срокът за изпълнение е 30 дни от датата на сключване.",
+  "Чл. 3. Срок. Срокът за изпълнение е 60 дни от датата на сключване.",
+  "Чл. 4. Данни. Възложител: [име], ЕГН: [ЕГН].",
+].join("\n");
+
+const trustedFor = async (decisions: string[], content: string) => {
+  const m = await buildQualityManifest({
+    origin: "generate-contract",
+    contract: content,
+    signingSecret: SECRET,
+    decisions,
+  });
+  return await verifyQualityManifest({ manifest: m, content, signingSecret: SECRET });
+};
+
+Deno.test("Q4a: доверено опционално приложение НЕ е дефект", async () => {
+  const trust = await trustedFor(["optional_annex_details"], laterDoc);
+  const d = classifyLaterFinding({
+    text: "Липсва приложение №1 Препоръчително е да се добави приложение с детайлизация на обхвата",
+    documentText: laterDoc,
+    trust,
+  });
+  assertEquals(d.action, "optional_recommendation");
+  assertEquals(d.decision, "optional_annex_details");
+});
+
+Deno.test("Q4a: доверен кратък набор клаузи НЕ е дефект", async () => {
+  const trust = await trustedFor(["brief_clause_set"], laterDoc);
+  const d = classifyLaterFinding({
+    text: "Липсват дефиниции на използваните понятия в договора",
+    documentText: laterDoc,
+    trust,
+  });
+  assertEquals(d.action, "optional_recommendation");
+});
+
+Deno.test("Q4a: същата находка при ЛИПСВАЩ или ПОДПРАВЕН манифест остава", async () => {
+  const text = "Липсва приложение №1 Препоръчително е да се добави приложение с детайлизация";
+  assertEquals(
+    classifyLaterFinding({ text, documentText: laterDoc, trust: null }).action,
+    "keep",
+  );
+  const forged = {
+    ...(await buildQualityManifest({
+      origin: "generate-contract",
+      contract: laterDoc,
+      signingSecret: OTHER_SECRET,
+      decisions: ["optional_annex_details"],
+    })),
+  };
+  const trust = await verifyQualityManifest({
+    manifest: forged,
+    content: laterDoc,
+    signingSecret: SECRET,
+  });
+  assertEquals(trust.trusted, false);
+  assertEquals(classifyLaterFinding({ text, documentText: laterDoc, trust }).action, "keep");
+});
+
+Deno.test("Q4a: цитирано ПРОТИВОРЕЧИЕ, което споменава приложение, ОЦЕЛЯВА", async () => {
+  const trust = await trustedFor(["optional_annex_details", "brief_clause_set"], laterDoc);
+  const d = classifyLaterFinding({
+    text: "Противоречие между Чл. 2 и Чл. 3 — различни срокове за изпълнение, посочени и в приложение №1",
+    quote: "Срокът за изпълнение е 60 дни от датата на сключване.",
+    documentText: laterDoc,
+    trust,
+  });
+  assertEquals(d.action, "keep");
+  assertEquals(d.reason, "substantive_defect_preserved");
+});
+
+Deno.test("Q4a: личните плейсхолдъри остават предупреждение за попълване", async () => {
+  const trust = await trustedFor(["placeholders_for_personal_data"], laterDoc);
+  const d = classifyLaterFinding({
+    text: "Непопълнено поле [ЕГН] — попълнете личните данни",
+    documentText: laterDoc,
+    trust,
+  });
+  assertEquals(d.action, "personal_warn");
+  assert(PERSONAL_DATA_DECISIONS.includes(d.decision!));
+});
+
+Deno.test("Q4a: разделянето на находки е детерминирано и запазва реда", async () => {
+  const trust = await trustedFor(["optional_annex_details"], laterDoc);
+  const items = [
+    { title: "Липсва приложение с детайлизация", why: "препоръчително е да се добави приложение" },
+    { title: "Противоречие между Чл. 2 и Чл. 3 — различни срокове", why: "Срокът за изпълнение е 60 дни от датата на сключване." },
+  ];
+  const part = partitionLaterFindings(items, {
+    textOf: (i) => `${i.title} ${i.why}`,
+    quoteOf: (i) => i.why,
+    documentText: laterDoc,
+    trust,
+  });
+  assertEquals(part.optional.length, 1);
+  assertEquals(part.kept.length, 1);
+  assertEquals(part.kept[0].title.startsWith("Противоречие"), true);
+});
+
+Deno.test("Q4a: оценката се преизчислява СЛЕД филтриране, без да се надува", () => {
+  const before = [{ severity: "high" }, { severity: "medium" }];
+  const after = [{ severity: "medium" }];
+  const base = 9;
+  assertEquals(applySeverityCaps(base, before), 6);
+  // След премахване на НЕ-дефекта не остава остаряла лоша оценка…
+  assertEquals(applySeverityCaps(base, after), 9);
+  // …но никога над базовата оценка на модела.
+  assertEquals(applySeverityCaps(4, []), 4);
 });
