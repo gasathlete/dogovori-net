@@ -538,6 +538,38 @@ ${payloadText}
       console.warn("Непълна доказателствена проверка:", verification.reason_codes.join(","));
     }
 
+    // Q4a — обвързване с ТОЧНО нашия генериран източник. При липсващ или
+    // несъвпадащ манифест документът е ВЪНШЕН/недоверен и НИЩО не се потиска.
+    const trust = await verifyQualityManifest({
+      manifest: submittedQualityManifest,
+      content: text,
+    });
+    const deferPersonal =
+      trust.trusted &&
+      (trust.manifest.decisions.includes("local_completion_of_personal_data") ||
+        trust.manifest.decisions.includes("placeholders_for_personal_data"));
+
+    const gatedIssues = deferPersonal
+      ? pipeline.issues.filter(
+          (i) => !shouldDeferItem(true, `${i?.title ?? ""} ${i?.explanation ?? ""}`, text),
+        )
+      : pipeline.issues;
+    const gatedMissing = deferPersonal
+      ? pipeline.missingClauses.filter(
+          (m) => !shouldDeferItem(true, `${m?.name ?? ""} ${m?.why ?? ""}`, text),
+        )
+      : pipeline.missingClauses;
+
+    const quality = {
+      trusted_manifest: trust.trusted,
+      manifest_reason: trust.trusted ? null : trust.reason,
+      deferred_personal_scope: deferPersonal,
+      removed_deferred_items:
+        (pipeline.issues.length - gatedIssues.length) +
+        (pipeline.missingClauses.length - gatedMissing.length),
+    };
+
+
     const { data: inserted, error: insErr } = await admin
       .from("risk_analyses")
       .insert(
