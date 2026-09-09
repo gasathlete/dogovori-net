@@ -15,6 +15,13 @@ import { redactForAI, unredact } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
+import {
+  applyRiskConsistencyGate,
+  buildQualityManifest,
+  computeContextFingerprint,
+  flattenGeneratedContract,
+} from "../_shared/generated-document-quality.ts";
+
 
 const BASE_SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ, ГПК, ЗАНН, ЗАПСП, ЗННД).
 
