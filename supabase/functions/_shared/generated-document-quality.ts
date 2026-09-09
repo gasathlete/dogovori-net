@@ -687,7 +687,27 @@ function isEvidenceBacked(issue: RiskIssueLike, normalizedDocLower: string): boo
   return false;
 }
 
+/**
+ * Робустно доказателство за СВОБОДЕН текст (силни страни, където схемата не
+ * поддържа цитат): дословен откъс от документа ИЛИ ≥3 РАЗЛИЧНИ значими
+ * (не-общи) думи, реално намерени в документа.
+ */
+function hasRobustTextEvidence(text: string, normalizedDocLower: string): boolean {
+  const n = normalizeForMatch(text);
+  if (n.length >= 20 && normalizedDocLower.includes(n)) return true;
+  const seen = new Set<string>();
+  let hits = 0;
+  for (const t of significantTokens(text)) {
+    if (seen.has(t)) continue;
+    seen.add(t);
+    if (normalizedDocLower.includes(t)) hits++;
+    if (hits >= 3) return true;
+  }
+  return false;
+}
+
 const matchesAny = (text: string, patterns: RegExp[]) => patterns.some((rx) => rx.test(text));
+
 
 /** Модели за потискане — САМО от решенията в ДОВЕРЕН подписан манифест. */
 function intentionalPatterns(manifest: QualityManifest | null): RegExp[] {
