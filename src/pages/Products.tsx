@@ -82,6 +82,7 @@ export default function Products() {
             <p className="mt-4 text-[12px] font-medium text-muted-foreground">
               {ONE_TIME_TERMS}
             </p>
+            <PlanAlternativeNote className="mx-auto mt-5 max-w-md" />
           </div>
         </section>
 
