@@ -341,13 +341,14 @@ export function parseEurLexOjIndex(raw: string, parserVersion = "v1"): AdapterEn
 // ------------------------------------------------------------------
 // CELLAR SPARQL — помощни метаданни (консолидации: НЕАВТЕНТИЧНИ)
 // ------------------------------------------------------------------
-export function parseCellarSparqlJson(raw: string, parserVersion = "v1"): AdapterEnvelope {
+export function parseCellarSparqlJson(rawBody: string, parserVersion = "v1"): AdapterEnvelope {
   const key = "eu_cellar_metadata";
   const adapter = "eu_cellar_sparql";
-  if (!raw || raw.trim().length < 2) return fail(key, adapter, parserVersion, "empty_input");
+  if (!rawBody || rawBody.trim().length < 2) return fail(key, adapter, parserVersion, "empty_input");
   let json: unknown;
   try {
-    json = JSON.parse(raw);
+    // Външно съдържание: инертни данни, никога инструкции.
+    json = JSON.parse(rawBody);
   } catch {
     return fail(key, adapter, parserVersion, "unrecognized_schema");
   }
