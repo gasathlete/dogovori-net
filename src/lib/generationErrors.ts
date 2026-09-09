@@ -20,6 +20,7 @@ export type GenerationErrorCode =
   | "requires_login"
   | "needs_confirmation"
   | "sensitive_blocked"
+  | "input_not_processable"
   | "blocked_content"
   | "ai_parse_failed"
   | "ai_upstream"
@@ -66,6 +67,8 @@ const USER_MESSAGES: Record<GenerationErrorCode, string> = {
   requires_login: "Влезте в профила си, за да продължите. Въведените данни остават запазени.",
   needs_confirmation: "Нужно е потвърждение за откритите лични данни, преди да продължим.",
   sensitive_blocked: "Документът съдържа специални категории данни, които не могат да бъдат обработени автоматично.",
+  input_not_processable:
+    "Въведените данни не можаха да бъдат подготвени за обработка. Прегледайте попълнените полета и опитайте отново.",
   blocked_content: "Заявката съдържа съдържание, което не може да бъде обработено.",
   ai_parse_failed: "AI отговорът беше невалиден и не бе таксуван. Опитайте отново — обикновено вторият опит е успешен.",
   ai_upstream: "AI услугата е временно недостъпна. Не сте таксувани — опитайте отново след малко.",
@@ -82,6 +85,7 @@ const RETRYABLE: ReadonlySet<GenerationErrorCode> = new Set<GenerationErrorCode>
   "ai_parse_failed",
   "ai_upstream",
   "server_error",
+  "input_not_processable",
   "unknown",
 ]);
 
@@ -110,6 +114,8 @@ const SERVER_CODE_MAP: Record<string, GenerationErrorCode> = {
   rate_limited: "rate_limited",
   sensitive_data_confirmation_required: "needs_confirmation",
   needs_confirmation: "needs_confirmation",
+  context_not_redactable: "input_not_processable",
+  input_not_processable: "input_not_processable",
   special_category_blocked: "sensitive_blocked",
   sensitive_blocked: "sensitive_blocked",
   illegal_content: "blocked_content",
@@ -131,7 +137,6 @@ function fromStatus(status: number | undefined): GenerationErrorCode | null {
   if (status === 402) return "quota_exceeded";
   if (status === 408 || status === 504) return "timeout";
   if (status === 429) return "rate_limited";
-  if (status === 422) return "sensitive_blocked";
   if (status === 502 || status === 503) return "ai_upstream";
   if (status >= 500) return "server_error";
   return null;
