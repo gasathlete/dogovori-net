@@ -6,6 +6,7 @@ import { Seo } from "@/components/Seo";
 import { SeoFooter } from "@/components/SeoFooter";
 import { ProductCards } from "@/components/products/ProductCards";
 import { StepsStrip } from "@/components/products/StepsStrip";
+import { PlanAlternativeNote } from "@/components/products/PlanAlternativeNote";
 import {
   ONE_TIME_PRODUCTS,
   ONE_TIME_TERMS,
