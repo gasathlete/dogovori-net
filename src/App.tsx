@@ -263,13 +263,12 @@ function DeferredOverlays() {
   if (!ready) return null;
   if (isMobile) {
     return (
+      {/* Точно три: платежна лента, бисквитки и долната навигация. Всякакви
+      // предупреждения се появяват вградено при самото действие/резултат. */}
       <Suspense fallback={null}>
         <PaymentTestModeBanner />
         <CookieBanner />
-        <BetaDisclaimerModal />
-        <GlobalProUpgradeListener />
         <MobileBottomNav />
-        <ActionCelebrationHost />
       </Suspense>
     );
   }
