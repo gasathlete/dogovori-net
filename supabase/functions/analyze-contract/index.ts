@@ -583,13 +583,19 @@ ${payloadText}
       trust,
     });
 
-    // Личните плейсхолдъри отпадат от находките само през съществуващия,
-    // тесен позитивен предикат (запазено поведение).
-    const gatedIssues = issuePartition.kept.filter(
-      (i) => !shouldDeferItem(deferPersonal, `${i?.title ?? ""} ${i?.explanation ?? ""}`, text),
+    // Личните плейсхолдъри отпадат от находките САМО през съществуващия,
+    // тесен позитивен предикат — запазено поведение, без разширяване.
+    const optionalIssueSet = new Set(issuePartition.optional);
+    const optionalMissingSet = new Set(missingPartition.optional);
+    const gatedIssues = pipeline.issues.filter(
+      (i) =>
+        !optionalIssueSet.has(i) &&
+        !shouldDeferItem(deferPersonal, `${i?.title ?? ""} ${i?.explanation ?? ""}`, text),
     );
-    const gatedMissing = missingPartition.kept.filter(
-      (m) => !shouldDeferItem(deferPersonal, `${m?.name ?? ""} ${m?.why ?? ""}`, text),
+    const gatedMissing = pipeline.missingClauses.filter(
+      (m) =>
+        !optionalMissingSet.has(m) &&
+        !shouldDeferItem(deferPersonal, `${m?.name ?? ""} ${m?.why ?? ""}`, text),
     );
 
     // Умишлено опционалното (приложения/детайли, избран набор клаузи) става
@@ -608,9 +614,8 @@ ${payloadText}
       manifest_reason: trust.trusted ? null : trust.reason,
       deferred_personal_scope: deferPersonal,
       removed_deferred_items:
-        (issuePartition.kept.length - gatedIssues.length) +
-        (missingPartition.kept.length - gatedMissing.length) +
-        issuePartition.personal.length + missingPartition.personal.length,
+        (pipeline.issues.length - gatedIssues.length - issuePartition.optional.length) +
+        (pipeline.missingClauses.length - gatedMissing.length - missingPartition.optional.length),
       optional_recommendations: optionalRecommendations,
       score_recomputed: score !== pipeline.score,
       finding_reason_codes: [
