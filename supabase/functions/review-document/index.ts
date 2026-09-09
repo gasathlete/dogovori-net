@@ -31,7 +31,11 @@ import {
   qualitySigningSecretFromEnv,
   verifyQualityManifest,
 } from "../_shared/generated-document-quality.ts";
-import { intentMismatchChecks, verifyIntentAssertions } from "../_shared/intent-assertions.ts";
+import {
+  detectArbitrationInText,
+  intentMismatchChecks,
+  verifyIntentAssertions,
+} from "../_shared/intent-assertions.ts";
 
 const SYSTEM_PROMPT = `Ти си независим български правен ревизор (втори проход). Получаваш ГОТОВ документ и правиш техническа ревизия. НЕ пренаписваш текста.
 
@@ -255,7 +259,13 @@ Deno.serve(async (req: Request) => {
       assertions: trust.trusted ? trust.manifest.intents : [],
       documentText: request.documentText,
       serverSecret: qualitySigningSecretFromEnv(),
+      // Наблюдаемият факт се извежда от ТОЧНО подадения текст; каквото не може
+      // да се изведе, остава непроверимо (никога невярно „изпълнено").
+      structuralFlags: {
+        arbitration: detectArbitrationInText(request.documentText) ?? undefined,
+      },
     });
+
 
     const normalized = normalizeReviewResponse({
       deterministicChecks: intentMismatchChecks(intentReport),

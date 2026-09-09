@@ -607,6 +607,43 @@ export interface IntentExtractionInput {
   roles?: { a?: unknown; b?: unknown } | null;
   /** Затворени булеви флагове, реално дадени от потока. */
   flags?: { bilingual?: unknown; arbitration?: unknown } | null;
+  /**
+   * АВТОРИТЕТНИ НАИМЕНОВАНИ полета със свободен текст. Слотът е известен от
+   * името на полето, затова се допуска САМО извличане с висока увереност:
+   * точно ЕДИН недвусмислен кандидат. Нула или няколко → нищо.
+   */
+  structured?: { term?: unknown; prices?: unknown } | null;
+}
+
+/**
+ * Точно ЕДНА недвусмислена сума в прозата на ИЗВЕСТНО поле. При нула или няколко
+ * различни кандидата връща `null` — намерение не се домисля.
+ */
+export function soleMoneyFromKnownField(
+  raw: unknown,
+): { amount: string; currency: CurrencyCode } | null {
+  const s = typeof raw === "string" ? raw : typeof raw === "number" ? String(raw) : "";
+  if (!s.trim()) return null;
+  const found = moneyValues(normalizeDoc(s));
+  if (found.length !== 1) return null;
+  const parts = found[0].split("|");
+  const amount = parts[1];
+  const currency = canonicalCurrency(parts[2]);
+  return amount && currency ? { amount, currency } : null;
+}
+
+/** Точно ЕДНА недвусмислена продължителност в прозата на ИЗВЕСТНО поле. */
+export function soleDurationFromKnownField(
+  raw: unknown,
+): { count: number; unit: DurationUnit } | null {
+  const s = typeof raw === "string" ? raw : typeof raw === "number" ? String(raw) : "";
+  if (!s.trim()) return null;
+  const found = durationValues(normalizeDoc(s));
+  if (found.length !== 1) return null;
+  const parts = found[0].split("|");
+  const count = Number(parts[1]);
+  const unit = canonicalDurationUnit(parts[2]);
+  return unit && Number.isInteger(count) && count > 0 ? { count, unit } : null;
 }
 
 /**
@@ -658,6 +695,13 @@ export function extractIntentDrafts(input: IntentExtractionInput): IntentDraft[]
     }
   }
 
+  // Q4b(4) — АВТОРИТЕТНИ наименовани полета: слотът е известен от името на
+  // полето, затова се допуска извличане само при ТОЧНО ЕДИН кандидат.
+  const soleTerm = soleDurationFromKnownField(input.structured?.term);
+  if (soleTerm) drafts.push({ slot: "duration.term", value: { kind: "duration", ...soleTerm } });
+  const solePrice = soleMoneyFromKnownField(input.structured?.prices);
+  if (solePrice) drafts.push({ slot: "money.price", value: { kind: "money", ...solePrice } });
+
   const roleA = canonicalPartyRole(input.roles?.a);
   const roleB = canonicalPartyRole(input.roles?.b);
   if (roleA && roleB && roleA !== roleB) {
@@ -665,22 +709,26 @@ export function extractIntentDrafts(input: IntentExtractionInput): IntentDraft[]
     drafts.push({ slot: "party_role.b", value: { kind: "party_role", side: "b", role: roleB } });
   }
 
-  if (typeof input.flags?.bilingual === "boolean") {
+  // Q4b(2) — твърдение се създава САМО за ИЗРИЧЕН избор TRUE и то е ИЗИСКВАНО.
+  // Отсъствието на флаг не може да се докаже безопасно от текста, затова `false`
+  // НЕ поражда твърдение (иначе бихме издавали недоказуеми несъответствия).
+  if (input.flags?.bilingual === true) {
     drafts.push({
       slot: "flag.bilingual",
-      value: { kind: "flag", name: "bilingual", value: input.flags.bilingual },
-      required: false,
+      value: { kind: "flag", name: "bilingual", value: true },
+      required: true,
     });
   }
-  if (typeof input.flags?.arbitration === "boolean") {
+  if (input.flags?.arbitration === true) {
     drafts.push({
       slot: "flag.arbitration",
-      value: { kind: "flag", name: "arbitration", value: input.flags.arbitration },
-      required: false,
+      value: { kind: "flag", name: "arbitration", value: true },
+      required: true,
     });
   }
   return drafts;
 }
+
 
 // ---------------------------------------------------------------------------
 // Детерминирана проверка срещу ТЕКУЩИЯ документ
@@ -690,7 +738,7 @@ const normalizeDoc = (text: string): string =>
   (text ?? "").replace(/\r\n?/g, "\n").replace(/[ \t\u00A0]+/g, " ");
 
 /** Всички суми, намерени в текста, като канонични стойности. */
-function moneyCandidates(text: string): string[] {
+function moneyValues(text: string): string[] {
   const out = new Set<string>();
   const rx =
     /(\d[\d\s.,\u00A0]*\d|\d)\s*(EUR|BGN|USD|€|\$|евро|лв\.?|лева|лев|долар[аи]?)|(EUR|BGN|USD|€|\$|евро|лв\.?|лева|лев)\s*(\d[\d\s.,\u00A0]*\d|\d)/gi;
@@ -704,7 +752,7 @@ function moneyCandidates(text: string): string[] {
   return [...out];
 }
 
-function durationCandidates(text: string): string[] {
+function durationValues(text: string): string[] {
   const out = new Set<string>();
   const rx =
     /(\d{1,5})\s*(?:\([^)]{0,40}\)\s*)?(час(?:а|ове)?|дни|дена|ден|седмиц(?:а|и)|месец(?:а|и)?|годин(?:а|и)|hours?|days?|weeks?|months?|years?)/gi;
@@ -716,7 +764,7 @@ function durationCandidates(text: string): string[] {
   return [...out];
 }
 
-function dateCandidates(text: string): string[] {
+function dateValues(text: string): string[] {
   const out = new Set<string>();
   for (const m of text.matchAll(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/g)) {
     const d = canonicalDate(`${m[1]}-${m[2]}-${m[3]}`);
@@ -731,6 +779,284 @@ function dateCandidates(text: string): string[] {
     if (d) out.add(`date|${d}`);
   }
   return [...out];
+}
+
+// ---------------------------------------------------------------------------
+// Q4b(1) — СЛОТОВО ОБВЪРЗВАНЕ на кандидатите
+//
+// Глобалните множества по ВИД не доказват нищо за слота: ако очакваната
+// `money.price = 1000 EUR` липсва, но в текста има `неустойка 1000 EUR`,
+// commitment-ите съвпадат и твърдението „минава" погрешно. Затова кандидатите
+// се търсят САМО в прозорец около ЗАТВОРЕН лексикален котвен израз за ТОЧНО
+// ТОЗИ слот. Стойност от друг слот НИКОГА не удовлетворява твърдението, дори да
+// е идентична. Липса на закотвена стойност за изискван слот = несъответствие;
+// двусмислие не се гадае.
+// ---------------------------------------------------------------------------
+
+/** Затворени котвени изрази (BG + EN) за всеки слот със стойност в текста. */
+const SLOT_ANCHOR_ALTS: Partial<Record<IntentSlot, string[]>> = {
+  "money.price": [
+    "цена",
+    "цената",
+    "цени",
+    "продажна цена",
+    "продажната цена",
+    "възнаграждение",
+    "възнаграждението",
+    "стойност на договора",
+    "стойността на договора",
+    "обща стойност",
+    "общата стойност",
+    "price",
+    "purchase price",
+    "contract price",
+    "total price",
+    "fee",
+    "fees",
+    "remuneration",
+  ],
+  "money.rent": [
+    "наем",
+    "наема",
+    "наемът",
+    "наемна цена",
+    "наемната цена",
+    "месечен наем",
+    "месечният наем",
+    "наемна вноска",
+    "наемната вноска",
+    "rent",
+    "monthly rent",
+    "rental price",
+  ],
+  "money.penalty": [
+    "неустойка",
+    "неустойката",
+    "неустойки",
+    "неустойките",
+    "penalty",
+    "penalties",
+    "liquidated damages",
+  ],
+  "money.deposit": [
+    "депозит",
+    "депозита",
+    "депозитът",
+    "гаранционна сума",
+    "гаранционната сума",
+    "гаранция",
+    "deposit",
+    "security deposit",
+  ],
+  "duration.term": [
+    "срок на договора",
+    "срокът на договора",
+    "срок на настоящия договор",
+    "срокът на настоящия договор",
+    "срок на действие",
+    "срокът на действие",
+    "продължителност",
+    "продължителността",
+    "term of the contract",
+    "term of the agreement",
+    "contract term",
+    "duration",
+  ],
+  "duration.notice": [
+    "предизвестие",
+    "предизвестието",
+    "срок на предизвестие",
+    "срокът на предизвестие",
+    "notice",
+    "notice period",
+  ],
+  "duration.payment": [
+    "срок за плащане",
+    "срокът за плащане",
+    "срок на плащане",
+    "срокове за плащане",
+    "payment term",
+    "payment terms",
+    "payment period",
+    "payment deadline",
+  ],
+  "date.start": [
+    "начална дата",
+    "началната дата",
+    "дата на започване",
+    "датата на започване",
+    "дата на влизане в сила",
+    "влиза в сила",
+    "влиза в сила от",
+    "start date",
+    "commencement date",
+    "effective date",
+  ],
+  "date.end": [
+    "крайна дата",
+    "крайната дата",
+    "дата на завършване",
+    "дата на приключване",
+    "дата на изтичане",
+    "end date",
+    "expiry date",
+    "expiration date",
+    "termination date",
+  ],
+  "date.signing": [
+    "дата на подписване",
+    "датата на подписване",
+    "подписан на",
+    "подписан в",
+    "сключен на",
+    "сключен в",
+    "signing date",
+    "date of signing",
+    "signed on",
+    "executed on",
+  ],
+};
+
+const escapeRx = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** Границата се пази ръчно — `\b` не работи за кирилица. */
+const anchorRegexFor = (slot: IntentSlot): RegExp | null => {
+  const alts = SLOT_ANCHOR_ALTS[slot];
+  if (!alts || alts.length === 0) return null;
+  const body = [...alts]
+    .sort((a, b) => b.length - a.length)
+    .map((a) => escapeRx(a).replace(/\s+/g, "\\s+"))
+    .join("|");
+  return new RegExp(`(?<![А-Яа-яA-Za-z])(?:${body})(?![А-Яа-яA-Za-z])`, "gi");
+};
+
+const ANCHOR_RX_CACHE = new Map<IntentSlot, RegExp | null>();
+const anchorRegexCached = (slot: IntentSlot): RegExp | null => {
+  if (!ANCHOR_RX_CACHE.has(slot)) ANCHOR_RX_CACHE.set(slot, anchorRegexFor(slot));
+  return ANCHOR_RX_CACHE.get(slot) ?? null;
+};
+
+interface AnchorHit {
+  slot: IntentSlot;
+  start: number;
+  end: number;
+}
+
+/**
+ * Всички котви за даден ВИД, с разрешаване на застъпвания: по-дългият (по-
+ * специфичният) израз печели („наемна цена" > „цена"); при РАВНА дължина и
+ * различен слот застъпването е двусмислено и ОТПАДА изцяло.
+ */
+function anchorHits(text: string, kind: IntentKind): AnchorHit[] {
+  const raw: AnchorHit[] = [];
+  for (const slot of INTENT_SLOTS) {
+    if (SLOT_KIND[slot] !== kind) continue;
+    const rx = anchorRegexCached(slot);
+    if (!rx) continue;
+    for (const m of text.matchAll(rx)) {
+      const start = m.index ?? 0;
+      raw.push({ slot, start, end: start + m[0].length });
+    }
+  }
+  raw.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
+  const kept: AnchorHit[] = [];
+  for (const hit of raw) {
+    const idx = kept.findIndex((k) => hit.start < k.end && k.start < hit.end);
+    if (idx < 0) {
+      kept.push(hit);
+      continue;
+    }
+    const other = kept[idx];
+    if (other.slot === hit.slot) continue;
+    const lenOther = other.end - other.start;
+    const lenHit = hit.end - hit.start;
+    if (lenHit > lenOther) {
+      kept.splice(idx, 1, hit);
+    } else if (lenHit === lenOther) {
+      kept.splice(idx, 1); // двусмислено → и двете отпадат
+    }
+  }
+  return kept.sort((a, b) => a.start - b.start);
+}
+
+/** Прозорец след котвата — покрива и „заглавие + следващо тяло". */
+const ANCHOR_WINDOW = 260;
+
+function slotWindows(text: string, slot: IntentSlot): string[] {
+  const hits = anchorHits(text, SLOT_KIND[slot]);
+  const out: string[] = [];
+  for (let i = 0; i < hits.length; i++) {
+    if (hits[i].slot !== slot) continue;
+    let limit = Math.min(text.length, hits[i].end + ANCHOR_WINDOW);
+    for (let j = i + 1; j < hits.length; j++) {
+      if (hits[j].slot !== slot) {
+        // Прозорецът НЕ преминава в чужд слот — иначе „Цена ... Неустойка 1000"
+        // би удовлетворило цената.
+        limit = Math.min(limit, hits[j].start);
+        break;
+      }
+    }
+    if (limit > hits[i].end) out.push(text.slice(hits[i].end, limit));
+  }
+  return out;
+}
+
+/** Кандидати САМО от закотвените за слота прозорци. */
+function anchoredCandidates(text: string, slot: IntentSlot): string[] {
+  const kind = SLOT_KIND[slot];
+  const extract = kind === "money" ? moneyValues : kind === "duration" ? durationValues : dateValues;
+  const out = new Set<string>();
+  for (const window of slotWindows(text, slot)) {
+    for (const v of extract(window)) out.add(v);
+  }
+  return [...out];
+}
+
+// ---------------------------------------------------------------------------
+// Q4b(2) — НАБЛЮДАЕМИ структурни факти (от РЕЗУЛТАТА, не от входа)
+// ---------------------------------------------------------------------------
+
+const trimmed = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
+
+/**
+ * Двуезичността се извежда от РЕАЛНАТА структура на готовия договор:
+ * английските полета трябва да са налични КОНСИСТЕНТНО. Само зададено
+ * `bilingual: true` без английско съдържание НЕ е двуезичен документ.
+ * `null` = структурата не позволява извод (непроверимо).
+ */
+export function detectBilingualStructure(contract: unknown): boolean | null {
+  if (!contract || typeof contract !== "object" || Array.isArray(contract)) return null;
+  const c = contract as Record<string, unknown>;
+  const clauses = Array.isArray(c.clauses) ? c.clauses : null;
+  const hasTitle = !!trimmed(c.title);
+  if (!clauses && !hasTitle) return null;
+  const titleEn = !!trimmed(c.title_en);
+
+  let body = 0;
+  let withEn = 0;
+  for (const raw of clauses ?? []) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+    const cl = raw as Record<string, unknown>;
+    if (!trimmed(cl.text) && !trimmed(cl.title)) continue;
+    body++;
+    if (trimmed(cl.text_en) || trimmed(cl.title_en)) withEn++;
+  }
+  if (body === 0) return hasTitle ? titleEn : null;
+  return titleEn && withEn === body;
+}
+
+/** Строга котва за арбитражна клауза (BG + EN). */
+const ARBITRATION_RX =
+  /(?<![А-Яа-яA-Za-z])(?:арбитраж[А-Яа-я]*|арбитражен\s+съд|arbitration|arbitral|arbitrator)(?![А-Яа-яA-Za-z])/i;
+
+/**
+ * Арбитражът се извежда от РЕАЛНИЯ текст на документа, а НЕ от избора на входа.
+ * `null` = текстът е твърде кратък, за да е доказателство (непроверимо).
+ */
+export function detectArbitrationInText(text: unknown): boolean | null {
+  const s = typeof text === "string" ? text : "";
+  if (s.trim().length < 120) return null;
+  return ARBITRATION_RX.test(s);
 }
 
 /** Ролеви думи в текста — за да е ДЕТЕРМИНИРАНА посоката (страна А / страна Б). */
@@ -804,14 +1130,20 @@ export const EMPTY_INTENT_REPORT: IntentVerificationReport = {
  * Сравнението е върху HMAC commitment-и: очакваната стойност НИКОГА не е налична
  * в явен вид и не може да бъде показана или обърната.
  *
- * Валидно твърдение НЕ поражда бележка само защото в документа има ДРУГИ,
- * несвързани суми/дати — проверява се ПРИНАДЛЕЖНОСТ към множеството кандидати.
+ * Q4b(1): кандидатите за суми/срокове/дати са СЛОТОВО ОБВЪРЗАНИ — търсят се само
+ * в прозорец около затворена котва за ТОЧНО ТОЗИ слот. Идентична стойност в друг
+ * слот НЕ удовлетворява твърдението.
+ * Q4b(2): флаговете се проверяват срещу НАБЛЮДАЕМ факт от резултата; когато
+ * фактът не може да се изведе, статусът е `unverifiable`, никога „satisfied".
  */
 export async function verifyIntentAssertions(input: {
   assertions: readonly IntentAssertion[];
   documentText: string;
   serverSecret: string | null;
-  /** Реални структурни факти за флаговете (флаговете не се четат от текста). */
+  /**
+   * НАБЛЮДАВАНИ структурни факти, изведени от РЕЗУЛТАТА (не от входа).
+   * Липсващ/`undefined` флаг → непроверим, не „удовлетворен".
+   */
   structuralFlags?: { bilingual?: boolean; arbitration?: boolean } | null;
 }): Promise<IntentVerificationReport> {
   const assertions = Array.isArray(input.assertions) ? input.assertions : [];
@@ -821,23 +1153,23 @@ export async function verifyIntentAssertions(input: {
   }
   const text = normalizeDoc(input.documentText ?? "");
 
-  const cache = new Map<IntentKind, string[]>();
-  const candidatesFor = (kind: IntentKind): string[] => {
-    const hit = cache.get(kind);
+  const cache = new Map<IntentSlot, string[]>();
+  const candidatesFor = (slot: IntentSlot): string[] => {
+    const hit = cache.get(slot);
     if (hit) return hit;
+    const kind = SLOT_KIND[slot];
     let list: string[] = [];
-    if (kind === "money") list = moneyCandidates(text);
-    else if (kind === "duration") list = durationCandidates(text);
-    else if (kind === "date") list = dateCandidates(text);
-    else if (kind === "party_role") list = partyRoleCandidates(text);
-    else if (kind === "flag") {
+    if (kind === "money" || kind === "duration" || kind === "date") {
+      list = anchoredCandidates(text, slot);
+    } else if (kind === "party_role") {
+      list = partyRoleCandidates(text);
+    } else if (kind === "flag") {
       const f = input.structuralFlags;
-      if (f && typeof f === "object") {
-        if (typeof f.bilingual === "boolean") list.push(`flag|bilingual|${f.bilingual}`);
-        if (typeof f.arbitration === "boolean") list.push(`flag|arbitration|${f.arbitration}`);
-      }
+      const name: IntentFlagName = slot === "flag.bilingual" ? "bilingual" : "arbitration";
+      const fact = f && typeof f === "object" ? f[name] : undefined;
+      if (typeof fact === "boolean") list = [`flag|${name}|${fact}`];
     }
-    cache.set(kind, list);
+    cache.set(slot, list);
     return list;
   };
 
@@ -849,10 +1181,10 @@ export async function verifyIntentAssertions(input: {
       meta: a.meta,
       required: a.required,
     };
-    const candidates = candidatesFor(a.kind);
+    const candidates = candidatesFor(a.slot);
     if (candidates.length === 0) {
-      // Няма нито един кандидат от този вид: за флаг без структурен факт това е
-      // непроверимо; за стойност в текста това е ДОКАЗАНА липса.
+      // Флаг без наблюдаем факт → непроверим. Стойност без ЗАКОТВЕН кандидат за
+      // точно този слот → ДОКАЗАНА липса (несъответствие), не догадка.
       results.push({ ...base, status: a.kind === "flag" ? "unverifiable" : "mismatch" });
       continue;
     }
@@ -870,6 +1202,7 @@ export async function verifyIntentAssertions(input: {
     }
     results.push({ ...base, status: satisfied ? "satisfied" : "mismatch" });
   }
+
 
   return {
     policy_version: INTENT_POLICY_VERSION,

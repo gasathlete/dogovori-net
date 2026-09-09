@@ -28,6 +28,8 @@ import {
   buildIntentAssertions,
   extractIntentDrafts,
   verifyIntentAssertions,
+  detectBilingualStructure,
+  detectArbitrationInText,
 } from "../_shared/intent-assertions.ts";
 
 
@@ -541,18 +543,22 @@ ${fieldsSection}
       const signingSecret = qualitySigningSecretFromEnv();
       if (!signingSecret) console.error("quality manifest signing key unavailable");
       // Q4b — намерението се извлича САМО от структурираните полета на съветника
-      // (`customFields`: ключ/етикет/стойност). Свободните полета `term`/`prices`
-      // са проза и НЕ дават твърдение — намерение не се домисля.
+      // (`customFields`) и от АВТОРИТЕТНИТЕ наименовани полета `term`/`prices`,
+      // където слотът е известен от името на полето. От тях се приема твърдение
+      // само при ТОЧНО ЕДИН недвусмислен кандидат; при нула или няколко —
+      // нищо. От `subject`/`obligations`/`other` НИКОГА не се домисля намерение.
       const intents = signingSecret
         ? await buildIntentAssertions({
           serverSecret: signingSecret,
           drafts: extractIntentDrafts({
             questions: safeCustomFields.map((f) => ({ id: f.key, label: f.label })),
             answers: Object.fromEntries(safeCustomFields.map((f) => [f.key, f.value])),
+            structured: { term, prices },
             flags: { bilingual: safeBilingual },
           }),
         })
         : [];
+
       const qualityManifest = signingSecret ? await buildQualityManifest({
         origin: "build-custom-contract",
         signingSecret,
@@ -586,13 +592,18 @@ ${fieldsSection}
         trustedManifest: !!qualityManifest,
       });
       // Детерминираната проверка се слива СЛЕД gate-а — без ново AI повикване и
-      // без начисляване на операция.
+      // без начисляване на операция. Структурните факти са НАБЛЮДАВАНИ от
+      // резултата, не копирани от входа.
       const intentReport = await verifyIntentAssertions({
         assertions: intents,
         documentText,
         serverSecret: signingSecret,
-        structuralFlags: { bilingual: safeBilingual },
+        structuralFlags: {
+          bilingual: detectBilingualStructure(parsed.contract) ?? undefined,
+          arbitration: detectArbitrationInText(documentText) ?? undefined,
+        },
       });
+
       const withIntent = mergeIntentFindingsIntoRisk({ risk: gated.risk, report: intentReport });
       parsed.risk = withIntent.risk;
       parsed.quality = { ...gated.quality, intent: { checked: intentReport.checked, satisfied: intentReport.satisfied, mismatched: intentReport.mismatched_required.length } };
