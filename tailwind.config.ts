@@ -124,6 +124,16 @@ export default {
           "100%": { transform: "translateX(420%) skewX(12deg)", opacity: "0" },
         },
         "revealUp": { "0%": { opacity: "0", transform: "translateY(18px)" }, "100%": { opacity: "1", transform: "translateY(0)" } },
+        // Еднократни, спокойни жестове — без безкрайно търсене на внимание.
+        "scan-line": {
+          "0%": { transform: "scaleX(0)", opacity: "0" },
+          "35%": { opacity: "1" },
+          "100%": { transform: "scaleX(1)", opacity: "0.9" },
+        },
+        "panel-pop": {
+          "0%": { opacity: "0.55", transform: "translateY(4px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
         "pulse-twice": {
           "0%, 100%": { transform: "scale(1)", opacity: "1" },
           "50%": { transform: "scale(1.04)", opacity: "0.85" },
@@ -137,6 +147,8 @@ export default {
         "glow": "glow 2.5s ease-in-out infinite",
         "marquee": "marquee 40s linear infinite",
         "pulse-twice": "pulse-twice 1.1s ease-in-out 2",
+        "scan-line": "scan-line 1.4s cubic-bezier(0.22, 1, 0.36, 1) 1 both",
+        "panel-pop": "panel-pop 0.2s cubic-bezier(0.22, 1, 0.36, 1) 1 both",
       },
     },
   },

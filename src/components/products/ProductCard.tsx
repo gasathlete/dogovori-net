@@ -6,6 +6,7 @@ import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { ArrowRight, Check } from "@/icons";
 import { ProductDemo } from "@/components/products/ProductDemo";
 import {
+  isFeaturedProduct,
   ONE_TIME_TERMS,
   PRODUCT_EVENTS,
   productPriceLabel,
@@ -27,6 +28,8 @@ export function ProductCard({
   const compact = variant === "compact";
   const outcomes = compact ? product.outcomes.slice(0, 3) : product.outcomes;
   const headingId = `product-${product.id}-title`;
+  // Контролирано подчертаване — по-плътна рамка и дълбочина, без скок в размера.
+  const featured = isFeaturedProduct(product.id);
 
   return (
     <li>
@@ -34,7 +37,13 @@ export function ProductCard({
         aria-labelledby={headingId}
         data-product-id={product.id}
         data-variant={variant}
-        className="group relative flex h-full flex-col gap-3 overflow-hidden rounded-2xl border border-border/70 bg-card/60 p-4 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/50 hover:shadow-elegant sm:p-5"
+        data-featured={featured ? "true" : undefined}
+        className={
+          "group relative flex h-full flex-col gap-3 overflow-hidden rounded-2xl bg-card/60 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-gold/50 hover:shadow-elegant sm:p-5 " +
+          (featured
+            ? "border-2 border-gold/45 shadow-elegant ring-1 ring-gold/15"
+            : "border border-border/70 shadow-soft")
+        }
       >
         <span
           aria-hidden="true"
@@ -55,7 +64,7 @@ export function ProductCard({
               {product.name}
             </h3>
           </div>
-          <p className="shrink-0 text-right font-serif text-lg font-bold text-gold sm:text-xl">
+          <p className="shrink-0 text-right font-serif text-xl font-bold tabular-nums text-gold sm:text-2xl">
             {productPriceLabel(product.id)}
           </p>
         </header>
@@ -88,7 +97,7 @@ export function ProductCard({
               variant,
             })
           }
-          className="btn-gold btn-press inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-[14px] font-semibold"
+          className="btn-gold btn-press inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-[14px] font-bold tracking-tight transition-transform duration-200"
         >
           {product.ctaLabel}
           <ArrowRight className="h-4 w-4" />

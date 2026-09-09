@@ -67,6 +67,19 @@ describe("мобилен продуктов превключвател", () => {
     ).toHaveAttribute("href", product.ctaHref);
   });
 
+  it("отварянето на подробностите е дедупликирано по източник и продукт", async () => {
+    render(wrap(<MobileProductSwitcher source="home" />));
+    const summary = screen.getByText("Какво получавам");
+    await userEvent.click(summary);
+    const calls = vi.mocked(trackFunnelEvent).mock.calls.filter(
+      (c) => c[0] === "product_details_opened",
+    );
+    expect(calls.length).toBeGreaterThan(0);
+    expect(calls[0][2]).toEqual(
+      expect.objectContaining({ dedupKey: "home|contract_check" }),
+    );
+  });
+
   it("смяната на опция сменя панела, цените са винаги видими", async () => {
     render(wrap(<MobileProductSwitcher source="home" />));
     for (const id of ["contract_check", "contract_improve", "business_contract_map"] as const) {
@@ -84,9 +97,10 @@ describe("мобилен продуктов превключвател", () => {
   });
 });
 
-describe("мобилен начален екран", () => {
+describe("мобилен начален екран и граф на модулите", () => {
   const index = read("src/pages/Index.tsx");
-  const mobileBranch = index.slice(index.indexOf('data-home-variant="mobile"'), index.indexOf('data-home-variant="desktop"'));
+  const desktop = read("src/components/home/DesktopHome.tsx");
+  const mobileBranch = index.slice(index.indexOf('data-home-variant="mobile"'), index.indexOf("<DesktopHome"));
 
   it("съдържа само кратката композиция", () => {
     for (const c of ["MobileHero", "MobileTrustRow", "ProductsSection", "MobileEssentials", "MobileFinalCta", "SeoFooter"]) {
@@ -94,8 +108,26 @@ describe("мобилен начален екран", () => {
     }
   });
 
-  it("не рендира дългата десктоп поредица на телефон", () => {
+  it("десктоп-only модулите не са в мобилния граф на входа", () => {
+    for (const m of [
+      "@/components/Hero",
+      "@/components/home/PrimaryChoice",
+      "@/components/SectionBackdrop",
+      "@/components/LazyOnVisible",
+      "@/data/featuredBlanks",
+      "@/lib/templateIndex",
+    ]) {
+      expect(index).not.toContain(m);
+    }
+    // Десктоп композицията се внася само лениво.
+    expect(index).toMatch(/lazy\(\(\) => import\("@\/components\/home\/DesktopHome"\)/);
+  });
+
+  it("десктоп поредицата остава пълна в отделния модул", () => {
     for (const c of [
+      "Hero",
+      "SocialProofStrip",
+      "ProductsSection",
       "PrimaryChoice",
       "FeaturedBlanks",
       "PlatformCapabilities",
@@ -106,18 +138,21 @@ describe("мобилен начален екран", () => {
       "ComparisonTable",
       "ComplianceSection",
       "DogovaryAIShowcase",
-      "<FAQ",
+      "FAQ",
       "CTABand",
     ]) {
-      expect(mobileBranch).not.toContain(c);
+      expect(desktop).toContain(c);
     }
   });
 
-  it("десктоп поредицата остава непокътната", () => {
-    const desktop = index.slice(index.indexOf('data-home-variant="desktop"'));
-    for (const c of ["Hero", "SocialProofStrip", "ProductsSection", "PrimaryChoice", "FAQ", "CTABand"]) {
-      expect(desktop).toContain(c);
-    }
+  it("на телефон не се пуска prefetch на каталога, нито каталожният индекс", () => {
+    expect(index).toMatch(/if \(isMobile\) return;\s*\n\s*return prefetchOnIdle/);
+    expect(index).toContain("if (isMobile || !shouldPrefetch()) return;");
+  });
+
+  it("базовото SEO остава вярно — FAQ винаги, ItemList само когато е наличен", () => {
+    expect(index).toContain("buildFaqJsonLd()");
+    expect(index).toContain("itemList ? [itemList, buildFaqJsonLd()] : [buildFaqJsonLd()]");
   });
 });
 
@@ -125,8 +160,16 @@ describe("мобилни наслоявания и профил", () => {
   const app = read("src/App.tsx");
   const mobileOverlays = app.slice(app.indexOf("if (isMobile) {"), app.indexOf("  return (\n    <Suspense fallback={null}>"));
 
-  it("на телефон не се монтират плаващи помощници и попъпи", () => {
+  it("на телефон се монтират точно три компонента", () => {
+    const mounted = [...mobileOverlays.matchAll(/<([A-Z][A-Za-z]+) \/>/g)].map((m) => m[1]);
+    expect(mounted).toEqual(["PaymentTestModeBanner", "CookieBanner", "MobileBottomNav"]);
+  });
+
+  it("нито предупредителен модал, нито празнични/upgrade слушатели на телефон", () => {
     for (const c of [
+      "BetaDisclaimerModal",
+      "GlobalProUpgradeListener",
+      "ActionCelebrationHost",
       "ExitIntentLeadMagnet",
       "EntrepreneurAdPopup",
       "FreeWelcomeDialog",
@@ -138,23 +181,98 @@ describe("мобилни наслоявания и профил", () => {
     }
   });
 
-  it("остават безопасността, плащането и долната навигация", () => {
-    for (const c of ["PaymentTestModeBanner", "CookieBanner", "BetaDisclaimerModal", "MobileBottomNav"]) {
-      expect(mobileOverlays).toContain(c);
+  it("десктоп наслояванията остават непокътнати", () => {
+    const desktopOverlays = app.slice(app.indexOf("  return (\n    <Suspense fallback={null}>"));
+    for (const c of ["BetaDisclaimerModal", "GlobalProUpgradeListener", "ActionCelebrationHost", "CommandPalette", "DogovAIBubble"]) {
+      expect(desktopOverlays).toContain(c);
     }
   });
 
-  it("профилът води с документите на телефон, но явният таб печели", () => {
+  it("явният таб печели, а action=upload води към съществуващ раздел", () => {
     const account = read("src/pages/Account.tsx");
-    const init = account.slice(account.indexOf("const initialTab ="), account.indexOf("const initialTab =") + 260);
+    const init = account.slice(account.indexOf("const initialTab ="), account.indexOf("const activeContact"));
     expect(init.indexOf('params.get("tab")')).toBeLessThan(init.indexOf("isMobileViewport"));
     expect(init).toContain('"documents"');
     expect(init).toContain('"dashboard"');
-    const groups = account.slice(account.indexOf("const MOBILE_TAB_GROUPS"));
-    const body = groups.slice(0, groups.indexOf("\n];"));
-    expect(body.indexOf('"documents"')).toBeLessThan(body.indexOf('"dashboard"'));
-    expect(body.indexOf('"dashboard"')).toBeLessThan(body.indexOf('"subscription"'));
-    expect(body.indexOf('"subscription"')).toBeLessThan(body.indexOf('id: "more"'));
+    expect(init).not.toContain('"uploaded"');
+  });
+
+  it("мобилната навигация на профила е стабилна решетка, не хоризонтална лента", () => {
+    const nav = read("src/pages/account/MobileAccountNav.tsx");
+    expect(nav).toContain("grid-cols-3");
+    expect(nav).not.toContain("overflow-x-auto");
+    expect(nav).not.toContain("minWidth");
+    const account = read("src/pages/Account.tsx");
+    const primary = account.slice(account.indexOf("const MOBILE_PRIMARY_TABS"), account.indexOf("const MOBILE_SECONDARY_TABS"));
+    expect([...primary.matchAll(/label: "([^"]+)"/g)].map((m) => m[1])).toEqual([
+      "Документи",
+      "Начало",
+      "План",
+    ]);
+    expect(account).toContain("<MobileAccountNav");
+  });
+});
+
+describe("мобилен хедър", () => {
+  const header = read("src/components/Header.tsx");
+
+  it("има стабилна височина 58px на телефон, без промяна на десктоп", () => {
+    expect(header).toContain('h-[58px] lg:h-14');
+    expect(header).toContain('h-[58px] lg:h-16');
+    expect(header).not.toContain("h-[68px]");
+    expect(header).toContain("max-h-[calc(100dvh-58px)]");
+  });
+
+  it("не повтаря Профил и дава един път изход/вход", () => {
+    const menu = header.slice(header.indexOf('aria-label="Мобилна навигация"'));
+    expect(menu).not.toContain("Моят профил");
+    expect(menu).not.toContain("Регистрация — без карта");
+    expect((menu.match(/Изход/g) ?? []).length).toBe(1);
+  });
+});
+
+describe("увереност и ясен резултат", () => {
+  const hero = read("src/components/home/MobileHero.tsx");
+
+  it("мобилното hero води с резултат, цена и едно действие", () => {
+    expect(hero).toContain("Вашият договор.");
+    expect(hero).toContain("Проверен. Поправен.");
+    expect(hero).toContain("lowestOneTimePriceLabel()");
+    expect(hero).toContain("еднократно");
+    expect(hero).toContain("Изберете резултат");
+    expect(hero).toContain("Изготви нов договор");
+  });
+
+  it("не обещава измерено време, адвокатски преглед или безопасност за подпис", () => {
+    for (const bad of ["минут", "секунд", "адвокат", "безопасно за подпис"]) {
+      expect(hero.toLowerCase()).not.toContain(bad);
+    }
+  });
+
+  it("акцентът е code-native и уважава reduced motion", () => {
+    expect(hero).toContain("motion-safe:animate-scan-line");
+    expect(hero).not.toMatch(/<img|<video/);
+  });
+
+  it("предпочитаният продукт получава контролирано подчертаване на десктоп", () => {
+    const card = read("src/components/products/ProductCard.tsx");
+    expect(card).toContain("isFeaturedProduct");
+    expect(card).toContain('data-featured');
+    expect(card).toContain("border-2 border-gold/45");
+    expect(card).not.toMatch(/scale-1[1-9]/);
+  });
+
+  it("трите стъпки са компактни и без обещание за време", () => {
+    const strip = read("src/components/products/StepsStrip.tsx");
+    for (const label of ["Избирате", "Качвате", "Получавате"]) {
+      expect(strip).toContain(label);
+    }
+    expect(strip.toLowerCase()).not.toMatch(/минут|секунд|часа/);
+    expect(read("src/pages/Products.tsx")).toContain("<StepsStrip />");
+  });
+
+  it("„Разгледайте нашите продукти“ остава точната водеща фраза", () => {
+    expect(read("src/pages/Products.tsx")).toContain("Разгледайте нашите продукти");
   });
 });
 

@@ -57,7 +57,7 @@ describe("Hero — едно основно действие към /start", () =
 });
 
 describe("Index — премахната мъртва plumbing", () => {
-  const src = read("src/pages/Index.tsx");
+  const src = read("src/components/home/DesktopHome.tsx");
   it("Hero се рендира без props и без startInterview", () => {
     expect(src).toContain("<Hero />");
     expect(src).not.toContain("startInterview");

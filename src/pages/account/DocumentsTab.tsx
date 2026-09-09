@@ -122,7 +122,6 @@ function DocumentsTab({
     });
   const toggleSelected = (id: string, v: boolean) =>
     setSelectedIds((prev) => (v ? [...prev, id] : prev.filter((x) => x !== id)));
-  const hasMobileViewport = typeof window !== "undefined" && window.innerWidth < 640;
   const isMobile = useIsMobileViewport();
   const upcomingReminders = reminders
     .filter((r) => !r.done_at)
@@ -328,7 +327,7 @@ function DocumentsTab({
           </button>
         ))}
       </aside>
-      <div className={hasMobileViewport ? "flex flex-col gap-8 pb-24" : "flex flex-col gap-8"}>
+      <div className={isMobile ? "flex flex-col gap-8 pb-24" : "flex flex-col gap-8"}>
         {upcomingReminders.length > 0 && (
           <MobileCollapse mobile={isMobile} title="Напомняния">
           <section className="rounded-xl border border-gold/30 bg-gold/5 p-4">

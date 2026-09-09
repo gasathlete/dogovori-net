@@ -46,7 +46,7 @@ export function Header() {
   const [open, setOpen] = useState(false);
   const [guestOpen, setGuestOpen] = useState(false);
   const guestRef = useRef<HTMLDivElement>(null);
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { count: unreadCount } = useUnreadNotifications();
   const navigate = useNavigate();
   const location = useLocation();
@@ -89,8 +89,10 @@ export function Header() {
     >
       <div
         className={cn(
+          // Мобилната височина е стабилна 58px (не скача при скрол);
+          // десктоп височините остават непроменени.
           "container flex items-center justify-between gap-3 transition-[height] duration-300 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-6",
-          scrolled ? "h-16 lg:h-14" : "h-[68px] lg:h-16",
+          scrolled ? "h-[58px] lg:h-14" : "h-[58px] lg:h-16",
         )}
       >
         {/* Zone 1 — Brand */}
@@ -251,7 +253,7 @@ export function Header() {
           aria-label="Мобилна навигация"
           className="origin-top animate-accordion-down overflow-hidden border-t border-gold/20 bg-background lg:hidden"
         >
-          <div className="container flex max-h-[calc(100dvh-68px)] flex-col gap-5 overflow-y-auto py-5">
+          <div className="container flex max-h-[calc(100dvh-58px)] flex-col gap-4 overflow-y-auto py-4">
             {(() => {
               const renderItem = (n: { to: string; label: string }) => {
                 if (n.to === "__tools__") {
@@ -301,47 +303,24 @@ export function Header() {
                     </summary>
                     <div className="flex flex-col gap-1 border-t border-border/50 p-2">
                       {MOBILE_MORE.map(renderItem)}
+                      {/* Излизането от профила съществува точно веднъж — тук. */}
+                      {user && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpen(false);
+                            void signOut();
+                          }}
+                          className="flex min-h-[48px] items-center gap-2 rounded-lg border border-transparent px-3.5 text-left text-[15px] font-medium text-muted-foreground transition-colors duration-200 hover:border-border/60 hover:text-foreground"
+                        >
+                          Изход
+                        </button>
+                      )}
                     </div>
                   </details>
                 </>
               );
             })()}
-
-            {/* Профил */}
-            <div>
-              <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/70">
-                Профил
-              </p>
-              <div className="flex flex-col gap-1">
-                {user ? (
-                  <Link
-                    to="/account"
-                    onClick={() => setOpen(false)}
-                    {...prefetchHandlers("/account")}
-                    className="flex min-h-[48px] items-center rounded-lg border border-gold/40 bg-gold/[0.08] px-3.5 text-[15px] font-semibold text-gold"
-                  >
-                    Моят профил
-                  </Link>
-                ) : (
-                  <>
-                    <Link
-                      to="/auth"
-                      onClick={() => setOpen(false)}
-                      className="flex min-h-[48px] items-center rounded-lg border border-border/60 px-3.5 text-[15px] font-medium text-foreground/85"
-                    >
-                      Вход
-                    </Link>
-                    <Link
-                      to="/auth?mode=signup"
-                      onClick={() => setOpen(false)}
-                      className="flex min-h-[48px] items-center rounded-lg border border-gold/40 bg-gold/[0.08] px-3.5 text-[15px] font-semibold text-gold"
-                    >
-                      Регистрация — без карта
-                    </Link>
-                  </>
-                )}
-              </div>
-            </div>
 
             {/* Настройки */}
             <div className="flex items-center justify-between rounded-lg border border-border/60 bg-card/40 px-3.5 py-2.5">

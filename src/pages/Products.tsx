@@ -5,7 +5,8 @@ import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
 import { SeoFooter } from "@/components/SeoFooter";
 import { ProductCards } from "@/components/products/ProductCards";
-import { ONE_TIME_PRODUCTS, ONE_TIME_TERMS } from "@/lib/products";
+import { StepsStrip } from "@/components/products/StepsStrip";
+import { ONE_TIME_PRODUCTS, ONE_TIME_TERMS, lowestOneTimePriceLabel } from "@/lib/products";
 
 const jsonLd = [
   {
@@ -50,19 +51,30 @@ export default function Products() {
       />
       <Header />
       <main className="route-fade min-h-dvh pb-16">
-        <section className="container pt-8 sm:pt-12">
+        <section className="container pt-7 sm:pt-12">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gold">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
               Продукти
             </p>
-            <h1 className="mt-2 font-serif text-3xl font-bold leading-tight sm:text-4xl">
+            <h1 className="mt-2 font-serif text-[30px] font-bold leading-[1.1] tracking-tight sm:text-4xl">
               Разгледайте нашите продукти
             </h1>
-            <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Избирате резултата, който ви трябва днес — за един договор или за
-              цялата договорна организация на бизнеса ви.
+            <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">
+              Един договор или цялата ви договорна организация — избирате точния
+              резултат и го получавате на един екран.
             </p>
-            <p className="mt-3 text-[12px] font-medium text-muted-foreground">
+            <p className="mt-4 inline-flex items-baseline gap-2 rounded-lg border border-gold/25 bg-gold/[0.07] px-3 py-1.5">
+              <span className="font-serif text-[22px] font-bold tabular-nums text-gold">
+                от {lowestOneTimePriceLabel()}
+              </span>
+              <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                еднократно
+              </span>
+            </p>
+            <div className="mt-5">
+              <StepsStrip />
+            </div>
+            <p className="mt-4 text-[12px] font-medium text-muted-foreground">
               {ONE_TIME_TERMS}
             </p>
           </div>

@@ -18,7 +18,8 @@ import { Seo } from "@/components/Seo";
 import { useIsMobileViewport } from "@/hooks/useMediaQuery";
 
 import { ScrollableTabsList } from "./account/ScrollableTabsList";
-import type { Contact, Folder, SavedDoc, Quota, UploadedContract, RiskAnalysisLite, TabGroup } from "./account/ScrollableTabsList";
+import { MobileAccountNav } from "./account/MobileAccountNav";
+import type { Contact, Folder, SavedDoc, Quota, UploadedContract, RiskAnalysisLite, TabGroup, TabDef } from "./account/ScrollableTabsList";
 
 // Lazy-load tabs — only the active tab parses its JS on first visit.
 const Dashboard = lazy(() => import("./account/DashboardTab"));
@@ -77,27 +78,24 @@ const TAB_GROUPS: TabGroup[] = [
 ];
 
 /**
- * На телефон водещото е „Документи"; вторичните раздели са под „Още", за да
- * няма безкрайна лента. Наборът от раздели е същият — само подредбата е друга.
+ * На телефон водещото е „Документи"; вторичните раздели живеят под „Още".
+ * Наборът от раздели е същият — само подредбата и плътността са различни.
  */
-const MOBILE_TAB_GROUPS: TabGroup[] = [
-  { id: "documents", label: "Документи", tabs: [{ value: "documents", label: "Документи", icon: FileText }] },
-  { id: "overview", label: "Начало", tabs: [{ value: "dashboard", label: "Табло", icon: Bird }] },
-  { id: "plan", label: "План", tabs: [{ value: "subscription", label: "Абонамент", icon: CreditCard }] },
-  {
-    id: "more",
-    label: "Още",
-    tabs: [
-      { value: "folders", label: "Папки", icon: FolderOpen },
-      { value: "kits", label: "Комплекти", icon: Package },
-      { value: "signed", label: "Подписани", icon: PenTool },
-      { value: "contacts", label: "Контрагенти", icon: Users },
-      { value: "deals", label: "Сделки", icon: Briefcase },
-      { value: "branding", label: "Брандиране", icon: Palette },
-      { value: "marketing", label: "Рекламни материали", icon: Megaphone },
-      { value: "settings", label: "Настройки", icon: SettingsIcon },
-    ],
-  },
+const MOBILE_PRIMARY_TABS: TabDef[] = [
+  { value: "documents", label: "Документи", icon: FileText },
+  { value: "dashboard", label: "Начало", icon: Bird },
+  { value: "subscription", label: "План", icon: CreditCard },
+];
+
+const MOBILE_SECONDARY_TABS: TabDef[] = [
+  { value: "folders", label: "Папки", icon: FolderOpen },
+  { value: "kits", label: "Комплекти", icon: Package },
+  { value: "signed", label: "Подписани", icon: PenTool },
+  { value: "contacts", label: "Контрагенти", icon: Users },
+  { value: "deals", label: "Сделки", icon: Briefcase },
+  { value: "branding", label: "Брандиране", icon: Palette },
+  { value: "marketing", label: "Реклама", icon: Megaphone },
+  { value: "settings", label: "Настройки", icon: SettingsIcon },
 ];
 
 function TabFallback() {
@@ -115,11 +113,7 @@ export default function AccountPage() {
   // Явно поисканият таб винаги печели; иначе на телефон водим с документите.
   const initialTab =
     params.get("tab") ??
-    (params.get("action") === "upload"
-      ? "uploaded"
-      : isMobileViewport
-        ? "documents"
-        : "dashboard");
+    (params.get("action") === "upload" || isMobileViewport ? "documents" : "dashboard");
   const activeContact = params.get("contact");
   const [autoOpenUpload] = useState(() => params.get("action") === "upload");
 
@@ -269,7 +263,15 @@ export default function AccountPage() {
         </div>
 
         <Tabs value={initialTab} onValueChange={onTabChange} className="space-y-4 md:grid md:grid-cols-[240px_1fr] md:gap-8 md:space-y-0 lg:grid-cols-[260px_1fr]">
-          <ScrollableTabsList groups={isMobileViewport ? MOBILE_TAB_GROUPS : TAB_GROUPS} value={initialTab} />
+          {isMobileViewport ? (
+            <MobileAccountNav
+              primary={MOBILE_PRIMARY_TABS}
+              secondary={MOBILE_SECONDARY_TABS}
+              value={initialTab}
+            />
+          ) : (
+            <ScrollableTabsList groups={TAB_GROUPS} value={initialTab} />
+          )}
 
           <div className="min-w-0">
             <TabsContent value="dashboard">
