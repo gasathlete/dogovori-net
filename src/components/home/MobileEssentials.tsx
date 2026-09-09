@@ -35,9 +35,9 @@ export function MobileEssentials() {
               <Link
                 to={e.to}
                 {...prefetchHandlers(e.to)}
-                className="flex min-h-[56px] items-center gap-3 rounded-xl border border-border/70 bg-card/50 px-3.5 transition-colors hover:border-gold/40"
+                className="flex min-h-[56px] items-center gap-3 rounded-xl border border-border/70 bg-card/50 px-3.5 transition-colors duration-200 hover:border-gold/40"
               >
-                <Icon className="h-[18px] w-[18px] shrink-0 text-gold/80" aria-hidden="true" />
+                <Icon className="h-[18px] w-[18px] shrink-0 text-muted-foreground" aria-hidden="true" />
                 <span className="min-w-0 flex-1">
                   <span className="block text-[14px] font-semibold text-foreground">{e.label}</span>
                   <span className="block text-[11.5px] text-muted-foreground">{e.hint}</span>
@@ -69,7 +69,7 @@ export function MobileFinalCta() {
           {...prefetchHandlers("/produkti")}
           className="btn-gold btn-press mt-3 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl text-[15px] font-bold"
         >
-          Разгледайте продуктите
+          Изберете резултат
           <ArrowRight className="h-4 w-4" />
         </Link>
       </div>

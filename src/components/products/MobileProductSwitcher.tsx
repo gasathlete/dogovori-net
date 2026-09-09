@@ -84,9 +84,9 @@ export function MobileProductSwitcher({ source }: { source: string }) {
               tabIndex={active ? 0 : -1}
               onClick={() => select(p.id)}
               className={
-                "flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-center transition-colors " +
+                "flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-center transition-all duration-200 active:scale-[0.98] " +
                 (active
-                  ? "bg-gold/[0.12] text-gold ring-1 ring-gold/40"
+                  ? "bg-gold/[0.14] text-gold ring-1 ring-gold/50"
                   : "text-muted-foreground hover:text-foreground")
               }
             >
@@ -106,7 +106,8 @@ export function MobileProductSwitcher({ source }: { source: string }) {
         aria-labelledby={tabId(product.id)}
         data-testid="mobile-product-panel"
         data-product-id={product.id}
-        className="mt-3 flex flex-col gap-3 rounded-2xl border border-border/70 bg-card/60 p-4 shadow-soft"
+        key={product.id}
+        className="mt-3 flex flex-col gap-3 rounded-2xl border border-gold/25 bg-card/70 p-4 shadow-elegant motion-safe:animate-panel-pop"
       >
         {product.badge && (
           <span className="inline-block w-fit rounded-full border border-gold/30 bg-gold/[0.08] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-gold">
@@ -114,11 +115,14 @@ export function MobileProductSwitcher({ source }: { source: string }) {
           </span>
         )}
 
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="min-w-0 font-serif text-[17px] font-bold leading-tight text-foreground">
+        <div className="flex items-end justify-between gap-3">
+          <h3 className="min-w-0 font-serif text-[19px] font-bold leading-tight text-foreground">
             {product.name}
           </h3>
-          <p className="shrink-0 font-serif text-lg font-bold tabular-nums text-gold">
+          <p
+            data-testid="mobile-product-price"
+            className="shrink-0 font-serif text-[30px] font-bold leading-none tabular-nums text-gold"
+          >
             {productPriceLabel(product.id)}
           </p>
         </div>
@@ -151,7 +155,7 @@ export function MobileProductSwitcher({ source }: { source: string }) {
               interaction: "cta",
             })
           }
-          className="btn-gold btn-press inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl px-5 text-[15px] font-semibold"
+          className="btn-gold btn-press inline-flex min-h-[54px] items-center justify-center gap-2 rounded-xl px-5 text-[16px] font-bold tracking-tight transition-transform duration-200"
         >
           {product.ctaLabel}
           <ArrowRight className="h-4 w-4" />
@@ -162,11 +166,12 @@ export function MobileProductSwitcher({ source }: { source: string }) {
           className="group rounded-lg border border-border/60 bg-background/40"
           onToggle={(e) => {
             if ((e.currentTarget as HTMLDetailsElement).open) {
-              trackFunnelEvent(PRODUCT_EVENTS.detailsOpened, {
-                product: product.id,
-                source,
-                variant: "mobile",
-              });
+              trackFunnelEvent(
+                PRODUCT_EVENTS.detailsOpened,
+                { product: product.id, source, variant: "mobile" },
+                // Отварянето е факт веднъж за (източник, продукт).
+                { dedupKey: `${source}|${product.id}` },
+              );
             }
           }}
         >
