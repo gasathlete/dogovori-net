@@ -24,6 +24,7 @@ const CONVERSION_FILES = [
   "src/components/PlatformCapabilities.tsx",
   "src/components/home/DogovaryAIShowcase.tsx",
   "src/pages/Index.tsx",
+  "src/components/home/DesktopHome.tsx",
 ];
 
 describe("позициониране на началната страница", () => {
@@ -55,7 +56,8 @@ describe("позициониране на началната страница", 
     expect(showcase).not.toContain("отговаря като юрист");
     expect(showcase).toContain("Не замества индивидуална правна консултация");
 
-    const index = read("src/pages/Index.tsx");
+    // Богатата десктоп подредба живее в DesktopHome.tsx (Index е само входът).
+    const index = read("src/components/home/DesktopHome.tsx");
     expect(index.indexOf("<DogovaryAIShowcase />")).toBeGreaterThan(
       index.indexOf("<ComplianceSection />"),
     );
