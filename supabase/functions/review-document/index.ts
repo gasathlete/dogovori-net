@@ -27,6 +27,7 @@ import {
   shouldDeferItem,
 } from "../_shared/deferred-personal-scope.ts";
 import {
+  classifyLaterFinding,
   qualitySigningSecretFromEnv,
   verifyQualityManifest,
 } from "../_shared/generated-document-quality.ts";
@@ -229,6 +230,22 @@ Deno.serve(async (req: Request) => {
     // мапинг — по листа на JSON-а, за да не се чупи от кавички/контролни знаци.
     const restored: unknown = restoreLeaves(parsed ?? null, mapping, unredact);
 
+    // Q4a — ЕДИН fail-closed предикат за ВСИЧКИ умишлени решения от ДОВЕРЕН
+    // подписан манифест (не само лични данни). Без доверен манифест не потиска
+    // нищо и не отслабва проверката по цитат.
+    let optionalFindings = 0;
+    const isIntentionalOptional = (text: string, quote?: string): boolean => {
+      const d = classifyLaterFinding({
+        text,
+        quote,
+        documentText: request.documentText,
+        trust,
+      });
+      if (d.action !== "optional_recommendation") return false;
+      optionalFindings++;
+      return true;
+    };
+
     // Валидация по стойности (без cast-ове) + честна пълнота.
     const normalized = normalizeReviewResponse({
       parsed: restored,
@@ -237,10 +254,27 @@ Deno.serve(async (req: Request) => {
       transform: {
         // Проверките никога не се изтриват — при доказано отложено локално поле
         // "fail" се сваля до видим "warn" с бележка "За попълване преди използване".
-        check: (c) => applyDeferredScopeToCheck(ignorePersonalData, c, request.documentText) as {
-          id?: string; label: string; status: string; note?: string;
+        check: (c) => {
+          const softened = applyDeferredScopeToCheck(ignorePersonalData, c, request.documentText) as {
+            id?: string; label: string; status: string; note?: string;
+          };
+          if (!softened || typeof softened !== "object") return softened;
+          const text = `${softened.label ?? ""} ${softened.note ?? ""}`.trim();
+          if (softened.status === "fail" && isIntentionalOptional(text)) {
+            // Умишлено опционален детайл НИКОГА не е провал — става видима,
+            // но неблокираща препоръка.
+            return {
+              ...softened,
+              status: "warn",
+              note: `Опционално: ${softened.note ?? softened.label}`,
+            };
+          }
+          return softened;
         },
-        keepItem: (x) => !shouldDeferItem(ignorePersonalData, x, request.documentText),
+        keepItem: (x) =>
+          !shouldDeferItem(ignorePersonalData, x, request.documentText) &&
+          !isIntentionalOptional(x),
+        keepContradiction: (detail, quote) => !isIntentionalOptional(detail, quote),
       },
     });
 
@@ -251,6 +285,7 @@ Deno.serve(async (req: Request) => {
         trusted_manifest: trust.trusted,
         manifest_reason: trust.trusted ? null : trust.reason,
         deferred_personal_scope: ignorePersonalData,
+        optional_findings: optionalFindings,
       },
       model: route.model,
       reviewed_at: new Date().toISOString(),
