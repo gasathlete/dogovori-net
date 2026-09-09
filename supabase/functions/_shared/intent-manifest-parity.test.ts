@@ -221,7 +221,8 @@ Deno.test("КОРЕКЦИЯ, която нарушава изискване, П�
   const trust = await verifyQualityManifest({
     manifest: reissued,
     signingSecret: SECRET,
-    documentText: correctedText,
+    content: correctedText,
+    allowPlaintextMatch: true,
   });
   assert(trust.trusted, "манифестът е обвързан с коригирания текст");
   const later = await verifyIntentAssertions({
