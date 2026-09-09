@@ -89,8 +89,10 @@ export function Header() {
     >
       <div
         className={cn(
+          // Мобилната височина е стабилна 58px (не скача при скрол);
+          // десктоп височините остават непроменени.
           "container flex items-center justify-between gap-3 transition-[height] duration-300 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-6",
-          scrolled ? "h-16 lg:h-14" : "h-[68px] lg:h-16",
+          scrolled ? "h-[58px] lg:h-14" : "h-[58px] lg:h-16",
         )}
       >
         {/* Zone 1 — Brand */}
@@ -251,7 +253,7 @@ export function Header() {
           aria-label="Мобилна навигация"
           className="origin-top animate-accordion-down overflow-hidden border-t border-gold/20 bg-background lg:hidden"
         >
-          <div className="container flex max-h-[calc(100dvh-68px)] flex-col gap-5 overflow-y-auto py-5">
+          <div className="container flex max-h-[calc(100dvh-58px)] flex-col gap-4 overflow-y-auto py-4">
             {(() => {
               const renderItem = (n: { to: string; label: string }) => {
                 if (n.to === "__tools__") {
