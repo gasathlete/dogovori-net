@@ -311,6 +311,11 @@ export function normalizeReviewResponse(input: {
   transform?: {
     check?: (c: unknown) => { id?: string; label: string; status: string; note?: string } | null;
     keepItem?: (s: string) => boolean;
+    /**
+     * Q4a — умишлено опционална находка от ДОВЕРЕН подписан манифест не е
+     * противоречие. Проверката по цитат остава ПРЕДИ този филтър.
+     */
+    keepContradiction?: (detail: string, quote: string) => boolean;
   };
 }): NormalizedReview {
   const reasons: string[] = [];
@@ -423,10 +428,16 @@ export function normalizeReviewResponse(input: {
       degrade("partial", "contradiction_unsupported_quote");
       continue;
     }
+    const quote = String(o.quote);
+    if (input.transform?.keepContradiction && !input.transform.keepContradiction(detail, quote)) {
+      // Умишлено опционалният детайл не е дефект и не сваля резултата —
+      // затова тук НЕ се записва причина за непълнота.
+      continue;
+    }
     contradictions.push({
       detail,
       where: typeof o.where === "string" ? o.where : undefined,
-      quote: String(o.quote),
+      quote,
     });
   }
 
