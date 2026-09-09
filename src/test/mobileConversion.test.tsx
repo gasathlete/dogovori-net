@@ -54,8 +54,9 @@ describe("мобилен продуктов превключвател", () => {
   it("панелът води с два най-силни резултата, а останалите са в „Какво получавам“", async () => {
     render(wrap(<MobileProductSwitcher source="home" />));
     const product = getProduct("contract_check");
-    const panel = screen.getByTestId("mobile-product-panel");
-    expect(panel.querySelectorAll("ul > li")).toHaveLength(2);
+    expect(
+      screen.getByTestId("mobile-product-outcomes").querySelectorAll("li"),
+    ).toHaveLength(2);
     expect(screen.getByText(product.outcomes[0])).toBeInTheDocument();
     const details = screen.getByTestId("mobile-product-details");
     expect(details).not.toHaveAttribute("open");

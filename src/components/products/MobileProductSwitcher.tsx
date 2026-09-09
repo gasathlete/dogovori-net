@@ -129,7 +129,7 @@ export function MobileProductSwitcher({ source }: { source: string }) {
 
         <ProductDemo kind={product.demo} active={inView} />
 
-        <ul className="space-y-1.5">
+        <ul data-testid="mobile-product-outcomes" className="space-y-1.5">
           {[firstOutcome, secondOutcome].filter(Boolean).map((o) => (
             <li
               key={o}
