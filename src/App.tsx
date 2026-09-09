@@ -90,6 +90,8 @@ const DocumentWorkspace = lazy(() => import("./pages/DocumentWorkspace.tsx"));
 
 const Catalog = lazy(() => import("./pages/Catalog.tsx"));
 const Start = lazy(() => import("./pages/Start.tsx"));
+const Products = lazy(() => import("./pages/Products.tsx"));
+const BusinessCardIntake = lazy(() => import("./pages/BusinessCardIntake.tsx"));
 const Analyze = lazy(() => import("./pages/Analyze.tsx"));
 const ProcessStep = lazy(() => import("./pages/ProcessStep.tsx"));
 const Tools = lazy(() => import("./pages/Tools.tsx"));
@@ -324,6 +326,8 @@ const AnimatedRoutes = () => {
         <Route path="/shablon/:slug" element={<Template />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/plans" element={<Plans />} />
+        <Route path="/produkti" element={<Products />} />
+        <Route path="/produkti/biznes-karta" element={<BusinessCardIntake />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
         <Route path="/connect" element={<Connect />} />

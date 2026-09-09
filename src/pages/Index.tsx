@@ -19,6 +19,7 @@ import { buildFaqJsonLd } from "@/data/faqItems";
 // entry chunk.
 // Класическа подредба: всяка секция е винаги видима, но се монтира лениво
 // при скрол, за да остане входният chunk малък.
+const ProductsSection = lazy(() => import("@/components/home/ProductsSection").then((m) => ({ default: m.ProductsSection })));
 const PlatformCapabilities = lazy(() => import("@/components/PlatformCapabilities").then((m) => ({ default: m.PlatformCapabilities })));
 const BrandedDocumentShowcase = lazy(() => import("@/components/home/BrandedDocumentShowcase").then((m) => ({ default: m.BrandedDocumentShowcase })));
 const DogovaryAIShowcase = lazy(() => import("@/components/home/DogovaryAIShowcase").then((m) => ({ default: m.DogovaryAIShowcase })));
@@ -117,6 +118,15 @@ const Index = () => {
         <Suspense fallback={<SectionSkeleton />}>
           <SocialProofStrip />
         </Suspense>
+
+        {/* Продуктите са първата съдържателна секция след social proof */}
+        <LazyOnVisible minHeight={520}>
+          <Suspense fallback={<SectionSkeleton />}>
+            <BackdropSection variant="grid" align="center">
+              <ProductsSection />
+            </BackdropSection>
+          </Suspense>
+        </LazyOnVisible>
 
         <BackdropSection variant="rings">
           <PrimaryChoice />

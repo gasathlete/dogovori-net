@@ -11,8 +11,10 @@ import { ToolsMenu } from "@/components/calculators/ToolsMenu";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { prefetchHandlers } from "@/lib/routePrefetch";
 
-// Ordered from most-searched to least-searched. Kept intentionally short.
+// „Продукти" е първата основна навигационна точка — оттам започва
+// откриването на продукта. Останалото е подредено по търсене.
 const NAV = [
+  { to: "/produkti", label: "Продукти" },
   { to: "/build", label: "Изготви документ" },
   { to: "/catalog", label: "Каталог" },
   { to: "__tools__", label: "Инструменти" },
@@ -24,7 +26,12 @@ const NAV = [
 const RESOURCES = [{ to: "/plans", label: "Планове" }];
 
 // Мобилното меню е групирано, за да е ясно „къде съм" и какво следва.
+// Първата група и първият елемент са „Продукти".
 const MOBILE_GROUPS: { title: string; items: { to: string; label: string }[] }[] = [
+  {
+    title: "Продукти",
+    items: [{ to: "/produkti", label: "Продукти" }],
+  },
   {
     title: "Работа с документи",
     items: [
