@@ -523,6 +523,45 @@ ${fieldsSection}
       parsed.contract.bilingual = true;
     }
 
+    // Q4a — същият детерминиран gate като при generate-contract: реалните
+    // дефекти се пазят, умишлените ни решения и недоказаните бележки отпадат.
+    if (parsed?.risk) {
+      const qualityManifest = await buildQualityManifest({
+        origin: "build-custom-contract",
+        contract: parsed.contract,
+        documentType: safeDocumentType,
+        buildMode: safeBuildMode,
+        contextFingerprint: await computeContextFingerprint([
+          `doc_type:${safeDocumentType}`,
+          `build_mode:${safeBuildMode}`,
+          `bilingual:${safeBilingual}`,
+        ]),
+        decisions: [
+          "placeholders_for_personal_data",
+          "local_completion_of_personal_data",
+          "optional_annex_details",
+          safeBuildMode === "fast"
+            ? "brief_clause_set"
+            : safeBuildMode === "strict"
+              ? "exhaustive_clause_set"
+              : "standard_clause_set",
+          ...(safeBilingual ? ["bilingual_parallel_text"] : []),
+        ],
+      });
+      const gated = applyRiskConsistencyGate({
+        risk: parsed.risk,
+        documentText: flattenGeneratedContract(parsed.contract),
+        origin: "build-custom-contract",
+        manifest: qualityManifest,
+        trustedManifest: true,
+      });
+      parsed.risk = gated.risk;
+      parsed.quality = gated.quality;
+      parsed.quality_manifest = qualityManifest;
+    }
+
+
+
     await logAiAudit({
       user_id: userId, operation: "build-custom-contract", model: route.model,
       classification, redaction_applied: route.redactionRequired, status: "ok",
