@@ -256,3 +256,122 @@ Deno.test("свободната проза извън известните по�
     0,
   );
 });
+
+// ---------------------------------------------------------------------------
+// Q4b финална корекция — точна схема за двуезичност + посока на арбитража
+// ---------------------------------------------------------------------------
+
+const BILINGUAL_OK = {
+  title: "Договор за изработка",
+  title_en: "Service Agreement",
+  preamble: "Днес, между страните, се сключи следният договор:",
+  preamble_en: "Today, between the parties, the following agreement was concluded:",
+  clauses: [
+    {
+      number: "Чл. 1.",
+      title: "Предмет",
+      body: "Изпълнителят изработва уебсайт.",
+      title_en: "Subject",
+      body_en: "The contractor shall build a website.",
+    },
+    {
+      number: "Чл. 2.",
+      title: "Цена",
+      body: "Цената е 1 000,00 EUR.",
+      title_en: "Price",
+      body_en: "The price is EUR 1,000.00.",
+    },
+  ],
+  closing: "Настоящият договор се подписа в два еднообразни екземпляра.",
+  closing_en: "This agreement was signed in two identical counterparts.",
+};
+
+const withoutKey = (path: string) => {
+  const c = JSON.parse(JSON.stringify(BILINGUAL_OK)) as Record<string, any>;
+  if (path.startsWith("clause0.")) delete c.clauses[0][path.slice(8)];
+  else delete c[path];
+  return c;
+};
+
+Deno.test("двуезичност: пълен документ по реалната схема е доказан", () => {
+  assertEquals(detectBilingualStructure(BILINGUAL_OK), true);
+});
+
+Deno.test("двуезичност: липсващ body_en при наличен title_en НЕ е превод", () => {
+  assertEquals(detectBilingualStructure(withoutKey("clause0.body_en")), false);
+});
+
+Deno.test("двуезичност: липсващ preamble_en/closing_en НЕ е превод", () => {
+  assertEquals(detectBilingualStructure(withoutKey("preamble_en")), false);
+  assertEquals(detectBilingualStructure(withoutKey("closing_en")), false);
+});
+
+Deno.test("двуезичност: само свойството bilingual НЕ е доказателство", () => {
+  assertEquals(detectBilingualStructure({ ...BILINGUAL_OK, bilingual: true, title_en: "" }), false);
+});
+
+Deno.test("двуезичност: неразпознаваем вход е НЕПРОВЕРИМ (null)", () => {
+  assertEquals(detectBilingualStructure(null), null);
+  assertEquals(detectBilingualStructure("Договор"), null);
+  assertEquals(detectBilingualStructure([1, 2]), null);
+  assertEquals(detectBilingualStructure({}), null);
+  assertEquals(detectBilingualStructure({ clauses: [] }), null);
+  assertEquals(detectBilingualStructure({ clauses: [{ foo: 1 }] }), null);
+});
+
+Deno.test("арбитраж: отрицание/изключване НЕ е арбитраж", () => {
+  const negations = [
+    "Чл. 12 Спорове: Споровете между страните се решават от компетентния български съд, без арбитраж.",
+    "Чл. 12 Спорове: Споровете няма да се решават чрез арбитраж, а по съдебен ред.",
+    "Article 12 Disputes: Any dispute is not subject to arbitration and shall be heard by the courts.",
+    "Article 12 Disputes: Disputes shall not be resolved by arbitration but by the competent court.",
+  ];
+  for (const n of negations) assertEquals(detectArbitrationInText(n + PAD), false, n);
+});
+
+Deno.test("арбитраж: голо споменаване/заглавие остава НЕПРОВЕРИМО", () => {
+  assertEquals(detectArbitrationInText("Чл. 12 Арбитраж" + PAD), null);
+  assertEquals(
+    detectArbitrationInText("Приложение: списък на арбитражните институции в Европа." + PAD),
+    null,
+  );
+  assertEquals(detectArbitrationInText("арбитраж"), null);
+});
+
+Deno.test("арбитраж: ясна оперативна уговорка е доказана (BG и EN)", () => {
+  assertEquals(
+    detectArbitrationInText(
+      "Чл. 12 Спорове: Всички спорове се решават чрез арбитраж от Арбитражния съд при БТПП." + PAD,
+    ),
+    true,
+  );
+  assertEquals(
+    detectArbitrationInText(
+      "Article 12 Disputes: All disputes shall be finally settled by arbitration under the ICC Rules." +
+        PAD,
+    ),
+    true,
+  );
+});
+
+Deno.test("ИЗБРАН арбитраж срещу отречен/гол изход => детерминиран несъответствие/непроверимост", async () => {
+  const a = await assertionsFor(extractIntentDrafts({ flags: { arbitration: true } }));
+
+  const negated = "Чл. 12 Спорове: Споровете няма да се решават чрез арбитраж." + PAD;
+  const bad = await verify(a, negated, {
+    arbitration: detectArbitrationInText(negated) ?? undefined,
+  });
+  assertEquals(bad.mismatched_required.length, 1);
+
+  const bare = "Чл. 12 Арбитраж" + PAD;
+  const unknown = await verify(a, bare, {
+    arbitration: detectArbitrationInText(bare) ?? undefined,
+  });
+  assertEquals(unknown.satisfied, 0);
+  assertEquals(unknown.results[0].status, "unverifiable");
+
+  const good = "Чл. 12 Спорове: Всички спорове се решават чрез арбитраж от арбитражен съд." + PAD;
+  const ok = await verify(a, good, { arbitration: detectArbitrationInText(good) ?? undefined });
+  assertEquals(ok.satisfied, 1);
+  assertEquals(ok.mismatched_required.length, 0);
+});
