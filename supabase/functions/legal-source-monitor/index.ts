@@ -25,6 +25,7 @@ import { safeFetchSource } from "../_shared/legal-fetch-guard.ts";
 import { runAdapter } from "../_shared/legal-source-adapters.ts";
 import {
   aggregateHealth,
+  auditOutcomeAfterTouch,
   buildRunRecord,
   dbErrorCode,
   decideSnapshot,
