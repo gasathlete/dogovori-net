@@ -19,6 +19,8 @@ import {
   applyRiskConsistencyGate,
   buildQualityManifest,
   computeContextFingerprint,
+  qualitySigningSecretFromEnv,
+  GENERATED_QUALITY_POLICY_VERSION,
   flattenGeneratedContract,
 } from "../_shared/generated-document-quality.ts";
 
@@ -526,8 +528,11 @@ ${fieldsSection}
     // Q4a — същият детерминиран gate като при generate-contract: реалните
     // дефекти се пазят, умишлените ни решения и недоказаните бележки отпадат.
     if (parsed?.risk) {
-      const qualityManifest = await buildQualityManifest({
+      const signingSecret = qualitySigningSecretFromEnv();
+      if (!signingSecret) console.error("quality manifest signing key unavailable");
+      const qualityManifest = signingSecret ? await buildQualityManifest({
         origin: "build-custom-contract",
+        signingSecret,
         contract: parsed.contract,
         documentType: safeDocumentType,
         buildMode: safeBuildMode,
@@ -547,17 +552,17 @@ ${fieldsSection}
               : "standard_clause_set",
           ...(safeBilingual ? ["bilingual_parallel_text"] : []),
         ],
-      });
+      }) : null;
       const gated = applyRiskConsistencyGate({
         risk: parsed.risk,
         documentText: flattenGeneratedContract(parsed.contract),
         origin: "build-custom-contract",
         manifest: qualityManifest,
-        trustedManifest: true,
+        trustedManifest: !!qualityManifest,
       });
       parsed.risk = gated.risk;
       parsed.quality = gated.quality;
-      parsed.quality_manifest = qualityManifest;
+      if (qualityManifest) parsed.quality_manifest = qualityManifest;
     }
 
 
