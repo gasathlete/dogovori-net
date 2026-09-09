@@ -196,3 +196,52 @@ export interface SourceRunResult {
   parser_status: AdapterEnvelope["parserStatus"] | null;
   persisted: boolean;
 }
+
+// ---------------- Fail-closed DB решения (чисти помощници) ----------------
+
+/** Затворено множество машинни кодове за DB проблеми. Никога raw error text. */
+export type DbErrorCode =
+  | "registry_read_failed"
+  | "candidates_count_failed"
+  | "runs_read_failed"
+  | "snapshot_read_failed"
+  | "snapshot_write_failed"
+  | "candidate_write_failed"
+  | "run_audit_write_failed"
+  | "registry_touch_failed";
+
+/**
+ * Превръща Supabase резултат в затворен код. Без message/stack/payload.
+ * Липсващи данни при успешна заявка НЕ са грешка (връща null).
+ */
+export function dbErrorCode(
+  hasError: boolean,
+  code: DbErrorCode,
+): DbErrorCode | null {
+  return hasError ? code : null;
+}
+
+export interface HealthAggregate {
+  ok: boolean;
+  degraded_codes: DbErrorCode[];
+}
+
+/**
+ * Health е `ok` само когато ВСИЧКИ съставни заявки са успели. Частичен успех
+ * се отчита като degraded, за да не се чете като „всичко е наред“.
+ */
+export function aggregateHealth(codes: readonly (DbErrorCode | null)[]): HealthAggregate {
+  const degraded = codes.filter((c): c is DbErrorCode => c !== null);
+  return { ok: degraded.length === 0, degraded_codes: degraded };
+}
+
+/**
+ * Провал при запис на audit-а (ingestion run) или при touch на регистъра НЕ
+ * може да остане „ok“. Резултатът за източника се влошава контролирано.
+ */
+export function degradeForBookkeepingFailure(
+  outcome: RunOutcome,
+  code: Extract<DbErrorCode, "run_audit_write_failed" | "registry_touch_failed">,
+): { outcome: RunOutcome; error_code: DbErrorCode } {
+  return { outcome: outcome === "failed" ? "failed" : "needs_review", error_code: code };
+}

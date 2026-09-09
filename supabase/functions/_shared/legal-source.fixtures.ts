@@ -91,3 +91,35 @@ export const MALFORMED_HTML = "<<<not really html";
 export const MALFORMED_XML = "<rss><item><title>unterminated";
 export const MALFORMED_JSON = '{"results": {"bindings": ';
 export const PDF_METADATA_ONLY = "%PDF-1.7\n%\u00e2\u00e3\u00cf\u00d3\ntrailer<</Size 4>>";
+
+/**
+ * Контролиран chunked Response за поточно четене. `cancelled` става true, ако
+ * четецът прекъсне потока (напр. при надхвърлен таван на байтовете).
+ */
+export function chunkedRes(
+  chunks: readonly (string | Uint8Array)[],
+  init: { status?: number; headers?: Record<string, string> } = {},
+): { response: Response; state: { cancelled: boolean; pulled: number } } {
+  const state = { cancelled: false, pulled: 0 };
+  const enc = new TextEncoder();
+  let i = 0;
+  const stream = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (i >= chunks.length) {
+        controller.close();
+        return;
+      }
+      const c = chunks[i++];
+      state.pulled++;
+      controller.enqueue(typeof c === "string" ? enc.encode(c) : c);
+    },
+    cancel() {
+      state.cancelled = true;
+    },
+  });
+  const response = new Response(stream, {
+    status: init.status ?? 200,
+    headers: { "content-type": "text/html; charset=utf-8", ...(init.headers ?? {}) },
+  });
+  return { response, state };
+}
