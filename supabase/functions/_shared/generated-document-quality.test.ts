@@ -218,7 +218,7 @@ Deno.test("чист генериран документ без дефекти о
       summary: "ок",
       issues: [],
       recommendations: [],
-      strengths: ["Уредено е възнаграждението и плащането по банков път."],
+      strengths: ["Уредени са възнаграждение, срок за изпълнение и плащане по банков път."],
     },
     documentText: docText,
     origin: "generate-contract",
