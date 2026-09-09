@@ -147,6 +147,8 @@ export default function ProductDetail() {
               <p className="mt-3 text-[11.5px] font-medium text-muted-foreground">
                 {ONE_TIME_TERMS}
               </p>
+
+              <PlanAlternativeNote className="mt-5 max-w-md" />
             </div>
 
             <div className="min-w-0 rounded-2xl border border-border/70 bg-card/60 p-4 shadow-soft sm:p-5">
