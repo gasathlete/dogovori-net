@@ -751,13 +751,29 @@ export function applyRiskConsistencyGate(input: {
       continue;
     }
 
+    // 1) Доказателственост се смята ПЪРВО — от текущия документ.
+    const evidenceBacked = isEvidenceBacked(issue, normalizedDocLower);
+    // 2) Съществено правно твърдение (противоречие, нищожност, императивна
+    //    форма, прекомерна неустойка, несъответствие със заявеното...).
+    const substantive = matchesAny(text, LEGAL_DEFECT_PATTERNS);
+
+    // 3) ДОКАЗАН съществен дефект се ЗАПАЗВА ПРЕДИ всяко потискане. Така
+    //    цитирано реално противоречие НЕ се крие само защото формулировката
+    //    му споменава приложение, плейсхолдър или лични данни.
+    if (evidenceBacked && substantive) {
+      reasons.add("substantive_defect_preserved");
+      kept.push({ severity, title, detail });
+      continue;
+    }
+
     // Стилистичните бележки не са дефект, но и не се крият.
     if (matchesAny(text, STYLE_PATTERNS)) {
       downgrade(title, detail, "style_note_downgraded");
       continue;
     }
 
-    // Потискане на умишлено решение — само при ДОВЕРЕН подписан манифест.
+    // Потискане на умишлено решение — само при ДОВЕРЕН подписан манифест и
+    // само за НЕсъществена самокритика (същественото вече е запазено горе).
     if (intentional.length > 0 && matchesAny(text, intentional)) {
       removed++;
       reasons.add("intentional_drafting_decision");
@@ -765,24 +781,25 @@ export function applyRiskConsistencyGate(input: {
     }
 
     // Доказателственост е задължителна и за правните дефекти — етикет не стига.
-    if (!isEvidenceBacked(issue, normalizedDocLower)) {
-      const legalLabel = matchesAny(text, LEGAL_DEFECT_PATTERNS);
-      downgrade(title, detail, legalLabel ? "legal_label_unsupported" : "issue_downgraded_to_recommendation");
+    if (!evidenceBacked) {
+      downgrade(title, detail, substantive ? "legal_label_unsupported" : "issue_downgraded_to_recommendation");
       continue;
     }
     kept.push({ severity, title, detail });
   }
 
-  // Силните страни също изискват доказателственост срещу реалния текст.
+  // Силните страни изискват РОБУСТНО доказателство срещу реалния текст:
+  // дословен откъс ИЛИ ≥3 РАЗЛИЧНИ значими (не-общи) думи от документа.
+  // Една случайна дума НЕ е доказателство.
   const rawStrengths = asStringArray(raw.strengths);
   const keptStrengths: string[] = [];
   for (const s of rawStrengths) {
-    const tokens = significantTokens(s);
-    const hit = tokens.some((t) => normalizedDocLower.includes(t));
-    if (hit && !keptStrengths.some((k) => k.toLowerCase() === s.toLowerCase())) keptStrengths.push(s);
+    if (!hasRobustTextEvidence(s, normalizedDocLower)) continue;
+    if (!keptStrengths.some((k) => k.toLowerCase() === s.toLowerCase())) keptStrengths.push(s);
   }
   const removedStrengths = rawStrengths.length - keptStrengths.length;
   if (removedStrengths > 0) reasons.add("strength_unsupported_removed");
+
 
   const recommendations = [...asStringArray(raw.recommendations), ...downgraded];
 
