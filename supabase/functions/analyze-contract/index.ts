@@ -165,6 +165,10 @@ Deno.serve(async (req: Request) => {
     const sessionId = typeof reqBody?.session_id === "string" ? reqBody.session_id : "";
     const docKeyClient = typeof reqBody?.doc_key === "string" ? reqBody.doc_key : "";
     const userConfirmed = reqBody?.userConfirmed === true;
+    // Q4a — НЕЗАДЪЛЖИТЕЛЕН манифест за качество от нашия генератор. Доверява се
+    // САМО ако отпечатъкът на съдържанието съвпада с анализирания текст.
+    const submittedQualityManifest = reqBody?.qualityManifest ?? reqBody?.quality_manifest ?? null;
+
     if (!uploadedContractId || typeof uploadedContractId !== "string") {
       return new Response(JSON.stringify({ error: "uploadedContractId е задължителен" }), {
         status: 400,
