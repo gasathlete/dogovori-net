@@ -192,7 +192,7 @@ Deno.serve(async (req: Request) => {
       try {
         const { data: claimsData, error: claimsErr } = await admin.auth.getClaims(token);
         if (claimsErr) {
-          authDiag.reason = `getClaims:${claimsErr.message}`;
+          authDiag.reason = "getClaims:" + String(claimsErr.message);
         } else if (claimsData?.claims?.sub) {
           userId = claimsData.claims.sub as string;
           authDiag.method = "getClaims";

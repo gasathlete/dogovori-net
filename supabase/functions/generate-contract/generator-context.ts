@@ -22,10 +22,12 @@ import { redactForAI, type RedactionMapping } from "../_shared/redact.ts";
 import { stableStringify } from "../_shared/normalize.ts";
 
 /**
- * Разделител между полетата в общия корпус. Символът `␞` (U+241E) не участва в
- * нито един PII шаблон, така че редакцията не може да „прелее" през граница.
+ * Служебен символ, който НЕ приемаме във входа (U+241E). Рамкирането вече е през
+ * JSON масив, но входът с този символ остава отказан — fail-closed, без промяна
+ * на досегашното поведение.
  */
-const FIELD_SEP = "\n\u241E\u241E\u241E\n";
+const CONTROL_MARK = "\u241E";
+
 
 /** Плейсхолдъри, които САМИ генерираме. Ако вече присъстват във входа, не можем
  * да различим потребителски текст от наш маркер → отказваме безопасно. */
@@ -151,7 +153,7 @@ function collectFields(ctx: GeneratorContext): string[] | null {
   const push = (v: unknown): boolean => {
     if (typeof v !== "string") return false;
     // Fail-closed: служебен разделител или вече наличен наш плейсхолдър.
-    if (v.includes("\u241E")) return false;
+    if (v.includes(CONTROL_MARK)) return false;
     if (RESERVED_PLACEHOLDER_RE.test(v)) return false;
     fields.push(v);
     return true;
@@ -181,6 +183,54 @@ export function buildGeneratorClassificationCorpus(ctx: GeneratorContext): strin
   return parts.filter((p): p is string => typeof p === "string").join("\n");
 }
 
+/** Временен маркер при пренумерирането — входът с него се отказва по-долу. */
+const TEMP_MARK = "\u0000";
+
+/**
+ * Редактира всяко поле поотделно, но с ЕДИН общ мапинг и ЕДИН общ брояч на
+ * плейсхолдъри. Връща `null` при непроходим вход (fail-closed).
+ */
+function redactFieldsWithSharedMapping(
+  fields: string[],
+): { parts: string[]; mapping: RedactionMapping } | null {
+  const mapping: RedactionMapping = {};
+  const byValue = new Map<string, string>();
+  const counters = new Map<string, number>();
+  const parts: string[] = [];
+
+  for (const field of fields) {
+    if (field.includes(TEMP_MARK)) return null;
+    const local = redactForAI(field);
+    let text = local.redacted;
+    const temps: Array<[string, string]> = [];
+    // Дълги плейсхолдъри първи (<EMAIL_10> преди <EMAIL_1>).
+    const placeholders = Object.keys(local.mapping).sort((a, b) => b.length - a.length);
+    placeholders.forEach((ph, i) => {
+      const cut = ph.lastIndexOf("_");
+      if (cut < 1) return;
+      const prefix = ph.slice(1, cut);
+      const value = local.mapping[ph];
+      const key = `${prefix}\u0001${value}`;
+      let global = byValue.get(key);
+      if (!global) {
+        const n = (counters.get(prefix) ?? 0) + 1;
+        counters.set(prefix, n);
+        global = `<${prefix}_${n}>`;
+        byValue.set(key, global);
+        mapping[global] = value;
+      }
+      const temp = `${TEMP_MARK}${i}${TEMP_MARK}`;
+      text = text.split(ph).join(temp);
+      temps.push([temp, global]);
+    });
+    for (const [temp, global] of temps) text = text.split(temp).join(global);
+    if (text.includes(TEMP_MARK)) return null;
+    parts.push(text);
+  }
+  return { parts, mapping };
+}
+
+
 /**
  * Редактира ЕДНОВРЕМЕННО целия изходящ контекст с ЕДИН общ мапинг.
  * Различни стойности → различни плейсхолдъри; една и съща стойност навсякъде →
@@ -203,9 +253,19 @@ export function redactGeneratorContext(
     };
   }
 
-  const { redacted, mapping } = redactForAI(fields.join(FIELD_SEP));
-  const parts = redacted.split(FIELD_SEP);
-  if (parts.length !== fields.length) return notRedactable();
+  // Рамкирането е СТРУКТУРНО (масив), а не текстово: няма разделител, който
+  // PII шаблон (телефон/адрес) да „прелее" и да развали разделянето. Всяко поле
+  // се редактира отделно, но плейсхолдърите се номерират през ЕДИН общ брояч и
+  // ЕДИН общ мапинг, така че една и съща стойност навсякъде получава един
+  // плейсхолдър, а различните стойности остават различни.
+  const framed = redactFieldsWithSharedMapping(fields);
+  if (!framed) return notRedactable();
+  const { parts, mapping } = framed;
+  // Fail-closed проверка на структурата след редакцията.
+  if (!Array.isArray(parts) || parts.length !== fields.length) return notRedactable();
+  if (!parts.every((p): p is string => typeof p === "string")) return notRedactable();
+
+
 
   let k = 0;
   const next = () => parts[k++];
