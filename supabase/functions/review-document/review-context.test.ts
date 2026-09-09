@@ -505,3 +505,145 @@ Deno.test("Q4a ревизия: непопълнено лично поле ост
   assertEquals(normalized.unfilled_fields, ["[име]"]);
   assertEquals(normalized.verdict, "needs_fixes");
 });
+
+// ---------------------------------------------------------------------------
+// Q4a — присъдата се извежда СЛЕД трансформациите (без остаряло „needs_fixes")
+// ---------------------------------------------------------------------------
+
+Deno.test("Q4a присъда: остаряло needs_fixes става ready, когато е останало само доверено опционално", async () => {
+  const trust = await q4aTrust(["optional_annex_details"]);
+  const parsed = {
+    verdict: "needs_fixes",
+    confidence: 85,
+    summary: "Има какво да се допълни.",
+    checks: q4aChecks([
+      { id: "prilozhenia", label: "Приложения", status: "fail", note: "Липсва приложение с детайлизация" },
+    ]),
+    missing_requisites: ["Липсва приложение №1 с детайлизация"],
+    contradictions: [],
+    unfilled_fields: [],
+    legal_basis: [],
+  };
+  const { normalized } = q4aNormalize(structuredClone(parsed), trust);
+  assertEquals(normalized.completeness.status, "complete");
+  assertEquals(normalized.verdict, "ready");
+  // Увереността НЕ се вдига.
+  assertEquals(normalized.confidence, 85);
+
+  // Същият вход без доверие остава needs_fixes.
+  const untrusted = q4aNormalize(structuredClone(parsed), null);
+  assertEquals(untrusted.normalized.verdict, "needs_fixes");
+  assertEquals(untrusted.normalized.checks.find((c) => c.id === "prilozhenia")?.status, "fail");
+});
+
+Deno.test("Q4a присъда: оцеляло цитирано противоречие държи needs_fixes, а blocked остава blocked", async () => {
+  const trust = await q4aTrust(["optional_annex_details"]);
+  const base = {
+    confidence: 90,
+    summary: "Има противоречие.",
+    checks: q4aChecks(),
+    missing_requisites: [],
+    contradictions: [
+      {
+        detail: "Противоречие между Чл. 2 и Чл. 3 — различни срокове (виж и приложение №1)",
+        where: "Чл. 2 / Чл. 3",
+        quote: "Срокът за изпълнение е 60 дни от датата на сключване.",
+      },
+    ],
+    unfilled_fields: [],
+    legal_basis: [],
+  };
+  const fixes = q4aNormalize({ ...structuredClone(base), verdict: "needs_fixes" }, trust);
+  assertEquals(fixes.normalized.contradictions.length, 1);
+  assertEquals(fixes.normalized.verdict, "needs_fixes");
+
+  const blocked = q4aNormalize({ ...structuredClone(base), verdict: "blocked" }, trust);
+  assertEquals(blocked.normalized.verdict, "blocked");
+});
+
+Deno.test("Q4a присъда: blocked без оцеляла същностна находка не се вдига до ready", async () => {
+  const trust = await q4aTrust(["optional_annex_details"]);
+  const { normalized } = q4aNormalize({
+    verdict: "blocked",
+    confidence: 95,
+    summary: "Документът е негоден.",
+    checks: q4aChecks([
+      { id: "prilozhenia", label: "Приложения", status: "fail", note: "Липсва приложение с детайлизация" },
+    ]),
+    missing_requisites: [],
+    contradictions: [],
+    unfilled_fields: [],
+    legal_basis: [],
+  }, trust);
+  assertNotEquals(normalized.verdict, "ready");
+  assertEquals(normalized.verdict, "needs_fixes");
+});
+
+Deno.test("Q4a присъда: непълен/частичен обхват НИКОГА не става ready", async () => {
+  const trust = await q4aTrust(["optional_annex_details"]);
+  // Рязан вход → incomplete.
+  let optional = 0;
+  const truncated = normalizeReviewResponse({
+    parsed: {
+      verdict: "needs_fixes",
+      confidence: 90,
+      summary: "ок",
+      checks: q4aChecks(),
+      missing_requisites: [],
+      contradictions: [],
+      unfilled_fields: [],
+      legal_basis: [],
+    },
+    submittedText: Q4A_TEXT,
+    truncated: true,
+  });
+  assertEquals(truncated.completeness.status, "incomplete");
+  assertNotEquals(truncated.verdict, "ready");
+
+  // Частичен обхват (недоказан цитат) → partial, също не става ready.
+  const partial = normalizeReviewResponse({
+    parsed: {
+      verdict: "needs_fixes",
+      confidence: 90,
+      summary: "ок",
+      checks: q4aChecks(),
+      missing_requisites: [],
+      contradictions: [{ detail: "Твърдение без цитат", where: "Чл. 9" }],
+      unfilled_fields: [],
+      legal_basis: [],
+    },
+    submittedText: Q4A_TEXT,
+    truncated: false,
+    transform: {
+      keepContradiction: (detail, quote) => {
+        const d = classifyLaterFinding({ text: detail, quote, documentText: Q4A_TEXT, trust });
+        if (d.action !== "optional_recommendation") return true;
+        optional++;
+        return false;
+      },
+    },
+  });
+  assertEquals(partial.completeness.status, "partial");
+  assertNotEquals(partial.verdict, "ready");
+  assertEquals(optional, 0);
+});
+
+Deno.test("Q4a присъда: чиста ревизия с предупреждение за лични данни е ready с предупреждение", async () => {
+  const trust = await q4aTrust(["placeholders_for_personal_data"]);
+  const { normalized } = q4aNormalize({
+    verdict: "needs_fixes",
+    confidence: 88,
+    summary: "Технически изправен, остава попълване.",
+    checks: [
+      ...q4aChecks(),
+      { id: "lichni_danni", label: "Лични данни", status: "warn", note: "Попълнете [име] преди използване" },
+    ],
+    missing_requisites: [],
+    contradictions: [],
+    unfilled_fields: [],
+    legal_basis: [],
+  }, trust);
+  assertEquals(normalized.completeness.status, "complete");
+  assertEquals(normalized.verdict, "ready");
+  assertEquals(normalized.checks.find((c) => c.id === "lichni_danni")?.status, "warn");
+});
