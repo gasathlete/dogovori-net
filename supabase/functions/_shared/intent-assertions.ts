@@ -1019,45 +1019,101 @@ function anchoredCandidates(text: string, slot: IntentSlot): string[] {
 const trimmed = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
 /**
- * Двуезичността се извежда от РЕАЛНАТА структура на готовия договор:
- * английските полета трябва да са налични КОНСИСТЕНТНО. Само зададено
- * `bilingual: true` без английско съдържание НЕ е двуезичен документ.
+ * Двуезичността се извежда от РЕАЛНАТА структура на готовия договор
+ * (title/preamble/clauses[].title/clauses[].body/closing + `_en` двойките им).
+ * Всеки непразен български сегмент ТРЯБВА да има непразен английски аналог.
+ * Само зададено `bilingual: true` НЕ е доказателство за превод.
  * `null` = структурата не позволява извод (непроверимо).
  */
 export function detectBilingualStructure(contract: unknown): boolean | null {
   if (!contract || typeof contract !== "object" || Array.isArray(contract)) return null;
   const c = contract as Record<string, unknown>;
   const clauses = Array.isArray(c.clauses) ? c.clauses : null;
-  const hasTitle = !!trimmed(c.title);
-  if (!clauses && !hasTitle) return null;
-  const titleEn = !!trimmed(c.title_en);
 
-  let body = 0;
-  let withEn = 0;
+  // BG сегмент → EN аналог (двойки в реда на рендиране).
+  const pairs: Array<[string, string]> = [
+    [trimmed(c.title), trimmed(c.title_en)],
+    [trimmed(c.preamble), trimmed(c.preamble_en)],
+  ];
+  let recognizable = pairs.some(([bg]) => !!bg);
+
   for (const raw of clauses ?? []) {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
     const cl = raw as Record<string, unknown>;
-    if (!trimmed(cl.text) && !trimmed(cl.title)) continue;
-    body++;
-    if (trimmed(cl.text_en) || trimmed(cl.title_en)) withEn++;
+    // Реалната схема е `body`/`body_en`; `text`/`text_en` са наследени варианти.
+    const bgBody = trimmed(cl.body) || trimmed(cl.text);
+    const enBody = trimmed(cl.body_en) || trimmed(cl.text_en);
+    const bgTitle = trimmed(cl.title);
+    const enTitle = trimmed(cl.title_en);
+    if (bgBody || bgTitle) recognizable = true;
+    pairs.push([bgTitle, enTitle], [bgBody, enBody]);
   }
-  if (body === 0) return hasTitle ? titleEn : null;
-  return titleEn && withEn === body;
+
+  pairs.push([trimmed(c.closing), trimmed(c.closing_en)]);
+  if (trimmed(c.closing)) recognizable = true;
+  if (!recognizable) return null;
+
+  let bgSegments = 0;
+  let enSegments = 0;
+  for (const [bg, en] of pairs) {
+    if (!bg) continue;
+    bgSegments++;
+    if (!en) return false; // непреведен непразен български сегмент
+    enSegments++;
+  }
+  if (bgSegments === 0) return null;
+  return enSegments > 0;
 }
 
-/** Строга котва за арбитражна клауза (BG + EN). */
+/** Строга котва за арбитраж (BG + EN). */
 const ARBITRATION_RX =
-  /(?<![А-Яа-яA-Za-z])(?:арбитраж[А-Яа-я]*|арбитражен\s+съд|arbitration|arbitral|arbitrator)(?![А-Яа-яA-Za-z])/i;
+  /(?<![А-Яа-яA-Za-z])(?:арбитраж[А-Яа-я]*|arbitration|arbitral|arbitrator)(?![А-Яа-яA-Za-z])/i;
+
+/** Отрицание/изключване на арбитраж в изречението. */
+const ARBITRATION_NEGATIVE_RX = [
+  /без\s+арбитраж/i,
+  /(?:не|няма\s+да)\s+(?:[^.;\n]{0,40}?)?(?:чрез|на|от|по|с)\s+арбитраж/i,
+  /не\s+подлежат?\s+на\s+арбитраж/i,
+  /(?:не|няма\s+да)\s+се\s+реша[^.;\n]{0,40}арбитраж/i,
+  /no\s+arbitration/i,
+  /not\s+subject\s+to\s+arbitration/i,
+  /(?:shall|will|are|is)\s+not\s+[^.;\n]{0,60}arbitration/i,
+  /without\s+arbitration/i,
+];
+
+/** Оперативно (действащо) арбитражно уреждане на спорове. */
+const ARBITRATION_OPERATIVE_RX = [
+  /(?:спор|разногласи|претенци)[А-Яа-я]*[^.;\n]{0,120}(?:реша|отнас|разглежд|подлежат|предостав|отправ)[А-Яа-я]*[^.;\n]{0,80}арбитраж/i,
+  /арбитраж[А-Яа-я]*[^.;\n]{0,120}(?:реша|разглежд|разгледа)[А-Яа-я]*[^.;\n]{0,80}(?:спор|разногласи|претенци)/i,
+  /(?:реша|отнас|разглежд|подлежат)[А-Яа-я]*[^.;\n]{0,60}(?:чрез|от|пред|на)\s+арбитраж/i,
+  /(?:dispute|controvers|claim)[a-z]*[^.;\n]{0,120}(?:settl|resolv|refer|submit|determin)[a-z]*[^.;\n]{0,80}arbitrat/i,
+  /(?:settl|resolv|refer|submit|determin)[a-z]*[^.;\n]{0,60}(?:by|to|through)\s+(?:binding\s+)?arbitrat/i,
+];
 
 /**
  * Арбитражът се извежда от РЕАЛНИЯ текст на документа, а НЕ от избора на входа.
- * `null` = текстът е твърде кратък, за да е доказателство (непроверимо).
+ * `true` = ясна оперативна арбитражна уговорка; `false` = ясно отрицание или
+ * пълна липса на арбитраж; `null` = само бегло споменаване/заглавие/твърде
+ * кратък текст (непроверимо — никога не се предполага положително).
  */
 export function detectArbitrationInText(text: unknown): boolean | null {
   const s = typeof text === "string" ? text : "";
   if (s.trim().length < 120) return null;
-  return ARBITRATION_RX.test(s);
+  if (!ARBITRATION_RX.test(s)) return false;
+
+  const sentences = s.split(/[.;!?\n]+/).map((x) => x.trim()).filter(Boolean);
+  let negated = false;
+  let operative = false;
+  for (const sentence of sentences) {
+    if (!ARBITRATION_RX.test(sentence)) continue;
+    if (ARBITRATION_NEGATIVE_RX.some((rx) => rx.test(sentence))) negated = true;
+    else if (ARBITRATION_OPERATIVE_RX.some((rx) => rx.test(sentence))) operative = true;
+  }
+  if (negated) return false;
+  if (operative) return true;
+  return null; // само споменаване → непроверимо
 }
+
 
 /** Ролеви думи в текста — за да е ДЕТЕРМИНИРАНА посоката (страна А / страна Б). */
 const ROLE_IN_TEXT: Array<[PartyRole, RegExp]> = [
