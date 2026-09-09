@@ -25,30 +25,21 @@ const NAV = [
 // upgrade prompts. Not shown on the desktop bar to keep it uncluttered.
 const RESOURCES = [{ to: "/plans", label: "Планове" }];
 
-// Мобилното меню е групирано, за да е ясно „къде съм" и какво следва.
-// Първата група и първият елемент са „Продукти".
-const MOBILE_GROUPS: { title: string; items: { to: string; label: string }[] }[] = [
-  {
-    title: "Продукти",
-    items: [{ to: "/produkti", label: "Продукти" }],
-  },
-  {
-    title: "Работа с документи",
-    items: [
-      { to: "/build", label: "Изготви документ" },
-      { to: "/catalog", label: "Каталог с шаблони" },
-      { to: "/analiz", label: "Анализ на договор" },
-      { to: "/komplekti", label: "Комплекти документи" },
-    ],
-  },
-  {
-    title: "Ресурси",
-    items: [
-      { to: "__tools__", label: "Инструменти" },
-      { to: "/blog", label: "Блог" },
-      ...RESOURCES,
-    ],
-  },
+// Мобилното меню започва с точно същите четири основни изхода като долната
+// навигация. Всичко останало е в една свита група „Още".
+const MOBILE_PRIMARY: { to: string; label: string }[] = [
+  { to: "/produkti", label: "Продукти" },
+  { to: "/analiz", label: "Качи договор" },
+  { to: "/build", label: "Изготви документ" },
+  { to: "/account", label: "Профил" },
+];
+
+const MOBILE_MORE: { to: string; label: string }[] = [
+  { to: "/catalog", label: "Каталог с шаблони" },
+  { to: "/komplekti", label: "Комплекти документи" },
+  { to: "__tools__", label: "Инструменти" },
+  { to: "/blog", label: "Блог" },
+  ...RESOURCES,
 ];
 
 export function Header() {

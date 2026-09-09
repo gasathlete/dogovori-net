@@ -8,6 +8,10 @@ import { Seo } from "@/components/Seo";
 import { LazyOnVisible } from "@/components/LazyOnVisible";
 import { SectionSkeleton } from "@/components/SectionSkeleton";
 import { PrimaryChoice } from "@/components/home/PrimaryChoice";
+import { MobileHero } from "@/components/home/MobileHero";
+import { MobileTrustRow } from "@/components/home/MobileTrustRow";
+import { MobileEssentials, MobileFinalCta } from "@/components/home/MobileEssentials";
+import { useIsMobileViewport } from "@/hooks/useMediaQuery";
 
 import { BackdropSection } from "@/components/SectionBackdrop";
 
@@ -36,6 +40,9 @@ const CTABand = lazy(() => import("@/components/CTABand").then((m) => ({ default
 
 const Index = () => {
   const location = useLocation();
+  // Телефонът получава отделна, кратка конверсионна композиция. Условното
+  // рендиране пази и мрежата: десктоп-only секциите не се зареждат въобще.
+  const isMobile = useIsMobileViewport();
   useEffect(() => {
     if (location.hash) {
       const id = location.hash.replace("#", "");
@@ -111,7 +118,19 @@ const Index = () => {
         jsonLd={jsonLd}
       />
       <Header />
-      <main className="route-fade">
+      {isMobile ? (
+        <main className="route-fade pb-20" data-home-variant="mobile">
+          <MobileHero />
+          <MobileTrustRow />
+          <Suspense fallback={<SectionSkeleton />}>
+            <ProductsSection />
+          </Suspense>
+          <MobileEssentials />
+          <MobileFinalCta />
+          <SeoFooter />
+        </main>
+      ) : (
+      <main className="route-fade" data-home-variant="desktop">
         <Hero />
 
         {/* Social proof веднага под херото — зарежда се веднага, без lazy gate */}
@@ -229,6 +248,7 @@ const Index = () => {
 
         <SeoFooter />
       </main>
+      )}
     </div>
   );
 };

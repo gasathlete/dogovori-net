@@ -184,8 +184,17 @@ function MapDemo({ reduced }: { reduced: boolean }) {
   );
 }
 
-export function ProductDemo({ kind }: { kind: ProductDemoKind }) {
-  const reduced = useReducedMotion();
+export function ProductDemo({
+  kind,
+  active = true,
+}: {
+  kind: ProductDemoKind;
+  /** `false` спира вечния цикъл (напр. панелът не е видим на телефон). */
+  active?: boolean;
+}) {
+  const prefersReduced = useReducedMotion();
+  // Извън видимост се държим като „reduced": финално състояние, без цикъл.
+  const reduced = prefersReduced || !active;
   return (
     <div
       role="img"
