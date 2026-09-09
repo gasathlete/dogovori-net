@@ -2134,6 +2134,97 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_change_candidates: {
+        Row: {
+          celex: string | null
+          created_at: string
+          diff_metadata: Json
+          effective_date: string | null
+          gazette_issue: string | null
+          id: string
+          item_key: string
+          lifecycle: string
+          official_identifier: string | null
+          publication_date: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          severity: string
+          snapshot_id: string
+          source_key: string
+          summary: string | null
+          superseded_by: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          celex?: string | null
+          created_at?: string
+          diff_metadata?: Json
+          effective_date?: string | null
+          gazette_issue?: string | null
+          id?: string
+          item_key: string
+          lifecycle: string
+          official_identifier?: string | null
+          publication_date?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string
+          snapshot_id: string
+          source_key: string
+          summary?: string | null
+          superseded_by?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          celex?: string | null
+          created_at?: string
+          diff_metadata?: Json
+          effective_date?: string | null
+          gazette_issue?: string | null
+          id?: string
+          item_key?: string
+          lifecycle?: string
+          official_identifier?: string | null
+          publication_date?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string
+          snapshot_id?: string
+          source_key?: string
+          summary?: string | null
+          superseded_by?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_change_candidates_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "legal_source_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_change_candidates_source_key_fkey"
+            columns: ["source_key"]
+            isOneToOne: false
+            referencedRelation: "legal_source_registry"
+            referencedColumns: ["source_key"]
+          },
+          {
+            foreignKeyName: "legal_change_candidates_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "legal_change_candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       legal_chunks: {
         Row: {
           article_no: string | null
@@ -2241,6 +2332,184 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "legal_sources"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_ingestion_runs: {
+        Row: {
+          byte_count: number | null
+          changed_count: number
+          content_type: string | null
+          created_at: string
+          discovered_count: number
+          error_code: string | null
+          finished_at: string | null
+          http_status: number | null
+          id: string
+          outcome: string
+          source_key: string
+          started_at: string
+          trigger: string
+        }
+        Insert: {
+          byte_count?: number | null
+          changed_count?: number
+          content_type?: string | null
+          created_at?: string
+          discovered_count?: number
+          error_code?: string | null
+          finished_at?: string | null
+          http_status?: number | null
+          id?: string
+          outcome: string
+          source_key: string
+          started_at?: string
+          trigger: string
+        }
+        Update: {
+          byte_count?: number | null
+          changed_count?: number
+          content_type?: string | null
+          created_at?: string
+          discovered_count?: number
+          error_code?: string | null
+          finished_at?: string | null
+          http_status?: number | null
+          id?: string
+          outcome?: string
+          source_key?: string
+          started_at?: string
+          trigger?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_ingestion_runs_source_key_fkey"
+            columns: ["source_key"]
+            isOneToOne: false
+            referencedRelation: "legal_source_registry"
+            referencedColumns: ["source_key"]
+          },
+        ]
+      }
+      legal_source_registry: {
+        Row: {
+          access_method: string
+          authority_tier: string
+          created_at: string
+          enabled: boolean
+          entry_path: string
+          expected_cadence: string
+          freshness_state: string
+          id: string
+          jurisdiction: string
+          last_attempt_at: string | null
+          last_change_at: string | null
+          last_success_at: string | null
+          origin: string
+          owner: string | null
+          parser_version: string
+          review_notes: string | null
+          review_status: string
+          source_key: string
+          title: string
+          updated_at: string
+          watch_only: boolean
+        }
+        Insert: {
+          access_method: string
+          authority_tier: string
+          created_at?: string
+          enabled?: boolean
+          entry_path: string
+          expected_cadence?: string
+          freshness_state?: string
+          id?: string
+          jurisdiction: string
+          last_attempt_at?: string | null
+          last_change_at?: string | null
+          last_success_at?: string | null
+          origin: string
+          owner?: string | null
+          parser_version?: string
+          review_notes?: string | null
+          review_status?: string
+          source_key: string
+          title: string
+          updated_at?: string
+          watch_only?: boolean
+        }
+        Update: {
+          access_method?: string
+          authority_tier?: string
+          created_at?: string
+          enabled?: boolean
+          entry_path?: string
+          expected_cadence?: string
+          freshness_state?: string
+          id?: string
+          jurisdiction?: string
+          last_attempt_at?: string | null
+          last_change_at?: string | null
+          last_success_at?: string | null
+          origin?: string
+          owner?: string | null
+          parser_version?: string
+          review_notes?: string | null
+          review_status?: string
+          source_key?: string
+          title?: string
+          updated_at?: string
+          watch_only?: boolean
+        }
+        Relationships: []
+      }
+      legal_source_snapshots: {
+        Row: {
+          byte_count: number
+          canonical_url: string
+          checksum: string
+          content_type: string
+          created_at: string
+          id: string
+          parser_version: string
+          raw_payload: string | null
+          retrieved_at: string
+          source_key: string
+          storage_ref: string | null
+        }
+        Insert: {
+          byte_count: number
+          canonical_url: string
+          checksum: string
+          content_type: string
+          created_at?: string
+          id?: string
+          parser_version: string
+          raw_payload?: string | null
+          retrieved_at?: string
+          source_key: string
+          storage_ref?: string | null
+        }
+        Update: {
+          byte_count?: number
+          canonical_url?: string
+          checksum?: string
+          content_type?: string
+          created_at?: string
+          id?: string
+          parser_version?: string
+          raw_payload?: string | null
+          retrieved_at?: string
+          source_key?: string
+          storage_ref?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_source_snapshots_source_key_fkey"
+            columns: ["source_key"]
+            isOneToOne: false
+            referencedRelation: "legal_source_registry"
+            referencedColumns: ["source_key"]
           },
         ]
       }
