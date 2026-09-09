@@ -185,6 +185,55 @@ Deno.test("пренасяне при КОРЕКЦИЯ: само подписан
   assertEquals(await verifyManifestSignatureOnly({ manifest: null, signingSecret: SECRET }), null);
 });
 
+Deno.test("КОРЕКЦИЯ, която нарушава изискване, ПАЗИ очакваното намерение", async () => {
+  // 1) Валидно генериране с изискван слот `money.price` = 1000 EUR.
+  const intents = await buildIntentAssertions({
+    serverSecret: SECRET,
+    drafts: [
+      { slot: "money.price", value: { kind: "money", amount: "1000", currency: "EUR" }, required: true },
+    ],
+  });
+  const generated = await manifestFor(intents);
+
+  // 2) Корекцията сменя изискваната цена → текстът НАРУШАВА намерението.
+  const correctedContract = {
+    ...CONTRACT,
+    clauses: CONTRACT.clauses.map((c) =>
+      c.title === "Цена" ? { ...c, body: "Възнаграждението е 2 000,00 EUR без ДДС." } : c
+    ),
+  };
+  const carried = await verifyManifestSignatureOnly({ manifest: generated, signingSecret: SECRET });
+  assert(carried);
+  // Целият валиден набор се пренася — включително нарушеното изискване.
+  const reissued = await buildQualityManifest({
+    origin: "apply-corrections",
+    signingSecret: SECRET,
+    contract: correctedContract,
+    intents: carried!.intents,
+    documentType: "dogovor-za-izrabotka",
+    decisions: ["placeholders_for_personal_data"],
+  });
+  assertEquals(reissued.intents.length, 1);
+  assertEquals(reissued.intents[0].commitment, intents[0].commitment);
+
+  // 3) По-късна ревизия/анализ на ТОЧНО този коригиран текст пак вижда несъответствието.
+  const correctedText = renderCanonicalPlainText(correctedContract);
+  const trust = await verifyQualityManifest({
+    manifest: reissued,
+    signingSecret: SECRET,
+    documentText: correctedText,
+  });
+  assert(trust.trusted, "манифестът е обвързан с коригирания текст");
+  const later = await verifyIntentAssertions({
+    assertions: trust.trusted ? trust.manifest.intents : [],
+    documentText: correctedText,
+    serverSecret: SECRET,
+  });
+  assertEquals(later.mismatched_required.length, 1);
+  assertEquals(later.satisfied, 0);
+});
+
+
 Deno.test("нищо сурово не изтича в серизирания манифест", async () => {
   const m = await manifestFor(await intentsFor());
   const serialized = JSON.stringify(m);
