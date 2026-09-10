@@ -56,7 +56,7 @@ describe("продуктова конфигурация — единствен �
     );
     expect(getProduct("contract_improve").badge).toBe("Най-предпочитан");
     expect(getProduct("contract_improve").ctaHref).toBe(
-      "/analiz?product=contract_improve",
+      "/produkti/popravi-dokument/start",
     );
     const pkg = getProduct("negotiation_package");
     expect(pkg.name).toBe("Пълен пакет за преговори");
