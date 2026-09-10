@@ -27,6 +27,13 @@ import {
   verifyStoredProductSource,
 } from "../_shared/product-source.ts";
 import {
+  ProductContextError,
+  sameProductContext,
+  validateProductContext,
+} from "../_shared/product-intake-context.ts";
+import { evaluateProductEligibility } from "../_shared/product-eligibility.ts";
+import { PRODUCT_GENERATION_POLICY_VERSION } from "../_shared/product-generation-policy.ts";
+import {
   ConsentMissingError,
   LEGAL_VERSIONS,
   ReturnUrlError,
@@ -49,13 +56,6 @@ const ALLOWED_BODY_KEYS = Object.freeze([
   "withdrawalLossAcknowledged",
 ]);
 
-const ALLOWED_CONTEXT_KEYS = Object.freeze([
-  "role",
-  "objective",
-  "counterparty_context",
-  "preferred_position",
-]);
-
 class RequestShapeError extends Error {
   constructor(readonly code: string) {
     super(code);
@@ -67,51 +67,6 @@ function assertKnownKeys(body: Record<string, unknown>) {
   for (const key of Object.keys(body)) {
     if (!ALLOWED_BODY_KEYS.includes(key)) throw new RequestShapeError("unknown_field");
   }
-}
-
-/**
- * Кратки, ограничени полета за контекста, с изисквания според продукта.
- * Никога суров текст на документа.
- */
-function requireContext(raw: unknown, productId: string): Record<string, string> {
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-    throw new RequestShapeError("invalid_context");
-  }
-  const src = raw as Record<string, unknown>;
-  for (const key of Object.keys(src)) {
-    if (!ALLOWED_CONTEXT_KEYS.includes(key)) throw new RequestShapeError("unknown_context_field");
-  }
-  const out: Record<string, string> = {};
-  const take = (key: string, max: number) => {
-    const v = src[key];
-    if (typeof v !== "string") return;
-    const trimmed = v.trim();
-    if (!trimmed) return;
-    if (trimmed.length > max) throw new RequestShapeError("context_too_long");
-    if (trimmed.length < 2) throw new RequestShapeError("context_too_short");
-    out[key] = trimmed;
-  };
-  take("role", 120);
-  take("objective", 400);
-  take("counterparty_context", 400);
-  const position = src.preferred_position;
-  if (typeof position === "string" && position) {
-    if (!["conservative", "balanced", "assertive"].includes(position)) {
-      throw new RequestShapeError("invalid_position");
-    }
-    out.preferred_position = position;
-  }
-
-  // Продуктови изисквания — проверени на сървъра, не само в UI.
-  if (!out.role) throw new RequestShapeError("role_required");
-  if (productId !== "contract_check" && !out.objective) {
-    throw new RequestShapeError("objective_required");
-  }
-  if (productId === "negotiation_package") {
-    if (!out.counterparty_context) throw new RequestShapeError("counterparty_required");
-    if (!out.preferred_position) throw new RequestShapeError("position_required");
-  }
-  return out;
 }
 
 /** SHA-256 върху точно нормализирания текст — същият вход като в браузъра. */
@@ -173,7 +128,7 @@ Deno.serve(async (req) => {
 
     const spec = requireProductSpec(productId);
     const consent = requireProductConsent(body);
-    const context = requireContext(body.context, spec.id);
+    const context = validateProductContext(body.context, spec.id);
     // Адресът за връщане е фиксиран и НИКОГА не идва от заявката.
     const returnUrl = productReturnUrl(
       Deno.env.get("APP_BASE_URL") ?? undefined,
@@ -202,6 +157,27 @@ Deno.serve(async (req) => {
     const sourceHash = verifiedSource.sourceHash;
     const sourceUpdatedAt = verifiedSource.sourceUpdatedAt;
 
+    // СЪЩАТА проверка, която изпълнението ще повтори: можем ли наистина да
+    // обработим точно този документ с точно този продукт? Ако не — отказваме
+    // ПРЕДИ да се създаде или преизползва платима сесия.
+    const eligibility = evaluateProductEligibility({
+      productId: spec.id,
+      source: {
+        text: verifiedSource.text,
+        charCount: verifiedSource.charCount,
+        charUnit: verifiedSource.charUnit,
+        sourceKind: verifiedSource.sourceKind,
+        extractionStatus: "full",
+      },
+      context,
+    });
+    if (!eligibility.ok) {
+      return new Response(
+        JSON.stringify({ error: eligibility.code, message: eligibility.message }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // Цената се разрешава ПРЕДИ заявката: точната цена е част от заявката.
     const stripe = createStripeClient(environment);
     const prices = await stripe.prices.list({ lookup_keys: [spec.lookupKey] });
@@ -212,7 +188,7 @@ Deno.serve(async (req) => {
     const { data: existingIntake } = await admin
       .from("product_checkout_intakes")
       .select(
-        "id, product_id, source_hash, source_updated_at, uploaded_contract_id, environment, status, stripe_session_id, stripe_price_id, stripe_price_lookup_key, expected_amount_cents, context, terms_accepted, ai_ack_accepted, immediate_performance_consent, withdrawal_loss_acknowledged, terms_version, privacy_version, withdrawal_version, refund_version, ai_notice_version, source_char_count, source_char_unit, source_kind, source_page_count, source_extraction_status",
+        "id, product_id, source_hash, source_updated_at, uploaded_contract_id, environment, status, stripe_session_id, stripe_price_id, stripe_price_lookup_key, expected_amount_cents, context, terms_accepted, ai_ack_accepted, immediate_performance_consent, withdrawal_loss_acknowledged, terms_version, privacy_version, withdrawal_version, refund_version, ai_notice_version, source_char_count, source_char_unit, source_kind, source_page_count, source_extraction_status, generation_policy_version",
       )
       .eq("user_id", userId)
       .eq("request_id", requestId)
@@ -221,8 +197,7 @@ Deno.serve(async (req) => {
     let intakeId = existingIntake?.id as string | undefined;
     let reusedSession: { id: string; client_secret: string | null } | null = null;
     if (existingIntake) {
-      const sameContext =
-        JSON.stringify(existingIntake.context ?? {}) === JSON.stringify(context);
+      const sameContext = sameProductContext(existingIntake.context, context);
       const mismatch =
         existingIntake.product_id !== spec.id ||
         existingIntake.uploaded_contract_id !== uploadedContractId ||
@@ -246,6 +221,8 @@ Deno.serve(async (req) => {
         existingIntake.withdrawal_version !== LEGAL_VERSIONS.withdrawal ||
         existingIntake.refund_version !== LEGAL_VERSIONS.refund ||
         existingIntake.ai_notice_version !== LEGAL_VERSIONS.aiNotice ||
+        // Повторният опит не сменя ТИХО политиката за обработка.
+        existingIntake.generation_policy_version !== PRODUCT_GENERATION_POLICY_VERSION ||
         !sameContext;
       if (mismatch) return fail("intake_conflict", 409, corsHeaders);
       if (existingIntake.status === "paid") return fail("already_paid", 409, corsHeaders);
@@ -302,6 +279,7 @@ Deno.serve(async (req) => {
           source_kind: verifiedSource.sourceKind,
           source_page_count: verifiedSource.pageCount,
           source_extraction_status: "full",
+          generation_policy_version: PRODUCT_GENERATION_POLICY_VERSION,
         })
         .select("id")
         .single();
@@ -372,6 +350,7 @@ Deno.serve(async (req) => {
     if (e instanceof RequestShapeError) return fail(e.code, 400, corsHeaders);
     if (e instanceof ProductPurchaseError) return fail(e.reason, 400, corsHeaders);
     if (e instanceof ProductSourceError) return fail(e.reason, 400, corsHeaders);
+    if (e instanceof ProductContextError) return fail(e.reason, 400, corsHeaders);
     const code = e instanceof Error && e.message.length < 40 ? e.message : "checkout_failed";
     console.error("create-product-checkout error:", e);
     return fail(code, 400, corsHeaders);

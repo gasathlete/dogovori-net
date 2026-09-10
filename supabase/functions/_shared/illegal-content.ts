@@ -6,7 +6,26 @@
 // content excerpts, NO matched terms (per legal review).
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { sendAppEmail } from "./transactional-email-templates/send-and-log.ts";
+// Пощата се зарежда ЛЕНИВО: така детекторът остава чист и може да се внася от
+// пътища без мрежа (напр. проверката за допустимост преди плащане).
+async function sendAppEmailLazy(
+  admin: SupabaseClient,
+  template: string,
+  recipient: string,
+  options: {
+    idempotencyKey: string;
+    templateData: Record<string, string | undefined>;
+  },
+): Promise<unknown> {
+  // Изчисляван адрес: така чистият детектор може да се внася и в среда без
+  // пакетите за поща, без да се променя поведението при истинско изпращане.
+  const specifier = ["./transactional-email-templates", "send-and-log.ts"].join("/");
+  const mod = await import(specifier);
+  const send = (mod as Record<string, unknown>).sendAppEmail as (
+    ...a: unknown[]
+  ) => Promise<unknown>;
+  return await send(admin, template, recipient, options);
+}
 
 export type IllegalCategory =
   | "violence"
@@ -244,7 +263,7 @@ export async function guardIllegalContent(args: GuardArgs): Promise<Response | n
 
       for (const recipient of recipients) {
         try {
-          await sendAppEmail(admin, "illegal-content-alert", recipient, {
+          await sendAppEmailLazy(admin, "illegal-content-alert", recipient, {
             idempotencyKey: `restricted-${eventId ?? crypto.randomUUID()}-${recipient}`,
             templateData: {
               category: result.categoryLabel,

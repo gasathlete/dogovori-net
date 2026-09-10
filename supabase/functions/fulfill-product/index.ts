@@ -1,0 +1,344 @@
+/**
+ * Изпълнение на точно едно платено право за точно един продукт.
+ *
+ * В този етап (Stage 2B1B1) функцията е ОБВИВКА: тя доказва плащането,
+ * неизменния източник и допустимостта, заявява задачата и записва контролна
+ * точка `awaiting_generation`. НЯМА извикване на модел и НЯМА подставен или
+ * частичен резултат. Генерацията се включва в Stage 2B1B2 през типизираната
+ * граница `ProductGenerationAdapter`.
+ *
+ * Заявката приема САМО `entitlement_id`. Всичко останало — продукт, източник,
+ * контекст, класификация, маршрут, бюджет — се извежда от сървърни редове.
+ * Общите операции/квоти НЕ се пипат: платеният продукт не харчи операции.
+ */
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { buildCors } from "../_shared/cors.ts";
+import { correlationHeaders, getCorrelationId } from "../_shared/correlation.ts";
+import {
+  evaluateProductEligibility,
+  eligibilityMessage,
+  type EligibilityCode,
+} from "../_shared/product-eligibility.ts";
+import { PRODUCT_GENERATION_POLICY_VERSION } from "../_shared/product-generation-policy.ts";
+import {
+  AWAITING_GENERATION_CURSOR,
+  PRODUCT_JOB_LEASE_SECONDS,
+  cursorKey,
+  jobIdempotencyKey,
+  resolveProductGenerationAdapter,
+} from "../_shared/product-jobs.ts";
+import { requireProductSpec } from "../_shared/product-purchase.ts";
+import {
+  PRODUCT_SOURCE_CHAR_UNIT,
+  ProductSourceError,
+  verifyStoredProductSource,
+} from "../_shared/product-source.ts";
+import { validateProductResult } from "../_shared/product-result-contract.ts";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ALLOWED_BODY_KEYS = Object.freeze(["entitlement_id"]);
+
+/** Кратки, безопасни съобщения на български. Без технически подробности. */
+const MESSAGES: Readonly<Record<string, string>> = Object.freeze({
+  unauthorized: "Влезте в профила си, за да видите резултата.",
+  invalid_body: "Заявката е непълна.",
+  not_found: "Не намираме тази поръчка.",
+  payment_unverified: "Плащането още не е потвърдено. Опитайте отново след минута.",
+  source_changed:
+    "Документът е променен след плащането. Резултатът е обвързан с точния платен документ.",
+  processing: "Обработваме документа. Ще видите резултата тук.",
+  failed_retryable: "Обработката прекъсна. Опитайте отново.",
+  failed_permanent: "Обработката не може да продължи. Свържете се с нас за решение.",
+  internal: "Възникна неочакван проблем.",
+});
+
+function json(
+  body: Record<string, unknown>,
+  status: number,
+  headers: HeadersInit,
+): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...headers, "Content-Type": "application/json" },
+  });
+}
+
+function fail(code: string, status: number, headers: HeadersInit, cid: string, message?: string) {
+  return json(
+    { error: code, message: message ?? MESSAGES[code] ?? MESSAGES.internal, correlation_id: cid },
+    status,
+    headers,
+  );
+}
+
+Deno.serve(async (req) => {
+  const corsHeaders = buildCors(req);
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") {
+    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+  }
+  const cid = getCorrelationId(req);
+  const headers = { ...corsHeaders, ...correlationHeaders(cid) };
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) return fail("unauthorized", 401, headers, cid);
+    const token = authHeader.slice("Bearer ".length);
+
+    const asUser = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: userData, error: userErr } = await asUser.auth.getUser(token);
+    if (userErr || !userData?.user) return fail("unauthorized", 401, headers, cid);
+    const userId = userData.user.id;
+
+    const parsed = await req.json().catch(() => null);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return fail("invalid_body", 400, headers, cid);
+    }
+    const body = parsed as Record<string, unknown>;
+    for (const key of Object.keys(body)) {
+      if (!ALLOWED_BODY_KEYS.includes(key)) return fail("invalid_body", 400, headers, cid);
+    }
+    const entitlementId = body.entitlement_id;
+    if (typeof entitlementId !== "string" || !UUID_RE.test(entitlementId)) {
+      return fail("invalid_body", 400, headers, cid);
+    }
+
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    // 1) Платеното право. Без „последно право на потребителя“ — точно това.
+    const { data: ent } = await admin
+      .from("product_entitlements")
+      .select(
+        "id, user_id, product_id, status, result, result_schema_version, intake_id, stripe_session_id, stripe_price_id, stripe_price_lookup_key, stripe_event_id, paid_at, amount_cents, currency, environment, source_document_id, source_hash, source_updated_at, source_char_count, source_char_unit, source_kind, source_page_count, source_extraction_status, generation_policy_version",
+      )
+      .eq("id", entitlementId)
+      .maybeSingle();
+    if (!ent || ent.user_id !== userId) return fail("not_found", 404, headers, cid);
+
+    const spec = requireProductSpec(ent.product_id);
+    if (
+      ent.amount_cents !== spec.amountCents ||
+      String(ent.currency).toLowerCase() !== spec.currency ||
+      ent.stripe_price_lookup_key !== spec.lookupKey ||
+      !ent.stripe_price_id ||
+      !ent.stripe_session_id ||
+      !ent.stripe_event_id ||
+      !ent.paid_at ||
+      !ent.intake_id ||
+      (ent.environment !== "live" && ent.environment !== "sandbox")
+    ) {
+      return fail("payment_unverified", 409, headers, cid);
+    }
+    if (!["paid", "processing", "ready", "failed"].includes(String(ent.status))) {
+      return fail("payment_unverified", 409, headers, cid);
+    }
+
+    // 2) Доказателството идва по ДВОЙКИ: право И продуктов order snapshot.
+    const { data: snapshot } = await admin
+      .from("order_snapshots")
+      .select(
+        "id, purchase_kind, product_id, payment_status, stripe_session_id, stripe_event_id, product_intake_id, product_source_document_id, product_source_hash, product_source_updated_at, product_source_char_count, product_source_char_unit, product_source_kind, product_source_pages, product_source_extraction_status, environment, price_amount, currency",
+      )
+      .eq("purchase_kind", "product")
+      .eq("product_intake_id", ent.intake_id)
+      .eq("stripe_session_id", ent.stripe_session_id)
+      .maybeSingle();
+    if (
+      !snapshot ||
+      snapshot.payment_status !== "paid" ||
+      snapshot.product_id !== ent.product_id ||
+      snapshot.stripe_event_id !== ent.stripe_event_id ||
+      snapshot.environment !== ent.environment ||
+      snapshot.product_source_document_id !== ent.source_document_id ||
+      String(snapshot.product_source_hash).toLowerCase() !==
+        String(ent.source_hash).toLowerCase() ||
+      String(snapshot.product_source_updated_at) !== String(ent.source_updated_at) ||
+      snapshot.product_source_char_count !== ent.source_char_count ||
+      snapshot.product_source_char_unit !== ent.source_char_unit ||
+      snapshot.product_source_kind !== ent.source_kind ||
+      (snapshot.product_source_pages ?? null) !== (ent.source_page_count ?? null) ||
+      snapshot.product_source_extraction_status !== "full"
+    ) {
+      return fail("payment_unverified", 409, headers, cid);
+    }
+
+    // 3) Готовият резултат се връща точно както е записан — без преработка.
+    if (ent.status === "ready") {
+      if (ent.result_schema_version !== 2 || !validateProductResult(ent.result).ok) {
+        return fail("failed_permanent", 409, headers, cid);
+      }
+      return json({ status: "ready", result: ent.result, correlation_id: cid }, 200, headers);
+    }
+
+    // 4) Неизменната заявка: контекст, съгласия и версия на политиката.
+    const { data: intake } = await admin
+      .from("product_checkout_intakes")
+      .select(
+        "id, user_id, product_id, uploaded_contract_id, source_hash, source_updated_at, source_char_count, source_char_unit, source_kind, source_page_count, source_extraction_status, context, status, environment, generation_policy_version, terms_accepted, ai_ack_accepted, immediate_performance_consent, withdrawal_loss_acknowledged",
+      )
+      .eq("id", ent.intake_id)
+      .maybeSingle();
+    if (
+      !intake ||
+      intake.user_id !== userId ||
+      intake.product_id !== ent.product_id ||
+      intake.status !== "paid" ||
+      intake.environment !== ent.environment ||
+      intake.uploaded_contract_id !== ent.source_document_id ||
+      String(intake.source_hash).toLowerCase() !== String(ent.source_hash).toLowerCase() ||
+      String(intake.source_updated_at) !== String(ent.source_updated_at) ||
+      intake.source_char_count !== ent.source_char_count ||
+      intake.source_char_unit !== ent.source_char_unit ||
+      intake.source_kind !== ent.source_kind ||
+      (intake.source_page_count ?? null) !== (ent.source_page_count ?? null) ||
+      intake.source_extraction_status !== "full" ||
+      intake.terms_accepted !== true ||
+      intake.ai_ack_accepted !== true ||
+      intake.immediate_performance_consent !== true ||
+      intake.withdrawal_loss_acknowledged !== true
+    ) {
+      return fail("payment_unverified", 409, headers, cid);
+    }
+    // Версията на политиката е ЗАДЪЛЖИТЕЛНА: липсваща стойност спира обработката,
+    // вместо да я приеме наум.
+    const storedPolicy = intake.generation_policy_version ?? ent.generation_policy_version ?? null;
+    if (storedPolicy !== PRODUCT_GENERATION_POLICY_VERSION) {
+      const code: EligibilityCode = "policy_changed";
+      return fail(code, 409, headers, cid, eligibilityMessage(code));
+    }
+
+    // 5) Източникът: същият документ, същата ревизия, ЦЯЛ текст, същият хеш.
+    const { data: doc } = await admin
+      .from("uploaded_contracts")
+      .select(
+        "id, user_id, extracted_text, text_hash, updated_at, product_extraction_status, product_extracted_chars, product_source_pages, product_source_kind",
+      )
+      .eq("id", ent.source_document_id)
+      .maybeSingle();
+    if (!doc || doc.user_id !== userId) return fail("source_changed", 409, headers, cid);
+    const verified = await verifyStoredProductSource(doc, async (value) => {
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+      return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+    });
+    if (
+      verified.sourceHash !== String(ent.source_hash).toLowerCase() ||
+      String(verified.sourceUpdatedAt) !== String(ent.source_updated_at) ||
+      verified.sourceKind !== ent.source_kind ||
+      verified.charCount !== ent.source_char_count ||
+      verified.charUnit !== ent.source_char_unit ||
+      ent.source_char_unit !== PRODUCT_SOURCE_CHAR_UNIT ||
+      verified.pageCount !== (ent.source_page_count ?? null)
+    ) {
+      return fail("source_changed", 409, headers, cid);
+    }
+
+    // 6) СЪЩАТА проверка за допустимост, която е минала преди плащането.
+    const eligibility = evaluateProductEligibility({
+      productId: spec.id,
+      source: {
+        text: verified.text,
+        charCount: verified.charCount,
+        charUnit: verified.charUnit,
+        sourceKind: verified.sourceKind,
+        extractionStatus: "full",
+      },
+      context: intake.context,
+      expectedPolicyVersion: storedPolicy,
+    });
+    if (!eligibility.ok) {
+      return fail(eligibility.code, 409, headers, cid, eligibility.message);
+    }
+    const bounds = eligibility.policy.bounds;
+
+    // 7) Атомарно заявяване на НАЙ-МНОГО една ограничена стъпка.
+    const { data: claim, error: claimErr } = await admin.rpc("claim_product_job", {
+      p_entitlement_id: entitlementId,
+      p_user_id: userId,
+      p_policy_version: PRODUCT_GENERATION_POLICY_VERSION,
+      p_idempotency_key: jobIdempotencyKey(entitlementId, AWAITING_GENERATION_CURSOR),
+      p_budget_max_calls: bounds.maxModelCalls,
+      p_budget_max_tokens: bounds.maxTotalTokens,
+      p_budget_hard_cost_milli_cents: bounds.hardCostMilliCents,
+      p_lease_seconds: PRODUCT_JOB_LEASE_SECONDS,
+    });
+    if (claimErr) {
+      console.error("claim_product_job failed", { cid });
+      return fail("failed_retryable", 503, headers, cid);
+    }
+    const claimResult = (claim ?? {}) as Record<string, unknown>;
+    if (claimResult.ok !== true) {
+      const reason = String(claimResult.reason ?? "not_claimable");
+      if (reason === "lease_active") {
+        return json({ status: "processing", message: MESSAGES.processing, correlation_id: cid }, 202, headers);
+      }
+      if (reason === "half_state" || reason === "not_found" || reason === "not_claimable") {
+        return fail("payment_unverified", 409, headers, cid);
+      }
+      if (reason === "source_changed") return fail("source_changed", 409, headers, cid);
+      if (reason === "policy_changed") {
+        return fail("policy_changed", 409, headers, cid, eligibilityMessage("policy_changed"));
+      }
+      if (reason === "already_completed") {
+        return json({ status: "processing", message: MESSAGES.processing, correlation_id: cid }, 202, headers);
+      }
+      return fail("failed_permanent", 409, headers, cid);
+    }
+
+    const jobId = String(claimResult.job_id);
+    const leaseToken = String(claimResult.lease_token);
+
+    // 8) В този етап адаптерът НАРОЧНО липсва: записваме детерминистична
+    //    контролна точка и връщаме „обработва се“. Никакъв фалшив резултат.
+    const adapter = resolveProductGenerationAdapter();
+    if (!adapter) {
+      const { error: cpErr } = await admin.rpc("record_product_job_checkpoint", {
+        p_job_id: jobId,
+        p_lease_token: leaseToken,
+        p_cursor_key: cursorKey(AWAITING_GENERATION_CURSOR),
+        p_stage: AWAITING_GENERATION_CURSOR.stage,
+        p_next_cursor: AWAITING_GENERATION_CURSOR,
+        p_usage_calls: 0,
+        p_usage_input_tokens: 0,
+        p_usage_output_tokens: 0,
+        p_usage_cost_milli_cents: 0,
+        p_payload_digest: null,
+        p_release_lease: true,
+      });
+      if (cpErr) {
+        await admin.rpc("fail_product_job", {
+          p_job_id: jobId,
+          p_lease_token: leaseToken,
+          p_error_class: "retryable",
+          p_error_code: "checkpoint_failed",
+        });
+        return fail("failed_retryable", 503, headers, cid);
+      }
+      return json(
+        { status: "processing", stage: AWAITING_GENERATION_CURSOR.stage, message: MESSAGES.processing, correlation_id: cid },
+        202,
+        headers,
+      );
+    }
+
+    // Недостижимо в този етап: адаптерът се появява в Stage 2B1B2.
+    await admin.rpc("fail_product_job", {
+      p_job_id: jobId,
+      p_lease_token: leaseToken,
+      p_error_class: "retryable",
+      p_error_code: "adapter_unavailable",
+    });
+    return fail("failed_retryable", 503, headers, cid);
+  } catch (e) {
+    if (e instanceof ProductSourceError) return fail("source_changed", 409, headers, cid);
+    // Никога не логваме текст, откъс, име на файл, контекст или лични данни.
+    console.error("fulfill-product error", { cid, name: e instanceof Error ? e.name : "unknown" });
+    return fail("internal", 500, headers, cid);
+  }
+});
