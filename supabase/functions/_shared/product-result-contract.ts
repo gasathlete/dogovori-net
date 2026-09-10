@@ -456,13 +456,25 @@ class Checker {
   }
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** ЕДИН израз за UUID — ползва се и от frontend схемата, за да няма разлика. */
+export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HEX64_RE = /^[0-9a-f]{64}$/;
 const HTTPS_RE = /^https:\/\/[^\s]+$/;
+
+export const BINDING_KEYS = [
+  "document_id",
+  "source_hash",
+  "source_kind",
+  "char_count",
+  "char_unit",
+  "source_updated_at",
+  "page_count",
+] as const;
 
 function checkBinding(c: Checker, path: string, raw: unknown): ProductSourceBinding | null {
   const o = c.obj(path, raw);
   if (!o) return null;
+  c.exact(path, o, BINDING_KEYS);
   if (typeof o.document_id !== "string" || !UUID_RE.test(o.document_id)) {
     c.fail(`${path}.document_id`, "очаква се UUID на качения документ");
   }
@@ -475,10 +487,20 @@ function checkBinding(c: Checker, path: string, raw: unknown): ProductSourceBind
     c.fail(`${path}.char_unit`, `единствената мерна единица е ${PRODUCT_SOURCE_CHAR_UNIT}`);
   }
   c.iso(`${path}.source_updated_at`, o.source_updated_at);
-  if (o.page_count !== null) c.int(`${path}.page_count`, o.page_count, 1, 10000);
+  if (o.page_count === undefined) {
+    c.fail(`${path}.page_count`, "очаква се измерен брой страници или null");
+  } else if (o.page_count !== null) {
+    c.int(`${path}.page_count`, o.page_count, 1, 10000);
+  }
   return o as unknown as ProductSourceBinding;
 }
 
+export const SPAN_KEYS = ["start", "end", "excerpt", "page", "section", "paragraph"] as const;
+
+/**
+ * Място в източника. Проверява се и срещу обвързването: край след дължината на
+ * приетия източник или страница над измерените страници е ОТКАЗ.
+ */
 function checkSpan(
   c: Checker,
   path: string,
@@ -487,6 +509,7 @@ function checkSpan(
 ): void {
   const o = c.obj(path, raw);
   if (!o) return;
+  c.exact(path, o, SPAN_KEYS);
   const start = c.int(`${path}.start`, o.start, 0, PRODUCT_MAX_SOURCE_CHARS);
   const end = c.int(`${path}.end`, o.end, 0, PRODUCT_MAX_SOURCE_CHARS);
   const excerpt = c.str(`${path}.excerpt`, o.excerpt, RESULT_LIMITS.excerpt);
@@ -504,8 +527,12 @@ function checkSpan(
   }
   if (o.page !== undefined && o.page !== null) {
     const page = c.int(`${path}.page`, o.page, 1, 10000);
-    if (page !== null && binding?.page_count && page > binding.page_count) {
-      c.fail(`${path}.page`, "страницата надхвърля измерените страници");
+    if (page !== null) {
+      if (binding && binding.page_count === null) {
+        c.fail(`${path}.page`, "страниците не са измерени, страница не може да се твърди");
+      } else if (binding && page > binding.page_count!) {
+        c.fail(`${path}.page`, "страницата надхвърля измерените страници");
+      }
     }
   }
   if (o.paragraph !== undefined && o.paragraph !== null) {
@@ -529,6 +556,14 @@ function checkSpans(
   list.forEach((span, i) => checkSpan(c, `${path}[${i}]`, span, binding));
 }
 
+export const LEGAL_BASIS_KEYS = [
+  "provision_id",
+  "version_id",
+  "source_id",
+  "canonical_url",
+  "label",
+] as const;
+
 function checkLegalBasis(c: Checker, path: string, raw: unknown): void {
   if (raw === undefined) return;
   const list = c.arr(path, raw, RESULT_LIMITS.legalBases);
@@ -537,6 +572,7 @@ function checkLegalBasis(c: Checker, path: string, raw: unknown): void {
     const p = `${path}[${i}]`;
     const o = c.obj(p, item);
     if (!o) return;
+    c.exact(p, o, LEGAL_BASIS_KEYS);
     c.id(`${p}.provision_id`, o.provision_id);
     c.id(`${p}.version_id`, o.version_id);
     c.id(`${p}.source_id`, o.source_id);
