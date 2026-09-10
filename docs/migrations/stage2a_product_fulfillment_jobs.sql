@@ -315,9 +315,14 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'reason', 'lease_active');
   END IF;
 
+  -- Връщаме състоянието СЛЕД заявяването, за да няма подвеждащ стар етап.
+  SELECT * INTO v_job
+    FROM public.product_fulfillment_jobs
+   WHERE id = v_job.id;
+
   RETURN jsonb_build_object(
     'ok', true, 'job_id', v_job.id, 'lease_token', v_token,
-    'stage', v_job.stage, 'cursor', v_job.cursor, 'attempt', v_job.attempt + 1,
+    'stage', v_job.stage, 'cursor', v_job.cursor, 'attempt', v_job.attempt,
     'created', false);
 END $$;
 
@@ -340,6 +345,9 @@ DECLARE
   v_job public.product_fulfillment_jobs;
   v_seq integer;
   v_inserted integer;
+  v_next_stage text;
+  v_stage_pos integer;
+  v_current_pos integer;
 BEGIN
   SELECT * INTO v_job
     FROM public.product_fulfillment_jobs
@@ -354,6 +362,46 @@ BEGIN
   END IF;
   IF v_job.stage IN ('completed', 'failed') THEN
     RETURN jsonb_build_object('ok', false, 'reason', 'terminal');
+  END IF;
+  IF p_cursor_key IS NULL OR length(btrim(p_cursor_key)) = 0 THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'cursor_key_missing');
+  END IF;
+
+  -- Следващият курсор трябва да е ЦЯЛ и съгласуван със записания етап.
+  IF p_next_cursor IS NULL
+     OR jsonb_typeof(p_next_cursor) <> 'object'
+     OR p_next_cursor ->> 'stage' IS NULL
+     OR jsonb_typeof(p_next_cursor -> 'batch_index') <> 'number'
+     OR jsonb_typeof(p_next_cursor -> 'chunk_index') <> 'number'
+     OR (p_next_cursor -> 'batch_index')::numeric < 0
+     OR (p_next_cursor -> 'chunk_index')::numeric < 0 THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'cursor_invalid');
+  END IF;
+  IF p_stage IS DISTINCT FROM v_job.stage
+     AND p_stage IS DISTINCT FROM (p_next_cursor ->> 'stage') THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'stage_inconsistent');
+  END IF;
+
+  -- Курсорът само напредва: същият етап не може да се върне назад.
+  v_next_stage := p_next_cursor ->> 'stage';
+  v_stage_pos := array_position(ARRAY[
+    'queued', 'awaiting_generation', 'passport', 'review', 'corrections',
+    'negotiation', 'messages', 'synthesis', 'completed', 'failed'], v_next_stage);
+  v_current_pos := array_position(ARRAY[
+    'queued', 'awaiting_generation', 'passport', 'review', 'corrections',
+    'negotiation', 'messages', 'synthesis', 'completed', 'failed'], v_job.stage);
+  IF v_stage_pos IS NULL OR v_current_pos IS NULL OR v_stage_pos < v_current_pos THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'cursor_not_advancing');
+  END IF;
+  IF v_stage_pos = v_current_pos
+     AND (
+       (p_next_cursor -> 'batch_index')::numeric < (v_job.cursor -> 'batch_index')::numeric
+       OR (
+         (p_next_cursor -> 'batch_index')::numeric = (v_job.cursor -> 'batch_index')::numeric
+         AND (p_next_cursor -> 'chunk_index')::numeric < (v_job.cursor -> 'chunk_index')::numeric
+       )
+     ) THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'cursor_not_advancing');
   END IF;
 
   SELECT COALESCE(max(sequence), -1) + 1 INTO v_seq
@@ -377,14 +425,26 @@ BEGIN
   END IF;
 
   UPDATE public.product_fulfillment_jobs
-     SET stage = COALESCE(p_next_cursor ->> 'stage', stage),
-         cursor = COALESCE(p_next_cursor, cursor),
+     SET stage = p_next_cursor ->> 'stage',
+         cursor = p_next_cursor,
+         completed_at = CASE
+                          WHEN p_next_cursor ->> 'stage' = 'completed'
+                          THEN COALESCE(completed_at, now())
+                          ELSE completed_at
+                        END,
          usage_calls = usage_calls + COALESCE(p_usage_calls, 0),
          usage_input_tokens = usage_input_tokens + COALESCE(p_usage_input_tokens, 0),
          usage_output_tokens = usage_output_tokens + COALESCE(p_usage_output_tokens, 0),
          usage_cost_milli_cents = usage_cost_milli_cents + COALESCE(p_usage_cost_milli_cents, 0),
-         lease_token = CASE WHEN p_release_lease THEN NULL ELSE lease_token END,
-         lease_expires_at = CASE WHEN p_release_lease THEN NULL ELSE lease_expires_at END,
+         -- Завършена задача НИКОГА не остава с наем.
+         lease_token = CASE
+                         WHEN p_release_lease
+                           OR p_next_cursor ->> 'stage' IN ('completed', 'failed')
+                         THEN NULL ELSE lease_token END,
+         lease_expires_at = CASE
+                              WHEN p_release_lease
+                                OR p_next_cursor ->> 'stage' IN ('completed', 'failed')
+                              THEN NULL ELSE lease_expires_at END,
          updated_at = now()
    WHERE id = p_job_id;
 
