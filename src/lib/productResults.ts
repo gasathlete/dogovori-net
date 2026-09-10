@@ -172,7 +172,7 @@ const reviewShape = {
         finding_id: idSchema,
         rank: z.number().int().min(1).max(RESULT_LIMITS.priorities),
         reason: text(RESULT_LIMITS.text),
-      }),
+      }).strict(),
     )
     .max(RESULT_LIMITS.priorities),
   // Нула находки е допустимо: изправен документ не се украсява с находки.
@@ -185,7 +185,7 @@ const reviewShape = {
         summary: text(RESULT_LIMITS.text),
         deadline: nullableText(RESULT_LIMITS.shortText),
         span: sourceSpanSchema,
-      }),
+      }).strict(),
     )
     .max(RESULT_LIMITS.obligations),
   economic_terms: z
@@ -196,17 +196,17 @@ const reviewShape = {
         label: text(RESULT_LIMITS.shortText),
         value_text: text(RESULT_LIMITS.shortText),
         span: sourceSpanSchema,
-      }),
+      }).strict(),
     )
     .max(RESULT_LIMITS.economicTerms),
   termination: z.object({
     summary: text(RESULT_LIMITS.text),
     spans: z.array(sourceSpanSchema).max(RESULT_LIMITS.spansPerItem),
-  }),
+  }).strict(),
   disputes: z.object({
     summary: text(RESULT_LIMITS.text),
     spans: z.array(sourceSpanSchema).max(RESULT_LIMITS.spansPerItem),
-  }),
+  }).strict(),
   contradictions: z
     .array(
       z.object({
@@ -216,7 +216,7 @@ const reviewShape = {
           .array(sourceSpanSchema)
           .min(2, "противоречието изисква поне две места")
           .max(RESULT_LIMITS.spansPerItem),
-      }),
+      }).strict(),
     )
     .max(RESULT_LIMITS.contradictions),
   absence_checks: z
@@ -234,17 +234,22 @@ const reviewShape = {
           spans: z.array(sourceSpanSchema).max(RESULT_LIMITS.spansPerItem),
           note: nullableText(RESULT_LIMITS.text),
         })
+        .strict()
         .refine((a) => (a.found ? a.spans.length >= 1 : a.spans.length === 0),
           "намереното изисква място, ненамереното не сочи място"),
     )
     .max(RESULT_LIMITS.absenceChecks),
+  // Човешките твърдения за липса — само върху проверка с `found: false`.
+  missing_protections: z
+    .array(missingProtectionSchema)
+    .max(RESULT_LIMITS.missingProtections),
   questions: z
     .array(
       z.object({
         id: idSchema,
         question: text(RESULT_LIMITS.text),
         why: text(RESULT_LIMITS.text),
-      }),
+      }).strict(),
     )
     .max(RESULT_LIMITS.questions),
 };
@@ -262,6 +267,25 @@ const priorityRefsValid = (raw: unknown) => {
     ranks.add(p.rank);
   }
   return new Set(payload.findings.map((f) => f.id)).size === payload.findings.length;
+};
+
+/**
+ * Всяко твърдение за липса сочи проверка върху ЦЕЛИЯ документ с `found: false`.
+ * Иначе е недоказано твърдение и резултатът не е валиден.
+ */
+const missingProtectionRefsValid = (raw: unknown) => {
+  const payload = raw as {
+    absence_checks: { id: string; found: boolean }[];
+    missing_protections: { id: string; absence_check_id: string }[];
+  };
+  const notFound = new Set(payload.absence_checks.filter((a) => !a.found).map((a) => a.id));
+  const ids = new Set<string>();
+  for (const m of payload.missing_protections) {
+    if (!notFound.has(m.absence_check_id)) return false;
+    if (ids.has(m.id)) return false;
+    ids.add(m.id);
+  }
+  return new Set(payload.absence_checks.map((a) => a.id)).size === payload.absence_checks.length;
 };
 
 export const reviewPayloadSchema = z
