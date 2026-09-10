@@ -14,7 +14,7 @@ async function sendAppEmailLazy(
   recipient: string,
   options: {
     idempotencyKey: string;
-    templateData: Record<string, string>;
+    templateData: Record<string, string | undefined>;
   },
 ): Promise<unknown> {
   // Изчисляван адрес: така чистият детектор може да се внася и в среда без
