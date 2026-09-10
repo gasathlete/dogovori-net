@@ -360,6 +360,11 @@ function ImprovePreview({ size }: { size: Size }) {
 function PackagePreview({ size }: { size: Size }) {
   const [active, setActive] = useState<PackageTabId>("plan");
   const base = useId();
+  const roving = useRovingKeys<PackageTabId>(
+    PACKAGE_TABS.map((t) => t.id),
+    active,
+    setActive,
+  );
 
   return (
     <>
@@ -367,6 +372,7 @@ function PackagePreview({ size }: { size: Size }) {
       <div
         role="tablist"
         aria-label="Части от пакета за преговори"
+        onKeyDown={roving.onKeyDown}
         className="flex flex-wrap gap-2"
       >
         {PACKAGE_TABS.map((t) => (
@@ -374,6 +380,7 @@ function PackagePreview({ size }: { size: Size }) {
             key={t.id}
             type="button"
             role="tab"
+            ref={roving.register(t.id)}
             id={`${base}-tab-${t.id}`}
             aria-selected={t.id === active}
             aria-controls={`${base}-panel-${t.id}`}
