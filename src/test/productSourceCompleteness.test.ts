@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 const state = vi.hoisted(() => ({
   invokeSpy: vi.fn(),
   mammothSpy: vi.fn(),
-  state.pdfPages: [] as string[],
+  pdfPages: [] as string[],
 }));
 const { invokeSpy, mammothSpy } = state;
 
