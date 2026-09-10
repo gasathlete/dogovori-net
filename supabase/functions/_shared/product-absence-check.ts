@@ -3,10 +3,12 @@
  *
  * Модулът записва само измеримото: какви изрази са търсени, че са търсени в
  * целия текст, и къде има съвпадения. Той НЕ твърди, че дадена защита е
- * задължителна или че липсата ѝ е риск — това е отделно, човешко твърдение.
+ * задължителна или че липсата ѝ е риск — това е отделно, човешко твърдение
+ * (`missing_protections` в договора за резултата).
  */
 import { ABSENCE_COVERAGE, type AbsenceCheck, type SourceSpan } from "./product-result-contract.ts";
 import { sliceByCodePoints } from "./product-source-map.ts";
+import { findAllCodePoints, foldText } from "./product-text-fold.ts";
 
 export interface ConceptQuery {
   readonly id: string;
@@ -16,55 +18,31 @@ export interface ConceptQuery {
   readonly note?: string | null;
 }
 
-const WS_RE = /\s/u;
-
-function foldForSearch(cps: readonly string[]): { folded: string; toOriginal: number[] } {
-  const out: string[] = [];
-  const toOriginal: number[] = [];
-  let pendingSpace = false;
-  for (let i = 0; i < cps.length; i += 1) {
-    const ch = cps[i];
-    if (WS_RE.test(ch)) {
-      if (out.length > 0) pendingSpace = true;
-      continue;
-    }
-    if (pendingSpace) {
-      out.push(" ");
-      toOriginal.push(i);
-      pendingSpace = false;
-    }
-    // Търсенето на понятия е без значение за регистъра; извадката остава точна.
-    out.push(ch.toLocaleLowerCase("bg-BG"));
-    toOriginal.push(i);
-  }
-  return { folded: out.join(""), toOriginal };
-}
-
 /** Максимум места, които записваме за едно понятие — резултатът е ограничен. */
 export const ABSENCE_MAX_SPANS = 8;
 
 /**
  * Търси всеки израз в целия източник и връща запис за покритието.
  * `found: false` НЕ значи „липсва защита“ — значи „изразите не се срещат“.
+ *
+ * Търсенето е без значение за регистъра, но извадката остава точна: всички
+ * отмествания се пресмятат върху кодови точки (виж `product-text-fold.ts`).
  */
 export function runAbsenceCheck(sourceText: string, query: ConceptQuery): AbsenceCheck {
   const cps = Array.from(sourceText);
-  const { folded, toOriginal } = foldForSearch(cps);
+  const index = foldText(cps, { lowercase: true });
   const spans: SourceSpan[] = [];
 
   for (const term of query.terms) {
-    const wanted = foldForSearch(Array.from(term)).folded;
-    if (!wanted) continue;
-    let from = 0;
-    while (spans.length < ABSENCE_MAX_SPANS) {
-      const at = folded.indexOf(wanted, from);
-      if (at === -1) break;
-      const start = toOriginal[at];
-      const end = toOriginal[at + wanted.length - 1] + 1;
+    const wanted = foldText(Array.from(term), { lowercase: true }).folded;
+    if (wanted.length === 0) continue;
+    for (const at of findAllCodePoints(index.folded, wanted, ABSENCE_MAX_SPANS * 4)) {
+      if (spans.length >= ABSENCE_MAX_SPANS) break;
+      const start = index.toOriginal[at];
+      const end = index.toOriginal[at + wanted.length - 1] + 1;
       if (!spans.some((s) => s.start === start && s.end === end)) {
         spans.push({ start, end, excerpt: sliceByCodePoints(sourceText, start, end) });
       }
-      from = at + wanted.length;
     }
   }
 

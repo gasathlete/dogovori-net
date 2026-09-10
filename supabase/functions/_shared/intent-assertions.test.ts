@@ -25,7 +25,9 @@ import {
 const SECRET = "test-only-fake-server-secret-0123456789";
 const OTHER_SECRET = "test-only-DIFFERENT-server-secret-9876543210";
 
-const money = (amount: string, currency: string) =>
+// Валутата е точно съюзът от договора — иначе типът се разширява до `string`
+// и типовата проверка на Deno гърми. Поведението в теста е непроменено.
+const money = (amount: string, currency: "EUR" | "BGN" | "USD") =>
   ({ kind: "money", amount, currency } as const);
 
 async function assertionsFor(
@@ -67,7 +69,9 @@ Deno.test("1000 и 10000 НИКОГА не се сливат", () => {
 
 Deno.test("EUR и BGN са РАЗЛИЧНИ канонични стойности и различни commitment-и", async () => {
   const eur = canonicalIntentValue(money("1000", "EUR"))!;
-  const bgn = canonicalIntentValue(money("1000", "лв."))!;
+  // Нарочно нестандартна валута: проверява се РУНТАЙМ поведението, затова
+  // стойността минава през `as never` без да променя смисъла на теста.
+  const bgn = canonicalIntentValue(money("1000", "лв." as never))!;
   assertNotEquals(eur, bgn);
   const a = await computeIntentCommitment({ slot: "money.price", canonical: eur, serverSecret: SECRET });
   const b = await computeIntentCommitment({ slot: "money.price", canonical: bgn, serverSecret: SECRET });

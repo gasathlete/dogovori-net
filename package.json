@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "bun run scripts/build-sitemap.ts && vite build && bun run scripts/prerender.ts && bun run scripts/verify-build.ts && bun run scripts/verify-seo-urls.ts && bun run scripts/indexnow-ping.ts",
+    "build": "bun run scripts/build-sitemap.ts && vite build && bun run scripts/prerender.ts && bun run scripts/verify-build.ts && bun run scripts/verify-seo-urls.ts",
+    "notify:search-engines": "bun run scripts/indexnow-ping.ts",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",

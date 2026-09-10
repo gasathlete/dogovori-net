@@ -29,6 +29,64 @@ describe("Stage 2A миграция — платежна истина", () => {
     );
   });
 
+  it("не приема стария път на обвързването от схема v1", () => {
+    const review = readFileSync(REVIEW_ARTIFACT, "utf8");
+    // Схема v2 държи обвързването във вложения обект `source`.
+    expect(review).not.toContain("result ->> 'source_hash'");
+    expect(review).not.toContain("p_result ->> 'source_hash'");
+  });
+
+  it("готов резултат изисква точно версия 2 и ЦЯЛОТО обвързване", () => {
+    const review = readFileSync(REVIEW_ARTIFACT, "utf8");
+    for (const fragment of [
+      "result_schema_version = 2",
+      "result -> 'schema_version' = '2'::jsonb",
+      "result -> 'source' ->> 'document_id' = source_document_id::text",
+      "lower(result -> 'source' ->> 'source_hash') = lower(source_hash)",
+      "result -> 'source' ->> 'source_kind' = source_kind",
+      "result -> 'source' -> 'char_count' = to_jsonb(source_char_count)",
+      "result -> 'source' ->> 'char_unit' = source_char_unit",
+      "(result -> 'source' ->> 'source_updated_at')::timestamptz = source_updated_at",
+      "result -> 'source' -> 'page_count' = 'null'::jsonb",
+      "result -> 'source' -> 'page_count' = to_jsonb(source_page_count)",
+    ]) {
+      expect(review, `липсва проверка: ${fragment}`).toContain(fragment);
+    }
+  });
+
+  it("двете писащи резултат функции проверяват същото обвързване", () => {
+    const review = readFileSync(REVIEW_ARTIFACT, "utf8");
+    for (const fragment of [
+      "AND p_result_schema_version = 2",
+      "AND COALESCE(p_result_schema_version, result_schema_version) = 2",
+      "AND p_result -> 'schema_version' = '2'::jsonb",
+      "AND p_result -> 'source' ->> 'document_id' = source_document_id::text",
+      "AND p_result -> 'source' ->> 'source_kind' = source_kind",
+      "AND p_result -> 'source' -> 'char_count' = to_jsonb(source_char_count)",
+      "AND p_result -> 'source' ->> 'char_unit' = source_char_unit",
+      "AND (p_result -> 'source' ->> 'source_updated_at')::timestamptz = source_updated_at",
+    ]) {
+      expect(review, `липсва проверка: ${fragment}`).toContain(fragment);
+    }
+    // Частично обвързване не е достатъчно: и двете функции сравняват страниците.
+    expect(
+      review.match(/p_result -> 'source' -> 'page_count' = to_jsonb\(source_page_count\)/g)?.length,
+    ).toBe(2);
+  });
+
+  it("не създава втора миграция за същата поправка", () => {
+    const names = readdirSync(MIGRATIONS_DIR).filter((f) =>
+      f.includes("product_checkout_entitlements")
+    );
+    expect(names.length).toBe(1);
+  });
+
+  it("старата INSERT политика остава премахната", () => {
+    expect(sql).toContain(
+      "DROP POLICY IF EXISTS order_snapshots_user_insert ON public.order_snapshots",
+    );
+  });
+
   it("не дава на браузъра запис върху новите таблици", () => {
     for (const table of ["product_checkout_intakes", "product_entitlements"]) {
       expect(sql).toContain(`GRANT SELECT ON public.${table} TO authenticated;`);

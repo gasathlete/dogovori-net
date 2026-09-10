@@ -71,6 +71,7 @@ export const RESULT_LIMITS = Object.freeze({
   economicTerms: 120,
   contradictions: 40,
   absenceChecks: 60,
+  missingProtections: 40,
   questions: 40,
   corrections: 120,
   spansPerItem: 12,
@@ -128,7 +129,11 @@ export interface LegalBasis {
 
 export interface DocumentPassportParty {
   readonly role: string;
-  readonly name: string;
+  /**
+   * Името може наистина да липсва или да е заличено в документа. Тогава е null —
+   * никога не се измисля. Ролята и точното място в източника остават задължителни.
+   */
+  readonly name: string | null;
   readonly span: SourceSpan;
 }
 
@@ -144,7 +149,12 @@ export interface Finding {
   readonly id: string;
   readonly title: string;
   readonly severity: ResultSeverity;
+  /** Какво пише в документа и защо е важно. */
   readonly explanation: string;
+  /** Какво може да се случи на практика — отделно поле, не общо обяснение. */
+  readonly consequence: string;
+  /** Конкретната следваща стъпка за човека. */
+  readonly next_step: string;
   readonly affected_party: ResultParty;
   readonly span: SourceSpan;
   readonly legal_basis?: readonly LegalBasis[];
@@ -198,6 +208,27 @@ export interface AbsenceCheck {
   readonly note: string | null;
 }
 
+/**
+ * Липсваща защита — ЕДИНСТВЕНОТО допустимо твърдение „това го няма в документа“.
+ *
+ * Твърдението е позволено само когато се опира на механична проверка за
+ * отсъствие върху целия източник (`absence_check_id` → проверка с
+ * `found: false`). Няма място в източника, защото такъв текст няма: измисленo
+ * `SourceSpan` за несъществуващ текст е забранено.
+ */
+export interface MissingProtection {
+  readonly id: string;
+  readonly title: string;
+  readonly concept: string;
+  readonly why_it_matters: string;
+  readonly consequence: string;
+  readonly next_step: string;
+  readonly affected_party: ResultParty;
+  /** Сочи към проверка за отсъствие върху целия документ с `found: false`. */
+  readonly absence_check_id: string;
+  readonly legal_basis?: readonly LegalBasis[];
+}
+
 export interface ClarifyingQuestion {
   readonly id: string;
   readonly question: string;
@@ -214,7 +245,10 @@ export interface ReviewPayload {
   readonly termination: ClauseSummary;
   readonly disputes: ClauseSummary;
   readonly contradictions: readonly Contradiction[];
+  /** Механичните проверки: какво е търсено в целия източник. */
   readonly absence_checks: readonly AbsenceCheck[];
+  /** Човешките твърдения за липсваща защита, опрени на проверките по-горе. */
+  readonly missing_protections: readonly MissingProtection[];
   readonly questions: readonly ClarifyingQuestion[];
 }
 
@@ -323,6 +357,16 @@ class Checker {
     this.errors.push(`${path}: ${message}`);
   }
 
+  /**
+   * Точни ключове: непознато поле е ОТКАЗ, не тихо игнориране. Записан готов
+   * резултат не може да носи полета, които никой не е проверил.
+   */
+  exact(path: string, o: Record<string, unknown>, allowed: readonly string[]) {
+    for (const key of Object.keys(o)) {
+      if (!allowed.includes(key)) this.fail(`${path}.${key}`, "непознато поле");
+    }
+  }
+
   obj(path: string, value: unknown): Record<string, unknown> | null {
     if (value === null || typeof value !== "object" || Array.isArray(value)) {
       this.fail(path, "очаква се обект");
@@ -412,13 +456,25 @@ class Checker {
   }
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** ЕДИН израз за UUID — ползва се и от frontend схемата, за да няма разлика. */
+export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HEX64_RE = /^[0-9a-f]{64}$/;
 const HTTPS_RE = /^https:\/\/[^\s]+$/;
+
+export const BINDING_KEYS = [
+  "document_id",
+  "source_hash",
+  "source_kind",
+  "char_count",
+  "char_unit",
+  "source_updated_at",
+  "page_count",
+] as const;
 
 function checkBinding(c: Checker, path: string, raw: unknown): ProductSourceBinding | null {
   const o = c.obj(path, raw);
   if (!o) return null;
+  c.exact(path, o, BINDING_KEYS);
   if (typeof o.document_id !== "string" || !UUID_RE.test(o.document_id)) {
     c.fail(`${path}.document_id`, "очаква се UUID на качения документ");
   }
@@ -431,10 +487,20 @@ function checkBinding(c: Checker, path: string, raw: unknown): ProductSourceBind
     c.fail(`${path}.char_unit`, `единствената мерна единица е ${PRODUCT_SOURCE_CHAR_UNIT}`);
   }
   c.iso(`${path}.source_updated_at`, o.source_updated_at);
-  if (o.page_count !== null) c.int(`${path}.page_count`, o.page_count, 1, 10000);
+  if (o.page_count === undefined) {
+    c.fail(`${path}.page_count`, "очаква се измерен брой страници или null");
+  } else if (o.page_count !== null) {
+    c.int(`${path}.page_count`, o.page_count, 1, 10000);
+  }
   return o as unknown as ProductSourceBinding;
 }
 
+export const SPAN_KEYS = ["start", "end", "excerpt", "page", "section", "paragraph"] as const;
+
+/**
+ * Място в източника. Проверява се и срещу обвързването: край след дължината на
+ * приетия източник или страница над измерените страници е ОТКАЗ.
+ */
 function checkSpan(
   c: Checker,
   path: string,
@@ -443,6 +509,7 @@ function checkSpan(
 ): void {
   const o = c.obj(path, raw);
   if (!o) return;
+  c.exact(path, o, SPAN_KEYS);
   const start = c.int(`${path}.start`, o.start, 0, PRODUCT_MAX_SOURCE_CHARS);
   const end = c.int(`${path}.end`, o.end, 0, PRODUCT_MAX_SOURCE_CHARS);
   const excerpt = c.str(`${path}.excerpt`, o.excerpt, RESULT_LIMITS.excerpt);
@@ -460,8 +527,12 @@ function checkSpan(
   }
   if (o.page !== undefined && o.page !== null) {
     const page = c.int(`${path}.page`, o.page, 1, 10000);
-    if (page !== null && binding?.page_count && page > binding.page_count) {
-      c.fail(`${path}.page`, "страницата надхвърля измерените страници");
+    if (page !== null) {
+      if (binding && binding.page_count === null) {
+        c.fail(`${path}.page`, "страниците не са измерени, страница не може да се твърди");
+      } else if (binding && page > binding.page_count!) {
+        c.fail(`${path}.page`, "страницата надхвърля измерените страници");
+      }
     }
   }
   if (o.paragraph !== undefined && o.paragraph !== null) {
@@ -485,6 +556,14 @@ function checkSpans(
   list.forEach((span, i) => checkSpan(c, `${path}[${i}]`, span, binding));
 }
 
+export const LEGAL_BASIS_KEYS = [
+  "provision_id",
+  "version_id",
+  "source_id",
+  "canonical_url",
+  "label",
+] as const;
+
 function checkLegalBasis(c: Checker, path: string, raw: unknown): void {
   if (raw === undefined) return;
   const list = c.arr(path, raw, RESULT_LIMITS.legalBases);
@@ -493,6 +572,7 @@ function checkLegalBasis(c: Checker, path: string, raw: unknown): void {
     const p = `${path}[${i}]`;
     const o = c.obj(p, item);
     if (!o) return;
+    c.exact(p, o, LEGAL_BASIS_KEYS);
     c.id(`${p}.provision_id`, o.provision_id);
     c.id(`${p}.version_id`, o.version_id);
     c.id(`${p}.source_id`, o.source_id);
@@ -512,6 +592,13 @@ function checkReview(
   // Паспорт на документа
   const passport = c.obj(`${path}.passport`, o.passport);
   if (passport) {
+    c.exact(`${path}.passport`, passport, [
+      "title",
+      "document_type",
+      "parties",
+      "governing_law",
+      "signature_state",
+    ]);
     c.str(`${path}.passport.title`, passport.title, RESULT_LIMITS.shortText);
     c.str(`${path}.passport.document_type`, passport.document_type, RESULT_LIMITS.shortText);
     c.nullableStr(`${path}.passport.governing_law`, passport.governing_law, RESULT_LIMITS.shortText);
@@ -525,8 +612,11 @@ function checkReview(
       const p = `${path}.passport.parties[${i}]`;
       const po = c.obj(p, party);
       if (!po) return;
+      c.exact(p, po, ["role", "name", "span"]);
       c.str(`${p}.role`, po.role, RESULT_LIMITS.shortText);
-      c.str(`${p}.name`, po.name, RESULT_LIMITS.shortText);
+      // Името може да е заличено или да липсва — тогава е null, не измислено.
+      if (po.name === undefined) c.fail(`${p}.name`, "очаква се име или null");
+      else c.nullableStr(`${p}.name`, po.name, RESULT_LIMITS.shortText);
       checkSpan(c, `${p}.span`, po.span, binding);
     });
   }
@@ -545,10 +635,24 @@ function checkReview(
       if (findingIds.has(id)) c.fail(`${p}.id`, "повтарящ се идентификатор");
       findingIds.add(id);
     }
+    c.exact(p, fo, [
+      "id",
+      "title",
+      "severity",
+      "affected_party",
+      "explanation",
+      "consequence",
+      "next_step",
+      "span",
+      "legal_basis",
+    ]);
     c.str(`${p}.title`, fo.title, RESULT_LIMITS.shortText);
     c.oneOf(`${p}.severity`, fo.severity, RESULT_SEVERITIES);
     c.oneOf(`${p}.affected_party`, fo.affected_party, RESULT_PARTIES);
     c.str(`${p}.explanation`, fo.explanation, RESULT_LIMITS.text);
+    // Последствието и следващата стъпка са отделни полета, не общо обяснение.
+    c.str(`${p}.consequence`, fo.consequence, RESULT_LIMITS.text);
+    c.str(`${p}.next_step`, fo.next_step, RESULT_LIMITS.text);
     checkSpan(c, `${p}.span`, fo.span, binding);
     checkLegalBasis(c, `${p}.legal_basis`, fo.legal_basis);
   });
@@ -560,6 +664,7 @@ function checkReview(
     const p = `${path}.priority_summary[${i}]`;
     const po = c.obj(p, item);
     if (!po) return;
+    c.exact(p, po, ["finding_id", "rank", "reason"]);
     const ref = c.id(`${p}.finding_id`, po.finding_id);
     if (ref && !findingIds.has(ref)) c.fail(`${p}.finding_id`, "сочи към несъществуваща находка");
     const rank = c.int(`${p}.rank`, po.rank, 1, RESULT_LIMITS.priorities);
@@ -575,6 +680,7 @@ function checkReview(
     const p = `${path}.obligations[${i}]`;
     const oo = c.obj(p, item);
     if (!oo) return;
+    c.exact(p, oo, ["id", "party", "summary", "deadline", "span"]);
     c.id(`${p}.id`, oo.id);
     c.oneOf(`${p}.party`, oo.party, RESULT_PARTIES);
     c.str(`${p}.summary`, oo.summary, RESULT_LIMITS.text);
@@ -587,6 +693,7 @@ function checkReview(
     const p = `${path}.economic_terms[${i}]`;
     const to = c.obj(p, item);
     if (!to) return;
+    c.exact(p, to, ["id", "kind", "label", "value_text", "span"]);
     c.id(`${p}.id`, to.id);
     c.oneOf(`${p}.kind`, to.kind, ECONOMIC_TERM_KINDS);
     c.str(`${p}.label`, to.label, RESULT_LIMITS.shortText);
@@ -597,6 +704,7 @@ function checkReview(
   for (const key of ["termination", "disputes"] as const) {
     const co = c.obj(`${path}.${key}`, o[key]);
     if (!co) continue;
+    c.exact(`${path}.${key}`, co, ["summary", "spans"]);
     c.str(`${path}.${key}.summary`, co.summary, RESULT_LIMITS.text);
     checkSpans(c, `${path}.${key}.spans`, co.spans, binding, 0);
   }
@@ -610,18 +718,27 @@ function checkReview(
     const p = `${path}.contradictions[${i}]`;
     const co = c.obj(p, item);
     if (!co) return;
+    c.exact(p, co, ["id", "summary", "spans"]);
     c.id(`${p}.id`, co.id);
     c.str(`${p}.summary`, co.summary, RESULT_LIMITS.text);
     // Противоречие има смисъл само между поне две места.
     checkSpans(c, `${p}.spans`, co.spans, binding, 2);
   });
 
+  // Механичните проверки: кои понятия са търсени в целия източник.
+  const notFoundChecks = new Set<string>();
+  const absenceIds = new Set<string>();
   const absence = c.arr(`${path}.absence_checks`, o.absence_checks, RESULT_LIMITS.absenceChecks);
   absence?.forEach((item, i) => {
     const p = `${path}.absence_checks[${i}]`;
     const ao = c.obj(p, item);
     if (!ao) return;
-    c.id(`${p}.id`, ao.id);
+    c.exact(p, ao, ["id", "concept", "searched_terms", "coverage", "found", "spans", "note"]);
+    const aid = c.id(`${p}.id`, ao.id);
+    if (aid) {
+      if (absenceIds.has(aid)) c.fail(`${p}.id`, "повтарящ се идентификатор на проверка");
+      absenceIds.add(aid);
+    }
     c.str(`${p}.concept`, ao.concept, RESULT_LIMITS.shortText);
     const searched = c.arr(`${p}.searched_terms`, ao.searched_terms, RESULT_LIMITS.searchedTerms);
     if (searched && searched.length === 0) {
@@ -636,7 +753,55 @@ function checkReview(
     if (found === false && Array.isArray(ao.spans) && ao.spans.length > 0) {
       c.fail(`${p}.spans`, "ненамерен израз не може да сочи място в източника");
     }
+    if (found === false && aid) notFoundChecks.add(aid);
     c.nullableStr(`${p}.note`, ao.note, RESULT_LIMITS.text);
+  });
+
+  /*
+   * Липсващи защити — човешкото твърдение „това го няма“. Допустимо е САМО
+   * когато сочи проверка върху целия документ с `found: false`. Затова тук няма
+   * SourceSpan: текст, който не съществува, не може да има място в източника.
+   */
+  const missingIds = new Set<string>();
+  const missing = c.arr(
+    `${path}.missing_protections`,
+    o.missing_protections,
+    RESULT_LIMITS.missingProtections,
+  );
+  missing?.forEach((item, i) => {
+    const p = `${path}.missing_protections[${i}]`;
+    const mo = c.obj(p, item);
+    if (!mo) return;
+    c.exact(p, mo, [
+      "id",
+      "title",
+      "concept",
+      "why_it_matters",
+      "consequence",
+      "next_step",
+      "affected_party",
+      "absence_check_id",
+      "legal_basis",
+    ]);
+    const id = c.id(`${p}.id`, mo.id);
+    if (id) {
+      if (missingIds.has(id)) c.fail(`${p}.id`, "повтарящ се идентификатор");
+      missingIds.add(id);
+    }
+    c.str(`${p}.title`, mo.title, RESULT_LIMITS.shortText);
+    c.str(`${p}.concept`, mo.concept, RESULT_LIMITS.shortText);
+    c.str(`${p}.why_it_matters`, mo.why_it_matters, RESULT_LIMITS.text);
+    c.str(`${p}.consequence`, mo.consequence, RESULT_LIMITS.text);
+    c.str(`${p}.next_step`, mo.next_step, RESULT_LIMITS.text);
+    c.oneOf(`${p}.affected_party`, mo.affected_party, RESULT_PARTIES);
+    const ref = c.id(`${p}.absence_check_id`, mo.absence_check_id);
+    if (ref && !notFoundChecks.has(ref)) {
+      c.fail(
+        `${p}.absence_check_id`,
+        "твърдението за липса трябва да сочи проверка върху целия документ с found: false",
+      );
+    }
+    checkLegalBasis(c, `${p}.legal_basis`, mo.legal_basis);
   });
 
   const questions = c.arr(`${path}.questions`, o.questions, RESULT_LIMITS.questions);
@@ -644,6 +809,7 @@ function checkReview(
     const p = `${path}.questions[${i}]`;
     const qo = c.obj(p, item);
     if (!qo) return;
+    c.exact(p, qo, ["id", "question", "why"]);
     c.id(`${p}.id`, qo.id);
     c.str(`${p}.question`, qo.question, RESULT_LIMITS.text);
     c.str(`${p}.why`, qo.why, RESULT_LIMITS.text);
@@ -685,6 +851,16 @@ function checkCorrections(
     ) {
       c.fail(`${p}.original_text`, "оригиналният текст трябва да е точно извадката от мястото");
     }
+    c.exact(p, co, [
+      "id",
+      "title",
+      "mode",
+      "span",
+      "original_text",
+      "rationale",
+      "options",
+      "legal_basis",
+    ]);
     c.str(`${p}.rationale`, co.rationale, RESULT_LIMITS.text);
     const options = c.arr(`${p}.options`, co.options, 3);
     if (options && options.length !== 3) {
@@ -696,6 +872,7 @@ function checkCorrections(
       const op = `${p}.options[${j}]`;
       const oo = c.obj(op, opt);
       if (!oo) return;
+      c.exact(op, oo, ["stance", "replacement_text", "trade_off"]);
       const stance = c.oneOf(`${op}.stance`, oo.stance, CORRECTION_STRATEGIES);
       if (stance) stances.push(stance);
       const text = c.str(`${op}.replacement_text`, oo.replacement_text, RESULT_LIMITS.text);
@@ -741,6 +918,7 @@ function checkNegotiation(c: Checker, path: string, o: Record<string, unknown>):
     const p = `${path}.actions[${i}]`;
     const ao = c.obj(p, item);
     if (!ao) return;
+    c.exact(p, ao, ["id", "action", "owner", "due", "priority"]);
     c.id(`${p}.id`, ao.id);
     c.str(`${p}.action`, ao.action, RESULT_LIMITS.text);
     c.str(`${p}.owner`, ao.owner, RESULT_LIMITS.shortText);
@@ -757,6 +935,7 @@ function checkNegotiation(c: Checker, path: string, o: Record<string, unknown>):
     const p = `${path}.messages[${i}]`;
     const mo = c.obj(p, item);
     if (!mo) return;
+    c.exact(p, mo, ["tone", "subject", "body"]);
     const tone = c.oneOf(`${p}.tone`, mo.tone, MESSAGE_TONES);
     if (tone) tones.push(tone);
     c.str(`${p}.subject`, mo.subject, RESULT_LIMITS.shortText);
@@ -770,6 +949,7 @@ function checkNegotiation(c: Checker, path: string, o: Record<string, unknown>):
 
   const refinement = c.obj(`${path}.refinement`, o.refinement);
   if (refinement) {
+    c.exact(`${path}.refinement`, refinement, ["included", "used"]);
     const included = c.int(`${path}.refinement.included`, refinement.included, 0, MAX_REFINEMENTS);
     const used = c.int(`${path}.refinement.used`, refinement.used, 0, MAX_REFINEMENTS);
     if (included !== null && included !== 1) {
@@ -782,6 +962,54 @@ function checkNegotiation(c: Checker, path: string, o: Record<string, unknown>):
 }
 
 /**
+ * Точните ключове на записания резултат. Политиката е ЕДНА и е строга: непознато
+ * поле е отказ, а не тихо игнориране — иначе непроверено съдържание би стигнало
+ * до платен резултат. Frontend схемата ползва същите списъци.
+ */
+export const ENVELOPE_KEYS = [
+  "schema_version",
+  "product_id",
+  "source",
+  "generated_at",
+  "payload",
+] as const;
+
+export const REVIEW_PAYLOAD_KEYS = [
+  "passport",
+  "executive_summary",
+  "priority_summary",
+  "findings",
+  "obligations",
+  "economic_terms",
+  "termination",
+  "disputes",
+  "contradictions",
+  "absence_checks",
+  "missing_protections",
+  "questions",
+] as const;
+
+export const CORRECTION_PAYLOAD_KEYS = [...REVIEW_PAYLOAD_KEYS, "corrections"] as const;
+
+export const NEGOTIATION_PAYLOAD_KEYS = [
+  ...CORRECTION_PAYLOAD_KEYS,
+  "objectives",
+  "red_lines",
+  "acceptable_concessions",
+  "fallbacks",
+  "negotiation_questions",
+  "actions",
+  "messages",
+  "refinement",
+] as const;
+
+export const PAYLOAD_KEYS: Record<ProductResultId, readonly string[]> = {
+  contract_check: REVIEW_PAYLOAD_KEYS,
+  contract_improve: CORRECTION_PAYLOAD_KEYS,
+  negotiation_package: NEGOTIATION_PAYLOAD_KEYS,
+};
+
+/**
  * ПЪЛНАТА runtime валидация. Единственият път до „готов“ резултат.
  * Не хвърля: връща всички намерени проблеми, за да са проследими.
  */
@@ -790,6 +1018,7 @@ export function validateProductResult(raw: unknown): ValidationResult {
   const o = c.obj("result", raw);
   if (!o) return { ok: false, errors: c.errors };
 
+  c.exact("result", o, ENVELOPE_KEYS);
   if (o.schema_version !== PRODUCT_RESULT_SCHEMA_VERSION) {
     c.fail("result.schema_version", `очаква се версия ${PRODUCT_RESULT_SCHEMA_VERSION}`);
   }
@@ -799,6 +1028,7 @@ export function validateProductResult(raw: unknown): ValidationResult {
 
   const payload = c.obj("result.payload", o.payload);
   if (payload && productId) {
+    c.exact("result.payload", payload, PAYLOAD_KEYS[productId]);
     checkReview(c, "result.payload", payload, binding);
     if (productId === "contract_improve" || productId === "negotiation_package") {
       checkCorrections(c, "result.payload", payload, binding);
