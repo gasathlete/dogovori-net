@@ -141,10 +141,11 @@ Deno.serve(async (req) => {
     }
 
     // 2) Доказателството идва по ДВОЙКИ: право И продуктов order snapshot.
+    //    Проверяват се и точната цена, и точният ценови запис в Stripe.
     const { data: snapshot } = await admin
       .from("order_snapshots")
       .select(
-        "id, purchase_kind, product_id, payment_status, stripe_session_id, stripe_event_id, product_intake_id, product_source_document_id, product_source_hash, product_source_updated_at, product_source_char_count, product_source_char_unit, product_source_kind, product_source_pages, product_source_extraction_status, environment, price_amount, currency",
+        "id, purchase_kind, product_id, payment_status, stripe_session_id, stripe_event_id, stripe_price_id, stripe_price_lookup_key, paid_at, product_intake_id, product_source_document_id, product_source_hash, product_source_updated_at, product_source_char_count, product_source_char_unit, product_source_kind, product_source_pages, product_source_extraction_status, environment, price_amount, currency",
       )
       .eq("purchase_kind", "product")
       .eq("product_intake_id", ent.intake_id)
@@ -155,6 +156,11 @@ Deno.serve(async (req) => {
       snapshot.payment_status !== "paid" ||
       snapshot.product_id !== ent.product_id ||
       snapshot.stripe_event_id !== ent.stripe_event_id ||
+      snapshot.stripe_price_id !== ent.stripe_price_id ||
+      snapshot.stripe_price_lookup_key !== spec.lookupKey ||
+      snapshot.price_amount !== spec.amountCents ||
+      String(snapshot.currency).toLowerCase() !== spec.currency ||
+      !snapshot.paid_at ||
       snapshot.environment !== ent.environment ||
       snapshot.product_source_document_id !== ent.source_document_id ||
       String(snapshot.product_source_hash).toLowerCase() !==
@@ -169,22 +175,17 @@ Deno.serve(async (req) => {
       return fail("payment_unverified", 409, headers, cid);
     }
 
-    // 3) Готовият резултат се връща точно както е записан — без преработка.
-    if (ent.status === "ready") {
-      if (ent.result_schema_version !== 2 || !validateProductResult(ent.result).ok) {
-        return fail("failed_permanent", 409, headers, cid);
-      }
-      return json({ status: "ready", result: ent.result, correlation_id: cid }, 200, headers);
-    }
-
-    // 4) Неизменната заявка: контекст, съгласия и версия на политиката.
+    // 3) Неизменната заявка: контекст, съгласия, правни версии, търговски факти
+    //    и версия на политиката. Чете се ПРЕДИ готовия резултат, защото готовият
+    //    резултат също трябва да е обвързан с точно този платен източник.
     const { data: intake } = await admin
       .from("product_checkout_intakes")
       .select(
-        "id, user_id, product_id, uploaded_contract_id, source_hash, source_updated_at, source_char_count, source_char_unit, source_kind, source_page_count, source_extraction_status, context, status, environment, generation_policy_version, terms_accepted, ai_ack_accepted, immediate_performance_consent, withdrawal_loss_acknowledged",
+        "id, user_id, product_id, uploaded_contract_id, source_hash, source_updated_at, source_char_count, source_char_unit, source_kind, source_page_count, source_extraction_status, context, status, environment, generation_policy_version, amount_cents, currency, stripe_price_id, stripe_price_lookup_key, terms_version, privacy_version, refund_version, ai_notice_version, withdrawal_version, terms_accepted, ai_ack_accepted, immediate_performance_consent, withdrawal_loss_acknowledged",
       )
       .eq("id", ent.intake_id)
       .maybeSingle();
+    const nonEmpty = (value: unknown) => typeof value === "string" && value.trim().length > 0;
     if (
       !intake ||
       intake.user_id !== userId ||
@@ -199,6 +200,16 @@ Deno.serve(async (req) => {
       intake.source_kind !== ent.source_kind ||
       (intake.source_page_count ?? null) !== (ent.source_page_count ?? null) ||
       intake.source_extraction_status !== "full" ||
+      intake.amount_cents !== spec.amountCents ||
+      String(intake.currency).toLowerCase() !== spec.currency ||
+      intake.stripe_price_lookup_key !== spec.lookupKey ||
+      intake.stripe_price_id !== ent.stripe_price_id ||
+      !nonEmpty(intake.terms_version) ||
+      !nonEmpty(intake.privacy_version) ||
+      !nonEmpty(intake.refund_version) ||
+      !nonEmpty(intake.ai_notice_version) ||
+      !nonEmpty(intake.withdrawal_version) ||
+      intake.ai_notice_version !== snapshot.ai_notice_version ||
       intake.terms_accepted !== true ||
       intake.ai_ack_accepted !== true ||
       intake.immediate_performance_consent !== true ||
@@ -206,12 +217,41 @@ Deno.serve(async (req) => {
     ) {
       return fail("payment_unverified", 409, headers, cid);
     }
-    // Версията на политиката е ЗАДЪЛЖИТЕЛНА: липсваща стойност спира обработката,
-    // вместо да я приеме наум.
-    const storedPolicy = intake.generation_policy_version ?? ent.generation_policy_version ?? null;
-    if (storedPolicy !== PRODUCT_GENERATION_POLICY_VERSION) {
+    // Версията на политиката съществува в ДВА независими записа. И двата трябва
+    // да я имат и да са ТОЧНО равни на текущата. Няма „едно от двете“.
+    const intakePolicy = intake.generation_policy_version;
+    const entitlementPolicy = ent.generation_policy_version;
+    if (
+      typeof intakePolicy !== "string" ||
+      typeof entitlementPolicy !== "string" ||
+      intakePolicy !== entitlementPolicy ||
+      intakePolicy !== PRODUCT_GENERATION_POLICY_VERSION
+    ) {
       const code: EligibilityCode = "policy_changed";
       return fail(code, 409, headers, cid, eligibilityMessage(code));
+    }
+    const storedPolicy = intakePolicy;
+
+    // 4) Готовият резултат се връща точно както е записан — но само след като
+    //    схемата, точният продукт И цялото обвързване с източника съвпаднат.
+    if (ent.status === "ready") {
+      const ready = readyProductResult(
+        ent.result,
+        {
+          document_id: ent.source_document_id,
+          source_hash: String(ent.source_hash).toLowerCase(),
+          source_kind: ent.source_kind,
+          char_count: ent.source_char_count,
+          char_unit: ent.source_char_unit,
+          source_updated_at: String(ent.source_updated_at),
+          page_count: ent.source_page_count ?? null,
+        },
+        spec.id,
+      );
+      if (ent.result_schema_version !== 2 || !ready.ok) {
+        return fail("failed_permanent", 409, headers, cid);
+      }
+      return json({ status: "ready", result: ent.result, correlation_id: cid }, 200, headers);
     }
 
     // 5) Източникът: същият документ, същата ревизия, ЦЯЛ текст, същият хеш.
@@ -258,14 +298,17 @@ Deno.serve(async (req) => {
     const bounds = eligibility.policy.bounds;
 
     // 7) Атомарно заявяване на НАЙ-МНОГО една ограничена стъпка.
+    // Ключът за идемпотентност се изчислява ВЪТРЕ в атомарното заявяване, от
+    // правото, политиката и действително записания курсор — не от извикващия.
     const { data: claim, error: claimErr } = await admin.rpc("claim_product_job", {
       p_entitlement_id: entitlementId,
       p_user_id: userId,
       p_policy_version: PRODUCT_GENERATION_POLICY_VERSION,
-      p_idempotency_key: jobIdempotencyKey(entitlementId, AWAITING_GENERATION_CURSOR),
       p_budget_max_calls: bounds.maxModelCalls,
+      p_budget_max_input_tokens: bounds.maxInputTokens,
+      p_budget_max_output_tokens: bounds.maxOutputTokens,
       p_budget_max_tokens: bounds.maxTotalTokens,
-      p_budget_hard_cost_milli_cents: bounds.hardCostMilliCents,
+      p_budget_hard_cost_micro_usd: bounds.hardCostMicroUsd,
       p_lease_seconds: PRODUCT_JOB_LEASE_SECONDS,
     });
     if (claimErr) {

@@ -1,15 +1,19 @@
 /**
- * СЪРВЪРНА конфигурация за политиката на изпълнение на еднократните продукти:
- * версия на политиката, цени на маршрутите и горни граници на разхода.
+ * СЪРВЪРНА политика за изпълнение на еднократните продукти: версия, собствен
+ * маршрут на модели, датирана таблица с цени и ГОРНИ граници на разхода.
  *
- * Модулът е ЧИСТ: без Deno API, без мрежа, без база, без Stripe. Заради това
- * едни и същи числа могат да се проверят и преди плащане, и в задачата.
+ * Модулът е ЧИСТ: без Deno API, без мрежа, без база, без Stripe, без поща.
+ * Затова едни и същи числа се проверяват и преди плащане, и в задачата.
  *
- * ВАЖНО: тези числа са ВЪТРЕШНИ. Не влизат в клиентски интерфейс, в маркетинг,
- * в аналитика, в Stripe metadata и в лог със съдържание.
+ * ВАЖНО: числата тук са ВЪТРЕШНИ. Не влизат в клиентски интерфейс, маркетинг,
+ * аналитика, Stripe metadata или лог със съдържание.
+ *
+ * ГРАНИЦА ЗА МАРЖА (release gate): числата по-долу са ТЕХНИЧЕСКА горна граница
+ * на разхода към доставчика в micro-USD. Маржът в евро — с ДДС, курс и такси на
+ * платежния доставчик — се преглежда ОТДЕЛНО преди включване на изпълнението.
+ * Тук НЯМА измислен курс и НЯМА преобразуване между валути.
  */
 import type { Classification } from "./classify.ts";
-import { routeModel, type AIOperation, type RouteDecision } from "./model-router.ts";
 import {
   PRODUCT_CHUNK_MAX_CHARS,
   PRODUCT_CHUNK_OVERLAP_CHARS,
@@ -18,36 +22,77 @@ import { PRODUCT_MAX_SOURCE_CHARS } from "./product-source.ts";
 import type { ProductPurchaseId } from "./product-purchase.ts";
 
 /**
- * Версия на политиката за изпълнение. Влиза в заявката и в задачата: повторен
- * опит не може ТИХО да смени политиката.
+ * Версия на политиката за изпълнение. Влиза И в заявката, И в правото: повторен
+ * опит не може ТИХО да смени маршрута, единицата или границите.
  */
-export const PRODUCT_GENERATION_POLICY_VERSION = "2b1b1.1" as const;
+export const PRODUCT_GENERATION_POLICY_VERSION = "2b1b1.2" as const;
 export type ProductGenerationPolicyVersion = typeof PRODUCT_GENERATION_POLICY_VERSION;
 
-/**
- * Мерна единица за вътрешния разход: „милисентове“ (1000 = 1 евроцент).
- * Цените са КОНФИГУРИРАНИ в тази единица. Няма курсово преобразуване.
- */
-export const COST_UNIT = "milli_eurocents" as const;
+/** Мерна единица за вътрешния разход: micro-USD (1 000 000 = 1 USD). */
+export const COST_UNIT = "micro_usd" as const;
+export const MICRO_USD_PER_USD = 1_000_000;
 
-/** Цена на 1000 токена, в милисентове. Непознат модел = отказ. */
-export const MODEL_UNIT_COSTS: Readonly<
-  Record<string, { readonly inputPer1kTokens: number; readonly outputPer1kTokens: number }>
-> = Object.freeze({
-  "google/gemini-2.5-flash-lite": Object.freeze({ inputPer1kTokens: 10, outputPer1kTokens: 40 }),
-  "google/gemini-2.5-flash": Object.freeze({ inputPer1kTokens: 30, outputPer1kTokens: 250 }),
-  "google/gemini-2.5-pro": Object.freeze({ inputPer1kTokens: 125, outputPer1kTokens: 1000 }),
+/**
+ * Собствен маршрут на ПЛАТЕНИЯ продукт. Само поддържани модели на Lovable —
+ * серията Gemini 2.5 е обявена за отпадаща за нови функции и НЕ се ползва тук.
+ * Общото маршрутизиране на старите операции (model-router.ts) не се променя.
+ */
+export const PRODUCT_MODEL_FLASH_LITE = "google/gemini-3.1-flash-lite" as const;
+export const PRODUCT_MODEL_FLASH = "google/gemini-3.8-flash" as const;
+
+export const PRODUCT_ALLOWED_MODELS: readonly string[] = Object.freeze([
+  PRODUCT_MODEL_FLASH_LITE,
+  PRODUCT_MODEL_FLASH,
+]);
+
+/**
+ * Датирана таблица с цени в ЦЕЛИ micro-USD за 1 000 000 токена.
+ *
+ * Основание (публични стандартни цени, към PRICE_TABLE_DATE):
+ * - Gemini 3.1 Flash Lite: USD 0,25 вход / USD 1,50 изход за 1M токена.
+ * - Gemini 3.8 Flash: промоционално USD 0,75 / USD 3,75 до 2026-12-31, след
+ *   това USD 1,50 / USD 7,50. Бюджетът се смята по ПО-ВИСОКИТЕ цени след
+ *   промоцията, за да остане границата консервативна и след 31.12.2026.
+ */
+export const PRICE_TABLE_VERSION = "2026-03-provider-standard" as const;
+export const PRICE_TABLE_DATE = "2026-03-01" as const;
+
+export interface ModelPrice {
+  readonly inputMicroUsdPer1MTokens: number;
+  readonly outputMicroUsdPer1MTokens: number;
+  readonly basis: string;
+}
+
+export const MODEL_PRICES: Readonly<Record<string, ModelPrice>> = Object.freeze({
+  [PRODUCT_MODEL_FLASH_LITE]: Object.freeze({
+    inputMicroUsdPer1MTokens: 250_000,
+    outputMicroUsdPer1MTokens: 1_500_000,
+    basis: "standard USD 0.25 / 1.50 per 1M tokens",
+  }),
+  [PRODUCT_MODEL_FLASH]: Object.freeze({
+    inputMicroUsdPer1MTokens: 1_500_000,
+    outputMicroUsdPer1MTokens: 7_500_000,
+    basis: "post-promotion USD 1.50 / 7.50 per 1M tokens (promo 0.75/3.75 until 2026-12-31)",
+  }),
 });
 
 /**
- * Консервативни допускания за токените. Български текст е „по-скъп“ на знак,
- * затова допускаме 400 токена на 1000 кодови точки (≈2,5 знака за токен).
+ * ИСТИНСКА горна граница за входа: най-много 4 UTF-8 байта на кодова точка и
+ * най-много 1 токен на байт. Това е граница за БЕЗОПАСНОСТ, а не прогноза.
  */
-export const TOKENS_PER_1K_CHARS = 400;
-/** Постоянни разходи за инструкции/схема на всяко извикване. */
-export const PROMPT_OVERHEAD_TOKENS = 1200;
-/** Максимални изходни токени на извикване (твърд предел на заявката). */
-export const MAX_OUTPUT_TOKENS_PER_CALL = 4000;
+export const INPUT_TOKENS_PER_CODE_POINT = 4;
+/** Максимум за полетата на контекста от заявката (роля, цел, отсрещна страна). */
+export const MAX_CONTEXT_TOKENS = 2_000;
+/** Инструкции, схема и разделители на ВСЯКО извикване. */
+export const PROMPT_SCHEMA_OVERHEAD_TOKENS = 2_500;
+
+/** Твърди изходни предели по вид извикване. */
+export const OUTPUT_TOKENS_PASSPORT = 2_000;
+export const OUTPUT_TOKENS_BATCH = 4_000;
+export const OUTPUT_TOKENS_REPAIR = 4_000;
+export const OUTPUT_TOKENS_LETTER = 4_000;
+export const OUTPUT_TOKENS_SYNTHESIS = 6_000;
+export const OUTPUT_TOKENS_REFINEMENT = 4_000;
 
 /** Най-малкото ядро на част, което допускаме при изчисление на горна граница. */
 export const MIN_CHUNK_CORE_CHARS = Math.floor(PRODUCT_CHUNK_MAX_CHARS / 2);
@@ -55,63 +100,95 @@ export const MIN_CHUNK_CORE_CHARS = Math.floor(PRODUCT_CHUNK_MAX_CHARS / 2);
 export const MAX_CHUNKS = 30;
 export const CHUNKS_PER_BATCH = 3;
 export const MAX_BATCHES = 10;
-export const MAX_MODEL_CALLS = 40;
-export const MAX_TOTAL_TOKENS = 900_000;
+export const MAX_MODEL_CALLS = 60;
+export const MAX_TOTAL_TOKENS = 3_000_000;
 
-/** Етапите, които консумират модел, по продукт. */
-interface ProductPlan {
-  /** Извиквания, независими от обема (паспорт, синтез, писма и т.н.). */
-  readonly fixedCalls: readonly { readonly operation: AIOperation; readonly label: string }[];
-  /** Етапи, които минават по партиди върху целия източник. */
-  readonly batchedStages: readonly { readonly operation: AIOperation; readonly label: string }[];
-  /** Отделно заделен бюджет за премиум уточнението (0 = няма). */
+export type ProductStageId =
+  | "passport"
+  | "review"
+  | "review_repair"
+  | "corrections"
+  | "corrections_repair"
+  | "negotiation"
+  | "messages"
+  | "synthesis"
+  | "refinement";
+
+interface BatchedStageDef {
+  readonly stage: Extract<ProductStageId, "review" | "corrections">;
+  readonly repairStage: Extract<ProductStageId, "review_repair" | "corrections_repair">;
+  /** Изход от предходни етапи, който се подава на ВСЯКА партида. */
+  readonly carryTokensPerBatch: number;
+}
+
+interface ProductPlanDef {
+  readonly batched: readonly BatchedStageDef[];
+  /** Извиквания върху натрупания изход (не върху целия източник). */
+  readonly aggregate: readonly {
+    readonly stage: Extract<ProductStageId, "negotiation" | "messages" | "synthesis">;
+    readonly outputTokens: number;
+  }[];
+  /** Заделено премиум уточнение: истински извиквания и токени, не само пари. */
   readonly reservedRefinementCalls: number;
 }
 
-const PLANS: Readonly<Record<ProductPurchaseId, ProductPlan>> = Object.freeze({
+const REVIEW_STAGE: BatchedStageDef = {
+  stage: "review",
+  repairStage: "review_repair",
+  carryTokensPerBatch: OUTPUT_TOKENS_PASSPORT,
+};
+
+const CORRECTIONS_STAGE: BatchedStageDef = {
+  stage: "corrections",
+  repairStage: "corrections_repair",
+  carryTokensPerBatch: OUTPUT_TOKENS_PASSPORT + OUTPUT_TOKENS_BATCH + OUTPUT_TOKENS_REPAIR,
+};
+
+const PLANS: Readonly<Record<ProductPurchaseId, ProductPlanDef>> = Object.freeze({
   contract_check: Object.freeze({
-    fixedCalls: Object.freeze([
-      { operation: "analyze-contract" as AIOperation, label: "passport" },
-      { operation: "analyze-contract" as AIOperation, label: "synthesis" },
-    ]),
-    batchedStages: Object.freeze([
-      { operation: "analyze-contract" as AIOperation, label: "review" },
-    ]),
+    batched: Object.freeze([REVIEW_STAGE]),
+    aggregate: Object.freeze([{ stage: "synthesis" as const, outputTokens: OUTPUT_TOKENS_SYNTHESIS }]),
     reservedRefinementCalls: 0,
   }),
   contract_improve: Object.freeze({
-    fixedCalls: Object.freeze([
-      { operation: "analyze-contract" as AIOperation, label: "passport" },
-      { operation: "analyze-contract" as AIOperation, label: "synthesis" },
-    ]),
-    batchedStages: Object.freeze([
-      { operation: "analyze-contract" as AIOperation, label: "review" },
-      { operation: "apply-corrections" as AIOperation, label: "corrections" },
-    ]),
+    batched: Object.freeze([REVIEW_STAGE, CORRECTIONS_STAGE]),
+    aggregate: Object.freeze([{ stage: "synthesis" as const, outputTokens: OUTPUT_TOKENS_SYNTHESIS }]),
     reservedRefinementCalls: 0,
   }),
   negotiation_package: Object.freeze({
-    fixedCalls: Object.freeze([
-      { operation: "analyze-contract" as AIOperation, label: "passport" },
-      { operation: "analyze-contract" as AIOperation, label: "synthesis" },
-      { operation: "apply-corrections" as AIOperation, label: "negotiation" },
-      { operation: "apply-corrections" as AIOperation, label: "messages" },
-    ]),
-    batchedStages: Object.freeze([
-      { operation: "analyze-contract" as AIOperation, label: "review" },
-      { operation: "apply-corrections" as AIOperation, label: "corrections" },
+    batched: Object.freeze([REVIEW_STAGE, CORRECTIONS_STAGE]),
+    aggregate: Object.freeze([
+      { stage: "negotiation" as const, outputTokens: OUTPUT_TOKENS_LETTER },
+      { stage: "messages" as const, outputTokens: OUTPUT_TOKENS_LETTER },
+      { stage: "synthesis" as const, outputTokens: OUTPUT_TOKENS_SYNTHESIS },
     ]),
     reservedRefinementCalls: 1,
   }),
 });
 
-/** Цели и твърди тавани на разхода за продукт, в милисентове. */
+/**
+ * Модел по етап. Сървърно решение — браузърът НИКОГА не избира модел.
+ * Паспортът е кратък и структурен → lite. Всичко останало → flash.
+ */
+const STAGE_MODEL: Readonly<Record<ProductStageId, string>> = Object.freeze({
+  passport: PRODUCT_MODEL_FLASH_LITE,
+  review: PRODUCT_MODEL_FLASH,
+  review_repair: PRODUCT_MODEL_FLASH,
+  corrections: PRODUCT_MODEL_FLASH,
+  corrections_repair: PRODUCT_MODEL_FLASH,
+  negotiation: PRODUCT_MODEL_FLASH,
+  messages: PRODUCT_MODEL_FLASH,
+  synthesis: PRODUCT_MODEL_FLASH,
+  refinement: PRODUCT_MODEL_FLASH,
+});
+
+/** Прегледани цели и ТВЪРДИ тавани на разхода за продукт, в micro-USD. */
 export const PRODUCT_COST_CEILINGS: Readonly<
-  Record<ProductPurchaseId, { readonly target: number; readonly hard: number; readonly reservedRefinement: number }>
+  Record<ProductPurchaseId, { readonly target: number; readonly hard: number }>
 > = Object.freeze({
-  contract_check: Object.freeze({ target: 20_000, hard: 45_000, reservedRefinement: 0 }),
-  contract_improve: Object.freeze({ target: 28_000, hard: 60_000, reservedRefinement: 0 }),
-  negotiation_package: Object.freeze({ target: 70_000, hard: 140_000, reservedRefinement: 30_000 }),
+  contract_check: Object.freeze({ target: 1_500_000, hard: 3_000_000 }),
+  contract_improve: Object.freeze({ target: 2_500_000, hard: 5_000_000 }),
+  negotiation_package: Object.freeze({ target: 3_200_000, hard: 6_500_000 }),
 });
 
 export type ProductBudgetProblem =
@@ -121,6 +198,8 @@ export type ProductBudgetProblem =
   | "batch_limit_exceeded"
   | "call_limit_exceeded"
   | "token_limit_exceeded"
+  | "classification_not_allowed"
+  | "arithmetic_unsafe"
   | "budget_exceeded";
 
 export class ProductBudgetError extends Error {
@@ -132,82 +211,94 @@ export class ProductBudgetError extends Error {
   }
 }
 
+/** Точен план на едно извикване — 2B1B2 адаптерът е ОБВЪРЗАН с тези тавани. */
+export interface ProductStageCallBound {
+  readonly stage: ProductStageId;
+  readonly model: string;
+  readonly maxInputTokens: number;
+  readonly maxOutputTokens: number;
+  readonly maxCostMicroUsd: number;
+  readonly reserved: boolean;
+}
+
 export interface ProductCostBounds {
   readonly policyVersion: ProductGenerationPolicyVersion;
   readonly costUnit: typeof COST_UNIT;
+  readonly priceTableVersion: typeof PRICE_TABLE_VERSION;
+  readonly priceTableDate: typeof PRICE_TABLE_DATE;
   readonly charCount: number;
   readonly maxChunks: number;
   readonly maxBatches: number;
-  /** Включва по едно поправящо извикване на партида и заделеното уточнение. */
+  readonly baseModelCalls: number;
+  readonly repairModelCalls: number;
+  readonly reservedRefinementCalls: number;
   readonly maxModelCalls: number;
   readonly maxInputTokens: number;
   readonly maxOutputTokens: number;
   readonly maxTotalTokens: number;
-  readonly maxCostMilliCents: number;
-  readonly reservedRefinementCostMilliCents: number;
-  readonly targetCostMilliCents: number;
-  readonly hardCostMilliCents: number;
+  readonly maxCostMicroUsd: number;
+  readonly reservedRefinementInputTokens: number;
+  readonly reservedRefinementOutputTokens: number;
+  readonly reservedRefinementCostMicroUsd: number;
+  readonly targetCostMicroUsd: number;
+  readonly hardCostMicroUsd: number;
   readonly withinTarget: boolean;
-  /** Най-скъпият допустим модел по маршрута — тук се смята най-лошият случай. */
+  /** Най-скъпият модел, който планът реално ползва. */
   readonly worstModel: string;
+  /** Точните тавани по извикване, които изпълнението трябва да спазва. */
+  readonly calls: readonly ProductStageCallBound[];
 }
 
 function ceilDiv(a: number, b: number): number {
   return Math.ceil(a / b);
 }
 
-function unitCost(model: string) {
-  const price = MODEL_UNIT_COSTS[model];
-  if (!price) throw new ProductBudgetError("unknown_model_price");
+function safe(n: number): number {
+  if (!Number.isSafeInteger(n) || n < 0) throw new ProductBudgetError("arithmetic_unsafe");
+  return n;
+}
+
+export function modelPrice(model: string): ModelPrice {
+  const price = MODEL_PRICES[model];
+  if (!price || !PRODUCT_ALLOWED_MODELS.includes(model)) {
+    throw new ProductBudgetError("unknown_model_price");
+  }
   return price;
 }
 
-/**
- * Платеният продукт работи със СВОЙ, по-тесен набор модели. Общият маршрутизатор
- * може да разреши по-силен модел за други операции; тук изборът е сървърен и
- * ограничен, за да е цената предвидима за всеки документ до лимита.
- */
-export const PRODUCT_ALLOWED_MODELS: readonly string[] = Object.freeze([
-  "google/gemini-2.5-flash-lite",
-  "google/gemini-2.5-flash",
-]);
-
-/** Най-скъпият модел, който политиката РАЗРЕШАВА за този етап. */
-function worstAllowedModel(decision: RouteDecision): string {
-  const candidates = [decision.model, ...(decision.allowFallback ? decision.fallbackChain : [])]
-    .filter((m) => typeof m === "string" && m.length > 0)
-    .filter((m) => PRODUCT_ALLOWED_MODELS.includes(m));
-  if (candidates.length === 0) throw new ProductBudgetError("unknown_model_price");
-  let worst = candidates[0];
-  let worstPrice = -1;
-  for (const model of candidates) {
-    const price = unitCost(model);
-    const combined = price.inputPer1kTokens + price.outputPer1kTokens;
-    if (combined > worstPrice) {
-      worstPrice = combined;
-      worst = model;
-    }
-  }
-  return worst;
+function callCost(model: string, inputTokens: number, outputTokens: number): number {
+  const price = modelPrice(model);
+  return safe(
+    ceilDiv(inputTokens * price.inputMicroUsdPer1MTokens, 1_000_000) +
+      ceilDiv(outputTokens * price.outputMicroUsdPer1MTokens, 1_000_000),
+  );
 }
 
 /**
- * Консервативна ГОРНА граница за части, партиди, извиквания и цена — само от
- * продукта, точната канонична дължина на източника и прегледаните лимити на
- * разделянето. Изчислението е целочислено и се проваля затворено.
+ * Консервативна ГОРНА граница за части, партиди, извиквания, токени и цена —
+ * само от продукта, точната канонична дължина на източника и прегледаните
+ * лимити на разделянето. Целочислено, проваля се затворено.
  */
 export function computeProductCostBounds(
   productId: ProductPurchaseId,
   charCount: number,
   classification: Classification,
+  opts: { readonly expectedPolicyVersion?: string } = {},
 ): ProductCostBounds {
+  if (opts.expectedPolicyVersion && opts.expectedPolicyVersion !== PRODUCT_GENERATION_POLICY_VERSION) {
+    throw new ProductBudgetError("budget_exceeded");
+  }
   if (!Number.isSafeInteger(charCount) || charCount <= 0) {
     throw new ProductBudgetError("source_too_long_for_budget");
   }
   if (charCount > PRODUCT_MAX_SOURCE_CHARS) {
     throw new ProductBudgetError("source_too_long_for_budget");
   }
+  if (classification.risk_level === "blocked") {
+    throw new ProductBudgetError("classification_not_allowed");
+  }
   const plan = PLANS[productId];
+  if (!plan) throw new ProductBudgetError("budget_exceeded");
   const ceilings = PRODUCT_COST_CEILINGS[productId];
 
   const maxChunks = ceilDiv(charCount, MIN_CHUNK_CORE_CHARS);
@@ -215,72 +306,105 @@ export function computeProductCostBounds(
   const maxBatches = ceilDiv(maxChunks, CHUNKS_PER_BATCH);
   if (maxBatches > MAX_BATCHES) throw new ProductBudgetError("batch_limit_exceeded");
 
-  // Най-много едно поправящо извикване (evidence repair) на пропаднала партида.
-  const repairCalls = maxBatches;
-  const batchedCallsPerStage = maxBatches;
-  const batchedCalls = plan.batchedStages.length * batchedCallsPerStage;
-  const maxModelCalls =
-    plan.fixedCalls.length + batchedCalls + repairCalls + plan.reservedRefinementCalls;
-  if (maxModelCalls > MAX_MODEL_CALLS) throw new ProductBudgetError("call_limit_exceeded");
-
-  // Входът: целият източник плюс застъпването на всяка част, за всеки етап по
-  // партиди; фиксираните извиквания получават целия източник веднъж.
+  // Целият източник плюс ТОЧНОТО застъпване на частите.
   const overlapChars = PRODUCT_CHUNK_OVERLAP_CHARS * Math.max(0, maxChunks - 1);
-  const sourceTokens = ceilDiv((charCount + overlapChars) * TOKENS_PER_1K_CHARS, 1000);
-  const perCallOverhead = PROMPT_OVERHEAD_TOKENS;
+  const sourceTokens = safe((charCount + overlapChars) * INPUT_TOKENS_PER_CODE_POINT);
+  const batchSourceTokens = ceilDiv(sourceTokens, maxBatches);
+  const perCallFixed = MAX_CONTEXT_TOKENS + PROMPT_SCHEMA_OVERHEAD_TOKENS;
 
-  const stagePasses = plan.batchedStages.length + plan.fixedCalls.length + plan.reservedRefinementCalls;
-  const maxInputTokens = sourceTokens * stagePasses + perCallOverhead * maxModelCalls;
-  const maxOutputTokens = MAX_OUTPUT_TOKENS_PER_CALL * maxModelCalls;
-  const maxTotalTokens = maxInputTokens + maxOutputTokens;
-  if (maxTotalTokens > MAX_TOTAL_TOKENS) throw new ProductBudgetError("token_limit_exceeded");
-
-  // Най-лошият допустим маршрут за всеки етап; цената се смята по него.
-  const operations = new Set<AIOperation>([
-    ...plan.fixedCalls.map((c) => c.operation),
-    ...plan.batchedStages.map((c) => c.operation),
-  ]);
-  let worstModel = "";
-  let worstCombined = -1;
-  for (const operation of operations) {
-    // Съгласието за AI е дадено изрично в заявката — то е потвърждението.
-    const decision = routeModel(operation, classification, {
-      userConfirmed: true,
-      promptLength: charCount,
+  const calls: ProductStageCallBound[] = [];
+  const push = (stage: ProductStageId, inputTokens: number, outputTokens: number, reserved = false) => {
+    const model = STAGE_MODEL[stage];
+    calls.push({
+      stage,
+      model,
+      maxInputTokens: safe(inputTokens),
+      maxOutputTokens: safe(outputTokens),
+      maxCostMicroUsd: callCost(model, inputTokens, outputTokens),
+      reserved,
     });
-    if (!decision.allowed) throw new ProductBudgetError("budget_exceeded");
-    const model = worstAllowedModel(decision);
-    const price = unitCost(model);
-    const combined = price.inputPer1kTokens + price.outputPer1kTokens;
-    if (combined > worstCombined) {
-      worstCombined = combined;
-      worstModel = model;
+  };
+
+  // 1) Паспорт на документа — целият източник веднъж.
+  push("passport", sourceTokens + perCallFixed, OUTPUT_TOKENS_PASSPORT);
+  let accumulatedOutputs = OUTPUT_TOKENS_PASSPORT;
+
+  // 2) Етапи по партиди. По ЕДНО поправящо извикване на пропаднала партида,
+  //    за ВСЕКИ етап поотделно (не общ набор поправки).
+  for (const stageDef of plan.batched) {
+    for (let batch = 0; batch < maxBatches; batch++) {
+      const batchInput = batchSourceTokens + perCallFixed + stageDef.carryTokensPerBatch;
+      push(stageDef.stage, batchInput, OUTPUT_TOKENS_BATCH);
+      // Поправката вижда същата партида ПЛЮС отговора, който е бил отхвърлен.
+      push(stageDef.repairStage, batchInput + OUTPUT_TOKENS_BATCH, OUTPUT_TOKENS_REPAIR);
+      accumulatedOutputs = safe(accumulatedOutputs + OUTPUT_TOKENS_BATCH + OUTPUT_TOKENS_REPAIR);
     }
   }
-  const price = unitCost(worstModel);
-  const maxCostMilliCents =
-    ceilDiv(maxInputTokens * price.inputPer1kTokens, 1000) +
-    ceilDiv(maxOutputTokens * price.outputPer1kTokens, 1000);
-  const reserved = ceilings.reservedRefinement;
-  if (maxCostMilliCents + reserved > ceilings.hard) {
-    throw new ProductBudgetError("budget_exceeded");
+
+  // 3) Обобщаващи извиквания — вход е натрупаният изход, не източникът.
+  for (const agg of plan.aggregate) {
+    push(agg.stage, perCallFixed + accumulatedOutputs, agg.outputTokens);
+    accumulatedOutputs = safe(accumulatedOutputs + agg.outputTokens);
   }
+
+  // 4) Заделеното премиум уточнение — истински токени и извиквания.
+  for (let i = 0; i < plan.reservedRefinementCalls; i++) {
+    push("refinement", perCallFixed + accumulatedOutputs, OUTPUT_TOKENS_REFINEMENT, true);
+    accumulatedOutputs = safe(accumulatedOutputs + OUTPUT_TOKENS_REFINEMENT);
+  }
+
+  const repairModelCalls = calls.filter((c) => c.stage.endsWith("_repair")).length;
+  const reservedCalls = calls.filter((c) => c.reserved);
+  const baseModelCalls = calls.length - repairModelCalls - reservedCalls.length;
+  if (calls.length > MAX_MODEL_CALLS) throw new ProductBudgetError("call_limit_exceeded");
+
+  let maxInputTokens = 0;
+  let maxOutputTokens = 0;
+  let maxCostMicroUsd = 0;
+  let worstModel = PRODUCT_MODEL_FLASH_LITE;
+  let worstCombined = -1;
+  for (const call of calls) {
+    maxInputTokens = safe(maxInputTokens + call.maxInputTokens);
+    maxOutputTokens = safe(maxOutputTokens + call.maxOutputTokens);
+    maxCostMicroUsd = safe(maxCostMicroUsd + call.maxCostMicroUsd);
+    const price = modelPrice(call.model);
+    const combined = price.inputMicroUsdPer1MTokens + price.outputMicroUsdPer1MTokens;
+    if (combined > worstCombined) {
+      worstCombined = combined;
+      worstModel = call.model;
+    }
+  }
+  const maxTotalTokens = safe(maxInputTokens + maxOutputTokens);
+  if (maxTotalTokens > MAX_TOTAL_TOKENS) throw new ProductBudgetError("token_limit_exceeded");
+  if (maxCostMicroUsd > ceilings.hard) throw new ProductBudgetError("budget_exceeded");
+
+  const reservedRefinementInputTokens = reservedCalls.reduce((a, c) => a + c.maxInputTokens, 0);
+  const reservedRefinementOutputTokens = reservedCalls.reduce((a, c) => a + c.maxOutputTokens, 0);
+  const reservedRefinementCostMicroUsd = reservedCalls.reduce((a, c) => a + c.maxCostMicroUsd, 0);
 
   return {
     policyVersion: PRODUCT_GENERATION_POLICY_VERSION,
     costUnit: COST_UNIT,
+    priceTableVersion: PRICE_TABLE_VERSION,
+    priceTableDate: PRICE_TABLE_DATE,
     charCount,
     maxChunks,
     maxBatches,
-    maxModelCalls,
+    baseModelCalls,
+    repairModelCalls,
+    reservedRefinementCalls: reservedCalls.length,
+    maxModelCalls: calls.length,
     maxInputTokens,
     maxOutputTokens,
     maxTotalTokens,
-    maxCostMilliCents,
-    reservedRefinementCostMilliCents: reserved,
-    targetCostMilliCents: ceilings.target,
-    hardCostMilliCents: ceilings.hard,
-    withinTarget: maxCostMilliCents + reserved <= ceilings.target,
+    maxCostMicroUsd,
+    reservedRefinementInputTokens,
+    reservedRefinementOutputTokens,
+    reservedRefinementCostMicroUsd,
+    targetCostMicroUsd: ceilings.target,
+    hardCostMicroUsd: ceilings.hard,
+    withinTarget: maxCostMicroUsd <= ceilings.target,
     worstModel,
+    calls: Object.freeze(calls),
   };
 }
