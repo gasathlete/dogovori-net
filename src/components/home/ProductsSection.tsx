@@ -24,8 +24,8 @@ export function ProductsSection() {
         Разгледайте нашите продукти
       </h2>
       <p className="mx-auto mb-6 max-w-xl text-center text-sm text-muted-foreground">
-        Проверка на един документ, конкретни поправки или карта на документите
-        за бизнеса Ви. Плащате веднъж за избрания резултат.
+        Проверка на документа, конкретни поправки или пълна подготовка за
+        преговори. Плащате веднъж за избрания резултат.
       </p>
 
       <ProductCards variant="compact" source="home" />

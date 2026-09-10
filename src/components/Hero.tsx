@@ -5,7 +5,7 @@ import { prefetchHandlers } from "@/components/PrefetchLink";
 import { ShieldCheck, Search, ArrowRight, FileUp } from "@/icons";
 const logoImg = "/logo-dogovori-hero.webp";
 import { HeroVideoBackdrop } from "@/components/HeroVideoBackdrop";
-import { FREE_OFFER_ANON_HELPER } from "@/lib/pricing";
+import { FREE_OFFER_RULE } from "@/lib/pricing";
 import { HeroProductRail } from "@/components/products/HeroProductRail";
 import { useAuth } from "@/hooks/useAuth";
 import { useAudience } from "@/hooks/useAudience";
@@ -92,25 +92,29 @@ export function Hero() {
 
 
           {/*
-            Основното действие води към трите продукта. Двете второстепенни
-            връзки остават реални пътища — създаване и качване.
+            Основното действие е безплатното начало. Платените продукти остават
+            видими веднага под него, но по-тихо.
           */}
           <div className="mt-7 flex flex-col items-center gap-3">
             <div className="mx-auto flex w-full max-w-[560px] flex-col items-center gap-3">
               <Link
-                to="/produkti"
-                {...prefetchHandlers("/produkti")}
+                to="/start"
+                {...prefetchHandlers("/start")}
+                data-testid="hero-primary-cta"
                 onClick={() => {
                   trackFunnelEvent("home_primary_cta_clicked", {
-                    destination: "/produkti",
+                    destination: "/start",
                     authenticated: Boolean(user),
                   });
                 }}
-                className="btn-gold btn-press inline-flex min-h-[48px] items-center gap-2 rounded-xl px-8 py-4 text-[16px] font-bold normal-case tracking-normal sm:text-[17px] sm:px-10"
+                className="btn-gold btn-press inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-xl px-8 py-4 text-[18px] font-bold normal-case tracking-normal shadow-elegant sm:w-auto sm:px-12 sm:text-[20px]"
               >
-                Изберете какво Ви трябва
-                <ArrowRight className="h-[16px] w-[16px]" />
+                Започнете безплатно
+                <ArrowRight className="h-[18px] w-[18px]" />
               </Link>
+              <p className="text-[12px] font-medium text-muted-foreground">
+                {FREE_OFFER_RULE} · без карта
+              </p>
               <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[12.5px] text-muted-foreground">
                 <Link to="/build" {...prefetchHandlers("/build")} className="inline-flex min-h-[44px] items-center gap-1.5 hover:text-gold">
                   <Search className="h-3.5 w-3.5" /> Създайте документ
@@ -149,12 +153,12 @@ export function Hero() {
             {!user && (
               <p className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
                 <ShieldCheck className="h-3 w-3 text-emerald-500" />
-                {FREE_OFFER_ANON_HELPER} · GDPR
+                Старт без регистрация · GDPR
               </p>
             )}
           </div>
 
-          {/* Трите продукта — видими още в hero-а, с реални връзки. */}
+          {/* Платените продукти — видими рано, но под безплатното начало. */}
           <HeroProductRail />
 
 

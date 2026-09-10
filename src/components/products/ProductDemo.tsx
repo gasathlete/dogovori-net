@@ -12,7 +12,7 @@ import type { ProductDemoKind } from "@/lib/products";
 const DEMO_LABELS: Record<ProductDemoKind, string> = {
   scan: "Демонстрация: маркирани рискови клаузи в договор",
   diff: "Демонстрация: сравнение преди и след с приета поправка",
-  map: "Демонстрация: карта на нужните договори според дейността",
+  package: "Демонстрация: записка за преговори с цели, червени линии и готово писмо",
 };
 
 /** Цикличен брояч на стъпките; спира на последната стъпка при reduced motion. */
@@ -129,25 +129,33 @@ function DiffDemo({ reduced }: { reduced: boolean }) {
   );
 }
 
-const MAP_BRANCHES = [
+const PACKAGE_BLOCKS = [
   {
-    label: "Моят бизнес",
-    items: ["Рамков договор с клиент", "Договор с подизпълнител", "NDA"],
+    label: "Записка за преговори",
+    items: [
+      "Цел: плащане до 10 дни",
+      "Червена линия: без едностранна промяна на цената",
+      "Отстъпка: по-дълго предизвестие",
+    ],
   },
   {
-    label: "Работя за клиенти",
-    items: ["Договор за услуги", "Приемно-предавателен протокол", "NDA"],
+    label: "Писмо до другата страна",
+    items: [
+      "Неутрално: „Предлагаме две промени…“",
+      "Твърдо: „Без тази клауза не подписваме.“",
+      "Таблица със срокове и действия",
+    ],
   },
 ] as const;
 
-function MapDemo({ reduced }: { reduced: boolean }) {
-  const step = useDemoStep(MAP_BRANCHES.length, reduced, 2200);
+function PackageDemo({ reduced }: { reduced: boolean }) {
+  const step = useDemoStep(PACKAGE_BLOCKS.length, reduced, 2200);
   const active = reduced ? 0 : step;
   return (
     <div className={SHELL}>
       <Trail active={!reduced} />
       <div className="relative grid grid-cols-2 gap-2">
-        {MAP_BRANCHES.map((branch, i) => {
+        {PACKAGE_BLOCKS.map((branch, i) => {
           const on = reduced || i === active;
           return (
             <div
@@ -204,7 +212,7 @@ export function ProductDemo({
     >
       {kind === "scan" && <ScanDemo reduced={reduced} />}
       {kind === "diff" && <DiffDemo reduced={reduced} />}
-      {kind === "map" && <MapDemo reduced={reduced} />}
+      {kind === "package" && <PackageDemo reduced={reduced} />}
     </div>
   );
 }

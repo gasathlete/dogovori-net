@@ -9,22 +9,18 @@ import { MemoryRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { readFileSync } from "node:fs";
 import {
+  LEGACY_PRODUCT_SLUG_REDIRECTS,
   ONE_TIME_PRODUCTS,
   ONE_TIME_TERMS,
-  PERSONA_STORAGE_KEY,
   getProduct,
   isOneTimeProductId,
-  loadBusinessPersona,
+  legacyProductRedirect,
   parseProductParam,
-  personaNextStepHref,
   productPath,
   productPriceLabel,
-  recommendForPersona,
-  saveBusinessPersona,
 } from "@/lib/products";
 import { ProductCards } from "@/components/products/ProductCards";
 import { ProductsSection } from "@/components/home/ProductsSection";
-import BusinessCardIntake from "@/pages/BusinessCardIntake";
 
 vi.mock("@/lib/funnel", () => ({
   trackFunnelEvent: vi.fn(() => true),
@@ -43,15 +39,17 @@ describe("продуктова конфигурация — единствен �
     expect(ONE_TIME_PRODUCTS.map((p) => [p.id, p.priceEur])).toEqual([
       ["contract_check", 2.99],
       ["contract_improve", 3.99],
-      ["business_contract_map", 6.99],
+      ["negotiation_package", 7.99],
     ]);
     expect(productPriceLabel("contract_check")).toBe("2,99 €");
     expect(productPriceLabel("contract_improve")).toBe("3,99 €");
-    expect(productPriceLabel("business_contract_map")).toBe("6,99 €");
+    expect(productPriceLabel("negotiation_package")).toBe("7,99 €");
   });
 
   it("имена, значки и CTA маршрути са каноничните", () => {
-    expect(getProduct("contract_check").name).toBe("Проверка преди подпис");
+    expect(getProduct("contract_check").name).toBe(
+      "Подробна проверка преди подпис",
+    );
     expect(getProduct("contract_check").ctaLabel).toBe("Проверете документ");
     expect(getProduct("contract_check").ctaHref).toBe(
       "/analiz?product=contract_check",
@@ -60,10 +58,11 @@ describe("продуктова конфигурация — единствен �
     expect(getProduct("contract_improve").ctaHref).toBe(
       "/analiz?product=contract_improve",
     );
-    expect(getProduct("business_contract_map").badge).toBe("За бизнес");
-    expect(getProduct("business_contract_map").ctaHref).toBe(
-      "/produkti/biznes-karta",
-    );
+    const pkg = getProduct("negotiation_package");
+    expect(pkg.name).toBe("Пълен пакет за преговори");
+    expect(pkg.badge).toBe("Пълен пакет");
+    expect(pkg.ctaLabel).toBe("Подгответе документа за преговори");
+    expect(pkg.slug).toBe("palen-paket-pregovori");
   });
 
   it("конфигурацията е immutable", () => {
@@ -98,7 +97,6 @@ describe("продуктова конфигурация — единствен �
       "src/components/products/ProductCard.tsx",
       "src/components/home/ProductsSection.tsx",
       "src/pages/Products.tsx",
-      "src/pages/BusinessCardIntake.tsx",
     ];
     for (const f of files) {
       expect(/\d{1,3}[.,]\d{2}\s?€/.test(readFileSync(f, "utf8"))).toBe(false);
@@ -110,9 +108,10 @@ describe("allowlist на ?product=", () => {
   it("приема само познати стойности", () => {
     expect(parseProductParam("contract_check")).toBe("contract_check");
     expect(parseProductParam(" contract_improve ")).toBe("contract_improve");
-    expect(parseProductParam("business_contract_map")).toBe(
-      "business_contract_map",
+    expect(parseProductParam("negotiation_package")).toBe(
+      "negotiation_package",
     );
+    expect(parseProductParam("business_contract_map")).toBeNull();
   });
 
   it("непознати/липсващи стойности падат безопасно", () => {
@@ -193,59 +192,35 @@ describe("витрина — паритет между началната стр
   });
 });
 
-describe("бизнес персона", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    window.sessionStorage.clear();
-  });
-
-  it("детерминистично съответствие персона → план", () => {
-    expect(recommendForPersona("own_business").plan).toBe("entrepreneur");
-    expect(recommendForPersona("own_business").planName).toBe("Предприемач");
-    expect(recommendForPersona("client_work").plan).toBe("professional");
-    expect(recommendForPersona("client_work").planName).toBe("Професионалист");
-    expect(personaNextStepHref("own_business")).toBe(
-      "/plans?product=business_contract_map&persona=own_business",
+describe("изтеглената бизнес карта", () => {
+  it("не съществува в каноничния модел", () => {
+    expect(ONE_TIME_PRODUCTS.map((p) => p.id)).not.toContain(
+      "business_contract_map",
+    );
+    expect(isOneTimeProductId("business_contract_map")).toBe(false);
+    expect(ONE_TIME_PRODUCTS.map((p) => p.slug)).not.toContain(
+      "biznes-karta-dokumenti",
     );
   });
 
-  it("съхранява само избора и игнорира подправени стойности", () => {
-    saveBusinessPersona("client_work");
-    expect(window.sessionStorage.getItem(PERSONA_STORAGE_KEY)).toBe(
-      "client_work",
+  it("старите адреси водят към пълния пакет", () => {
+    expect(legacyProductRedirect("biznes-karta")).toBe(
+      "/produkti/palen-paket-pregovori",
     );
-    expect(loadBusinessPersona()).toBe("client_work");
-    window.sessionStorage.setItem(PERSONA_STORAGE_KEY, "hacked");
-    expect(loadBusinessPersona()).toBeNull();
+    expect(legacyProductRedirect("biznes-karta-dokumenti")).toBe(
+      "/produkti/palen-paket-pregovori",
+    );
+    expect(legacyProductRedirect("proverka-predi-podpis")).toBeNull();
+    expect(legacyProductRedirect(undefined)).toBeNull();
+    expect(legacyProductRedirect("constructor")).toBeNull();
+    expect(Object.isFrozen(LEGACY_PRODUCT_SLUG_REDIRECTS)).toBe(true);
   });
 
-  it("intake екранът препоръчва и записва след избор", async () => {
-    render(wrap(<BusinessCardIntake />));
-    expect(
-      screen.getByText("Работите с договори основно за:"),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByTestId("persona-recommendation"),
-    ).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: /Моя бизнес/ }));
-    expect(screen.getByTestId("persona-recommendation")).toHaveTextContent(
-      "Предприемач",
-    );
-    expect(loadBusinessPersona()).toBe("own_business");
-    expect(trackFunnelEvent).toHaveBeenCalledWith(
-      "business_persona_selected",
-      expect.objectContaining({
-        persona: "own_business",
-        recommended_plan: "entrepreneur",
-      }),
-    );
-    expect(
-      screen.getByRole("link", { name: /Продължи към следващата стъпка/ }),
-    ).toHaveAttribute(
-      "href",
-      "/plans?product=business_contract_map&persona=own_business",
-    );
+  it("никъде в продуктовия слой не остават стари цени", () => {
+    const text = readFileSync("src/lib/products.ts", "utf8");
+    for (const stale of ["6,99", "9,99", "4,99", "6.99", "9.99", "4.99"]) {
+      expect(text).not.toContain(stale);
+    }
   });
 });
 

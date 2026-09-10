@@ -184,17 +184,14 @@ export function DogovaryAIShowcase() {
             </div>
 
             <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-              <button
-                type="button"
-                onClick={() => {
-                  trackMetric("home_dogovaryai_open");
-                  window.dispatchEvent(new CustomEvent("dogovai:open"));
-                }}
-                className="btn-gold w-full justify-center sm:w-auto"
+              <Link
+                to="/assistant"
+                onClick={() => trackMetric("home_dogovaryai_open")}
+                className="btn-gold inline-flex min-h-[44px] w-full items-center justify-center sm:w-auto"
               >
-                Попитай DogovaryAI
+                Попитайте DogovaryAI
                 <ArrowRight className="ml-1.5 h-4 w-4" />
-              </button>
+              </Link>
               <Link
                 to="/plans"
                 onClick={() => trackMetric("home_dogovaryai_plans")}

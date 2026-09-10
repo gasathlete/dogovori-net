@@ -42,7 +42,7 @@ describe("канонични продуктови пътища", () => {
     expect(ONE_TIME_PRODUCT_PATHS).toEqual([
       "/produkti/proverka-predi-podpis",
       "/produkti/popravi-dokument",
-      "/produkti/biznes-karta-dokumenti",
+      "/produkti/palen-paket-pregovori",
     ]);
   });
 

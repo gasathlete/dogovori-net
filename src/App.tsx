@@ -92,7 +92,6 @@ const DocumentWorkspace = lazy(() => import("./pages/DocumentWorkspace.tsx"));
 const Catalog = lazy(() => import("./pages/Catalog.tsx"));
 const Start = lazy(() => import("./pages/Start.tsx"));
 const Products = lazy(() => import("./pages/Products.tsx"));
-const BusinessCardIntake = lazy(() => import("./pages/BusinessCardIntake.tsx"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail.tsx"));
 const Analyze = lazy(() => import("./pages/Analyze.tsx"));
 const ProcessStep = lazy(() => import("./pages/ProcessStep.tsx"));
@@ -342,7 +341,9 @@ const AnimatedRoutes = () => {
         <Route path="/auth" element={<Auth />} />
         <Route path="/plans" element={<Plans />} />
         <Route path="/produkti" element={<Products />} />
-        <Route path="/produkti/biznes-karta" element={<BusinessCardIntake />} />
+        {/* Изтеглената „Бизнес карта на документите" → каноничния пълен пакет. */}
+        <Route path="/produkti/biznes-karta" element={<Navigate to="/produkti/palen-paket-pregovori" replace />} />
+        <Route path="/produkti/biznes-karta-dokumenti" element={<Navigate to="/produkti/palen-paket-pregovori" replace />} />
         {/* Самостоятелните продуктови страници — стабилни ASCII slug-ове. */}
         <Route path="/produkti/:slug" element={<ProductDetail />} />
         <Route path="/reset-password" element={<ResetPassword />} />

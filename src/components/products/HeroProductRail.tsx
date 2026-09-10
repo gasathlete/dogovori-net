@@ -24,10 +24,10 @@ export function HeroProductRail() {
           id="hero-product-rail-title"
           className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
         >
-          Изберете резултат
+          Еднократни продукти
         </h2>
         <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          еднократно
+          Плащате веднъж · еднократно
         </span>
       </div>
 

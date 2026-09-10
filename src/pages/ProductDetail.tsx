@@ -19,6 +19,7 @@ import {
   ONE_TIME_TERMS,
   PRODUCT_EVENTS,
   getProductBySlug,
+  legacyProductRedirect,
   productPath,
   productPriceLabel,
   type OneTimeProduct,
@@ -76,7 +77,11 @@ export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const product = getProductBySlug(slug);
 
-  if (!product) return <Navigate to="/produkti" replace />;
+  if (!product) {
+    // Изтеглените стари адреси водят към каноничната страница, не към списъка.
+    const legacy = legacyProductRedirect(slug);
+    return <Navigate to={legacy ?? "/produkti"} replace />;
+  }
 
   const price = productPriceLabel(product.id);
   const related = ONE_TIME_PRODUCTS.filter((p) => p.id !== product.id);
@@ -214,6 +219,41 @@ export default function ProductDetail() {
             </ul>
           </div>
         </section>
+
+        {/*
+          Подробният състав на резултата. Съдържанието е монтирано в DOM и на
+          телефон, и на десктоп — само визуално е групирано по раздели.
+        */}
+        <section className="container mt-10" aria-labelledby="product-result">
+          <h2
+            id="product-result"
+            className="font-serif text-[20px] font-bold tracking-tight sm:text-2xl"
+          >
+            Какво точно съдържа резултатът
+          </h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {product.page.resultSections.map((section) => (
+              <div
+                key={section.heading}
+                className="rounded-xl border border-border/70 bg-card/50 p-4"
+              >
+                <h3 className="text-[14.5px] font-semibold">{section.heading}</h3>
+                <ul className="mt-2 space-y-1.5">
+                  {section.items.map((item) => (
+                    <li
+                      key={item}
+                      className="flex items-start gap-2 text-[13.5px] leading-snug text-muted-foreground"
+                    >
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+
 
         <section className="container mt-10" aria-labelledby="product-faq">
           <h2
