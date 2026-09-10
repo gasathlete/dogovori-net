@@ -1,14 +1,12 @@
 /**
- * /analiz — landing page за реален AI риск-анализ.
+ * /analiz — страницата за проверка на собствен договор.
  *
- * Публичната версия НЕ прави фалшив/примерен анализ. Всеки посетител се
- * насочва към реалния OCR + AI пайплайн в акаунта (analyze-contract edge
- * функцията), който работи с истинския качен документ и не халюцинира
- * тип на договор.
+ * Публичната версия не показва примерен резултат. Всеки посетител отива към
+ * реалната проверка в акаунта, която работи с качения документ.
  *
- * Логнати потребители → директно към формата за качване в /account.
- * Анонимни потребители → CTA за регистрация; след вход попадат в същата
- * форма (redirect параметърът пренася namерението).
+ * При валиден ?product= страницата показва точното ограничение на платения
+ * продукт (само PDF с четим текст или DOCX, до 60 000 знака, без сканирани
+ * файлове), а не общите възможности на безплатната проверка.
  */
 import { useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -18,6 +16,10 @@ import { Seo } from "@/components/Seo";
 import { useAuth } from "@/hooks/useAuth";
 import { markFunnelStep, trackFunnelEvent } from "@/lib/funnel";
 import { getProduct, parseProductParam } from "@/lib/products";
+import {
+  PRODUCT_ACCEPTED_INPUT,
+  PRODUCT_MAX_SOURCE_CHARS,
+} from "@/lib/productSource";
 
 const UPLOAD_ROUTE = "/account?tab=documents&action=upload";
 
@@ -66,12 +68,49 @@ export default function Analyze() {
 
   const productCopy = product ? getProduct(product) : null;
 
+  // В продуктов режим показваме точно платеното ограничение; в общия режим —
+  // реално поддържаните възможности на проверката в акаунта.
+  const FEATURES = productCopy
+    ? [
+        {
+          icon: ShieldCheck,
+          title: "Точно място в документа",
+          body: "Всяка находка сочи мястото в текста и цитира извадката, за да я проверите. Липсващите клаузи са означени като препоръка, не като цитат.",
+        },
+        {
+          icon: FileUp,
+          title: PRODUCT_ACCEPTED_INPUT,
+          body: `Четем целия документ до ${PRODUCT_MAX_SOURCE_CHARS.toLocaleString("bg-BG")} знака. Ако текстът е по-дълъг или не се разчита, не приемаме плащане — не съкращаваме документа тихо.`,
+        },
+        {
+          icon: Sparkles,
+          title: "Един документ, един резултат",
+          body: "Резултатът е обвързан с точния файл, който сте качили. При промяна на документа проверката се прави наново.",
+        },
+      ]
+    : [
+        {
+          icon: ShieldCheck,
+          title: "Точно място в документа",
+          body: "Всяка находка сочи мястото в текста и цитира извадката, за да я проверите. Липсващите клаузи са означени като препоръка, не като цитат.",
+        },
+        {
+          icon: Sparkles,
+          title: "И сканирани документи",
+          body: "Разчитаме и сканирани PDF файлове — първите 3 страници са включени, всяка следваща е +1 операция.",
+        },
+        {
+          icon: FileUp,
+          title: "PDF, Word или текст",
+          body: "Качвате файл до 10 MB или поставяте текста. Времето за обработка зависи от обема на документа.",
+        },
+      ];
 
   return (
     <>
       <Seo
-        title="AI риск-анализ на договор — Договори.нет"
-        description="Качи PDF или Word файл на реален договор. Нашият AI извлича клаузите, сверява ги със ЗЗД/ТЗ и посочва рисковете дословно, без да измисля."
+        title="Проверка на договор — какво поемате и какво да промените"
+        description="Качвате PDF или Word файл и виждате какво поемате по договора, кои клаузи носят риск и какво да промените, с точно място в текста. Резултатът е автоматичен и не е правен съвет."
         canonical="https://dogovori.net/analiz"
       />
       <Header />
@@ -89,22 +128,22 @@ export default function Analyze() {
         <section className="container relative mx-auto max-w-2xl px-4">
           <header className="text-center" data-product={product ?? "none"}>
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gold">
-              {productCopy ? productCopy.name : "Реален AI анализ"}
+              {productCopy ? productCopy.name : "Проверка на договор"}
             </p>
-            <h1 className="mt-2 font-serif text-3xl font-bold leading-tight sm:text-4xl md:text-5xl">
+            <h1 className="mt-2 font-serif text-[32px] font-bold leading-tight sm:text-4xl md:text-5xl">
               {productCopy ? (
                 productCopy.name
               ) : (
                 <>
-                  AI риск-анализ на{" "}
-                  <em className="not-italic text-gold">твоя реален договор</em>
+                  Какво поемате с{" "}
+                  <em className="not-italic text-gold">този договор</em>
                 </>
               )}
             </h1>
             <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
               {productCopy
                 ? productCopy.promise
-                : "Качваш PDF или Word файл — системата извлича текста (с OCR при нужда), сверява клаузите със ЗЗД и Търговския закон и посочва рисковете дословно от документа. Без предварително подготвени шаблонни отговори."}
+                : "Качвате PDF или Word файл. Виждате какво поемате, кои клаузи носят риск за Вас и какво да промените — с точното място в текста. Резултатът е автоматичен и не е правен съвет."}
             </p>
           </header>
 
@@ -113,12 +152,18 @@ export default function Analyze() {
               <Lock className="h-3.5 w-3.5" /> Изисква акаунт
             </div>
             <h2 className="mt-3 text-center font-serif text-2xl font-bold leading-tight sm:text-3xl">
-              Влез или се регистрирай, за да качиш договор
+              Влезте или се регистрирайте, за да качите документа
             </h2>
             <p className="mx-auto mt-3 max-w-lg text-center text-sm text-muted-foreground">
-              Реалният анализ работи с твоя файл — затова е достъпен само в
-              акаунта. Регистрацията е безплатна и включва <strong>1 пълен
-              риск-анализ</strong> и достъп до OCR за сканирани документи.
+              {productCopy ? (
+                <>Проверката работи с Вашия файл и е достъпна само в акаунта. {PRODUCT_ACCEPTED_INPUT}</>
+              ) : (
+                <>
+                  Проверката работи с Вашия файл — затова е достъпна само в
+                  акаунта. Регистрацията е безплатна и включва{" "}
+                  <strong>една пълна проверка</strong>.
+                </>
+              )}
             </p>
 
             <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
@@ -128,7 +173,7 @@ export default function Analyze() {
                 className="btn-gold btn-sheen btn-press inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-[15px] font-semibold"
               >
                 <FileUp className="h-4 w-4" />{" "}
-                {productCopy ? productCopy.ctaLabel : "Регистрирай се и качи договор"}
+                {productCopy ? productCopy.ctaLabel : "Регистрирайте се и качете документа"}
               </button>
               <button
                 type="button"
@@ -141,23 +186,7 @@ export default function Analyze() {
           </div>
 
           <ul className="mt-8 grid gap-3 sm:grid-cols-3">
-            {[
-              {
-                icon: ShieldCheck,
-                title: "Проверими цитати",
-                body: "Всяка находка се придружава от дословен цитат от твоя договор и се проверява срещу текста. Непотвърдените находки не се представят като установени факти. Липсващите клаузи са препоръки, а не цитати.",
-              },
-              {
-                icon: Sparkles,
-                title: "OCR за сканирани",
-                body: "Разпознаваме и сканирани PDF-и — първите 3 страници са включени, всяка следваща е +1 операция.",
-              },
-              {
-                icon: FileUp,
-                title: "PDF, Word или текст",
-                body: "Качваш файл до 10 MB или поставяш текст. Времето за обработка зависи от обема на документа.",
-              },
-            ].map(({ icon: Icon, title, body }) => (
+            {FEATURES.map(({ icon: Icon, title, body }) => (
               <li
                 key={title}
                 className="rounded-xl border border-border/60 bg-card/40 p-4"

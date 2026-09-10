@@ -12,16 +12,16 @@ const CHOICES = [
   {
     to: "/build",
     icon: FilePen,
-    label: "Изготви документ",
-    hint: "Воден процес с въпроси стъпка по стъпка — до готов договор за преглед и сваляне.",
-    badge: "Воден процес",
+    label: "Изготвяне на документ",
+    hint: "Кратки въпроси стъпка по стъпка — до готов документ за преглед и сваляне.",
+    badge: "Стъпка по стъпка",
     id: "build",
     primary: true,
   },
   {
     to: "/catalog",
     icon: Search,
-    label: "Разгледай шаблони",
+    label: "Шаблони",
     hint: "Над 600 образца по ЗЗД, ТЗ, КТ и ЗУТ.",
     badge: "625 шаблона",
     id: "catalog",
@@ -30,8 +30,8 @@ const CHOICES = [
   {
     to: "/analiz",
     icon: ShieldCheck,
-    label: "Провери мой договор",
-    hint: "Проверка на риска и клаузите — какво липсва и какво е в твоя вреда.",
+    label: "Проверка на Ваш договор",
+    hint: "Какво липсва и кои клаузи са неизгодни за Вас.",
     badge: "Проверка на клаузите",
     id: "analyze",
     primary: false,
@@ -59,13 +59,13 @@ export function PrimaryChoice() {
       <div className="eyebrow mb-3 justify-center">
         <span className="font-serif text-base font-normal tracking-normal text-gold/60">01</span>
         <span className="h-px w-8 bg-gold/40" />
-        Твоят избор
+        Изберете действие
       </div>
       <h2
         id="primary-choice-title"
         className="mb-5 text-center font-serif text-2xl font-bold text-foreground sm:text-3xl"
       >
-        Какво искаш да направиш?
+        Какво искате да направите?
       </h2>
       <ul role="list" className="mx-auto grid max-w-4xl gap-3 sm:grid-cols-3">
         {CHOICES.map((c) => {
@@ -119,7 +119,7 @@ export function PrimaryChoice() {
                       : "border-border/70 text-muted-foreground hover:border-gold/40 hover:text-gold")
                   }
                 >
-                  {isActive && expanded ? "Стъпките са показани" : "Виж стъпките"}
+                  {isActive && expanded ? "Стъпките са показани" : "Вижте стъпките"}
                 </button>
               </div>
             </li>
