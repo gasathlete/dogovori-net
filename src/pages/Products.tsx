@@ -4,7 +4,8 @@
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
 import { SeoFooter } from "@/components/SeoFooter";
-import { ProductCards } from "@/components/products/ProductCards";
+import { ProductShowcaseCarousel } from "@/components/products/ProductShowcaseCarousel";
+import { ProductComparisonList } from "@/components/products/ProductComparisonList";
 import { StepsStrip } from "@/components/products/StepsStrip";
 import { PlanAlternativeNote } from "@/components/products/PlanAlternativeNote";
 import {
@@ -66,8 +67,8 @@ export default function Products() {
               Разгледайте нашите продукти
             </h1>
             <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-              Проверка преди подпис, конкретна поправка на текста или пълен пакет
-              за преговори — за един документ, на един екран.
+              Проверка преди подпис, поправка на текста или пълен пакет за
+              преговори — за един документ.
             </p>
             <p className="mt-4 inline-flex items-baseline gap-2 rounded-lg border border-gold/25 bg-gold/[0.07] px-3 py-1.5">
               <span className="font-serif text-[22px] font-bold tabular-nums text-gold">
@@ -77,18 +78,32 @@ export default function Products() {
                 еднократно
               </span>
             </p>
-            <div className="mt-5">
-              <StepsStrip />
-            </div>
-            <p className="mt-4 text-[12px] font-medium text-muted-foreground">
+          </div>
+        </section>
+
+        {/* Витрината е високо на страницата — резултатът обяснява продукта. */}
+        <section className="container mt-6" aria-label="Примерни резултати">
+          <div className="mx-auto max-w-5xl">
+            <ProductShowcaseCarousel source="produkti" />
+          </div>
+        </section>
+
+        {/* Краткият списък остава четим и индексируем без взаимодействие. */}
+        <section className="container mt-10" aria-labelledby="produkti-spisak">
+          <h2
+            id="produkti-spisak"
+            className="mb-4 text-center font-serif text-[22px] font-bold tracking-tight sm:text-2xl"
+          >
+            Трите продукта
+          </h2>
+          <ProductComparisonList />
+          <div className="mx-auto mt-5 max-w-4xl">
+            <StepsStrip />
+            <p className="mt-4 text-center text-[12px] font-medium text-muted-foreground">
               {ONE_TIME_TERMS}
             </p>
             <PlanAlternativeNote className="mx-auto mt-5 max-w-md" />
           </div>
-        </section>
-
-        <section className="container mt-8">
-          <ProductCards variant="full" source="produkti" />
         </section>
       </main>
       <SeoFooter />

@@ -171,15 +171,15 @@ export default function ProductDetail() {
           >
             Три стъпки
           </h2>
-          <ol className="mt-4 grid gap-3 sm:grid-cols-3">
+          <ol className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-2">
             {product.page.steps.map((step, i) => (
               <li
                 key={step}
-                className="rounded-xl border border-border/70 bg-card/50 p-4 text-[14px] leading-snug"
+                className="flex items-center gap-2 rounded-full border border-border/70 bg-card/50 px-3 py-1.5 text-[13.5px] leading-snug"
               >
-                <span className="font-serif text-[15px] font-bold text-gold">
-                  {i + 1}.
-                </span>{" "}
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-gold/40 bg-gold/10 font-serif text-[12px] font-bold text-gold">
+                  {i + 1}
+                </span>
                 {step}
               </li>
             ))}

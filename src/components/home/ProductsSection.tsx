@@ -1,12 +1,30 @@
 /**
- * Началната страница — компактната, конверсионна версия на продуктовата
- * витрина. Ползва същата конфигурация и същите компоненти като /produkti.
+ * Началната страница — продуктите се показват като един работен изглед, който
+ * се сменя спокойно, вместо три текстови карти.
+ *
+ * Цените, връзките и примерните данни идват от общата конфигурация; тук няма
+ * литерали.
  */
+import { useEffect } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { ArrowRight } from "@/icons";
-import { ProductCards } from "@/components/products/ProductCards";
+import { useInView } from "@/hooks/useInView";
+import { ProductShowcaseCarousel } from "@/components/products/ProductShowcaseCarousel";
+import { ONE_TIME_PRODUCTS, PRODUCT_EVENTS } from "@/lib/products";
+import { trackFunnelEvent } from "@/lib/funnel";
 
 export function ProductsSection() {
+  const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.3 });
+
+  useEffect(() => {
+    if (!inView) return;
+    trackFunnelEvent(
+      PRODUCT_EVENTS.sectionViewed,
+      { source: "home", variant: "showcase", products: ONE_TIME_PRODUCTS.length },
+      { dedupKey: "home|showcase" },
+    );
+  }, [inView]);
+
   return (
     <section
       id="produkti"
@@ -24,11 +42,12 @@ export function ProductsSection() {
         Разгледайте нашите продукти
       </h2>
       <p className="mx-auto mb-6 max-w-xl text-center text-sm text-muted-foreground">
-        Проверка на документа, конкретни поправки или пълна подготовка за
-        преговори. Плащате веднъж за избрания резултат.
+        Ето как изглежда резултатът при всеки от трите продукта.
       </p>
 
-      <ProductCards variant="compact" source="home" />
+      <div ref={ref} className="mx-auto max-w-5xl">
+        <ProductShowcaseCarousel source="home" />
+      </div>
 
       <div className="mt-6 text-center">
         <Link
