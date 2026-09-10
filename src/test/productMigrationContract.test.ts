@@ -351,3 +351,113 @@ describe("Stage 2A миграция — платежна истина", () => {
     expect(purchaseFn).toContain("v_snapshot.tax_amount_cents IS NOT NULL");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Коригиращата миграция: базовата остава защитена и НЕПРОМЕНЕНА, затова точната
+// проверка по схема v2 живее в отделен, все още неприложен файл.
+// ---------------------------------------------------------------------------
+const PATCH_FILE = join(
+  process.cwd(),
+  "drizzle/migrations/0018_product_result_v2_binding_patch.sql",
+);
+const PATCH_REVIEW = join(
+  process.cwd(),
+  "docs/migrations/stage2a_product_result_v2_binding_patch.sql",
+);
+const ROLLOUT_NOTE = join(process.cwd(), "docs/migrations/STAGE2A_ROLLOUT_ORDER.md");
+
+describe("Stage 2B1A коригираща миграция — обвързване по схема v2", () => {
+  const patch = readFileSync(PATCH_FILE, "utf8");
+
+  it("е идентична с файла за преглед", () => {
+    expect(patch).toBe(readFileSync(PATCH_REVIEW, "utf8"));
+  });
+
+  it("прилага се атомарно и не пипа данни", () => {
+    expect(patch.trimStart().startsWith("--") || patch.includes("BEGIN;")).toBe(true);
+    expect(patch).toContain("BEGIN;");
+    expect(patch.trimEnd().endsWith("COMMIT;")).toBe(true);
+    expect(patch).not.toMatch(/DROP TABLE|TRUNCATE|DROP COLUMN|DELETE FROM|INSERT INTO|UPDATE public\./i);
+  });
+
+  it("заменя ограничението и двете писащи резултат функции", () => {
+    expect(patch).toContain(
+      "DROP CONSTRAINT IF EXISTS product_entitlements_ready_ck",
+    );
+    expect(patch).toContain("ADD CONSTRAINT product_entitlements_ready_ck CHECK (");
+    expect(patch).toContain("CREATE OR REPLACE FUNCTION public.complete_product_fulfillment(");
+    expect(patch).toContain("CREATE OR REPLACE FUNCTION public.complete_product_refinement(");
+    expect(patch.match(/SECURITY DEFINER SET search_path = ''/g)?.length).toBe(2);
+  });
+
+  it("не остава нито един стар плосък път на обвързването", () => {
+    expect(patch).not.toContain("result ->> 'source_hash'");
+    expect(patch).not.toContain("p_result ->> 'source_hash'");
+  });
+
+  it("готов резултат изисква точно версия 2 и ЦЯЛОТО вложено обвързване", () => {
+    for (const fragment of [
+      "result_schema_version = 2",
+      "result -> 'schema_version' = '2'::jsonb",
+      "result ->> 'product_id' = product_id",
+      "result -> 'source' ->> 'document_id' = source_document_id::text",
+      "lower(result -> 'source' ->> 'source_hash') = lower(source_hash)",
+      "result -> 'source' ->> 'source_kind' = source_kind",
+      "result -> 'source' -> 'char_count' = to_jsonb(source_char_count)",
+      "result -> 'source' ->> 'char_unit' = source_char_unit",
+      "(result -> 'source' ->> 'source_updated_at')::timestamptz = source_updated_at",
+      "result -> 'source' -> 'page_count' = 'null'::jsonb",
+      "result -> 'source' -> 'page_count' = to_jsonb(source_page_count)",
+    ]) {
+      expect(patch, `липсва проверка: ${fragment}`).toContain(fragment);
+    }
+  });
+
+  it("двете функции проверяват едно и също обвързване, не частично", () => {
+    for (const fragment of [
+      "AND p_result_schema_version = 2",
+      "AND COALESCE(p_result_schema_version, result_schema_version) = 2",
+      "AND p_result -> 'schema_version' = '2'::jsonb",
+      "AND p_result -> 'source' ->> 'document_id' = source_document_id::text",
+      "AND lower(p_result -> 'source' ->> 'source_hash') = lower(source_hash)",
+      "AND p_result -> 'source' ->> 'source_kind' = source_kind",
+      "AND p_result -> 'source' -> 'char_count' = to_jsonb(source_char_count)",
+      "AND p_result -> 'source' ->> 'char_unit' = source_char_unit",
+      "AND (p_result -> 'source' ->> 'source_updated_at')::timestamptz = source_updated_at",
+    ]) {
+      expect(patch, `липсва проверка: ${fragment}`).toContain(fragment);
+    }
+    expect(
+      patch.match(/p_result -> 'source' -> 'page_count' = to_jsonb\(source_page_count\)/g)?.length,
+    ).toBe(2);
+    expect(patch.match(/p_result -> 'source' -> 'page_count' = 'null'::jsonb/g)?.length).toBe(2);
+  });
+
+  it("базовата миграция остава непроменена и все още носи стария път", () => {
+    const base = readFileSync(
+      join(MIGRATIONS_DIR, "20260910090000_product_checkout_entitlements.sql"),
+      "utf8",
+    );
+    // Честно: поправката НЕ е в базовата миграция, а в коригиращата.
+    expect(base).toContain("result ->> 'source_hash'");
+    expect(base).toBe(readFileSync(REVIEW_ARTIFACT, "utf8"));
+  });
+
+  it("редът на прилагане е документиран: база първо, поправка веднага след нея", () => {
+    const note = readFileSync(ROLLOUT_NOTE, "utf8");
+    const base = note.indexOf("20260910090000_product_checkout_entitlements.sql");
+    const fix = note.indexOf("0018_product_result_v2_binding_patch.sql");
+    expect(base).toBeGreaterThan(-1);
+    expect(fix).toBeGreaterThan(-1);
+    expect(base).toBeLessThan(fix);
+  });
+
+  it("поправката не влиза в дневника на миграциите", () => {
+    const journal = readFileSync(
+      join(process.cwd(), "drizzle/migrations/meta/_journal.json"),
+      "utf8",
+    );
+    expect(journal).not.toContain("0018_product_result_v2_binding_patch");
+  });
+});
+
