@@ -20,6 +20,7 @@ import {
   RESULT_PARTIES,
   RESULT_SEVERITIES,
   SOURCE_KINDS,
+  UUID_RE,
   matchesSourceBinding,
   readyProductResult,
   validateProductResult,
@@ -80,14 +81,16 @@ const idSchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/, "нев�
 const isoSchema = z.string().refine((v) => !Number.isNaN(Date.parse(v)), "невалидна дата/час");
 
 export const sourceBindingSchema = z.object({
-  document_id: z.string().uuid(),
+  // Един и същ израз за UUID като в Edge договора — иначе двете проверки биха
+  // приемали различни записи.
+  document_id: z.string().regex(UUID_RE, "очаква се UUID на качения документ"),
   source_hash: z.string().regex(/^[0-9a-f]{64}$/),
   source_kind: z.enum(SOURCE_KINDS),
   char_count: z.number().int().min(PRODUCT_MIN_SOURCE_CHARS).max(PRODUCT_MAX_SOURCE_CHARS),
   char_unit: z.literal(PRODUCT_SOURCE_CHAR_UNIT),
   source_updated_at: isoSchema,
   page_count: z.number().int().positive().max(10000).nullable(),
-});
+}).strict();
 
 export const sourceSpanSchema = z
   .object({
@@ -98,6 +101,7 @@ export const sourceSpanSchema = z
     section: text(RESULT_LIMITS.shortText).nullish(),
     paragraph: z.number().int().min(0).max(100000).nullish(),
   })
+  .strict()
   .refine((s) => s.end > s.start, "краят трябва да е след началото")
   .refine(
     (s) => countProductSourceChars(s.excerpt) === s.end - s.start,
@@ -110,7 +114,7 @@ export const legalBasisSchema = z.object({
   source_id: idSchema,
   canonical_url: z.string().regex(/^https:\/\/[^\s]+$/),
   label: text(RESULT_LIMITS.shortText),
-});
+}).strict();
 
 const legalBasisList = z.array(legalBasisSchema).max(RESULT_LIMITS.legalBases).optional();
 
@@ -120,9 +124,29 @@ const findingSchema = z.object({
   severity: z.enum(RESULT_SEVERITIES),
   affected_party: z.enum(RESULT_PARTIES),
   explanation: text(RESULT_LIMITS.text),
+  // Последствие и следваща стъпка са отделни, за да са наистина полезни.
+  consequence: text(RESULT_LIMITS.text),
+  next_step: text(RESULT_LIMITS.text),
   span: sourceSpanSchema,
   legal_basis: legalBasisList,
-});
+}).strict();
+
+/**
+ * Липсваща защита: твърдение „това го няма“, което ЗАДЪЛЖИТЕЛНО сочи механична
+ * проверка върху целия документ с `found: false`. Няма и не може да има място в
+ * източника — текстът не съществува.
+ */
+const missingProtectionSchema = z.object({
+  id: idSchema,
+  title: text(RESULT_LIMITS.shortText),
+  concept: text(RESULT_LIMITS.shortText),
+  why_it_matters: text(RESULT_LIMITS.text),
+  consequence: text(RESULT_LIMITS.text),
+  next_step: text(RESULT_LIMITS.text),
+  affected_party: z.enum(RESULT_PARTIES),
+  absence_check_id: idSchema,
+  legal_basis: legalBasisList,
+}).strict();
 
 const reviewShape = {
   passport: z.object({
@@ -132,14 +156,15 @@ const reviewShape = {
       .array(
         z.object({
           role: text(RESULT_LIMITS.shortText),
-          name: text(RESULT_LIMITS.shortText),
+          // Името може да липсва или да е заличено — тогава е null.
+          name: nullableText(RESULT_LIMITS.shortText),
           span: sourceSpanSchema,
-        }),
+        }).strict(),
       )
       .max(RESULT_LIMITS.parties),
     governing_law: nullableText(RESULT_LIMITS.shortText),
     signature_state: nullableText(RESULT_LIMITS.shortText),
-  }),
+  }).strict(),
   executive_summary: text(RESULT_LIMITS.longText),
   priority_summary: z
     .array(
