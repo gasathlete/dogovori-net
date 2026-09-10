@@ -242,6 +242,11 @@ Deno.test("невалидна карта на страниците не зака
     [{ page: 1, start: 0, end: 12 }, { page: 2, start: 5, end: count }],
     [{ page: 1, start: 0, end: count + 5 }],
     [{ page: 2, start: 5, end: 3 }],
+    // Разместен подаден ред — не се поправя тихо, а се отхвърля.
+    [{ page: 2, start: 16, end: count }, { page: 1, start: 0, end: 16 }],
+    // Обърнати номера на страниците при подреден текст.
+    [{ page: 2, start: 0, end: 16 }, { page: 1, start: 16, end: count }],
+
   ];
   for (const pages of bad) {
     assertEquals(validatePageBoundaries(pages, count), null);
