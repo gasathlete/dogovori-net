@@ -62,12 +62,18 @@ const sha256 = async (v: string) => {
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 };
 
+/** jsdom не дава File.arrayBuffer — подаваме минимален съвместим обект. */
+const fakeFile = (name: string, type: string): File =>
+  ({
+    name,
+    type,
+    size: 4,
+    arrayBuffer: async () => new ArrayBuffer(4),
+  } as unknown as File);
+
 const docxFile = () =>
-  new File([new Uint8Array([0x50, 0x4b, 0x03, 0x04])], "dogovor.docx", {
-    type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  });
-const pdfFile = () =>
-  new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], "dogovor.pdf", { type: "application/pdf" });
+  fakeFile("dogovor.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+const pdfFile = () => fakeFile("dogovor.pdf", "application/pdf");
 
 const CYRILLIC_PAGE = "Договор за наем между страните с ясни клаузи и срокове. ".repeat(20);
 
