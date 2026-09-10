@@ -962,6 +962,54 @@ function checkNegotiation(c: Checker, path: string, o: Record<string, unknown>):
 }
 
 /**
+ * Точните ключове на записания резултат. Политиката е ЕДНА и е строга: непознато
+ * поле е отказ, а не тихо игнориране — иначе непроверено съдържание би стигнало
+ * до платен резултат. Frontend схемата ползва същите списъци.
+ */
+export const ENVELOPE_KEYS = [
+  "schema_version",
+  "product_id",
+  "source",
+  "generated_at",
+  "payload",
+] as const;
+
+export const REVIEW_PAYLOAD_KEYS = [
+  "passport",
+  "executive_summary",
+  "priority_summary",
+  "findings",
+  "obligations",
+  "economic_terms",
+  "termination",
+  "disputes",
+  "contradictions",
+  "absence_checks",
+  "missing_protections",
+  "questions",
+] as const;
+
+export const CORRECTION_PAYLOAD_KEYS = [...REVIEW_PAYLOAD_KEYS, "corrections"] as const;
+
+export const NEGOTIATION_PAYLOAD_KEYS = [
+  ...CORRECTION_PAYLOAD_KEYS,
+  "objectives",
+  "red_lines",
+  "acceptable_concessions",
+  "fallbacks",
+  "negotiation_questions",
+  "actions",
+  "messages",
+  "refinement",
+] as const;
+
+export const PAYLOAD_KEYS: Record<ProductResultId, readonly string[]> = {
+  contract_check: REVIEW_PAYLOAD_KEYS,
+  contract_improve: CORRECTION_PAYLOAD_KEYS,
+  negotiation_package: NEGOTIATION_PAYLOAD_KEYS,
+};
+
+/**
  * ПЪЛНАТА runtime валидация. Единственият път до „готов“ резултат.
  * Не хвърля: връща всички намерени проблеми, за да са проследими.
  */
