@@ -216,9 +216,48 @@ function CheckPreview({ size }: { size: Size }) {
 
 /* ----------------------------- Поправка ----------------------------- */
 
+/**
+ * Клавиатурно движение по хоризонтален списък от контроли: стрелки, Home/End.
+ * Спира разпространението, за да не сменя продукта на външната витрина.
+ */
+function useRovingKeys<T extends string>(
+  ids: readonly T[],
+  active: T,
+  setActive: (id: T) => void,
+) {
+  const refs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const i = ids.indexOf(active);
+    const map: Record<string, number | undefined> = {
+      ArrowRight: i + 1,
+      ArrowDown: i + 1,
+      ArrowLeft: i - 1,
+      ArrowUp: i - 1,
+      Home: 0,
+      End: ids.length - 1,
+    };
+    const next = map[e.key];
+    if (next === undefined) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const id = ids[(next + ids.length) % ids.length];
+    setActive(id);
+    refs.current[id]?.focus();
+  };
+  const register = (id: T) => (el: HTMLButtonElement | null) => {
+    refs.current[id] = el;
+  };
+  return { onKeyDown, register };
+}
+
 function ImprovePreview({ size }: { size: Size }) {
   const [active, setActive] = useState<ImproveStrategyId>("balanced");
   const groupId = useId();
+  const roving = useRovingKeys(
+    IMPROVE_STRATEGIES.map((s) => s.id),
+    active,
+    setActive,
+  );
 
   return (
     <>
