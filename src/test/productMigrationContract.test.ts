@@ -374,11 +374,18 @@ describe("Stage 2B1A коригираща миграция — обвързва�
   });
 
   it("прилага се атомарно и не пипа данни", () => {
-    expect(patch.trimStart().startsWith("--") || patch.includes("BEGIN;")).toBe(true);
     expect(patch).toContain("BEGIN;");
     expect(patch.trimEnd().endsWith("COMMIT;")).toBe(true);
-    expect(patch).not.toMatch(/DROP TABLE|TRUNCATE|DROP COLUMN|DELETE FROM|INSERT INTO|UPDATE public\./i);
+    expect(patch).not.toMatch(/DROP TABLE|TRUNCATE|DROP COLUMN|DELETE FROM|INSERT INTO/i);
+    // Единствените UPDATE редове са в телата на двете функции — миграцията сама
+    // не попълва и не поправя нито един продуктов или клиентски ред.
+    const updates = patch.match(/UPDATE public\.[a-z_]+/g) ?? [];
+    expect(updates).toEqual([
+      "UPDATE public.product_entitlements",
+      "UPDATE public.product_entitlements",
+    ]);
   });
+
 
   it("заменя ограничението и двете писащи резултат функции", () => {
     expect(patch).toContain(
