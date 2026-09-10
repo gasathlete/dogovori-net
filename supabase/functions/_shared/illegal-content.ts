@@ -17,7 +17,10 @@ async function sendAppEmailLazy(
     templateData: Record<string, string>;
   },
 ): Promise<unknown> {
-  const mod = await import("./transactional-email-templates/send-and-log.ts");
+  // Изчисляван адрес: така чистият детектор може да се внася и в среда без
+  // пакетите за поща, без да се променя поведението при истинско изпращане.
+  const specifier = ["./transactional-email-templates", "send-and-log.ts"].join("/");
+  const mod = await import(specifier);
   const send = (mod as Record<string, unknown>).sendAppEmail as (
     ...a: unknown[]
   ) => Promise<unknown>;
