@@ -1,8 +1,8 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { useEffect } from "react";
 import { markFunnelStep, trackFunnelEvent } from "@/lib/funnel";
 import { Link } from "react-router-dom";
 import { prefetchHandlers } from "@/components/PrefetchLink";
-import { ShieldCheck, Search, ArrowRight, FileUp } from "@/icons";
+import { Search, ArrowRight, FileUp } from "@/icons";
 const logoImg = "/logo-dogovori-hero.webp";
 import { HeroVideoBackdrop } from "@/components/HeroVideoBackdrop";
 import { FREE_OFFER_RULE } from "@/lib/pricing";
@@ -10,14 +10,10 @@ import { HeroProductRail } from "@/components/products/HeroProductRail";
 import { useAuth } from "@/hooks/useAuth";
 import { useAudience } from "@/hooks/useAudience";
 import { AudienceToggle } from "@/components/funnel/AudienceToggle";
-import { trackEvent } from "@/lib/analytics";
-
-const RoiDialog = lazy(() => import("@/components/funnel/RoiDialog").then((m) => ({ default: m.RoiDialog })));
 
 export function Hero() {
   const { user } = useAuth();
-  const { audience, copy } = useAudience();
-  const [roiOpen, setRoiOpen] = useState(false);
+  const { copy } = useAudience();
 
   useEffect(() => { markFunnelStep(1); }, []);
 
@@ -126,36 +122,16 @@ export function Hero() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  trackFunnelEvent("home_demo_story_opened", { source: "hero" });
-                  import("@/components/funnel/StartStoryOverlay").then((m) => m.openStartStory());
-                }}
-                className="story-link text-[12px] font-semibold text-muted-foreground transition-colors hover:text-gold"
-              >
-                Вижте как работи
-              </button>
-              <span className="hidden h-3 w-px bg-border sm:inline-block" />
-              <button
-                type="button"
-                onClick={() => {
-                  trackEvent("roi_dialog_opened", { audience, source: "hero" });
-                  setRoiOpen(true);
-                }}
-                className="story-link text-[12px] font-semibold text-muted-foreground transition-colors hover:text-gold"
-              >
-                Вижте колко спестявате
-              </button>
-            </div>
-
-            {!user && (
-              <p className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
-                <ShieldCheck className="h-3 w-3 text-emerald-500" />
-                Старт без регистрация · GDPR
-              </p>
-            )}
+            <button
+              type="button"
+              onClick={() => {
+                trackFunnelEvent("home_demo_story_opened", { source: "hero" });
+                import("@/components/funnel/StartStoryOverlay").then((m) => m.openStartStory());
+              }}
+              className="story-link text-[12px] font-semibold text-muted-foreground transition-colors hover:text-gold"
+            >
+              Вижте как работи
+            </button>
           </div>
 
           {/* Платените продукти — видими рано, но под безплатното начало. */}
@@ -164,13 +140,6 @@ export function Hero() {
 
         </div>
       </div>
-
-      
-      {roiOpen && (
-        <Suspense fallback={null}>
-          <RoiDialog open={roiOpen} onOpenChange={setRoiOpen} />
-        </Suspense>
-      )}
 
     </section>
   );

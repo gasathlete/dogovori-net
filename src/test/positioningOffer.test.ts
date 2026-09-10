@@ -54,7 +54,7 @@ describe("позициониране на началната страница", 
   it("DogovaryAI е формулиран внимателно и е след доверието на страницата", () => {
     const showcase = read("src/components/home/DogovaryAIShowcase.tsx");
     expect(showcase).not.toContain("отговаря като юрист");
-    expect(showcase).toContain("Не замества индивидуална правна консултация");
+    expect(showcase).toContain("Не е правен съвет");
 
     // Богатата подредба живее в HomeSections.tsx (Index е само входът).
     // DogovaryAI стои веднага след продуктите — рано и на телефон.

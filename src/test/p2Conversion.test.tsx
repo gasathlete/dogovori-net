@@ -34,8 +34,10 @@ describe("Hero — едно основно действие към безпла�
     expect(src).toContain('trackFunnelEvent("home_demo_story_opened"');
   });
 
-  it("вторичното ROI действие е запазено", () => {
-    expect(src).toContain("Вижте колко спестявате");
+  it("няма ROI действие и обещание за икономия в hero-а", () => {
+    expect(src).not.toContain("Вижте колко спестявате");
+    expect(src).not.toContain("RoiDialog");
+    expect(src).not.toContain("спестявате");
   });
 
   it("второстепенните връзки водят към създаване и качване", () => {
@@ -50,11 +52,12 @@ describe("Hero — едно основно действие към безпла�
     expect(src).not.toMatch(/TeaserDialog|teaserOpen/);
   });
 
-  it("trust линията ползва каноничния текст и пази „Старт без регистрация“", async () => {
+  it("под бутона стои само каноничното правило, без GDPR обещание", async () => {
     const { FREE_OFFER_RULE } = await import("@/lib/pricing");
     expect(src).toContain("FREE_OFFER_RULE");
     expect(FREE_OFFER_RULE.length).toBeGreaterThan(10);
-    expect(src).toContain("Старт без регистрация");
+    expect(src).not.toContain("Старт без регистрация");
+    expect(src).not.toContain("GDPR");
     expect(src).not.toContain("5 безплатни операции");
   });
 });

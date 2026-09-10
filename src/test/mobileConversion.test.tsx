@@ -112,8 +112,8 @@ describe("ранен продуктов ред в hero-а", () => {
       expect(link).toHaveAttribute("href", productPath(p));
       expect(link).toHaveTextContent(productPriceLabel(p.id));
     }
-    // Условието „еднократно" се появява точно веднъж — за групата.
-    expect(screen.getAllByText(/еднократно/)).toHaveLength(1);
+    // Обхватът се казва веднъж — за целия ред, не на всяка карта.
+    expect(screen.getAllByText("За един документ. Без абонамент.")).toHaveLength(1);
     expect(screen.getByRole("heading", { name: "Еднократни продукти" })).toBeInTheDocument();
   });
 
@@ -121,7 +121,7 @@ describe("ранен продуктов ред в hero-а", () => {
     const src = read("src/components/products/HeroProductRail.tsx");
     expect(src).not.toMatch(/setInterval|setTimeout|autoplay|Dialog/);
     expect(src.toLowerCase()).not.toMatch(/остават само|последен шанс/);
-    expect(src).toContain("min-h-[64px]");
+    expect(src).toContain("min-h-[92px]");
   });
 
   it("е вграден в hero-а, а не в отделен мобилен екран", () => {
