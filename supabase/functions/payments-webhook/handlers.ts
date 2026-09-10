@@ -293,7 +293,30 @@ export function classifySnapshotPurchaseKind(session: Any): SnapshotPurchaseKind
   return "unknown";
 }
 
-export async function handleCheckoutCompleted(d: WebhookDeps, session: Any, env: StripeEnv) {
+/**
+ * Доказателството за плащане идва от ПОДПИСАНОТО Stripe събитие: точният му
+ * идентификатор и точният му час. Никога `new Date()`.
+ */
+export interface StripeEventProof {
+  readonly eventId: string;
+  /** ISO час, изчислен от `event.created` (секунди). */
+  readonly paidAt: string;
+}
+
+/** Превръща `event.created` (секунди) в точен ISO час. */
+export function eventProofFrom(event: Any): StripeEventProof | null {
+  const id = typeof event?.id === "string" ? event.id.trim() : "";
+  const created = event?.created;
+  if (!id || typeof created !== "number" || !Number.isFinite(created) || created <= 0) return null;
+  return { eventId: id, paidAt: new Date(created * 1000).toISOString() };
+}
+
+export async function handleCheckoutCompleted(
+  d: WebhookDeps,
+  session: Any,
+  env: StripeEnv,
+  proof?: StripeEventProof | null,
+) {
   // FAIL-CLOSED ПРЕДИ всичко: без доказано `payment_status === "paid"` не се
   // прави НИКАКЪВ entitlement запис, order snapshot, Stripe line-item
   // извикване или имейл. НЕ хвърляме — забавените методи може по-късно да
@@ -377,15 +400,23 @@ export async function handleCheckoutCompleted(d: WebhookDeps, session: Any, env:
     if (session.livemode !== undefined && session.livemode !== (env === "live")) {
       throw new Error("product session livemode mismatch");
     }
+    // Без подписано събитие няма доказан момент на плащане → няма право.
+    if (!proof?.eventId || !proof?.paidAt || Number.isNaN(Date.parse(proof.paidAt))) {
+      throw new Error("product session event proof missing");
+    }
 
     const { data: intake } = await d.db
       .from("product_checkout_intakes")
       .select(
-        "id, user_id, product_id, source_hash, uploaded_contract_id, source_updated_at, environment, source_extraction_status, source_char_count, stripe_session_id, stripe_price_id, stripe_price_lookup_key, expected_amount_cents, currency, terms_accepted, ai_ack_accepted, immediate_performance_consent, withdrawal_loss_acknowledged, consent_recorded_at",
+        "id, user_id, product_id, status, source_hash, uploaded_contract_id, source_updated_at, environment, source_extraction_status, source_char_count, stripe_session_id, stripe_price_id, stripe_price_lookup_key, expected_amount_cents, currency, terms_accepted, ai_ack_accepted, immediate_performance_consent, withdrawal_loss_acknowledged, consent_recorded_at",
       )
       .eq("id", productMeta.intakeId)
       .maybeSingle();
     if (!intake) throw new Error("product intake not found");
+    // Ранен отказ на половин състояние; RPC остава окончателната инстанция.
+    if (intake.status !== "checkout_created" && intake.status !== "paid") {
+      throw new Error("product intake state invalid");
+    }
 
     const stripe = d.createStripe(env);
     const items = await stripe.checkout.sessions.listLineItems(session.id, {
@@ -440,8 +471,9 @@ export async function handleCheckoutCompleted(d: WebhookDeps, session: Any, env:
       p_amount_cents: verified.amountCents,
       p_currency: verified.currency,
       p_intake_id: intake.id,
-      p_paid_at: new Date().toISOString(),
+      p_paid_at: proof.paidAt,
       p_refinements_included: verified.refinementsIncluded,
+      p_stripe_event_id: proof.eventId,
     });
     if (recordErr) throw new Error(`record_product_purchase failed: ${recordErr.message}`);
     if ((recorded as { ok?: unknown } | null)?.ok !== true) {
@@ -649,7 +681,7 @@ export async function sandboxEntitlementAllowed(
 
 export async function dispatchEvent(
   d: WebhookDeps,
-  event: { type: string; data: { object: Any } },
+  event: { type: string; id?: string; created?: number; data: { object: Any } },
   env: StripeEnv,
 ): Promise<void> {
   if (env === "sandbox" && !(await sandboxEntitlementAllowed(d, event.type, event.data.object))) {
@@ -670,7 +702,7 @@ export async function dispatchEvent(
     // директното плащане и уреденото по-късно забавено плащане.
     case "checkout.session.completed":
     case "checkout.session.async_payment_succeeded":
-      await handleCheckoutCompleted(d, event.data.object, env);
+      await handleCheckoutCompleted(d, event.data.object, env, eventProofFrom(event));
       break;
     case "invoice.payment_failed":
       await handleInvoicePaymentFailed(d, event.data.object, env);

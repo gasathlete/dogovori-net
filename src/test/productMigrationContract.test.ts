@@ -130,5 +130,166 @@ describe("Stage 2A миграция — платежна истина", () => {
   it("не съдържа разрушителни операции", () => {
     expect(sql).not.toMatch(/DROP TABLE|TRUNCATE|DROP COLUMN|DELETE FROM/i);
   });
+
+  // ---- Доказателство за плащане -------------------------------------------
+  const purchaseFn = (() => {
+    const fn = sql.slice(sql.indexOf("CREATE OR REPLACE FUNCTION public.record_product_purchase("));
+    return fn.slice(0, fn.indexOf("END $$"));
+  })();
+
+  it("моментът на плащане и подписаното събитие са задължителни", () => {
+    expect(purchaseFn).toContain("p_stripe_event_id text");
+    expect(purchaseFn).toContain("product_paid_at_missing");
+    expect(purchaseFn).toContain("product_event_missing");
+    // Никакъв измислен час: без COALESCE(now()) и без now() като момент на плащане.
+    expect(purchaseFn).not.toMatch(/COALESCE\(p_paid_at/);
+    expect(purchaseFn).not.toMatch(/paid_at\s*=\s*now\(\)/);
+    expect(sql).toContain(
+      "'public.record_product_purchase(uuid,text,text,text,text,text,integer,text,uuid,timestamptz,integer,text)'",
+    );
+  });
+
+  it("заключва и заявката, и реда на документа", () => {
+    expect(purchaseFn).toContain("FROM public.product_checkout_intakes\n    WHERE id = p_intake_id FOR UPDATE");
+    expect(purchaseFn).toContain("FROM public.uploaded_contracts");
+    expect(purchaseFn).toMatch(/uploaded_contracts[\s\S]*FOR UPDATE/);
+  });
+
+  it("преизчислява SHA-256 върху съхранения текст или се проваля затворено", () => {
+    expect(purchaseFn).toContain("extensions.digest(v_doc.extracted_text, 'sha256')");
+    expect(purchaseFn).toContain("product_source_hash_unverifiable");
+    expect(purchaseFn).toContain("product_source_hash_conflict");
+  });
+
+  it("сверява точното съответствие продукт → сума, ключ и уточнения", () => {
+    for (const token of [
+      "v_expected_amount := 299",
+      "v_expected_amount := 399",
+      "v_expected_amount := 799",
+      "v_expected_refinements := 1",
+      "product_commercial_conflict",
+    ]) {
+      expect(purchaseFn).toContain(token);
+    }
+  });
+
+  it("позволява първо даване само от checkout_created и повторение само от paid", () => {
+    expect(purchaseFn).toContain("v_intake.status NOT IN ('checkout_created', 'paid')");
+    expect(purchaseFn).toContain("product_intake_state_conflict");
+    expect(purchaseFn).toContain(
+      "IF v_intake.status = 'paid' AND (v_ent.id IS NULL OR v_snapshot.id IS NULL) THEN",
+    );
+    expect(purchaseFn).toContain("product_replay_incomplete");
+  });
+
+  it("при заварено право сравнява всяко неизменно поле", () => {
+    const block = purchaseFn.slice(
+      purchaseFn.indexOf("IF v_ent.id IS NOT NULL THEN"),
+      purchaseFn.indexOf("product_entitlement_conflict"),
+    );
+    for (const field of [
+      "v_ent.user_id",
+      "v_ent.product_id",
+      "v_ent.environment",
+      "v_ent.amount_cents",
+      "v_ent.currency",
+      "v_ent.stripe_price_id",
+      "v_ent.stripe_price_lookup_key",
+      "v_ent.refinements_included",
+      "v_ent.intake_id",
+      "v_ent.source_document_id",
+      "v_ent.source_hash",
+      "v_ent.source_updated_at",
+      "v_ent.source_char_count",
+      "v_ent.source_extraction_status",
+      "v_ent.paid_at",
+      "v_ent.stripe_event_id",
+    ]) {
+      expect(block, field).toContain(field);
+    }
+  });
+
+  it("при заварен order snapshot сравнява всяко неизменно продуктово поле", () => {
+    const block = purchaseFn.slice(
+      purchaseFn.indexOf("IF v_snapshot.id IS NOT NULL THEN"),
+      purchaseFn.indexOf("product_snapshot_conflict"),
+    );
+    for (const field of [
+      "v_snapshot.user_id",
+      "v_snapshot.purchase_kind",
+      "v_snapshot.product_id",
+      "v_snapshot.price_amount",
+      "v_snapshot.currency",
+      "v_snapshot.environment",
+      "v_snapshot.payment_status",
+      "v_snapshot.stripe_price_id",
+      "v_snapshot.stripe_price_lookup_key",
+      "v_snapshot.stripe_event_id",
+      "v_snapshot.paid_at",
+      "v_snapshot.product_intake_id",
+      "v_snapshot.product_source_document_id",
+      "v_snapshot.product_source_hash",
+      "v_snapshot.product_source_updated_at",
+      "v_snapshot.product_source_char_count",
+      "v_snapshot.product_source_extraction_status",
+      "v_snapshot.terms_accepted",
+      "v_snapshot.ai_ack_accepted",
+      "v_snapshot.immediate_performance_consent",
+      "v_snapshot.withdrawal_loss_acknowledged",
+      "v_snapshot.consent_recorded_at",
+      "v_snapshot.terms_version",
+      "v_snapshot.privacy_version",
+      "v_snapshot.refund_version",
+      "v_snapshot.withdrawal_version",
+      "v_snapshot.ai_notice_version",
+      "v_snapshot.vat_included",
+      "v_snapshot.tax_behavior",
+    ]) {
+      expect(block, field).toContain(field);
+    }
+  });
+
+  it("продуктовият snapshot изисква цялото доказателство", () => {
+    const ck = sql.slice(
+      sql.indexOf("ADD CONSTRAINT order_snapshots_product_id_ck"),
+      sql.indexOf("-- E) Атомарни функции"),
+    );
+    for (const token of [
+      "product_source_updated_at IS NOT NULL",
+      "product_source_char_count BETWEEN 80 AND 60000",
+      "product_source_extraction_status = 'full'",
+      "paid_at IS NOT NULL",
+      "stripe_event_id IS NOT NULL",
+      "vat_included IS TRUE",
+      "tax_behavior = 'inclusive'",
+      "ai_notice_version IS NOT NULL",
+      "terms_version IS NOT NULL",
+      "withdrawal_version IS NOT NULL",
+      "refund_version IS NOT NULL",
+      "consent_recorded_at IS NOT NULL",
+    ]) {
+      expect(ck, token).toContain(token);
+    }
+  });
+
+  // ---- Данъчна истина ------------------------------------------------------
+  it("не измисля ставка 20% от tax_behavior", () => {
+    expect(sql).toContain("ALTER TABLE public.order_snapshots ALTER COLUMN vat_rate DROP NOT NULL;");
+    // Продуктовият запис оставя ставката празна и пише само доказаното поведение.
+    expect(purchaseFn).toContain("vat_included, vat_rate, tax_behavior");
+    expect(purchaseFn).toContain("'EUR', true, NULL, 'inclusive'");
+    expect(purchaseFn).not.toMatch(/vat_rate\s*(=|,)\s*20\b/);
+    expect(purchaseFn).not.toMatch(/true,\s*20\b/);
+  });
+
+  // ---- Чист основен статус -------------------------------------------------
+  it("основният статус на резултата не носи остатъчни refinement стойности", () => {
+    expect(sql).toContain(
+      "CHECK (status IN ('paid', 'processing', 'ready', 'failed', 'refunded'))",
+    );
+    expect(sql).not.toContain("'refinement_ready'");
+    expect(sql).not.toContain("'refinement_processing'");
+    expect(sql).not.toContain("'exhausted'");
+  });
 });
 

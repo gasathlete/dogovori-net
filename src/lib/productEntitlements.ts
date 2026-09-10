@@ -15,9 +15,6 @@ export const PRODUCT_ENTITLEMENT_STATUSES = [
   "processing",
   "ready",
   "failed",
-  "refinement_ready",
-  "refinement_processing",
-  "exhausted",
   "refunded",
 ] as const;
 
