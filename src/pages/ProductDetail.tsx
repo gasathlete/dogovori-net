@@ -11,7 +11,8 @@ import { ArrowRight, Check } from "@/icons";
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
 import { SeoFooter } from "@/components/SeoFooter";
-import { ProductDemo } from "@/components/products/ProductDemo";
+import { ProductResultPreview } from "@/components/products/ProductResultPreview";
+import { ProductPrice } from "@/components/products/ProductPrice";
 import { PlanAlternativeNote } from "@/components/products/PlanAlternativeNote";
 import { trackFunnelEvent } from "@/lib/funnel";
 import {
@@ -83,7 +84,6 @@ export default function ProductDetail() {
     return <Navigate to={legacy ?? "/produkti"} replace />;
   }
 
-  const price = productPriceLabel(product.id);
   const related = ONE_TIME_PRODUCTS.filter((p) => p.id !== product.id);
 
   return (
@@ -118,14 +118,12 @@ export default function ProductDetail() {
                 {product.page.intro}
               </p>
 
-              <p className="mt-5 inline-flex flex-wrap items-baseline gap-x-2.5 gap-y-1 rounded-xl border border-gold/25 bg-gold/[0.07] px-3.5 py-2">
-                <span className="font-serif text-[26px] font-bold tabular-nums text-gold">
-                  {price}
-                </span>
+              <div className="mt-5 inline-flex flex-col gap-1 rounded-xl border border-gold/25 bg-gold/[0.07] px-3.5 py-2.5">
+                <ProductPrice id={product.id} size="lg" showLabel />
                 <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   еднократно · без абонамент
                 </span>
-              </p>
+              </div>
 
               <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:items-center">
                 <Link
@@ -157,11 +155,11 @@ export default function ProductDetail() {
               <PlanAlternativeNote className="mt-5 max-w-md" />
             </div>
 
-            <div className="min-w-0 rounded-2xl border border-border/70 bg-card/60 p-4 shadow-soft sm:p-5">
+            <div className="min-w-0">
               <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 Как изглежда резултатът
               </p>
-              <ProductDemo kind={product.demo} />
+              <ProductResultPreview productId={product.id} size="full" />
             </div>
           </div>
         </section>

@@ -61,6 +61,13 @@ export interface OneTimeProduct {
   readonly shortName: string;
   /** Цена в EUR с включен ДДС. */
   readonly priceEur: number;
+  /**
+   * Предишната редовна цена в EUR — подадена от собственика. Показва се
+   * задраскана до текущата и е единствената база за процента отстъпка.
+   */
+  readonly previousPriceEur: number;
+  /** Един кратък ред за резултата — за тесни места (hero ред, карта). */
+  readonly shortOutcome: string;
   readonly badge?: string;
   /** Едно изречение — какъв е резултатът, не как е направен. */
   readonly promise: string;
@@ -76,6 +83,15 @@ export interface OneTimeProduct {
 export const ONE_TIME_TERMS =
   "Еднократно · с включен ДДС · без автоматичен абонамент";
 
+/** Кратък обхват — за заглавия и резюмета. Едно изречение, без натиск. */
+export const ONE_TIME_SCOPE_NOTE = "За един документ. Без абонамент.";
+
+/**
+ * Етикетът на текущата цена. Не е промоция с краен срок — затова няма брояч,
+ * дата и изкуствен недостиг.
+ */
+export const PRICE_INTRO_LABEL = "Въвеждаща цена";
+
 export const ONE_TIME_PRODUCTS: readonly OneTimeProduct[] = Object.freeze([
   Object.freeze({
     id: "contract_check",
@@ -83,6 +99,8 @@ export const ONE_TIME_PRODUCTS: readonly OneTimeProduct[] = Object.freeze([
     name: "Подробна проверка преди подпис",
     shortName: "Проверка",
     priceEur: 2.99,
+    previousPriceEur: 3.99,
+    shortOutcome: "Разбор клауза по клауза с точно място в текста.",
     promise:
       "Виждате какво поемате, докога и какво липсва — клауза по клауза, с точно място в документа.",
     outcomes: Object.freeze([
@@ -174,6 +192,8 @@ export const ONE_TIME_PRODUCTS: readonly OneTimeProduct[] = Object.freeze([
     name: "Подробна поправка на документа",
     shortName: "Поправка",
     priceEur: 3.99,
+    previousPriceEur: 4.99,
+    shortOutcome: "Готов текст за проблемните клаузи в три варианта.",
     badge: "Най-предпочитан",
     promise:
       "Включва подробната проверка и добавя готов текст за всяка клауза, която има нужда от поправка — в три варианта.",
@@ -266,6 +286,8 @@ export const ONE_TIME_PRODUCTS: readonly OneTimeProduct[] = Object.freeze([
     name: "Пълен пакет за преговори",
     shortName: "Пълен пакет",
     priceEur: 7.99,
+    previousPriceEur: 9.99,
+    shortOutcome: "Проверка, поправки и подготовка за разговора.",
     badge: "Пълен пакет",
     promise:
       "Проверката, поправките и всичко, с което да седнете на масата: цели, червени линии, таблица със срокове и две готови писма.",
@@ -387,6 +409,27 @@ export function productPriceLabel(id: OneTimeProductId): string {
   return fmtEur(BY_ID[id].priceEur);
 }
 
+/** Задрасканата предишна цена — същото форматиране като текущата. */
+export function productPreviousPriceLabel(id: OneTimeProductId): string {
+  return fmtEur(BY_ID[id].previousPriceEur);
+}
+
+/**
+ * Точният закръглен процент отстъпка спрямо предишната цена. Едно място за
+ * сметката — никъде в интерфейса не се пише процент на ръка.
+ */
+export function productDiscountPercent(id: OneTimeProductId): number {
+  const { priceEur, previousPriceEur } = BY_ID[id];
+  if (previousPriceEur <= priceEur) return 0;
+  return Math.round(((previousPriceEur - priceEur) / previousPriceEur) * 100);
+}
+
+/** Готовият етикет за значката — например „−25%". Празен низ без отстъпка. */
+export function productDiscountLabel(id: OneTimeProductId): string {
+  const pct = productDiscountPercent(id);
+  return pct > 0 ? `−${pct}%` : "";
+}
+
 /** Честна входна котва („от …") — винаги най-ниската реална цена. */
 export function lowestOneTimePriceLabel(): string {
   return fmtEur(Math.min(...ONE_TIME_PRODUCTS.map((p) => p.priceEur)));
@@ -394,6 +437,13 @@ export function lowestOneTimePriceLabel(): string {
 
 /** Продуктът с контролирано подчертано представяне на десктоп. */
 export const FEATURED_PRODUCT_ID: OneTimeProductId = "contract_improve";
+
+/** Пакетът за професионалисти — по-плътно, но спокойно премиум представяне. */
+export const PREMIUM_PRODUCT_ID: OneTimeProductId = "negotiation_package";
+
+export function isPremiumProduct(id: OneTimeProductId): boolean {
+  return id === PREMIUM_PRODUCT_ID;
+}
 
 export function isFeaturedProduct(id: OneTimeProductId): boolean {
   return id === FEATURED_PRODUCT_ID;

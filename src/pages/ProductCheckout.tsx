@@ -23,6 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
+import { ProductPrice } from "@/components/products/ProductPrice";
 import {
   ONE_TIME_TERMS,
   getProductBySlug,
@@ -325,9 +326,10 @@ export default function ProductCheckout() {
         <Card className="mt-4 p-4 md:p-6">
           <h2 className="text-lg font-semibold">3. Цена и условия</h2>
           <p className="mt-2 text-sm">
-            <span className="font-medium">{product.name}</span> — {priceLabel}, еднократно, без
-            абонамент.
+            <span className="font-medium">{product.name}</span> — за един документ, еднократно,
+            без абонамент.
           </p>
+          <ProductPrice id={product.id} size="md" showLabel className="mt-2" />
           <div className="mt-4 space-y-3 text-sm">
             <label className="flex min-h-11 items-start gap-3">
               <Checkbox

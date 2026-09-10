@@ -4,13 +4,14 @@
  */
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { ArrowRight, Check } from "@/icons";
-import { ProductDemo } from "@/components/products/ProductDemo";
+import { ProductResultPreview } from "@/components/products/ProductResultPreview";
+import { ProductPrice } from "@/components/products/ProductPrice";
 import {
   isFeaturedProduct,
+  isPremiumProduct,
   ONE_TIME_TERMS,
   PRODUCT_EVENTS,
   productPath,
-  productPriceLabel,
   type OneTimeProduct,
 } from "@/lib/products";
 import { trackFunnelEvent } from "@/lib/funnel";
@@ -27,10 +28,13 @@ export function ProductCard({
   source: string;
 }) {
   const compact = variant === "compact";
-  const outcomes = compact ? product.outcomes.slice(0, 3) : product.outcomes;
+  // Три ясни резултата на картата — пълният списък живее на страницата на продукта.
+  const outcomes = product.outcomes.slice(0, 3);
   const headingId = `product-${product.id}-title`;
   // Контролирано подчертаване — по-плътна рамка и дълбочина, без скок в размера.
   const featured = isFeaturedProduct(product.id);
+  // Пакетът за професионалисти — по-плътен тъмносин фон, същият размер.
+  const premium = isPremiumProduct(product.id);
 
   return (
     <li>
@@ -40,8 +44,9 @@ export function ProductCard({
         data-variant={variant}
         data-featured={featured ? "true" : undefined}
         className={
-          "group relative flex h-full flex-col gap-3 overflow-hidden rounded-2xl bg-card/60 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-gold/50 hover:shadow-elegant sm:p-5 " +
-          (featured
+          "group relative flex h-full flex-col gap-3 overflow-hidden rounded-2xl p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-gold/50 hover:shadow-elegant sm:p-5 " +
+          (premium ? "bg-navy/[0.04] " : "bg-card/60 ") +
+          (featured || premium
             ? "border-2 border-gold/45 shadow-elegant ring-1 ring-gold/15"
             : "border border-border/70 shadow-soft")
         }
@@ -70,16 +75,20 @@ export function ProductCard({
               </Link>
             </h3>
           </div>
-          <p className="shrink-0 text-right font-serif text-xl font-bold tabular-nums text-gold sm:text-2xl">
-            {productPriceLabel(product.id)}
-          </p>
+          <ProductPrice
+            id={product.id}
+            size={compact ? "sm" : "md"}
+            className="shrink-0 items-end text-right"
+          />
         </header>
 
         <p className="text-[13px] leading-relaxed text-muted-foreground">
           {product.promise}
         </p>
 
-        <ProductDemo kind={product.demo} />
+        {!compact && (
+          <ProductResultPreview productId={product.id} size="compact" />
+        )}
 
         <ul className="space-y-1.5">
           {outcomes.map((o) => (

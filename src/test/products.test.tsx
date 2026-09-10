@@ -17,6 +17,9 @@ import {
   legacyProductRedirect,
   parseProductParam,
   productPath,
+  productDiscountLabel,
+  productDiscountPercent,
+  productPreviousPriceLabel,
   productPriceLabel,
 } from "@/lib/products";
 import { ProductCards } from "@/components/products/ProductCards";
@@ -152,10 +155,13 @@ describe("витрина — паритет между началната стр
     }
   });
 
-  it("компактният вариант показва същите продукти и същите цени", () => {
+  it("компактният вариант показва същите продукти, старата и новата цена", () => {
     render(wrap(<ProductCards variant="compact" source="home" />));
     for (const p of ONE_TIME_PRODUCTS) {
-      expect(screen.getByText(productPriceLabel(p.id))).toBeInTheDocument();
+      const block = screen.getByTestId(`product-price-${p.id}`);
+      expect(block).toHaveTextContent(productPriceLabel(p.id));
+      expect(block).toHaveTextContent(productPreviousPriceLabel(p.id));
+      expect(block).toHaveTextContent(productDiscountLabel(p.id));
       expect(
         screen.getByRole("link", { name: p.ctaLabel }),
       ).toBeInTheDocument();
@@ -181,13 +187,62 @@ describe("витрина — паритет между началната стр
     }
   });
 
-  it("демо блоковете са достъпни и без анимация", () => {
+  it("всяка пълна карта носи примерен резултат, обозначен като демонстрация", () => {
     render(wrap(<ProductCards variant="full" source="produkti" />));
-    const demos = screen.getAllByRole("img");
-    expect(demos).toHaveLength(3);
-    for (const d of demos) {
-      expect(d.getAttribute("aria-label")).toBeTruthy();
-      expect(d.textContent?.length ?? 0).toBeGreaterThan(10);
+    const previews = screen.getAllByTestId("product-result-preview");
+    expect(previews).toHaveLength(3);
+    for (const preview of previews) {
+      expect(preview).toHaveTextContent("Примерен резултат");
+      expect(preview).toHaveTextContent("Не е Вашият документ.");
+      expect((preview.textContent ?? "").length).toBeGreaterThan(120);
+    }
+  });
+});
+
+describe("честно намаление — стара цена, нова цена, точен процент", () => {
+  it("предишните цени са каноничните, подадени от собственика", () => {
+    expect(
+      ONE_TIME_PRODUCTS.map((p) => [p.id, p.previousPriceEur, p.priceEur]),
+    ).toEqual([
+      ["contract_check", 3.99, 2.99],
+      ["contract_improve", 4.99, 3.99],
+      ["negotiation_package", 9.99, 7.99],
+    ]);
+  });
+
+  it("процентът е изчислен, не написан на ръка", () => {
+    expect(productDiscountPercent("contract_check")).toBe(25);
+    expect(productDiscountPercent("contract_improve")).toBe(20);
+    expect(productDiscountPercent("negotiation_package")).toBe(20);
+    expect(productDiscountLabel("contract_check")).toBe("−25%");
+  });
+
+  it("никой компонент не пише процент или стара цена като литерал", () => {
+    for (const file of [
+      "src/components/products/ProductCard.tsx",
+      "src/components/products/HeroProductRail.tsx",
+      "src/pages/ProductDetail.tsx",
+      "src/pages/ProductCheckout.tsx",
+    ]) {
+      const text = readFileSync(file, "utf8");
+      for (const literal of ["−25%", "−20%", "3,99", "4,99", "9,99"]) {
+        expect(text, file).not.toContain(literal);
+      }
+    }
+  });
+
+  it("не обещава срок, брояч или измислена икономия", () => {
+    render(wrap(<ProductCards variant="full" source="produkti" />));
+    const text = document.body.textContent ?? "";
+    for (const banned of [
+      "спестявате",
+      "спестихте",
+      "изтича",
+      "остават",
+      "последен шанс",
+      "само днес",
+    ]) {
+      expect(text).not.toContain(banned);
     }
   });
 });
@@ -216,9 +271,9 @@ describe("изтеглената бизнес карта", () => {
     expect(Object.isFrozen(LEGACY_PRODUCT_SLUG_REDIRECTS)).toBe(true);
   });
 
-  it("никъде в продуктовия слой не остават стари цени", () => {
+  it("никъде в продуктовия слой не остават стари цени на бизнес картата", () => {
     const text = readFileSync("src/lib/products.ts", "utf8");
-    for (const stale of ["6,99", "9,99", "4,99", "6.99", "9.99", "4.99"]) {
+    for (const stale of ["6,99", "6.99"]) {
       expect(text).not.toContain(stale);
     }
   });

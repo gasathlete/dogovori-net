@@ -5,11 +5,12 @@
  */
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { trackFunnelEvent } from "@/lib/funnel";
+import { ProductPrice } from "@/components/products/ProductPrice";
 import {
   ONE_TIME_PRODUCTS,
+  ONE_TIME_SCOPE_NOTE,
   PRODUCT_EVENTS,
   productPath,
-  productPriceLabel,
 } from "@/lib/products";
 
 export function HeroProductRail() {
@@ -19,23 +20,23 @@ export function HeroProductRail() {
       data-testid="hero-product-rail"
       className="mx-auto mt-6 w-full max-w-[640px]"
     >
-      <div className="flex items-baseline justify-between gap-3 px-0.5">
+      <div className="px-0.5">
         <h2
           id="hero-product-rail-title"
-          className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+          className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
         >
           Еднократни продукти
         </h2>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Плащате веднъж · еднократно
-        </span>
+        <p className="mt-0.5 text-[13px] text-muted-foreground">
+          {ONE_TIME_SCOPE_NOTE}
+        </p>
       </div>
 
       <ul className="mt-2 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-3 sm:overflow-visible">
         {ONE_TIME_PRODUCTS.map((product) => (
           <li
             key={product.id}
-            className="min-w-[62%] shrink-0 snap-start sm:min-w-0 sm:shrink"
+            className="min-w-[81%] shrink-0 snap-start sm:min-w-0 sm:shrink"
           >
             <Link
               to={productPath(product)}
@@ -47,14 +48,15 @@ export function HeroProductRail() {
                   variant: "rail",
                 })
               }
-              className="group flex min-h-[64px] flex-col justify-center gap-1 rounded-xl border border-gold/25 bg-card/70 px-3.5 py-2.5 text-left transition-colors hover:border-gold/60 focus-visible:border-gold focus-visible:outline-none aria-[current=page]:border-gold"
+              className="group flex min-h-[92px] flex-col justify-center gap-1.5 rounded-xl border border-gold/25 bg-card/70 px-3.5 py-3 text-left transition-colors hover:border-gold/60 focus-visible:border-gold focus-visible:outline-none aria-[current=page]:border-gold"
             >
-              <span className="text-[13px] font-semibold leading-snug text-foreground">
+              <span className="text-[14px] font-semibold leading-snug text-foreground">
                 {product.name}
               </span>
-              <span className="font-serif text-[16px] font-bold tabular-nums text-gold">
-                {productPriceLabel(product.id)}
+              <span className="text-[12.5px] leading-snug text-muted-foreground">
+                {product.shortOutcome}
               </span>
+              <ProductPrice id={product.id} size="sm" />
             </Link>
           </li>
         ))}

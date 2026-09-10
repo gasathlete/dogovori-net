@@ -51,7 +51,7 @@ export function CookieBanner() {
             <p className="min-w-0 flex-1 text-[12px] leading-snug text-foreground">
               Използваме бисквитки. За аналитика и маркетинг ни е нужно Вашето съгласие.{" "}
               <Link to="/cookies" className="inline-block py-1 text-gold underline underline-offset-2">
-                Научи повече
+                Научете повече
               </Link>
             </p>
           </div>
