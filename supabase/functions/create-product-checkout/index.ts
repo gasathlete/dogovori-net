@@ -222,8 +222,7 @@ Deno.serve(async (req) => {
         existingIntake.refund_version !== LEGAL_VERSIONS.refund ||
         existingIntake.ai_notice_version !== LEGAL_VERSIONS.aiNotice ||
         // Повторният опит не сменя ТИХО политиката за обработка.
-        (existingIntake.generation_policy_version ?? PRODUCT_GENERATION_POLICY_VERSION) !==
-          PRODUCT_GENERATION_POLICY_VERSION ||
+        existingIntake.generation_policy_version !== PRODUCT_GENERATION_POLICY_VERSION ||
         !sameContext;
       if (mismatch) return fail("intake_conflict", 409, corsHeaders);
       if (existingIntake.status === "paid") return fail("already_paid", 409, corsHeaders);
