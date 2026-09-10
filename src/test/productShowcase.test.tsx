@@ -117,15 +117,56 @@ describe("ротация на витрината", () => {
     spy.mockRestore();
   });
 
-  it("стрелките сменят продукта, когато въртележката е на фокус", async () => {
+  it("стрелките сменят продукта, местят фокуса и се въртят в кръг", () => {
     render(wrap(<ProductShowcaseCarousel source="test" />));
-    const root = screen.getByTestId("product-showcase");
-    fireEvent.keyDown(root, { key: "ArrowRight" });
+    const tablist = screen.getByRole("tablist", { name: "Изберете продукт" });
+    const tabs = within(tablist).getAllByRole("tab");
+    tabs[0].focus();
+
+    fireEvent.keyDown(tablist, { key: "ArrowRight" });
     expect(activeId()).toBe("contract_improve");
-    fireEvent.keyDown(root, { key: "ArrowLeft" });
-    expect(activeId()).toBe("contract_check");
-    fireEvent.keyDown(root, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(tabs[1]);
+    expect(tabs[1]).toHaveAttribute("aria-selected", "true");
+    expect(tabs[0]).toHaveAttribute("tabindex", "-1");
+
+    fireEvent.keyDown(tablist, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(tabs[0]);
+    fireEvent.keyDown(tablist, { key: "ArrowLeft" });
     expect(activeId()).toBe("negotiation_package");
+    expect(document.activeElement).toBe(tabs[2]);
+
+    fireEvent.keyDown(tablist, { key: "Home" });
+    expect(activeId()).toBe("contract_check");
+    expect(document.activeElement).toBe(tabs[0]);
+    fireEvent.keyDown(tablist, { key: "End" });
+    expect(activeId()).toBe("negotiation_package");
+    expect(document.activeElement).toBe(tabs[2]);
+
+    const panels = document.querySelectorAll('[role="tabpanel"]');
+    expect(panels[2]).not.toHaveAttribute("hidden");
+    expect(panels[0]).toHaveAttribute("hidden");
+  });
+
+  it("автоматичната смяна не се обявява, а човешката — да", async () => {
+    render(wrap(<ProductShowcaseCarousel source="test" />));
+    const live = screen.getByTestId("showcase-live");
+    // Начален render: тихо.
+    expect(live).toHaveTextContent("");
+
+    await advance(SHOWCASE_INTERVAL_MS + 10);
+    expect(activeId()).toBe("contract_improve");
+    expect(live.textContent).toBe("");
+
+    await advance(SHOWCASE_INTERVAL_MS + 10);
+    expect(activeId()).toBe("negotiation_package");
+    expect(live.textContent).toBe("");
+
+    fireEvent.click(screen.getByRole("button", { name: "Следващ продукт" }));
+    expect(live).toHaveTextContent("Продукт 1 от 3: Подробна проверка преди подпис");
+
+    const tablist = screen.getByRole("tablist", { name: "Изберете продукт" });
+    fireEvent.keyDown(tablist, { key: "ArrowRight" });
+    expect(live).toHaveTextContent("Продукт 2 от 3");
   });
 
   it("хоризонталното плъзгане сменя продукта, вертикалното — не", () => {
