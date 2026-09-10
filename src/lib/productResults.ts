@@ -418,7 +418,8 @@ const productShapes = z.discriminatedUnion("product_id", [
 export const productResultSchema = productShapes.superRefine((value, ctx) => {
   const canonical = validateProductResult(value);
   if (canonical.ok) return;
-  for (const message of canonical.errors) {
+  const failed = canonical as { readonly errors: readonly string[] };
+  for (const message of failed.errors) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message });
   }
 });
