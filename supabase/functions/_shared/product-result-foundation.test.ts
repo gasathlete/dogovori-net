@@ -73,6 +73,8 @@ const BASE = {
         severity: "high",
         affected_party: "counterparty",
         explanation: "Неустойката расте без ограничение при продължителна забава.",
+        consequence: "При 20 дни забава дължимото е 2 400 € и продължава да расте.",
+        next_step: "Предложете таван като процент от възнаграждението.",
         span: penalty,
       },
     ],
@@ -82,6 +84,7 @@ const BASE = {
     disputes: { summary: "Спорът е пред съда по седалището на Възложителя.", spans: [] },
     contradictions: [],
     absence_checks: [],
+    missing_protections: [],
     questions: [],
   },
 };
