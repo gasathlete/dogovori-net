@@ -197,8 +197,7 @@ Deno.serve(async (req) => {
     let intakeId = existingIntake?.id as string | undefined;
     let reusedSession: { id: string; client_secret: string | null } | null = null;
     if (existingIntake) {
-      const sameContext =
-        JSON.stringify(existingIntake.context ?? {}) === JSON.stringify(context);
+      const sameContext = sameProductContext(existingIntake.context, context);
       const mismatch =
         existingIntake.product_id !== spec.id ||
         existingIntake.uploaded_contract_id !== uploadedContractId ||
