@@ -291,7 +291,8 @@ const missingProtectionRefsValid = (raw: unknown) => {
 export const reviewPayloadSchema = z
   .object(reviewShape)
   .strict()
-  .refine(priorityRefsValid, "приоритетите сочат само към съществуващи находки");
+  .refine(priorityRefsValid, "приоритетите сочат само към съществуващи находки")
+  .refine(missingProtectionRefsValid, "твърдението за липса изисква проверка с found: false");
 
 const correctionSchema = z
   .object({
@@ -307,11 +308,12 @@ const correctionSchema = z
           stance: z.enum(CORRECTION_STRATEGIES),
           replacement_text: text(RESULT_LIMITS.text),
           trade_off: text(RESULT_LIMITS.text),
-        }),
+        }).strict(),
       )
       .length(3, "очакват се точно три варианта"),
     legal_basis: legalBasisList,
   })
+  .strict()
   .refine((c) => c.original_text === c.span.excerpt,
     "оригиналният текст трябва да е точно извадката от мястото")
   .refine(
@@ -337,6 +339,7 @@ export const correctionPayloadSchema = z
   .object({ ...reviewShape, corrections: z.array(correctionSchema).max(RESULT_LIMITS.corrections) })
   .strict()
   .refine(priorityRefsValid, "приоритетите сочат само към съществуващи находки")
+  .refine(missingProtectionRefsValid, "твърдението за липса изисква проверка с found: false")
   .refine((p) => noOverlap(p.corrections as readonly unknown[]), "поправките не може да се застъпват");
 
 const stringList = z.array(text(RESULT_LIMITS.text)).max(RESULT_LIMITS.listItems);
@@ -358,7 +361,7 @@ export const negotiationPayloadSchema = z
           owner: text(RESULT_LIMITS.shortText),
           due: nullableText(RESULT_LIMITS.shortText),
           priority: z.enum(RESULT_SEVERITIES),
-        }),
+        }).strict(),
       )
       .max(RESULT_LIMITS.actions),
     messages: z
@@ -367,7 +370,7 @@ export const negotiationPayloadSchema = z
           tone: z.enum(MESSAGE_TONES),
           subject: text(RESULT_LIMITS.shortText),
           body: text(RESULT_LIMITS.longText),
-        }),
+        }).strict(),
       )
       .length(2, "очакват се точно две писма")
       .refine((m) => MESSAGE_TONES.every((t) => m.some((x) => x.tone === t)),
@@ -375,10 +378,11 @@ export const negotiationPayloadSchema = z
     refinement: z.object({
       included: z.literal(MAX_REFINEMENTS),
       used: z.number().int().min(0).max(MAX_REFINEMENTS),
-    }),
+    }).strict(),
   })
   .strict()
   .refine(priorityRefsValid, "приоритетите сочат само към съществуващи находки")
+  .refine(missingProtectionRefsValid, "твърдението за липса изисква проверка с found: false")
   .refine((p) => noOverlap(p.corrections as readonly unknown[]), "поправките не може да се застъпват");
 
 const envelope = {
@@ -387,23 +391,41 @@ const envelope = {
   generated_at: isoSchema,
 };
 
-export const productResultSchema = z.discriminatedUnion("product_id", [
-  z.object({ ...envelope, product_id: z.literal("contract_check"), payload: reviewPayloadSchema }),
+const productShapes = z.discriminatedUnion("product_id", [
+  z.object({ ...envelope, product_id: z.literal("contract_check"), payload: reviewPayloadSchema })
+    .strict(),
   z.object({
     ...envelope,
     product_id: z.literal("contract_improve"),
     payload: correctionPayloadSchema,
-  }),
+  }).strict(),
   z.object({
     ...envelope,
     product_id: z.literal("negotiation_package"),
     payload: negotiationPayloadSchema,
-  }),
+  }).strict(),
 ]);
 
-export type ProductResultParsed = z.infer<typeof productResultSchema>;
+/**
+ * ЕДНА семантика за валиден резултат.
+ *
+ * Формата се описва тук с `zod` (точни ключове, без непознати полета), а
+ * смисловите проверки срещу обвързването — начало/край в приетия източник,
+ * страница само когато страниците са измерени, връзки между елементите — идват
+ * от каноничния Edge валидатор. Така браузърът и сървърът не могат да се
+ * разминат: нито един път не ползва по-слабата проверка.
+ */
+export const productResultSchema = productShapes.superRefine((value, ctx) => {
+  const canonical = validateProductResult(value);
+  if (canonical.ok) return;
+  for (const message of canonical.errors) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+  }
+});
 
-/** Кратък извод: валиден ли е резултатът според frontend схемата. */
+export type ProductResultParsed = z.infer<typeof productShapes>;
+
+/** Кратък извод: валиден ли е резултатът според каноничната семантика. */
 export function isValidProductResult(raw: unknown): boolean {
   return productResultSchema.safeParse(raw).success;
 }
