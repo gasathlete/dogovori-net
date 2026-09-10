@@ -128,17 +128,20 @@ describe("allowlist на ?product=", () => {
 describe("витрина — паритет между началната страница и /produkti", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("началната секция носи точното заглавие и същите продукти", () => {
+  it("началната секция носи точното заглавие и витрината с трите продукта", () => {
     render(wrap(<ProductsSection />));
     expect(
       screen.getByRole("heading", { name: "Разгледайте нашите продукти" }),
     ).toBeInTheDocument();
     for (const p of ONE_TIME_PRODUCTS) {
-      expect(screen.getByRole("heading", { name: p.name })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: new RegExp(p.shortName) })).toBeInTheDocument();
     }
-    expect(screen.getAllByText(ONE_TIME_TERMS)).toHaveLength(
-      ONE_TIME_PRODUCTS.length,
-    );
+    expect(
+      screen.getByTestId(`product-price-${ONE_TIME_PRODUCTS[0].id}`),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Вижте подробно всеки продукт/ }),
+    ).toHaveAttribute("href", "/produkti");
   });
 
   it("CTA-тата сочат към самостоятелните продуктови страници", () => {

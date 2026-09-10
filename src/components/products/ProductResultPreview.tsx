@@ -17,6 +17,7 @@ import {
   CHECK_FINDINGS,
   CHECK_LEDGER,
   CHECK_SEVERITY,
+  CHECK_SEVERITY_CAPTION,
   IMPROVE_CLAUSE,
   IMPROVE_DELIVERABLES,
   IMPROVE_STRATEGIES,
@@ -93,6 +94,43 @@ function DocHeader({ size }: { size: Size }) {
 
 /* ----------------------------- Проверка ----------------------------- */
 
+const SEVERITY_FILL: Record<string, string> = {
+  Висока: "bg-destructive/70",
+  Средна: "bg-gold/70",
+  Ниска: "bg-muted-foreground/40",
+};
+
+/**
+ * Разпределението по тежест — само от `CHECK_SEVERITY` на този примерен
+ * документ. Не описва резултати на платформата и не е статистика.
+ */
+function SeverityChart() {
+  const total = CHECK_SEVERITY.reduce((sum, s) => sum + s.count, 0);
+
+  return (
+    <div className="mt-3" data-testid="check-severity-chart">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {CHECK_SEVERITY_CAPTION} · {total} общо
+      </p>
+      <div
+        role="img"
+        aria-label={`${CHECK_SEVERITY_CAPTION}: ${CHECK_SEVERITY.map(
+          (s) => `${s.label} ${s.count}`,
+        ).join(", ")}, ${total} общо`}
+        className="mt-1.5 flex h-2.5 overflow-hidden rounded-full border border-border bg-background"
+      >
+        {CHECK_SEVERITY.map((s) => (
+          <span
+            key={s.label}
+            style={{ width: `${(s.count / total) * 100}%` }}
+            className={SEVERITY_FILL[s.label]}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function CheckPreview({ size }: { size: Size }) {
   const findings = size === "compact" ? CHECK_FINDINGS.slice(0, 1) : CHECK_FINDINGS;
 
@@ -106,7 +144,8 @@ function CheckPreview({ size }: { size: Size }) {
         {CHECK_CONCLUSION}
       </p>
 
-      <ul className="mt-3 flex flex-wrap gap-1.5">
+      <SeverityChart />
+      <ul className="mt-2 flex flex-wrap gap-1.5">
         {CHECK_SEVERITY.map((s) => (
           <li
             key={s.label}
@@ -188,17 +227,19 @@ function ImprovePreview({ size }: { size: Size }) {
         {IMPROVE_CLAUSE.location}
       </p>
 
-      <div className="mt-2 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-xl border border-border bg-background p-3">
-          <h4 className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="mt-2 grid gap-3 sm:grid-cols-2" data-testid="improve-redline">
+        <div className="rounded-xl border-l-2 border-destructive/50 border-border bg-destructive/[0.05] p-3">
+          <h4 className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="rounded-sm bg-destructive/15 px-1 text-destructive">−</span>
             Преди
           </h4>
-          <p className="mt-1 text-[13px] leading-relaxed text-foreground line-through decoration-destructive/50">
+          <p className="mt-1 text-[13px] leading-relaxed text-foreground line-through decoration-destructive/60 decoration-2">
             {IMPROVE_CLAUSE.before}
           </p>
         </div>
-        <div className="rounded-xl border border-gold/40 bg-gold/[0.06] p-3">
-          <h4 className="text-[12px] font-semibold uppercase tracking-wide text-gold">
+        <div className="rounded-xl border-l-2 border-gold/60 border-gold/40 bg-gold/[0.07] p-3">
+          <h4 className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-gold">
+            <span className="rounded-sm bg-gold/20 px-1">+</span>
             След
           </h4>
           {IMPROVE_STRATEGIES.map((s) => (
@@ -339,19 +380,33 @@ function PackagePreview({ size }: { size: Size }) {
         id={`${base}-panel-actions`}
         aria-labelledby={`${base}-tab-actions`}
         hidden={active !== "actions"}
-        className="mt-3 space-y-2"
+        className="mt-3"
       >
-        {PACKAGE_ACTIONS.map((a) => (
-          <div
-            key={a.action}
-            className="rounded-xl border border-border bg-background p-3"
-          >
-            <p className="text-[13px] font-semibold text-foreground">{a.action}</p>
-            <p className="mt-1 text-[12px] text-muted-foreground">
-              Кой: {a.owner} · Срок: {a.deadline} · {a.status}
-            </p>
-          </div>
-        ))}
+        <ol
+          data-testid="package-timeline"
+          className="relative space-y-2 border-l border-dashed border-border pl-4"
+        >
+          {PACKAGE_ACTIONS.map((a) => (
+            <li
+              key={a.action}
+              className="relative rounded-xl border border-border bg-background p-3"
+            >
+              <span
+                aria-hidden="true"
+                className="absolute -left-[21px] top-4 size-2.5 rounded-full border border-gold/50 bg-gold/40"
+              />
+              <p className="text-[13px] font-semibold text-foreground">{a.action}</p>
+              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted-foreground">
+                <span>Кой: {a.owner}</span>
+                <span aria-hidden="true">·</span>
+                <span className="tabular-nums">Срок: {a.deadline}</span>
+                <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                  {a.status}
+                </span>
+              </p>
+            </li>
+          ))}
+        </ol>
       </div>
 
       <div
@@ -377,22 +432,20 @@ function PackagePreview({ size }: { size: Size }) {
         ))}
       </div>
 
-      {size === "full" && (
-        <ul className="mt-4 space-y-1.5 border-t border-dashed border-border pt-3">
-          {PACKAGE_FINAL.map((f) => (
-            <li
-              key={f}
-              className="flex items-start gap-2 text-[13px] text-foreground"
-            >
-              <ListChecks
-                className="mt-0.5 size-3.5 shrink-0 text-gold"
-                aria-hidden="true"
-              />
-              {f}
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul
+        data-testid="package-chips"
+        className="mt-4 flex flex-wrap gap-1.5 border-t border-dashed border-border pt-3"
+      >
+        {PACKAGE_FINAL.map((f) => (
+          <li
+            key={f}
+            className="flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/[0.06] px-2.5 py-1 text-[12px] text-foreground"
+          >
+            <ListChecks className="size-3.5 shrink-0 text-gold" aria-hidden="true" />
+            {f}
+          </li>
+        ))}
+      </ul>
     </>
   );
 }
