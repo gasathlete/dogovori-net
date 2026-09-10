@@ -57,8 +57,156 @@ describe("Резултат v2 — валидни примери", () => {
     setPath(clean, "payload.findings", []);
     setPath(clean, "payload.priority_summary", []);
     setPath(clean, "payload.absence_checks", []);
+    setPath(clean, "payload.missing_protections", []);
     setPath(clean, "payload.contradictions", []);
     expectValid(clean);
+  });
+
+  it("име на страна може да е null, когато липсва в документа", () => {
+    const redacted = cloneRaw(CONTRACT_CHECK_FIXTURE);
+    setPath(redacted, "payload.passport.parties.0.name", null);
+    expectValid(redacted);
+  });
+
+  it("находката носи отделни последствие и следваща стъпка", () => {
+    for (const field of ["consequence", "next_step"]) {
+      const missing = cloneRaw(CONTRACT_CHECK_FIXTURE);
+      const findings = getPath(missing, "payload.findings") as Record<string, unknown>[];
+      delete findings[0][field];
+      expectInvalid(missing, `находка без ${field}`);
+    }
+  });
+});
+
+describe("Резултат v2 — липсващи защити", () => {
+  it("твърдение за липса без проверка с found:false се отхвърля", () => {
+    expectInvalid(
+      broken(CONTRACT_CHECK_FIXTURE, "payload.missing_protections.0.absence_check_id", "a_missing"),
+      "липса без проверка",
+    );
+    const foundNow = cloneRaw(CONTRACT_CHECK_FIXTURE);
+    setPath(foundNow, "payload.absence_checks.0.found", true);
+    setPath(foundNow, "payload.absence_checks.0.spans", [
+      fixtureSpan("едномесечно писмено предизвестие"),
+    ]);
+    expectInvalid(foundNow, "липса, чиито изрази всъщност са намерени");
+  });
+
+  it("твърдението за липса не носи място в източника", () => {
+    const withSpan = cloneRaw(CONTRACT_CHECK_FIXTURE);
+    const items = getPath(withSpan, "payload.missing_protections") as Record<string, unknown>[];
+    items[0].span = fixtureSpan("едномесечно писмено предизвестие");
+    expectInvalid(withSpan, "липса с измислено място");
+  });
+
+  it("нула липсващи защити е валиден резултат", () => {
+    const none = cloneRaw(CONTRACT_CHECK_FIXTURE);
+    setPath(none, "payload.missing_protections", []);
+    expectValid(none);
+  });
+});
+
+describe("Резултат v2 — еднаква семантика в браузъра и в Edge", () => {
+  /** Таблица: всеки вход трябва да бъде отхвърлен от ДВАТА пътя еднакво. */
+  const cases: Array<{ label: string; build: () => unknown }> = [
+    {
+      label: "непознато поле в обвивката",
+      build: () => ({ ...cloneRaw(CONTRACT_CHECK_FIXTURE), extra: 1 }),
+    },
+    {
+      label: "непознато поле в товара",
+      build: () => broken(CONTRACT_CHECK_FIXTURE, "payload.extra", 1),
+    },
+    {
+      label: "непознато вложено поле в находка",
+      build: () => {
+        const raw = cloneRaw(CONTRACT_CHECK_FIXTURE);
+        const findings = getPath(raw, "payload.findings") as Record<string, unknown>[];
+        findings[0].note = "нещо непроверено";
+        return raw;
+      },
+    },
+    {
+      label: "непознато поле в мястото",
+      build: () => {
+        const raw = cloneRaw(CONTRACT_CHECK_FIXTURE);
+        const findings = getPath(raw, "payload.findings") as Record<string, unknown>[];
+        (findings[0].span as Record<string, unknown>).line = 4;
+        return raw;
+      },
+    },
+    {
+      label: "UUID с грешна форма",
+      build: () => broken(CONTRACT_CHECK_FIXTURE, "source.document_id", "3f1c9d64-0f4a-4b7e-9a2c"),
+    },
+    {
+      label: "UUID с фигурни скоби",
+      build: () =>
+        broken(
+          CONTRACT_CHECK_FIXTURE,
+          "source.document_id",
+          "{3f1c9d64-0f4a-4b7e-9a2c-6d5e8b1a2c34}",
+        ),
+    },
+    {
+      label: "място извън източника",
+      build: () => {
+        const raw = cloneRaw(CONTRACT_CHECK_FIXTURE);
+        setPath(raw, "payload.findings.0.span.start", FIXTURE_BINDING.char_count - 5);
+        setPath(raw, "payload.findings.0.span.end", FIXTURE_BINDING.char_count + 40);
+        return raw;
+      },
+    },
+    {
+      label: "страница над измерените",
+      build: () => broken(CONTRACT_CHECK_FIXTURE, "payload.findings.0.span.page", 9),
+    },
+    {
+      label: "страница при неизмерени страници",
+      build: () => {
+        const raw = cloneRaw(CONTRACT_CHECK_FIXTURE);
+        setPath(raw, "source.page_count", null);
+        return raw;
+      },
+    },
+    {
+      label: "повтарящ се идентификатор на находка",
+      build: () => broken(CONTRACT_CHECK_FIXTURE, "payload.findings.1.id", "f_penalty_cap"),
+    },
+    {
+      label: "повтарящ се приоритет",
+      build: () => {
+        const raw = cloneRaw(CONTRACT_CHECK_FIXTURE);
+        const first = getPath(raw, "payload.priority_summary.0");
+        setPath(raw, "payload.priority_summary", [first, first]);
+        return raw;
+      },
+    },
+    {
+      label: "грешна връзка към проверка за отсъствие",
+      build: () =>
+        broken(CONTRACT_CHECK_FIXTURE, "payload.missing_protections.0.absence_check_id", "a_none"),
+    },
+  ];
+
+  for (const { label, build } of cases) {
+    it(`отказва еднакво: ${label}`, () => {
+      const raw = build();
+      const edge = validateProductResult(raw).ok;
+      const front = productResultSchema.safeParse(raw).success;
+      expect(edge, `Edge прие ${label}`).toBe(false);
+      expect(front, `frontend прие ${label}`).toBe(false);
+      expect(isValidProductResult(raw)).toBe(false);
+      expect(edge).toBe(front);
+    });
+  }
+
+  it("трите валидни продукта минават и по двата пътя", () => {
+    for (const fixture of ALL_FIXTURES) {
+      const raw = cloneRaw(fixture);
+      expect(validateProductResult(raw).ok).toBe(true);
+      expect(isValidProductResult(raw)).toBe(true);
+    }
   });
 
   it("страницата може да липсва, когато не е измерена", () => {
