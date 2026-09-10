@@ -615,7 +615,21 @@ function checkReview(
   o: Record<string, unknown>,
   binding: ProductSourceBinding | null,
 ): void {
+  // Всяка сбирка със стабилни идентификатори — без повторения.
+  for (const key of [
+    "findings",
+    "obligations",
+    "economic_terms",
+    "contradictions",
+    "absence_checks",
+    "missing_protections",
+    "questions",
+  ] as const) {
+    checkUniqueIds(c, `${path}.${key}`, o[key]);
+  }
+
   // Паспорт на документа
+
   const passport = c.obj(`${path}.passport`, o.passport);
   if (passport) {
     c.exact(`${path}.passport`, passport, [
