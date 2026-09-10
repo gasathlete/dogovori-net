@@ -21,19 +21,28 @@ export function createStripeClient(env: StripeEnv): Stripe {
   const connectionApiKey = getConnectionApiKey(env);
   const lovableApiKey = getEnv("LOVABLE_API_KEY");
 
+  // Пълният подпис на `fetch` (вкл. `Request` като вход) — без преобразуване на
+  // типове и без скрити допускания за формата на входа.
+  const gatewayFetch: typeof fetch = (input, init) => {
+    const rewrite = (raw: string) => raw.replace("https://api.stripe.com", GATEWAY_STRIPE_BASE);
+    const target = input instanceof Request ? rewrite(input.url) : rewrite(input.toString());
+    const baseHeaders = input instanceof Request
+      ? new Headers(input.headers)
+      : new Headers();
+    for (const [key, value] of new Headers(init?.headers).entries()) {
+      baseHeaders.set(key, value);
+    }
+    baseHeaders.set("X-Connection-Api-Key", connectionApiKey);
+    baseHeaders.set("Lovable-API-Key", lovableApiKey);
+    if (input instanceof Request) {
+      return fetch(new Request(target, input), { ...init, headers: baseHeaders });
+    }
+    return fetch(target, { ...init, headers: baseHeaders });
+  };
+
   return new Stripe(connectionApiKey, {
     apiVersion: "2026-03-25.dahlia",
-    httpClient: Stripe.createFetchHttpClient((url: string | URL, init?: RequestInit) => {
-      const gatewayUrl = url.toString().replace("https://api.stripe.com", GATEWAY_STRIPE_BASE);
-      return fetch(gatewayUrl, {
-        ...init,
-        headers: {
-          ...Object.fromEntries(new Headers(init?.headers).entries()),
-          "X-Connection-Api-Key": connectionApiKey,
-          "Lovable-API-Key": lovableApiKey,
-        },
-      });
-    }),
+    httpClient: Stripe.createFetchHttpClient(gatewayFetch),
   });
 }
 

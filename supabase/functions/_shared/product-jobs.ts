@@ -67,25 +67,54 @@ export function parseJobCursor(raw: unknown): ProductJobCursor | null {
   return { stage: src.stage, batch_index: batch as number, chunk_index: chunk as number };
 }
 
-const STAGE_ORDER: Readonly<Record<ProductJobStage, number>> = Object.freeze({
-  queued: 0,
-  awaiting_generation: 1,
-  passport: 2,
-  review: 3,
-  corrections: 4,
-  negotiation: 5,
-  messages: 6,
-  synthesis: 7,
-  completed: 8,
-  failed: 8,
-});
+/**
+ * Точната последователност на етапите ЗА ВСЕКИ ПРОДУКТ. Проверката и поправката
+ * законно „прескачат“ етапите, които не купуват — затова редът е продуктов, а не
+ * общ. Извън тази последователност няма законен преход (освен „failed“).
+ */
+export const PRODUCT_STAGE_SEQUENCE: Readonly<Record<ProductPurchaseId, readonly ProductJobStage[]>> =
+  Object.freeze({
+    contract_check: Object.freeze([
+      "queued", "awaiting_generation", "passport", "review", "synthesis", "completed",
+    ] as const),
+    contract_improve: Object.freeze([
+      "queued", "awaiting_generation", "passport", "review", "corrections", "synthesis", "completed",
+    ] as const),
+    negotiation_package: Object.freeze([
+      "queued", "awaiting_generation", "passport", "review", "corrections",
+      "negotiation", "messages", "synthesis", "completed",
+    ] as const),
+  });
 
-/** Курсорът може само да напредва: същият завършен етап не се повтаря. */
-export function cursorAdvances(prev: ProductJobCursor, next: ProductJobCursor): boolean {
-  const prevRank = STAGE_ORDER[prev.stage];
-  const nextRank = STAGE_ORDER[next.stage];
-  if (nextRank > prevRank) return true;
-  if (nextRank < prevRank) return false;
+/** Законните следващи етапи: същият етап, точно следващият, или „failed“. */
+export function allowedNextStages(
+  productId: ProductPurchaseId,
+  stage: ProductJobStage,
+): readonly ProductJobStage[] {
+  if (TERMINAL_JOB_STAGES.includes(stage)) return Object.freeze([]);
+  const seq = PRODUCT_STAGE_SEQUENCE[productId];
+  const index = seq.indexOf(stage);
+  if (index < 0) return Object.freeze([]);
+  const next = seq[index + 1];
+  return Object.freeze(next ? [stage, next, "failed"] as const : [stage, "failed"] as const);
+}
+
+/**
+ * Курсорът може само да напредва И само по продуктовата последователност.
+ * Същата стъпка не се повтаря; прескачане на етап е недопустимо.
+ */
+export function cursorAdvances(
+  productId: ProductPurchaseId,
+  prev: ProductJobCursor,
+  next: ProductJobCursor,
+): boolean {
+  if (TERMINAL_JOB_STAGES.includes(prev.stage)) return false;
+  const allowed = allowedNextStages(productId, prev.stage);
+  if (!allowed.includes(next.stage)) return false;
+  if (next.stage !== prev.stage) {
+    // Нов етап започва отначало — иначе индексите биха „наследили“ чужд етап.
+    return next.batch_index === 0 && next.chunk_index === 0;
+  }
   if (next.batch_index > prev.batch_index) return true;
   if (next.batch_index < prev.batch_index) return false;
   return next.chunk_index > prev.chunk_index;
@@ -97,8 +126,8 @@ export function cursorKey(cursor: ProductJobCursor): string {
 }
 
 /**
- * Ключ за идемпотентност на заявяването. Повторен опит със СЪЩИЯ курсор и
- * същата политика дава същия ключ.
+ * Ключ за идемпотентност на заявяването. Изчислява се от правото, политиката и
+ * ДЕЙСТВИТЕЛНО записания курсор — никога от произволен ключ на извикващия.
  */
 export function jobIdempotencyKey(
   entitlementId: string,
@@ -106,6 +135,14 @@ export function jobIdempotencyKey(
   policyVersion: string = PRODUCT_GENERATION_POLICY_VERSION,
 ): string {
   return `${entitlementId}:${policyVersion}:${cursorKey(cursor)}`;
+}
+
+/** Постоянната грешка е крайна: не се връща тихо в „queued“. */
+export function isTerminalFailure(
+  stage: ProductJobStage,
+  errorClass: ProductJobErrorClass | null | undefined,
+): boolean {
+  return stage === "failed" && errorClass === "permanent";
 }
 
 export function isLeaseActive(
@@ -125,27 +162,29 @@ export function isLeaseStale(
   return !isLeaseActive(leaseExpiresAt, now);
 }
 
-/** Съдържанието НЕ влиза тук: само брой извиквания и токени. */
+/** Съдържанието НЕ влиза тук: само брой извиквания, токени и цена в micro-USD. */
 export interface ProductJobUsage {
   readonly calls: number;
   readonly input_tokens: number;
   readonly output_tokens: number;
-  readonly cost_milli_cents: number;
+  readonly cost_micro_usd: number;
 }
 
 export const ZERO_USAGE: ProductJobUsage = Object.freeze({
   calls: 0,
   input_tokens: 0,
   output_tokens: 0,
-  cost_milli_cents: 0,
+  cost_micro_usd: 0,
 });
 
 /** Проверява, че натрупаният разход остава в изчислените граници. */
 export function usageWithinBounds(usage: ProductJobUsage, bounds: ProductCostBounds): boolean {
   return (
     usage.calls <= bounds.maxModelCalls &&
+    usage.input_tokens <= bounds.maxInputTokens &&
+    usage.output_tokens <= bounds.maxOutputTokens &&
     usage.input_tokens + usage.output_tokens <= bounds.maxTotalTokens &&
-    usage.cost_milli_cents <= bounds.hardCostMilliCents
+    usage.cost_micro_usd <= bounds.hardCostMicroUsd
   );
 }
 

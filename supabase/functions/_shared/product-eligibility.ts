@@ -7,7 +7,8 @@
  * мрежа, няма модел, няма база: същите входове дават същия изход.
  */
 import { classifyDocumentBeforeAI, type Classification } from "./classify.ts";
-import { detectIllegalContent } from "./illegal-content.ts";
+// ЧИСТИЯТ лист-модул: проверката преди плащане не влачи поща/база.
+import { detectIllegalContent } from "./illegal-content-detector.ts";
 import {
   PRODUCT_GENERATION_POLICY_VERSION,
   ProductBudgetError,

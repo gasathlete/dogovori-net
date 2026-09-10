@@ -1,4 +1,3 @@
-import type { SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import {
   sendTemplateEmail,
   type SendTemplateEmailOptions,
@@ -9,8 +8,19 @@ import {
 // and appends the outcome to email_send_log (audit trail only — the log row
 // never decides the send result).
 
+// Точно това, което одитният запис ползва. Структурен тип, защото различни
+// функции създават клиента от различни версии на пакета; без преобразуване
+// на типове и без скрито внасяне.
+export interface EmailAuditLogClient {
+  from(table: string): {
+    insert(values: Record<string, unknown>): PromiseLike<{
+      error: { code?: string | null; message: string } | null
+    }>
+  }
+}
+
 async function logSend(
-  admin: SupabaseClient<any>,
+  admin: EmailAuditLogClient,
   row: Record<string, unknown>,
 ): Promise<void> {
   const { error } = await admin.from('email_send_log').insert(row)
@@ -23,7 +33,7 @@ async function logSend(
 }
 
 export async function sendAppEmail(
-  admin: SupabaseClient<any>,
+  admin: EmailAuditLogClient,
   templateName: string,
   to: string,
   options: SendTemplateEmailOptions = {},
