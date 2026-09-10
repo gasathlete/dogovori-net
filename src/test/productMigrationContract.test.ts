@@ -474,3 +474,127 @@ describe("Stage 2B1A коригираща миграция — обвързва�
   });
 });
 
+// ---------------------------------------------------------------------------
+// Stage 2B1B1 — задачи, наем, контролни точки. Пак само източник.
+// ---------------------------------------------------------------------------
+const JOBS_FILE = join(process.cwd(), "drizzle/migrations/0019_product_fulfillment_jobs.sql");
+const JOBS_REVIEW = join(process.cwd(), "docs/migrations/stage2a_product_fulfillment_jobs.sql");
+
+describe("Stage 2B1B1 миграция — състояние на платеното изпълнение", () => {
+  const sql = readFileSync(JOBS_FILE, "utf8");
+
+  it("е идентична с файла за преглед", () => {
+    expect(sql).toBe(readFileSync(JOBS_REVIEW, "utf8"));
+  });
+
+  it("прилага се атомарно и не пипа данни", () => {
+    expect(sql).toContain("BEGIN;");
+    expect(sql.trimEnd().endsWith("COMMIT;")).toBe(true);
+    expect(sql).not.toMatch(/DROP TABLE|TRUNCATE|DROP COLUMN|DELETE FROM|UPDATE public\.uploaded_contracts/i);
+  });
+
+  it("браузърът не пипа задачите и контролните точки", () => {
+    for (const table of ["product_fulfillment_jobs", "product_fulfillment_checkpoints"]) {
+      expect(sql).toContain(`REVOKE ALL ON public.${table} FROM authenticated;`);
+      expect(sql).toContain(`GRANT ALL ON public.${table} TO service_role;`);
+      expect(sql).toContain(`ALTER TABLE public.${table} ENABLE ROW LEVEL SECURITY;`);
+      expect(sql).toContain(`ALTER TABLE public.${table} FORCE ROW LEVEL SECURITY;`);
+      expect(sql).not.toMatch(new RegExp(`GRANT (SELECT|INSERT|UPDATE|DELETE)[^;]*public\\.${table} TO authenticated`));
+    }
+    // Само безопасният статус е достъпен за влезлия потребител.
+    expect(sql).toContain("GRANT EXECUTE ON FUNCTION public.product_job_status(uuid) TO authenticated;");
+    expect(sql).toContain("AND j.user_id = auth.uid()");
+  });
+
+  it("контролните точки са само за добавяне и неизменни", () => {
+    expect(sql).toContain("BEFORE UPDATE OR DELETE ON public.product_fulfillment_checkpoints");
+    expect(sql).toContain("product_fulfillment_checkpoints is append-only");
+    expect(sql).toContain(
+      "CREATE UNIQUE INDEX IF NOT EXISTS product_fulfillment_checkpoints_step_uq",
+    );
+  });
+
+  it("задачата е обвързана с ЦЕЛИЯ източник и с резултат v2", () => {
+    for (const token of [
+      "result_schema_version = 2",
+      "source_hash ~ '^[0-9a-f]{64}$'",
+      "source_kind IN ('pdf', 'docx')",
+      "source_char_count BETWEEN 80 AND 60000",
+      "source_char_unit = 'unicode_code_points'",
+      "source_page_count IS NULL OR source_page_count > 0",
+      "entitlement_id uuid NOT NULL UNIQUE",
+    ]) {
+      expect(sql, token).toContain(token);
+    }
+  });
+
+  it("разходът не може да надхвърли изчислените граници", () => {
+    expect(sql).toContain("usage_calls <= budget_max_calls");
+    expect(sql).toContain("usage_input_tokens + usage_output_tokens <= budget_max_tokens");
+    expect(sql).toContain("usage_cost_milli_cents <= budget_hard_cost_milli_cents");
+  });
+
+  it("заявяването е атомарно, с наем, половин състояние и точна политика", () => {
+    const claim = sql.slice(sql.indexOf("CREATE OR REPLACE FUNCTION public.claim_product_job("));
+    const body = claim.slice(0, claim.indexOf("END $$"));
+    expect(body).toContain("FROM public.product_entitlements\n   WHERE id = p_entitlement_id AND user_id = p_user_id\n     FOR UPDATE");
+    expect(body).toContain("'half_state'");
+    expect(body).toContain("'policy_changed'");
+    expect(body).toContain("'source_changed'");
+    expect(body).toContain("'lease_active'");
+    expect(body).toContain("'attempts_exhausted'");
+    expect(body).toContain("'already_completed'");
+    // Върнатият етап е СЛЕД заявяването, не остарелият.
+    expect(body).toContain("-- Връщаме състоянието СЛЕД заявяването");
+    expect(body).not.toMatch(/'attempt', v_job\.attempt \+ 1/);
+    // Никакви общи операции/квоти от платена задача.
+    expect(body).not.toMatch(/download_quota|consume_quota|credit_topup_ops/);
+  });
+
+  it("контролната точка изисква валиден наем, цял курсор и само напредване", () => {
+    const fn = sql.slice(
+      sql.indexOf("CREATE OR REPLACE FUNCTION public.record_product_job_checkpoint("),
+    );
+    const body = fn.slice(0, fn.indexOf("END $$"));
+    for (const token of [
+      "'lease_invalid'",
+      "'terminal'",
+      "'cursor_invalid'",
+      "'stage_inconsistent'",
+      "'cursor_not_advancing'",
+      "ON CONFLICT (job_id, cursor_key) DO NOTHING",
+      "'already_recorded', true",
+      "completed_at = CASE",
+    ]) {
+      expect(body, token).toContain(token);
+    }
+    // Курсорът вече не се „поправя наум“ с COALESCE.
+    expect(body).not.toContain("COALESCE(p_next_cursor ->> 'stage', stage)");
+    expect(body).not.toContain("COALESCE(p_next_cursor, cursor)");
+  });
+
+  it("всяка SECURITY DEFINER функция ползва празен search_path", () => {
+    const definers = sql.match(/SECURITY DEFINER SET search_path = '[^']*'/g) ?? [];
+    expect(definers.length).toBeGreaterThanOrEqual(5);
+    for (const d of definers) expect(d).toBe("SECURITY DEFINER SET search_path = ''");
+  });
+
+  it("редът на прилагане е документиран след поправката", () => {
+    const note = readFileSync(ROLLOUT_NOTE, "utf8");
+    const fix = note.indexOf("0018_product_result_v2_binding_patch.sql");
+    const jobs = note.indexOf("0019_product_fulfillment_jobs.sql");
+    expect(jobs).toBeGreaterThan(-1);
+    expect(fix).toBeLessThan(jobs);
+    expect(note).toContain("docs/migrations/stage2a_product_fulfillment_jobs.sql");
+    expect(note).not.toContain("stage2b1b1_product_fulfillment_jobs.sql");
+  });
+
+  it("задачите не влизат в дневника на миграциите", () => {
+    const journal = readFileSync(
+      join(process.cwd(), "drizzle/migrations/meta/_journal.json"),
+      "utf8",
+    );
+    expect(journal).not.toContain("0019_product_fulfillment_jobs");
+  });
+});
+
