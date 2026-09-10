@@ -162,10 +162,21 @@ function unitCost(model: string) {
   return price;
 }
 
+/**
+ * Платеният продукт работи със СВОЙ, по-тесен набор модели. Общият маршрутизатор
+ * може да разреши по-силен модел за други операции; тук изборът е сървърен и
+ * ограничен, за да е цената предвидима за всеки документ до лимита.
+ */
+export const PRODUCT_ALLOWED_MODELS: readonly string[] = Object.freeze([
+  "google/gemini-2.5-flash-lite",
+  "google/gemini-2.5-flash",
+]);
+
 /** Най-скъпият модел, който политиката РАЗРЕШАВА за този етап. */
 function worstAllowedModel(decision: RouteDecision): string {
   const candidates = [decision.model, ...(decision.allowFallback ? decision.fallbackChain : [])]
-    .filter((m) => typeof m === "string" && m.length > 0);
+    .filter((m) => typeof m === "string" && m.length > 0)
+    .filter((m) => PRODUCT_ALLOWED_MODELS.includes(m));
   if (candidates.length === 0) throw new ProductBudgetError("unknown_model_price");
   let worst = candidates[0];
   let worstPrice = -1;
