@@ -122,6 +122,9 @@ const reviewPayload: ReviewPayload = {
       affected_party: "counterparty",
       explanation:
         "Неустойката е 0,5% на ден и не е ограничена, затова расте без край при продължителна забава.",
+      consequence:
+        "При 20 дни забава неустойката е 2 400 € и продължава да расте всеки следващ ден.",
+      next_step: "Предложете таван на неустойката като процент от възнаграждението.",
       span: penaltySpan,
     },
     {
@@ -130,6 +133,8 @@ const reviewPayload: ReviewPayload = {
       severity: "medium",
       affected_party: "you",
       explanation: "Споровете се гледат по седалището на Възложителя, което оскъпява защитата.",
+      consequence: "Всяко заседание изисква пътуване и повече разходи за Вас.",
+      next_step: "Предложете подсъдност по общите правила на закона.",
       span: forumSpan,
     },
   ],
@@ -169,6 +174,18 @@ const reviewPayload: ReviewPayload = {
       found: false,
       spans: [],
       note: "Изразите за ограничение на неустойката не се срещат в текста.",
+    },
+  ],
+  missing_protections: [
+    {
+      id: "m_penalty_cap",
+      title: "Няма таван на неустойката",
+      concept: "Таван на неустойката",
+      why_it_matters: "Без горна граница задължението при забава не е предвидимо.",
+      consequence: "При дълга забава дължимото може да надхвърли цената на работата.",
+      next_step: "Добавете изречение с максимален общ размер на неустойката.",
+      affected_party: "counterparty",
+      absence_check_id: "a_penalty_cap",
     },
   ],
   questions: [
