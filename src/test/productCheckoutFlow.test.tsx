@@ -82,8 +82,9 @@ describe("продуктова страница за плащане", () => {
         </Routes>
       </MemoryRouter>,
     );
-    expect(await screen.findByText(/2[.,]99/)).toBeTruthy();
-    expect(screen.getByText(/без\s+абонамент/i)).toBeTruthy();
+    const main = await screen.findByRole("main");
+    expect(main.textContent).toMatch(/2[.,]99/);
+    expect(main.textContent).toMatch(/без\s+абонамент/i);
   });
 });
 
