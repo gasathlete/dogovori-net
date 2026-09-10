@@ -83,6 +83,7 @@ export type ProductPurchaseProblem =
   | "price_mismatch"
   | "line_item_mismatch"
   | "amount_mismatch"
+  | "tax_behavior_mismatch"
   | "metadata_conflict";
 
 export class ProductPurchaseError extends Error {
@@ -124,7 +125,16 @@ export interface MinimalProductPrice {
   type?: string | null;
   lookup_key?: string | null;
   recurring?: unknown;
+  /** Рекламираме брутна цена „с включен ДДС“ — затова тук се допуска само `inclusive`. */
+  tax_behavior?: string | null;
 }
+
+/**
+ * Единственото допустимо данъчно поведение за микропродуктите: цената е бруто.
+ * `exclusive` или `unspecified` биха позволили по-късно автоматичният данък да
+ * вдигне видимата сума над 2,99/3,99/7,99 €.
+ */
+export const PRODUCT_TAX_BEHAVIOR = "inclusive" as const;
 
 /**
  * Приема резултата от `prices.list({ lookup_keys: [<product key>] })` и връща
@@ -148,6 +158,10 @@ export function requireProductPrice(
     throw new ProductPurchaseError("price_mismatch");
   }
   if (active.unit_amount !== spec.amountCents) throw new ProductPurchaseError("price_mismatch");
+  // Рекламата казва „с включен ДДС“ — само `inclusive` пази точната бруто сума.
+  if ((active.tax_behavior ?? "") !== PRODUCT_TAX_BEHAVIOR) {
+    throw new ProductPurchaseError("tax_behavior_mismatch");
+  }
   return active;
 }
 

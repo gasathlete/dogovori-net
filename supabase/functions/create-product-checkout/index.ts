@@ -18,6 +18,7 @@ import {
   requireProductPrice,
   requireProductSpec,
 } from "../_shared/product-purchase.ts";
+import { ProductSourceError, verifyStoredProductSource } from "../_shared/product-source.ts";
 import {
   ConsentMissingError,
   LEGAL_VERSIONS,
@@ -52,6 +53,14 @@ function boundedContext(raw: unknown): Record<string, string> {
     out.preferred_position = position;
   }
   return out;
+}
+
+/** SHA-256 върху точно нормализирания текст — същият вход като в браузъра. */
+async function sha256HexServer(value: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 function fail(code: string, status: number, headers: HeadersInit) {
@@ -114,17 +123,18 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Документът трябва да е на този потребител и да има извлечен текст.
+    // Документът трябва да е на този потребител, текстът да е ЦЯЛ и хешът да
+    // съвпада с преизчисления тук. Твърденията на браузъра не са доказателство.
     const { data: doc } = await admin
       .from("uploaded_contracts")
-      .select("id, user_id, extracted_text, text_hash, updated_at")
+      .select(
+        "id, user_id, extracted_text, text_hash, updated_at, product_extraction_status, product_extracted_chars, product_source_pages",
+      )
       .eq("id", uploadedContractId)
       .maybeSingle();
     if (!doc || doc.user_id !== userId) return fail("document_not_found", 404, corsHeaders);
-    const extracted = typeof doc.extracted_text === "string" ? doc.extracted_text.trim() : "";
-    if (!extracted) return fail("document_text_missing", 400, corsHeaders);
-    const sourceHash = typeof doc.text_hash === "string" ? doc.text_hash : "";
-    if (!sourceHash) return fail("document_hash_missing", 400, corsHeaders);
+    const verifiedSource = await verifyStoredProductSource(doc, sha256HexServer);
+    const sourceHash = verifiedSource.sourceHash;
 
     // Заявката е идемпотентна по (user, requestId): повторен опит преизползва
     // същия ред и същата отворена Stripe сесия.
@@ -198,6 +208,10 @@ Deno.serve(async (req) => {
           immediate_performance_consent: consent.immediatePerformanceConsent,
           withdrawal_loss_acknowledged: consent.withdrawalLossAcknowledged,
           consent_recorded_at: new Date().toISOString(),
+          // Измерената истина за източника — само пълно прочетен документ.
+          source_char_count: verifiedSource.charCount,
+          source_page_count: verifiedSource.pageCount,
+          source_extraction_status: "full",
         })
         .select("id")
         .single();
@@ -261,6 +275,7 @@ Deno.serve(async (req) => {
     if (e instanceof ConsentMissingError) return fail("consent_required", 400, corsHeaders);
     if (e instanceof ReturnUrlError) return fail("invalid_return_url", 400, corsHeaders);
     if (e instanceof ProductPurchaseError) return fail(e.reason, 400, corsHeaders);
+    if (e instanceof ProductSourceError) return fail(e.reason, 400, corsHeaders);
     const code = e instanceof Error && e.message.length < 40 ? e.message : "checkout_failed";
     console.error("create-product-checkout error:", e);
     return fail(code, 400, corsHeaders);

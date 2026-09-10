@@ -29,6 +29,7 @@ import {
   prepareProductDocument,
   type PreparedProductDocument,
 } from "@/lib/productUpload";
+import { PRODUCT_ACCEPTED_INPUT } from "@/lib/productSource";
 
 type Position = "conservative" | "balanced" | "assertive";
 
@@ -185,8 +186,9 @@ export default function ProductCheckout() {
                 placeholder="Например: Договор за наем — офис"
               />
             </div>
+            <p className="text-sm text-muted-foreground">{PRODUCT_ACCEPTED_INPUT}</p>
             <div>
-              <Label htmlFor="product-file">Файл (PDF или DOCX)</Label>
+              <Label htmlFor="product-file">Файл (PDF с четим текст или DOCX)</Label>
               <Input
                 id="product-file"
                 type="file"
