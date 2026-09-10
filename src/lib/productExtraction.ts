@@ -146,12 +146,11 @@ async function extractPdfSource(
   try {
     onPhase?.("Отваряме PDF…");
     const pdfjs = (await import("pdfjs-dist/legacy/build/pdf.mjs")) as unknown as PdfJsModule;
-    // @ts-expect-error - worker URL import
     const workerSrc = (await import("pdfjs-dist/legacy/build/pdf.worker.mjs?url")).default as string;
     pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
     const arrayBuffer = await file.arrayBuffer();
     pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-    pageCount = pdf.numPages as number;
+    pageCount = pdf.numPages;
   } catch {
     return blocked("pdf", "unreadable", pageCount);
   }
@@ -160,9 +159,9 @@ async function extractPdfSource(
   try {
     for (let i = 1; i <= (pageCount ?? 0); i += 1) {
       onPhase?.(`Прочитаме страница ${i} от ${pageCount}…`);
-      const page = await pdf.getPage(i);
+      const page = await pdf!.getPage(i);
       const content = await page.getTextContent();
-      parts.push(content.items.map((it: any) => ("str" in it ? it.str : "")).join(" "));
+      parts.push(content.items.map((it) => it.str ?? "").join(" "));
     }
   } catch {
     // Частичното прочитане не се продава.
