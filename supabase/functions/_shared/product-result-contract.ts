@@ -71,6 +71,7 @@ export const RESULT_LIMITS = Object.freeze({
   economicTerms: 120,
   contradictions: 40,
   absenceChecks: 60,
+  missingProtections: 40,
   questions: 40,
   corrections: 120,
   spansPerItem: 12,
@@ -128,7 +129,11 @@ export interface LegalBasis {
 
 export interface DocumentPassportParty {
   readonly role: string;
-  readonly name: string;
+  /**
+   * Името може наистина да липсва или да е заличено в документа. Тогава е null —
+   * никога не се измисля. Ролята и точното място в източника остават задължителни.
+   */
+  readonly name: string | null;
   readonly span: SourceSpan;
 }
 
@@ -144,7 +149,12 @@ export interface Finding {
   readonly id: string;
   readonly title: string;
   readonly severity: ResultSeverity;
+  /** Какво пише в документа и защо е важно. */
   readonly explanation: string;
+  /** Какво може да се случи на практика — отделно поле, не общо обяснение. */
+  readonly consequence: string;
+  /** Конкретната следваща стъпка за човека. */
+  readonly next_step: string;
   readonly affected_party: ResultParty;
   readonly span: SourceSpan;
   readonly legal_basis?: readonly LegalBasis[];
@@ -198,6 +208,27 @@ export interface AbsenceCheck {
   readonly note: string | null;
 }
 
+/**
+ * Липсваща защита — ЕДИНСТВЕНОТО допустимо твърдение „това го няма в документа“.
+ *
+ * Твърдението е позволено само когато се опира на механична проверка за
+ * отсъствие върху целия източник (`absence_check_id` → проверка с
+ * `found: false`). Няма място в източника, защото такъв текст няма: измисленo
+ * `SourceSpan` за несъществуващ текст е забранено.
+ */
+export interface MissingProtection {
+  readonly id: string;
+  readonly title: string;
+  readonly concept: string;
+  readonly why_it_matters: string;
+  readonly consequence: string;
+  readonly next_step: string;
+  readonly affected_party: ResultParty;
+  /** Сочи към проверка за отсъствие върху целия документ с `found: false`. */
+  readonly absence_check_id: string;
+  readonly legal_basis?: readonly LegalBasis[];
+}
+
 export interface ClarifyingQuestion {
   readonly id: string;
   readonly question: string;
@@ -214,7 +245,10 @@ export interface ReviewPayload {
   readonly termination: ClauseSummary;
   readonly disputes: ClauseSummary;
   readonly contradictions: readonly Contradiction[];
+  /** Механичните проверки: какво е търсено в целия източник. */
   readonly absence_checks: readonly AbsenceCheck[];
+  /** Човешките твърдения за липсваща защита, опрени на проверките по-горе. */
+  readonly missing_protections: readonly MissingProtection[];
   readonly questions: readonly ClarifyingQuestion[];
 }
 
@@ -321,6 +355,16 @@ class Checker {
 
   fail(path: string, message: string) {
     this.errors.push(`${path}: ${message}`);
+  }
+
+  /**
+   * Точни ключове: непознато поле е ОТКАЗ, не тихо игнориране. Записан готов
+   * резултат не може да носи полета, които никой не е проверил.
+   */
+  exact(path: string, o: Record<string, unknown>, allowed: readonly string[]) {
+    for (const key of Object.keys(o)) {
+      if (!allowed.includes(key)) this.fail(`${path}.${key}`, "непознато поле");
+    }
   }
 
   obj(path: string, value: unknown): Record<string, unknown> | null {
