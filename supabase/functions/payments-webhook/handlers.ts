@@ -379,7 +379,9 @@ export async function handleCheckoutCompleted(d: WebhookDeps, session: Any, env:
 
     const { data: intake } = await d.db
       .from("product_checkout_intakes")
-      .select("id, user_id, product_id, source_hash, uploaded_contract_id, source_updated_at, environment")
+      .select(
+        "id, user_id, product_id, source_hash, uploaded_contract_id, source_updated_at, environment, source_extraction_status, source_char_count",
+      )
       .eq("id", productMeta.intakeId)
       .maybeSingle();
     if (!intake) throw new Error("product intake not found");
@@ -390,6 +392,16 @@ export async function handleCheckoutCompleted(d: WebhookDeps, session: Any, env:
       intake.environment !== env
     ) {
       throw new Error("product intake mismatch");
+    }
+    // Частичен източник никога не става платено право за пълен резултат.
+    const intakeStatus = (intake as { source_extraction_status?: string | null })
+      .source_extraction_status;
+    if (typeof intakeStatus === "string" && intakeStatus && intakeStatus !== "full") {
+      throw new Error("product intake source incomplete");
+    }
+    const intakeChars = (intake as { source_char_count?: number | null }).source_char_count;
+    if (typeof intakeChars === "number" && (intakeChars <= 0 || intakeChars > PRODUCT_MAX_SOURCE_CHARS)) {
+      throw new Error("product intake source incomplete");
     }
 
     const { data: recorded, error: recordErr } = await d.db.rpc("record_product_entitlement", {
