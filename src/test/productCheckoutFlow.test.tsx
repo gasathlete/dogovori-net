@@ -44,7 +44,7 @@ vi.mock("@/integrations/supabase/client", () => {
 
 import ProductCheckout from "@/pages/ProductCheckout";
 import CheckoutReturn from "@/pages/CheckoutReturn";
-import { PRODUCTS } from "@/lib/products";
+import { ONE_TIME_PRODUCTS } from "@/lib/products";
 
 const SESSION = "cs_test_product";
 
@@ -89,7 +89,7 @@ describe("продуктова страница за плащане", () => {
 
 describe("канонични CTA пътища", () => {
   it("всеки продукт води към своя /start", () => {
-    for (const p of PRODUCTS) {
+    for (const p of ONE_TIME_PRODUCTS) {
       expect(p.ctaHref).toBe(`/produkti/${p.slug}/start`);
     }
   });
