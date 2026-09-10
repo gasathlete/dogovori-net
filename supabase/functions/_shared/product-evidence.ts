@@ -5,13 +5,11 @@
  * дали извадката наистина съществува в приетия текст и къде точно. Ако не
  * съществува или е двусмислена, доказателството се отхвърля — не се поправя.
  *
- * Единствените разрешени безопасни разлики при съпоставянето:
- *  1. водещи и завършващи празни знаци;
- *  2. поредица от празни знаци (включително нов ред) се смята за един интервал.
- * Нищо друго: без промяна на регистър, без изтриване на пунктуация, без
- * „приблизително“ съвпадение.
+ * Разрешените безопасни разлики при съпоставянето са описани в
+ * `product-text-fold.ts`. Всички отмествания са в Unicode кодови точки.
  */
 import { sliceByCodePoints } from "./product-source-map.ts";
+import { findAllCodePoints, foldText } from "./product-text-fold.ts";
 import type { SourceSpan } from "./product-result-contract.ts";
 
 export const EVIDENCE_MIN_EXCERPT_CHARS = 12;
@@ -30,44 +28,22 @@ export type EvidenceResolution =
   | { readonly ok: true; readonly span: SourceSpan; readonly occurrences: number }
   | { readonly ok: false; readonly reason: EvidenceRejection };
 
-interface NormalizedIndex {
-  readonly normalized: string;
-  /** За всяка позиция в `normalized` — позицията в кодовите точки на източника. */
-  readonly toOriginal: readonly number[];
-}
-
-const WS_RE = /\s/u;
-
-function normalizeForMatch(cps: readonly string[]): NormalizedIndex {
-  const out: string[] = [];
-  const toOriginal: number[] = [];
-  let pendingSpace = false;
-  for (let i = 0; i < cps.length; i += 1) {
-    const ch = cps[i];
-    if (WS_RE.test(ch)) {
-      if (out.length > 0) pendingSpace = true;
-      continue;
-    }
-    if (pendingSpace) {
-      out.push(" ");
-      toOriginal.push(i);
-      pendingSpace = false;
-    }
-    out.push(ch);
-    toOriginal.push(i);
-  }
-  return { normalized: out.join(""), toOriginal };
-}
-
-function normalizeExcerpt(value: string): string {
-  return normalizeForMatch(Array.from(value)).normalized;
-}
-
 export interface EvidenceInput {
   readonly excerpt: unknown;
   /** Твърдение на модела за мястото — проверява се, не се приема. */
   readonly start?: unknown;
   readonly end?: unknown;
+}
+
+/** Свита извадка като масив от кодови точки. */
+function foldExcerpt(value: string): readonly string[] {
+  return foldText(Array.from(value)).folded;
+}
+
+function sameFold(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) if (a[i] !== b[i]) return false;
+  return true;
 }
 
 /**
@@ -79,7 +55,7 @@ export function resolveEvidence(sourceText: string, input: EvidenceInput): Evide
     return { ok: false, reason: "excerpt_missing" };
   }
   const cps = Array.from(sourceText);
-  const wanted = normalizeExcerpt(input.excerpt);
+  const wanted = foldExcerpt(input.excerpt);
   if (wanted.length < EVIDENCE_MIN_EXCERPT_CHARS) {
     return { ok: false, reason: "excerpt_too_short" };
   }
@@ -87,16 +63,8 @@ export function resolveEvidence(sourceText: string, input: EvidenceInput): Evide
     return { ok: false, reason: "excerpt_too_long" };
   }
 
-  const index = normalizeForMatch(cps);
-  const positions: number[] = [];
-  let from = 0;
-  for (;;) {
-    const at = index.normalized.indexOf(wanted, from);
-    if (at === -1) break;
-    positions.push(at);
-    from = at + 1;
-    if (positions.length > 64) break;
-  }
+  const index = foldText(cps);
+  const positions = findAllCodePoints(index.folded, wanted);
   if (positions.length === 0) return { ok: false, reason: "excerpt_not_found" };
 
   const hasAnchor = typeof input.start === "number" && typeof input.end === "number";
@@ -110,7 +78,7 @@ export function resolveEvidence(sourceText: string, input: EvidenceInput): Evide
       return { ok: false, reason: "anchor_out_of_range" };
     }
     const anchored = sliceByCodePoints(sourceText, start, end);
-    if (normalizeExcerpt(anchored) !== wanted) {
+    if (!sameFold(foldExcerpt(anchored), wanted)) {
       return { ok: false, reason: "anchor_mismatch" };
     }
     return {
@@ -122,10 +90,10 @@ export function resolveEvidence(sourceText: string, input: EvidenceInput): Evide
 
   // Без подадено място едно единствено съвпадение е достатъчно доказателство.
   if (positions.length !== 1) return { ok: false, reason: "excerpt_ambiguous" };
-  const normStart = positions[0];
-  const normEnd = normStart + wanted.length - 1;
-  const start = index.toOriginal[normStart];
-  const end = index.toOriginal[normEnd] + 1;
+  const foldStart = positions[0];
+  const foldEnd = foldStart + wanted.length - 1;
+  const start = index.toOriginal[foldStart];
+  const end = index.toOriginal[foldEnd] + 1;
   return {
     ok: true,
     span: { start, end, excerpt: sliceByCodePoints(sourceText, start, end) },
