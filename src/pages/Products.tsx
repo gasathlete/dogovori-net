@@ -50,8 +50,8 @@ export default function Products() {
   return (
     <>
       <Seo
-        title="Продукти — проверка, подобряване и договорна карта"
-        description="Три еднократни продукта за договорите ви: проверка преди подпис, конкретни поправки и бизнес договорна карта. Плащате веднъж, без абонамент."
+        title="Продукти — проверка на договор, поправка и подготовка за преговори"
+        description="Три еднократни продукта за един документ: подробна проверка преди подпис, конкретна поправка на текста и пълен пакет за преговори. Плащате веднъж, без абонамент."
         canonical="/produkti"
         jsonLd={jsonLd}
       />
@@ -62,12 +62,12 @@ export default function Products() {
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
               Продукти
             </p>
-            <h1 className="mt-2 font-serif text-[30px] font-bold leading-[1.1] tracking-tight sm:text-4xl">
+            <h1 className="mt-2 font-serif text-[32px] font-bold leading-[1.1] tracking-tight sm:text-4xl">
               Разгледайте нашите продукти
             </h1>
             <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-              Един договор или цялата ви договорна организация — избирате точния
-              резултат и го получавате на един екран.
+              Проверка преди подпис, конкретна поправка на текста или пълен пакет
+              за преговори — за един документ, на един екран.
             </p>
             <p className="mt-4 inline-flex items-baseline gap-2 rounded-lg border border-gold/25 bg-gold/[0.07] px-3 py-1.5">
               <span className="font-serif text-[22px] font-bold tabular-nums text-gold">

@@ -1,9 +1,8 @@
 /**
- * Богатата десктоп композиция на началната страница.
+ * Пълната композиция на началната страница — една и съща за телефон и десктоп.
  *
- * Живее в отделен модул, който се зарежда лениво САМО за екрани ≥768px —
- * така десктоп-only модулите (Hero, PrimaryChoice, BackdropSection и всички
- * дълги секции) не влизат в мобилния граф на входа.
+ * Модулът се зарежда лениво само за да не влиза в първия bundle; съдържанието,
+ * заглавията и метаданните са идентични при всички размери на екрана.
  */
 import { lazy, Suspense } from "react";
 import { Hero } from "@/components/Hero";
@@ -29,7 +28,7 @@ const CTABand = lazy(() => import("@/components/CTABand").then((m) => ({ default
 
 export function HomeSections() {
   return (
-    <main className="route-fade" data-home-variant="desktop">
+    <main className="route-fade" data-home-variant="responsive">
       <Hero />
 
       {/* Social proof веднага под херото — зарежда се веднага, без lazy gate */}

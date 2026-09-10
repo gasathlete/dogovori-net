@@ -71,7 +71,7 @@ describe("потребители на оценката от риск-анали�
     const src = read("src/pages/Analyze.tsx");
     expect(src).not.toMatch(/Без халюцинации/);
     expect(src).not.toMatch(/под 1 минута/);
-    expect(src).toMatch(/Проверими цитати/);
+    expect(src).toMatch(/Точно място в документа/);
   });
 });
 
