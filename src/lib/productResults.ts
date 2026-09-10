@@ -373,7 +373,9 @@ export const correctionPayloadSchema = z
   .strict()
   .refine(priorityRefsValid, "приоритетите сочат само към съществуващи находки")
   .refine(missingProtectionRefsValid, "твърдението за липса изисква проверка с found: false")
-  .refine((p) => noOverlap(p.corrections as readonly unknown[]), "поправките не може да се застъпват");
+  .refine((p) => noOverlap(p.corrections as readonly unknown[]), "поправките не може да се застъпват")
+  .refine(uniqueIdsValid, UNIQUE_IDS_MESSAGE);
+
 
 const stringList = z.array(text(RESULT_LIMITS.text)).max(RESULT_LIMITS.listItems);
 
@@ -416,7 +418,9 @@ export const negotiationPayloadSchema = z
   .strict()
   .refine(priorityRefsValid, "приоритетите сочат само към съществуващи находки")
   .refine(missingProtectionRefsValid, "твърдението за липса изисква проверка с found: false")
-  .refine((p) => noOverlap(p.corrections as readonly unknown[]), "поправките не може да се застъпват");
+  .refine((p) => noOverlap(p.corrections as readonly unknown[]), "поправките не може да се застъпват")
+  .refine(uniqueIdsValid, UNIQUE_IDS_MESSAGE);
+
 
 const envelope = {
   schema_version: z.literal(PRODUCT_RESULT_SCHEMA_VERSION),
