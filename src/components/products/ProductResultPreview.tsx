@@ -300,6 +300,7 @@ function ImprovePreview({ size }: { size: Size }) {
         <div
           role="radiogroup"
           aria-labelledby={groupId}
+          onKeyDown={roving.onKeyDown}
           className="mt-2 flex flex-wrap gap-2"
         >
           {IMPROVE_STRATEGIES.map((s) => (
@@ -307,7 +308,9 @@ function ImprovePreview({ size }: { size: Size }) {
               key={s.id}
               type="button"
               role="radio"
+              ref={roving.register(s.id)}
               aria-checked={s.id === active}
+              tabIndex={s.id === active ? 0 : -1}
               onClick={() => setActive(s.id)}
               className={cn(
                 "min-h-11 rounded-full border px-4 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
