@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 const state = vi.hoisted(() => ({
   invokeSpy: vi.fn(),
   mammothSpy: vi.fn(),
-  pdfPages: [] as string[],
+  state.pdfPages: [] as string[],
 }));
 const { invokeSpy, mammothSpy } = state;
 
@@ -30,9 +30,9 @@ vi.mock("pdfjs-dist/legacy/build/pdf.mjs", () => ({
   GlobalWorkerOptions: {},
   getDocument: () => ({
     promise: Promise.resolve({
-      numPages: pdfPages.length,
+      numPages: state.pdfPages.length,
       getPage: (i: number) => Promise.resolve({
-        getTextContent: () => Promise.resolve({ items: [{ str: pdfPages[i - 1] }] }),
+        getTextContent: () => Promise.resolve({ items: [{ str: state.pdfPages[i - 1] }] }),
       }),
     }),
   }),
@@ -74,7 +74,7 @@ const CYRILLIC_PAGE = "Договор за наем между страните 
 beforeEach(() => {
   invokeSpy.mockReset();
   mammothSpy.mockReset();
-  pdfPages = [];
+  state.pdfPages = [];
 });
 
 describe("продуктовият източник — пълнота и цена", () => {
@@ -86,7 +86,7 @@ describe("продуктовият източник — пълнота и цен
   });
 
   it("PDF над лимита се отказва, вместо да се отреже тихо", async () => {
-    pdfPages = [CYRILLIC_PAGE.repeat(60), CYRILLIC_PAGE.repeat(60)];
+    state.pdfPages = [CYRILLIC_PAGE.repeat(60), CYRILLIC_PAGE.repeat(60)];
     const res = await extractProductSource({ file: pdfFile() });
     expect(res.status).toBe("partial");
     expect(res.blockedReason).toBe("too_long");
@@ -98,7 +98,7 @@ describe("продуктовият източник — пълнота и цен
   });
 
   it("сканиран PDF се отказва без OCR и без операции", async () => {
-    pdfPages = ["", "", ""];
+    state.pdfPages = ["", "", ""];
     const res = await extractProductSource({ file: pdfFile() });
     expect(res.status).toBe("partial");
     expect(res.blockedReason).toBe("no_text_layer");
@@ -107,7 +107,7 @@ describe("продуктовият източник — пълнота и цен
   });
 
   it("нечетлив (garbled) текстов слой се отказва без OCR", async () => {
-    pdfPages = ["Lorem ipsum dolor sit amet consectetur adipiscing elit sed do ".repeat(20)];
+    state.pdfPages = ["Lorem ipsum dolor sit amet consectetur adipiscing elit sed do ".repeat(20)];
     const res = await extractProductSource({ file: pdfFile() });
     expect(res.status).toBe("partial");
     expect(res.blockedReason).toBe("garbled_text");
@@ -115,7 +115,7 @@ describe("продуктовият източник — пълнота и цен
   });
 
   it("четим PDF се приема с измерени страници и стабилен хеш", async () => {
-    pdfPages = [CYRILLIC_PAGE, CYRILLIC_PAGE];
+    state.pdfPages = [CYRILLIC_PAGE, CYRILLIC_PAGE];
     const res = await extractProductSource({ file: pdfFile() });
     expect(res.status).toBe("full");
     expect(res.pageCount).toBe(2);
