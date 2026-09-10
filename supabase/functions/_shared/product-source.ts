@@ -14,7 +14,9 @@ export const PRODUCT_MAX_SOURCE_CHARS = 60000;
 /** Минимум знаци, под които не можем да твърдим, че документът е прочетен. */
 export const PRODUCT_MIN_SOURCE_CHARS = 80;
 
-export type ProductSourceKind = "pdf" | "docx" | "paste";
+/** Платеният продукт е обвързан с ФАЙЛ: PDF с четим текст или DOCX. */
+export type ProductSourceKind = "pdf" | "docx";
+
 export type ProductExtractionStatus = "full" | "partial";
 
 /**
@@ -37,6 +39,7 @@ export type ProductSourceProblem =
   | "source_not_normalized"
   | "source_too_long"
   | "source_hash_mismatch"
+  | "source_kind_unsupported"
   | "source_incomplete";
 
 export class ProductSourceError extends Error {
@@ -51,26 +54,37 @@ export class ProductSourceError extends Error {
 export interface StoredProductSource {
   extracted_text?: string | null;
   text_hash?: string | null;
-  /** Метаданните от браузъра са НЕДОВЕРЕНИ — служат само за допълнителен отказ. */
+  updated_at?: string | null;
+  /** Твърденията на браузъра НЕ са доказателство, но липсата им е отказ. */
   product_extraction_status?: string | null;
   product_extracted_chars?: number | null;
   product_source_pages?: number | null;
+  product_source_kind?: string | null;
 }
 
 export interface VerifiedProductSource {
   readonly text: string;
   readonly charCount: number;
   readonly sourceHash: string;
-  /** Информативно. Никога не е доказателство за пълнота. */
+  readonly sourceKind: ProductSourceKind;
+  /** Измерен брой страници, когато е известен. Не е доказателство за пълнота. */
   readonly pageCount: number | null;
+  /** Точната ревизия на реда — платеното право се обвързва с нея. */
+  readonly sourceUpdatedAt: string;
 }
 
+const HEX64 = /^[0-9a-f]{64}$/;
+
 /**
- * Проверява съхранения източник, без да вярва на браузъра:
+ * Проверява съхранения източник, без да вярва на браузъра, и се проваля
+ * ЗАТВОРЕНО при липсваща истина:
  * 1. текстът трябва да е точно в каноничната нормализирана форма;
- * 2. SHA-256 върху него трябва да съвпада със записания хеш;
+ * 2. SHA-256 върху него трябва да съвпада със записания 64-знаков хеш;
  * 3. дължината трябва да е в рамките на единствения продуктов лимит;
- * 4. ако има записан статус на извличането, той трябва да е `full`.
+ * 4. записаният статус трябва да е ТОЧНО `full`;
+ * 5. записаният брой знаци трябва да е ТОЧНО дължината на текста;
+ * 6. видът на източника трябва да е PDF или DOCX;
+ * 7. редът трябва да има точна ревизия (`updated_at`).
  */
 export async function verifyStoredProductSource(
   row: StoredProductSource | null | undefined,
@@ -85,24 +99,32 @@ export async function verifyStoredProductSource(
   if (raw.length > PRODUCT_MAX_SOURCE_CHARS) throw new ProductSourceError("source_too_long");
 
   const storedHash = typeof row?.text_hash === "string" ? row.text_hash.toLowerCase() : "";
-  if (!storedHash) throw new ProductSourceError("source_hash_mismatch");
+  if (!HEX64.test(storedHash)) throw new ProductSourceError("source_hash_mismatch");
   const actual = (await sha256Hex(raw)).toLowerCase();
   if (actual !== storedHash) throw new ProductSourceError("source_hash_mismatch");
 
-  const status = row?.product_extraction_status;
-  if (typeof status === "string" && status && status !== "full") {
+  // Липсващото доказателство е отказ, не „вероятно е добре“.
+  if (row?.product_extraction_status !== "full") {
     throw new ProductSourceError("source_incomplete");
   }
-  const claimedChars = row?.product_extracted_chars;
-  if (typeof claimedChars === "number" && claimedChars !== raw.length) {
+  if (row?.product_extracted_chars !== raw.length) {
     throw new ProductSourceError("source_incomplete");
   }
+  const kind = row?.product_source_kind;
+  if (kind !== "pdf" && kind !== "docx") {
+    throw new ProductSourceError("source_kind_unsupported");
+  }
+  const updatedAt = typeof row?.updated_at === "string" ? row.updated_at : "";
+  if (!updatedAt) throw new ProductSourceError("source_incomplete");
 
   const pages = row?.product_source_pages;
   return {
     text: raw,
     charCount: raw.length,
     sourceHash: actual,
+    sourceKind: kind,
     pageCount: typeof pages === "number" && pages > 0 ? pages : null,
+    sourceUpdatedAt: updatedAt,
   };
 }
+

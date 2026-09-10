@@ -79,13 +79,20 @@ export function consentMetadata(consent: ConsentTruth): Record<string, string> {
   };
 }
 
-/** Позволените origin-и за return URL — само собственият сайт. */
+/**
+ * Позволените origin-и за return URL — точен списък на собствените адреси.
+ * Няма шаблон „кой да е *.lovable.app“ и никога не приемаме цял URL от клиента.
+ */
 export const ALLOWED_RETURN_ORIGINS: readonly string[] = Object.freeze([
   "https://dogovori.net",
   "https://www.dogovori.net",
   "https://dogovori-net.lovable.app",
+  "https://id-preview--6b2da12e-e1d6-4f97-8549-b632fb66ddd1.lovable.app",
   "http://localhost:8080",
 ]);
+
+/** Основният адрес, от който градим продуктовите return пътища. */
+export const DEFAULT_PRODUCT_ORIGIN = "https://dogovori.net";
 
 export class ReturnUrlError extends Error {
   readonly reason = "invalid_return_url";
@@ -95,16 +102,30 @@ export class ReturnUrlError extends Error {
   }
 }
 
+function normalizeOrigin(origin: string): string {
+  return origin.replace(/\/+$/, "");
+}
+
 /**
- * Изгражда return URL от доверен origin + път. Произволен външен адрес се
- * отказва — никога не приемаме цял URL от клиента.
+ * Изгражда return URL от ТОЧЕН собствен адрес и фиксиран път. Външен или
+ * непознат адрес се отказва.
  */
 export function buildProductReturnUrl(origin: unknown, path: string): string {
   if (typeof origin !== "string") throw new ReturnUrlError();
-  const normalized = origin.replace(/\/+$/, "");
-  const allowed = ALLOWED_RETURN_ORIGINS.includes(normalized) ||
-    /^https:\/\/[a-z0-9-]+\.lovable\.app$/.test(normalized);
-  if (!allowed) throw new ReturnUrlError();
+  const normalized = normalizeOrigin(origin);
+  if (!ALLOWED_RETURN_ORIGINS.includes(normalized)) throw new ReturnUrlError();
   if (!path.startsWith("/")) throw new ReturnUrlError();
   return `${normalized}${path}`;
 }
+
+/**
+ * Каноничният return адрес за продуктова покупка: взима конфигурирания адрес
+ * на приложението, ако е в точния списък, иначе основния публичен адрес.
+ * Никога не зависи от заглавие или тяло на заявката.
+ */
+export function productReturnUrl(configuredBase: string | undefined, path: string): string {
+  const base = configuredBase ? normalizeOrigin(configuredBase) : "";
+  const origin = ALLOWED_RETURN_ORIGINS.includes(base) ? base : DEFAULT_PRODUCT_ORIGIN;
+  return buildProductReturnUrl(origin, path);
+}
+

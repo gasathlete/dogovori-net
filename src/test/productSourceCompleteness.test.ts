@@ -112,13 +112,33 @@ describe("продуктовият източник — пълнота и цен
     expect(invokeSpy).not.toHaveBeenCalled();
   });
 
-  it("нечетлив (garbled) текстов слой се отказва без OCR", async () => {
-    state.pdfPages = ["Lorem ipsum dolor sit amet consectetur adipiscing elit sed do ".repeat(20)];
+  it("английски четим PDF се приема — проверката не зависи от езика", async () => {
+    state.pdfPages = [
+      "This service agreement is made between the parties and sets out the terms of payment, liability and termination in detail. "
+        .repeat(6),
+    ];
     const res = await extractProductSource({ file: pdfFile() });
-    expect(res.status).toBe("partial");
-    expect(res.blockedReason).toBe("garbled_text");
+    expect(res.status).toBe("full");
     expect(invokeSpy).not.toHaveBeenCalled();
   });
+
+  it("нечетлив символен слой се отказва без OCR", async () => {
+    state.pdfPages = ["\uFFFD\u0001\u0002◌◌◌ ▯▯▯ ".repeat(60)];
+    const res = await extractProductSource({ file: pdfFile() });
+    expect(res.status).toBe("partial");
+    expect(res.blockedReason).toBe("low_text_quality");
+    expect(invokeSpy).not.toHaveBeenCalled();
+  });
+
+  it("частично сканиран PDF (страница без текст) се отказва, а не се смята за пълен", async () => {
+    state.pdfPages = [CYRILLIC_PAGE, "", CYRILLIC_PAGE];
+    const res = await extractProductSource({ file: pdfFile() });
+    expect(res.status).toBe("partial");
+    expect(res.blockedReason).toBe("page_without_text");
+    expect(res.pageCount).toBe(3);
+    expect(invokeSpy).not.toHaveBeenCalled();
+  });
+
 
   it("четим PDF се приема с измерени страници и стабилен хеш", async () => {
     state.pdfPages = [CYRILLIC_PAGE, CYRILLIC_PAGE];
@@ -155,6 +175,8 @@ describe("сървърна проверка на съхранения източ
     product_extraction_status: "full",
     product_extracted_chars: text.length,
     product_source_pages: 2,
+    product_source_kind: "pdf" as const,
+    updated_at: "2026-09-10T10:00:00.000Z",
   });
 
   it("приема пълен, нормализиран източник с точен хеш", async () => {
@@ -188,22 +210,23 @@ describe("точната бруто цена и данъчното поведе�
     type: "one_time",
     lookup_key: "contract_check_299",
     tax_behavior: "inclusive",
+    livemode: true,
     ...over,
   }];
 
   it("приема активна EUR one_time цена с inclusive ДДС", () => {
-    expect(requireProductPrice(price(), "contract_check").unit_amount).toBe(299);
+    expect(requireProductPrice(price(), "contract_check", "live").unit_amount).toBe(299);
   });
 
   it("отказва exclusive/unspecified данъчно поведение", () => {
     for (const behavior of ["exclusive", "unspecified", null]) {
-      expect(() => requireProductPrice(price({ tax_behavior: behavior }), "contract_check"))
+      expect(() => requireProductPrice(price({ tax_behavior: behavior }), "contract_check", "live"))
         .toThrow(ProductPurchaseError);
     }
   });
 
   it("отказва различна сума от рекламираната бруто цена", () => {
-    expect(() => requireProductPrice(price({ unit_amount: 359 }), "contract_check"))
+    expect(() => requireProductPrice(price({ unit_amount: 359 }), "contract_check", "live"))
       .toThrow(ProductPurchaseError);
   });
 });

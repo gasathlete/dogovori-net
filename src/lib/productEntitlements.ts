@@ -67,3 +67,55 @@ export async function fetchLatestEntitlement(
     .maybeSingle();
   return (data as ProductEntitlement | null) ?? null;
 }
+
+export interface ProductOrderProof {
+  id: string;
+  product_id: string;
+  payment_status: string;
+  purchase_kind: string;
+  price_amount: number;
+  currency: string;
+  environment: string;
+  product_source_document_id: string | null;
+  product_source_hash: string | null;
+}
+
+const SNAPSHOT_SELECT =
+  "id, product_id, payment_status, purchase_kind, price_amount, currency, environment, product_source_document_id, product_source_hash";
+
+export interface PaidProductPurchase {
+  entitlement: ProductEntitlement;
+  order: ProductOrderProof;
+}
+
+/**
+ * Едно платено право съществува само когато ЕДНОВРЕМЕННО има платена поръчка и
+ * привилегия за същия потребител, същата Stripe сесия, същия продукт и същия
+ * източник. Само привилегия (или само поръчка) не е доказателство.
+ */
+export async function fetchPaidProductPurchase(
+  userId: string,
+  sessionId: string,
+): Promise<PaidProductPurchase | null> {
+  const [entitlement, snapshotRes] = await Promise.all([
+    fetchEntitlementBySession(userId, sessionId),
+    db
+      .from("order_snapshots")
+      .select(SNAPSHOT_SELECT)
+      .eq("user_id", userId)
+      .eq("stripe_session_id", sessionId)
+      .maybeSingle(),
+  ]);
+  const order = (snapshotRes?.data as ProductOrderProof | null) ?? null;
+  if (!entitlement || !order) return null;
+  if (order.payment_status !== "paid" || order.purchase_kind !== "product") return null;
+  if (order.product_id !== entitlement.product_id) return null;
+  if (order.environment !== entitlement.environment) return null;
+  if (
+    order.product_source_hash !== null &&
+    order.product_source_hash !== entitlement.source_hash
+  ) {
+    return null;
+  }
+  return { entitlement, order };
+}

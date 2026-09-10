@@ -11,7 +11,8 @@ export const PRODUCT_MAX_SOURCE_CHARS = 60000;
 /** Минимум знаци, под които не можем да твърдим, че документът е прочетен. */
 export const PRODUCT_MIN_SOURCE_CHARS = 80;
 
-export type ProductSourceKind = "pdf" | "docx" | "paste";
+/** Платеният продукт е обвързан с ФАЙЛ: PDF с четим текст или DOCX. */
+export type ProductSourceKind = "pdf" | "docx";
 export type ProductExtractionStatus = "full" | "partial";
 
 export function normalizeProductSourceText(raw: string): string {

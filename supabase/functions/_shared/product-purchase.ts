@@ -53,9 +53,10 @@ export const PRODUCT_PURCHASES: Readonly<Record<ProductPurchaseId, ProductPurcha
       amountCents: 399,
       currency: PRODUCT_CURRENCY,
       priceType: "one_time",
-      name: "Поправки с готов текст",
+      name: "Подробна поправка на документа",
       refinementsIncluded: 0,
     }) as ProductPurchaseSpec,
+
     negotiation_package: Object.freeze({
       id: "negotiation_package",
       lookupKey: "negotiation_package_799",
@@ -80,11 +81,14 @@ export const PRODUCT_LOOKUP_KEYS: readonly ProductLookupKey[] = Object.freeze(
 export type ProductPurchaseProblem =
   | "unknown_product"
   | "price_not_found"
+  | "price_ambiguous"
   | "price_mismatch"
   | "line_item_mismatch"
   | "amount_mismatch"
   | "tax_behavior_mismatch"
+  | "environment_mismatch"
   | "metadata_conflict";
+
 
 export class ProductPurchaseError extends Error {
   readonly reason: ProductPurchaseProblem;
@@ -127,7 +131,11 @@ export interface MinimalProductPrice {
   recurring?: unknown;
   /** Рекламираме брутна цена „с включен ДДС“ — затова тук се допуска само `inclusive`. */
   tax_behavior?: string | null;
+  /** Трябва да съвпада с избраното окръжение: live ↔ true, sandbox ↔ false. */
+  livemode?: boolean | null;
 }
+
+export type StripeEnvironment = "live" | "sandbox";
 
 /**
  * Единственото допустимо данъчно поведение за микропродуктите: цената е бруто.
@@ -136,33 +144,53 @@ export interface MinimalProductPrice {
  */
 export const PRODUCT_TAX_BEHAVIOR = "inclusive" as const;
 
+export function livemodeForEnvironment(environment: StripeEnvironment): boolean {
+  return environment === "live";
+}
+
 /**
  * Приема резултата от `prices.list({ lookup_keys: [<product key>] })` и връща
- * единствената използваема цена. Никога не създава и не променя цена.
+ * ЕДИНСТВЕНАТА използваема цена.
  *
- * Изисква строго: active === true, точен lookup_key, `one_time` без
- * `recurring`, валута EUR и точната сума в центове.
+ * Изисква строго: точно едно съвпадение, непразен id, active === true, точен
+ * lookup_key, `one_time` без `recurring`, EUR, точната сума в центове,
+ * `tax_behavior = inclusive` и livemode, съответстващ на окръжението.
  */
 export function requireProductPrice(
   prices: MinimalProductPrice[] | null | undefined,
   productId: ProductPurchaseId,
-): MinimalProductPrice {
+  environment: StripeEnvironment,
+): MinimalProductPrice & { id: string } {
   const spec = requireProductSpec(productId);
-  const active = (prices ?? []).find((p) => p.active === true);
-  if (!active) throw new ProductPurchaseError("price_not_found");
-  if (active.lookup_key !== spec.lookupKey) throw new ProductPurchaseError("price_mismatch");
-  if (active.type !== "one_time" || active.recurring) {
+  if (environment !== "live" && environment !== "sandbox") {
+    throw new ProductPurchaseError("environment_mismatch");
+  }
+  const list = prices ?? [];
+  const matching = list.filter((p) =>
+    p.active === true && p.lookup_key === spec.lookupKey
+  );
+  if (matching.length === 0) throw new ProductPurchaseError("price_not_found");
+  // Две активни цени с един и същ lookup key са двусмислие, не избор.
+  if (matching.length !== 1) throw new ProductPurchaseError("price_ambiguous");
+  const price = matching[0];
+  if (typeof price.id !== "string" || price.id.trim().length === 0) {
     throw new ProductPurchaseError("price_mismatch");
   }
-  if ((active.currency ?? "").toLowerCase() !== spec.currency) {
+  if (price.type !== "one_time" || price.recurring) {
     throw new ProductPurchaseError("price_mismatch");
   }
-  if (active.unit_amount !== spec.amountCents) throw new ProductPurchaseError("price_mismatch");
+  if ((price.currency ?? "").toLowerCase() !== spec.currency) {
+    throw new ProductPurchaseError("price_mismatch");
+  }
+  if (price.unit_amount !== spec.amountCents) throw new ProductPurchaseError("price_mismatch");
   // Рекламата казва „с включен ДДС“ — само `inclusive` пази точната бруто сума.
-  if ((active.tax_behavior ?? "") !== PRODUCT_TAX_BEHAVIOR) {
+  if ((price.tax_behavior ?? "") !== PRODUCT_TAX_BEHAVIOR) {
     throw new ProductPurchaseError("tax_behavior_mismatch");
   }
-  return active;
+  if (price.livemode !== livemodeForEnvironment(environment)) {
+    throw new ProductPurchaseError("environment_mismatch");
+  }
+  return price as MinimalProductPrice & { id: string };
 }
 
 export interface MinimalProductLineItem {
@@ -170,11 +198,15 @@ export interface MinimalProductLineItem {
   amount_total?: number | null;
   currency?: string | null;
   price?: {
+    id?: string | null;
+    active?: boolean | null;
     lookup_key?: string | null;
     currency?: string | null;
     unit_amount?: number | null;
     type?: string | null;
     recurring?: unknown;
+    tax_behavior?: string | null;
+    livemode?: boolean | null;
     metadata?: Record<string, string> | null;
   } | null;
 }
@@ -182,6 +214,7 @@ export interface MinimalProductLineItem {
 export interface VerifiedProductPurchase {
   readonly productId: ProductPurchaseId;
   readonly lookupKey: ProductLookupKey;
+  readonly priceId: string;
   readonly amountCents: number;
   readonly currency: typeof PRODUCT_CURRENCY;
   readonly productName: string;
@@ -190,29 +223,54 @@ export interface VerifiedProductPurchase {
 
 /**
  * Проверява, че платената сесия съдържа ТОЧНО един ред, точно този продукт,
- * количество точно 1, EUR и точната обща сума. Всичко друго е отказ.
+ * количество точно 1, EUR и точната обща сума. Разширената цена е
+ * ЗАДЪЛЖИТЕЛНА: без id, тип, active, livemode и данъчно поведение няма покупка.
  */
 export function verifyProductLineItems(
   items: MinimalProductLineItem[] | null | undefined,
   expectedProductId: unknown,
+  environment: StripeEnvironment,
+  expectedPriceId?: string | null,
 ): VerifiedProductPurchase {
   const spec = requireProductSpec(expectedProductId);
+  if (environment !== "live" && environment !== "sandbox") {
+    throw new ProductPurchaseError("environment_mismatch");
+  }
   const list = items ?? [];
   if (list.length !== 1) throw new ProductPurchaseError("line_item_mismatch");
   const li = list[0];
-  const key = li.price?.lookup_key ?? li.price?.metadata?.lovable_external_id ?? null;
-  if (key !== spec.lookupKey) throw new ProductPurchaseError("line_item_mismatch");
+  const price = li.price;
+  if (!price) throw new ProductPurchaseError("line_item_mismatch");
+  if (typeof price.id !== "string" || price.id.trim().length === 0) {
+    throw new ProductPurchaseError("line_item_mismatch");
+  }
+  if (price.lookup_key !== spec.lookupKey) throw new ProductPurchaseError("line_item_mismatch");
   if (li.quantity !== 1) throw new ProductPurchaseError("line_item_mismatch");
-  if (li.price?.type && li.price.type !== "one_time") {
+  if (price.active !== true) throw new ProductPurchaseError("price_mismatch");
+  if (price.type !== "one_time" || price.recurring) {
     throw new ProductPurchaseError("price_mismatch");
   }
-  if (li.price?.recurring) throw new ProductPurchaseError("price_mismatch");
-  const currency = (li.currency ?? li.price?.currency ?? "").toLowerCase();
-  if (currency !== spec.currency) throw new ProductPurchaseError("price_mismatch");
+  if ((price.tax_behavior ?? "") !== PRODUCT_TAX_BEHAVIOR) {
+    throw new ProductPurchaseError("tax_behavior_mismatch");
+  }
+  if (price.livemode !== livemodeForEnvironment(environment)) {
+    throw new ProductPurchaseError("environment_mismatch");
+  }
+  if (price.unit_amount !== spec.amountCents) throw new ProductPurchaseError("amount_mismatch");
+  // И валутата на цената, и валутата на реда трябва да са точно EUR.
+  const priceCurrency = (price.currency ?? "").toLowerCase();
+  if (priceCurrency !== spec.currency) throw new ProductPurchaseError("price_mismatch");
+  if (li.currency !== undefined && (li.currency ?? "").toLowerCase() !== spec.currency) {
+    throw new ProductPurchaseError("price_mismatch");
+  }
   if (li.amount_total !== spec.amountCents) throw new ProductPurchaseError("amount_mismatch");
+  if (expectedPriceId && price.id !== expectedPriceId) {
+    throw new ProductPurchaseError("price_mismatch");
+  }
   return {
     productId: spec.id,
     lookupKey: spec.lookupKey,
+    priceId: price.id,
     amountCents: spec.amountCents,
     currency: spec.currency,
     productName: spec.name,
@@ -237,29 +295,31 @@ export function assertSessionAmount(
 }
 
 /**
- * Проверява, че метаданните на сесията не си противоречат: продуктът, ключът
- * и окръжението трябва да сочат едно и също. Непознатата стойност е отказ.
+ * Метаданните на Stripe сесията носят САМО непрозрачни идентификатори и
+ * затворени изброявания. Хешове, съгласия, файлови имена и суров контекст не
+ * влизат в Stripe — истината се чете от заявката в базата.
  */
 export function readProductSessionMetadata(meta: Record<string, unknown> | null | undefined): {
   productId: ProductPurchaseId;
+  userId: string;
   intakeId: string;
-  sourceHash: string;
-  environment: "live" | "sandbox";
+  sourceDocumentId: string;
+  environment: StripeEnvironment;
 } | null {
   const m = meta ?? {};
-  if (m.type !== "product") return null;
+  if (m.purchase_kind !== "product" && m.type !== "product") return null;
   const productId = m.productId;
   if (!isProductPurchaseId(productId)) throw new ProductPurchaseError("unknown_product");
-  const spec = PRODUCT_PURCHASES[productId];
-  if (typeof m.lookupKey === "string" && m.lookupKey !== spec.lookupKey) {
+  const userId = typeof m.userId === "string" ? m.userId : "";
+  const intakeId = typeof m.intakeId === "string" ? m.intakeId : "";
+  const sourceDocumentId = typeof m.sourceDocumentId === "string" ? m.sourceDocumentId : "";
+  if (!userId || !intakeId || !sourceDocumentId) {
     throw new ProductPurchaseError("metadata_conflict");
   }
-  const intakeId = typeof m.intakeId === "string" ? m.intakeId : "";
-  const sourceHash = typeof m.sourceHash === "string" ? m.sourceHash : "";
-  if (!intakeId || !sourceHash) throw new ProductPurchaseError("metadata_conflict");
   const environment = m.environment;
   if (environment !== "live" && environment !== "sandbox") {
     throw new ProductPurchaseError("metadata_conflict");
   }
-  return { productId, intakeId, sourceHash, environment };
+  return { productId, userId, intakeId, sourceDocumentId, environment };
 }
+

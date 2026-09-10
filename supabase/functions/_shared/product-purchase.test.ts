@@ -24,6 +24,8 @@ const price = (over: Record<string, unknown> = {}) => ({
   unit_amount: 299,
   type: "one_time",
   lookup_key: "contract_check_299",
+  tax_behavior: "inclusive",
+  livemode: true,
   ...over,
 });
 
@@ -31,7 +33,16 @@ const lineItem = (over: Record<string, unknown> = {}) => ({
   quantity: 1,
   amount_total: 299,
   currency: "eur",
-  price: { lookup_key: "contract_check_299", type: "one_time", unit_amount: 299, currency: "eur" },
+  price: {
+    id: "price_1",
+    active: true,
+    lookup_key: "contract_check_299",
+    type: "one_time",
+    unit_amount: 299,
+    currency: "eur",
+    tax_behavior: "inclusive",
+    livemode: true,
+  },
   ...over,
 });
 
@@ -66,33 +77,41 @@ Deno.test("продуктите никога не носят операции", 
 });
 
 Deno.test("цената се проверява строго", () => {
-  requireProductPrice([price()], "contract_check");
-  assertThrows(() => requireProductPrice([], "contract_check"), ProductPurchaseError);
-  assertThrows(() => requireProductPrice([price({ active: false })], "contract_check"));
-  assertThrows(() => requireProductPrice([price({ currency: "bgn" })], "contract_check"));
-  assertThrows(() => requireProductPrice([price({ unit_amount: 199 })], "contract_check"));
-  assertThrows(() => requireProductPrice([price({ type: "recurring" })], "contract_check"));
+  // Две активни цени с еднакъв ключ са двусмислие, не избор на първата.
   assertThrows(
-    () => requireProductPrice([price({ recurring: { interval: "month" } })], "contract_check"),
+    () => requireProductPrice([price(), price({ id: "price_2" })], "contract_check", "live"),
+    ProductPurchaseError,
   );
-  assertThrows(() => requireProductPrice([price({ lookup_key: "topup_10" })], "contract_check"));
+  assertThrows(() => requireProductPrice([price({ id: "" })], "contract_check", "live"));
+  assertThrows(() => requireProductPrice([price({ tax_behavior: "exclusive" })], "contract_check", "live"));
+  assertThrows(() => requireProductPrice([price({ livemode: false })], "contract_check", "live"));
+  requireProductPrice([price()], "contract_check", "live");
+  assertThrows(() => requireProductPrice([], "contract_check", "live"), ProductPurchaseError);
+  assertThrows(() => requireProductPrice([price({ active: false })], "contract_check", "live"));
+  assertThrows(() => requireProductPrice([price({ currency: "bgn" })], "contract_check", "live"));
+  assertThrows(() => requireProductPrice([price({ unit_amount: 199 })], "contract_check", "live"));
+  assertThrows(() => requireProductPrice([price({ type: "recurring" })], "contract_check", "live"));
+  assertThrows(
+    () => requireProductPrice([price({ recurring: { interval: "month" } })], "contract_check", "live"),
+  );
+  assertThrows(() => requireProductPrice([price({ lookup_key: "topup_10" })], "contract_check", "live"));
 });
 
 Deno.test("платената сесия трябва да носи точно един ред", () => {
-  const ok = verifyProductLineItems([lineItem()], "contract_check");
+  assertThrows(() => verifyProductLineItems([lineItem({ price: { ...lineItem().price, id: undefined } })], "contract_check", "live"));
+  assertThrows(() => verifyProductLineItems([lineItem()], "contract_check", "sandbox"));
+  assertThrows(() => verifyProductLineItems([lineItem()], "contract_check", "live", "price_other"));
+  const ok = verifyProductLineItems([lineItem()], "contract_check", "live");
   assertEquals(ok.amountCents, 299);
   assertEquals(ok.productName, PRODUCT_PURCHASES.contract_check.name);
-  assertThrows(() => verifyProductLineItems([], "contract_check"), ProductPurchaseError);
-  assertThrows(() => verifyProductLineItems([lineItem(), lineItem()], "contract_check"));
-  assertThrows(() => verifyProductLineItems([lineItem({ quantity: 2 })], "contract_check"));
-  assertThrows(() => verifyProductLineItems([lineItem({ amount_total: 199 })], "contract_check"));
-  assertThrows(() => verifyProductLineItems([lineItem({ currency: "usd" })], "contract_check"));
-  assertThrows(() => verifyProductLineItems([lineItem()], "contract_improve"));
+  assertThrows(() => verifyProductLineItems([], "contract_check", "live"), ProductPurchaseError);
+  assertThrows(() => verifyProductLineItems([lineItem(), lineItem()], "contract_check", "live"));
+  assertThrows(() => verifyProductLineItems([lineItem({ quantity: 2 })], "contract_check", "live"));
+  assertThrows(() => verifyProductLineItems([lineItem({ amount_total: 199 })], "contract_check", "live"));
+  assertThrows(() => verifyProductLineItems([lineItem({ currency: "usd" })], "contract_check", "live"));
+  assertThrows(() => verifyProductLineItems([lineItem()], "contract_improve", "live"));
   assertThrows(() =>
-    verifyProductLineItems(
-      [lineItem({ price: { lookup_key: "contract_check_299", recurring: { interval: "month" } } })],
-      "contract_check",
-    )
+    verifyProductLineItems([lineItem({ price: { lookup_key: "contract_check_299", recurring: { interval: "month" } } })], "contract_check", "live")
   );
 });
 
@@ -105,21 +124,21 @@ Deno.test("общата сума на сесията също се сверяв�
 Deno.test("метаданните не могат да си противоречат", () => {
   assertEquals(readProductSessionMetadata({ type: "topup" }), null);
   const ok = readProductSessionMetadata({
-    type: "product",
+    purchase_kind: "product",
     productId: "contract_improve",
-    lookupKey: "contract_improve_399",
+    userId: "u1",
     intakeId: "i-1",
-    sourceHash: "a".repeat(64),
+    sourceDocumentId: "doc-1",
     environment: "sandbox",
   });
   assertEquals(ok?.productId, "contract_improve");
+  assertEquals(ok?.intakeId, "i-1");
+  // Липсващ непрозрачен идентификатор е отказ.
   assertThrows(() =>
     readProductSessionMetadata({
-      type: "product",
+      purchase_kind: "product",
       productId: "contract_improve",
-      lookupKey: "contract_check_299",
-      intakeId: "i",
-      sourceHash: "h",
+      userId: "u1",
       environment: "live",
     })
   );
@@ -130,8 +149,9 @@ Deno.test("метаданните не могат да си противореч
     readProductSessionMetadata({
       type: "product",
       productId: "contract_check",
+      userId: "u1",
       intakeId: "i",
-      sourceHash: "h",
+      sourceDocumentId: "d",
       environment: "prod",
     })
   );
