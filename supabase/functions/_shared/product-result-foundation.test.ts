@@ -187,7 +187,7 @@ Deno.test("извадка след и вътре в емоджи сочи точ
 
 Deno.test("двусмислена извадка се отхвърля, вместо да сочи първото място", () => {
   const res = resolveEvidence(NON_BMP_SOURCE, {
-    excerpt: "0,5% на ден без ограничение",
+    excerpt: "на ден без ограничение.",
   });
   assertFalse(res.ok);
 });
