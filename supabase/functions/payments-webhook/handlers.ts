@@ -33,6 +33,7 @@ import {
   readProductSessionMetadata,
   verifyProductLineItems,
 } from "../_shared/product-purchase.ts";
+import { PRODUCT_MAX_SOURCE_CHARS } from "../_shared/product-source.ts";
 import { mustAffectRows, mustSucceed } from "../_shared/db-guard.ts";
 
 // deno-lint-ignore no-explicit-any
