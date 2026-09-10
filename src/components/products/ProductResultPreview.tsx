@@ -8,7 +8,7 @@
  * Няма твърдение, че това е документът на посетителя, нито че резултатът е
  * запазен или платен.
  */
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { FileText, ListChecks, MessageSquareQuote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { OneTimeProductId } from "@/lib/products";
@@ -253,7 +253,7 @@ function useRovingKeys<T extends string>(
 function ImprovePreview({ size }: { size: Size }) {
   const [active, setActive] = useState<ImproveStrategyId>("balanced");
   const groupId = useId();
-  const roving = useRovingKeys(
+  const roving = useRovingKeys<ImproveStrategyId>(
     IMPROVE_STRATEGIES.map((s) => s.id),
     active,
     setActive,
