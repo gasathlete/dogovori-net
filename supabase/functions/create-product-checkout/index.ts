@@ -49,13 +49,6 @@ const ALLOWED_BODY_KEYS = Object.freeze([
   "withdrawalLossAcknowledged",
 ]);
 
-const ALLOWED_CONTEXT_KEYS = Object.freeze([
-  "role",
-  "objective",
-  "counterparty_context",
-  "preferred_position",
-]);
-
 class RequestShapeError extends Error {
   constructor(readonly code: string) {
     super(code);
@@ -67,51 +60,6 @@ function assertKnownKeys(body: Record<string, unknown>) {
   for (const key of Object.keys(body)) {
     if (!ALLOWED_BODY_KEYS.includes(key)) throw new RequestShapeError("unknown_field");
   }
-}
-
-/**
- * Кратки, ограничени полета за контекста, с изисквания според продукта.
- * Никога суров текст на документа.
- */
-function requireContext(raw: unknown, productId: string): Record<string, string> {
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-    throw new RequestShapeError("invalid_context");
-  }
-  const src = raw as Record<string, unknown>;
-  for (const key of Object.keys(src)) {
-    if (!ALLOWED_CONTEXT_KEYS.includes(key)) throw new RequestShapeError("unknown_context_field");
-  }
-  const out: Record<string, string> = {};
-  const take = (key: string, max: number) => {
-    const v = src[key];
-    if (typeof v !== "string") return;
-    const trimmed = v.trim();
-    if (!trimmed) return;
-    if (trimmed.length > max) throw new RequestShapeError("context_too_long");
-    if (trimmed.length < 2) throw new RequestShapeError("context_too_short");
-    out[key] = trimmed;
-  };
-  take("role", 120);
-  take("objective", 400);
-  take("counterparty_context", 400);
-  const position = src.preferred_position;
-  if (typeof position === "string" && position) {
-    if (!["conservative", "balanced", "assertive"].includes(position)) {
-      throw new RequestShapeError("invalid_position");
-    }
-    out.preferred_position = position;
-  }
-
-  // Продуктови изисквания — проверени на сървъра, не само в UI.
-  if (!out.role) throw new RequestShapeError("role_required");
-  if (productId !== "contract_check" && !out.objective) {
-    throw new RequestShapeError("objective_required");
-  }
-  if (productId === "negotiation_package") {
-    if (!out.counterparty_context) throw new RequestShapeError("counterparty_required");
-    if (!out.preferred_position) throw new RequestShapeError("position_required");
-  }
-  return out;
 }
 
 /** SHA-256 върху точно нормализирания текст — същият вход като в браузъра. */
