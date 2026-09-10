@@ -69,7 +69,9 @@ Deno.test("1000 и 10000 НИКОГА не се сливат", () => {
 
 Deno.test("EUR и BGN са РАЗЛИЧНИ канонични стойности и различни commitment-и", async () => {
   const eur = canonicalIntentValue(money("1000", "EUR"))!;
-  const bgn = canonicalIntentValue(money("1000", "лв."))!;
+  // Нарочно нестандартна валута: проверява се РУНТАЙМ поведението, затова
+  // стойността минава през `as never` без да променя смисъла на теста.
+  const bgn = canonicalIntentValue(money("1000", "лв." as never))!;
   assertNotEquals(eur, bgn);
   const a = await computeIntentCommitment({ slot: "money.price", canonical: eur, serverSecret: SECRET });
   const b = await computeIntentCommitment({ slot: "money.price", canonical: bgn, serverSecret: SECRET });
