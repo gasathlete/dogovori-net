@@ -188,7 +188,7 @@ Deno.serve(async (req) => {
     const { data: existingIntake } = await admin
       .from("product_checkout_intakes")
       .select(
-        "id, product_id, source_hash, source_updated_at, uploaded_contract_id, environment, status, stripe_session_id, stripe_price_id, stripe_price_lookup_key, expected_amount_cents, context, terms_accepted, ai_ack_accepted, immediate_performance_consent, withdrawal_loss_acknowledged, terms_version, privacy_version, withdrawal_version, refund_version, ai_notice_version, source_char_count, source_char_unit, source_kind, source_page_count, source_extraction_status",
+        "id, product_id, source_hash, source_updated_at, uploaded_contract_id, environment, status, stripe_session_id, stripe_price_id, stripe_price_lookup_key, expected_amount_cents, context, terms_accepted, ai_ack_accepted, immediate_performance_consent, withdrawal_loss_acknowledged, terms_version, privacy_version, withdrawal_version, refund_version, ai_notice_version, source_char_count, source_char_unit, source_kind, source_page_count, source_extraction_status, generation_policy_version",
       )
       .eq("user_id", userId)
       .eq("request_id", requestId)
