@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
 
     const spec = requireProductSpec(productId);
     const consent = requireProductConsent(body);
-    const context = requireContext(body.context, spec.id);
+    const context = validateProductContext(body.context, spec.id);
     // Адресът за връщане е фиксиран и НИКОГА не идва от заявката.
     const returnUrl = productReturnUrl(
       Deno.env.get("APP_BASE_URL") ?? undefined,
