@@ -361,7 +361,7 @@ export function computeProductCostBounds(
   let maxInputTokens = 0;
   let maxOutputTokens = 0;
   let maxCostMicroUsd = 0;
-  let worstModel = PRODUCT_MODEL_FLASH_LITE;
+  let worstModel: string = PRODUCT_MODEL_FLASH_LITE;
   let worstCombined = -1;
   for (const call of calls) {
     maxInputTokens = safe(maxInputTokens + call.maxInputTokens);

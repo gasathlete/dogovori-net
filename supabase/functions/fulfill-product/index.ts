@@ -23,8 +23,6 @@ import { PRODUCT_GENERATION_POLICY_VERSION } from "../_shared/product-generation
 import {
   AWAITING_GENERATION_CURSOR,
   PRODUCT_JOB_LEASE_SECONDS,
-  cursorKey,
-  jobIdempotencyKey,
   resolveProductGenerationAdapter,
 } from "../_shared/product-jobs.ts";
 import { requireProductSpec } from "../_shared/product-purchase.ts";
@@ -33,7 +31,7 @@ import {
   ProductSourceError,
   verifyStoredProductSource,
 } from "../_shared/product-source.ts";
-import { validateProductResult } from "../_shared/product-result-contract.ts";
+import { readyProductResult } from "../_shared/product-result-contract.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ALLOWED_BODY_KEYS = Object.freeze(["entitlement_id"]);
@@ -145,7 +143,7 @@ Deno.serve(async (req) => {
     const { data: snapshot } = await admin
       .from("order_snapshots")
       .select(
-        "id, purchase_kind, product_id, payment_status, stripe_session_id, stripe_event_id, stripe_price_id, stripe_price_lookup_key, paid_at, product_intake_id, product_source_document_id, product_source_hash, product_source_updated_at, product_source_char_count, product_source_char_unit, product_source_kind, product_source_pages, product_source_extraction_status, environment, price_amount, currency",
+        "id, purchase_kind, product_id, payment_status, stripe_session_id, stripe_event_id, stripe_price_id, stripe_price_lookup_key, paid_at, product_intake_id, product_source_document_id, product_source_hash, product_source_updated_at, product_source_char_count, product_source_char_unit, product_source_kind, product_source_pages, product_source_extraction_status, environment, price_amount, currency, ai_notice_version, terms_accepted, immediate_performance_consent, withdrawal_loss_acknowledged, consent_recorded_at, tax_behavior, tax_amount_cents",
       )
       .eq("purchase_kind", "product")
       .eq("product_intake_id", ent.intake_id)
@@ -170,7 +168,19 @@ Deno.serve(async (req) => {
       snapshot.product_source_char_unit !== ent.source_char_unit ||
       snapshot.product_source_kind !== ent.source_kind ||
       (snapshot.product_source_pages ?? null) !== (ent.source_page_count ?? null) ||
-      snapshot.product_source_extraction_status !== "full"
+      snapshot.product_source_extraction_status !== "full" ||
+      // Съгласията са записани точно както са дадени — никога предположени.
+      snapshot.terms_accepted !== true ||
+      snapshot.immediate_performance_consent !== true ||
+      snapshot.withdrawal_loss_acknowledged !== true ||
+      !snapshot.consent_recorded_at ||
+      // Данъчното доказателство: ако Stripe е върнал поведение, то трябва да е
+      // включен ДДС, а видимата сума НИКОГА да не надхвърля каноничната.
+      (snapshot.tax_behavior !== null &&
+        snapshot.tax_behavior !== undefined &&
+        snapshot.tax_behavior !== "inclusive") ||
+      (typeof snapshot.tax_amount_cents === "number" &&
+        snapshot.tax_amount_cents > spec.amountCents)
     ) {
       return fail("payment_unverified", 409, headers, cid);
     }
@@ -336,25 +346,39 @@ Deno.serve(async (req) => {
 
     const jobId = String(claimResult.job_id);
     const leaseToken = String(claimResult.lease_token);
+    const claimedStage = String(claimResult.stage ?? "queued");
 
-    // 8) В този етап адаптерът НАРОЧНО липсва: записваме детерминистична
-    //    контролна точка и връщаме „обработва се“. Никакъв фалшив резултат.
+    // 8) В този етап адаптерът НАРОЧНО липсва: задачата стига до
+    //    `awaiting_generation` ТОЧНО веднъж и връща „обработва се“. Никакъв
+    //    фалшив резултат.
     const adapter = resolveProductGenerationAdapter();
     if (!adapter) {
-      const { error: cpErr } = await admin.rpc("record_product_job_checkpoint", {
+      // Повторна заявка на вече изчакваща задача: НЕ записваме втора контролна
+      // точка и НЕ задържаме наема за десет минути — освобождаваме го веднага.
+      if (claimedStage !== "queued") {
+        await admin.rpc("release_product_job_lease", {
+          p_job_id: jobId,
+          p_lease_token: leaseToken,
+        });
+        return json(
+          { status: "processing", stage: claimedStage, message: MESSAGES.processing, correlation_id: cid },
+          202,
+          headers,
+        );
+      }
+      const { data: cp, error: cpErr } = await admin.rpc("record_product_job_checkpoint", {
         p_job_id: jobId,
         p_lease_token: leaseToken,
-        p_cursor_key: cursorKey(AWAITING_GENERATION_CURSOR),
-        p_stage: AWAITING_GENERATION_CURSOR.stage,
         p_next_cursor: AWAITING_GENERATION_CURSOR,
         p_usage_calls: 0,
         p_usage_input_tokens: 0,
         p_usage_output_tokens: 0,
-        p_usage_cost_milli_cents: 0,
+        p_usage_cost_micro_usd: 0,
         p_payload_digest: null,
         p_release_lease: true,
       });
-      if (cpErr) {
+      const cpResult = (cp ?? {}) as Record<string, unknown>;
+      if (cpErr || cpResult.ok !== true) {
         await admin.rpc("fail_product_job", {
           p_job_id: jobId,
           p_lease_token: leaseToken,
@@ -369,6 +393,7 @@ Deno.serve(async (req) => {
         headers,
       );
     }
+
 
     // Недостижимо в този етап: адаптерът се появява в Stage 2B1B2.
     await admin.rpc("fail_product_job", {

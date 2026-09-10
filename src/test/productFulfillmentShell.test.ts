@@ -7,13 +7,16 @@ const JOBS = readFileSync("supabase/functions/_shared/product-jobs.ts", "utf8");
 const POLICY = readFileSync("supabase/functions/_shared/product-generation-policy.ts", "utf8");
 
 describe("Заявката се отказва ПРЕДИ плащане, ако документът не може да се обработи", () => {
-  it("допустимостта се проверява преди цената и преди сесията", () => {
+  it("допустимостта се проверява преди ВСЯКО обръщение към Stripe", () => {
     const eligibility = CHECKOUT.indexOf("evaluateProductEligibility({");
-    const price = CHECKOUT.indexOf("stripe.prices.list(");
-    const session = CHECKOUT.indexOf("stripe.checkout.sessions.create(");
     expect(eligibility).toBeGreaterThan(-1);
-    expect(eligibility).toBeLessThan(price);
-    expect(price).toBeLessThan(session);
+    // Не само създаването на сесия: клиентът, цените, четенето, изтичането и
+    // клиентският запис също стоят СЛЕД проверката.
+    const sites = [...CHECKOUT.matchAll(/\bstripe\.[a-zA-Z.]+\(|createStripeClient\(|resolveOrCreateCustomer\(/g)]
+      .map((m) => m.index ?? -1)
+      .filter((i) => i >= 0);
+    expect(sites.length).toBeGreaterThanOrEqual(5);
+    for (const site of sites) expect(site).toBeGreaterThan(eligibility);
   });
 
   it("контекстът минава общата строга проверка, а не местна", () => {
@@ -63,27 +66,59 @@ describe("Изпълнението е обвивка без модел (Stage 2B
     expect(FULFILL).toContain("verified.pageCount !== (ent.source_page_count ?? null)");
   });
 
-  it("липсваща версия на политиката спира обработката (fail closed)", () => {
-    expect(FULFILL).toContain("if (storedPolicy !== PRODUCT_GENERATION_POLICY_VERSION)");
-    expect(FULFILL).not.toContain("storedPolicy !== null && storedPolicy !==");
+  it("и ДВЕТЕ копия на версията на политиката трябва да са налични и равни", () => {
+    expect(FULFILL).toContain("const intakePolicy = intake.generation_policy_version;");
+    expect(FULFILL).toContain("const entitlementPolicy = ent.generation_policy_version;");
+    expect(FULFILL).toContain("intakePolicy !== entitlementPolicy");
+    expect(FULFILL).toContain("intakePolicy !== PRODUCT_GENERATION_POLICY_VERSION");
+    // Никакво „едно от двете“.
+    expect(FULFILL).not.toMatch(/generation_policy_version\s*\?\?\s*/);
   });
 
-  it("готовият резултат се връща само по схема v2 и без преработка", () => {
-    expect(FULFILL).toContain("ent.result_schema_version !== 2 || !validateProductResult(ent.result).ok");
+  it("сверява съгласията и данъчното доказателство от order snapshot", () => {
+    for (const token of [
+      "snapshot.terms_accepted !== true",
+      "snapshot.immediate_performance_consent !== true",
+      "snapshot.withdrawal_loss_acknowledged !== true",
+      "!snapshot.consent_recorded_at",
+      'snapshot.tax_behavior !== "inclusive"',
+      "snapshot.tax_amount_cents > spec.amountCents",
+      "intake.ai_notice_version !== snapshot.ai_notice_version",
+    ]) {
+      expect(FULFILL, token).toContain(token);
+    }
+  });
+
+  it("готовият резултат минава схема v2 И пълното обвързване с източника", () => {
+    expect(FULFILL).toContain("const ready = readyProductResult(");
+    expect(FULFILL).toContain("ent.result_schema_version !== 2 || !ready.ok");
     expect(FULFILL).toContain('return json({ status: "ready", result: ent.result');
+    // Никакъв резервен вариант „последното право“.
+    expect(FULFILL).not.toMatch(/order\("created_at".*ascending: false/);
   });
 
-  it("заявява най-много една стъпка и записва детерминистична контролна точка", () => {
+  it("заявява най-много една стъпка с изведен ключ и граници в micro-USD", () => {
     expect(FULFILL).toContain('admin.rpc("claim_product_job"');
     expect(FULFILL).toContain('admin.rpc("record_product_job_checkpoint"');
-    expect(FULFILL).toContain("cursorKey(AWAITING_GENERATION_CURSOR)");
-    expect(FULFILL).toContain("p_usage_calls: 0");
+    expect(FULFILL).toContain("p_budget_max_input_tokens: bounds.maxInputTokens");
+    expect(FULFILL).toContain("p_budget_max_output_tokens: bounds.maxOutputTokens");
+    expect(FULFILL).toContain("p_budget_hard_cost_micro_usd: bounds.hardCostMicroUsd");
+    expect(FULFILL).toContain("p_usage_cost_micro_usd: 0");
+    // Ключът на стъпката НЕ идва от функцията, а се изчислява в базата.
+    expect(FULFILL).not.toContain("p_cursor_key");
+    expect(FULFILL).not.toContain("milli_cents");
   });
 
-  it("активен наем и вече завършена задача връщат „обработва се“, не грешка", () => {
+  it("повторна заявка не заключва задачата за десет минути и не лъже с резултат", () => {
+    expect(FULFILL).toContain('if (claimedStage !== "queued")');
+    expect(FULFILL).toContain('admin.rpc("release_product_job_lease"');
+    expect(FULFILL).toContain('status: "processing"');
+  });
+
+  it("активен наем, завършена и постоянно пропаднала задача се обработват честно", () => {
     expect(FULFILL).toContain('if (reason === "lease_active")');
     expect(FULFILL).toContain('if (reason === "already_completed")');
-    expect(FULFILL).toContain('status: "processing"');
+    expect(FULFILL).toContain('return fail("failed_permanent", 409, headers, cid)');
   });
 
   it("НЯМА извикване на модел, фикстури или частичен резултат", () => {
