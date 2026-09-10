@@ -84,6 +84,9 @@ CREATE TABLE IF NOT EXISTS public.product_checkout_intakes (
 -- Заварените инсталации получават новите колони добавъчно.
 ALTER TABLE public.product_checkout_intakes
   ADD COLUMN IF NOT EXISTS source_char_count integer,
+  -- Точният приет вид на файла и каноничната мерна единица за дължината.
+  ADD COLUMN IF NOT EXISTS source_kind text,
+  ADD COLUMN IF NOT EXISTS source_char_unit text,
   ADD COLUMN IF NOT EXISTS source_page_count integer,
   ADD COLUMN IF NOT EXISTS source_extraction_status text,
   ADD COLUMN IF NOT EXISTS stripe_price_id text,
@@ -134,6 +137,28 @@ DO $$ BEGIN
   ALTER TABLE public.product_checkout_intakes
     ADD CONSTRAINT product_checkout_intakes_source_chars_ck
     CHECK (source_char_count BETWEEN 80 AND 60000);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Приетият вид на източника се пази точно (pdf/docx) — не се предполага.
+DO $$ BEGIN
+  ALTER TABLE public.product_checkout_intakes
+    ADD CONSTRAINT product_checkout_intakes_source_kind_ck
+    CHECK (source_kind IN ('pdf', 'docx'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Единствената мерна единица за дължината на източника: Unicode кодови точки.
+-- В PostgreSQL това е `length(text)`, в JavaScript — [...text].length.
+DO $$ BEGIN
+  ALTER TABLE public.product_checkout_intakes
+    ADD CONSTRAINT product_checkout_intakes_char_unit_ck
+    CHECK (source_char_unit = 'unicode_code_points');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Броят страници е измерен или липсва. NULL остава NULL и не се предполага.
+DO $$ BEGIN
+  ALTER TABLE public.product_checkout_intakes
+    ADD CONSTRAINT product_checkout_intakes_source_pages_ck
+    CHECK (source_page_count IS NULL OR source_page_count > 0);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
@@ -243,6 +268,9 @@ CREATE TABLE IF NOT EXISTS public.product_entitlements (
   source_hash text NOT NULL,
   source_updated_at timestamptz,
   source_char_count integer,
+  source_char_unit text,
+  source_kind text,
+  source_page_count integer,
   source_extraction_status text,
   intake_id uuid REFERENCES public.product_checkout_intakes(id) ON DELETE RESTRICT,
   status text NOT NULL DEFAULT 'paid',
@@ -266,6 +294,9 @@ CREATE TABLE IF NOT EXISTS public.product_entitlements (
 
 ALTER TABLE public.product_entitlements
   ADD COLUMN IF NOT EXISTS stripe_price_id text,
+  ADD COLUMN IF NOT EXISTS source_kind text,
+  ADD COLUMN IF NOT EXISTS source_page_count integer,
+  ADD COLUMN IF NOT EXISTS source_char_unit text,
   ADD COLUMN IF NOT EXISTS paid_at timestamptz,
   ADD COLUMN IF NOT EXISTS stripe_event_id text,
   ADD COLUMN IF NOT EXISTS source_char_count integer,
@@ -333,6 +364,9 @@ DO $$ BEGIN
       AND source_updated_at IS NOT NULL
       AND source_extraction_status = 'full'
       AND source_char_count BETWEEN 80 AND 60000
+      AND source_char_unit = 'unicode_code_points'
+      AND source_kind IN ('pdf', 'docx')
+      AND (source_page_count IS NULL OR source_page_count > 0)
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
@@ -416,6 +450,9 @@ ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS stripe_price_lookup_
 ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS product_source_updated_at timestamptz;
 ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS product_source_char_count integer;
 ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS product_source_extraction_status text;
+ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS product_source_kind text;
+ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS product_source_pages integer;
+ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS product_source_char_unit text;
 ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS ai_notice_version text;
 ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS paid_at timestamptz;
 ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS stripe_event_id text;
@@ -476,13 +513,20 @@ DO $$ BEGIN
           'contract_check_299', 'contract_improve_399', 'negotiation_package_799')
         AND product_source_updated_at IS NOT NULL
         AND product_source_char_count BETWEEN 80 AND 60000
+        AND product_source_char_unit = 'unicode_code_points'
         AND product_source_extraction_status = 'full'
+        AND product_source_kind IN ('pdf', 'docx')
+        AND (product_source_pages IS NULL OR product_source_pages > 0)
         AND paid_at IS NOT NULL
         AND stripe_session_id IS NOT NULL AND length(btrim(stripe_session_id)) > 0
         AND stripe_event_id IS NOT NULL AND length(btrim(stripe_event_id)) > 0
         -- Доказано е ПОВЕДЕНИЕТО на цената, не някаква ставка.
         AND vat_included IS TRUE
         AND tax_behavior = 'inclusive'
+        -- Stripe доказва ВКЛЮЧЕНОСТ на данъка, не ставка. Без подписана ставка
+        -- редът остава без ставка и без сума на данъка.
+        AND vat_rate IS NULL
+        AND tax_amount_cents IS NULL
         AND ai_notice_version IS NOT NULL
         AND terms_accepted IS TRUE
         AND ai_ack_accepted IS TRUE
@@ -587,6 +631,9 @@ BEGIN
      OR v_intake.stripe_price_id IS DISTINCT FROM p_price_id
      OR v_intake.source_extraction_status IS DISTINCT FROM 'full'
      OR v_intake.source_char_count IS NULL
+     -- Една канонична мерна единица навсякъде: Unicode кодови точки.
+     OR v_intake.source_char_unit IS DISTINCT FROM 'unicode_code_points'
+     OR COALESCE(v_intake.source_kind, '') NOT IN ('pdf', 'docx')
      OR v_intake.uploaded_contract_id IS NULL
      OR v_intake.source_updated_at IS NULL
      OR v_intake.terms_accepted IS NOT TRUE
@@ -616,7 +663,10 @@ BEGIN
      OR length(COALESCE(v_doc.extracted_text, '')) IS DISTINCT FROM v_intake.source_char_count
      OR v_doc.product_extraction_status IS DISTINCT FROM 'full'
      OR v_doc.product_extracted_chars IS DISTINCT FROM v_intake.source_char_count
-     OR COALESCE(v_doc.product_source_kind, '') NOT IN ('pdf', 'docx') THEN
+     OR COALESCE(v_doc.product_source_kind, '') NOT IN ('pdf', 'docx')
+     -- Приетият вид на файла и измереният брой страници са част от истината.
+     OR v_doc.product_source_kind IS DISTINCT FROM v_intake.source_kind
+     OR v_doc.product_source_pages IS DISTINCT FROM v_intake.source_page_count THEN
     RAISE EXCEPTION 'product_source_changed';
   END IF;
 
@@ -650,6 +700,9 @@ BEGIN
        OR v_ent.source_hash IS DISTINCT FROM v_intake.source_hash
        OR v_ent.source_updated_at IS DISTINCT FROM v_intake.source_updated_at
        OR v_ent.source_char_count IS DISTINCT FROM v_intake.source_char_count
+       OR v_ent.source_char_unit IS DISTINCT FROM 'unicode_code_points'
+       OR v_ent.source_kind IS DISTINCT FROM v_intake.source_kind
+       OR v_ent.source_page_count IS DISTINCT FROM v_intake.source_page_count
        OR v_ent.source_extraction_status IS DISTINCT FROM 'full'
        OR v_ent.paid_at IS DISTINCT FROM p_paid_at
        OR v_ent.stripe_event_id IS DISTINCT FROM p_stripe_event_id THEN
@@ -681,6 +734,9 @@ BEGIN
        OR v_snapshot.product_source_updated_at IS DISTINCT FROM v_intake.source_updated_at
        OR v_snapshot.product_source_char_count IS DISTINCT FROM v_intake.source_char_count
        OR v_snapshot.product_source_extraction_status IS DISTINCT FROM 'full'
+       OR v_snapshot.product_source_char_unit IS DISTINCT FROM 'unicode_code_points'
+       OR v_snapshot.product_source_kind IS DISTINCT FROM v_intake.source_kind
+       OR v_snapshot.product_source_pages IS DISTINCT FROM v_intake.source_page_count
        OR v_snapshot.terms_accepted IS NOT TRUE
        OR v_snapshot.ai_ack_accepted IS NOT TRUE
        OR v_snapshot.immediate_performance_consent IS NOT TRUE
@@ -692,13 +748,28 @@ BEGIN
        OR v_snapshot.withdrawal_version IS DISTINCT FROM v_intake.withdrawal_version
        OR v_snapshot.ai_notice_version IS DISTINCT FROM v_intake.ai_notice_version
        OR v_snapshot.vat_included IS NOT TRUE
-       OR v_snapshot.tax_behavior IS DISTINCT FROM 'inclusive' THEN
+       OR v_snapshot.tax_behavior IS DISTINCT FROM 'inclusive'
+       -- Пълното данъчно доказателство: поведение да, ставка и сума — не.
+       OR v_snapshot.vat_rate IS NOT NULL
+       OR v_snapshot.tax_amount_cents IS NOT NULL THEN
       RAISE EXCEPTION 'product_snapshot_conflict';
     END IF;
   END IF;
 
-  -- 7) Повторната доставка е успех САМО когато и правото, и snapshot-ът вече
-  --    съществуват и съвпадат напълно.
+  -- 7) Половин състояние НИКОГА не се лекува тихо: правото и snapshot-ът
+  --    съществуват заедно или изобщо не съществуват.
+  IF (v_ent.id IS NULL) <> (v_snapshot.id IS NULL) THEN
+    RAISE EXCEPTION 'product_half_state';
+  END IF;
+
+  -- Първо даване: и правото, и snapshot-ът трябва да липсват преди вписването.
+  IF v_intake.status = 'checkout_created'
+     AND (v_ent.id IS NOT NULL OR v_snapshot.id IS NOT NULL) THEN
+    RAISE EXCEPTION 'product_half_state';
+  END IF;
+
+  -- Повторната доставка е успех САМО когато и правото, и snapshot-ът вече
+  -- съществуват и съвпадат напълно.
   IF v_intake.status = 'paid' AND (v_ent.id IS NULL OR v_snapshot.id IS NULL) THEN
     RAISE EXCEPTION 'product_replay_incomplete';
   END IF;
@@ -708,12 +779,14 @@ BEGIN
       user_id, product_id, stripe_session_id, stripe_price_id, stripe_price_lookup_key,
       environment, amount_cents, currency, paid_at, stripe_event_id,
       source_document_id, source_hash, source_updated_at, source_char_count,
+      source_char_unit, source_kind, source_page_count,
       source_extraction_status, intake_id, status, refinements_included
     ) VALUES (
       p_user_id, p_product_id, p_session_id, p_price_id, p_lookup_key,
       p_environment, p_amount_cents, 'eur', p_paid_at, btrim(p_stripe_event_id),
       v_intake.uploaded_contract_id, v_intake.source_hash, v_intake.source_updated_at,
-      v_intake.source_char_count, 'full', p_intake_id, 'paid', v_expected_refinements
+      v_intake.source_char_count, 'unicode_code_points', v_intake.source_kind,
+      v_intake.source_page_count, 'full', p_intake_id, 'paid', v_expected_refinements
     ) RETURNING id INTO v_new_id;
   END IF;
 
@@ -729,6 +802,7 @@ BEGIN
       stripe_event_id, paid_at, environment, payment_status, purchase_kind,
       product_intake_id, product_source_document_id, product_source_hash,
       product_source_updated_at, product_source_char_count,
+      product_source_char_unit, product_source_kind, product_source_pages,
       product_source_extraction_status, stripe_price_id, stripe_price_lookup_key
     ) VALUES (
       p_user_id, p_product_id, v_amount, 'EUR', true, NULL, 'inclusive',
@@ -739,7 +813,8 @@ BEGIN
       p_product_id, p_session_id, btrim(p_stripe_event_id), p_paid_at,
       p_environment, 'paid', 'product', p_intake_id,
       v_intake.uploaded_contract_id, v_intake.source_hash, v_intake.source_updated_at,
-      v_intake.source_char_count, 'full', p_price_id, p_lookup_key
+      v_intake.source_char_count, 'unicode_code_points', v_intake.source_kind,
+      v_intake.source_page_count, 'full', p_price_id, p_lookup_key
     );
   END IF;
 

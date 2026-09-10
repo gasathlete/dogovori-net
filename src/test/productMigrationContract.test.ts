@@ -291,5 +291,49 @@ describe("Stage 2A миграция — платежна истина", () => {
     expect(sql).not.toContain("'refinement_processing'");
     expect(sql).not.toContain("'exhausted'");
   });
-});
+  // ---- Половин състояние ---------------------------------------------------
+  it("отказва половин състояние вместо да го лекува тихо", () => {
+    expect(purchaseFn).toContain("IF (v_ent.id IS NULL) <> (v_snapshot.id IS NULL) THEN");
+    expect(purchaseFn).toContain("product_half_state");
+    expect(purchaseFn).toContain("IF v_intake.status = 'checkout_created'");
+  });
 
+  // ---- Точен вид на източника ---------------------------------------------
+  it("пренася и сверява точния вид на файла и страниците", () => {
+    expect(sql).toContain("ADD CONSTRAINT product_checkout_intakes_source_kind_ck");
+    expect(sql).toContain("CHECK (source_kind IN ('pdf', 'docx'))");
+    expect(sql).toContain(
+      "ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS product_source_kind text;",
+    );
+    expect(purchaseFn).toContain("v_doc.product_source_kind IS DISTINCT FROM v_intake.source_kind");
+    expect(purchaseFn).toContain("v_ent.source_kind IS DISTINCT FROM v_intake.source_kind");
+    expect(purchaseFn).toContain(
+      "v_snapshot.product_source_kind IS DISTINCT FROM v_intake.source_kind",
+    );
+    expect(purchaseFn).toContain(
+      "v_snapshot.product_source_pages IS DISTINCT FROM v_intake.source_page_count",
+    );
+  });
+
+  // ---- Една мерна единица за дължина --------------------------------------
+  it("пази една канонична мерна единица за дължината на източника", () => {
+    expect(sql).toContain("CHECK (source_char_unit = 'unicode_code_points')");
+    expect(sql).toContain("AND product_source_char_unit = 'unicode_code_points'");
+    expect(purchaseFn).toContain(
+      "v_intake.source_char_unit IS DISTINCT FROM 'unicode_code_points'",
+    );
+    expect(purchaseFn).toContain("v_ent.source_char_unit IS DISTINCT FROM 'unicode_code_points'");
+  });
+
+  // ---- Пълно данъчно доказателство ----------------------------------------
+  it("продуктовият snapshot няма ставка и сума на данъка без подпис", () => {
+    const ck = sql.slice(
+      sql.indexOf("ADD CONSTRAINT order_snapshots_product_id_ck"),
+      sql.indexOf("-- E) Атомарни функции"),
+    );
+    expect(ck).toContain("AND vat_rate IS NULL");
+    expect(ck).toContain("AND tax_amount_cents IS NULL");
+    expect(purchaseFn).toContain("v_snapshot.vat_rate IS NOT NULL");
+    expect(purchaseFn).toContain("v_snapshot.tax_amount_cents IS NOT NULL");
+  });
+});

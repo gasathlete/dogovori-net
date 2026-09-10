@@ -11,6 +11,25 @@ export const PRODUCT_MAX_SOURCE_CHARS = 60000;
 /** Минимум знаци, под които не можем да твърдим, че документът е прочетен. */
 export const PRODUCT_MIN_SOURCE_CHARS = 80;
 
+/**
+ * ЕДИНСТВЕНАТА мерна единица за дължината на източника: Unicode кодови точки.
+ *
+ * Това е съзнателен избор, за да съвпадат три различни среди:
+ *  - PostgreSQL: `length(text)` брои кодови точки;
+ *  - Deno/Edge и браузър: итерирането по низ дава кодови точки.
+ * Свойството `String.length` в JavaScript брои UTF-16 units и НЕ се използва
+ * никъде по продуктовия път — емоджи и други знаци извън BMP биха дали 2.
+ */
+export const PRODUCT_SOURCE_CHAR_UNIT = "unicode_code_points" as const;
+export type ProductSourceCharUnit = typeof PRODUCT_SOURCE_CHAR_UNIT;
+
+/** Каноничният брой знаци на източника (Unicode кодови точки). */
+export function countProductSourceChars(text: string): number {
+  let count = 0;
+  for (const _ch of text) count += 1;
+  return count;
+}
+
 /** Платеният продукт е обвързан с ФАЙЛ: PDF с четим текст или DOCX. */
 export type ProductSourceKind = "pdf" | "docx";
 export type ProductExtractionStatus = "full" | "partial";
