@@ -592,6 +592,13 @@ function checkReview(
   // Паспорт на документа
   const passport = c.obj(`${path}.passport`, o.passport);
   if (passport) {
+    c.exact(`${path}.passport`, passport, [
+      "title",
+      "document_type",
+      "parties",
+      "governing_law",
+      "signature_state",
+    ]);
     c.str(`${path}.passport.title`, passport.title, RESULT_LIMITS.shortText);
     c.str(`${path}.passport.document_type`, passport.document_type, RESULT_LIMITS.shortText);
     c.nullableStr(`${path}.passport.governing_law`, passport.governing_law, RESULT_LIMITS.shortText);
@@ -605,8 +612,11 @@ function checkReview(
       const p = `${path}.passport.parties[${i}]`;
       const po = c.obj(p, party);
       if (!po) return;
+      c.exact(p, po, ["role", "name", "span"]);
       c.str(`${p}.role`, po.role, RESULT_LIMITS.shortText);
-      c.str(`${p}.name`, po.name, RESULT_LIMITS.shortText);
+      // Името може да е заличено или да липсва — тогава е null, не измислено.
+      if (po.name === undefined) c.fail(`${p}.name`, "очаква се име или null");
+      else c.nullableStr(`${p}.name`, po.name, RESULT_LIMITS.shortText);
       checkSpan(c, `${p}.span`, po.span, binding);
     });
   }
@@ -625,10 +635,24 @@ function checkReview(
       if (findingIds.has(id)) c.fail(`${p}.id`, "повтарящ се идентификатор");
       findingIds.add(id);
     }
+    c.exact(p, fo, [
+      "id",
+      "title",
+      "severity",
+      "affected_party",
+      "explanation",
+      "consequence",
+      "next_step",
+      "span",
+      "legal_basis",
+    ]);
     c.str(`${p}.title`, fo.title, RESULT_LIMITS.shortText);
     c.oneOf(`${p}.severity`, fo.severity, RESULT_SEVERITIES);
     c.oneOf(`${p}.affected_party`, fo.affected_party, RESULT_PARTIES);
     c.str(`${p}.explanation`, fo.explanation, RESULT_LIMITS.text);
+    // Последствието и следващата стъпка са отделни полета, не общо обяснение.
+    c.str(`${p}.consequence`, fo.consequence, RESULT_LIMITS.text);
+    c.str(`${p}.next_step`, fo.next_step, RESULT_LIMITS.text);
     checkSpan(c, `${p}.span`, fo.span, binding);
     checkLegalBasis(c, `${p}.legal_basis`, fo.legal_basis);
   });
@@ -640,6 +664,7 @@ function checkReview(
     const p = `${path}.priority_summary[${i}]`;
     const po = c.obj(p, item);
     if (!po) return;
+    c.exact(p, po, ["finding_id", "rank", "reason"]);
     const ref = c.id(`${p}.finding_id`, po.finding_id);
     if (ref && !findingIds.has(ref)) c.fail(`${p}.finding_id`, "сочи към несъществуваща находка");
     const rank = c.int(`${p}.rank`, po.rank, 1, RESULT_LIMITS.priorities);
@@ -655,6 +680,7 @@ function checkReview(
     const p = `${path}.obligations[${i}]`;
     const oo = c.obj(p, item);
     if (!oo) return;
+    c.exact(p, oo, ["id", "party", "summary", "deadline", "span"]);
     c.id(`${p}.id`, oo.id);
     c.oneOf(`${p}.party`, oo.party, RESULT_PARTIES);
     c.str(`${p}.summary`, oo.summary, RESULT_LIMITS.text);
@@ -667,6 +693,7 @@ function checkReview(
     const p = `${path}.economic_terms[${i}]`;
     const to = c.obj(p, item);
     if (!to) return;
+    c.exact(p, to, ["id", "kind", "label", "value_text", "span"]);
     c.id(`${p}.id`, to.id);
     c.oneOf(`${p}.kind`, to.kind, ECONOMIC_TERM_KINDS);
     c.str(`${p}.label`, to.label, RESULT_LIMITS.shortText);
@@ -677,6 +704,7 @@ function checkReview(
   for (const key of ["termination", "disputes"] as const) {
     const co = c.obj(`${path}.${key}`, o[key]);
     if (!co) continue;
+    c.exact(`${path}.${key}`, co, ["summary", "spans"]);
     c.str(`${path}.${key}.summary`, co.summary, RESULT_LIMITS.text);
     checkSpans(c, `${path}.${key}.spans`, co.spans, binding, 0);
   }
@@ -690,18 +718,27 @@ function checkReview(
     const p = `${path}.contradictions[${i}]`;
     const co = c.obj(p, item);
     if (!co) return;
+    c.exact(p, co, ["id", "summary", "spans"]);
     c.id(`${p}.id`, co.id);
     c.str(`${p}.summary`, co.summary, RESULT_LIMITS.text);
     // Противоречие има смисъл само между поне две места.
     checkSpans(c, `${p}.spans`, co.spans, binding, 2);
   });
 
+  // Механичните проверки: кои понятия са търсени в целия източник.
+  const notFoundChecks = new Set<string>();
+  const absenceIds = new Set<string>();
   const absence = c.arr(`${path}.absence_checks`, o.absence_checks, RESULT_LIMITS.absenceChecks);
   absence?.forEach((item, i) => {
     const p = `${path}.absence_checks[${i}]`;
     const ao = c.obj(p, item);
     if (!ao) return;
-    c.id(`${p}.id`, ao.id);
+    c.exact(p, ao, ["id", "concept", "searched_terms", "coverage", "found", "spans", "note"]);
+    const aid = c.id(`${p}.id`, ao.id);
+    if (aid) {
+      if (absenceIds.has(aid)) c.fail(`${p}.id`, "повтарящ се идентификатор на проверка");
+      absenceIds.add(aid);
+    }
     c.str(`${p}.concept`, ao.concept, RESULT_LIMITS.shortText);
     const searched = c.arr(`${p}.searched_terms`, ao.searched_terms, RESULT_LIMITS.searchedTerms);
     if (searched && searched.length === 0) {
@@ -716,7 +753,55 @@ function checkReview(
     if (found === false && Array.isArray(ao.spans) && ao.spans.length > 0) {
       c.fail(`${p}.spans`, "ненамерен израз не може да сочи място в източника");
     }
+    if (found === false && aid) notFoundChecks.add(aid);
     c.nullableStr(`${p}.note`, ao.note, RESULT_LIMITS.text);
+  });
+
+  /*
+   * Липсващи защити — човешкото твърдение „това го няма“. Допустимо е САМО
+   * когато сочи проверка върху целия документ с `found: false`. Затова тук няма
+   * SourceSpan: текст, който не съществува, не може да има място в източника.
+   */
+  const missingIds = new Set<string>();
+  const missing = c.arr(
+    `${path}.missing_protections`,
+    o.missing_protections,
+    RESULT_LIMITS.missingProtections,
+  );
+  missing?.forEach((item, i) => {
+    const p = `${path}.missing_protections[${i}]`;
+    const mo = c.obj(p, item);
+    if (!mo) return;
+    c.exact(p, mo, [
+      "id",
+      "title",
+      "concept",
+      "why_it_matters",
+      "consequence",
+      "next_step",
+      "affected_party",
+      "absence_check_id",
+      "legal_basis",
+    ]);
+    const id = c.id(`${p}.id`, mo.id);
+    if (id) {
+      if (missingIds.has(id)) c.fail(`${p}.id`, "повтарящ се идентификатор");
+      missingIds.add(id);
+    }
+    c.str(`${p}.title`, mo.title, RESULT_LIMITS.shortText);
+    c.str(`${p}.concept`, mo.concept, RESULT_LIMITS.shortText);
+    c.str(`${p}.why_it_matters`, mo.why_it_matters, RESULT_LIMITS.text);
+    c.str(`${p}.consequence`, mo.consequence, RESULT_LIMITS.text);
+    c.str(`${p}.next_step`, mo.next_step, RESULT_LIMITS.text);
+    c.oneOf(`${p}.affected_party`, mo.affected_party, RESULT_PARTIES);
+    const ref = c.id(`${p}.absence_check_id`, mo.absence_check_id);
+    if (ref && !notFoundChecks.has(ref)) {
+      c.fail(
+        `${p}.absence_check_id`,
+        "твърдението за липса трябва да сочи проверка върху целия документ с found: false",
+      );
+    }
+    checkLegalBasis(c, `${p}.legal_basis`, mo.legal_basis);
   });
 
   const questions = c.arr(`${path}.questions`, o.questions, RESULT_LIMITS.questions);
@@ -724,6 +809,7 @@ function checkReview(
     const p = `${path}.questions[${i}]`;
     const qo = c.obj(p, item);
     if (!qo) return;
+    c.exact(p, qo, ["id", "question", "why"]);
     c.id(`${p}.id`, qo.id);
     c.str(`${p}.question`, qo.question, RESULT_LIMITS.text);
     c.str(`${p}.why`, qo.why, RESULT_LIMITS.text);
