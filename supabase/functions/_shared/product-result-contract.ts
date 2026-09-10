@@ -1069,7 +1069,9 @@ export function validateProductResult(raw: unknown): ValidationResult {
   }
 
   if (c.errors.length > 0) return { ok: false, errors: c.errors };
-  return { ok: true, result: { ...(o as unknown as ProductResult), ready: true } };
+  // Без допълнителен ключ: готовият резултат е точно проверения плик.
+  return { ok: true, result: o as unknown as ReadyProductResult };
+
 }
 
 /**

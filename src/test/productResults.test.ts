@@ -228,14 +228,37 @@ describe("Резултат v2 — обвързване с източника", (
   });
 
   it("правилният продукт и източник дават готов резултат", () => {
+    const fixture = cloneFixture(NEGOTIATION_PACKAGE_FIXTURE);
+    const res = parseReadyProductResult(fixture, FIXTURE_BINDING, "negotiation_package");
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    // Готовият резултат е ТОЧНО проверения плик: без вътрешен признак за
+    // „готовност“, който да се запише в базата или да провали повторна проверка.
+    expect(res.result).toEqual(fixture);
+    expect(Object.keys(res.result as unknown as Record<string, unknown>).sort()).toEqual(
+      Object.keys(fixture as unknown as Record<string, unknown>).sort(),
+    );
+  });
+
+  it("готовият резултат може да се провери отново и да се сериализира", () => {
     const res = parseReadyProductResult(
       cloneFixture(NEGOTIATION_PACKAGE_FIXTURE),
       FIXTURE_BINDING,
       "negotiation_package",
     );
     expect(res.ok).toBe(true);
-    if (res.ok) expect(res.result.ready).toBe(true);
+    if (!res.ok) return;
+    expect(validateProductResult(res.result).ok).toBe(true);
+    const json = JSON.stringify(res.result);
+    expect(json).not.toContain('"ready"');
+    const reparsed = JSON.parse(json);
+    expect(validateProductResult(reparsed).ok).toBe(true);
+    expect(isValidProductResult(reparsed)).toBe(true);
+    const again = parseReadyProductResult(reparsed, FIXTURE_BINDING, "negotiation_package");
+    expect(again.ok).toBe(true);
+    if (again.ok) expect(again.result).toEqual(res.result);
   });
+
 
   it("друга ревизия, хеш, вид или дължина на източника е друг резултат", () => {
     for (const patch of [
