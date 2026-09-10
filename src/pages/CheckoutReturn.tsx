@@ -9,6 +9,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { trackCheckoutCompleted } from "@/lib/docFunnel";
 import { describeCheckoutReturn, type PurchaseKind } from "@/lib/checkoutAnalytics";
 import { sanitizeReturnPath } from "@/lib/safeRoute";
+import { fetchEntitlementBySession } from "@/lib/productEntitlements";
+import { PRODUCT_RESULT_PATH, isOneTimeProductId } from "@/lib/products";
 
 /**
  * Връщането от Stripe само по себе си НЕ е доказателство за плащане. Затова
@@ -63,6 +65,32 @@ export default function CheckoutReturn() {
       };
 
       switch (kind) {
+        case "product": {
+          // Продуктова покупка: изискваме едновременно платен snapshot за тази
+          // сесия със точния продукт И съответстващата привилегия. Само
+          // snapshot не е достатъчен.
+          const productParam = params.get("product");
+          if (!isOneTimeProductId(productParam)) return false;
+          const { data: productSnapshot } = await supabase
+            .from("order_snapshots")
+            .select("id, payment_status, purchase_kind, product_id")
+            .eq("user_id", uid)
+            .eq("stripe_session_id", sid)
+            .maybeSingle();
+          const snap = productSnapshot as
+            | { payment_status?: string | null; purchase_kind?: string | null; product_id?: string | null }
+            | null;
+          if (
+            !snap ||
+            snap.payment_status !== "paid" ||
+            snap.purchase_kind !== "product" ||
+            snap.product_id !== productParam
+          ) {
+            return false;
+          }
+          const entitlement = await fetchEntitlementBySession(uid, sid);
+          return !!entitlement && entitlement.product_id === productParam;
+        }
         case "entry_pack":
         case "topup":
           // Записът се създава от същия fail-closed webhook и носи session id —
@@ -97,7 +125,7 @@ export default function CheckoutReturn() {
           return paid;
       }
     },
-    [],
+    [params],
   );
 
   useEffect(() => {
@@ -139,8 +167,13 @@ export default function CheckoutReturn() {
         source: descriptor.source,
       });
     }
-    if (redirectTo) {
-      const t = setTimeout(() => navigate(redirectTo), 1500);
+    // Продуктова покупка: след доказано плащане водим към състоянието на
+    // самата поръчка, а не към общ екран.
+    const target = descriptor.kind === "product"
+      ? `${PRODUCT_RESULT_PATH}?session_id=${encodeURIComponent(sessionId ?? "")}`
+      : redirectTo;
+    if (target) {
+      const t = setTimeout(() => navigate(target), 1500);
       return () => clearTimeout(t);
     }
   }, [readyAt, redirectTo, navigate, sessionId, descriptor]);

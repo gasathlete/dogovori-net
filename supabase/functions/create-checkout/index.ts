@@ -14,6 +14,7 @@ import {
   assertEnvironmentAllowed,
   sandboxForbiddenResponse,
 } from "../_shared/sandbox-guard.ts";
+import { consentMetadata, readConsent } from "../_shared/purchase-consent.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCors(req);
@@ -61,6 +62,9 @@ Deno.serve(async (req) => {
       throw new EntryPriceError("unsupported_price");
     }
     if (!returnUrl || typeof returnUrl !== "string") throw new Error("returnUrl required");
+    // Честен прочит на съгласията: каквото е потвърдено в интерфейса, толкова
+    // се записва. Липсващо съгласие остава false, не се презаписва на true.
+    const consent = readConsent(body as Record<string, unknown>);
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
     // Sandbox (test) плащания дават реален entitlement в общите таблици —
     // разрешени са само за staff. Проверката е server-side по JWT user id.
@@ -190,11 +194,9 @@ Deno.serve(async (req) => {
         priceId,
         ...(priceId === "branding_unlock_once" ? { type: "branding_unlock" } : {}),
         billing_period: isRecurring ? (price.recurring?.interval ?? null) : null,
-        terms_version: "2026-09-01",
-        privacy_version: "2026-09-01",
-        withdrawal_version: "2026-09-01",
-        refund_version: "2026-09-01",
-        ai_ack_accepted: "true",
+        // Само реално получените съгласия. Сървърът никога не записва
+        // потвърждение, което не е дошло от интерфейса.
+        ...consentMetadata(consent),
         ...(appliedCouponId ? { loyalty_coupon: appliedCouponId } : {}),
         ...(!appliedCouponId && promoCouponId ? { promo_coupon: promoCouponId } : {}),
       },
