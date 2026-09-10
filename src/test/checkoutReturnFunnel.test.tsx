@@ -189,15 +189,13 @@ describe("CheckoutReturn — без потвърждение", () => {
     await waitFor(() => expect(trackCheckoutCompletedMock).not.toHaveBeenCalled());
   });
 
-  it("подправени параметри → безопасни етикети unknown", async () => {
+  it("подправени параметри и непознат вид покупка → нула събития", async () => {
+    // Само запис за поръчка не доказва, че точно това право е дадено. При
+    // непознат вид покупка не потвърждаваме нищо.
     tables.set("order_snapshots", { id: "o1" });
     renderReturn(`session_id=${SESSION}&price_id=<script>evil</script>&source=attacker@example.com`);
-    await waitFor(() => expect(trackCheckoutCompletedMock).toHaveBeenCalledTimes(1));
-    expect(trackCheckoutCompletedMock.mock.calls[0][1]).toEqual({
-      kind: "unknown",
-      plan: "unknown",
-      billing: "unknown",
-      source: "unknown",
-    });
+    await new Promise((r) => setTimeout(r, 400));
+    expect(trackCheckoutCompletedMock).not.toHaveBeenCalled();
   });
+
 });
