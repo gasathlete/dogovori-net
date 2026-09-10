@@ -221,6 +221,9 @@ Deno.serve(async (req) => {
         existingIntake.withdrawal_version !== LEGAL_VERSIONS.withdrawal ||
         existingIntake.refund_version !== LEGAL_VERSIONS.refund ||
         existingIntake.ai_notice_version !== LEGAL_VERSIONS.aiNotice ||
+        // Повторният опит не сменя ТИХО политиката за обработка.
+        (existingIntake.generation_policy_version ?? PRODUCT_GENERATION_POLICY_VERSION) !==
+          PRODUCT_GENERATION_POLICY_VERSION ||
         !sameContext;
       if (mismatch) return fail("intake_conflict", 409, corsHeaders);
       if (existingIntake.status === "paid") return fail("already_paid", 409, corsHeaders);
@@ -277,6 +280,7 @@ Deno.serve(async (req) => {
           source_kind: verifiedSource.sourceKind,
           source_page_count: verifiedSource.pageCount,
           source_extraction_status: "full",
+          generation_policy_version: PRODUCT_GENERATION_POLICY_VERSION,
         })
         .select("id")
         .single();
@@ -347,6 +351,7 @@ Deno.serve(async (req) => {
     if (e instanceof RequestShapeError) return fail(e.code, 400, corsHeaders);
     if (e instanceof ProductPurchaseError) return fail(e.reason, 400, corsHeaders);
     if (e instanceof ProductSourceError) return fail(e.reason, 400, corsHeaders);
+    if (e instanceof ProductContextError) return fail(e.reason, 400, corsHeaders);
     const code = e instanceof Error && e.message.length < 40 ? e.message : "checkout_failed";
     console.error("create-product-checkout error:", e);
     return fail(code, 400, corsHeaders);
