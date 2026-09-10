@@ -25,7 +25,9 @@ import {
 const SECRET = "test-only-fake-server-secret-0123456789";
 const OTHER_SECRET = "test-only-DIFFERENT-server-secret-9876543210";
 
-const money = (amount: string, currency: string) =>
+// Валутата е точно съюзът от договора — иначе типът се разширява до `string`
+// и типовата проверка на Deno гърми. Поведението в теста е непроменено.
+const money = (amount: string, currency: "EUR" | "BGN" | "USD") =>
   ({ kind: "money", amount, currency } as const);
 
 async function assertionsFor(
