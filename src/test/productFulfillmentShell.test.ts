@@ -69,7 +69,7 @@ describe("Изпълнението е обвивка без модел (Stage 2B
   });
 
   it("готовият резултат се връща само по схема v2 и без преработка", () => {
-    expect(FULFILL).toContain("ent.result_schema_version !== 2 || !isValidProductResult(ent.result)");
+    expect(FULFILL).toContain("ent.result_schema_version !== 2 || !validateProductResult(ent.result).ok");
     expect(FULFILL).toContain('return json({ status: "ready", result: ent.result');
   });
 

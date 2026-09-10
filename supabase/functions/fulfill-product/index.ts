@@ -33,7 +33,7 @@ import {
   ProductSourceError,
   verifyStoredProductSource,
 } from "../_shared/product-source.ts";
-import { isValidProductResult } from "../_shared/product-result-contract.ts";
+import { validateProductResult } from "../_shared/product-result-contract.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ALLOWED_BODY_KEYS = Object.freeze(["entitlement_id"]);
@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
 
     // 3) Готовият резултат се връща точно както е записан — без преработка.
     if (ent.status === "ready") {
-      if (ent.result_schema_version !== 2 || !isValidProductResult(ent.result)) {
+      if (ent.result_schema_version !== 2 || !validateProductResult(ent.result).ok) {
         return fail("failed_permanent", 409, headers, cid);
       }
       return json({ status: "ready", result: ent.result, correlation_id: cid }, 200, headers);
