@@ -52,7 +52,7 @@ describe("продуктова конфигурация — единствен �
     );
     expect(getProduct("contract_check").ctaLabel).toBe("Проверете документ");
     expect(getProduct("contract_check").ctaHref).toBe(
-      "/analiz?product=contract_check",
+      "/produkti/proverka-predi-podpis/start",
     );
     expect(getProduct("contract_improve").badge).toBe("Най-предпочитан");
     expect(getProduct("contract_improve").ctaHref).toBe(
